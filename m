@@ -1,29 +1,42 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: LMB bits
-Date: Mon, 12 Jul 2010 15:34:55 -0700 (PDT)
-Message-ID: <20100712.153455.108790468.davem@davemloft.net>
-References: <4C38DDE3.9010303@kernel.org>
-	<1278905081.28659.157.camel@pasglop>
-	<1278920286.28659.194.camel@pasglop>
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+Date: Mon, 12 Jul 2010 22:57:06 -0700
+Message-ID: <4C3C0032.5020702@codeaurora.org>
+References: <4C35034B.6040906@codeaurora.org>	<20100707230710.GA31792@n2100.arm.linux.org.uk>	<4C366678.60605@codeaurora.org> <20100712102435B.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:37933
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754396Ab0GLWek (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Jul 2010 18:34:40 -0400
-In-Reply-To: <1278920286.28659.194.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: yinghai@kernel.org, mingo@elte.hu, hpa@zytor.com, tglx@linutronix.de, torvalds@linux-foundation.org, linux-arch@vger.kernel.org
+Return-path: <linux-omap-owner@vger.kernel.org>
+In-Reply-To: <20100712102435B.fujita.tomonori@lab.ntt.co.jp>
+Sender: linux-omap-owner@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Mon, 12 Jul 2010 17:38:06 +1000
+FUJITA Tomonori wrote:
+> On Thu, 08 Jul 2010 16:59:52 -0700
+> Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> 
+>> The problem I'm trying to solve boils down to this: map a set of
+>> contiguous physical buffers to an aligned IOMMU address. I need to
+>> allocate the set of physical buffers in a particular way: use 1 MB
+>> contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
+>> align the IOMMU address in a particular way.
+> 
+> Sounds like the DMA API already supports what you want.
+> 
+> You can set segment_boundary_mask in struct device_dma_parameters if
+> you want to align the IOMMU address. See IOMMU implementations that
+> support dma_get_seg_boundary() properly.
 
-> Ok pushed.
+That function takes the wrong argument in a VCM world:
 
-Your current tree headed by 94f4de71740edb80dfbd3916fe83308d545a4419
-works fine for me.
+unsigned long dma_get_seg_boundary(struct device *dev);
+
+The boundary should be an attribute of the device side mapping,
+independent of the device. This would allow better code reuse.
+
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
