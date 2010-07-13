@@ -1,67 +1,53 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 34/50] memblock: Add memblock_find_in_range()
-Date: Tue, 13 Jul 2010 00:10:28 -0700
-Message-ID: <1279005044-24777-35-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 31/50] memblock: Export MEMBLOCK_ERROR again
+Date: Tue, 13 Jul 2010 00:10:25 -0700
+Message-ID: <1279005044-24777-32-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28535 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753208Ab0GMHQV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:21 -0400
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-it is a wrapper for memblock_find_base
+will used by x86 memblock_x86_find_in_range_node and nobootmem replacement
 
-make it more easy for x86 to use memblock. ( rebase )
-x86 early_res is using find/reserve pattern instead of alloc.
-
-keep it in weak version, so later We can use x86 own version if needed.
-also We need it in mm/memblock.c, so one caller mm/page_alloc.c could get compiled
-
--v2: Change name to memblock_find_in_range() according to Michael Ellerman
--v3: Add generic weak version __memblock_find_in_range()
-     so keep the path for fallback to x86 version that handle from low
--v4: use 0 for failing path
--v5: use MEMBLOCK_ERROR again
--v6: remove __memblock_find_in_range()
+-v2: use 0 instead -1ULL, Suggesed by Linus, so we don't need cast them later to unsigned long
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |    8 ++++++++
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ include/linux/memblock.h |    1 +
+ mm/memblock.c            |    2 --
+ 2 files changed, 1 insertions(+), 2 deletions(-)
 
 diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 751a4eb..61b22eb 100644
+index 70bc467..89749c4 100644
 --- a/include/linux/memblock.h
 +++ b/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern struct memblock_region memblock_reserved_init_regions[];
- #define memblock_dbg(fmt, ...) \
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+@@ -19,6 +19,7 @@
+ #include <asm/memblock.h>
  
-+u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
- extern long memblock_add(phys_addr_t base, phys_addr_t size);
+ #define INIT_MEMBLOCK_REGIONS 128
++#define MEMBLOCK_ERROR		0
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 7471dac..ca7de91 100644
+index 796ef8c..3d0a754 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -156,6 +156,14 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
- 	return MEMBLOCK_ERROR;
- }
+@@ -27,8 +27,6 @@ int memblock_can_resize;
+ static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
  
-+/*
-+ * Find a free area with specified alignment in a specific range.
-+ */
-+u64 __init __weak memblock_find_in_range(u64 start, u64 end, u64 size, u64 align)
-+{
-+	return memblock_find_base(size, align, start, end);
-+}
-+
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
+-#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+-
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *memblock_type_name(struct memblock_type *type)
  {
- 	unsigned long i;
 -- 
 1.6.4.2
