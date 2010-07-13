@@ -1,39 +1,60 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: LMB bits
-Date: Tue, 13 Jul 2010 09:45:18 -0700 (PDT)
-Message-ID: <20100713.094518.133409593.davem@davemloft.net>
-References: <20100712.153455.108790468.davem@davemloft.net>
-	<1279005164.28659.407.camel@pasglop>
-	<AANLkTikkqL9ppLDaLP6ISkuAawgGF-4ly28sAhdLW3AM@mail.gmail.com>
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: Re: [PATCH 45/50] x86, memblock: Use memblock_debug to control debug message print out
+Date: Tue, 13 Jul 2010 14:37:55 -0600
+Message-ID: <201007131437.55808.bjorn.helgaas@hp.com>
+References: <1279005044-24777-1-git-send-email-yinghai@kernel.org> <1279005044-24777-46-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36544
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756958Ab0GMQpE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jul 2010 12:45:04 -0400
-In-Reply-To: <AANLkTikkqL9ppLDaLP6ISkuAawgGF-4ly28sAhdLW3AM@mail.gmail.com>
+Received: from g1t0028.austin.hp.com ([15.216.28.35]:8077 "EHLO
+	g1t0028.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755324Ab0GMUh5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 16:37:57 -0400
+In-Reply-To: <1279005044-24777-46-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: benh@kernel.crashing.org, yinghai@kernel.org, mingo@elte.hu, hpa@zytor.com, tglx@linutronix.de, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 13 Jul 2010 08:11:57 -0700
+On Tuesday, July 13, 2010 01:10:39 am Yinghai Lu wrote:
+> -		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
+> +		memblock_dbg(" ==> [%#010llx-%#010llx]\n", final_start, final_end - 1);
+>  		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+>  	}
+>  
+> @@ -286,9 +286,11 @@ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
+>  	if (start == end)
+>  		return;
+>  
+> -	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
+> +	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
 
-> On Tue, Jul 13, 2010 at 12:12 AM, Benjamin Herrenschmidt
-> <benh@kernel.crashing.org> wrote:
->>
->> Ingo, Linus, how to you want to proceed ? We could get the rename patch
->> in now, that would make things easier for the ARM folks who have started
->> using LMB as well and are currently clashing in linux-next, and keep the
->> rest of the rework for the merge window ? Or keep the whole thing for
->> the merge window ?
-> 
-> If it's just a rename, and the accidental lmb renames have been all
-> sorted out, then I'm ok with taking a pure rename that changes nothing
-> else now, just to make things easier to merge later.
+Can you print these ranges the same way as the others?  I think
+"invalid range" might be closer to what you mean than "wrong range." 
 
-I'd also be real happy if we did this now too.
+I'm a little dubious about these "(start == end)" and "(start > end)"
+checks anyway.  Who are the callers of these functions?  If "start"
+and "end" are coming from an external source, e.g., some firmware
+interface like an e820 table, the message doesn't give enough of a
+clue about where the problem is.
+
+If "start" and "end" are internal things, I'd argue that the checks
+are just covering up Linux bugs, and it'd be better to fix those
+bugs and remove the checks.
+
+>  		return;
+>  
+> +	memblock_dbg("    memblock_x86_reserve_range: [%#010llx-%#010llx] %16s\n", start, end - 1, name);
+> +
+>  	memblock_reserve(start, end - start);
+>  }
+>  
+> @@ -297,9 +299,11 @@ void __init memblock_x86_free_range(u64 start, u64 end)
+>  	if (start == end)
+>  		return;
+>  
+> -	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
+> +	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
+>  		return;
