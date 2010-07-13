@@ -1,51 +1,71 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: LMB bits
-Date: Tue, 13 Jul 2010 10:54:25 +0200
-Message-ID: <20100713085425.GC7984@elte.hu>
-References: <4C38DDE3.9010303@kernel.org>
- <1278905081.28659.157.camel@pasglop>
- <1278920286.28659.194.camel@pasglop>
- <20100712.153455.108790468.davem@davemloft.net>
- <1279005164.28659.407.camel@pasglop>
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+Date: Tue, 13 Jul 2010 05:14:21 -0700
+Message-ID: <20100713121420.GB4263@codeaurora.org>
+References: <4C366678.60605@codeaurora.org>
+ <20100712102435B.fujita.tomonori@lab.ntt.co.jp>
+ <4C3C0032.5020702@codeaurora.org>
+ <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:35931 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753581Ab0GMIyj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jul 2010 04:54:39 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <1279005164.28659.407.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Miller <davem@davemloft.net>, yinghai@kernel.org, hpa@zytor.com, tglx@linutronix.de, torvalds@linux-foundation.org, linux-arch@vger.kernel.org
+In-Reply-To: <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
+Sender: owner-linux-mm@kvack.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-
-* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
-
-> On Mon, 2010-07-12 at 15:34 -0700, David Miller wrote:
-> > From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Date: Mon, 12 Jul 2010 17:38:06 +1000
-> > 
-> > > Ok pushed.
-> > 
-> > Your current tree headed by 94f4de71740edb80dfbd3916fe83308d545a4419
-> > works fine for me.
+On Tue, Jul 13, 2010 at 03:03:25PM +0900, FUJITA Tomonori wrote:
+> On Mon, 12 Jul 2010 22:57:06 -0700
+> Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
 > 
-> Thanks Dave.
+> > FUJITA Tomonori wrote:
+> > > On Thu, 08 Jul 2010 16:59:52 -0700
+> > > Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> > > 
+> > >> The problem I'm trying to solve boils down to this: map a set of
+> > >> contiguous physical buffers to an aligned IOMMU address. I need to
+> > >> allocate the set of physical buffers in a particular way: use 1 MB
+> > >> contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
+> > >> align the IOMMU address in a particular way.
+> > > 
+> > > Sounds like the DMA API already supports what you want.
+> > > 
+> > > You can set segment_boundary_mask in struct device_dma_parameters if
+> > > you want to align the IOMMU address. See IOMMU implementations that
+> > > support dma_get_seg_boundary() properly.
+> > 
+> > That function takes the wrong argument in a VCM world:
+> > 
+> > unsigned long dma_get_seg_boundary(struct device *dev);
+> > 
+> > The boundary should be an attribute of the device side mapping,
+> > independent of the device. This would allow better code reuse.
 > 
-> Ingo, Linus, how to you want to proceed ? We could get the rename patch in 
-> now, that would make things easier for the ARM folks who have started using 
-> LMB as well and are currently clashing in linux-next, and keep the rest of 
-> the rework for the merge window ? Or keep the whole thing for the merge 
-> window ?
+> You mean that you want to specify this alignment attribute every time
+> you create an IOMMU mapping? Then you can set segment_boundary_mask
+> every time you create an IOMMU mapping. It's odd but it should work.
 
-I'd suggest you send a pull request to Linus with the rename - it is purely 
-mechanical, tested and it will make life much easier in the merge window. 
-Also, we are shortly after -rc5 now so should there be any fallout, there's 
-enough time until -rc6.
+Kinda. I want to forget about IOMMUs, devices and CPUs. I just want to
+create a mapping that has the alignment I specify, regardless of the
+mapper. The mapping is created on a VCM and the VCM is associated with
+a mapper: a CPU, an IOMMU'd device or a direct mapped device.
 
-Thanks,
+> 
+> Another possible solution is extending struct dma_attrs. We could add
+> the alignment attribute to it.
 
-	Ingo
+That may be useful, but in the current DMA-API may be seen as
+redundant info.
+
+--
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
