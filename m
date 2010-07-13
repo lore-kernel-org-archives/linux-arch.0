@@ -1,100 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28782 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28749 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753889Ab0GMHQ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:27 -0400
+	with ESMTP id S1753694Ab0GMHQ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:26 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 26/50] memblock: Separate memblock_alloc_nid() and memblock_alloc_try_nid()
-Date: Tue, 13 Jul 2010 00:10:20 -0700
-Message-ID: <1279005044-24777-27-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/50] memblock: Add debug markers at the end of the array
+Date: Tue, 13 Jul 2010 00:10:10 -0700
+Message-ID: <1279005044-24777-17-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100713071020.cQZe5ikEUzfWHX7bSV70VYo16vWkLuEP_ZspOiuhJ3s@z>
+Message-ID: <20100713071010.S_lSPc0ApvuP_4448mWcf3n0MSlG4QzPPr9Iog3gQZ0@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-The former is now strict, it will fail if it cannot honor the allocation
-within the node, while the later implements the previous semantic which
-falls back to allocating anywhere.
+Since we allocate one more than needed, why not do a bit of sanity checking
+here to ensure we don't walk past the end of the array ?
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/sparc/mm/init_64.c  |    4 ++--
- include/linux/memblock.h |    6 +++++-
- mm/memblock.c            |   14 ++++++++++++++
- 3 files changed, 21 insertions(+), 3 deletions(-)
+ mm/memblock.c |   11 +++++++++++
+ 1 files changed, 11 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index 0883113..dc584d2 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -820,7 +820,7 @@ static void __init allocate_node_data(int nid)
- 	struct pglist_data *p;
- 
- #ifdef CONFIG_NEED_MULTIPLE_NODES
--	paddr = memblock_alloc_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
-+	paddr = memblock_alloc_try_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
- 	if (!paddr) {
- 		prom_printf("Cannot allocate pglist_data for nid[%d]\n", nid);
- 		prom_halt();
-@@ -840,7 +840,7 @@ static void __init allocate_node_data(int nid)
- 	if (p->node_spanned_pages) {
- 		num_pages = bootmem_bootmap_pages(p->node_spanned_pages);
- 
--		paddr = memblock_alloc_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
-+		paddr = memblock_alloc_try_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
- 		if (!paddr) {
- 			prom_printf("Cannot allocate bootmap for nid[%d]\n",
- 				  nid);
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index b69c243..08a12cf 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -50,7 +50,11 @@ extern long __init memblock_reserve(phys_addr_t base, phys_addr_t size);
- /* The numa aware allocator is only available if
-  * CONFIG_ARCH_POPULATES_NODE_MAP is set
-  */
--extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid);
-+extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align,
-+					int nid);
-+extern phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
-+					    int nid);
-+
- extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
- 
- /* Flags for memblock_alloc_base() amd __memblock_alloc_base() */
 diff --git a/mm/memblock.c b/mm/memblock.c
-index a9c15a5..c3c499e 100644
+index e1c5ce3..21ba089 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -537,9 +537,23 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
- 			return ret;
- 	}
+@@ -13,6 +13,7 @@
+ #include <linux/kernel.h>
+ #include <linux/init.h>
+ #include <linux/bitops.h>
++#include <linux/poison.h>
+ #include <linux/memblock.h>
  
-+	return 0;
-+}
-+
-+phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, int nid)
-+{
-+	phys_addr_t res = memblock_alloc_nid(size, align, nid);
-+
-+	if (res)
-+		return res;
- 	return memblock_alloc(size, align);
- }
+ struct memblock memblock;
+@@ -112,6 +113,10 @@ void __init memblock_init(void)
+ 	memblock.reserved.regions	= memblock_reserved_init_regions;
+ 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
  
++	/* Write a marker in the unused last array entry */
++	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
++	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
 +
-+/*
-+ * Remaining API functions
-+ */
-+
- /* You must call memblock_analyze() before this. */
- phys_addr_t __init memblock_phys_mem_size(void)
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -131,6 +136,12 @@ void __init memblock_analyze(void)
  {
+ 	int i;
+ 
++	/* Check marker in the unused last array entry */
++	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
++		!= (phys_addr_t)RED_INACTIVE);
++
+ 	memblock.memory_size = 0;
+ 
+ 	for (i = 0; i < memblock.memory.cnt; i++)
 -- 
 1.6.4.2
 
