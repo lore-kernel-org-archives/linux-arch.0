@@ -1,47 +1,132 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/50] memblock: Remove unused memblock.debug struct member
-Date: Tue, 13 Jul 2010 00:10:07 -0700
-Message-ID: <1279005044-24777-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/50] memblock: split memblock_find_base() out of __memblock_alloc_base()
+Date: Tue, 13 Jul 2010 00:10:14 -0700
+Message-ID: <1279005044-24777-21-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28642 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754062Ab0GMHQY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:24 -0400
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Yinghai Lu <yinghai@kernel.org>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+This will be used by the array resize code and might prove useful
+to some arch code as well at which point it can be made non-static.
+
+Also add comment as to why aligning size is important
+
+[ Yinghai Lu ]: it should return MEMBLOCK_ERROR when it fail to find a range
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+ mm/memblock.c |   58 +++++++++++++++++++++++++++++++++++++-------------------
+ 1 files changed, 38 insertions(+), 20 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 3b41f61..5abb06b 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -32,7 +32,6 @@ struct memblock_type {
- };
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 1283893..17403e6 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -345,12 +345,15 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
  
- struct memblock {
--	unsigned long debug;
- 	phys_addr_t current_limit;
- 	struct memblock_type memory;
- 	struct memblock_type reserved;
-@@ -55,9 +54,11 @@ extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
- #define MEMBLOCK_ALLOC_ACCESSIBLE	0
+ 	BUG_ON(0 == size);
  
- extern phys_addr_t __init memblock_alloc_base(phys_addr_t size,
--		phys_addr_t, phys_addr_t max_addr);
-+					 phys_addr_t align,
-+					 phys_addr_t max_addr);
- extern phys_addr_t __init __memblock_alloc_base(phys_addr_t size,
--		phys_addr_t align, phys_addr_t max_addr);
-+					   phys_addr_t align,
-+					   phys_addr_t max_addr);
- extern phys_addr_t __init memblock_phys_mem_size(void);
- extern phys_addr_t memblock_end_of_DRAM(void);
- extern void __init memblock_enforce_memory_limit(phys_addr_t memory_limit);
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
+ 	/* We do a bottom-up search for a region with the right
+ 	 * nid since that's easier considering how memblock_nid_range()
+ 	 * works
+ 	 */
+-	size = memblock_align_up(size, align);
+-
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
+ 					       size, align, nid);
+@@ -366,20 +369,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
+ }
+ 
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+ 	long i;
+ 	phys_addr_t base = 0;
+@@ -387,8 +377,6 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 
+ 	BUG_ON(0 == size);
+ 
+-	size = memblock_align_up(size, align);
+-
+ 	/* Pump up max_addr */
+ 	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+ 		max_addr = memblock.current_limit;
+@@ -405,13 +393,43 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR &&
+-		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
++		if (res_base != MEMBLOCK_ERROR)
+ 			return res_base;
+ 	}
++	return MEMBLOCK_ERROR;
++}
++
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{	
++	phys_addr_t found;
++
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
++	found = memblock_find_base(size, align, max_addr);
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
++
+ 	return 0;
+ }
+ 
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{
++	phys_addr_t alloc;
++
++	alloc = __memblock_alloc_base(size, align, max_addr);
++
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
++
++	return alloc;
++}
++
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
