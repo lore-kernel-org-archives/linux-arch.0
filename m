@@ -1,56 +1,40 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Date: Tue, 13 Jul 2010 15:03:25 +0900
-Message-ID: <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
-References: <4C366678.60605@codeaurora.org>
-	<20100712102435B.fujita.tomonori@lab.ntt.co.jp>
-	<4C3C0032.5020702@codeaurora.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: LMB bits
+Date: Tue, 13 Jul 2010 17:12:44 +1000
+Message-ID: <1279005164.28659.407.camel@pasglop>
+References: <4C38DDE3.9010303@kernel.org>
+	 <1278905081.28659.157.camel@pasglop> <1278920286.28659.194.camel@pasglop>
+	 <20100712.153455.108790468.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4C3C0032.5020702@codeaurora.org>
-Sender: owner-linux-mm@kvack.org
-To: zpfeffer@codeaurora.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:37316 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752172Ab0GMHNN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Jul 2010 03:13:13 -0400
+In-Reply-To: <20100712.153455.108790468.davem@davemloft.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: yinghai@kernel.org, mingo@elte.hu, hpa@zytor.com, tglx@linutronix.de, torvalds@linux-foundation.org, linux-arch@vger.kernel.org
 
-On Mon, 12 Jul 2010 22:57:06 -0700
-Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
-
-> FUJITA Tomonori wrote:
-> > On Thu, 08 Jul 2010 16:59:52 -0700
-> > Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
-> > 
-> >> The problem I'm trying to solve boils down to this: map a set of
-> >> contiguous physical buffers to an aligned IOMMU address. I need to
-> >> allocate the set of physical buffers in a particular way: use 1 MB
-> >> contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
-> >> align the IOMMU address in a particular way.
-> > 
-> > Sounds like the DMA API already supports what you want.
-> > 
-> > You can set segment_boundary_mask in struct device_dma_parameters if
-> > you want to align the IOMMU address. See IOMMU implementations that
-> > support dma_get_seg_boundary() properly.
+On Mon, 2010-07-12 at 15:34 -0700, David Miller wrote:
+> From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Date: Mon, 12 Jul 2010 17:38:06 +1000
 > 
-> That function takes the wrong argument in a VCM world:
+> > Ok pushed.
 > 
-> unsigned long dma_get_seg_boundary(struct device *dev);
-> 
-> The boundary should be an attribute of the device side mapping,
-> independent of the device. This would allow better code reuse.
+> Your current tree headed by 94f4de71740edb80dfbd3916fe83308d545a4419
+> works fine for me.
 
-You mean that you want to specify this alignment attribute every time
-you create an IOMMU mapping? Then you can set segment_boundary_mask
-every time you create an IOMMU mapping. It's odd but it should work.
+Thanks Dave.
 
-Another possible solution is extending struct dma_attrs. We could add
-the alignment attribute to it.
+Ingo, Linus, how to you want to proceed ? We could get the rename patch
+in now, that would make things easier for the ARM folks who have started
+using LMB as well and are currently clashing in linux-next, and keep the
+rest of the rework for the merge window ? Or keep the whole thing for
+the merge window ?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers,
+Ben.
