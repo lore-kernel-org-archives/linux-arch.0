@@ -1,87 +1,98 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/50] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
-Date: Tue, 13 Jul 2010 00:10:09 -0700
-Message-ID: <1279005044-24777-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 26/50] memblock: Separate memblock_alloc_nid() and memblock_alloc_try_nid()
+Date: Tue, 13 Jul 2010 00:10:20 -0700
+Message-ID: <1279005044-24777-27-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28782 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753889Ab0GMHQ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:27 -0400
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-This is in preparation for having resizable arrays.
-
-Note that we still allocate one more than needed, this is unchanged from
-the previous implementation.
+The former is now strict, it will fail if it cannot honor the allocation
+within the node, while the later implements the previous semantic which
+falls back to allocating anywhere.
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    7 ++++---
- mm/memblock.c            |   10 +++++++++-
- 2 files changed, 13 insertions(+), 4 deletions(-)
+ arch/sparc/mm/init_64.c  |    4 ++--
+ include/linux/memblock.h |    6 +++++-
+ mm/memblock.c            |   14 ++++++++++++++
+ 3 files changed, 21 insertions(+), 3 deletions(-)
 
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 0883113..dc584d2 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -820,7 +820,7 @@ static void __init allocate_node_data(int nid)
+ 	struct pglist_data *p;
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+-	paddr = memblock_alloc_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
++	paddr = memblock_alloc_try_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
+ 	if (!paddr) {
+ 		prom_printf("Cannot allocate pglist_data for nid[%d]\n", nid);
+ 		prom_halt();
+@@ -840,7 +840,7 @@ static void __init allocate_node_data(int nid)
+ 	if (p->node_spanned_pages) {
+ 		num_pages = bootmem_bootmap_pages(p->node_spanned_pages);
+ 
+-		paddr = memblock_alloc_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
++		paddr = memblock_alloc_try_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
+ 		if (!paddr) {
+ 			prom_printf("Cannot allocate bootmap for nid[%d]\n",
+ 				  nid);
 diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index e849d31..b839053 100644
+index b69c243..08a12cf 100644
 --- a/include/linux/memblock.h
 +++ b/include/linux/memblock.h
-@@ -18,7 +18,7 @@
+@@ -50,7 +50,11 @@ extern long __init memblock_reserve(phys_addr_t base, phys_addr_t size);
+ /* The numa aware allocator is only available if
+  * CONFIG_ARCH_POPULATES_NODE_MAP is set
+  */
+-extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid);
++extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align,
++					int nid);
++extern phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
++					    int nid);
++
+ extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
  
- #include <asm/memblock.h>
- 
--#define MAX_MEMBLOCK_REGIONS 128
-+#define INIT_MEMBLOCK_REGIONS 128
- 
- struct memblock_region {
- 	phys_addr_t base;
-@@ -26,8 +26,9 @@ struct memblock_region {
- };
- 
- struct memblock_type {
--	unsigned long cnt;
--	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
-+	unsigned long cnt;	/* number of regions */
-+	unsigned long max;	/* size of the allocated array */
-+	struct memblock_region *regions;
- };
- 
- struct memblock {
+ /* Flags for memblock_alloc_base() amd __memblock_alloc_base() */
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 78c2394..e1c5ce3 100644
+index a9c15a5..c3c499e 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -18,6 +18,8 @@
- struct memblock memblock;
+@@ -537,9 +537,23 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
+ 			return ret;
+ 	}
  
- static int memblock_debug;
-+static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
-+static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- 
- static int __init early_memblock(char *p)
- {
-@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
- 
- void __init memblock_init(void)
- {
-+	/* Hookup the initial arrays */
-+	memblock.memory.regions	= memblock_memory_init_regions;
-+	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
-+	memblock.reserved.regions	= memblock_reserved_init_regions;
-+	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
++	return 0;
++}
 +
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
-@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
++phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, int nid)
++{
++	phys_addr_t res = memblock_alloc_nid(size, align, nid);
++
++	if (res)
++		return res;
+ 	return memblock_alloc(size, align);
+ }
  
- 	if (coalesced)
- 		return coalesced;
--	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
-+	if (type->cnt >= type->max)
- 		return -1;
- 
- 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
++
++/*
++ * Remaining API functions
++ */
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
