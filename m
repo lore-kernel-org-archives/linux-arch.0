@@ -1,417 +1,439 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:24482 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28732 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752640Ab0GMHOc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:14:32 -0400
+	with ESMTP id S1754133Ab0GMHQ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:26 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/50] memblock: Introduce default allocation limit and use it to replace explicit ones
-Date: Tue, 13 Jul 2010 00:10:04 -0700
-Message-ID: <1279005044-24777-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/50] memblock: Remove rmo_size, burry it in arch/powerpc where it belongs
+Date: Tue, 13 Jul 2010 00:10:05 -0700
+Message-ID: <1279005044-24777-12-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100713071004.ucvXtINuJ1bJBeA03g-kBJ1CXxUOLA8W1ygJ0l1qdVA@z>
+Message-ID: <20100713071005.LnqX0L1WBjyRrIYzSRSazMMl165dmtdrGIDPK8ib0-I@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-This introduce memblock.current_limit which is used to limit allocations
-from memblock_alloc() or memblock_alloc_base(..., MEMBLOCK_ALLOC_ACCESSIBLE).
+The RMA (RMO is a misnomer) is a concept specific to ppc64 (in fact
+server ppc64 though I hijack it on embedded ppc64 for similar purposes)
+and represents the area of memory that can be accessed in real mode
+(aka with MMU off), or on embedded, from the exception vectors (which
+is bolted in the TLB) which pretty much boils down to the same thing.
 
-The old MEMBLOCK_ALLOC_ANYWHERE changes value from 0 to ~(u64)0 and can still
-be used with memblock_alloc_base() to allocate really anywhere.
-
-It is -no-longer- cropped to MEMBLOCK_REAL_LIMIT which disappears.
-
-Note to archs: I'm leaving the default limit to MEMBLOCK_ALLOC_ANYWHERE. I
-strongly recommend that you ensure that you set an appropriate limit
-during boot in order to guarantee that an memblock_alloc() at any time
-results in something that is accessible with a simple __va().
-
-The reason is that a subsequent patch will introduce the ability for
-the array to resize itself by reallocating itself. The MEMBLOCK core will
-honor the current limit when performing those allocations.
+We take that out of the generic MEMBLOCK data structure and move it into
+arch/powerpc where it belongs, renaming it to "RMA" while at it.
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/microblaze/include/asm/memblock.h |    3 ---
- arch/powerpc/include/asm/memblock.h    |    7 -------
- arch/powerpc/kernel/prom.c             |   20 +++++++++++++++++++-
- arch/powerpc/kernel/setup_32.c         |    2 +-
- arch/powerpc/mm/40x_mmu.c              |    5 +++--
- arch/powerpc/mm/fsl_booke_mmu.c        |    3 ++-
- arch/powerpc/mm/hash_utils_64.c        |    3 ++-
- arch/powerpc/mm/init_32.c              |   29 +++++++----------------------
- arch/powerpc/mm/ppc_mmu_32.c           |    3 +--
- arch/powerpc/mm/tlb_nohash.c           |    2 ++
- arch/sh/include/asm/memblock.h         |    2 --
- arch/sparc/include/asm/memblock.h      |    2 --
- include/linux/memblock.h               |   16 +++++++++++++++-
- mm/memblock.c                          |   19 +++++++++++--------
- 14 files changed, 63 insertions(+), 53 deletions(-)
+ arch/powerpc/include/asm/mmu.h  |   12 ++++++++++++
+ arch/powerpc/kernel/head_40x.S  |    6 +-----
+ arch/powerpc/kernel/paca.c      |    2 +-
+ arch/powerpc/kernel/prom.c      |   29 ++++++++---------------------
+ arch/powerpc/kernel/rtas.c      |    2 +-
+ arch/powerpc/kernel/setup_64.c  |    2 +-
+ arch/powerpc/mm/40x_mmu.c       |   14 +++++++++++++-
+ arch/powerpc/mm/44x_mmu.c       |   14 ++++++++++++++
+ arch/powerpc/mm/fsl_booke_mmu.c |    9 +++++++++
+ arch/powerpc/mm/hash_utils_64.c |   22 +++++++++++++++++++++-
+ arch/powerpc/mm/init_32.c       |   14 ++++++++++++++
+ arch/powerpc/mm/init_64.c       |    1 +
+ arch/powerpc/mm/ppc_mmu_32.c    |   15 +++++++++++++++
+ arch/powerpc/mm/tlb_nohash.c    |   14 ++++++++++++++
+ include/linux/memblock.h        |    1 -
+ mm/memblock.c                   |    8 --------
+ 16 files changed, 125 insertions(+), 40 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/memblock.h b/arch/microblaze/include/asm/memblock.h
-index f9c2fa3..20a8e25 100644
---- a/arch/microblaze/include/asm/memblock.h
-+++ b/arch/microblaze/include/asm/memblock.h
-@@ -9,9 +9,6 @@
- #ifndef _ASM_MICROBLAZE_MEMBLOCK_H
- #define _ASM_MICROBLAZE_MEMBLOCK_H
+diff --git a/arch/powerpc/include/asm/mmu.h b/arch/powerpc/include/asm/mmu.h
+index 7ebf42e..bb40a06 100644
+--- a/arch/powerpc/include/asm/mmu.h
++++ b/arch/powerpc/include/asm/mmu.h
+@@ -2,6 +2,8 @@
+ #define _ASM_POWERPC_MMU_H_
+ #ifdef __KERNEL__
  
--/* MEMBLOCK limit is OFF */
--#define MEMBLOCK_REAL_LIMIT	0xFFFFFFFF
--
- #endif /* _ASM_MICROBLAZE_MEMBLOCK_H */
++#include <linux/types.h>
++
+ #include <asm/asm-compat.h>
+ #include <asm/feature-fixups.h>
  
+@@ -82,6 +84,16 @@ extern unsigned int __start___mmu_ftr_fixup, __stop___mmu_ftr_fixup;
+ extern void early_init_mmu(void);
+ extern void early_init_mmu_secondary(void);
  
-diff --git a/arch/powerpc/include/asm/memblock.h b/arch/powerpc/include/asm/memblock.h
-index 3c29728..43efc34 100644
---- a/arch/powerpc/include/asm/memblock.h
-+++ b/arch/powerpc/include/asm/memblock.h
-@@ -5,11 +5,4 @@
++extern void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				       phys_addr_t first_memblock_size);
++
++#ifdef CONFIG_PPC64
++/* This is our real memory area size on ppc64 server, on embedded, we
++ * make it match the size our of bolted TLB area
++ */
++extern u64 ppc64_rma_size;
++#endif /* CONFIG_PPC64 */
++
+ #endif /* !__ASSEMBLY__ */
  
- #define MEMBLOCK_DBG(fmt...) udbg_printf(fmt)
+ /* The kernel use the constants below to index in the page sizes array.
+diff --git a/arch/powerpc/kernel/head_40x.S b/arch/powerpc/kernel/head_40x.S
+index a90625f..8278e8b 100644
+--- a/arch/powerpc/kernel/head_40x.S
++++ b/arch/powerpc/kernel/head_40x.S
+@@ -923,11 +923,7 @@ initial_mmu:
+ 	mtspr	SPRN_PID,r0
+ 	sync
  
--#ifdef CONFIG_PPC32
--extern phys_addr_t lowmem_end_addr;
--#define MEMBLOCK_REAL_LIMIT	lowmem_end_addr
--#else
--#define MEMBLOCK_REAL_LIMIT	0
--#endif
--
- #endif /* _ASM_POWERPC_MEMBLOCK_H */
+-	/* Configure and load two entries into TLB slots 62 and 63.
+-	 * In case we are pinning TLBs, these are reserved in by the
+-	 * other TLB functions.  If not reserving, then it doesn't
+-	 * matter where they are loaded.
+-	 */
++	/* Configure and load one entry into TLB slots 63 */
+ 	clrrwi	r4,r4,10		/* Mask off the real page number */
+ 	ori	r4,r4,(TLB_WR | TLB_EX)	/* Set the write and execute bits */
+ 
+diff --git a/arch/powerpc/kernel/paca.c b/arch/powerpc/kernel/paca.c
+index 139a773..b9ffd7d 100644
+--- a/arch/powerpc/kernel/paca.c
++++ b/arch/powerpc/kernel/paca.c
+@@ -117,7 +117,7 @@ void __init allocate_pacas(void)
+ 	 * the first segment. On iSeries they must be within the area mapped
+ 	 * by the HV, which is HvPagesToMap * HVPAGESIZE bytes.
+ 	 */
+-	limit = min(0x10000000ULL, memblock.rmo_size);
++	limit = min(0x10000000ULL, ppc64_rma_size);
+ 	if (firmware_has_feature(FW_FEATURE_ISERIES))
+ 		limit = min(limit, HvPagesToMap * HVPAGESIZE);
+ 
 diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
-index 9d39539..f665d1b 100644
+index f665d1b..f12b193 100644
 --- a/arch/powerpc/kernel/prom.c
 +++ b/arch/powerpc/kernel/prom.c
-@@ -98,7 +98,7 @@ static void __init move_device_tree(void)
+@@ -66,6 +66,7 @@
+ int __initdata iommu_is_off;
+ int __initdata iommu_force_on;
+ unsigned long tce_alloc_start, tce_alloc_end;
++u64 ppc64_rma_size;
+ #endif
  
- 	if ((memory_limit && (start + size) > memory_limit) ||
- 			overlaps_crashkernel(start, size)) {
--		p = __va(memblock_alloc_base(size, PAGE_SIZE, memblock.rmo_size));
-+		p = __va(memblock_alloc(size, PAGE_SIZE));
- 		memcpy(p, initial_boot_params, size);
- 		initial_boot_params = (struct boot_param_header *)p;
- 		DBG("Moved device tree to 0x%p\n", p);
-@@ -655,6 +655,21 @@ static void __init phyp_dump_reserve_mem(void)
+ static int __init early_parse_mem(char *p)
+@@ -492,7 +493,7 @@ static int __init early_init_dt_scan_memory_ppc(unsigned long node,
+ 
+ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+ {
+-#if defined(CONFIG_PPC64)
++#ifdef CONFIG_PPC64
+ 	if (iommu_is_off) {
+ 		if (base >= 0x80000000ul)
+ 			return;
+@@ -501,9 +502,13 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+ 	}
+ #endif
+ 
+-	memblock_add(base, size);
+-
++	/* First MEMBLOCK added, do some special initializations */
++	if (memstart_addr == ~(phys_addr_t)0)
++		setup_initial_memory_limit(base, size);
+ 	memstart_addr = min((u64)memstart_addr, base);
++
++	/* Add the chunk to the MEMBLOCK list */
++	memblock_add(base, size);
+ }
+ 
+ u64 __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
+@@ -655,22 +660,6 @@ static void __init phyp_dump_reserve_mem(void)
  static inline void __init phyp_dump_reserve_mem(void) {}
  #endif /* CONFIG_PHYP_DUMP  && CONFIG_PPC_RTAS */
  
-+static void set_boot_memory_limit(void)
-+{
-+#ifdef CONFIG_PPC32
-+	/* 601 can only access 16MB at the moment */
-+	if (PVR_VER(mfspr(SPRN_PVR)) == 1)
-+		memblock_set_current_limit(0x01000000);
-+	/* 8xx can only access 8MB at the moment */
-+	else if (PVR_VER(mfspr(SPRN_PVR)) == 0x50)
-+		memblock_set_current_limit(0x00800000);
-+	else
-+		memblock_set_current_limit(0x10000000);
-+#else
-+	memblock_set_current_limit(memblock.rmo_size);
-+#endif
-+}
- 
+-static void set_boot_memory_limit(void)
+-{
+-#ifdef CONFIG_PPC32
+-	/* 601 can only access 16MB at the moment */
+-	if (PVR_VER(mfspr(SPRN_PVR)) == 1)
+-		memblock_set_current_limit(0x01000000);
+-	/* 8xx can only access 8MB at the moment */
+-	else if (PVR_VER(mfspr(SPRN_PVR)) == 0x50)
+-		memblock_set_current_limit(0x00800000);
+-	else
+-		memblock_set_current_limit(0x10000000);
+-#else
+-	memblock_set_current_limit(memblock.rmo_size);
+-#endif
+-}
+-
  void __init early_init_devtree(void *params)
  {
-@@ -683,6 +698,7 @@ void __init early_init_devtree(void *params)
- 
- 	/* Scan memory nodes and rebuild MEMBLOCKs */
- 	memblock_init();
-+
- 	of_scan_flat_dt(early_init_dt_scan_root, NULL);
- 	of_scan_flat_dt(early_init_dt_scan_memory_ppc, NULL);
- 
-@@ -718,6 +734,8 @@ void __init early_init_devtree(void *params)
+ 	phys_addr_t limit;
+@@ -734,8 +723,6 @@ void __init early_init_devtree(void *params)
  
  	DBG("Phys. mem: %llx\n", memblock_phys_mem_size());
  
-+	set_boot_memory_limit();
-+
+-	set_boot_memory_limit();
+-
  	/* We may need to relocate the flat tree, do it now.
  	 * FIXME .. and the initrd too? */
  	move_device_tree();
-diff --git a/arch/powerpc/kernel/setup_32.c b/arch/powerpc/kernel/setup_32.c
-index a10ffc8..b7eb1de 100644
---- a/arch/powerpc/kernel/setup_32.c
-+++ b/arch/powerpc/kernel/setup_32.c
-@@ -246,7 +246,7 @@ static void __init irqstack_early_init(void)
- 	unsigned int i;
+diff --git a/arch/powerpc/kernel/rtas.c b/arch/powerpc/kernel/rtas.c
+index d0516db..1662777 100644
+--- a/arch/powerpc/kernel/rtas.c
++++ b/arch/powerpc/kernel/rtas.c
+@@ -934,7 +934,7 @@ void __init rtas_initialize(void)
+ 	 */
+ #ifdef CONFIG_PPC64
+ 	if (machine_is(pseries) && firmware_has_feature(FW_FEATURE_LPAR)) {
+-		rtas_region = min(memblock.rmo_size, RTAS_INSTANTIATE_MAX);
++		rtas_region = min(ppc64_rma_size, RTAS_INSTANTIATE_MAX);
+ 		ibm_suspend_me_token = rtas_token("ibm,suspend-me");
+ 	}
+ #endif
+diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
+index d135f93..4360944 100644
+--- a/arch/powerpc/kernel/setup_64.c
++++ b/arch/powerpc/kernel/setup_64.c
+@@ -487,7 +487,7 @@ static void __init emergency_stack_init(void)
+ 	 * bringup, we need to get at them in real mode. This means they
+ 	 * must also be within the RMO region.
+ 	 */
+-	limit = min(slb0_limit(), memblock.rmo_size);
++	limit = min(slb0_limit(), ppc64_rma_size);
  
- 	/* interrupt stacks must be in lowmem, we get that for free on ppc32
--	 * as the memblock is limited to lowmem by MEMBLOCK_REAL_LIMIT */
-+	 * as the memblock is limited to lowmem by default */
  	for_each_possible_cpu(i) {
- 		softirq_ctx[i] = (struct thread_info *)
- 			__va(memblock_alloc(THREAD_SIZE, THREAD_SIZE));
+ 		unsigned long sp;
 diff --git a/arch/powerpc/mm/40x_mmu.c b/arch/powerpc/mm/40x_mmu.c
-index 1dc2fa5..58969b5 100644
+index 58969b5..5810967 100644
 --- a/arch/powerpc/mm/40x_mmu.c
 +++ b/arch/powerpc/mm/40x_mmu.c
-@@ -35,6 +35,7 @@
- #include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/highmem.h>
-+#include <linux/memblock.h>
- 
- #include <asm/pgalloc.h>
- #include <asm/prom.h>
-@@ -47,6 +48,7 @@
- #include <asm/bootx.h>
- #include <asm/machdep.h>
- #include <asm/setup.h>
-+
- #include "mmu_decl.h"
- 
- extern int __map_without_ltlbs;
-@@ -139,8 +141,7 @@ unsigned long __init mmu_mapin_ram(unsigned long top)
+@@ -141,7 +141,19 @@ unsigned long __init mmu_mapin_ram(unsigned long top)
  	 * coverage with normal-sized pages (or other reasons) do not
  	 * attempt to allocate outside the allowed range.
  	 */
--
--	__initial_memory_limit_addr = memstart_addr + mapped;
-+	memblock_set_current_limit(memstart_addr + mapped);
+-	memblock_set_current_limit(memstart_addr + mapped);
++	memblock_set_current_limit(mapped);
  
  	return mapped;
  }
-diff --git a/arch/powerpc/mm/fsl_booke_mmu.c b/arch/powerpc/mm/fsl_booke_mmu.c
-index cdc7526..e525f86 100644
---- a/arch/powerpc/mm/fsl_booke_mmu.c
-+++ b/arch/powerpc/mm/fsl_booke_mmu.c
-@@ -40,6 +40,7 @@
- #include <linux/init.h>
- #include <linux/delay.h>
- #include <linux/highmem.h>
-+#include <linux/memblock.h>
- 
- #include <asm/pgalloc.h>
- #include <asm/prom.h>
-@@ -212,5 +213,5 @@ void __init adjust_total_lowmem(void)
- 	pr_cont("%lu Mb, residual: %dMb\n", tlbcam_sz(tlbcam_index - 1) >> 20,
- 	        (unsigned int)((total_lowmem - __max_low_memory) >> 20));
- 
--	__initial_memory_limit_addr = memstart_addr + __max_low_memory;
-+	memblock_set_current_limit(memstart_addr + __max_low_memory);
- }
-diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
-index c630b4f..79f9445 100644
---- a/arch/powerpc/mm/hash_utils_64.c
-+++ b/arch/powerpc/mm/hash_utils_64.c
-@@ -696,7 +696,8 @@ static void __init htab_initialize(void)
- #endif /* CONFIG_U3_DART */
- 		BUG_ON(htab_bolt_mapping(base, base + size, __pa(base),
- 				prot, mmu_linear_psize, mmu_kernel_ssize));
--       }
-+	}
-+	memblock_set_current_limit(MEMBLOCK_ALLOC_ANYWHERE);
- 
- 	/*
- 	 * If we have a memory_limit and we've allocated TCEs then we need to
-diff --git a/arch/powerpc/mm/init_32.c b/arch/powerpc/mm/init_32.c
-index 6a6975d..59b208b 100644
---- a/arch/powerpc/mm/init_32.c
-+++ b/arch/powerpc/mm/init_32.c
-@@ -92,12 +92,6 @@ int __allow_ioremap_reserved;
- unsigned long __max_low_memory = MAX_LOW_MEM;
- 
- /*
-- * address of the limit of what is accessible with initial MMU setup -
-- * 256MB usually, but only 16MB on 601.
-- */
--phys_addr_t __initial_memory_limit_addr = (phys_addr_t)0x10000000;
--
--/*
-  * Check for command-line options that affect what MMU_init will do.
-  */
- void MMU_setup(void)
-@@ -126,13 +120,6 @@ void __init MMU_init(void)
- 	if (ppc_md.progress)
- 		ppc_md.progress("MMU:enter", 0x111);
- 
--	/* 601 can only access 16MB at the moment */
--	if (PVR_VER(mfspr(SPRN_PVR)) == 1)
--		__initial_memory_limit_addr = 0x01000000;
--	/* 8xx can only access 8MB at the moment */
--	if (PVR_VER(mfspr(SPRN_PVR)) == 0x50)
--		__initial_memory_limit_addr = 0x00800000;
--
- 	/* parse args from command line */
- 	MMU_setup();
- 
-@@ -190,20 +177,18 @@ void __init MMU_init(void)
- #ifdef CONFIG_BOOTX_TEXT
- 	btext_unmap();
- #endif
 +
-+	/* Shortly after that, the entire linear mapping will be available */
-+	memblock_set_current_limit(lowmem_end_addr);
- }
- 
- /* This is only called until mem_init is done. */
- void __init *early_get_page(void)
- {
--	void *p;
--
--	if (init_bootmem_done) {
--		p = alloc_bootmem_pages(PAGE_SIZE);
--	} else {
--		p = __va(memblock_alloc_base(PAGE_SIZE, PAGE_SIZE,
--					__initial_memory_limit_addr));
--	}
--	return p;
-+	if (init_bootmem_done)
-+		return alloc_bootmem_pages(PAGE_SIZE);
-+	else
-+		return __va(memblock_alloc(PAGE_SIZE, PAGE_SIZE));
- }
- 
- /* Free up now-unused memory */
-diff --git a/arch/powerpc/mm/ppc_mmu_32.c b/arch/powerpc/mm/ppc_mmu_32.c
-index f8a0182..7d34e17 100644
---- a/arch/powerpc/mm/ppc_mmu_32.c
-+++ b/arch/powerpc/mm/ppc_mmu_32.c
-@@ -223,8 +223,7 @@ void __init MMU_init_hw(void)
- 	 * Find some memory for the hash table.
- 	 */
- 	if ( ppc_md.progress ) ppc_md.progress("hash:find piece", 0x322);
--	Hash = __va(memblock_alloc_base(Hash_size, Hash_size,
--				   __initial_memory_limit_addr));
-+	Hash = __va(memblock_alloc(Hash_size, Hash_size));
- 	cacheable_memzero(Hash, Hash_size);
- 	_SDR1 = __pa(Hash) | SDR1_LOW_BITS;
- 
-diff --git a/arch/powerpc/mm/tlb_nohash.c b/arch/powerpc/mm/tlb_nohash.c
-index d8695b0..7ba32e7 100644
---- a/arch/powerpc/mm/tlb_nohash.c
-+++ b/arch/powerpc/mm/tlb_nohash.c
-@@ -432,6 +432,8 @@ static void __early_init_mmu(int boot_cpu)
- 	 * the MMU configuration
- 	 */
- 	mb();
-+
-+	memblock_set_current_limit(linear_map_top);
- }
- 
- void __init early_init_mmu(void)
-diff --git a/arch/sh/include/asm/memblock.h b/arch/sh/include/asm/memblock.h
-index dfe683b..e87063f 100644
---- a/arch/sh/include/asm/memblock.h
-+++ b/arch/sh/include/asm/memblock.h
-@@ -1,6 +1,4 @@
- #ifndef __ASM_SH_MEMBLOCK_H
- #define __ASM_SH_MEMBLOCK_H
- 
--#define MEMBLOCK_REAL_LIMIT	0
--
- #endif /* __ASM_SH_MEMBLOCK_H */
-diff --git a/arch/sparc/include/asm/memblock.h b/arch/sparc/include/asm/memblock.h
-index f12af88..c67b047 100644
---- a/arch/sparc/include/asm/memblock.h
-+++ b/arch/sparc/include/asm/memblock.h
-@@ -5,6 +5,4 @@
- 
- #define MEMBLOCK_DBG(fmt...) prom_printf(fmt)
- 
--#define MEMBLOCK_REAL_LIMIT	0
--
- #endif /* !(_SPARC64_MEMBLOCK_H) */
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 5853752..aabdcdd 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -34,6 +34,7 @@ struct memblock_type {
- struct memblock {
- 	unsigned long debug;
- 	u64 rmo_size;
-+	u64 current_limit;
- 	struct memblock_type memory;
- 	struct memblock_type reserved;
- };
-@@ -46,11 +47,16 @@ extern long memblock_add(u64 base, u64 size);
- extern long memblock_remove(u64 base, u64 size);
- extern long __init memblock_free(u64 base, u64 size);
- extern long __init memblock_reserve(u64 base, u64 size);
-+
- extern u64 __init memblock_alloc_nid(u64 size, u64 align, int nid);
- extern u64 __init memblock_alloc(u64 size, u64 align);
-+
-+/* Flags for memblock_alloc_base() amd __memblock_alloc_base() */
-+#define MEMBLOCK_ALLOC_ANYWHERE	(~(u64)0)
-+#define MEMBLOCK_ALLOC_ACCESSIBLE	0
-+
- extern u64 __init memblock_alloc_base(u64 size,
- 		u64, u64 max_addr);
--#define MEMBLOCK_ALLOC_ANYWHERE	0
- extern u64 __init __memblock_alloc_base(u64 size,
- 		u64 align, u64 max_addr);
- extern u64 __init memblock_phys_mem_size(void);
-@@ -64,6 +70,14 @@ extern void memblock_dump_all(void);
- /* Provided by the architecture */
- extern u64 memblock_nid_range(u64 start, u64 end, int *nid);
- 
-+/**
-+ * memblock_set_current_limit - Set the current allocation limit to allow
-+ *                         limiting allocations to what is currently
-+ *                         accessible during boot
-+ * @limit: New limit value (physical address)
-+ */
-+extern void memblock_set_current_limit(u64 limit);
-+
- 
- /*
-  * pfn conversion functions
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 0ad7626..cdb35ba 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -115,6 +115,8 @@ void __init memblock_init(void)
- 	memblock.reserved.regions[0].base = 0;
- 	memblock.reserved.regions[0].size = 0;
- 	memblock.reserved.cnt = 1;
-+
-+	memblock.current_limit = MEMBLOCK_ALLOC_ANYWHERE;
- }
- 
- void __init memblock_analyze(void)
-@@ -373,7 +375,7 @@ u64 __init memblock_alloc_nid(u64 size, u64 align, int nid)
- 
- u64 __init memblock_alloc(u64 size, u64 align)
- {
--	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ANYWHERE);
-+	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
- }
- 
- u64 __init memblock_alloc_base(u64 size, u64 align, u64 max_addr)
-@@ -399,14 +401,9 @@ u64 __init __memblock_alloc_base(u64 size, u64 align, u64 max_addr)
- 
- 	size = memblock_align_up(size, align);
- 
--	/* On some platforms, make sure we allocate lowmem */
--	/* Note that MEMBLOCK_REAL_LIMIT may be MEMBLOCK_ALLOC_ANYWHERE */
--	if (max_addr == MEMBLOCK_ALLOC_ANYWHERE)
--		max_addr = MEMBLOCK_REAL_LIMIT;
--
- 	/* Pump up max_addr */
--	if (max_addr == MEMBLOCK_ALLOC_ANYWHERE)
--		max_addr = ~(u64)0;
-+	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
-+		max_addr = memblock.current_limit;
- 
- 	/* We do a top-down search, this tends to limit memory
- 	 * fragmentation by keeping early boot allocs near the
-@@ -501,3 +498,9 @@ int memblock_is_region_reserved(u64 base, u64 size)
- 	return memblock_overlaps_region(&memblock.reserved, base, size);
- }
- 
-+
-+void __init memblock_set_current_limit(u64 limit)
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
 +{
-+	memblock.current_limit = limit;
++	/* We don't currently support the first MEMBLOCK not mapping 0
++	 * physical on those processors
++	 */
++	BUG_ON(first_memblock_base != 0);
++
++	/* 40x can only access 16MB at the moment (see head_40x.S) */
++	memblock_set_current_limit(min_t(u64, first_memblock_size, 0x00800000));
++}
+diff --git a/arch/powerpc/mm/44x_mmu.c b/arch/powerpc/mm/44x_mmu.c
+index d8c6efb..024acab 100644
+--- a/arch/powerpc/mm/44x_mmu.c
++++ b/arch/powerpc/mm/44x_mmu.c
+@@ -24,6 +24,8 @@
+  */
+ 
+ #include <linux/init.h>
++#include <linux/memblock.h>
++
+ #include <asm/mmu.h>
+ #include <asm/system.h>
+ #include <asm/page.h>
+@@ -213,6 +215,18 @@ unsigned long __init mmu_mapin_ram(unsigned long top)
+ 	return total_lowmem;
+ }
+ 
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	/* We don't currently support the first MEMBLOCK not mapping 0
++	 * physical on those processors
++	 */
++	BUG_ON(first_memblock_base != 0);
++
++	/* 44x has a 256M TLB entry pinned at boot */
++	memblock_set_current_limit(min_t(u64, first_memblock_size, PPC_PIN_SIZE));
 +}
 +
+ #ifdef CONFIG_SMP
+ void __cpuinit mmu_init_secondary(int cpu)
+ {
+diff --git a/arch/powerpc/mm/fsl_booke_mmu.c b/arch/powerpc/mm/fsl_booke_mmu.c
+index e525f86..0be8fe2 100644
+--- a/arch/powerpc/mm/fsl_booke_mmu.c
++++ b/arch/powerpc/mm/fsl_booke_mmu.c
+@@ -215,3 +215,12 @@ void __init adjust_total_lowmem(void)
+ 
+ 	memblock_set_current_limit(memstart_addr + __max_low_memory);
+ }
++
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	phys_addr_t limit = first_memblock_base + first_memblock_size;
++
++	/* 64M mapped initially according to head_fsl_booke.S */
++	memblock_set_current_limit(min_t(u64, limit, 0x04000000));
++}
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 79f9445..327a3cd 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -649,7 +649,7 @@ static void __init htab_initialize(void)
+ #ifdef CONFIG_DEBUG_PAGEALLOC
+ 	linear_map_hash_count = memblock_end_of_DRAM() >> PAGE_SHIFT;
+ 	linear_map_hash_slots = __va(memblock_alloc_base(linear_map_hash_count,
+-						    1, memblock.rmo_size));
++						    1, ppc64_rma_size));
+ 	memset(linear_map_hash_slots, 0, linear_map_hash_count);
+ #endif /* CONFIG_DEBUG_PAGEALLOC */
+ 
+@@ -1221,3 +1221,23 @@ void kernel_map_pages(struct page *page, int numpages, int enable)
+ 	local_irq_restore(flags);
+ }
+ #endif /* CONFIG_DEBUG_PAGEALLOC */
++
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	/* We don't currently support the first MEMBLOCK not mapping 0
++	 * physical on those processors
++	 */
++	BUG_ON(first_memblock_base != 0);
++
++	/* On LPAR systems, the first entry is our RMA region,
++	 * non-LPAR 64-bit hash MMU systems don't have a limitation
++	 * on real mode access, but using the first entry works well
++	 * enough. We also clamp it to 1G to avoid some funky things
++	 * such as RTAS bugs etc...
++	 */
++	ppc64_rma_size = min_t(u64, first_memblock_size, 0x40000000);
++
++	/* Finally limit subsequent allocations */
++	memblock_set_current_limit(ppc64_rma_size);
++}
+diff --git a/arch/powerpc/mm/init_32.c b/arch/powerpc/mm/init_32.c
+index 59b208b..742da43 100644
+--- a/arch/powerpc/mm/init_32.c
++++ b/arch/powerpc/mm/init_32.c
+@@ -237,3 +237,17 @@ void free_initrd_mem(unsigned long start, unsigned long end)
+ }
+ #endif
+ 
++
++#ifdef CONFIG_8xx /* No 8xx specific .c file to put that in ... */
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	/* We don't currently support the first MEMBLOCK not mapping 0
++	 * physical on those processors
++	 */
++	BUG_ON(first_memblock_base != 0);
++
++	/* 8xx can only access 8MB at the moment */
++	memblock_set_current_limit(min_t(u64, first_memblock_size, 0x00800000));
++}
++#endif /* CONFIG_8xx */
+diff --git a/arch/powerpc/mm/init_64.c b/arch/powerpc/mm/init_64.c
+index 71f1415..9e081ff 100644
+--- a/arch/powerpc/mm/init_64.c
++++ b/arch/powerpc/mm/init_64.c
+@@ -328,3 +328,4 @@ int __meminit vmemmap_populate(struct page *start_page,
+ 	return 0;
+ }
+ #endif /* CONFIG_SPARSEMEM_VMEMMAP */
++
+diff --git a/arch/powerpc/mm/ppc_mmu_32.c b/arch/powerpc/mm/ppc_mmu_32.c
+index 7d34e17..11571e1 100644
+--- a/arch/powerpc/mm/ppc_mmu_32.c
++++ b/arch/powerpc/mm/ppc_mmu_32.c
+@@ -271,3 +271,18 @@ void __init MMU_init_hw(void)
+ 
+ 	if ( ppc_md.progress ) ppc_md.progress("hash:done", 0x205);
+ }
++
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	/* We don't currently support the first MEMBLOCK not mapping 0
++	 * physical on those processors
++	 */
++	BUG_ON(first_memblock_base != 0);
++
++	/* 601 can only access 16MB at the moment */
++	if (PVR_VER(mfspr(SPRN_PVR)) == 1)
++		memblock_set_current_limit(min_t(u64, first_memblock_size, 0x01000000));
++	else /* Anything else has 256M mapped */
++		memblock_set_current_limit(min_t(u64, first_memblock_size, 0x10000000));
++}
+diff --git a/arch/powerpc/mm/tlb_nohash.c b/arch/powerpc/mm/tlb_nohash.c
+index 7ba32e7..a086ed5 100644
+--- a/arch/powerpc/mm/tlb_nohash.c
++++ b/arch/powerpc/mm/tlb_nohash.c
+@@ -446,4 +446,18 @@ void __cpuinit early_init_mmu_secondary(void)
+ 	__early_init_mmu(0);
+ }
+ 
++void setup_initial_memory_limit(phys_addr_t first_memblock_base,
++				phys_addr_t first_memblock_size)
++{
++	/* On Embedded 64-bit, we adjust the RMA size to match
++	 * the bolted TLB entry. We know for now that only 1G
++	 * entries are supported though that may eventually
++	 * change. We crop it to the size of the first MEMBLOCK to
++	 * avoid going over total available memory just in case...
++	 */
++	ppc64_rma_size = min_t(u64, first_memblock_size, 0x40000000);
++
++	/* Finally limit subsequent allocations */
++	memblock_set_current_limit(ppc64_memblock_base + ppc64_rma_size);
++}
+ #endif /* CONFIG_PPC64 */
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index aabdcdd..767c198 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -33,7 +33,6 @@ struct memblock_type {
+ 
+ struct memblock {
+ 	unsigned long debug;
+-	u64 rmo_size;
+ 	u64 current_limit;
+ 	struct memblock_type memory;
+ 	struct memblock_type reserved;
+diff --git a/mm/memblock.c b/mm/memblock.c
+index cdb35ba..43fa162 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -49,7 +49,6 @@ void memblock_dump_all(void)
+ 		return;
+ 
+ 	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" rmo_size    = 0x%llx\n", (unsigned long long)memblock.rmo_size);
+ 	pr_info(" memory.size = 0x%llx\n", (unsigned long long)memblock.memory.size);
+ 
+ 	memblock_dump(&memblock.memory, "memory");
+@@ -195,10 +194,6 @@ static long memblock_add_region(struct memblock_type *type, u64 base, u64 size)
+ 
+ long memblock_add(u64 base, u64 size)
+ {
+-	/* On pSeries LPAR systems, the first MEMBLOCK is our RMO region. */
+-	if (base == 0)
+-		memblock.rmo_size = size;
+-
+ 	return memblock_add_region(&memblock.memory, base, size);
+ 
+ }
+@@ -459,9 +454,6 @@ void __init memblock_enforce_memory_limit(u64 memory_limit)
+ 		break;
+ 	}
+ 
+-	if (memblock.memory.regions[0].size < memblock.rmo_size)
+-		memblock.rmo_size = memblock.memory.regions[0].size;
+-
+ 	memory_limit = memblock_end_of_DRAM();
+ 
+ 	/* And truncate any reserves above the limit also. */
 -- 
 1.6.4.2
 
