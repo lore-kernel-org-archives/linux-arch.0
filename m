@@ -1,92 +1,63 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 44/50] x86, memblock: Add memblock_x86_memory_in_range()
-Date: Tue, 13 Jul 2010 00:10:38 -0700
-Message-ID: <1279005044-24777-45-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/50] memblock: Prepare x86 to use memblock to replace early_res
+Date: Tue, 13 Jul 2010 00:10:23 -0700
+Message-ID: <1279005044-24777-30-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:26262 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753268Ab0GMHPj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:15:39 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-It will return memory size in specified range according to memblock.memory.region
+1. expose memblock_debug
+2. expose memblock_reserved_init_regions
 
-Try to share some code with memblock_x86_free_memory_in_range() by passing get_free to
-__memblock_x86_memory_in_range().
-
--v2: Ben want _in_range in the name instead of size
+-v2: drop memblock_add_region() and MEMBLOCK_ERROR export
+-v3: seperate wrong return of memblock_fin_base to another patch
+-v4: expose memblock_can_resize to handle x86 EFI that could have more than
+      128 entries
+-v5: add memblock_dbg, so we can spare some if (memblock_debug) suggested by Ingo.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/memblock.h |    1 +
- arch/x86/mm/memblock.c          |   18 +++++++++++++++++-
- 2 files changed, 18 insertions(+), 1 deletions(-)
+ include/linux/memblock.h |    6 ++++++
+ mm/memblock.c            |    5 +++--
+ 2 files changed, 9 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index fc3c230..2c304bb 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -16,5 +16,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
- u64 memblock_x86_hole_size(u64 start, u64 end);
- u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
- u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
-+u64 memblock_x86_memory_in_range(u64 addr, u64 limit);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 08a12cf..70bc467 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -39,6 +39,12 @@ struct memblock {
+ };
  
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 3882caa..53b0f60 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -217,7 +217,7 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- }
- #endif
- 
--u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+static u64 __init __memblock_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
- 	struct range *range;
-@@ -246,6 +246,10 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
- 	}
- 	subtract_range(range, count, 0, addr);
- 	subtract_range(range, count, limit, -1ULL);
+ extern struct memblock memblock;
++extern int memblock_debug;
++extern int memblock_can_resize;
++extern struct memblock_region memblock_reserved_init_regions[];
 +
-+	/* Subtract memblock.reserved.region in range ? */
-+	if (!get_free)
-+		goto sort_and_count_them;
- 	for_each_memblock(reserved, r) {
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
-@@ -256,6 +260,8 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
++#define memblock_dbg(fmt, ...) \
++	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
  
- 		subtract_range(range, count, final_start, final_end);
- 	}
-+
-+sort_and_count_them:
- 	nr_range = clean_sort_range(range, count);
+ extern void __init memblock_init(void);
+ extern void __init memblock_analyze(void);
+diff --git a/mm/memblock.c b/mm/memblock.c
+index b5eb901..c16d4c6 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -22,9 +22,10 @@
  
- 	free_size = 0;
-@@ -265,6 +271,16 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
- 	return free_size << PAGE_SHIFT;
- }
+ struct memblock memblock;
  
-+u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __memblock_x86_memory_in_range(addr, limit, true);
-+}
-+
-+u64 __init memblock_x86_memory_in_range(u64 addr, u64 limit)
-+{
-+	return __memblock_x86_memory_in_range(addr, limit, false);
-+}
-+
- void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
- {
- 	if (start == end)
+-static int memblock_debug, memblock_can_resize;
++int memblock_debug;
++int memblock_can_resize;
+ static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+-static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 
+ #define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+ 
 -- 
 1.6.4.2
