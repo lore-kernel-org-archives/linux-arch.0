@@ -1,160 +1,237 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:28917 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:29245 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754226Ab0GMHQc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:32 -0400
+	with ESMTP id S1754425Ab0GMHQq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:46 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 39/50] x86, memblock: Add get_free_all_memory_range()
-Date: Tue, 13 Jul 2010 00:10:33 -0700
-Message-ID: <1279005044-24777-40-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 33/50] memblock: Add ARCH_DISCARD_MEMBLOCK to put memblock code to .init
+Date: Tue, 13 Jul 2010 00:10:27 -0700
+Message-ID: <1279005044-24777-34-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
-Message-ID: <20100713071033.0AcjDBWiStcPnDM7yK2lnuh3nafjmF_tDOXFVSXtPrI@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100713071027.wgSt4_lnp75giXl20OtupQdxGpQzPnRNwnlnQcm9Ags@z>
 
-get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
-free_all_memory_core_early().
+So those memblock bits could be released after kernel is booted up.
 
-It will use early_node_map aka active ranges subtract memblock.reserved to
-get all free range, and those ranges will convert to slab pages.
+Arch code could define ARCH_DISCARD_MEMBLOCK in asm/memblock.h,
+__init_memblock will become __init, __initdata_memblock will becom __initdata
 
--v4: increase range size
+x86 code will use that.
+
+if ARCH_DISCARD_MEMBLOCK is defined, debugfs is not used
+
+-v2: use ARCH_DISCARD_MEMBLOCK according to Michael Ellerman
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Jan Beulich <jbeulich@novell.com>
 ---
- arch/x86/include/asm/memblock.h |    2 +
- arch/x86/mm/memblock.c          |  102 ++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 103 insertions(+), 1 deletions(-)
+ include/linux/memblock.h |    8 +++++++
+ mm/memblock.c            |   48 +++++++++++++++++++++++-----------------------
+ 2 files changed, 32 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index e11ddf0..72639ce 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -8,5 +8,7 @@ void memblock_x86_to_bootmem(u64 start, u64 end);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 4aaaf0d..751a4eb 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -148,6 +148,14 @@ static inline unsigned long memblock_region_pages(const struct memblock_region *
+ 	     region++)
  
- void memblock_x86_reserve_range(u64 start, u64 end, char *name);
- void memblock_x86_free_range(u64 start, u64 end);
-+struct range;
-+int get_free_all_memory_range(struct range **rangep, int nodeid);
  
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 80cdcf8..ab4e2dc 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -86,7 +86,107 @@ u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
++#ifdef ARCH_DISCARD_MEMBLOCK
++#define __init_memblock __init
++#define __initdata_memblock __initdata
++#else
++#define __init_memblock
++#define __initdata_memblock
++#endif
++
+ #endif /* CONFIG_HAVE_MEMBLOCK */
+ 
+ #endif /* __KERNEL__ */
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 3d0a754..7471dac 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -20,12 +20,12 @@
+ #include <linux/seq_file.h>
+ #include <linux/memblock.h>
+ 
+-struct memblock memblock;
++struct memblock memblock __initdata_memblock;
+ 
+-int memblock_debug;
+-int memblock_can_resize;
+-static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+-struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++int memblock_debug __initdata_memblock;
++int memblock_can_resize __initdata_memblock;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
++struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
+ 
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *memblock_type_name(struct memblock_type *type)
+@@ -42,23 +42,23 @@ static inline const char *memblock_type_name(struct memblock_type *type)
+  * Address comparison utilities
+  */
+ 
+-static phys_addr_t memblock_align_down(phys_addr_t addr, phys_addr_t size)
++static phys_addr_t __init_memblock memblock_align_down(phys_addr_t addr, phys_addr_t size)
+ {
+ 	return addr & ~(size - 1);
+ }
+ 
+-static phys_addr_t memblock_align_up(phys_addr_t addr, phys_addr_t size)
++static phys_addr_t __init_memblock memblock_align_up(phys_addr_t addr, phys_addr_t size)
+ {
+ 	return (addr + (size - 1)) & ~(size - 1);
+ }
+ 
+-static unsigned long memblock_addrs_overlap(phys_addr_t base1, phys_addr_t size1,
++static unsigned long __init_memblock memblock_addrs_overlap(phys_addr_t base1, phys_addr_t size1,
+ 				       phys_addr_t base2, phys_addr_t size2)
+ {
+ 	return ((base1 < (base2 + size2)) && (base2 < (base1 + size1)));
+ }
+ 
+-static long memblock_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
++static long __init_memblock memblock_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
+ 			       phys_addr_t base2, phys_addr_t size2)
+ {
+ 	if (base2 == base1 + size1)
+@@ -69,7 +69,7 @@ static long memblock_addrs_adjacent(phys_addr_t base1, phys_addr_t size1,
+ 	return 0;
+ }
+ 
+-static long memblock_regions_adjacent(struct memblock_type *type,
++static long __init_memblock memblock_regions_adjacent(struct memblock_type *type,
+ 				 unsigned long r1, unsigned long r2)
+ {
+ 	phys_addr_t base1 = type->regions[r1].base;
+@@ -80,7 +80,7 @@ static long memblock_regions_adjacent(struct memblock_type *type,
+ 	return memblock_addrs_adjacent(base1, size1, base2, size2);
+ }
+ 
+-long memblock_overlaps_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
++long __init_memblock memblock_overlaps_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long i;
+ 
+@@ -156,7 +156,7 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
  	return MEMBLOCK_ERROR;
  }
  
--#ifndef CONFIG_NO_BOOTMEM
-+static __init struct range *find_range_array(int count)
-+{
-+	u64 end, size, mem;
-+	struct range *range;
-+
-+	size = sizeof(struct range) * count;
-+	end = memblock.current_limit;
-+
-+	mem = memblock_find_in_range(0, end, size, sizeof(struct range));
-+	if (mem == MEMBLOCK_ERROR)
-+		panic("can not find more space for range array");
-+
-+	/*
-+	 * This range is tempoaray, so don't reserve it, it will not be
-+	 * overlapped because We will not alloccate new buffer before
-+	 * We discard this one
-+	 */
-+	range = __va(mem);
-+	memset(range, 0, size);
-+
-+	return range;
-+}
-+
-+#ifdef CONFIG_NO_BOOTMEM
-+static void __init memblock_x86_subtract_reserved(struct range *range, int az)
-+{
-+	int count;
-+	u64 final_start, final_end;
-+	struct memblock_region *r;
-+
-+	/* Take out region array itself at first*/
-+	if (memblock.reserved.regions != memblock_reserved_init_regions)
-+		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
-+
-+	count  = memblock.reserved.cnt;
-+
-+	pr_info("Subtract (%d early reservations)\n", count);
-+
-+	for_each_memblock(reserved, r) {
-+		pr_info("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		subtract_range(range, az, final_start, final_end);
-+	}
-+	/* Put region array back ? */
-+	if (memblock.reserved.regions != memblock_reserved_init_regions)
-+		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
-+struct count_data {
-+	int nr;
-+};
-+
-+static int __init count_work_fn(unsigned long start_pfn,
-+				unsigned long end_pfn, void *datax)
-+{
-+	struct count_data *data = datax;
-+
-+	data->nr++;
-+
-+	return 0;
-+}
-+
-+static int __init count_early_node_map(int nodeid)
-+{
-+	struct count_data data;
-+
-+	data.nr = 0;
-+	work_with_active_regions(nodeid, count_work_fn, &data);
-+
-+	return data.nr;
-+}
-+
-+int __init get_free_all_memory_range(struct range **rangep, int nodeid)
-+{
-+	int count;
-+	struct range *range;
-+	int nr_range;
-+
-+	count = (memblock.reserved.cnt + count_early_node_map(nodeid)) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	/*
-+	 * Use early_node_map[] and memblock.reserved.region to get range array
-+	 * at first
-+	 */
-+	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
-+#ifdef CONFIG_X86_32
-+	subtract_range(range, count, max_low_pfn, -1ULL);
-+#endif
-+	memblock_x86_subtract_reserved(range, count);
-+	nr_range = clean_sort_range(range, count);
-+
-+	*rangep = range;
-+	return nr_range;
-+}
-+#else
- void __init memblock_x86_to_bootmem(u64 start, u64 end)
+-static void memblock_remove_region(struct memblock_type *type, unsigned long r)
++static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
  {
- 	int count;
+ 	unsigned long i;
+ 
+@@ -168,7 +168,7 @@ static void memblock_remove_region(struct memblock_type *type, unsigned long r)
+ }
+ 
+ /* Assumption: base addr of region 1 < base addr of region 2 */
+-static void memblock_coalesce_regions(struct memblock_type *type,
++static void __init_memblock memblock_coalesce_regions(struct memblock_type *type,
+ 		unsigned long r1, unsigned long r2)
+ {
+ 	type->regions[r1].size += type->regions[r2].size;
+@@ -178,7 +178,7 @@ static void memblock_coalesce_regions(struct memblock_type *type,
+ /* Defined below but needed now */
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size);
+ 
+-static int memblock_double_array(struct memblock_type *type)
++static int __init_memblock memblock_double_array(struct memblock_type *type)
+ {
+ 	struct memblock_region *new_array, *old_array;
+ 	phys_addr_t old_size, new_size, addr;
+@@ -249,13 +249,13 @@ static int memblock_double_array(struct memblock_type *type)
+ 	return 0;
+ }
+ 
+-extern int __weak memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++extern int __init_memblock __weak memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
+ 					  phys_addr_t addr2, phys_addr_t size2)
+ {
+ 	return 1;
+ }
+ 
+-static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
++static long __init_memblock memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long coalesced = 0;
+ 	long adjacent, i;
+@@ -342,13 +342,13 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 	return 0;
+ }
+ 
+-long memblock_add(phys_addr_t base, phys_addr_t size)
++long __init_memblock memblock_add(phys_addr_t base, phys_addr_t size)
+ {
+ 	return memblock_add_region(&memblock.memory, base, size);
+ 
+ }
+ 
+-static long __memblock_remove(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
++static long __init_memblock __memblock_remove(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	phys_addr_t rgnbegin, rgnend;
+ 	phys_addr_t end = base + size;
+@@ -396,7 +396,7 @@ static long __memblock_remove(struct memblock_type *type, phys_addr_t base, phys
+ 	return memblock_add_region(type, end, rgnend - end);
+ }
+ 
+-long memblock_remove(phys_addr_t base, phys_addr_t size)
++long __init_memblock memblock_remove(phys_addr_t base, phys_addr_t size)
+ {
+ 	return __memblock_remove(&memblock.memory, base, size);
+ }
+@@ -562,7 +562,7 @@ phys_addr_t __init memblock_phys_mem_size(void)
+ 	return memblock.memory_size;
+ }
+ 
+-phys_addr_t memblock_end_of_DRAM(void)
++phys_addr_t __init_memblock memblock_end_of_DRAM(void)
+ {
+ 	int idx = memblock.memory.cnt - 1;
+ 
+@@ -623,7 +623,7 @@ int __init memblock_is_reserved(phys_addr_t addr)
+ 	return 0;
+ }
+ 
+-int memblock_is_region_reserved(phys_addr_t base, phys_addr_t size)
++int __init_memblock memblock_is_region_reserved(phys_addr_t base, phys_addr_t size)
+ {
+ 	return memblock_overlaps_region(&memblock.reserved, base, size);
+ }
+@@ -634,7 +634,7 @@ void __init memblock_set_current_limit(phys_addr_t limit)
+ 	memblock.current_limit = limit;
+ }
+ 
+-static void memblock_dump(struct memblock_type *region, char *name)
++static void __init_memblock memblock_dump(struct memblock_type *region, char *name)
+ {
+ 	unsigned long long base, size;
+ 	int i;
+@@ -650,7 +650,7 @@ static void memblock_dump(struct memblock_type *region, char *name)
+ 	}
+ }
+ 
+-void memblock_dump_all(void)
++void __init_memblock memblock_dump_all(void)
+ {
+ 	if (!memblock_debug)
+ 		return;
+@@ -716,7 +716,7 @@ static int __init early_memblock(char *p)
+ }
+ early_param("memblock", early_memblock);
+ 
+-#ifdef CONFIG_DEBUG_FS
++#if defined(CONFIG_DEBUG_FS) && !defined(ARCH_DISCARD_MEMBLOCK)
+ 
+ static int memblock_debug_show(struct seq_file *m, void *private)
+ {
 -- 
 1.6.4.2
 
