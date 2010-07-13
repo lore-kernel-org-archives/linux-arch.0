@@ -1,94 +1,163 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/50] memblock: Add "start" argument to memblock_find_base()
-Date: Tue, 13 Jul 2010 00:10:18 -0700
-Message-ID: <1279005044-24777-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/50] memblock: Remove nid_range argument, arch provides memblock_nid_range() instead
+Date: Tue, 13 Jul 2010 00:10:01 -0700
+Message-ID: <1279005044-24777-8-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:26086 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752532Ab0GMHPg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:15:36 -0400
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-To constraint the search of a region between two boundaries,
-which will be used by the new NUMA aware allocator among others.
-
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   27 ++++++++++++++++-----------
- 1 files changed, 16 insertions(+), 11 deletions(-)
+ arch/sparc/mm/init_64.c  |   16 ++++++----------
+ include/linux/memblock.h |    7 +++++--
+ mm/memblock.c            |   13 ++++++++-----
+ 3 files changed, 19 insertions(+), 17 deletions(-)
 
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index dd68025..0883113 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -785,8 +785,7 @@ static int find_node(unsigned long addr)
+ 	return -1;
+ }
+ 
+-static unsigned long long nid_range(unsigned long long start,
+-				    unsigned long long end, int *nid)
++u64 memblock_nid_range(u64 start, u64 end, int *nid)
+ {
+ 	*nid = find_node(start);
+ 	start += PAGE_SIZE;
+@@ -804,8 +803,7 @@ static unsigned long long nid_range(unsigned long long start,
+ 	return start;
+ }
+ #else
+-static unsigned long long nid_range(unsigned long long start,
+-				    unsigned long long end, int *nid)
++u64 memblock_nid_range(u64 start, u64 end, int *nid)
+ {
+ 	*nid = 0;
+ 	return end;
+@@ -822,8 +820,7 @@ static void __init allocate_node_data(int nid)
+ 	struct pglist_data *p;
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+-	paddr = memblock_alloc_nid(sizeof(struct pglist_data),
+-			      SMP_CACHE_BYTES, nid, nid_range);
++	paddr = memblock_alloc_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
+ 	if (!paddr) {
+ 		prom_printf("Cannot allocate pglist_data for nid[%d]\n", nid);
+ 		prom_halt();
+@@ -843,8 +840,7 @@ static void __init allocate_node_data(int nid)
+ 	if (p->node_spanned_pages) {
+ 		num_pages = bootmem_bootmap_pages(p->node_spanned_pages);
+ 
+-		paddr = memblock_alloc_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid,
+-				      nid_range);
++		paddr = memblock_alloc_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
+ 		if (!paddr) {
+ 			prom_printf("Cannot allocate bootmap for nid[%d]\n",
+ 				  nid);
+@@ -984,7 +980,7 @@ static void __init add_node_ranges(void)
+ 			unsigned long this_end;
+ 			int nid;
+ 
+-			this_end = nid_range(start, end, &nid);
++			this_end = memblock_nid_range(start, end, &nid);
+ 
+ 			numadbg("Adding active range nid[%d] "
+ 				"start[%lx] end[%lx]\n",
+@@ -1317,7 +1313,7 @@ static void __init reserve_range_in_node(int nid, unsigned long start,
+ 		unsigned long this_end;
+ 		int n;
+ 
+-		this_end = nid_range(start, end, &n);
++		this_end = memblock_nid_range(start, end, &n);
+ 		if (n == nid) {
+ 			numadbg("      MATCH reserving range [%lx:%lx]\n",
+ 				start, this_end);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index d948857..3e4a52f 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -46,8 +46,7 @@ extern long memblock_add(u64 base, u64 size);
+ extern long memblock_remove(u64 base, u64 size);
+ extern long __init memblock_free(u64 base, u64 size);
+ extern long __init memblock_reserve(u64 base, u64 size);
+-extern u64 __init memblock_alloc_nid(u64 size, u64 align, int nid,
+-				u64 (*nid_range)(u64, u64, int *));
++extern u64 __init memblock_alloc_nid(u64 size, u64 align, int nid);
+ extern u64 __init memblock_alloc(u64 size, u64 align);
+ extern u64 __init memblock_alloc_base(u64 size,
+ 		u64, u64 max_addr);
+@@ -61,6 +60,10 @@ extern int memblock_is_region_reserved(u64 base, u64 size);
+ 
+ extern void memblock_dump_all(void);
+ 
++/* Provided by the architecture */
++extern u64 memblock_nid_range(u64 start, u64 end, int *nid);
++
++
+ /*
+  * pfn conversion functions
+  *
 diff --git a/mm/memblock.c b/mm/memblock.c
-index f793d9f..b4870cf 100644
+index 5df1400..83643f3 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -117,19 +117,18 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
- 	return MEMBLOCK_ERROR;
+@@ -319,7 +319,6 @@ static u64 __init memblock_alloc_nid_unreserved(u64 start, u64 end,
  }
  
--static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
-+static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align,
-+					phys_addr_t start, phys_addr_t end)
+ static u64 __init memblock_alloc_nid_region(struct memblock_region *mp,
+-				       u64 (*nid_range)(u64, u64, int *),
+ 				       u64 size, u64 align, int nid)
  {
- 	long i;
--	phys_addr_t base = 0;
--	phys_addr_t res_base;
+ 	u64 start, end;
+@@ -332,7 +331,7 @@ static u64 __init memblock_alloc_nid_region(struct memblock_region *mp,
+ 		u64 this_end;
+ 		int this_nid;
  
- 	BUG_ON(0 == size);
- 
- 	size = memblock_align_up(size, align);
- 
- 	/* Pump up max_addr */
--	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
--		max_addr = memblock.current_limit;
-+	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
-+		end = memblock.current_limit;
- 
- 	/* We do a top-down search, this tends to limit memory
- 	 * fragmentation by keeping early boot allocs near the
-@@ -138,13 +137,19 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
- 	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
- 		phys_addr_t memblockbase = memblock.memory.regions[i].base;
- 		phys_addr_t memblocksize = memblock.memory.regions[i].size;
-+		phys_addr_t bottom, top, found;
- 
- 		if (memblocksize < size)
- 			continue;
--		base = min(memblockbase + memblocksize, max_addr);
--		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != MEMBLOCK_ERROR)
--			return res_base;
-+		if ((memblockbase + memblocksize) <= start)
-+			break;
-+		bottom = max(memblockbase, start);
-+		top = min(memblockbase + memblocksize, end);
-+		if (bottom >= top)
-+			continue;
-+		found = memblock_find_region(bottom, top, size, align);
-+		if (found != MEMBLOCK_ERROR)
-+			return found;
- 	}
- 	return MEMBLOCK_ERROR;
+-		this_end = nid_range(start, end, &this_nid);
++		this_end = memblock_nid_range(start, end, &this_nid);
+ 		if (this_nid == nid) {
+ 			u64 ret = memblock_alloc_nid_unreserved(start, this_end,
+ 							   size, align);
+@@ -345,8 +344,7 @@ static u64 __init memblock_alloc_nid_region(struct memblock_region *mp,
+ 	return ~(u64)0;
  }
-@@ -204,7 +209,7 @@ static int memblock_double_array(struct memblock_type *type)
- 		new_array = kmalloc(new_size, GFP_KERNEL);
- 		addr = new_array == NULL ? MEMBLOCK_ERROR : __pa(new_array);
- 	} else
--		addr = memblock_find_base(new_size, sizeof(phys_addr_t), MEMBLOCK_ALLOC_ACCESSIBLE);
-+		addr = memblock_find_base(new_size, sizeof(phys_addr_t), 0, MEMBLOCK_ALLOC_ACCESSIBLE);
- 	if (addr == MEMBLOCK_ERROR) {
- 		pr_err("memblock: Failed to double %s array from %ld to %ld entries !\n",
- 		       memblock_type_name(type), type->max, type->max * 2);
-@@ -416,7 +421,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 	 */
- 	size = memblock_align_up(size, align);
  
--	found = memblock_find_base(size, align, max_addr);
-+	found = memblock_find_base(size, align, 0, max_addr);
- 	if (found != MEMBLOCK_ERROR &&
- 	    memblock_add_region(&memblock.reserved, found, size) >= 0)
- 		return found;
+-u64 __init memblock_alloc_nid(u64 size, u64 align, int nid,
+-			 u64 (*nid_range)(u64 start, u64 end, int *nid))
++u64 __init memblock_alloc_nid(u64 size, u64 align, int nid)
+ {
+ 	struct memblock_type *mem = &memblock.memory;
+ 	int i;
+@@ -357,7 +355,6 @@ u64 __init memblock_alloc_nid(u64 size, u64 align, int nid,
+ 
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		u64 ret = memblock_alloc_nid_region(&mem->regions[i],
+-					       nid_range,
+ 					       size, align, nid);
+ 		if (ret != ~(u64)0)
+ 			return ret;
+@@ -505,3 +502,9 @@ int memblock_is_region_reserved(u64 base, u64 size)
+ 	return memblock_overlaps_region(&memblock.reserved, base, size);
+ }
+ 
++u64 __weak memblock_nid_range(u64 start, u64 end, int *nid)
++{
++	*nid = 0;
++
++	return end;
++}
 -- 
 1.6.4.2
