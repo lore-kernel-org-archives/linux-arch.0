@@ -1,53 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:24542 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752906Ab0GMHOe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:14:34 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 27/50] memblock: Make memblock_alloc_try_nid() fallback to MEMBLOCK_ALLOC_ANYWHERE
-Date: Tue, 13 Jul 2010 00:10:21 -0700
-Message-ID: <1279005044-24777-28-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:13533 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751642Ab0GMMOY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 08:14:24 -0400
+Date: Tue, 13 Jul 2010 05:14:21 -0700
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+Message-ID: <20100713121420.GB4263@codeaurora.org>
+References: <4C366678.60605@codeaurora.org>
+ <20100712102435B.fujita.tomonori@lab.ntt.co.jp>
+ <4C3C0032.5020702@codeaurora.org>
+ <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100713071021.q197nDWvT6c9BfcIPPwddMvHDJcvyvCot0AVj3GqK3M@z>
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100713121421.XGcIcZjaUdEC61VQEng-w_DUZRo2UDEkaYj6dK0Xpuw@z>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+On Tue, Jul 13, 2010 at 03:03:25PM +0900, FUJITA Tomonori wrote:
+> On Mon, 12 Jul 2010 22:57:06 -0700
+> Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> 
+> > FUJITA Tomonori wrote:
+> > > On Thu, 08 Jul 2010 16:59:52 -0700
+> > > Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> > > 
+> > >> The problem I'm trying to solve boils down to this: map a set of
+> > >> contiguous physical buffers to an aligned IOMMU address. I need to
+> > >> allocate the set of physical buffers in a particular way: use 1 MB
+> > >> contiguous physical memory, then 64 KB, then 4 KB, etc. and I need to
+> > >> align the IOMMU address in a particular way.
+> > > 
+> > > Sounds like the DMA API already supports what you want.
+> > > 
+> > > You can set segment_boundary_mask in struct device_dma_parameters if
+> > > you want to align the IOMMU address. See IOMMU implementations that
+> > > support dma_get_seg_boundary() properly.
+> > 
+> > That function takes the wrong argument in a VCM world:
+> > 
+> > unsigned long dma_get_seg_boundary(struct device *dev);
+> > 
+> > The boundary should be an attribute of the device side mapping,
+> > independent of the device. This would allow better code reuse.
+> 
+> You mean that you want to specify this alignment attribute every time
+> you create an IOMMU mapping? Then you can set segment_boundary_mask
+> every time you create an IOMMU mapping. It's odd but it should work.
 
-memblock_alloc_nid() used to fallback to allocating anywhere by using
-memblock_alloc() as a fallback.
+Kinda. I want to forget about IOMMUs, devices and CPUs. I just want to
+create a mapping that has the alignment I specify, regardless of the
+mapper. The mapping is created on a VCM and the VCM is associated with
+a mapper: a CPU, an IOMMU'd device or a direct mapped device.
 
-However, some of my previous patches limit memblock_alloc() to the region
-covered by MEMBLOCK_ALLOC_ACCESSIBLE which is not quite what we want
-for memblock_alloc_try_nid().
+> 
+> Another possible solution is extending struct dma_attrs. We could add
+> the alignment attribute to it.
 
-So we fix it by explicitely using MEMBLOCK_ALLOC_ANYWHERE.
+That may be useful, but in the current DMA-API may be seen as
+redundant info.
 
-Not that so far only sparc uses memblock_alloc_nid() and it hasn't been updated
-to clamp the accessible zone yet. Thus the temporary "breakage" should have
-no effect.
-
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
----
- mm/memblock.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/mm/memblock.c b/mm/memblock.c
-index c3c499e..424ca11 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -546,7 +546,7 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
- 
- 	if (res)
- 		return res;
--	return memblock_alloc(size, align);
-+	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ANYWHERE);
- }
- 
- 
--- 
-1.6.4.2
-
+--
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
