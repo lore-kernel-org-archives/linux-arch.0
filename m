@@ -1,142 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:23295 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:28303 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752471Ab0GMHOA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:14:00 -0400
+	with ESMTP id S1753290Ab0GMHQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:17 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 08/50] memblock: Factor the lowest level alloc function
-Date: Tue, 13 Jul 2010 00:10:02 -0700
-Message-ID: <1279005044-24777-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 34/50] memblock: Add memblock_find_in_range()
+Date: Tue, 13 Jul 2010 00:10:28 -0700
+Message-ID: <1279005044-24777-35-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100713071002.Hvdi5OqFTcZPV5EN2Bw-t4toF2LOsWBB3WrMpZkdU1w@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100713071028.xAavnM9hKxnwURdytfUnqBNG5h6qT_kPFlXv8ZZKWFI@z>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+it is a wrapper for memblock_find_base
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+make it more easy for x86 to use memblock. ( rebase )
+x86 early_res is using find/reserve pattern instead of alloc.
+
+keep it in weak version, so later We can use x86 own version if needed.
+also We need it in mm/memblock.c, so one caller mm/page_alloc.c could get compiled
+
+-v2: Change name to memblock_find_in_range() according to Michael Ellerman
+-v3: Add generic weak version __memblock_find_in_range()
+     so keep the path for fallback to x86 version that handle from low
+-v4: use 0 for failing path
+-v5: use MEMBLOCK_ERROR again
+-v6: remove __memblock_find_in_range()
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   59 ++++++++++++++++++++++++++------------------------------
- 1 files changed, 27 insertions(+), 32 deletions(-)
+ include/linux/memblock.h |    2 ++
+ mm/memblock.c            |    8 ++++++++
+ 2 files changed, 10 insertions(+), 0 deletions(-)
 
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 751a4eb..61b22eb 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -48,6 +48,8 @@ extern struct memblock_region memblock_reserved_init_regions[];
+ #define memblock_dbg(fmt, ...) \
+ 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+ 
++u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
++
+ extern void __init memblock_init(void);
+ extern void __init memblock_analyze(void);
+ extern long memblock_add(phys_addr_t base, phys_addr_t size);
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 83643f3..9b71de0 100644
+index 7471dac..ca7de91 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -294,8 +294,8 @@ static u64 memblock_align_up(u64 addr, u64 size)
- 	return (addr + (size - 1)) & ~(size - 1);
+@@ -156,6 +156,14 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
+ 	return MEMBLOCK_ERROR;
  }
  
--static u64 __init memblock_alloc_nid_unreserved(u64 start, u64 end,
--					   u64 size, u64 align)
-+static u64 __init memblock_alloc_region(u64 start, u64 end,
-+				   u64 size, u64 align)
- {
- 	u64 base, res_base;
- 	long j;
-@@ -318,6 +318,13 @@ static u64 __init memblock_alloc_nid_unreserved(u64 start, u64 end,
- 	return ~(u64)0;
- }
- 
-+u64 __weak __init memblock_nid_range(u64 start, u64 end, int *nid)
++/*
++ * Find a free area with specified alignment in a specific range.
++ */
++u64 __init __weak memblock_find_in_range(u64 start, u64 end, u64 size, u64 align)
 +{
-+	*nid = 0;
-+
-+	return end;
++	return memblock_find_base(size, align, start, end);
 +}
 +
- static u64 __init memblock_alloc_nid_region(struct memblock_region *mp,
- 				       u64 size, u64 align, int nid)
+ static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
  {
-@@ -333,8 +340,7 @@ static u64 __init memblock_alloc_nid_region(struct memblock_region *mp,
- 
- 		this_end = memblock_nid_range(start, end, &this_nid);
- 		if (this_nid == nid) {
--			u64 ret = memblock_alloc_nid_unreserved(start, this_end,
--							   size, align);
-+			u64 ret = memblock_alloc_region(start, this_end, size, align);
- 			if (ret != ~(u64)0)
- 				return ret;
- 		}
-@@ -351,6 +357,10 @@ u64 __init memblock_alloc_nid(u64 size, u64 align, int nid)
- 
- 	BUG_ON(0 == size);
- 
-+	/* We do a bottom-up search for a region with the right
-+	 * nid since that's easier considering how memblock_nid_range()
-+	 * works
-+	 */
- 	size = memblock_align_up(size, align);
- 
- 	for (i = 0; i < mem->cnt; i++) {
-@@ -383,7 +393,7 @@ u64 __init memblock_alloc_base(u64 size, u64 align, u64 max_addr)
- 
- u64 __init __memblock_alloc_base(u64 size, u64 align, u64 max_addr)
- {
--	long i, j;
-+	long i;
- 	u64 base = 0;
- 	u64 res_base;
- 
-@@ -396,33 +406,24 @@ u64 __init __memblock_alloc_base(u64 size, u64 align, u64 max_addr)
- 	if (max_addr == MEMBLOCK_ALLOC_ANYWHERE)
- 		max_addr = MEMBLOCK_REAL_LIMIT;
- 
-+	/* Pump up max_addr */
-+	if (max_addr == MEMBLOCK_ALLOC_ANYWHERE)
-+		max_addr = ~(u64)0;
-+
-+	/* We do a top-down search, this tends to limit memory
-+	 * fragmentation by keeping early boot allocs near the
-+	 * top of memory
-+	 */
- 	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
- 		u64 memblockbase = memblock.memory.regions[i].base;
- 		u64 memblocksize = memblock.memory.regions[i].size;
- 
- 		if (memblocksize < size)
- 			continue;
--		if (max_addr == MEMBLOCK_ALLOC_ANYWHERE)
--			base = memblock_align_down(memblockbase + memblocksize - size, align);
--		else if (memblockbase < max_addr) {
--			base = min(memblockbase + memblocksize, max_addr);
--			base = memblock_align_down(base - size, align);
--		} else
--			continue;
--
--		while (base && memblockbase <= base) {
--			j = memblock_overlaps_region(&memblock.reserved, base, size);
--			if (j < 0) {
--				/* this area isn't reserved, take it */
--				if (memblock_add_region(&memblock.reserved, base, size) < 0)
--					return 0;
--				return base;
--			}
--			res_base = memblock.reserved.regions[j].base;
--			if (res_base < size)
--				break;
--			base = memblock_align_down(res_base - size, align);
--		}
-+		base = min(memblockbase + memblocksize, max_addr);
-+		res_base = memblock_alloc_region(memblockbase, base, size, align);
-+		if (res_base != ~(u64)0)
-+			return res_base;
- 	}
- 	return 0;
- }
-@@ -502,9 +503,3 @@ int memblock_is_region_reserved(u64 base, u64 size)
- 	return memblock_overlaps_region(&memblock.reserved, base, size);
- }
- 
--u64 __weak memblock_nid_range(u64 start, u64 end, int *nid)
--{
--	*nid = 0;
--
--	return end;
--}
+ 	unsigned long i;
 -- 
 1.6.4.2
 
