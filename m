@@ -1,95 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:29265 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:26013 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754613Ab0GMHQu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:50 -0400
+	with ESMTP id S1752574Ab0GMHPe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:15:34 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 45/50] x86, memblock: Use memblock_debug to control debug message print out
-Date: Tue, 13 Jul 2010 00:10:39 -0700
-Message-ID: <1279005044-24777-46-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/50] x86, numa: fix boot without RAM on node0 again
+Date: Tue, 13 Jul 2010 00:09:55 -0700
+Message-ID: <1279005044-24777-2-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100713071039.BNZEfckWQv7UrSEwQT2v5S8KYaKFOOFIqpYLjXG_Pw8@z>
+Message-ID: <20100713070955.QVI4zXpK0OxrAn7RdrSAOQyZhcZoVCnGTkzVGIx0H1A@z>
 
-Also let memblock_x86_reserve_range/memblock_x86_free_range could print out name if memblock=debug is
-specified
+|commit e534c7c5f8d6e9fc46f57fab067c7e48d8ceb172
+|Author: Lee Schermerhorn <lee.schermerhorn@hp.com>
+|Date:   Wed May 26 14:44:58 2010 -0700
+|
+|    numa: x86_64: use generic percpu var numa_node_id() implementation
+|
+|    x86 arch specific changes to use generic numa_node_id() based on generic
+|    percpu variable infrastructure.  Back out x86's custom version of
+|    numa_node_id()
 
-will also print ther name when reserve_memblock_area/free_memblock_area are called.
+broke numa system that doesn't have ram on node0 when MEMORY_HOTPLUG is enabled.
 
--v2: according to Ingo, put " if (memblock_debug) " in one place
+because cpu_up() will call cpu_to_node() before per_cpu(numa_node) is setup for
+APs.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+When Node0 doesn't have RAM, on x86, cpus already round it to nearest node with
+RAM in x86_cpu_to_node_map. and per_cpu(numa_node) is not set up until in c_init for APs.
+
+when later cpu_up() calling cpu_to_node() will get 0 again, and make it online
+even there is no RAM on node0. so later all APs can not booted up, and later
+will have panic.
+
+[    1.611101] On node 0 totalpages: 0
+.........
+[    2.608558] On node 0 totalpages: 0
+[    2.612065] Brought up 1 CPUs
+[    2.615199] Total of 1 processors activated (3990.31 BogoMIPS).
+...
+   93.225341] calling  loop_init+0x0/0x1a4 @ 1
+[   93.229314] PERCPU: allocation failed, size=80 align=8, failed to populate
+[   93.246539] Pid: 1, comm: swapper Tainted: G        W   2.6.35-rc4-tip-yh-04371-gd64e6c4-dirty #354
+[   93.264621] Call Trace:
+[   93.266533]  [<ffffffff81125e43>] pcpu_alloc+0x83a/0x8e7
+[   93.270710]  [<ffffffff81125f15>] __alloc_percpu+0x10/0x12
+[   93.285849]  [<ffffffff8140786c>] alloc_disk_node+0x94/0x16d
+[   93.291811]  [<ffffffff81407956>] alloc_disk+0x11/0x13
+[   93.306157]  [<ffffffff81503e51>] loop_alloc+0xa7/0x180
+[   93.310538]  [<ffffffff8277ef48>] loop_init+0x9b/0x1a4
+[   93.324909]  [<ffffffff8277eead>] ? loop_init+0x0/0x1a4
+[   93.329650]  [<ffffffff810001f2>] do_one_initcall+0x57/0x136
+[   93.345197]  [<ffffffff827486d0>] kernel_init+0x184/0x20e
+[   93.348146]  [<ffffffff81034954>] kernel_thread_helper+0x4/0x10
+[   93.365194]  [<ffffffff81c7cc3c>] ? restore_args+0x0/0x30
+[   93.369305]  [<ffffffff8274854c>] ? kernel_init+0x0/0x20e
+[   93.386011]  [<ffffffff81034950>] ? kernel_thread_helper+0x0/0x10
+[   93.392047] loop: out of memory
+...
+
+Try to assign per_cpu(numa_node) early
+
+Signed-off-by: Yinghai <yinghai@kernel.org>
 ---
- arch/x86/mm/memblock.c |   20 ++++++++++++--------
- 1 files changed, 12 insertions(+), 8 deletions(-)
+ arch/x86/kernel/setup_percpu.c |   17 +++++++++--------
+ 1 files changed, 9 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 53b0f60..70a6bba 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -122,10 +122,10 @@ static void __init memblock_x86_subtract_reserved(struct range *range, int az)
+diff --git a/arch/x86/kernel/setup_percpu.c b/arch/x86/kernel/setup_percpu.c
+index de3b63a..b03959c 100644
+--- a/arch/x86/kernel/setup_percpu.c
++++ b/arch/x86/kernel/setup_percpu.c
+@@ -238,6 +238,15 @@ void __init setup_per_cpu_areas(void)
+ #ifdef CONFIG_NUMA
+ 		per_cpu(x86_cpu_to_node_map, cpu) =
+ 			early_per_cpu_map(x86_cpu_to_node_map, cpu);
++		/*
++		 * make sure boot cpu numa_node is right, when boot cpu is on
++		 *  the node that doesn't have mem installed
++		 * also cpu_up() will call cpu_to_node() for APs when
++		 *  MEMORY_HOTPLUG is defined, before per_cpu(numa_node) is set
++		 *  up later with c_init aka intel_init/amd_init
++		 * So set them all (boot cpu and all APs)
++		 */
++		set_cpu_numa_node(cpu, early_cpu_to_node(cpu));
+ #endif
+ #endif
+ 		/*
+@@ -257,14 +266,6 @@ void __init setup_per_cpu_areas(void)
+ 	early_per_cpu_ptr(x86_cpu_to_node_map) = NULL;
+ #endif
  
- 	count  = memblock.reserved.cnt;
- 
--	pr_info("Subtract (%d early reservations)\n", count);
-+	memblock_dbg("Subtract (%d early reservations)\n", count);
- 
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
-+		memblock_dbg("  [%#010llx-%#010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -198,16 +198,16 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- 		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
- 
- 	count  = memblock.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx-%010llx]\n", count, start, end - 1);
-+	memblock_dbg("(%d early reservations) ==> bootmem [%#010llx-%#010llx]\n", count, start, end - 1);
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx-%010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
-+		memblock_dbg("  [%#010llx-%#010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			memblock_dbg("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
-+		memblock_dbg(" ==> [%#010llx-%#010llx]\n", final_start, final_end - 1);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 
-@@ -286,9 +286,11 @@ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("    memblock_x86_reserve_range: [%#010llx-%#010llx] %16s\n", start, end - 1, name);
-+
- 	memblock_reserve(start, end - start);
- }
- 
-@@ -297,9 +299,11 @@ void __init memblock_x86_free_range(u64 start, u64 end)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("       memblock_x86_free_range: [%#010llx-%#010llx]\n", start, end - 1);
-+
- 	memblock_free(start, end - start);
- }
+-#if defined(CONFIG_X86_64) && defined(CONFIG_NUMA)
+-	/*
+-	 * make sure boot cpu numa_node is right, when boot cpu is on the
+-	 * node that doesn't have mem installed
+-	 */
+-	set_cpu_numa_node(boot_cpu_id, early_cpu_to_node(boot_cpu_id));
+-#endif
+-
+ 	/* Setup node to cpumask map */
+ 	setup_node_to_cpumask_map();
  
 -- 
 1.6.4.2
