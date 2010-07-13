@@ -1,40 +1,47 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: LMB bits
-Date: Tue, 13 Jul 2010 17:12:44 +1000
-Message-ID: <1279005164.28659.407.camel@pasglop>
-References: <4C38DDE3.9010303@kernel.org>
-	 <1278905081.28659.157.camel@pasglop> <1278920286.28659.194.camel@pasglop>
-	 <20100712.153455.108790468.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 05/50] memblock: No reason to include asm/memblock.h late
+Date: Tue, 13 Jul 2010 00:09:59 -0700
+Message-ID: <1279005044-24777-6-git-send-email-yinghai@kernel.org>
+References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:37316 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752172Ab0GMHNN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Jul 2010 03:13:13 -0400
-In-Reply-To: <20100712.153455.108790468.davem@davemloft.net>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:23181 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751494Ab0GMHN5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:13:57 -0400
+In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: yinghai@kernel.org, mingo@elte.hu, hpa@zytor.com, tglx@linutronix.de, torvalds@linux-foundation.org, linux-arch@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Mon, 2010-07-12 at 15:34 -0700, David Miller wrote:
-> From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Date: Mon, 12 Jul 2010 17:38:06 +1000
-> 
-> > Ok pushed.
-> 
-> Your current tree headed by 94f4de71740edb80dfbd3916fe83308d545a4419
-> works fine for me.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Thanks Dave.
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
+ include/linux/memblock.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-Ingo, Linus, how to you want to proceed ? We could get the rename patch
-in now, that would make things easier for the ARM folks who have started
-using LMB as well and are currently clashing in linux-next, and keep the
-rest of the rework for the merge window ? Or keep the whole thing for
-the merge window ?
-
-Cheers,
-Ben.
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 86e7daf..4b69313 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -16,6 +16,8 @@
+ #include <linux/init.h>
+ #include <linux/mm.h>
+ 
++#include <asm/memblock.h>
++
+ #define MAX_MEMBLOCK_REGIONS 128
+ 
+ struct memblock_region {
+@@ -82,8 +84,6 @@ memblock_end_pfn(struct memblock_type *type, unsigned long region_nr)
+ 	       memblock_size_pages(type, region_nr);
+ }
+ 
+-#include <asm/memblock.h>
+-
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _LINUX_MEMBLOCK_H */
+-- 
+1.6.4.2
