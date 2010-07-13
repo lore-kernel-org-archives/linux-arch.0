@@ -1,66 +1,87 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 42/50] x86, memblock: Add memblock_x86_find_in_range_node()
-Date: Tue, 13 Jul 2010 00:10:36 -0700
-Message-ID: <1279005044-24777-43-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/50] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
+Date: Tue, 13 Jul 2010 00:10:09 -0700
+Message-ID: <1279005044-24777-16-git-send-email-yinghai@kernel.org>
 References: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:29201 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754446Ab0GMHQl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Jul 2010 03:16:41 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279005044-24777-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-It can be used to find NODE_DATA for numa.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Need to make sure early_node_map[] is filled before it is called, otherwise
-it will fallback to memblock_find_in_range(), with node range.
+This is in preparation for having resizable arrays.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Note that we still allocate one more than needed, this is unchanged from
+the previous implementation.
+
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    1 +
- arch/x86/mm/memblock.c          |   15 +++++++++++++++
- 2 files changed, 16 insertions(+), 0 deletions(-)
+ include/linux/memblock.h |    7 ++++---
+ mm/memblock.c            |   10 +++++++++-
+ 2 files changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 16af28d..3a86b10 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -14,5 +14,6 @@ int get_free_all_memory_range(struct range **rangep, int nodeid);
- void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 memblock_x86_hole_size(u64 start, u64 end);
-+u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index e849d31..b839053 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -18,7 +18,7 @@
  
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index bceb885..a3dece6 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -240,6 +240,21 @@ void __init memblock_x86_free_range(u64 start, u64 end)
- }
+ #include <asm/memblock.h>
  
- /*
-+ * Need to call this function after memblock_x86_register_active_regions,
-+ * so early_node_map[] is filled already.
-+ */
-+u64 __init memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align)
-+{
-+	u64 addr;
-+	addr = find_memory_core_early(nid, size, align, start, end);
-+	if (addr != MEMBLOCK_ERROR)
-+		return addr;
+-#define MAX_MEMBLOCK_REGIONS 128
++#define INIT_MEMBLOCK_REGIONS 128
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
+@@ -26,8 +26,9 @@ struct memblock_region {
+ };
+ 
+ struct memblock_type {
+-	unsigned long cnt;
+-	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
++	unsigned long cnt;	/* number of regions */
++	unsigned long max;	/* size of the allocated array */
++	struct memblock_region *regions;
+ };
+ 
+ struct memblock {
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 78c2394..e1c5ce3 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -18,6 +18,8 @@
+ struct memblock memblock;
+ 
+ static int memblock_debug;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 
+ static int __init early_memblock(char *p)
+ {
+@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
+ 
+ void __init memblock_init(void)
+ {
++	/* Hookup the initial arrays */
++	memblock.memory.regions	= memblock_memory_init_regions;
++	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
++	memblock.reserved.regions	= memblock_reserved_init_regions;
++	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
 +
-+	/* Fallback, should already have start end within node range */
-+	return memblock_find_in_range(start, end, size, align);
-+}
-+
-+/*
-  * Finds an active region in the address range from start_pfn to last_pfn and
-  * returns its range in ei_startpfn and ei_endpfn for the memblock entry.
-  */
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
++	if (type->cnt >= type->max)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
 -- 
 1.6.4.2
