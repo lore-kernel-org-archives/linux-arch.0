@@ -1,31 +1,57 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-Date: Wed, 14 Jul 2010 23:05:36 +0100
-Message-ID: <20100714220536.GE18138@n2100.arm.linux.org.uk>
-References: <4C3C0032.5020702@codeaurora.org> <20100713150311B.fujita.tomonori@lab.ntt.co.jp> <20100713121420.GB4263@codeaurora.org> <20100714104353B.fujita.tomonori@lab.ntt.co.jp> <20100714201149.GA14008@codeaurora.org>
+ memory management
+Date: Thu, 15 Jul 2010 08:07:28 +0900
+Message-ID: <20100715080710T.fujita.tomonori@lab.ntt.co.jp>
+References: <20100713121420.GB4263@codeaurora.org>
+	<20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+	<20100714201149.GA14008@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:54150 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753103Ab0GNWGd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jul 2010 18:06:33 -0400
-Content-Disposition: inline
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <20100714201149.GA14008@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Zach Pfeffer <zpfeffer@codeaurora.org>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Sender: owner-linux-mm@kvack.org
+To: zpfeffer@codeaurora.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 14, 2010 at 01:11:49PM -0700, Zach Pfeffer wrote:
-> If the DMA-API contained functions to allocate virtual space separate
-> from physical space and reworked how chained buffers functioned it
-> would probably work - but then things start to look like the VCM API
-> which does graph based map management.
+On Wed, 14 Jul 2010 13:11:49 -0700
+Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
 
-Every additional virtual mapping of a physical buffer results in
-additional cache aliases on aliasing caches, and more workload for
-developers to sort out the cache aliasing issues.
+> On Wed, Jul 14, 2010 at 10:59:38AM +0900, FUJITA Tomonori wrote:
+> > On Tue, 13 Jul 2010 05:14:21 -0700
+> > Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> > 
+> > > > You mean that you want to specify this alignment attribute every time
+> > > > you create an IOMMU mapping? Then you can set segment_boundary_mask
+> > > > every time you create an IOMMU mapping. It's odd but it should work.
+> > > 
+> > > Kinda. I want to forget about IOMMUs, devices and CPUs. I just want to
+> > > create a mapping that has the alignment I specify, regardless of the
+> > > mapper. The mapping is created on a VCM and the VCM is associated with
+> > > a mapper: a CPU, an IOMMU'd device or a direct mapped device.
+> > 
+> > Sounds like you can do the above with the combination of the current
+> > APIs, create a virtual address and then an I/O address.
+> > 
+> 
+> Yes, and that's what the implementation does - and all the other
+> implementations that need to do this same thing. Why not solve the
+> problem once?
 
-What does VCM to do mitigate that?
+Why we we need a new abstraction layer to solve the problem that the
+current API can handle?
+
+The above two operations don't sound too complicated. The combination
+of the current API sounds much simpler than your new abstraction.
+
+Please show how the combination of the current APIs doesn't
+work. Otherwise, we can't see what's the benefit of your new
+abstraction.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
