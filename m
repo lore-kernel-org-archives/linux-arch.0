@@ -1,47 +1,36 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-Date: Thu, 15 Jul 2010 09:55:35 +0100
-Message-ID: <20100715085535.GC26212@n2100.arm.linux.org.uk>
-References: <4C3C0032.5020702@codeaurora.org> <20100713150311B.fujita.tomonori@lab.ntt.co.jp> <20100713121420.GB4263@codeaurora.org> <20100714104353B.fujita.tomonori@lab.ntt.co.jp> <20100714201149.GA14008@codeaurora.org> <20100714220536.GE18138@n2100.arm.linux.org.uk> <20100715012958.GB2239@codeaurora.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Ted Percival <ted@midg3t.net>
+Subject: [PATCH 1/2] fcntl.h comment: FD_CLOEXEC is for F_[GET|SET]FD
+Date: Thu, 15 Jul 2010 11:29:16 -0600
+Message-ID: <1279214957-10235-1-git-send-email-ted@tedp.id.au>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:39260 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932652Ab0GOI4U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2010 04:56:20 -0400
-Content-Disposition: inline
-In-Reply-To: <20100715012958.GB2239@codeaurora.org>
+Received: from arcueid.lazypants.org ([208.78.100.164]:56088 "EHLO
+	arcueid.lazypants.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933954Ab0GOSL4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2010 14:11:56 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Zach Pfeffer <zpfeffer@codeaurora.org>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: linux-arch@vger.kernel.org
+Cc: Ted Percival <ted@tedp.id.au>
 
-On Wed, Jul 14, 2010 at 06:29:58PM -0700, Zach Pfeffer wrote:
-> The VCM ensures that all mappings that map a given physical buffer:
-> IOMMU mappings, CPU mappings and one-to-one device mappings all map
-> that buffer using the same (or compatible) attributes. At this point
-> the only attribute that users can pass is CACHED. In the absence of
-> CACHED all accesses go straight through to the physical memory.
+Not for F_[GET|SET]FL
 
-So what you're saying is that if I have a buffer in kernel space
-which I already have its virtual address, I can pass this to VCM and
-tell it !CACHED, and it'll setup another mapping which is not cached
-for me?
+Signed-off-by: Ted Percival <ted@tedp.id.au>
+---
+ include/asm-generic/fcntl.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-You are aware that multiple V:P mappings for the same physical page
-with different attributes are being outlawed with ARMv6 and ARMv7
-due to speculative prefetching.  The cache can be searched even for
-a mapping specified as 'normal, uncached' and you can get cache hits
-because the data has been speculatively loaded through a separate
-cached mapping of the same physical page.
-
-FYI, during the next merge window, I will be pushing a patch which makes
-ioremap() of system RAM fail, which should be the last core code creator
-of mappings with different memory types.  This behaviour has been outlawed
-(as unpredictable) in the architecture specification and does cause
-problems on some CPUs.
-
-We've also the issue of multiple mappings with differing cache attributes
-which needs addressing too...
+diff --git a/include/asm-generic/fcntl.h b/include/asm-generic/fcntl.h
+index 4d3e483..65e18d3 100644
+--- a/include/asm-generic/fcntl.h
++++ b/include/asm-generic/fcntl.h
+@@ -74,7 +74,7 @@
+ #define F_GETSIG	11	/* for sockets. */
+ #endif
+ 
+-/* for F_[GET|SET]FL */
++/* for F_[GET|SET]FD */
+ #define FD_CLOEXEC	1	/* actually anything with low bit set goes */
+ 
+ /* for posix fcntl() and lockf() */
+-- 
+1.7.1
