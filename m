@@ -1,44 +1,76 @@
 From: Zach Pfeffer <zpfeffer@codeaurora.org>
 Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
  memory management
-Date: Wed, 14 Jul 2010 18:29:58 -0700
-Message-ID: <20100715012958.GB2239@codeaurora.org>
-References: <4C3C0032.5020702@codeaurora.org>
- <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
- <20100713121420.GB4263@codeaurora.org>
+Date: Wed, 14 Jul 2010 18:41:48 -0700
+Message-ID: <20100715014148.GC2239@codeaurora.org>
+References: <20100713121420.GB4263@codeaurora.org>
  <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
  <20100714201149.GA14008@codeaurora.org>
- <20100714220536.GE18138@n2100.arm.linux.org.uk>
+ <20100715080710T.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:65363 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758122Ab0GOBlz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Jul 2010 21:41:55 -0400
 Content-Disposition: inline
-In-Reply-To: <20100714220536.GE18138@n2100.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20100715080710T.fujita.tomonori@lab.ntt.co.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux@arm.linux.org.uk, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Wed, Jul 14, 2010 at 11:05:36PM +0100, Russell King - ARM Linux wrote:
-> On Wed, Jul 14, 2010 at 01:11:49PM -0700, Zach Pfeffer wrote:
-> > If the DMA-API contained functions to allocate virtual space separate
-> > from physical space and reworked how chained buffers functioned it
-> > would probably work - but then things start to look like the VCM API
-> > which does graph based map management.
+On Thu, Jul 15, 2010 at 08:07:28AM +0900, FUJITA Tomonori wrote:
+> On Wed, 14 Jul 2010 13:11:49 -0700
+> Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
 > 
-> Every additional virtual mapping of a physical buffer results in
-> additional cache aliases on aliasing caches, and more workload for
-> developers to sort out the cache aliasing issues.
+> > On Wed, Jul 14, 2010 at 10:59:38AM +0900, FUJITA Tomonori wrote:
+> > > On Tue, 13 Jul 2010 05:14:21 -0700
+> > > Zach Pfeffer <zpfeffer@codeaurora.org> wrote:
+> > > 
+> > > > > You mean that you want to specify this alignment attribute every time
+> > > > > you create an IOMMU mapping? Then you can set segment_boundary_mask
+> > > > > every time you create an IOMMU mapping. It's odd but it should work.
+> > > > 
+> > > > Kinda. I want to forget about IOMMUs, devices and CPUs. I just want to
+> > > > create a mapping that has the alignment I specify, regardless of the
+> > > > mapper. The mapping is created on a VCM and the VCM is associated with
+> > > > a mapper: a CPU, an IOMMU'd device or a direct mapped device.
+> > > 
+> > > Sounds like you can do the above with the combination of the current
+> > > APIs, create a virtual address and then an I/O address.
+> > > 
+> > 
+> > Yes, and that's what the implementation does - and all the other
+> > implementations that need to do this same thing. Why not solve the
+> > problem once?
 > 
-> What does VCM to do mitigate that?
+> Why we we need a new abstraction layer to solve the problem that the
+> current API can handle?
 
-The VCM ensures that all mappings that map a given physical buffer:
-IOMMU mappings, CPU mappings and one-to-one device mappings all map
-that buffer using the same (or compatible) attributes. At this point
-the only attribute that users can pass is CACHED. In the absence of
-CACHED all accesses go straight through to the physical memory.
+The current API can't really handle it because the DMA API doesn't
+separate buffer allocation from buffer mapping. To use the DMA API a
+scatterlist would need to be synthesized from the physical buffers
+that we've allocated. 
 
-The architecture of the VCM allows these sorts of consistency checks
-to be made since all mappers of a given physical resource are
-tracked. This is feasible because the physical resources we're
-tracking are typically large.
+For instance: I need 10, 1 MB physical buffers and a 64 KB physical
+buffer. With the DMA API I need to allocate 10*1MB/PAGE_SIZE + 64
+KB/PAGE_SIZE scatterlist elements, fix them all up to follow the
+chaining specification and then go through all of them again to fix up
+their virtual mappings for the mapper that's mapping the physical
+buffer. If I want to share the buffer with another device I have to
+make a copy of the entire thing then fix up the virtual mappings for
+the other device I'm sharing with. The VCM splits the two things up so
+that I do a physical allocation, then 2 virtual allocations and then
+map both.
+
+> 
+> The above two operations don't sound too complicated. The combination
+> of the current API sounds much simpler than your new abstraction.
+> 
+> Please show how the combination of the current APIs doesn't
+> work. Otherwise, we can't see what's the benefit of your new
+> abstraction.
+
+See above.
