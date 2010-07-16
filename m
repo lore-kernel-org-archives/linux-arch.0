@@ -1,71 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:65167 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932387Ab0GOFk5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2010 01:40:57 -0400
-Date: Wed, 14 Jul 2010 22:40:51 -0700
-From: Zach Pfeffer <zpfeffer@codeaurora.org>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Message-ID: <20100715054050.GB3623@codeaurora.org>
-References: <4C3C0032.5020702@codeaurora.org>
- <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
- <20100713121420.GB4263@codeaurora.org>
- <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
- <20100714201149.GA14008@codeaurora.org>
- <20100714220536.GE18138@n2100.arm.linux.org.uk>
- <20100715012958.GB2239@codeaurora.org>
- <m1mxttiki1.fsf@fess.ebiederm.org>
+Received: from mail-vw0-f46.google.com ([209.85.212.46]:42546 "EHLO
+	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S935075Ab0GPAsh convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2010 20:48:37 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <m1mxttiki1.fsf@fess.ebiederm.org>
+In-Reply-To: <20100715085535.GC26212@n2100.arm.linux.org.uk>
+References: <4C3C0032.5020702@codeaurora.org>
+	<20100713150311B.fujita.tomonori@lab.ntt.co.jp>
+	<20100713121420.GB4263@codeaurora.org>
+	<20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+	<20100714201149.GA14008@codeaurora.org>
+	<20100714220536.GE18138@n2100.arm.linux.org.uk>
+	<20100715012958.GB2239@codeaurora.org>
+	<20100715085535.GC26212@n2100.arm.linux.org.uk>
+Date: Thu, 15 Jul 2010 20:48:36 -0400
+Message-ID: <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+	memory management
+From: Tim HRM <zt.tmzt@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20100715054051.CSzE57r8LugtM2zbx-Axg-ZehnfyXZZw2ZOzILQyS4Y@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100716004836.s7yD3B1QgJ4lXhA7bm7uGTG6bLU6KvOkmPC5Qf98lOw@z>
 
-On Wed, Jul 14, 2010 at 06:47:34PM -0700, Eric W. Biederman wrote:
-> Zach Pfeffer <zpfeffer@codeaurora.org> writes:
-> 
-> > On Wed, Jul 14, 2010 at 11:05:36PM +0100, Russell King - ARM Linux wrote:
-> >> On Wed, Jul 14, 2010 at 01:11:49PM -0700, Zach Pfeffer wrote:
-> >> > If the DMA-API contained functions to allocate virtual space separate
-> >> > from physical space and reworked how chained buffers functioned it
-> >> > would probably work - but then things start to look like the VCM API
-> >> > which does graph based map management.
-> >> 
-> >> Every additional virtual mapping of a physical buffer results in
-> >> additional cache aliases on aliasing caches, and more workload for
-> >> developers to sort out the cache aliasing issues.
-> >> 
-> >> What does VCM to do mitigate that?
-> >
-> > The VCM ensures that all mappings that map a given physical buffer:
-> > IOMMU mappings, CPU mappings and one-to-one device mappings all map
-> > that buffer using the same (or compatible) attributes. At this point
-> > the only attribute that users can pass is CACHED. In the absence of
-> > CACHED all accesses go straight through to the physical memory.
-> >
-> > The architecture of the VCM allows these sorts of consistency checks
-> > to be made since all mappers of a given physical resource are
-> > tracked. This is feasible because the physical resources we're
-> > tracking are typically large.
-> 
-> On x86 this is implemented in the pat code, and could reasonably be
-> generalized to be cross platform.
-> 
-> This is controlled by HAVE_PFNMAP_TRACKING and with entry points
-> like track_pfn_vma_new.
-> 
-> Given that we already have an implementation that tracks the cached
-> vs non-cached attribute using the dma api.  I don't see that the
-> API has to change.  An implementation of the cached vs non-cached
-> status for arm and other architectures is probably appropriate.
-> 
-> It is definitely true that getting your mapping caching attributes
-> out of sync can be a problem.
+On Thu, Jul 15, 2010 at 4:55 AM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
+> On Wed, Jul 14, 2010 at 06:29:58PM -0700, Zach Pfeffer wrote:
+>> The VCM ensures that all mappings that map a given physical buffer:
+>> IOMMU mappings, CPU mappings and one-to-one device mappings all map
+>> that buffer using the same (or compatible) attributes. At this point
+>> the only attribute that users can pass is CACHED. In the absence of
+>> CACHED all accesses go straight through to the physical memory.
+>
+> So what you're saying is that if I have a buffer in kernel space
+> which I already have its virtual address, I can pass this to VCM and
+> tell it !CACHED, and it'll setup another mapping which is not cached
+> for me?
+>
+> You are aware that multiple V:P mappings for the same physical page
+> with different attributes are being outlawed with ARMv6 and ARMv7
+> due to speculative prefetching.  The cache can be searched even for
+> a mapping specified as 'normal, uncached' and you can get cache hits
+> because the data has been speculatively loaded through a separate
+> cached mapping of the same physical page.
+>
+> FYI, during the next merge window, I will be pushing a patch which makes
+> ioremap() of system RAM fail, which should be the last core code creator
+> of mappings with different memory types.  This behaviour has been outlawed
+> (as unpredictable) in the architecture specification and does cause
+> problems on some CPUs.
+>
+> We've also the issue of multiple mappings with differing cache attributes
+> which needs addressing too...
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
 
-Sure, but we're still stuck with needing lots of scatterlist list
-elements and needing to copy them to share physical buffers.
+Interesting, since I seem to remember the MSM devices mostly conduct
+IO through regions of normal RAM, largely accomplished through
+ioremap() calls.
+
+Without more public domain documentation of the MSM chips and AMSS
+interfaces I wouldn't know how to avoid this, but I can imagine it
+creates a bit of urgency for Qualcomm developers as they attempt to
+upstream support for this most interesting SoC.
+
+--
+Timothy Meade
+tmzt #htc-linux
