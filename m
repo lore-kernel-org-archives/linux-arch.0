@@ -1,37 +1,26 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-Date: Fri, 16 Jul 2010 08:58:56 +0100
-Message-ID: <20100716075856.GC16124@n2100.arm.linux.org.uk>
-References: <4C3C0032.5020702@codeaurora.org> <20100713150311B.fujita.tomonori@lab.ntt.co.jp> <20100713121420.GB4263@codeaurora.org> <20100714104353B.fujita.tomonori@lab.ntt.co.jp> <20100714201149.GA14008@codeaurora.org> <20100714220536.GE18138@n2100.arm.linux.org.uk> <20100715012958.GB2239@codeaurora.org> <20100715085535.GC26212@n2100.arm.linux.org.uk> <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/2] fcntl.h comment: Fix typo regarding O_SYNC
+Date: Fri, 16 Jul 2010 11:00:30 +0100
+Message-ID: <8130.1279274430@redhat.com>
+References: <1279214957-10235-2-git-send-email-ted@tedp.id.au> <1279214957-10235-1-git-send-email-ted@tedp.id.au>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:51647 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935756Ab0GPH7v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jul 2010 03:59:51 -0400
-Content-Disposition: inline
-In-Reply-To: <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:35321 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S964895Ab0GPKAp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Jul 2010 06:00:45 -0400
+In-Reply-To: <1279214957-10235-2-git-send-email-ted@tedp.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tim HRM <zt.tmzt@gmail.com>
-Cc: Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: Ted Percival <ted@midg3t.net>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Ted Percival <ted@tedp.id.au>
 
-On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
-> Interesting, since I seem to remember the MSM devices mostly conduct
-> IO through regions of normal RAM, largely accomplished through
-> ioremap() calls.
-> 
-> Without more public domain documentation of the MSM chips and AMSS
-> interfaces I wouldn't know how to avoid this, but I can imagine it
-> creates a bit of urgency for Qualcomm developers as they attempt to
-> upstream support for this most interesting SoC.
 
-As the patch has been out for RFC since early April on the linux-arm-kernel
-mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
-and no comments have come back from Qualcomm folk.
+Ted Percival <ted@midg3t.net> wrote:
 
-The restriction on creation of multiple V:P mappings with differing
-attributes is also fairly hard to miss in the ARM architecture
-specification when reading the sections about caches.
+> +/* open/fcntl - O_SYNC is only implemented on block devices and on files
+>     located on an ext2 file system */
+
+Is this comment still true about the fact that, with respect to files, this is
+only implemented on ext2?
+
+David
