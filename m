@@ -1,60 +1,30 @@
-From: Larry Bassel <lbassel@codeaurora.org>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Date: Fri, 16 Jul 2010 17:01:08 -0700
-Message-ID: <20100717000108.GB21293@labbmf-linux.quicinc.com>
-References: <4C3C0032.5020702@codeaurora.org>
- <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
- <20100713121420.GB4263@codeaurora.org>
- <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
- <20100714201149.GA14008@codeaurora.org>
- <20100714220536.GE18138@n2100.arm.linux.org.uk>
- <20100715012958.GB2239@codeaurora.org>
- <20100715085535.GC26212@n2100.arm.linux.org.uk>
- <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
- <20100716075856.GC16124@n2100.arm.linux.org.uk>
+From: "Grant Mayor" <grantfinancing@gmail.com>
+Subject: (unknown)
+Date: Sat, 17 Jul 2010 10:06:45 +0200 (CEST)
+Message-ID: <2148.41.138.190.28.1279354005.squirrel__28615.822902839$1279354226$gmane$org@www.scalabrini.net>
+Reply-To: to.grantfinancing@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20100716075856.GC16124@n2100.arm.linux.org.uk>
-Sender: owner-linux-mm@kvack.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Tim HRM <zt.tmzt@gmail.com>, Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:59561 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752466Ab0GQIJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 17 Jul 2010 04:09:42 -0400
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On 16 Jul 10 08:58, Russell King - ARM Linux wrote:
-> On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
-> > Interesting, since I seem to remember the MSM devices mostly conduct
-> > IO through regions of normal RAM, largely accomplished through
-> > ioremap() calls.
-> > 
-> > Without more public domain documentation of the MSM chips and AMSS
-> > interfaces I wouldn't know how to avoid this, but I can imagine it
-> > creates a bit of urgency for Qualcomm developers as they attempt to
-> > upstream support for this most interesting SoC.
-> 
-> As the patch has been out for RFC since early April on the linux-arm-kernel
-> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
-> and no comments have come back from Qualcomm folk.
+FUNDING NOTIFICATION.............I am Mr Grant Mayor. i am a loan lender
+as well as an angel investor, I offer funds based on demands and i use the
+best possible interest rate so that it can make both paties smile. I allow
+my clients to decide the loan repayment duration. So i have my door for
+funding opened to all that is in need, If you have been turned down be
+many financial institutions, this is a great time for you to make things
+up. If you need a stress free funing, kindly get back to me with a mail of
+application for funding and you will get funded within 3 working days.
+Send all mails of application to: to.grantfinancing@gmail.com.
 
-We are investigating the impact of this change on us, and I
-will send out more detailed comments next week.
+I await your response.
 
-> 
-> The restriction on creation of multiple V:P mappings with differing
-> attributes is also fairly hard to miss in the ARM architecture
-> specification when reading the sections about caches.
-> 
-
-Larry Bassel
-
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Grant Mayor.
