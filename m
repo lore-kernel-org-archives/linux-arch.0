@@ -1,75 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f46.google.com ([209.85.212.46]:42546 "EHLO
-	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S935075Ab0GPAsh convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Jul 2010 20:48:37 -0400
-MIME-Version: 1.0
-In-Reply-To: <20100715085535.GC26212@n2100.arm.linux.org.uk>
-References: <4C3C0032.5020702@codeaurora.org>
-	<20100713150311B.fujita.tomonori@lab.ntt.co.jp>
-	<20100713121420.GB4263@codeaurora.org>
-	<20100714104353B.fujita.tomonori@lab.ntt.co.jp>
-	<20100714201149.GA14008@codeaurora.org>
-	<20100714220536.GE18138@n2100.arm.linux.org.uk>
-	<20100715012958.GB2239@codeaurora.org>
-	<20100715085535.GC26212@n2100.arm.linux.org.uk>
-Date: Thu, 15 Jul 2010 20:48:36 -0400
-Message-ID: <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:46725 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755023Ab0GQABJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Jul 2010 20:01:09 -0400
+Date: Fri, 16 Jul 2010 17:01:08 -0700
+From: Larry Bassel <lbassel@codeaurora.org>
 Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-From: Tim HRM <zt.tmzt@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+ memory management
+Message-ID: <20100717000108.GB21293@labbmf-linux.quicinc.com>
+References: <4C3C0032.5020702@codeaurora.org>
+ <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
+ <20100713121420.GB4263@codeaurora.org>
+ <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+ <20100714201149.GA14008@codeaurora.org>
+ <20100714220536.GE18138@n2100.arm.linux.org.uk>
+ <20100715012958.GB2239@codeaurora.org>
+ <20100715085535.GC26212@n2100.arm.linux.org.uk>
+ <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+ <20100716075856.GC16124@n2100.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100716075856.GC16124@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20100716004836.s7yD3B1QgJ4lXhA7bm7uGTG6bLU6KvOkmPC5Qf98lOw@z>
+Cc: Tim HRM <zt.tmzt@gmail.com>, Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100717000108.mnC-MoWRiXj1byDos6AI8a2jDN2yL-xVMbBOkhVJ8GE@z>
 
-On Thu, Jul 15, 2010 at 4:55 AM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Wed, Jul 14, 2010 at 06:29:58PM -0700, Zach Pfeffer wrote:
->> The VCM ensures that all mappings that map a given physical buffer:
->> IOMMU mappings, CPU mappings and one-to-one device mappings all map
->> that buffer using the same (or compatible) attributes. At this point
->> the only attribute that users can pass is CACHED. In the absence of
->> CACHED all accesses go straight through to the physical memory.
->
-> So what you're saying is that if I have a buffer in kernel space
-> which I already have its virtual address, I can pass this to VCM and
-> tell it !CACHED, and it'll setup another mapping which is not cached
-> for me?
->
-> You are aware that multiple V:P mappings for the same physical page
-> with different attributes are being outlawed with ARMv6 and ARMv7
-> due to speculative prefetching.  The cache can be searched even for
-> a mapping specified as 'normal, uncached' and you can get cache hits
-> because the data has been speculatively loaded through a separate
-> cached mapping of the same physical page.
->
-> FYI, during the next merge window, I will be pushing a patch which makes
-> ioremap() of system RAM fail, which should be the last core code creator
-> of mappings with different memory types.  This behaviour has been outlawed
-> (as unpredictable) in the architecture specification and does cause
-> problems on some CPUs.
->
-> We've also the issue of multiple mappings with differing cache attributes
-> which needs addressing too...
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->
+On 16 Jul 10 08:58, Russell King - ARM Linux wrote:
+> On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
+> > Interesting, since I seem to remember the MSM devices mostly conduct
+> > IO through regions of normal RAM, largely accomplished through
+> > ioremap() calls.
+> > 
+> > Without more public domain documentation of the MSM chips and AMSS
+> > interfaces I wouldn't know how to avoid this, but I can imagine it
+> > creates a bit of urgency for Qualcomm developers as they attempt to
+> > upstream support for this most interesting SoC.
+> 
+> As the patch has been out for RFC since early April on the linux-arm-kernel
+> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
+> and no comments have come back from Qualcomm folk.
 
-Interesting, since I seem to remember the MSM devices mostly conduct
-IO through regions of normal RAM, largely accomplished through
-ioremap() calls.
+We are investigating the impact of this change on us, and I
+will send out more detailed comments next week.
 
-Without more public domain documentation of the MSM chips and AMSS
-interfaces I wouldn't know how to avoid this, but I can imagine it
-creates a bit of urgency for Qualcomm developers as they attempt to
-upstream support for this most interesting SoC.
+> 
+> The restriction on creation of multiple V:P mappings with differing
+> attributes is also fairly hard to miss in the ARM architecture
+> specification when reading the sections about caches.
+> 
 
---
-Timothy Meade
-tmzt #htc-linux
+Larry Bassel
+
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
