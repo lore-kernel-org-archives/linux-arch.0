@@ -1,38 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:48918 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756889Ab0GRSY7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Jul 2010 14:24:59 -0400
-MIME-Version: 1.0
-In-Reply-To: <201007181703.17022.vda.linux@googlemail.com>
-References: <201007181703.17022.vda.linux@googlemail.com>
-Date: Sun, 18 Jul 2010 20:24:53 +0200
-Message-ID: <AANLkTin-9VsTJxGclRUrJIizn9aDZ6pjxmByBCWB0Hqr@mail.gmail.com>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:40150 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757532Ab0GRXcE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Jul 2010 19:32:04 -0400
+From: Denys Vlasenko <vda.linux@googlemail.com>
 Subject: Re: Testing of function/data-sections on linux-2.6.35-rc4
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Date: Mon, 19 Jul 2010 01:31:56 +0200
+References: <201007181703.17022.vda.linux@googlemail.com> <AANLkTin-9VsTJxGclRUrJIizn9aDZ6pjxmByBCWB0Hqr@mail.gmail.com>
+In-Reply-To: <AANLkTin-9VsTJxGclRUrJIizn9aDZ6pjxmByBCWB0Hqr@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+Message-ID: <201007190131.56633.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <vda.linux@googlemail.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Sam Ravnborg <sam@ravnborg.org>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20100718182453.bX77F8DijfZb8LPsSAVwXcUVz4eP4OdQ3S_l3T5YswU@z>
+Message-ID: <20100718233156.gJAIF7Pe6PlzPujrpgXR1IznC05xkwloUXCvjElFFao@z>
 
-On Sun, Jul 18, 2010 at 17:03, Denys Vlasenko <vda.linux@googlemail.com> wrote:
-> I am sending this email from the machine which runs the kernel
-> built with -ffunction-sections -fdata-sections --gc-sections.
+On Sunday 18 July 2010 20:24, Geert Uytterhoeven wrote:
+> On Sun, Jul 18, 2010 at 17:03, Denys Vlasenko <vda.linux@googlemail.com> wrote:
+> > I am sending this email from the machine which runs the kernel
+> > built with -ffunction-sections -fdata-sections --gc-sections.
+> 
+> (sorry for the previous HTML-email)
+> 
+> For the record, what are the metrics of this kernel vs. the standard one?
 
-(sorry for the previous HTML-email)
+Kernel:
 
-For the record, what are the metrics of this kernel vs. the standard one?
+   text    data     bss     dec     hex filename
+8299299  857324  785348 9941971  97b3d3 linux-2.6.35-rc4.obj/vmlinux
+7656461  841508  783700 9281669  8da085 linux-2.6.35-rc4-fs.obj/vmlinux
+7566908  832388  717844 9117140  8b1dd4 linux-2.6.35-rc4-fsgs.obj/vmlinux
 
-Gr{oetje,eeting}s,
+The largest module in my build:
+   text    data     bss     dec     hex filename
+ 451009   54640    2224  507873   7bfe1 linux-2.6.35-rc4.obj/fs/xfs/xfs.ko
+ 450519   54292    2202  507013   7bc85 linux-2.6.35-rc4-fs.obj/fs/xfs/xfs.ko
+ 450521   54292    2202  507015   7bc87 linux-2.6.35-rc4-fsgs.obj/fs/xfs/xfs.ko
 
-                        Geert
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+vda
