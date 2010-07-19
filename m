@@ -1,87 +1,82 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 27/49] memblock: Add debugfs files to dump the arrays content
-Date: Mon, 19 Jul 2010 16:56:36 -0700
-Message-ID: <1279583818-14249-28-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/49] memblock: Make memblock_find_region() out of memblock_alloc_region()
+Date: Mon, 19 Jul 2010 16:56:25 -0700
+Message-ID: <1279583818-14249-17-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64407 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966913Ab0GSX6z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:55 -0400
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+This function will be used to locate a free area to put the new memblock
+arrays when attempting to resize them. memblock_alloc_region() is gone,
+the two callsites now call memblock_add_region().
+
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 51 insertions(+), 0 deletions(-)
+ mm/memblock.c |   20 +++++++++-----------
+ 1 files changed, 9 insertions(+), 11 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 424ca11..b5eb901 100644
+index 21ba089..eae3dc0 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -16,6 +16,8 @@
- #include <linux/bitops.h>
- #include <linux/poison.h>
- #include <linux/pfn.h>
-+#include <linux/debugfs.h>
-+#include <linux/seq_file.h>
- #include <linux/memblock.h>
- 
- struct memblock memblock;
-@@ -714,3 +716,52 @@ static int __init early_memblock(char *p)
+@@ -309,8 +309,8 @@ static phys_addr_t memblock_align_up(phys_addr_t addr, phys_addr_t size)
+ 	return (addr + (size - 1)) & ~(size - 1);
  }
- early_param("memblock", early_memblock);
  
-+#ifdef CONFIG_DEBUG_FS
-+
-+static int memblock_debug_show(struct seq_file *m, void *private)
-+{
-+	struct memblock_type *type = m->private;
-+	struct memblock_region *reg;
-+	int i;
-+
-+	for (i = 0; i < type->cnt; i++) {
-+		reg = &type->regions[i];
-+		seq_printf(m, "%4d: ", i);
-+		if (sizeof(phys_addr_t) == 4)
-+			seq_printf(m, "0x%08lx..0x%08lx\n",
-+				   (unsigned long)reg->base,
-+				   (unsigned long)(reg->base + reg->size - 1));
-+		else
-+			seq_printf(m, "0x%016llx..0x%016llx\n",
-+				   (unsigned long long)reg->base,
-+				   (unsigned long long)(reg->base + reg->size - 1));
-+
-+	}
-+	return 0;
-+}
-+
-+static int memblock_debug_open(struct inode *inode, struct file *file)
-+{
-+	return single_open(file, memblock_debug_show, inode->i_private);
-+}
-+
-+static const struct file_operations memblock_debug_fops = {
-+	.open = memblock_debug_open,
-+	.read = seq_read,
-+	.llseek = seq_lseek,
-+	.release = single_release,
-+};
-+
-+static int __init memblock_init_debugfs(void)
-+{
-+	struct dentry *root = debugfs_create_dir("memblock", NULL);
-+	if (!root)
-+		return -ENXIO;
-+	debugfs_create_file("memory", S_IRUGO, root, &memblock.memory, &memblock_debug_fops);
-+	debugfs_create_file("reserved", S_IRUGO, root, &memblock.reserved, &memblock_debug_fops);
-+
-+	return 0;
-+}
-+__initcall(memblock_init_debugfs);
-+
-+#endif /* CONFIG_DEBUG_FS */
+-static phys_addr_t __init memblock_alloc_region(phys_addr_t start, phys_addr_t end,
+-					   phys_addr_t size, phys_addr_t align)
++static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t end,
++					  phys_addr_t size, phys_addr_t align)
+ {
+ 	phys_addr_t base, res_base;
+ 	long j;
+@@ -318,12 +318,8 @@ static phys_addr_t __init memblock_alloc_region(phys_addr_t start, phys_addr_t e
+ 	base = memblock_align_down((end - size), align);
+ 	while (start <= base) {
+ 		j = memblock_overlaps_region(&memblock.reserved, base, size);
+-		if (j < 0) {
+-			/* this area isn't reserved, take it */
+-			if (memblock_add_region(&memblock.reserved, base, size) < 0)
+-				base = ~(phys_addr_t)0;
++		if (j < 0)
+ 			return base;
+-		}
+ 		res_base = memblock.reserved.regions[j].base;
+ 		if (res_base < size)
+ 			break;
+@@ -356,8 +352,9 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
+ 
+ 		this_end = memblock_nid_range(start, end, &this_nid);
+ 		if (this_nid == nid) {
+-			phys_addr_t ret = memblock_alloc_region(start, this_end, size, align);
+-			if (ret != ~(phys_addr_t)0)
++			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
++			if (ret != ~(phys_addr_t)0 &&
++			    memblock_add_region(&memblock.reserved, ret, size) >= 0)
+ 				return ret;
+ 		}
+ 		start = this_end;
+@@ -432,8 +429,9 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 		if (memblocksize < size)
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+-		res_base = memblock_alloc_region(memblockbase, base, size, align);
+-		if (res_base != ~(phys_addr_t)0)
++		res_base = memblock_find_region(memblockbase, base, size, align);
++		if (res_base != ~(phys_addr_t)0 &&
++		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
+ 			return res_base;
+ 	}
+ 	return 0;
 -- 
 1.6.4.2
