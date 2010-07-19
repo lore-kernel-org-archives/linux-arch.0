@@ -1,43 +1,55 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/49] memblock: No reason to include asm/memblock.h late
-Date: Mon, 19 Jul 2010 16:56:13 -0700
-Message-ID: <1279583818-14249-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/49] memblock: Print new doubled array location info
+Date: Mon, 19 Jul 2010 16:56:38 -0700
+Message-ID: <1279583818-14249-30-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+so will have more idea where it is,  use memblock_debug to controll it
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+-v2: use memblock_dbg instead of " if (memblock_debug) "
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ mm/memblock.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 86e7daf..4b69313 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -16,6 +16,8 @@
- #include <linux/init.h>
- #include <linux/mm.h>
+diff --git a/mm/memblock.c b/mm/memblock.c
+index c16d4c6..796ef8c 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -192,8 +192,6 @@ static int memblock_double_array(struct memblock_type *type)
+ 	if (!memblock_can_resize)
+ 		return -1;
  
-+#include <asm/memblock.h>
-+
- #define MAX_MEMBLOCK_REGIONS 128
- 
- struct memblock_region {
-@@ -82,8 +84,6 @@ memblock_end_pfn(struct memblock_type *type, unsigned long region_nr)
- 	       memblock_size_pages(type, region_nr);
- }
- 
--#include <asm/memblock.h>
+-	pr_debug("memblock: %s array full, doubling...", memblock_type_name(type));
 -
- #endif /* __KERNEL__ */
+ 	/* Calculate new doubled size */
+ 	old_size = type->max * sizeof(struct memblock_region);
+ 	new_size = old_size << 1;
+@@ -221,6 +219,9 @@ static int memblock_double_array(struct memblock_type *type)
+ 	}
+ 	new_array = __va(addr);
  
- #endif /* _LINUX_MEMBLOCK_H */
++	memblock_dbg("memblock: %s array is doubled to %ld at [%#010llx-%#010llx]",
++		 memblock_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size - 1);
++
+ 	/* Found space, we now need to move the array over before
+ 	 * we add the reserved region since it may be our reserved
+ 	 * array itself that is full.
+@@ -646,7 +647,7 @@ static void memblock_dump(struct memblock_type *region, char *name)
+ 		base = region->regions[i].base;
+ 		size = region->regions[i].size;
+ 
+-		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
++		pr_info(" %s[%#x]\t[%#016llx-%#016llx], %#llx bytes\n",
+ 		    name, i, base, base + size - 1, size);
+ 	}
+ }
 -- 
 1.6.4.2
