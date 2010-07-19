@@ -1,78 +1,151 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/49] memblock: Define MEMBLOCK_ERROR internally instead of using ~(phys_addr_t)0
-Date: Mon, 19 Jul 2010 16:56:26 -0700
-Message-ID: <1279583818-14249-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 34/49] x86, memblock: Add memblock_x86_find_in_range_size()
+Date: Mon, 19 Jul 2010 16:56:43 -0700
+Message-ID: <1279583818-14249-35-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64034 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760937Ab0GSX63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:29 -0400
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+size is returned according free range.
+Will be used to find free ranges for early_memtest and memory corruption check
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Do not mess it up with lib/memblock.c yet.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   12 +++++++-----
- 1 files changed, 7 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/memblock.h |    8 ++++
+ arch/x86/mm/Makefile            |    2 +
+ arch/x86/mm/memblock.c          |   88 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 98 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/include/asm/memblock.h
+ create mode 100644 arch/x86/mm/memblock.c
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index eae3dc0..5743417 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -22,6 +22,8 @@ static int memblock_debug;
- static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- 
-+#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+new file mode 100644
+index 0000000..c14219a
+--- /dev/null
++++ b/arch/x86/include/asm/memblock.h
+@@ -0,0 +1,8 @@
++#ifndef _X86_MEMBLOCK_H
++#define _X86_MEMBLOCK_H
 +
- static int __init early_memblock(char *p)
- {
- 	if (p && strstr(p, "debug"))
-@@ -326,7 +328,7 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
- 		base = memblock_align_down(res_base - size, align);
- 	}
++#define ARCH_DISCARD_MEMBLOCK
++
++u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
++
++#endif
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index a4c7683..5554339 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
+ obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
  
--	return ~(phys_addr_t)0;
++obj-$(CONFIG_HAVE_MEMBLOCK)		+= memblock.o
++
+ obj-$(CONFIG_MEMTEST)		+= memtest.o
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+new file mode 100644
+index 0000000..c602afb
+--- /dev/null
++++ b/arch/x86/mm/memblock.c
+@@ -0,0 +1,88 @@
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/memblock.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
++{
++	struct memblock_region *r;
++	u64 addr = *addrp, last;
++	u64 size = *sizep;
++	bool changed = false;
++
++again:
++	last = addr + size;
++	for_each_memblock(reserved, r) {
++		if (last > r->base && addr < r->base) {
++			size = r->base - addr;
++			changed = true;
++			goto again;
++		}
++		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
++			addr = round_up(r->base + r->size, align);
++			size = last - addr;
++			changed = true;
++			goto again;
++		}
++		if (last <= (r->base + r->size) && addr >= r->base) {
++			(*sizep)++;
++			return false;
++		}
++	}
++	if (changed) {
++		*addrp = addr;
++		*sizep = size;
++	}
++	return changed;
++}
++
++static u64 __init __memblock_x86_find_in_range_size(u64 ei_start, u64 ei_last, u64 start,
++			 u64 *sizep, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	*sizep = ei_last - addr;
++	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
++		;
++	last = addr + *sizep;
++	if (last > ei_last)
++		goto out;
++
++	return addr;
++
++out:
 +	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
-@@ -353,14 +355,14 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
- 		this_end = memblock_nid_range(start, end, &this_nid);
- 		if (this_nid == nid) {
- 			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
--			if (ret != ~(phys_addr_t)0 &&
-+			if (ret != MEMBLOCK_ERROR &&
- 			    memblock_add_region(&memblock.reserved, ret, size) >= 0)
- 				return ret;
- 		}
- 		start = this_end;
- 	}
- 
--	return ~(phys_addr_t)0;
++}
++
++/*
++ * Find next free range after start, and size is returned in *sizep
++ */
++u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
++{
++	struct memblock_region *r;
++
++	for_each_memblock(memory, r) {
++		u64 ei_start = r->base;
++		u64 ei_last = ei_start + r->size;
++		u64 addr;
++
++		addr = __memblock_x86_find_in_range_size(ei_start, ei_last, start,
++					 sizep, align);
++
++		if (addr != MEMBLOCK_ERROR)
++			return addr;
++	}
++
 +	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
-@@ -379,7 +381,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
- 	for (i = 0; i < mem->cnt; i++) {
- 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
- 					       size, align, nid);
--		if (ret != ~(phys_addr_t)0)
-+		if (ret != MEMBLOCK_ERROR)
- 			return ret;
- 	}
- 
-@@ -430,7 +432,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 			continue;
- 		base = min(memblockbase + memblocksize, max_addr);
- 		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != ~(phys_addr_t)0 &&
-+		if (res_base != MEMBLOCK_ERROR &&
- 		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
- 			return res_base;
- 	}
++}
++
 -- 
 1.6.4.2
