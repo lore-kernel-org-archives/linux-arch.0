@@ -1,114 +1,87 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 39/49] x86, memblock: Add memblock_x86_register_active_regions() and memblock_x86_hole_size()
-Date: Mon, 19 Jul 2010 16:56:48 -0700
-Message-ID: <1279583818-14249-40-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 27/49] memblock: Add debugfs files to dump the arrays content
+Date: Mon, 19 Jul 2010 16:56:36 -0700
+Message-ID: <1279583818-14249-28-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-memblock_x86_register_active_regions() will be used to fill early_node_map,
-the result will be memblock.memory.region AND numa data
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-memblock_x86_hole_size will be used to find hole size on memblock.memory.region
-with specified range.
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    4 ++
- arch/x86/mm/memblock.c          |   67 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 71 insertions(+), 0 deletions(-)
+ mm/memblock.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 51 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 72639ce..16af28d 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -11,4 +11,8 @@ void memblock_x86_free_range(u64 start, u64 end);
- struct range;
- int get_free_all_memory_range(struct range **rangep, int nodeid);
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 424ca11..b5eb901 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -16,6 +16,8 @@
+ #include <linux/bitops.h>
+ #include <linux/poison.h>
+ #include <linux/pfn.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
+ #include <linux/memblock.h>
  
-+void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn);
-+u64 memblock_x86_hole_size(u64 start, u64 end);
-+
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index ab4e2dc..bceb885 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -238,3 +238,70 @@ void __init memblock_x86_free_range(u64 start, u64 end)
- 
- 	memblock_free(start, end - start);
+ struct memblock memblock;
+@@ -714,3 +716,52 @@ static int __init early_memblock(char *p)
  }
+ early_param("memblock", early_memblock);
+ 
++#ifdef CONFIG_DEBUG_FS
 +
-+/*
-+ * Finds an active region in the address range from start_pfn to last_pfn and
-+ * returns its range in ei_startpfn and ei_endpfn for the memblock entry.
-+ */
-+static int __init memblock_x86_find_active_region(const struct memblock_region *ei,
-+				  unsigned long start_pfn,
-+				  unsigned long last_pfn,
-+				  unsigned long *ei_startpfn,
-+				  unsigned long *ei_endpfn)
++static int memblock_debug_show(struct seq_file *m, void *private)
 +{
-+	u64 align = PAGE_SIZE;
++	struct memblock_type *type = m->private;
++	struct memblock_region *reg;
++	int i;
 +
-+	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
-+	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
++	for (i = 0; i < type->cnt; i++) {
++		reg = &type->regions[i];
++		seq_printf(m, "%4d: ", i);
++		if (sizeof(phys_addr_t) == 4)
++			seq_printf(m, "0x%08lx..0x%08lx\n",
++				   (unsigned long)reg->base,
++				   (unsigned long)(reg->base + reg->size - 1));
++		else
++			seq_printf(m, "0x%016llx..0x%016llx\n",
++				   (unsigned long long)reg->base,
++				   (unsigned long long)(reg->base + reg->size - 1));
 +
-+	/* Skip map entries smaller than a page */
-+	if (*ei_startpfn >= *ei_endpfn)
-+		return 0;
-+
-+	/* Skip if map is outside the node */
-+	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
-+		return 0;
-+
-+	/* Check for overlaps */
-+	if (*ei_startpfn < start_pfn)
-+		*ei_startpfn = start_pfn;
-+	if (*ei_endpfn > last_pfn)
-+		*ei_endpfn = last_pfn;
-+
-+	return 1;
++	}
++	return 0;
 +}
 +
-+/* Walk the memblock.memory map and register active regions within a node */
-+void __init memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
-+					 unsigned long last_pfn)
++static int memblock_debug_open(struct inode *inode, struct file *file)
 +{
-+	unsigned long ei_startpfn;
-+	unsigned long ei_endpfn;
-+	struct memblock_region *r;
-+
-+	for_each_memblock(memory, r)
-+		if (memblock_x86_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			add_active_range(nid, ei_startpfn, ei_endpfn);
++	return single_open(file, memblock_debug_show, inode->i_private);
 +}
 +
-+/*
-+ * Find the hole size (in bytes) in the memory range.
-+ * @start: starting address of the memory range to scan
-+ * @end: ending address of the memory range to scan
-+ */
-+u64 __init memblock_x86_hole_size(u64 start, u64 end)
++static const struct file_operations memblock_debug_fops = {
++	.open = memblock_debug_open,
++	.read = seq_read,
++	.llseek = seq_lseek,
++	.release = single_release,
++};
++
++static int __init memblock_init_debugfs(void)
 +{
-+	unsigned long start_pfn = start >> PAGE_SHIFT;
-+	unsigned long last_pfn = end >> PAGE_SHIFT;
-+	unsigned long ei_startpfn, ei_endpfn, ram = 0;
-+	struct memblock_region *r;
++	struct dentry *root = debugfs_create_dir("memblock", NULL);
++	if (!root)
++		return -ENXIO;
++	debugfs_create_file("memory", S_IRUGO, root, &memblock.memory, &memblock_debug_fops);
++	debugfs_create_file("reserved", S_IRUGO, root, &memblock.reserved, &memblock_debug_fops);
 +
-+	for_each_memblock(memory, r)
-+		if (memblock_x86_find_active_region(r, start_pfn, last_pfn,
-+					   &ei_startpfn, &ei_endpfn))
-+			ram += ei_endpfn - ei_startpfn;
-+
-+	return end - start - ((u64)ram << PAGE_SHIFT);
++	return 0;
 +}
++__initcall(memblock_init_debugfs);
 +
++#endif /* CONFIG_DEBUG_FS */
 -- 
 1.6.4.2
