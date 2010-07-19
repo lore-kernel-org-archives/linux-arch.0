@@ -1,13 +1,13 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 26/49] memblock: Make memblock_alloc_try_nid() fallback to MEMBLOCK_ALLOC_ANYWHERE
-Date: Mon, 19 Jul 2010 16:56:35 -0700
-Message-ID: <1279583818-14249-27-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/49] memblock: Remove memblock_type.size and add memblock.memory_size instead
+Date: Mon, 19 Jul 2010 16:56:22 -0700
+Message-ID: <1279583818-14249-14-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63896 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63992 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760889Ab0GSX6M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:12 -0400
+	with ESMTP id S1760924Ab0GSX6W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:22 -0400
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,36 +16,84 @@ Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpx
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-memblock_alloc_nid() used to fallback to allocating anywhere by using
-memblock_alloc() as a fallback.
+Right now, both the "memory" and "reserved" memblock_type structures have
+a "size" member. It's unused in the later case, and represent the
+calculated memory size in the later case.
 
-However, some of my previous patches limit memblock_alloc() to the region
-covered by MEMBLOCK_ALLOC_ACCESSIBLE which is not quite what we want
-for memblock_alloc_try_nid().
-
-So we fix it by explicitely using MEMBLOCK_ALLOC_ANYWHERE.
-
-Not that so far only sparc uses memblock_alloc_nid() and it hasn't been updated
-to clamp the accessible zone yet. Thus the temporary "breakage" should have
-no effect.
+This moves it out to the main memblock structure instead
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/powerpc/mm/mem.c    |    2 +-
+ include/linux/memblock.h |    2 +-
+ mm/memblock.c            |    8 ++++----
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 52df542..f661f6c 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -301,7 +301,7 @@ void __init mem_init(void)
+ 		swiotlb_init(1);
+ #endif
+ 
+-	num_physpages = memblock.memory.size >> PAGE_SHIFT;
++	num_physpages = memblock_phys_mem_size() >> PAGE_SHIFT;
+ 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 5abb06b..e849d31 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -27,12 +27,12 @@ struct memblock_region {
+ 
+ struct memblock_type {
+ 	unsigned long cnt;
+-	phys_addr_t size;
+ 	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
+ };
+ 
+ struct memblock {
+ 	phys_addr_t current_limit;
++	phys_addr_t memory_size;	/* Updated by memblock_analyze() */
+ 	struct memblock_type memory;
+ 	struct memblock_type reserved;
+ };
 diff --git a/mm/memblock.c b/mm/memblock.c
-index c3c499e..424ca11 100644
+index 0c0f787..78c2394 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -546,7 +546,7 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
+@@ -49,7 +49,7 @@ void memblock_dump_all(void)
+ 		return;
  
- 	if (res)
- 		return res;
--	return memblock_alloc(size, align);
-+	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ANYWHERE);
+ 	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" memory.size = 0x%llx\n", (unsigned long long)memblock.memory.size);
++	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
+ 
+ 	memblock_dump(&memblock.memory, "memory");
+ 	memblock_dump(&memblock.reserved, "reserved");
+@@ -123,10 +123,10 @@ void __init memblock_analyze(void)
+ {
+ 	int i;
+ 
+-	memblock.memory.size = 0;
++	memblock.memory_size = 0;
+ 
+ 	for (i = 0; i < memblock.memory.cnt; i++)
+-		memblock.memory.size += memblock.memory.regions[i].size;
++		memblock.memory_size += memblock.memory.regions[i].size;
  }
  
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+@@ -423,7 +423,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
+-	return memblock.memory.size;
++	return memblock.memory_size;
+ }
  
+ phys_addr_t memblock_end_of_DRAM(void)
 -- 
 1.6.4.2
