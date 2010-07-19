@@ -1,88 +1,92 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 22/49] memblock: Add arch function to control coalescing of memblock memory regions
-Date: Mon, 19 Jul 2010 16:56:31 -0700
-Message-ID: <1279583818-14249-23-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 43/49] x86, memblock: Add memblock_x86_memory_in_range()
+Date: Mon, 19 Jul 2010 16:56:52 -0700
+Message-ID: <1279583818-14249-44-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64874 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64814 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967270Ab0GSX7t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:59:49 -0400
+	with ESMTP id S967255Ab0GSX7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:59:39 -0400
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+It will return memory size in specified range according to memblock.memory.region
 
-Some archs such as ARM want to avoid coalescing accross things such
-as the lowmem/highmem boundary or similar. This provides the option
-to control it via an arch callback for which a weak default is provided
-which always allows coalescing.
+Try to share some code with memblock_x86_free_memory_in_range() by passing get_free to
+__memblock_x86_memory_in_range().
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+-v2: Ben want _in_range in the name instead of size
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |   19 ++++++++++++++++++-
- 2 files changed, 20 insertions(+), 1 deletions(-)
+ arch/x86/include/asm/memblock.h |    1 +
+ arch/x86/mm/memblock.c          |   18 +++++++++++++++++-
+ 2 files changed, 18 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index b839053..15da7d9 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -70,6 +70,8 @@ extern void memblock_dump_all(void);
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index fc3c230..2c304bb 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -16,5 +16,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
+ u64 memblock_x86_hole_size(u64 start, u64 end);
+ u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
+ u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
++u64 memblock_x86_memory_in_range(u64 addr, u64 limit);
  
- /* Provided by the architecture */
- extern phys_addr_t memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid);
-+extern int memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
-+				   phys_addr_t addr2, phys_addr_t size2);
+ #endif
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index 3882caa..53b0f60 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -217,7 +217,7 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ }
+ #endif
  
- /**
-  * memblock_set_current_limit - Set the current allocation limit to allow
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 8197f37..f793d9f 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -241,6 +241,12 @@ static int memblock_double_array(struct memblock_type *type)
- 	return 0;
+-u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
++static u64 __init __memblock_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
+ {
+ 	int i, count;
+ 	struct range *range;
+@@ -246,6 +246,10 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
+ 	}
+ 	subtract_range(range, count, 0, addr);
+ 	subtract_range(range, count, limit, -1ULL);
++
++	/* Subtract memblock.reserved.region in range ? */
++	if (!get_free)
++		goto sort_and_count_them;
+ 	for_each_memblock(reserved, r) {
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+@@ -256,6 +260,8 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
+ 
+ 		subtract_range(range, count, final_start, final_end);
+ 	}
++
++sort_and_count_them:
+ 	nr_range = clean_sort_range(range, count);
+ 
+ 	free_size = 0;
+@@ -265,6 +271,16 @@ u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
+ 	return free_size << PAGE_SHIFT;
  }
  
-+extern int __weak memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
-+					  phys_addr_t addr2, phys_addr_t size2)
++u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
 +{
-+	return 1;
++	return __memblock_x86_memory_in_range(addr, limit, true);
 +}
 +
- static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
++u64 __init memblock_x86_memory_in_range(u64 addr, u64 limit)
++{
++	return __memblock_x86_memory_in_range(addr, limit, false);
++}
++
+ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
  {
- 	unsigned long coalesced = 0;
-@@ -262,6 +268,10 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
- 			return 0;
- 
- 		adjacent = memblock_addrs_adjacent(base, size, rgnbase, rgnsize);
-+		/* Check if arch allows coalescing */
-+		if (adjacent != 0 && type == &memblock.memory &&
-+		    !memblock_memory_can_coalesce(base, size, rgnbase, rgnsize))
-+			break;
- 		if (adjacent > 0) {
- 			type->regions[i].base -= size;
- 			type->regions[i].size += size;
-@@ -274,7 +284,14 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
- 		}
- 	}
- 
--	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1)) {
-+	/* If we plugged a hole, we may want to also coalesce with the
-+	 * next region
-+	 */
-+	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1) &&
-+	    ((type != &memblock.memory || memblock_memory_can_coalesce(type->regions[i].base,
-+							     type->regions[i].size,
-+							     type->regions[i+1].base,
-+							     type->regions[i+1].size)))) {
- 		memblock_coalesce_regions(type, i, i+1);
- 		coalesced++;
- 	}
+ 	if (start == end)
 -- 
 1.6.4.2
