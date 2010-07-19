@@ -1,61 +1,160 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64381 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64395 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761012Ab0GSX6v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:51 -0400
+	with ESMTP id S965092Ab0GSX6x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:53 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 29/49] memblock: Print new doubled array location info
-Date: Mon, 19 Jul 2010 16:56:38 -0700
-Message-ID: <1279583818-14249-30-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 38/49] x86, memblock: Add get_free_all_memory_range()
+Date: Mon, 19 Jul 2010 16:56:47 -0700
+Message-ID: <1279583818-14249-39-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100719235638.wvS7fAPEFRRePEYK73lv0nUWLEWo2ciu590hcaGCWpA@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Jan Beulich <jbeulich@novell.com>
+Message-ID: <20100719235647.Mia-EXmbn8ANdAseG32RxXF7aTRIARFKg4OE_c4TJL8@z>
 
-so will have more idea where it is,  use memblock_debug to controll it
+get_free_all_memory_range is for CONFIG_NO_BOOTMEM=y, and will be called by
+free_all_memory_core_early().
 
--v2: use memblock_dbg instead of " if (memblock_debug) "
+It will use early_node_map aka active ranges subtract memblock.reserved to
+get all free range, and those ranges will convert to slab pages.
+
+-v4: increase range size
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Jan Beulich <jbeulich@novell.com>
 ---
- mm/memblock.c |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+ arch/x86/include/asm/memblock.h |    2 +
+ arch/x86/mm/memblock.c          |  102 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 103 insertions(+), 1 deletions(-)
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index c16d4c6..796ef8c 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -192,8 +192,6 @@ static int memblock_double_array(struct memblock_type *type)
- 	if (!memblock_can_resize)
- 		return -1;
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index e11ddf0..72639ce 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -8,5 +8,7 @@ void memblock_x86_to_bootmem(u64 start, u64 end);
  
--	pr_debug("memblock: %s array full, doubling...", memblock_type_name(type));
--
- 	/* Calculate new doubled size */
- 	old_size = type->max * sizeof(struct memblock_region);
- 	new_size = old_size << 1;
-@@ -221,6 +219,9 @@ static int memblock_double_array(struct memblock_type *type)
- 	}
- 	new_array = __va(addr);
+ void memblock_x86_reserve_range(u64 start, u64 end, char *name);
+ void memblock_x86_free_range(u64 start, u64 end);
++struct range;
++int get_free_all_memory_range(struct range **rangep, int nodeid);
  
-+	memblock_dbg("memblock: %s array is doubled to %ld at [%#010llx-%#010llx]",
-+		 memblock_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size - 1);
-+
- 	/* Found space, we now need to move the array over before
- 	 * we add the reserved region since it may be our reserved
- 	 * array itself that is full.
-@@ -646,7 +647,7 @@ static void memblock_dump(struct memblock_type *region, char *name)
- 		base = region->regions[i].base;
- 		size = region->regions[i].size;
- 
--		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
-+		pr_info(" %s[%#x]\t[%#016llx-%#016llx], %#llx bytes\n",
- 		    name, i, base, base + size - 1, size);
- 	}
+ #endif
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index 80cdcf8..ab4e2dc 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -86,7 +86,107 @@ u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
+ 	return MEMBLOCK_ERROR;
  }
+ 
+-#ifndef CONFIG_NO_BOOTMEM
++static __init struct range *find_range_array(int count)
++{
++	u64 end, size, mem;
++	struct range *range;
++
++	size = sizeof(struct range) * count;
++	end = memblock.current_limit;
++
++	mem = memblock_find_in_range(0, end, size, sizeof(struct range));
++	if (mem == MEMBLOCK_ERROR)
++		panic("can not find more space for range array");
++
++	/*
++	 * This range is tempoaray, so don't reserve it, it will not be
++	 * overlapped because We will not alloccate new buffer before
++	 * We discard this one
++	 */
++	range = __va(mem);
++	memset(range, 0, size);
++
++	return range;
++}
++
++#ifdef CONFIG_NO_BOOTMEM
++static void __init memblock_x86_subtract_reserved(struct range *range, int az)
++{
++	int count;
++	u64 final_start, final_end;
++	struct memblock_region *r;
++
++	/* Take out region array itself at first*/
++	if (memblock.reserved.regions != memblock_reserved_init_regions)
++		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
++
++	count  = memblock.reserved.cnt;
++
++	pr_info("Subtract (%d early reservations)\n", count);
++
++	for_each_memblock(reserved, r) {
++		pr_info("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		subtract_range(range, az, final_start, final_end);
++	}
++	/* Put region array back ? */
++	if (memblock.reserved.regions != memblock_reserved_init_regions)
++		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
++}
++
++struct count_data {
++	int nr;
++};
++
++static int __init count_work_fn(unsigned long start_pfn,
++				unsigned long end_pfn, void *datax)
++{
++	struct count_data *data = datax;
++
++	data->nr++;
++
++	return 0;
++}
++
++static int __init count_early_node_map(int nodeid)
++{
++	struct count_data data;
++
++	data.nr = 0;
++	work_with_active_regions(nodeid, count_work_fn, &data);
++
++	return data.nr;
++}
++
++int __init get_free_all_memory_range(struct range **rangep, int nodeid)
++{
++	int count;
++	struct range *range;
++	int nr_range;
++
++	count = (memblock.reserved.cnt + count_early_node_map(nodeid)) * 2;
++
++	range = find_range_array(count);
++	nr_range = 0;
++
++	/*
++	 * Use early_node_map[] and memblock.reserved.region to get range array
++	 * at first
++	 */
++	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
++#ifdef CONFIG_X86_32
++	subtract_range(range, count, max_low_pfn, -1ULL);
++#endif
++	memblock_x86_subtract_reserved(range, count);
++	nr_range = clean_sort_range(range, count);
++
++	*rangep = range;
++	return nr_range;
++}
++#else
+ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ {
+ 	int count;
 -- 
 1.6.4.2
 
