@@ -1,78 +1,91 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 37/49] x86,memblock: Add memblock_x86_reserve_range/memblock_x86_free_range
-Date: Mon, 19 Jul 2010 16:56:46 -0700
-Message-ID: <1279583818-14249-38-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/49] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
+Date: Mon, 19 Jul 2010 16:56:23 -0700
+Message-ID: <1279583818-14249-15-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64075 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64055 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760924Ab0GSX6c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:32 -0400
+	with ESMTP id S1760948Ab0GSX6b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:31 -0400
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-they are wrappers for core versions.
-they are taking start/end/name instead of base/size.
-will make x86 conversion more easy
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-could add more debug print out
+This is in preparation for having resizable arrays.
 
--v2: change get_max_mapped() to memblock.default_alloc_limit according to Michael
-      Ellerman and Ben
-     change to memblock_x86_reserve_range and memblock_x86_free_range according to Michael Ellerman
--v3: call check_and_double after reserve/free, so could avoid to use
-      find_memblock_area. Suggested by Michael Ellerman
+Note that we still allocate one more than needed, this is unchanged from
+the previous implementation.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    3 +++
- arch/x86/mm/memblock.c          |   22 ++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 0 deletions(-)
+ include/linux/memblock.h |    7 ++++---
+ mm/memblock.c            |   10 +++++++++-
+ 2 files changed, 13 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 69cf853..e11ddf0 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -6,4 +6,7 @@
- u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
- void memblock_x86_to_bootmem(u64 start, u64 end);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index e849d31..b839053 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -18,7 +18,7 @@
  
-+void memblock_x86_reserve_range(u64 start, u64 end, char *name);
-+void memblock_x86_free_range(u64 start, u64 end);
+ #include <asm/memblock.h>
+ 
+-#define MAX_MEMBLOCK_REGIONS 128
++#define INIT_MEMBLOCK_REGIONS 128
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
+@@ -26,8 +26,9 @@ struct memblock_region {
+ };
+ 
+ struct memblock_type {
+-	unsigned long cnt;
+-	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
++	unsigned long cnt;	/* number of regions */
++	unsigned long max;	/* size of the allocated array */
++	struct memblock_region *regions;
+ };
+ 
+ struct memblock {
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 78c2394..e1c5ce3 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -18,6 +18,8 @@
+ struct memblock memblock;
+ 
+ static int memblock_debug;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 
+ static int __init early_memblock(char *p)
+ {
+@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
+ 
+ void __init memblock_init(void)
+ {
++	/* Hookup the initial arrays */
++	memblock.memory.regions	= memblock_memory_init_regions;
++	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
++	memblock.reserved.regions	= memblock_reserved_init_regions;
++	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
 +
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 7986a12..80cdcf8 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -116,3 +116,25 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- 		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
- }
- #endif
-+
-+void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	memblock_reserve(start, end - start);
-+}
-+
-+void __init memblock_x86_free_range(u64 start, u64 end)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	memblock_free(start, end - start);
-+}
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 
+ 	if (coalesced)
+ 		return coalesced;
+-	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
++	if (type->cnt >= type->max)
+ 		return -1;
+ 
+ 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
 -- 
 1.6.4.2
