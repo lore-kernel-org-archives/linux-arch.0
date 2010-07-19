@@ -1,106 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64129 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64063 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760961Ab0GSX6d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:33 -0400
+	with ESMTP id S1760954Ab0GSX6c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:32 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 42/49] x86, memblock: Add memblock_x86_free_memory_in_range()
-Date: Mon, 19 Jul 2010 16:56:51 -0700
-Message-ID: <1279583818-14249-43-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/49] memblock: split memblock_find_base() out of __memblock_alloc_base()
+Date: Mon, 19 Jul 2010 16:56:28 -0700
+Message-ID: <1279583818-14249-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100719235651.ttwqd8ClaAvgyPaNXaX9FVKMHsTHQuBivi52kJtMY0Q@z>
+Message-ID: <20100719235628.xLyCh0sm6vHx4wYw8uZ5PvgmRITYaVTXMRT4pZ9OE4c@z>
 
-It will return free memory size in specified range.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-We can not use memory_size - reserved_size here, because some reserved area
-may not be in the scope of memblock.memory.region.
+This will be used by the array resize code and might prove useful
+to some arch code as well at which point it can be made non-static.
 
-Use memblock.memory.region subtracting memblock.reserved.region to get free range array.
-then count size of all free ranges.
+Also add comment as to why aligning size is important
 
--v2: Ben insist on using _in_range
+[ Yinghai Lu ]: it should return MEMBLOCK_ERROR when it fail to find a range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/memblock.h |    1 +
- arch/x86/mm/memblock.c          |   48 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 49 insertions(+), 0 deletions(-)
+ mm/memblock.c |   58 +++++++++++++++++++++++++++++++++++++-------------------
+ 1 files changed, 38 insertions(+), 20 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 3a86b10..fc3c230 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -15,5 +15,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 memblock_x86_hole_size(u64 start, u64 end);
- u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
-+u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 1283893..17403e6 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -345,12 +345,15 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
  
- #endif
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index a3dece6..3882caa 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -217,6 +217,54 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ 	BUG_ON(0 == size);
+ 
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
+ 	/* We do a bottom-up search for a region with the right
+ 	 * nid since that's easier considering how memblock_nid_range()
+ 	 * works
+ 	 */
+-	size = memblock_align_up(size, align);
+-
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
+ 					       size, align, nid);
+@@ -366,20 +369,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
  }
- #endif
  
-+u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+{
-+	int i, count;
-+	struct range *range;
-+	int nr_range;
-+	u64 final_start, final_end;
-+	u64 free_size;
-+	struct memblock_region *r;
-+
-+	count = (memblock.reserved.cnt + memblock.memory.cnt) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	addr = PFN_UP(addr);
-+	limit = PFN_DOWN(limit);
-+
-+	for_each_memblock(memory, r) {
-+		final_start = PFN_UP(r->base);
-+		final_end = PFN_DOWN(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		nr_range = add_range(range, count, nr_range, final_start, final_end);
-+	}
-+	subtract_range(range, count, 0, addr);
-+	subtract_range(range, count, limit, -1ULL);
-+	for_each_memblock(reserved, r) {
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		subtract_range(range, count, final_start, final_end);
-+	}
-+	nr_range = clean_sort_range(range, count);
-+
-+	free_size = 0;
-+	for (i = 0; i < nr_range; i++)
-+		free_size += range[i].end - range[i].start;
-+
-+	return free_size << PAGE_SHIFT;
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+ 	long i;
+ 	phys_addr_t base = 0;
+@@ -387,8 +377,6 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 
+ 	BUG_ON(0 == size);
+ 
+-	size = memblock_align_up(size, align);
+-
+ 	/* Pump up max_addr */
+ 	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+ 		max_addr = memblock.current_limit;
+@@ -405,13 +393,43 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR &&
+-		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
++		if (res_base != MEMBLOCK_ERROR)
+ 			return res_base;
+ 	}
++	return MEMBLOCK_ERROR;
 +}
 +
- void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{	
++	phys_addr_t found;
++
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
++	found = memblock_find_base(size, align, max_addr);
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
++
+ 	return 0;
+ }
+ 
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{
++	phys_addr_t alloc;
++
++	alloc = __memblock_alloc_base(size, align, max_addr);
++
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
++
++	return alloc;
++}
++
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
  {
- 	if (start == end)
 -- 
 1.6.4.2
 
