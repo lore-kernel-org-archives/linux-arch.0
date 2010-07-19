@@ -1,111 +1,94 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 48/49] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
-Date: Mon, 19 Jul 2010 16:56:57 -0700
-Message-ID: <1279583818-14249-49-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 25/49] memblock: Separate memblock_alloc_nid() and memblock_alloc_try_nid()
+Date: Mon, 19 Jul 2010 16:56:34 -0700
+Message-ID: <1279583818-14249-26-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64687 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760913Ab0GSX70 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:59:26 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-memblock_memory_size() will return memory size in memblock.memory.region.
-memblock_free_memory_size() will return free memory size in memblock.memory.region.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-So We can get exact reseved size in specified range.
+The former is now strict, it will fail if it cannot honor the allocation
+within the node, while the later implements the previous semantic which
+falls back to allocating anywhere.
 
-Set the size right after initmem_init(), because later bootmem API will
-get area above 16M. (except some fallback).
-
-Later after we remove the bootmem, We could call that just before paging_init().
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/include/asm/e820.h |    2 ++
- arch/x86/kernel/e820.c      |   17 +++++++++++++++++
- arch/x86/kernel/setup.c     |    1 +
- arch/x86/mm/init_64.c       |    7 -------
- 4 files changed, 20 insertions(+), 7 deletions(-)
+ arch/sparc/mm/init_64.c  |    4 ++--
+ include/linux/memblock.h |    6 +++++-
+ mm/memblock.c            |   14 ++++++++++++++
+ 3 files changed, 21 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 7186463..5be1542 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -117,6 +117,8 @@ extern unsigned long e820_end_of_low_ram_pfn(void);
- extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 0883113..dc584d2 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -820,7 +820,7 @@ static void __init allocate_node_data(int nid)
+ 	struct pglist_data *p;
  
- void memblock_x86_fill(void);
-+void memblock_find_dma_reserve(void);
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+-	paddr = memblock_alloc_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
++	paddr = memblock_alloc_try_nid(sizeof(struct pglist_data), SMP_CACHE_BYTES, nid);
+ 	if (!paddr) {
+ 		prom_printf("Cannot allocate pglist_data for nid[%d]\n", nid);
+ 		prom_halt();
+@@ -840,7 +840,7 @@ static void __init allocate_node_data(int nid)
+ 	if (p->node_spanned_pages) {
+ 		num_pages = bootmem_bootmap_pages(p->node_spanned_pages);
+ 
+-		paddr = memblock_alloc_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
++		paddr = memblock_alloc_try_nid(num_pages << PAGE_SHIFT, PAGE_SIZE, nid);
+ 		if (!paddr) {
+ 			prom_printf("Cannot allocate bootmap for nid[%d]\n",
+ 				  nid);
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index b69c243..08a12cf 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -50,7 +50,11 @@ extern long __init memblock_reserve(phys_addr_t base, phys_addr_t size);
+ /* The numa aware allocator is only available if
+  * CONFIG_ARCH_POPULATES_NODE_MAP is set
+  */
+-extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid);
++extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align,
++					int nid);
++extern phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align,
++					    int nid);
 +
- extern void finish_e820_parsing(void);
- extern void e820_reserve_resources(void);
- extern void e820_reserve_resources_late(void);
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index d5fd894..f0db4c4 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1105,3 +1105,20 @@ void __init memblock_x86_fill(void)
- 	memblock_analyze();
- 	memblock_dump_all();
- }
-+
-+void __init memblock_find_dma_reserve(void)
-+{
-+#ifdef CONFIG_X86_64
-+	u64 free_size_pfn;
-+	u64 mem_size_pfn;
-+	/*
-+	 * need to find out used area below MAX_DMA_PFN
-+	 * need to use memblock to get free size in [0, MAX_DMA_PFN]
-+	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
-+	 */
-+	mem_size_pfn = memblock_x86_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	free_size_pfn = memblock_x86_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	set_dma_reserve(mem_size_pfn - free_size_pfn);
-+#endif
+ extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
+ 
+ /* Flags for memblock_alloc_base() amd __memblock_alloc_base() */
+diff --git a/mm/memblock.c b/mm/memblock.c
+index a9c15a5..c3c499e 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -537,9 +537,23 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
+ 			return ret;
+ 	}
+ 
++	return 0;
 +}
 +
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index a4f0173..924c8f7 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1013,6 +1013,7 @@ void __init setup_arch(char **cmdline_p)
- #endif
- 
- 	initmem_init(0, max_pfn, acpi, k8);
-+	memblock_find_dma_reserve();
- #ifndef CONFIG_NO_BOOTMEM
- 	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
- #endif
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 592b236..d6d4084 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -53,8 +53,6 @@
- #include <asm/init.h>
- #include <linux/bootmem.h>
- 
--static unsigned long dma_reserve __initdata;
--
- static int __init parse_direct_gbpages_off(char *arg)
- {
- 	direct_gbpages = 0;
-@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	reserve_bootmem(phys, len, flags);
- 
--	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
--		dma_reserve += len / PAGE_SIZE;
--		set_dma_reserve(dma_reserve);
--	}
--
- 	return 0;
++phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, int nid)
++{
++	phys_addr_t res = memblock_alloc_nid(size, align, nid);
++
++	if (res)
++		return res;
+ 	return memblock_alloc(size, align);
  }
- #endif
+ 
++
++/*
++ * Remaining API functions
++ */
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
