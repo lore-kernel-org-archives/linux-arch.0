@@ -1,84 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63897 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64055 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757508Ab0GSX6M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:12 -0400
+	with ESMTP id S1760948Ab0GSX6b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:31 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/49] memblock: Define MEMBLOCK_ERROR internally instead of using ~(phys_addr_t)0
-Date: Mon, 19 Jul 2010 16:56:26 -0700
-Message-ID: <1279583818-14249-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/49] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
+Date: Mon, 19 Jul 2010 16:56:23 -0700
+Message-ID: <1279583818-14249-15-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100719235626.IYDxV_PYplm0ayMGxeANKQ_lYWq1Z87ZEHoa6PdZhT0@z>
+Message-ID: <20100719235623.N7vS_7lo0_XKeIcH-7AgtDsHuMA9kEM4vxBXemYO8JQ@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+This is in preparation for having resizable arrays.
+
+Note that we still allocate one more than needed, this is unchanged from
+the previous implementation.
+
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   12 +++++++-----
- 1 files changed, 7 insertions(+), 5 deletions(-)
+ include/linux/memblock.h |    7 ++++---
+ mm/memblock.c            |   10 +++++++++-
+ 2 files changed, 13 insertions(+), 4 deletions(-)
 
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index e849d31..b839053 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -18,7 +18,7 @@
+ 
+ #include <asm/memblock.h>
+ 
+-#define MAX_MEMBLOCK_REGIONS 128
++#define INIT_MEMBLOCK_REGIONS 128
+ 
+ struct memblock_region {
+ 	phys_addr_t base;
+@@ -26,8 +26,9 @@ struct memblock_region {
+ };
+ 
+ struct memblock_type {
+-	unsigned long cnt;
+-	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
++	unsigned long cnt;	/* number of regions */
++	unsigned long max;	/* size of the allocated array */
++	struct memblock_region *regions;
+ };
+ 
+ struct memblock {
 diff --git a/mm/memblock.c b/mm/memblock.c
-index eae3dc0..5743417 100644
+index 78c2394..e1c5ce3 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -22,6 +22,8 @@ static int memblock_debug;
- static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
- static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+@@ -18,6 +18,8 @@
+ struct memblock memblock;
  
-+#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
-+
+ static int memblock_debug;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
++static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 
  static int __init early_memblock(char *p)
  {
- 	if (p && strstr(p, "debug"))
-@@ -326,7 +328,7 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
- 		base = memblock_align_down(res_base - size, align);
- 	}
+@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
  
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
- }
+ void __init memblock_init(void)
+ {
++	/* Hookup the initial arrays */
++	memblock.memory.regions	= memblock_memory_init_regions;
++	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
++	memblock.reserved.regions	= memblock_reserved_init_regions;
++	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
++
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
+@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
  
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
-@@ -353,14 +355,14 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
- 		this_end = memblock_nid_range(start, end, &this_nid);
- 		if (this_nid == nid) {
- 			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
--			if (ret != ~(phys_addr_t)0 &&
-+			if (ret != MEMBLOCK_ERROR &&
- 			    memblock_add_region(&memblock.reserved, ret, size) >= 0)
- 				return ret;
- 		}
- 		start = this_end;
- 	}
+ 	if (coalesced)
+ 		return coalesced;
+-	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
++	if (type->cnt >= type->max)
+ 		return -1;
  
--	return ~(phys_addr_t)0;
-+	return MEMBLOCK_ERROR;
- }
- 
- phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
-@@ -379,7 +381,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
- 	for (i = 0; i < mem->cnt; i++) {
- 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
- 					       size, align, nid);
--		if (ret != ~(phys_addr_t)0)
-+		if (ret != MEMBLOCK_ERROR)
- 			return ret;
- 	}
- 
-@@ -430,7 +432,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- 			continue;
- 		base = min(memblockbase + memblocksize, max_addr);
- 		res_base = memblock_find_region(memblockbase, base, size, align);
--		if (res_base != ~(phys_addr_t)0 &&
-+		if (res_base != MEMBLOCK_ERROR &&
- 		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
- 			return res_base;
- 	}
+ 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
 -- 
 1.6.4.2
 
