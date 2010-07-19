@@ -1,93 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64367 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64381 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761003Ab0GSX6s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:48 -0400
+	with ESMTP id S1761012Ab0GSX6v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:51 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 27/49] memblock: Add debugfs files to dump the arrays content
-Date: Mon, 19 Jul 2010 16:56:36 -0700
-Message-ID: <1279583818-14249-28-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/49] memblock: Print new doubled array location info
+Date: Mon, 19 Jul 2010 16:56:38 -0700
+Message-ID: <1279583818-14249-30-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100719235636.O0FEZDJwLQJzr8k7cbjakBd7YWFqvRpBoWKz7XIWLmk@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20100719235638.wvS7fAPEFRRePEYK73lv0nUWLEWo2ciu590hcaGCWpA@z>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+so will have more idea where it is,  use memblock_debug to controll it
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+-v2: use memblock_dbg instead of " if (memblock_debug) "
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   51 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 51 insertions(+), 0 deletions(-)
+ mm/memblock.c |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 424ca11..b5eb901 100644
+index c16d4c6..796ef8c 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -16,6 +16,8 @@
- #include <linux/bitops.h>
- #include <linux/poison.h>
- #include <linux/pfn.h>
-+#include <linux/debugfs.h>
-+#include <linux/seq_file.h>
- #include <linux/memblock.h>
+@@ -192,8 +192,6 @@ static int memblock_double_array(struct memblock_type *type)
+ 	if (!memblock_can_resize)
+ 		return -1;
  
- struct memblock memblock;
-@@ -714,3 +716,52 @@ static int __init early_memblock(char *p)
+-	pr_debug("memblock: %s array full, doubling...", memblock_type_name(type));
+-
+ 	/* Calculate new doubled size */
+ 	old_size = type->max * sizeof(struct memblock_region);
+ 	new_size = old_size << 1;
+@@ -221,6 +219,9 @@ static int memblock_double_array(struct memblock_type *type)
+ 	}
+ 	new_array = __va(addr);
+ 
++	memblock_dbg("memblock: %s array is doubled to %ld at [%#010llx-%#010llx]",
++		 memblock_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size - 1);
++
+ 	/* Found space, we now need to move the array over before
+ 	 * we add the reserved region since it may be our reserved
+ 	 * array itself that is full.
+@@ -646,7 +647,7 @@ static void memblock_dump(struct memblock_type *region, char *name)
+ 		base = region->regions[i].base;
+ 		size = region->regions[i].size;
+ 
+-		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
++		pr_info(" %s[%#x]\t[%#016llx-%#016llx], %#llx bytes\n",
+ 		    name, i, base, base + size - 1, size);
+ 	}
  }
- early_param("memblock", early_memblock);
- 
-+#ifdef CONFIG_DEBUG_FS
-+
-+static int memblock_debug_show(struct seq_file *m, void *private)
-+{
-+	struct memblock_type *type = m->private;
-+	struct memblock_region *reg;
-+	int i;
-+
-+	for (i = 0; i < type->cnt; i++) {
-+		reg = &type->regions[i];
-+		seq_printf(m, "%4d: ", i);
-+		if (sizeof(phys_addr_t) == 4)
-+			seq_printf(m, "0x%08lx..0x%08lx\n",
-+				   (unsigned long)reg->base,
-+				   (unsigned long)(reg->base + reg->size - 1));
-+		else
-+			seq_printf(m, "0x%016llx..0x%016llx\n",
-+				   (unsigned long long)reg->base,
-+				   (unsigned long long)(reg->base + reg->size - 1));
-+
-+	}
-+	return 0;
-+}
-+
-+static int memblock_debug_open(struct inode *inode, struct file *file)
-+{
-+	return single_open(file, memblock_debug_show, inode->i_private);
-+}
-+
-+static const struct file_operations memblock_debug_fops = {
-+	.open = memblock_debug_open,
-+	.read = seq_read,
-+	.llseek = seq_lseek,
-+	.release = single_release,
-+};
-+
-+static int __init memblock_init_debugfs(void)
-+{
-+	struct dentry *root = debugfs_create_dir("memblock", NULL);
-+	if (!root)
-+		return -ENXIO;
-+	debugfs_create_file("memory", S_IRUGO, root, &memblock.memory, &memblock_debug_fops);
-+	debugfs_create_file("reserved", S_IRUGO, root, &memblock.reserved, &memblock_debug_fops);
-+
-+	return 0;
-+}
-+__initcall(memblock_init_debugfs);
-+
-+#endif /* CONFIG_DEBUG_FS */
 -- 
 1.6.4.2
 
