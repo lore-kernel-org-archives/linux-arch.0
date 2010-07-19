@@ -1,66 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:16445 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64406 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967259Ab0GTABD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 20:01:03 -0400
+	with ESMTP id S966857Ab0GSX6z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:55 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/49] memblock: Add debug markers at the end of the array
-Date: Mon, 19 Jul 2010 16:56:24 -0700
-Message-ID: <1279583818-14249-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/49] memblock: Add "start" argument to memblock_find_base()
+Date: Mon, 19 Jul 2010 16:56:32 -0700
+Message-ID: <1279583818-14249-24-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100719235624.937G7ZHJ24xAugKPGs2E6dfOZjpY4ES8yiboWpHJKno@z>
+Message-ID: <20100719235632.T70xDvS_8k45In6l_-TAq1h7ZIEMleEOxGD_qX1hZIE@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Since we allocate one more than needed, why not do a bit of sanity checking
-here to ensure we don't walk past the end of the array ?
+To constraint the search of a region between two boundaries,
+which will be used by the new NUMA aware allocator among others.
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   11 +++++++++++
- 1 files changed, 11 insertions(+), 0 deletions(-)
+ mm/memblock.c |   27 ++++++++++++++++-----------
+ 1 files changed, 16 insertions(+), 11 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index e1c5ce3..21ba089 100644
+index f793d9f..b4870cf 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -13,6 +13,7 @@
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/bitops.h>
-+#include <linux/poison.h>
- #include <linux/memblock.h>
+@@ -117,19 +117,18 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
+ 	return MEMBLOCK_ERROR;
+ }
  
- struct memblock memblock;
-@@ -112,6 +113,10 @@ void __init memblock_init(void)
- 	memblock.reserved.regions	= memblock_reserved_init_regions;
- 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
- 
-+	/* Write a marker in the unused last array entry */
-+	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
-+	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
-+
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
-@@ -131,6 +136,12 @@ void __init memblock_analyze(void)
+-static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align,
++					phys_addr_t start, phys_addr_t end)
  {
- 	int i;
+ 	long i;
+-	phys_addr_t base = 0;
+-	phys_addr_t res_base;
  
-+	/* Check marker in the unused last array entry */
-+	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
-+		!= (phys_addr_t)RED_INACTIVE);
-+	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
-+		!= (phys_addr_t)RED_INACTIVE);
-+
- 	memblock.memory_size = 0;
+ 	BUG_ON(0 == size);
  
- 	for (i = 0; i < memblock.memory.cnt; i++)
+ 	size = memblock_align_up(size, align);
+ 
+ 	/* Pump up max_addr */
+-	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+-		max_addr = memblock.current_limit;
++	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
++		end = memblock.current_limit;
+ 
+ 	/* We do a top-down search, this tends to limit memory
+ 	 * fragmentation by keeping early boot allocs near the
+@@ -138,13 +137,19 @@ static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align
+ 	for (i = memblock.memory.cnt - 1; i >= 0; i--) {
+ 		phys_addr_t memblockbase = memblock.memory.regions[i].base;
+ 		phys_addr_t memblocksize = memblock.memory.regions[i].size;
++		phys_addr_t bottom, top, found;
+ 
+ 		if (memblocksize < size)
+ 			continue;
+-		base = min(memblockbase + memblocksize, max_addr);
+-		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR)
+-			return res_base;
++		if ((memblockbase + memblocksize) <= start)
++			break;
++		bottom = max(memblockbase, start);
++		top = min(memblockbase + memblocksize, end);
++		if (bottom >= top)
++			continue;
++		found = memblock_find_region(bottom, top, size, align);
++		if (found != MEMBLOCK_ERROR)
++			return found;
+ 	}
+ 	return MEMBLOCK_ERROR;
+ }
+@@ -204,7 +209,7 @@ static int memblock_double_array(struct memblock_type *type)
+ 		new_array = kmalloc(new_size, GFP_KERNEL);
+ 		addr = new_array == NULL ? MEMBLOCK_ERROR : __pa(new_array);
+ 	} else
+-		addr = memblock_find_base(new_size, sizeof(phys_addr_t), MEMBLOCK_ALLOC_ACCESSIBLE);
++		addr = memblock_find_base(new_size, sizeof(phys_addr_t), 0, MEMBLOCK_ALLOC_ACCESSIBLE);
+ 	if (addr == MEMBLOCK_ERROR) {
+ 		pr_err("memblock: Failed to double %s array from %ld to %ld entries !\n",
+ 		       memblock_type_name(type), type->max, type->max * 2);
+@@ -416,7 +421,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 	 */
+ 	size = memblock_align_up(size, align);
+ 
+-	found = memblock_find_base(size, align, max_addr);
++	found = memblock_find_base(size, align, 0, max_addr);
+ 	if (found != MEMBLOCK_ERROR &&
+ 	    memblock_add_region(&memblock.reserved, found, size) >= 0)
+ 		return found;
 -- 
 1.6.4.2
 
