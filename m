@@ -1,98 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64298 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:63897 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760970Ab0GSX6j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:39 -0400
+	with ESMTP id S1757508Ab0GSX6M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:12 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/49] memblock: Move memblock_init() to the bottom of the file
-Date: Mon, 19 Jul 2010 16:56:27 -0700
-Message-ID: <1279583818-14249-19-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/49] memblock: Define MEMBLOCK_ERROR internally instead of using ~(phys_addr_t)0
+Date: Mon, 19 Jul 2010 16:56:26 -0700
+Message-ID: <1279583818-14249-18-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100719235627.KEQi6QTb0us4Tm4QqoKRbuF09S1O-Bu37WM2Jp28eZ8@z>
+Message-ID: <20100719235626.IYDxV_PYplm0ayMGxeANKQ_lYWq1Z87ZEHoa6PdZhT0@z>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-It's a real PITA to have to search for it in the middle
-
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |   54 +++++++++++++++++++++++++++---------------------------
- 1 files changed, 27 insertions(+), 27 deletions(-)
+ mm/memblock.c |   12 +++++++-----
+ 1 files changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 5743417..1283893 100644
+index eae3dc0..5743417 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -107,33 +107,6 @@ static void memblock_coalesce_regions(struct memblock_type *type,
- 	memblock_remove_region(type, r2);
- }
+@@ -22,6 +22,8 @@ static int memblock_debug;
+ static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
  
--void __init memblock_init(void)
--{
--	/* Hookup the initial arrays */
--	memblock.memory.regions	= memblock_memory_init_regions;
--	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
--	memblock.reserved.regions	= memblock_reserved_init_regions;
--	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
--
--	/* Write a marker in the unused last array entry */
--	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
--	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
--
--	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
--	 * This simplifies the memblock_add() code below...
--	 */
--	memblock.memory.regions[0].base = 0;
--	memblock.memory.regions[0].size = 0;
--	memblock.memory.cnt = 1;
--
--	/* Ditto. */
--	memblock.reserved.regions[0].base = 0;
--	memblock.reserved.regions[0].size = 0;
--	memblock.reserved.cnt = 1;
--
--	memblock.current_limit = MEMBLOCK_ALLOC_ANYWHERE;
--}
--
- void __init memblock_analyze(void)
++#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
++
+ static int __init early_memblock(char *p)
  {
- 	int i;
-@@ -517,3 +490,30 @@ void __init memblock_set_current_limit(phys_addr_t limit)
- 	memblock.current_limit = limit;
+ 	if (p && strstr(p, "debug"))
+@@ -326,7 +328,7 @@ static phys_addr_t __init memblock_find_region(phys_addr_t start, phys_addr_t en
+ 		base = memblock_align_down(res_base - size, align);
+ 	}
+ 
+-	return ~(phys_addr_t)0;
++	return MEMBLOCK_ERROR;
  }
  
-+void __init memblock_init(void)
-+{
-+	/* Hookup the initial arrays */
-+	memblock.memory.regions	= memblock_memory_init_regions;
-+	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
-+	memblock.reserved.regions	= memblock_reserved_init_regions;
-+	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
-+
-+	/* Write a marker in the unused last array entry */
-+	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
-+	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = (phys_addr_t)RED_INACTIVE;
-+
-+	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
-+	 * This simplifies the memblock_add() code below...
-+	 */
-+	memblock.memory.regions[0].base = 0;
-+	memblock.memory.regions[0].size = 0;
-+	memblock.memory.cnt = 1;
-+
-+	/* Ditto. */
-+	memblock.reserved.regions[0].base = 0;
-+	memblock.reserved.regions[0].size = 0;
-+	memblock.reserved.cnt = 1;
-+
-+	memblock.current_limit = MEMBLOCK_ALLOC_ANYWHERE;
-+}
-+
+ phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
+@@ -353,14 +355,14 @@ static phys_addr_t __init memblock_alloc_nid_region(struct memblock_region *mp,
+ 		this_end = memblock_nid_range(start, end, &this_nid);
+ 		if (this_nid == nid) {
+ 			phys_addr_t ret = memblock_find_region(start, this_end, size, align);
+-			if (ret != ~(phys_addr_t)0 &&
++			if (ret != MEMBLOCK_ERROR &&
+ 			    memblock_add_region(&memblock.reserved, ret, size) >= 0)
+ 				return ret;
+ 		}
+ 		start = this_end;
+ 	}
+ 
+-	return ~(phys_addr_t)0;
++	return MEMBLOCK_ERROR;
+ }
+ 
+ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid)
+@@ -379,7 +381,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
+ 					       size, align, nid);
+-		if (ret != ~(phys_addr_t)0)
++		if (ret != MEMBLOCK_ERROR)
+ 			return ret;
+ 	}
+ 
+@@ -430,7 +432,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != ~(phys_addr_t)0 &&
++		if (res_base != MEMBLOCK_ERROR &&
+ 		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
+ 			return res_base;
+ 	}
 -- 
 1.6.4.2
 
