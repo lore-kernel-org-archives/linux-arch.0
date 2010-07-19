@@ -1,114 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64031 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:64034 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760935Ab0GSX63 (ORCPT
+	with ESMTP id S1760937Ab0GSX63 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:58:29 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 35/49] bootmem, x86: Add weak version of reserve_bootmem_generic
-Date: Mon, 19 Jul 2010 16:56:44 -0700
-Message-ID: <1279583818-14249-36-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 34/49] x86, memblock: Add memblock_x86_find_in_range_size()
+Date: Mon, 19 Jul 2010 16:56:43 -0700
+Message-ID: <1279583818-14249-35-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100719235644.7nKU8ktacMcAumGzQ9VPdN4sBuH89gmo-dpN8suZ5Fg@z>
+Message-ID: <20100719235643.imlFlYImIVXQVA-JcsS7k5ETuF6jlR-UNSpA2LzjtjY@z>
 
-It will be used memblock_x86_to_bootmem converting
+size is returned according free range.
+Will be used to find free ranges for early_memtest and memory corruption check
 
-It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
-
-Also clean up that version for x86_64. We don't need to take care of numa
-path for that, bootmem can handle it how
+Do not mess it up with lib/memblock.c yet.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/mm/init_32.c |    6 ------
- arch/x86/mm/init_64.c |   20 ++------------------
- mm/bootmem.c          |    6 ++++++
- 3 files changed, 8 insertions(+), 24 deletions(-)
+ arch/x86/include/asm/memblock.h |    8 ++++
+ arch/x86/mm/Makefile            |    2 +
+ arch/x86/mm/memblock.c          |   88 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 98 insertions(+), 0 deletions(-)
+ create mode 100644 arch/x86/include/asm/memblock.h
+ create mode 100644 arch/x86/mm/memblock.c
 
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index bca7909..90e0545 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
- #endif
- }
- #endif
--
--int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
--				   int flags)
--{
--	return reserve_bootmem(phys, len, flags);
--}
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index ee41bba..634fa08 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
- 
- #endif
- 
-+#ifndef CONFIG_NO_BOOTMEM
- int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 				   int flags)
- {
--#ifdef CONFIG_NUMA
--	int nid, next_nid;
--	int ret;
--#endif
- 	unsigned long pfn = phys >> PAGE_SHIFT;
- 
- 	if (pfn >= max_pfn) {
-@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 		return -EFAULT;
- 	}
- 
--	/* Should check here against the e820 map to avoid double free */
--#ifdef CONFIG_NUMA
--	nid = phys_to_nid(phys);
--	next_nid = phys_to_nid(phys + len - 1);
--	if (nid == next_nid)
--		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
--	else
--		ret = reserve_bootmem(phys, len, flags);
--
--	if (ret != 0)
--		return ret;
--
--#else
- 	reserve_bootmem(phys, len, flags);
--#endif
- 
- 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
- 		dma_reserve += len / PAGE_SIZE;
-@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
- 
- 	return 0;
- }
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+new file mode 100644
+index 0000000..c14219a
+--- /dev/null
++++ b/arch/x86/include/asm/memblock.h
+@@ -0,0 +1,8 @@
++#ifndef _X86_MEMBLOCK_H
++#define _X86_MEMBLOCK_H
++
++#define ARCH_DISCARD_MEMBLOCK
++
++u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
++
 +#endif
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index a4c7683..5554339 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -26,4 +26,6 @@ obj-$(CONFIG_NUMA)		+= numa.o numa_$(BITS).o
+ obj-$(CONFIG_K8_NUMA)		+= k8topology_64.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat_$(BITS).o
  
- int kern_addr_valid(unsigned long addr)
- {
-diff --git a/mm/bootmem.c b/mm/bootmem.c
-index 142c84a..bde170d 100644
---- a/mm/bootmem.c
-+++ b/mm/bootmem.c
-@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
- }
- 
- #ifndef CONFIG_NO_BOOTMEM
-+int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-+				   int flags)
++obj-$(CONFIG_HAVE_MEMBLOCK)		+= memblock.o
++
+ obj-$(CONFIG_MEMTEST)		+= memtest.o
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+new file mode 100644
+index 0000000..c602afb
+--- /dev/null
++++ b/arch/x86/mm/memblock.c
+@@ -0,0 +1,88 @@
++#include <linux/kernel.h>
++#include <linux/types.h>
++#include <linux/init.h>
++#include <linux/bitops.h>
++#include <linux/memblock.h>
++#include <linux/bootmem.h>
++#include <linux/mm.h>
++#include <linux/range.h>
++
++/* Check for already reserved areas */
++static inline bool __init bad_addr_size(u64 *addrp, u64 *sizep, u64 align)
 +{
-+	return reserve_bootmem(phys, len, flags);
++	struct memblock_region *r;
++	u64 addr = *addrp, last;
++	u64 size = *sizep;
++	bool changed = false;
++
++again:
++	last = addr + size;
++	for_each_memblock(reserved, r) {
++		if (last > r->base && addr < r->base) {
++			size = r->base - addr;
++			changed = true;
++			goto again;
++		}
++		if (last > (r->base + r->size) && addr < (r->base + r->size)) {
++			addr = round_up(r->base + r->size, align);
++			size = last - addr;
++			changed = true;
++			goto again;
++		}
++		if (last <= (r->base + r->size) && addr >= r->base) {
++			(*sizep)++;
++			return false;
++		}
++	}
++	if (changed) {
++		*addrp = addr;
++		*sizep = size;
++	}
++	return changed;
 +}
 +
- static unsigned long __init align_idx(struct bootmem_data *bdata,
- 				      unsigned long idx, unsigned long step)
- {
++static u64 __init __memblock_x86_find_in_range_size(u64 ei_start, u64 ei_last, u64 start,
++			 u64 *sizep, u64 align)
++{
++	u64 addr, last;
++
++	addr = round_up(ei_start, align);
++	if (addr < start)
++		addr = round_up(start, align);
++	if (addr >= ei_last)
++		goto out;
++	*sizep = ei_last - addr;
++	while (bad_addr_size(&addr, sizep, align) && addr + *sizep <= ei_last)
++		;
++	last = addr + *sizep;
++	if (last > ei_last)
++		goto out;
++
++	return addr;
++
++out:
++	return MEMBLOCK_ERROR;
++}
++
++/*
++ * Find next free range after start, and size is returned in *sizep
++ */
++u64 __init memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align)
++{
++	struct memblock_region *r;
++
++	for_each_memblock(memory, r) {
++		u64 ei_start = r->base;
++		u64 ei_last = ei_start + r->size;
++		u64 addr;
++
++		addr = __memblock_x86_find_in_range_size(ei_start, ei_last, start,
++					 sizep, align);
++
++		if (addr != MEMBLOCK_ERROR)
++			return addr;
++	}
++
++	return MEMBLOCK_ERROR;
++}
++
 -- 
 1.6.4.2
 
