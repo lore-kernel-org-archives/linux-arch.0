@@ -1,94 +1,121 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 44/49] x86, memblock: Use memblock_debug to control debug message print out
-Date: Mon, 19 Jul 2010 16:56:53 -0700
-Message-ID: <1279583818-14249-45-git-send-email-yinghai@kernel.org>
-References: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:64455 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967187Ab0GSX7E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 19:59:04 -0400
-In-Reply-To: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH -v25 00/49] Use memblock with x86
+Date: Mon, 19 Jul 2010 16:56:09 -0700
+Message-ID: <1279583818-14249-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Also let memblock_x86_reserve_range/memblock_x86_free_range could print out name if memblock=debug is
-specified
+New memblock could be used to replace early_res in x86.
 
-will also print ther name when reserve_memblock_area/free_memblock_area are called.
+Suggested by: David, Ben, and Thomas
 
--v2: according to Ingo, put " if (memblock_debug) " in one place
+-v18: change memblock_find_area to memblock_find_in_range
+      kill __memblock_find_area and use memblock_find_area directly
+      remove memblock_add_memory
+      change memblock_reserve_area to memblock_reserve_range
+      change memblock_free_area to memblock_free_range
+      don't clear memblock.reserved after converting
+      use for_each_memblock to replace for cycle
+      rebase to 06/15/2010 powerpc/memblock
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/mm/memblock.c |   20 ++++++++++++--------
- 1 files changed, 12 insertions(+), 8 deletions(-)
+-v19: make the patchset only focus on memblock related.
+      will submit patches about bootmem/nobootmem seperating and other e820
+	 related later after this one.
 
-diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 53b0f60..70a6bba 100644
---- a/arch/x86/mm/memblock.c
-+++ b/arch/x86/mm/memblock.c
-@@ -122,10 +122,10 @@ static void __init memblock_x86_subtract_reserved(struct range *range, int az)
- 
- 	count  = memblock.reserved.cnt;
- 
--	pr_info("Subtract (%d early reservations)\n", count);
-+	memblock_dbg("Subtract (%d early reservations)\n", count);
- 
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
-+		memblock_dbg("  [%#010llx-%#010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
- 		final_start = PFN_DOWN(r->base);
- 		final_end = PFN_UP(r->base + r->size);
- 		if (final_start >= final_end)
-@@ -198,16 +198,16 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- 		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
- 
- 	count  = memblock.reserved.cnt;
--	pr_info("(%d early reservations) ==> bootmem [%010llx-%010llx]\n", count, start, end - 1);
-+	memblock_dbg("(%d early reservations) ==> bootmem [%#010llx-%#010llx]\n", count, start, end - 1);
- 	for_each_memblock(reserved, r) {
--		pr_info("  [%010llx-%010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
-+		memblock_dbg("  [%#010llx-%#010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
- 		final_start = max(start, r->base);
- 		final_end = min(end, r->base + r->size);
- 		if (final_start >= final_end) {
--			pr_cont("\n");
-+			memblock_dbg("\n");
- 			continue;
- 		}
--		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
-+		memblock_dbg(" ==> [%#010llx-%#010llx]\n", final_start, final_end - 1);
- 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
- 	}
- 
-@@ -286,9 +286,11 @@ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("    memblock_x86_reserve_range: [%#010llx-%#010llx] %16s\n", start, end - 1, name);
-+
- 	memblock_reserve(start, end - start);
- }
- 
-@@ -297,9 +299,11 @@ void __init memblock_x86_free_range(u64 start, u64 end)
- 	if (start == end)
- 		return;
- 
--	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
- 		return;
- 
-+	memblock_dbg("       memblock_x86_free_range: [%#010llx-%#010llx]\n", start, end - 1);
-+
- 	memblock_free(start, end - start);
- }
- 
--- 
-1.6.4.2
+-v20: put ben change together...
+      add memblock_dbg() according to Ingo
+
+-v21: debug print add # for 0x
+      removed old bootmem support for x86 according to Ingo, Thomas and HPA
+      change MEMBLOCK_ERROR to 0 according to Linus
+
+-v22: change x86 related memblock to memblock_x86_ instead of according to Ingo
+
+-v23: rename lmb to memblock before Ben's cleanup patcheset, and x86 using patches.
+
+-v24: fold memblock_find_base() return change to Ben's patchset
+      change to -1 display
+
+-v25: update to mainline with kmemleak fix on nobootmem
+      also rename lmb to memblock alread in mainline
+
+First two patches are needed for 2.6.35. need to be applied at first.
+
+todo:
+     replace range handling (subtracting) with memblock.
+
+Thanks
+
+Yinghai Lu
+
+ arch/microblaze/include/asm/memblock.h   |    3 -
+ arch/microblaze/mm/init.c                |   18 +-
+ arch/powerpc/include/asm/memblock.h      |    7 -
+ arch/powerpc/include/asm/mmu.h           |   12 +
+ arch/powerpc/kernel/head_40x.S           |    6 +-
+ arch/powerpc/kernel/paca.c               |    2 +-
+ arch/powerpc/kernel/prom.c               |   15 +-
+ arch/powerpc/kernel/rtas.c               |    2 +-
+ arch/powerpc/kernel/setup_32.c           |    2 +-
+ arch/powerpc/kernel/setup_64.c           |    2 +-
+ arch/powerpc/mm/40x_mmu.c                |   17 +-
+ arch/powerpc/mm/44x_mmu.c                |   14 +
+ arch/powerpc/mm/fsl_booke_mmu.c          |   12 +-
+ arch/powerpc/mm/hash_utils_64.c          |   35 ++-
+ arch/powerpc/mm/init_32.c                |   43 +-
+ arch/powerpc/mm/init_64.c                |    1 +
+ arch/powerpc/mm/mem.c                    |   94 ++---
+ arch/powerpc/mm/numa.c                   |   17 +-
+ arch/powerpc/mm/ppc_mmu_32.c             |   18 +-
+ arch/powerpc/mm/tlb_nohash.c             |   16 +
+ arch/powerpc/platforms/embedded6xx/wii.c |    2 +-
+ arch/sh/include/asm/memblock.h           |    2 -
+ arch/sh/mm/init.c                        |   16 +-
+ arch/sparc/include/asm/memblock.h        |    2 -
+ arch/sparc/mm/init_64.c                  |   46 +--
+ arch/x86/Kconfig                         |   15 +-
+ arch/x86/include/asm/e820.h              |   20 +-
+ arch/x86/include/asm/efi.h               |    2 +-
+ arch/x86/include/asm/memblock.h          |   21 +
+ arch/x86/kernel/acpi/sleep.c             |    7 +-
+ arch/x86/kernel/apic/numaq_32.c          |    3 +-
+ arch/x86/kernel/check.c                  |   16 +-
+ arch/x86/kernel/e820.c                   |  192 ++------
+ arch/x86/kernel/efi.c                    |    5 +-
+ arch/x86/kernel/head.c                   |    3 +-
+ arch/x86/kernel/head32.c                 |   10 +-
+ arch/x86/kernel/head64.c                 |    7 +-
+ arch/x86/kernel/mpparse.c                |    5 +-
+ arch/x86/kernel/setup.c                  |   78 ++--
+ arch/x86/kernel/setup_percpu.c           |   23 +-
+ arch/x86/kernel/trampoline.c             |    8 +-
+ arch/x86/mm/Makefile                     |    2 +
+ arch/x86/mm/init.c                       |    7 +-
+ arch/x86/mm/init_32.c                    |   66 +---
+ arch/x86/mm/init_64.c                    |   67 +---
+ arch/x86/mm/k8topology_64.c              |    4 +-
+ arch/x86/mm/memblock.c                   |  359 ++++++++++++++
+ arch/x86/mm/memtest.c                    |    7 +-
+ arch/x86/mm/numa_32.c                    |   28 +-
+ arch/x86/mm/numa_64.c                    |   84 +---
+ arch/x86/mm/srat_32.c                    |    3 +-
+ arch/x86/mm/srat_64.c                    |   11 +-
+ arch/x86/xen/mmu.c                       |    5 +-
+ arch/x86/xen/setup.c                     |    3 +-
+ include/linux/early_res.h                |   23 -
+ include/linux/memblock.h                 |  162 +++++--
+ include/linux/mm.h                       |    2 +
+ kernel/Makefile                          |    1 -
+ kernel/early_res.c                       |  590 -----------------------
+ mm/bootmem.c                             |   37 ++-
+ mm/memblock.c                            |  764 +++++++++++++++++++-----------
+ mm/page_alloc.c                          |   83 ++--
+ mm/sparse-vmemmap.c                      |   11 -
+ 63 files changed, 1526 insertions(+), 1612 deletions(-)
+ create mode 100644 arch/x86/include/asm/memblock.h
+ create mode 100644 arch/x86/mm/memblock.c
+ delete mode 100644 include/linux/early_res.h
+ delete mode 100644 kernel/early_res.c
