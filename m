@@ -1,45 +1,173 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 1/5] ARM: Allow lazy cache flushing via PG_arch_1 for
- highmem pages
-Date: Tue, 20 Jul 2010 18:12:07 +0100
-Message-ID: <20100720171207.19582.56915.stgit@e102109-lin.cambridge.arm.com>
+Subject: [PATCH 2/5] ARM: Assume new page cache pages have dirty D-cache
+Date: Tue, 20 Jul 2010 18:12:12 +0100
+Message-ID: <20100720171212.19582.34008.stgit@e102109-lin.cambridge.arm.com>
 References: <20100720171201.19582.85920.stgit@e102109-lin.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:38893 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:38890 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751083Ab0GTRMZ (ORCPT
+	by vger.kernel.org with ESMTP id S1751046Ab0GTRMZ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Tue, 20 Jul 2010 13:12:25 -0400
 In-Reply-To: <20100720171201.19582.85920.stgit@e102109-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Nicolas Pitre <nico@linaro.org>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Rabin Vincent <rabin.vincent@stericsson.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Nicolas Pitre <nico@linaro.org>
 
-Commit d73cd42 forced non-lazy cache flushing of highmem pages in
-flush_dcache_page(). This isn't needed since __flush_dcache_page()
-(called lazily from update_mmu_cache) can handle highmem pages (fixed by
-commit 7e5a69e).
+There are places in Linux where writes to newly allocated page cache
+pages happen without a subsequent call to flush_dcache_page() (several
+PIO drivers including USB HCD). This patch changes the meaning of
+PG_arch_1 to be PG_dcache_clean and always flush the D-cache for a newly
+mapped page in update_mmu_cache().
+
+The patch also sets the PG_arch_1 bit in the DMA cache maintenance
+function to avoid additional cache flushing in update_mmu_cache().
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Acked-by: Nicolas Pitre <nico@linaro.org>
+Tested-by: Rabin Vincent <rabin.vincent@stericsson.com>
+Cc: Nicolas Pitre <nico@linaro.org>
 ---
- arch/arm/mm/flush.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/arm/include/asm/cacheflush.h |    6 +++---
+ arch/arm/include/asm/tlbflush.h   |    2 +-
+ arch/arm/mm/copypage-v4mc.c       |    2 +-
+ arch/arm/mm/copypage-v6.c         |    2 +-
+ arch/arm/mm/copypage-xscale.c     |    2 +-
+ arch/arm/mm/dma-mapping.c         |    6 ++++++
+ arch/arm/mm/fault-armv.c          |    4 ++--
+ arch/arm/mm/flush.c               |    3 ++-
+ 8 files changed, 17 insertions(+), 10 deletions(-)
 
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+index 4656a24..d3730f0 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -137,10 +137,10 @@
+ #endif
+ 
+ /*
+- * This flag is used to indicate that the page pointed to by a pte
+- * is dirty and requires cleaning before returning it to the user.
++ * This flag is used to indicate that the page pointed to by a pte is clean
++ * and does not require cleaning before returning it to the user.
+  */
+-#define PG_dcache_dirty PG_arch_1
++#define PG_dcache_clean PG_arch_1
+ 
+ /*
+  *	MM Cache Management
+diff --git a/arch/arm/include/asm/tlbflush.h b/arch/arm/include/asm/tlbflush.h
+index bd863d8..40a7092 100644
+--- a/arch/arm/include/asm/tlbflush.h
++++ b/arch/arm/include/asm/tlbflush.h
+@@ -552,7 +552,7 @@ extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
+ #endif
+ 
+ /*
+- * if PG_dcache_dirty is set for the page, we need to ensure that any
++ * If PG_dcache_clean is not set for the page, we need to ensure that any
+  * cache entries for the kernels virtual memory range are written
+  * back to the page.
+  */
+diff --git a/arch/arm/mm/copypage-v4mc.c b/arch/arm/mm/copypage-v4mc.c
+index 598c51a..b806151 100644
+--- a/arch/arm/mm/copypage-v4mc.c
++++ b/arch/arm/mm/copypage-v4mc.c
+@@ -73,7 +73,7 @@ void v4_mc_copy_user_highpage(struct page *to, struct page *from,
+ {
+ 	void *kto = kmap_atomic(to, KM_USER1);
+ 
+-	if (test_and_clear_bit(PG_dcache_dirty, &from->flags))
++	if (!test_and_set_bit(PG_dcache_clean, &from->flags))
+ 		__flush_dcache_page(page_mapping(from), from);
+ 
+ 	spin_lock(&minicache_lock);
+diff --git a/arch/arm/mm/copypage-v6.c b/arch/arm/mm/copypage-v6.c
+index f55fa10..bdba6c6 100644
+--- a/arch/arm/mm/copypage-v6.c
++++ b/arch/arm/mm/copypage-v6.c
+@@ -79,7 +79,7 @@ static void v6_copy_user_highpage_aliasing(struct page *to,
+ 	unsigned int offset = CACHE_COLOUR(vaddr);
+ 	unsigned long kfrom, kto;
+ 
+-	if (test_and_clear_bit(PG_dcache_dirty, &from->flags))
++	if (!test_and_set_bit(PG_dcache_clean, &from->flags))
+ 		__flush_dcache_page(page_mapping(from), from);
+ 
+ 	/* FIXME: not highmem safe */
+diff --git a/arch/arm/mm/copypage-xscale.c b/arch/arm/mm/copypage-xscale.c
+index 9920c0a..649bbcd 100644
+--- a/arch/arm/mm/copypage-xscale.c
++++ b/arch/arm/mm/copypage-xscale.c
+@@ -95,7 +95,7 @@ void xscale_mc_copy_user_highpage(struct page *to, struct page *from,
+ {
+ 	void *kto = kmap_atomic(to, KM_USER1);
+ 
+-	if (test_and_clear_bit(PG_dcache_dirty, &from->flags))
++	if (!test_and_set_bit(PG_dcache_clean, &from->flags))
+ 		__flush_dcache_page(page_mapping(from), from);
+ 
+ 	spin_lock(&minicache_lock);
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 9e7742f..fa3d07d 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -508,6 +508,12 @@ void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
+ 		outer_inv_range(paddr, paddr + size);
+ 
+ 	dma_cache_maint_page(page, off, size, dir, dmac_unmap_area);
++
++	/*
++	 * Mark the D-cache clean for this page to avoid extra flushing.
++	 */
++	if (dir != DMA_TO_DEVICE && off == 0 && size >= PAGE_SIZE)
++		set_bit(PG_dcache_clean, &page->flags);
+ }
+ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
+ 
+diff --git a/arch/arm/mm/fault-armv.c b/arch/arm/mm/fault-armv.c
+index 9b906de..58846cb 100644
+--- a/arch/arm/mm/fault-armv.c
++++ b/arch/arm/mm/fault-armv.c
+@@ -141,7 +141,7 @@ make_coherent(struct address_space *mapping, struct vm_area_struct *vma,
+  * a page table, or changing an existing PTE.  Basically, there are two
+  * things that we need to take care of:
+  *
+- *  1. If PG_dcache_dirty is set for the page, we need to ensure
++ *  1. If PG_dcache_clean is not set for the page, we need to ensure
+  *     that any cache entries for the kernels virtual memory
+  *     range are written back to the page.
+  *  2. If we have multiple shared mappings of the same space in
+@@ -169,7 +169,7 @@ void update_mmu_cache(struct vm_area_struct *vma, unsigned long addr,
+ 
+ 	mapping = page_mapping(page);
+ #ifndef CONFIG_SMP
+-	if (test_and_clear_bit(PG_dcache_dirty, &page->flags))
++	if (!test_and_set_bit(PG_dcache_clean, &page->flags))
+ 		__flush_dcache_page(mapping, page);
+ #endif
+ 	if (mapping) {
 diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-index c6844cb..87dd5ff 100644
+index 87dd5ff..b4efce9 100644
 --- a/arch/arm/mm/flush.c
 +++ b/arch/arm/mm/flush.c
-@@ -247,7 +247,7 @@ void flush_dcache_page(struct page *page)
- 	mapping = page_mapping(page);
+@@ -248,7 +248,7 @@ void flush_dcache_page(struct page *page)
  
  #ifndef CONFIG_SMP
--	if (!PageHighMem(page) && mapping && !mapping_mapped(mapping))
-+	if (mapping && !mapping_mapped(mapping))
- 		set_bit(PG_dcache_dirty, &page->flags);
+ 	if (mapping && !mapping_mapped(mapping))
+-		set_bit(PG_dcache_dirty, &page->flags);
++		clear_bit(PG_dcache_clean, &page->flags);
  	else
  #endif
+ 	{
+@@ -257,6 +257,7 @@ void flush_dcache_page(struct page *page)
+ 			__flush_dcache_aliases(mapping, page);
+ 		else if (mapping)
+ 			__flush_icache_all();
++		set_bit(PG_dcache_clean, &page->flags);
+ 	}
+ }
+ EXPORT_SYMBOL(flush_dcache_page);
