@@ -1,68 +1,64 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v25 00/49] Use memblock with x86
-Date: Mon, 19 Jul 2010 17:35:05 -0700
-Message-ID: <4C44EF39.9000500@kernel.org>
-References: <1279583818-14249-1-git-send-email-yinghai@kernel.org> <AANLkTimC5Yio93MQ3QPjat_vpOp4gKkV_p1hmI-Nvl3B@mail.gmail.com>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH 0/3] Cache maintenance on VIPT caches
+Date: Tue, 20 Jul 2010 18:56:37 +0900
+Message-ID: <20100720185611I.fujita.tomonori@lab.ntt.co.jp>
+References: <20100625115826.30030.89790.stgit@e102109-lin.cambridge.arm.com>
+	<20100716131908.GA15032@bnru02.bnr.st.com>
+	<1279291157.17878.49.camel@e102109-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:32111 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756845Ab0GTAhz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Jul 2010 20:37:55 -0400
-In-Reply-To: <AANLkTimC5Yio93MQ3QPjat_vpOp4gKkV_p1hmI-Nvl3B@mail.gmail.com>
+Received: from sh.osrg.net ([192.16.179.4]:59652 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761120Ab0GTJ5I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Jul 2010 05:57:08 -0400
+In-Reply-To: <1279291157.17878.49.camel@e102109-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: catalin.marinas@arm.com
+Cc: rabin.vincent@stericsson.com, linux-arm-kernel@lists.infradead.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
 
-On 07/19/2010 05:14 PM, Linus Torvalds wrote:
-> On Mon, Jul 19, 2010 at 4:56 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> New memblock could be used to replace early_res in x86.
->>
->> Suggested by: David, Ben, and Thomas
+Cc'ed to linux-arch
+
+On Fri, 16 Jul 2010 15:39:17 +0100
+Catalin Marinas <catalin.marinas@arm.com> wrote:
+
+> On Fri, 2010-07-16 at 14:19 +0100, Rabin VINCENT wrote:
+> > On Fri, Jun 25, 2010 at 14:01:27 +0200, Catalin Marinas wrote:
+> > > The first and third patches have already been posted in the same form.
+> > > The second patch have been modified to handle all the VIPT caches via
+> > > __sync_icache_dcache(). The initial use case for this patch was dealing
+> > > with an SMP race condition but following suggestions from Rabin, it was
+> > > extended to cover ARMv6 onwards, both UP and SMP.
+> > >
+> > > Any Tested-by's are welcome.
+> > 
+> > This version also fixes the MMC rootfs init crashes, without the need
+> > for the flush_kernel_dcache_page() change:
+> > 
+> > Tested-by: Rabin Vincent <rabin.vincent@stericsson.com>
 > 
-> So how is this related to Ben's git tree that was tested on sparc? Not
-> clear from the changelog.
+> Thanks for testing.
 
-base on Ben's git tree that was tested on sparc.
-fold one patch from me to patch 19. so will not break bisecting.
+This patchset for arm handles I/D coherency (and D aliasing) with
+PG_arch_1, right? If so, can you please send it to linux-arch? I guess
+that some non arm people might be interested in it.
 
-Maybe Ben can check patch from 3 to 27 to see if the folding is right or not.
 
+> > I ask because the
+> > mmci patches that I posted convert that driver to use the sg_miter API
+> > (which uses flush_kernel_dcache_page() internally), and not do any
+> > flushing inside the driver itself.  Or do you think it would be
+> > appropriate to have the driver call flush_dcache_page() explicitly?
+> > (Although this would be double flushing on systems with aliasing caches
+> > where flush_kernel_dcache_page() is not a no-op.)
 > 
->> First two patches are needed for 2.6.35. need to be applied at first.
-> 
-> Please send those two as a separate series with a separate cover-sheet
-> and explanation. If they are regressions or major fixes for existing
-> code, they should not go into some 50-patch series for the future.
-> That way they just get lost in the noise, and it's not at all as clear
-> that they are important for current kernels.
+> I'm not sure why sg_miter doesn't call flush_dcache_page() but
+> flush_kernel_dcache_page() (I cc'ed Fujita as he seems to have added
+> this code).
 
-those two are already in Andrew's -mm, but were not into tip/x86 yet.
-and some of patches (patch 28-49) could have some merging conflicts if
-those two are not applied at first.
-
-> 
-> In fact, in general, the fewer 50-series patches we see, the better.
-> If a series of 50 patches could be split up into separate independent
-> series ("independent" in the sense that they do different things -
-> maybe one series depends on another series for infrastructure, but
-> then actually concentrates on a different issue), that would be good.
-> 
-> Because, quite frankly, when I get email-bombed by tens of patches, I
-> immediately lose about 99% of my eagerness to actually check the
-> patches out. And I bet I'm not the only one. So it would likely be
-> much more productive if these kinds of things can be sent out as
-> multiple smaller series that can be looked at separately (and not sent
-> out at the same time).
-
-ok, 
-1. let's wait Ingo or hpa to pick first two.
-2. wait Ben to rebase patch 3-27, and send them out at first.
-3. then I will resend from 28 to 49.
-
-Thanks
-
-Yinghai
+It is intended to handle D aliasing due to kmap. As cachetlb.txt says
+that it is assumed here that the user has no incoherent cached copies
+(it was already addressed elsewhere). So flush_dcache_page() does too
+much there.
