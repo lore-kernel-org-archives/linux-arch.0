@@ -1,74 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:7258 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:25876 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758376Ab0GTUp0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jul 2010 16:45:26 -0400
-Date: Tue, 20 Jul 2010 13:45:17 -0700
-From: Zach Pfeffer <zpfeffer@codeaurora.org>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Message-ID: <20100720204515.GA12250@codeaurora.org>
-References: <4C3C0032.5020702@codeaurora.org>
- <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
- <20100713121420.GB4263@codeaurora.org>
- <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
- <20100714201149.GA14008@codeaurora.org>
- <20100714220536.GE18138@n2100.arm.linux.org.uk>
- <20100715012958.GB2239@codeaurora.org>
- <20100715085535.GC26212@n2100.arm.linux.org.uk>
- <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
- <20100716075856.GC16124@n2100.arm.linux.org.uk>
+	with ESMTP id S1761779Ab0GTWCg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jul 2010 18:02:36 -0400
+Message-ID: <bb667e285fd8be82ea8cc9cc25cf335b.squirrel@www.codeaurora.org>
+In-Reply-To: <20100719184002.GA21608@n2100.arm.linux.org.uk>
+References: <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
+    <20100713121420.GB4263@codeaurora.org>
+    <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+    <20100714201149.GA14008@codeaurora.org>
+    <20100714220536.GE18138@n2100.arm.linux.org.uk>
+    <20100715012958.GB2239@codeaurora.org>
+    <20100715085535.GC26212@n2100.arm.linux.org.uk>
+    <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+    <20100716075856.GC16124@n2100.arm.linux.org.uk>
+    <4C449183.20000@codeaurora.org>
+    <20100719184002.GA21608@n2100.arm.linux.org.uk>
+Date: Tue, 20 Jul 2010 15:02:34 -0700 (PDT)
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU,
+      CPU and device memory management
+From: stepanm@codeaurora.org
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100716075856.GC16124@n2100.arm.linux.org.uk>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Tim HRM <zt.tmzt@gmail.com>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20100720204517.JgXSDPGXaQRCfj9wUkDMhB0HStHOyWTGJpgYzbKBFks@z>
+Cc: Michael Bohan <mbohan@codeaurora.org>, Tim HRM <zt.tmzt@gmail.com>, Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100720220234.3v6jNZKGFX-bW5XbycwiEtSrk39Bos47iTW6OEtKbsY@z>
 
-On Fri, Jul 16, 2010 at 08:58:56AM +0100, Russell King - ARM Linux wrote:
-> On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
-> > Interesting, since I seem to remember the MSM devices mostly conduct
-> > IO through regions of normal RAM, largely accomplished through
-> > ioremap() calls.
-> > 
-> > Without more public domain documentation of the MSM chips and AMSS
-> > interfaces I wouldn't know how to avoid this, but I can imagine it
-> > creates a bit of urgency for Qualcomm developers as they attempt to
-> > upstream support for this most interesting SoC.
-> 
-> As the patch has been out for RFC since early April on the linux-arm-kernel
-> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
-> and no comments have come back from Qualcomm folk.
-> 
-> The restriction on creation of multiple V:P mappings with differing
-> attributes is also fairly hard to miss in the ARM architecture
-> specification when reading the sections about caches.
+Russell-
 
-As you mention in your patch the things that can't conflict are memory
-type (strongly- ordered/device/normal), cache policy
-(cacheable/non-cacheable, copy- back/write-through), and coherency
-realm (non-shareable/inner- shareable/outer-shareable). You can
-conflict in allocation preferences (write-allocate/write-no-allocate),
-as those are just "hints".
+If a driver wants to allow a device to access memory (and cache coherency
+is off/not present for device addesses), the driver needs to remap that
+memory as non-cacheable. Suppose there exists a chunk of
+physically-contiguous memory (say, memory reserved for device use) that
+happened to be already mapped into the kernel as normal memory (cacheable,
+etc). One way to remap this memory is to use ioremap (and then never touch
+the original virtual mapping, which would now have conflicting
+attributes). I feel as if there should be a better way to remap memory for
+device access, either by altering the attributes on the original mapping,
+or removing the original mapping and creating a new one with attributes
+set to non-cacheable. Is there a better way to do this than calling
+ioremap() on that memory? Please advise.
 
-You can also conflict in access permissions which can and do conflict
-(which are what multiple mappings are all about...some buffer can get
-some access, while others get different access).
+Thanks
+Steve
 
-The VCM API allows the same memory to be mapped as long as it makes
-sense and allows those attributes that can change to be specified. It
-could be the alternative, globally applicable approach, your looking
-for and request in your patch.
 
-Without the VCM API (or something like it) there will just be a bunch
-of duplicated code that's basically doing ioremap. This code will
-probably fail to configure its mappings correctly, in which case your
-patch is a bad idea because it'll spawn bugs all over the place
-instead of at a know location. We could instead change ioremap to
-match the attributes of System RAM if that's what its mapping.
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+
+
+> On Mon, Jul 19, 2010 at 10:55:15AM -0700, Michael Bohan wrote:
+>>
+>> On 7/16/2010 12:58 AM, Russell King - ARM Linux wrote:
+>>
+>>> As the patch has been out for RFC since early April on the
+>>> linux-arm-kernel
+>>> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
+>>> and no comments have come back from Qualcomm folk.
+>>
+>> Would it be unreasonable to allow a map request to succeed if the
+>> requested attributes matched that of the preexisting mapping?
+>
+> What would be the point of creating such a mapping?
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arm-msm"
+> in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+
+
+
 
 
 
