@@ -1,74 +1,67 @@
-From: Zach Pfeffer <zpfeffer@codeaurora.org>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
- memory management
-Date: Tue, 20 Jul 2010 13:45:17 -0700
-Message-ID: <20100720204515.GA12250@codeaurora.org>
-References: <4C3C0032.5020702@codeaurora.org>
- <20100713150311B.fujita.tomonori@lab.ntt.co.jp>
- <20100713121420.GB4263@codeaurora.org>
- <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
- <20100714201149.GA14008@codeaurora.org>
- <20100714220536.GE18138@n2100.arm.linux.org.uk>
- <20100715012958.GB2239@codeaurora.org>
- <20100715085535.GC26212@n2100.arm.linux.org.uk>
- <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
- <20100716075856.GC16124@n2100.arm.linux.org.uk>
+	memory management
+Date: Tue, 20 Jul 2010 21:54:33 +0100
+Message-ID: <20100720205433.GA10553@n2100.arm.linux.org.uk>
+References: <20100713150311B.fujita.tomonori@lab.ntt.co.jp> <20100713121420.GB4263@codeaurora.org> <20100714104353B.fujita.tomonori@lab.ntt.co.jp> <20100714201149.GA14008@codeaurora.org> <20100714220536.GE18138@n2100.arm.linux.org.uk> <20100715012958.GB2239@codeaurora.org> <20100715085535.GC26212@n2100.arm.linux.org.uk> <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com> <20100716075856.GC16124@n2100.arm.linux.org.uk> <20100720204515.GA12250@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:58959 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758581Ab0GTUzT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jul 2010 16:55:19 -0400
 Content-Disposition: inline
-In-Reply-To: <20100716075856.GC16124@n2100.arm.linux.org.uk>
-Sender: owner-linux-mm@kvack.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+In-Reply-To: <20100720204515.GA12250@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Zach Pfeffer <zpfeffer@codeaurora.org>
 Cc: Tim HRM <zt.tmzt@gmail.com>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 16, 2010 at 08:58:56AM +0100, Russell King - ARM Linux wrote:
-> On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
-> > Interesting, since I seem to remember the MSM devices mostly conduct
-> > IO through regions of normal RAM, largely accomplished through
-> > ioremap() calls.
-> > 
-> > Without more public domain documentation of the MSM chips and AMSS
-> > interfaces I wouldn't know how to avoid this, but I can imagine it
-> > creates a bit of urgency for Qualcomm developers as they attempt to
-> > upstream support for this most interesting SoC.
-> 
-> As the patch has been out for RFC since early April on the linux-arm-kernel
-> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
-> and no comments have come back from Qualcomm folk.
-> 
-> The restriction on creation of multiple V:P mappings with differing
-> attributes is also fairly hard to miss in the ARM architecture
-> specification when reading the sections about caches.
+On Tue, Jul 20, 2010 at 01:45:17PM -0700, Zach Pfeffer wrote:
+> As you mention in your patch the things that can't conflict are memory
+> type (strongly- ordered/device/normal), cache policy
+> (cacheable/non-cacheable, copy- back/write-through), and coherency
+> realm (non-shareable/inner- shareable/outer-shareable). You can
+> conflict in allocation preferences (write-allocate/write-no-allocate),
+> as those are just "hints".
 
-As you mention in your patch the things that can't conflict are memory
-type (strongly- ordered/device/normal), cache policy
-(cacheable/non-cacheable, copy- back/write-through), and coherency
-realm (non-shareable/inner- shareable/outer-shareable). You can
-conflict in allocation preferences (write-allocate/write-no-allocate),
-as those are just "hints".
+What you refer to as "hints" I refer to as cache policy - practically
+on ARM they're all tied up into the same set of bits.
 
-You can also conflict in access permissions which can and do conflict
-(which are what multiple mappings are all about...some buffer can get
-some access, while others get different access).
+> You can also conflict in access permissions which can and do conflict
+> (which are what multiple mappings are all about...some buffer can get
+> some access, while others get different access).
 
-The VCM API allows the same memory to be mapped as long as it makes
-sense and allows those attributes that can change to be specified. It
-could be the alternative, globally applicable approach, your looking
-for and request in your patch.
+Access permissions don't conflict between mappings - each mapping has
+unique access permissions.
 
-Without the VCM API (or something like it) there will just be a bunch
-of duplicated code that's basically doing ioremap. This code will
-probably fail to configure its mappings correctly, in which case your
-patch is a bad idea because it'll spawn bugs all over the place
-instead of at a know location. We could instead change ioremap to
-match the attributes of System RAM if that's what its mapping.
+> The VCM API allows the same memory to be mapped as long as it makes
+> sense and allows those attributes that can change to be specified. It
+> could be the alternative, globally applicable approach, your looking
+> for and request in your patch.
 
+I very much doubt it - there's virtually no call for creating an
+additional mapping of existing kernel memory with different permissions.
+The only time kernel memory gets remapped is with vmalloc(), where we
+want to create a virtually contiguous mapping from a collection of
+(possibly) non-contiguous pages.  Such allocations are always created
+with R/W permissions.
 
+There are some cases where the vmalloc APIs are used to create mappings
+with different memory properties, but as already covered, this has become
+illegal with ARMv6 and v7 architectures.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+So no, VCM doesn't help because there's nothing that could be solved here.
+Creating read-only mappings is pointless, and creating mappings with
+different memory type, sharability or cache attributes is illegal.
+
+> Without the VCM API (or something like it) there will just be a bunch
+> of duplicated code that's basically doing ioremap. This code will
+> probably fail to configure its mappings correctly, in which case your
+> patch is a bad idea because it'll spawn bugs all over the place
+> instead of at a know location. We could instead change ioremap to
+> match the attributes of System RAM if that's what its mapping.
+
+And as I say, what is the point of creating another identical mapping to
+the one we already have?
