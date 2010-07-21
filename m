@@ -1,70 +1,98 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
 Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-Date: Tue, 20 Jul 2010 23:29:52 +0100
-Message-ID: <20100720222952.GD10553@n2100.arm.linux.org.uk>
-References: <20100714104353B.fujita.tomonori@lab.ntt.co.jp> <20100714201149.GA14008@codeaurora.org> <20100714220536.GE18138@n2100.arm.linux.org.uk> <20100715012958.GB2239@codeaurora.org> <20100715085535.GC26212@n2100.arm.linux.org.uk> <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com> <20100716075856.GC16124@n2100.arm.linux.org.uk> <4C449183.20000@codeaurora.org> <20100719184002.GA21608@n2100.arm.linux.org.uk> <bb667e285fd8be82ea8cc9cc25cf335b.squirrel@www.codeaurora.org>
+ memory management
+Date: Tue, 20 Jul 2010 17:44:09 -0700
+Message-ID: <20100721004407.GA14176@codeaurora.org>
+References: <20100713121420.GB4263@codeaurora.org>
+ <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+ <20100714201149.GA14008@codeaurora.org>
+ <20100714220536.GE18138@n2100.arm.linux.org.uk>
+ <20100715012958.GB2239@codeaurora.org>
+ <20100715085535.GC26212@n2100.arm.linux.org.uk>
+ <AANLkTinVZeaZxt_lWKhjKa0dqhu3_j3BRNySO-2LvMdw@mail.gmail.com>
+ <20100716075856.GC16124@n2100.arm.linux.org.uk>
+ <20100717000108.GB21293@labbmf-linux.quicinc.com>
+ <AANLkTinTQXbsD91JDHiSFrvDoUeHbaGUGSWA-5aT5ZCr@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:53976 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932855Ab0GTWau (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Jul 2010 18:30:50 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <bb667e285fd8be82ea8cc9cc25cf335b.squirrel@www.codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: stepanm@codeaurora.org
-Cc: Michael Bohan <mbohan@codeaurora.org>, Tim HRM <zt.tmzt@gmail.com>, Zach Pfeffer <zpfeffer@codeaurora.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <AANLkTinTQXbsD91JDHiSFrvDoUeHbaGUGSWA-5aT5ZCr@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tim HRM <zt.tmzt@gmail.com>
+Cc: Larry Bassel <lbassel@codeaurora.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 20, 2010 at 03:02:34PM -0700, stepanm@codeaurora.org wrote:
-> Russell-
+On Mon, Jul 19, 2010 at 05:21:35AM -0400, Tim HRM wrote:
+> On Fri, Jul 16, 2010 at 8:01 PM, Larry Bassel <lbassel@codeaurora.org> wrote:
+> > On 16 Jul 10 08:58, Russell King - ARM Linux wrote:
+> >> On Thu, Jul 15, 2010 at 08:48:36PM -0400, Tim HRM wrote:
+> >> > Interesting, since I seem to remember the MSM devices mostly conduct
+> >> > IO through regions of normal RAM, largely accomplished through
+> >> > ioremap() calls.
+> >> >
+> >> > Without more public domain documentation of the MSM chips and AMSS
+> >> > interfaces I wouldn't know how to avoid this, but I can imagine it
+> >> > creates a bit of urgency for Qualcomm developers as they attempt to
+> >> > upstream support for this most interesting SoC.
+> >>
+> >> As the patch has been out for RFC since early April on the linux-arm-kernel
+> >> mailing list (Subject: [RFC] Prohibit ioremap() on kernel managed RAM),
+> >> and no comments have come back from Qualcomm folk.
+> >
+> > We are investigating the impact of this change on us, and I
+> > will send out more detailed comments next week.
+> >
+> >>
+> >> The restriction on creation of multiple V:P mappings with differing
+> >> attributes is also fairly hard to miss in the ARM architecture
+> >> specification when reading the sections about caches.
+> >>
+> >
+> > Larry Bassel
+> >
+> > --
+> > Sent by an employee of the Qualcomm Innovation Center, Inc.
+> > The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+> >
 > 
-> If a driver wants to allow a device to access memory (and cache coherency
-> is off/not present for device addesses), the driver needs to remap that
-> memory as non-cacheable.
+> Hi Larry and Qualcomm people.
+> I'm curious what your reason for introducing this new api (or adding
+> to dma) is.  Specifically how this would be used to make the memory
+> mapping of the MSM chip dynamic in contrast to the fixed _PHYS defines
+> in the Android and Codeaurora trees.
 
-If that memory is not part of the kernel's managed memory, then that's
-fine.  But if it _is_ part of the kernel's managed memory, then it is
-not permitted by the ARM architecture specification to allow maps of
-the memory with differing [memory type, sharability, cache] attributes.
+The MSM has many integrated engines that allow offloading a variety of
+workloads. These engines have always addressed memory using physical
+addresses, because of this we had to reserve large (10's MB) buffers
+at boot. These buffers are never freed regardless of whether an engine
+is actually using them. As you can imagine, needing to reserve memory
+for all time on a device that doesn't have a lot of memory in the
+first place is not ideal because that memory could be used for other
+things, running apps, etc.
 
-Basically, if a driver wants to create these kinds of mappings, then
-they should expect the system to become unreliable and unpredictable.
-That's not something any sane person should be aiming to do.
+To solve this problem we put IOMMUs in front of a lot of the
+engines. IOMMUs allow us to map physically discontiguous memory into a
+virtually contiguous address range. This means that we could ask the
+OS for 10 MB of pages and map all of these into our IOMMU space and
+the engine would still see a contiguous range.
 
-> Suppose there exists a chunk of
-> physically-contiguous memory (say, memory reserved for device use) that
-> happened to be already mapped into the kernel as normal memory (cacheable,
-> etc). One way to remap this memory is to use ioremap (and then never touch
-> the original virtual mapping, which would now have conflicting
-> attributes).
+In reality, limitations in the hardware meant that we needed to map
+memory using larger mappings to minimize the number of TLB
+misses. This, plus the number of IOMMUs and the extreme use cases we
+needed to design for led us to a generic design.
 
-This doesn't work, and is unpredictable on ARMv6 and ARMv7.  Not touching
-the original mapping is _not_ _sufficient_ to guarantee that the mapping
-is not used.  (We've seen problems on OMAP as a result of this.)
+This generic design solved our problem and the general mapping
+problem. We thought other people, who had this same big-buffer
+interoperation problem would also appreciate a common API that was
+built with their needs in mind so we pushed our idea up.
 
-Any mapping which exists can be speculatively prefetched by such CPUs
-at any time, which can lead it to be read into the cache.  Then, your
-different attributes for your "other" mapping can cause problems if you
-hit one of these cache lines - and then you can have (possibly silent)
-data corruption.
+> 
+> I'm also interested in how this ability to map memory regions as files
+> for devices like KGSL/DRI or PMEM might work and why this is better
+> suited to that purpose than existing methods, where this fits into
+> camera preview and other issues that have been dealt with in these
+> trees in novel ways (from my perspective).
 
-> I feel as if there should be a better way to remap memory for
-> device access, either by altering the attributes on the original mapping,
-> or removing the original mapping and creating a new one with attributes
-> set to non-cacheable.
-
-This is difficult to achieve without remapping kernel memory using L2
-page tables, so we can unmap pages on 4K page granularity.  That's
-going to increase TLB overhead and result in lower system performance
-as there'll be a greater number of MMU misses.
-
-However, one obvious case would be to use highmem-only pages for
-remapping - but you then have to ensure that those pages are never
-kmapped in any way, because those mappings will fall into the same
-unpredictable category that we're already trying to avoid.  This
-may be possible, but you'll have to ensure that most of the system
-RAM is in highmem - which poses other problems (eg, if lowmem gets
-low.)
+The file based approach was driven by Android's buffer passing scheme
+and the need to write userspace drivers for multimedia, etc...
