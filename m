@@ -1,13 +1,13 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/31] memblock: Move memblock arrays to static storage in memblock.c and make their size a variable
-Date: Thu, 22 Jul 2010 11:20:45 -0700
-Message-ID: <1279822864-17154-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/31] memblock: Remove memblock_type.size and add memblock.memory_size instead
+Date: Thu, 22 Jul 2010 11:20:44 -0700
+Message-ID: <1279822864-17154-12-git-send-email-yinghai@kernel.org>
 References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:51794 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:49303 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750776Ab0GVSdB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:33:01 -0400
+	with ESMTP id S1758716Ab0GVSjZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:39:25 -0400
 In-Reply-To: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,76 +16,84 @@ Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-ar
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-This is in preparation for having resizable arrays.
+Right now, both the "memory" and "reserved" memblock_type structures have
+a "size" member. It's unused in the later case, and represent the
+calculated memory size in the later case.
 
-Note that we still allocate one more than needed, this is unchanged from
-the previous implementation.
+This moves it out to the main memblock structure instead
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    7 ++++---
- mm/memblock.c            |   10 +++++++++-
- 2 files changed, 13 insertions(+), 4 deletions(-)
+ arch/powerpc/mm/mem.c    |    2 +-
+ include/linux/memblock.h |    2 +-
+ mm/memblock.c            |    8 ++++----
+ 3 files changed, 6 insertions(+), 6 deletions(-)
 
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 52df542..f661f6c 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -301,7 +301,7 @@ void __init mem_init(void)
+ 		swiotlb_init(1);
+ #endif
+ 
+-	num_physpages = memblock.memory.size >> PAGE_SHIFT;
++	num_physpages = memblock_phys_mem_size() >> PAGE_SHIFT;
+ 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
 diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index e849d31..b839053 100644
+index 5abb06b..e849d31 100644
 --- a/include/linux/memblock.h
 +++ b/include/linux/memblock.h
-@@ -18,7 +18,7 @@
- 
- #include <asm/memblock.h>
- 
--#define MAX_MEMBLOCK_REGIONS 128
-+#define INIT_MEMBLOCK_REGIONS 128
- 
- struct memblock_region {
- 	phys_addr_t base;
-@@ -26,8 +26,9 @@ struct memblock_region {
- };
+@@ -27,12 +27,12 @@ struct memblock_region {
  
  struct memblock_type {
--	unsigned long cnt;
--	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
-+	unsigned long cnt;	/* number of regions */
-+	unsigned long max;	/* size of the allocated array */
-+	struct memblock_region *regions;
+ 	unsigned long cnt;
+-	phys_addr_t size;
+ 	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
  };
  
  struct memblock {
+ 	phys_addr_t current_limit;
++	phys_addr_t memory_size;	/* Updated by memblock_analyze() */
+ 	struct memblock_type memory;
+ 	struct memblock_type reserved;
+ };
 diff --git a/mm/memblock.c b/mm/memblock.c
-index 78c2394..e1c5ce3 100644
+index 0c0f787..78c2394 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -18,6 +18,8 @@
- struct memblock memblock;
+@@ -49,7 +49,7 @@ void memblock_dump_all(void)
+ 		return;
  
- static int memblock_debug;
-+static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
-+static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+ 	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" memory.size = 0x%llx\n", (unsigned long long)memblock.memory.size);
++	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
  
- static int __init early_memblock(char *p)
+ 	memblock_dump(&memblock.memory, "memory");
+ 	memblock_dump(&memblock.reserved, "reserved");
+@@ -123,10 +123,10 @@ void __init memblock_analyze(void)
  {
-@@ -104,6 +106,12 @@ static void memblock_coalesce_regions(struct memblock_type *type,
+ 	int i;
  
- void __init memblock_init(void)
+-	memblock.memory.size = 0;
++	memblock.memory_size = 0;
+ 
+ 	for (i = 0; i < memblock.memory.cnt; i++)
+-		memblock.memory.size += memblock.memory.regions[i].size;
++		memblock.memory_size += memblock.memory.regions[i].size;
+ }
+ 
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+@@ -423,7 +423,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
  {
-+	/* Hookup the initial arrays */
-+	memblock.memory.regions	= memblock_memory_init_regions;
-+	memblock.memory.max		= INIT_MEMBLOCK_REGIONS;
-+	memblock.reserved.regions	= memblock_reserved_init_regions;
-+	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
-+
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
-@@ -169,7 +177,7 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+-	return memblock.memory.size;
++	return memblock.memory_size;
+ }
  
- 	if (coalesced)
- 		return coalesced;
--	if (type->cnt >= MAX_MEMBLOCK_REGIONS)
-+	if (type->cnt >= type->max)
- 		return -1;
- 
- 	/* Couldn't coalesce the MEMBLOCK, so add it to the sorted table. */
+ phys_addr_t memblock_end_of_DRAM(void)
 -- 
 1.6.4.2
