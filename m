@@ -1,80 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:60160 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:61150 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758407Ab0GVSpL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:45:11 -0400
+	with ESMTP id S1759631Ab0GVSp1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:45:27 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/16] x86,memblock: Add memblock_x86_reserve_range/memblock_x86_free_range
-Date: Thu, 22 Jul 2010 11:43:49 -0700
-Message-ID: <1279824241-17582-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/16] x86, memblock: Add memblock_x86_free_memory_in_range()
+Date: Thu, 22 Jul 2010 11:43:54 -0700
+Message-ID: <1279824241-17582-10-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
 References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100722184349.zyYxe-ErOwaIvw1cNP8oK3ewDoAqj8Jq6JGlDm9itBI@z>
+Message-ID: <20100722184354.ZGh0aI_u79hmnct9QWbz7BnwzJcMceOcQRSY6oHgl8k@z>
 
-they are wrappers for core versions.
-they are taking start/end/name instead of base/size.
-will make x86 conversion more easy
+It will return free memory size in specified range.
 
-could add more debug print out
+We can not use memory_size - reserved_size here, because some reserved area
+may not be in the scope of memblock.memory.region.
 
--v2: change get_max_mapped() to memblock.default_alloc_limit according to Michael
-      Ellerman and Ben
-     change to memblock_x86_reserve_range and memblock_x86_free_range according to Michael Ellerman
--v3: call check_and_double after reserve/free, so could avoid to use
-      find_memblock_area. Suggested by Michael Ellerman
+Use memblock.memory.region subtracting memblock.reserved.region to get free range array.
+then count size of all free ranges.
+
+-v2: Ben insist on using _in_range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/memblock.h |    3 +++
- arch/x86/mm/memblock.c          |   22 ++++++++++++++++++++++
- 2 files changed, 25 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/memblock.h |    1 +
+ arch/x86/mm/memblock.c          |   48 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+), 0 deletions(-)
 
 diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 69cf853..e11ddf0 100644
+index 3a86b10..fc3c230 100644
 --- a/arch/x86/include/asm/memblock.h
 +++ b/arch/x86/include/asm/memblock.h
-@@ -6,4 +6,7 @@
- u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
- void memblock_x86_to_bootmem(u64 start, u64 end);
+@@ -15,5 +15,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 memblock_x86_hole_size(u64 start, u64 end);
+ u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
++u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
  
-+void memblock_x86_reserve_range(u64 start, u64 end, char *name);
-+void memblock_x86_free_range(u64 start, u64 end);
-+
  #endif
 diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 7986a12..80cdcf8 100644
+index a3dece6..3882caa 100644
 --- a/arch/x86/mm/memblock.c
 +++ b/arch/x86/mm/memblock.c
-@@ -116,3 +116,25 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- 		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
+@@ -217,6 +217,54 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
  }
  #endif
-+
-+void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
+ 
++u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
 +{
-+	if (start == end)
-+		return;
++	int i, count;
++	struct range *range;
++	int nr_range;
++	u64 final_start, final_end;
++	u64 free_size;
++	struct memblock_region *r;
 +
-+	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
++	count = (memblock.reserved.cnt + memblock.memory.cnt) * 2;
 +
-+	memblock_reserve(start, end - start);
++	range = find_range_array(count);
++	nr_range = 0;
++
++	addr = PFN_UP(addr);
++	limit = PFN_DOWN(limit);
++
++	for_each_memblock(memory, r) {
++		final_start = PFN_UP(r->base);
++		final_end = PFN_DOWN(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		nr_range = add_range(range, count, nr_range, final_start, final_end);
++	}
++	subtract_range(range, count, 0, addr);
++	subtract_range(range, count, limit, -1ULL);
++	for_each_memblock(reserved, r) {
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
++
++		subtract_range(range, count, final_start, final_end);
++	}
++	nr_range = clean_sort_range(range, count);
++
++	free_size = 0;
++	for (i = 0; i < nr_range; i++)
++		free_size += range[i].end - range[i].start;
++
++	return free_size << PAGE_SHIFT;
 +}
 +
-+void __init memblock_x86_free_range(u64 start, u64 end)
-+{
-+	if (start == end)
-+		return;
-+
-+	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
-+		return;
-+
-+	memblock_free(start, end - start);
-+}
+ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
+ {
+ 	if (start == end)
 -- 
 1.6.4.2
 
