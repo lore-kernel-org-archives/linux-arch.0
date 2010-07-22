@@ -1,111 +1,108 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/16] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
-Date: Thu, 22 Jul 2010 11:44:00 -0700
-Message-ID: <1279824241-17582-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/16] bootmem, x86: Add weak version of reserve_bootmem_generic
+Date: Thu, 22 Jul 2010 11:43:47 -0700
+Message-ID: <1279824241-17582-3-git-send-email-yinghai@kernel.org>
 References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:62343 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759743Ab0GVSp6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:45:58 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-memblock_memory_size() will return memory size in memblock.memory.region.
-memblock_free_memory_size() will return free memory size in memblock.memory.region.
+It will be used memblock_x86_to_bootmem converting
 
-So We can get exact reseved size in specified range.
+It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
 
-Set the size right after initmem_init(), because later bootmem API will
-get area above 16M. (except some fallback).
-
-Later after we remove the bootmem, We could call that just before paging_init().
+Also clean up that version for x86_64. We don't need to take care of numa
+path for that, bootmem can handle it how
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/e820.h |    2 ++
- arch/x86/kernel/e820.c      |   17 +++++++++++++++++
- arch/x86/kernel/setup.c     |    1 +
- arch/x86/mm/init_64.c       |    7 -------
- 4 files changed, 20 insertions(+), 7 deletions(-)
+ arch/x86/mm/init_32.c |    6 ------
+ arch/x86/mm/init_64.c |   20 ++------------------
+ mm/bootmem.c          |    6 ++++++
+ 3 files changed, 8 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
-index 7186463..5be1542 100644
---- a/arch/x86/include/asm/e820.h
-+++ b/arch/x86/include/asm/e820.h
-@@ -117,6 +117,8 @@ extern unsigned long e820_end_of_low_ram_pfn(void);
- extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
- 
- void memblock_x86_fill(void);
-+void memblock_find_dma_reserve(void);
-+
- extern void finish_e820_parsing(void);
- extern void e820_reserve_resources(void);
- extern void e820_reserve_resources_late(void);
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index d5fd894..f0db4c4 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -1105,3 +1105,20 @@ void __init memblock_x86_fill(void)
- 	memblock_analyze();
- 	memblock_dump_all();
+diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
+index bca7909..90e0545 100644
+--- a/arch/x86/mm/init_32.c
++++ b/arch/x86/mm/init_32.c
+@@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
+ #endif
  }
-+
-+void __init memblock_find_dma_reserve(void)
-+{
-+#ifdef CONFIG_X86_64
-+	u64 free_size_pfn;
-+	u64 mem_size_pfn;
-+	/*
-+	 * need to find out used area below MAX_DMA_PFN
-+	 * need to use memblock to get free size in [0, MAX_DMA_PFN]
-+	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
-+	 */
-+	mem_size_pfn = memblock_x86_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	free_size_pfn = memblock_x86_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
-+	set_dma_reserve(mem_size_pfn - free_size_pfn);
-+#endif
-+}
-+
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index cac2c4c..58d7ece 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -1019,6 +1019,7 @@ void __init setup_arch(char **cmdline_p)
  #endif
- 
- 	initmem_init(0, max_pfn, acpi, k8);
-+	memblock_find_dma_reserve();
- #ifndef CONFIG_NO_BOOTMEM
- 	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
- #endif
+-
+-int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-				   int flags)
+-{
+-	return reserve_bootmem(phys, len, flags);
+-}
 diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 592b236..d6d4084 100644
+index ee41bba..634fa08 100644
 --- a/arch/x86/mm/init_64.c
 +++ b/arch/x86/mm/init_64.c
-@@ -53,8 +53,6 @@
- #include <asm/init.h>
- #include <linux/bootmem.h>
+@@ -799,13 +799,10 @@ void mark_rodata_ro(void)
  
--static unsigned long dma_reserve __initdata;
--
- static int __init parse_direct_gbpages_off(char *arg)
+ #endif
+ 
++#ifndef CONFIG_NO_BOOTMEM
+ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 				   int flags)
  {
- 	direct_gbpages = 0;
-@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+-#ifdef CONFIG_NUMA
+-	int nid, next_nid;
+-	int ret;
+-#endif
+ 	unsigned long pfn = phys >> PAGE_SHIFT;
  
- 	reserve_bootmem(phys, len, flags);
+ 	if (pfn >= max_pfn) {
+@@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 		return -EFAULT;
+ 	}
  
--	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
--		dma_reserve += len / PAGE_SIZE;
--		set_dma_reserve(dma_reserve);
--	}
+-	/* Should check here against the e820 map to avoid double free */
+-#ifdef CONFIG_NUMA
+-	nid = phys_to_nid(phys);
+-	next_nid = phys_to_nid(phys + len - 1);
+-	if (nid == next_nid)
+-		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
+-	else
+-		ret = reserve_bootmem(phys, len, flags);
 -
+-	if (ret != 0)
+-		return ret;
+-
+-#else
+ 	reserve_bootmem(phys, len, flags);
+-#endif
+ 
+ 	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+ 		dma_reserve += len / PAGE_SIZE;
+@@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
  	return 0;
  }
- #endif
++#endif
+ 
+ int kern_addr_valid(unsigned long addr)
+ {
+diff --git a/mm/bootmem.c b/mm/bootmem.c
+index 142c84a..bde170d 100644
+--- a/mm/bootmem.c
++++ b/mm/bootmem.c
+@@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
+ }
+ 
+ #ifndef CONFIG_NO_BOOTMEM
++int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
++				   int flags)
++{
++	return reserve_bootmem(phys, len, flags);
++}
++
+ static unsigned long __init align_idx(struct bootmem_data *bdata,
+ 				      unsigned long idx, unsigned long step)
+ {
 -- 
 1.6.4.2
