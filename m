@@ -1,99 +1,74 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/31] memblock: Remove memblock_type.size and add memblock.memory_size instead
-Date: Thu, 22 Jul 2010 11:20:44 -0700
-Message-ID: <1279822864-17154-12-git-send-email-yinghai@kernel.org>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:49303 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758716Ab0GVSjZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:39:25 -0400
-In-Reply-To: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: [PATCH 04/16] x86,memblock: Add memblock_x86_reserve_range/memblock_x86_free_range
+Date: Thu, 22 Jul 2010 11:43:49 -0700
+Message-ID: <1279824241-17582-5-git-send-email-yinghai@kernel.org>
+References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+they are wrappers for core versions.
+they are taking start/end/name instead of base/size.
+will make x86 conversion more easy
 
-Right now, both the "memory" and "reserved" memblock_type structures have
-a "size" member. It's unused in the later case, and represent the
-calculated memory size in the later case.
+could add more debug print out
 
-This moves it out to the main memblock structure instead
+-v2: change get_max_mapped() to memblock.default_alloc_limit according to Michael
+      Ellerman and Ben
+     change to memblock_x86_reserve_range and memblock_x86_free_range according to Michael Ellerman
+-v3: call check_and_double after reserve/free, so could avoid to use
+      find_memblock_area. Suggested by Michael Ellerman
 
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/powerpc/mm/mem.c    |    2 +-
- include/linux/memblock.h |    2 +-
- mm/memblock.c            |    8 ++++----
- 3 files changed, 6 insertions(+), 6 deletions(-)
+ arch/x86/include/asm/memblock.h |    3 +++
+ arch/x86/mm/memblock.c          |   22 ++++++++++++++++++++++
+ 2 files changed, 25 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 52df542..f661f6c 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -301,7 +301,7 @@ void __init mem_init(void)
- 		swiotlb_init(1);
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index 69cf853..e11ddf0 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -6,4 +6,7 @@
+ u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
+ void memblock_x86_to_bootmem(u64 start, u64 end);
+ 
++void memblock_x86_reserve_range(u64 start, u64 end, char *name);
++void memblock_x86_free_range(u64 start, u64 end);
++
  #endif
- 
--	num_physpages = memblock.memory.size >> PAGE_SHIFT;
-+	num_physpages = memblock_phys_mem_size() >> PAGE_SHIFT;
- 	high_memory = (void *) __va(max_low_pfn * PAGE_SIZE);
- 
- #ifdef CONFIG_NEED_MULTIPLE_NODES
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 5abb06b..e849d31 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -27,12 +27,12 @@ struct memblock_region {
- 
- struct memblock_type {
- 	unsigned long cnt;
--	phys_addr_t size;
- 	struct memblock_region regions[MAX_MEMBLOCK_REGIONS+1];
- };
- 
- struct memblock {
- 	phys_addr_t current_limit;
-+	phys_addr_t memory_size;	/* Updated by memblock_analyze() */
- 	struct memblock_type memory;
- 	struct memblock_type reserved;
- };
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 0c0f787..78c2394 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -49,7 +49,7 @@ void memblock_dump_all(void)
- 		return;
- 
- 	pr_info("MEMBLOCK configuration:\n");
--	pr_info(" memory.size = 0x%llx\n", (unsigned long long)memblock.memory.size);
-+	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
- 
- 	memblock_dump(&memblock.memory, "memory");
- 	memblock_dump(&memblock.reserved, "reserved");
-@@ -123,10 +123,10 @@ void __init memblock_analyze(void)
- {
- 	int i;
- 
--	memblock.memory.size = 0;
-+	memblock.memory_size = 0;
- 
- 	for (i = 0; i < memblock.memory.cnt; i++)
--		memblock.memory.size += memblock.memory.regions[i].size;
-+		memblock.memory_size += memblock.memory.regions[i].size;
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index 7986a12..80cdcf8 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -116,3 +116,25 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ 		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
  }
- 
- static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
-@@ -423,7 +423,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
- /* You must call memblock_analyze() before this. */
- phys_addr_t __init memblock_phys_mem_size(void)
- {
--	return memblock.memory.size;
-+	return memblock.memory_size;
- }
- 
- phys_addr_t memblock_end_of_DRAM(void)
+ #endif
++
++void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	memblock_reserve(start, end - start);
++}
++
++void __init memblock_x86_free_range(u64 start, u64 end)
++{
++	if (start == end)
++		return;
++
++	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
++		return;
++
++	memblock_free(start, end - start);
++}
 -- 
 1.6.4.2
