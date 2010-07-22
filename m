@@ -1,56 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:56739 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755701Ab0GVLp2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Jul 2010 07:45:28 -0400
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 1/2] 53c700: remove dma_is_consistent usage
-Date: Thu, 22 Jul 2010 20:40:10 +0900
-Message-ID: <1279798811-21304-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:62980 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757748Ab0GVQZz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 12:25:55 -0400
+Date: Thu, 22 Jul 2010 09:25:53 -0700
+From: Zach Pfeffer <zpfeffer@codeaurora.org>
+Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
+ memory management
+Message-ID: <20100722162551.GC10255@codeaurora.org>
+References: <20100713121420.GB4263@codeaurora.org>
+ <20100714104353B.fujita.tomonori@lab.ntt.co.jp>
+ <20100714201149.GA14008@codeaurora.org>
+ <20100714220536.GE18138@n2100.arm.linux.org.uk>
+ <20100715012958.GB2239@codeaurora.org>
+ <20100715085535.GC26212@n2100.arm.linux.org.uk>
+ <20100719065233.GD11054@codeaurora.org>
+ <m1mxtndifi.fsf@fess.ebiederm.org>
+ <20100722042528.GB22559@codeaurora.org>
+ <20100722073455.GB6802@n2100.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20100722073455.GB6802@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: JBottomley@novell.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp
-Message-ID: <20100722114010.LJ3rrT9C2BUl7sldVCmC-Phxj4-NyIo_h6FNH2Boo04@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20100722162553.zwm6TO5SmU4Sm3-OG8JonSQkSMO1_dW0hE9KRrff8rc@z>
 
-This driver is the only user of dma_is_consistent(). We plan to remove
-this API.
+On Thu, Jul 22, 2010 at 08:34:55AM +0100, Russell King - ARM Linux wrote:
+> On Wed, Jul 21, 2010 at 09:25:28PM -0700, Zach Pfeffer wrote:
+> > Yes it is a problem, as Russell has brought up, but there's something
+> > I probably haven't communicated well. I'll use the following example:
+> > 
+> > There are 3 devices: A CPU, a decoder and a video output device. All 3
+> > devices need to map the same 12 MB buffer at the same time.
+> 
+> Why do you need the same buffer mapped by the CPU?
+> 
+> Let's take your example of a video decoder and video output device.
+> Surely the CPU doesn't want to be writing to the same memory region
+> used for the output picture as the decoder is writing to.  So what's
+> the point of mapping that memory into the CPU's address space?
 
-The driver uses the API in the following way:
+It may, especially if you're doing some software post processing. Also
+by mapping all the buffers its extremly fast to "pass the buffers"
+around in this senario - the buffer passing becomes a simple signal.
 
-BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
+> 
+> Surely the video output device doesn't need to see the input data to
+> the decoder either?
 
-The above code tries to see if L1_CACHE_BYTES is greater than
-dma_get_cache_alignment() on sysmtes that can not allocate coherent
-memory (some old systems can't).
+No, but other devices may (like the CPU).
 
-James Bottomley exmplained that this is necesary because the driver
-packs the set of mailboxes into a single coherent area and separates
-the different usages by a L1 cache stride. So it's fatal if the dma
-coherence stride is greater than the L1 cache size.
+> 
+> Surely, all you need is:
+> 
+> 1. a mapping for the CPU for a chunk of memory to pass data to the
+>    decoder.
+> 2. a mapping for the decoder to see the chunk of memory to receive data
+>    from the CPU.
+> 3. a mapping for the decoder to see a chunk of memory used for the output
+>    video buffer.
+> 4. a mapping for the output device to see the video buffer.
+> 
+> So I don't see why everything needs to be mapped by everything else.
 
-He also pointed out that we can kill this checking because we don't
-hit this BUG_ON on all architectures that actually use the driver.
-
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
----
- drivers/scsi/53c700.c |    3 ---
- 1 files changed, 0 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/scsi/53c700.c b/drivers/scsi/53c700.c
-index 80dc3ac..89fc1c8 100644
---- a/drivers/scsi/53c700.c
-+++ b/drivers/scsi/53c700.c
-@@ -309,9 +309,6 @@ NCR_700_detect(struct scsi_host_template *tpnt,
- 	hostdata->msgin = memory + MSGIN_OFFSET;
- 	hostdata->msgout = memory + MSGOUT_OFFSET;
- 	hostdata->status = memory + STATUS_OFFSET;
--	/* all of these offsets are L1_CACHE_BYTES separated.  It is fatal
--	 * if this isn't sufficient separation to avoid dma flushing issues */
--	BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
- 	hostdata->slots = (struct NCR_700_command_slot *)(memory + SLOTS_OFFSET);
- 	hostdata->dev = dev;
- 
--- 
-1.6.5
-
+That's fair, but we do share buffers and we do have many, very large
+mappings, and we do need to pull these from a separate pools because
+they need to exhibit a particular allocation profile. I agree with you
+that things should work like you've listed, but with Qualcomm's ARM
+multimedia engines we're seeing some different usage scenarios. Its
+the giant buffers, needing to use our own buffer allocator, the need
+to share and the need to swap out virtual IOMMU space (which we
+haven't talked about much) which make the DMA API seem like a
+mismatch. (we haven't even talked about graphics usage ;) ).
