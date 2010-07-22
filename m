@@ -1,61 +1,134 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:42716 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:42707 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759618Ab0GVSWl (ORCPT
+	with ESMTP id S1759436Ab0GVSWl (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:22:41 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 27/31] memblock: Print new doubled array location info
-Date: Thu, 22 Jul 2010 11:21:00 -0700
-Message-ID: <1279822864-17154-28-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/31] memblock: split memblock_find_base() out of __memblock_alloc_base()
+Date: Thu, 22 Jul 2010 11:20:50 -0700
+Message-ID: <1279822864-17154-18-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100722182100.n5zwBtwlki3g8dMFnFM9pxnWQthNTPk-s1UHA6tn6FY@z>
+Message-ID: <20100722182050.tHcsbZuCrqC0VEjGhgu79UCCOluOPLEoJDBNbSm-29I@z>
 
-so will have more idea where it is,  use memblock_debug to controll it
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
--v2: use memblock_dbg instead of " if (memblock_debug) "
+This will be used by the array resize code and might prove useful
+to some arch code as well at which point it can be made non-static.
+
+Also add comment as to why aligning size is important
+
+[ Yinghai Lu ]: it should return MEMBLOCK_ERROR when it fail to find a range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- mm/memblock.c |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+ mm/memblock.c |   58 +++++++++++++++++++++++++++++++++++++-------------------
+ 1 files changed, 38 insertions(+), 20 deletions(-)
 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index c16d4c6..796ef8c 100644
+index 1283893..17403e6 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -192,8 +192,6 @@ static int memblock_double_array(struct memblock_type *type)
- 	if (!memblock_can_resize)
- 		return -1;
+@@ -345,12 +345,15 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
  
--	pr_debug("memblock: %s array full, doubling...", memblock_type_name(type));
--
- 	/* Calculate new doubled size */
- 	old_size = type->max * sizeof(struct memblock_region);
- 	new_size = old_size << 1;
-@@ -221,6 +219,9 @@ static int memblock_double_array(struct memblock_type *type)
- 	}
- 	new_array = __va(addr);
+ 	BUG_ON(0 == size);
  
-+	memblock_dbg("memblock: %s array is doubled to %ld at [%#010llx-%#010llx]",
-+		 memblock_type_name(type), type->max * 2, (u64)addr, (u64)addr + new_size - 1);
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
 +
- 	/* Found space, we now need to move the array over before
- 	 * we add the reserved region since it may be our reserved
- 	 * array itself that is full.
-@@ -646,7 +647,7 @@ static void memblock_dump(struct memblock_type *region, char *name)
- 		base = region->regions[i].base;
- 		size = region->regions[i].size;
- 
--		pr_info(" %s[0x%x]\t0x%016llx - 0x%016llx, 0x%llx bytes\n",
-+		pr_info(" %s[%#x]\t[%#016llx-%#016llx], %#llx bytes\n",
- 		    name, i, base, base + size - 1, size);
- 	}
+ 	/* We do a bottom-up search for a region with the right
+ 	 * nid since that's easier considering how memblock_nid_range()
+ 	 * works
+ 	 */
+-	size = memblock_align_up(size, align);
+-
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
+ 					       size, align, nid);
+@@ -366,20 +369,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
  }
+ 
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+ 	long i;
+ 	phys_addr_t base = 0;
+@@ -387,8 +377,6 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 
+ 	BUG_ON(0 == size);
+ 
+-	size = memblock_align_up(size, align);
+-
+ 	/* Pump up max_addr */
+ 	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+ 		max_addr = memblock.current_limit;
+@@ -405,13 +393,43 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR &&
+-		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
++		if (res_base != MEMBLOCK_ERROR)
+ 			return res_base;
+ 	}
++	return MEMBLOCK_ERROR;
++}
++
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{	
++	phys_addr_t found;
++
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
++	found = memblock_find_base(size, align, max_addr);
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
++
+ 	return 0;
+ }
+ 
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{
++	phys_addr_t alloc;
++
++	alloc = __memblock_alloc_base(size, align, max_addr);
++
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
++
++	return alloc;
++}
++
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
 
