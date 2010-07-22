@@ -1,47 +1,84 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 29/31] memblock: Prepare to include linux/memblock.h in core file
-Date: Thu, 22 Jul 2010 11:21:02 -0700
-Message-ID: <1279822864-17154-30-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/31] memblock: Add arch function to control coalescing of memblock memory regions
+Date: Thu, 22 Jul 2010 11:20:53 -0700
+Message-ID: <1279822864-17154-21-git-send-email-yinghai@kernel.org>
 References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:42179 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754214Ab0GVSW1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:22:27 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-Need to add protection in linux/memblock.h, to prepare to include it in
- mm/page_alloc.c and mm/bootmem.c etc.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Some archs such as ARM want to avoid coalescing accross things such
+as the lowmem/highmem boundary or similar. This provides the option
+to control it via an arch callback for which a weak default is provided
+which always allows coalescing.
+
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ include/linux/memblock.h |    2 ++
+ mm/memblock.c            |   19 ++++++++++++++++++-
+ 2 files changed, 20 insertions(+), 1 deletions(-)
 
 diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 89749c4..4aaaf0d 100644
+index b839053..15da7d9 100644
 --- a/include/linux/memblock.h
 +++ b/include/linux/memblock.h
-@@ -2,6 +2,7 @@
- #define _LINUX_MEMBLOCK_H
- #ifdef __KERNEL__
+@@ -70,6 +70,8 @@ extern void memblock_dump_all(void);
  
-+#ifdef CONFIG_HAVE_MEMBLOCK
- /*
-  * Logical memory blocks.
-  *
-@@ -147,6 +148,8 @@ static inline unsigned long memblock_region_pages(const struct memblock_region *
- 	     region++)
+ /* Provided by the architecture */
+ extern phys_addr_t memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid);
++extern int memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++				   phys_addr_t addr2, phys_addr_t size2);
  
+ /**
+  * memblock_set_current_limit - Set the current allocation limit to allow
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 8197f37..f793d9f 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -241,6 +241,12 @@ static int memblock_double_array(struct memblock_type *type)
+ 	return 0;
+ }
  
-+#endif /* CONFIG_HAVE_MEMBLOCK */
++extern int __weak memblock_memory_can_coalesce(phys_addr_t addr1, phys_addr_t size1,
++					  phys_addr_t addr2, phys_addr_t size2)
++{
++	return 1;
++}
 +
- #endif /* __KERNEL__ */
+ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size)
+ {
+ 	unsigned long coalesced = 0;
+@@ -262,6 +268,10 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 			return 0;
  
- #endif /* _LINUX_MEMBLOCK_H */
+ 		adjacent = memblock_addrs_adjacent(base, size, rgnbase, rgnsize);
++		/* Check if arch allows coalescing */
++		if (adjacent != 0 && type == &memblock.memory &&
++		    !memblock_memory_can_coalesce(base, size, rgnbase, rgnsize))
++			break;
+ 		if (adjacent > 0) {
+ 			type->regions[i].base -= size;
+ 			type->regions[i].size += size;
+@@ -274,7 +284,14 @@ static long memblock_add_region(struct memblock_type *type, phys_addr_t base, ph
+ 		}
+ 	}
+ 
+-	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1)) {
++	/* If we plugged a hole, we may want to also coalesce with the
++	 * next region
++	 */
++	if ((i < type->cnt - 1) && memblock_regions_adjacent(type, i, i+1) &&
++	    ((type != &memblock.memory || memblock_memory_can_coalesce(type->regions[i].base,
++							     type->regions[i].size,
++							     type->regions[i+1].base,
++							     type->regions[i+1].size)))) {
+ 		memblock_coalesce_regions(type, i, i+1);
+ 		coalesced++;
+ 	}
 -- 
 1.6.4.2
