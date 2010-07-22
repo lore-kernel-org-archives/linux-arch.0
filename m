@@ -1,100 +1,94 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/16] x86, memblock: Add memblock_x86_free_memory_in_range()
-Date: Thu, 22 Jul 2010 11:43:54 -0700
-Message-ID: <1279824241-17582-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/16] x86, memblock: Use memblock_debug to control debug message print out
+Date: Thu, 22 Jul 2010 11:43:56 -0700
+Message-ID: <1279824241-17582-12-git-send-email-yinghai@kernel.org>
 References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:62845 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759899Ab0GVSqJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:46:09 -0400
 In-Reply-To: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-It will return free memory size in specified range.
+Also let memblock_x86_reserve_range/memblock_x86_free_range could print out name if memblock=debug is
+specified
 
-We can not use memory_size - reserved_size here, because some reserved area
-may not be in the scope of memblock.memory.region.
+will also print ther name when reserve_memblock_area/free_memblock_area are called.
 
-Use memblock.memory.region subtracting memblock.reserved.region to get free range array.
-then count size of all free ranges.
-
--v2: Ben insist on using _in_range
+-v2: according to Ingo, put " if (memblock_debug) " in one place
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/include/asm/memblock.h |    1 +
- arch/x86/mm/memblock.c          |   48 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 49 insertions(+), 0 deletions(-)
+ arch/x86/mm/memblock.c |   20 ++++++++++++--------
+ 1 files changed, 12 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 3a86b10..fc3c230 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -15,5 +15,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
- 					 unsigned long last_pfn);
- u64 memblock_x86_hole_size(u64 start, u64 end);
- u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
-+u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
- 
- #endif
 diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index a3dece6..3882caa 100644
+index 53b0f60..70a6bba 100644
 --- a/arch/x86/mm/memblock.c
 +++ b/arch/x86/mm/memblock.c
-@@ -217,6 +217,54 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
- }
- #endif
+@@ -122,10 +122,10 @@ static void __init memblock_x86_subtract_reserved(struct range *range, int az)
  
-+u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
-+{
-+	int i, count;
-+	struct range *range;
-+	int nr_range;
-+	u64 final_start, final_end;
-+	u64 free_size;
-+	struct memblock_region *r;
-+
-+	count = (memblock.reserved.cnt + memblock.memory.cnt) * 2;
-+
-+	range = find_range_array(count);
-+	nr_range = 0;
-+
-+	addr = PFN_UP(addr);
-+	limit = PFN_DOWN(limit);
-+
-+	for_each_memblock(memory, r) {
-+		final_start = PFN_UP(r->base);
-+		final_end = PFN_DOWN(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		nr_range = add_range(range, count, nr_range, final_start, final_end);
-+	}
-+	subtract_range(range, count, 0, addr);
-+	subtract_range(range, count, limit, -1ULL);
-+	for_each_memblock(reserved, r) {
-+		final_start = PFN_DOWN(r->base);
-+		final_end = PFN_UP(r->base + r->size);
-+		if (final_start >= final_end)
-+			continue;
-+		if (final_start >= limit || final_end <= addr)
-+			continue;
-+
-+		subtract_range(range, count, final_start, final_end);
-+	}
-+	nr_range = clean_sort_range(range, count);
-+
-+	free_size = 0;
-+	for (i = 0; i < nr_range; i++)
-+		free_size += range[i].end - range[i].start;
-+
-+	return free_size << PAGE_SHIFT;
-+}
-+
- void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
- {
+ 	count  = memblock.reserved.cnt;
+ 
+-	pr_info("Subtract (%d early reservations)\n", count);
++	memblock_dbg("Subtract (%d early reservations)\n", count);
+ 
+ 	for_each_memblock(reserved, r) {
+-		pr_info("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
++		memblock_dbg("  [%#010llx-%#010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
+ 		final_start = PFN_DOWN(r->base);
+ 		final_end = PFN_UP(r->base + r->size);
+ 		if (final_start >= final_end)
+@@ -198,16 +198,16 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ 		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
+ 
+ 	count  = memblock.reserved.cnt;
+-	pr_info("(%d early reservations) ==> bootmem [%010llx-%010llx]\n", count, start, end - 1);
++	memblock_dbg("(%d early reservations) ==> bootmem [%#010llx-%#010llx]\n", count, start, end - 1);
+ 	for_each_memblock(reserved, r) {
+-		pr_info("  [%010llx-%010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
++		memblock_dbg("  [%#010llx-%#010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
+ 		final_start = max(start, r->base);
+ 		final_end = min(end, r->base + r->size);
+ 		if (final_start >= final_end) {
+-			pr_cont("\n");
++			memblock_dbg("\n");
+ 			continue;
+ 		}
+-		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
++		memblock_dbg(" ==> [%#010llx-%#010llx]\n", final_start, final_end - 1);
+ 		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+ 	}
+ 
+@@ -286,9 +286,11 @@ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
  	if (start == end)
+ 		return;
+ 
+-	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx]\n", start, end))
++	if (WARN_ONCE(start > end, "memblock_x86_reserve_range: wrong range [%#llx, %#llx)\n", start, end))
+ 		return;
+ 
++	memblock_dbg("    memblock_x86_reserve_range: [%#010llx-%#010llx] %16s\n", start, end - 1, name);
++
+ 	memblock_reserve(start, end - start);
+ }
+ 
+@@ -297,9 +299,11 @@ void __init memblock_x86_free_range(u64 start, u64 end)
+ 	if (start == end)
+ 		return;
+ 
+-	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx]\n", start, end))
++	if (WARN_ONCE(start > end, "memblock_x86_free_range: wrong range [%#llx, %#llx)\n", start, end))
+ 		return;
+ 
++	memblock_dbg("       memblock_x86_free_range: [%#010llx-%#010llx]\n", start, end - 1);
++
+ 	memblock_free(start, end - start);
+ }
+ 
 -- 
 1.6.4.2
