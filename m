@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/16] memblock: Add find_memory_core_early()
-Date: Thu, 22 Jul 2010 11:43:52 -0700
-Message-ID: <1279824241-17582-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/16] x86, memblock: Add memblock_x86_free_memory_in_range()
+Date: Thu, 22 Jul 2010 11:43:54 -0700
+Message-ID: <1279824241-17582-10-git-send-email-yinghai@kernel.org>
 References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
@@ -10,85 +10,91 @@ To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-According to node range in early_node_map[] with __memblock_find_in_range
-to find free range.
+It will return free memory size in specified range.
 
-Will be used by memblock_x86_find_in_range_node()
+We can not use memory_size - reserved_size here, because some reserved area
+may not be in the scope of memblock.memory.region.
 
-memblock_x86_find_in_range_node will be used to find right buffer for NODE_DATA
+Use memblock.memory.region subtracting memblock.reserved.region to get free range array.
+then count size of all free ranges.
+
+-v2: Ben insist on using _in_range
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/mm.h |    2 ++
- mm/page_alloc.c    |   36 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 38 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/memblock.h |    1 +
+ arch/x86/mm/memblock.c          |   48 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7a9ab7d..9d27940 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1164,6 +1164,8 @@ extern void free_bootmem_with_active_regions(int nid,
- 						unsigned long max_low_pfn);
- int add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid);
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit);
- void *__alloc_memory_core_early(int nodeid, u64 size, u64 align,
- 				 u64 goal, u64 limit);
- typedef int (*work_fn_t)(unsigned long, unsigned long, void *);
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 9bd339e..8c9b346 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -21,6 +21,7 @@
- #include <linux/pagemap.h>
- #include <linux/jiffies.h>
- #include <linux/bootmem.h>
-+#include <linux/memblock.h>
- #include <linux/compiler.h>
- #include <linux/kernel.h>
- #include <linux/kmemcheck.h>
-@@ -3612,6 +3613,41 @@ void __init free_bootmem_with_active_regions(int nid,
- 	}
- }
+diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+index 3a86b10..fc3c230 100644
+--- a/arch/x86/include/asm/memblock.h
++++ b/arch/x86/include/asm/memblock.h
+@@ -15,5 +15,6 @@ void memblock_x86_register_active_regions(int nid, unsigned long start_pfn,
+ 					 unsigned long last_pfn);
+ u64 memblock_x86_hole_size(u64 start, u64 end);
+ u64 memblock_x86_find_in_range_node(int nid, u64 start, u64 end, u64 size, u64 align);
++u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
  
-+#ifdef CONFIG_HAVE_MEMBLOCK
-+u64 __init find_memory_core_early(int nid, u64 size, u64 align,
-+					u64 goal, u64 limit)
+ #endif
+diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
+index a3dece6..3882caa 100644
+--- a/arch/x86/mm/memblock.c
++++ b/arch/x86/mm/memblock.c
+@@ -217,6 +217,54 @@ void __init memblock_x86_to_bootmem(u64 start, u64 end)
+ }
+ #endif
+ 
++u64 __init memblock_x86_free_memory_in_range(u64 addr, u64 limit)
 +{
-+	int i;
++	int i, count;
++	struct range *range;
++	int nr_range;
++	u64 final_start, final_end;
++	u64 free_size;
++	struct memblock_region *r;
 +
-+	/* Need to go over early_node_map to find out good range for node */
-+	for_each_active_range_index_in_nid(i, nid) {
-+		u64 addr;
-+		u64 ei_start, ei_last;
-+		u64 final_start, final_end;
++	count = (memblock.reserved.cnt + memblock.memory.cnt) * 2;
 +
-+		ei_last = early_node_map[i].end_pfn;
-+		ei_last <<= PAGE_SHIFT;
-+		ei_start = early_node_map[i].start_pfn;
-+		ei_start <<= PAGE_SHIFT;
++	range = find_range_array(count);
++	nr_range = 0;
 +
-+		final_start = max(ei_start, goal);
-+		final_end = min(ei_last, limit);
++	addr = PFN_UP(addr);
++	limit = PFN_DOWN(limit);
 +
++	for_each_memblock(memory, r) {
++		final_start = PFN_UP(r->base);
++		final_end = PFN_DOWN(r->base + r->size);
 +		if (final_start >= final_end)
 +			continue;
-+
-+		addr = memblock_find_in_range(final_start, final_end, size, align);
-+
-+		if (addr == MEMBLOCK_ERROR)
++		if (final_start >= limit || final_end <= addr)
 +			continue;
 +
-+		return addr;
++		nr_range = add_range(range, count, nr_range, final_start, final_end);
 +	}
++	subtract_range(range, count, 0, addr);
++	subtract_range(range, count, limit, -1ULL);
++	for_each_memblock(reserved, r) {
++		final_start = PFN_DOWN(r->base);
++		final_end = PFN_UP(r->base + r->size);
++		if (final_start >= final_end)
++			continue;
++		if (final_start >= limit || final_end <= addr)
++			continue;
 +
-+	return MEMBLOCK_ERROR;
++		subtract_range(range, count, final_start, final_end);
++	}
++	nr_range = clean_sort_range(range, count);
++
++	free_size = 0;
++	for (i = 0; i < nr_range; i++)
++		free_size += range[i].end - range[i].start;
++
++	return free_size << PAGE_SHIFT;
 +}
-+#endif
 +
- int __init add_from_early_node_map(struct range *range, int az,
- 				   int nr_range, int nid)
+ void __init memblock_x86_reserve_range(u64 start, u64 end, char *name)
  {
+ 	if (start == end)
 -- 
 1.6.4.2
