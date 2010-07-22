@@ -1,102 +1,132 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 22/31] memblock: NUMA allocate can now use early_pfn_map
-Date: Thu, 22 Jul 2010 11:20:55 -0700
-Message-ID: <1279822864-17154-23-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/31] memblock: split memblock_find_base() out of __memblock_alloc_base()
+Date: Thu, 22 Jul 2010 11:20:50 -0700
+Message-ID: <1279822864-17154-18-git-send-email-yinghai@kernel.org>
 References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:42541 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:42707 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759599Ab0GVSWh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:22:37 -0400
+	with ESMTP id S1759436Ab0GVSWl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 14:22:41 -0400
 In-Reply-To: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Yinghai Lu <yinghai@kernel.org>
 
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-We now provide a default (weak) implementation of memblock_nid_range()
-which uses the early_pfn_map[] if CONFIG_ARCH_POPULATES_NODE_MAP
-is set. Sparc still needs to use its own method due to the way
-the pages can be scattered between nodes.
+This will be used by the array resize code and might prove useful
+to some arch code as well at which point it can be made non-static.
 
-This implementation is inefficient due to our main algorithm and
-callback construct wanting to work on an ascending addresses bases
-while early_pfn_map[] would rather work with nid's (it's unsorted
-at that stage). But it should work and we can look into improving
-it subsequently, possibly using arch compile options to chose a
-different algorithm alltogether.
+Also add comment as to why aligning size is important
 
+[ Yinghai Lu ]: it should return MEMBLOCK_ERROR when it fail to find a range
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/memblock.h |    3 +++
- mm/memblock.c            |   28 +++++++++++++++++++++++++++-
- 2 files changed, 30 insertions(+), 1 deletions(-)
+ mm/memblock.c |   58 +++++++++++++++++++++++++++++++++++++-------------------
+ 1 files changed, 38 insertions(+), 20 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 15da7d9..b69c243 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -47,6 +47,9 @@ extern long memblock_remove(phys_addr_t base, phys_addr_t size);
- extern long __init memblock_free(phys_addr_t base, phys_addr_t size);
- extern long __init memblock_reserve(phys_addr_t base, phys_addr_t size);
- 
-+/* The numa aware allocator is only available if
-+ * CONFIG_ARCH_POPULATES_NODE_MAP is set
-+ */
- extern phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int nid);
- extern phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align);
- 
 diff --git a/mm/memblock.c b/mm/memblock.c
-index b4870cf..a9c15a5 100644
+index 1283893..17403e6 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -15,6 +15,7 @@
- #include <linux/init.h>
- #include <linux/bitops.h>
- #include <linux/poison.h>
-+#include <linux/pfn.h>
- #include <linux/memblock.h>
+@@ -345,12 +345,15 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
  
- struct memblock memblock;
-@@ -451,11 +452,36 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
- /*
-  * Additional node-local allocators. Search for node memory is bottom up
-  * and walks memblock regions within that node bottom-up as well, but allocation
-- * within an memblock region is top-down.
-+ * within an memblock region is top-down. XXX I plan to fix that at some stage
-+ *
-+ * WARNING: Only available after early_node_map[] has been populated,
-+ * on some architectures, that is after all the calls to add_active_range()
-+ * have been done to populate it.
-  */
+ 	BUG_ON(0 == size);
  
- phys_addr_t __weak __init memblock_nid_range(phys_addr_t start, phys_addr_t end, int *nid)
- {
-+#ifdef CONFIG_ARCH_POPULATES_NODE_MAP
-+	/*
-+	 * This code originates from sparc which really wants use to walk by addresses
-+	 * and returns the nid. This is not very convenient for early_pfn_map[] users
-+	 * as the map isn't sorted yet, and it really wants to be walked by nid.
-+	 *
-+	 * For now, I implement the inefficient method below which walks the early
-+	 * map multiple times. Eventually we may want to use an ARCH config option
-+	 * to implement a completely different method for both case.
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
 +	 */
-+	unsigned long start_pfn, end_pfn;
-+	int i;
++	size = memblock_align_up(size, align);
 +
-+	for (i = 0; i < MAX_NUMNODES; i++) {
-+		get_pfn_range_for_nid(i, &start_pfn, &end_pfn);
-+		if (start < PFN_PHYS(start_pfn) || start >= PFN_PHYS(end_pfn))
-+			continue;
-+		*nid = i;
-+		return min(end, PFN_PHYS(end_pfn));
-+	}
-+#endif
- 	*nid = 0;
+ 	/* We do a bottom-up search for a region with the right
+ 	 * nid since that's easier considering how memblock_nid_range()
+ 	 * works
+ 	 */
+-	size = memblock_align_up(size, align);
+-
+ 	for (i = 0; i < mem->cnt; i++) {
+ 		phys_addr_t ret = memblock_alloc_nid_region(&mem->regions[i],
+ 					       size, align, nid);
+@@ -366,20 +369,7 @@ phys_addr_t __init memblock_alloc(phys_addr_t size, phys_addr_t align)
+ 	return memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
+ }
  
- 	return end;
+-phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+-{
+-	phys_addr_t alloc;
+-
+-	alloc = __memblock_alloc_base(size, align, max_addr);
+-
+-	if (alloc == 0)
+-		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
+-		      (unsigned long long) size, (unsigned long long) max_addr);
+-
+-	return alloc;
+-}
+-
+-phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++static phys_addr_t __init memblock_find_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
+ {
+ 	long i;
+ 	phys_addr_t base = 0;
+@@ -387,8 +377,6 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 
+ 	BUG_ON(0 == size);
+ 
+-	size = memblock_align_up(size, align);
+-
+ 	/* Pump up max_addr */
+ 	if (max_addr == MEMBLOCK_ALLOC_ACCESSIBLE)
+ 		max_addr = memblock.current_limit;
+@@ -405,13 +393,43 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 			continue;
+ 		base = min(memblockbase + memblocksize, max_addr);
+ 		res_base = memblock_find_region(memblockbase, base, size, align);
+-		if (res_base != MEMBLOCK_ERROR &&
+-		    memblock_add_region(&memblock.reserved, res_base, size) >= 0)
++		if (res_base != MEMBLOCK_ERROR)
+ 			return res_base;
+ 	}
++	return MEMBLOCK_ERROR;
++}
++
++phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{	
++	phys_addr_t found;
++
++	/* We align the size to limit fragmentation. Without this, a lot of
++	 * small allocs quickly eat up the whole reserve array on sparc
++	 */
++	size = memblock_align_up(size, align);
++
++	found = memblock_find_base(size, align, max_addr);
++	if (found != MEMBLOCK_ERROR &&
++	    memblock_add_region(&memblock.reserved, found, size) >= 0)
++		return found;
++
+ 	return 0;
+ }
+ 
++phys_addr_t __init memblock_alloc_base(phys_addr_t size, phys_addr_t align, phys_addr_t max_addr)
++{
++	phys_addr_t alloc;
++
++	alloc = __memblock_alloc_base(size, align, max_addr);
++
++	if (alloc == 0)
++		panic("ERROR: Failed to allocate 0x%llx bytes below 0x%llx.\n",
++		      (unsigned long long) size, (unsigned long long) max_addr);
++
++	return alloc;
++}
++
++
+ /* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
 -- 
 1.6.4.2
