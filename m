@@ -1,29 +1,50 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [RFC 1/3 v3] mm: iommu: An API to unify IOMMU, CPU and device
-	memory management
-Date: Thu, 22 Jul 2010 08:39:17 +0100
-Message-ID: <20100722073917.GC6802@n2100.arm.linux.org.uk>
-References: <20100715014148.GC2239@codeaurora.org> <20100719082213.GA7421@n2100.arm.linux.org.uk> <20100720221959.GC12250@codeaurora.org> <20100721104356S.fujita.tomonori@lab.ntt.co.jp> <20100722043034.GC22559@codeaurora.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34546 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753185Ab0GVHjw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Jul 2010 03:39:52 -0400
-Content-Disposition: inline
-In-Reply-To: <20100722043034.GC22559@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Zach Pfeffer <zpfeffer@codeaurora.org>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, ebiederm@xmission.com, linux-arch@vger.kernel.org, dwalker@codeaurora.org, mel@csn.ul.ie, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, andi@firstfloor.org, linux-omap@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 1/2] 53c700: remove dma_is_consistent usage
+Date: Thu, 22 Jul 2010 20:40:10 +0900
+Message-ID: <1279798811-21304-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: JBottomley@novell.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 21, 2010 at 09:30:34PM -0700, Zach Pfeffer wrote:
-> This goes to the nub of the issue. We need a lot of 1 MB physically
-> contiguous chunks. The system is going to fragment and we'll never get
-> our 12 1 MB chunks that we'll need, since the DMA API allocator uses
-> the system pool it will never succeed.
+This driver is the only user of dma_is_consistent(). We plan to remove
+this API.
 
-By the "DMA API allocator" I assume you mean the coherent DMA interface,
-The DMA coherent API and DMA streaming APIs are two separate sub-interfaces
-of the DMA API and are not dependent on each other.
+The driver uses the API in the following way:
+
+BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
+
+The above code tries to see if L1_CACHE_BYTES is greater than
+dma_get_cache_alignment() on sysmtes that can not allocate coherent
+memory (some old systems can't).
+
+James Bottomley exmplained that this is necesary because the driver
+packs the set of mailboxes into a single coherent area and separates
+the different usages by a L1 cache stride. So it's fatal if the dma
+coherence stride is greater than the L1 cache size.
+
+He also pointed out that we can kill this checking because we don't
+hit this BUG_ON on all architectures that actually use the driver.
+
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+---
+ drivers/scsi/53c700.c |    3 ---
+ 1 files changed, 0 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/scsi/53c700.c b/drivers/scsi/53c700.c
+index 80dc3ac..89fc1c8 100644
+--- a/drivers/scsi/53c700.c
++++ b/drivers/scsi/53c700.c
+@@ -309,9 +309,6 @@ NCR_700_detect(struct scsi_host_template *tpnt,
+ 	hostdata->msgin = memory + MSGIN_OFFSET;
+ 	hostdata->msgout = memory + MSGOUT_OFFSET;
+ 	hostdata->status = memory + STATUS_OFFSET;
+-	/* all of these offsets are L1_CACHE_BYTES separated.  It is fatal
+-	 * if this isn't sufficient separation to avoid dma flushing issues */
+-	BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
+ 	hostdata->slots = (struct NCR_700_command_slot *)(memory + SLOTS_OFFSET);
+ 	hostdata->dev = dev;
+ 
+-- 
+1.6.5
