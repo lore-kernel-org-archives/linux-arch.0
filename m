@@ -1,51 +1,62 @@
-From: MICROSOFT CUSTOMER SERVICE <info@msl.com>
-Subject: REFNO.:MS/75-A08055161/2010
-Date: Sat, 24 Jul 2010 03:50:37 +0300
-Message-ID: <20100724035037.jx3770r0owwo0wsw@webmail.welho.com>
-Reply-To: msldept10@w.cn
+From: "A .Baloteli" <tel.inters.p.a@email.it>
+Subject: Winning Notification!!!
+Date: Sat, 24 Jul 2010 12:20:11 +0200 (CEST)
+Message-ID: <49371.151.82.175.31.1279966811.squirrel@www.igp.gob.pe>
+Reply-To: voda.com2010@gmail.it
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	DelSp=Yes	format=flowed
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from filtteri5.pp.htv.fi ([213.243.153.188]:36019 "EHLO
-	filtteri5.pp.htv.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755904Ab0GXBDs convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jul 2010 21:03:48 -0400
-Content-Disposition: inline
+Received: from mailer.igp.gob.pe ([200.60.148.146]:48789 "EHLO
+	mailer.igp.gob.pe" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754307Ab0GXKT5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 24 Jul 2010 06:19:57 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: tel.inters.p.a@email.it
 
 
---=20
-MICROSOFT CUSTOMER SERVICE
-REFNO.:MS/75-A08055161/2010
-Batch: 044/05/ZY369
 
-Dear E-mail Owner,
 
-You are a winner of the just conclude Microsoft Online Email Promo. You=
- have
-therefore been approved to claim a total sum Five Hundred Thousand Grea=
-t
-Britain Pounds (=A3500,000.00). Please this informations are required f=
-or
-verification.
+Dear Client
 
-Name:...................
-Address:...............
-Country:...............
-Age:..................
-Gender:................
-Occupation:..............
-Phone and Fax:...............
-Winning E-mail Address:................
+You have been sent a payment order, here is your payment information:
 
-Please contact:
-Owens Gibson
-Email: msldept10@w.cn
+PAYMENT N=B0:     965412070
+PAYMENT APPROVAL DATE: 04/06/2010
+PAYMENT REF:  VD06/EUSA/2010
+PAYMENT VALUE:   EUR 225.500.00 (Euro)
 
-Telephone: +44-704-570-7201
+In order to receive you payment please confirm you identification in ou=
+r
+verification office below:
 
-Crosswhite Anita
-Annoucer For Microsoft Online Email Promo
+Voda Telecom Inc.
+Betolini 14 - Point 7002
+Villa Ugo Ojetti 32, 00137
+e-mail: voda.com2010@gmail.it
+Payment Logistic Officer: Andrea M. Baloteli (Mr)
+
+Copy the Payment Verification Information's above and submit to the abo=
+ve
+office and officer. After we receive your email confirmation, your paym=
+ent
+would be processed we will send you the payment paying bank for cashing
+your funds.
+
+REASON OF PAYMENT: This e-mail draw is to promote the official
+communication network for the 2010 World Cup and our network's
+Anniversary.
+
+On behalf of the Board kindly, accept our warmest congratulations.
+
+Regards.
+MANAGEMENT.
+
+All information is strictly confidential and will only be used for the
+purpose to which it is been requested.. Finally, all funds should be
+claimed by their respective beneficiaries, not later than 12 days after
+notification. Failure to do so will result to outright cancellation.
+
+
+Copyright =A9 2008 telecom.it;Privacy & P.IVA...
