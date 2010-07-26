@@ -1,68 +1,56 @@
 From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: Testing of function/data-sections on linux-2.6.35-rc4
-Date: Mon, 26 Jul 2010 09:27:10 +0200
-Message-ID: <20100726072710.GB10061@merkur.ravnborg.org>
-References: <201007181703.17022.vda.linux@googlemail.com> <20100723202448.GB27054@merkur.ravnborg.org> <201007260329.09913.vda.linux@googlemail.com>
+Date: Mon, 26 Jul 2010 09:28:25 +0200
+Message-ID: <20100726072825.GC10061@merkur.ravnborg.org>
+References: <201007181703.17022.vda.linux@googlemail.com> <20100723203543.GB27288@merkur.ravnborg.org> <201007260331.34372.vda.linux@googlemail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <201007260329.09913.vda.linux@googlemail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <201007260331.34372.vda.linux@googlemail.com>
+Sender: linux-parisc-owner@vger.kernel.org
 To: Denys Vlasenko <vda.linux@googlemail.com>
 Cc: Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 26, 2010 at 03:29:09AM +0200, Denys Vlasenko wrote:
-> On Friday 23 July 2010 22:24, Sam Ravnborg wrote:
-> > > * fix for kernel linker stripts: linux-2.6.35-rc4-fs.fix-kernel-linker-scripts.patch
-> > >   It makes _all_ linker scripts -ffunction/data-sections safe via:
-> > >   -       *(.data)
-> > >   +       *(.data .data.*)
-> > >   
+On Mon, Jul 26, 2010 at 03:31:34AM +0200, Denys Vlasenko wrote:
+> Hi Sam,
+> 
+> On Friday 23 July 2010 22:35, Sam Ravnborg wrote:
+> > > 
+> > > Then, in order to also garbage-collect the sections, I added
+> > > 
+> > > LDFLAGS_vmlinux += --gc-sections
+> > > 
+> > > in top-level Makefile.
+> > > 
+> > > This requires the additional patch (linux-2.6.35-rc4-fsgs.patch)
+> > > which adds KEEP(section) directives to kernel linker stripts.
+> > > Otherwise, linker will discard some crucial sections.
+> > > 
 > > 
-> > This patch touches both the regular kernel linker scripts and the
-> > boot linker scripts.
-> > I would strongly prefer a split so you touched the boot linker
-> > scripts in a separate patch.
-> 
-> No problem.
-> 
-> > In addition the patch handles more sections than
-> > documented: rodata, bss, text.
-> 
-> Yes, that was assumed.
-> 
-> > The patch introduce the following syntax for input sections:
+> > Changelog does not address why you need:
 > > 
-> >     *(.bss .bss.*)
-> >
-> > Where the kernel linker script would have one input
-> > section per line.
-> > Can we stick to the "layout" used in the kernel linker scripts?
+> >      -Map $@.ldmap
+> > 
+> > and what effect they have.
 > 
-> Sure.
+> I didn't plan to push the last step (--gc-sections) to mainline yet.
+> Thus the patch has debugging stuff in it.
 > 
 > 
-> > The patch in addition in several places changes linker
-> > scripts that already uses the two-lines layout to a single line approach.
-> > These "fixes" should be omitted.
+> > And it is obvious that some archs should consolidate a little more from
+> > asm-generic/vmlinux.lds.h.
+> > But that said this patch looks much better than the initial versions posted.
+> > 
+> > How do you determine which sections needs the KEEP()?
+> > Worth documenting for future when we add new sections.
 > 
-> Reverted.
-> 
-> > Why do we need *(.bss .bss.*)?
-> > Does -fdata-sections introduce special .bss sectiosn too?
-> 
-> Yes, it does.
-> 
-> Please take a look at attached updated patches.
-> 
-> Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+> No problem, I will be adding comments at every KEEP() why it's needed.
 
-Looks better now - thanks.
+A general comment in vmlinux.lds.h and a careful explanation
+in the changelog should be enough.
 
-With proper changelogs both patches has my:
-
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
+You should not comment each of the KEEP().
 
 	Sam
