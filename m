@@ -1,57 +1,51 @@
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: Testing of function/data-sections on linux-2.6.35-rc4
-Date: Mon, 26 Jul 2010 03:31:34 +0200
-Message-ID: <201007260331.34372.vda.linux@googlemail.com>
-References: <201007181703.17022.vda.linux@googlemail.com> <20100723203543.GB27288@merkur.ravnborg.org>
+From: Micro Customer Service <info@msl.com>
+Subject: REFNO.:MS/75-A08055161/2010
+Date: Mon, 26 Jul 2010 05:03:06 +0300
+Message-ID: <20100726050306.vbq9xfsgg0c088o0@webmail.welho.com>
+Reply-To: msoftclaims10@w.cn
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1;
+	DelSp=Yes	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:50152 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753134Ab0GZBbk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jul 2010 21:31:40 -0400
-In-Reply-To: <20100723203543.GB27288@merkur.ravnborg.org>
+Received: from filtteri1.pp.htv.fi ([213.243.153.184]:57662 "EHLO
+	filtteri1.pp.htv.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753142Ab0GZCDM convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Jul 2010 22:03:12 -0400
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
-
-Hi Sam,
-
-On Friday 23 July 2010 22:35, Sam Ravnborg wrote:
-> > 
-> > Then, in order to also garbage-collect the sections, I added
-> > 
-> > LDFLAGS_vmlinux += --gc-sections
-> > 
-> > in top-level Makefile.
-> > 
-> > This requires the additional patch (linux-2.6.35-rc4-fsgs.patch)
-> > which adds KEEP(section) directives to kernel linker stripts.
-> > Otherwise, linker will discard some crucial sections.
-> > 
-> 
-> Changelog does not address why you need:
-> 
->      -Map $@.ldmap
-> 
-> and what effect they have.
-
-I didn't plan to push the last step (--gc-sections) to mainline yet.
-Thus the patch has debugging stuff in it.
 
 
-> And it is obvious that some archs should consolidate a little more from
-> asm-generic/vmlinux.lds.h.
-> But that said this patch looks much better than the initial versions posted.
-> 
-> How do you determine which sections needs the KEEP()?
-> Worth documenting for future when we add new sections.
+--=20
+MICROSOFT CUSTOMER SERVICE
+REFNO.:MS/75-A08055161/2010
+Batch: 044/05/ZY369
 
-No problem, I will be adding comments at every KEEP() why it's needed.
+Dear E-mail Owner,
 
--- 
-vda
+You are a winner of the just conclude Microsoft Online Email Promo. You=
+ have
+therefore been approved to claim a total sum Five Hundred Thousand Grea=
+t
+Britain Pounds (=A3500,000.00). Please this informations are required f=
+or
+verification.
+
+Name:...................
+Address:...............
+Country:...............
+Age:..................
+Gender:................
+Occupation:..............
+Phone and Fax:...............
+Winning E-mail Address:................
+
+Please contact:
+Owens Gibson
+Email: msoftclaims10@w.cn
+
+Telephone: +44-704-570-7201
+
+Crosswhite Anita
+Annoucer For Microsoft Online Email Promo
