@@ -1,148 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:38479 "EHLO
+Received: from pfepa.post.tele.dk ([195.41.46.235]:39092 "EHLO
 	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753346Ab0GWUYv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Jul 2010 16:24:51 -0400
-Date: Fri, 23 Jul 2010 22:24:49 +0200
+	with ESMTP id S1753510Ab0GZHXx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Jul 2010 03:23:53 -0400
+Date: Mon, 26 Jul 2010 09:23:50 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: Testing of function/data-sections on linux-2.6.35-rc4
-Message-ID: <20100723202448.GB27054@merkur.ravnborg.org>
-References: <201007181703.17022.vda.linux@googlemail.com>
+Message-ID: <20100726072350.GA10061@merkur.ravnborg.org>
+References: <201007181703.17022.vda.linux@googlemail.com> <20100723191055.GA27054@merkur.ravnborg.org> <201007260252.57477.vda.linux@googlemail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201007181703.17022.vda.linux@googlemail.com>
+In-Reply-To: <201007260252.57477.vda.linux@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Denys Vlasenko <vda.linux@googlemail.com>
 Cc: Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20100723202449.CsIOx3rcH22kw6_iGynKSoqSo4k2NdJgWOHzw6dYfmE@z>
+Message-ID: <20100726072350.wNaXRXxvSWx1ZYWcM0dcbTwtbteZ9DeZ7ARZXhDJhqk@z>
 
-> * fix for kernel linker stripts: linux-2.6.35-rc4-fs.fix-kernel-linker-scripts.patch
->   It makes _all_ linker scripts -ffunction/data-sections safe via:
->   -       *(.data)
->   +       *(.data .data.*)
->   
+On Mon, Jul 26, 2010 at 02:52:57AM +0200, Denys Vlasenko wrote:
+> On Friday 23 July 2010 21:10, Sam Ravnborg wrote:
+> > > 
+> > > * modpost fix for 64k+ sections: linux-2.6.35-rc4-fs.modpost.patch
+> > >   This patch is in -mm, it still not reach mainline...
+> > > 
+> > 
+> > Some comments below - but noting fundamental.
+> >
+> > +	/* Fixup for more than 64k sections */
+> > +	info->num_sections = hdr->e_shnum;
+> > +	if (info->num_sections == 0) { /* more than 64k sections? */
+> > +		/* note: it doesn't need shndx2secindex() */
+> > +		info->num_sections = TO_NATIVE(sechdrs[0].sh_size);
+> > +	}
+> > I had to read the above twice to get it.
+> > How about something like this:
+> > 
+> > 	/* Fixup for more than 64k sections */
+> > 	if (hdr->e_shnum == 0) {
+> > 		/*
+> > 		 * There are more than 64k sections,
+> > 		 * read count from .sh_size.
+> > 		 * note: it doesn't need shndx2secindex()
+> > 		 */
+> > 		info->num_sections = TO_NATIVE(sechdrs[0].sh_size);
+> > 	}
+> > 	else {
+> > 		info->num_sections = hdr->e_shnum;
+> > 	}
+> > 
+> > 
+> > +	info->secindex_strings = hdr->e_shstrndx;
+> > +	if (info->secindex_strings == SHN_XINDEX)
+> > +		info->secindex_strings =
+> > +		    shndx2secindex(TO_NATIVE(sechdrs[0].sh_link));
+> > 
+> > Likewise here...
+> 
+> Done both.
+> 
+> ...
+> > -	for (i = 1; i < hdr->e_shnum; i++) {
+> > -		const char *secstrings
+> > -			= (void *)hdr + sechdrs[hdr->e_shstrndx].sh_offset;
+> > +	secstrings = (void *)hdr + sechdrs[info->secindex_strings].sh_offset;
+> > 
+> > Moving this assignnet out of the loop is an unrelated
+> > but welcome change.
+> 
+> I take you are ok with it?
+> 
+> Please find updated patch below.
+> 
+> Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
 
-This patch touches both the regular kernel linker scripts and the
-boot linker scripts.
-I would strongly prefer a split so you touched the boot linker
-scripts in a separate patch.
+If the patch get a proper changelog then it has my:
 
-In addition the patch handles more sections than
-documented: rodata, bss, text. 
-
-The patch introduce the following syntax for input sections:
-
-    *(.bss .bss.*)
-
-Where the kernel linker script would have one input
-section per line.
-Can we stick to the "layout" used in the kernel linker scripts?
-
-The patch in addition in several places changes linker
-scripts that already uses the two-lines layout to a single line approach.
-These "fixes" should be omitted.
-
-
-Why do we need *(.bss .bss.*)?
-Does -fdata-sections introduce special .bss sectiosn too?
-
-This is the kind of info the changelog should give us.
-
-	Sam
-
-
---- linux-2.6.35-rc4/arch/arm/boot/compressed/vmlinux.lds.in
-+++ linux-2.6.35-rc4.new/arch/arm/boot/compressed/vmlinux.lds.in
-@@ -29,12 +29,10 @@
-   .text : {
-     _start = .;
-     *(.start)
--    *(.text)
--    *(.text.*)
-+    *(.text .text.*)
-     *(.fixup)
-     *(.gnu.warning)
--    *(.rodata)
--    *(.rodata.*)
-+    *(.rodata .rodata.*)
-     *(.glue_7)
-     *(.glue_7t)
-     *(.piggydata)
-
-This is one example where the patch only does layout changes.
-
---- linux-2.6.35-rc4/arch/arm/kernel/vmlinux.lds.S
-+++ linux-2.6.35-rc4.new/arch/arm/kernel/vmlinux.lds.S
-@@ -95,8 +95,7 @@
- 			*(.fixup)
- #endif
- 			*(.gnu.warning)
--			*(.rodata)
--			*(.rodata.*)
-+			*(.rodata .rodata.*)
- 			*(.glue_7)
- 			*(.glue_7t)
-
-Likewise...
-
---- linux-2.6.35-rc4/arch/frv/kernel/vmlinux.lds.S
-+++ linux-2.6.35-rc4.new/arch/frv/kernel/vmlinux.lds.S
-@@ -114,7 +114,7 @@
- 
-   .sbss		: { *(.sbss .sbss.*) }
-   .bss		: { *(.bss .bss.*) }
--  .bss..stack	: { *(.bss) }
-+  .bss..stack	: { *(.bss) } /* BUG??? we already absorbed it into .bss */
-
-As the comments says the last line is redundant - remove it.
-
- 
---- linux-2.6.35-rc4/include/asm-generic/vmlinux.lds.h
-+++ linux-2.6.35-rc4.new/include/asm-generic/vmlinux.lds.h
-@@ -140,9 +140,21 @@
- #define TRACE_SYSCALLS()
- #endif
- 
-+/* .data.foo are generated by gcc itself with -fdata-sections,
-+ * whereas double-dot sections (like .data..percpu) are generated
-+ * by kernel's magic macros.
-+ *
-+ * arch/.../vmlinux.lds.S decides where to place various double-dot sections
-+ * as needed by its arch, here DATA_DATA needs to be careful and collect
-+ * only .data and .data.foo sections, skipping .data..foo
-+ *
-+ * Same goes for .text, .bss and .rodata. In case of .rodata, various
-+ * .rodata.foo sections are generated by gcc even without -fdata-sections
-+ */
-+
- /* .data section */
- #define DATA_DATA							\
--	*(.data)							\
-+	*(.data .data.[A-Za-z0-9_$^]*)					\
- 	*(.ref.data)							\
- 	DEV_KEEP(init.data)						\
- 	DEV_KEEP(exit.data)						\
-@@ -202,7 +214,7 @@
- 	. = ALIGN((align));						\
- 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
- 		VMLINUX_SYMBOL(__start_rodata) = .;			\
--		*(.rodata) *(.rodata.*)					\
-+		*(.rodata .rodata.[A-Za-z0-9_$^]*)			\
-
-.rodata deserve same comment as .data
-
- 		*(__vermagic)		/* Kernel version magic */	\
- 		*(__markers_strings)	/* Markers: strings */		\
- 		*(__tracepoints_strings)/* Tracepoints: strings */	\
-@@ -501,7 +513,7 @@
- 	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {				\
- 		*(.bss..page_aligned)					\
- 		*(.dynbss)						\
--		*(.bss)							\
-+		*(.bss .bss.[A-Za-z0-9_$^]*)				\
-.bss deserve a comment too.
-
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
 
 	Sam
