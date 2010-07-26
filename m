@@ -1,56 +1,88 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: Testing of function/data-sections on linux-2.6.35-rc4
-Date: Mon, 26 Jul 2010 09:28:25 +0200
-Message-ID: <20100726072825.GC10061@merkur.ravnborg.org>
-References: <201007181703.17022.vda.linux@googlemail.com> <20100723203543.GB27288@merkur.ravnborg.org> <201007260331.34372.vda.linux@googlemail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201007260331.34372.vda.linux@googlemail.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-kernel@vger.kernel.org, Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Michal Marek <mmarek@suse.cz>, Parisc List <linux-parisc@vger.kernel.org>
+From: akpm@linux-foundation.org
+Subject: + drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch added to -mm tree
+Date: Mon, 26 Jul 2010 14:30:25 -0700
+Message-ID: <201007262130.o6QLUPFT010897@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: mm-commits@vger.kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, James.Bottomley@HansenPartnership.com, konrad.wilk@oracle.com, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 26, 2010 at 03:31:34AM +0200, Denys Vlasenko wrote:
-> Hi Sam,
-> 
-> On Friday 23 July 2010 22:35, Sam Ravnborg wrote:
-> > > 
-> > > Then, in order to also garbage-collect the sections, I added
-> > > 
-> > > LDFLAGS_vmlinux += --gc-sections
-> > > 
-> > > in top-level Makefile.
-> > > 
-> > > This requires the additional patch (linux-2.6.35-rc4-fsgs.patch)
-> > > which adds KEEP(section) directives to kernel linker stripts.
-> > > Otherwise, linker will discard some crucial sections.
-> > > 
-> > 
-> > Changelog does not address why you need:
-> > 
-> >      -Map $@.ldmap
-> > 
-> > and what effect they have.
-> 
-> I didn't plan to push the last step (--gc-sections) to mainline yet.
-> Thus the patch has debugging stuff in it.
-> 
-> 
-> > And it is obvious that some archs should consolidate a little more from
-> > asm-generic/vmlinux.lds.h.
-> > But that said this patch looks much better than the initial versions posted.
-> > 
-> > How do you determine which sections needs the KEEP()?
-> > Worth documenting for future when we add new sections.
-> 
-> No problem, I will be adding comments at every KEEP() why it's needed.
 
-A general comment in vmlinux.lds.h and a careful explanation
-in the changelog should be enough.
+The patch titled
+     drivers/scsi/53c700.c: remove dma_is_consistent usage
+has been added to the -mm tree.  Its filename is
+     drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch
 
-You should not comment each of the KEEP().
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
-	Sam
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: drivers/scsi/53c700.c: remove dma_is_consistent usage
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+
+This driver is the only user of dma_is_consistent().  We plan to remove
+this API.
+
+The driver uses the API in the following way:
+
+BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
+
+The above code tries to see if L1_CACHE_BYTES is greater than
+dma_get_cache_alignment() on sysmtes that can not allocate coherent memory
+(some old systems can't).
+
+James Bottomley explained that this is necessary because the driver packs
+the set of mailboxes into a single coherent area and separates the
+different usages by a L1 cache stride.  So it's fatal if the dma coherence
+stride is greater than the L1 cache size.
+
+He also pointed out that we can kill this checking because we don't hit
+this BUG_ON on all architectures that actually use the driver.
+
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ drivers/scsi/53c700.c |    3 ---
+ 1 file changed, 3 deletions(-)
+
+diff -puN drivers/scsi/53c700.c~drivers-scsi-53c700c-remove-dma_is_consistent-usage drivers/scsi/53c700.c
+--- a/drivers/scsi/53c700.c~drivers-scsi-53c700c-remove-dma_is_consistent-usage
++++ a/drivers/scsi/53c700.c
+@@ -309,9 +309,6 @@ NCR_700_detect(struct scsi_host_template
+ 	hostdata->msgin = memory + MSGIN_OFFSET;
+ 	hostdata->msgout = memory + MSGOUT_OFFSET;
+ 	hostdata->status = memory + STATUS_OFFSET;
+-	/* all of these offsets are L1_CACHE_BYTES separated.  It is fatal
+-	 * if this isn't sufficient separation to avoid dma flushing issues */
+-	BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
+ 	hostdata->slots = (struct NCR_700_command_slot *)(memory + SLOTS_OFFSET);
+ 	hostdata->dev = dev;
+ 
+_
+
+Patches currently in -mm which might be from fujita.tomonori@lab.ntt.co.jp are
+
+linux-next.patch
+scsi-add-__init-__exit-macros-to-ibmvstgtc.patch
+dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign.patch
+dma-mapping-unify-dma_get_cache_alignment-implementations.patch
+dma-mapping-parisc-set-arch_dma_minalign.patch
+drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch
+dma-mapping-remove-dma_is_consistent-api.patch
+
