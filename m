@@ -1,93 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41152 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752131Ab0GZVbG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Jul 2010 17:31:06 -0400
-Message-ID: <201007262130.o6QLUPFT010897@imap1.linux-foundation.org>
-Subject: + drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch added to -mm tree
-From: akpm@linux-foundation.org
-Date: Mon, 26 Jul 2010 14:30:25 -0700
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:58287 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754000Ab0G0XyZ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Jul 2010 19:54:25 -0400
+MIME-Version: 1.0
+In-Reply-To: <20100727161819.cf6feab1.akpm@linux-foundation.org>
+References: <1274863724-14906-1-git-send-email-monstr@monstr.eu>
+	<1274863724-14906-2-git-send-email-monstr@monstr.eu> <1274884963.22648.245.camel@gandalf.stny.rr.com>
+	<20100526100805.171b3c48.akpm@linux-foundation.org> <4C4D4C2E.8010103@monstr.eu>
+	<20100727161819.cf6feab1.akpm@linux-foundation.org>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Date: Tue, 27 Jul 2010 19:54:04 -0400
+Message-ID: <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
+Subject: Re: [PATCH] asm-generic: Use raw_local_irq_save/restore instead
+	local_irq_save/restore
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mm-commits@vger.kernel.org
-Cc: fujita.tomonori@lab.ntt.co.jp, James.Bottomley@HansenPartnership.com, konrad.wilk@oracle.com, linux-arch@vger.kernel.org
-Message-ID: <20100726213025.SKwmSZB0BKtA8pcNauaFCamSr_nMzVI6Kut-TbqphD8@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: monstr@monstr.eu, rostedt@goodmis.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, linux-arch@vger.kernel.org
+Message-ID: <20100727235404.epWCmIi_I-gmpDHlhvcDYNC7vHinVbwchTnwh2ayPb8@z>
 
+On Tue, Jul 27, 2010 at 19:18, Andrew Morton wrote:
+> On Mon, 26 Jul 2010 10:49:50 +0200 Michal Simek wrote:
+>> start/stop_critical_timing function for preemptirqsoff, preemptoff
+>> and irqsoff tracers contains atomic_inc and atomic_dec operations.
+>>
+>> Atomic operations used local_irq_save/restore macros to ensure
+>> atomic access but they are traced by the same function which is causing
+>> recursion problem.
+>>
+>> The reason is when these tracers are turn ON then local_irq_save/restore
+>> macros are changed in include/linux/irqflags.h to call trace_hardirqs_on/off
+>> which call start/stop_critical_timing.
+>>
+>> Microblaze was affected because use generic atomic implementation.
+>
+> Seems that this will also affect blackfin, mn10300 and score.  I guess
+> they aren't supporting tracing yet?
 
-The patch titled
-     drivers/scsi/53c700.c: remove dma_is_consistent usage
-has been added to the -mm tree.  Its filename is
-     drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch
-
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
-
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
-
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: drivers/scsi/53c700.c: remove dma_is_consistent usage
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-
-This driver is the only user of dma_is_consistent().  We plan to remove
-this API.
-
-The driver uses the API in the following way:
-
-BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
-
-The above code tries to see if L1_CACHE_BYTES is greater than
-dma_get_cache_alignment() on sysmtes that can not allocate coherent memory
-(some old systems can't).
-
-James Bottomley explained that this is necessary because the driver packs
-the set of mailboxes into a single coherent area and separates the
-different usages by a L1 cache stride.  So it's fatal if the dma coherence
-stride is greater than the L1 cache size.
-
-He also pointed out that we can kill this checking because we don't hit
-this BUG_ON on all architectures that actually use the driver.
-
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- drivers/scsi/53c700.c |    3 ---
- 1 file changed, 3 deletions(-)
-
-diff -puN drivers/scsi/53c700.c~drivers-scsi-53c700c-remove-dma_is_consistent-usage drivers/scsi/53c700.c
---- a/drivers/scsi/53c700.c~drivers-scsi-53c700c-remove-dma_is_consistent-usage
-+++ a/drivers/scsi/53c700.c
-@@ -309,9 +309,6 @@ NCR_700_detect(struct scsi_host_template
- 	hostdata->msgin = memory + MSGIN_OFFSET;
- 	hostdata->msgout = memory + MSGOUT_OFFSET;
- 	hostdata->status = memory + STATUS_OFFSET;
--	/* all of these offsets are L1_CACHE_BYTES separated.  It is fatal
--	 * if this isn't sufficient separation to avoid dma flushing issues */
--	BUG_ON(!dma_is_consistent(hostdata->dev, pScript) && L1_CACHE_BYTES < dma_get_cache_alignment());
- 	hostdata->slots = (struct NCR_700_command_slot *)(memory + SLOTS_OFFSET);
- 	hostdata->dev = dev;
- 
-_
-
-Patches currently in -mm which might be from fujita.tomonori@lab.ntt.co.jp are
-
-linux-next.patch
-scsi-add-__init-__exit-macros-to-ibmvstgtc.patch
-dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign.patch
-dma-mapping-unify-dma_get_cache_alignment-implementations.patch
-dma-mapping-parisc-set-arch_dma_minalign.patch
-drivers-scsi-53c700c-remove-dma_is_consistent-usage.patch
-dma-mapping-remove-dma_is_consistent-api.patch
-
+do you mean TRACE_IRQFLAGS_SUPPORT ?  Blackfin should ... my
+understanding was that arches just needed to implement asm/irqflags.h
+for it.
+-mike
