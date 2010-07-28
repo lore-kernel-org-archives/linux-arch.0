@@ -1,46 +1,40 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
-Date: Wed, 28 Jul 2010 12:02:28 -0500
-Message-ID: <1280336548.30808.489.camel@mulgrave.site>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-	 <1279822864-17154-32-git-send-email-yinghai@kernel.org>
-	 <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org>
-	 <4C4FD04B.5090503@zytor.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: patch submission process
+Date: Wed, 28 Jul 2010 19:13:32 +0200
+Message-ID: <201007281913.32619.arnd@arndb.de>
+References: <AANLkTims43Q0k2bFX4nUvX40Fjhags5Oamw_R1RQOnuM@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain;
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:48569 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755730Ab0G1RCd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 13:02:33 -0400
-In-Reply-To: <4C4FD04B.5090503@zytor.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:55920 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755800Ab0G1RNf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 13:13:35 -0400
+In-Reply-To: <AANLkTims43Q0k2bFX4nUvX40Fjhags5Oamw_R1RQOnuM@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Yinghai Lu <yinghai@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Mathieu Lacage <mathieu.lacage@gmail.com>
+Cc: linux-arch@vger.kernel.org
 
-On Tue, 2010-07-27 at 23:38 -0700, H. Peter Anvin wrote:
-> On 07/27/2010 11:08 PM, Yinghai Lu wrote:
-> > 
-> > for example: 
-> > high/low allocation, from first kernel to kexec second kernel, always work fine except system with Qlogic card.
-> > because Qlogic card is using main RAM as EFT etc for card's FW log trace. second kernel have not idea that those RAM
-> >  is used by first kernel for that purpose. that the CARD still use that between two kernels.
-> > second kernel could have crash it try to use those ram.
-> > 
+On Wednesday 28 July 2010, Mathieu Lacage wrote:
+> One month ago, I followed arnd's suggestion and posted these two patches:
+> http://marc.info/?l=linux-arch&m=127763437119458&w=2
+> http://marc.info/?l=linux-arch&m=127719544028714&w=2
 > 
-> Uhm, no.  That's a bug in the Qlogic driver not shutting the card down
-> cleanly.  Hacking around that in memory allocation order is braindamaged
-> in the extreme.  kexec *cannot* be safe in any way if we don't shut down
-> pending DMA, and what you describe above is DMA.
+> and I would like to know if they were rejected because I screwed up
+> something in the submission process or just forgotten or maybe merged
+> in a tree I did not hear about.
+> 
+> Is there a special process to follow to monitor the state of a patch
+> submission ?
 
-That's not the kexec for crash dump requirement as it was communicated
-to us.  We were specifically told that the shutdown routines *may* not
-be called before booting the kexec kernel and thus we have to take
-action to stop the DMA engines in the init routines so the kexec kernel
-can halt all in-progress DMA as it boots.  This implies that kexec must
-be able to cope with in-progress DMA.
+I'm sorry for being so unorganized on this, I should really have added
+the patches into my git tree on git.kernel.org.
 
-James
+The best replacement for a process is to keep bugging the maintainer
+until the patches show up in the linux-next kernel. I still have
+you patch emails in my incoming mail folder.
+
+	Arnd
