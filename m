@@ -1,122 +1,69 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 02/16] bootmem, x86: Add weak version of
- reserve_bootmem_generic
-Date: Wed, 28 Jul 2010 14:51:56 +1000
-Message-ID: <1280292716.1970.225.camel@pasglop>
+Subject: Re: [PATCH 03/16] x86, memblock: Add memblock_x86_to_bootmem()
+Date: Wed, 28 Jul 2010 15:00:36 +1000
+Message-ID: <1280293236.1970.234.camel@pasglop>
 References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-	 <1279824241-17582-3-git-send-email-yinghai@kernel.org>
+	 <1279824241-17582-4-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:39616 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:47538 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750944Ab0G1Ewl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 00:52:41 -0400
-In-Reply-To: <1279824241-17582-3-git-send-email-yinghai@kernel.org>
+	id S1750794Ab0G1FBI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 01:01:08 -0400
+In-Reply-To: <1279824241-17582-4-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Thu, 2010-07-22 at 11:43 -0700, Yinghai Lu wrote:
-> It will be used memblock_x86_to_bootmem converting
+> memblock_x86_to_bootmem() will reserve memblock.reserved.region in bootmem after bootmem is
 
-The above doesn't make much sense.
+> +#ifndef CONFIG_NO_BOOTMEM
+> +void __init memblock_x86_to_bootmem(u64 start, u64 end)
+> +{
+> +	int count;
+> +	u64 final_start, final_end;
+> +	struct memblock_region *r;
+> +
+> +	/* Take out region array itself */
+> +	if (memblock.reserved.regions != memblock_reserved_init_regions)
+> +		memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
 
-Appart from that, no objection.
+So that's why you export memblock_reserved_init_regions...
+
+I really -really- don't like it. First of all, it's really gross to
+free the array then walk it. We know it won't race but still ...
+especially since you re-do the above every time
+memblock_x86_to_bootmem() is called. Is it called more than once ? If
+yes, then it's bogus. If not, then why have start,end ?
+
+If you really want to free it, maybe best is to stick something in
+mm/memblock.c that kicks in at late init time and does the freeing ?
+
+I'm going to keep the exporting out of my branch for now. If you really
+want it, you can always add it to this specific patch, but it sucks.
 
 Ben.
 
-> It is an wrapper for reserve_bootmem, and x86 64bit is using special one.
-> 
-> Also clean up that version for x86_64. We don't need to take care of numa
-> path for that, bootmem can handle it how
-> 
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  arch/x86/mm/init_32.c |    6 ------
->  arch/x86/mm/init_64.c |   20 ++------------------
->  mm/bootmem.c          |    6 ++++++
->  3 files changed, 8 insertions(+), 24 deletions(-)
-> 
-> diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-> index bca7909..90e0545 100644
-> --- a/arch/x86/mm/init_32.c
-> +++ b/arch/x86/mm/init_32.c
-> @@ -1069,9 +1069,3 @@ void mark_rodata_ro(void)
->  #endif
->  }
->  #endif
-> -
-> -int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-> -				   int flags)
-> -{
-> -	return reserve_bootmem(phys, len, flags);
-> -}
-> diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-> index ee41bba..634fa08 100644
-> --- a/arch/x86/mm/init_64.c
-> +++ b/arch/x86/mm/init_64.c
-> @@ -799,13 +799,10 @@ void mark_rodata_ro(void)
->  
->  #endif
->  
-> +#ifndef CONFIG_NO_BOOTMEM
->  int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
->  				   int flags)
->  {
-> -#ifdef CONFIG_NUMA
-> -	int nid, next_nid;
-> -	int ret;
-> -#endif
->  	unsigned long pfn = phys >> PAGE_SHIFT;
->  
->  	if (pfn >= max_pfn) {
-> @@ -821,21 +818,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
->  		return -EFAULT;
->  	}
->  
-> -	/* Should check here against the e820 map to avoid double free */
-> -#ifdef CONFIG_NUMA
-> -	nid = phys_to_nid(phys);
-> -	next_nid = phys_to_nid(phys + len - 1);
-> -	if (nid == next_nid)
-> -		ret = reserve_bootmem_node(NODE_DATA(nid), phys, len, flags);
-> -	else
-> -		ret = reserve_bootmem(phys, len, flags);
-> -
-> -	if (ret != 0)
-> -		return ret;
-> -
-> -#else
->  	reserve_bootmem(phys, len, flags);
-> -#endif
->  
->  	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
->  		dma_reserve += len / PAGE_SIZE;
-> @@ -844,6 +827,7 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
->  
->  	return 0;
->  }
-> +#endif
->  
->  int kern_addr_valid(unsigned long addr)
->  {
-> diff --git a/mm/bootmem.c b/mm/bootmem.c
-> index 142c84a..bde170d 100644
-> --- a/mm/bootmem.c
-> +++ b/mm/bootmem.c
-> @@ -526,6 +526,12 @@ int __init reserve_bootmem(unsigned long addr, unsigned long size,
->  }
->  
->  #ifndef CONFIG_NO_BOOTMEM
-> +int __weak __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
-> +				   int flags)
-> +{
-> +	return reserve_bootmem(phys, len, flags);
-> +}
+> +	count  = memblock.reserved.cnt;
+> +	pr_info("(%d early reservations) ==> bootmem [%010llx-%010llx]\n", count, start, end - 1);
+> +	for_each_memblock(reserved, r) {
+> +		pr_info("  [%010llx-%010llx] ", (u64)r->base, (u64)r->base + r->size - 1);
+> +		final_start = max(start, r->base);
+> +		final_end = min(end, r->base + r->size);
+> +		if (final_start >= final_end) {
+> +			pr_cont("\n");
+> +			continue;
+> +		}
+> +		pr_cont(" ==> [%010llx-%010llx]\n", final_start, final_end - 1);
+> +		reserve_bootmem_generic(final_start, final_end - final_start, BOOTMEM_DEFAULT);
+> +	}
 > +
->  static unsigned long __init align_idx(struct bootmem_data *bdata,
->  				      unsigned long idx, unsigned long step)
->  {
+> +	/* Put region array back ? */
+> +	if (memblock.reserved.regions != memblock_reserved_init_regions)
+> +		memblock_reserve(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
+> +}
+> +#endif
