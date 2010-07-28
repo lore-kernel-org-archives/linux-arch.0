@@ -1,37 +1,67 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 05/16] x86, memblock: Add get_free_all_memory_range()
-Date: Wed, 28 Jul 2010 15:02:18 +1000
-Message-ID: <1280293338.1970.235.camel@pasglop>
-References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
-	 <1279824241-17582-6-git-send-email-yinghai@kernel.org>
+Subject: Re: [PATCH 28/31] memblock: Export MEMBLOCK_ERROR again
+Date: Wed, 28 Jul 2010 15:15:28 +1000
+Message-ID: <1280294128.1970.237.camel@pasglop>
+References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
+	 <1279822864-17154-29-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56613 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:47513 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750794Ab0G1FCy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 01:02:54 -0400
-In-Reply-To: <1279824241-17582-6-git-send-email-yinghai@kernel.org>
+	id S1751087Ab0G1FQA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 01:16:00 -0400
+In-Reply-To: <1279822864-17154-29-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Beulich <jbeulich@novell.com>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2010-07-22 at 11:43 -0700, Yinghai Lu wrote:
+On Thu, 2010-07-22 at 11:21 -0700, Yinghai Lu wrote:
+> will used by x86 memblock_x86_find_in_range_node and nobootmem replacement
 > 
-> +       /* Take out region array itself at first*/
-> +       if (memblock.reserved.regions != memblock_reserved_init_regions)
-> +               memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
-> +
+> -v2: use 0 instead -1ULL, Suggested by Linus, so we don't need cast them later to unsigned long
 
-More of that horror. Don't.
+The patch in its current form is a NAK.
 
-Another option from what i proposed earlier is to actually have a function
-inside mm/memblock to free it (memblock_free_arrays()) that does nothing
-if memblock is to survive init.
+You can't just do those two things in one commit.
 
-I hate exporting variables or data structures like that. Functions are
-semantically a lot cleaner.
+If we're going to switch LMB errors to always be 0, we need to ensure we
+cannot realistically hand out 0 as a result of lmb_alloc().
+
+I'll cook up a patch to do that.
 
 Ben.
+
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  include/linux/memblock.h |    1 +
+>  mm/memblock.c            |    2 --
+>  2 files changed, 1 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+> index 70bc467..89749c4 100644
+> --- a/include/linux/memblock.h
+> +++ b/include/linux/memblock.h
+> @@ -19,6 +19,7 @@
+>  #include <asm/memblock.h>
+>  
+>  #define INIT_MEMBLOCK_REGIONS 128
+> +#define MEMBLOCK_ERROR		0
+>  
+>  struct memblock_region {
+>  	phys_addr_t base;
+> diff --git a/mm/memblock.c b/mm/memblock.c
+> index 796ef8c..3d0a754 100644
+> --- a/mm/memblock.c
+> +++ b/mm/memblock.c
+> @@ -27,8 +27,6 @@ int memblock_can_resize;
+>  static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+>  struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
+>  
+> -#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
+> -
+>  /* inline so we don't get a warning when pr_debug is compiled out */
+>  static inline const char *memblock_type_name(struct memblock_type *type)
+>  {
