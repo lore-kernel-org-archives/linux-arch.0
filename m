@@ -1,63 +1,72 @@
-From: Arjan van de Ven <arjan@infradead.org>
-Subject: [patch] Remove the per cpu tick skew
-Date: Tue, 27 Jul 2010 21:02:10 -0700
-Message-ID: <20100727210210.58d3118c@infradead.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 01/16] x86, memblock: Add
+ memblock_x86_find_in_range_size()
+Date: Wed, 28 Jul 2010 14:49:18 +1000
+Message-ID: <1280292558.1970.222.camel@pasglop>
+References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>
+	 <1279824241-17582-2-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:34457 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750785Ab0G1ECM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 00:02:12 -0400
+Received: from gate.crashing.org ([63.228.1.57]:57763 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750944Ab0G1Etx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 00:49:53 -0400
+In-Reply-To: <1279824241-17582-2-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi,
+On Thu, 2010-07-22 at 11:43 -0700, Yinghai Lu wrote:
+> size is returned according free range.
+> Will be used to find free ranges for early_memtest and memory corruption check
+> 
+> Do not mess it up with lib/memblock.c yet.
 
-the following patch is a win for power management on x86....
-... but since this touches generic code.. are there any 
-other architectures that would be negatively affected by this?
+So I'm readying my branch which incudes your 6 patches, however I'm
+still not happy with a few things.
 
+For example, I really really don't like exporting
+memblock_reserved_init_regions.
 
+So you do those things for the sake of x86, so let's walk through your
+x86 patches and see if I can figure out what you do wrong :-)
 
-Subject: [patch] Remove the per cpu tick skew
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  arch/x86/include/asm/memblock.h |    8 ++++
+>  arch/x86/mm/Makefile            |    2 +
+>  arch/x86/mm/memblock.c          |   88 +++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 98 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/x86/include/asm/memblock.h
+>  create mode 100644 arch/x86/mm/memblock.c
+> 
+> diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
+> new file mode 100644
+> index 0000000..c14219a
+> --- /dev/null
+> +++ b/arch/x86/include/asm/memblock.h
+> @@ -0,0 +1,8 @@
+> +#ifndef _X86_MEMBLOCK_H
+> +#define _X86_MEMBLOCK_H
+> +
+> +#define ARCH_DISCARD_MEMBLOCK
 
-Historically, Linux has tried to make the regular timer tick on the various
-CPUs not happen at the same time, to avoid contention on xtime_lock.
+So I'm no fan of this ARCH_DISCARD_MEMBLOCK, especially since it makes a
+lot of sense to keep the debugfs files around or maybe even move to
+sysfs for diagnostic purposes.
 
-Nowadays, with the tickless kernel, this contention no longer happens
-since time keeping and updating are done differently. In addition,
-this skew is actually hurting power consumption in a measurable
-way on many-core systems.
-
-Signed-off-by: Arjan van de Ven <arjan@linux.intel.com>
-
---- linux.trees.git/kernel/time/tick-sched.c~	2010-07-16 09:40:50.000000000 -0400
-+++ linux.trees.git/kernel/time/tick-sched.c	2010-07-26 11:18:51.138003329 -0400
-@@ -780,7 +780,6 @@
- {
- 	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
- 	ktime_t now = ktime_get();
--	u64 offset;
+Maybe we should consider something better by having memblock always be
+init/initdata but we copy the arrays to a "final" location from an
+initcall ? We can keep your patches for now, but I think we should
+improve on that.
  
- 	/*
- 	 * Emulate tick processing via per-CPU hrtimers:
-@@ -790,10 +789,6 @@
- 
- 	/* Get the next period (per cpu) */
- 	hrtimer_set_expires(&ts->sched_timer, tick_init_jiffy_update());
--	offset = ktime_to_ns(tick_period) >> 1;
--	do_div(offset, num_possible_cpus());
--	offset *= smp_processor_id();
--	hrtimer_add_expires_ns(&ts->sched_timer, offset);
- 
- 	for (;;) {
- 		hrtimer_forward(&ts->sched_timer, now, tick_period);
+> +u64 memblock_x86_find_in_range_size(u64 start, u64 *sizep, u64 align);
 
--- 
-Arjan van de Ven 	Intel Open Source Technology Centre
-For development, discussion and tips for power savings, 
-visit http://www.lesswatts.org
+I really really don't like your function naming. The above doesn't give
+me any bloody idea about what the purpose of the function is...
+
+Cheers,
+Ben.
