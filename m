@@ -1,48 +1,31 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
-Date: Wed, 28 Jul 2010 19:27:55 +1000
-Message-ID: <1280309275.1970.282.camel@pasglop>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-	 <1279822864-17154-32-git-send-email-yinghai@kernel.org>
-	 <1280295415.1970.245.camel@pasglop>  <4C4FC95F.6040806@kernel.org>
+From: Mathieu Lacage <mathieu.lacage@gmail.com>
+Subject: patch submission process
+Date: Wed, 28 Jul 2010 12:48:28 +0200
+Message-ID: <AANLkTims43Q0k2bFX4nUvX40Fjhags5Oamw_R1RQOnuM@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42320 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754641Ab0G1KCm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 06:02:42 -0400
-In-Reply-To: <4C4FC95F.6040806@kernel.org>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:58658 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754397Ab0G1Ks3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 06:48:29 -0400
+Received: by fxm14 with SMTP id 14so1142749fxm.19
+        for <linux-arch@vger.kernel.org>; Wed, 28 Jul 2010 03:48:28 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
 
-On Tue, 2010-07-27 at 23:08 -0700, Yinghai Lu wrote:
-> 
-> for example: 
-> high/low allocation, from first kernel to kexec second kernel, always
-> work fine except system with Qlogic card.
-> because Qlogic card is using main RAM as EFT etc for card's FW log
-> trace. second kernel have not idea that those RAM
->  is used by first kernel for that purpose. that the CARD still use
-> that between two kernels.
-> second kernel could have crash it try to use those ram.
-> 
-> low/high allocation seems to be safe,  second kernel can slip to boot
-> fine.
+One month ago, I followed arnd's suggestion and posted these two patches:
+http://marc.info/?l=linux-arch&m=127763437119458&w=2
+http://marc.info/?l=linux-arch&m=127719544028714&w=2
 
-No, it works 'by chance'. You need kexec to somewhat mark those regions
-as reserved. I don't know how x86 does those things, on architectures
-using the flat device-tree, we have added a concept of "reserve map" to
-the flat device tree blob to mark that kind of region.
+and I would like to know if they were rejected because I screwed up
+something in the submission process or just forgotten or maybe merged
+in a tree I did not hear about.
 
-Also, because you mark your new function as weak but not the one that's
-actually used by memblock_alloc(), it will still end up being top-down,
-so if you want to switch to bottom up, make the internal function weak,
-not the wrapper.
+Is there a special process to follow to monitor the state of a patch
+submission ?
 
-Cheers,
-Ben.
- 
+Mathieu
+-- 
+Mathieu Lacage <mathieu.lacage@gmail.com>
