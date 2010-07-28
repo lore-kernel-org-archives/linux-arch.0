@@ -1,53 +1,61 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH] asm-generic: Use raw_local_irq_save/restore instead local_irq_save/restore
-Date: Wed, 28 Jul 2010 07:23:40 +0200
-Message-ID: <4C4FBEDC.4000008@monstr.eu>
-References: <1274863724-14906-1-git-send-email-monstr@monstr.eu> 	<1274863724-14906-2-git-send-email-monstr@monstr.eu> <1274884963.22648.245.camel@gandalf.stny.rr.com> 	<20100526100805.171b3c48.akpm@linux-foundation.org> <4C4D4C2E.8010103@monstr.eu> 	<20100727161819.cf6feab1.akpm@linux-foundation.org> <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
-Reply-To: monstr@monstr.eu
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 29/31] memblock: Prepare to include linux/memblock.h in
+ core file
+Date: Wed, 28 Jul 2010 15:27:31 +1000
+Message-ID: <1280294851.1970.242.camel@pasglop>
+References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
+	 <1279822864-17154-30-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:55000 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751601Ab0G1F1K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 01:27:10 -0400
-In-Reply-To: <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
+Received: from gate.crashing.org ([63.228.1.57]:52179 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752959Ab0G1F15 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 01:27:57 -0400
+In-Reply-To: <1279822864-17154-30-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, rostedt@goodmis.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Mike Frysinger wrote:
-> On Tue, Jul 27, 2010 at 19:18, Andrew Morton wrote:
->> On Mon, 26 Jul 2010 10:49:50 +0200 Michal Simek wrote:
->>> start/stop_critical_timing function for preemptirqsoff, preemptoff
->>> and irqsoff tracers contains atomic_inc and atomic_dec operations.
->>>
->>> Atomic operations used local_irq_save/restore macros to ensure
->>> atomic access but they are traced by the same function which is causing
->>> recursion problem.
->>>
->>> The reason is when these tracers are turn ON then local_irq_save/restore
->>> macros are changed in include/linux/irqflags.h to call trace_hardirqs_on/off
->>> which call start/stop_critical_timing.
->>>
->>> Microblaze was affected because use generic atomic implementation.
->> Seems that this will also affect blackfin, mn10300 and score.  I guess
->> they aren't supporting tracing yet?
+On Thu, 2010-07-22 at 11:21 -0700, Yinghai Lu wrote:
+> Need to add protection in linux/memblock.h, to prepare to include it in
+>  mm/page_alloc.c and mm/bootmem.c etc.
+
+Not really no ... having the definitions shouldn't hurt whether memblock
+is used or not, no ?
+
+I'm going to keep that patch in the queue because it has one advantage
+that you don't mention, which is to more easily catch attempts to
+use those functions when CONFIG_HAVE_MEMBLOCK isn't set, but I'll update
+the commit message.
+
+Ben.
+
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  include/linux/memblock.h |    3 +++
+>  1 files changed, 3 insertions(+), 0 deletions(-)
 > 
-> do you mean TRACE_IRQFLAGS_SUPPORT ?  Blackfin should ... my
-> understanding was that arches just needed to implement asm/irqflags.h
-> for it.
-
-Blackin uses own include/asm/atomic.h implementation where shouldn't be 
-a problem with irqflags tracer. Look at my second post.
-
-Michal
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+> diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+> index 89749c4..4aaaf0d 100644
+> --- a/include/linux/memblock.h
+> +++ b/include/linux/memblock.h
+> @@ -2,6 +2,7 @@
+>  #define _LINUX_MEMBLOCK_H
+>  #ifdef __KERNEL__
+>  
+> +#ifdef CONFIG_HAVE_MEMBLOCK
+>  /*
+>   * Logical memory blocks.
+>   *
+> @@ -147,6 +148,8 @@ static inline unsigned long memblock_region_pages(const struct memblock_region *
+>  	     region++)
+>  
+> 
+> +#endif /* CONFIG_HAVE_MEMBLOCK */
+> +
+>  #endif /* __KERNEL__ */
+>  
+>  #endif /* _LINUX_MEMBLOCK_H */
