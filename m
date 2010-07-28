@@ -1,45 +1,63 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
-Subject: Re: [PATCH] asm-generic: Use raw_local_irq_save/restore instead
-	local_irq_save/restore
-Date: Tue, 27 Jul 2010 19:54:04 -0400
-Message-ID: <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
-References: <1274863724-14906-1-git-send-email-monstr@monstr.eu>
-	<1274863724-14906-2-git-send-email-monstr@monstr.eu> <1274884963.22648.245.camel@gandalf.stny.rr.com>
-	<20100526100805.171b3c48.akpm@linux-foundation.org> <4C4D4C2E.8010103@monstr.eu>
-	<20100727161819.cf6feab1.akpm@linux-foundation.org>
+From: Arjan van de Ven <arjan@infradead.org>
+Subject: [patch] Remove the per cpu tick skew
+Date: Tue, 27 Jul 2010 21:02:10 -0700
+Message-ID: <20100727210210.58d3118c@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100727161819.cf6feab1.akpm@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: monstr@monstr.eu, rostedt@goodmis.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:34457 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750785Ab0G1ECM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 00:02:12 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: tglx@linutronix.de, linux-arch@vger.kernel.org
 
-On Tue, Jul 27, 2010 at 19:18, Andrew Morton wrote:
-> On Mon, 26 Jul 2010 10:49:50 +0200 Michal Simek wrote:
->> start/stop_critical_timing function for preemptirqsoff, preemptoff
->> and irqsoff tracers contains atomic_inc and atomic_dec operations.
->>
->> Atomic operations used local_irq_save/restore macros to ensure
->> atomic access but they are traced by the same function which is caus=
-ing
->> recursion problem.
->>
->> The reason is when these tracers are turn ON then local_irq_save/res=
-tore
->> macros are changed in include/linux/irqflags.h to call trace_hardirq=
-s_on/off
->> which call start/stop_critical_timing.
->>
->> Microblaze was affected because use generic atomic implementation.
->
-> Seems that this will also affect blackfin, mn10300 and score. =C2=A0I=
- guess
-> they aren't supporting tracing yet?
+Hi,
 
-do you mean TRACE_IRQFLAGS_SUPPORT ?  Blackfin should ... my
-understanding was that arches just needed to implement asm/irqflags.h
-for it.
--mike
+the following patch is a win for power management on x86....
+... but since this touches generic code.. are there any 
+other architectures that would be negatively affected by this?
+
+
+
+Subject: [patch] Remove the per cpu tick skew
+
+Historically, Linux has tried to make the regular timer tick on the various
+CPUs not happen at the same time, to avoid contention on xtime_lock.
+
+Nowadays, with the tickless kernel, this contention no longer happens
+since time keeping and updating are done differently. In addition,
+this skew is actually hurting power consumption in a measurable
+way on many-core systems.
+
+Signed-off-by: Arjan van de Ven <arjan@linux.intel.com>
+
+--- linux.trees.git/kernel/time/tick-sched.c~	2010-07-16 09:40:50.000000000 -0400
++++ linux.trees.git/kernel/time/tick-sched.c	2010-07-26 11:18:51.138003329 -0400
+@@ -780,7 +780,6 @@
+ {
+ 	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
+ 	ktime_t now = ktime_get();
+-	u64 offset;
+ 
+ 	/*
+ 	 * Emulate tick processing via per-CPU hrtimers:
+@@ -790,10 +789,6 @@
+ 
+ 	/* Get the next period (per cpu) */
+ 	hrtimer_set_expires(&ts->sched_timer, tick_init_jiffy_update());
+-	offset = ktime_to_ns(tick_period) >> 1;
+-	do_div(offset, num_possible_cpus());
+-	offset *= smp_processor_id();
+-	hrtimer_add_expires_ns(&ts->sched_timer, offset);
+ 
+ 	for (;;) {
+ 		hrtimer_forward(&ts->sched_timer, now, tick_period);
+
+-- 
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
