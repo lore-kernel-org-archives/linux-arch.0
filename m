@@ -1,61 +1,36 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 29/31] memblock: Prepare to include linux/memblock.h in
- core file
-Date: Wed, 28 Jul 2010 15:27:31 +1000
-Message-ID: <1280294851.1970.242.camel@pasglop>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-	 <1279822864-17154-30-git-send-email-yinghai@kernel.org>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH] asm-generic: Use raw_local_irq_save/restore instead
+	local_irq_save/restore
+Date: Wed, 28 Jul 2010 01:35:20 -0400
+Message-ID: <AANLkTimL92k-VnjXRqWsFTnqLcfYU=Ep3ScYLHQXVA9o@mail.gmail.com>
+References: <1274863724-14906-1-git-send-email-monstr@monstr.eu>
+	<1274863724-14906-2-git-send-email-monstr@monstr.eu> <1274884963.22648.245.camel@gandalf.stny.rr.com>
+	<20100526100805.171b3c48.akpm@linux-foundation.org> <4C4D4C2E.8010103@monstr.eu>
+	<20100727161819.cf6feab1.akpm@linux-foundation.org> <4C4FBE2B.6030606@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:52179 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752959Ab0G1F15 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 01:27:57 -0400
-In-Reply-To: <1279822864-17154-30-git-send-email-yinghai@kernel.org>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:52503 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752019Ab0G1Ffm convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 01:35:42 -0400
+In-Reply-To: <4C4FBE2B.6030606@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: monstr@monstr.eu
+Cc: Andrew Morton <akpm@linux-foundation.org>, rostedt@goodmis.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, linux-arch@vger.kernel.org
 
-On Thu, 2010-07-22 at 11:21 -0700, Yinghai Lu wrote:
-> Need to add protection in linux/memblock.h, to prepare to include it in
->  mm/page_alloc.c and mm/bootmem.c etc.
+On Wed, Jul 28, 2010 at 01:20, Michal Simek wrote:
+> Andrew Morton wrote:
+>> On Mon, 26 Jul 2010 10:49:50 +0200 Michal Simek wrote:
+>>> Signed-off-by: Michal Simek <monstr@monstr.eu>
+>>> Acked-by: Steven Rostedt <rostedt@goodmis.org>
+>>> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+>>
+>> hm, I wonder how my signoff got there. =C2=A0Doesn't matter.
+>
+> http://lkml.org/lkml/2010/5/26/364
 
-Not really no ... having the definitions shouldn't hurt whether memblock
-is used or not, no ?
-
-I'm going to keep that patch in the queue because it has one advantage
-that you don't mention, which is to more easily catch attempts to
-use those functions when CONFIG_HAVE_MEMBLOCK isn't set, but I'll update
-the commit message.
-
-Ben.
-
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  include/linux/memblock.h |    3 +++
->  1 files changed, 3 insertions(+), 0 deletions(-)
-> 
-> diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-> index 89749c4..4aaaf0d 100644
-> --- a/include/linux/memblock.h
-> +++ b/include/linux/memblock.h
-> @@ -2,6 +2,7 @@
->  #define _LINUX_MEMBLOCK_H
->  #ifdef __KERNEL__
->  
-> +#ifdef CONFIG_HAVE_MEMBLOCK
->  /*
->   * Logical memory blocks.
->   *
-> @@ -147,6 +148,8 @@ static inline unsigned long memblock_region_pages(const struct memblock_region *
->  	     region++)
->  
-> 
-> +#endif /* CONFIG_HAVE_MEMBLOCK */
-> +
->  #endif /* __KERNEL__ */
->  
->  #endif /* _LINUX_MEMBLOCK_H */
+Sighed !=3D Signed ;)
+-mike
