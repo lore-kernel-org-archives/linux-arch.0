@@ -1,104 +1,103 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 05/16] x86, memblock: Add get_free_all_memory_range()
-Date: Wed, 28 Jul 2010 12:15:48 -0700
-Message-ID: <4C5081E4.4090205@kernel.org>
-References: <1279824241-17582-1-git-send-email-yinghai@kernel.org>	 <1279824241-17582-6-git-send-email-yinghai@kernel.org> <1280293338.1970.235.camel@pasglop>
+Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
+Date: Wed, 28 Jul 2010 12:27:34 -0700
+Message-ID: <4C5084A6.9060303@kernel.org>
+References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>	 <1279822864-17154-32-git-send-email-yinghai@kernel.org>	 <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org>	 <4C4FD04B.5090503@zytor.com> <1280336548.30808.489.camel@mulgrave.site>	 <4C506E9B.4070501@zytor.com> <1280340633.30808.583.camel@mulgrave.site> <4C507728.3000207@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:63257 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:33022 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751847Ab0G1TQ0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 15:16:26 -0400
-In-Reply-To: <1280293338.1970.235.camel@pasglop>
+	with ESMTP id S1752089Ab0G1T3G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 15:29:06 -0400
+In-Reply-To: <4C507728.3000207@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Beulich <jbeulich@novell.com>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Ralph Campbell <infinipath@qlogic.com>
 
-On 07/27/2010 10:02 PM, Benjamin Herrenschmidt wrote:
-> On Thu, 2010-07-22 at 11:43 -0700, Yinghai Lu wrote:
+On 07/28/2010 11:30 AM, H. Peter Anvin wrote:
+> On 07/28/2010 11:10 AM, James Bottomley wrote:
 >>
->> +       /* Take out region array itself at first*/
->> +       if (memblock.reserved.regions != memblock_reserved_init_regions)
->> +               memblock_free(__pa(memblock.reserved.regions), sizeof(struct memblock_region) * memblock.reserved.max);
->> +
+>> So I don't understand the problem.  Proper shutdown of the old kernel
+>> will halt all the DMA engines (by design ... we can't have DMA ongoing
+>> if the next action might be power off).  The only case I know where DMA
+>> engines may be active is the crash kernel case.
+>>
 > 
-> More of that horror. Don't.
+> I'm not sure I fully understand the exact problem, either; not being
+> familiar with this putative "logging" facility of the Qlogic devices.
+> My point was largely that if a device causes failures because of the
+> choice of the allocation order, then we have a much bigger problem and
+> papering over it by trying to muck with the allocation order is just wrong.
 > 
-> Another option from what i proposed earlier is to actually have a function
-> inside mm/memblock to free it (memblock_free_arrays()) that does nothing
-> if memblock is to survive init.
+> This logging facility of Qlogic is DMA, no more, no less.  It needs to
+> be shut down on a "overwrite" kexec, where we replace one kernel with
+> another, as opposed to a crash dump kexec, where we use a reserved chunk
+> of virgin memory.  What I don't know/understand at the moment is if
+> there is something "special" about this particular logging facility,
+> e.g. if the Qlogic card ignore the bus mastering control bit -- which
+> would be reckless but I can see someone having the bright idea to do that.
 > 
-> I hate exporting variables or data structures like that. Functions are
-> semantically a lot cleaner.
+> Yinghai, do you have any more detail, or know who would?  Also copying
+> the Qlogic Infinipath maintainer email...
 
+when I was debug memblock with x86, found the strange crash when high/low.
 
-Please check if you are ok with this one. if so please put it in your branch.
-then I could rebase the second half patchset and ask hpa to put all in tip.
+then use kexec with "memtest" in command line, and the early memtest does find
+
+some bad memory. 
+
+then I add more print about EPT physical address for first kernel,
+
+it does show that range is used by qla driver in first kernel.
+
+I built all needed drivers in kernel so can pxeboot the kernel on all test platforms easily.
 
 Thanks
 
 Yinghai
 
-[PATCH] memblock: Add memblock_free/reserve_reserved_resgions()
-
-So we can avoid export memblock_reserved_init_regions()
-Suggested by Ben.
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
 ---
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |   24 ++++++++++++++++++++++++
- 2 files changed, 26 insertions(+)
+ drivers/scsi/qla2xxx/qla_init.c |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-Index: linux-2.6/include/linux/memblock.h
+Index: linux-2.6/drivers/scsi/qla2xxx/qla_init.c
 ===================================================================
---- linux-2.6.orig/include/linux/memblock.h
-+++ linux-2.6/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern int memblock_can_resize;
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+--- linux-2.6.orig/drivers/scsi/qla2xxx/qla_init.c
++++ linux-2.6/drivers/scsi/qla2xxx/qla_init.c
+@@ -1327,8 +1327,8 @@ qla2x00_alloc_fw_dump(scsi_qla_host_t *v
+ 			goto try_eft;
+ 		}
  
- u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+int memblock_free_reserved_regions(void);
-+int memblock_reserve_reserved_regions(void);
+-		qla_printk(KERN_INFO, ha, "Allocated (%d KB) for FCE...\n",
+-		    FCE_SIZE / 1024);
++		qla_printk(KERN_INFO, ha, "Allocated (%d KB) at %p for FCE...\n",
++		    FCE_SIZE / 1024, tc);
  
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
-Index: linux-2.6/mm/memblock.c
-===================================================================
---- linux-2.6.orig/mm/memblock.c
-+++ linux-2.6/mm/memblock.c
-@@ -170,6 +170,30 @@ u64 __init_memblock memblock_find_in_ran
- 	return memblock_find_base(size, align, start, end);
- }
+ 		fce_size = sizeof(struct qla2xxx_fce_chain) + FCE_SIZE;
+ 		ha->flags.fce_enabled = 1;
+@@ -1354,8 +1354,8 @@ try_eft:
+ 			goto cont_alloc;
+ 		}
  
-+/*
-+ * Free memblock.reserved.regions
-+ */
-+int memblock_free_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_free(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
-+/*
-+ * Reserve memblock.reserved.regions
-+ */
-+int memblock_reserve_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_reserve(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
- {
- 	unsigned long i;
+-		qla_printk(KERN_INFO, ha, "Allocated (%d KB) for EFT...\n",
+-		    EFT_SIZE / 1024);
++		qla_printk(KERN_INFO, ha, "Allocated (%d KB) at %p for EFT...\n",
++		    EFT_SIZE / 1024, tc);
+ 
+ 		eft_size = EFT_SIZE;
+ 		ha->eft_dma = tc_dma;
+@@ -1383,8 +1383,8 @@ cont_alloc:
+ 		}
+ 		return;
+ 	}
+-	qla_printk(KERN_INFO, ha, "Allocated (%d KB) for firmware dump...\n",
+-	    dump_size / 1024);
++	qla_printk(KERN_INFO, ha, "Allocated (%d KB) at %p for firmware dump...\n",
++	    dump_size / 1024, ha->fw_dump);
+ 
+ 	ha->fw_dump_len = dump_size;
+ 	ha->fw_dump->signature[0] = 'Q';
