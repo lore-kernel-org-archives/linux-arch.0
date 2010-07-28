@@ -1,45 +1,43 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 28/31] memblock: Export MEMBLOCK_ERROR again
-Date: Wed, 28 Jul 2010 16:29:52 +1000
-Message-ID: <1280298592.1970.248.camel@pasglop>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-	 <1279822864-17154-29-git-send-email-yinghai@kernel.org>
-	 <1280294128.1970.237.camel@pasglop> <1280294376.1970.239.camel@pasglop>
-	 <4C4FC5D1.3070708@zytor.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
+Date: Tue, 27 Jul 2010 23:38:03 -0700
+Message-ID: <4C4FD04B.5090503@zytor.com>
+References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>	 <1279822864-17154-32-git-send-email-yinghai@kernel.org> <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35151 "EHLO gate.crashing.org"
+Received: from terminus.zytor.com ([198.137.202.10]:46172 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752959Ab0G1Ga0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 02:30:26 -0400
-In-Reply-To: <4C4FC5D1.3070708@zytor.com>
+	id S1752579Ab0G1Giw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 02:38:52 -0400
+In-Reply-To: <4C4FC95F.6040806@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Yinghai Lu <yinghai@kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2010-07-27 at 22:53 -0700, H. Peter Anvin wrote:
-> On 07/27/2010 10:19 PM, Benjamin Herrenschmidt wrote:
-> > 
-> > Screw it, I don't like it but I'll just split your patch in two for now
-> > and keep 0. It's a bit fishy but memblock does mostly top-down
-> > allocations and so shouldn't hit 0, and in practice the region at 0 is,
-> > I beleive, reserved, but we need to be extra careful and might need to
-> > revisit that a bit.
-> > 
-> > That's an area where I don't completely agree with Linus, ie, 0 is a
-> > perfectly valid physical address for memblock to return :-)
-> > 
+On 07/27/2010 11:08 PM, Yinghai Lu wrote:
 > 
-> On x86, physical address 0 contains the real-mode IVT and will thus be
-> reserved, at least for the forseeable future.  Other architectures may
-> very well have non-special RAM there.
+> for example: 
+> high/low allocation, from first kernel to kexec second kernel, always work fine except system with Qlogic card.
+> because Qlogic card is using main RAM as EFT etc for card's FW log trace. second kernel have not idea that those RAM
+>  is used by first kernel for that purpose. that the CARD still use that between two kernels.
+> second kernel could have crash it try to use those ram.
+> 
 
-Right, that's my point. Anyways, I'm making 0 special for now and adding
-a wart to prevent the allocator from returning something below
-PAGE_SIZE. If we want to revisit that later we can.
+Uhm, no.  That's a bug in the Qlogic driver not shutting the card down
+cleanly.  Hacking around that in memory allocation order is braindamaged
+in the extreme.  kexec *cannot* be safe in any way if we don't shut down
+pending DMA, and what you describe above is DMA.
 
-Cheers,
-Ben.
+> low/high allocation seems to be safe,  second kernel can slip to boot fine.
+
+Low to high is just broken.  Low memory is a special, desirable
+resource, and we should minimize the use of it.
+
+	-hpa
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
