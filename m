@@ -1,78 +1,53 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 28/31] memblock: Export MEMBLOCK_ERROR again
-Date: Wed, 28 Jul 2010 15:24:22 +1000
-Message-ID: <1280294662.1970.240.camel@pasglop>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>
-	 <1279822864-17154-29-git-send-email-yinghai@kernel.org>
-	 <1280294128.1970.237.camel@pasglop>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH] asm-generic: Use raw_local_irq_save/restore instead local_irq_save/restore
+Date: Wed, 28 Jul 2010 07:23:40 +0200
+Message-ID: <4C4FBEDC.4000008@monstr.eu>
+References: <1274863724-14906-1-git-send-email-monstr@monstr.eu> 	<1274863724-14906-2-git-send-email-monstr@monstr.eu> <1274884963.22648.245.camel@gandalf.stny.rr.com> 	<20100526100805.171b3c48.akpm@linux-foundation.org> <4C4D4C2E.8010103@monstr.eu> 	<20100727161819.cf6feab1.akpm@linux-foundation.org> <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:50370 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751071Ab0G1FYs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 01:24:48 -0400
-In-Reply-To: <1280294128.1970.237.camel@pasglop>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:55000 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751601Ab0G1F1K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 01:27:10 -0400
+In-Reply-To: <AANLkTim3Po8XD3UFB-h6UH4HWtSZP9MA+V63TE5tQgku@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Mike Frysinger <vapier.adi@gmail.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, rostedt@goodmis.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, linux-arch@vger.kernel.org
 
-On Wed, 2010-07-28 at 15:15 +1000, Benjamin Herrenschmidt wrote:
-> On Thu, 2010-07-22 at 11:21 -0700, Yinghai Lu wrote:
-> > will used by x86 memblock_x86_find_in_range_node and nobootmem replacement
-> > 
-> > -v2: use 0 instead -1ULL, Suggested by Linus, so we don't need cast them later to unsigned long
+Mike Frysinger wrote:
+> On Tue, Jul 27, 2010 at 19:18, Andrew Morton wrote:
+>> On Mon, 26 Jul 2010 10:49:50 +0200 Michal Simek wrote:
+>>> start/stop_critical_timing function for preemptirqsoff, preemptoff
+>>> and irqsoff tracers contains atomic_inc and atomic_dec operations.
+>>>
+>>> Atomic operations used local_irq_save/restore macros to ensure
+>>> atomic access but they are traced by the same function which is causing
+>>> recursion problem.
+>>>
+>>> The reason is when these tracers are turn ON then local_irq_save/restore
+>>> macros are changed in include/linux/irqflags.h to call trace_hardirqs_on/off
+>>> which call start/stop_critical_timing.
+>>>
+>>> Microblaze was affected because use generic atomic implementation.
+>> Seems that this will also affect blackfin, mn10300 and score.  I guess
+>> they aren't supporting tracing yet?
 > 
-> The patch in its current form is a NAK.
-> 
-> You can't just do those two things in one commit.
-> 
-> If we're going to switch LMB errors to always be 0, we need to ensure we
-> cannot realistically hand out 0 as a result of lmb_alloc().
-> 
-> I'll cook up a patch to do that.
+> do you mean TRACE_IRQFLAGS_SUPPORT ?  Blackfin should ... my
+> understanding was that arches just needed to implement asm/irqflags.h
+> for it.
 
-BTW. After that, maybe send a patch completely removing
-MEMBLOCK_ERROR ? 
+Blackin uses own include/asm/atomic.h implementation where shouldn't be 
+a problem with irqflags tracer. Look at my second post.
 
-I find 0 to be self-explanatory enough.
+Michal
 
-Cheers,
-Ben.
 
-> Ben.
-> 
-> > Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> > ---
-> >  include/linux/memblock.h |    1 +
-> >  mm/memblock.c            |    2 --
-> >  2 files changed, 1 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-> > index 70bc467..89749c4 100644
-> > --- a/include/linux/memblock.h
-> > +++ b/include/linux/memblock.h
-> > @@ -19,6 +19,7 @@
-> >  #include <asm/memblock.h>
-> >  
-> >  #define INIT_MEMBLOCK_REGIONS 128
-> > +#define MEMBLOCK_ERROR		0
-> >  
-> >  struct memblock_region {
-> >  	phys_addr_t base;
-> > diff --git a/mm/memblock.c b/mm/memblock.c
-> > index 796ef8c..3d0a754 100644
-> > --- a/mm/memblock.c
-> > +++ b/mm/memblock.c
-> > @@ -27,8 +27,6 @@ int memblock_can_resize;
-> >  static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1];
-> >  struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1];
-> >  
-> > -#define MEMBLOCK_ERROR	(~(phys_addr_t)0)
-> > -
-> >  /* inline so we don't get a warning when pr_debug is compiled out */
-> >  static inline const char *memblock_type_name(struct memblock_type *type)
-> >  {
-> 
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
