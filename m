@@ -1,45 +1,42 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
-Date: Wed, 28 Jul 2010 00:12:28 -0700
-Message-ID: <4C4FD85C.2090603@kernel.org>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>	 <1279822864-17154-32-git-send-email-yinghai@kernel.org> <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org> <4C4FD04B.5090503@zytor.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 28/31] memblock: Export MEMBLOCK_ERROR again
+Date: Wed, 28 Jul 2010 19:25:31 +1000
+Message-ID: <1280309131.1970.280.camel@pasglop>
+References: <1280294128.1970.237.camel@pasglop>
+	 <1280294376.1970.239.camel@pasglop> <4C4FC5D1.3070708@zytor.com>
+	 <20100727.230120.43037767.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:43838 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750749Ab0G1HOL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 03:14:11 -0400
-In-Reply-To: <4C4FD04B.5090503@zytor.com>
+Received: from gate.crashing.org ([63.228.1.57]:48984 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752184Ab0G1J0o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 05:26:44 -0400
+In-Reply-To: <20100727.230120.43037767.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: hpa@zytor.com, yinghai@kernel.org, mingo@elte.hu, tglx@linutronix.de, akpm@linux-foundation.org, torvalds@linux-foundation.org, hannes@cmpxchg.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 07/27/2010 11:38 PM, H. Peter Anvin wrote:
-> On 07/27/2010 11:08 PM, Yinghai Lu wrote:
->>
->> for example: 
->> high/low allocation, from first kernel to kexec second kernel, always work fine except system with Qlogic card.
->> because Qlogic card is using main RAM as EFT etc for card's FW log trace. second kernel have not idea that those RAM
->>  is used by first kernel for that purpose. that the CARD still use that between two kernels.
->> second kernel could have crash it try to use those ram.
->>
+On Tue, 2010-07-27 at 23:01 -0700, David Miller wrote:
+> > On x86, physical address 0 contains the real-mode IVT and will thus be
+> > reserved, at least for the forseeable future.  Other architectures may
+> > very well have non-special RAM there.
 > 
-> Uhm, no.  That's a bug in the Qlogic driver not shutting the card down
-> cleanly.  Hacking around that in memory allocation order is braindamaged
-> in the extreme.  kexec *cannot* be safe in any way if we don't shut down
-> pending DMA, and what you describe above is DMA.
-> 
+> 0 is very much possible on sparc64 
 
-the problem is later if the user hit the problem, it will be called "Regression" after bisecting to the memblock/x86 changes.
-because low/high does work before.
+Yup, we need to fix that.
 
-BTW, that design from qlogic to save log in RAM is not good one, they may save some cents for the ram in card.
+For now I made MEMBLOCK_ERROR 0 and added a blurb to prevent allocating
+the first page since it would cause other problems with the current code
+(0 is after all the normal error result from membloc_alloc(), ie, our
+API wasn't quite consistent there).
 
-other vendors seems put log/trace in the ram on card.
+So I don't think I'm introducing a regression here, on the contrary. But
+if we are going to allow lmb_alloc() to return 0, we need to fix all
+callers first and then we can look into turning MEMBLOCK_ERROR back to
+~0
 
-Thanks
-
-Yinghai
+Cheers,
+Ben.
