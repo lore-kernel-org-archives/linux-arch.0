@@ -1,41 +1,45 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
-Date: Wed, 28 Jul 2010 12:58:44 -0700
-Message-ID: <4C508BF4.9050901@zytor.com>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>	 <1279822864-17154-32-git-send-email-yinghai@kernel.org>	 <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org>	 <4C4FD04B.5090503@zytor.com> <1280336548.30808.489.camel@mulgrave.site>	 <4C506E9B.4070501@zytor.com> <1280340633.30808.583.camel@mulgrave.site> <4C507728.3000207@zytor.com> <4C5084A6.9060303@kernel.org>
+From: john stultz <johnstul@us.ibm.com>
+Subject: Re: [patch] Remove the per cpu tick skew
+Date: Wed, 28 Jul 2010 13:26:39 -0700
+Message-ID: <AANLkTikZ_RHHv9cudUh8pp9H8MtKO8Rsr+eboupv49xD@mail.gmail.com>
+References: <20100727210210.58d3118c@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:33168 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751930Ab0G1UAG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 16:00:06 -0400
-In-Reply-To: <4C5084A6.9060303@kernel.org>
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:61001 "EHLO
+	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752659Ab0G1U0m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Jul 2010 16:26:42 -0400
+In-Reply-To: <20100727210210.58d3118c@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Vasquez <andrew.vasquez@qlogic.com>
+To: Arjan van de Ven <arjan@infradead.org>
+Cc: linux-kernel@vger.kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org
 
-On 07/28/2010 12:27 PM, Yinghai Lu wrote:
->>
->> Yinghai, do you have any more detail, or know who would?  Also copying
->> the Qlogic Infinipath maintainer email...
-> 
-> when I was debug memblock with x86, found the strange crash when high/low.
-> then use kexec with "memtest" in command line, and the early memtest does find
-> some bad memory. 
-> 
-> then I add more print about EPT physical address for first kernel,
-> it does show that range is used by qla driver in first kernel.
-> I built all needed drivers in kernel so can pxeboot the kernel on all test platforms easily.
-> 
+On Tue, Jul 27, 2010 at 9:02 PM, Arjan van de Ven <arjan@infradead.org> wrote:
+> the following patch is a win for power management on x86....
+> ... but since this touches generic code.. are there any
+> other architectures that would be negatively affected by this?
 
-[Cc: Andrew Vasquez, who seems to have written the offending code,
-checkin df613b96077cee826b14089ae6e75eeabf71faa3.]
+It was added to avoid contention when all the cpus grabbed the
+xtime_lock (causing latency spikes of timer overhead * number of
+cpus). We don't grab the xtime lock everywhere anymore, so that
+shouldn't bite us, but I'm curious if there are not other global locks
+taken that may see extra contention without this change.
 
-The question is still open why this particular DMA activity was not shut
-down before the kexec.  I'm not familiar with how non-crashdump kexec
-idles the hardware, but it obviously better do so.
+> Subject: [patch] Remove the per cpu tick skew
+>
+> Historically, Linux has tried to make the regular timer tick on the various
+> CPUs not happen at the same time, to avoid contention on xtime_lock.
+>
+> Nowadays, with the tickless kernel, this contention no longer happens
+> since time keeping and updating are done differently. In addition,
+> this skew is actually hurting power consumption in a measurable
+> way on many-core systems.
+>
+> Signed-off-by: Arjan van de Ven <arjan@linux.intel.com>
 
-	-hpa
+I'll give it a spin against -rt and see if we show any latency jumps.
+
+thanks
+-john
