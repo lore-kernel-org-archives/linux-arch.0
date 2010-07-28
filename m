@@ -1,32 +1,86 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 31/31] memblock: Add memblock_find_in_range()
-Date: Wed, 28 Jul 2010 16:41:58 -0700
-Message-ID: <4C50C046.4040204@zytor.com>
-References: <1279822864-17154-1-git-send-email-yinghai@kernel.org>	 <1279822864-17154-32-git-send-email-yinghai@kernel.org>	 <1280295415.1970.245.camel@pasglop> <4C4FC95F.6040806@kernel.org>	 <4C4FD04B.5090503@zytor.com> <1280336548.30808.489.camel@mulgrave.site>	 <4C506E9B.4070501@zytor.com> <1280340633.30808.583.camel@mulgrave.site>	 <4C507728.3000207@zytor.com> <1280357909.9969.6.camel@chromite.mv.qlogic.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44709 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752508Ab0G1Xmv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Jul 2010 19:42:51 -0400
-In-Reply-To: <1280357909.9969.6.camel@chromite.mv.qlogic.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ralph Campbell <ralph.campbell@qlogic.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, Yinghai Lu <yinghai@kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Linus Torvalds <torvalds@linux-foundation.org>, Johannes Weiner <hannes@cmpxchg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Infinipath <Infinipath@qlogic.com>
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: [PATCH 0/4] function/data-sections
+Date: Thu, 29 Jul 2010 01:47:52 +0200
+Message-ID: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Denys Vlasenko <vda.linux@googlemail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 07/28/2010 03:58 PM, Ralph Campbell wrote:
-> 
-> I read the messages in this thread but I don't understand what the
-> problem is. Something to do with logging, DMA and crash dumps but
-> it also sounds like the original discussion may be confused about
-> how the Infiniband HCA cards work.
-> 
-> Can someone summarize what is going on...
-> 
+Hi Michal,
 
-Sorry, I was confused... this had to do with the qla driver, not Infinipath.
+Please take this patch series onto linux-kbuild.
 
-	-hpa
+Most of work needed for working -ffunction-sections -fdata-sections build
+is already in the mainline, but a few bits are still missing.
+In order to have a working kernel with this make invocation:
+    make KCFLAGS="-ffunction-sections -fdata-sections"
+we need these patches:
+
+modpost: support objects with more than 64k sections
+    This patch is in -mm, it still did not reach mainline,
+    thus resending. Sam suggested some readability improvements.
+module linker script: coalesce function and data sections
+kernel linker stripts: accomodate function and data sections
+boot linker stripts: accomodate function and data sections
+
+Please see individual patches for more detailed changelogs.
+
+A rough idea what sort of size savings are achievable
+with section garbage collection:
+Kernel:
+   text   data    bss     dec    hex filename
+8299299 857324 785348 9941971 97b3d3 2.6.35-rc4/vmlinux
+7566908 832388 717844 9117140 8b1dd4 2.6.35-rc4-fsgs/vmlinux
+  -9.2%  -2.9%  -9.0%   -8.6%
+The largest module in the build:
+ 451009  54640   2224  507873  7bfe1 2.6.35-rc4/fs/xfs/xfs.ko
+ 450521  54292   2202  507015  7bc87 2.6.35-rc4-fsgs/fs/xfs/xfs.ko
+(negligible size change since section garbage collection
+for modules is not done. TODO: figure out how to do it)
+
+Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
+
+
+Denys Vlasenko (4):
+  modpost: support objects with more than 64k sections
+  module linker script: coalesce sections
+  kernel linker stripts: accomodate function and data sections
+  boot linker stripts: accomodate function and data sections
+
+ arch/alpha/boot/bootloader.lds               |    6 +-
+ arch/arm/boot/bootp/bootp.lds                |    1 +
+ arch/cris/boot/compressed/decompress_v10.lds |    3 +
+ arch/cris/boot/compressed/decompress_v32.lds |    3 +
+ arch/cris/boot/rescue/rescue_v10.lds         |    2 +
+ arch/cris/boot/rescue/rescue_v32.lds         |    3 +
+ arch/frv/kernel/vmlinux.lds.S                |    1 -
+ arch/h8300/boot/compressed/vmlinux.lds       |    2 +
+ arch/h8300/boot/compressed/vmlinux.scr       |    1 +
+ arch/ia64/hp/sim/boot/bootloader.lds         |    6 +-
+ arch/ia64/scripts/check-segrel.lds           |    4 +-
+ arch/m32r/boot/compressed/vmlinux.lds.S      |    6 +-
+ arch/m32r/boot/compressed/vmlinux.scr        |    1 +
+ arch/m68knommu/kernel/vmlinux.lds.S          |    1 +
+ arch/mips/lasat/image/romscript.normal       |    1 +
+ arch/mn10300/boot/compressed/vmlinux.lds     |    1 +
+ arch/parisc/kernel/vmlinux.lds.S             |    1 +
+ arch/powerpc/boot/zImage.coff.lds.S          |    2 +
+ arch/powerpc/boot/zImage.lds.S               |    2 +
+ arch/powerpc/boot/zImage.ps3.lds.S           |    2 +
+ arch/sh/boot/compressed/vmlinux.scr          |    1 +
+ arch/sh/kernel/vsyscall/vsyscall.lds.S       |    2 +-
+ arch/x86/boot/setup.ld                       |    3 +-
+ arch/x86/kernel/acpi/realmode/wakeup.lds.S   |    1 +
+ arch/x86/kernel/vmlinux.lds.S                |    1 +
+ arch/xtensa/boot/boot-elf/boot.lds.S         |    5 +-
+ arch/xtensa/boot/boot-redboot/boot.ld        |    5 +-
+ include/asm-generic/vmlinux.lds.h            |   18 ++++-
+ scripts/mod/file2alias.c                     |    6 +-
+ scripts/mod/modpost.c                        |  102 +++++++++++++++++++-------
+ scripts/mod/modpost.h                        |   43 +++++++++++
+ scripts/module-common.lds                    |   23 ++++++
+ 32 files changed, 213 insertions(+), 46 deletions(-)
+
