@@ -1,95 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:19737 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:19540 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757946Ab0G2TrG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jul 2010 15:47:06 -0400
+	with ESMTP id S1757634Ab0G2Tqs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Jul 2010 15:46:48 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v27 00/17] Use memblock with x86
-Date: Thu, 29 Jul 2010 12:45:20 -0700
-Message-ID: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 16/17] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
+Date: Thu, 29 Jul 2010 12:45:36 -0700
+Message-ID: <1280432737-1808-17-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
+References: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100729194520.DSfoHolV1N49EBUnretMn5sFlk15ncltZaJP0Bco5eE@z>
+Message-ID: <20100729194536.CBY8jqWsNryOI_rroiDpNeNyzcTZRnwjri0UohZc-5k@z>
 
-New memblock could be used to replace early_res in x86.
+memblock_memory_size() will return memory size in memblock.memory.region.
+memblock_free_memory_size() will return free memory size in memblock.memory.region.
 
-Suggested by: David, Ben, and Thomas
+So We can get exact reseved size in specified range.
 
--v25: update to mainline with kmemleak fix on nobootmem
-      also rename lmb to memblock alread in mainline
+Set the size right after initmem_init(), because later bootmem API will
+get area above 16M. (except some fallback).
 
--v26: according to Linus and hpa, seperate the big patchset to small ones.
+Later after we remove the bootmem, We could call that just before paging_init().
 
--v27: rebase to Ben's powerpc/memblock
-      add memblock_free_reserved_regions() so don't need to export init regions
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/include/asm/e820.h |    2 ++
+ arch/x86/kernel/e820.c      |   17 +++++++++++++++++
+ arch/x86/kernel/setup.c     |    1 +
+ arch/x86/mm/init_64.c       |    7 -------
+ 4 files changed, 20 insertions(+), 7 deletions(-)
 
-this one is x86 related, finally we can remove bootmem code in x86 and early_res code.
-
-Thanks
-
-Yinghai Lu
-
-[PATCH 01/17] memblock: Add memblock_free/reserve_reserved_regions()
-[PATCH 02/17] x86, memblock: Add memblock_x86_find_in_range_size()
-[PATCH 03/17] bootmem, x86: Add weak version of reserve_bootmem_generic
-[PATCH 04/17] x86, memblock: Add memblock_x86_to_bootmem()
-[PATCH 05/17] x86,memblock: Add memblock_x86_reserve_range/memblock_x86_free_range
-[PATCH 06/17] x86, memblock: Add get_free_all_memory_range()
-[PATCH 07/17] x86, memblock: Add memblock_x86_register_active_regions() and memblock_x86_hole_size()
-[PATCH 08/17] memblock: Add find_memory_core_early()
-[PATCH 09/17] x86, memblock: Add memblock_x86_find_in_range_node()
-[PATCH 10/17] x86, memblock: Add memblock_x86_free_memory_in_range()
-[PATCH 11/17] x86, memblock: Add memblock_x86_memory_in_range()
-[PATCH 12/17] x86, memblock: Use memblock_debug to control debug message print out
-[PATCH 13/17] x86: Use memblock to replace early_res
-[PATCH 14/17] x86: Replace e820_/_early string with memblock_
-[PATCH 15/17] x86: Remove not used early_res code
-[PATCH 16/17] x86, memblock: Use memblock_memory_size()/memblock_free_memory_size() to get correct dma_reserve
-[PATCH 17/17] x86: remove old bootmem code
-
- arch/x86/Kconfig                |   15 +-
- arch/x86/include/asm/e820.h     |   20 +-
- arch/x86/include/asm/efi.h      |    2 +-
- arch/x86/include/asm/memblock.h |   21 ++
- arch/x86/kernel/acpi/sleep.c    |    9 +-
- arch/x86/kernel/apic/numaq_32.c |    3 +-
- arch/x86/kernel/check.c         |   16 +-
- arch/x86/kernel/e820.c          |  192 ++++---------
- arch/x86/kernel/efi.c           |    5 +-
- arch/x86/kernel/head.c          |    3 +-
- arch/x86/kernel/head32.c        |   10 +-
- arch/x86/kernel/head64.c        |    7 +-
- arch/x86/kernel/mpparse.c       |    5 +-
- arch/x86/kernel/setup.c         |   78 +++--
- arch/x86/kernel/setup_percpu.c  |    6 -
- arch/x86/kernel/trampoline.c    |   10 +-
- arch/x86/mm/Makefile            |    2 +
- arch/x86/mm/init.c              |   10 +-
- arch/x86/mm/init_32.c           |   66 +-----
- arch/x86/mm/init_64.c           |   67 +-----
- arch/x86/mm/k8topology_64.c     |    4 +-
- arch/x86/mm/memblock.c          |  355 +++++++++++++++++++++++
- arch/x86/mm/memtest.c           |    7 +-
- arch/x86/mm/numa_32.c           |   28 +-
- arch/x86/mm/numa_64.c           |   84 ++-----
- arch/x86/mm/srat_32.c           |    3 +-
- arch/x86/mm/srat_64.c           |   11 +-
- arch/x86/xen/mmu.c              |    5 +-
- arch/x86/xen/setup.c            |    3 +-
- include/linux/early_res.h       |   23 --
- include/linux/memblock.h        |    2 +
- include/linux/mm.h              |    2 +
- kernel/Makefile                 |    1 -
- kernel/early_res.c              |  590 ---------------------------------------
- mm/bootmem.c                    |   13 +-
- mm/memblock.c                   |   24 ++
- mm/page_alloc.c                 |   86 ++++---
- mm/sparse-vmemmap.c             |   11 -
- 38 files changed, 677 insertions(+), 1122 deletions(-)
- create mode 100644 arch/x86/include/asm/memblock.h
- create mode 100644 arch/x86/mm/memblock.c
- delete mode 100644 include/linux/early_res.h
- delete mode 100644 kernel/early_res.c
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 7186463..5be1542 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -117,6 +117,8 @@ extern unsigned long e820_end_of_low_ram_pfn(void);
+ extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
+ 
+ void memblock_x86_fill(void);
++void memblock_find_dma_reserve(void);
++
+ extern void finish_e820_parsing(void);
+ extern void e820_reserve_resources(void);
+ extern void e820_reserve_resources_late(void);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index d5fd894..f0db4c4 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -1105,3 +1105,20 @@ void __init memblock_x86_fill(void)
+ 	memblock_analyze();
+ 	memblock_dump_all();
+ }
++
++void __init memblock_find_dma_reserve(void)
++{
++#ifdef CONFIG_X86_64
++	u64 free_size_pfn;
++	u64 mem_size_pfn;
++	/*
++	 * need to find out used area below MAX_DMA_PFN
++	 * need to use memblock to get free size in [0, MAX_DMA_PFN]
++	 * at first, and assume boot_mem will not take below MAX_DMA_PFN
++	 */
++	mem_size_pfn = memblock_x86_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	free_size_pfn = memblock_x86_free_memory_in_range(0, MAX_DMA_PFN << PAGE_SHIFT) >> PAGE_SHIFT;
++	set_dma_reserve(mem_size_pfn - free_size_pfn);
++#endif
++}
++
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index cac2c4c..58d7ece 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -1019,6 +1019,7 @@ void __init setup_arch(char **cmdline_p)
+ #endif
+ 
+ 	initmem_init(0, max_pfn, acpi, k8);
++	memblock_find_dma_reserve();
+ #ifndef CONFIG_NO_BOOTMEM
+ 	memblock_x86_to_bootmem(0, max_low_pfn<<PAGE_SHIFT);
+ #endif
+diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
+index 592b236..d6d4084 100644
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@ -53,8 +53,6 @@
+ #include <asm/init.h>
+ #include <linux/bootmem.h>
+ 
+-static unsigned long dma_reserve __initdata;
+-
+ static int __init parse_direct_gbpages_off(char *arg)
+ {
+ 	direct_gbpages = 0;
+@@ -821,11 +819,6 @@ int __init reserve_bootmem_generic(unsigned long phys, unsigned long len,
+ 
+ 	reserve_bootmem(phys, len, flags);
+ 
+-	if (phys+len <= MAX_DMA_PFN*PAGE_SIZE) {
+-		dma_reserve += len / PAGE_SIZE;
+-		set_dma_reserve(dma_reserve);
+-	}
+-
+ 	return 0;
+ }
+ #endif
+-- 
+1.6.4.2
 
