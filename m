@@ -1,30 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1418 "EHLO mx1.redhat.com"
+Received: from sh.osrg.net ([192.16.179.4]:60129 "EHLO sh.osrg.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754638Ab0G2JK2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 Jul 2010 05:10:28 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <201007290324.36745.vda.linux@googlemail.com>
-References: <201007290324.36745.vda.linux@googlemail.com> <1280360876-2571-3-git-send-email-vda.linux@googlemail.com> <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <29025.1280363105@redhat.com>
-Subject: Re: [PATCH 2/4] module linker script: coalesce function and data sections
-Date: Thu, 29 Jul 2010 10:09:57 +0100
-Message-ID: <30881.1280394597@redhat.com>
+	id S1756898Ab0G2Kr6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Jul 2010 06:47:58 -0400
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 2/2] PCI: add PCI DMA unamp state API to feature-removal-schedule.txt
+Date: Thu, 29 Jul 2010 19:45:08 +0900
+Message-ID: <1280400308-16114-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <1280400308-16114-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+References: <1280400308-16114-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: dhowells@redhat.com, Michal Marek <mmarek@suse.cz>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20100729090957._DNFe4TX2AxZXuGGjQJIutVJtm6E3cGRgExOIPFhMf4@z>
+To: akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100729104508.zlKfj_hgC943rTGioc15AYrFkdJ-mjyRxvi-cQ6CyGo@z>
 
-Denys Vlasenko <vda.linux@googlemail.com> wrote:
+It was replaced with the DMA unamp state API (which can be used for
+any bus).
 
-> linker groups all similarly-named input sections into one output section
-> with the same name, if the name does not match any rule in the linker
-> script.
-> 
-> Basically, it should work as if there is a rule:
-> 
-> .sbss    0 : AT(0) { *(.sbss) }
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+---
+ Documentation/feature-removal-schedule.txt |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
 
-Okay, thanks.
+diff --git a/Documentation/feature-removal-schedule.txt b/Documentation/feature-removal-schedule.txt
+index 887c668..23a8f8d 100644
+--- a/Documentation/feature-removal-schedule.txt
++++ b/Documentation/feature-removal-schedule.txt
+@@ -532,3 +532,12 @@ Why:	superseded by acpi_sleep=nonvs
+ Who:	Rafael J. Wysocki <rjw@sisk.pl>
+ 
+ ----------------------------
++
++What: 	PCI DMA unmap state API
++When:	August 2012
++Why:	PCI DMA unmap state API (include/linux/pci-dma.h) was replaced
++	with DMA unmap state API (DMA unmap state API can be used for
++	any bus).
++Who:	FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
++
++----------------------------
+-- 
+1.6.5
 
-David
