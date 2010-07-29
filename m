@@ -1,36 +1,25 @@
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: [PATCH 1/4] modpost: support objects with more than 64k sections
-Date: Thu, 29 Jul 2010 02:13:26 +0200
-Message-ID: <201007290213.26738.vda.linux@googlemail.com>
-References: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <1280360876-2571-2-git-send-email-vda.linux@googlemail.com>
-Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1280360876-2571-2-git-send-email-vda.linux@googlemail.com>
-Content-Disposition: inline
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/4] module linker script: coalesce function and data sections
+Date: Thu, 29 Jul 2010 01:25:05 +0100
+Message-ID: <29025.1280363105@redhat.com>
+References: <1280360876-2571-3-git-send-email-vda.linux@googlemail.com> <1280360876-2571-1-git-send-email-vda.linux@googlemail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:30933 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751134Ab0G2AZj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Jul 2010 20:25:39 -0400
+In-Reply-To: <1280360876-2571-3-git-send-email-vda.linux@googlemail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: dhowells@redhat.com, Michal Marek <mmarek@suse.cz>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On Thursday 29 July 2010 01:47, Denys Vlasenko wrote:
-> This patch makes modpost able to process object files with more than
-> 64k sections. Needed for huge kernel builds (allyesconfig, for example)
-> with -ffunction-sections.
-> 
-> Signed-off-by: Denys Vlasenko <vda.linux@googlemail.com>
-> Signed-off-by: Anders Kaseorg <andersk@mit.edu>
-> Acked-by: Sam Ravnborg <sam@ravnborg.org>
-> Cc: Rusty Russell <rusty@rustcorp.com.au>
-> Cc: Andi Kleen <andi@firstfloor.org>
+Denys Vlasenko <vda.linux@googlemail.com> wrote:
 
-I forgot to mention in the changelog that 64k sections handling
-is covered, for example, by this document:
+> +	.data   0 : AT(0) { *(.data .data.[A-Za-z0-9_$^]*) }
+> +	.bss    0 : AT(0) { *(.bss .bss.[A-Za-z0-9_$^]*) }
 
-"IA-64 gABI Proposal 74: Section Indexes"
-http://www.codesourcery.com/public/cxx-abi/abi/prop-74-sindex.html
+What about .sdata and .sbss sections produced by arches that support small
+data sections?
 
--- 
-vda
+David
