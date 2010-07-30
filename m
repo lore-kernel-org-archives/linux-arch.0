@@ -1,76 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail05.adl6.internode.on.net ([150.101.137.143]:4663 "EHLO
-	ipmail05.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751397Ab0G3HcM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Jul 2010 03:32:12 -0400
-Date: Fri, 30 Jul 2010 17:27:04 +1000
-From: Nick Piggin <npiggin@suse.de>
+Received: from casper.infradead.org ([85.118.1.10]:59701 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756427Ab0G3N5J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jul 2010 09:57:09 -0400
+Date: Fri, 30 Jul 2010 06:57:14 -0700
+From: Arjan van de Ven <arjan@infradead.org>
 Subject: Re: [patch] Remove the per cpu tick skew
-Message-ID: <20100730072704.GA9960@amd>
+Message-ID: <20100730065714.3179df46@infradead.org>
+In-Reply-To: <20100730072704.GA9960@amd>
 References: <20100727210210.58d3118c@infradead.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100727210210.58d3118c@infradead.org>
+	<20100730072704.GA9960@amd>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arjan van de Ven <arjan@infradead.org>
+To: Nick Piggin <npiggin@suse.de>
 Cc: linux-kernel@vger.kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org
-Message-ID: <20100730072704.ifxJD0EjAqyPdfPOciuobi7ENFL8nCXg7oTXEfwaUIM@z>
+Message-ID: <20100730135714.lgjZV9oFrjR57Ngy-zVdZi3YRrv4tMTxB7kAXtHs_Wc@z>
 
-On Tue, Jul 27, 2010 at 09:02:10PM -0700, Arjan van de Ven wrote:
-> Hi,
+On Fri, 30 Jul 2010 17:27:04 +1000
+Nick Piggin <npiggin@suse.de> wrote:
+> > Nowadays, with the tickless kernel, this contention no longer
+> > happens since time keeping and updating are done differently. In
+> > addition, this skew is actually hurting power consumption in a
+> > measurable way on many-core systems.
 > 
-> the following patch is a win for power management on x86....
-> ... but since this touches generic code.. are there any 
-> other architectures that would be negatively affected by this?
-> 
-> 
-> 
-> Subject: [patch] Remove the per cpu tick skew
-> 
-> Historically, Linux has tried to make the regular timer tick on the various
-> CPUs not happen at the same time, to avoid contention on xtime_lock.
-> 
-> Nowadays, with the tickless kernel, this contention no longer happens
-> since time keeping and updating are done differently. In addition,
-> this skew is actually hurting power consumption in a measurable
-> way on many-core systems.
+> Question, how much of a win is it? What does it do that tickless
+> idle does not, can you explain?
 
-Question, how much of a win is it? What does it do that tickless
-idle does not, can you explain?
+tickless idle works great if you're really almost idle
 
-> 
-> Signed-off-by: Arjan van de Ven <arjan@linux.intel.com>
-> 
-> --- linux.trees.git/kernel/time/tick-sched.c~	2010-07-16 09:40:50.000000000 -0400
-> +++ linux.trees.git/kernel/time/tick-sched.c	2010-07-26 11:18:51.138003329 -0400
-> @@ -780,7 +780,6 @@
->  {
->  	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
->  	ktime_t now = ktime_get();
-> -	u64 offset;
->  
->  	/*
->  	 * Emulate tick processing via per-CPU hrtimers:
-> @@ -790,10 +789,6 @@
->  
->  	/* Get the next period (per cpu) */
->  	hrtimer_set_expires(&ts->sched_timer, tick_init_jiffy_update());
-> -	offset = ktime_to_ns(tick_period) >> 1;
-> -	do_div(offset, num_possible_cpus());
-> -	offset *= smp_processor_id();
-> -	hrtimer_add_expires_ns(&ts->sched_timer, offset);
->  
->  	for (;;) {
->  		hrtimer_forward(&ts->sched_timer, now, tick_period);
-> 
-> -- 
-> Arjan van de Ven 	Intel Open Source Technology Centre
-> For development, discussion and tips for power savings, 
-> visit http://www.lesswatts.org
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+if there's "some work but not fully busy" this still matters
+
+
+this is not about 'a few milliwatts', but on a server in our labs
+(sorry, no hardware details in public) this effect is in the "several
+dozen Watts" range.
+
+
+
+-- 
+Arjan van de Ven 	Intel Open Source Technology Centre
+For development, discussion and tips for power savings, 
+visit http://www.lesswatts.org
