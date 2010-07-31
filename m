@@ -1,108 +1,80 @@
-From: Konrad Rzeszutek Wilk <konrad@kernel.org>
-Subject: Re: [PATCH] swiotlb: enlarge iotlb buffer on demand
-Date: Fri, 30 Jul 2010 21:07:06 -0400
-Message-ID: <20100731010706.GA30319@andromeda.dapyr.net>
-References: <20100731003643E.fujita.tomonori@lab.ntt.co.jp> <20100730202724.GA920@andromeda.dapyr.net>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 01/17 -v2] memblock: Add memblock_free/reserve_reserved_regions()
+Date: Sat, 31 Jul 2010 00:15:12 -0700
+Message-ID: <4C53CD80.6070905@kernel.org>
+References: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from andromeda.dapyr.net ([206.212.254.10]:36108 "EHLO
-	andromeda.dapyr.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751445Ab0GaBHO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Jul 2010 21:07:14 -0400
-Content-Disposition: inline
-In-Reply-To: <20100730202724.GA920@andromeda.dapyr.net>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:22226 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751449Ab0GaHQP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Jul 2010 03:16:15 -0400
+In-Reply-To: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, konrad.wilk@oracle.com, akataria@vmware.com
-
-I took your patch and was trying to fit it over the
-stable/swiotlb-0.8.4 branch and when I did so a found couple of things..
+To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
+Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
 
-> > @@ -215,14 +222,14 @@ swiotlb_late_init_with_default_size(size_t default_size)
-> >  	bytes = io_tlb_nslabs << IO_TLB_SHIFT;
+So we can avoid export memblock_reserved_init_regions()
+Suggested by Ben.
 
-You should also initialize the __io_tlb_start array first:
+-v2: use __init_memblock attribute
 
-	__io_tlb_start = __get_free_pages(GFP_KERNEL,
-                get_order((io_tlb_nslabs / IO_TLB_SEGSIZE) * sizeof(char *)));
-        if (!__io_tlb_start)
-                goto cleanup1;
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
-> >  
-> >  	while ((SLABS_PER_PAGE << order) > IO_TLB_MIN_SLABS) {
-> > -		io_tlb_start = (void *)__get_free_pages(GFP_DMA | __GFP_NOWARN,
-> > -							order);
-> > -		if (io_tlb_start)
-> > +		__io_tlb_start[0] = (void *)__get_free_pages(GFP_DMA | __GFP_NOWARN,
-> > +							     order);
+---
+ include/linux/memblock.h |    2 ++
+ mm/memblock.c            |   24 ++++++++++++++++++++++++
+ 2 files changed, 26 insertions(+)
 
-Otherwise this will be a NULL pointer exception.
-> > +		if (__io_tlb_start[0])
-> >  			break;
-> >  		order--;
-> >  	}
-> >  
-> > -	if (!io_tlb_start)
-> > +	if (!__io_tlb_start[0])
-> >  		goto cleanup1;
-> >  
-> >  	if (order != get_order(bytes)) {
-> > @@ -231,13 +238,12 @@ swiotlb_late_init_with_default_size(size_t default_size)
-> >  		io_tlb_nslabs = SLABS_PER_PAGE << order;
-> >  		bytes = io_tlb_nslabs << IO_TLB_SHIFT;
-> >  	}
-> > -	io_tlb_end = io_tlb_start + bytes;
-> > -	memset(io_tlb_start, 0, bytes);
-> > +	memset(__io_tlb_start[0], 0, bytes);
-> >  
-> >  	/*
-> >  	 * Allocate and initialize the free list array.  This array is used
-> >  	 * to find contiguous free memory regions of size up to IO_TLB_SEGSIZE
-> > -	 * between io_tlb_start and io_tlb_end.
-> > +	 * between io_tlb_start.
-> >  	 */
-> >  	io_tlb_list = (unsigned int *)__get_free_pages(GFP_KERNEL,
-> >  	                              get_order(io_tlb_nslabs * sizeof(int)));
-> > @@ -280,9 +286,8 @@ cleanup3:
-> >  	                                                 sizeof(int)));
-> >  	io_tlb_list = NULL;
-> >  cleanup2:
-> > -	io_tlb_end = NULL;
-> > -	free_pages((unsigned long)io_tlb_start, order);
-> > -	io_tlb_start = NULL;
-> > +	free_pages((unsigned long)__io_tlb_start[0], order);
-> > +	__io_tlb_start[0] = NULL;
-> >  cleanup1:
-> >  	io_tlb_nslabs = req_nslabs;
-> >  	return -ENOMEM;
-> > @@ -300,7 +305,7 @@ void __init swiotlb_free(void)
-> >  			   get_order(io_tlb_nslabs * sizeof(phys_addr_t)));
-> >  		free_pages((unsigned long)io_tlb_list, get_order(io_tlb_nslabs *
-> >  								 sizeof(int)));
-> > -		free_pages((unsigned long)io_tlb_start,
-> > +		free_pages((unsigned long)__io_tlb_start[0],
-> >  			   get_order(io_tlb_nslabs << IO_TLB_SHIFT));
-
-That isn't exactly right I think. You are de-allocating the first array,
-which size is determined by 'order'. Probably 10. And you not freeing
-the array, just the first entry.
-
-> >  	} else {
-> >  		free_bootmem_late(__pa(io_tlb_overflow_buffer),
-> > @@ -309,15 +314,36 @@ void __init swiotlb_free(void)
-> >  				  io_tlb_nslabs * sizeof(phys_addr_t));
-> >  		free_bootmem_late(__pa(io_tlb_list),
-> >  				  io_tlb_nslabs * sizeof(int));
-> > -		free_bootmem_late(__pa(io_tlb_start),
-> > +		free_bootmem_late(__pa(__io_tlb_start[0]),
-> >  				  io_tlb_nslabs << IO_TLB_SHIFT);
-
-I think you need this:
-
-                free_bootmem_late(__pa(__io_tlb_start[0]),
-                                  IO_TLB_SEGSIZE << IO_TLB_SHIFT);
-                free_bootmem_late(__pa(__io_tlb_start),
-                                  (io_tlb_nslabs / IO_TLB_SEGSIZE) * sizeof(char *));
+Index: linux-2.6/include/linux/memblock.h
+===================================================================
+--- linux-2.6.orig/include/linux/memblock.h
++++ linux-2.6/include/linux/memblock.h
+@@ -48,6 +48,8 @@ extern int memblock_can_resize;
+ 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+ 
+ u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
++int memblock_free_reserved_regions(void);
++int memblock_reserve_reserved_regions(void);
+ 
+ extern void __init memblock_init(void);
+ extern void __init memblock_analyze(void);
+Index: linux-2.6/mm/memblock.c
+===================================================================
+--- linux-2.6.orig/mm/memblock.c
++++ linux-2.6/mm/memblock.c
+@@ -170,6 +170,30 @@ u64 __init_memblock memblock_find_in_ran
+ 	return memblock_find_base(size, align, start, end);
+ }
+ 
++/*
++ * Free memblock.reserved.regions
++ */
++int __init_memblock memblock_free_reserved_regions(void)
++{
++	if (memblock.reserved.regions == memblock_reserved_init_regions)
++		return 0;
++
++	return memblock_free(__pa(memblock.reserved.regions),
++		 sizeof(struct memblock_region) * memblock.reserved.max);
++}
++
++/*
++ * Reserve memblock.reserved.regions
++ */
++int __init_memblock memblock_reserve_reserved_regions(void)
++{
++	if (memblock.reserved.regions == memblock_reserved_init_regions)
++		return 0;
++
++	return memblock_reserve(__pa(memblock.reserved.regions),
++		 sizeof(struct memblock_region) * memblock.reserved.max);
++}
++
+ static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
+ {
+ 	unsigned long i;
