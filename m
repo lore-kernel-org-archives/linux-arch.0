@@ -1,80 +1,44 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 01/17 -v2] memblock: Add memblock_free/reserve_reserved_regions()
-Date: Sat, 31 Jul 2010 00:15:12 -0700
-Message-ID: <4C53CD80.6070905@kernel.org>
-References: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] swiotlb: enlarge iotlb buffer on demand
+Date: Sun, 1 Aug 2010 12:03:11 +0900
+Message-ID: <20100801120224F.fujita.tomonori@lab.ntt.co.jp>
+References: <20100731003643E.fujita.tomonori@lab.ntt.co.jp>
+	<20100730202724.GA920@andromeda.dapyr.net>
+	<20100731010706.GA30319@andromeda.dapyr.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:22226 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751449Ab0GaHQP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Jul 2010 03:16:15 -0400
-In-Reply-To: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
+Received: from sh.osrg.net ([192.16.179.4]:33798 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754794Ab0HADHu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 31 Jul 2010 23:07:50 -0400
+In-Reply-To: <20100731010706.GA30319@andromeda.dapyr.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Be
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: konrad@kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, konrad.wilk@oracle.com, akataria@vmware.com
 
+On Fri, 30 Jul 2010 21:07:06 -0400
+Konrad Rzeszutek Wilk <konrad@kernel.org> wrote:
 
-So we can avoid export memblock_reserved_init_regions()
-Suggested by Ben.
+> I took your patch and was trying to fit it over the
+> stable/swiotlb-0.8.4 branch and when I did so a found couple of things..
+> 
+> 
+> > > @@ -215,14 +222,14 @@ swiotlb_late_init_with_default_size(size_t default_size)
+> > >  	bytes = io_tlb_nslabs << IO_TLB_SHIFT;
+> 
+> You should also initialize the __io_tlb_start array first:
 
--v2: use __init_memblock attribute
+Yeah, I know. As I wrote, this patchset breaks IA64.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+I really merge to swiotlb's two memory allocator mechanisms
+(swiotlb_init_with_default_size and
+swiotlb_late_init_with_default_size). I need to look at the x86 memory
+boot code after memblock surgery finishes.
 
----
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |   24 ++++++++++++++++++++++++
- 2 files changed, 26 insertions(+)
+And as you know, I've not fixed the error path and swiotlb_free. I'll
+do later if people are not against swiotlb dynamic allocation.
 
-Index: linux-2.6/include/linux/memblock.h
-===================================================================
---- linux-2.6.orig/include/linux/memblock.h
-+++ linux-2.6/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern int memblock_can_resize;
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
- 
- u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+int memblock_free_reserved_regions(void);
-+int memblock_reserve_reserved_regions(void);
- 
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
-Index: linux-2.6/mm/memblock.c
-===================================================================
---- linux-2.6.orig/mm/memblock.c
-+++ linux-2.6/mm/memblock.c
-@@ -170,6 +170,30 @@ u64 __init_memblock memblock_find_in_ran
- 	return memblock_find_base(size, align, start, end);
- }
- 
-+/*
-+ * Free memblock.reserved.regions
-+ */
-+int __init_memblock memblock_free_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_free(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
-+/*
-+ * Reserve memblock.reserved.regions
-+ */
-+int __init_memblock memblock_reserve_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_reserve(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
- {
- 	unsigned long i;
+Thanks,
