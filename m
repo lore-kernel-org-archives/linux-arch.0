@@ -1,35 +1,65 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH] swiotlb: enlarge iotlb buffer on demand
-Date: Mon, 2 Aug 2010 23:56:12 +0900
-Message-ID: <20100802235521D.fujita.tomonori@lab.ntt.co.jp>
-References: <20100731010706.GA30319@andromeda.dapyr.net>
-	<20100801120224F.fujita.tomonori@lab.ntt.co.jp>
-	<201008020940.09552.konrad.wilk@oracle.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH -next] swiotlb: make io_tlb_overflow static
+Date: Mon, 2 Aug 2010 11:52:48 -0400
+Message-ID: <20100802155248.GA9177@phenom.dumpdata.com>
+References: <20100802234722U.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:44245 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751303Ab0HBO4Y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Aug 2010 10:56:24 -0400
-In-Reply-To: <201008020940.09552.konrad.wilk@oracle.com>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:45137 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753887Ab0HBPxZ (ORCPT
+	<rfc822;<linux-arch@vger.kernel.org>>);
+	Mon, 2 Aug 2010 11:53:25 -0400
+Content-Disposition: inline
+In-Reply-To: <20100802234722U.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: konrad.wilk@oracle.com
-Cc: fujita.tomonori@lab.ntt.co.jp, konrad@kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ak@linux.intel.com, akataria@vmware.com
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2 Aug 2010 09:40:08 -0400
-Konrad Rzeszutek Wilk <konrad.wilk@oracle.com> wrote:
+On Mon, Aug 02, 2010 at 11:48:06PM +0900, FUJITA Tomonori wrote:
+> We don't need to export io_tlb_overflow_buffer. I'll remove
+> io_tlb_overflow_buffer completely in the long term though.
 
-> I am curious about the handling of the -ENOMEM stage. Naturally we would 
-> return an error the device - are the most common ones (ahci, r8169, 
-> ata_piix - those that are DMA_32) equipped to deal with unavailable memory?
+<nods>
 
-libata does dma mapping for ata drivers. It can handle mapping errors.
+> This can be applied to:
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/konrad/swiotlb-2.6.git
+> 
+> =
+> From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+> Subject: [PATCH] swiotlb: make io_tlb_overflow static
+> 
+> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-Looks like r8169 can't handle errors.
+Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 
-All drivers should handle mapping errors because IOMMUs are pretty
-common now. I think that drivers that vendor people are serious about
-can handle mapping errors.
+I've stuck it in a new branch (devel/swiotlb-0.9).
+
+> ---
+>  lib/swiotlb.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
+> index a009055..72c382c 100644
+> --- a/lib/swiotlb.c
+> +++ b/lib/swiotlb.c
+> @@ -78,7 +78,7 @@ static unsigned long io_tlb_nslabs;
+>   */
+>  static unsigned long io_tlb_overflow = 32*1024;
+>  
+> -void *io_tlb_overflow_buffer;
+> +static void *io_tlb_overflow_buffer;
+>  
+>  /*
+>   * This is a free list describing the number of free entries available from
+> -- 
+> 1.6.5
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
