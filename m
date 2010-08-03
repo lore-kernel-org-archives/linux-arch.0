@@ -1,65 +1,49 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH -next] swiotlb: make io_tlb_overflow static
-Date: Mon, 2 Aug 2010 11:52:48 -0400
-Message-ID: <20100802155248.GA9177@phenom.dumpdata.com>
-References: <20100802234722U.fujita.tomonori@lab.ntt.co.jp>
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: [PATCH 2/4] module linker script: coalesce function and data
+ sections
+Date: Tue, 03 Aug 2010 15:47:26 +0200
+Message-ID: <4C581DEE.8080205@suse.cz>
+References: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <1280360876-2571-3-git-send-email-vda.linux@googlemail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:45137 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753887Ab0HBPxZ (ORCPT
-	<rfc822;<linux-arch@vger.kernel.org>>);
-	Mon, 2 Aug 2010 11:53:25 -0400
-Content-Disposition: inline
-In-Reply-To: <20100802234722U.fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-2
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1280360876-2571-3-git-send-email-vda.linux@googlemail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 02, 2010 at 11:48:06PM +0900, FUJITA Tomonori wrote:
-> We don't need to export io_tlb_overflow_buffer. I'll remove
-> io_tlb_overflow_buffer completely in the long term though.
+On 29.7.2010 01:47, Denys Vlasenko wrote:
+>  SECTIONS {
+> +
+> +	/* Coalesce sections produced by gcc -ffunction-sections */
+> +	.text   0 : AT(0) { *(.text .text.[A-Za-z0-9_$^]*) }
+> +
+> +	/* Coalesce sections produced by gcc -fdata-sections */
+> +	.rodata 0 : AT(0) { *(.rodata .rodata.[A-Za-z0-9_$^]*) }
+> +	.data   0 : AT(0) { *(.data .data.[A-Za-z0-9_$^]*) }
+> +	.bss    0 : AT(0) { *(.bss .bss.[A-Za-z0-9_$^]*) }
+> +
+>  	/DISCARD/ : { *(.discard) }
+>  }
 
-<nods>
+I'm now getting
 
-> This can be applied to:
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/konrad/swiotlb-2.6.git
-> 
-> =
-> From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-> Subject: [PATCH] swiotlb: make io_tlb_overflow static
-> 
-> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:23: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:26: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:27: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:28: ignoring invalid
+character `^' in script
 
-Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+when linking modules and a similar warning when linking vmlinux (caused
+by the next patch in series). I tried writing the carets as \^, but that
+doesn't help at all...
 
-I've stuck it in a new branch (devel/swiotlb-0.9).
+$ ld --version
+GNU ld (GNU Binutils; openSUSE Factory) 2.20.0.20100122-7
 
-> ---
->  lib/swiotlb.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
-> 
-> diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-> index a009055..72c382c 100644
-> --- a/lib/swiotlb.c
-> +++ b/lib/swiotlb.c
-> @@ -78,7 +78,7 @@ static unsigned long io_tlb_nslabs;
->   */
->  static unsigned long io_tlb_overflow = 32*1024;
->  
-> -void *io_tlb_overflow_buffer;
-> +static void *io_tlb_overflow_buffer;
->  
->  /*
->   * This is a free list describing the number of free entries available from
-> -- 
-> 1.6.5
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+Michal
