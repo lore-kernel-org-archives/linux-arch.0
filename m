@@ -1,81 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:22226 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751449Ab0GaHQP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Jul 2010 03:16:15 -0400
-Message-ID: <4C53CD80.6070905@kernel.org>
-Date: Sat, 31 Jul 2010 00:15:12 -0700
-From: Yinghai Lu <yinghai@kernel.org>
+Received: from cantor.suse.de ([195.135.220.2]:60886 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756696Ab0HCNsw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Aug 2010 09:48:52 -0400
+Message-ID: <4C581DEE.8080205@suse.cz>
+Date: Tue, 03 Aug 2010 15:47:26 +0200
+From: Michal Marek <mmarek@suse.cz>
 MIME-Version: 1.0
-Subject: [PATCH 01/17 -v2] memblock: Add memblock_free/reserve_reserved_regions()
-References: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1280432737-1808-1-git-send-email-yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 2/4] module linker script: coalesce function and data
+ sections
+References: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <1280360876-2571-3-git-send-email-vda.linux@googlemail.com>
+In-Reply-To: <1280360876-2571-3-git-send-email-vda.linux@googlemail.com>
+Content-Type: text/plain; charset=ISO-8859-2
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Johannes Weiner <hannes@cmpxchg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20100731071512.rL3_lbLNPgbweuwfMTcE0lDAyaYxIcfYgHMbgqobIAk@z>
+To: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20100803134726.5GTiVN9SJMJuXQmogm3S7sQggqipBWEu9SQmAQCVA0E@z>
 
+On 29.7.2010 01:47, Denys Vlasenko wrote:
+>  SECTIONS {
+> +
+> +	/* Coalesce sections produced by gcc -ffunction-sections */
+> +	.text   0 : AT(0) { *(.text .text.[A-Za-z0-9_$^]*) }
+> +
+> +	/* Coalesce sections produced by gcc -fdata-sections */
+> +	.rodata 0 : AT(0) { *(.rodata .rodata.[A-Za-z0-9_$^]*) }
+> +	.data   0 : AT(0) { *(.data .data.[A-Za-z0-9_$^]*) }
+> +	.bss    0 : AT(0) { *(.bss .bss.[A-Za-z0-9_$^]*) }
+> +
+>  	/DISCARD/ : { *(.discard) }
+>  }
 
-So we can avoid export memblock_reserved_init_regions()
-Suggested by Ben.
+I'm now getting
 
--v2: use __init_memblock attribute
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:23: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:26: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:27: ignoring invalid
+character `^' in script
+ld:/home/mmarek/linux-2.6/scripts/module-common.lds:28: ignoring invalid
+character `^' in script
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+when linking modules and a similar warning when linking vmlinux (caused
+by the next patch in series). I tried writing the carets as \^, but that
+doesn't help at all...
 
----
- include/linux/memblock.h |    2 ++
- mm/memblock.c            |   24 ++++++++++++++++++++++++
- 2 files changed, 26 insertions(+)
+$ ld --version
+GNU ld (GNU Binutils; openSUSE Factory) 2.20.0.20100122-7
 
-Index: linux-2.6/include/linux/memblock.h
-===================================================================
---- linux-2.6.orig/include/linux/memblock.h
-+++ linux-2.6/include/linux/memblock.h
-@@ -48,6 +48,8 @@ extern int memblock_can_resize;
- 	if (memblock_debug) printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
- 
- u64 memblock_find_in_range(u64 start, u64 end, u64 size, u64 align);
-+int memblock_free_reserved_regions(void);
-+int memblock_reserve_reserved_regions(void);
- 
- extern void __init memblock_init(void);
- extern void __init memblock_analyze(void);
-Index: linux-2.6/mm/memblock.c
-===================================================================
---- linux-2.6.orig/mm/memblock.c
-+++ linux-2.6/mm/memblock.c
-@@ -170,6 +170,30 @@ u64 __init_memblock memblock_find_in_ran
- 	return memblock_find_base(size, align, start, end);
- }
- 
-+/*
-+ * Free memblock.reserved.regions
-+ */
-+int __init_memblock memblock_free_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_free(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
-+/*
-+ * Reserve memblock.reserved.regions
-+ */
-+int __init_memblock memblock_reserve_reserved_regions(void)
-+{
-+	if (memblock.reserved.regions == memblock_reserved_init_regions)
-+		return 0;
-+
-+	return memblock_reserve(__pa(memblock.reserved.regions),
-+		 sizeof(struct memblock_region) * memblock.reserved.max);
-+}
-+
- static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
- {
- 	unsigned long i;
+Michal
