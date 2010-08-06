@@ -1,30 +1,60 @@
-From: wins <eth65@cox.net>
-Subject: read
-Date: Wed, 4 Aug 2010 16:11:45 -0700
-Message-ID: <20100804191145.JH7T0.312882.imail@fed1rmwml35>
-Reply-To: ericdonald200@aol.com
+From: Denys Vlasenko <vda.linux@googlemail.com>
+Subject: Re: [PATCH 2/4] module linker script: coalesce function and data sections
+Date: Fri, 6 Aug 2010 04:18:06 +0200
+Message-ID: <201008060418.06363.vda.linux@googlemail.com>
+References: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <1280360876-2571-3-git-send-email-vda.linux@googlemail.com> <4C581DEE.8080205@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain;
+  charset="iso-8859-2"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fed1rmpop108.cox.net ([68.230.241.12]:36663 "EHLO
-	fed1rmpop108.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759489Ab0HDXac (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Aug 2010 19:30:32 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <4C581DEE.8080205@suse.cz>
+Content-Disposition: inline
+Sender: linux-parisc-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-Your e mail address was choosen in the Promo  that was perticipated
-july 29th 2010 , and you are to claim the
-sum of $1,000 000 USD.this which means you are one of our five(5) lucky
-recipents . Your winning number is: (CT-222-6747,FGN/P-900-56)
+On Tuesday 03 August 2010 15:47, Michal Marek wrote:
+> On 29.7.2010 01:47, Denys Vlasenko wrote:
+> >  SECTIONS {
+> > +
+> > +	/* Coalesce sections produced by gcc -ffunction-sections */
+> > +	.text   0 : AT(0) { *(.text .text.[A-Za-z0-9_$^]*) }
+> > +
+> > +	/* Coalesce sections produced by gcc -fdata-sections */
+> > +	.rodata 0 : AT(0) { *(.rodata .rodata.[A-Za-z0-9_$^]*) }
+> > +	.data   0 : AT(0) { *(.data .data.[A-Za-z0-9_$^]*) }
+> > +	.bss    0 : AT(0) { *(.bss .bss.[A-Za-z0-9_$^]*) }
+> > +
+> >  	/DISCARD/ : { *(.discard) }
+> >  }
+> 
+> I'm now getting
+> 
+> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:23: ignoring invalid
+> character `^' in script
+> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:26: ignoring invalid
+> character `^' in script
+> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:27: ignoring invalid
+> character `^' in script
+> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:28: ignoring invalid
+> character `^' in script
+> 
+> when linking modules and a similar warning when linking vmlinux (caused
+> by the next patch in series). I tried writing the carets as \^, but that
+> doesn't help at all...
 
-You are to send us this details
+Yep, I can confirm it. The binutils fix to allow caret might be trivial,
+and will allow us to use much better pattern: [^.]*
 
-NAME IN FULL: 
-DELIVERY ADDRESS: 
-AGE:
-NATIONALITY: 
-OCCUPATION: 
-PHONE: 
-SEX:
+I created a Fedora bug for it:
+
+https://bugzilla.redhat.com/show_bug.cgi?id=621742
+
+So far, please remove these three patches from kbuild tree.
+
+(I see that modpost patch is in Linus tree. Thanks!)
+
+-- 
+vda
