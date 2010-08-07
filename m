@@ -1,30 +1,41 @@
-From: "UK AWARD" <info@uk.org>
-Subject: Certified Winner{Mid Year Bonanza 2010}
-Date: Fri, 6 Aug 2010 11:14:19 -0300
-Message-ID: <20100806141414.M56236@uk.org>
-Reply-To: davidrex200@aol.com
+From: Mr Smart Ben <infor@loan.com>
+Subject: (unknown)
+Date: Sat,  7 Aug 2010 03:13:31 -0300
+Message-ID: <1281161611.4c5cf98ba27be__37423.5918083743$1281183198$gmane$org@www.fce.unju.edu.ar>
+Reply-To: Smartloan01@hotmail.com
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=iso-8859-1
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from srvbr.netuno.ind.br ([200.167.197.10]:43849 "EHLO netuno.ind.br"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751703Ab0HFOVe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Aug 2010 10:21:34 -0400
+Received: from inbial.unju.edu.ar ([200.45.224.36]:46954 "EHLO
+	molostro.fce.unju.edu.ar" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753299Ab0HGJKy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Aug 2010 05:10:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
- Your e mail address was selected in the UK award 2010 which took place 
- junly 25th 2010 , and you are to claim the
- sum of $1,000 000 USD.that means you are one of the five(5) lucky
- recipents . Your winning number is: (CT-222-6747,FGN/P-900-56).
 
-You are to send us email to davidrex200@aol.com and provid this details
- 
-NAME IN FULL: 
-DELIVERY ADDRESS: 
-AGE:
-NATIONALITY: 
-OCCUPATION: 
-PHONE: 
-SEX:
+
+ We give out loans ranging from Home loans Auto Loans Car loans Mortgag=
+e loans Business Loans Internation Loans Personal Loans.
+=20
+ I give out loans at 3% interest rate. The loan is opened to all no mat=
+ter the
+ Nationality. You can reach me via my email address for that special=20
+ loan to get you started financial and help you get out of your financi=
+al doldrum.
+=20
+ Full Name................
+ Country...................
+ Amount.....................
+ Phone number........
+ Loan Duration.........
+ SEX.......................
+=20
+ Thanks,
+ Mr Smart Ben
+ CONTACT US TODAY AT:Smartloan01@hotmail.com
+
+-------------------------------------------------
+=46acultad de Ciencias Econ=F3micas
+Universidad Nacional de Jujuy
