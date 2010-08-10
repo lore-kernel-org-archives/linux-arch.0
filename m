@@ -1,65 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:44881 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759160Ab0HFCSP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Aug 2010 22:18:15 -0400
-From: Denys Vlasenko <vda.linux@googlemail.com>
-Subject: Re: [PATCH 2/4] module linker script: coalesce function and data sections
-Date: Fri, 6 Aug 2010 04:18:06 +0200
-References: <1280360876-2571-1-git-send-email-vda.linux@googlemail.com> <1280360876-2571-3-git-send-email-vda.linux@googlemail.com> <4C581DEE.8080205@suse.cz>
-In-Reply-To: <4C581DEE.8080205@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-2"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-Message-ID: <201008060418.06363.vda.linux@googlemail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:11802 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932683Ab0HJVvT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Aug 2010 17:51:19 -0400
+Subject: Re: asm/vga.h (was: Re: drm: Add support for platform devices to
+ register as DRM devices)
+From: Adam Jackson <ajax@redhat.com>
+In-Reply-To: <AANLkTik44qbia+7w9=83cboTMLbvQDcH-60dHuAnd9ax@mail.gmail.com>
+References: <AANLkTik44qbia+7w9=83cboTMLbvQDcH-60dHuAnd9ax@mail.gmail.com>
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-p76OG5oZ2flwIKIzvJVj"
+Date: Tue, 10 Aug 2010 17:51:06 -0400
+Message-ID: <1281477066.17843.3015.camel@atropine>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux-kbuild <linux-kbuild@vger.kernel.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>, Tim Abbott <tabbott@ksplice.com>, Tim Bird <tim.bird@am.sony.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matt Fleming <matt@console-pimps.org>, Arnd Bergmann <arnd@arndb.de>, Anders Kaseorg <andersk@mit.edu>, Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20100806021806.y7rjyRrcwr6lEwexrN5bDQg0uWh9G0JmFYrHfiOCpn4@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: dri-devel@lists.freedesktop.org, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
+Message-ID: <20100810215106.WGvqY5oblWPT2U1h7B0ZRwtTLd7Q4UQ0P5pFGdfD6ps@z>
 
-On Tuesday 03 August 2010 15:47, Michal Marek wrote:
-> On 29.7.2010 01:47, Denys Vlasenko wrote:
-> >  SECTIONS {
-> > +
-> > +	/* Coalesce sections produced by gcc -ffunction-sections */
-> > +	.text   0 : AT(0) { *(.text .text.[A-Za-z0-9_$^]*) }
-> > +
-> > +	/* Coalesce sections produced by gcc -fdata-sections */
-> > +	.rodata 0 : AT(0) { *(.rodata .rodata.[A-Za-z0-9_$^]*) }
-> > +	.data   0 : AT(0) { *(.data .data.[A-Za-z0-9_$^]*) }
-> > +	.bss    0 : AT(0) { *(.bss .bss.[A-Za-z0-9_$^]*) }
-> > +
-> >  	/DISCARD/ : { *(.discard) }
-> >  }
-> 
-> I'm now getting
-> 
-> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:23: ignoring invalid
-> character `^' in script
-> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:26: ignoring invalid
-> character `^' in script
-> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:27: ignoring invalid
-> character `^' in script
-> ld:/home/mmarek/linux-2.6/scripts/module-common.lds:28: ignoring invalid
-> character `^' in script
-> 
-> when linking modules and a similar warning when linking vmlinux (caused
-> by the next patch in series). I tried writing the carets as \^, but that
-> doesn't help at all...
 
-Yep, I can confirm it. The binutils fix to allow caret might be trivial,
-and will allow us to use much better pattern: [^.]*
+--=-p76OG5oZ2flwIKIzvJVj
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-I created a Fedora bug for it:
+On Tue, 2010-08-10 at 22:35 +0200, Geert Uytterhoeven wrote:
 
-https://bugzilla.redhat.com/show_bug.cgi?id=621742
+> Now, do we really need <asm/vga.h>? It seems I can make it build and boot=
+ using:
+>=20
+> --- a/include/linux/vgaarb.h
+> +++ b/include/linux/vgaarb.h
+> @@ -31,7 +31,9 @@
+>  #ifndef LINUX_VGA_H
+>  #define LINUX_VGA_H
+>=20
+> +#ifdef CONFIG_VGA_ARB
+>  #include <asm/vga.h>
+> +#endif
+>=20
+>  /* Legacy VGA regions */
+>  #define VGA_RSRC_NONE         0x00
 
-So far, please remove these three patches from kbuild tree.
+That seems fine.
 
-(I see that modpost patch is in Linus tree. Thanks!)
+- ajax
 
--- 
-vda
+--=-p76OG5oZ2flwIKIzvJVj
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEABECAAYFAkxhycoACgkQW4otUKDs0NNGiwCfQuFFgBM8FUI8rYgUt0Sz1EXR
+MyQAniQSvWUVFR9MLN7qoecHD2A2wnqQ
+=FHMk
+-----END PGP SIGNATURE-----
+
+--=-p76OG5oZ2flwIKIzvJVj--
+
