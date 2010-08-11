@@ -1,279 +1,346 @@
 From: akpm@linux-foundation.org
-Subject: [patch 155/177] dma-mapping: rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
-Date: Tue, 10 Aug 2010 18:03:22 -0700
-Message-ID: <201008110103.o7B13Mnx027474@imap1.linux-foundation.org>
+Subject: [patch 159/177] dma-mapping: remove dma_is_consistent API
+Date: Tue, 10 Aug 2010 18:03:25 -0700
+Message-ID: <201008110103.o7B13PCc027490@imap1.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ANSI_X3.4-1968
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:39013 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58609 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757575Ab0HKBD7 (ORCPT
+	by vger.kernel.org with ESMTP id S1758152Ab0HKBEF (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Aug 2010 21:03:59 -0400
+	Tue, 10 Aug 2010 21:04:05 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+Cc: akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, James.Bottomley@HansenPartnership.com, konrad.wilk@oracle.com, linux-arch@vger.kernel.org
 
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-Now each architecture has the own dma_get_cache_alignment implementation.
+Architectures implement dma_is_consistent() in different ways (some
+misinterpret the definition of API in DMA-API.txt).  So it hasn't been so
+useful for drivers.  We have only one user of the API in tree.  Unlikely
+out-of-tree drivers use the API.
 
-dma_get_cache_alignment returns the minimum DMA alignment.  Architectures
-define it as ARCH_KMALLOC_MINALIGN (it's used to make sure that malloc'ed
-buffer is DMA-safe; the buffer doesn't share a cache with the others).  So
-we can unify dma_get_cache_alignment implementations.
+Even if we fix dma_is_consistent() in some architectures, it doesn't look
+useful at all.  It was invented long ago for some old systems that can't
+allocate coherent memory at all.  It's better to export only APIs that are
+definitely necessary for drivers.
 
-
-This patch:
-
-dma_get_cache_alignment() needs to know if an architecture defines
-ARCH_KMALLOC_MINALIGN or not (needs to know if architecture has DMA
-alignment restriction).  However, slab.h define ARCH_KMALLOC_MINALIGN if
-architectures doesn't define it.
-
-Let's rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN. 
-ARCH_KMALLOC_MINALIGN is used only in the internals of slab/slob/slub
-(except for crypto).
+Let's remove this API.
 
 Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: James Bottomley <James.Bottomley@HansenPartnership.com>
+Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/arm/include/asm/cache.h                 |    2 +-
- arch/avr32/include/asm/cache.h               |    2 +-
- arch/blackfin/include/asm/cache.h            |    2 +-
- arch/frv/include/asm/mem-layout.h            |    2 +-
- arch/m68k/include/asm/cache.h                |    2 +-
- arch/microblaze/include/asm/page.h           |    2 +-
- arch/mips/include/asm/mach-generic/kmalloc.h |    2 +-
- arch/mips/include/asm/mach-ip27/kmalloc.h    |    2 +-
- arch/mips/include/asm/mach-ip32/kmalloc.h    |    4 ++--
- arch/mn10300/include/asm/cache.h             |    2 +-
- arch/powerpc/include/asm/page_32.h           |    2 +-
- arch/sh/include/asm/page.h                   |    2 +-
- arch/xtensa/include/asm/cache.h              |    2 +-
- include/linux/slab_def.h                     |    4 +++-
- include/linux/slob_def.h                     |    4 +++-
- include/linux/slub_def.h                     |    8 +++++---
- 16 files changed, 25 insertions(+), 19 deletions(-)
+ Documentation/DMA-API.txt                 |    6 ------
+ arch/alpha/include/asm/dma-mapping.h      |    1 -
+ arch/arm/include/asm/dma-mapping.h        |    5 -----
+ arch/avr32/include/asm/dma-mapping.h      |    5 -----
+ arch/blackfin/include/asm/dma-mapping.h   |    1 -
+ arch/cris/include/asm/dma-mapping.h       |    2 --
+ arch/frv/include/asm/dma-mapping.h        |    2 --
+ arch/ia64/include/asm/dma-mapping.h       |    2 --
+ arch/m68k/include/asm/dma-mapping.h       |    5 -----
+ arch/microblaze/include/asm/dma-mapping.h |    1 -
+ arch/mips/include/asm/dma-mapping.h       |    2 --
+ arch/mips/mm/dma-default.c                |    7 -------
+ arch/mn10300/include/asm/dma-mapping.h    |    2 --
+ arch/parisc/include/asm/dma-mapping.h     |    6 ------
+ arch/powerpc/include/asm/dma-mapping.h    |    5 -----
+ arch/sh/include/asm/dma-mapping.h         |    6 ------
+ arch/sparc/include/asm/dma-mapping.h      |    1 -
+ arch/tile/include/asm/dma-mapping.h       |    2 --
+ arch/um/include/asm/dma-mapping.h         |    1 -
+ arch/x86/include/asm/dma-mapping.h        |    1 -
+ arch/xtensa/include/asm/dma-mapping.h     |    2 --
+ include/asm-generic/dma-mapping-broken.h  |    3 ---
+ 22 files changed, 68 deletions(-)
 
-diff -puN arch/arm/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/arm/include/asm/cache.h
---- a/arch/arm/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/arm/include/asm/cache.h
-@@ -14,7 +14,7 @@
-  * cache before the transfer is done, causing old data to be seen by
-  * the CPU.
-  */
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+diff -puN Documentation/DMA-API.txt~dma-mapping-remove-dma_is_consistent-api Documentation/DMA-API.txt
+--- a/Documentation/DMA-API.txt~dma-mapping-remove-dma_is_consistent-api
++++ a/Documentation/DMA-API.txt
+@@ -456,12 +456,6 @@ be identical to those passed in (and ret
+ dma_alloc_noncoherent()).
  
+ int
+-dma_is_consistent(struct device *dev, dma_addr_t dma_handle)
+-
+-Returns true if the device dev is performing consistent DMA on the memory
+-area pointed to by the dma_handle.
+-
+-int
+ dma_get_cache_alignment(void)
+ 
+ Returns the processor cache alignment.  This is the absolute minimum
+diff -puN arch/alpha/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/alpha/include/asm/dma-mapping.h
+--- a/arch/alpha/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/alpha/include/asm/dma-mapping.h
+@@ -41,7 +41,6 @@ static inline int dma_set_mask(struct de
+ 
+ #define dma_alloc_noncoherent(d, s, h, f)	dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h)	dma_free_coherent(d, s, v, h)
+-#define dma_is_consistent(d, h)			(1)
+ 
+ #define dma_cache_sync(dev, va, size, dir)		  ((void)0)
+ 
+diff -puN arch/arm/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/arm/include/asm/dma-mapping.h
+--- a/arch/arm/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/arm/include/asm/dma-mapping.h
+@@ -144,11 +144,6 @@ static inline int dma_set_mask(struct de
+ 	return 0;
+ }
+ 
+-static inline int dma_is_consistent(struct device *dev, dma_addr_t handle)
+-{
+-	return !!arch_is_coherent();
+-}
+-
  /*
-  * With EABI on ARMv5 and above we must have 64-bit aligned slab pointers.
-diff -puN arch/avr32/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/avr32/include/asm/cache.h
---- a/arch/avr32/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/avr32/include/asm/cache.h
-@@ -11,7 +11,7 @@
-  * cache before the transfer is done, causing old data to be seen by
-  * the CPU.
+  * DMA errors are defined by all-bits-set in the DMA address.
   */
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+diff -puN arch/avr32/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/avr32/include/asm/dma-mapping.h
+--- a/arch/avr32/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/avr32/include/asm/dma-mapping.h
+@@ -336,9 +336,4 @@ dma_sync_sg_for_device(struct device *de
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
  
- #ifndef __ASSEMBLER__
- struct cache_info {
-diff -puN arch/blackfin/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/blackfin/include/asm/cache.h
---- a/arch/blackfin/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/blackfin/include/asm/cache.h
-@@ -15,7 +15,7 @@
- #define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
- #define SMP_CACHE_BYTES	L1_CACHE_BYTES
+-static inline int dma_is_consistent(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return 1;
+-}
+-
+ #endif /* __ASM_AVR32_DMA_MAPPING_H */
+diff -puN arch/blackfin/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/blackfin/include/asm/dma-mapping.h
+--- a/arch/blackfin/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/blackfin/include/asm/dma-mapping.h
+@@ -21,7 +21,6 @@ void dma_free_coherent(struct device *de
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+ #define dma_supported(d, m)         (1)
+-#define dma_is_consistent(d, h)     (1)
  
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+ static inline int
+ dma_set_mask(struct device *dev, u64 dma_mask)
+diff -puN arch/cris/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/cris/include/asm/dma-mapping.h
+--- a/arch/cris/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/cris/include/asm/dma-mapping.h
+@@ -152,8 +152,6 @@ dma_set_mask(struct device *dev, u64 mas
+ 	return 0;
+ }
  
- #ifdef CONFIG_SMP
- #define __cacheline_aligned
-diff -puN arch/frv/include/asm/mem-layout.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/frv/include/asm/mem-layout.h
---- a/arch/frv/include/asm/mem-layout.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/frv/include/asm/mem-layout.h
-@@ -35,7 +35,7 @@
-  * the slab must be aligned such that load- and store-double instructions don't
-  * fault if used
-  */
--#define	ARCH_KMALLOC_MINALIGN		L1_CACHE_BYTES
-+#define	ARCH_DMA_MINALIGN		L1_CACHE_BYTES
- #define	ARCH_SLAB_MINALIGN		L1_CACHE_BYTES
+-#define dma_is_consistent(d, h)	(1)
+-
+ static inline void
+ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+diff -puN arch/frv/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/frv/include/asm/dma-mapping.h
+--- a/arch/frv/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/frv/include/asm/dma-mapping.h
+@@ -125,8 +125,6 @@ int dma_set_mask(struct device *dev, u64
+ 	return 0;
+ }
  
- /*****************************************************************************/
-diff -puN arch/m68k/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/m68k/include/asm/cache.h
---- a/arch/m68k/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/m68k/include/asm/cache.h
-@@ -8,6 +8,6 @@
- #define        L1_CACHE_SHIFT  4
- #define        L1_CACHE_BYTES  (1<< L1_CACHE_SHIFT)
+-#define dma_is_consistent(d, h)	(1)
+-
+ static inline
+ void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 		    enum dma_data_direction direction)
+diff -puN arch/ia64/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/ia64/include/asm/dma-mapping.h
+--- a/arch/ia64/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/ia64/include/asm/dma-mapping.h
+@@ -97,6 +97,4 @@ dma_cache_sync (struct device *dev, void
+ 	mb();
+ }
  
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+-#define dma_is_consistent(d, h)	(1)	/* all we do is coherent memory... */
+-
+ #endif /* _ASM_IA64_DMA_MAPPING_H */
+diff -puN arch/m68k/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/m68k/include/asm/dma-mapping.h
+--- a/arch/m68k/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/m68k/include/asm/dma-mapping.h
+@@ -16,11 +16,6 @@ static inline int dma_set_mask(struct de
+ 	return 0;
+ }
  
- #endif
-diff -puN arch/microblaze/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/microblaze/include/asm/page.h
---- a/arch/microblaze/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/microblaze/include/asm/page.h
-@@ -40,7 +40,7 @@
- #ifndef __ASSEMBLY__
+-static inline int dma_is_consistent(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return 0;
+-}
+-
+ extern void *dma_alloc_coherent(struct device *, size_t,
+ 				dma_addr_t *, gfp_t);
+ extern void dma_free_coherent(struct device *, size_t,
+diff -puN arch/microblaze/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/microblaze/include/asm/dma-mapping.h
+--- a/arch/microblaze/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/microblaze/include/asm/dma-mapping.h
+@@ -106,7 +106,6 @@ static inline int dma_mapping_error(stru
  
- /* MS be sure that SLAB allocates aligned objects */
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+-#define dma_is_consistent(d, h)	(1)
  
- #define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
+ static inline void *dma_alloc_coherent(struct device *dev, size_t size,
+ 					dma_addr_t *dma_handle, gfp_t flag)
+diff -puN arch/mips/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/mips/include/asm/dma-mapping.h
+--- a/arch/mips/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/mips/include/asm/dma-mapping.h
+@@ -62,8 +62,6 @@ dma_set_mask(struct device *dev, u64 mas
+ 	return 0;
+ }
  
-diff -puN arch/mips/include/asm/mach-generic/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-generic/kmalloc.h
---- a/arch/mips/include/asm/mach-generic/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/mips/include/asm/mach-generic/kmalloc.h
-@@ -7,7 +7,7 @@
-  * Total overkill for most systems but need as a safe default.
-  * Set this one if any device in the system might do non-coherent DMA.
-  */
--#define ARCH_KMALLOC_MINALIGN	128
-+#define ARCH_DMA_MINALIGN	128
- #endif
+-extern int dma_is_consistent(struct device *dev, dma_addr_t dma_addr);
+-
+ extern void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction);
  
- #endif /* __ASM_MACH_GENERIC_KMALLOC_H */
-diff -puN arch/mips/include/asm/mach-ip27/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-ip27/kmalloc.h
---- a/arch/mips/include/asm/mach-ip27/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/mips/include/asm/mach-ip27/kmalloc.h
-@@ -2,7 +2,7 @@
- #define __ASM_MACH_IP27_KMALLOC_H
+diff -puN arch/mips/mm/dma-default.c~dma-mapping-remove-dma_is_consistent-api arch/mips/mm/dma-default.c
+--- a/arch/mips/mm/dma-default.c~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/mips/mm/dma-default.c
+@@ -357,13 +357,6 @@ int dma_supported(struct device *dev, u6
  
- /*
-- * All happy, no need to define ARCH_KMALLOC_MINALIGN
-+ * All happy, no need to define ARCH_DMA_MINALIGN
-  */
+ EXPORT_SYMBOL(dma_supported);
  
- #endif /* __ASM_MACH_IP27_KMALLOC_H */
-diff -puN arch/mips/include/asm/mach-ip32/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mips/include/asm/mach-ip32/kmalloc.h
---- a/arch/mips/include/asm/mach-ip32/kmalloc.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/mips/include/asm/mach-ip32/kmalloc.h
-@@ -3,9 +3,9 @@
+-int dma_is_consistent(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return plat_device_is_coherent(dev);
+-}
+-
+-EXPORT_SYMBOL(dma_is_consistent);
+-
+ void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+ {
+diff -puN arch/mn10300/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/mn10300/include/asm/dma-mapping.h
+--- a/arch/mn10300/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/mn10300/include/asm/dma-mapping.h
+@@ -161,8 +161,6 @@ int dma_set_mask(struct device *dev, u64
+ 	return 0;
+ }
  
+-#define dma_is_consistent(d)	(1)
+-
+ static inline
+ void dma_cache_sync(void *vaddr, size_t size,
+ 		    enum dma_data_direction direction)
+diff -puN arch/parisc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/parisc/include/asm/dma-mapping.h
+--- a/arch/parisc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/parisc/include/asm/dma-mapping.h
+@@ -184,12 +184,6 @@ dma_set_mask(struct device *dev, u64 mas
+ 	return 0;
+ }
  
- #if defined(CONFIG_CPU_R5000) || defined(CONFIG_CPU_RM7000)
--#define ARCH_KMALLOC_MINALIGN	32
-+#define ARCH_DMA_MINALIGN	32
- #else
--#define ARCH_KMALLOC_MINALIGN	128
-+#define ARCH_DMA_MINALIGN	128
- #endif
+-static inline int
+-dma_is_consistent(struct device *dev, dma_addr_t dma_addr)
+-{
+-	return (hppa_dma_ops->dma_sync_single_for_cpu == NULL);
+-}
+-
+ static inline void
+ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+diff -puN arch/powerpc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/powerpc/include/asm/dma-mapping.h
+--- a/arch/powerpc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/powerpc/include/asm/dma-mapping.h
+@@ -209,11 +209,6 @@ static inline phys_addr_t dma_to_phys(st
  
- #endif /* __ASM_MACH_IP32_KMALLOC_H */
-diff -puN arch/mn10300/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/mn10300/include/asm/cache.h
---- a/arch/mn10300/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/mn10300/include/asm/cache.h
-@@ -21,7 +21,7 @@
- #define L1_CACHE_DISPARITY	L1_CACHE_NENTRIES * L1_CACHE_BYTES
- #endif
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+-#ifdef CONFIG_NOT_COHERENT_CACHE
+-#define dma_is_consistent(d, h)	(0)
+-#else
+-#define dma_is_consistent(d, h)	(1)
+-#endif
  
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+ static inline void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 		enum dma_data_direction direction)
+diff -puN arch/sh/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/sh/include/asm/dma-mapping.h
+--- a/arch/sh/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/sh/include/asm/dma-mapping.h
+@@ -42,12 +42,6 @@ void dma_cache_sync(struct device *dev, 
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
  
- /* data cache purge registers
-  * - read from the register to unconditionally purge that cache line
-diff -puN arch/powerpc/include/asm/page_32.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/powerpc/include/asm/page_32.h
---- a/arch/powerpc/include/asm/page_32.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/powerpc/include/asm/page_32.h
-@@ -10,7 +10,7 @@
- #define VM_DATA_DEFAULT_FLAGS	VM_DATA_DEFAULT_FLAGS32
+-#ifdef CONFIG_DMA_COHERENT
+-#define dma_is_consistent(d, h) (1)
+-#else
+-#define dma_is_consistent(d, h) (0)
+-#endif
+-
+ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+diff -puN arch/sparc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/sparc/include/asm/dma-mapping.h
+--- a/arch/sparc/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/sparc/include/asm/dma-mapping.h
+@@ -11,7 +11,6 @@ extern int dma_supported(struct device *
  
- #ifdef CONFIG_NOT_COHERENT_CACHE
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
- #endif
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+-#define dma_is_consistent(d, h)	(1)
  
- #ifdef CONFIG_PTE_64BIT
-diff -puN arch/sh/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/sh/include/asm/page.h
---- a/arch/sh/include/asm/page.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/sh/include/asm/page.h
-@@ -180,7 +180,7 @@ typedef struct page *pgtable_t;
-  * Some drivers need to perform DMA into kmalloc'ed buffers
-  * and so we have to increase the kmalloc minalign for this.
-  */
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+ extern struct dma_map_ops *dma_ops, pci32_dma_ops;
+ extern struct bus_type pci_bus_type;
+diff -puN arch/tile/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/tile/include/asm/dma-mapping.h
+--- a/arch/tile/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/tile/include/asm/dma-mapping.h
+@@ -90,6 +90,4 @@ dma_set_mask(struct device *dev, u64 mas
+ 	return 0;
+ }
  
- #ifdef CONFIG_SUPERH64
- /*
-diff -puN arch/xtensa/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign arch/xtensa/include/asm/cache.h
---- a/arch/xtensa/include/asm/cache.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/arch/xtensa/include/asm/cache.h
-@@ -29,6 +29,6 @@
- # define CACHE_WAY_SIZE ICACHE_WAY_SIZE
- #endif
+-#define dma_is_consistent(d, h)	(1)
+-
+ #endif /* _ASM_TILE_DMA_MAPPING_H */
+diff -puN arch/um/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/um/include/asm/dma-mapping.h
+--- a/arch/um/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/um/include/asm/dma-mapping.h
+@@ -94,7 +94,6 @@ dma_sync_sg_for_cpu(struct device *dev, 
  
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+-#define dma_is_consistent(d, h) (1)
  
- #endif	/* _XTENSA_CACHE_H */
-diff -puN include/linux/slab_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slab_def.h
---- a/include/linux/slab_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/include/linux/slab_def.h
-@@ -17,7 +17,6 @@
+ static inline int
+ dma_get_cache_alignment(void)
+diff -puN arch/x86/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/x86/include/asm/dma-mapping.h
+--- a/arch/x86/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/x86/include/asm/dma-mapping.h
+@@ -54,7 +54,6 @@ static inline int dma_mapping_error(stru
  
- #include <trace/events/kmem.h>
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+-#define dma_is_consistent(d, h)	(1)
  
--#ifndef ARCH_KMALLOC_MINALIGN
- /*
-  * Enforce a minimum alignment for the kmalloc caches.
-  * Usually, the kmalloc caches are cache_line_size() aligned, except when
-@@ -27,6 +26,9 @@
-  * ARCH_KMALLOC_MINALIGN allows that.
-  * Note that increasing this value may disable some debug features.
-  */
-+#ifdef ARCH_DMA_MINALIGN
-+#define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
-+#else
- #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
- #endif
+ extern int dma_supported(struct device *hwdev, u64 mask);
+ extern int dma_set_mask(struct device *dev, u64 mask);
+diff -puN arch/xtensa/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api arch/xtensa/include/asm/dma-mapping.h
+--- a/arch/xtensa/include/asm/dma-mapping.h~dma-mapping-remove-dma_is_consistent-api
++++ a/arch/xtensa/include/asm/dma-mapping.h
+@@ -161,8 +161,6 @@ dma_set_mask(struct device *dev, u64 mas
+ 	return 0;
+ }
  
-diff -puN include/linux/slob_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slob_def.h
---- a/include/linux/slob_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/include/linux/slob_def.h
-@@ -1,7 +1,9 @@
- #ifndef __LINUX_SLOB_DEF_H
- #define __LINUX_SLOB_DEF_H
+-#define dma_is_consistent(d, h)	(1)
+-
+ static inline void
+ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction)
+diff -puN include/asm-generic/dma-mapping-broken.h~dma-mapping-remove-dma_is_consistent-api include/asm-generic/dma-mapping-broken.h
+--- a/include/asm-generic/dma-mapping-broken.h~dma-mapping-remove-dma_is_consistent-api
++++ a/include/asm-generic/dma-mapping-broken.h
+@@ -72,9 +72,6 @@ dma_set_mask(struct device *dev, u64 mas
+ extern int
+ dma_get_cache_alignment(void);
  
--#ifndef ARCH_KMALLOC_MINALIGN
-+#ifdef ARCH_DMA_MINALIGN
-+#define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
-+#else
- #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long)
- #endif
- 
-diff -puN include/linux/slub_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign include/linux/slub_def.h
---- a/include/linux/slub_def.h~dma-mapping-rename-arch_kmalloc_minalign-to-arch_dma_minalign
-+++ a/include/linux/slub_def.h
-@@ -106,15 +106,17 @@ struct kmem_cache {
- /*
-  * Kmalloc subsystem.
-  */
--#if defined(ARCH_KMALLOC_MINALIGN) && ARCH_KMALLOC_MINALIGN > 8
--#define KMALLOC_MIN_SIZE ARCH_KMALLOC_MINALIGN
-+#if defined(ARCH_DMA_MINALIGN) && ARCH_DMA_MINALIGN > 8
-+#define KMALLOC_MIN_SIZE ARCH_DMA_MINALIGN
- #else
- #define KMALLOC_MIN_SIZE 8
- #endif
- 
- #define KMALLOC_SHIFT_LOW ilog2(KMALLOC_MIN_SIZE)
- 
--#ifndef ARCH_KMALLOC_MINALIGN
-+#ifdef ARCH_DMA_MINALIGN
-+#define ARCH_KMALLOC_MINALIGN ARCH_DMA_MINALIGN
-+#else
- #define ARCH_KMALLOC_MINALIGN __alignof__(unsigned long long)
- #endif
- 
+-extern int
+-dma_is_consistent(struct device *dev, dma_addr_t dma_handle);
+-
+ extern void
+ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ 	       enum dma_data_direction direction);
 _
