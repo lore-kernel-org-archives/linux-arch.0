@@ -1,63 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:44377 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750758Ab0HSEr2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Aug 2010 00:47:28 -0400
-Date: Thu, 19 Aug 2010 14:47:19 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCHv2 2/1] Consolidate CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
-Message-ID: <20100819144719.e690c674.sfr@canb.auug.org.au>
-In-Reply-To: <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
-References: <201008181428.45029.arnd@arndb.de>
-	<1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+Received: from esgaroth.petrovitsch.at ([78.47.184.11]:6280 "EHLO
+	esgaroth.petrovitsch.priv.at" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750890Ab0HSMsj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Aug 2010 08:48:39 -0400
+Subject: Re: [RFC][PATCH] introduce ptr_diff()
+From: Bernd Petrovitsch <bernd@sysprog.at>
+In-Reply-To: <87aaoiu6z6.fsf@basil.nowhere.org>
+References: <1282217856-8625-1-git-send-email-namhyung@gmail.com>
+	 <87aaoiu6z6.fsf@basil.nowhere.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 19 Aug 2010 14:48:29 +0200
+Message-ID: <1282222109.10440.50.camel@thorin>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
-Message-ID: <20100819044719.R5pq8SQAwCKowa8nf-cAL9wgGzLlpjucx4uqFqHIYWk@z>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Namhyung Kim <namhyung@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100819124829.-5gkBw9BJ7UEYHWzEesgCFhoPZWkP-okpCUK9kVX-IA@z>
 
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Don, 2010-08-19 at 14:23 +0200, Andi Kleen wrote:
+> Namhyung Kim <namhyung@gmail.com> writes:
+> 
+> > When I compiled allyesconfig'ed kernel with C=1, I got 1519 lines of
+> > following message:
+> >
+> >  include/linux/mm.h:599:16: warning: potentially expensive pointer subtraction
+> >
+> > which is around 10% of total warnings. this was caused by page_to_pfn() macro
+> > so I think it's worth to remove it by calculating pointer subtraction
+> > manually.
+> 
+> IMHO it would be better to simply disable the warning in sparse instead
+> of uglying the code just to work around sparse bogosity. It doesnt' seem
+> to make much sense. A subtraction followed by a shift is not expensive.
 
-On Wed, 18 Aug 2010 19:28:18 -0700 Stephen Boyd <sboyd@codeaurora.org> wrot=
-e:
->
-> +config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
-> +	def_bool y
+The code above is IMHO actually (the line with "return" in)
+----  snip  ----
+static __always_inline void *lowmem_page_address(struct page *page)
+{
+	return __va(PFN_PHYS(page_to_pfn(page)));
+}
+----  snip  ----
+If so, the warning seems valid as sizeof(struct page) is probably not
+(always) a power of 2. On a native build on x86_64 it is 56 bytes
+hereover.
+Hmm ....
 
-Why not just have
+	Bernd
+-- 
+mobile: +43 664 4416156              http://www.sysprog.at/
+    Linux Software Development, Consulting and Services
 
-config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
-	bool
-
-in lib/Kconfig.debug
-
-and select that in each arch that want it?
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iQEcBAEBAgAGBQJMbLdXAAoJEDMEi1NhKgbsZ5cH/iwiMK4GR/Ccaa/9y8DQ/Tjc
-syjOtf+IDUrxBgXrsmXzYu6BfGNpfi0QeF2DwTkc8lxBS5xP/zVX2Kn4JWZv9Yfp
-Q59ME2b00JNc0QectvN0fOpa6qgm6EsNjohKs+lGo6gCYwyaWcACS6hZ6b3PL5wy
-X9dHfy7JR2eFx2PmurxhGOLONRFR1L4NXsDXqo1uuTGUVGUwRVLRHA7blG20r1Fs
-dPmiiWx/kATxWigF/XvU/M67Vh7kIKR0oqqb7wF0lch1jumgdjjsDZDeD5v6KePs
-23B8pxvlkFhPldEFxsOUvHsVXMw8FXMb7u+Vzpysuv8+vp49m3Rr14Ug14Xy0+w=
-=kZsc
------END PGP SIGNATURE-----
-
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL--
