@@ -1,52 +1,175 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH] Make do_execve() take a const filename pointer
-Date: Tue, 17 Aug 2010 16:25:27 +0100
-Message-ID: <20100817152526.GC6681@flint.arm.linux.org.uk>
-References: <20100817140737.29854.22899.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:44645 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754319Ab0HQPZr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Aug 2010 11:25:47 -0400
-Content-Disposition: inline
-In-Reply-To: <20100817140737.29854.22899.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: [PATCHv2 2/1] Consolidate CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+Date: Wed, 18 Aug 2010 19:28:18 -0700
+Message-ID: <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+References: <201008181428.45029.arnd@arndb.de>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <201008181428.45029.arnd@arndb.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 17, 2010 at 03:07:37PM +0100, David Howells wrote:
-> Make do_execve() take a const filename pointer so that kernel_execve() compiles
-> correctly on ARM:
-> 
-> arch/arm/kernel/sys_arm.c:88: warning: passing argument 1 of 'do_execve' discards qualifiers from pointer target type
-> 
-> This also requires the argv and envp arguments to be consted twice, once for
-> the pointer array and once for the strings the array points to.  This is
-> because do_execve() passes a pointer to the filename (now const) to
-> copy_strings_kernel().  A simpler alternative would be to cast the filename
-> pointer in do_execve() when it's passed to copy_strings_kernel().
-> 
-> do_execve() may not change any of the strings it is passed as part of the argv
-> or envp lists as they are some of them in .rodata, so marking these strings as
-> const should be fine.
-> 
-> Further kernel_execve() and sys_execve() need to be changed to match.
-> 
-> This has been test built on x86_64, frv, arm and mips.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> Tested-by: Ralf Baechle <ralf@linux-mips.org>
+The help text for this config is duplicated across the x86,
+parisc, s390, and arm Kconfig.debug files. Arnd Bergman noted
+that the help text was slightly misleading and should be fixed to
+state that enabling this option isn't a problem when using pre 4.4
+gcc.
 
-David,
+To simplify the rewording, consolidate the text into
+lib/Kconfig.debug and modify it there to be more explicit about
+when you should say N to this config.
 
-Thanks for sorting this.
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: x86@kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Helge Deller <deller@gmx.de>
+---
 
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+This depends on a patch sent to the arm mailing list adding
+CONFIG_DEBUG_STRICT_USER_COPY_CHECKS to ARM.
 
+LKML: http://lkml.org/lkml/2010/8/17/535
+
+ arch/arm/Kconfig.debug    |   15 ++-------------
+ arch/parisc/Kconfig.debug |   15 ++-------------
+ arch/s390/Kconfig.debug   |   14 ++------------
+ arch/x86/Kconfig.debug    |   15 ++-------------
+ lib/Kconfig.debug         |   16 ++++++++++++++++
+ 5 files changed, 24 insertions(+), 51 deletions(-)
+
+diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
+index 64e33b8..326c7f1 100644
+--- a/arch/arm/Kconfig.debug
++++ b/arch/arm/Kconfig.debug
+@@ -128,18 +128,7 @@ config DEBUG_S3C_UART
+ 	  The uncompressor code port configuration is now handled
+ 	  by CONFIG_S3C_LOWLEVEL_UART_PORT.
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict user copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	help
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time errors.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/parisc/Kconfig.debug b/arch/parisc/Kconfig.debug
+index 7305ac8..b13e8d0 100644
+--- a/arch/parisc/Kconfig.debug
++++ b/arch/parisc/Kconfig.debug
+@@ -12,18 +12,7 @@ config DEBUG_RODATA
+          portion of the kernel code won't be covered by a TLB anymore.
+          If in doubt, say "N".
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time failures.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/s390/Kconfig.debug b/arch/s390/Kconfig.debug
+index 45e0c61..6df8e30 100644
+--- a/arch/s390/Kconfig.debug
++++ b/arch/s390/Kconfig.debug
+@@ -6,17 +6,7 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict user copy size checks"
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time warnings.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 7508508..d24afa3 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -285,18 +285,7 @@ config OPTIMIZE_INLINING
+ 
+ 	  If unsure, say N.
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time failures.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 9e06b7f..bbb1ac5 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1013,6 +1013,22 @@ config SYSCTL_SYSCALL_CHECK
+ 	  to properly maintain and use. This enables checks that help
+ 	  you to keep things correct.
+ 
++config DEBUG_STRICT_USER_COPY_CHECKS
++	bool "Strict user copy size checks"
++	depends on ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
++	help
++	  Enabling this option turns a certain set of sanity checks for user
++	  copy operations into compile time warnings/errors.
++
++	  The copy_from_user() etc checks are there to help test if there
++	  are sufficient security checks on the length argument of
++	  the copy operation, by having gcc prove that the argument is
++	  within bounds.
++
++	  If unsure, or if you run an older (pre 4.4) gcc where this option
++	  is a no-op, say N.
++
+ source mm/Kconfig.debug
+ source kernel/trace/Kconfig
+ 
 -- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+
