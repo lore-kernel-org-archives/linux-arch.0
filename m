@@ -1,40 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:34038 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753173Ab0HSM6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Aug 2010 08:58:30 -0400
-Date: Thu, 19 Aug 2010 14:58:28 +0200
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [RFC][PATCH] introduce ptr_diff()
-Message-ID: <20100819125828.GA6729@basil.fritz.box>
-References: <1282217856-8625-1-git-send-email-namhyung@gmail.com>
- <87aaoiu6z6.fsf@basil.nowhere.org>
- <20100819124017.GI12892@parisc-linux.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100819124017.GI12892@parisc-linux.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:60836 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751586Ab0HSUaR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Aug 2010 16:30:17 -0400
+Message-ID: <20100819201317.673172547@chello.nl>
+Date: Thu, 19 Aug 2010 22:13:17 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 0/6] mm, highmem: kmap_atomic rework
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Andi Kleen <andi@firstfloor.org>, Namhyung Kim <namhyung@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100819125828.9TAWhDs36DTpcVqg2VXSCaVaqS6F8Mo2Q0VSaJ8t-PU@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20100819201317.-ZvCiy2FHZUee5wCBgK7FkVjqkMOoolK3SHqOWdDquI@z>
 
-On Thu, Aug 19, 2010 at 06:40:17AM -0600, Matthew Wilcox wrote:
-> On Thu, Aug 19, 2010 at 02:23:09PM +0200, Andi Kleen wrote:
-> > IMHO it would be better to simply disable the warning in sparse instead
-> > of uglying the code just to work around sparse bogosity. It doesnt' seem
-> > to make much sense. A subtraction followed by a shift is not expensive.
-> 
-> What makes you think it's a shift?  struct page isn't necessarily a
-> power of two in size.  The original poster said "allyesconfig" which is
-> going to add in KMEMCHECK and WANT_PAGE_DEBUG_FLAGS.  I think that makes
-> it 76 bytes on x86-32, so sparse is right to warn.
 
-These can be still implemented cheaply. Small constants generally are
-The only thing that would be really expensive is division by unknown number.
+This patch-set reworks the kmap_atomic API to be a stack based, instead of
+static slot based. Some might remember this from last year, some not ;-)
 
--Andi
+The advantage is that you no longer need to worry about KM_foo, the
+disadvantage is that kmap_atomic/kunmap_atomic now needs to be strictly
+nested (CONFIG_HIGHMEM_DEBUG should complain in case its not) -- and of
+course its a big massive patch changing a widely used API.
 
--- 
-ak@linux.intel.com -- Speaking for myself only.
+The patch-set is currently based on tip/master as of today, and compile
+tested on: i386-all{mod,yes}config, mips-yosemite_defconfig,
+sparc-sparc32_defconfig, powerpc-ppc6xx_defconfig, and some arm config.
+
+(Sorry dhowells, I again couldn't find frv/mn10300 compilers)
+
+Boot tested with i386-defconfig on kvm.
+
+Since its a rather large set, and somewhat tedious to rebase, I wanted to
+ask how to go about getting this merged?
+
