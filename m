@@ -1,34 +1,35 @@
-From: Namhyung Kim <namhyung@gmail.com>
-Subject: Re: [RFC][PATCH] introduce ptr_diff()
-Date: Fri, 20 Aug 2010 01:12:22 +0900
-Message-ID: <1282234342.1713.11.camel@leonhard>
-References: <1282217856-8625-1-git-send-email-namhyung@gmail.com>
-	 <87aaoiu6z6.fsf@basil.nowhere.org>  <1282233186.1713.10.camel@leonhard>
-	 <1282233889.10440.220.camel@thorin>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f174.google.com ([209.85.212.174]:54662 "EHLO
-	mail-px0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752388Ab0HSQM3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Aug 2010 12:12:29 -0400
-In-Reply-To: <1282233889.10440.220.camel@thorin>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bernd Petrovitsch <bernd@sysprog.at>
-Cc: Andi Kleen <andi@firstfloor.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 0/6] mm, highmem: kmap_atomic rework
+Date: Thu, 19 Aug 2010 22:13:17 +0200
+Message-ID: <20100819201317.673172547@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+List-Id: linux-arch.vger.kernel.org
 
-2010-08-19 (=EB=AA=A9), 18:04 +0200, Bernd Petrovitsch:
-> sparse also gets gcc's parameters which include (usually) "-Wall". An=
-d
-> this activates it.
-> Adding -Wno-ptr-subtraction-blows to CHECKFLAGS should do the trick.
->=20
-> 	Bernd
 
-I see. thanks for the info. :-)
+This patch-set reworks the kmap_atomic API to be a stack based, instead of
+static slot based. Some might remember this from last year, some not ;-)
 
---=20
-Regards,
-Namhyung Kim
+The advantage is that you no longer need to worry about KM_foo, the
+disadvantage is that kmap_atomic/kunmap_atomic now needs to be strictly
+nested (CONFIG_HIGHMEM_DEBUG should complain in case its not) -- and of
+course its a big massive patch changing a widely used API.
+
+The patch-set is currently based on tip/master as of today, and compile
+tested on: i386-all{mod,yes}config, mips-yosemite_defconfig,
+sparc-sparc32_defconfig, powerpc-ppc6xx_defconfig, and some arm config.
+
+(Sorry dhowells, I again couldn't find frv/mn10300 compilers)
+
+Boot tested with i386-defconfig on kvm.
+
+Since its a rather large set, and somewhat tedious to rebase, I wanted to
+ask how to go about getting this merged?
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
