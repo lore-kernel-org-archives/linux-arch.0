@@ -1,58 +1,39 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCHv2 2/1] Consolidate CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
-Date: Thu, 19 Aug 2010 14:47:19 +1000
-Message-ID: <20100819144719.e690c674.sfr@canb.auug.org.au>
-References: <201008181428.45029.arnd@arndb.de>
-	<1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+Date: Thu, 19 Aug 2010 13:04:11 +0200
+Message-ID: <201008191304.11190.arnd@arndb.de>
+References: <201008181428.45029.arnd@arndb.de> <1282184898-30599-1-git-send-email-sboyd@codeaurora.org> <20100819144719.e690c674.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:60254 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752035Ab0HSLEJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Aug 2010 07:04:09 -0400
+In-Reply-To: <20100819144719.e690c674.sfr@canb.auug.org.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Stephen Boyd <sboyd@codeaurora.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
 
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Thursday 19 August 2010, Stephen Rothwell wrote:
+>   On Wed, 18 Aug 2010 19:28:18 -0700 Stephen Boyd <sboyd@codeaurora.org> wrote:
+> >
+> > +config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+> > +     def_bool y
+> 
+> Why not just have
+> 
+> config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+>         bool
+> 
+> in lib/Kconfig.debug
+> 
+> and select that in each arch that want it?
+> 
 
-On Wed, 18 Aug 2010 19:28:18 -0700 Stephen Boyd <sboyd@codeaurora.org> wrot=
-e:
->
-> +config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
-> +	def_bool y
+Yes, that would be even easier, thanks for the suggestion!
 
-Why not just have
-
-config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
-	bool
-
-in lib/Kconfig.debug
-
-and select that in each arch that want it?
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iQEcBAEBAgAGBQJMbLdXAAoJEDMEi1NhKgbsZ5cH/iwiMK4GR/Ccaa/9y8DQ/Tjc
-syjOtf+IDUrxBgXrsmXzYu6BfGNpfi0QeF2DwTkc8lxBS5xP/zVX2Kn4JWZv9Yfp
-Q59ME2b00JNc0QectvN0fOpa6qgm6EsNjohKs+lGo6gCYwyaWcACS6hZ6b3PL5wy
-X9dHfy7JR2eFx2PmurxhGOLONRFR1L4NXsDXqo1uuTGUVGUwRVLRHA7blG20r1Fs
-dPmiiWx/kATxWigF/XvU/M67Vh7kIKR0oqqb7wF0lch1jumgdjjsDZDeD5v6KePs
-23B8pxvlkFhPldEFxsOUvHsVXMw8FXMb7u+Vzpysuv8+vp49m3Rr14Ug14Xy0+w=
-=kZsc
------END PGP SIGNATURE-----
-
---Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL--
+	Arnd
