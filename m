@@ -1,34 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:21613 "EHLO mga09.intel.com"
+Received: from chilli.pcug.org.au ([203.10.76.44]:44377 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750911Ab0HSEih (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Aug 2010 00:38:37 -0400
-Message-ID: <4C6CB54A.4090605@linux.intel.com>
-Date: Wed, 18 Aug 2010 21:38:34 -0700
-From: Arjan van de Ven <arjan@linux.intel.com>
-MIME-Version: 1.0
+	id S1750758Ab0HSEr2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Aug 2010 00:47:28 -0400
+Date: Thu, 19 Aug 2010 14:47:19 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCHv2 2/1] Consolidate CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
-References: <201008181428.45029.arnd@arndb.de> <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+Message-ID: <20100819144719.e690c674.sfr@canb.auug.org.au>
 In-Reply-To: <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+References: <201008181428.45029.arnd@arndb.de>
+	<1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
-Message-ID: <20100819043834.gAgOceB5z7dRqBcOEtqrzKkeNp9aHhkFFVT0sYCGzeA@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
+Message-ID: <20100819044719.R5pq8SQAwCKowa8nf-cAL9wgGzLlpjucx4uqFqHIYWk@z>
 
-On 8/18/2010 7:28 PM, Stephen Boyd wrote:
-> The help text for this config is duplicated across the x86,
-> parisc, s390, and arm Kconfig.debug files. Arnd Bergman noted
-> that the help text was slightly misleading and should be fixed to
-> state that enabling this option isn't a problem when using pre 4.4
-> gcc.
+--Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Wed, 18 Aug 2010 19:28:18 -0700 Stephen Boyd <sboyd@codeaurora.org> wrot=
+e:
 >
-> To simplify the rewording, consolidate the text into
-> lib/Kconfig.debug and modify it there to be more explicit about
-> when you should say N to this config.
->    
+> +config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+> +	def_bool y
 
+Why not just have
 
-Acked-by: Arjan van de Ven <arjan@linux.intel.com>
+config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+	bool
+
+in lib/Kconfig.debug
+
+and select that in each arch that want it?
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iQEcBAEBAgAGBQJMbLdXAAoJEDMEi1NhKgbsZ5cH/iwiMK4GR/Ccaa/9y8DQ/Tjc
+syjOtf+IDUrxBgXrsmXzYu6BfGNpfi0QeF2DwTkc8lxBS5xP/zVX2Kn4JWZv9Yfp
+Q59ME2b00JNc0QectvN0fOpa6qgm6EsNjohKs+lGo6gCYwyaWcACS6hZ6b3PL5wy
+X9dHfy7JR2eFx2PmurxhGOLONRFR1L4NXsDXqo1uuTGUVGUwRVLRHA7blG20r1Fs
+dPmiiWx/kATxWigF/XvU/M67Vh7kIKR0oqqb7wF0lch1jumgdjjsDZDeD5v6KePs
+23B8pxvlkFhPldEFxsOUvHsVXMw8FXMb7u+Vzpysuv8+vp49m3Rr14Ug14Xy0+w=
+=kZsc
+-----END PGP SIGNATURE-----
+
+--Signature=_Thu__19_Aug_2010_14_47_19_+1000_C/8cy9Vqz1=X_fXL--
