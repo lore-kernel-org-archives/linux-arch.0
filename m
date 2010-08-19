@@ -1,57 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:35359 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757833Ab0HOPjK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Aug 2010 11:39:10 -0400
-Date: Sun, 15 Aug 2010 09:23:28 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: ARM: 2.6.3[45] PCI regression (IXP4xx and PXA?)
-Message-ID: <20100815082328.GA12222@n2100.arm.linux.org.uk>
-References: <20100813215413.GA21607@n2100.arm.linux.org.uk> <20100814181306U.fujita.tomonori@lab.ntt.co.jp> <20100814184605.GA1999@n2100.arm.linux.org.uk> <20100815144122O.fujita.tomonori@lab.ntt.co.jp>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20100815144122O.fujita.tomonori@lab.ntt.co.jp>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:8451 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751600Ab0HSC2V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Aug 2010 22:28:21 -0400
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: [PATCHv2 2/1] Consolidate CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+Date: Wed, 18 Aug 2010 19:28:18 -0700
+Message-ID: <1282184898-30599-1-git-send-email-sboyd@codeaurora.org>
+In-Reply-To: <201008181428.45029.arnd@arndb.de>
+References: <201008181428.45029.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: khc@pm.waw.pl, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
-Message-ID: <20100815082328.52y1QPdW6FdHk7PBfOhbsvS2DI3htgySDWGU3lsTl44@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-s390@vger.kernel.org, linux-parisc@vger.kernel.org, Arjan van de Ven <arjan@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Helge Deller <deller@gmx.de>
+Message-ID: <20100819022818.l3q8aln92ORB3xjo7HfWm_1jlymVoZXsXW18TVgcBlU@z>
 
-On Sun, Aug 15, 2010 at 02:42:51PM +0900, FUJITA Tomonori wrote:
-> On Sat, 14 Aug 2010 19:46:05 +0100
-> Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
-> 
-> > On Sat, Aug 14, 2010 at 06:30:37PM +0900, FUJITA Tomonori wrote:
-> > > On Fri, 13 Aug 2010 22:54:13 +0100
-> > > Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
-> > > >  This means that when dmabounce comes to allocate the replacement
-> > > > buffer, it gets a buffer which won't be accessible to the DMA
-> > > > controller
-> > > 
-> > > Really? looks like dmabounce does nothing for coherent memory that
-> > > dma_alloc_coherent() allocates.
-> > > 
-> > > The following very hacky patch works?
-> > 
-> > So what happens if you use a driver which uses dma_alloc_coherent()
-> > directly?  Should the driver really be passed memory which is
-> > inaccessible to the device because its outside the host bridge PCI
-> > window?
-> 
-> I'm not sure what you mean.
-> 
-> A driver which uses dma_alloc_coherent() directly should
-> work. dma_alloc_coherent() allocates memory with GFP_DMA with that
-> patch for dmabounce devices. So the driver gets the access-able
-> memory.
-> 
-> The memory that dma_alloc_coherent() returns should be always
-> consistent. We can't bounce it. All we can do is returning a memory
-> that a device (and its bus) can access to.
-> 
-> Krzysztof, can you try the patch?
+The help text for this config is duplicated across the x86,
+parisc, s390, and arm Kconfig.debug files. Arnd Bergman noted
+that the help text was slightly misleading and should be fixed to
+state that enabling this option isn't a problem when using pre 4.4
+gcc.
 
-Why bother when we both agree that the patch is a dirty hack?
+To simplify the rewording, consolidate the text into
+lib/Kconfig.debug and modify it there to be more explicit about
+when you should say N to this config.
 
-Come up with something cleaner first.
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: x86@kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-parisc@vger.kernel.org
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Helge Deller <deller@gmx.de>
+---
+
+This depends on a patch sent to the arm mailing list adding
+CONFIG_DEBUG_STRICT_USER_COPY_CHECKS to ARM.
+
+LKML: http://lkml.org/lkml/2010/8/17/535
+
+ arch/arm/Kconfig.debug    |   15 ++-------------
+ arch/parisc/Kconfig.debug |   15 ++-------------
+ arch/s390/Kconfig.debug   |   14 ++------------
+ arch/x86/Kconfig.debug    |   15 ++-------------
+ lib/Kconfig.debug         |   16 ++++++++++++++++
+ 5 files changed, 24 insertions(+), 51 deletions(-)
+
+diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
+index 64e33b8..326c7f1 100644
+--- a/arch/arm/Kconfig.debug
++++ b/arch/arm/Kconfig.debug
+@@ -128,18 +128,7 @@ config DEBUG_S3C_UART
+ 	  The uncompressor code port configuration is now handled
+ 	  by CONFIG_S3C_LOWLEVEL_UART_PORT.
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict user copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	help
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time errors.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/parisc/Kconfig.debug b/arch/parisc/Kconfig.debug
+index 7305ac8..b13e8d0 100644
+--- a/arch/parisc/Kconfig.debug
++++ b/arch/parisc/Kconfig.debug
+@@ -12,18 +12,7 @@ config DEBUG_RODATA
+          portion of the kernel code won't be covered by a TLB anymore.
+          If in doubt, say "N".
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time failures.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/s390/Kconfig.debug b/arch/s390/Kconfig.debug
+index 45e0c61..6df8e30 100644
+--- a/arch/s390/Kconfig.debug
++++ b/arch/s390/Kconfig.debug
+@@ -6,17 +6,7 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict user copy size checks"
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time warnings.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 7508508..d24afa3 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -285,18 +285,7 @@ config OPTIMIZE_INLINING
+ 
+ 	  If unsure, say N.
+ 
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict copy size checks"
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	---help---
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time failures.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, or if you run an older (pre 4.4) gcc, say N.
++config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	def_bool y
+ 
+ endmenu
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 9e06b7f..bbb1ac5 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1013,6 +1013,22 @@ config SYSCTL_SYSCALL_CHECK
+ 	  to properly maintain and use. This enables checks that help
+ 	  you to keep things correct.
+ 
++config DEBUG_STRICT_USER_COPY_CHECKS
++	bool "Strict user copy size checks"
++	depends on ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
++	help
++	  Enabling this option turns a certain set of sanity checks for user
++	  copy operations into compile time warnings/errors.
++
++	  The copy_from_user() etc checks are there to help test if there
++	  are sufficient security checks on the length argument of
++	  the copy operation, by having gcc prove that the argument is
++	  within bounds.
++
++	  If unsure, or if you run an older (pre 4.4) gcc where this option
++	  is a no-op, say N.
++
+ source mm/Kconfig.debug
+ source kernel/trace/Kconfig
+ 
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+
