@@ -1,22 +1,21 @@
 From: Rik van Riel <riel@redhat.com>
-Subject: Re: [RFC][PATCH 5/6] mm: Fix up KM_type argument removal fallout
-Date: Fri, 20 Aug 2010 17:45:50 -0400
-Message-ID: <4C6EF78E.9020600@redhat.com>
-References: <20100819201317.673172547@chello.nl> <20100819202753.845273979@chello.nl>
+Subject: Re: [RFC][PATCH 6/6] mm: Remove pte_*map_nested()
+Date: Fri, 20 Aug 2010 17:47:44 -0400
+Message-ID: <4C6EF800.2040501@redhat.com>
+References: <20100819201317.673172547@chello.nl> <20100819202753.897737681@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20100819202753.845273979@chello.nl>
+In-Reply-To: <20100819202753.897737681@chello.nl>
 Sender: owner-linux-mm@kvack.org
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On 08/19/2010 04:13 PM, Peter Zijlstra wrote:
-> Manual fixups of the previous patch
->
-> (i386 all{mod,yes}config driven}
+> Since we no longer need to provide KM_type, the whole pte_*map_nested()
+> API is now redundant, remove it.
 >
 > Signed-off-by: Peter Zijlstra<a.p.zijlstra@chello.nl>
 
