@@ -1,35 +1,31 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: [RFC][PATCH 3/6] mm, frv: Out-of-line kmap-atomic
-Date: Fri, 20 Aug 2010 17:48:28 -0400
-Message-ID: <4C6EF82C.2090703@redhat.com>
-References: <20100819201317.673172547@chello.nl> <20100819202753.710621383@chello.nl>
+From: wins <dfbnsn55@cox.net>
+Subject: Winner
+Date: Fri, 20 Aug 2010 17:45:49 -0700
+Message-ID: <20100820204549.XVQBW.533939.imail__22009.6300975003$1282351999$gmane$org@fed1rmwml41>
+Reply-To: ba025@aol.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20100819202753.710621383@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fed1rmmtai103.cox.net ([68.230.241.57]:40241 "EHLO
+	fed1rmmtai103.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751118Ab0HUAxF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Aug 2010 20:53:05 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On 08/19/2010 04:13 PM, Peter Zijlstra wrote:
-> Out-of-line the kmap_atomic implementation since the dynamic type
-> destroys all the constant value reduction previously used.
->
-> Also, remove the first 4 primary maps, since those are used by the
-> architecture for special purposes, mostly through direct assembly, but
-> also through the __kmap_atomic_primary() interface.
->
-> Signed-off-by: Peter Zijlstra<a.p.zijlstra@chello.nl>
+Your e mail address was choosed  in the UK promo  2010 that was held
+August 18th, and you are to claim the
+Amount  of $1,000 000 USD.that means you are one of our five(5) lucky
+recipents . Your winning number is: (CT-222-6747,FGN/P-900-56).
 
-Acked-by: Rik van Riel <riel@redhat.com>
 
--- 
-All rights reversed
+You are to send us this details
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+NAME IN FULL: 
+DELIVERY ADDRESS: 
+AGE:
+NATIONALITY: 
+OCCUPATION:
+PHONE:
+SEX:
