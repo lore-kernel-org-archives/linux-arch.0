@@ -1,8 +1,8 @@
 From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH 4/7] Blackfin: Rename DES PC2() symbol
-	to avoid collision
-Date: Thu, 26 Aug 2010 15:11:26 +0100
-Message-ID: <20100826141126.11132.71843.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 3/7] Blackfin: Split the BF532
+	BFIN_*_FIO_FLAG() functions to	their own header
+Date: Thu, 26 Aug 2010 15:11:21 +0100
+Message-ID: <20100826141120.11132.51969.stgit@warthog.procyon.org.uk>
 References: <20100826141110.11132.91931.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -22,181 +22,183 @@ To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, vapier-aBrp7R+bbdUdnm+yR
 Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Rename the PC2() symbol in the generic DES crypto module to be prefixed with
-DES_ to avoid collision with arch code (Blackfin in this case).
+Split the BF532 machine type BFIN_*_FIO_FLAG() functions to their own header
+file to avoid circular #include problems as these functions require IRQ flag
+handling, which requires asm/blackfin.h, which otherwise requires the header
+file that defines these functions.
+
+For good measure, also get rid of the inclusion of asm/blackfin.h from
+mach/cdefBF532.h (which is circular) and defBF532.h (which is included by
+asm/blackfin.h before including this header).
 
 Signed-off-by: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
 ---
 
- crypto/des_generic.c |  130 +++++++++++++++++++++++++-------------------------
- 1 files changed, 65 insertions(+), 65 deletions(-)
+ arch/blackfin/mach-bf533/boards/blackstamp.c      |    1 
+ arch/blackfin/mach-bf533/boards/ip0x.c            |    1 
+ arch/blackfin/mach-bf533/boards/stamp.c           |    1 
+ arch/blackfin/mach-bf533/include/mach/cdefBF532.h |   47 ------------------
+ arch/blackfin/mach-bf533/include/mach/fio_flag.h  |   55 +++++++++++++++++++++
+ 5 files changed, 58 insertions(+), 47 deletions(-)
+ create mode 100644 arch/blackfin/mach-bf533/include/mach/fio_flag.h
 
-diff --git a/crypto/des_generic.c b/crypto/des_generic.c
-index 249f903..873818d 100644
---- a/crypto/des_generic.c
-+++ b/crypto/des_generic.c
-@@ -614,7 +614,7 @@ static const u32 S8[64] = {
- #define T3(x) pt[2 * (x) + 2]
- #define T4(x) pt[2 * (x) + 3]
- 
--#define PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
-+#define DES_PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
+diff --git a/arch/blackfin/mach-bf533/boards/blackstamp.c b/arch/blackfin/mach-bf533/boards/blackstamp.c
+index 842b4fa..84a06f6 100644
+--- a/arch/blackfin/mach-bf533/boards/blackstamp.c
++++ b/arch/blackfin/mach-bf533/boards/blackstamp.c
+@@ -25,6 +25,7 @@
+ #include <asm/bfin5xx_spi.h>
+ #include <asm/portmux.h>
+ #include <asm/dpmc.h>
++#include <mach/fio_flag.h>
  
  /*
-  * Encryption key expansion
-@@ -639,22 +639,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
+  * Name the Board for the /proc/cpuinfo
+diff --git a/arch/blackfin/mach-bf533/boards/ip0x.c b/arch/blackfin/mach-bf533/boards/ip0x.c
+index 7349970..b8474ca 100644
+--- a/arch/blackfin/mach-bf533/boards/ip0x.c
++++ b/arch/blackfin/mach-bf533/boards/ip0x.c
+@@ -22,6 +22,7 @@
+ #include <asm/dma.h>
+ #include <asm/bfin5xx_spi.h>
+ #include <asm/portmux.h>
++#include <mach/fio_flag.h>
  
--	pe[15 * 2 + 0] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 0] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 0] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 0] = PC2(b, c, d, a);
-+	pe[15 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 0] = DES_PC2(b, c, d, a);
+ /*
+  * Name the Board for the /proc/cpuinfo
+diff --git a/arch/blackfin/mach-bf533/boards/stamp.c b/arch/blackfin/mach-bf533/boards/stamp.c
+index c457eaa..29c219e 100644
+--- a/arch/blackfin/mach-bf533/boards/stamp.c
++++ b/arch/blackfin/mach-bf533/boards/stamp.c
+@@ -24,6 +24,7 @@
+ #include <asm/reboot.h>
+ #include <asm/portmux.h>
+ #include <asm/dpmc.h>
++#include <mach/fio_flag.h>
  
- 	/* Check if first half is weak */
- 	w  = (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
-@@ -670,22 +670,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	/* Check if second half is weak */
- 	w |= (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
+ /*
+  * Name the Board for the /proc/cpuinfo
+diff --git a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+index 8edad6d..401e524 100644
+--- a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
++++ b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+@@ -7,11 +7,6 @@
+ #ifndef _CDEF_BF532_H
+ #define _CDEF_BF532_H
  
--	pe[15 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 1] = PC2(b, c, d, a);
-+	pe[15 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 1] = DES_PC2(b, c, d, a);
+-#include <asm/blackfin.h>
+-
+-/*include all Core registers and bit definitions*/
+-#include "defBF532.h"
+-
+ /*include core specific register pointer definitions*/
+ #include <asm/cdef_LPBlackfin.h>
  
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
-@@ -722,22 +722,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
+@@ -655,46 +650,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
  
--	pe[ 0 * 2] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2] = PC2(b, c, d, a);
-+	pe[ 0 * 2] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2] = DES_PC2(b, c, d, a);
- 
- 	/* Skip to next table set */
- 	pt += 512;
-@@ -747,22 +747,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[2]; b &= 0xe0; b >>= 4; b |= k[6] & 0xf0; b = pc1[b + 1];
- 	a = k[3]; a &= 0xe0; a >>= 4; a |= k[7] & 0xf0; a = pc1[a + 1];
- 
--	pe[ 0 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2 + 1] = PC2(b, c, d, a);
-+	pe[ 0 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2 + 1] = DES_PC2(b, c, d, a);
- 
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
+-#if ANOMALY_05000311
+-#define BFIN_WRITE_FIO_FLAG(name) \
+-static inline void bfin_write_FIO_FLAG_##name(unsigned short val) \
+-{ \
+-	unsigned long flags; \
+-	local_irq_save_hw(flags); \
+-	bfin_write16(FIO_FLAG_##name, val); \
+-	bfin_read_CHIPID(); \
+-	local_irq_restore_hw(flags); \
+-}
+-BFIN_WRITE_FIO_FLAG(D)
+-BFIN_WRITE_FIO_FLAG(C)
+-BFIN_WRITE_FIO_FLAG(S)
+-BFIN_WRITE_FIO_FLAG(T)
+-
+-#define BFIN_READ_FIO_FLAG(name) \
+-static inline u16 bfin_read_FIO_FLAG_##name(void) \
+-{ \
+-	unsigned long flags; \
+-	u16 ret; \
+-	local_irq_save_hw(flags); \
+-	ret = bfin_read16(FIO_FLAG_##name); \
+-	bfin_read_CHIPID(); \
+-	local_irq_restore_hw(flags); \
+-	return ret; \
+-}
+-BFIN_READ_FIO_FLAG(D)
+-BFIN_READ_FIO_FLAG(C)
+-BFIN_READ_FIO_FLAG(S)
+-BFIN_READ_FIO_FLAG(T)
+-
+-#else
+-#define bfin_write_FIO_FLAG_D(val)           bfin_write16(FIO_FLAG_D, val)
+-#define bfin_write_FIO_FLAG_C(val)           bfin_write16(FIO_FLAG_C, val)
+-#define bfin_write_FIO_FLAG_S(val)           bfin_write16(FIO_FLAG_S, val)
+-#define bfin_write_FIO_FLAG_T(val)           bfin_write16(FIO_FLAG_T, val)
+-#define bfin_read_FIO_FLAG_T()               bfin_read16(FIO_FLAG_T)
+-#define bfin_read_FIO_FLAG_C()               bfin_read16(FIO_FLAG_C)
+-#define bfin_read_FIO_FLAG_S()               bfin_read16(FIO_FLAG_S)
+-#define bfin_read_FIO_FLAG_D()               bfin_read16(FIO_FLAG_D)
+-#endif
+-
+ #endif				/* _CDEF_BF532_H */
+diff --git a/arch/blackfin/mach-bf533/include/mach/fio_flag.h b/arch/blackfin/mach-bf533/include/mach/fio_flag.h
+new file mode 100644
+index 0000000..b81905a
+--- /dev/null
++++ b/arch/blackfin/mach-bf533/include/mach/fio_flag.h
+@@ -0,0 +1,55 @@
++/*
++ * Copyright 2005-2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later
++ */
++
++#ifndef _MACH_FIO_FLAG_H
++#define _MACH_FIO_FLAG_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++#if ANOMALY_05000311
++#define BFIN_WRITE_FIO_FLAG(name) \
++static inline void bfin_write_FIO_FLAG_##name(unsigned short val) \
++{ \
++	unsigned long flags; \
++	local_irq_save_hw(flags); \
++	bfin_write16(FIO_FLAG_##name, val); \
++	bfin_read_CHIPID(); \
++	local_irq_restore_hw(flags); \
++}
++BFIN_WRITE_FIO_FLAG(D)
++BFIN_WRITE_FIO_FLAG(C)
++BFIN_WRITE_FIO_FLAG(S)
++BFIN_WRITE_FIO_FLAG(T)
++
++#define BFIN_READ_FIO_FLAG(name) \
++static inline u16 bfin_read_FIO_FLAG_##name(void) \
++{ \
++	unsigned long flags; \
++	u16 ret; \
++	local_irq_save_hw(flags); \
++	ret = bfin_read16(FIO_FLAG_##name); \
++	bfin_read_CHIPID(); \
++	local_irq_restore_hw(flags); \
++	return ret; \
++}
++BFIN_READ_FIO_FLAG(D)
++BFIN_READ_FIO_FLAG(C)
++BFIN_READ_FIO_FLAG(S)
++BFIN_READ_FIO_FLAG(T)
++
++#else
++#define bfin_write_FIO_FLAG_D(val)           bfin_write16(FIO_FLAG_D, val)
++#define bfin_write_FIO_FLAG_C(val)           bfin_write16(FIO_FLAG_C, val)
++#define bfin_write_FIO_FLAG_S(val)           bfin_write16(FIO_FLAG_S, val)
++#define bfin_write_FIO_FLAG_T(val)           bfin_write16(FIO_FLAG_T, val)
++#define bfin_read_FIO_FLAG_T()               bfin_read16(FIO_FLAG_T)
++#define bfin_read_FIO_FLAG_C()               bfin_read16(FIO_FLAG_C)
++#define bfin_read_FIO_FLAG_S()               bfin_read16(FIO_FLAG_S)
++#define bfin_read_FIO_FLAG_D()               bfin_read16(FIO_FLAG_D)
++#endif
++
++#endif /* _MACH_FIO_FLAG_H */
