@@ -1,88 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:60650 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754156Ab0HZQAi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Aug 2010 12:00:38 -0400
-Date: Thu, 26 Aug 2010 18:00:01 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 7/7] Fix IRQ flag handling naming
-In-Reply-To: <20100826141141.11132.24274.stgit@warthog.procyon.org.uk>
-Message-ID: <alpine.LFD.2.00.1008261758450.2768@localhost.localdomain>
-References: <20100826141110.11132.91931.stgit@warthog.procyon.org.uk> <20100826141141.11132.24274.stgit@warthog.procyon.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from arkanian.console-pimps.org ([212.110.184.194]:47512 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753536Ab0HZTJV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Aug 2010 15:09:21 -0400
+From: Matt Fleming <matt@console-pimps.org>
+Subject: [PATCH 1/4] oprofile: Handle initialisation failure more gracefully
+Date: Thu, 26 Aug 2010 20:09:16 +0100
+Message-ID: <442a16796990290ca3ebaaa3d0ab317e7b0a30a5.1282848651.git.matt@console-pimps.org>
+In-Reply-To: <cover.1282848651.git.matt@console-pimps.org>
+References: <cover.1282848651.git.matt@console-pimps.org>
+In-Reply-To: <cover.1282848651.git.matt@console-pimps.org>
+References: <cover.1282848651.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, vapier@gentoo.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
-Message-ID: <20100826160001.rivfyCyd9FYx1nTlsH5g0zdDCVwOKJ4d5auuKVOO0gs@z>
+To: linux-kernel@vger.kernel.org
+Cc: Robert Richter <robert.richter@amd.com>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org
+Message-ID: <20100826190916.0ob0bbYJ4UPVHVqnG1wXddMrvZnNAMx2SwE_YpmFtjs@z>
 
-On Thu, 26 Aug 2010, David Howells wrote:
+From: Will Deacon <will.deacon@arm.com>
 
-> Fix the IRQ flag handling naming.  In linux/irqflags.h under one configuration,
-> it maps:
-> 
-> 	local_irq_enable() -> raw_local_irq_enable()
-> 	local_irq_disable() -> raw_local_irq_disable()
-> 	local_irq_save() -> raw_local_irq_save()
-> 	...
-> 
-> and under the other configuration, it maps:
-> 
-> 	raw_local_irq_enable() -> local_irq_enable()
-> 	raw_local_irq_disable() -> local_irq_disable()
-> 	raw_local_irq_save() -> local_irq_save()
-> 	...
-> 
-> This is quite confusing.  There should be one set of names expected of the
-> arch, and this should be wrapped to give another set of names that are expected
-> by users of this facility.
-> 
-> Change this to have the arch provide:
-> 
-> 	flags = arch_local_save_flags()
-> 	flags = arch_local_irq_save()
-> 	arch_local_irq_restore(flags)
-> 	arch_local_irq_disable()
-> 	arch_local_irq_enable()
-> 	arch_irqs_disabled_flags(flags)
-> 	arch_irqs_disabled()
-> 	arch_safe_halt()
-> 
-> Then linux/irqflags.h wraps these to provide:
-> 
-> 	raw_local_save_flags(flags)
-> 	raw_local_irq_save(flags)
-> 	raw_local_irq_restore(flags)
-> 	raw_local_irq_disable()
-> 	raw_local_irq_enable()
-> 	raw_irqs_disabled_flags(flags)
-> 	raw_irqs_disabled()
-> 	raw_safe_halt()
-> 
-> with type checking on the flags 'arguments', and then wraps those to provide:
-> 
-> 	local_save_flags(flags)
-> 	local_irq_save(flags)
-> 	local_irq_restore(flags)
-> 	local_irq_disable()
-> 	local_irq_enable()
-> 	irqs_disabled_flags(flags)
-> 	irqs_disabled()
-> 	safe_halt()
-> 
-> with tracing included if enabled.
-> 
-> The arch functions can now all be inline functions rather than some of them
-> having to be macros.
+The current implementation is not entirely safe in the case that
+oprofile_arch_init() fails. We need to make sure that we always call
+exit_driverfs() if we've called init_driverfs(). Also, avoid a potential
+double free when freeing 'counter_config', e.g. don't free
+'counter_config' in both oprofile_arch_init() and oprofile_arch_exit().
 
-Nice one.
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/arm/oprofile/common.c |   15 ++++++++-------
+ 1 files changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
+index 0691176..482779c 100644
+--- a/arch/arm/oprofile/common.c
++++ b/arch/arm/oprofile/common.c
+@@ -275,10 +275,12 @@ out:
+ 	return ret;
+ }
  
-> [Note that this patch only alters X86, FRV, MN10300, ARM and Blackfin at the
->  moment.  The other arches will need altering too as part of this patch].
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> Tested-by: Catalin Marinas <catalin.marinas@arm.com>
-
-Acked-by: Thomas Gleixner <tglx@linutronix.de>
+-static void  exit_driverfs(void)
++static void exit_driverfs(void)
+ {
+-	platform_device_unregister(oprofile_pdev);
+-	platform_driver_unregister(&oprofile_driver);
++	if (!IS_ERR_OR_NULL(oprofile_pdev)) {
++		platform_device_unregister(oprofile_pdev);
++		platform_driver_unregister(&oprofile_driver);
++	}
+ }
+ #else
+ static int __init init_driverfs(void) { return 0; }
+@@ -363,10 +365,8 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
+ 	}
+ 
+ 	ret = init_driverfs();
+-	if (ret) {
+-		kfree(counter_config);
++	if (ret)
+ 		return ret;
+-	}
+ 
+ 	for_each_possible_cpu(cpu) {
+ 		perf_events[cpu] = kcalloc(perf_num_counters,
+@@ -401,8 +401,9 @@ void oprofile_arch_exit(void)
+ 	int cpu, id;
+ 	struct perf_event *event;
+ 
++	exit_driverfs();
++
+ 	if (*perf_events) {
+-		exit_driverfs();
+ 		for_each_possible_cpu(cpu) {
+ 			for (id = 0; id < perf_num_counters; ++id) {
+ 				event = perf_events[cpu][id];
+-- 
+1.7.1
 
