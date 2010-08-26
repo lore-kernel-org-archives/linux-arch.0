@@ -1,58 +1,31 @@
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [RFC][PATCH 2/6] mm: stack based kmap_atomic
-Date: Tue, 24 Aug 2010 16:24:27 +0900
-Message-ID: <20100824162427.58e2eb88.kamezawa.hiroyu@jp.fujitsu.com>
-References: <20100819201317.673172547@chello.nl>
-	<20100819202753.656285068@chello.nl>
+From: Jean Sacren <sakiwit@gmail.com>
+Subject: [PATCH 0/1] x86: Fix warning: ignoring return value of 'fread'
+Date: Wed, 25 Aug 2010 18:07:39 -0600
+Message-ID: <20100826000739.GA7216@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:37639 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751128Ab0HXH3d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Aug 2010 03:29:33 -0400
-In-Reply-To: <20100819202753.656285068@chello.nl>
+Received: from mail-pv0-f174.google.com ([74.125.83.174]:35267 "EHLO
+	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752792Ab0HZAHh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Aug 2010 20:07:37 -0400
+Received: by pvg2 with SMTP id 2so431282pvg.19
+        for <linux-arch@vger.kernel.org>; Wed, 25 Aug 2010 17:07:37 -0700 (PDT)
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: "H. Peter Anvin" <hpa@linux.intel.com>
+Cc: Linux Arch Mailing List <linux-arch@vger.kernel.org>
 
-On Thu, 19 Aug 2010 22:13:19 +0200
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+Hi,
 
-> Keep the current interface but ignore the KM_type and use a stack
-> based approach.
-> 
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
- 
-> +DECLARE_PER_CPU(int, __kmap_atomic_idx);
-> +
-> +static inline int kmap_atomic_idx_push(void)
-> +{
-> +	int idx = __get_cpu_var(__kmap_atomic_idx)++;
-> +#ifdef CONFIG_DEBUG_HIGHMEM
-> +	BUG_ON(idx > KM_TYPE_NR);
-> +#endif
-> +	return idx;
-> +}
-> +
-> +static inline int kmap_atomic_idx_pop(void)
-> +{
-> +	int idx = --__get_cpu_var(__kmap_atomic_idx);
-> +#ifdef CONFIG_DEBUG_HIGHMEM
-> +	BUG_ON(idx < 0);
-> +#endif
-> +	return idx;
-> +}
-> +
->  #else /* CONFIG_HIGHMEM */
-> 
+Jean Sacren (1):
+  x86: Fix warning: ignoring return value of 'fread'
 
-I may don't understand anything... Is irq already disabled ?
-And Is it documented that kmap_atomic shouln't be used under NMI or something
-special interrupts ?
+ arch/x86/boot/compressed/mkpiggy.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-Thanks,
--Kame
+
+-- 
+Jean Sacren
+Bring LAMP To People
