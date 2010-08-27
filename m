@@ -1,48 +1,116 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 11/22] SH: Add missing consts to sys_execve() declaration
-Date: Fri, 27 Aug 2010 03:00:02 +0100
-Message-ID: <20100827020002.27277.43961.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 19/22] Fix PA-RISC irqflags
+Date: Fri, 27 Aug 2010 03:00:43 +0100
+Message-ID: <20100827020043.27277.2926.stgit@warthog.procyon.org.uk>
 References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48939 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:55250 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754858Ab0H0CAG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Aug 2010 22:00:06 -0400
+	id S1754992Ab0H0CAr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Aug 2010 22:00:47 -0400
 In-Reply-To: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
 
-Add missing consts to the sys_execve() declaration which result in the
-following error:
 
-arch/sh/kernel/process_32.c:303: error: conflicting types for 'sys_execve'
-/warthog/nfs/linux-2.6-fscache/arch/sh/include/asm/syscalls_32.h:24: error: previous declaration of 'sys_execve' was here
-
-Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/sh/include/asm/syscalls_32.h |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ arch/parisc/include/asm/irqflags.h |   46 ++++++++++++++++++++++++++++++++++++
+ arch/parisc/include/asm/system.h   |   19 +--------------
+ 2 files changed, 47 insertions(+), 18 deletions(-)
+ create mode 100644 arch/parisc/include/asm/irqflags.h
 
-diff --git a/arch/sh/include/asm/syscalls_32.h b/arch/sh/include/asm/syscalls_32.h
-index be201fd..454538a 100644
---- a/arch/sh/include/asm/syscalls_32.h
-+++ b/arch/sh/include/asm/syscalls_32.h
-@@ -19,8 +19,10 @@ asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
- asmlinkage int sys_vfork(unsigned long r4, unsigned long r5,
- 			 unsigned long r6, unsigned long r7,
- 			 struct pt_regs __regs);
--asmlinkage int sys_execve(const char __user *ufilename, char __user * __user *uargv,
--			  char __user * __user *uenvp, unsigned long r7,
-+asmlinkage int sys_execve(const char __user *ufilename,
-+			  const char __user *const __user *uargv,
-+			  const char __user *const __user *uenvp,
-+			  unsigned long r7,
- 			  struct pt_regs __regs);
- asmlinkage int sys_sigsuspend(old_sigset_t mask, unsigned long r5,
- 			      unsigned long r6, unsigned long r7,
+diff --git a/arch/parisc/include/asm/irqflags.h b/arch/parisc/include/asm/irqflags.h
+new file mode 100644
+index 0000000..40442a1
+--- /dev/null
++++ b/arch/parisc/include/asm/irqflags.h
+@@ -0,0 +1,46 @@
++#ifndef __PARISC_IRQFLAGS_H
++#define __PARISC_IRQFLAGS_H
++
++#include <linux/types.h>
++#include <asm/psw.h>
++
++static inline unsigned long arch_local_save_flags(void)
++{
++	unsigned long flags;
++	asm volatile("ssm 0, %0" : "=r" (flags) : : "memory");
++	return flags;
++}
++
++static inline void arch_local_irq_disable(void)
++{
++	asm volatile("rsm %0,%%r0\n" : : "i" (PSW_I) : "memory");
++}
++
++static inline void arch_local_irq_enable(void)
++{
++	asm volatile("ssm %0,%%r0\n" : : "i" (PSW_I) : "memory");
++}
++
++static inline unsigned long arch_local_irq_save(void)
++{
++	unsigned long flags;
++	asm volatile ("rsm %1,%0" : "=r" (flags) :"i" (PSW_I) : "memory");
++	return flags;
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	asm volatile ("mtsm %0" : : "r" (flags) : "memory");
++}
++
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return (flags & PSW_I) == 0;
++}
++
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
++
++#endif /* __PARISC_IRQFLAGS_H */
+diff --git a/arch/parisc/include/asm/system.h b/arch/parisc/include/asm/system.h
+index 2ab4af5..b19e63a 100644
+--- a/arch/parisc/include/asm/system.h
++++ b/arch/parisc/include/asm/system.h
+@@ -1,7 +1,7 @@
+ #ifndef __PARISC_SYSTEM_H
+ #define __PARISC_SYSTEM_H
+ 
+-#include <asm/psw.h>
++#include <linux/irqflags.h>
+ 
+ /* The program status word as bitfields.  */
+ struct pa_psw {
+@@ -48,23 +48,6 @@ extern struct task_struct *_switch_to(struct task_struct *, struct task_struct *
+ 	(last) = _switch_to(prev, next);			\
+ } while(0)
+ 
+-/* interrupt control */
+-#define local_save_flags(x)	__asm__ __volatile__("ssm 0, %0" : "=r" (x) : : "memory")
+-#define local_irq_disable()	__asm__ __volatile__("rsm %0,%%r0\n" : : "i" (PSW_I) : "memory" )
+-#define local_irq_enable()	__asm__ __volatile__("ssm %0,%%r0\n" : : "i" (PSW_I) : "memory" )
+-
+-#define local_irq_save(x) \
+-	__asm__ __volatile__("rsm %1,%0" : "=r" (x) :"i" (PSW_I) : "memory" )
+-#define local_irq_restore(x) \
+-	__asm__ __volatile__("mtsm %0" : : "r" (x) : "memory" )
+-
+-#define irqs_disabled()			\
+-({					\
+-	unsigned long flags;		\
+-	local_save_flags(flags);	\
+-	(flags & PSW_I) == 0;		\
+-})
+-
+ #define mfctl(reg)	({		\
+ 	unsigned long cr;		\
+ 	__asm__ __volatile__(		\
