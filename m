@@ -1,99 +1,218 @@
 From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH V2 3/4] oprofile: Abstract the perf-events backend
-Date: Fri, 27 Aug 2010 16:31:21 +0200
-Message-ID: <20100827143121.GN22783@erda.amd.com>
+Subject: Re: [PATCH V2 4/4] sh: Use the perf-events backend for oprofile
+Date: Fri, 27 Aug 2010 16:59:01 +0200
+Message-ID: <20100827145901.GO22783@erda.amd.com>
 References: <cover.1282848651.git.matt@console-pimps.org>
- <fe3e173aaa85f4cd73ea4b5abca50976fc40a01f.1282848651.git.matt@console-pimps.org>
+ <c741813aa911f0048cfab1a1a30534e8d7bb6765.1282848651.git.matt@console-pimps.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from va3ehsobe005.messaging.microsoft.com ([216.32.180.31]:32346
-	"EHLO VA3EHSOBE005.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752234Ab0H0Ohc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Aug 2010 10:37:32 -0400
+Received: from tx2ehsobe002.messaging.microsoft.com ([65.55.88.12]:1164 "EHLO
+	TX2EHSOBE004.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752170Ab0H0PBX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Aug 2010 11:01:23 -0400
 Content-Disposition: inline
-In-Reply-To: <fe3e173aaa85f4cd73ea4b5abca50976fc40a01f.1282848651.git.matt@console-pimps.org>
+In-Reply-To: <c741813aa911f0048cfab1a1a30534e8d7bb6765.1282848651.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Matt Fleming <matt@console-pimps.org>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On 26.08.10 15:09:18, Matt Fleming wrote:
-> Move the perf-events backend from arch/arm/oprofile into
-> drivers/oprofile so that the code can be shared between architectures.
-> 
-> This allows each architecture to maintain only a single copy of the
-> PMU accessor functions instead of one for both perf and OProfile. It
-> also becomes possible for other architectures to delete much of their
-> OProfile code in favour of the common code now available in
-> drivers/oprofile/oprofile_perf.c.
+On 26.08.10 15:09:19, Matt Fleming wrote:
+> Use the perf-events based wrapper for oprofile available in
+> drivers/oprofile. This allows us to centralise the code to control
+> performance counters.
 > 
 > Signed-off-by: Matt Fleming <matt@console-pimps.org>
 > ---
->  arch/arm/oprofile/Makefile       |    4 +
->  arch/arm/oprofile/common.c       |  215 +++-----------------------------------
->  drivers/oprofile/oprofile_perf.c |  209 ++++++++++++++++++++++++++++++++++++
->  include/linux/oprofile.h         |   12 ++
->  4 files changed, 242 insertions(+), 198 deletions(-)
->  create mode 100644 drivers/oprofile/oprofile_perf.c
 > 
-> diff --git a/arch/arm/oprofile/Makefile b/arch/arm/oprofile/Makefile
-> index e666eaf..038d7af 100644
-> --- a/arch/arm/oprofile/Makefile
-> +++ b/arch/arm/oprofile/Makefile
-> @@ -6,4 +6,8 @@ DRIVER_OBJS = $(addprefix ../../../drivers/oprofile/, \
->                 oprofilefs.o oprofile_stats.o \
->                 timer_int.o )
+> Paul,
 > 
-> +ifeq ($(CONFIG_HW_PERF_EVENTS), y)
-> +DRIVER_OBJS += $(addprefix ../../../drivers/oprofile/, oprofile_perf.o)
-> +endif
+> I dropped the CONFIG_PERF_EVENTS dependency from the Makefile in this
+> version because to do anything useful we need perf events anyway.
 
-You use CONFIG_HW_PERF_EVENTS while CONFIG_PERF_EVENTS in oprofile.h.
+Initialization should simply fail with a printk message for this case,
+implement function stubs for the !CONFIG_PERF_EVENTS case instead in
+the oprofile.h header file.
 
-> +
->  oprofile-y                             := $(DRIVER_OBJS) common.o
-
-> diff --git a/include/linux/oprofile.h b/include/linux/oprofile.h
-> index 5171639..99e0323 100644
-> --- a/include/linux/oprofile.h
-> +++ b/include/linux/oprofile.h
-> @@ -185,4 +185,16 @@ int oprofile_add_data(struct op_entry *entry, unsigned long val);
->  int oprofile_add_data64(struct op_entry *entry, u64 val);
->  int oprofile_write_commit(struct op_entry *entry);
 > 
-> +/* Oprofile perf wrapper functions. */
-> +
-> +#ifdef CONFIG_PERF_EVENTS
-> +int oprofile_perf_init(void);
-> +void oprofile_perf_exit(void);
-> +int oprofile_perf_setup(void);
-> +int oprofile_perf_start(void);
-> +void oprofile_perf_stop(void);
-> +int oprofile_perf_create_files(struct super_block *sb, struct dentry *root);
-> +void oprofile_perf_set_num_counters(int num_counters);
-> +#endif /* CONFIG_PERF_EVENTS */
+>  arch/sh/oprofile/Makefile  |    2 +-
+>  arch/sh/oprofile/common.c  |   96 ++++++++-----------------------------------
+>  arch/sh/oprofile/op_impl.h |   33 ---------------
+>  3 files changed, 19 insertions(+), 112 deletions(-)
+>  delete mode 100644 arch/sh/oprofile/op_impl.h
+> 
+> diff --git a/arch/sh/oprofile/Makefile b/arch/sh/oprofile/Makefile
+> index 4886c5c..e1015ae 100644
+> --- a/arch/sh/oprofile/Makefile
+> +++ b/arch/sh/oprofile/Makefile
+> @@ -4,6 +4,6 @@ DRIVER_OBJS = $(addprefix ../../../drivers/oprofile/, \
+>  		oprof.o cpu_buffer.o buffer_sync.o \
+>  		event_buffer.o oprofile_files.o \
+>  		oprofilefs.o oprofile_stats.o \
+> -		timer_int.o )
+> +		timer_int.o oprofile_perf.o )
+>  
+>  oprofile-y	:= $(DRIVER_OBJS) common.o backtrace.o
+> diff --git a/arch/sh/oprofile/common.c b/arch/sh/oprofile/common.c
+> index ac60493..f8d4a84 100644
+> --- a/arch/sh/oprofile/common.c
+> +++ b/arch/sh/oprofile/common.c
+> @@ -17,71 +17,23 @@
+>  #include <linux/init.h>
+>  #include <linux/errno.h>
+>  #include <linux/smp.h>
+> +#include <linux/perf_event.h>
 
-We need empty function stubs for all this functions for the
-!CONFIG_PERF_EVENTS case returning -ENODEV or so. Otherwise
-compliation will fail for it.
+I don't see a reason why this must be included here.
 
-For arm this does not happen because of #ifdefs, but for sh.
+It's only for sh_pmu_name() and sh_pmu_num_events(), so the interface
+looks wrong here. It should be in oprofile_perf.c. The functions
+should be generic non-arch perf code. See below.
 
-Again, please first change the code and then move it without
-functional changes, one patch each.
+>  #include <asm/processor.h>
+> -#include "op_impl.h"
+> -
+> -static struct op_sh_model *model;
+> -
+> -static struct op_counter_config ctr[20];
+>  
+>  extern void sh_backtrace(struct pt_regs * const regs, unsigned int depth);
+>  
+> -static int op_sh_setup(void)
+> -{
+> -	/* Pre-compute the values to stuff in the hardware registers.  */
+> -	model->reg_setup(ctr);
+> -
+> -	/* Configure the registers on all cpus.  */
+> -	on_each_cpu(model->cpu_setup, NULL, 1);
+> -
+> -        return 0;
+> -}
+> -
+> -static int op_sh_create_files(struct super_block *sb, struct dentry *root)
+> -{
+> -	int i, ret = 0;
+> -
+> -	for (i = 0; i < model->num_counters; i++) {
+> -		struct dentry *dir;
+> -		char buf[4];
+> -
+> -		snprintf(buf, sizeof(buf), "%d", i);
+> -		dir = oprofilefs_mkdir(sb, root, buf);
+> -
+> -		ret |= oprofilefs_create_ulong(sb, dir, "enabled", &ctr[i].enabled);
+> -		ret |= oprofilefs_create_ulong(sb, dir, "event", &ctr[i].event);
+> -		ret |= oprofilefs_create_ulong(sb, dir, "kernel", &ctr[i].kernel);
+> -		ret |= oprofilefs_create_ulong(sb, dir, "user", &ctr[i].user);
+> -
+> -		if (model->create_files)
+> -			ret |= model->create_files(sb, dir);
+> -		else
+> -			ret |= oprofilefs_create_ulong(sb, dir, "count", &ctr[i].count);
+> -
+> -		/* Dummy entries */
+> -		ret |= oprofilefs_create_ulong(sb, dir, "unit_mask", &ctr[i].unit_mask);
+> -	}
+> -
+> -	return ret;
+> -}
+> -
+> -static int op_sh_start(void)
+> +static char *op_name_from_perf_name(const char *name)
+>  {
+> -	/* Enable performance monitoring for all counters.  */
+> -	on_each_cpu(model->cpu_start, NULL, 1);
+> +	if (!strcmp(name, "SH-4A"))
+> +		return "sh/sh4a";
+> +	if (!strcmp(name, "SH7750"))
+> +		return "sh/sh7750";
 
-Thanks,
+With that implementation we always have to touch the code for new
+cpus. Maybe we derive it from the perf name, e.g. making all lowercase
+and removing dashes?
+
+>  
+> -	return 0;
+> -}
+> -
+> -static void op_sh_stop(void)
+> -{
+> -	/* Disable performance monitoring for all counters.  */
+> -	on_each_cpu(model->cpu_stop, NULL, 1);
+> +	return NULL;
+>  }
+>  
+>  int __init oprofile_arch_init(struct oprofile_operations *ops)
+>  {
+> -	struct op_sh_model *lmodel = NULL;
+>  	int ret;
+>  
+>  	/*
+> @@ -91,40 +43,28 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
+>  	 */
+>  	ops->backtrace = sh_backtrace;
+>  
+> -	/*
+> -	 * XXX
+> -	 *
+> -	 * All of the SH7750/SH-4A counters have been converted to perf,
+> -	 * this infrastructure hook is left for other users until they've
+> -	 * had a chance to convert over, at which point all of this
+> -	 * will be deleted.
+> -	 */
+> -
+> -	if (!lmodel)
+> -		return -ENODEV;
+>  	if (!(current_cpu_data.flags & CPU_HAS_PERF_COUNTER))
+>  		return -ENODEV;
+>  
+> -	ret = lmodel->init();
+> -	if (unlikely(ret != 0))
+> -		return ret;
+> +	ops->setup		= oprofile_perf_setup;
+> +	ops->create_files	= oprofile_perf_create_files;
+> +	ops->start		= oprofile_perf_start;
+> +	ops->stop		= oprofile_perf_stop;
+> +	ops->cpu_type		= op_name_from_perf_name(sh_pmu_name());
+>  
+> -	model = lmodel;
+> +	oprofile_perf_set_num_counters(sh_pmu_num_events());
+>  
+> -	ops->setup		= op_sh_setup;
+> -	ops->create_files	= op_sh_create_files;
+> -	ops->start		= op_sh_start;
+> -	ops->stop		= op_sh_stop;
+> -	ops->cpu_type		= lmodel->cpu_type;
+> +	ret = oprofile_perf_init();
+
+Instead of exporting all the functions above implement something like:
+
+	name = op_name_from_perf_name(sh_pmu_name());
+	num_events = sh_pmu_num_events();
+	ret = oprofile_perf_init(ops, name, num_events);
+
+We will then have only oprofile_perf_init() and oprofile_perf_exit()
+as interface which is much cleaner.
 
 -Robert
 
-> +
->  #endif /* OPROFILE_H */
-> --
-> 1.7.1
-> 
-> 
+> +	if (ret != 0)
+> +		return ret;
+>  
+>  	printk(KERN_INFO "oprofile: using %s performance monitoring.\n",
+> -	       lmodel->cpu_type);
+> +	       ops->cpu_type);
+>  
+>  	return 0;
+>  }
+>  
+>  void oprofile_arch_exit(void)
+>  {
+> -	if (model && model->exit)
+> -		model->exit();
+> +	oprofile_perf_exit();
+>  }
 
 -- 
 Advanced Micro Devices, Inc.
