@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55757 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:40913 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754969Ab0H0CAl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Aug 2010 22:00:41 -0400
+	id S1754997Ab0H0CAx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Aug 2010 22:00:53 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 18/22] Fix M68K irqflags
-Date: Fri, 27 Aug 2010 03:00:38 +0100
-Message-ID: <20100827020038.27277.27239.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 20/22] Fix powerpc irqflags
+Date: Fri, 27 Aug 2010 03:00:48 +0100
+Message-ID: <20100827020048.27277.3248.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,295 +16,245 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20100827020038.yUYish_1_HNo_pxESWWxfCA9WEj8OK2JbMhx09zzFKg@z>
+Message-ID: <20100827020048.X5eUG4bAUQdnWBL-22AhJP9buswUg-b2-FnLoaq4-Bw@z>
 
 
 ---
 
- arch/m68k/include/asm/irqflags.h    |    5 ++
- arch/m68k/include/asm/irqflags_mm.h |   57 +++++++++++++++++++++++
- arch/m68k/include/asm/irqflags_no.h |   86 +++++++++++++++++++++++++++++++++++
- arch/m68k/include/asm/system_mm.h   |   25 ----------
- arch/m68k/include/asm/system_no.h   |   49 --------------------
- 5 files changed, 150 insertions(+), 72 deletions(-)
- create mode 100644 arch/m68k/include/asm/irqflags.h
- create mode 100644 arch/m68k/include/asm/irqflags_mm.h
- create mode 100644 arch/m68k/include/asm/irqflags_no.h
+ arch/powerpc/include/asm/hw_irq.h    |  115 +++++++++++++++++++---------------
+ arch/powerpc/include/asm/irqflags.h  |    2 -
+ arch/powerpc/kernel/exceptions-64s.S |    4 +
+ arch/powerpc/kernel/irq.c            |    4 +
+ 4 files changed, 69 insertions(+), 56 deletions(-)
 
-diff --git a/arch/m68k/include/asm/irqflags.h b/arch/m68k/include/asm/irqflags.h
-new file mode 100644
-index 0000000..868c405
---- /dev/null
-+++ b/arch/m68k/include/asm/irqflags.h
-@@ -0,0 +1,5 @@
-+#ifdef __uClinux__
-+#include "irqflags_no.h"
-+#else
-+#include "irqflags_mm.h"
-+#endif
-diff --git a/arch/m68k/include/asm/irqflags_mm.h b/arch/m68k/include/asm/irqflags_mm.h
-new file mode 100644
-index 0000000..d00716d
---- /dev/null
-+++ b/arch/m68k/include/asm/irqflags_mm.h
-@@ -0,0 +1,57 @@
-+#ifndef _M68K_IRQFLAGS_MM_H
-+#define _M68K_IRQFLAGS_MM_H
-+
-+#include <linux/types.h>
-+#include <linux/hardirq.h>
-+#include <asm/thread_info.h>
-+#include <asm/entry_mm.h>
-+
+diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
+index bd100fc..4255de6 100644
+--- a/arch/powerpc/include/asm/hw_irq.h
++++ b/arch/powerpc/include/asm/hw_irq.h
+@@ -16,42 +16,57 @@ extern void timer_interrupt(struct pt_regs *);
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+ 
+-static inline unsigned long local_get_flags(void)
 +static inline unsigned long arch_local_save_flags(void)
-+{
-+	unsigned long flags;
-+	asm volatile ("movew %%sr,%0": "=d" (flags) : : "memory");
-+	return flags;
-+}
-+
-+static inline void arch_local_irq_disable(void)
-+{
-+	asm volatile ("oriw  #0x0700,%%sr" : : : "memory");
-+}
-+
-+#if 0
-+static inline void arch_local_irq_enable(void)
-+{
-+		asm volatile ("andiw %0,%%sr" : : "i" (ALLOWINT) : "memory");
-+}
-+#else
-+#define arch_local_irq_enable()						\
-+	do {								\
-+		if (MACH_IS_Q40 || !hardirq_count())			\
-+			asm volatile ("andiw %0,%%sr"			\
-+				      : : "i" (ALLOWINT) : "memory");	\
-+	} while (0)
-+#endif
-+
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags = arch_local_save_flags();
-+	arch_local_irq_disable();
-+	return flags;
-+}
-+
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	asm volatile ("movew %0,%%sr": : "d" (flags) : "memory");
-+}
-+
-+static inline bool arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return (flags & ~ALLOWINT) != 0;
-+}
-+
-+static inline bool arch_irqs_disabled(void)
-+{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
-+}
-+
-+#endif /* _M68K_IRQFLAGS_MM_H */
-diff --git a/arch/m68k/include/asm/irqflags_no.h b/arch/m68k/include/asm/irqflags_no.h
-new file mode 100644
-index 0000000..6f6c217
---- /dev/null
-+++ b/arch/m68k/include/asm/irqflags_no.h
-@@ -0,0 +1,86 @@
-+#ifndef _M68KNOMMU_IRQFLAGS_H
-+#define _M68KNOMMU_IRQFLAGS_H
-+
-+#include <linux/types.h>
-+
-+
-+#ifndef CONFIG_COLDFIRE
-+/* portable version */ /* FIXME - see entry.h*/
-+#define ALLOWINT 0xf8ff
-+#endif
-+
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	unsigned long flags;
-+	asm volatile ("movew %%sr,%0" : "=d" (flags) : : "memory");
-+	return flags;
-+}
-+
-+static inline void arch_local_irq_disable(void)
-+{
-+#ifdef CONFIG_COLDFIRE
-+	asm volatile (
-+		"move	%/sr,%%d0	\n\t"
-+		"ori.l	#0x0700,%%d0	\n\t"
-+		"move	%%d0,%/sr	\n"
-+		: /* no outputs */
-+		:
-+		: "cc", "%d0", "memory");
-+#else
-+	asm volatile (
-+		"oriw  #0x0700,%%sr" : : : "memory");
-+#endif
-+}
-+
-+static inline void arch_local_irq_enable(void)
-+{
-+#ifdef CONFIG_COLDFIRE
-+	asm volatile (
-+		"move	%/sr,%%d0	\n\t"
-+		"andi.l	#0xf8ff,%%d0	\n\t"
-+		"move	%%d0,%/sr	\n"
-+		: /* no outputs */
-+		:
-+		: "cc", "%d0", "memory");
-+#else
-+	asm volatile (
-+		"andiw %0,%%sr"
-+		:
-+		: "i" (ALLOWINT)
-+		: "memory")
-+#endif
-+}
-+
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags = arch_local_save_flags();
-+#ifdef CONFIG_COLDFIRE
-+	asm volatile (
-+		"movew	#0x0700,%%d0	\n\t"
-+		"or.l	%0,%%d0		\n\t"
-+		"movew	%%d0,%/sr"
-+		:
-+		: "d" (flags)
-+		: "cc", "%d0", "memory")
-+#else
-+	arch_local_irq_disable();
-+#endif
-+	return flags;
-+}
-+
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	asm volatile ("movew %0,%%sr" : : "d" (flags) : "memory");
-+}
-+
-+static inline bool arch_irqs_disabled_flags(unsigned long flags)
-+{
-+	return (flags & 0x0700) == 0x0700;
-+}
-+
-+static inline bool arch_irqs_disabled(void)
-+{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
-+}
-+
-+#endif /* _M68KNOMMU_IRQFLAGS_H */
-diff --git a/arch/m68k/include/asm/system_mm.h b/arch/m68k/include/asm/system_mm.h
-index dbb6515..12053c4 100644
---- a/arch/m68k/include/asm/system_mm.h
-+++ b/arch/m68k/include/asm/system_mm.h
-@@ -3,6 +3,7 @@
+ {
+ 	unsigned long flags;
  
- #include <linux/linkage.h>
- #include <linux/kernel.h>
-+#include <linux/irqflags.h>
- #include <asm/segment.h>
- #include <asm/entry.h>
+-	__asm__ __volatile__("lbz %0,%1(13)"
+-	: "=r" (flags)
+-	: "i" (offsetof(struct paca_struct, soft_enabled)));
++	asm volatile(
++		"lbz %0,%1(13)"
++		: "=r" (flags)
++		: "i" (offsetof(struct paca_struct, soft_enabled)));
  
-@@ -62,30 +63,6 @@ asmlinkage void resume(void);
- #define smp_wmb()	barrier()
- #define smp_read_barrier_depends()	((void)0)
- 
--/* interrupt control.. */
--#if 0
--#define local_irq_enable() asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory")
--#else
--#include <linux/hardirq.h>
--#define local_irq_enable() ({							\
--	if (MACH_IS_Q40 || !hardirq_count())					\
--		asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory");	\
--})
--#endif
--#define local_irq_disable() asm volatile ("oriw  #0x0700,%%sr": : : "memory")
--#define local_save_flags(x) asm volatile ("movew %%sr,%0":"=d" (x) : : "memory")
--#define local_irq_restore(x) asm volatile ("movew %0,%%sr": :"d" (x) : "memory")
--
--static inline int irqs_disabled(void)
--{
--	unsigned long flags;
--	local_save_flags(flags);
--	return flags & ~ALLOWINT;
--}
--
--/* For spinlocks etc */
--#define local_irq_save(x)	({ local_save_flags(x); local_irq_disable(); })
--
- #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
- 
- struct __xchg_dummy { unsigned long a[100]; };
-diff --git a/arch/m68k/include/asm/system_no.h b/arch/m68k/include/asm/system_no.h
-index 3c0718d..52ca8da 100644
---- a/arch/m68k/include/asm/system_no.h
-+++ b/arch/m68k/include/asm/system_no.h
-@@ -2,6 +2,7 @@
- #define _M68KNOMMU_SYSTEM_H
- 
- #include <linux/linkage.h>
-+#include <linux/irqflags.h>
- #include <asm/segment.h>
- #include <asm/entry.h>
- 
-@@ -46,54 +47,6 @@ asmlinkage void resume(void);
-   (last) = _last;						\
+ 	return flags;
  }
  
--#ifdef CONFIG_COLDFIRE
--#define local_irq_enable() __asm__ __volatile__ (		\
--	"move %/sr,%%d0\n\t"					\
--	"andi.l #0xf8ff,%%d0\n\t"				\
--	"move %%d0,%/sr\n"					\
--	: /* no outputs */					\
--	:							\
--        : "cc", "%d0", "memory")
--#define local_irq_disable() __asm__ __volatile__ (		\
--	"move %/sr,%%d0\n\t"					\
--	"ori.l #0x0700,%%d0\n\t"				\
--	"move %%d0,%/sr\n"					\
--	: /* no outputs */					\
--	:							\
--	: "cc", "%d0", "memory")
--/* For spinlocks etc */
--#define local_irq_save(x) __asm__ __volatile__ (		\
--	"movew %%sr,%0\n\t"					\
--	"movew #0x0700,%%d0\n\t"				\
--	"or.l  %0,%%d0\n\t"					\
--	"movew %%d0,%/sr"					\
--	: "=d" (x)						\
--	:							\
--	: "cc", "%d0", "memory")
+-static inline unsigned long raw_local_irq_disable(void)
++static inline unsigned long arch_local_irq_disable(void)
+ {
+ 	unsigned long flags, zero;
+ 
+-	__asm__ __volatile__("li %1,0; lbz %0,%2(13); stb %1,%2(13)"
+-	: "=r" (flags), "=&r" (zero)
+-	: "i" (offsetof(struct paca_struct, soft_enabled))
+-	: "memory");
++	asm volatile(
++		"li %1,0; lbz %0,%2(13); stb %1,%2(13)"
++		: "=r" (flags), "=&r" (zero)
++		: "i" (offsetof(struct paca_struct, soft_enabled))
++		: "memory");
+ 
+ 	return flags;
+ }
+ 
+-extern void raw_local_irq_restore(unsigned long);
++extern void arch_local_irq_restore(unsigned long);
+ extern void iseries_handle_interrupts(void);
+ 
+-#define raw_local_irq_enable()		raw_local_irq_restore(1)
+-#define raw_local_save_flags(flags)	((flags) = local_get_flags())
+-#define raw_local_irq_save(flags)	((flags) = raw_local_irq_disable())
++static inline void arch_local_irq_enable(void)
++{
++	arch_local_irq_restore(1);
++}
+ 
+-#define raw_irqs_disabled()		(local_get_flags() == 0)
+-#define raw_irqs_disabled_flags(flags)	((flags) == 0)
++static inline unsigned long arch_local_irq_save(void)
++{
++	return arch_local_irq_disable();
++}
++
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return flags == 0;
++}
++
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
+ 
+ #ifdef CONFIG_PPC_BOOK3E
+-#define __hard_irq_enable()	__asm__ __volatile__("wrteei 1": : :"memory");
+-#define __hard_irq_disable()	__asm__ __volatile__("wrteei 0": : :"memory");
++#define __hard_irq_enable()	asm volatile("wrteei 1" : : :"memory");
++#define __hard_irq_disable()	asm volatile("wrteei 0" : : :"memory");
+ #else
+ #define __hard_irq_enable()	__mtmsrd(mfmsr() | MSR_EE, 1)
+ #define __hard_irq_disable()	__mtmsrd(mfmsr() & ~MSR_EE, 1)
+@@ -64,64 +79,62 @@ extern void iseries_handle_interrupts(void);
+ 		get_paca()->hard_enabled = 0;	\
+ 	} while(0)
+ 
 -#else
--
--/* portable version */ /* FIXME - see entry.h*/
--#define ALLOWINT 0xf8ff
--
--#define local_irq_enable() asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory")
--#define local_irq_disable() asm volatile ("oriw  #0x0700,%%sr": : : "memory")
++#else /* CONFIG_PPC64 */
+ 
+-#if defined(CONFIG_BOOKE)
+-#define SET_MSR_EE(x)	mtmsr(x)
+-#define raw_local_irq_restore(flags)	__asm__ __volatile__("wrtee %0" : : "r" (flags) : "memory")
+-#else
+ #define SET_MSR_EE(x)	mtmsr(x)
+-#define raw_local_irq_restore(flags)	mtmsr(flags)
 -#endif
+ 
+-static inline void raw_local_irq_disable(void)
++static inline unsigned long arch_local_save_flags(void)
+ {
+-#ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 0": : :"memory");
+-#else
+-	unsigned long msr;
++	return mfmsr();
++}
+ 
+-	msr = mfmsr();
+-	SET_MSR_EE(msr & ~MSR_EE);
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++#if defined(CONFIG_BOOKE)
++	asm volatile("wrtee %0" : : "r" (flags) : "memory");
++#else
++	mtmsr(flags);
+ #endif
+ }
+ 
+-static inline void raw_local_irq_enable(void)
++static inline unsigned long arch_local_irq_save(void)
+ {
++	unsigned long flags = arch_local_save_flags();
+ #ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 1": : :"memory");
++	asm volatile("wrteei 0": : :"memory");
+ #else
+-	unsigned long msr;
 -
--#define local_save_flags(x) asm volatile ("movew %%sr,%0":"=d" (x) : : "memory")
--#define local_irq_restore(x) asm volatile ("movew %0,%%sr": :"d" (x) : "memory")
+-	msr = mfmsr();
+-	SET_MSR_EE(msr | MSR_EE);
++	SET_MSR_EE(flags & ~MSR_EE);
+ #endif
++	return flags;
+ }
+ 
+-static inline void raw_local_irq_save_ptr(unsigned long *flags)
++static inline void arch_local_irq_disable(void)
++{
++	arch_local_irq_save();
++}
++
++static inline void arch_local_irq_enable(void)
+ {
+-	unsigned long msr;
+-	msr = mfmsr();
+-	*flags = msr;
+ #ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 0": : :"memory");
++	asm volatile("wrteei 1" : : :"memory");
+ #else
+-	SET_MSR_EE(msr & ~MSR_EE);
++	unsigned long msr = mfmsr();
++	SET_MSR_EE(msr | MSR_EE);
+ #endif
+ }
+ 
+-#define raw_local_save_flags(flags)	((flags) = mfmsr())
+-#define raw_local_irq_save(flags)	raw_local_irq_save_ptr(&flags)
+-#define raw_irqs_disabled()		((mfmsr() & MSR_EE) == 0)
+-#define raw_irqs_disabled_flags(flags)	(((flags) & MSR_EE) == 0)
 -
--/* For spinlocks etc */
--#ifndef local_irq_save
--#define local_irq_save(x) do { local_save_flags(x); local_irq_disable(); } while (0)
--#endif
+-#define hard_irq_disable()		raw_local_irq_disable()
 -
--#define	irqs_disabled()			\
--({					\
--	unsigned long flags;		\
--	local_save_flags(flags);	\
--	((flags & 0x0700) == 0x0700);	\
--})
--
- #define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
+-static inline int irqs_disabled_flags(unsigned long flags)
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
+ {
+ 	return (flags & MSR_EE) == 0;
+ }
+ 
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
++
++#define hard_irq_disable()		arch_local_irq_disable()
++
+ #endif /* CONFIG_PPC64 */
  
  /*
+diff --git a/arch/powerpc/include/asm/irqflags.h b/arch/powerpc/include/asm/irqflags.h
+index 5f68ecf..b85d8dd 100644
+--- a/arch/powerpc/include/asm/irqflags.h
++++ b/arch/powerpc/include/asm/irqflags.h
+@@ -6,7 +6,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ /*
+- * Get definitions for raw_local_save_flags(x), etc.
++ * Get definitions for arch_local_save_flags(x), etc.
+  */
+ #include <asm/hw_irq.h>
+ 
+diff --git a/arch/powerpc/kernel/exceptions-64s.S b/arch/powerpc/kernel/exceptions-64s.S
+index f53029a..39b0c48 100644
+--- a/arch/powerpc/kernel/exceptions-64s.S
++++ b/arch/powerpc/kernel/exceptions-64s.S
+@@ -818,12 +818,12 @@ END_FW_FTR_SECTION_IFCLR(FW_FEATURE_ISERIES)
+ 
+ 	/*
+ 	 * hash_page couldn't handle it, set soft interrupt enable back
+-	 * to what it was before the trap.  Note that .raw_local_irq_restore
++	 * to what it was before the trap.  Note that .arch_local_irq_restore
+ 	 * handles any interrupts pending at this point.
+ 	 */
+ 	ld	r3,SOFTE(r1)
+ 	TRACE_AND_RESTORE_IRQ_PARTIAL(r3, 11f)
+-	bl	.raw_local_irq_restore
++	bl	.arch_local_irq_restore
+ 	b	11f
+ 
+ /* We have a data breakpoint exception - handle it */
+diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+index 4a65386..1903290 100644
+--- a/arch/powerpc/kernel/irq.c
++++ b/arch/powerpc/kernel/irq.c
+@@ -116,7 +116,7 @@ static inline notrace void set_soft_enabled(unsigned long enable)
+ 	: : "r" (enable), "i" (offsetof(struct paca_struct, soft_enabled)));
+ }
+ 
+-notrace void raw_local_irq_restore(unsigned long en)
++notrace void arch_local_irq_restore(unsigned long en)
+ {
+ 	/*
+ 	 * get_paca()->soft_enabled = en;
+@@ -192,7 +192,7 @@ notrace void raw_local_irq_restore(unsigned long en)
+ 
+ 	__hard_irq_enable();
+ }
+-EXPORT_SYMBOL(raw_local_irq_restore);
++EXPORT_SYMBOL(arch_local_irq_restore);
+ #endif /* CONFIG_PPC64 */
+ 
+ static int show_other_interrupts(struct seq_file *p, int prec)
 
