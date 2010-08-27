@@ -1,28 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:11731 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752978Ab0H0Mjh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Aug 2010 08:39:37 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <AANLkTi=QoMLTEDVfW0oKGVs-MhG+GpNxjC6axzLaHFKR@mail.gmail.com>
-References: <AANLkTi=QoMLTEDVfW0oKGVs-MhG+GpNxjC6axzLaHFKR@mail.gmail.com> <20100826141110.11132.91931.stgit@warthog.procyon.org.uk> <20100826141115.11132.52122.stgit@warthog.procyon.org.uk> <AANLkTinxwf6kY6hCnUn=ATSYFutCAeSJQ1pgUj11UfD4@mail.gmail.com> <32426.1282852938@redhat.com>
-Subject: Re: [Uclinux-dist-devel] [PATCH 2/7] Blackfin: Don't redefine blackfin serial port symbols
-Date: Fri, 27 Aug 2010 13:39:19 +0100
-Message-ID: <6708.1282912759@redhat.com>
+Received: from tx2ehsobe004.messaging.microsoft.com ([65.55.88.14]:4472 "EHLO
+	TX2EHSOBE007.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752708Ab0H0NC1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Aug 2010 09:02:27 -0400
+Date: Fri, 27 Aug 2010 14:59:56 +0200
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH V2 3/4] oprofile: Abstract the perf-events backend
+Message-ID: <20100827125956.GK22783@erda.amd.com>
+References: <cover.1282848651.git.matt@console-pimps.org>
+ <fe3e173aaa85f4cd73ea4b5abca50976fc40a01f.1282848651.git.matt@console-pimps.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <fe3e173aaa85f4cd73ea4b5abca50976fc40a01f.1282848651.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
-Message-ID: <20100827123919.ljre0y6SZubGRR4rrSENmQ8kiQdWrJUt4G-CiiHCtiY@z>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20100827125956.m6jCSMX0VYnKzlmVbTdK0bOhOSTa10CedDcbriXgILg@z>
 
-Mike Frysinger <vapier@gentoo.org> wrote:
+On 26.08.10 15:09:18, Matt Fleming wrote:
+> Move the perf-events backend from arch/arm/oprofile into
+> drivers/oprofile so that the code can be shared between architectures.
+> 
+> This allows each architecture to maintain only a single copy of the
+> PMU accessor functions instead of one for both perf and OProfile. It
+> also becomes possible for other architectures to delete much of their
+> OProfile code in favour of the common code now available in
+> drivers/oprofile/oprofile_perf.c.
+> 
+> Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> ---
+>  arch/arm/oprofile/Makefile       |    4 +
+>  arch/arm/oprofile/common.c       |  215 +++-----------------------------------
+>  drivers/oprofile/oprofile_perf.c |  209 ++++++++++++++++++++++++++++++++++++
+>  include/linux/oprofile.h         |   12 ++
+>  4 files changed, 242 insertions(+), 198 deletions(-)
+>  create mode 100644 drivers/oprofile/oprofile_perf.c
 
-> this guy:
-> http://git.kernel.org/?p=linux/kernel/git/vapier/blackfin.git;a=commitdiff;h=8e289204d2d190a8b430edf956a315ba383d85f6
+Could we split this patch in 2 for better review? One that only moves
+the code and a 2nd that changes it.
 
-Cool.  Replaced my patch with that.
+-Robert
 
-Any chance I can get you to test my patches?  At least the ones applicable to
-Blackfin...
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
 
-David
