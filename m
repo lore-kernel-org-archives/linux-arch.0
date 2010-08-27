@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1997 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:41196 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754539Ab0H0B7k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Aug 2010 21:59:40 -0400
+	id S1754835Ab0H0CAA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Aug 2010 22:00:00 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 06/22] Blackfin: Add missing dep to asm/irqflags.h
-Date: Fri, 27 Aug 2010 02:59:36 +0100
-Message-ID: <20100827015936.27277.78015.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 10/22] h8300: Fix missing consts in kernel_execve()
+Date: Fri, 27 Aug 2010 02:59:57 +0100
+Message-ID: <20100827015957.27277.175.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,42 +16,33 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20100827015936.S8iuCK9DV6PmKH18X6AtJMAI-9P1nnuszLAOc_fYiZ0@z>
+Message-ID: <20100827015957.F7Uc4qYbQBzUMZV5dXavr6lO9oa0DscT4_ucOqXeD0s@z>
 
-Add a missing dependency (mach/blackfin.h) to asm/irqflags.h so that
-bfin_read_IMASK() can be used by inline functions.
+Fix missing consts in h8300's kernel_execve():
+
+arch/h8300/kernel/sys_h8300.c: In function 'kernel_execve':
+arch/h8300/kernel/sys_h8300.c:59: warning: initialization from incompatible pointer type
+arch/h8300/kernel/sys_h8300.c:60: warning: initialization from incompatible pointer type
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/blackfin/include/asm/irqflags.h |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
+ arch/h8300/kernel/sys_h8300.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/irqflags.h b/arch/blackfin/include/asm/irqflags.h
-index 813a1af..f3ed931 100644
---- a/arch/blackfin/include/asm/irqflags.h
-+++ b/arch/blackfin/include/asm/irqflags.h
-@@ -8,6 +8,8 @@
- #ifndef __ASM_BFIN_IRQFLAGS_H__
- #define __ASM_BFIN_IRQFLAGS_H__
- 
-+#include <mach/blackfin.h>
-+
- #ifdef CONFIG_SMP
- # include <asm/pda.h>
- # include <asm/processor.h>
-@@ -185,7 +187,12 @@ static inline void raw_local_irq_enable(void)
- 	bfin_sti(bfin_irq_flags);
- }
- 
--#define raw_local_save_flags(flags) do { (flags) = bfin_read_IMASK(); } while (0)
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	return bfin_read_IMASK();
-+}
-+
-+#define raw_local_save_flags(flags) do { (flags) = arch_local_save_flags(); } while (0)
- 
- #define raw_irqs_disabled_flags(flags) (((flags) & ~0x3f) == 0)
- 
+diff --git a/arch/h8300/kernel/sys_h8300.c b/arch/h8300/kernel/sys_h8300.c
+index dc1ac02..aaf5e5a 100644
+--- a/arch/h8300/kernel/sys_h8300.c
++++ b/arch/h8300/kernel/sys_h8300.c
+@@ -56,8 +56,8 @@ int kernel_execve(const char *filename,
+ 		  const char *const envp[])
+ {
+ 	register long res __asm__("er0");
+-	register char *const *_c __asm__("er3") = envp;
+-	register char *const *_b __asm__("er2") = argv;
++	register const char *const *_c __asm__("er3") = envp;
++	register const char *const *_b __asm__("er2") = argv;
+ 	register const char * _a __asm__("er1") = filename;
+ 	__asm__ __volatile__ ("mov.l %1,er0\n\t"
+ 			"trapa	#0\n\t"
 
