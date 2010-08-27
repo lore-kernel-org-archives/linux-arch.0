@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 21/22] Fix SH irqflags
-Date: Fri, 27 Aug 2010 03:00:53 +0100
-Message-ID: <20100827020053.27277.553.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 14/22] Fix Alpha irqflags
+Date: Fri, 27 Aug 2010 03:00:17 +0100
+Message-ID: <20100827020017.27277.51777.stgit@warthog.procyon.org.uk>
 References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -16,37 +16,118 @@ List-Id: linux-arch.vger.kernel.org
 
 ---
 
- arch/sh/kernel/irq_32.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ arch/alpha/include/asm/irqflags.h |   65 +++++++++++++++++++++++++++++++++++++
+ arch/alpha/include/asm/system.h   |   28 ----------------
+ 2 files changed, 65 insertions(+), 28 deletions(-)
+ create mode 100644 arch/alpha/include/asm/irqflags.h
 
-diff --git a/arch/sh/kernel/irq_32.c b/arch/sh/kernel/irq_32.c
-index e33ab15..14d2477 100644
---- a/arch/sh/kernel/irq_32.c
-+++ b/arch/sh/kernel/irq_32.c
-@@ -10,7 +10,7 @@
- #include <linux/irqflags.h>
- #include <linux/module.h>
+diff --git a/arch/alpha/include/asm/irqflags.h b/arch/alpha/include/asm/irqflags.h
+new file mode 100644
+index 0000000..75dfe395
+--- /dev/null
++++ b/arch/alpha/include/asm/irqflags.h
+@@ -0,0 +1,65 @@
++#ifndef __ALPHA_IRQFLAGS_H
++#define __ALPHA_IRQFLAGS_H
++
++#define IPL_MIN		0
++#define IPL_SW0		1
++#define IPL_SW1		2
++#define IPL_DEV0	3
++#define IPL_DEV1	4
++#define IPL_TIMER	5
++#define IPL_PERF	6
++#define IPL_POWERFAIL	6
++#define IPL_MCHECK	7
++#define IPL_MAX		7
++
++#ifdef CONFIG_ALPHA_BROKEN_IRQ_MASK
++#undef IPL_MIN
++#define IPL_MIN		__min_ipl
++extern int __min_ipl;
++#endif
++
++#define getipl()		(rdps() & 7)
++#define setipl(ipl)		((void) swpipl(ipl))
++
++static inline unsigned long arch_local_save_flags(void)
++{
++	return rdps();
++}
++
++static inline void arch_local_irq_disable(void)
++{
++	setipl(IPL_MAX);
++	barrier();
++}
++
++static inline unsigned long arch_local_irq_save(void)
++{
++	unsigned long flags = swpipl(IPL_MAX);
++	barrier();
++	return flags;
++}
++
++static inline void arch_local_irq_enable(void)
++{
++	barrier();
++	setipl(IPL_MIN);
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	barrier();
++	setipl(flags);
++	barrier();
++}
++
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return flags == IPL_MAX;
++}
++
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(getipl());
++}
++
++#endif /* __ALPHA_IRQFLAGS_H */
+diff --git a/arch/alpha/include/asm/system.h b/arch/alpha/include/asm/system.h
+index 5aa40cc..9f78e69 100644
+--- a/arch/alpha/include/asm/system.h
++++ b/arch/alpha/include/asm/system.h
+@@ -259,34 +259,6 @@ __CALL_PAL_RW2(wrperfmon, unsigned long, unsigned long, unsigned long);
+ __CALL_PAL_W1(wrusp, unsigned long);
+ __CALL_PAL_W1(wrvptptr, unsigned long);
  
--void notrace raw_local_irq_restore(unsigned long flags)
-+void notrace arch_local_irq_restore(unsigned long flags)
- {
- 	unsigned long __dummy0, __dummy1;
- 
-@@ -38,9 +38,9 @@ void notrace raw_local_irq_restore(unsigned long flags)
- 		);
- 	}
- }
--EXPORT_SYMBOL(raw_local_irq_restore);
-+EXPORT_SYMBOL(arch_local_irq_restore);
- 
--unsigned long notrace __raw_local_save_flags(void)
-+unsigned long notrace __arch_local_save_flags(void)
- {
- 	unsigned long flags;
- 
-@@ -54,4 +54,4 @@ unsigned long notrace __raw_local_save_flags(void)
- 
- 	return flags;
- }
--EXPORT_SYMBOL(__raw_local_save_flags);
-+EXPORT_SYMBOL(__arch_local_save_flags);
+-#define IPL_MIN		0
+-#define IPL_SW0		1
+-#define IPL_SW1		2
+-#define IPL_DEV0	3
+-#define IPL_DEV1	4
+-#define IPL_TIMER	5
+-#define IPL_PERF	6
+-#define IPL_POWERFAIL	6
+-#define IPL_MCHECK	7
+-#define IPL_MAX		7
+-
+-#ifdef CONFIG_ALPHA_BROKEN_IRQ_MASK
+-#undef IPL_MIN
+-#define IPL_MIN		__min_ipl
+-extern int __min_ipl;
+-#endif
+-
+-#define getipl()		(rdps() & 7)
+-#define setipl(ipl)		((void) swpipl(ipl))
+-
+-#define local_irq_disable()			do { setipl(IPL_MAX); barrier(); } while(0)
+-#define local_irq_enable()			do { barrier(); setipl(IPL_MIN); } while(0)
+-#define local_save_flags(flags)	((flags) = rdps())
+-#define local_irq_save(flags)	do { (flags) = swpipl(IPL_MAX); barrier(); } while(0)
+-#define local_irq_restore(flags)	do { barrier(); setipl(flags); barrier(); } while(0)
+-
+-#define irqs_disabled()	(getipl() == IPL_MAX)
+-
+ /*
+  * TB routines..
+  */
