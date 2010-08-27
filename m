@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1025 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:64818 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754392Ab0H0B7e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Aug 2010 21:59:34 -0400
+	id S1752669Ab0H0CAV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Aug 2010 22:00:21 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 05/22] Blackfin: Rename DES PC2() symbol to avoid collision
-Date: Fri, 27 Aug 2010 02:59:31 +0100
-Message-ID: <20100827015931.27277.55559.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 14/22] Fix Alpha irqflags
+Date: Fri, 27 Aug 2010 03:00:17 +0100
+Message-ID: <20100827020017.27277.51777.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,185 +16,124 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20100827015931.BDMqWxi3aTiwa3VZtXVYLRv0ucRiuL9wjNj70Dt75B0@z>
+Message-ID: <20100827020017.62CiA3FzHQnJpbHkVpVWe4AenXTGREr7fN1szr4pj6Q@z>
 
-Rename the PC2() symbol in the generic DES crypto module to be prefixed with
-DES_ to avoid collision with arch code (Blackfin in this case).
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Signed-off-by: Mike Frysinger <vapier@gentoo.org>
 ---
 
- crypto/des_generic.c |  130 +++++++++++++++++++++++++-------------------------
- 1 files changed, 65 insertions(+), 65 deletions(-)
+ arch/alpha/include/asm/irqflags.h |   65 +++++++++++++++++++++++++++++++++++++
+ arch/alpha/include/asm/system.h   |   28 ----------------
+ 2 files changed, 65 insertions(+), 28 deletions(-)
+ create mode 100644 arch/alpha/include/asm/irqflags.h
 
-diff --git a/crypto/des_generic.c b/crypto/des_generic.c
-index 249f903..873818d 100644
---- a/crypto/des_generic.c
-+++ b/crypto/des_generic.c
-@@ -614,7 +614,7 @@ static const u32 S8[64] = {
- #define T3(x) pt[2 * (x) + 2]
- #define T4(x) pt[2 * (x) + 3]
+diff --git a/arch/alpha/include/asm/irqflags.h b/arch/alpha/include/asm/irqflags.h
+new file mode 100644
+index 0000000..75dfe395
+--- /dev/null
++++ b/arch/alpha/include/asm/irqflags.h
+@@ -0,0 +1,65 @@
++#ifndef __ALPHA_IRQFLAGS_H
++#define __ALPHA_IRQFLAGS_H
++
++#define IPL_MIN		0
++#define IPL_SW0		1
++#define IPL_SW1		2
++#define IPL_DEV0	3
++#define IPL_DEV1	4
++#define IPL_TIMER	5
++#define IPL_PERF	6
++#define IPL_POWERFAIL	6
++#define IPL_MCHECK	7
++#define IPL_MAX		7
++
++#ifdef CONFIG_ALPHA_BROKEN_IRQ_MASK
++#undef IPL_MIN
++#define IPL_MIN		__min_ipl
++extern int __min_ipl;
++#endif
++
++#define getipl()		(rdps() & 7)
++#define setipl(ipl)		((void) swpipl(ipl))
++
++static inline unsigned long arch_local_save_flags(void)
++{
++	return rdps();
++}
++
++static inline void arch_local_irq_disable(void)
++{
++	setipl(IPL_MAX);
++	barrier();
++}
++
++static inline unsigned long arch_local_irq_save(void)
++{
++	unsigned long flags = swpipl(IPL_MAX);
++	barrier();
++	return flags;
++}
++
++static inline void arch_local_irq_enable(void)
++{
++	barrier();
++	setipl(IPL_MIN);
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	barrier();
++	setipl(flags);
++	barrier();
++}
++
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return flags == IPL_MAX;
++}
++
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(getipl());
++}
++
++#endif /* __ALPHA_IRQFLAGS_H */
+diff --git a/arch/alpha/include/asm/system.h b/arch/alpha/include/asm/system.h
+index 5aa40cc..9f78e69 100644
+--- a/arch/alpha/include/asm/system.h
++++ b/arch/alpha/include/asm/system.h
+@@ -259,34 +259,6 @@ __CALL_PAL_RW2(wrperfmon, unsigned long, unsigned long, unsigned long);
+ __CALL_PAL_W1(wrusp, unsigned long);
+ __CALL_PAL_W1(wrvptptr, unsigned long);
  
--#define PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
-+#define DES_PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
- 
+-#define IPL_MIN		0
+-#define IPL_SW0		1
+-#define IPL_SW1		2
+-#define IPL_DEV0	3
+-#define IPL_DEV1	4
+-#define IPL_TIMER	5
+-#define IPL_PERF	6
+-#define IPL_POWERFAIL	6
+-#define IPL_MCHECK	7
+-#define IPL_MAX		7
+-
+-#ifdef CONFIG_ALPHA_BROKEN_IRQ_MASK
+-#undef IPL_MIN
+-#define IPL_MIN		__min_ipl
+-extern int __min_ipl;
+-#endif
+-
+-#define getipl()		(rdps() & 7)
+-#define setipl(ipl)		((void) swpipl(ipl))
+-
+-#define local_irq_disable()			do { setipl(IPL_MAX); barrier(); } while(0)
+-#define local_irq_enable()			do { barrier(); setipl(IPL_MIN); } while(0)
+-#define local_save_flags(flags)	((flags) = rdps())
+-#define local_irq_save(flags)	do { (flags) = swpipl(IPL_MAX); barrier(); } while(0)
+-#define local_irq_restore(flags)	do { barrier(); setipl(flags); barrier(); } while(0)
+-
+-#define irqs_disabled()	(getipl() == IPL_MAX)
+-
  /*
-  * Encryption key expansion
-@@ -639,22 +639,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
- 
--	pe[15 * 2 + 0] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 0] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 0] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 0] = PC2(b, c, d, a);
-+	pe[15 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 0] = DES_PC2(b, c, d, a);
- 
- 	/* Check if first half is weak */
- 	w  = (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
-@@ -670,22 +670,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	/* Check if second half is weak */
- 	w |= (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
- 
--	pe[15 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 1] = PC2(b, c, d, a);
-+	pe[15 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 1] = DES_PC2(b, c, d, a);
- 
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
-@@ -722,22 +722,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
- 
--	pe[ 0 * 2] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2] = PC2(b, c, d, a);
-+	pe[ 0 * 2] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2] = DES_PC2(b, c, d, a);
- 
- 	/* Skip to next table set */
- 	pt += 512;
-@@ -747,22 +747,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[2]; b &= 0xe0; b >>= 4; b |= k[6] & 0xf0; b = pc1[b + 1];
- 	a = k[3]; a &= 0xe0; a >>= 4; a |= k[7] & 0xf0; a = pc1[a + 1];
- 
--	pe[ 0 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2 + 1] = PC2(b, c, d, a);
-+	pe[ 0 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2 + 1] = DES_PC2(b, c, d, a);
- 
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
+  * TB routines..
+  */
 
