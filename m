@@ -1,43 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:47745 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753514Ab0H1O1n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:43 -0400
-Message-ID: <20100828142455.464074954@chello.nl>
-Date: Sat, 28 Aug 2010 16:16:38 +0200
+Received: from casper.infradead.org ([85.118.1.10]:42769 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753519Ab0H1O1p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:45 -0400
+Message-ID: <20100828142456.309148671@chello.nl>
+Date: Sat, 28 Aug 2010 16:16:50 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 01/20] powerpc: Use call_rcu_sched() for pagetables
+Subject: [PATCH 13/20] um: Preemptible mmu_gather
 References: <20100828141637.421594670@chello.nl>
-Content-Disposition: inline; filename=powerpc-pgtable-call_rcu_sched.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-um.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20100828141638.ZZuoTBrs3gP8DradL0UZuaiZfuLssY0-A3w84stTWU0@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>
+Message-ID: <20100828141650.qp8yvKOl1hxI9-hlK0DcgEahXE5GT8HciKE3q8vtt2E@z>
 
-PowerPC relies on IRQ-disable to guard against RCU quiecent states,
-use the appropriate RCU call version.
+Fix up the um mmu_gather code to conform to the new API.
 
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Nick Piggin <npiggin@suse.de>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Jeff Dike <jdike@addtoit.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/powerpc/mm/pgtable.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/um/include/asm/tlb.h |   16 ++--------------
+ 1 file changed, 2 insertions(+), 14 deletions(-)
 
-Index: linux-2.6/arch/powerpc/mm/pgtable.c
+Index: linux-2.6/arch/um/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/powerpc/mm/pgtable.c
-+++ linux-2.6/arch/powerpc/mm/pgtable.c
-@@ -92,7 +92,7 @@ static void pte_free_rcu_callback(struct
+--- linux-2.6.orig/arch/um/include/asm/tlb.h
++++ linux-2.6/arch/um/include/asm/tlb.h
+@@ -22,9 +22,6 @@ struct mmu_gather {
+ 	unsigned int		fullmm; /* non-zero means full mm flush */
+ };
  
- static void pte_free_submit(struct pte_freelist_batch *batch)
+-/* Users of the generic TLB shootdown code must declare this storage space. */
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
+ 					  unsigned long address)
  {
--	call_rcu(&batch->rcu, pte_free_rcu_callback);
-+	call_rcu_sched(&batch->rcu, pte_free_rcu_callback);
+@@ -47,20 +44,13 @@ static inline void init_tlb_gather(struc
+ 	}
  }
  
- void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
+-/* tlb_gather_mmu
+- *	Return a pointer to an initialized struct mmu_gather.
+- */
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+ {
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+ 	tlb->fullmm = full_mm_flush;
+ 
+ 	init_tlb_gather(tlb);
+-
+-	return tlb;
+ }
+ 
+ extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+@@ -87,8 +77,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ /* tlb_remove_page
 
 
