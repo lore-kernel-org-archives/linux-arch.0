@@ -1,60 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42798 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:55113 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753549Ab0H1O1y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:54 -0400
-Message-ID: <20100828142456.171841771@chello.nl>
-Date: Sat, 28 Aug 2010 16:16:48 +0200
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 11/20] arm: Preemptible mmu_gather
+	with ESMTP id S1752578Ab0H1P2F convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 11:28:05 -0400
+Subject: Re: [PATCH 00/20] mm: Preemptibility -v4
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <AANLkTikhV6PLb_pRmBmjynft4pe4paKogFP-JR7aXXyv@mail.gmail.com>
 References: <20100828141637.421594670@chello.nl>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-arm.patch
+	 <AANLkTikhV6PLb_pRmBmjynft4pe4paKogFP-JR7aXXyv@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Sat, 28 Aug 2010 17:27:02 +0200
+Message-ID: <1283009222.1975.3622.camel@laptop>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk@arm.linux.org.uk>
-Message-ID: <20100828141648.2mBH65oruSXKnPVnd4i2PGrmIk67NsO54Q7iRmWAsXQ@z>
+To: Pekka Enberg <penberg@kernel.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20100828152702.28bWvnYNcBs1dtx3fGbqBkcbjCuhT9hGofNjJHIWujU@z>
 
-Fix up the arm mmu_gahter code to conform to the new API.
+On Sat, 2010-08-28 at 18:19 +0300, Pekka Enberg wrote:
+> Hi Peter,
+> 
+> On Sat, Aug 28, 2010 at 5:16 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> > Yanmin ran the last posting through the comprehensive Intel test farm
+> > and didn't find any regressions.
+> 
+> Is there data somewhere that shows where this helps and how much?
 
-Cc: Russell King <rmk@arm.linux.org.uk>
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- arch/arm/include/asm/tlb.h |   12 ++----------
- 1 file changed, 2 insertions(+), 10 deletions(-)
+Yanmin didn't publish any data, but the main point of the series is to
+not take hundreds of nested spinlocks. Not regressing is a fine state.
 
-Index: linux-2.6/arch/arm/include/asm/tlb.h
-===================================================================
---- linux-2.6.orig/arch/arm/include/asm/tlb.h
-+++ linux-2.6/arch/arm/include/asm/tlb.h
-@@ -40,17 +40,11 @@ struct mmu_gather {
- 	unsigned long		range_end;
- };
- 
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
--
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
--
--	return tlb;
- }
- 
- static inline void
-@@ -61,8 +55,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	put_cpu_var(mmu_gathers);
- }
- 
- /*
-
+In theory the preemptible mmu could end up doing less TLB invalidates
+for large unmaps and thus gain some performance there.
 
