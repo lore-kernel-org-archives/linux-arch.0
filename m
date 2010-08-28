@@ -1,42 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42781 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:42794 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753528Ab0H1O1t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:49 -0400
-Message-ID: <20100828142456.590755447@chello.nl>
-Date: Sat, 28 Aug 2010 16:16:54 +0200
+	with ESMTP id S1753546Ab0H1O1x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:53 -0400
+Message-ID: <20100828142456.241504270@chello.nl>
+Date: Sat, 28 Aug 2010 16:16:49 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 17/20] mutex: Provide mutex_is_contended
+Subject: [PATCH 12/20] sh: Preemptible mmu_gather
 References: <20100828141637.421594670@chello.nl>
-Content-Disposition: inline; filename=mutex-is-contended.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-sh.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20100828141654.kJ57UWLjIXe0-v8HOFN4z6mva4v8D6T4YfhEXeClhzA@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20100828141649.5Y0RYWCQNKAhCvExCidvYTtS00iPmyR4kokmwu7CTKs@z>
 
-Usable for lock-breaks and such.
+Fix up the sh mmu_gahter code to conform to the new API.
 
+Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/mutex.h |    5 +++++
- 1 file changed, 5 insertions(+)
+ arch/sh/include/asm/tlb.h |   12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
 
-Index: linux-2.6/include/linux/mutex.h
+Index: linux-2.6/arch/sh/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/include/linux/mutex.h
-+++ linux-2.6/include/linux/mutex.h
-@@ -118,6 +118,11 @@ static inline int mutex_is_locked(struct
- 	return atomic_read(&lock->count) != 1;
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -23,8 +23,6 @@ struct mmu_gather {
+ 	unsigned long		start, end;
+ };
+ 
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ static inline void init_tlb_gather(struct mmu_gather *tlb)
+ {
+ 	tlb->start = TASK_SIZE;
+@@ -36,17 +34,13 @@ static inline void init_tlb_gather(struc
+ 	}
  }
  
-+static inline int mutex_is_contended(struct mutex *lock)
-+{
-+	return atomic_read(&lock->count) < 0;
-+}
-+
- /*
-  * See kernel/mutex.c for detailed documentation of these APIs.
-  * Also see Documentation/mutex-design.txt.
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+ {
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+ 	tlb->fullmm = full_mm_flush;
+ 
+ 	init_tlb_gather(tlb);
+-
+-	return tlb;
+ }
+ 
+ static inline void
+@@ -57,8 +51,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ static inline void
 
 
