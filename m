@@ -1,56 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Piotr Hosowicz <piotr@hosowicz.com>
 Subject: Re: [PATCH 00/20] mm: Preemptibility -v4
-Date: Sat, 28 Aug 2010 16:32:08 +0200
-Message-ID: <1283005928.1975.3548.camel@laptop>
+Date: Sat, 28 Aug 2010 16:56:52 +0200
+Message-ID: <4C7923B4.6030208@example.com>
 References: <20100828141637.421594670@chello.nl>
+Reply-To: piotr@hosowicz.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=ISO-8859-2;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:56590 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753523Ab0H1Ocf convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:32:35 -0400
+Received: from 63.mail-out.ovh.net ([91.121.185.56]:56355 "HELO
+	63.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1752057Ab0H1O63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:58:29 -0400
 In-Reply-To: <20100828141637.421594670@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-Sorry folks, got Nick's old email in there (changed for this reply).
+On 28.08.2010 16:16, Peter Zijlstra wrote:
 
-On Sat, 2010-08-28 at 16:16 +0200, Peter Zijlstra wrote:
-> This patch-set makes part of the mm a lot more preemptible. It converts
-> i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
-> preemptible.
-> 
-> The main motivation was making mm_take_all_locks() preemptible, since it
-> appears people are nesting hundreds of spinlocks there.
-> 
-> The side-effects are that can finally make mmu_gather preemptible,
-> something which lots of people have wanted to do for a long time.
-> 
-> It also gets us anon_vma refcounting, which seems to result in a nice
-> cleanup of the anon_vma lifetime rules wrt KSM and compaction.
-> 
-> This patch-set it build and boot-tested on x86_64 (a previous version was
-> also tested on Dave's Niagra2 machines, and I suppose s390 did too when
-> Martin provided the conversion patch for his arch).
-> 
-> There are no known architectures left unconverted, although some arch code
-> never did see a compiler (superh and ia64 come to mind, I'll try and 
-> update my toolchains next week).
-> 
-> Yanmin ran the last posting through the comprehensive Intel test farm
-> and didn't find any regressions.
-> 
-> ( Not included in this posting are the 4 Sparc64 patches that implement
->   gup_fast, those can be applied separately after this series gets 
->   anywhere. )
-> 
-> Full series (including the Sparc64 gup_fast bits) also available in -git
+> Full series (including the Sparc64 gup_fast bits) also available in -=
+git
 > form from (against Linus' tree as of about an hour ago):
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git mmu_preempt
-> 
-> Do people feel its ready to get added to -next?
+
+How come? I tried this:
+
+aapi205:/usr/src/linus/tmp# git pull
+Already up-to-date.
+
+=2E.. and don't see an update. Maybe I don't do something right. If the=
+re=20
+is newer code I should receive it, am I correct? I use this link:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
+
+--=20
+Janusz Korwin-Mikke:
+"Generalnie rzecz bior=B1c, ja jestem w jednej dziedzinie za
+r=F3wnouprawnieniem, a mianowicie: =BFeby w ma=B3=BFe=F1stwie by=B3o
+50% m=EA=BFczyzn i 50% kobiet."
+NP: Peter Green Splinter Group - Turn Your Love Away
+NB: 2.6.36-rc2-next-20100827
