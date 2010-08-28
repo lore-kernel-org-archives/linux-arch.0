@@ -1,44 +1,160 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 00/20] mm: Preemptibility -v4
-Date: Sat, 28 Aug 2010 16:16:37 +0200
-Message-ID: <20100828141637.421594670@chello.nl>
+Subject: [PATCH 16/20] lockdep, mutex: Provide mutex_lock_nest_lock
+Date: Sat, 28 Aug 2010 16:16:53 +0200
+Message-ID: <20100828142456.520616206@chello.nl>
+References: <20100828141637.421594670@chello.nl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=mutex_lock_nest_lock.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-This patch-set makes part of the mm a lot more preemptible. It converts
-i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
-preemptible.
+Provide the mutex_lock_nest_lock() annotation.
 
-The main motivation was making mm_take_all_locks() preemptible, since it
-appears people are nesting hundreds of spinlocks there.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ include/linux/lockdep.h |    3 +++
+ include/linux/mutex.h   |    9 +++++++++
+ kernel/mutex.c          |   25 +++++++++++++++++--------
+ 3 files changed, 29 insertions(+), 8 deletions(-)
 
-The side-effects are that can finally make mmu_gather preemptible,
-something which lots of people have wanted to do for a long time.
-
-It also gets us anon_vma refcounting, which seems to result in a nice
-cleanup of the anon_vma lifetime rules wrt KSM and compaction.
-
-This patch-set it build and boot-tested on x86_64 (a previous version was
-also tested on Dave's Niagra2 machines, and I suppose s390 did too when
-Martin provided the conversion patch for his arch).
-
-There are no known architectures left unconverted, although some arch code
-never did see a compiler (superh and ia64 come to mind, I'll try and 
-update my toolchains next week).
-
-Yanmin ran the last posting through the comprehensive Intel test farm
-and didn't find any regressions.
-
-( Not included in this posting are the 4 Sparc64 patches that implement
-  gup_fast, those can be applied separately after this series gets 
-  anywhere. )
-
-Full series (including the Sparc64 gup_fast bits) also available in -git
-form from (against Linus' tree as of about an hour ago):
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git mmu_preempt
-
-Do people feel its ready to get added to -next?
+Index: linux-2.6/include/linux/lockdep.h
+===================================================================
+--- linux-2.6.orig/include/linux/lockdep.h
++++ linux-2.6/include/linux/lockdep.h
+@@ -492,12 +492,15 @@ static inline void print_irqtrace_events
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ # ifdef CONFIG_PROVE_LOCKING
+ #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 2, NULL, i)
++#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 2, n, i)
+ # else
+ #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 1, NULL, i)
++#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 1, n, i)
+ # endif
+ # define mutex_release(l, n, i)			lock_release(l, n, i)
+ #else
+ # define mutex_acquire(l, s, t, i)		do { } while (0)
++# define mutex_acquire_nest(l, s, t, n, i)	do { } while (0)
+ # define mutex_release(l, n, i)			do { } while (0)
+ #endif
+ 
+Index: linux-2.6/include/linux/mutex.h
+===================================================================
+--- linux-2.6.orig/include/linux/mutex.h
++++ linux-2.6/include/linux/mutex.h
+@@ -124,6 +124,7 @@ static inline int mutex_is_locked(struct
+  */
+ #ifdef CONFIG_DEBUG_LOCK_ALLOC
+ extern void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
++extern void _mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest_lock);
+ extern int __must_check mutex_lock_interruptible_nested(struct mutex *lock,
+ 					unsigned int subclass);
+ extern int __must_check mutex_lock_killable_nested(struct mutex *lock,
+@@ -132,6 +133,13 @@ extern int __must_check mutex_lock_killa
+ #define mutex_lock(lock) mutex_lock_nested(lock, 0)
+ #define mutex_lock_interruptible(lock) mutex_lock_interruptible_nested(lock, 0)
+ #define mutex_lock_killable(lock) mutex_lock_killable_nested(lock, 0)
++
++#define mutex_lock_nest_lock(lock, nest_lock)				\
++do {									\
++	typecheck(struct lockdep_map *, &(nest_lock)->dep_map);		\
++	_mutex_lock_nest_lock(lock, &(nest_lock)->dep_map);		\
++} while (0)
++
+ #else
+ extern void mutex_lock(struct mutex *lock);
+ extern int __must_check mutex_lock_interruptible(struct mutex *lock);
+@@ -140,6 +148,7 @@ extern int __must_check mutex_lock_killa
+ # define mutex_lock_nested(lock, subclass) mutex_lock(lock)
+ # define mutex_lock_interruptible_nested(lock, subclass) mutex_lock_interruptible(lock)
+ # define mutex_lock_killable_nested(lock, subclass) mutex_lock_killable(lock)
++# define mutex_lock_nest_lock(lock, nest_lock) mutex_lock(lock)
+ #endif
+ 
+ /*
+Index: linux-2.6/kernel/mutex.c
+===================================================================
+--- linux-2.6.orig/kernel/mutex.c
++++ linux-2.6/kernel/mutex.c
+@@ -140,14 +140,14 @@ EXPORT_SYMBOL(mutex_unlock);
+  */
+ static inline int __sched
+ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
+-	       	unsigned long ip)
++		    struct lockdep_map *nest_lock, unsigned long ip)
+ {
+ 	struct task_struct *task = current;
+ 	struct mutex_waiter waiter;
+ 	unsigned long flags;
+ 
+ 	preempt_disable();
+-	mutex_acquire(&lock->dep_map, subclass, 0, ip);
++	mutex_acquire_nest(&lock->dep_map, subclass, 0, nest_lock, ip);
+ 
+ #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+ 	/*
+@@ -285,16 +285,25 @@ void __sched
+ mutex_lock_nested(struct mutex *lock, unsigned int subclass)
+ {
+ 	might_sleep();
+-	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, _RET_IP_);
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, NULL, _RET_IP_);
+ }
+ 
+ EXPORT_SYMBOL_GPL(mutex_lock_nested);
+ 
++void __sched
++_mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest)
++{
++	might_sleep();
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, nest, _RET_IP_);
++}
++
++EXPORT_SYMBOL_GPL(_mutex_lock_nest_lock);
++
+ int __sched
+ mutex_lock_killable_nested(struct mutex *lock, unsigned int subclass)
+ {
+ 	might_sleep();
+-	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, NULL, _RET_IP_);
+ }
+ EXPORT_SYMBOL_GPL(mutex_lock_killable_nested);
+ 
+@@ -303,7 +312,7 @@ mutex_lock_interruptible_nested(struct m
+ {
+ 	might_sleep();
+ 	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE,
+-				   subclass, _RET_IP_);
++				   subclass, NULL, _RET_IP_);
+ }
+ 
+ EXPORT_SYMBOL_GPL(mutex_lock_interruptible_nested);
+@@ -409,7 +418,7 @@ __mutex_lock_slowpath(atomic_t *lock_cou
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, _RET_IP_);
++	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, NULL, _RET_IP_);
+ }
+ 
+ static noinline int __sched
+@@ -417,7 +426,7 @@ __mutex_lock_killable_slowpath(atomic_t 
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	return __mutex_lock_common(lock, TASK_KILLABLE, 0, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+ }
+ 
+ static noinline int __sched
+@@ -425,7 +434,7 @@ __mutex_lock_interruptible_slowpath(atom
+ {
+ 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 
+-	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, _RET_IP_);
++	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+ }
+ #endif
+ 
