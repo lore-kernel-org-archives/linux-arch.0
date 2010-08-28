@@ -1,38 +1,30 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 00/20] mm: Preemptibility -v4
-Date: Sat, 28 Aug 2010 17:23:51 +0200
-Message-ID: <1283009031.1975.3615.camel@laptop>
+Date: Sat, 28 Aug 2010 17:27:02 +0200
+Message-ID: <1283009222.1975.3622.camel@laptop>
 References: <20100828141637.421594670@chello.nl>
-	 <4C7923B4.6030208@example.com> <1283008225.1975.3598.camel@laptop>
-	 <4C79287B.9060609@example.com>
+	 <AANLkTikhV6PLb_pRmBmjynft4pe4paKogFP-JR7aXXyv@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:35103 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752302Ab0H1PYd convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 11:24:33 -0400
-In-Reply-To: <4C79287B.9060609@example.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: piotr@hosowicz.com
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <AANLkTikhV6PLb_pRmBmjynft4pe4paKogFP-JR7aXXyv@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pekka Enberg <penberg@kernel.org>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2010-08-28 at 17:17 +0200, Piotr Hosowicz wrote:
-> >    git remote add mmu_preempt git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git
-> >    git remote update
-> >    git checkout mmu_preempt/mmu_preempt
-> >
-> > or
-> >
-> >    git checkout -b mmu_preempt origin/master
-> >    git pull git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git mmu_preempt
+On Sat, 2010-08-28 at 18:19 +0300, Pekka Enberg wrote:
+> Hi Peter,
 > 
-> Which is better? Thanks, I'll try.
+> On Sat, Aug 28, 2010 at 5:16 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> > Yanmin ran the last posting through the comprehensive Intel test farm
+> > and didn't find any regressions.
+> 
+> Is there data somewhere that shows where this helps and how much?
 
-Fully depends on how you manage your git tree, the first will keep
-giving you the same tree while the second will try and merge my changes
-into whatever you got from Linus' tree, which keeps moving fwd and might
-thus start failing (at which point I'll have to either rebase or
-backmerge Linus' changes).
+Yanmin didn't publish any data, but the main point of the series is to
+not take hundreds of nested spinlocks. Not regressing is a fine state.
+
+In theory the preemptible mmu could end up doing less TLB invalidates
+for large unmaps and thus gain some performance there.
