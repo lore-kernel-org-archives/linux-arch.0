@@ -1,73 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42769 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753519Ab0H1O1p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:45 -0400
-Message-ID: <20100828142456.309148671@chello.nl>
-Date: Sat, 28 Aug 2010 16:16:50 +0200
+Received: from bombadil.infradead.org ([18.85.46.34]:47759 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753524Ab0H1O1q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 10:27:46 -0400
+Message-ID: <20100828142456.379753206@chello.nl>
+Date: Sat, 28 Aug 2010 16:16:51 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 13/20] um: Preemptible mmu_gather
+Subject: [PATCH 14/20] ia64: Preemptible mmu_gather
 References: <20100828141637.421594670@chello.nl>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-um.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-ia64.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>
-Message-ID: <20100828141650.qp8yvKOl1hxI9-hlK0DcgEahXE5GT8HciKE3q8vtt2E@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20100828141651.GFWje1TE29U0v5qlfZr86gYRZGB2Q1tR6qasFtPgywM@z>
 
-Fix up the um mmu_gather code to conform to the new API.
+Fix up the ia64 mmu_gather code to conform to the new API.
 
-Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/um/include/asm/tlb.h |   16 ++--------------
- 1 file changed, 2 insertions(+), 14 deletions(-)
+ arch/ia64/include/asm/tlb.h |   38 +++++++++++++++++++++++++-------------
+ 1 file changed, 25 insertions(+), 13 deletions(-)
 
-Index: linux-2.6/arch/um/include/asm/tlb.h
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/um/include/asm/tlb.h
-+++ linux-2.6/arch/um/include/asm/tlb.h
-@@ -22,9 +22,6 @@ struct mmu_gather {
- 	unsigned int		fullmm; /* non-zero means full mm flush */
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -47,21 +47,21 @@
+ #include <asm/machvec.h>
+ 
+ #ifdef CONFIG_SMP
+-# define FREE_PTE_NR		2048
+ # define tlb_fast_mode(tlb)	((tlb)->nr == ~0U)
+ #else
+-# define FREE_PTE_NR		0
+ # define tlb_fast_mode(tlb)	(1)
+ #endif
+ 
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+ 	unsigned int		nr;		/* == ~0U => fast mode */
++	unsigned int		max;
+ 	unsigned char		fullmm;		/* non-zero means full mm flush */
+ 	unsigned char		need_flush;	/* really unmapped some PTEs? */
+ 	unsigned long		start_addr;
+ 	unsigned long		end_addr;
+-	struct page 		*pages[FREE_PTE_NR];
++	struct page		**pages;
++	struct page		*local[8];
  };
+ 
+ struct ia64_tr_entry {
+@@ -90,9 +90,6 @@ extern struct ia64_tr_entry *ia64_idtrs[
+ #define RR_RID_MASK	0x00000000ffffff00L
+ #define RR_TO_RID(val) 	((val >> 8) & 0xffffff)
  
 -/* Users of the generic TLB shootdown code must declare this storage space. */
 -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
 -
- static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
- 					  unsigned long address)
- {
-@@ -47,20 +44,13 @@ static inline void init_tlb_gather(struc
+ /*
+  * Flush the TLB for address range START to END and, if not in fast mode, release the
+  * freed pages that where gathered up to this point.
+@@ -147,15 +144,25 @@ ia64_tlb_flush_mmu (struct mmu_gather *t
  	}
  }
  
--/* tlb_gather_mmu
-- *	Return a pointer to an initialized struct mmu_gather.
+-/*
+- * Return a pointer to an initialized struct mmu_gather.
 - */
 -static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
+-tlb_gather_mmu (struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
++{
++	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
++
++	if (addr) {
++		tlb->pages = (void *)addr;
++		tlb->max = PAGE_SIZE / sizeof(void *);
++	}
++}
++
++
 +static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
++tlb_gather_mmu (struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
  {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
+ 	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+ 
  	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
- 
- 	init_tlb_gather(tlb);
--
--	return tlb;
- }
- 
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
-@@ -87,8 +77,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->pages = tlb->local;
+ 	/*
+ 	 * Use fast mode if only 1 CPU is online.
+ 	 *
+@@ -191,7 +198,8 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
  	/* keep the page table cache within bounds */
  	check_pgt_cache();
--
+ 
 -	put_cpu_var(mmu_gathers);
++	if (tlb->pages != tlb->local)
++		free_pages((unsigned long)tlb->pages, 0);
  }
  
- /* tlb_remove_page
+ /*
+@@ -208,8 +216,12 @@ tlb_remove_page (struct mmu_gather *tlb,
+ 		free_page_and_swap_cache(page);
+ 		return;
+ 	}
++
++	if (!tlb->nr && tlb->pages == tlb->local)
++		__tlb_alloc_pages(tlb);
++
+ 	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= FREE_PTE_NR)
++	if (tlb->nr >= tlb->max)
+ 		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
+ }
+ 
 
 
