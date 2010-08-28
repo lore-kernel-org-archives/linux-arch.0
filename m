@@ -1,63 +1,27 @@
-From: Piotr Hosowicz <piotr@hosowicz.com>
+From: Pekka Enberg <penberg@kernel.org>
 Subject: Re: [PATCH 00/20] mm: Preemptibility -v4
-Date: Sat, 28 Aug 2010 17:17:15 +0200
-Message-ID: <4C79287B.9060609@example.com>
-References: <20100828141637.421594670@chello.nl>	 <4C7923B4.6030208@example.com> <1283008225.1975.3598.camel@laptop>
-Reply-To: piotr@hosowicz.com
+Date: Sat, 28 Aug 2010 18:19:31 +0300
+Message-ID: <AANLkTikhV6PLb_pRmBmjynft4pe4paKogFP-JR7aXXyv@mail.gmail.com>
+References: <20100828141637.421594670@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 63.mail-out.ovh.net ([91.121.185.56]:44600 "HELO
-	63.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752225Ab0H1PSy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 11:18:54 -0400
-In-Reply-To: <1283008225.1975.3598.camel@laptop>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:55760 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752234Ab0H1PTe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Aug 2010 11:19:34 -0400
+In-Reply-To: <20100828141637.421594670@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On 28.08.2010 17:10, Peter Zijlstra wrote:
-> On Sat, 2010-08-28 at 16:56 +0200, Piotr Hosowicz wrote:
->> On 28.08.2010 16:16, Peter Zijlstra wrote:
->>
->>> Full series (including the Sparc64 gup_fast bits) also available in=
- -git
->>> form from (against Linus' tree as of about an hour ago):
->>
->> How come? I tried this:
->>
->> aapi205:/usr/src/linus/tmp# git pull
->> Already up-to-date.
->>
->> ... and don't see an update. Maybe I don't do something right. If th=
-ere
->> is newer code I should receive it, am I correct? I use this link:
->>
->> git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
->
-> That's Linus' tree, the patches aren't in there quite yet, try:
->
->    git remote add mmu_preempt git://git.kernel.org/pub/scm/linux/kern=
-el/git/peterz/linux-2.6-mmu_preempt.git
->    git remote update
->    git checkout mmu_preempt/mmu_preempt
->
-> or
->
->    git checkout -b mmu_preempt origin/master
->    git pull git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linu=
-x-2.6-mmu_preempt.git mmu_preempt
+Hi Peter,
 
-Which is better? Thanks, I'll try.
+On Sat, Aug 28, 2010 at 5:16 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> Yanmin ran the last posting through the comprehensive Intel test farm
+> and didn't find any regressions.
 
-Regards,
+Is there data somewhere that shows where this helps and how much?
 
-Piotr Hosowicz
-
---=20
-Wz=F3r Einsteina-Pitagorasa: E =3D mc2 =3D m(a2 + b2)
-NP: Peter Green Splinter Group - Big Change Is Gonna Come
-NB: 2.6.36-rc2-next-20100827
+                        Pekka
