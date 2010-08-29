@@ -1,41 +1,70 @@
-From: Piotr Hosowicz <piotr@hosowicz.com>
-Subject: Re: [PATCH 00/20] mm: Preemptibility -v4
-Date: Sun, 29 Aug 2010 15:43:38 +0200
-Message-ID: <4C7A640A.1010904@example.com>
-References: <20100828141637.421594670@chello.nl>	 <4C7923B4.6030208@example.com> <1283008225.1975.3598.camel@laptop>	 <4C79287B.9060609@example.com> <1283009031.1975.3615.camel@laptop>	 <4C7A56BC.6010705@example.com> <1283089076.1820.240.camel@laptop>
-Reply-To: piotr@hosowicz.com
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] starfire: use BUILD_BUG_ON for netdrv_addr_t
+Date: Mon, 30 Aug 2010 07:59:38 +0900
+Message-ID: <20100830075830R.fujita.tomonori@lab.ntt.co.jp>
+References: <1282972125-9968-1-git-send-email-akinobu.mita@gmail.com>
+	<20100828.154125.246523501.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-2;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 64.mail-out.ovh.net ([91.121.185.65]:53307 "HELO
-	64.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1753164Ab0H2NpP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Aug 2010 09:45:15 -0400
-In-Reply-To: <1283089076.1820.240.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20100828.154125.246523501.davem@davemloft.net>
+Sender: netdev-owner@vger.kernel.org
+To: davem@davemloft.net
+Cc: akinobu.mita@gmail.com, netdev@vger.kernel.org, ionut@badula.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 29.08.2010 15:37, Peter Zijlstra wrote:
-> On Sun, 2010-08-29 at 14:46 +0200, Piotr Hosowicz wrote:
->> build NVidia module
->
-> Sorry, you're on your own.
->
+CC'ed to linux-arch,
 
-OK.
+On Sat, 28 Aug 2010 15:41:25 -0700 (PDT)
+David Miller <davem@davemloft.net> wrote:
 
-Regards,
+> From: Akinobu Mita <akinobu.mita@gmail.com>
+> Date: Sat, 28 Aug 2010 14:08:45 +0900
+> 
+> > Detect size mismatch for netdrv_addr_t at build time rather than
+> > checking at module load time.
+> > 
+> > Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> > Cc: Ion Badulescu <ionut@badula.org>
+> > Cc: "David S. Miller" <davem@davemloft.net>
+> > Cc: netdev@vger.kernel.org
+> 
+> Applied, but I suspect we will see some interesting build failures now
+> if that ugly and brittle ifdef test which constrols the netdrv_addr_t
+> define isn't %100 accurate.
 
-Piotr Hosowicz
+Yeah, looks like you need to add another hack for powerpc?
 
---=20
-"Pirotechnicy zdetonowali na warszawskim Ok=EAciu podejrzane =B3adunki,
-znalezione przy porzuconym motocyklu. Wszystko wskazuje na to, =BFe
-by=B3 to fa=B3szywy alarm". Z polskiego na nasze: "rozp* komu=B6 motor"=
-=2E
-NP: Patrick O'Hearn - Night Becomes Her
-NB: 2.6.36-rc2-git5
+
+> Fujita-san, what this driver does is actually pretty reasonable.  It
+> has two kinds of descriptors, one supports 32-bit addresses and the
+> other supports 64-bit addresses.  It wants to CPP test which one to
+> use so that the driver is not burdoned with two duplicated sets of
+> routines.
+> 
+> Maybe we should provide a DMA_ADDR_T_SIZE or similar macro?  What do
+> you think?  Anything is better than what it uses now:
+
+Introducing something like CONFIG_DMA_ADDR_T_64BIT works?
+
+include/asm-generic/types.h has:
+
+#ifndef dma_addr_t
+#ifdef CONFIG_PHYS_ADDR_T_64BIT
+typedef u64 dma_addr_t;
+#else
+typedef u32 dma_addr_t;
+#endif /* CONFIG_PHYS_ADDR_T_64BIT */
+#endif /* dma_addr_t */
+
+But the above can't be perfect so about twenty architectures define
+dma_addr_t. With CONFIG_DMA_ADDR_T_64BIT, we can clean up all the
+mess nicely, I guess.
+
+
+> /*
+>  * This SUCKS.
+>  * We need a much better method to determine if dma_addr_t is 64-bit.
+>  */
+> #if (defined(__i386__) && defined(CONFIG_HIGHMEM64G)) || defined(__x86_64__) || defined (__ia64__) || defined(__alpha__) || defined(__mips64__) || (defined(__mips__) && defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR))
