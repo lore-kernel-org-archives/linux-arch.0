@@ -1,65 +1,51 @@
-From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH 2/4] sh: Accessor functions for the sh_pmu state
-Date: Mon, 30 Aug 2010 14:41:58 +0200
-Message-ID: <20100830124158.GY22783@erda.amd.com>
-References: <cover.1282848651.git.matt@console-pimps.org>
- <f259830dbccb084d27d127676b979d9cb502e36f.1282848651.git.matt@console-pimps.org>
- <20100827134301.GL22783@erda.amd.com>
- <20100827191745.GA7258@console-pimps.org>
+From: "Mr. Beuker Hendrik" <info@windowslive.co.uk>
+Subject: (unknown)
+Date: Sun, 29 Aug 2010 20:16:06 -0300
+Message-ID: <20100829201606.m764jyfpws4s8k4o@www.uccuyo.edu.ar>
+Reply-To: beukerhendrik@live.nl
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tx2ehsobe001.messaging.microsoft.com ([65.55.88.11]:53522 "EHLO
-	TX2EHSOBE001.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754612Ab0H3Mo2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Aug 2010 08:44:28 -0400
+Received: from mail.uccuyo.edu.ar ([200.123.107.120]:37717 "EHLO
+	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751972Ab0H3NTV convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Aug 2010 09:19:21 -0400
+Subject: 
 Content-Disposition: inline
-In-Reply-To: <20100827191745.GA7258@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On 27.08.10 15:17:45, Matt Fleming wrote:
 
-> > > --- a/arch/sh/kernel/perf_event.c
-> > > +++ b/arch/sh/kernel/perf_event.c
-> > > @@ -60,6 +60,19 @@ static inline int sh_pmu_initialized(void)
-> > >  }
-> > >  
-> > >  /*
-> > > + * Return the number of events for the current sh_pmu.
-> > > + */
-> > > +int sh_pmu_num_events(void)
-> > > +{
-> > > +	return sh_pmu->num_events;
-> > > +}
-> > > +
-> > > +const char *sh_pmu_name(void)
-> > > +{
-> > > +	return sh_pmu->name;
-> > > +}
 
-> > This accessor functions should be generic for all architectures.
-> 
-> This isn't going to work. ARM uses an integer ID whereas SH uses a
-> string name. This is specific to an architecture and making it generic
-> would probably involve some abstraction layer.
+Good day,
 
-Perf should provide the interface to detect the number of counters
-(btw. *num_events is wrong) and the name of the pmu. The information
-is part of perf and thus the functions accessing it should be part of
-perf too, not oprofile.
+My name is Mr. Beuker Hendrik: I work in the Euro Lottery. I am solicit=
+ing
+your assistance for a swift transfer of 2,528,000 GBP, should you be
+willing to assist me in this project, and you will be giving me just 30=
+%
+of your winnings.
 
-We also need generic functions, because we want to have a generic
-oprofile-perf driver.
+Just as a brief, you just have to register online; due to my position i=
+n
+the company I can make it happen that you would be a winner of the abov=
+e
+stated amount. Naturally, every body would like to play a lottery if th=
+ey
+are assured of winning. I am assuring you today to be a winner, please =
+do
+not take for granted this once in a life time opportunity as we both st=
+and
+to collectively gain from this at the success of the transaction.
 
-I don't see that this is hard to implement. We could add function
-stubs returning an error or invalid value using the __weak attribute
-and implement it for those architectures where we need it.
+Should you be willing to assist me in this transaction please do respon=
+d to
+E-mail: beukerhendrik@live.nl
 
--Robert
+Warmest Regards,
+Mr. Beuker Hendrik
 
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
+_________________________________
+Universidad Cat=F3lica de Cuyo
+www.uccuyo.edu.ar
