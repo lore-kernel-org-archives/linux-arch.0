@@ -1,51 +1,141 @@
-From: "Mr. Beuker Hendrik" <info@windowslive.co.uk>
-Subject: (unknown)
-Date: Sun, 29 Aug 2010 20:16:06 -0300
-Message-ID: <20100829201606.m764jyfpws4s8k4o@www.uccuyo.edu.ar>
-Reply-To: beukerhendrik@live.nl
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 14/20] ia64: Preemptible mmu_gather
+Date: Mon, 30 Aug 2010 17:44:41 +0200
+Message-ID: <1283183081.1820.1097.camel@laptop>
+References: <20100828141637.421594670@chello.nl>
+	 <20100828142456.379753206@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.uccuyo.edu.ar ([200.123.107.120]:37717 "EHLO
-	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751972Ab0H3NTV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Aug 2010 09:19:21 -0400
-Subject: 
-Content-Disposition: inline
+Received: from bombadil.infradead.org ([18.85.46.34]:59302 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755790Ab0H3Ppl convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Aug 2010 11:45:41 -0400
+In-Reply-To: <20100828142456.379753206@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Tony Luck <tony.luck@intel.com>
 
+Got a fancy ia64 compiler now, which informed me I fouled up, fixed up
+patch below.
 
+Will update the git tree shortly.
 
-Good day,
+---
 
-My name is Mr. Beuker Hendrik: I work in the Euro Lottery. I am solicit=
-ing
-your assistance for a swift transfer of 2,528,000 GBP, should you be
-willing to assist me in this project, and you will be giving me just 30=
-%
-of your winnings.
+Subject: ia64: Preemptible mmu_gather
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Date: Wed Jun 02 13:26:02 CEST 2010
 
-Just as a brief, you just have to register online; due to my position i=
-n
-the company I can make it happen that you would be a winner of the abov=
-e
-stated amount. Naturally, every body would like to play a lottery if th=
-ey
-are assured of winning. I am assuring you today to be a winner, please =
-do
-not take for granted this once in a life time opportunity as we both st=
-and
-to collectively gain from this at the success of the transaction.
+Fix up the ia64 mmu_gather code to conform to the new API.
 
-Should you be willing to assist me in this transaction please do respon=
-d to
-E-mail: beukerhendrik@live.nl
+Cc: Tony Luck <tony.luck@intel.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+LKML-Reference: <new-submission>
+---
+ arch/ia64/include/asm/tlb.h |   39 ++++++++++++++++++++++++---------------
+ 1 file changed, 24 insertions(+), 15 deletions(-)
 
-Warmest Regards,
-Mr. Beuker Hendrik
-
-_________________________________
-Universidad Cat=F3lica de Cuyo
-www.uccuyo.edu.ar
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -47,21 +47,21 @@
+ #include <asm/machvec.h>
+ 
+ #ifdef CONFIG_SMP
+-# define FREE_PTE_NR		2048
+ # define tlb_fast_mode(tlb)	((tlb)->nr == ~0U)
+ #else
+-# define FREE_PTE_NR		0
+ # define tlb_fast_mode(tlb)	(1)
+ #endif
+ 
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+ 	unsigned int		nr;		/* == ~0U => fast mode */
++	unsigned int		max;
+ 	unsigned char		fullmm;		/* non-zero means full mm flush */
+ 	unsigned char		need_flush;	/* really unmapped some PTEs? */
+ 	unsigned long		start_addr;
+ 	unsigned long		end_addr;
+-	struct page 		*pages[FREE_PTE_NR];
++	struct page		**pages;
++	struct page		*local[8];
+ };
+ 
+ struct ia64_tr_entry {
+@@ -90,9 +90,6 @@ extern struct ia64_tr_entry *ia64_idtrs[
+ #define RR_RID_MASK	0x00000000ffffff00L
+ #define RR_TO_RID(val) 	((val >> 8) & 0xffffff)
+ 
+-/* Users of the generic TLB shootdown code must declare this storage space. */
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ /*
+  * Flush the TLB for address range START to END and, if not in fast mode, release the
+  * freed pages that where gathered up to this point.
+@@ -147,15 +144,23 @@ ia64_tlb_flush_mmu (struct mmu_gather *t
+ 	}
+ }
+ 
+-/*
+- * Return a pointer to an initialized struct mmu_gather.
+- */
+-static inline struct mmu_gather *
+-tlb_gather_mmu (struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
+ {
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
++	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
++
++	if (addr) {
++		tlb->pages = (void *)addr;
++		tlb->max = PAGE_SIZE / sizeof(void *);
++	}
++}
+ 
++
++static inline void
++tlb_gather_mmu (struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
++{
+ 	tlb->mm = mm;
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->pages = tlb->local;
+ 	/*
+ 	 * Use fast mode if only 1 CPU is online.
+ 	 *
+@@ -172,7 +177,6 @@ tlb_gather_mmu (struct mm_struct *mm, un
+ 	tlb->nr = (num_online_cpus() == 1) ? ~0U : 0;
+ 	tlb->fullmm = full_mm_flush;
+ 	tlb->start_addr = ~0UL;
+-	return tlb;
+ }
+ 
+ /*
+@@ -191,7 +195,8 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+ 
+-	put_cpu_var(mmu_gathers);
++	if (tlb->pages != tlb->local)
++		free_pages((unsigned long)tlb->pages, 0);
+ }
+ 
+ /*
+@@ -208,8 +213,12 @@ tlb_remove_page (struct mmu_gather *tlb,
+ 		free_page_and_swap_cache(page);
+ 		return;
+ 	}
++
++	if (!tlb->nr && tlb->pages == tlb->local)
++		__tlb_alloc_pages(tlb);
++
+ 	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= FREE_PTE_NR)
++	if (tlb->nr >= tlb->max)
+ 		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
+ }
+ 
