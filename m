@@ -1,52 +1,43 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 18/22] Fix M68K irqflags
-Date: Tue, 31 Aug 2010 09:36:16 +0200
-Message-ID: <AANLkTikJ5pio3WYmZFAyWpD32hssZoDxX7XSTXN_qV09@mail.gmail.com>
-References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
-	<20100827020038.27277.27239.stgit@warthog.procyon.org.uk>
-	<4C7B59E1.6010904@snapgear.com>
-	<26799.1283201411@redhat.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 08/20] powerpc: Preemptible mmu_gather
+Date: Tue, 31 Aug 2010 11:14:44 +0200
+Message-ID: <1283246084.2059.66.camel@laptop>
+References: <20100828141637.421594670@chello.nl>
+	 <20100828142455.960494507@chello.nl>  <1283236004.2151.33.camel@pasglop>
+	 <1283236265.2151.35.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f181.google.com ([209.85.216.181]:57068 "EHLO
-	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756096Ab0HaHgR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Aug 2010 03:36:17 -0400
-In-Reply-To: <26799.1283201411@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Greg Ungerer <gerg@snapgear.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1283236265.2151.35.camel@pasglop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 30, 2010 at 22:50, David Howells <dhowells@redhat.com> wrot=
-e:
-> Greg Ungerer <gerg@snapgear.com> wrote:
+On Tue, 2010-08-31 at 16:31 +1000, Benjamin Herrenschmidt wrote:
+
+> Of course, with -rt and the pte lock becoming a mutex, all of your
+> changes do become necessary (and I suppose that's where they come from).
 >
->> I have no problem with the changes as such. But I would rather
->> not have separate mm and no headers if we can avoid it.
->
-> Well, I can roll the headers into one, but then it'll be much more #i=
-fdef'd if
-> you're okay with that. =C2=A0The IRQ handling seems sufficiently diff=
-erent to
-> warrant that.
+> Now, those changes won't technically hurt on a non-rt kernel, tho they
+> will add a tiny bit of overhead. I'll see if I can measure it.
 
-Indeed, m68k doesn't use generic hardirqs yet, m68knommu does.
+Indeed, those parts are only strictly needed for -rt, I was hoping the
+tiny bit of overhead wouldn't be too bad and we could keep it.
 
-Gr{oetje,eeting}s,
+If not I guess we should put those two bits in __switch_to() under
+CONFIG_PREEMPT_RT and carry them there for a little while longer.
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
+> > I suppose that's what's causing the similar patch you have in -rt to
+> > fail btw. This could be fixed easily by using "current" instead.
+> 
+> And here's a fix. Using current_thread_info() everywhere is better
+> anyways, you are not supposed to touch the local_flags within anything
+> but "current" so we may as well make it explicit.
+> 
+> Feel free to fold that into your -rt patch and this one if you decide
+> not to drop that whole part. 
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+Thanks! And yeah I'd prefer to keep it to reduce Thomas' burden if
+possible.
