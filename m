@@ -1,86 +1,52 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 08/20] powerpc: Preemptible mmu_gather
-Date: Tue, 31 Aug 2010 16:31:05 +1000
-Message-ID: <1283236265.2151.35.camel@pasglop>
-References: <20100828141637.421594670@chello.nl>
-	 <20100828142455.960494507@chello.nl>  <1283236004.2151.33.camel@pasglop>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 18/22] Fix M68K irqflags
+Date: Tue, 31 Aug 2010 09:36:16 +0200
+Message-ID: <AANLkTikJ5pio3WYmZFAyWpD32hssZoDxX7XSTXN_qV09@mail.gmail.com>
+References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
+	<20100827020038.27277.27239.stgit@warthog.procyon.org.uk>
+	<4C7B59E1.6010904@snapgear.com>
+	<26799.1283201411@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1283236004.2151.33.camel@pasglop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:57068 "EHLO
+	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756096Ab0HaHgR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Aug 2010 03:36:17 -0400
+In-Reply-To: <26799.1283201411@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Greg Ungerer <gerg@snapgear.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, 2010-08-31 at 16:26 +1000, Benjamin Herrenschmidt wrote:
-> On Sat, 2010-08-28 at 16:16 +0200, Peter Zijlstra wrote:
-> > Fix up powerpc to the new mmu_gather stuffs.
-> 
-> Unfortunately, I think this is broken...
-> 
-> First there's an actual bug here:
-> 
-> >  	last = _switch(old_thread, new_thread);
-> >  
-> > +#ifdef CONFIG_PPC64
-> > +	if (task_thread_info(new)->local_flags & _TLF_LAZY_MMU) {
-> > +		task_thread_info(new)->local_flags &= ~_TLF_LAZY_MMU;
-> > +		batch = &__get_cpu_var(ppc64_tlb_batch);
-> > +		batch->active = 1;
-> > +	}
-> > +#endif
-> > +
-> 
-> Here, you are coming out of _switch() which will have swapped the
-> stack and non-volatile registers to the state they were in when the
-> new task was originally switched-out. Thus "new" which is a local variable
-> (either on stack or in a non-volatile register) will now refer to whatever
-> was the next task back then.
-> 
-> I suppose that's what's causing the similar patch you have in -rt to
-> fail btw. This could be fixed easily by using "current" instead.
+On Mon, Aug 30, 2010 at 22:50, David Howells <dhowells@redhat.com> wrot=
+e:
+> Greg Ungerer <gerg@snapgear.com> wrote:
+>
+>> I have no problem with the changes as such. But I would rather
+>> not have separate mm and no headers if we can avoid it.
+>
+> Well, I can roll the headers into one, but then it'll be much more #i=
+fdef'd if
+> you're okay with that. =C2=A0The IRQ handling seems sufficiently diff=
+erent to
+> warrant that.
 
-And here's a fix. Using current_thread_info() everywhere is better
-anyways, you are not supposed to touch the local_flags within anything
-but "current" so we may as well make it explicit.
+Indeed, m68k doesn't use generic hardirqs yet, m68knommu does.
 
-Feel free to fold that into your -rt patch and this one if you decide
-not to drop that whole part.
+Gr{oetje,eeting}s,
 
-diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
-index 6ee4b09..6e8b6de 100644
---- a/arch/powerpc/kernel/process.c
-+++ b/arch/powerpc/kernel/process.c
-@@ -517,12 +517,12 @@ struct task_struct *__switch_to(struct task_struct *prev,
- 
- 	batch = &__get_cpu_var(ppc64_tlb_batch);
- 	if (batch->active) {
--		task_thread_info(prev)->local_flags |= _TLF_LAZY_MMU;
-+		current_thread_info()->local_flags |= _TLF_LAZY_MMU;
- 		if (batch->index)
- 			__flush_tlb_pending(batch);
- 		batch->active = 0;
- 	}
--#endif
-+#endif /* CONFIG_PPC64 */
- 
- 	local_irq_save(flags);
- 
-@@ -539,12 +539,12 @@ struct task_struct *__switch_to(struct task_struct *prev,
- 	last = _switch(old_thread, new_thread);
- 
- #ifdef CONFIG_PPC64
--	if (task_thread_info(new)->local_flags & _TLF_LAZY_MMU) {
--		task_thread_info(new)->local_flags &= ~_TLF_LAZY_MMU;
-+	if (current_thread_info()->local_flags & _TLF_LAZY_MMU) {
-+		current_thread_info()->local_flags &= ~_TLF_LAZY_MMU;
- 		batch = &__get_cpu_var(ppc64_tlb_batch);
- 		batch->active = 1;
- 	}
--#endif
-+#endif /* CONFIG_PPC64 */
- 
- 	local_irq_restore(flags);
- 
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
