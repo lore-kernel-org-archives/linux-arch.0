@@ -1,43 +1,87 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 08/20] powerpc: Preemptible mmu_gather
-Date: Tue, 31 Aug 2010 11:14:44 +0200
-Message-ID: <1283246084.2059.66.camel@laptop>
-References: <20100828141637.421594670@chello.nl>
-	 <20100828142455.960494507@chello.nl>  <1283236004.2151.33.camel@pasglop>
-	 <1283236265.2151.35.camel@pasglop>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH V2 0/4] Generalise ARM perf-events backend for oprofile
+Date: Tue, 31 Aug 2010 13:05:17 +0200
+Message-ID: <20100831110517.GE22783@erda.amd.com>
+References: <cover.1282848651.git.matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1283236265.2151.35.camel@pasglop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from tx2ehsobe005.messaging.microsoft.com ([65.55.88.15]:32646 "EHLO
+	TX2EHSOBE010.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756973Ab0HaLYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Aug 2010 07:24:16 -0400
+Content-Disposition: inline
+In-Reply-To: <cover.1282848651.git.matt@console-pimps.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, 2010-08-31 at 16:31 +1000, Benjamin Herrenschmidt wrote:
-
-> Of course, with -rt and the pte lock becoming a mutex, all of your
-> changes do become necessary (and I suppose that's where they come from).
->
-> Now, those changes won't technically hurt on a non-rt kernel, tho they
-> will add a tiny bit of overhead. I'll see if I can measure it.
-
-Indeed, those parts are only strictly needed for -rt, I was hoping the
-tiny bit of overhead wouldn't be too bad and we could keep it.
-
-If not I guess we should put those two bits in __switch_to() under
-CONFIG_PREEMPT_RT and carry them there for a little while longer.
-
-> > I suppose that's what's causing the similar patch you have in -rt to
-> > fail btw. This could be fixed easily by using "current" instead.
+On 26.08.10 15:09:15, Matt Fleming wrote:
+> The perf-events backend for OProfile that Will Deacon wrote in
+> 8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+> perf-events framework as backend") is of use to more architectures
+> than just ARM. Move the code into drivers/oprofile/ so that SH can use
+> it instead of the nearly identical copy of its OProfile code.
 > 
-> And here's a fix. Using current_thread_info() everywhere is better
-> anyways, you are not supposed to touch the local_flags within anything
-> but "current" so we may as well make it explicit.
+> The benefit of the backend is that it becomes necessary to only
+> maintain one copy of the PMU accessor functions for each architecture,
+> with bug fixes and new features benefiting both OProfile and perf.
 > 
-> Feel free to fold that into your -rt patch and this one if you decide
-> not to drop that whole part. 
+> Note that I haven't been able to test these patches on an ARM board to
+> see if I've caused any regressions. If anyone else could do that I'd
+> appreciate it. Though, I have been able to compile this version of the
+> series.
+> 
+> This patch series is based on tip/master.
 
-Thanks! And yeah I'd prefer to keep it to reduce Thomas' burden if
-possible.
+Matt,
+
+please rebase your next version of this patch set to
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
+
+It contains Will's patches.
+
+Thanks,
+
+-Robert
+
+> 
+> Changes from v1:
+>  - Prefix the new functons with "oprofile_" instead of "op_".
+>  - Fix ARM compilation errors
+>  - Move all the oprofile-perf logic into oprofile_perf.c
+>  - Include cleanup patch from Will
+> 
+> Matt Fleming (3):
+>   sh: Accessor functions for the sh_pmu state
+>   oprofile: Abstract the perf-events backend
+>   sh: Use the perf-events backend for oprofile
+> 
+> Will Deacon (1):
+>   oprofile: Handle initialisation failure more gracefully
+> 
+>  arch/arm/oprofile/Makefile       |    4 +
+>  arch/arm/oprofile/common.c       |  228 ++++----------------------------------
+>  arch/sh/include/asm/perf_event.h |    2 +
+>  arch/sh/kernel/perf_event.c      |   13 ++
+>  arch/sh/oprofile/Makefile        |    2 +-
+>  arch/sh/oprofile/common.c        |   96 +++-------------
+>  arch/sh/oprofile/op_impl.h       |   33 ------
+>  drivers/oprofile/oprofile_perf.c |  209 ++++++++++++++++++++++++++++++++++
+>  include/linux/oprofile.h         |   12 ++
+>  9 files changed, 283 insertions(+), 316 deletions(-)
+>  delete mode 100644 arch/sh/oprofile/op_impl.h
+>  create mode 100644 drivers/oprofile/oprofile_perf.c
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+> 
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
