@@ -1,126 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tx2ehsobe004.messaging.microsoft.com ([65.55.88.14]:34651 "EHLO
-	TX2EHSOBE007.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753042Ab0HaNdf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Aug 2010 09:33:35 -0400
-Date: Tue, 31 Aug 2010 15:26:51 +0200
-From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH V2 4/4] sh: Use the perf-events backend for oprofile
-Message-ID: <20100831132651.GG22783@erda.amd.com>
-References: <cover.1282848651.git.matt@console-pimps.org>
- <c741813aa911f0048cfab1a1a30534e8d7bb6765.1282848651.git.matt@console-pimps.org>
- <20100827145901.GO22783@erda.amd.com>
- <20100827201946.GB18829@console-pimps.org>
- <20100831112841.GF22783@erda.amd.com>
- <20100831122343.GB27532@console-pimps.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <20100831122343.GB27532@console-pimps.org>
+Received: from casper.infradead.org ([85.118.1.10]:43548 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755328Ab0HaTk6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Aug 2010 15:40:58 -0400
+Message-ID: <20100831192617.441439071@chello.nl>
+Date: Tue, 31 Aug 2010 21:26:17 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 0/5] mm, highmem: kmap_atomic rework -v2
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20100831132651.DRhbg1tWQNUVZIxqFxEwf8-lup1Df26uAanWVkzCx3s@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20100831192617.XU8CpyG1aq1VygxrZA3K5eCjkNtytysnSt3QhNvLiR0@z>
 
-On 31.08.10 08:23:43, Matt Fleming wrote:
-> > > > > -static int op_sh_start(void)
-> > > > > +static char *op_name_from_perf_name(const char *name)
-> > > > >  {
-> > > > > -	/* Enable performance monitoring for all counters.  */
-> > > > > -	on_each_cpu(model->cpu_start, NULL, 1);
-> > > > > +	if (!strcmp(name, "SH-4A"))
-> > > > > +		return "sh/sh4a";
-> > > > > +	if (!strcmp(name, "SH7750"))
-> > > > > +		return "sh/sh7750";
-> > > > 
-> > > > With that implementation we always have to touch the code for new
-> > > > cpus. Maybe we derive it from the perf name, e.g. making all lowercase
-> > > > and removing dashes?
-> > > 
-> > > Is this code really that bad that we need to start playing string
-> > > manipulation games?
-> > 
-> > No, but with that implementation we always have to update the cpu
-> > string with each new cpu though nothing else changes. We may keep this
-> > code. But, shouldn't we return a default string "sh/<name>" for all
-> > other cases? We will then need to update only the oprofile userland
-> > with new cpus.
-> 
-> These names are actually the names of types of performance counters,
-> not a specific cpu. All SH-4 cpus that have performance counters have
-> 7750-style performance counters and all SH-4A cpus have SH-4A-style
-> counters.
-> 
-> It's unlikely we'd have to update this code in the near future. Paul,
-> correct me if I'm wrong here.
+Next version of the kmap_atomic rework using Andrew's fancy CPP trickery to
+avoid having to convert the whole tree at once.
 
-Ok, this shouldn't block this patch series, we still can make a patch
-if there is a use case.
+This is compile tested for i386-allmodconfig, frv, mips-sb1250-swarm,
+powerpc-ppc6xx_defconfig, sparc32_defconfig, arm-omap3 (all with
+HIGHEM=y).
 
-> > > > > +	ops->setup		= oprofile_perf_setup;
-> > > > > +	ops->create_files	= oprofile_perf_create_files;
-> > > > > +	ops->start		= oprofile_perf_start;
-> > > > > +	ops->stop		= oprofile_perf_stop;
-> > > > > +	ops->cpu_type		= op_name_from_perf_name(sh_pmu_name());
-> > > > >  
-> > > > > -	model = lmodel;
-> > > > > +	oprofile_perf_set_num_counters(sh_pmu_num_events());
-> > > > >  
-> > > > > -	ops->setup		= op_sh_setup;
-> > > > > -	ops->create_files	= op_sh_create_files;
-> > > > > -	ops->start		= op_sh_start;
-> > > > > -	ops->stop		= op_sh_stop;
-> > > > > -	ops->cpu_type		= lmodel->cpu_type;
-> > > > > +	ret = oprofile_perf_init();
-> > > > 
-> > > > Instead of exporting all the functions above implement something like:
-> > > > 
-> > > > 	name = op_name_from_perf_name(sh_pmu_name());
-> > > > 	num_events = sh_pmu_num_events();
-> > > > 	ret = oprofile_perf_init(ops, name, num_events);
-> > > > 
-> > > > We will then have only oprofile_perf_init() and oprofile_perf_exit()
-> > > > as interface which is much cleaner.
-> > > 
-> > > Well, the reason that I left it this way is so that architectures can
-> > > choose to implement wrappers around the oprofile_perf_* functions. I
-> > > don't think ARM or SH actually need wrappers (the only extra thing that
-> > > ARM does is locking which SH should probably do too) but I assumed there
-> > > was a reason that these functions pointers were exposed originally. I
-> > > haven't look at what other architectures would do. I'll take a look at
-> > > that.
-> > 
-> > I am not sure if we need such wrappers, and if so we could implement
-> > it anyway, e.g.:
-> > 
-> >  oprofile_perf_init(perf_ops, name, num_events);
-> > 
-> >  op_sh_setup():
-> > 
-> > 	/* setup something */
-> > 	...
-> > 
-> > 	perf_ops->setup();
-> > 
-> > 	/* setup more */
-> > 	...
-> > 
-> > But I don't think we need this. And the above makes the interface much
-> > cleaner.
-> 
-> OK, seeing as the two architectures that will use this initially don't
-> require wrappers I've no problem doing it your way. It can always be
-> extended later if necessary. And more importantly, with a proper
-> usecase we'll be able to see exactly _how_ it needs to be extended.
+Boot-tested with: i386-defconfig.
 
-Yes, right. So I am looking forward to your new version.
+Not tested with:
+ - tile, stock toolchain doesn't build tile targets
+ - nm10300, the arch doesn't build with highmem to begin with
 
-Thanks,
 
--Robert
+Is this something we can live with?
 
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
 
