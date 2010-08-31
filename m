@@ -1,334 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:28547 "HELO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752847Ab0H3HYA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Aug 2010 03:24:00 -0400
-Message-ID: <4C7B59E1.6010904@snapgear.com>
-Date: Mon, 30 Aug 2010 17:12:33 +1000
-From: Greg Ungerer <gerg@snapgear.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 18/22] Fix M68K irqflags
-References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk> <20100827020038.27277.27239.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20100827020038.27277.27239.stgit@warthog.procyon.org.uk>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
+Received: from gate.crashing.org ([63.228.1.57]:48167 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756825Ab0HaGc2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Aug 2010 02:32:28 -0400
+Subject: Re: [PATCH 08/20] powerpc: Preemptible mmu_gather
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1283236004.2151.33.camel@pasglop>
+References: <20100828141637.421594670@chello.nl>
+	 <20100828142455.960494507@chello.nl>  <1283236004.2151.33.camel@pasglop>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 31 Aug 2010 16:31:05 +1000
+Message-ID: <1283236265.2151.35.camel@pasglop>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100830071233.QXku41j88myXM8Oj-Z4i1l99Z7DO-ETmmu0QFn3JLJY@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20100831063105.oH_IXVMyK4Y7H-NqJRgRNriOiUD-cta8lz8-EzLv0zs@z>
 
-Hi David,
-
-David Howells wrote:
-> ---
+On Tue, 2010-08-31 at 16:26 +1000, Benjamin Herrenschmidt wrote:
+> On Sat, 2010-08-28 at 16:16 +0200, Peter Zijlstra wrote:
+> > Fix up powerpc to the new mmu_gather stuffs.
 > 
->  arch/m68k/include/asm/irqflags.h    |    5 ++
->  arch/m68k/include/asm/irqflags_mm.h |   57 +++++++++++++++++++++++
->  arch/m68k/include/asm/irqflags_no.h |   86 +++++++++++++++++++++++++++++++++++
->  arch/m68k/include/asm/system_mm.h   |   25 ----------
->  arch/m68k/include/asm/system_no.h   |   49 --------------------
-
-I have no problem with the changes as such. But I would rather
-not have separate mm and no headers if we can avoid it.
-
-Regards
-Greg
-
-
-
->  5 files changed, 150 insertions(+), 72 deletions(-)
->  create mode 100644 arch/m68k/include/asm/irqflags.h
->  create mode 100644 arch/m68k/include/asm/irqflags_mm.h
->  create mode 100644 arch/m68k/include/asm/irqflags_no.h
+> Unfortunately, I think this is broken...
 > 
-> diff --git a/arch/m68k/include/asm/irqflags.h b/arch/m68k/include/asm/irqflags.h
-> new file mode 100644
-> index 0000000..868c405
-> --- /dev/null
-> +++ b/arch/m68k/include/asm/irqflags.h
-> @@ -0,0 +1,5 @@
-> +#ifdef __uClinux__
-> +#include "irqflags_no.h"
-> +#else
-> +#include "irqflags_mm.h"
-> +#endif
-> diff --git a/arch/m68k/include/asm/irqflags_mm.h b/arch/m68k/include/asm/irqflags_mm.h
-> new file mode 100644
-> index 0000000..d00716d
-> --- /dev/null
-> +++ b/arch/m68k/include/asm/irqflags_mm.h
-> @@ -0,0 +1,57 @@
-> +#ifndef _M68K_IRQFLAGS_MM_H
-> +#define _M68K_IRQFLAGS_MM_H
-> +
-> +#include <linux/types.h>
-> +#include <linux/hardirq.h>
-> +#include <asm/thread_info.h>
-> +#include <asm/entry_mm.h>
-> +
-> +static inline unsigned long arch_local_save_flags(void)
-> +{
-> +	unsigned long flags;
-> +	asm volatile ("movew %%sr,%0": "=d" (flags) : : "memory");
-> +	return flags;
-> +}
-> +
-> +static inline void arch_local_irq_disable(void)
-> +{
-> +	asm volatile ("oriw  #0x0700,%%sr" : : : "memory");
-> +}
-> +
-> +#if 0
-> +static inline void arch_local_irq_enable(void)
-> +{
-> +		asm volatile ("andiw %0,%%sr" : : "i" (ALLOWINT) : "memory");
-> +}
-> +#else
-> +#define arch_local_irq_enable()						\
-> +	do {								\
-> +		if (MACH_IS_Q40 || !hardirq_count())			\
-> +			asm volatile ("andiw %0,%%sr"			\
-> +				      : : "i" (ALLOWINT) : "memory");	\
-> +	} while (0)
-> +#endif
-> +
-> +static inline unsigned long arch_local_irq_save(void)
-> +{
-> +	unsigned long flags = arch_local_save_flags();
-> +	arch_local_irq_disable();
-> +	return flags;
-> +}
-> +
-> +static inline void arch_local_irq_restore(unsigned long flags)
-> +{
-> +	asm volatile ("movew %0,%%sr": : "d" (flags) : "memory");
-> +}
-> +
-> +static inline bool arch_irqs_disabled_flags(unsigned long flags)
-> +{
-> +	return (flags & ~ALLOWINT) != 0;
-> +}
-> +
-> +static inline bool arch_irqs_disabled(void)
-> +{
-> +	return arch_irqs_disabled_flags(arch_local_save_flags());
-> +}
-> +
-> +#endif /* _M68K_IRQFLAGS_MM_H */
-> diff --git a/arch/m68k/include/asm/irqflags_no.h b/arch/m68k/include/asm/irqflags_no.h
-> new file mode 100644
-> index 0000000..6f6c217
-> --- /dev/null
-> +++ b/arch/m68k/include/asm/irqflags_no.h
-> @@ -0,0 +1,86 @@
-> +#ifndef _M68KNOMMU_IRQFLAGS_H
-> +#define _M68KNOMMU_IRQFLAGS_H
-> +
-> +#include <linux/types.h>
-> +
-> +
-> +#ifndef CONFIG_COLDFIRE
-> +/* portable version */ /* FIXME - see entry.h*/
-> +#define ALLOWINT 0xf8ff
-> +#endif
-> +
-> +static inline unsigned long arch_local_save_flags(void)
-> +{
-> +	unsigned long flags;
-> +	asm volatile ("movew %%sr,%0" : "=d" (flags) : : "memory");
-> +	return flags;
-> +}
-> +
-> +static inline void arch_local_irq_disable(void)
-> +{
-> +#ifdef CONFIG_COLDFIRE
-> +	asm volatile (
-> +		"move	%/sr,%%d0	\n\t"
-> +		"ori.l	#0x0700,%%d0	\n\t"
-> +		"move	%%d0,%/sr	\n"
-> +		: /* no outputs */
-> +		:
-> +		: "cc", "%d0", "memory");
-> +#else
-> +	asm volatile (
-> +		"oriw  #0x0700,%%sr" : : : "memory");
-> +#endif
-> +}
-> +
-> +static inline void arch_local_irq_enable(void)
-> +{
-> +#ifdef CONFIG_COLDFIRE
-> +	asm volatile (
-> +		"move	%/sr,%%d0	\n\t"
-> +		"andi.l	#0xf8ff,%%d0	\n\t"
-> +		"move	%%d0,%/sr	\n"
-> +		: /* no outputs */
-> +		:
-> +		: "cc", "%d0", "memory");
-> +#else
-> +	asm volatile (
-> +		"andiw %0,%%sr"
-> +		:
-> +		: "i" (ALLOWINT)
-> +		: "memory")
-> +#endif
-> +}
-> +
-> +static inline unsigned long arch_local_irq_save(void)
-> +{
-> +	unsigned long flags = arch_local_save_flags();
-> +#ifdef CONFIG_COLDFIRE
-> +	asm volatile (
-> +		"movew	#0x0700,%%d0	\n\t"
-> +		"or.l	%0,%%d0		\n\t"
-> +		"movew	%%d0,%/sr"
-> +		:
-> +		: "d" (flags)
-> +		: "cc", "%d0", "memory")
-> +#else
-> +	arch_local_irq_disable();
-> +#endif
-> +	return flags;
-> +}
-> +
-> +static inline void arch_local_irq_restore(unsigned long flags)
-> +{
-> +	asm volatile ("movew %0,%%sr" : : "d" (flags) : "memory");
-> +}
-> +
-> +static inline bool arch_irqs_disabled_flags(unsigned long flags)
-> +{
-> +	return (flags & 0x0700) == 0x0700;
-> +}
-> +
-> +static inline bool arch_irqs_disabled(void)
-> +{
-> +	return arch_irqs_disabled_flags(arch_local_save_flags());
-> +}
-> +
-> +#endif /* _M68KNOMMU_IRQFLAGS_H */
-> diff --git a/arch/m68k/include/asm/system_mm.h b/arch/m68k/include/asm/system_mm.h
-> index dbb6515..12053c4 100644
-> --- a/arch/m68k/include/asm/system_mm.h
-> +++ b/arch/m68k/include/asm/system_mm.h
-> @@ -3,6 +3,7 @@
->  
->  #include <linux/linkage.h>
->  #include <linux/kernel.h>
-> +#include <linux/irqflags.h>
->  #include <asm/segment.h>
->  #include <asm/entry.h>
->  
-> @@ -62,30 +63,6 @@ asmlinkage void resume(void);
->  #define smp_wmb()	barrier()
->  #define smp_read_barrier_depends()	((void)0)
->  
-> -/* interrupt control.. */
-> -#if 0
-> -#define local_irq_enable() asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory")
-> -#else
-> -#include <linux/hardirq.h>
-> -#define local_irq_enable() ({							\
-> -	if (MACH_IS_Q40 || !hardirq_count())					\
-> -		asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory");	\
-> -})
-> -#endif
-> -#define local_irq_disable() asm volatile ("oriw  #0x0700,%%sr": : : "memory")
-> -#define local_save_flags(x) asm volatile ("movew %%sr,%0":"=d" (x) : : "memory")
-> -#define local_irq_restore(x) asm volatile ("movew %0,%%sr": :"d" (x) : "memory")
-> -
-> -static inline int irqs_disabled(void)
-> -{
-> -	unsigned long flags;
-> -	local_save_flags(flags);
-> -	return flags & ~ALLOWINT;
-> -}
-> -
-> -/* For spinlocks etc */
-> -#define local_irq_save(x)	({ local_save_flags(x); local_irq_disable(); })
-> -
->  #define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
->  
->  struct __xchg_dummy { unsigned long a[100]; };
-> diff --git a/arch/m68k/include/asm/system_no.h b/arch/m68k/include/asm/system_no.h
-> index 3c0718d..52ca8da 100644
-> --- a/arch/m68k/include/asm/system_no.h
-> +++ b/arch/m68k/include/asm/system_no.h
-> @@ -2,6 +2,7 @@
->  #define _M68KNOMMU_SYSTEM_H
->  
->  #include <linux/linkage.h>
-> +#include <linux/irqflags.h>
->  #include <asm/segment.h>
->  #include <asm/entry.h>
->  
-> @@ -46,54 +47,6 @@ asmlinkage void resume(void);
->    (last) = _last;						\
->  }
->  
-> -#ifdef CONFIG_COLDFIRE
-> -#define local_irq_enable() __asm__ __volatile__ (		\
-> -	"move %/sr,%%d0\n\t"					\
-> -	"andi.l #0xf8ff,%%d0\n\t"				\
-> -	"move %%d0,%/sr\n"					\
-> -	: /* no outputs */					\
-> -	:							\
-> -        : "cc", "%d0", "memory")
-> -#define local_irq_disable() __asm__ __volatile__ (		\
-> -	"move %/sr,%%d0\n\t"					\
-> -	"ori.l #0x0700,%%d0\n\t"				\
-> -	"move %%d0,%/sr\n"					\
-> -	: /* no outputs */					\
-> -	:							\
-> -	: "cc", "%d0", "memory")
-> -/* For spinlocks etc */
-> -#define local_irq_save(x) __asm__ __volatile__ (		\
-> -	"movew %%sr,%0\n\t"					\
-> -	"movew #0x0700,%%d0\n\t"				\
-> -	"or.l  %0,%%d0\n\t"					\
-> -	"movew %%d0,%/sr"					\
-> -	: "=d" (x)						\
-> -	:							\
-> -	: "cc", "%d0", "memory")
-> -#else
-> -
-> -/* portable version */ /* FIXME - see entry.h*/
-> -#define ALLOWINT 0xf8ff
-> -
-> -#define local_irq_enable() asm volatile ("andiw %0,%%sr": : "i" (ALLOWINT) : "memory")
-> -#define local_irq_disable() asm volatile ("oriw  #0x0700,%%sr": : : "memory")
-> -#endif
-> -
-> -#define local_save_flags(x) asm volatile ("movew %%sr,%0":"=d" (x) : : "memory")
-> -#define local_irq_restore(x) asm volatile ("movew %0,%%sr": :"d" (x) : "memory")
-> -
-> -/* For spinlocks etc */
-> -#ifndef local_irq_save
-> -#define local_irq_save(x) do { local_save_flags(x); local_irq_disable(); } while (0)
-> -#endif
-> -
-> -#define	irqs_disabled()			\
-> -({					\
-> -	unsigned long flags;		\
-> -	local_save_flags(flags);	\
-> -	((flags & 0x0700) == 0x0700);	\
-> -})
-> -
->  #define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
->  
->  /*
+> First there's an actual bug here:
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> >  	last = _switch(old_thread, new_thread);
+> >  
+> > +#ifdef CONFIG_PPC64
+> > +	if (task_thread_info(new)->local_flags & _TLF_LAZY_MMU) {
+> > +		task_thread_info(new)->local_flags &= ~_TLF_LAZY_MMU;
+> > +		batch = &__get_cpu_var(ppc64_tlb_batch);
+> > +		batch->active = 1;
+> > +	}
+> > +#endif
+> > +
 > 
+> Here, you are coming out of _switch() which will have swapped the
+> stack and non-volatile registers to the state they were in when the
+> new task was originally switched-out. Thus "new" which is a local variable
+> (either on stack or in a non-volatile register) will now refer to whatever
+> was the next task back then.
+> 
+> I suppose that's what's causing the similar patch you have in -rt to
+> fail btw. This could be fixed easily by using "current" instead.
+
+And here's a fix. Using current_thread_info() everywhere is better
+anyways, you are not supposed to touch the local_flags within anything
+but "current" so we may as well make it explicit.
+
+Feel free to fold that into your -rt patch and this one if you decide
+not to drop that whole part.
+
+diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+index 6ee4b09..6e8b6de 100644
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -517,12 +517,12 @@ struct task_struct *__switch_to(struct task_struct *prev,
+ 
+ 	batch = &__get_cpu_var(ppc64_tlb_batch);
+ 	if (batch->active) {
+-		task_thread_info(prev)->local_flags |= _TLF_LAZY_MMU;
++		current_thread_info()->local_flags |= _TLF_LAZY_MMU;
+ 		if (batch->index)
+ 			__flush_tlb_pending(batch);
+ 		batch->active = 0;
+ 	}
+-#endif
++#endif /* CONFIG_PPC64 */
+ 
+ 	local_irq_save(flags);
+ 
+@@ -539,12 +539,12 @@ struct task_struct *__switch_to(struct task_struct *prev,
+ 	last = _switch(old_thread, new_thread);
+ 
+ #ifdef CONFIG_PPC64
+-	if (task_thread_info(new)->local_flags & _TLF_LAZY_MMU) {
+-		task_thread_info(new)->local_flags &= ~_TLF_LAZY_MMU;
++	if (current_thread_info()->local_flags & _TLF_LAZY_MMU) {
++		current_thread_info()->local_flags &= ~_TLF_LAZY_MMU;
+ 		batch = &__get_cpu_var(ppc64_tlb_batch);
+ 		batch->active = 1;
+ 	}
+-#endif
++#endif /* CONFIG_PPC64 */
+ 
+ 	local_irq_restore(flags);
+ 
 
 
--- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
