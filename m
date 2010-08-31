@@ -1,59 +1,90 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 01/20] powerpc: Use call_rcu_sched() for pagetables
-Date: Tue, 31 Aug 2010 16:10:10 +1000
-Message-ID: <1283235010.2151.16.camel@pasglop>
+Subject: Re: [PATCH 08/20] powerpc: Preemptible mmu_gather
+Date: Tue, 31 Aug 2010 16:26:44 +1000
+Message-ID: <1283236004.2151.33.camel@pasglop>
 References: <20100828141637.421594670@chello.nl>
-	 <20100828142455.464074954@chello.nl>
+	 <20100828142455.960494507@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:46330 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:43786 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753771Ab0HaGMG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 Aug 2010 02:12:06 -0400
-In-Reply-To: <20100828142455.464074954@chello.nl>
+	id S1756024Ab0HaG2G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Aug 2010 02:28:06 -0400
+In-Reply-To: <20100828142455.960494507@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@suse.de>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
 On Sat, 2010-08-28 at 16:16 +0200, Peter Zijlstra wrote:
-> plain text document attachment (powerpc-pgtable-call_rcu_sched.patch)
-> PowerPC relies on IRQ-disable to guard against RCU quiecent states,
-> use the appropriate RCU call version.
-> 
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Nick Piggin <npiggin@suse.de>
-> Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Fix up powerpc to the new mmu_gather stuffs.
 
-So as per discussions with Paul Mck, that should be correct,
-thus
+Unfortunately, I think this is broken...
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+First there's an actual bug here:
 
-> ---
->  arch/powerpc/mm/pgtable.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> Index: linux-2.6/arch/powerpc/mm/pgtable.c
-> ===================================================================
-> --- linux-2.6.orig/arch/powerpc/mm/pgtable.c
-> +++ linux-2.6/arch/powerpc/mm/pgtable.c
-> @@ -92,7 +92,7 @@ static void pte_free_rcu_callback(struct
+>  	last = _switch(old_thread, new_thread);
 >  
->  static void pte_free_submit(struct pte_freelist_batch *batch)
->  {
-> -	call_rcu(&batch->rcu, pte_free_rcu_callback);
-> +	call_rcu_sched(&batch->rcu, pte_free_rcu_callback);
->  }
->  
->  void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
-> 
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> +#ifdef CONFIG_PPC64
+> +	if (task_thread_info(new)->local_flags & _TLF_LAZY_MMU) {
+> +		task_thread_info(new)->local_flags &= ~_TLF_LAZY_MMU;
+> +		batch = &__get_cpu_var(ppc64_tlb_batch);
+> +		batch->active = 1;
+> +	}
+> +#endif
+> +
+
+Here, you are coming out of _switch() which will have swapped the
+stack and non-volatile registers to the state they were in when the
+new task was originally switched-out. Thus "new" which is a local variable
+(either on stack or in a non-volatile register) will now refer to whatever
+was the next task back then.
+
+I suppose that's what's causing the similar patch you have in -rt to
+fail btw. This could be fixed easily by using "current" instead.
+
+However, there I have another concern.
+
+> PPC has an extra batching queue to RCU free the actual pagetable
+> allocations, use the ARCH extentions for that for now.
+
+Right, so far that looks fine (at least after a quick look).
+
+> For the ppc64_tlb_batch, which tracks the vaddrs to unhash from the
+> hardware hash-table, keep using per-cpu arrays but flush on context
+> switch and use a TLF bit to track the laxy_mmu state.
+
+However, that doesn't seem necessary at all, at least not for !-rt, or
+unless you broke something that I would need to look at very closely
+then :-)
+
+IE. Enable/disable the batch only within "lazy_mmu_mode" sections. We do
+that in large part because we do not want non-flushed pages to exist
+outside of the pte spinlock.
+
+The reason is that if we let that happen, a small possibility exist for
+our MMU hash page handling to try to insert a duplicate entry for a
+given PTE into the hash table, which is basically fatal.
+
+Thus, we only exist during that lazy period, which means with a lock
+held. Hence we can't schedule and the changes you do regarding
+get/put_cpu_var are unnecessary.
+
+Another "trick" here btw is that fork() is currently not using a batch,
+but with our technique, we do get batching there too.
+
+So unless something else is broken that makes the above not true
+anymore, which would be a concern, most of the changes you did to the
+flush batch are unnecessary for your preemptible mmu_gather on non-rt
+kernels.
+
+Of course, with -rt and the pte lock becoming a mutex, all of your
+changes do become necessary (and I suppose that's where they come from).
+
+Now, those changes won't technically hurt on a non-rt kernel, tho they
+will add a tiny bit of overhead. I'll see if I can measure it.
+
+Cheers,
+Ben.
