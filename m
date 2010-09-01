@@ -1,36 +1,26 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH 18/22] Fix M68K irqflags
-Date: Wed, 1 Sep 2010 16:38:39 +1000
-Message-ID: <4C7DF4EF.30109@snapgear.com>
-References: <AANLkTikJ5pio3WYmZFAyWpD32hssZoDxX7XSTXN_qV09@mail.gmail.com> <20100827015905.27277.39167.stgit@warthog.procyon.org.uk> <20100827020038.27277.27239.stgit@warthog.procyon.org.uk> <4C7B59E1.6010904@snapgear.com> <26799.1283201411@redhat.com> <11403.1283270415@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:13152 "HELO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752209Ab0IAGiw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Sep 2010 02:38:52 -0400
-In-Reply-To: <11403.1283270415@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [RFC][PATCH 1/5] mm: strictly nested kmap_atomic
+Date: Wed, 01 Sep 2010 10:15:08 +0100
+Message-ID: <32752.1283332508@redhat.com>
+References: <20100831193924.102875973@chello.nl> <20100831192617.441439071@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20100831193924.102875973@chello.nl>
+Sender: owner-linux-mm@kvack.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 01/09/10 02:00, David Howells wrote:
-> Geert Uytterhoeven<geert@linux-m68k.org>  wrote:
->
->> Indeed, m68k doesn't use generic hardirqs yet, m68knommu does.
->
-> That's orthogonal to this patch series, however.  I'm dealing with IRQ flags
-> management, not hardirq support.
->
-> Out of interest, will the m68knommu arch be integrated into the m68k arch at
-> some point?  It's certainly possible to have an arch that is bimodal in this
-> aspect (FRV has CONFIG_MMU as a config option).
+Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 
-At some point it will happen. Steven King sent a script to
-largely automate for a first pass about a year ago.
+> Ensure kmap_atomic usage is strictly nested
+> 
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Reviewed-by: Rik van Riel <riel@redhat.com>
 
-Regards
-Greg
+Acked-by: David Howells <dhowells@redhat.com>
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
