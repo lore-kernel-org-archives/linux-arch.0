@@ -1,26 +1,24 @@
 From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC][PATCH 1/5] mm: strictly nested kmap_atomic
-Date: Wed, 01 Sep 2010 10:15:08 +0100
-Message-ID: <32752.1283332508@redhat.com>
-References: <20100831193924.102875973@chello.nl> <20100831192617.441439071@chello.nl>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20100831193924.102875973@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: dhowells@redhat.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Subject: Re: [PATCH 18/22] Fix M68K irqflags
+Date: Wed, 01 Sep 2010 11:43:13 +0100
+Message-ID: <2084.1283337793@redhat.com>
+References: <4C7DF3B7.7010305@snapgear.com> <4C7B59E1.6010904@snapgear.com> <20100827015905.27277.39167.stgit@warthog.procyon.org.uk> <20100827020038.27277.27239.stgit@warthog.procyon.org.uk> <26799.1283201411@redhat.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4C7DF3B7.7010305@snapgear.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg Ungerer <gerg@snapgear.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+Greg Ungerer <gerg@snapgear.com> wrote:
 
-> Ensure kmap_atomic usage is strictly nested
-> 
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Reviewed-by: Rik van Riel <riel@redhat.com>
+> Here is a spin of the same patch, only with a single irqflags.h.
+> It is closely modeled on the mm version, merging (and cleaning)
+> the non-mmu bits as needed. There is a fair bit of common code
+> in here.
 
-Acked-by: David Howells <dhowells@redhat.com>
+Thanks!
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I can compile test, but I can't run test (no h/w).
+
+David
