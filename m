@@ -1,30 +1,39 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [RFC][PATCH 2/5] mm: stack based kmap_atomic
-Date: Thu, 2 Sep 2010 12:48:08 -0400
-Message-ID: <4C7FD548.5030109@tilera.com>
-References: <20100831192617.441439071@chello.nl> <20100831193924.157667156@chello.nl>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select
+	m68knommu contributions
+Date: Thu, 2 Sep 2010 18:50:35 +0200
+Message-ID: <20100902165035.GB24011@merkur.ravnborg.org>
+References: <20100902135438.GA23729@merkur.ravnborg.org> <19747.1283422807@redhat.com> <20100902102158.19806.14133.stgit@warthog.procyon.org.uk> <24082.1283440358@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20100831193924.157667156@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pqueuea.post.tele.dk ([193.162.153.9]:44810 "EHLO
+	pqueuea.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754682Ab0IBQuz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 12:50:55 -0400
+Received: from pfepb.post.tele.dk (pfepb.post.tele.dk [195.41.46.236])
+	by pqueuea.post.tele.dk (Postfix) with ESMTP id 2A8B8DBAA0
+	for <linux-arch@vger.kernel.org>; Thu,  2 Sep 2010 18:50:54 +0200 (CEST)
+Content-Disposition: inline
+In-Reply-To: <24082.1283440358@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: gerg@snapgear.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
- Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-for the series.
+On Thu, Sep 02, 2010 at 04:12:38PM +0100, David Howells wrote:
+> Sam Ravnborg <sam@ravnborg.org> wrote:
+> 
+> > This was exactly the reason why __uClinux__ was used in the first place.
+> 
+> That shouldn't be used in kernel headers.  It should be !CONFIG_MMU.
 
-Note that in patch 4/5 you can also remove the pte_*map_nested() #defines
-in arch/tile/include/asm/pgtable.h.
+Thats preferable - yes.
+But in headers that are exported we cannot rely on CONFIG_MMU,
+and Andreas could point out two headers that are exported
+where your patch replaced __uClinux__ with CONFIG_MMU.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Thats wrong.
+I assume you aggree on this?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Sam
