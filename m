@@ -1,42 +1,44 @@
-From: Ms Dai Ying <hkdaiming59@yahoo.com.hk>
-Subject: Hello
-Date: Thu, 02 Sep 2010 19:57:34 +0800
-Message-ID: <20100902195734.1226255t2f0shrgk__24519.7752993137$1283432475$gmane$org@mail.asli.com.my>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select
+	m68knommu contributions
+Date: Thu, 2 Sep 2010 15:54:38 +0200
+Message-ID: <20100902135438.GA23729@merkur.ravnborg.org>
+References: <19747.1283422807@redhat.com> <20100902102158.19806.14133.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=ISO-8859-1;
- DelSp="Yes";
- format="flowed"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out1.mdmis.com ([210.5.42.208]:47468 "EHLO out1.mdmis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754417Ab0IBNAf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 2 Sep 2010 09:00:35 -0400
-Received: from out1.mdmis.com (localhost.localdomain [127.0.0.1])
-	by out1.mdmis.com (Postfix) with ESMTP id 35B69500A2
-	for <linux-arch@vger.kernel.org>; Thu,  2 Sep 2010 19:57:49 +0800 (MYT)
-Received: from email.mdmis.com (email.mdmis.com [210.5.42.206])
-	by out1.mdmis.com (Postfix) with ESMTP id 283D950090
-	for <linux-arch@vger.kernel.org>; Thu,  2 Sep 2010 19:57:35 +0800 (MYT)
+Received: from pfepa.post.tele.dk ([195.41.46.235]:42381 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752156Ab0IBNyk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 09:54:40 -0400
 Content-Disposition: inline
+In-Reply-To: <20100902102158.19806.14133.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: gerg@snapgear.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
+On Thu, Sep 02, 2010 at 11:21:58AM +0100, David Howells wrote:
+> Use CONFIG_MMU not __uClinux__ to select m68knommu contributions as nothing in
+> the arch defines __uClinux__ for the build.
+> 
+> This patch was achieved by running the following three commands:
+> 
+> perl -pi -e 's/ifdef __uClinux__/ifndef CONFIG_MMU/' `find arch/m68k -name "*.[ch]"`
+> perl -pi -e 's/ifndef __uClinux__/ifdef CONFIG_MMU/' `find arch/m68k -name "*.[ch]"`
+> perl -pi -e 's!endif /[*] __uClinux__ [*]/!endif /* CONFIG_MMU */!' `find arch/m68k -name "*.[ch]"
 
+Have you verified that this does not leak out
+to the userspace headers?
+We cannot use the CONFIG_ symbol to distingush between
+the two variants in userspace.
 
-Ms Dai Ying
-General Manager
-Global Markets Department
-Bank of China (Hong Kong) Limited
+This was exactly the reason why __uClinux__ was used
+in the first place. But I hope Geert/Greg has fixed
+it up so all exported headers are the same so that
+this patch is OK.
 
-I am the general manager, Global markets department of Bank of China. I
-have a business proposition for you concerning one of our clients.
+At first look I think it is OK - but your changelog
+does not address this so wanted you to confirm this.
 
-If you are interested get back to me for more details.
-
-I await your response.
-
-Sincerely,
-
-Dai Ying
+	Sam
