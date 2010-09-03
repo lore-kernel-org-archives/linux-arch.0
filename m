@@ -1,69 +1,29 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH 1/3] Drop a couple of unnecessary asm/include.h inclusions
-Date: Fri, 3 Sep 2010 11:29:33 +1000
-Message-ID: <4C804F7D.5090105@snapgear.com>
-References: <19747.1283422807@redhat.com> <20100902102153.19806.82031.stgit@warthog.procyon.org.uk>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [PATCH 19/22] Fix PA-RISC irqflags
+Date: Thu, 2 Sep 2010 21:40:42 -0400
+Message-ID: <20100903014042.GH2684@bombadil.infradead.org>
+References: <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
+ <20100827020043.27277.2926.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:61650 "HELO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1751281Ab0ICB3x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 21:29:53 -0400
-In-Reply-To: <20100902102153.19806.82031.stgit@warthog.procyon.org.uk>
+Received: from bombadil.infradead.org ([18.85.46.34]:39357 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752990Ab0ICBkn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 21:40:43 -0400
+Content-Disposition: inline
+In-Reply-To: <20100827020043.27277.2926.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-David Howells wrote:
-> Drop inclusions of asm/include.h from linux/hardirq.h and linux/list.h as
-> they're no longer required and prevent the M68K arch's IRQ flag handling macros
-> from being made into inlined functions due to circular dependencies.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-
-Acked-by: Greg Ungerer <gerg@uclinux.org>
-
-
-> ---
-> 
->  include/linux/hardirq.h |    1 -
->  include/linux/list.h    |    1 -
->  2 files changed, 0 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/linux/hardirq.h b/include/linux/hardirq.h
-> index d5b3876..7dfdc06 100644
-> --- a/include/linux/hardirq.h
-> +++ b/include/linux/hardirq.h
-> @@ -8,7 +8,6 @@
->  #include <linux/lockdep.h>
->  #include <linux/ftrace_irq.h>
->  #include <asm/hardirq.h>
-> -#include <asm/system.h>
->  
->  /*
->   * We put the hardirq and softirq counter into the preemption
-> diff --git a/include/linux/list.h b/include/linux/list.h
-> index d167b5d..88a0006 100644
-> --- a/include/linux/list.h
-> +++ b/include/linux/list.h
-> @@ -5,7 +5,6 @@
->  #include <linux/stddef.h>
->  #include <linux/poison.h>
->  #include <linux/prefetch.h>
-> -#include <asm/system.h>
->  
->  /*
->   * Simple doubly linked list implementation.
-> 
+On Fri, Aug 27, 2010 at 03:00:43AM +0100, David Howells wrote:
 > 
 
+Looks good to me, David.
 
--- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+Should I merge this, or are you going to push this with some larger
+changes?
+
+--Kyle
