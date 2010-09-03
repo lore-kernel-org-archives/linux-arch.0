@@ -1,40 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:59043 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756350Ab0ICAvq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 2 Sep 2010 20:51:46 -0400
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 4/8] mips: enable ARCH_DMA_ADDR_T_64BIT with (HIGHMEM && 64BIT_PHYS_ADDR) || 64BIT
-Date: Fri,  3 Sep 2010 09:49:12 +0900
-Message-ID: <1283474956-14710-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-In-Reply-To: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
-References: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
+Received: from dalsmrelay2.nai.com ([205.227.136.216]:44426 "HELO
+	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1755964Ab0ICDbH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 23:31:07 -0400
+Message-ID: <4C806BD5.2090000@snapgear.com>
+Date: Fri, 3 Sep 2010 13:30:29 +1000
+From: Greg Ungerer <gerg@snapgear.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select m68knommu
+ contributions
+References: <19747.1283422807@redhat.com>	<20100902102158.19806.14133.stgit@warthog.procyon.org.uk>	<m38w3kns4r.fsf@hase.home> <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
+In-Reply-To: <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, linux-mips@linux-mips.org
-Message-ID: <20100903004912.fMhPSyarVSh0cCHLEZt8MqptS2nJxN5UhZMhTKmSlQg@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andreas Schwab <schwab@redhat.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100903033029.LPqGf36loTgWpoj063nxJYn2ilGShhx03JijfjhpUWo@z>
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-mips@linux-mips.org
----
- arch/mips/Kconfig |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+Geert Uytterhoeven wrote:
+> On Thu, Sep 2, 2010 at 16:21, Andreas Schwab <schwab@redhat.com> wrote:
+>> David Howells <dhowells@redhat.com> writes:
+>>
+>>> Use CONFIG_MMU not __uClinux__ to select m68knommu contributions as nothing in
+>>> the arch defines __uClinux__ for the build.
+>> You are using the wrong compiler.
+> 
+> it would be nice if you could use the same compiler for m68k and m68knommu, at
+> least for compiling kernels.
 
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 3ad59dd..3e9db47 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -830,6 +830,9 @@ config GPIO_TXX9
- config CFE
- 	bool
- 
-+config ARCH_DMA_ADDR_T_64BIT
-+	def_bool (HIGHMEM && 64BIT_PHYS_ADDR) || 64BIT
-+
- config DMA_COHERENT
- 	bool
- 
--- 
-1.7.1
+It would be very nice :-)
 
+Regards
+Greg
+
+
+------------------------------------------------------------------------
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
+8 Gardner Close                             FAX:         +61 7 3217 5323
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
