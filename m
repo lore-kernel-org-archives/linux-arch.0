@@ -1,36 +1,79 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [PATCH 19/22] Fix PA-RISC irqflags
-Date: Fri, 3 Sep 2010 09:31:50 -0400
-Message-ID: <20100903133150.GI2684@bombadil.infradead.org>
-References: <20100903014042.GH2684@bombadil.infradead.org>
- <20100827015905.27277.39167.stgit@warthog.procyon.org.uk>
- <20100827020043.27277.2926.stgit@warthog.procyon.org.uk>
- <7137.1283496507@redhat.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH -mm 0/8] unify dma_addr_t typedef
+ (CONFIG_ARCH_DMA_ADDR_T_64BIT)
+Date: Fri, 3 Sep 2010 15:09:48 -0700
+Message-ID: <20100903150948.4b612498.akpm@linux-foundation.org>
+References: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:42598 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752773Ab0ICNbw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Sep 2010 09:31:52 -0400
-Content-Disposition: inline
-In-Reply-To: <7137.1283496507@redhat.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37041 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751420Ab0ICWKV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Sep 2010 18:10:21 -0400
+In-Reply-To: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Sep 03, 2010 at 07:48:27AM +0100, David Howells wrote:
-> Kyle McMartin <kyle@mcmartin.ca> wrote:
-> 
-> > Should I merge this, or are you going to push this with some larger
-> > changes?
-> 
-> This will need to be merged into the main patch before that is submitted, but
-> if I can have your Acked-by, I can include that specifically for the PA-RISC
-> bits.
-> 
+On Fri, 3 Sep 2010 09:51:31 +0900
+FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp> wrote:
 
-Please do:
+> There are about twenty architectures have the own dma_addr_t typedef
+> because include/asm-generic/types.h can't be perfect (some of them can
+> use it though):
+> 
+> #ifndef dma_addr_t
+> #ifdef CONFIG_PHYS_ADDR_T_64BIT
+> typedef u64 dma_addr_t;
+> #else
+> typedef u32 dma_addr_t;
+> #endif /* CONFIG_PHYS_ADDR_T_64BIT */
+> #endif /* dma_addr_t */
+> 
+> Another problem is that there is a way to determine if dma_addr_t is
+> 64-bit. We see hopeless tricks like the following:
+> 
+> #if (defined(__i386__) && defined(CONFIG_HIGHMEM64G)) || defined(__x86_64__) || defined (__ia64__) || defined(__alpha__) || defined(__mips64__) || (defined(__mips__) && defined(CONFIG_HIGHMEM) && defined(CONFIG_64BIT_PHYS_ADDR))
+> 
+> This clean up the mess with introducing CONFIG_ARCH_DMA_ADDR_T_64BIT
+> define (like CONFIG_ARCH_PHYS_ADDR_T_64BIT).
+> 
+> If architecture needs 64bit dma_addr_t, it must enable
+> CONFIG_ARCH_DMA_ADDR_T_64BIT.
+> 
+> The summary are:
+> 
+> - always 64bit
+> -- alpha
+> -- ia64
+> -- tile
+> 
+> - conditionally 64bit
+> -- x86
+> -- mips
+> -- powerpc
+> -- s390
+> 
+> - always 32bit
+> -- arm
+> -- avr32
+> -- cris
+> -- frv
+> -- h8300
+> -- m32r
+> -- m68k
+> -- mn10300
+> -- parisc
+> -- xtensa
+> -- sparc
+> -- blackfin
+> -- microblaze
+> -- score
+> -- sh
 
-Acked-by: Kyle McMartin <kyle@mcmartin.ca>
+Am I correct in believing that we can merge the first seven patches
+into arch trees at any time and, once they are all merged, patch 8/8
+can then go into mainline?
