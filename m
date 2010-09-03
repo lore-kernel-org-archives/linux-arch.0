@@ -1,37 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:64911 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754816Ab0ICIGG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Sep 2010 04:06:06 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <4C809B63.2040802@snapgear.com>
-References: <4C809B63.2040802@snapgear.com> <4C804F3A.8020001@snapgear.com> <19747.1283422807@redhat.com> <20100902102203.19806.39028.stgit@warthog.procyon.org.uk> <7077.1283496259@redhat.com>
-Subject: Re: [PATCH 3/3] Fix M68K irqflags
-Date: Fri, 03 Sep 2010 09:05:48 +0100
-Message-ID: <13782.1283501148@redhat.com>
+Received: from dalsmrelay2.nai.com ([205.227.136.216]:48684 "HELO
+	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1756809Ab0ICKml (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Sep 2010 06:42:41 -0400
+Message-ID: <4C80D0E0.9010702@snapgear.com>
+Date: Fri, 3 Sep 2010 20:41:36 +1000
+From: Greg Ungerer <gerg@snapgear.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select m68knommu
+ contributions
+References: <AANLkTikBLCg_FUwGGiajw3+dgCe6y0s0a1yMs8=A2oCR@mail.gmail.com> <m3vd6nmd68.fsf@hase.home> <19747.1283422807@redhat.com> <20100902102158.19806.14133.stgit@warthog.procyon.org.uk> <m38w3kns4r.fsf@hase.home> <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com> <3048.1283505520@redhat.com> <4C80C068.1010302@snapgear.com> <7877.1283507577@redhat.com>
+In-Reply-To: <7877.1283507577@redhat.com>
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Ungerer <gerg@snapgear.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100903080548.n8txOPfQMDq6_WLmtdbYqpJzva7WEPRcTNpyeP3J_Pg@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andreas Schwab <schwab@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100903104136.SHD_-fqZkYoB1A--0dKC4ODgvJ7kKFMuk_hDSK3LYSg@z>
 
-Greg Ungerer <gerg@snapgear.com> wrote:
+On 03/09/10 19:52, David Howells wrote:
+> Geert Uytterhoeven<geert@linux-m68k.org>  wrote:
+>
+>>> Not sure about m68k but m68knommu targets already setup
+>>> appropriate -mcpu flags for its various supported CPU types.
+>>
+>> Same for m68k.
+>
+> It doesn't seem to:
+>
+> 	warthog>grep -r mcpu arch/m68k
+> 	warthog1>grep -r mtune arch/m68k
+> 	warthog1>
+>
+> I see that m68knommu does:
+>
+> 	warthog1>grep -r mcpu arch/m68knommu/
+> 	arch/m68knommu/Makefile:cflags-$(CONFIG_M5206)          := $(call cc-option,-mcpu=5206,-m5200)
+> 	arch/m68knommu/Makefile:cflags-$(CONFIG_M520x)          := $(call cc-option,-mcpu=5208,-m5200)
+> 	arch/m68knommu/Makefile:cflags-$(CONFIG_M523x)          := $(call cc-option,-mcpu=523x,-m5307)
+> 	...
+>
+> I guess the m68k compiler I already had doesn't fully support -m5200, since I
+> see that, but it doesn't compile some of the instructions when compiling the
+> m68knommu defconfig (CONFIG_M520x=y).
 
-> > Unfortunately, I don't have a binutils that can handle the funny Coldfire
-> > instructions.  Can you point me at a Coldfire toolchain?
-> 
-> This is what I currently use:
-> 
-> http://www.uclinux.org/pub/uClinux/m68k-elf-tools/tools-20080626/m68k-uclinux-tools-20080626.sh
-> 
-> Its just a binutils-2.18 and gcc-4.2.4 configured for m68k-uclinux
-> target.
+Ah, ok, that would explain it. The m520x is one of the newer ColdFire
+variants (thus proper cpu=5208 support is only in more recent binutils.
+A fallback to -m5200 (which is the absolute minimum ColdFire support)
+looks like it is not quite enough here.
 
-With this toolchain and the m68knommu defconfig, the asm errors are now gone,
-but I see the following link error:
-
-/usr/local/bin/m68k-uclinux-ld.real: error: no memory region specified for loadable section `.data..shared_aligned'
-
-I don't see any errors or warnings concerning THREAD_SIZE.
-
-David
+Regards
+Greg
