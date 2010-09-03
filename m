@@ -1,32 +1,44 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 3/3] Fix M68K irqflags
-Date: Fri, 03 Sep 2010 09:05:48 +0100
-Message-ID: <13782.1283501148@redhat.com>
-References: <4C809B63.2040802@snapgear.com> <4C804F3A.8020001@snapgear.com> <19747.1283422807@redhat.com> <20100902102203.19806.39028.stgit@warthog.procyon.org.uk> <7077.1283496259@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4C809B63.2040802@snapgear.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Greg Ungerer <gerg@snapgear.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Andreas Schwab <schwab@redhat.com>
+Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select m68knommu contributions
+Date: Fri, 03 Sep 2010 10:41:51 +0200
+Message-ID: <m3vd6nmd68.fsf@hase.home>
+References: <19747.1283422807@redhat.com>
+	<20100902102158.19806.14133.stgit@warthog.procyon.org.uk>
+	<m38w3kns4r.fsf@hase.home>
+	<AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60352 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750900Ab0ICImO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Sep 2010 04:42:14 -0400
+In-Reply-To: <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
+	(Geert Uytterhoeven's message of "Thu, 2 Sep 2010 21:53:53 +0200")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Howells <dhowells@redhat.com>, gerg@snapgear.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Greg Ungerer <gerg@snapgear.com> wrote:
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
 
-> > Unfortunately, I don't have a binutils that can handle the funny Coldfire
-> > instructions.  Can you point me at a Coldfire toolchain?
-> 
-> This is what I currently use:
-> 
-> http://www.uclinux.org/pub/uClinux/m68k-elf-tools/tools-20080626/m68k-uclinux-tools-20080626.sh
-> 
-> Its just a binutils-2.18 and gcc-4.2.4 configured for m68k-uclinux
-> target.
+> On Thu, Sep 2, 2010 at 16:21, Andreas Schwab <schwab@redhat.com> wrote:
+>> David Howells <dhowells@redhat.com> writes:
+>>
+>>> Use CONFIG_MMU not __uClinux__ to select m68knommu contributions as nothing in
+>>> the arch defines __uClinux__ for the build.
+>>
+>> You are using the wrong compiler.
+>
+> it would be nice if you could use the same compiler for m68k and m68knommu, at
+> least for compiling kernels.
 
-With this toolchain and the m68knommu defconfig, the asm errors are now gone,
-but I see the following link error:
+You are almost able to use the uclinux compiler for both, except that
+currently __uClinux__ is hardcoded.
 
-/usr/local/bin/m68k-uclinux-ld.real: error: no memory region specified for loadable section `.data..shared_aligned'
+Andreas.
 
-I don't see any errors or warnings concerning THREAD_SIZE.
-
-David
+-- 
+Andreas Schwab, schwab@redhat.com
+GPG Key fingerprint = D4E8 DBE3 3813 BB5D FA84  5EC7 45C6 250E 6F00 984E
+"And now for something completely different."
