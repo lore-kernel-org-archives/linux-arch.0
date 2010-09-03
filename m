@@ -1,43 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:44426 "HELO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1755964Ab0ICDbH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Sep 2010 23:31:07 -0400
-Message-ID: <4C806BD5.2090000@snapgear.com>
-Date: Fri, 3 Sep 2010 13:30:29 +1000
-From: Greg Ungerer <gerg@snapgear.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 2/3] M68K: Use CONFIG_MMU not __uClinux__ to select m68knommu
- contributions
-References: <19747.1283422807@redhat.com>	<20100902102158.19806.14133.stgit@warthog.procyon.org.uk>	<m38w3kns4r.fsf@hase.home> <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
-In-Reply-To: <AANLkTikwax-Jb60jT5_TOL=Zkwbgh8FwMk78ncm1dN-P@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:64911 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754816Ab0ICIGG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Sep 2010 04:06:06 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <4C809B63.2040802@snapgear.com>
+References: <4C809B63.2040802@snapgear.com> <4C804F3A.8020001@snapgear.com> <19747.1283422807@redhat.com> <20100902102203.19806.39028.stgit@warthog.procyon.org.uk> <7077.1283496259@redhat.com>
+Subject: Re: [PATCH 3/3] Fix M68K irqflags
+Date: Fri, 03 Sep 2010 09:05:48 +0100
+Message-ID: <13782.1283501148@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andreas Schwab <schwab@redhat.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100903033029.LPqGf36loTgWpoj063nxJYn2ilGShhx03JijfjhpUWo@z>
+To: Greg Ungerer <gerg@snapgear.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20100903080548.n8txOPfQMDq6_WLmtdbYqpJzva7WEPRcTNpyeP3J_Pg@z>
 
-Geert Uytterhoeven wrote:
-> On Thu, Sep 2, 2010 at 16:21, Andreas Schwab <schwab@redhat.com> wrote:
->> David Howells <dhowells@redhat.com> writes:
->>
->>> Use CONFIG_MMU not __uClinux__ to select m68knommu contributions as nothing in
->>> the arch defines __uClinux__ for the build.
->> You are using the wrong compiler.
+Greg Ungerer <gerg@snapgear.com> wrote:
+
+> > Unfortunately, I don't have a binutils that can handle the funny Coldfire
+> > instructions.  Can you point me at a Coldfire toolchain?
 > 
-> it would be nice if you could use the same compiler for m68k and m68knommu, at
-> least for compiling kernels.
+> This is what I currently use:
+> 
+> http://www.uclinux.org/pub/uClinux/m68k-elf-tools/tools-20080626/m68k-uclinux-tools-20080626.sh
+> 
+> Its just a binutils-2.18 and gcc-4.2.4 configured for m68k-uclinux
+> target.
 
-It would be very nice :-)
+With this toolchain and the m68knommu defconfig, the asm errors are now gone,
+but I see the following link error:
 
-Regards
-Greg
+/usr/local/bin/m68k-uclinux-ld.real: error: no memory region specified for loadable section `.data..shared_aligned'
 
+I don't see any errors or warnings concerning THREAD_SIZE.
 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+David
