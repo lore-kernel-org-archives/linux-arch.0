@@ -1,26 +1,48 @@
-From: "desk@live.com" <autocicognara@fastwebnet.it>
-Subject: Mutual Support
-Date: Sat, 4 Sep 2010 17:40:03 +0200 (CEST)
-Message-ID: <9230417.1223821283614803164.JavaMail.defaultUser__20104.0048189045$1283616462$gmane$org@defaultHost>
-Reply-To: JU4343@ymail.com
+From: "Mr. Beuker Hendrik" <info@windowslive.co.uk>
+Subject: Just as a brief
+Date: Sat,  4 Sep 2010 14:14:52 -0300
+Message-ID: <20100904141452.5hkpbwjn4sk08s8w@www.uccuyo.edu.ar>
+Reply-To: beuker.hendrik@live.nl
 Mime-Version: 1.0
-Content-Type: text/plain;charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aa012msr.fastwebnet.it ([85.18.95.72]:41496 "EHLO
-	aa012msr.fastwebnet.it" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754082Ab0IDQG0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Sep 2010 12:06:26 -0400
+Received: from mail.uccuyo.edu.ar ([200.123.107.120]:56386 "EHLO
+	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753889Ab0IDQ6q convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Sep 2010 12:58:46 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Dear Sir/Madam,
+Good day,
 
-  I am Judith Johnson a solicitor at law, i have a proposal for you kindle get b
-ack to me for more information on my private email address at:judith4343@hotmail
-.com
+My name is Mr. Beuker Hendrik: I work in the Euro Lottery. I am solicit=
+ing
+your assistance for a swift transfer of 2,528,000 GBP, should you be
+willing to assist me in this project, and you will be giving me just 30=
+%
+of your winnings.
 
-God Bless you and you Family.
+Just as a brief, you just have to register online; due to my position i=
+n
+the company I can make it happen that you would be a winner of the abov=
+e
+stated amount. Naturally, every body would like to play a lottery if th=
+ey
+are assured of winning. I am assuring you today to be a winner, please =
+do
+not take for granted this once in a life time opportunity as we both st=
+and
+to collectively gain from this at the success of the transaction.
 
-Sincerely,
-Judith Johnson
+Should you be willing to assist me in this transaction please do respon=
+d to
+E-mail: beuker.hendrik@live.nl
+
+Warmest Regards,
+Mr. Beuker Hendrik
+
+_________________________________
+Universidad Cat=F3lica de Cuyo
+www.uccuyo.edu.ar
