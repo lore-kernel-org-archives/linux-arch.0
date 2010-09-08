@@ -1,63 +1,106 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
  __do_IRQ() code
-Date: Wed, 8 Sep 2010 16:28:07 -0400
-Message-ID: <AANLkTimC1kBuAvd_kei8cdWvgzL-u8FdfEfEGZH1t2ZM@mail.gmail.com>
-References: <20100908152036.643594727@linutronix.de> <1283971919.11763.35.camel@mulgrave.site>
+Date: Wed, 08 Sep 2010 15:35:24 -0500
+Message-ID: <1283978124.11763.80.camel@mulgrave.site>
+References: <20100908152036.643594727@linutronix.de>
+	 <1283971919.11763.35.camel@mulgrave.site>
+	 <alpine.LFD.2.00.1009082056210.2477@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <1283971919.11763.35.camel@mulgrave.site>
+In-Reply-To: <alpine.LFD.2.00.1009082056210.2477@localhost6.localdomain6>
 Sender: linux-alpha-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 8, 2010 at 14:51, James Bottomley wrote:
-> On Wed, 2010-09-08 at 18:14 +0000, Thomas Gleixner wrote:
->> plain text document attachment (genirq-troll-patch.patch)
->> __do_IRQ() has been deprecated after a two years migration phase in
->> commit 0e57aa1. Since then another 18 month have gone by.
->>
->> So here's the status three and a half years after the flow based
->> infrastructure was merged:
->>
->> =C2=A0The following architectures are still using __do_IRQ():
->>
->> =C2=A0 alpha, cris, ia64, h8300, m32r, m68knommu, parisc, um
->>
->> So now the question arises what to do with __do_IRQ().
->>
->> Removing it would be the right thing, but that'll break 8 archs, so
->> it's probably not considered a good idea, though for most of them th=
-e
->> conversion should be reasonably trivial.
->>
->> I'm happy to move that code into kernel/irq/cruft.c forever if there
->> is no way to get the remaining users converted in the forseeable
->> future. It looks like they can cope with the annoying build warning
->> nicely.
+On Wed, 2010-09-08 at 21:34 +0200, Thomas Gleixner wrote:
+> On Wed, 8 Sep 2010, James Bottomley wrote:
+> > On Wed, 2010-09-08 at 18:14 +0000, Thomas Gleixner wrote:
+> > > plain text document attachment (genirq-troll-patch.patch)
+> > > __do_IRQ() has been deprecated after a two years migration phase in
+> > > commit 0e57aa1. Since then another 18 month have gone by.
+> > > 
+> > > So here's the status three and a half years after the flow based
+> > > infrastructure was merged:
+> > > 
+> > >  The following architectures are fully converted to the new flow
+> > >  handler code:
+> > > 
+> > >   arm, avr32, blackfin, frv, microblaze, mips, mn10300, powerpc, score, sh,
+> > >   sparc 64bit, tile, x86, xtensa
+> > > 
+> > >   (avr32 and xtensa should set CONFIG_GENERIC_HARDIRQS_NO__DO_IRQ
+> > >   though)
+> > > 
+> > >  The following architectures are not using the generic interrupt
+> > >  infrastructure at all and are therefor unaffected:
+> > > 
+> > >   s390, m68k, sparc 32bit
+> > > 
+> > >  The following architectures are still using __do_IRQ():
+> > > 
+> > >   alpha, cris, ia64, h8300, m32r, m68knommu, parisc, um
+> > > 
+> > > So now the question arises what to do with __do_IRQ().
+> > > 
+> > > Removing it would be the right thing, but that'll break 8 archs, so
+> > > it's probably not considered a good idea, though for most of them the
+> > > conversion should be reasonably trivial.
+> > > 
+> > > I'm happy to move that code into kernel/irq/cruft.c forever if there
+> > > is no way to get the remaining users converted in the forseeable
+> > > future. It looks like they can cope with the annoying build warning
+> > > nicely.
+> > 
+> > Well, if you're going to deprecate something that 8 architectures rely
+> > on, it would be nice to tell people ... or even just linux-arch ... most
+> 
+> It's been told people. The deprecation patch was on LKMl (I don't
+> remember whether I sent it to linux-arch),
+
+You didn't ... I checked.
+
+>  but there were a bunch of
+> related patches to clean out the old irq related cruft which were sent
+> to linux-arch and also hit the parisc tree. There is an entry in
+> feature-removal-schedule.txt for 18 month now.
+> 
+> > of us do read that.  I've actually never noticed the warning the commit
+> > activated in any of my parisc compiles for some reason.
+> 
+> CONFIG_ENABLE_WARN_DEPRECATED=y perhaps ?
 >
-> Well, if you're going to deprecate something that 8 architectures rel=
-y
-> on, it would be nice to tell people ... or even just linux-arch ... m=
-ost
-> of us do read that. =C2=A0I've actually never noticed the warning the=
- commit
-> activated in any of my parisc compiles for some reason.
+> I'm really tired of your whining when you did not get a personalized
+> taylored to your needs info.
 
-the only reason Blackfin was converted quickly is because the code
-issues a warning (that has been there for a long time):
-# warning __do_IRQ is deprecated. Please convert to proper flow handler=
-s
+So you send out deliberate flame bait and then suffer humour failure at
+an ironic reply?
 
-so i guess you're saying that you disable the "ENABLE_WARN_DEPRECATED"
-option ?  or you dont pay attention to warnings when compiling kernels
-?
--mike
---
-To unsubscribe from this list: send the line "unsubscribe linux-alpha" =
-in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 14 architectures got converted and some maintainers sent out mail to
+> their users 18 month ago right after the deprecation patch was sent
+> (www.linux-mips.org/archives/linux-mips/2009-03/msg00068.html), there
+> were reviews of new architecture code on linux-arch where this was
+> pointed out, so don't tell me that there was not enough information
+> about this.
+
+Well, we could go round in circles over the cryptic nature of this
+indirection for ages, but I've got a wonderful target flame war to get
+back to, so why don't we just cut to the chase:
+
+The missing information is what actually needs to be done.  Fortunately,
+the documentation is here:
+
+Documentation/DocBook/genericirq.tmpl
+
+It gives a nice overview and describes what's needed.  Basically you're
+replacing generic __do_IRQ() with an internal implementation tuned to
+specific handler types using the either generic library of handler
+functions in kernel/irq or something more hand crafted and chip
+specific.
+.
+James
+
+
