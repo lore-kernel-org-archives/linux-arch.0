@@ -1,326 +1,198 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 00/17] Name the irq flag handling functions sanely
-Date: Fri, 10 Sep 2010 17:24:07 +0100
-Message-ID: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 03/17] Blackfin: Rename DES PC2() symbol to avoid collision
+Date: Fri, 10 Sep 2010 17:24:23 +0100
+Message-ID: <20100910162422.20817.27229.stgit@warthog.procyon.org.uk>
+References: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:19831 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:42004 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755327Ab0IJQYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:24:49 -0400
+	id S1755581Ab0IJQZC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2010 12:25:02 -0400
+In-Reply-To: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Mike Frysinger <vapier@gentoo.org>
 
-[Note that this patch alters all arches.  Most are now ACK'd.  PowerPC and
- Xtensa are being tested; Blackfin and Score need ACK'ing but have been
- checked; IA-64 got looked at briefly and I've heard nothing more; I've heard
- nothing from the SH and CRIS maintainers]
+Rename the PC2() symbol in the generic DES crypto module to be prefixed with
+DES_ to avoid collision with arch code (Blackfin in this case).
 
-A patch ("Fix IRQ flag handling naming") in the middle of the series makes the
-naming of the general irq flag functions sane.  That is followed by a bunch of
-patches for individual arches that aren't included yet in the main patch, but
-will need rolling in before final submission.
-
-The patches can be found in GIT in:
-
-	http://git.kernel.org/?p=linux/kernel/git/dhowells/linux-2.6-irqflags.git;a=summary
-
-
-Currently, under one configuration, linux/irqflags.h maps:
-
-	local_irq_enable() -> raw_local_irq_enable()
-	local_irq_disable() -> raw_local_irq_disable()
-	local_irq_save() -> raw_local_irq_save()
-	...
-
-and under the other configuration, it maps:
-
-	raw_local_irq_enable() -> local_irq_enable()
-	raw_local_irq_disable() -> local_irq_disable()
-	raw_local_irq_save() -> local_irq_save()
-	...
-
-This is quite confusing.  There should be one set of names expected of the
-arch, and this should be wrapped to give another set of names that are expected
-by users of this facility.
-
-The main patch changes the asm/irqflags.h headers to provide:
-
-	flags = arch_local_save_flags()
-	flags = arch_local_irq_save()
-	arch_local_irq_restore(flags)
-	arch_local_irq_disable()
-	arch_local_irq_enable()
-	arch_irqs_disabled_flags(flags)
-	arch_irqs_disabled()
-	arch_safe_halt()
-
-Then linux/irqflags.h wraps these to provide:
-
-	raw_local_save_flags(flags)
-	raw_local_irq_save(flags)
-	raw_local_irq_restore(flags)
-	raw_local_irq_disable()
-	raw_local_irq_enable()
-	raw_irqs_disabled_flags(flags)
-	raw_irqs_disabled()
-	raw_safe_halt()
-
-with type checking on the flags 'arguments', and then wraps those to provide:
-
-	local_save_flags(flags)
-	local_irq_save(flags)
-	local_irq_restore(flags)
-	local_irq_disable()
-	local_irq_enable()
-	irqs_disabled_flags(flags)
-	irqs_disabled()
-	safe_halt()
-
-with tracing included if enabled.
-
-The arch functions can now all be inline functions rather than some of them
-having to be macros.
-
-
-=====================
-FURTHER CONSIDERATION
-=====================
-
-With this patch, a chunk of asm/system.h has been deported.  That leaves a few
-bits:
-
-	- Barriers
-	- cmpxchg()/xchg() implementations
-	- switch_to()
-	- arch_align_stack()
-	- Various random arch bits
-
-Is it worth deprecating this file and deporting the rest to various specific
-header files?
-
-	Barriers => asm/barrier.h
-	cmpxchg()/xchg() => asm/atomic.h
-	switch_to() => asm/process.h (+ bits from asm/processor.h)
-	arch_align_stack() => asm/process.h
-
-
-===========
-ARCH FIXUPS
-===========
-
-To make this work, some of the arches need fixing up to some extent or other
-beyond the irqflags stuff:
-
- (1) Blackfin.
-
-     A number of circular dependencies and other problems needed sorting out in
-     the Blackfin arch.  The first few patches deal with this.  With this, most
-     of the Blackfin defconfigs compile, and none of the breakage is obviously
-     to do with the irqflags patches.
-
-     This also requires a name collision between the DES crypto module and the
-     Blackfin arch code to be fixed.
-
- (2) SH.
-
-     Some consts were missing from the sys_execve() declaration.
-
- (3) SMC1x driver and MIPS.
-
-     A bunch of missing <linux/irq.h> inclusions were fixed.
-
-     One patch if a prerequisite fixup borrowed from the Linux-MIPS tree.
-
-
-David
+Signed-off-by: David Howells <dhowells@redhat.com>
+Signed-off-by: Mike Frysinger <vapier@gentoo.org>
 ---
 
-David Howells (16):
-      Fix Score irqflags
-      Fix XTENSA irqflags
-      Fix SH irqflags.
-      Fix powerpc irqflags
-      Fix CRIS irqflags
-      Fix IA64 irqflags
-      Fix IRQ flag handling naming
-      MIPS: Add missing #inclusions of <linux/irq.h>
-      smc91x: Add missing #inclusion of <linux/irq.h>
-      Drop a couple of unnecessary asm/system.h inclusions
-      SH: Add missing consts to sys_execve() declaration
-      Blackfin: Rename IRQ flags handling functions
-      Blackfin: Add missing dep to asm/irqflags.h
-      Blackfin: Rename DES PC2() symbol to avoid collision
-      Blackfin: Split the BF532 BFIN_*_FIO_FLAG() functions to their own header
-      Blackfin: Split PLL code from mach-specific cdef headers
+ crypto/des_generic.c |  130 +++++++++++++++++++++++++-------------------------
+ 1 files changed, 65 insertions(+), 65 deletions(-)
 
-FUJITA Tomonori (1):
-      MIPS: TX49xx: rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
-
-
- arch/alpha/include/asm/irqflags.h                  |   65 +++++
- arch/alpha/include/asm/system.h                    |   28 --
- arch/arm/include/asm/irqflags.h                    |  145 ++++++-----
- arch/avr32/include/asm/irqflags.h                  |   29 +-
- arch/blackfin/include/asm/ipipe.h                  |    8 -
- arch/blackfin/include/asm/irqflags.h               |  273 ++++++++++----------
- arch/blackfin/include/asm/mmu_context.h            |    8 -
- arch/blackfin/include/asm/system.h                 |    4 
- arch/blackfin/kernel/bfin_gpio.c                   |  102 ++++---
- arch/blackfin/kernel/cplb-mpu/cplbmgr.c            |    8 -
- arch/blackfin/kernel/ipipe.c                       |   38 +--
- arch/blackfin/kernel/process.c                     |    4 
- arch/blackfin/kernel/trace.c                       |    1 
- .../mach-bf518/include/mach/cdefBF51x_base.h       |   50 ----
- arch/blackfin/mach-bf518/include/mach/pll.h        |   63 +++++
- .../mach-bf527/include/mach/cdefBF52x_base.h       |   50 ----
- arch/blackfin/mach-bf527/include/mach/pll.h        |   63 +++++
- arch/blackfin/mach-bf533/boards/blackstamp.c       |    1 
- arch/blackfin/mach-bf533/boards/ip0x.c             |    1 
- arch/blackfin/mach-bf533/boards/stamp.c            |    1 
- arch/blackfin/mach-bf533/include/mach/cdefBF532.h  |   91 -------
- arch/blackfin/mach-bf533/include/mach/fio_flag.h   |   55 ++++
- arch/blackfin/mach-bf533/include/mach/pll.h        |   57 ++++
- arch/blackfin/mach-bf537/include/mach/cdefBF534.h  |   44 ---
- arch/blackfin/mach-bf537/include/mach/pll.h        |   57 ++++
- arch/blackfin/mach-bf538/include/mach/cdefBF538.h  |   50 ----
- arch/blackfin/mach-bf538/include/mach/pll.h        |   63 +++++
- .../mach-bf548/include/mach/cdefBF54x_base.h       |   56 ----
- arch/blackfin/mach-bf548/include/mach/pll.h        |   69 +++++
- arch/blackfin/mach-bf561/include/mach/cdefBF561.h  |   50 ----
- arch/blackfin/mach-bf561/include/mach/pll.h        |   63 +++++
- arch/blackfin/mach-common/cpufreq.c                |    4 
- arch/blackfin/mach-common/ints-priority.c          |   24 +-
- arch/blackfin/mach-common/pm.c                     |   10 -
- arch/cris/include/arch-v10/arch/irqflags.h         |   45 +++
- arch/cris/include/arch-v10/arch/system.h           |   16 -
- arch/cris/include/arch-v32/arch/irqflags.h         |   46 +++
- arch/cris/include/arch-v32/arch/system.h           |   22 --
- arch/cris/include/asm/irqflags.h                   |    1 
- arch/cris/include/asm/system.h                     |    1 
- arch/frv/include/asm/irqflags.h                    |  158 ++++++++++++
- arch/frv/include/asm/system.h                      |  136 ----------
- arch/h8300/include/asm/irqflags.h                  |   43 +++
- arch/h8300/include/asm/system.h                    |   24 --
- arch/ia64/include/asm/irqflags.h                   |   94 +++++++
- arch/ia64/include/asm/system.h                     |   76 ------
- arch/m32r/include/asm/irqflags.h                   |  104 ++++++++
- arch/m32r/include/asm/system.h                     |   66 -----
- arch/m68k/include/asm/entry_no.h                   |    2 
- arch/m68k/include/asm/irqflags.h                   |   76 ++++++
- arch/m68k/include/asm/system_mm.h                  |   25 --
- arch/m68k/include/asm/system_no.h                  |   57 ----
- arch/m68knommu/kernel/asm-offsets.c                |    2 
- arch/m68knommu/platform/coldfire/head.S            |    1 
- arch/microblaze/include/asm/irqflags.h             |  193 +++++++-------
- arch/mips/alchemy/devboards/bcsr.c                 |    1 
- arch/mips/ar7/irq.c                                |    1 
- arch/mips/bcm63xx/irq.c                            |    1 
- arch/mips/cavium-octeon/serial.c                   |    1 
- arch/mips/dec/setup.c                              |    1 
- arch/mips/include/asm/irqflags.h                   |   53 ++--
- arch/mips/include/asm/mach-loongson/loongson.h     |    1 
- arch/mips/include/asm/mach-tx49xx/kmalloc.h        |    2 
- arch/mips/jazz/irq.c                               |    1 
- arch/mips/kernel/cevt-bcm1480.c                    |    1 
- arch/mips/kernel/cevt-ds1287.c                     |    1 
- arch/mips/kernel/cevt-gt641xx.c                    |    1 
- arch/mips/kernel/cevt-r4k.c                        |    1 
- arch/mips/kernel/cevt-sb1250.c                     |    1 
- arch/mips/kernel/cevt-smtc.c                       |    1 
- arch/mips/kernel/cevt-txx9.c                       |    1 
- arch/mips/kernel/i8253.c                           |    1 
- arch/mips/kernel/i8259.c                           |    1 
- arch/mips/kernel/irq-gic.c                         |    2 
- arch/mips/kernel/irq-rm7000.c                      |    1 
- arch/mips/kernel/irq-rm9000.c                      |    1 
- arch/mips/kernel/irq_cpu.c                         |    1 
- arch/mips/kernel/irq_txx9.c                        |    1 
- arch/mips/kernel/smtc.c                            |    4 
- arch/mips/kernel/traps.c                           |    2 
- arch/mips/mti-malta/malta-platform.c               |    1 
- arch/mips/pci/ops-tx3927.c                         |    1 
- arch/mips/pci/ops-tx4927.c                         |    1 
- arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c         |    1 
- arch/mips/powertv/asic/irq_asic.c                  |    1 
- arch/mips/rb532/serial.c                           |    1 
- arch/mips/sni/a20r.c                               |    1 
- arch/mips/sni/pcimt.c                              |    1 
- arch/mips/sni/pcit.c                               |    1 
- arch/mips/sni/rm200.c                              |    1 
- arch/mips/sni/time.c                               |    1 
- arch/mips/txx9/generic/irq_tx4927.c                |    1 
- arch/mips/txx9/generic/irq_tx4938.c                |    1 
- arch/mips/txx9/generic/irq_tx4939.c                |    1 
- arch/mips/txx9/generic/setup.c                     |    1 
- arch/mips/txx9/jmr3927/irq.c                       |    1 
- arch/mips/txx9/rbtx4927/irq.c                      |    1 
- arch/mips/txx9/rbtx4938/irq.c                      |    1 
- arch/mips/txx9/rbtx4939/irq.c                      |    1 
- arch/mips/vr41xx/common/irq.c                      |    1 
- arch/mips/vr41xx/common/siu.c                      |    1 
- arch/mn10300/include/asm/irqflags.h                |  119 +++++++++
- arch/mn10300/include/asm/system.h                  |  109 --------
- arch/mn10300/kernel/entry.S                        |    1 
- arch/parisc/include/asm/irqflags.h                 |   46 +++
- arch/parisc/include/asm/system.h                   |   19 -
- arch/powerpc/include/asm/hw_irq.h                  |  113 +++++---
- arch/powerpc/include/asm/irqflags.h                |    2 
- arch/powerpc/kernel/exceptions-64s.S               |    4 
- arch/powerpc/kernel/irq.c                          |    4 
- arch/s390/include/asm/irqflags.h                   |   51 ++--
- arch/s390/include/asm/system.h                     |    2 
- arch/s390/kernel/mem_detect.c                      |    4 
- arch/s390/mm/init.c                                |    2 
- arch/s390/mm/maccess.c                             |    4 
- arch/score/include/asm/irqflags.h                  |  187 +++++++-------
- arch/sh/include/asm/syscalls_32.h                  |    6 
- arch/sh/kernel/irq_32.c                            |    8 -
- arch/sparc/include/asm/irqflags_32.h               |   35 ++-
- arch/sparc/include/asm/irqflags_64.h               |   29 +-
- arch/sparc/kernel/irq_32.c                         |   13 -
- arch/sparc/prom/p1275.c                            |    2 
- arch/tile/include/asm/irqflags.h                   |   36 +--
- arch/x86/include/asm/irqflags.h                    |   32 +-
- arch/x86/include/asm/paravirt.h                    |   16 +
- arch/xtensa/include/asm/irqflags.h                 |   58 ++++
- arch/xtensa/include/asm/system.h                   |   33 --
- crypto/des_generic.c                               |  130 +++++-----
- drivers/net/bfin_mac.c                             |    1 
- drivers/net/smc91x.c                               |    1 
- drivers/s390/char/sclp.c                           |    2 
- drivers/vlynq/vlynq.c                              |    1 
- drivers/watchdog/octeon-wdt-main.c                 |    1 
- include/asm-generic/atomic.h                       |    5 
- include/asm-generic/cmpxchg-local.h                |    1 
- include/asm-generic/hardirq.h                      |    1 
- include/asm-generic/irqflags.h                     |   52 ++--
- include/linux/hardirq.h                            |    1 
- include/linux/irqflags.h                           |  107 +++++---
- include/linux/list.h                               |    1 
- include/linux/spinlock.h                           |    1 
- 141 files changed, 2325 insertions(+), 1842 deletions(-)
- create mode 100644 arch/alpha/include/asm/irqflags.h
- create mode 100644 arch/blackfin/mach-bf518/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf527/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf533/include/mach/fio_flag.h
- create mode 100644 arch/blackfin/mach-bf533/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf537/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf538/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf548/include/mach/pll.h
- create mode 100644 arch/blackfin/mach-bf561/include/mach/pll.h
- create mode 100644 arch/cris/include/arch-v10/arch/irqflags.h
- create mode 100644 arch/cris/include/arch-v32/arch/irqflags.h
- create mode 100644 arch/cris/include/asm/irqflags.h
- create mode 100644 arch/frv/include/asm/irqflags.h
- create mode 100644 arch/h8300/include/asm/irqflags.h
- create mode 100644 arch/ia64/include/asm/irqflags.h
- create mode 100644 arch/m32r/include/asm/irqflags.h
- create mode 100644 arch/m68k/include/asm/irqflags.h
- create mode 100644 arch/mn10300/include/asm/irqflags.h
- create mode 100644 arch/parisc/include/asm/irqflags.h
- create mode 100644 arch/xtensa/include/asm/irqflags.h
+diff --git a/crypto/des_generic.c b/crypto/des_generic.c
+index 249f903..873818d 100644
+--- a/crypto/des_generic.c
++++ b/crypto/des_generic.c
+@@ -614,7 +614,7 @@ static const u32 S8[64] = {
+ #define T3(x) pt[2 * (x) + 2]
+ #define T4(x) pt[2 * (x) + 3]
+ 
+-#define PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
++#define DES_PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
+ 
+ /*
+  * Encryption key expansion
+@@ -639,22 +639,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
+ 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
+ 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
+ 
+-	pe[15 * 2 + 0] = PC2(a, b, c, d); d = rs[d];
+-	pe[14 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[13 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[12 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[11 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[10 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 9 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 8 * 2 + 0] = PC2(d, a, b, c); c = rs[c];
+-	pe[ 7 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 6 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 5 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 4 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 3 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 2 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 1 * 2 + 0] = PC2(c, d, a, b); b = rs[b];
+-	pe[ 0 * 2 + 0] = PC2(b, c, d, a);
++	pe[15 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d];
++	pe[14 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[13 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[12 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[11 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[10 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 9 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 8 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c];
++	pe[ 7 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 6 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 5 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 4 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 3 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 2 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 1 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b];
++	pe[ 0 * 2 + 0] = DES_PC2(b, c, d, a);
+ 
+ 	/* Check if first half is weak */
+ 	w  = (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
+@@ -670,22 +670,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
+ 	/* Check if second half is weak */
+ 	w |= (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
+ 
+-	pe[15 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
+-	pe[14 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[13 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[12 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[11 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[10 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 9 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 8 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
+-	pe[ 7 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 6 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 5 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 4 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 3 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 2 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[ 1 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
+-	pe[ 0 * 2 + 1] = PC2(b, c, d, a);
++	pe[15 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
++	pe[14 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[13 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[12 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[11 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[10 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 9 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 8 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
++	pe[ 7 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 6 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 5 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 4 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 3 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 2 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[ 1 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
++	pe[ 0 * 2 + 1] = DES_PC2(b, c, d, a);
+ 
+ 	/* Fixup: 2413 5768 -> 1357 2468 */
+ 	for (d = 0; d < 16; ++d) {
+@@ -722,22 +722,22 @@ static void dkey(u32 *pe, const u8 *k)
+ 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
+ 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
+ 
+-	pe[ 0 * 2] = PC2(a, b, c, d); d = rs[d];
+-	pe[ 1 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 2 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 3 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 4 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 5 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 6 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 7 * 2] = PC2(d, a, b, c); c = rs[c];
+-	pe[ 8 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 9 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[10 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[11 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[12 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[13 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[14 * 2] = PC2(c, d, a, b); b = rs[b];
+-	pe[15 * 2] = PC2(b, c, d, a);
++	pe[ 0 * 2] = DES_PC2(a, b, c, d); d = rs[d];
++	pe[ 1 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 2 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 3 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 4 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 5 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 6 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 7 * 2] = DES_PC2(d, a, b, c); c = rs[c];
++	pe[ 8 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 9 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[10 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[11 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[12 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[13 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[14 * 2] = DES_PC2(c, d, a, b); b = rs[b];
++	pe[15 * 2] = DES_PC2(b, c, d, a);
+ 
+ 	/* Skip to next table set */
+ 	pt += 512;
+@@ -747,22 +747,22 @@ static void dkey(u32 *pe, const u8 *k)
+ 	b = k[2]; b &= 0xe0; b >>= 4; b |= k[6] & 0xf0; b = pc1[b + 1];
+ 	a = k[3]; a &= 0xe0; a >>= 4; a |= k[7] & 0xf0; a = pc1[a + 1];
+ 
+-	pe[ 0 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
+-	pe[ 1 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 2 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 3 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 4 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 5 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
+-	pe[ 6 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
+-	pe[ 7 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
+-	pe[ 8 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[ 9 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[10 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[11 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[12 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
+-	pe[13 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
+-	pe[14 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
+-	pe[15 * 2 + 1] = PC2(b, c, d, a);
++	pe[ 0 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
++	pe[ 1 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 2 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 3 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 4 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 5 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
++	pe[ 6 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
++	pe[ 7 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
++	pe[ 8 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[ 9 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[10 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[11 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[12 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
++	pe[13 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
++	pe[14 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
++	pe[15 * 2 + 1] = DES_PC2(b, c, d, a);
+ 
+ 	/* Fixup: 2413 5768 -> 1357 2468 */
+ 	for (d = 0; d < 16; ++d) {
