@@ -1,198 +1,116 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 03/17] Blackfin: Rename DES PC2() symbol to avoid collision
-Date: Fri, 10 Sep 2010 17:10:18 +0100
-Message-ID: <20100910161017.20226.91219.stgit@warthog.procyon.org.uk>
-References: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
+From: Cosmos-GRS newsletter <noreply@mailer5.cosmosonline.gr>
+Subject: =?UTF-8?B?zpbOt8+Ezr/Pjc69z4TOsc65IDUgz4PPhM61zrvOrc+Hzrcgz4DPic67zq7P?=  =?UTF-8?B?g861z4nOvQ==?=
+Date: Fri, 10 Sep 2010 20:02:54 +0300
+Message-ID: <79f347c2823cff24e2158014cab6c844@mailer5.cosmosonline.gr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31765 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755938Ab0IJQpj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:45:39 -0400
-In-Reply-To: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
+Received: from mailer5.cosmosonline.gr ([62.169.198.214]:55183 "EHLO
+	mailer5.cosmosonline.gr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753835Ab0IJT7s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Sep 2010 15:59:48 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Mike Frysinger <vapier@gentoo.org>
 
-Rename the PC2() symbol in the generic DES crypto module to be prefixed with
-DES_ to avoid collision with arch code (Blackfin in this case).
+=20
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Signed-off-by: Mike Frysinger <vapier@gentoo.org>
----
+*/=CE=95=CF=80=CF=8E=CE=BD=CF=85=CE=BC=CE=BF=CF=82 =CE=A4=CE=BF=CF=85=CF=
+=81=CE=B9=CF=83=CF=84=CE=B9=CE=BA=CF=8C=CF=82 =CE=9F=CF=81=CE=B3=CE=B1=CE=
+=BD=CE=B9=CF=83=CE=BC=CF=8C=CF=82/*/
+=CE=B6=CE=B7=CF=84=CE=AC 5 =CF=83=CF=84=CE=B5=CE=BB=CE=AD=CF=87=CE=B7 =CF=
+=80=CF=89=CE=BB=CE=AE=CF=83=CE=B5=CF=89=CE=BD =CE=B3=CE=B9=CE=B1 =CF=80=
+=CF=81=CE=BF=CF=8E=CE=B8=CE=B7=CF=83=CE=B7
+=CF=83=CE=B5 =CE=B5=CF=80=CE=B1=CE=B3=CE=B3=CE=B5=CE=BB=CE=BC=CE=B1=CF=84=
+=CE=B9=CE=BA=CE=AD=CF=82 =CE=B5=CF=84=CE=B1=CE=B9=CF=81=CE=B5=CE=AF=CE=B5=
+=CF=82
+=CE=B5=CF=83=CF=89=CF=84=CE=B5=CF=81=CE=B9=CE=BA=CE=BF=CF=8D-=CE=B5=CE=BE=
+=CF=89=CF=84=CE=B5=CF=81=CE=B9=CE=BA=CE=BF=CF=8D *=CE=BC=CE=BF=CE=BD=CE=
+=BF=CF=80=CF=89=CE=BB=CE=B9=CE=B1=CE=BA=CE=BF=CF=8D
+marketing*/
+=20
+*/=CE=91=CF=80=CE=B1=CF=81=CE=B1=CE=AF=CF=84=CE=B7=CF=84=CE=B1 =CF=80=CF=
+=81=CE=BF=CF=83=CF=8C=CE=BD=CF=84=CE=B1/*
+/=CE=95=CE=BC=CF=80=CE=B5=CE=B9=CF=81=CE=AF=CE=B1 =CF=83=CF=84=CE=B9=CF=
+=82 =CF=80=CF=89=CE=BB=CE=AE=CF=83=CE=B5=CE=B9=CF=82 /
+/=CE=94=CF=85=CE=BD=CE=B1=CE=BC=CE=B9=CF=83=CE=BC=CF=8C-=CE=A6=CE=B9=CE=
+=BB=CE=BF=CE=B4=CE=BF=CE=BE=CE=AF=CE=B1/
+/=CE=91=CE=BD=CE=B5=CF=83=CE=B7 =CF=83=CF=84=CE=B7=CE=BD =CE=B5=CF=80=CE=
+=B9=CE=BA=CE=BF=CE=B9=CE=BD=CF=89=CE=BD=CE=AF=CE=B1/
+/=CE=91=CF=81=CE=B9=CF=83=CF=84=CE=B7 =CE=B3=CE=BD=CF=8E=CF=83=CE=B7 =CE=
+=91=CE=B3=CE=B3=CE=BB=CE=B9=CE=BA=CE=AE=CF=82 =CE=B3=CE=BB=CF=8E=CF=83=CF=
+=83=CF=83=CE=B1=CF=82/
+/=CE=A5=CF=80=CE=B5=CF=85=CE=B8=CF=85=CE=BD=CF=8C=CF=84=CE=B7=CF=84=CE=B1=
+ =CE=BA=CE=B1=CE=B9 =CE=9F=CE=BC=CE=B1=CE=B4=CE=B9=CE=BA=CF=8C =CE=A0=CE=
+=BD=CE=B5=CF=8D=CE=BC=CE=B1/
+/=CE=A5=CF=88=CE=B7=CE=BB=CE=BF=CE=AF =CE=A3=CF=84=CF=8C=CF=87=CE=BF=CE=
+=B9/
+/=CE=A0=CE=BF=CE=BB=CF=8D =CE=BA=CE=B1=CE=BB=CE=AE =CF=87=CF=81=CE=AE=CF=
+=83=CE=B7 =CE=97/=CE=A5/
 
- crypto/des_generic.c |  130 +++++++++++++++++++++++++-------------------------
- 1 files changed, 65 insertions(+), 65 deletions(-)
+*/=CE=A0=CF=81=CE=BF=CF=83=CF=86=CE=AD=CF=81=CE=BF=CE=BD=CF=84=CE=B1=CE=
+=B9/*
+/=CE=91=CE=BD=CF=84=CE=B1=CE=B3=CF=89=CE=BD=CE=B9=CF=83=CF=84=CE=B9=CE=BA=
+=CF=8C =CF=80=CE=B1=CE=BA=CE=AD=CF=84=CE=BF =CE=B1=CF=80=CE=BF=CE=B4=CE=
+=BF=CF=87=CF=8E=CE=BD/
+/=CE=A3=CF=85=CE=BD=CE=B5=CF=87=CE=AE=CF=82 =CE=B5=CE=BA=CF=80=CE=B1=CE=
+=AF=CE=B4=CE=B5=CF=85=CF=83=CE=B7/
+/=CE=91=CF=81=CE=B9=CF=83=CF=84=CE=B5=CF=82 =CF=83=CF=85=CE=BD=CE=B8=CE=
+=AE=CE=BA=CE=B5=CF=82 =CE=B5=CF=81=CE=B3=CE=B1=CF=83=CE=AF=CE=B1=CF=82 =
+=CE=BA=CE=B1=CE=B9
+=CE=B4=CF=85=CE=BD=CE=B1=CF=84=CF=8C=CF=84=CE=B7=CF=84=CE=B5=CF=82 =CE=B5=
+=CE=BE=CE=AD=CE=BB=CE=B9=CE=BE=CE=B7=CF=82/
+/=CE=A3=CF=8D=CE=B3=CF=87=CF=81=CE=BF=CE=BD=CE=BF =CE=BA=CE=B1=CE=B9 =CE=
+=B5=CF=85=CF=87=CE=AC=CF=81=CE=B9=CF=83=CF=84=CE=BF =CF=80=CE=B5=CF=81=CE=
+=B9=CE=B2=CE=AC=CE=BB=CE=BB=CE=BF=CE=BD/
+/=CE=A0=CF=81=CE=BF=CE=BF=CF=80=CF=84=CE=B9=CE=BA=CE=AE =CE=B5=CF=80=CE=
+=B1=CE=B3=CE=B3=CE=B5=CE=BB=CE=BC=CE=B1=CF=84=CE=B9=CE=BA=CE=AE=CF=82
+=CF=83=CF=84=CE=B1=CE=B4=CE=B9=CE=BF=CE=B4=CF=81=CE=BF=CE=BC=CE=AF=CE=B1=
+=CF=82/
+/=CE=A0=CE=BB=CE=AE=CF=81=CE=B7=CF=82 =CE=BA=CE=AC=CE=BB=CF=85=CF=88=CE=
+=B7 =CF=84=CE=B1=CE=BE=CE=B9=CE=B4=CE=AF=CF=89=CE=BD =CF=83=CF=84=CE=B7=
+=CE=BD =CE=95=CE=BB=CE=BB=CE=AC=CE=B4=CE=B1
+=CE=BA=CE=B1=CE=B9 =CF=84=CE=BF =CE=B5=CE=BE=CF=89=CF=84=CE=B5=CF=81=CE=
+=B9=CE=BA=CF=8C/
+/=CE=95=CE=BE=CE=BF=CE=B4=CE=B1 =CE=BA=CE=B1=CE=B8=CE=B7=CE=BC=CE=B5=CF=
+=81=CE=B9=CE=BD=CE=AE=CF=82 =CE=BC=CE=B5=CF=84=CE=B1=CE=BA=CE=AF=CE=BD=CE=
+=B7=CF=83=CE=B7=CF=82/
+/=CE=9C=CE=B5=CE=B3=CE=AC=CE=BB=CE=BF =CE=B5=CE=BD=CE=B5=CF=81=CE=B3=CF=
+=8C =CF=80=CE=B5=CE=BB=CE=B1=CF=84=CE=BF=CE=BB=CF=8C=CE=B3=CE=B9=CE=BF/
 
-diff --git a/crypto/des_generic.c b/crypto/des_generic.c
-index 249f903..873818d 100644
---- a/crypto/des_generic.c
-+++ b/crypto/des_generic.c
-@@ -614,7 +614,7 @@ static const u32 S8[64] = {
- #define T3(x) pt[2 * (x) + 2]
- #define T4(x) pt[2 * (x) + 3]
- 
--#define PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
-+#define DES_PC2(a, b, c, d) (T4(d) | T3(c) | T2(b) | T1(a))
- 
- /*
-  * Encryption key expansion
-@@ -639,22 +639,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
- 
--	pe[15 * 2 + 0] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 0] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 0] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 0] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 0] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 0] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 0] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 0] = PC2(b, c, d, a);
-+	pe[15 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 0] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 0] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 0] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 0] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 0] = DES_PC2(b, c, d, a);
- 
- 	/* Check if first half is weak */
- 	w  = (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
-@@ -670,22 +670,22 @@ unsigned long des_ekey(u32 *pe, const u8 *k)
- 	/* Check if second half is weak */
- 	w |= (a ^ c) | (b ^ d) | (rs[a] ^ c) | (b ^ rs[d]);
- 
--	pe[15 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[14 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[13 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[12 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[11 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[10 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 9 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 8 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 7 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 6 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 5 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 4 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 3 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 2 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[ 1 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[ 0 * 2 + 1] = PC2(b, c, d, a);
-+	pe[15 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[14 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[13 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[12 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[11 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[10 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 9 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 8 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 7 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 6 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 5 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 4 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 3 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 2 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[ 1 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[ 0 * 2 + 1] = DES_PC2(b, c, d, a);
- 
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
-@@ -722,22 +722,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[6]; b &= 0x0e; b <<= 4; b |= k[2] & 0x1e; b = pc1[b];
- 	a = k[7]; a &= 0x0e; a <<= 4; a |= k[3] & 0x1e; a = pc1[a];
- 
--	pe[ 0 * 2] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2] = PC2(b, c, d, a);
-+	pe[ 0 * 2] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2] = DES_PC2(b, c, d, a);
- 
- 	/* Skip to next table set */
- 	pt += 512;
-@@ -747,22 +747,22 @@ static void dkey(u32 *pe, const u8 *k)
- 	b = k[2]; b &= 0xe0; b >>= 4; b |= k[6] & 0xf0; b = pc1[b + 1];
- 	a = k[3]; a &= 0xe0; a >>= 4; a |= k[7] & 0xf0; a = pc1[a + 1];
- 
--	pe[ 0 * 2 + 1] = PC2(a, b, c, d); d = rs[d];
--	pe[ 1 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 2 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 3 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 4 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 5 * 2 + 1] = PC2(d, a, b, c); c = rs[c]; b = rs[b];
--	pe[ 6 * 2 + 1] = PC2(b, c, d, a); a = rs[a]; d = rs[d];
--	pe[ 7 * 2 + 1] = PC2(d, a, b, c); c = rs[c];
--	pe[ 8 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[ 9 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[10 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[11 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[12 * 2 + 1] = PC2(c, d, a, b); b = rs[b]; a = rs[a];
--	pe[13 * 2 + 1] = PC2(a, b, c, d); d = rs[d]; c = rs[c];
--	pe[14 * 2 + 1] = PC2(c, d, a, b); b = rs[b];
--	pe[15 * 2 + 1] = PC2(b, c, d, a);
-+	pe[ 0 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d];
-+	pe[ 1 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 2 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 3 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 4 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 5 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c]; b = rs[b];
-+	pe[ 6 * 2 + 1] = DES_PC2(b, c, d, a); a = rs[a]; d = rs[d];
-+	pe[ 7 * 2 + 1] = DES_PC2(d, a, b, c); c = rs[c];
-+	pe[ 8 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[ 9 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[10 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[11 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[12 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b]; a = rs[a];
-+	pe[13 * 2 + 1] = DES_PC2(a, b, c, d); d = rs[d]; c = rs[c];
-+	pe[14 * 2 + 1] = DES_PC2(c, d, a, b); b = rs[b];
-+	pe[15 * 2 + 1] = DES_PC2(b, c, d, a);
- 
- 	/* Fixup: 2413 5768 -> 1357 2468 */
- 	for (d = 0; d < 16; ++d) {
+/=CE=9F=CE=B9 =CE=B5=CE=BD=CE=B4=CE=B9=CE=B1=CF=86=CE=B5=CF=81=CF=8C=CE=
+=BC=CE=B5=CE=BD=CE=BF=CE=B9 =CF=80=CE=B1=CF=81=CE=B1=CE=BA=CE=B1=CE=BB=CE=
+=BF=CF=8D=CE=BD=CF=84=CE=B1=CE=B9 =CE=BD=CE=B1
+=CF=83=CF=84=CE=B5=CE=AF=CE=BB=CE=BF=CF=85=CE=BD =CF=84=CE=BF =CE=B2=CE=
+=B9=CE=BF=CE=B3=CF=81=CE=B1=CF=86=CE=B9=CE=BA=CF=8C =CF=84=CE=BF=CF=85=CF=
+=82 =CF=83=CE=B7=CE=BC=CE=B5=CE=AF=CF=89=CE=BC=CE=B1
+=CF=83=CF=84=CE=BF *FAX* *210 9249206* =CE=AE =CF=83=CF=84=CE=BF
+*e-mail*:*karagiannis@cosmos-grs.com* =CE=AE =CE=BD=CE=B1 =CF=84=CE=B7=CE=
+=BB=CE=B5=CF=86=CF=89=CE=BD=CE=AE=CF=83=CE=BF=CF=85=CE=BD
+=CF=83=CF=84=CE=BF *210* *9226930* =CE=BA=CE=BF=CE=BD =CE=9A=CE=B1=CF=81=
+=CE=B1=CE=B3=CE=B9=CE=AC=CE=BD=CE=BD=CE=B7/
+
+/=CE=95=CF=85=CF=87=CE=B1=CF=81=CE=B9=CF=83=CF=84=CE=BF=CF=8D=CE=BC=CE=B5=
+/
+=20
+*/COSMOS ONLINE/*
+/www.cosmos-grs.com <http://www.cosmos-grs.com/>
+ /
+=20
+
+--
+If you do not want to receive any more newsletters,=20
+http://mailer5.cosmosonline.gr/?p=3Dunsubscribe&uid=3Dcdd672bcf99e68a68=
+36d381c572fcb74
+
+To update your preferences and to unsubscribe visit
+http://mailer5.cosmosonline.gr/?p=3Dpreferences&uid=3Dcdd672bcf99e68a68=
+36d381c572fcb74
+=46orward a Message to Someone
+http://mailer5.cosmosonline.gr/?p=3Dforward&uid=3Dcdd672bcf99e68a6836d3=
+81c572fcb74&mid=3D120
+
+
+--
+Powered by PHPlist, www.phplist.com --
