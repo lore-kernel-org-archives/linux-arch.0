@@ -1,632 +1,326 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/17] MIPS: Add missing #inclusions of <linux/irq.h>
-Date: Fri, 10 Sep 2010 17:10:54 +0100
-Message-ID: <20100910161053.20226.87615.stgit@warthog.procyon.org.uk>
-References: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 00/17] Name the irq flag handling functions sanely
+Date: Fri, 10 Sep 2010 17:24:07 +0100
+Message-ID: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:6906 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:19831 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755327Ab0IJQLz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:11:55 -0400
-In-Reply-To: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
+	id S1755327Ab0IJQYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2010 12:24:49 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org
 
-Add missing #inclusions of <linux/irq.h> to a whole bunch of files that should
-really include it.  Note that this can replace #inclusions of <asm/irq.h>.
+[Note that this patch alters all arches.  Most are now ACK'd.  PowerPC and
+ Xtensa are being tested; Blackfin and Score need ACK'ing but have been
+ checked; IA-64 got looked at briefly and I've heard nothing more; I've heard
+ nothing from the SH and CRIS maintainers]
 
-This is required for the patch to sort out irqflags handling function naming to
-compile on MIPS.
+A patch ("Fix IRQ flag handling naming") in the middle of the series makes the
+naming of the general irq flag functions sane.  That is followed by a bunch of
+patches for individual arches that aren't included yet in the main patch, but
+will need rolling in before final submission.
 
-The problem is that these files require access to things like setup_irq() -
-which isn't available by #including <linux/interrupt.h>
+The patches can be found in GIT in:
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
+	http://git.kernel.org/?p=linux/kernel/git/dhowells/linux-2.6-irqflags.git;a=summary
+
+
+Currently, under one configuration, linux/irqflags.h maps:
+
+	local_irq_enable() -> raw_local_irq_enable()
+	local_irq_disable() -> raw_local_irq_disable()
+	local_irq_save() -> raw_local_irq_save()
+	...
+
+and under the other configuration, it maps:
+
+	raw_local_irq_enable() -> local_irq_enable()
+	raw_local_irq_disable() -> local_irq_disable()
+	raw_local_irq_save() -> local_irq_save()
+	...
+
+This is quite confusing.  There should be one set of names expected of the
+arch, and this should be wrapped to give another set of names that are expected
+by users of this facility.
+
+The main patch changes the asm/irqflags.h headers to provide:
+
+	flags = arch_local_save_flags()
+	flags = arch_local_irq_save()
+	arch_local_irq_restore(flags)
+	arch_local_irq_disable()
+	arch_local_irq_enable()
+	arch_irqs_disabled_flags(flags)
+	arch_irqs_disabled()
+	arch_safe_halt()
+
+Then linux/irqflags.h wraps these to provide:
+
+	raw_local_save_flags(flags)
+	raw_local_irq_save(flags)
+	raw_local_irq_restore(flags)
+	raw_local_irq_disable()
+	raw_local_irq_enable()
+	raw_irqs_disabled_flags(flags)
+	raw_irqs_disabled()
+	raw_safe_halt()
+
+with type checking on the flags 'arguments', and then wraps those to provide:
+
+	local_save_flags(flags)
+	local_irq_save(flags)
+	local_irq_restore(flags)
+	local_irq_disable()
+	local_irq_enable()
+	irqs_disabled_flags(flags)
+	irqs_disabled()
+	safe_halt()
+
+with tracing included if enabled.
+
+The arch functions can now all be inline functions rather than some of them
+having to be macros.
+
+
+=====================
+FURTHER CONSIDERATION
+=====================
+
+With this patch, a chunk of asm/system.h has been deported.  That leaves a few
+bits:
+
+	- Barriers
+	- cmpxchg()/xchg() implementations
+	- switch_to()
+	- arch_align_stack()
+	- Various random arch bits
+
+Is it worth deprecating this file and deporting the rest to various specific
+header files?
+
+	Barriers => asm/barrier.h
+	cmpxchg()/xchg() => asm/atomic.h
+	switch_to() => asm/process.h (+ bits from asm/processor.h)
+	arch_align_stack() => asm/process.h
+
+
+===========
+ARCH FIXUPS
+===========
+
+To make this work, some of the arches need fixing up to some extent or other
+beyond the irqflags stuff:
+
+ (1) Blackfin.
+
+     A number of circular dependencies and other problems needed sorting out in
+     the Blackfin arch.  The first few patches deal with this.  With this, most
+     of the Blackfin defconfigs compile, and none of the breakage is obviously
+     to do with the irqflags patches.
+
+     This also requires a name collision between the DES crypto module and the
+     Blackfin arch code to be fixed.
+
+ (2) SH.
+
+     Some consts were missing from the sys_execve() declaration.
+
+ (3) SMC1x driver and MIPS.
+
+     A bunch of missing <linux/irq.h> inclusions were fixed.
+
+     One patch if a prerequisite fixup borrowed from the Linux-MIPS tree.
+
+
+David
 ---
 
- arch/mips/alchemy/devboards/bcsr.c             |    1 +
- arch/mips/ar7/irq.c                            |    1 +
- arch/mips/bcm63xx/irq.c                        |    1 +
- arch/mips/cavium-octeon/serial.c               |    1 +
- arch/mips/dec/setup.c                          |    1 +
- arch/mips/include/asm/mach-loongson/loongson.h |    1 +
- arch/mips/jazz/irq.c                           |    1 +
- arch/mips/kernel/cevt-bcm1480.c                |    1 +
- arch/mips/kernel/cevt-ds1287.c                 |    1 +
- arch/mips/kernel/cevt-gt641xx.c                |    1 +
- arch/mips/kernel/cevt-r4k.c                    |    1 +
- arch/mips/kernel/cevt-sb1250.c                 |    1 +
- arch/mips/kernel/cevt-smtc.c                   |    1 +
- arch/mips/kernel/cevt-txx9.c                   |    1 +
- arch/mips/kernel/i8253.c                       |    1 +
- arch/mips/kernel/i8259.c                       |    1 +
- arch/mips/kernel/irq-gic.c                     |    2 +-
- arch/mips/kernel/irq-rm7000.c                  |    1 +
- arch/mips/kernel/irq-rm9000.c                  |    1 +
- arch/mips/kernel/irq_cpu.c                     |    1 +
- arch/mips/kernel/irq_txx9.c                    |    1 +
- arch/mips/kernel/traps.c                       |    2 +-
- arch/mips/mti-malta/malta-platform.c           |    1 +
- arch/mips/pci/ops-tx3927.c                     |    1 +
- arch/mips/pci/ops-tx4927.c                     |    1 +
- arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c     |    1 +
- arch/mips/powertv/asic/irq_asic.c              |    1 +
- arch/mips/rb532/serial.c                       |    1 +
- arch/mips/sni/a20r.c                           |    1 +
- arch/mips/sni/pcimt.c                          |    1 +
- arch/mips/sni/pcit.c                           |    1 +
- arch/mips/sni/rm200.c                          |    1 +
- arch/mips/sni/time.c                           |    1 +
- arch/mips/txx9/generic/irq_tx4927.c            |    1 +
- arch/mips/txx9/generic/irq_tx4938.c            |    1 +
- arch/mips/txx9/generic/irq_tx4939.c            |    1 +
- arch/mips/txx9/generic/setup.c                 |    1 +
- arch/mips/txx9/jmr3927/irq.c                   |    1 +
- arch/mips/txx9/rbtx4927/irq.c                  |    1 +
- arch/mips/txx9/rbtx4938/irq.c                  |    1 +
- arch/mips/txx9/rbtx4939/irq.c                  |    1 +
- arch/mips/vr41xx/common/irq.c                  |    1 +
- arch/mips/vr41xx/common/siu.c                  |    1 +
- drivers/vlynq/vlynq.c                          |    1 +
- drivers/watchdog/octeon-wdt-main.c             |    1 +
- 45 files changed, 45 insertions(+), 2 deletions(-)
+David Howells (16):
+      Fix Score irqflags
+      Fix XTENSA irqflags
+      Fix SH irqflags.
+      Fix powerpc irqflags
+      Fix CRIS irqflags
+      Fix IA64 irqflags
+      Fix IRQ flag handling naming
+      MIPS: Add missing #inclusions of <linux/irq.h>
+      smc91x: Add missing #inclusion of <linux/irq.h>
+      Drop a couple of unnecessary asm/system.h inclusions
+      SH: Add missing consts to sys_execve() declaration
+      Blackfin: Rename IRQ flags handling functions
+      Blackfin: Add missing dep to asm/irqflags.h
+      Blackfin: Rename DES PC2() symbol to avoid collision
+      Blackfin: Split the BF532 BFIN_*_FIO_FLAG() functions to their own header
+      Blackfin: Split PLL code from mach-specific cdef headers
 
-diff --git a/arch/mips/alchemy/devboards/bcsr.c b/arch/mips/alchemy/devboards/bcsr.c
-index 3bc4fd2..c52af88 100644
---- a/arch/mips/alchemy/devboards/bcsr.c
-+++ b/arch/mips/alchemy/devboards/bcsr.c
-@@ -10,6 +10,7 @@
- #include <linux/interrupt.h>
- #include <linux/module.h>
- #include <linux/spinlock.h>
-+#include <linux/irq.h>
- #include <asm/addrspace.h>
- #include <asm/io.h>
- #include <asm/mach-db1x00/bcsr.h>
-diff --git a/arch/mips/ar7/irq.c b/arch/mips/ar7/irq.c
-index c781556..4ec2642 100644
---- a/arch/mips/ar7/irq.c
-+++ b/arch/mips/ar7/irq.c
-@@ -19,6 +19,7 @@
- 
- #include <linux/interrupt.h>
- #include <linux/io.h>
-+#include <linux/irq.h>
- 
- #include <asm/irq_cpu.h>
- #include <asm/mipsregs.h>
-diff --git a/arch/mips/bcm63xx/irq.c b/arch/mips/bcm63xx/irq.c
-index a0c5cd1..3be87f2 100644
---- a/arch/mips/bcm63xx/irq.c
-+++ b/arch/mips/bcm63xx/irq.c
-@@ -11,6 +11,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/module.h>
-+#include <linux/irq.h>
- #include <asm/irq_cpu.h>
- #include <asm/mipsregs.h>
- #include <bcm63xx_cpu.h>
-diff --git a/arch/mips/cavium-octeon/serial.c b/arch/mips/cavium-octeon/serial.c
-index 638adab..12dbf53 100644
---- a/arch/mips/cavium-octeon/serial.c
-+++ b/arch/mips/cavium-octeon/serial.c
-@@ -13,6 +13,7 @@
- #include <linux/serial_8250.h>
- #include <linux/serial_reg.h>
- #include <linux/tty.h>
-+#include <linux/irq.h>
- 
- #include <asm/time.h>
- 
-diff --git a/arch/mips/dec/setup.c b/arch/mips/dec/setup.c
-index bd5431e..fa45e92 100644
---- a/arch/mips/dec/setup.c
-+++ b/arch/mips/dec/setup.c
-@@ -18,6 +18,7 @@
- #include <linux/spinlock.h>
- #include <linux/types.h>
- #include <linux/pm.h>
-+#include <linux/irq.h>
- 
- #include <asm/bootinfo.h>
- #include <asm/cpu.h>
-diff --git a/arch/mips/include/asm/mach-loongson/loongson.h b/arch/mips/include/asm/mach-loongson/loongson.h
-index cb6985f..1e29b9d 100644
---- a/arch/mips/include/asm/mach-loongson/loongson.h
-+++ b/arch/mips/include/asm/mach-loongson/loongson.h
-@@ -13,6 +13,7 @@
- 
- #include <linux/io.h>
- #include <linux/init.h>
-+#include <linux/irq.h>
- 
- /* loongson internal northbridge initialization */
- extern void bonito_irq_init(void);
-diff --git a/arch/mips/jazz/irq.c b/arch/mips/jazz/irq.c
-index ee18028..35b3e2f 100644
---- a/arch/mips/jazz/irq.c
-+++ b/arch/mips/jazz/irq.c
-@@ -12,6 +12,7 @@
- #include <linux/kernel.h>
- #include <linux/smp.h>
- #include <linux/spinlock.h>
-+#include <linux/irq.h>
- 
- #include <asm/irq_cpu.h>
- #include <asm/i8253.h>
-diff --git a/arch/mips/kernel/cevt-bcm1480.c b/arch/mips/kernel/cevt-bcm1480.c
-index bfea327..36c3898 100644
---- a/arch/mips/kernel/cevt-bcm1480.c
-+++ b/arch/mips/kernel/cevt-bcm1480.c
-@@ -19,6 +19,7 @@
- #include <linux/interrupt.h>
- #include <linux/percpu.h>
- #include <linux/smp.h>
-+#include <linux/irq.h>
- 
- #include <asm/addrspace.h>
- #include <asm/io.h>
-diff --git a/arch/mips/kernel/cevt-ds1287.c b/arch/mips/kernel/cevt-ds1287.c
-index 00a4da2..939157e 100644
---- a/arch/mips/kernel/cevt-ds1287.c
-+++ b/arch/mips/kernel/cevt-ds1287.c
-@@ -21,6 +21,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/mc146818rtc.h>
-+#include <linux/irq.h>
- 
- #include <asm/time.h>
- 
-diff --git a/arch/mips/kernel/cevt-gt641xx.c b/arch/mips/kernel/cevt-gt641xx.c
-index 392ef37..339f363 100644
---- a/arch/mips/kernel/cevt-gt641xx.c
-+++ b/arch/mips/kernel/cevt-gt641xx.c
-@@ -21,6 +21,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/spinlock.h>
-+#include <linux/irq.h>
- 
- #include <asm/gt64120.h>
- #include <asm/time.h>
-diff --git a/arch/mips/kernel/cevt-r4k.c b/arch/mips/kernel/cevt-r4k.c
-index 2a4d50f..2f4d7a9 100644
---- a/arch/mips/kernel/cevt-r4k.c
-+++ b/arch/mips/kernel/cevt-r4k.c
-@@ -10,6 +10,7 @@
- #include <linux/interrupt.h>
- #include <linux/percpu.h>
- #include <linux/smp.h>
-+#include <linux/irq.h>
- 
- #include <asm/smtc_ipi.h>
- #include <asm/time.h>
-diff --git a/arch/mips/kernel/cevt-sb1250.c b/arch/mips/kernel/cevt-sb1250.c
-index da78eea..590c54f 100644
---- a/arch/mips/kernel/cevt-sb1250.c
-+++ b/arch/mips/kernel/cevt-sb1250.c
-@@ -17,6 +17,7 @@
-  */
- #include <linux/clockchips.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/percpu.h>
- #include <linux/smp.h>
- 
-diff --git a/arch/mips/kernel/cevt-smtc.c b/arch/mips/kernel/cevt-smtc.c
-index b102e4f..2e72d30 100644
---- a/arch/mips/kernel/cevt-smtc.c
-+++ b/arch/mips/kernel/cevt-smtc.c
-@@ -11,6 +11,7 @@
- #include <linux/interrupt.h>
- #include <linux/percpu.h>
- #include <linux/smp.h>
-+#include <linux/irq.h>
- 
- #include <asm/smtc_ipi.h>
- #include <asm/time.h>
-diff --git a/arch/mips/kernel/cevt-txx9.c b/arch/mips/kernel/cevt-txx9.c
-index 218ee6b..0b73773 100644
---- a/arch/mips/kernel/cevt-txx9.c
-+++ b/arch/mips/kernel/cevt-txx9.c
-@@ -13,6 +13,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/time.h>
- #include <asm/txx9tmr.h>
- 
-diff --git a/arch/mips/kernel/i8253.c b/arch/mips/kernel/i8253.c
-index 9479406..2392a7a2 100644
---- a/arch/mips/kernel/i8253.c
-+++ b/arch/mips/kernel/i8253.c
-@@ -9,6 +9,7 @@
- #include <linux/module.h>
- #include <linux/smp.h>
- #include <linux/spinlock.h>
-+#include <linux/irq.h>
- 
- #include <asm/delay.h>
- #include <asm/i8253.h>
-diff --git a/arch/mips/kernel/i8259.c b/arch/mips/kernel/i8259.c
-index 2779911..c58176c 100644
---- a/arch/mips/kernel/i8259.c
-+++ b/arch/mips/kernel/i8259.c
-@@ -15,6 +15,7 @@
- #include <linux/kernel.h>
- #include <linux/spinlock.h>
- #include <linux/sysdev.h>
-+#include <linux/irq.h>
- 
- #include <asm/i8259.h>
- #include <asm/io.h>
-diff --git a/arch/mips/kernel/irq-gic.c b/arch/mips/kernel/irq-gic.c
-index b181f2f..e0ff05d 100644
---- a/arch/mips/kernel/irq-gic.c
-+++ b/arch/mips/kernel/irq-gic.c
-@@ -3,12 +3,12 @@
- #include <linux/bitmap.h>
- #include <linux/init.h>
- #include <linux/smp.h>
-+#include <linux/irq.h>
- 
- #include <asm/io.h>
- #include <asm/gic.h>
- #include <asm/gcmpregs.h>
- #include <asm/mips-boards/maltaint.h>
--#include <asm/irq.h>
- #include <linux/hardirq.h>
- #include <asm-generic/bitops/find.h>
- 
-diff --git a/arch/mips/kernel/irq-rm7000.c b/arch/mips/kernel/irq-rm7000.c
-index fb50cc7..9731e8b 100644
---- a/arch/mips/kernel/irq-rm7000.c
-+++ b/arch/mips/kernel/irq-rm7000.c
-@@ -11,6 +11,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/kernel.h>
- 
- #include <asm/irq_cpu.h>
-diff --git a/arch/mips/kernel/irq-rm9000.c b/arch/mips/kernel/irq-rm9000.c
-index b47e461..b7e4025 100644
---- a/arch/mips/kernel/irq-rm9000.c
-+++ b/arch/mips/kernel/irq-rm9000.c
-@@ -11,6 +11,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
- 
-diff --git a/arch/mips/kernel/irq_cpu.c b/arch/mips/kernel/irq_cpu.c
-index 55c8a3c..0262abe 100644
---- a/arch/mips/kernel/irq_cpu.c
-+++ b/arch/mips/kernel/irq_cpu.c
-@@ -30,6 +30,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/kernel.h>
-+#include <linux/irq.h>
- 
- #include <asm/irq_cpu.h>
- #include <asm/mipsregs.h>
-diff --git a/arch/mips/kernel/irq_txx9.c b/arch/mips/kernel/irq_txx9.c
-index 9b78029..95a96f6 100644
---- a/arch/mips/kernel/irq_txx9.c
-+++ b/arch/mips/kernel/irq_txx9.c
-@@ -16,6 +16,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/types.h>
-+#include <linux/irq.h>
- #include <asm/txx9irq.h>
- 
- struct txx9_irc_reg {
-diff --git a/arch/mips/kernel/traps.c b/arch/mips/kernel/traps.c
-index 03ec001..d053bf4 100644
---- a/arch/mips/kernel/traps.c
-+++ b/arch/mips/kernel/traps.c
-@@ -28,6 +28,7 @@
- #include <linux/kprobes.h>
- #include <linux/notifier.h>
- #include <linux/kdb.h>
-+#include <linux/irq.h>
- 
- #include <asm/bootinfo.h>
- #include <asm/branch.h>
-@@ -51,7 +52,6 @@
- #include <asm/mmu_context.h>
- #include <asm/types.h>
- #include <asm/stacktrace.h>
--#include <asm/irq.h>
- #include <asm/uasm.h>
- 
- extern void check_wait(void);
-diff --git a/arch/mips/mti-malta/malta-platform.c b/arch/mips/mti-malta/malta-platform.c
-index 72e32a7..4c35301 100644
---- a/arch/mips/mti-malta/malta-platform.c
-+++ b/arch/mips/mti-malta/malta-platform.c
-@@ -25,6 +25,7 @@
- #include <linux/serial_8250.h>
- #include <linux/mc146818rtc.h>
- #include <linux/module.h>
-+#include <linux/irq.h>
- #include <linux/mtd/partitions.h>
- #include <linux/mtd/physmap.h>
- #include <linux/platform_device.h>
-diff --git a/arch/mips/pci/ops-tx3927.c b/arch/mips/pci/ops-tx3927.c
-index 31c1501..6a3bdb5 100644
---- a/arch/mips/pci/ops-tx3927.c
-+++ b/arch/mips/pci/ops-tx3927.c
-@@ -38,6 +38,7 @@
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- 
- #include <asm/addrspace.h>
- #include <asm/txx9irq.h>
-diff --git a/arch/mips/pci/ops-tx4927.c b/arch/mips/pci/ops-tx4927.c
-index 5989e74..a1e7e6d 100644
---- a/arch/mips/pci/ops-tx4927.c
-+++ b/arch/mips/pci/ops-tx4927.c
-@@ -17,6 +17,7 @@
-  */
- #include <linux/kernel.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/txx9/pci.h>
- #include <asm/txx9/tx4927pcic.h>
- 
-diff --git a/arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c b/arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c
-index 94c9c2c..07e71ff 100644
---- a/arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c
-+++ b/arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c
-@@ -14,6 +14,7 @@
- #include <linux/interrupt.h>
- #include <linux/kernel.h>
- #include <linux/bitops.h>
-+#include <linux/irq.h>
- 
- #include <asm/system.h>
- 
-diff --git a/arch/mips/powertv/asic/irq_asic.c b/arch/mips/powertv/asic/irq_asic.c
-index b54d244..e553824 100644
---- a/arch/mips/powertv/asic/irq_asic.c
-+++ b/arch/mips/powertv/asic/irq_asic.c
-@@ -13,6 +13,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/kernel.h>
-+#include <linux/irq.h>
- 
- #include <asm/irq_cpu.h>
- #include <asm/mipsregs.h>
-diff --git a/arch/mips/rb532/serial.c b/arch/mips/rb532/serial.c
-index 00ed19f..7048254 100644
---- a/arch/mips/rb532/serial.c
-+++ b/arch/mips/rb532/serial.c
-@@ -29,6 +29,7 @@
- #include <linux/tty.h>
- #include <linux/serial_core.h>
- #include <linux/serial_8250.h>
-+#include <linux/irq.h>
- 
- #include <asm/serial.h>
- #include <asm/mach-rc32434/rb.h>
-diff --git a/arch/mips/sni/a20r.c b/arch/mips/sni/a20r.c
-index e698089..bbe7187 100644
---- a/arch/mips/sni/a20r.c
-+++ b/arch/mips/sni/a20r.c
-@@ -10,6 +10,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/platform_device.h>
- #include <linux/serial_8250.h>
- 
-diff --git a/arch/mips/sni/pcimt.c b/arch/mips/sni/pcimt.c
-index 51e62bb..8c92c73 100644
---- a/arch/mips/sni/pcimt.c
-+++ b/arch/mips/sni/pcimt.c
-@@ -11,6 +11,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/pci.h>
- #include <linux/serial_8250.h>
- 
-diff --git a/arch/mips/sni/pcit.c b/arch/mips/sni/pcit.c
-index f4699d3..dc98745 100644
---- a/arch/mips/sni/pcit.c
-+++ b/arch/mips/sni/pcit.c
-@@ -10,6 +10,7 @@
- 
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/pci.h>
- #include <linux/serial_8250.h>
- 
-diff --git a/arch/mips/sni/rm200.c b/arch/mips/sni/rm200.c
-index 90c558f..0e6f42c 100644
---- a/arch/mips/sni/rm200.c
-+++ b/arch/mips/sni/rm200.c
-@@ -13,6 +13,7 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/platform_device.h>
- #include <linux/serial_8250.h>
- #include <linux/io.h>
-diff --git a/arch/mips/sni/time.c b/arch/mips/sni/time.c
-index f3b60e6..c76151b 100644
---- a/arch/mips/sni/time.c
-+++ b/arch/mips/sni/time.c
-@@ -1,5 +1,6 @@
- #include <linux/types.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/smp.h>
- #include <linux/time.h>
- #include <linux/clockchips.h>
-diff --git a/arch/mips/txx9/generic/irq_tx4927.c b/arch/mips/txx9/generic/irq_tx4927.c
-index ad2870d..e1828e8 100644
---- a/arch/mips/txx9/generic/irq_tx4927.c
-+++ b/arch/mips/txx9/generic/irq_tx4927.c
-@@ -25,6 +25,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/irq_cpu.h>
- #include <asm/txx9/tx4927.h>
- 
-diff --git a/arch/mips/txx9/generic/irq_tx4938.c b/arch/mips/txx9/generic/irq_tx4938.c
-index 025ae11..a6e6e80 100644
---- a/arch/mips/txx9/generic/irq_tx4938.c
-+++ b/arch/mips/txx9/generic/irq_tx4938.c
-@@ -13,6 +13,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/irq_cpu.h>
- #include <asm/txx9/tx4938.h>
- 
-diff --git a/arch/mips/txx9/generic/irq_tx4939.c b/arch/mips/txx9/generic/irq_tx4939.c
-index 013213a..3886ad7 100644
---- a/arch/mips/txx9/generic/irq_tx4939.c
-+++ b/arch/mips/txx9/generic/irq_tx4939.c
-@@ -19,6 +19,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <linux/types.h>
- #include <asm/irq_cpu.h>
- #include <asm/txx9irq.h>
-diff --git a/arch/mips/txx9/generic/setup.c b/arch/mips/txx9/generic/setup.c
-index 575d219b..812816c 100644
---- a/arch/mips/txx9/generic/setup.c
-+++ b/arch/mips/txx9/generic/setup.c
-@@ -24,6 +24,7 @@
- #include <linux/leds.h>
- #include <linux/sysdev.h>
- #include <linux/slab.h>
-+#include <linux/irq.h>
- #include <asm/bootinfo.h>
- #include <asm/time.h>
- #include <asm/reboot.h>
-diff --git a/arch/mips/txx9/jmr3927/irq.c b/arch/mips/txx9/jmr3927/irq.c
-index 6ec626c..0a7f8e3 100644
---- a/arch/mips/txx9/jmr3927/irq.c
-+++ b/arch/mips/txx9/jmr3927/irq.c
-@@ -32,6 +32,7 @@
- #include <linux/init.h>
- #include <linux/types.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- 
- #include <asm/io.h>
- #include <asm/mipsregs.h>
-diff --git a/arch/mips/txx9/rbtx4927/irq.c b/arch/mips/txx9/rbtx4927/irq.c
-index 9c14ebb..c4b54d2 100644
---- a/arch/mips/txx9/rbtx4927/irq.c
-+++ b/arch/mips/txx9/rbtx4927/irq.c
-@@ -111,6 +111,7 @@
- #include <linux/init.h>
- #include <linux/types.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/io.h>
- #include <asm/mipsregs.h>
- #include <asm/txx9/generic.h>
-diff --git a/arch/mips/txx9/rbtx4938/irq.c b/arch/mips/txx9/rbtx4938/irq.c
-index 7d21bef..67a73a8 100644
---- a/arch/mips/txx9/rbtx4938/irq.c
-+++ b/arch/mips/txx9/rbtx4938/irq.c
-@@ -64,6 +64,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/mipsregs.h>
- #include <asm/txx9/generic.h>
- #include <asm/txx9/rbtx4938.h>
-diff --git a/arch/mips/txx9/rbtx4939/irq.c b/arch/mips/txx9/rbtx4939/irq.c
-index 500cc0a..57fa740 100644
---- a/arch/mips/txx9/rbtx4939/irq.c
-+++ b/arch/mips/txx9/rbtx4939/irq.c
-@@ -11,6 +11,7 @@
-  */
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/irq.h>
- #include <asm/mipsregs.h>
- #include <asm/txx9/rbtx4939.h>
- 
-diff --git a/arch/mips/vr41xx/common/irq.c b/arch/mips/vr41xx/common/irq.c
-index bef0687..0975eb7 100644
---- a/arch/mips/vr41xx/common/irq.c
-+++ b/arch/mips/vr41xx/common/irq.c
-@@ -19,6 +19,7 @@
-  */
- #include <linux/interrupt.h>
- #include <linux/module.h>
-+#include <linux/irq.h>
- 
- #include <asm/irq_cpu.h>
- #include <asm/system.h>
-diff --git a/arch/mips/vr41xx/common/siu.c b/arch/mips/vr41xx/common/siu.c
-index 54eae56..bbd45d2 100644
---- a/arch/mips/vr41xx/common/siu.c
-+++ b/arch/mips/vr41xx/common/siu.c
-@@ -22,6 +22,7 @@
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/serial_core.h>
-+#include <linux/irq.h>
- 
- #include <asm/cpu.h>
- #include <asm/vr41xx/siu.h>
-diff --git a/drivers/vlynq/vlynq.c b/drivers/vlynq/vlynq.c
-index f2d9e66..f885c86 100644
---- a/drivers/vlynq/vlynq.c
-+++ b/drivers/vlynq/vlynq.c
-@@ -31,6 +31,7 @@
- #include <linux/delay.h>
- #include <linux/io.h>
- #include <linux/slab.h>
-+#include <linux/irq.h>
- 
- #include <linux/vlynq.h>
- 
-diff --git a/drivers/watchdog/octeon-wdt-main.c b/drivers/watchdog/octeon-wdt-main.c
-index 2a41017..9099238 100644
---- a/drivers/watchdog/octeon-wdt-main.c
-+++ b/drivers/watchdog/octeon-wdt-main.c
-@@ -64,6 +64,7 @@
- #include <linux/cpu.h>
- #include <linux/smp.h>
- #include <linux/fs.h>
-+#include <linux/irq.h>
- 
- #include <asm/mipsregs.h>
- #include <asm/uasm.h>
+FUJITA Tomonori (1):
+      MIPS: TX49xx: rename ARCH_KMALLOC_MINALIGN to ARCH_DMA_MINALIGN
+
+
+ arch/alpha/include/asm/irqflags.h                  |   65 +++++
+ arch/alpha/include/asm/system.h                    |   28 --
+ arch/arm/include/asm/irqflags.h                    |  145 ++++++-----
+ arch/avr32/include/asm/irqflags.h                  |   29 +-
+ arch/blackfin/include/asm/ipipe.h                  |    8 -
+ arch/blackfin/include/asm/irqflags.h               |  273 ++++++++++----------
+ arch/blackfin/include/asm/mmu_context.h            |    8 -
+ arch/blackfin/include/asm/system.h                 |    4 
+ arch/blackfin/kernel/bfin_gpio.c                   |  102 ++++---
+ arch/blackfin/kernel/cplb-mpu/cplbmgr.c            |    8 -
+ arch/blackfin/kernel/ipipe.c                       |   38 +--
+ arch/blackfin/kernel/process.c                     |    4 
+ arch/blackfin/kernel/trace.c                       |    1 
+ .../mach-bf518/include/mach/cdefBF51x_base.h       |   50 ----
+ arch/blackfin/mach-bf518/include/mach/pll.h        |   63 +++++
+ .../mach-bf527/include/mach/cdefBF52x_base.h       |   50 ----
+ arch/blackfin/mach-bf527/include/mach/pll.h        |   63 +++++
+ arch/blackfin/mach-bf533/boards/blackstamp.c       |    1 
+ arch/blackfin/mach-bf533/boards/ip0x.c             |    1 
+ arch/blackfin/mach-bf533/boards/stamp.c            |    1 
+ arch/blackfin/mach-bf533/include/mach/cdefBF532.h  |   91 -------
+ arch/blackfin/mach-bf533/include/mach/fio_flag.h   |   55 ++++
+ arch/blackfin/mach-bf533/include/mach/pll.h        |   57 ++++
+ arch/blackfin/mach-bf537/include/mach/cdefBF534.h  |   44 ---
+ arch/blackfin/mach-bf537/include/mach/pll.h        |   57 ++++
+ arch/blackfin/mach-bf538/include/mach/cdefBF538.h  |   50 ----
+ arch/blackfin/mach-bf538/include/mach/pll.h        |   63 +++++
+ .../mach-bf548/include/mach/cdefBF54x_base.h       |   56 ----
+ arch/blackfin/mach-bf548/include/mach/pll.h        |   69 +++++
+ arch/blackfin/mach-bf561/include/mach/cdefBF561.h  |   50 ----
+ arch/blackfin/mach-bf561/include/mach/pll.h        |   63 +++++
+ arch/blackfin/mach-common/cpufreq.c                |    4 
+ arch/blackfin/mach-common/ints-priority.c          |   24 +-
+ arch/blackfin/mach-common/pm.c                     |   10 -
+ arch/cris/include/arch-v10/arch/irqflags.h         |   45 +++
+ arch/cris/include/arch-v10/arch/system.h           |   16 -
+ arch/cris/include/arch-v32/arch/irqflags.h         |   46 +++
+ arch/cris/include/arch-v32/arch/system.h           |   22 --
+ arch/cris/include/asm/irqflags.h                   |    1 
+ arch/cris/include/asm/system.h                     |    1 
+ arch/frv/include/asm/irqflags.h                    |  158 ++++++++++++
+ arch/frv/include/asm/system.h                      |  136 ----------
+ arch/h8300/include/asm/irqflags.h                  |   43 +++
+ arch/h8300/include/asm/system.h                    |   24 --
+ arch/ia64/include/asm/irqflags.h                   |   94 +++++++
+ arch/ia64/include/asm/system.h                     |   76 ------
+ arch/m32r/include/asm/irqflags.h                   |  104 ++++++++
+ arch/m32r/include/asm/system.h                     |   66 -----
+ arch/m68k/include/asm/entry_no.h                   |    2 
+ arch/m68k/include/asm/irqflags.h                   |   76 ++++++
+ arch/m68k/include/asm/system_mm.h                  |   25 --
+ arch/m68k/include/asm/system_no.h                  |   57 ----
+ arch/m68knommu/kernel/asm-offsets.c                |    2 
+ arch/m68knommu/platform/coldfire/head.S            |    1 
+ arch/microblaze/include/asm/irqflags.h             |  193 +++++++-------
+ arch/mips/alchemy/devboards/bcsr.c                 |    1 
+ arch/mips/ar7/irq.c                                |    1 
+ arch/mips/bcm63xx/irq.c                            |    1 
+ arch/mips/cavium-octeon/serial.c                   |    1 
+ arch/mips/dec/setup.c                              |    1 
+ arch/mips/include/asm/irqflags.h                   |   53 ++--
+ arch/mips/include/asm/mach-loongson/loongson.h     |    1 
+ arch/mips/include/asm/mach-tx49xx/kmalloc.h        |    2 
+ arch/mips/jazz/irq.c                               |    1 
+ arch/mips/kernel/cevt-bcm1480.c                    |    1 
+ arch/mips/kernel/cevt-ds1287.c                     |    1 
+ arch/mips/kernel/cevt-gt641xx.c                    |    1 
+ arch/mips/kernel/cevt-r4k.c                        |    1 
+ arch/mips/kernel/cevt-sb1250.c                     |    1 
+ arch/mips/kernel/cevt-smtc.c                       |    1 
+ arch/mips/kernel/cevt-txx9.c                       |    1 
+ arch/mips/kernel/i8253.c                           |    1 
+ arch/mips/kernel/i8259.c                           |    1 
+ arch/mips/kernel/irq-gic.c                         |    2 
+ arch/mips/kernel/irq-rm7000.c                      |    1 
+ arch/mips/kernel/irq-rm9000.c                      |    1 
+ arch/mips/kernel/irq_cpu.c                         |    1 
+ arch/mips/kernel/irq_txx9.c                        |    1 
+ arch/mips/kernel/smtc.c                            |    4 
+ arch/mips/kernel/traps.c                           |    2 
+ arch/mips/mti-malta/malta-platform.c               |    1 
+ arch/mips/pci/ops-tx3927.c                         |    1 
+ arch/mips/pci/ops-tx4927.c                         |    1 
+ arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c         |    1 
+ arch/mips/powertv/asic/irq_asic.c                  |    1 
+ arch/mips/rb532/serial.c                           |    1 
+ arch/mips/sni/a20r.c                               |    1 
+ arch/mips/sni/pcimt.c                              |    1 
+ arch/mips/sni/pcit.c                               |    1 
+ arch/mips/sni/rm200.c                              |    1 
+ arch/mips/sni/time.c                               |    1 
+ arch/mips/txx9/generic/irq_tx4927.c                |    1 
+ arch/mips/txx9/generic/irq_tx4938.c                |    1 
+ arch/mips/txx9/generic/irq_tx4939.c                |    1 
+ arch/mips/txx9/generic/setup.c                     |    1 
+ arch/mips/txx9/jmr3927/irq.c                       |    1 
+ arch/mips/txx9/rbtx4927/irq.c                      |    1 
+ arch/mips/txx9/rbtx4938/irq.c                      |    1 
+ arch/mips/txx9/rbtx4939/irq.c                      |    1 
+ arch/mips/vr41xx/common/irq.c                      |    1 
+ arch/mips/vr41xx/common/siu.c                      |    1 
+ arch/mn10300/include/asm/irqflags.h                |  119 +++++++++
+ arch/mn10300/include/asm/system.h                  |  109 --------
+ arch/mn10300/kernel/entry.S                        |    1 
+ arch/parisc/include/asm/irqflags.h                 |   46 +++
+ arch/parisc/include/asm/system.h                   |   19 -
+ arch/powerpc/include/asm/hw_irq.h                  |  113 +++++---
+ arch/powerpc/include/asm/irqflags.h                |    2 
+ arch/powerpc/kernel/exceptions-64s.S               |    4 
+ arch/powerpc/kernel/irq.c                          |    4 
+ arch/s390/include/asm/irqflags.h                   |   51 ++--
+ arch/s390/include/asm/system.h                     |    2 
+ arch/s390/kernel/mem_detect.c                      |    4 
+ arch/s390/mm/init.c                                |    2 
+ arch/s390/mm/maccess.c                             |    4 
+ arch/score/include/asm/irqflags.h                  |  187 +++++++-------
+ arch/sh/include/asm/syscalls_32.h                  |    6 
+ arch/sh/kernel/irq_32.c                            |    8 -
+ arch/sparc/include/asm/irqflags_32.h               |   35 ++-
+ arch/sparc/include/asm/irqflags_64.h               |   29 +-
+ arch/sparc/kernel/irq_32.c                         |   13 -
+ arch/sparc/prom/p1275.c                            |    2 
+ arch/tile/include/asm/irqflags.h                   |   36 +--
+ arch/x86/include/asm/irqflags.h                    |   32 +-
+ arch/x86/include/asm/paravirt.h                    |   16 +
+ arch/xtensa/include/asm/irqflags.h                 |   58 ++++
+ arch/xtensa/include/asm/system.h                   |   33 --
+ crypto/des_generic.c                               |  130 +++++-----
+ drivers/net/bfin_mac.c                             |    1 
+ drivers/net/smc91x.c                               |    1 
+ drivers/s390/char/sclp.c                           |    2 
+ drivers/vlynq/vlynq.c                              |    1 
+ drivers/watchdog/octeon-wdt-main.c                 |    1 
+ include/asm-generic/atomic.h                       |    5 
+ include/asm-generic/cmpxchg-local.h                |    1 
+ include/asm-generic/hardirq.h                      |    1 
+ include/asm-generic/irqflags.h                     |   52 ++--
+ include/linux/hardirq.h                            |    1 
+ include/linux/irqflags.h                           |  107 +++++---
+ include/linux/list.h                               |    1 
+ include/linux/spinlock.h                           |    1 
+ 141 files changed, 2325 insertions(+), 1842 deletions(-)
+ create mode 100644 arch/alpha/include/asm/irqflags.h
+ create mode 100644 arch/blackfin/mach-bf518/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf527/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf533/include/mach/fio_flag.h
+ create mode 100644 arch/blackfin/mach-bf533/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf537/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf538/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf548/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf561/include/mach/pll.h
+ create mode 100644 arch/cris/include/arch-v10/arch/irqflags.h
+ create mode 100644 arch/cris/include/arch-v32/arch/irqflags.h
+ create mode 100644 arch/cris/include/asm/irqflags.h
+ create mode 100644 arch/frv/include/asm/irqflags.h
+ create mode 100644 arch/h8300/include/asm/irqflags.h
+ create mode 100644 arch/ia64/include/asm/irqflags.h
+ create mode 100644 arch/m32r/include/asm/irqflags.h
+ create mode 100644 arch/m68k/include/asm/irqflags.h
+ create mode 100644 arch/mn10300/include/asm/irqflags.h
+ create mode 100644 arch/parisc/include/asm/irqflags.h
+ create mode 100644 arch/xtensa/include/asm/irqflags.h
