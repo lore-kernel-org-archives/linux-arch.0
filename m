@@ -1,51 +1,268 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 04/17] Blackfin: Add missing dep to asm/irqflags.h
-Date: Fri, 10 Sep 2010 17:24:28 +0100
-Message-ID: <20100910162428.20817.84805.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 14/17] Fix powerpc irqflags
+Date: Fri, 10 Sep 2010 17:25:19 +0100
+Message-ID: <20100910162519.20817.32347.stgit@warthog.procyon.org.uk>
 References: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, linuxppc-dev@lists.ozlabs.org, paulus@samba.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Add a missing dependency (mach/blackfin.h) to asm/irqflags.h so that
-bfin_read_IMASK() can be used by inline functions.
+This (sub)patch is separated out for reviewing purposes.  Once ACK'd it will
+need to be rolled into the main patch.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
+Cc: benh@kernel.crashing.org
+Cc: paulus@samba.org
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
 
- arch/blackfin/include/asm/irqflags.h |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
+ arch/powerpc/include/asm/hw_irq.h    |  113 ++++++++++++++++++++--------------
+ arch/powerpc/include/asm/irqflags.h  |    2 -
+ arch/powerpc/kernel/exceptions-64s.S |    4 +
+ arch/powerpc/kernel/irq.c            |    4 +
+ 4 files changed, 70 insertions(+), 53 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/irqflags.h b/arch/blackfin/include/asm/irqflags.h
-index 813a1af..f3ed931 100644
---- a/arch/blackfin/include/asm/irqflags.h
-+++ b/arch/blackfin/include/asm/irqflags.h
-@@ -8,6 +8,8 @@
- #ifndef __ASM_BFIN_IRQFLAGS_H__
- #define __ASM_BFIN_IRQFLAGS_H__
+diff --git a/arch/powerpc/include/asm/hw_irq.h b/arch/powerpc/include/asm/hw_irq.h
+index bd100fc..ff08b70 100644
+--- a/arch/powerpc/include/asm/hw_irq.h
++++ b/arch/powerpc/include/asm/hw_irq.h
+@@ -16,42 +16,57 @@ extern void timer_interrupt(struct pt_regs *);
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
  
-+#include <mach/blackfin.h>
-+
- #ifdef CONFIG_SMP
- # include <asm/pda.h>
- # include <asm/processor.h>
-@@ -185,7 +187,12 @@ static inline void raw_local_irq_enable(void)
- 	bfin_sti(bfin_irq_flags);
+-static inline unsigned long local_get_flags(void)
++static inline unsigned long arch_local_save_flags(void)
+ {
+ 	unsigned long flags;
+ 
+-	__asm__ __volatile__("lbz %0,%1(13)"
+-	: "=r" (flags)
+-	: "i" (offsetof(struct paca_struct, soft_enabled)));
++	asm volatile(
++		"lbz %0,%1(13)"
++		: "=r" (flags)
++		: "i" (offsetof(struct paca_struct, soft_enabled)));
+ 
+ 	return flags;
  }
  
--#define raw_local_save_flags(flags) do { (flags) = bfin_read_IMASK(); } while (0)
-+static inline unsigned long arch_local_save_flags(void)
+-static inline unsigned long raw_local_irq_disable(void)
++static inline unsigned long arch_local_irq_disable(void)
+ {
+ 	unsigned long flags, zero;
+ 
+-	__asm__ __volatile__("li %1,0; lbz %0,%2(13); stb %1,%2(13)"
+-	: "=r" (flags), "=&r" (zero)
+-	: "i" (offsetof(struct paca_struct, soft_enabled))
+-	: "memory");
++	asm volatile(
++		"li %1,0; lbz %0,%2(13); stb %1,%2(13)"
++		: "=r" (flags), "=&r" (zero)
++		: "i" (offsetof(struct paca_struct, soft_enabled))
++		: "memory");
+ 
+ 	return flags;
+ }
+ 
+-extern void raw_local_irq_restore(unsigned long);
++extern void arch_local_irq_restore(unsigned long);
+ extern void iseries_handle_interrupts(void);
+ 
+-#define raw_local_irq_enable()		raw_local_irq_restore(1)
+-#define raw_local_save_flags(flags)	((flags) = local_get_flags())
+-#define raw_local_irq_save(flags)	((flags) = raw_local_irq_disable())
++static inline void arch_local_irq_enable(void)
 +{
-+	return bfin_read_IMASK();
++	arch_local_irq_restore(1);
 +}
 +
-+#define raw_local_save_flags(flags) do { (flags) = arch_local_save_flags(); } while (0)
++static inline unsigned long arch_local_irq_save(void)
++{
++	return arch_local_irq_disable();
++}
++
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return flags == 0;
++}
  
- #define raw_irqs_disabled_flags(flags) (((flags) & ~0x3f) == 0)
+-#define raw_irqs_disabled()		(local_get_flags() == 0)
+-#define raw_irqs_disabled_flags(flags)	((flags) == 0)
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
  
+ #ifdef CONFIG_PPC_BOOK3E
+-#define __hard_irq_enable()	__asm__ __volatile__("wrteei 1": : :"memory");
+-#define __hard_irq_disable()	__asm__ __volatile__("wrteei 0": : :"memory");
++#define __hard_irq_enable()	asm volatile("wrteei 1" : : : "memory");
++#define __hard_irq_disable()	asm volatile("wrteei 0" : : : "memory");
+ #else
+ #define __hard_irq_enable()	__mtmsrd(mfmsr() | MSR_EE, 1)
+ #define __hard_irq_disable()	__mtmsrd(mfmsr() & ~MSR_EE, 1)
+@@ -64,64 +79,66 @@ extern void iseries_handle_interrupts(void);
+ 		get_paca()->hard_enabled = 0;	\
+ 	} while(0)
+ 
+-#else
++#else /* CONFIG_PPC64 */
+ 
+-#if defined(CONFIG_BOOKE)
+ #define SET_MSR_EE(x)	mtmsr(x)
+-#define raw_local_irq_restore(flags)	__asm__ __volatile__("wrtee %0" : : "r" (flags) : "memory")
++
++static inline unsigned long arch_local_save_flags(void)
++{
++	return mfmsr();
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++#if defined(CONFIG_BOOKE)
++	asm volatile("wrtee %0" : : "r" (flags) : "memory");
+ #else
+-#define SET_MSR_EE(x)	mtmsr(x)
+-#define raw_local_irq_restore(flags)	mtmsr(flags)
++	mtmsr(flags);
+ #endif
++}
+ 
+-static inline void raw_local_irq_disable(void)
++static inline unsigned long arch_local_irq_save(void)
+ {
++	unsigned long flags = arch_local_save_flags();
+ #ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 0": : :"memory");
++	asm volatile("wrteei 0" : : : "memory");
+ #else
+-	unsigned long msr;
+-
+-	msr = mfmsr();
+-	SET_MSR_EE(msr & ~MSR_EE);
++	SET_MSR_EE(flags & ~MSR_EE);
+ #endif
++	return flags;
+ }
+ 
+-static inline void raw_local_irq_enable(void)
++static inline void arch_local_irq_disable(void)
+ {
+ #ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 1": : :"memory");
++	asm volatile("wrteei 0" : : : "memory");
+ #else
+-	unsigned long msr;
+-
+-	msr = mfmsr();
+-	SET_MSR_EE(msr | MSR_EE);
++	arch_local_irq_save();
+ #endif
+ }
+ 
+-static inline void raw_local_irq_save_ptr(unsigned long *flags)
++static inline void arch_local_irq_enable(void)
+ {
+-	unsigned long msr;
+-	msr = mfmsr();
+-	*flags = msr;
+ #ifdef CONFIG_BOOKE
+-	__asm__ __volatile__("wrteei 0": : :"memory");
++	asm volatile("wrteei 1" : : : "memory");
+ #else
+-	SET_MSR_EE(msr & ~MSR_EE);
++	unsigned long msr = mfmsr();
++	SET_MSR_EE(msr | MSR_EE);
+ #endif
+ }
+ 
+-#define raw_local_save_flags(flags)	((flags) = mfmsr())
+-#define raw_local_irq_save(flags)	raw_local_irq_save_ptr(&flags)
+-#define raw_irqs_disabled()		((mfmsr() & MSR_EE) == 0)
+-#define raw_irqs_disabled_flags(flags)	(((flags) & MSR_EE) == 0)
+-
+-#define hard_irq_disable()		raw_local_irq_disable()
+-
+-static inline int irqs_disabled_flags(unsigned long flags)
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
+ {
+ 	return (flags & MSR_EE) == 0;
+ }
+ 
++static inline bool arch_irqs_disabled(void)
++{
++	return arch_irqs_disabled_flags(arch_local_save_flags());
++}
++
++#define hard_irq_disable()		arch_local_irq_disable()
++
+ #endif /* CONFIG_PPC64 */
+ 
+ /*
+diff --git a/arch/powerpc/include/asm/irqflags.h b/arch/powerpc/include/asm/irqflags.h
+index 5f68ecf..b85d8dd 100644
+--- a/arch/powerpc/include/asm/irqflags.h
++++ b/arch/powerpc/include/asm/irqflags.h
+@@ -6,7 +6,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ /*
+- * Get definitions for raw_local_save_flags(x), etc.
++ * Get definitions for arch_local_save_flags(x), etc.
+  */
+ #include <asm/hw_irq.h>
+ 
+diff --git a/arch/powerpc/kernel/exceptions-64s.S b/arch/powerpc/kernel/exceptions-64s.S
+index f53029a..39b0c48 100644
+--- a/arch/powerpc/kernel/exceptions-64s.S
++++ b/arch/powerpc/kernel/exceptions-64s.S
+@@ -818,12 +818,12 @@ END_FW_FTR_SECTION_IFCLR(FW_FEATURE_ISERIES)
+ 
+ 	/*
+ 	 * hash_page couldn't handle it, set soft interrupt enable back
+-	 * to what it was before the trap.  Note that .raw_local_irq_restore
++	 * to what it was before the trap.  Note that .arch_local_irq_restore
+ 	 * handles any interrupts pending at this point.
+ 	 */
+ 	ld	r3,SOFTE(r1)
+ 	TRACE_AND_RESTORE_IRQ_PARTIAL(r3, 11f)
+-	bl	.raw_local_irq_restore
++	bl	.arch_local_irq_restore
+ 	b	11f
+ 
+ /* We have a data breakpoint exception - handle it */
+diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+index 4a65386..1903290 100644
+--- a/arch/powerpc/kernel/irq.c
++++ b/arch/powerpc/kernel/irq.c
+@@ -116,7 +116,7 @@ static inline notrace void set_soft_enabled(unsigned long enable)
+ 	: : "r" (enable), "i" (offsetof(struct paca_struct, soft_enabled)));
+ }
+ 
+-notrace void raw_local_irq_restore(unsigned long en)
++notrace void arch_local_irq_restore(unsigned long en)
+ {
+ 	/*
+ 	 * get_paca()->soft_enabled = en;
+@@ -192,7 +192,7 @@ notrace void raw_local_irq_restore(unsigned long en)
+ 
+ 	__hard_irq_enable();
+ }
+-EXPORT_SYMBOL(raw_local_irq_restore);
++EXPORT_SYMBOL(arch_local_irq_restore);
+ #endif /* CONFIG_PPC64 */
+ 
+ static int show_other_interrupts(struct seq_file *p, int prec)
