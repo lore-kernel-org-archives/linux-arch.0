@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54814 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:61669 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755781Ab0IJQ0e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:26:34 -0400
+	id S1755327Ab0IJQYw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2010 12:24:52 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 17/17] Fix Score irqflags
-Date: Fri, 10 Sep 2010 17:25:35 +0100
-Message-ID: <20100910162535.20817.53171.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 01/17] Blackfin: Split PLL code from mach-specific cdef headers
+Date: Fri, 10 Sep 2010 17:24:12 +0100
+Message-ID: <20100910162412.20817.59907.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 References: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -15,228 +15,934 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
-Message-ID: <20100910162535.NSh2hxZMayC-Yz5qe1mWOvDa4d9pLjDD2lzQXh9fR1A@z>
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+Message-ID: <20100910162412.fOzRD9iH-cizbVcRUMo158OAco7hmrO14KD_nTFio6g@z>
 
-This (sub)patch is separated out for reviewing purposes.  Once ACK'd it will
-need to be rolled into the main patch.
+Split the PLL control code from the Blackfin machine-specific cdef headers so
+that the irqflags functions can be renamed without incurring a header loop.
 
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/score/include/asm/irqflags.h |  187 ++++++++++++++++++++-----------------
- 1 files changed, 99 insertions(+), 88 deletions(-)
+ .../mach-bf518/include/mach/cdefBF51x_base.h       |   50 --------------
+ arch/blackfin/mach-bf518/include/mach/pll.h        |   63 ++++++++++++++++++
+ .../mach-bf527/include/mach/cdefBF52x_base.h       |   50 --------------
+ arch/blackfin/mach-bf527/include/mach/pll.h        |   63 ++++++++++++++++++
+ arch/blackfin/mach-bf533/include/mach/cdefBF532.h  |   44 -------------
+ arch/blackfin/mach-bf533/include/mach/pll.h        |   57 +++++++++++++++++
+ arch/blackfin/mach-bf537/include/mach/cdefBF534.h  |   44 -------------
+ arch/blackfin/mach-bf537/include/mach/pll.h        |   57 +++++++++++++++++
+ arch/blackfin/mach-bf538/include/mach/cdefBF538.h  |   50 --------------
+ arch/blackfin/mach-bf538/include/mach/pll.h        |   63 ++++++++++++++++++
+ .../mach-bf548/include/mach/cdefBF54x_base.h       |   56 ----------------
+ arch/blackfin/mach-bf548/include/mach/pll.h        |   69 ++++++++++++++++++++
+ arch/blackfin/mach-bf561/include/mach/cdefBF561.h  |   50 --------------
+ arch/blackfin/mach-bf561/include/mach/pll.h        |   63 ++++++++++++++++++
+ drivers/net/bfin_mac.c                             |    1 
+ 15 files changed, 436 insertions(+), 344 deletions(-)
+ create mode 100644 arch/blackfin/mach-bf518/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf527/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf533/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf537/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf538/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf548/include/mach/pll.h
+ create mode 100644 arch/blackfin/mach-bf561/include/mach/pll.h
 
-diff --git a/arch/score/include/asm/irqflags.h b/arch/score/include/asm/irqflags.h
-index 690a6ca..5c75638 100644
---- a/arch/score/include/asm/irqflags.h
-+++ b/arch/score/include/asm/irqflags.h
-@@ -3,107 +3,118 @@
+diff --git a/arch/blackfin/mach-bf518/include/mach/cdefBF51x_base.h b/arch/blackfin/mach-bf518/include/mach/cdefBF51x_base.h
+index e548e9d..29498e5 100644
+--- a/arch/blackfin/mach-bf518/include/mach/cdefBF51x_base.h
++++ b/arch/blackfin/mach-bf518/include/mach/cdefBF51x_base.h
+@@ -1058,54 +1058,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
  
- #ifndef __ASSEMBLY__
- 
--#define raw_local_irq_save(x)			\
--{						\
--	__asm__ __volatile__(			\
--		"mfcr	r8, cr0;"		\
--		"li	r9, 0xfffffffe;"	\
--		"nop;"				\
--		"mv	%0, r8;"		\
--		"and	r8, r8, r9;"		\
--		"mtcr	r8, cr0;"		\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		: "=r" (x)			\
--		:				\
--		: "r8", "r9"			\
--		);				\
-+#include <linux/types.h>
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif /* _CDEF_BF52X_H */
+diff --git a/arch/blackfin/mach-bf518/include/mach/pll.h b/arch/blackfin/mach-bf518/include/mach/pll.h
+new file mode 100644
+index 0000000..9c19a07
+--- /dev/null
++++ b/arch/blackfin/mach-bf518/include/mach/pll.h
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later
++ */
 +
-+static inline unsigned long arch_local_save_flags(void)
-+{
-+	unsigned long flags;
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
 +
-+	asm volatile(
-+		"	mfcr	r8, cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	mv	%0, r8		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	ldi	r9, 0x1		\n"
-+		"	and	%0, %0, r9	\n"
-+		: "=r" (flags)
-+		:
-+		: "r8", "r9");
-+	return flags;
- }
- 
--#define raw_local_irq_restore(x)		\
--{						\
--	__asm__ __volatile__(			\
--		"mfcr	r8, cr0;"		\
--		"ldi	r9, 0x1;"		\
--		"and	%0, %0, r9;"		\
--		"or	r8, r8, %0;"		\
--		"mtcr	r8, cr0;"		\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		:				\
--		: "r"(x)			\
--		: "r8", "r9"			\
--		);				\
-+static inline unsigned long arch_local_irq_save(void)
-+{
-+	unsigned long flags
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
 +
-+	asm volatile(
-+		"	mfcr	r8, cr0		\n"
-+		"	li	r9, 0xfffffffe	\n"
-+		"	nop			\n"
-+		"	mv	%0, r8		\n"
-+		"	and	r8, r8, r9	\n"
-+		"	mtcr	r8, cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		: "=r" (flags)
-+		:
-+		: "r8", "r9", "memory");
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
 +
-+	return flags;
- }
- 
--#define raw_local_irq_enable(void)		\
--{						\
--	__asm__ __volatile__(			\
--		"mfcr\tr8,cr0;"			\
--		"nop;"				\
--		"nop;"				\
--		"ori\tr8,0x1;"			\
--		"mtcr\tr8,cr0;"			\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		:				\
--		:				\
--		: "r8");			\
-+static inline void arch_local_irq_restore(unsigned long flags)
-+{
-+	asm volatile(
-+		"	mfcr	r8, cr0		\n"
-+		"	ldi	r9, 0x1		\n"
-+		"	and	%0, %0, r9	\n"
-+		"	or	r8, r8, %0	\n"
-+		"	mtcr	r8, cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		:
-+		: "r"(flags)
-+		: "r8", "r9", "memory");
- }
- 
--#define raw_local_irq_disable(void)		\
--{						\
--	__asm__ __volatile__(			\
--		"mfcr\tr8,cr0;"			\
--		"nop;"				\
--		"nop;"				\
--		"srli\tr8,r8,1;"		\
--		"slli\tr8,r8,1;"		\
--		"mtcr\tr8,cr0;"			\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		:				\
--		:				\
--		: "r8");			\
-+static inline void arch_local_irq_enable(void)
-+{
-+	asm volatile(
-+		"	mfcr	r8,cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	ori	r8,0x1		\n"
-+		"	mtcr	r8,cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		:
-+		:
-+		: "r8", "memory");
- }
- 
--#define raw_local_save_flags(x)			\
--{						\
--	__asm__ __volatile__(			\
--		"mfcr	r8, cr0;"		\
--		"nop;"				\
--		"nop;"				\
--		"mv	%0, r8;"		\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"nop;"				\
--		"ldi	r9, 0x1;"		\
--		"and	%0, %0, r9;"		\
--		: "=r" (x)			\
--		:				\
--		: "r8", "r9"			\
--		);				\
-+static inline void arch_local_irq_disable(void)
-+{
-+	asm volatile(
-+		"	mfcr	r8,cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	srli	r8,r8,1		\n"
-+		"	slli	r8,r8,1		\n"
-+		"	mtcr	r8,cr0		\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		"	nop			\n"
-+		:
-+		:
-+		: "r8", "memory");
- }
- 
--static inline int raw_irqs_disabled_flags(unsigned long flags)
-+static inline bool arch_irqs_disabled_flags(unsigned long flags)
- {
- 	return !(flags & 1);
- }
- 
--#endif
-+static inline bool arch_irqs_disabled(void)
-+{
-+	return arch_irqs_disabled_flags(arch_local_save_flags());
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
 +}
 +
-+#endif /* __ASSEMBLY__ */
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf527/include/mach/cdefBF52x_base.h b/arch/blackfin/mach-bf527/include/mach/cdefBF52x_base.h
+index 12f2ad4..11fb27b 100644
+--- a/arch/blackfin/mach-bf527/include/mach/cdefBF52x_base.h
++++ b/arch/blackfin/mach-bf527/include/mach/cdefBF52x_base.h
+@@ -1110,54 +1110,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
  
- #endif /* _ASM_SCORE_IRQFLAGS_H */
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif /* _CDEF_BF52X_H */
+diff --git a/arch/blackfin/mach-bf527/include/mach/pll.h b/arch/blackfin/mach-bf527/include/mach/pll.h
+new file mode 100644
+index 0000000..a910522
+--- /dev/null
++++ b/arch/blackfin/mach-bf527/include/mach/pll.h
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2007-2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+index feb2392..8edad6d 100644
+--- a/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
++++ b/arch/blackfin/mach-bf533/include/mach/cdefBF532.h
+@@ -697,48 +697,4 @@ BFIN_READ_FIO_FLAG(T)
+ #define bfin_read_FIO_FLAG_D()               bfin_read16(FIO_FLAG_D)
+ #endif
+ 
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr = bfin_read32(SIC_IWR);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR, IWR_ENABLE(0));
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR, iwr);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr = bfin_read32(SIC_IWR);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR, IWR_ENABLE(0));
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR, iwr);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif				/* _CDEF_BF532_H */
+diff --git a/arch/blackfin/mach-bf533/include/mach/pll.h b/arch/blackfin/mach-bf533/include/mach/pll.h
+new file mode 100644
+index 0000000..9a0c9a2
+--- /dev/null
++++ b/arch/blackfin/mach-bf533/include/mach/pll.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright 2005-2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr = bfin_read32(SIC_IWR);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR, IWR_ENABLE(0));
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR, iwr);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr = bfin_read32(SIC_IWR);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR, IWR_ENABLE(0));
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR, iwr);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf537/include/mach/cdefBF534.h b/arch/blackfin/mach-bf537/include/mach/cdefBF534.h
+index 91825c9..fbeb35e 100644
+--- a/arch/blackfin/mach-bf537/include/mach/cdefBF534.h
++++ b/arch/blackfin/mach-bf537/include/mach/cdefBF534.h
+@@ -1750,48 +1750,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
+ 
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr = bfin_read32(SIC_IWR);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR, IWR_ENABLE(0));
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR, iwr);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr = bfin_read32(SIC_IWR);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR, IWR_ENABLE(0));
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR, iwr);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif				/* _CDEF_BF534_H */
+diff --git a/arch/blackfin/mach-bf537/include/mach/pll.h b/arch/blackfin/mach-bf537/include/mach/pll.h
+new file mode 100644
+index 0000000..9a0c9a2
+--- /dev/null
++++ b/arch/blackfin/mach-bf537/include/mach/pll.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright 2005-2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr = bfin_read32(SIC_IWR);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR, IWR_ENABLE(0));
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR, iwr);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr = bfin_read32(SIC_IWR);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR, IWR_ENABLE(0));
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR, iwr);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf538/include/mach/cdefBF538.h b/arch/blackfin/mach-bf538/include/mach/cdefBF538.h
+index 66aa722..085b06b 100644
+--- a/arch/blackfin/mach-bf538/include/mach/cdefBF538.h
++++ b/arch/blackfin/mach-bf538/include/mach/cdefBF538.h
+@@ -2027,54 +2027,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
+ 
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif
+diff --git a/arch/blackfin/mach-bf538/include/mach/pll.h b/arch/blackfin/mach-bf538/include/mach/pll.h
+new file mode 100644
+index 0000000..0e67452
+--- /dev/null
++++ b/arch/blackfin/mach-bf538/include/mach/pll.h
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2008-2009 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later.
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h b/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h
+index ea3ec4e..0c16067d 100644
+--- a/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h
++++ b/arch/blackfin/mach-bf548/include/mach/cdefBF54x_base.h
+@@ -2648,61 +2648,5 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
+ 
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1, iwr2;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	iwr2 = bfin_read32(SIC_IWR2);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-	bfin_write32(SIC_IWR2, 0);
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	bfin_write32(SIC_IWR2, iwr2);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1, iwr2;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SIC_IWR0);
+-	iwr1 = bfin_read32(SIC_IWR1);
+-	iwr2 = bfin_read32(SIC_IWR2);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SIC_IWR1, 0);
+-	bfin_write32(SIC_IWR2, 0);
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SIC_IWR0, iwr0);
+-	bfin_write32(SIC_IWR1, iwr1);
+-	bfin_write32(SIC_IWR2, iwr2);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif /* _CDEF_BF54X_H */
+ 
+diff --git a/arch/blackfin/mach-bf548/include/mach/pll.h b/arch/blackfin/mach-bf548/include/mach/pll.h
+new file mode 100644
+index 0000000..777fee6
+--- /dev/null
++++ b/arch/blackfin/mach-bf548/include/mach/pll.h
+@@ -0,0 +1,69 @@
++/*
++ * Copyright 2007-2008 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later.
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1, iwr2;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	iwr2 = bfin_read32(SIC_IWR2);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++	bfin_write32(SIC_IWR2, 0);
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	bfin_write32(SIC_IWR2, iwr2);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1, iwr2;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SIC_IWR0);
++	iwr1 = bfin_read32(SIC_IWR1);
++	iwr2 = bfin_read32(SIC_IWR2);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SIC_IWR0, IWR_ENABLE(0));
++	bfin_write32(SIC_IWR1, 0);
++	bfin_write32(SIC_IWR2, 0);
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SIC_IWR0, iwr0);
++	bfin_write32(SIC_IWR1, iwr1);
++	bfin_write32(SIC_IWR2, iwr2);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/arch/blackfin/mach-bf561/include/mach/cdefBF561.h b/arch/blackfin/mach-bf561/include/mach/cdefBF561.h
+index 81ecdb7..cc0416a 100644
+--- a/arch/blackfin/mach-bf561/include/mach/cdefBF561.h
++++ b/arch/blackfin/mach-bf561/include/mach/cdefBF561.h
+@@ -1534,54 +1534,4 @@
+ /* These need to be last due to the cdef/linux inter-dependencies */
+ #include <asm/irq.h>
+ 
+-/* Writing to PLL_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_PLL_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_PLL_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SICA_IWR0);
+-	iwr1 = bfin_read32(SICA_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SICA_IWR1, 0);
+-
+-	bfin_write16(PLL_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SICA_IWR0, iwr0);
+-	bfin_write32(SICA_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+-/* Writing to VR_CTL initiates a PLL relock sequence. */
+-static __inline__ void bfin_write_VR_CTL(unsigned int val)
+-{
+-	unsigned long flags, iwr0, iwr1;
+-
+-	if (val == bfin_read_VR_CTL())
+-		return;
+-
+-	local_irq_save_hw(flags);
+-	/* Enable the PLL Wakeup bit in SIC IWR */
+-	iwr0 = bfin_read32(SICA_IWR0);
+-	iwr1 = bfin_read32(SICA_IWR1);
+-	/* Only allow PPL Wakeup) */
+-	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
+-	bfin_write32(SICA_IWR1, 0);
+-
+-	bfin_write16(VR_CTL, val);
+-	SSYNC();
+-	asm("IDLE;");
+-
+-	bfin_write32(SICA_IWR0, iwr0);
+-	bfin_write32(SICA_IWR1, iwr1);
+-	local_irq_restore_hw(flags);
+-}
+-
+ #endif				/* _CDEF_BF561_H */
+diff --git a/arch/blackfin/mach-bf561/include/mach/pll.h b/arch/blackfin/mach-bf561/include/mach/pll.h
+new file mode 100644
+index 0000000..4baa44f
+--- /dev/null
++++ b/arch/blackfin/mach-bf561/include/mach/pll.h
+@@ -0,0 +1,63 @@
++/*
++ * Copyright 2005-2009 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later.
++ */
++
++#ifndef _MACH_PLL_H
++#define _MACH_PLL_H
++
++#include <asm/blackfin.h>
++#include <asm/irqflags.h>
++
++/* Writing to PLL_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_PLL_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_PLL_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SICA_IWR0);
++	iwr1 = bfin_read32(SICA_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
++	bfin_write32(SICA_IWR1, 0);
++
++	bfin_write16(PLL_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SICA_IWR0, iwr0);
++	bfin_write32(SICA_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++/* Writing to VR_CTL initiates a PLL relock sequence. */
++static __inline__ void bfin_write_VR_CTL(unsigned int val)
++{
++	unsigned long flags, iwr0, iwr1;
++
++	if (val == bfin_read_VR_CTL())
++		return;
++
++	local_irq_save_hw(flags);
++	/* Enable the PLL Wakeup bit in SIC IWR */
++	iwr0 = bfin_read32(SICA_IWR0);
++	iwr1 = bfin_read32(SICA_IWR1);
++	/* Only allow PPL Wakeup) */
++	bfin_write32(SICA_IWR0, IWR_ENABLE(0));
++	bfin_write32(SICA_IWR1, 0);
++
++	bfin_write16(VR_CTL, val);
++	SSYNC();
++	asm("IDLE;");
++
++	bfin_write32(SICA_IWR0, iwr0);
++	bfin_write32(SICA_IWR1, iwr1);
++	local_irq_restore_hw(flags);
++}
++
++#endif /* _MACH_PLL_H */
+diff --git a/drivers/net/bfin_mac.c b/drivers/net/bfin_mac.c
+index 012613f..03d0635 100644
+--- a/drivers/net/bfin_mac.c
++++ b/drivers/net/bfin_mac.c
+@@ -38,6 +38,7 @@
+ #include <asm/blackfin.h>
+ #include <asm/cacheflush.h>
+ #include <asm/portmux.h>
++#include <mach/pll.h>
+ 
+ #include "bfin_mac.h"
+ 
 
