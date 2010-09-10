@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1030 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13094 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755664Ab0IJQZQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:25:16 -0400
+	id S1755604Ab0IJQZL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2010 12:25:11 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 08/17] MIPS: TX49xx: rename ARCH_KMALLOC_MINALIGN to
-	ARCH_DMA_MINALIGN
-Date: Fri, 10 Sep 2010 17:24:48 +0100
-Message-ID: <20100910162448.20817.26804.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 09/17] smc91x: Add missing #inclusion of <linux/irq.h>
+Date: Fri, 10 Sep 2010 17:24:53 +0100
+Message-ID: <20100910162453.20817.8854.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 References: <20100910162407.20817.34359.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,33 +15,32 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Atsushi Nemoto <anemo@mba.ocn.ne.jp>
-Message-ID: <20100910162448.vpE76u5jEMh7abAcZYjBnPeGiPZaZ6_WwSVHKACsS-c@z>
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Nicolas Pitre <nico@fluxnic.net>
+Message-ID: <20100910162453.Nvxu5jHGarmZFa0qSpbZwGFbq6eaMYF4lA65tD0Y9QM@z>
 
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Add missing #inclusion of <linux/irq.h>.  Without it, the following error can
+occur with the irqflags fixup patches applied:
 
-Architectures need to set ARCH_DMA_MINALIGN to the minimum DMA
-alignment (the commit
-a6eb9fe105d5de0053b261148cee56c94b4720ca). Defining
-ARCH_KMALLOC_MINALIGN doesn't work anymore.
+drivers/net/smc91x.c: In function 'smc_probe':
+drivers/net/smc91x.c:1987:2: error: implicit declaration of function 'irq_canonicalize'
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Acked-by: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
+Signed-off-by: David Howells <dhowells@redhat.com>
+Acked-by: Nicolas Pitre <nico@fluxnic.net>
 ---
 
- arch/mips/include/asm/mach-tx49xx/kmalloc.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ drivers/net/smc91x.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/arch/mips/include/asm/mach-tx49xx/kmalloc.h b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
-index b74caf6..ff9a8b8 100644
---- a/arch/mips/include/asm/mach-tx49xx/kmalloc.h
-+++ b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
-@@ -1,6 +1,6 @@
- #ifndef __ASM_MACH_TX49XX_KMALLOC_H
- #define __ASM_MACH_TX49XX_KMALLOC_H
- 
--#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_DMA_MINALIGN L1_CACHE_BYTES
- 
- #endif /* __ASM_MACH_TX49XX_KMALLOC_H */
+diff --git a/drivers/net/smc91x.c b/drivers/net/smc91x.c
+index 10cf0cb..726df61 100644
+--- a/drivers/net/smc91x.c
++++ b/drivers/net/smc91x.c
+@@ -72,6 +72,7 @@ static const char version[] =
+ #include <linux/sched.h>
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
++#include <linux/irq.h>
+ #include <linux/errno.h>
+ #include <linux/ioport.h>
+ #include <linux/crc32.h>
 
