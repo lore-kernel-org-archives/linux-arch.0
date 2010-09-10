@@ -1,48 +1,46 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 06/17] SH: Add missing consts to sys_execve() declaration
-Date: Fri, 10 Sep 2010 17:10:33 +0100
-Message-ID: <20100910161033.20226.24172.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 08/17] MIPS: TX49xx: rename ARCH_KMALLOC_MINALIGN to
+	ARCH_DMA_MINALIGN
+Date: Fri, 10 Sep 2010 17:10:43 +0100
+Message-ID: <20100910161043.20226.11902.stgit@warthog.procyon.org.uk>
 References: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55203 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13960 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755303Ab0IJQKn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Sep 2010 12:10:43 -0400
+	id S1755352Ab0IJQLI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Sep 2010 12:11:08 -0400
 In-Reply-To: <20100910161002.20226.27995.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, linux-kernel@vger.kernel.org, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Atsushi Nemoto <anemo@mba.ocn.ne.jp>
 
-Add missing consts to the sys_execve() declaration which result in the
-following error:
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-arch/sh/kernel/process_32.c:303: error: conflicting types for 'sys_execve'
-/warthog/nfs/linux-2.6-fscache/arch/sh/include/asm/syscalls_32.h:24: error: previous declaration of 'sys_execve' was here
+Architectures need to set ARCH_DMA_MINALIGN to the minimum DMA
+alignment (the commit
+a6eb9fe105d5de0053b261148cee56c94b4720ca). Defining
+ARCH_KMALLOC_MINALIGN doesn't work anymore.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Acked-by: Atsushi Nemoto <anemo@mba.ocn.ne.jp>
 ---
 
- arch/sh/include/asm/syscalls_32.h |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ arch/mips/include/asm/mach-tx49xx/kmalloc.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/sh/include/asm/syscalls_32.h b/arch/sh/include/asm/syscalls_32.h
-index be201fd..454538a 100644
---- a/arch/sh/include/asm/syscalls_32.h
-+++ b/arch/sh/include/asm/syscalls_32.h
-@@ -19,8 +19,10 @@ asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
- asmlinkage int sys_vfork(unsigned long r4, unsigned long r5,
- 			 unsigned long r6, unsigned long r7,
- 			 struct pt_regs __regs);
--asmlinkage int sys_execve(const char __user *ufilename, char __user * __user *uargv,
--			  char __user * __user *uenvp, unsigned long r7,
-+asmlinkage int sys_execve(const char __user *ufilename,
-+			  const char __user *const __user *uargv,
-+			  const char __user *const __user *uenvp,
-+			  unsigned long r7,
- 			  struct pt_regs __regs);
- asmlinkage int sys_sigsuspend(old_sigset_t mask, unsigned long r5,
- 			      unsigned long r6, unsigned long r7,
+diff --git a/arch/mips/include/asm/mach-tx49xx/kmalloc.h b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
+index b74caf6..ff9a8b8 100644
+--- a/arch/mips/include/asm/mach-tx49xx/kmalloc.h
++++ b/arch/mips/include/asm/mach-tx49xx/kmalloc.h
+@@ -1,6 +1,6 @@
+ #ifndef __ASM_MACH_TX49XX_KMALLOC_H
+ #define __ASM_MACH_TX49XX_KMALLOC_H
+ 
+-#define ARCH_KMALLOC_MINALIGN	L1_CACHE_BYTES
++#define ARCH_DMA_MINALIGN L1_CACHE_BYTES
+ 
+ #endif /* __ASM_MACH_TX49XX_KMALLOC_H */
