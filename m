@@ -1,25 +1,46 @@
-From: "Mike Leonard" <mikeleoloans@loan.com>
-Subject: (unknown)
-Date: Sat, 11 Sep 2010 18:24:57 -0300 (BRT)
-Message-ID: <48499.216.66.59.37.1284240297.squirrel@webmail3.mar.com.br>
-Reply-To: mikeleoloans@w.cn
+From: Western Union Money Transfer <info@westernunion.com>
+Subject: Dear Customer
+Date: Sun, 12 Sep 2010 18:14:06 -0300
+Message-ID: <20100912181406.g1zc3mzdus48c0ko__19652.1876416684$1284333521$gmane$org@www.uccuyo.edu.ar>
+Reply-To: infowesternunion94@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from jubarte.mar.com.br ([189.39.240.2]:55151 "HELO
-	jubarte.mar.com.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752503Ab0IKVhq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Sep 2010 17:37:46 -0400
-Subject: 
+Received: from mail.uccuyo.edu.ar ([200.123.107.120]:54191 "EHLO
+	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754004Ab0ILXSK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Sep 2010 19:18:10 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
 
+Dear Customer,
 
-Are you in search of a legit loan??Have you also been scammed once?We Offer LOANS
-from $3,000.00 Min. to $10,000,000.00 Max.at 3% interest rate. if interested do get
-back to us via email Email:mikeleoloans@w.cn  with this information :Applicant
-name,Full address,Phone number,Amount needed,Duration and method of delivery(Bank or
-Check).
+You have been awarded with the sum of $850,000.00 USD by our office,
+as one of our customers who use Western Union in their business
+transaction.
+
+This award was been selected through the internet, where
+your e-mail address was indicated and notified. Please provide .
+Mr. Joel Davids  with the following details listed below so that your
+fund will be remited to you through Western Union.
+
+=46ull Name:
+Address:
+Occuptiaon:
+Age:
+Telephone No.:
+
+As soon as these details are received and verified, your fund will be
+transferred to you. Thank you, for using western union.
+
+Regards,
+Mr. Joel Davids
+WESTERN UNION MONEY TRANSFER
+
+_________________________________
+Universidad Cat=F3lica de Cuyo
+www.uccuyo.edu.ar
