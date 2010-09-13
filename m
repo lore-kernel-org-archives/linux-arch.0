@@ -1,46 +1,68 @@
-From: Western Union Money Transfer <info@westernunion.com>
-Subject: Dear Customer
-Date: Sun, 12 Sep 2010 18:14:06 -0300
-Message-ID: <20100912181406.g1zc3mzdus48c0ko__19652.1876416684$1284333521$gmane$org@www.uccuyo.edu.ar>
-Reply-To: infowesternunion94@yahoo.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.uccuyo.edu.ar ([200.123.107.120]:54191 "EHLO
-	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754004Ab0ILXSK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Sep 2010 19:18:10 -0400
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: [PATCH V3 0/6] Generalise ARM perf-events backend for oprofile
+Date: Mon, 13 Sep 2010 07:07:31 +0100
+Message-ID: <cover.1284357372.git.matt@console-pimps.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Robert Richter <robert.richter@amd.com>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+The perf-events backend for OProfile that Will Deacon wrote in
+8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+perf-events framework as backend") is of use to more architectures
+than just ARM. Move the code into drivers/oprofile/ so that SH can use
+it instead of the nearly identical copy of its OProfile code.
 
+The benefit of the backend is that it becomes necessary to only
+maintain one copy of the PMU accessor functions for each architecture,
+with bug fixes and new features benefiting both OProfile and perf.
 
-Dear Customer,
+Note that I haven't been able to test these patches on an ARM board to
+see if I've caused any regressions. If anyone else could do that I'd
+appreciate it. Though, I have been able to compile this version of the
+series.
 
-You have been awarded with the sum of $850,000.00 USD by our office,
-as one of our customers who use Western Union in their business
-transaction.
+This patch series is based on,
 
-This award was been selected through the internet, where
-your e-mail address was indicated and notified. Please provide .
-Mr. Joel Davids  with the following details listed below so that your
-fund will be remited to you through Western Union.
+    git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
 
-=46ull Name:
-Address:
-Occuptiaon:
-Age:
-Telephone No.:
+These patches can also be found at,
 
-As soon as these details are received and verified, your fund will be
-transferred to you. Thank you, for using western union.
+    git://git.kernel.org/pub/scm/linux/kernel/git/mfleming/sh-2.6.git perf-oprofile
 
-Regards,
-Mr. Joel Davids
-WESTERN UNION MONEY TRANSFER
+Changes from v2:
+ - Rebased against Robert's oprofile core branch
+ - Moved even more of the ARM code into the generic oprofile code
+ - Broke the patches up into more logical steps
 
-_________________________________
-Universidad Cat=F3lica de Cuyo
-www.uccuyo.edu.ar
+Changes from v1:
+ - Prefix the new functons with "oprofile_" instead of "op_".
+ - Fix ARM compilation errors
+ - Move all the oprofile-perf logic into oprofile_perf.c
+ - Include cleanup patch from Will
+
+Matt Fleming (6):
+  perf: Add helper function to return number of counters
+  ARM: oprofile: Rename op_arm to oprofile_perf
+  ARM: oprofile: Move non-ARM code into separate init/exit functions
+  oprofile: Abstract the perf-events backend
+  ARM: Make oprofile depend on CONFIG_HW_PERF_EVENTS
+  sh: oprofile: Use perf-events oprofile backend
+
+ arch/arm/Kconfig                 |    2 +-
+ arch/arm/kernel/perf_event.c     |    6 +
+ arch/arm/oprofile/Makefile       |    2 +-
+ arch/arm/oprofile/common.c       |  315 +------------------------------------
+ arch/sh/Kconfig                  |    2 +-
+ arch/sh/kernel/perf_event.c      |   17 ++
+ arch/sh/oprofile/Makefile        |    2 +-
+ arch/sh/oprofile/common.c        |  104 ++-----------
+ arch/sh/oprofile/op_impl.h       |   33 ----
+ drivers/oprofile/oprofile_perf.c |  322 ++++++++++++++++++++++++++++++++++++++
+ include/linux/oprofile.h         |    6 +
+ include/linux/perf_event.h       |    1 +
+ 12 files changed, 368 insertions(+), 444 deletions(-)
+ delete mode 100644 arch/sh/oprofile/op_impl.h
+ create mode 100644 drivers/oprofile/oprofile_perf.c
+
