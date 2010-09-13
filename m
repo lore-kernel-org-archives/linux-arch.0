@@ -1,56 +1,49 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH V3 0/6] Generalise ARM perf-events backend for oprofile
-Date: Mon, 13 Sep 2010 12:18:50 +0100
-Message-ID: <20100913111850.GC14882@console-pimps.org>
-References: <cover.1284357372.git.matt@console-pimps.org> <1284372533.3042.11.camel@e102144-lin.cambridge.arm.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
+Date: Mon, 13 Sep 2010 13:36:30 +0200
+Message-ID: <1284377790.2275.212.camel@laptop>
+References: <1284360648.3269.115.camel@yhuang-dev.sh.intel.com>
+	 <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:42545 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751725Ab0IMLSv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Sep 2010 07:18:51 -0400
-Content-Disposition: inline
-In-Reply-To: <1284372533.3042.11.camel@e102144-lin.cambridge.arm.com>
+Received: from casper.infradead.org ([85.118.1.10]:38784 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754757Ab0IMLgq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Sep 2010 07:36:46 -0400
+In-Reply-To: <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Robert Richter <robert.richter@amd.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Huang Ying <ying.huang@intel.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Mon, Sep 13, 2010 at 11:08:53AM +0100, Will Deacon wrote:
-> Hi Matt,
+On Mon, 2010-09-13 at 12:32 +0200, Martin Schwidefsky wrote:
+> On Mon, 13 Sep 2010 14:50:48 +0800
+> Huang Ying <ying.huang@intel.com> wrote:
 > 
-> On Mon, 2010-09-13 at 07:07 +0100, Matt Fleming wrote:
-> > The perf-events backend for OProfile that Will Deacon wrote in
-> > 8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
-> > perf-events framework as backend") is of use to more architectures
-> > than just ARM. Move the code into drivers/oprofile/ so that SH can use
-> > it instead of the nearly identical copy of its OProfile code.
+> > From:  Peter Zijlstra <a.p.zijlstra@chello.nl>
 > > 
-> [...]
+> > In order for other NMI context users that want to run things from
+> > hard-IRQ context, extract the perf_event callback mechanism.
 > > 
-> > Note that I haven't been able to test these patches on an ARM board to
-> > see if I've caused any regressions. If anyone else could do that I'd
-> > appreciate it. Though, I have been able to compile this version of the
-> > series.
+> > Huang Ying: some fixes
 > > 
-> I've tested this patch series on a multicore Cortex-A9 board. If I
-> revert patch 5/6 (ARM: Make oprofile depend on CONFIG_HW_PERF_EVENTS)
-> then everything seems to work fine. Otherwise, testing without
-> HW_PERF_EVENTS doesn't fall back to timer mode.
+> > This patch is only tested on x86 platform.
+> > 
+> > 
+> > v4:
+> > 
+> > -rebased on latest -tip tree
+> > 
+> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> > Signed-off-by: Huang Ying <ying.huang@intel.com>
 > 
-> So, with the exception of the patch above:
+> On s390 I get compile errors:
 > 
-> Tested-by: Will Deacon <will.deacon@arm.com>
+> include/linux/perf_event.h:464:29: error: asm/perf_event.h: No such file or directory
+> 
+> Not a good idea to completely remove the perf_event.h from arch/s390/include/asm.
+> With an empty header file the kernel at least compiles.
 
-Hi Will, thanks for testing!
-
-Ah yeah, making oprofile rely on CONFIG_HW_PERF_EVENTS is too
-strict. I hadn't noticed that armpmu_get_pmu_id() is wrapped in
-CONFIG_HW_PERF_EVENTS and had intended op->cpu_type to be NULL and so
-we'd fallback to the timer mode.
-
-This patch needs to be dropped entirely (though another patch should
-conditionally include oprofile_perf.o based on CONFIG_HW_PERF_EVENT
-like I had in my original series).
+Urgh, Huang, could you at least compile test the other arches?
