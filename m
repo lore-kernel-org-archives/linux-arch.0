@@ -1,68 +1,44 @@
 From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: [PATCH 1/5] Disallow building with gcc < 3.4
-Date: Mon, 13 Sep 2010 13:14:36 -0700
-Message-ID: <1284408880-14414-2-git-send-email-hpa@linux.intel.com>
+Subject: [PATCH 5/5] x86, bitops: Remove gcc < 4.1 workaround
+Date: Mon, 13 Sep 2010 13:14:40 -0700
+Message-ID: <1284408880-14414-6-git-send-email-hpa@linux.intel.com>
 References: <1284408880-14414-1-git-send-email-hpa@linux.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:46365 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754783Ab0IMUOw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Sep 2010 16:14:52 -0400
 In-Reply-To: <1284408880-14414-1-git-send-email-hpa@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Florian Mickler <florian@mickler.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "H. Peter Anvin" <hpa@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
 
-Disallow building the generic kernel code with gcc < 3.4.  Earlier
-versions of gcc have known problems, and it appears that anyone who
-genuinely needs gcc 3.x can use gcc 3.4 at this point.
+Remove workaround for gcc older than 4.1.
 
 Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
 ---
- Documentation/Changes         |    2 +-
- include/linux/compiler-gcc3.h |   15 +--------------
- 2 files changed, 2 insertions(+), 15 deletions(-)
+ arch/x86/include/asm/bitops.h |    7 -------
+ 1 files changed, 0 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/Changes b/Documentation/Changes
-index 4fb88f1..0ea8040 100644
---- a/Documentation/Changes
-+++ b/Documentation/Changes
-@@ -28,7 +28,7 @@ necessary on all systems; obviously, if you don't have any ISDN
- hardware, for example, you probably needn't concern yourself with
- isdn4k-utils.
- 
--o  Gnu C                  3.2                     # gcc --version
-+o  Gnu C                  3.4                     # gcc --version
- o  Gnu make               3.80                    # make --version
- o  binutils               2.12                    # ld -v
- o  util-linux             2.10o                   # fdformat --version
-diff --git a/include/linux/compiler-gcc3.h b/include/linux/compiler-gcc3.h
-index b721129..c11d443 100644
---- a/include/linux/compiler-gcc3.h
-+++ b/include/linux/compiler-gcc3.h
-@@ -2,25 +2,12 @@
- #error "Please don't include <linux/compiler-gcc3.h> directly, include <linux/compiler.h> instead."
- #endif
- 
--#if __GNUC_MINOR__ < 2
-+#if __GNUC_MINOR__ < 4
- # error Sorry, your compiler is too old - please upgrade it.
- #endif
- 
--#if __GNUC_MINOR__ >= 3
- # define __used			__attribute__((__used__))
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index 545776e..1532109 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -22,14 +22,7 @@
+  *
+  * bit 0 is the LSB of addr; bit 32 is the LSB of (addr+1).
+  */
+-
+-#if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 1)
+-/* Technically wrong, but this avoids compilation errors on some gcc
+-   versions. */
+-#define BITOP_ADDR(x) "=m" (*(volatile long *) (x))
 -#else
--# define __used			__attribute__((__unused__))
+ #define BITOP_ADDR(x) "+m" (*(volatile long *) (x))
 -#endif
--
--#if __GNUC_MINOR__ >= 4
- #define __must_check		__attribute__((warn_unused_result))
--#endif
--
--#ifdef CONFIG_GCOV_KERNEL
--# if __GNUC_MINOR__ < 4
--#   error "GCOV profiling support for gcc versions below 3.4 not included"
--# endif /* __GNUC_MINOR__ */
--#endif /* CONFIG_GCOV_KERNEL */
  
- /*
-  * A trick to suppress uninitialized variable warning without generating any
+ #define ADDR				BITOP_ADDR(addr)
+ 
 -- 
 1.7.2.1
