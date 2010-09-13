@@ -1,47 +1,44 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
-Date: Mon, 13 Sep 2010 12:32:13 +0200
-Message-ID: <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com>
-References: <1284360648.3269.115.camel@yhuang-dev.sh.intel.com>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH V3 0/6] Generalise ARM perf-events backend for oprofile
+Date: Mon, 13 Sep 2010 12:04:44 +0100
+Message-ID: <20100913110444.GB14882@console-pimps.org>
+References: <cover.1284357372.git.matt@console-pimps.org> <SNT125-W35B89F6AA83C8DD22E7946BA770@phx.gbl> <20100913075025.GA14882@console-pimps.org> <20100913085137.GE23741@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1284360648.3269.115.camel@yhuang-dev.sh.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Huang Ying <ying.huang@intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from arkanian.console-pimps.org ([212.110.184.194]:42787 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753951Ab0IMLEp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Sep 2010 07:04:45 -0400
+Content-Disposition: inline
+In-Reply-To: <20100913085137.GE23741@elte.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Marc Titinger <mtittinge@hotmail.com>, robert.richter@amd.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, will.deacon@arm.com, acme@redhat.com, lethal@linux-sh.org, linux-arm-kernel@lists.infradead.org
 
-On Mon, 13 Sep 2010 14:50:48 +0800
-Huang Ying <ying.huang@intel.com> wrote:
+On Mon, Sep 13, 2010 at 10:51:37AM +0200, Ingo Molnar wrote:
+> 
+> * Matt Fleming <matt@console-pimps.org> wrote:
+> 
+> > On Mon, Sep 13, 2010 at 09:13:32AM +0200, Marc Titinger wrote:
+> > > 
+> > > Hi, 
+> > > 
+> > > I'm just being curious : do these patches change the way those chips 
+> > > should be supported, that do not have a PMU-like IP, but implement 
+> > > PC-sampling thanks to a general purpose timer (not the system timer) 
+> > > ?
+> > 
+> > CPUs that do not have a PMU are not required to use the perf-events 
+> > oprofile backend, it is entirely optional. The pc-sampling timer in 
+> > oprofile is not affected by this series.
+> 
+> It should still work fine though: a generalized oprofile backend should 
+> simply use hrtimer based events. That also has a chance to be higher 
+> quality than the system time fallback, on PMU-less (but high-res-timer 
+> capable) systems.
 
-> From:  Peter Zijlstra <a.p.zijlstra@chello.nl>
-> 
-> In order for other NMI context users that want to run things from
-> hard-IRQ context, extract the perf_event callback mechanism.
-> 
-> Huang Ying: some fixes
-> 
-> This patch is only tested on x86 platform.
-> 
-> 
-> v4:
-> 
-> -rebased on latest -tip tree
-> 
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Signed-off-by: Huang Ying <ying.huang@intel.com>
-
-On s390 I get compile errors:
-
-include/linux/perf_event.h:464:29: error: asm/perf_event.h: No such file or directory
-
-Not a good idea to completely remove the perf_event.h from arch/s390/include/asm.
-With an empty header file the kernel at least compiles.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Yeah, that's a good point. It would make a nice addition to this patch
+series. I may get chance to take a look at it at some point.
