@@ -1,44 +1,56 @@
 From: Matt Fleming <matt@console-pimps.org>
 Subject: Re: [PATCH V3 0/6] Generalise ARM perf-events backend for oprofile
-Date: Mon, 13 Sep 2010 12:04:44 +0100
-Message-ID: <20100913110444.GB14882@console-pimps.org>
-References: <cover.1284357372.git.matt@console-pimps.org> <SNT125-W35B89F6AA83C8DD22E7946BA770@phx.gbl> <20100913075025.GA14882@console-pimps.org> <20100913085137.GE23741@elte.hu>
+Date: Mon, 13 Sep 2010 12:18:50 +0100
+Message-ID: <20100913111850.GC14882@console-pimps.org>
+References: <cover.1284357372.git.matt@console-pimps.org> <1284372533.3042.11.camel@e102144-lin.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:42787 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:42545 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753951Ab0IMLEp (ORCPT
+	by vger.kernel.org with ESMTP id S1751725Ab0IMLSv (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Sep 2010 07:04:45 -0400
+	Mon, 13 Sep 2010 07:18:51 -0400
 Content-Disposition: inline
-In-Reply-To: <20100913085137.GE23741@elte.hu>
+In-Reply-To: <1284372533.3042.11.camel@e102144-lin.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Marc Titinger <mtittinge@hotmail.com>, robert.richter@amd.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, linux-sh@vger.kernel.org, peterz@infradead.org, fweisbec@gmail.com, will.deacon@arm.com, acme@redhat.com, lethal@linux-sh.org, linux-arm-kernel@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Robert Richter <robert.richter@amd.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org
 
-On Mon, Sep 13, 2010 at 10:51:37AM +0200, Ingo Molnar wrote:
+On Mon, Sep 13, 2010 at 11:08:53AM +0100, Will Deacon wrote:
+> Hi Matt,
 > 
-> * Matt Fleming <matt@console-pimps.org> wrote:
-> 
-> > On Mon, Sep 13, 2010 at 09:13:32AM +0200, Marc Titinger wrote:
-> > > 
-> > > Hi, 
-> > > 
-> > > I'm just being curious : do these patches change the way those chips 
-> > > should be supported, that do not have a PMU-like IP, but implement 
-> > > PC-sampling thanks to a general purpose timer (not the system timer) 
-> > > ?
+> On Mon, 2010-09-13 at 07:07 +0100, Matt Fleming wrote:
+> > The perf-events backend for OProfile that Will Deacon wrote in
+> > 8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+> > perf-events framework as backend") is of use to more architectures
+> > than just ARM. Move the code into drivers/oprofile/ so that SH can use
+> > it instead of the nearly identical copy of its OProfile code.
 > > 
-> > CPUs that do not have a PMU are not required to use the perf-events 
-> > oprofile backend, it is entirely optional. The pc-sampling timer in 
-> > oprofile is not affected by this series.
+> [...]
+> > 
+> > Note that I haven't been able to test these patches on an ARM board to
+> > see if I've caused any regressions. If anyone else could do that I'd
+> > appreciate it. Though, I have been able to compile this version of the
+> > series.
+> > 
+> I've tested this patch series on a multicore Cortex-A9 board. If I
+> revert patch 5/6 (ARM: Make oprofile depend on CONFIG_HW_PERF_EVENTS)
+> then everything seems to work fine. Otherwise, testing without
+> HW_PERF_EVENTS doesn't fall back to timer mode.
 > 
-> It should still work fine though: a generalized oprofile backend should 
-> simply use hrtimer based events. That also has a chance to be higher 
-> quality than the system time fallback, on PMU-less (but high-res-timer 
-> capable) systems.
+> So, with the exception of the patch above:
+> 
+> Tested-by: Will Deacon <will.deacon@arm.com>
 
-Yeah, that's a good point. It would make a nice addition to this patch
-series. I may get chance to take a look at it at some point.
+Hi Will, thanks for testing!
+
+Ah yeah, making oprofile rely on CONFIG_HW_PERF_EVENTS is too
+strict. I hadn't noticed that armpmu_get_pmu_id() is wrapped in
+CONFIG_HW_PERF_EVENTS and had intended op->cpu_type to be NULL and so
+we'd fallback to the timer mode.
+
+This patch needs to be dropped entirely (though another patch should
+conditionally include oprofile_perf.o based on CONFIG_HW_PERF_EVENT
+like I had in my original series).
