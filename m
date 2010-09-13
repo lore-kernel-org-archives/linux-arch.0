@@ -1,76 +1,46 @@
 From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: [PATCH 4/5] x86, mem: Remove gcc < 4.1 support code for memcpy()
-Date: Mon, 13 Sep 2010 13:14:39 -0700
-Message-ID: <1284408880-14414-5-git-send-email-hpa@linux.intel.com>
+Subject: [PATCH 3/5] x86, cpu: Remove gcc 3.x workarounds in <asm/cpufeature.h>
+Date: Mon, 13 Sep 2010 13:14:38 -0700
+Message-ID: <1284408880-14414-4-git-send-email-hpa@linux.intel.com>
 References: <1284408880-14414-1-git-send-email-hpa@linux.intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:39660 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753922Ab0IMUOv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Sep 2010 16:14:51 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1284408880-14414-1-git-send-email-hpa@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Florian Mickler <florian@mickler.org>, Peter Zijlstra <peterz@infradead.org>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "H. Peter Anvin" <hpa@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-We require gcc 4.1 or later, so remove support code for previous
-versions of gcc.
+We no longer support gcc 3.x, so remove the workaround for it.
 
 Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
 ---
- arch/x86/include/asm/string_32.h |   21 ---------------------
- 1 files changed, 0 insertions(+), 21 deletions(-)
+ arch/x86/include/asm/cpufeature.h |    7 -------
+ 1 files changed, 0 insertions(+), 7 deletions(-)
 
-diff --git a/arch/x86/include/asm/string_32.h b/arch/x86/include/asm/string_32.h
-index 3d3e835..fde4eb2 100644
---- a/arch/x86/include/asm/string_32.h
-+++ b/arch/x86/include/asm/string_32.h
-@@ -177,16 +177,8 @@ static inline void *__memcpy3d(void *to, const void *from, size_t len)
-  */
+diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
+index 781a50b..830a94f 100644
+--- a/arch/x86/include/asm/cpufeature.h
++++ b/arch/x86/include/asm/cpufeature.h
+@@ -345,7 +345,6 @@ static __always_inline __pure bool __static_cpu_has(u16 bit)
+ #endif
+ }
  
- #ifndef CONFIG_KMEMCHECK
--
--#if (__GNUC__ >= 4)
- #define memcpy(t, f, n) __builtin_memcpy(t, f, n)
- #else
--#define memcpy(t, f, n)				\
--	(__builtin_constant_p((n))		\
--	 ? __constant_memcpy((t), (f), (n))	\
--	 : __memcpy((t), (f), (n)))
--#endif
+-#if __GNUC__ >= 4
+ #define static_cpu_has(bit)					\
+ (								\
+ 	__builtin_constant_p(boot_cpu_has(bit)) ?		\
+@@ -354,12 +353,6 @@ static __always_inline __pure bool __static_cpu_has(u16 bit)
+ 		__static_cpu_has(bit) :				\
+ 		boot_cpu_has(bit)				\
+ )
 -#else
- /*
-  * kmemcheck becomes very happy if we use the REP instructions unconditionally,
-  * because it means that we know both memory operands in advance.
-@@ -284,12 +276,7 @@ void *__constant_c_and_count_memset(void *s, unsigned long pattern,
- 
- 	{
- 		int d0, d1;
--#if __GNUC__ == 4 && __GNUC_MINOR__ == 0
--		/* Workaround for broken gcc 4.0 */
--		register unsigned long eax asm("%eax") = pattern;
--#else
- 		unsigned long eax = pattern;
+-/*
+- * gcc 3.x is too stupid to do the static test; fall back to dynamic.
+- */
+-#define static_cpu_has(bit) boot_cpu_has(bit)
 -#endif
  
- 		switch (count % 4) {
- 		case 0:
-@@ -321,15 +308,7 @@ void *__constant_c_and_count_memset(void *s, unsigned long pattern,
- 	 : __memset_generic((s), (c), (count)))
+ #endif /* defined(__KERNEL__) && !defined(__ASSEMBLY__) */
  
- #define __HAVE_ARCH_MEMSET
--#if (__GNUC__ >= 4)
- #define memset(s, c, count) __builtin_memset(s, c, count)
--#else
--#define memset(s, c, count)						\
--	(__builtin_constant_p(c)					\
--	 ? __constant_c_x_memset((s), (0x01010101UL * (unsigned char)(c)), \
--				 (count))				\
--	 : __memset((s), (c), (count)))
--#endif
- 
- /*
-  * find the first occurrence of byte 'c', or 1 past the area if none
 -- 
 1.7.2.1
