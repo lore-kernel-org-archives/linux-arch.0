@@ -1,28 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43289 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751805Ab0IMVwz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Sep 2010 17:52:55 -0400
-Date: Mon, 13 Sep 2010 22:52:43 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 1/5] Disallow building with gcc < 3.4
-Message-ID: <20100913215243.GA12464@n2100.arm.linux.org.uk>
-References: <1284408880-14414-1-git-send-email-hpa@linux.intel.com> <1284408880-14414-2-git-send-email-hpa@linux.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1284408880-14414-2-git-send-email-hpa@linux.intel.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:39363 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751683Ab0INHmv convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Sep 2010 03:42:51 -0400
+Subject: Re:  [PATCH 00/20] mm: Preemptibility -v4
+From: Peter Zijlstra <peterz@infradead.org>
+In-Reply-To: <1284442585.26157.8150.camel@debian>
+References: <20100828141637.421594670@chello.nl>
+	 <AANLkTikSm2Mq8hGNac9rpFH-3pvryw2kW57EP45Ny6Vp@mail.gmail.com>
+	 <1284442585.26157.8150.camel@debian>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Tue, 14 Sep 2010 09:42:48 +0200
+Message-ID: <1284450168.2275.452.camel@laptop>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Florian Mickler <florian@mickler.org>, Peter Zijlstra <peterz@infradead.org>, Mike Frysinger <vapier@gentoo.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20100913215243.SnnMeOyKzCYXCOcTwnaqJdWI_h2MPbkUoflIG6qHSLg@z>
+To: "Alex,Shi" <alex.shi@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Chen, Tim C" <tim.c.chen@intel.com>
+Message-ID: <20100914074248.ijJJ7a2rRGp79YCGo97qvNYCEt-Vw6d_qPVrv6pCYZ0@z>
 
-On Mon, Sep 13, 2010 at 01:14:36PM -0700, H. Peter Anvin wrote:
-> Disallow building the generic kernel code with gcc < 3.4.  Earlier
-> versions of gcc have known problems, and it appears that anyone who
-> genuinely needs gcc 3.x can use gcc 3.4 at this point.
+On Tue, 2010-09-14 at 13:36 +0800, Alex,Shi wrote:
+> Peter:
+> We tested your tree base on 2.6.36-rc3 kernel. The testing covered on
+> Core2 2P, NHM-EP/WSM-EP machines, no clear performance regression found
+> on your patch compare to 36-rc3, and also no clear improvements on our
+> benchmarks. 
 > 
-> Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
+> The benchmarks are listed in the following website, and plus some of
+> FFSB/FIO scenarios.  http://kernel-perf.sourceforge.net/ 
 
-Reviewed-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Thanks, much appreciated!!
+
+Hopefully we'll get sparc64 fixed up soon and can talk about merging
+this.
