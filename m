@@ -1,50 +1,33 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Matt Fleming <matt@console-pimps.org>
 Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
-Date: Wed, 15 Sep 2010 10:28:40 +0200
-Message-ID: <1284539320.3764.266.camel@twins>
-References: <1284360648.3269.115.camel@yhuang-dev.sh.intel.com>
-	 <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com>
-	 <1284377790.2275.212.camel@laptop>
-	 <1284528590.2256.135.camel@yhuang-dev.sh.intel.com>
+Date: Wed, 15 Sep 2010 09:50:03 +0100
+Message-ID: <20100915085003.GA20697@console-pimps.org>
+References: <1284360648.3269.115.camel@yhuang-dev.sh.intel.com> <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com> <1284377790.2275.212.camel@laptop> <1284528590.2256.135.camel@yhuang-dev.sh.intel.com> <1284539320.3764.266.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:55660 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752558Ab0IOI3P convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Sep 2010 04:29:15 -0400
-In-Reply-To: <1284528590.2256.135.camel@yhuang-dev.sh.intel.com>
+Received: from arkanian.console-pimps.org ([212.110.184.194]:56218 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751699Ab0IOIuE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Sep 2010 04:50:04 -0400
+Content-Disposition: inline
+In-Reply-To: <1284539320.3764.266.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Huang Ying <ying.huang@intel.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>DavidHowells <dhowells@redhat.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Huang Ying <ying.huang@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Paul Mundt <lethal@linux-sh.org>
 
-On Wed, 2010-09-15 at 13:29 +0800, Huang Ying wrote:
-
-> I uses the cross build tool from:
+On Wed, Sep 15, 2010 at 10:28:40AM +0200, Peter Zijlstra wrote:
 > 
-> http://www.kernel.org/pub/tools/crosstool/
+> I've got a patch to solve the Alpha issue, and I've got a patch for one
+> of the SH issues as well, but I understand you need to pull in Paul
+> Mundt's SH tree to make it fully build.
 
-I'm not familiar with those, I build my own gcc-4.5.1 toolchains for all
-targets that would actually build a gcc toolchains, for those that don't
-I simply don't care about.
+FWIW this is the commit that is missing in Linus' tree which fixes the
+build issues,
 
-> But I get compile errors on s390 and alpha even for tip/master
-> (ce0c65112d37ff04016b4e0962a406281640739b). The build logs are attached.
+http://git.kernel.org/?p=linux/kernel/git/lethal/sh-2.6.git;a=commit;h=b9afa3e015273a52718e0a7efe198a0df76be880
 
-I've got a patch to solve the Alpha issue, and I've got a patch for one
-of the SH issues as well, but I understand you need to pull in Paul
-Mundt's SH tree to make it fully build.
-
-I've asked Ingo to merge the Alpha and SH patches I had pending.
-
-> Do I use the wrong git tree? Or we should fix tip/master firstly?
-> 
-> And frv and sh have compile error even for linus/master and 2.6.35. So I
-> can not compile test for these arches.
-
-FRV is one of those architectures that doesn't build a toolchain from
-plain gcc sources, David Howells did provide me with a toolchain for
-that, it does build, but really it should be getting its toolchain
-sorted upstream.
+I'm guessing Paul will be sending a pull request to fix this breakage
+before 2.6.36 is released.
