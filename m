@@ -1,36 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:39363 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751683Ab0INHmv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Sep 2010 03:42:51 -0400
-Subject: Re:  [PATCH 00/20] mm: Preemptibility -v4
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <1284442585.26157.8150.camel@debian>
-References: <20100828141637.421594670@chello.nl>
-	 <AANLkTikSm2Mq8hGNac9rpFH-3pvryw2kW57EP45Ny6Vp@mail.gmail.com>
-	 <1284442585.26157.8150.camel@debian>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Tue, 14 Sep 2010 09:42:48 +0200
-Message-ID: <1284450168.2275.452.camel@laptop>
-Mime-Version: 1.0
+Received: from fxip-0047f.externet.hu ([88.209.222.127]:53698 "EHLO
+	pomaz-ex.szeredi.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752551Ab0IOPDP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Sep 2010 11:03:15 -0400
+Subject: memory barrier question
+Message-ID: <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Date: Wed, 15 Sep 2010 16:36:39 +0200
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Alex,Shi" <alex.shi@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Chen, Tim C" <tim.c.chen@intel.com>
-Message-ID: <20100914074248.ijJJ7a2rRGp79YCGo97qvNYCEt-Vw6d_qPVrv6pCYZ0@z>
+To: dhowells@redhat.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100915143639.fT1EwrgLXoFjvlxX2V1nqkUMtLMj8ulNZzamkX5c_H4@z>
 
-On Tue, 2010-09-14 at 13:36 +0800, Alex,Shi wrote:
-> Peter:
-> We tested your tree base on 2.6.36-rc3 kernel. The testing covered on
-> Core2 2P, NHM-EP/WSM-EP machines, no clear performance regression found
-> on your patch compare to 36-rc3, and also no clear improvements on our
-> benchmarks. 
-> 
-> The benchmarks are listed in the following website, and plus some of
-> FFSB/FIO scenarios.  http://kernel-perf.sourceforge.net/ 
+Hi,
 
-Thanks, much appreciated!!
+I'm trying to understand memory barriers but not quite succeeding.
 
-Hopefully we'll get sparc64 fixed up soon and can talk about merging
-this.
+Consider the following example:
+
+Start:
+	p = NULL;
+	x = 0;
+
+CPU1:
+	atomic_inc(&x);
+	p = &x;
+
+CPU2:
+	if (p)
+		z = atomic_read(p);
+
+Is it possible to end up with z == 0?  What if there's a lock/unlock
+before setting "p"?  What if there's a write barrier before setting
+"p"?
+
+Thanks,
+Miklos
