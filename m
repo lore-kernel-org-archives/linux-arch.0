@@ -1,34 +1,35 @@
-From: Miklos Szeredi <miklos@szeredi.hu>
-Subject: memory barrier question
-Date: Wed, 15 Sep 2010 16:36:39 +0200
-Message-ID: <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: dhowells@redhat.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: "Andi Kleen" <andi@firstfloor.org>
+Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
+Date: Wed, 15 Sep 2010 17:10:03 +0200 (CEST)
+Message-ID: <37141.91.60.150.116.1284563403.squirrel@www.firstfloor.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from one.firstfloor.org ([213.235.205.2]:52060 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753143Ab0IOPKI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Sep 2010 11:10:08 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Huang Ying <ying.huang@intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>
 
-Hi,
+> On Wed, 2010-09-15 at 13:29 +0800, Huang Ying wrote:
+>
+>> I uses the cross build tool from:
+>>
+>> http://www.kernel.org/pub/tools/crosstool/
+>
+> I'm not familiar with those, I build my own gcc-4.5.1 toolchains for all
+> targets that would actually build a gcc toolchains, for those that don't
+> I simply don't care about.
 
-I'm trying to understand memory barriers but not quite succeeding.
+I don't think it's a reasonable requirement to have every contributor
+compile on all architectures. If that was a general requirement
+soon nobody would send patches anymore.
 
-Consider the following example:
+Cross arch breakages happen rarely and can be usually repaired after
+the fact.
 
-Start:
-	p = NULL;
-	x = 0;
-
-CPU1:
-	atomic_inc(&x);
-	p = &x;
-
-CPU2:
-	if (p)
-		z = atomic_read(p);
-
-Is it possible to end up with z == 0?  What if there's a lock/unlock
-before setting "p"?  What if there's a write barrier before setting
-"p"?
-
-Thanks,
-Miklos
+-Andi
