@@ -1,52 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from va3ehsobe006.messaging.microsoft.com ([216.32.180.16]:52939
-	"EHLO VA3EHSOBE009.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752705Ab0IPMrg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2010 08:47:36 -0400
-Date: Thu, 16 Sep 2010 14:46:56 +0200
-From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH 2/6] ARM: oprofile: Rename op_arm to oprofile_perf
-Message-ID: <20100916124656.GY13563@erda.amd.com>
-References: <cover.1284357372.git.matt@console-pimps.org>
- <61369979994f435ba2ac62f06717644d722ee002.1284357372.git.matt@console-pimps.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <61369979994f435ba2ac62f06717644d722ee002.1284357372.git.matt@console-pimps.org>
+Received: from fxip-0047f.externet.hu ([88.209.222.127]:35456 "EHLO
+	pomaz-ex.szeredi.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754338Ab0IPNmm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Sep 2010 09:42:42 -0400
+In-reply-to: <3777.1284638136@redhat.com> (message from David Howells on Thu,
+	16 Sep 2010 12:55:36 +0100)
+Subject: Re: memory barrier question
+References: <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu> <3777.1284638136@redhat.com>
+Message-ID: <E1OwEjQ-0006wS-MU@pomaz-ex.szeredi.hu>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Date: Thu, 16 Sep 2010 15:42:32 +0200
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20100916124656.coCzgE-oY_4g13damsT5QDpLULqBGbnEVL4IpHukP8g@z>
+To: David Howells <dhowells@redhat.com>
+Cc: miklos@szeredi.hu, paulmck@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100916134232.v65lWYUXH2a9xm2tw7sAKoLFYUI8DZD10tyobsjAJc8@z>
 
-On 13.09.10 02:07:33, Matt Fleming wrote:
-> In preparation for moving the generic functions out of this file, give
-> the functions more general names (e.g. remove "arm" from the names).
+On Thu, 16 Sep 2010, David Howells wrote:
+> Miklos Szeredi <miklos@szeredi.hu> wrote:
 > 
-> Signed-off-by: Matt Fleming <matt@console-pimps.org>
-> ---
->  arch/arm/oprofile/common.c |   68 ++++++++++++++++++++++----------------------
->  1 files changed, 34 insertions(+), 34 deletions(-)
+> > Consider the following example:
+> > 
+> > Start:
+> > 	p = NULL;
+> > 	x = 0;
+> > 
+> > CPU1:
+> > 	atomic_inc(&x);
+> > 	p = &x;
+> > 
+> > CPU2:
+> > 	if (p)
+> > 		z = atomic_read(p);
+> > 
+> > Is it possible to end up with z == 0?
+> 
+> I think so.  I'm not sure that you can assume that CPU1 does its two
+> 'operations' in the same order.  You can guarantee that the read of x,
+> increment, and write of x will be done in an order, and that no one else will
+> see an intermediate state, but you can't guarantee that CPU2 will see x
+> changed before p is changed.
+> 
+> In Documentation/memory-barriers.txt, it says:
+> 
+> 	The following also do _not_ imply memory barriers, and so may require
+> 	explicit memory barriers under some circumstances
+> 	(smp_mb__before_atomic_dec() for instance):
+> 
+> 		atomic_add();
+> 		atomic_sub();
+> 		atomic_inc();
+> 		atomic_dec();
+> 
+> so you need _two_ memory barriers, e.g.:
+> 
+> 	CPU1:
+> 		atomic_inc(&x);
+> 		smp_mb__after_atomic_inc()
+> 		p = &x;
+> 
+> 	CPU2:
+> 		q = p;
+> 		smp_rmb();
+> 		if (q)
+> 			z = atomic_read(q);
+> 
+> Note that atomic_inc() may imply a suitable memory barrier on some arches, and
+> so has special variant barrier functions of its own.
 
->  static struct platform_driver oprofile_driver = {
->  	.driver		= {
-> -		.name		= "arm-oprofile",
-> +		.name		= "perf-oprofile",
+Is the rmb() really needed?
 
-This should be "oprofile-perf" instead, otherwise the driver belongs
-to perf.
+Take this code from fs/namei.c for example:
 
--Robert
+		inode = next.dentry->d_inode;
+		if (!inode)
+			goto out_dput;
 
->  	},
-> -	.resume		= op_arm_resume,
-> -	.suspend	= op_arm_suspend,
-> +	.resume		= oprofile_perf_resume,
-> +	.suspend	= oprofile_perf_suspend,
->  };
+		if (inode->i_op->follow_link) {
 
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
+It happily dereferences dentry->d_inode without a barrier after
+checking it for non-null, while that d_inode might have just been
+initialized on another CPU with a freshly created inode.  There's
+absolutely no synchornization with that on this side.
 
+Isn't the fact that we check the pointer for being non-null (together
+with locking/barrier on the other side) enough to ensure that it's
+safe to dereference it?
+
+Thanks,
+Miklos
