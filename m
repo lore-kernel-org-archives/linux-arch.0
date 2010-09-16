@@ -1,63 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e1.ny.us.ibm.com ([32.97.182.141]:60276 "EHLO e1.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751780Ab0IPPEC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Sep 2010 11:04:02 -0400
-Date: Thu, 16 Sep 2010 08:03:57 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Received: from fxip-0047f.externet.hu ([88.209.222.127]:46930 "EHLO
+	pomaz-ex.szeredi.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752674Ab0IPQHE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Sep 2010 12:07:04 -0400
+In-reply-to: <20100916150356.GD2462@linux.vnet.ibm.com>
+	(paulmck@linux.vnet.ibm.com)
 Subject: Re: memory barrier question
-Message-ID: <20100916150356.GD2462@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
 References: <E1OwEjQ-0006wS-MU@pomaz-ex.szeredi.hu>
  <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
  <3777.1284638136@redhat.com>
- <6383.1284647456@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <6383.1284647456@redhat.com>
+ <6383.1284647456@redhat.com> <20100916150356.GD2462@linux.vnet.ibm.com>
+Message-ID: <E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
+From: Miklos Szeredi <miklos@szeredi.hu>
+Date: Thu, 16 Sep 2010 18:06:53 +0200
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100916150357.CyZFsX66btiIq5ybYKWea9JTlgtB53jDNe5dl_JJV3M@z>
+To: paulmck@linux.vnet.ibm.com
+Cc: dhowells@redhat.com, miklos@szeredi.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20100916160653.B4I8mpKbN9vfLg2HUohy_YwhLfE-O_XzUoQtN25kvtQ@z>
 
-On Thu, Sep 16, 2010 at 03:30:56PM +0100, David Howells wrote:
-> Miklos Szeredi <miklos@szeredi.hu> wrote:
-> 
-> > Is the rmb() really needed?
+On Thu, 16 Sep 2010, Paul E. McKenney wrote:
+> On Thu, Sep 16, 2010 at 03:30:56PM +0100, David Howells wrote:
+> > Miklos Szeredi <miklos@szeredi.hu> wrote:
 > > 
-> > Take this code from fs/namei.c for example:
+> > > Is the rmb() really needed?
+> > > 
+> > > Take this code from fs/namei.c for example:
+> > > 
+> > > 		inode = next.dentry->d_inode;
+> > > 		if (!inode)
+> > > 			goto out_dput;
+> > > 
+> > > 		if (inode->i_op->follow_link) {
+> > > 
+> > > It happily dereferences dentry->d_inode without a barrier after
+> > > checking it for non-null, while that d_inode might have just been
+> > > initialized on another CPU with a freshly created inode.  There's
+> > > absolutely no synchornization with that on this side.
 > > 
-> > 		inode = next.dentry->d_inode;
-> > 		if (!inode)
-> > 			goto out_dput;
-> > 
-> > 		if (inode->i_op->follow_link) {
-> > 
-> > It happily dereferences dentry->d_inode without a barrier after
-> > checking it for non-null, while that d_inode might have just been
-> > initialized on another CPU with a freshly created inode.  There's
-> > absolutely no synchornization with that on this side.
+> > Perhaps it's not necessary; once set, how likely is i_op to be changed once
+> > I_NEW is cleared?
 > 
-> Perhaps it's not necessary; once set, how likely is i_op to be changed once
-> I_NEW is cleared?
+> Are the path_get()s protecting this?
 
-Are the path_get()s protecting this?
+No, when creating a file the dentry will go from negative to positive
+independently from lookup.  The dentry can get instantiated with an
+inode between the path_get() and dereferencing ->d_inode.
 
-If there is no protection, then something like rcu_dereference() is
-needed for the assignment from next.dentry->d_inode.
-
-> > Isn't the fact that we check the pointer for being non-null (together
-> > with locking/barrier on the other side) enough to ensure that it's
-> > safe to dereference it?
 > 
-> It's possible that since there's a dependency between the variables on the
-> reading CPU that the barrier is not required.
-> 
-> I think I have to refer that question to Paul.
+> If there is no protection, then something like rcu_dereference() is
+> needed for the assignment from next.dentry->d_inode.
 
-We would need either one of the rcu_dereference() or smp_read_barrier_depends()
-APIs to enforce the dependency, for example, against the compiler.
+Do I understand correctly that the problem is that a CPU may have a
+stale cache associated with *inode, one that was loaded before the
+write barrier took effect?
 
-							Thanx, Paul
+Funny that such a bug could stay unnoticed in so often excercised
+code.  Yeah I know it's alpha only.  I wonder how much of this pattern
+exists in the kernel elswhere without the necessary barriers.
+
+Thanks,
+Miklos
