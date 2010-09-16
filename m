@@ -1,82 +1,70 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: memory barrier question
-Date: Thu, 16 Sep 2010 18:18:59 +0200
-Message-ID: <1284653939.2275.578.camel@laptop>
-References: <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
-	 <3777.1284638136@redhat.com>
+Date: Thu, 16 Sep 2010 09:37:08 -0700
+Message-ID: <20100916163708.GG2462@linux.vnet.ibm.com>
+References: <E1OwEjQ-0006wS-MU@pomaz-ex.szeredi.hu>
+ <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
+ <3777.1284638136@redhat.com>
+ <6383.1284647456@redhat.com>
+ <20100916150356.GD2462@linux.vnet.ibm.com>
+ <E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:59081 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752674Ab0IPQTO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Sep 2010 12:19:14 -0400
-In-Reply-To: <3777.1284638136@redhat.com>
+Received: from e7.ny.us.ibm.com ([32.97.182.137]:34919 "EHLO e7.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752748Ab0IPQhM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Sep 2010 12:37:12 -0400
+Content-Disposition: inline
+In-Reply-To: <E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Miklos Szeredi <miklos@szeredi.hu>
+Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2010-09-16 at 12:55 +0100, David Howells wrote:
-> If there's a lock+unlock between, then this counts as a full memory
-> barrier
+On Thu, Sep 16, 2010 at 06:06:53PM +0200, Miklos Szeredi wrote:
+> On Thu, 16 Sep 2010, Paul E. McKenney wrote:
+> > On Thu, Sep 16, 2010 at 03:30:56PM +0100, David Howells wrote:
+> > > Miklos Szeredi <miklos@szeredi.hu> wrote:
+> > > 
+> > > > Is the rmb() really needed?
+> > > > 
+> > > > Take this code from fs/namei.c for example:
+> > > > 
+> > > > 		inode = next.dentry->d_inode;
+> > > > 		if (!inode)
+> > > > 			goto out_dput;
+> > > > 
+> > > > 		if (inode->i_op->follow_link) {
+> > > > 
+> > > > It happily dereferences dentry->d_inode without a barrier after
+> > > > checking it for non-null, while that d_inode might have just been
+> > > > initialized on another CPU with a freshly created inode.  There's
+> > > > absolutely no synchornization with that on this side.
+> > > 
+> > > Perhaps it's not necessary; once set, how likely is i_op to be changed once
+> > > I_NEW is cleared?
+> > 
+> > Are the path_get()s protecting this?
+> 
+> No, when creating a file the dentry will go from negative to positive
+> independently from lookup.  The dentry can get instantiated with an
+> inode between the path_get() and dereferencing ->d_inode.
+> 
+> > If there is no protection, then something like rcu_dereference() is
+> > needed for the assignment from next.dentry->d_inode.
+> 
+> Do I understand correctly that the problem is that a CPU may have a
+> stale cache associated with *inode, one that was loaded before the
+> write barrier took effect?
 
-I though it was unlock+lock.
+Yes, especially if the compiler is aggressively optimizing.
 
-From memory-barriers.txt:
+> Funny that such a bug could stay unnoticed in so often excercised
+> code.  Yeah I know it's alpha only.  I wonder how much of this pattern
+> exists in the kernel elswhere without the necessary barriers.
 
-And a couple of implicit varieties:
+The probability of failure is low, but non-zero.  :-/
 
- (5) LOCK operations.
-
-     This acts as a one-way permeable barrier.  It guarantees that all memory
-     operations after the LOCK operation will appear to happen after the LOCK
-     operation with respect to the other components of the system.
-
-     Memory operations that occur before a LOCK operation may appear to happen
-     after it completes.
-
-     A LOCK operation should almost always be paired with an UNLOCK operation.
-
-
- (6) UNLOCK operations.
-
-     This also acts as a one-way permeable barrier.  It guarantees that all
-     memory operations before the UNLOCK operation will appear to happen before
-     the UNLOCK operation with respect to the other components of the system.
-
-     Memory operations that occur after an UNLOCK operation may appear to
-     happen before it completes.
-
-     LOCK and UNLOCK operations are guaranteed to appear with respect to each
-     other strictly in the order specified.
-
-     The use of LOCK and UNLOCK operations generally precludes the need for
-     other sorts of memory barrier (but note the exceptions mentioned in the
-     subsection "MMIO write barrier").
-
-
-Therefore:
-
-  A = 5
-  LOCK
-
-  UNLOCK
-  B = 6
-
-May be observed as:
-
-   LOCK
-   B = 6
-   A = 5
-   UNLOCK
-
-The sequence:
-
-  A = 5
-  UNLOCK
-  LOCK
-  B = 6
-
-Is fully ordered.
+							Thanx, Paul
