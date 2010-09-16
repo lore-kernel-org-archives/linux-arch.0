@@ -1,54 +1,58 @@
-From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH V3 0/6] Generalise ARM perf-events backend for oprofile
-Date: Thu, 16 Sep 2010 16:48:28 +0200
-Message-ID: <20100916144828.GD13563@erda.amd.com>
-References: <cover.1284357372.git.matt@console-pimps.org>
- <1284372533.3042.11.camel@e102144-lin.cambridge.arm.com>
- <20100913111850.GC14882@console-pimps.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: memory barrier question
+Date: Thu, 16 Sep 2010 08:03:57 -0700
+Message-ID: <20100916150356.GD2462@linux.vnet.ibm.com>
+References: <E1OwEjQ-0006wS-MU@pomaz-ex.szeredi.hu>
+ <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
+ <3777.1284638136@redhat.com>
+ <6383.1284647456@redhat.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20100913111850.GC14882@console-pimps.org>
-Sender: linux-sh-owner@vger.kernel.org
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+In-Reply-To: <6383.1284647456@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: Miklos Szeredi <miklos@szeredi.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 13.09.10 07:18:50, Matt Fleming wrote:
-> On Mon, Sep 13, 2010 at 11:08:53AM +0100, Will Deacon wrote:
-
-> > I've tested this patch series on a multicore Cortex-A9 board. If I
-> > revert patch 5/6 (ARM: Make oprofile depend on CONFIG_HW_PERF_EVENTS)
-> > then everything seems to work fine. Otherwise, testing without
-> > HW_PERF_EVENTS doesn't fall back to timer mode.
+On Thu, Sep 16, 2010 at 03:30:56PM +0100, David Howells wrote:
+> Miklos Szeredi <miklos@szeredi.hu> wrote:
+> 
+> > Is the rmb() really needed?
 > > 
-> > So, with the exception of the patch above:
+> > Take this code from fs/namei.c for example:
 > > 
-> > Tested-by: Will Deacon <will.deacon@arm.com>
+> > 		inode = next.dentry->d_inode;
+> > 		if (!inode)
+> > 			goto out_dput;
+> > 
+> > 		if (inode->i_op->follow_link) {
+> > 
+> > It happily dereferences dentry->d_inode without a barrier after
+> > checking it for non-null, while that d_inode might have just been
+> > initialized on another CPU with a freshly created inode.  There's
+> > absolutely no synchornization with that on this side.
 > 
-> Hi Will, thanks for testing!
+> Perhaps it's not necessary; once set, how likely is i_op to be changed once
+> I_NEW is cleared?
+
+Are the path_get()s protecting this?
+
+If there is no protection, then something like rcu_dereference() is
+needed for the assignment from next.dentry->d_inode.
+
+> > Isn't the fact that we check the pointer for being non-null (together
+> > with locking/barrier on the other side) enough to ensure that it's
+> > safe to dereference it?
 > 
-> Ah yeah, making oprofile rely on CONFIG_HW_PERF_EVENTS is too
-> strict. I hadn't noticed that armpmu_get_pmu_id() is wrapped in
-> CONFIG_HW_PERF_EVENTS and had intended op->cpu_type to be NULL and so
-> we'd fallback to the timer mode.
+> It's possible that since there's a dependency between the variables on the
+> reading CPU that the barrier is not required.
 > 
-> This patch needs to be dropped entirely (though another patch should
-> conditionally include oprofile_perf.o based on CONFIG_HW_PERF_EVENT
-> like I had in my original series).
+> I think I have to refer that question to Paul.
 
-Matt,
+We would need either one of the rcu_dereference() or smp_read_barrier_depends()
+APIs to enforce the dependency, for example, against the compiler.
 
-yes, the patch set looks good so far. With the exception of some minor
-comments I made and patch #5 dropped, we should be fine. Please update
-the patches.
-
-Thanks,
-
--Robert
-
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
-
+							Thanx, Paul
