@@ -1,50 +1,51 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH -tip -v5] irq_work: generic hard-irq context callbacks
-Date: Fri, 17 Sep 2010 15:06:42 +0200
-Message-ID: <1284728802.28028.470.camel@twins>
-References: <1284689131.32373.63.camel@yhuang-dev>
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: [PATCH] ARM: prevent multiple syscall restarts
+Date: Fri, 17 Sep 2010 16:21:58 +0100
+Message-ID: <20100917152158.GA20369@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43775 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752902Ab0IQNHI convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Sep 2010 09:07:08 -0400
-In-Reply-To: <1284689131.32373.63.camel@yhuang-dev>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:33681 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753955Ab0IQPWH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Sep 2010 11:22:07 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Huang Ying <ying.huang@intel.com>
-Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 
-On Fri, 2010-09-17 at 10:05 +0800, Huang Ying wrote:
-> From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> 
-> In order for other NMI context users that want to run things from
-> hard-IRQ context, extract the perf_event callback mechanism.
-> 
-> Huang Ying: some fixes
+Al Viro reports that calling "sys_sigsuspend(-ERESTARTNOHAND, 0, 0)"
+with two signals coming and being handled in kernel space results
+in the syscall restart being done twice.
 
-I got complaints about a lacking changelog, how about something like the
-below?
+Avoid this by clearing the 'why' flag when we call the signal handling
+code to prevent further syscall restarts after the first.
 
+Acked-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
 ---
+ arch/arm/kernel/entry-common.S |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-Provide a mechanism that allows running code in IRQ context. It is most
-useful for NMI code that needs to interact with the rest of the system
--- like wakeup a task to drain buffers.
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index f05a35a..4a560d3 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -48,6 +48,8 @@ work_pending:
+ 	beq	no_work_pending
+ 	mov	r0, sp				@ 'regs'
+ 	mov	r2, why				@ 'syscall'
++	tst	r1, #_TIF_SIGPENDING		@ delivering a signal?
++	movne	why, #0				@ prevent further restarts
+ 	bl	do_notify_resume
+ 	b	ret_slow_syscall		@ Check work again
+ 
+-- 
+1.6.2.5
 
-Perf currently has such a mechanism, so extract that and provide it as a
-generic feature, independent of perf so that others may also benefit.
 
-The IRQ context callback is generated through self-IPIs where possible,
-or on architectures like powerpc which have soft-disabled IRQs, its ran
-on the soft-enable path.
-
-Architectures that don't have anything like this get to do with a
-callback from the timer tick. These architectures can call
-irq_run_work() at the tail of any IRQ handlers that might enqueue such
-work (like the perf IRQ handler) to avoid undue latencies in processing
-the work.
-
----
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
