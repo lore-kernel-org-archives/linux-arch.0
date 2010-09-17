@@ -1,23 +1,50 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
-Date: Fri, 17 Sep 2010 13:37:40 +0100
-Message-ID: <5866.1284727060@redhat.com>
-References: <1284627425.2754.434.camel@yhuang-dev> <1284360648.3269.115.camel@yhuang-dev.sh.intel.com> <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com> <1284377790.2275.212.camel@laptop> <1284528590.2256.135.camel@yhuang-dev.sh.intel.com> <1284539320.3764.266.camel@twins>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH -tip -v5] irq_work: generic hard-irq context callbacks
+Date: Fri, 17 Sep 2010 15:06:42 +0200
+Message-ID: <1284728802.28028.470.camel@twins>
+References: <1284689131.32373.63.camel@yhuang-dev>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:5962 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752260Ab0IQMi0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Sep 2010 08:38:26 -0400
-In-Reply-To: <1284627425.2754.434.camel@yhuang-dev>
+Received: from bombadil.infradead.org ([18.85.46.34]:43775 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752902Ab0IQNHI convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Sep 2010 09:07:08 -0400
+In-Reply-To: <1284689131.32373.63.camel@yhuang-dev>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Huang Ying <ying.huang@intel.com>
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>
+Cc: Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
 
-Huang Ying <ying.huang@intel.com> wrote:
+On Fri, 2010-09-17 at 10:05 +0800, Huang Ying wrote:
+> From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> 
+> In order for other NMI context users that want to run things from
+> hard-IRQ context, extract the perf_event callback mechanism.
+> 
+> Huang Ying: some fixes
 
-> Where can I find latest FRV cross compiler workable for Linux kernel?
+I got complaints about a lacking changelog, how about something like the
+below?
 
-I'm trying to get a fairly current one put up on FTP somewhere.
+---
 
-David
+Provide a mechanism that allows running code in IRQ context. It is most
+useful for NMI code that needs to interact with the rest of the system
+-- like wakeup a task to drain buffers.
+
+Perf currently has such a mechanism, so extract that and provide it as a
+generic feature, independent of perf so that others may also benefit.
+
+The IRQ context callback is generated through self-IPIs where possible,
+or on architectures like powerpc which have soft-disabled IRQs, its ran
+on the soft-enable path.
+
+Architectures that don't have anything like this get to do with a
+callback from the timer tick. These architectures can call
+irq_run_work() at the tail of any IRQ handlers that might enqueue such
+work (like the perf IRQ handler) to avoid undue latencies in processing
+the work.
+
+---
