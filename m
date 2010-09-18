@@ -1,46 +1,48 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: memory barrier question
-Date: Sat, 18 Sep 2010 02:12:19 +0100
-Message-ID: <20100918021219.1ff6f98f@lxorguk.ukuu.org.uk>
-References: <E1OwEjQ-0006wS-MU@pomaz-ex.szeredi.hu>
-	<E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
-	<3777.1284638136@redhat.com>
-	<6383.1284647456@redhat.com>
-	<20100916150356.GD2462@linux.vnet.ibm.com>
-	<E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
-	<20100916163708.GG2462@linux.vnet.ibm.com>
-	<E1OwHkg-0007IX-DH@pomaz-ex.szeredi.hu>
-	<1284656978.26423.11.camel@mulgrave.site>
-	<E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
-	<1284760148.30449.107.camel@pasglop>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 1/4] alpha: belated ERESTART_RESTARTBLOCK race fix
+Date: Sat, 18 Sep 2010 09:38:47 +0100
+Message-ID: <20100918083846.GA31363@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:36742 "EHLO
-	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753785Ab0IRAu6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Sep 2010 20:50:58 -0400
-In-Reply-To: <1284760148.30449.107.camel@pasglop>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33931 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755158Ab0IRIiu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Sep 2010 04:38:50 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, James Bottomley <James.Bottomley@HansenPartnership.com>, paulmck@linux.vnet.ibm.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Richard Henderson <rth@twiddle.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
 
-> >    LOAD inode = next.dentry->inode
-> >    if (inode != NULL)
-> >    	LOAD inode->f_op
-> > 
-> > What is there the compiler can optimize?
-> 
-> Those two loads depend on each other, I don't think any implementation
-> can re-order them. In fact, such data dependency is typically what is
-> used to avoid having barriers in some cases. The second load cannot be
-> issued until the value from the first one is returned.
+same thing as had been done on other targets back in 2003 -
+move setting ->restart_block.fn into {rt_,}sigreturn().
 
-Actually I've met several compilers which will optimise them but not gcc
-and not in a Linux environment. Some compilers know how to optimise the
-== NULL case for pointer dereferences providing their programming
-environment has a couple of low pages mapped read only and reading 0.
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/alpha/kernel/signal.c |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-Alan
+diff --git a/arch/alpha/kernel/signal.c b/arch/alpha/kernel/signal.c
+index 0932dbb..e5b1b3c 100644
+--- a/arch/alpha/kernel/signal.c
++++ b/arch/alpha/kernel/signal.c
+@@ -239,6 +239,8 @@ restore_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
+ 	unsigned long usp;
+ 	long i, err = __get_user(regs->pc, &sc->sc_pc);
+ 
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
+ 	sw->r26 = (unsigned long) ret_from_sys_call;
+ 
+ 	err |= __get_user(regs->r0, sc->sc_regs+0);
+@@ -591,7 +593,6 @@ syscall_restart(unsigned long r0, unsigned long r19,
+ 		regs->pc -= 4;
+ 		break;
+ 	case ERESTART_RESTARTBLOCK:
+-		current_thread_info()->restart_block.fn = do_no_restart_syscall;
+ 		regs->r0 = EINTR;
+ 		break;
+ 	}
+-- 
+1.5.6.5
