@@ -1,26 +1,47 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 0/5] mm, highmem: kmap_atomic rework -v3
-Date: Sat, 18 Sep 2010 17:53:26 +0200
-Message-ID: <20100918155326.478277313@chello.nl>
+Subject: [PATCH 4/5] perf, x86: Fix up kmap_atomic type
+Date: Sat, 18 Sep 2010 17:53:30 +0200
+Message-ID: <20100918155652.809148647@chello.nl>
+References: <20100918155326.478277313@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=kmap-x86-perf.patch
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
 List-Id: linux-arch.vger.kernel.org
 
-Next version of the kmap_atomic rework using Andrew's fancy CPP trickery to
-avoid having to convert the whole tree at once.
+Now that the KM_type stuff is history, clean up the compiler warning.
 
-This is compile tested for i386-allmodconfig, frv, mips-sb1250-swarm,
-powerpc-ppc6xx_defconfig, sparc32_defconfig, arm-omap3 (all with
-HIGHEM=y).
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+ arch/x86/kernel/cpu/perf_event.c |    5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-Tested on Tile by Chris Metcalf.
-
-Boot-tested with: i386-defconfig.
-
-Not tested with:
- - nm10300, the arch doesn't build with highmem to begin with
+Index: linux-2.6/arch/x86/kernel/cpu/perf_event.c
+===================================================================
+--- linux-2.6.orig/arch/x86/kernel/cpu/perf_event.c
++++ linux-2.6/arch/x86/kernel/cpu/perf_event.c
+@@ -49,7 +49,6 @@ static unsigned long
+ copy_from_user_nmi(void *to, const void __user *from, unsigned long n)
+ {
+ 	unsigned long offset, addr = (unsigned long)from;
+-	int type = in_nmi() ? KM_NMI : KM_IRQ0;
+ 	unsigned long size, len = 0;
+ 	struct page *page;
+ 	void *map;
+@@ -63,9 +62,9 @@ copy_from_user_nmi(void *to, const void 
+ 		offset = addr & (PAGE_SIZE - 1);
+ 		size = min(PAGE_SIZE - offset, n - len);
+ 
+-		map = kmap_atomic(page, type);
++		map = kmap_atomic(page);
+ 		memcpy(to, map+offset, size);
+-		kunmap_atomic(map, type);
++		kunmap_atomic(map);
+ 		put_page(page);
+ 
+ 		len  += size;
 
 
 --
