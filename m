@@ -1,52 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:39385 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756438Ab0IRTl4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Sep 2010 15:41:56 -0400
-Date: Sat, 18 Sep 2010 20:41:55 +0100
-Subject: [PATCH 3/5] frv: avoid infinite loop of SIGSEGV delivery
+Received: from mx1.orcon.net.nz ([219.88.242.51]:42363 "EHLO mx1.orcon.net.nz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753343Ab0ISDIo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 18 Sep 2010 23:08:44 -0400
+Received: from Debian-exim by mx1.orcon.net.nz with local (Exim 4.69)
+	(envelope-from <mcree@orcon.net.nz>)
+	id 1Ox9vn-0000EK-M8
+	for linux-arch@vger.kernel.org; Sun, 19 Sep 2010 14:47:07 +1200
+Message-ID: <4C9579A1.5030009@orcon.net.nz>
+Date: Sun, 19 Sep 2010 14:46:57 +1200
+From: Michael Cree <mcree@orcon.net.nz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: Re: [PATCH 1/4] alpha: belated ERESTART_RESTARTBLOCK race fix
+References: <20100918083846.GA31363@ZenIV.linux.org.uk>
+In-Reply-To: <20100918083846.GA31363@ZenIV.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1Ox3IJ-0006RR-BZ@ZenIV.linux.org.uk>
-From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20100918194155.FJrYA5-4FLalCeJopM1jpTEpFaram2SQP_v8dfBzniM@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, mattst88@gmail.com
+Message-ID: <20100919024657.dc5JFWYYDroenRSc4nTqNQYDttNXZQfTyuBD2lvT8Q8@z>
 
+On 18/09/10 20:38, Al Viro wrote:
+> same thing as had been done on other targets back in 2003 -
+> move setting ->restart_block.fn into {rt_,}sigreturn().
+>
+> Signed-off-by: Al Viro<viro@zeniv.linux.org.uk>
 
-force_sigsegv() exists for a good reason...
+For the patch series:
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/frv/kernel/signal.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+Tested-by: Michael Cree <mcree@orcon.net.nz>
 
-diff --git a/arch/frv/kernel/signal.c b/arch/frv/kernel/signal.c
-index d06226b..fa40d54 100644
---- a/arch/frv/kernel/signal.c
-+++ b/arch/frv/kernel/signal.c
-@@ -329,7 +329,7 @@ static int setup_frame(int sig, struct k_sigaction *ka, sigset_t *set)
- 	return 0;
- 
- give_sigsegv:
--	force_sig(SIGSEGV, current);
-+	force_sigsegv(sig, current);
- 	return -EFAULT;
- 
- } /* end setup_frame() */
-@@ -431,7 +431,7 @@ static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	return 0;
- 
- give_sigsegv:
--	force_sig(SIGSEGV, current);
-+	force_sigsegv(sig, current);
- 	return -EFAULT;
- 
- } /* end setup_rt_frame() */
--- 
-1.5.6.5
-
-
+Cheers
+Michael.
