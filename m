@@ -1,45 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:58063 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751644Ab0ISEu4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Sep 2010 00:50:56 -0400
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:42990 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753358Ab0ISRCO convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Sep 2010 13:02:14 -0400
 MIME-Version: 1.0
-In-Reply-To: <4C9579A1.5030009@orcon.net.nz>
-References: <20100918083846.GA31363@ZenIV.linux.org.uk> <4C9579A1.5030009@orcon.net.nz>
-From: Matt Turner <mattst88@gmail.com>
-Date: Sun, 19 Sep 2010 00:50:34 -0400
-Message-ID: <AANLkTimPZ5=FBdffeeDVB0_=no-rQcdEOdZ0OqLXkpss@mail.gmail.com>
-Subject: Re: [PATCH 1/4] alpha: belated ERESTART_RESTARTBLOCK race fix
+In-Reply-To: <20100918155652.684071800@chello.nl>
+References: <20100918155326.478277313@chello.nl> <20100918155652.684071800@chello.nl>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 19 Sep 2010 10:01:12 -0700
+Message-ID: <AANLkTikkVZEGS=1_qbwPoG47twdbzrgWa85NEVD3TxMK@mail.gmail.com>
+Subject: Re: [PATCH 2/5] mm: stack based kmap_atomic
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Cree <mcree@orcon.net.nz>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
-Message-ID: <20100919045034.UGa3yPulz-lkdsnJXvlxe_C0Ajb8jOPSWl-PW7z3gEI@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>
+Message-ID: <20100919170112.Izpk1hQqJ5XYmXVga4VvVY5VD-pbPLuJCiWm6Z4yyh8@z>
 
-On Sat, Sep 18, 2010 at 10:46 PM, Michael Cree <mcree@orcon.net.nz> wrote:
-> On 18/09/10 20:38, Al Viro wrote:
->>
->> same thing as had been done on other targets back in 2003 -
->> move setting ->restart_block.fn into {rt_,}sigreturn().
->>
->> Signed-off-by: Al Viro<viro@zeniv.linux.org.uk>
+On Sat, Sep 18, 2010 at 8:53 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 >
-> For the patch series:
->
-> Tested-by: Michael Cree <mcree@orcon.net.nz>
->
-> Cheers
-> Michael.
->
+>  usr/src/linux-2.6/drivers/gpu/drm/nouveau/nouveau_bios.c | 6832 ---------------
+>  29 files changed, 361 insertions(+), 7195 deletions(-)
 
-Thanks for the test.
+What's that odd 'usr/src/linux-2.6' file that you have and removed?
 
-Al, I've vacuumed your patches and sent them with others in a pull
-request to Linus.
+You're using some seriously broken SCM there.
 
-Thanks a ton. Anyone who finds and fixes a 14 year-old bug, well, I
-owe you a beer.
-
-Thanks!
-Matt
+                  Linus
