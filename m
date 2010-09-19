@@ -1,62 +1,34 @@
-From: Matthew Wilcox <matthew@wil.cx>
+From: Alexey Zaytsev <alexey.zaytsev@gmail.com>
 Subject: Re: Proposal: (u)intptr_t replaces (unsigned) long as opaque type
-Date: Sat, 18 Sep 2010 22:06:35 -0600
-Message-ID: <20100919040635.GE25139@parisc-linux.org>
-References: <4C95324B.2030707@mcgary.org> <20100918235436.GD25139@parisc-linux.org> <4C9578DE.4090602@mcgary.org>
+Date: Sun, 19 Sep 2010 08:33:18 +0400
+Message-ID: <AANLkTin001qXMjqPjQxsHOD3xwvxh3YnOmEJmsyMa=yb@mail.gmail.com>
+References: <4C95324B.2030707@mcgary.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:54680 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750764Ab0ISEGh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Sep 2010 00:06:37 -0400
-Content-Disposition: inline
-In-Reply-To: <4C9578DE.4090602@mcgary.org>
+Received: from mail-gw0-f46.google.com ([74.125.83.46]:64681 "EHLO
+	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750848Ab0ISEdT convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Sep 2010 00:33:19 -0400
+Received: by gwj17 with SMTP id 17so1058451gwj.19
+        for <linux-arch@vger.kernel.org>; Sat, 18 Sep 2010 21:33:18 -0700 (PDT)
+In-Reply-To: <4C95324B.2030707@mcgary.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Greg McGary <greg@mcgary.org>
-Cc: linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Matthew Wilcox <matthew@wil.cx>
 
-On Sat, Sep 18, 2010 at 07:43:42PM -0700, Greg McGary wrote:
->  On 09/18/10 16:54, Matthew Wilcox wrote:
->> Linux really only supports ILP32 and LP64 models.  Pick one, and make
->> your gcc mmtnp-unknown-linux triplet support it.
->>
->> ILP32 may be a better model for you, depending how much RAM your mmtnp
->> processor is likely to support.
->>
-> Yes, I know Linux currently supports only ILP32 and LP64.  What I propose is a way to make it support something new beyond those models, and do so in a way that has no impact on vmlinux images for existing ports.
+On Sun, Sep 19, 2010 at 01:42, Greg McGary <greg@mcgary.org> wrote:
+> =C2=A0I am porting Linux to a new architecture (a massively multi-thr=
+eaded
+> network processor), which has a unique and bothersome characteristic:=
+ sizeof
+> (void*) > sizeof (long). =C2=A0In most regards, it is a 32-bit machin=
+e, but
+> pointers and all GPRs are 48 bit. =C2=A0Pointers occupy 64 bits in me=
+mory, with
+> 16 bits ignored by load/store.
 
-But it's only the beginnings of your problems.  There's so much userspace
-code that's written assuming ILP32 / LP64.  Even inside the kernel,
-people are going to constantly break your port by introducing new code
-that doesn't use uintptr_t.
-
-Then there are other things we use unsigned long for, like interrupt
-status flags (spin_lock_irqsave and friends).  Should those be converted
-to some new type?
-
-> What is mmtnp?
-
-Your processor.  I took the acronym of the description you gave.
-
-> ILP32 will not work for me because pointers coerced to long will be truncated.  LP64 could work, but performance would suck, so that's not viable.
-
-How bad would performance really suck?  x86-32 performance sucks on
-64-bit arithmetic, but that's because it has about three registers.
-With a decent size register file (16 or 32), I doubt performance will
-be that bad.
-
-If you set up your memory map correctly, truncating pointers to 32 bit
-may not be a huge problem.  You can use the kmap() abstraction to run
-your kernel in a 32-bit address space.
-
-Essentially, you're asking us to take on a huge number of changes in
-order to make your new processor's performance not suck.  I don't think
-it likely you're going to find much sympathy here.
-
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+=46orgive my ignorence, but is there something fundamentally wrong with
+having 48-bit longs?
