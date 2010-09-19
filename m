@@ -1,33 +1,60 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 2/5] mm: stack based kmap_atomic
-Date: Sun, 19 Sep 2010 10:01:12 -0700
-Message-ID: <AANLkTikkVZEGS=1_qbwPoG47twdbzrgWa85NEVD3TxMK@mail.gmail.com>
-References: <20100918155326.478277313@chello.nl> <20100918155652.684071800@chello.nl>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20100918155652.684071800@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk@arm.linux.org.uk>, David Howells <dhowells@redhat.com>, Ralf Baechle <ralf@linux-mips.org>, David Miller <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hugh Dickins <hughd@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Miklos Szeredi <miklos@szeredi.hu>
+Subject: Re: memory barrier question
+Date: Sun, 19 Sep 2010 22:15:51 +0200
+Message-ID: <E1OxQIg-0005Nw-WE@pomaz-ex.szeredi.hu>
+References: <6383.1284647456@redhat.com>
+ <20100916150356.GD2462@linux.vnet.ibm.com>
+ <E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
+ <20100916163708.GG2462@linux.vnet.ibm.com>
+ <E1OwHkg-0007IX-DH@pomaz-ex.szeredi.hu>
+ <1284656978.26423.11.camel@mulgrave.site>
+ <E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
+ <1284760148.30449.107.camel@pasglop>
+ <20100917231222.GA3060@linux.vnet.ibm.com>
+ <1284864421.30449.113.camel@pasglop> <20100919152638.GF3060@linux.vnet.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fxip-0047f.externet.hu ([88.209.222.127]:58910 "EHLO
+	pomaz-ex.szeredi.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751015Ab0ISUQF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Sep 2010 16:16:05 -0400
+In-reply-to: <20100919152638.GF3060@linux.vnet.ibm.com>
+	(paulmck@linux.vnet.ibm.com)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: paulmck@linux.vnet.ibm.com
+Cc: benh@kernel.crashing.org, miklos@szeredi.hu, James.Bottomley@HansenPartnership.com, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, Sep 18, 2010 at 8:53 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wr=
-ote:
->
-> =A0usr/src/linux-2.6/drivers/gpu/drm/nouveau/nouveau_bios.c | 6832 ------=
----------
-> =A029 files changed, 361 insertions(+), 7195 deletions(-)
+On Sun, 19 Sep 2010, Paul E. McKenney wrote:
+> Give it a few years.  There are reportedly already other compilers that do
+> this, which is not too surprising given that the perception of insanity
+> is limited to lockless parallel code.  If you have single-threaded code,
+> such as code and data under a lock (where the data is never accessed
+> without holding that lock), then this sort of optimization is pretty safe.
+> I still don't like it, but the compiler guys would argue that this is
+> because I am one of those insane parallel-programming guys.
+> 
+> Furthermore, there are other ways to get into trouble.  If the code
+> continued as follows:
+> 
+>    LOAD inode = next.dentry->inode
+>    if (inode != NULL)
+>    	LOAD inode->f_op
+> 	do_something_using_lots_of_registers();
+> 	LOAD inode->some_other_field
+> 
+> and if the code expected ->f_op and ->some_other_field to be from the
+> same inode structure, severe disappointment could ensue.  This is because
+> the compiler is within its rights to reload from next.dentry->inode,
+> especially given register pressure.  In fact, the compiler would be within
+> its rights to reload from next.dentry->inode in the "LOAD inode->f_op"
+> statement.  And it might well get NULL from such a reload.
 
-What's that odd 'usr/src/linux-2.6' file that you have and removed?
+Except the VFS doesn't allow that.  dentry->inode can go from NULL to
+non-NULL anytime but will only go from non-NULL to NULL when there are
+no possible external references to the dentry.
 
-You're using some seriously broken SCM there.
+The compiler and the CPU cannot move the "LOAD inode->some_field"
+before the "LOAD dentry->inode", because of the conditional, right?
 
-                  Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks,
+Miklos
