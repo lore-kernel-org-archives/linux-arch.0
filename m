@@ -1,34 +1,27 @@
-From: Greg McGary <greg@mcgary.org>
-Subject: Re: Proposal: (u)intptr_t replaces (unsigned) long as opaque type
-Date: Sat, 18 Sep 2010 19:43:42 -0700
-Message-ID: <4C9578DE.4090602@mcgary.org>
-References: <4C95324B.2030707@mcgary.org> <20100918235436.GD25139@parisc-linux.org>
+From: Michael Cree <mcree@orcon.net.nz>
+Subject: Re: [PATCH 1/4] alpha: belated ERESTART_RESTARTBLOCK race fix
+Date: Sun, 19 Sep 2010 14:46:57 +1200
+Message-ID: <4C9579A1.5030009@orcon.net.nz>
+References: <20100918083846.GA31363@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mpls-qmqp-02.inet.qwest.net ([63.231.195.113]:57522 "EHLO
-	mpls-qmqp-02.inet.qwest.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753321Ab0ISCnv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Sep 2010 22:43:51 -0400
-In-Reply-To: <20100918235436.GD25139@parisc-linux.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: linux-arch@vger.kernel.org
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20100918083846.GA31363@ZenIV.linux.org.uk>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, mattst88@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-  On 09/18/10 16:54, Matthew Wilcox wrote:
-> Linux really only supports ILP32 and LP64 models.  Pick one, and make
-> your gcc mmtnp-unknown-linux triplet support it.
+On 18/09/10 20:38, Al Viro wrote:
+> same thing as had been done on other targets back in 2003 -
+> move setting ->restart_block.fn into {rt_,}sigreturn().
 >
-> ILP32 may be a better model for you, depending how much RAM your mmtnp
-> processor is likely to support.
->
-Yes, I know Linux currently supports only ILP32 and LP64.  What I propose is a way to make it support something new beyond those models, and do so in a way that has no impact on vmlinux images for existing ports.
+> Signed-off-by: Al Viro<viro@zeniv.linux.org.uk>
 
-What is mmtnp?
+For the patch series:
 
-ILP32 will not work for me because pointers coerced to long will be truncated.  LP64 could work, but performance would suck, so that's not viable.
+Tested-by: Michael Cree <mcree@orcon.net.nz>
 
-G
+Cheers
+Michael.
