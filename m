@@ -1,64 +1,62 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: memory barrier question
-Date: Sun, 19 Sep 2010 12:47:01 +1000
-Message-ID: <1284864421.30449.113.camel@pasglop>
-References: <E1Ovt6F-0005CS-RU@pomaz-ex.szeredi.hu>
-	 <3777.1284638136@redhat.com> <6383.1284647456@redhat.com>
-	 <20100916150356.GD2462@linux.vnet.ibm.com>
-	 <E1OwGz7-0007Cu-CC@pomaz-ex.szeredi.hu>
-	 <20100916163708.GG2462@linux.vnet.ibm.com>
-	 <E1OwHkg-0007IX-DH@pomaz-ex.szeredi.hu>
-	 <1284656978.26423.11.camel@mulgrave.site>
-	 <E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
-	 <1284760148.30449.107.camel@pasglop>
-	 <20100917231222.GA3060@linux.vnet.ibm.com>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: Proposal: (u)intptr_t replaces (unsigned) long as opaque type
+Date: Sat, 18 Sep 2010 22:06:35 -0600
+Message-ID: <20100919040635.GE25139@parisc-linux.org>
+References: <4C95324B.2030707@mcgary.org> <20100918235436.GD25139@parisc-linux.org> <4C9578DE.4090602@mcgary.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59006 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755231Ab0ISCrm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Sep 2010 22:47:42 -0400
-In-Reply-To: <20100917231222.GA3060@linux.vnet.ibm.com>
+Received: from palinux.external.hp.com ([192.25.206.14]:54680 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750764Ab0ISEGh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Sep 2010 00:06:37 -0400
+Content-Disposition: inline
+In-Reply-To: <4C9578DE.4090602@mcgary.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Miklos Szeredi <miklos@szeredi.hu>, James Bottomley <James.Bottomley@HansenPartnership.com>, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Greg McGary <greg@mcgary.org>
+Cc: linux-arch@vger.kernel.org
 
-On Fri, 2010-09-17 at 16:12 -0700, Paul E. McKenney wrote:
-> On Sat, Sep 18, 2010 at 07:49:08AM +1000, Benjamin Herrenschmidt wrote:
-> > 
-> > > Right but in the concrete namei example I can't see how a compiler
-> > > optimization can make a difference.  The order of the loads is quite
-> > > clear:
-> > > 
-> > >    LOAD inode = next.dentry->inode
-> > >    if (inode != NULL)
-> > >    	LOAD inode->f_op
-> > > 
-> > > What is there the compiler can optimize?
-> > 
-> > Those two loads depend on each other, I don't think any implementation
-> > can re-order them. In fact, such data dependency is typically what is
-> > used to avoid having barriers in some cases. The second load cannot be
-> > issued until the value from the first one is returned.
-> 
-> Sufficiently sadistic compiler and CPU implementations could do value
-> speculation, for example, driven by profile-feedback optimization.
-> Then the guess might initially incorrect, but then a store by some other
-> CPU could make the subsequent test decide (wrongly) that the guess had
-> in fact been correct.
-> 
-> Needless to say, I am not a fan of value speculation.  But other people
-> do like it a lot.
+On Sat, Sep 18, 2010 at 07:43:42PM -0700, Greg McGary wrote:
+>  On 09/18/10 16:54, Matthew Wilcox wrote:
+>> Linux really only supports ILP32 and LP64 models.  Pick one, and make
+>> your gcc mmtnp-unknown-linux triplet support it.
+>>
+>> ILP32 may be a better model for you, depending how much RAM your mmtnp
+>> processor is likely to support.
+>>
+> Yes, I know Linux currently supports only ILP32 and LP64.  What I propose is a way to make it support something new beyond those models, and do so in a way that has no impact on vmlinux images for existing ports.
 
-Well, this verges on insanity... we get to a point where nobody's going
-to get any code right :-)
+But it's only the beginnings of your problems.  There's so much userspace
+code that's written assuming ILP32 / LP64.  Even inside the kernel,
+people are going to constantly break your port by introducing new code
+that doesn't use uintptr_t.
 
-I don't think the powerpc arch allows that, that leaves us with the
-compiler, but so far I don't think gcc is -that- crazy. Those constructs
-are common enough...
+Then there are other things we use unsigned long for, like interrupt
+status flags (spin_lock_irqsave and friends).  Should those be converted
+to some new type?
 
-Cheers,
-Ben.
+> What is mmtnp?
+
+Your processor.  I took the acronym of the description you gave.
+
+> ILP32 will not work for me because pointers coerced to long will be truncated.  LP64 could work, but performance would suck, so that's not viable.
+
+How bad would performance really suck?  x86-32 performance sucks on
+64-bit arithmetic, but that's because it has about three registers.
+With a decent size register file (16 or 32), I doubt performance will
+be that bad.
+
+If you set up your memory map correctly, truncating pointers to 32 bit
+may not be a huge problem.  You can use the kmap() abstraction to run
+your kernel in a 32-bit address space.
+
+Essentially, you're asking us to take on a huge number of changes in
+order to make your new processor's performance not suck.  I don't think
+it likely you're going to find much sympathy here.
+
+-- 
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
