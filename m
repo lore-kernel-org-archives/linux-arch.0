@@ -1,9 +1,8 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: memory barrier question
-Date: Mon, 20 Sep 2010 11:25:04 -0700
-Message-ID: <20100920182504.GD2408@linux.vnet.ibm.com>
-References: <E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
- <1284760148.30449.107.camel@pasglop>
+Date: Mon, 20 Sep 2010 11:57:32 -0700
+Message-ID: <20100920185732.GA12336@linux.vnet.ibm.com>
+References: <1284760148.30449.107.camel@pasglop>
  <20100917231222.GA3060@linux.vnet.ibm.com>
  <1284864421.30449.113.camel@pasglop>
  <20100919152638.GF3060@linux.vnet.ibm.com>
@@ -12,75 +11,96 @@ References: <E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
  <1284944316.2957.795.camel@mulgrave.site>
  <20100920012915.GI3060@linux.vnet.ibm.com>
  <E1OxioY-0006nd-M9@pomaz-ex.szeredi.hu>
+ <20100920182504.GD2408@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e6.ny.us.ibm.com ([32.97.182.146]:50168 "EHLO e6.ny.us.ibm.com"
+Received: from e3.ny.us.ibm.com ([32.97.182.143]:51950 "EHLO e3.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751205Ab0ITSZK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Sep 2010 14:25:10 -0400
+	id S1753262Ab0ITS5f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Sep 2010 14:57:35 -0400
 Content-Disposition: inline
-In-Reply-To: <E1OxioY-0006nd-M9@pomaz-ex.szeredi.hu>
+In-Reply-To: <20100920182504.GD2408@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Miklos Szeredi <miklos@szeredi.hu>
 Cc: James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Sep 20, 2010 at 06:01:58PM +0200, Miklos Szeredi wrote:
-> On Sun, 19 Sep 2010, Paul E. McKenney wrote:
-> > > > Again, please put at least an ACCESS_ONCE() in.  Trivial to do now,
-> > > > possibly saving much pain and headache later on.
+On Mon, Sep 20, 2010 at 11:25:04AM -0700, Paul E. McKenney wrote:
+> On Mon, Sep 20, 2010 at 06:01:58PM +0200, Miklos Szeredi wrote:
+> > On Sun, 19 Sep 2010, Paul E. McKenney wrote:
+> > > > > Again, please put at least an ACCESS_ONCE() in.  Trivial to do now,
+> > > > > possibly saving much pain and headache later on.
+> > > > 
+> > > > OK, lost you here.  ACCESS_ONCE() is only needed in certain situations
+> > > > (like list traversal) because some compilers can reload cached values
+> > > > across an explicit barrier (which isn't here).
 > > > 
-> > > OK, lost you here.  ACCESS_ONCE() is only needed in certain situations
-> > > (like list traversal) because some compilers can reload cached values
-> > > across an explicit barrier (which isn't here).
+> > > ACCESS_ONCE() also tells the compiler not to try to guess.
 > > 
-> > ACCESS_ONCE() also tells the compiler not to try to guess.
+> > If the code is written like this:
+> > 
+> > 	if (ACCESS_ONCE(dentry->d_inode)) {
+> > 		blah = dentry->d_inode->i_some_field
+> > 		...
+> > 	}
+> > 
+> > does the compiler guarantee anything or does it need a full compiler
+> > barrier to prevent reordering?
 > 
-> If the code is written like this:
+> From what I understand, this could do strange things.  The compiler
+> is forced to access dentry->d_inode for the "if" check, but would be
+> free to use some previously fetched value for the assignment to "blah".
+> Unless of course this code was under a lock that prevented any
+> change to dentry->d_inode.
 > 
-> 	if (ACCESS_ONCE(dentry->d_inode)) {
-> 		blah = dentry->d_inode->i_some_field
+> If the code is to execute in a lockless manner, I would instead suggest
+> something like the following:
+> 
+> 	p = ACCESS_ONCE(dentry->d_inode);
+> 	if (p) {
+> 		blah = p->i_some_field
 > 		...
 > 	}
 > 
-> does the compiler guarantee anything or does it need a full compiler
-> barrier to prevent reordering?
+> This would force the compiler to actually fetch dentry->d_inode
+> and only then dereference it.
 
-From what I understand, this could do strange things.  The compiler
-is forced to access dentry->d_inode for the "if" check, but would be
-free to use some previously fetched value for the assignment to "blah".
-Unless of course this code was under a lock that prevented any
-change to dentry->d_inode.
+Are the initial check and the assignment to "blah" in different
+functions or something?  If so, the following might be easier to
+deal with:
 
-If the code is to execute in a lockless manner, I would instead suggest
-something like the following:
-
-	p = ACCESS_ONCE(dentry->d_inode);
-	if (p) {
-		blah = p->i_some_field
+	if (ACCESS_ONCE(dentry->d_inode)) {
+		blah = ACCESS_ONCE(dentry->d_inode)->i_some_field
 		...
 	}
 
-This would force the compiler to actually fetch dentry->d_inode
-and only then dereference it.
+The compiler is forbidden to reorder volatile accesses (at least assuming
+that they have a well-defined order, which they do in this case).  The
+CPU is required to make successive accesses to the same memory location
+be in order.
 
-This would -not- constrain the CPU in any way, but the only CPU that
-I know of that misbehaves in this case is DEC Alpha.
+So as long as the only change to dentry->d_inode is a NULL-to-non-NULL
+transition, the above should work, other than on DEC Alpha.
 
-So my version of the above code would do what you expect on most CPUs,
-but really could fail on DEC Alpha.  If you don't believe me, please feel
-free to take a look at http://www.openvms.compaq.com/wizard/wiz_2637.html.
+						Thanx, Paul
 
-But do we really care about Alpha anymore?  (I can see it now... The
-Alpha portion of the kernel tree moves to staging...)
-
-> Because that pattern is, again, pretty much all over the place.  Yeah
-> it can be rewritten but that's not always feasable since it's
-> difficult to audit, would possibly need extra function arguments,
-> etc...
-
-Again, the pattern is OK if you are preventing the pointer from changing.
-
-							Thanx, Paul
+> This would -not- constrain the CPU in any way, but the only CPU that
+> I know of that misbehaves in this case is DEC Alpha.
+> 
+> So my version of the above code would do what you expect on most CPUs,
+> but really could fail on DEC Alpha.  If you don't believe me, please feel
+> free to take a look at http://www.openvms.compaq.com/wizard/wiz_2637.html.
+> 
+> But do we really care about Alpha anymore?  (I can see it now... The
+> Alpha portion of the kernel tree moves to staging...)
+> 
+> > Because that pattern is, again, pretty much all over the place.  Yeah
+> > it can be rewritten but that's not always feasable since it's
+> > difficult to audit, would possibly need extra function arguments,
+> > etc...
+> 
+> Again, the pattern is OK if you are preventing the pointer from changing.
+> 
+> 							Thanx, Paul
