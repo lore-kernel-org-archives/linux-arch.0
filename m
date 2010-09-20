@@ -1,91 +1,38 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: memory barrier question
-Date: Sun, 19 Sep 2010 18:29:15 -0700
-Message-ID: <20100920012915.GI3060@linux.vnet.ibm.com>
-References: <E1OwHkg-0007IX-DH@pomaz-ex.szeredi.hu>
- <1284656978.26423.11.camel@mulgrave.site>
- <E1OwI5H-0007LR-DC@pomaz-ex.szeredi.hu>
- <1284760148.30449.107.camel@pasglop>
- <20100917231222.GA3060@linux.vnet.ibm.com>
- <1284864421.30449.113.camel@pasglop>
- <20100919152638.GF3060@linux.vnet.ibm.com>
- <E1OxQIg-0005Nw-WE@pomaz-ex.szeredi.hu>
- <20100919215909.GG3060@linux.vnet.ibm.com>
- <1284944316.2957.795.camel@mulgrave.site>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: [PATCH -tip -v5] irq_work: generic hard-irq context callbacks
+Date: Mon, 20 Sep 2010 14:20:11 +1000
+Message-ID: <20100920042011.GA13542@drongo>
+References: <1284689131.32373.63.camel@yhuang-dev>
+ <1284728802.28028.470.camel@twins>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e7.ny.us.ibm.com ([32.97.182.137]:38793 "EHLO e7.ny.us.ibm.com"
+Received: from ozlabs.org ([203.10.76.45]:52197 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755192Ab0ITB3U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Sep 2010 21:29:20 -0400
+	id S1750773Ab0ITEta (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Sep 2010 00:49:30 -0400
 Content-Disposition: inline
-In-Reply-To: <1284944316.2957.795.camel@mulgrave.site>
+In-Reply-To: <1284728802.28028.470.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, benh@kernel.crashing.org, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Huang Ying <ying.huang@intel.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Sun, Sep 19, 2010 at 07:58:36PM -0500, James Bottomley wrote:
-> On Sun, 2010-09-19 at 14:59 -0700, Paul E. McKenney wrote:
-> > On Sun, Sep 19, 2010 at 10:15:51PM +0200, Miklos Szeredi wrote:
-> > > On Sun, 19 Sep 2010, Paul E. McKenney wrote:
-> > > > Give it a few years.  There are reportedly already other compilers that do
-> > > > this, which is not too surprising given that the perception of insanity
-> > > > is limited to lockless parallel code.  If you have single-threaded code,
-> > > > such as code and data under a lock (where the data is never accessed
-> > > > without holding that lock), then this sort of optimization is pretty safe.
-> > > > I still don't like it, but the compiler guys would argue that this is
-> > > > because I am one of those insane parallel-programming guys.
-> > > > 
-> > > > Furthermore, there are other ways to get into trouble.  If the code
-> > > > continued as follows:
-> > > > 
-> > > >    LOAD inode = next.dentry->inode
-> > > >    if (inode != NULL)
-> > > >    	LOAD inode->f_op
-> > > > 	do_something_using_lots_of_registers();
-> > > > 	LOAD inode->some_other_field
-> > > > 
-> > > > and if the code expected ->f_op and ->some_other_field to be from the
-> > > > same inode structure, severe disappointment could ensue.  This is because
-> > > > the compiler is within its rights to reload from next.dentry->inode,
-> > > > especially given register pressure.  In fact, the compiler would be within
-> > > > its rights to reload from next.dentry->inode in the "LOAD inode->f_op"
-> > > > statement.  And it might well get NULL from such a reload.
-> > > 
-> > > Except the VFS doesn't allow that.  dentry->inode can go from NULL to
-> > > non-NULL anytime but will only go from non-NULL to NULL when there are
-> > > no possible external references to the dentry.
-> > > 
-> > > The compiler and the CPU cannot move the "LOAD inode->some_field"
-> > > before the "LOAD dentry->inode", because of the conditional, right?
-> > 
-> > Other than Alpha, the CPU cannot.  The standard -does- permit the
-> > compiler to guess the value of the pointer, thus effectively moving the
-> > load prior to the conditional.  At present, as far as I know, gcc does
-> > not actually do this.
+On Fri, Sep 17, 2010 at 03:06:42PM +0200, Peter Zijlstra wrote:
+
+> Provide a mechanism that allows running code in IRQ context. It is most
+> useful for NMI code that needs to interact with the rest of the system
+> -- like wakeup a task to drain buffers.
 > 
-> I believe the standard only allows this if the compiler can *prove* (not
-> guess) the result of the if test.  Even on Parisc where this can be
-> expressed as a nullified instruction pair, the architectural rules
-> forbid speculation of the latter before the former (the only time they
-> can be executed out of order is when the CPU can prove the values
-> internally, i.e. they're both cached)
-
-Agreed, but unless you tell it otherwise, the compiler is allowed to
-assume that the code it is generating is the only thread running in
-the address space in question.  That is most definitely not the case
-here, so we might need to let the compiler in on this information.
-
-> > Again, please put at least an ACCESS_ONCE() in.  Trivial to do now,
-> > possibly saving much pain and headache later on.
+> Perf currently has such a mechanism, so extract that and provide it as a
+> generic feature, independent of perf so that others may also benefit.
 > 
-> OK, lost you here.  ACCESS_ONCE() is only needed in certain situations
-> (like list traversal) because some compilers can reload cached values
-> across an explicit barrier (which isn't here).
+> The IRQ context callback is generated through self-IPIs where possible,
+> or on architectures like powerpc which have soft-disabled IRQs, its ran
+> on the soft-enable path.
 
-ACCESS_ONCE() also tells the compiler not to try to guess.
+Actually these days we do it by setting the decrementer (the built-in
+timer facility) to generate an interrupt immediately (well, within one
+timebase tick, i.e. a small number of nanoseconds).
 
-							Thanx, Paul
+Paul.
