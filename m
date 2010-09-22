@@ -1,28 +1,42 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: powerpc: fix double syscall restarts
-Date: Wed, 22 Sep 2010 15:44:10 +1000
-Message-ID: <20100922054410.GA22365@drongo>
-References: <20100920204856.GF31363@ZenIV.linux.org.uk>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH -mm 4/8] mips: enable ARCH_DMA_ADDR_T_64BIT with
+ (HIGHMEM && 64BIT_PHYS_ADDR) || 64BIT
+Date: Wed, 22 Sep 2010 18:18:26 +0900
+Message-ID: <20100922181454N.fujita.tomonori@lab.ntt.co.jp>
+References: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
+	<1283474956-14710-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+	<20100920133434.GB15938@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20100920204856.GF31363@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sh.osrg.net ([192.16.179.4]:37916 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752394Ab0IVJTI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Sep 2010 05:19:08 -0400
+In-Reply-To: <20100920133434.GB15938@linux-mips.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: ralf@linux-mips.org
+Cc: fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org
 
-On Mon, Sep 20, 2010 at 09:48:57PM +0100, Al Viro wrote:
+On Mon, 20 Sep 2010 14:34:35 +0100
+Ralf Baechle <ralf@linux-mips.org> wrote:
 
-> Make sigreturn zero regs->trap, make do_signal() do the same on all
-> paths.  As it is, signal interrupting e.g. read() from fd 512 (==
-> ERESTARTSYS) with another signal getting unblocked when the first
-> handler finishes will lead to restart one insn earlier than it ought
-> to.  Same for multiple signals with in-kernel handlers interrupting
-> that sucker at the same time.  Same for multiple signals of any kind
-> interrupting that sucker on 64bit...
+> On Fri, Sep 03, 2010 at 09:49:12AM +0900, FUJITA Tomonori wrote:
 > 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> > Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+> > Cc: linux-mips@linux-mips.org
+> 
+> Looks good:
+> 
+> Acked-by: Ralf Baechle <ralf@linux-mips.org>
 
-Acked-by: Paul Mackerras <paulus@samba.org>
+Thanks,
+
+
+> As this patch by itself doesn't make any sense in the MIPS tree and would
+> only cry for a janitor to remove it again I suggest you merge this with
+> the rest of the series.
+
+I expect akpm to merge all the patches.
