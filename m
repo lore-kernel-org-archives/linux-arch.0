@@ -1,42 +1,56 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH -mm 4/8] mips: enable ARCH_DMA_ADDR_T_64BIT with
- (HIGHMEM && 64BIT_PHYS_ADDR) || 64BIT
-Date: Wed, 22 Sep 2010 18:18:26 +0900
-Message-ID: <20100922181454N.fujita.tomonori@lab.ntt.co.jp>
-References: <20100903094753S.fujita.tomonori@lab.ntt.co.jp>
-	<1283474956-14710-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-	<20100920133434.GB15938@linux-mips.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: memory barrier question
+Date: Wed, 22 Sep 2010 11:41:44 -0700
+Message-ID: <20100922184144.GA11741@linux.vnet.ibm.com>
+References: <20100919152638.GF3060@linux.vnet.ibm.com>
+ <E1OxQIg-0005Nw-WE@pomaz-ex.szeredi.hu>
+ <20100919215909.GG3060@linux.vnet.ibm.com>
+ <1284944316.2957.795.camel@mulgrave.site>
+ <20100920012915.GI3060@linux.vnet.ibm.com>
+ <E1OxioY-0006nd-M9@pomaz-ex.szeredi.hu>
+ <20100920182504.GD2408@linux.vnet.ibm.com>
+ <4C97C366.80206@orcon.net.nz>
+ <20100920204055.GJ2408@linux.vnet.ibm.com>
+ <20100921145910.GA3358@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:37916 "EHLO sh.osrg.net"
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:47591 "EHLO e5.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752394Ab0IVJTI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Sep 2010 05:19:08 -0400
-In-Reply-To: <20100920133434.GB15938@linux-mips.org>
+	id S1754246Ab0IVSly (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Sep 2010 14:41:54 -0400
+Content-Disposition: inline
+In-Reply-To: <20100921145910.GA3358@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org
-Cc: fujita.tomonori@lab.ntt.co.jp, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org
+To: Michael Cree <mcree@orcon.net.nz>
+Cc: Miklos Szeredi <miklos@szeredi.hu>, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 20 Sep 2010 14:34:35 +0100
-Ralf Baechle <ralf@linux-mips.org> wrote:
-
-> On Fri, Sep 03, 2010 at 09:49:12AM +0900, FUJITA Tomonori wrote:
+On Tue, Sep 21, 2010 at 07:59:10AM -0700, Paul E. McKenney wrote:
+> On Mon, Sep 20, 2010 at 01:40:55PM -0700, Paul E. McKenney wrote:
+> > On Tue, Sep 21, 2010 at 08:26:14AM +1200, Michael Cree wrote:
+> > > On 21/09/10 06:25, Paul E. McKenney wrote:
+> > > >But do we really care about Alpha anymore?  (I can see it now... The
+> > > >Alpha portion of the kernel tree moves to staging...)
+> > > 
+> > > I do.
+> > > 
+> > > Sent from my Compaq Alpha XP1000 :-)
+> > 
+> > In that case, an smp_read_barrier_depends() or rcu_dereference() is
+> > also required...
 > 
-> > Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-> > Cc: linux-mips@linux-mips.org
+> Wait a minute...  I finally got a chance to look up the system.  This
+> system has only a single Alpha CPU, right?
 > 
-> Looks good:
+> If so, just build a UP kernel and be happy.  No need to worry about
+> any of these SMP issues.
 > 
-> Acked-by: Ralf Baechle <ralf@linux-mips.org>
+> So, an alternative proposal -- support only UP kernels on Alpha.  ;-)
 
-Thanks,
+And there do seem to be some SMP Alpha systems still in use:
 
+	http://www.alphalinux.org/wiki/index.php/User:Armin76/HW_list
 
-> As this patch by itself doesn't make any sense in the MIPS tree and would
-> only cry for a janitor to remove it again I suggest you merge this with
-> the rest of the series.
-
-I expect akpm to merge all the patches.
+							Thanx, Paul
