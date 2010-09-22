@@ -1,42 +1,28 @@
-From: cdahlin@redhat.com
-Subject: [PATCH 2/3] Add inotify_add_watch_at to asm-generic/unistd.h
-Date: Wed, 22 Sep 2010 01:16:57 -0400
-Message-ID: <1285132618-31573-3-git-send-email-cdahlin@redhat.com>
-References: <1285132618-31573-1-git-send-email-cdahlin@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49190 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751392Ab0IVFTM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Sep 2010 01:19:12 -0400
-In-Reply-To: <1285132618-31573-1-git-send-email-cdahlin@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Casey Dahlin <cdahlin@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Chris Metcalf <cmetcalf@tilera.com>, Andrew Morton <akpm@linux-foundation.org>, Chen Liqin <liqin.chen@sunplusct.com>, =?UTF-8?q?Andr=C3=A9=20Goddard=20Rosa?= <andre.goddard@gmail.com>, linux-arch@vger.kernel.org
+From: Paul Mackerras <paulus@samba.org>
+Subject: Re: powerpc: fix double syscall restarts
+Date: Wed, 22 Sep 2010 15:44:10 +1000
+Message-ID: <20100922054410.GA22365@drongo>
+References: <20100920204856.GF31363@ZenIV.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100920204856.GF31363@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Casey Dahlin <cdahlin@redhat.com>
+On Mon, Sep 20, 2010 at 09:48:57PM +0100, Al Viro wrote:
 
-Signed-off-by: Casey Dahlin <cdahlin@redhat.com>
----
- include/asm-generic/unistd.h |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+> Make sigreturn zero regs->trap, make do_signal() do the same on all
+> paths.  As it is, signal interrupting e.g. read() from fd 512 (==
+> ERESTARTSYS) with another signal getting unblocked when the first
+> handler finishes will lead to restart one insn earlier than it ought
+> to.  Same for multiple signals with in-kernel handlers interrupting
+> that sucker at the same time.  Same for multiple signals of any kind
+> interrupting that sucker on 64bit...
+> 
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index b969770..fd7b127 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -646,9 +646,11 @@ __SYSCALL(__NR_prlimit64, sys_prlimit64)
- __SYSCALL(__NR_fanotify_init, sys_fanotify_init)
- #define __NR_fanotify_mark 263
- __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
-+#define __NR_inotify_add_watch_at 264
-+__SYSCALL(__NR_inotify_add_watch_at, sys_inotify_add_watch)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 264
-+#define __NR_syscalls 265
- 
- /*
-  * All syscalls below here should go away really,
--- 
-1.7.2.3
+Acked-by: Paul Mackerras <paulus@samba.org>
