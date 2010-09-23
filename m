@@ -1,56 +1,57 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: memory barrier question
-Date: Wed, 22 Sep 2010 11:41:44 -0700
-Message-ID: <20100922184144.GA11741@linux.vnet.ibm.com>
-References: <20100919152638.GF3060@linux.vnet.ibm.com>
- <E1OxQIg-0005Nw-WE@pomaz-ex.szeredi.hu>
- <20100919215909.GG3060@linux.vnet.ibm.com>
- <1284944316.2957.795.camel@mulgrave.site>
- <20100920012915.GI3060@linux.vnet.ibm.com>
- <E1OxioY-0006nd-M9@pomaz-ex.szeredi.hu>
- <20100920182504.GD2408@linux.vnet.ibm.com>
- <4C97C366.80206@orcon.net.nz>
- <20100920204055.GJ2408@linux.vnet.ibm.com>
- <20100921145910.GA3358@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Jiri Kosina <jkosina@suse.cz>
+Subject: Re: [PATCH] trivial: disable sparse' warning for "potentially
+ expensive pointer subtraction".
+Date: Thu, 23 Sep 2010 13:23:56 +0200 (CEST)
+Message-ID: <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
+References: <1282321333.25235.0.camel@thorin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e5.ny.us.ibm.com ([32.97.182.145]:47591 "EHLO e5.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754246Ab0IVSly (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Sep 2010 14:41:54 -0400
-Content-Disposition: inline
-In-Reply-To: <20100921145910.GA3358@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michael Cree <mcree@orcon.net.nz>
-Cc: Miklos Szeredi <miklos@szeredi.hu>, James.Bottomley@HansenPartnership.com, benh@kernel.crashing.org, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1282321333.25235.0.camel@thorin>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Bernd Petrovitsch <bernd@sysprog.at>
+Cc: linux-kbuild@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Andi Kleen <andi@firstfloor.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com, MXns RullgXrd <mans@mansr.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 21, 2010 at 07:59:10AM -0700, Paul E. McKenney wrote:
-> On Mon, Sep 20, 2010 at 01:40:55PM -0700, Paul E. McKenney wrote:
-> > On Tue, Sep 21, 2010 at 08:26:14AM +1200, Michael Cree wrote:
-> > > On 21/09/10 06:25, Paul E. McKenney wrote:
-> > > >But do we really care about Alpha anymore?  (I can see it now... The
-> > > >Alpha portion of the kernel tree moves to staging...)
-> > > 
-> > > I do.
-> > > 
-> > > Sent from my Compaq Alpha XP1000 :-)
-> > 
-> > In that case, an smp_read_barrier_depends() or rcu_dereference() is
-> > also required...
+On Fri, 20 Aug 2010, Bernd Petrovitsch wrote:
+
+> Rationale: With a somewhat current gcc (or a somewhat sane peephole
+> optimizer), the (expensive) "div" is converted to a "shift" or
+> "mul" with the inverse.
+> This warning is disabled per default in sparse but the "-Wall" in
+> the kernels CFLAGS enables it.
 > 
-> Wait a minute...  I finally got a chance to look up the system.  This
-> system has only a single Alpha CPU, right?
+> Signed-off-by: Bernd Petrovitsch <bernd@sysprog.at>
+> ---
+> This patch is trivial and affects only calls to sparse (read: make C=1) and
+> removes false warnings. So it should be considered for inclusion immediately.
 > 
-> If so, just build a UP kernel and be happy.  No need to worry about
-> any of these SMP issues.
+> Sorry for the long Cc: - I included everyone in the thread and added
+> linux-kbuild@ (as it IMHO belongs there) and trivial@ (because of the
+> complexity of the patch).
 > 
-> So, an alternative proposal -- support only UP kernels on Alpha.  ;-)
+>  Makefile |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/Makefile b/Makefile
+> index f3bdff8..851c0fa 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -330,7 +330,7 @@ PERL		= perl
+>  CHECK		= sparse
+>  
+>  CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
+> -		  -Wbitwise -Wno-return-void $(CF)
+> +		  -Wbitwise -Wno-return-void -Wno-ptr-subtraction-blows $(CF)
+>  CFLAGS_MODULE   =
+>  AFLAGS_MODULE   =
+>  LDFLAGS_MODULE  =
 
-And there do seem to be some SMP Alpha systems still in use:
+What is the status of this patch? I don't see it Nacked, but it's not in 
+linux-next either.
 
-	http://www.alphalinux.org/wiki/index.php/User:Armin76/HW_list
+Thanks,
 
-							Thanx, Paul
+-- 
+Jiri Kosina
+SUSE Labs, Novell Inc.
