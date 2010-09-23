@@ -1,72 +1,31 @@
-From: Bernd Petrovitsch <bernd@sysprog.at>
-Subject: Re: [PATCH] trivial: disable sparse' warning for "potentially
- expensive pointer subtraction".
-Date: Thu, 23 Sep 2010 14:41:43 +0200
-Message-ID: <1285245703.32001.19.camel@thorin>
-References: <1282321333.25235.0.camel@thorin>
-	 <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-sparse-owner@vger.kernel.org>
-In-Reply-To: <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
-Sender: linux-sparse-owner@vger.kernel.org
-To: Jiri Kosina <jkosina@suse.cz>
-Cc: linux-kbuild@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Andi Kleen <andi@firstfloor.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com, MXns RullgXrd <mans@mansr.com>, linux-sparse@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
+Date: Thu, 23 Sep 2010 21:12:00 +0100
+Message-ID: <615.1285272720@redhat.com>
+References: <1284627425.2754.434.camel@yhuang-dev> <1284360648.3269.115.camel@yhuang-dev.sh.intel.com> <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com> <1284377790.2275.212.camel@laptop> <1284528590.2256.135.camel@yhuang-dev.sh.intel.com> <1284539320.3764.266.camel@twins>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:32915 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753837Ab0IWUMo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Sep 2010 16:12:44 -0400
+In-Reply-To: <1284627425.2754.434.camel@yhuang-dev>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Huang Ying <ying.huang@intel.com>
+Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>
 
-Also Cc:ed linux-sparse@vger.kernel.org
+Huang Ying <ying.huang@intel.com> wrote:
 
-On Don, 2010-09-23 at 13:23 +0200, Jiri Kosina wrote:
-> On Fri, 20 Aug 2010, Bernd Petrovitsch wrote:
-> 
-> > Rationale: With a somewhat current gcc (or a somewhat sane peephole
-> > optimizer), the (expensive) "div" is converted to a "shift" or
-> > "mul" with the inverse.
-> > This warning is disabled per default in sparse but the "-Wall" in
-> > the kernels CFLAGS enables it.
-> > 
-> > Signed-off-by: Bernd Petrovitsch <bernd@sysprog.at>
-> > ---
-> > This patch is trivial and affects only calls to sparse (read: make C=1) and
-> > removes false warnings. So it should be considered for inclusion immediately.
-> > 
-> > Sorry for the long Cc: - I included everyone in the thread and added
-> > linux-kbuild@ (as it IMHO belongs there) and trivial@ (because of the
-> > complexity of the patch).
-> > 
-> >  Makefile |    2 +-
-> >  1 files changed, 1 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/Makefile b/Makefile
-> > index f3bdff8..851c0fa 100644
-> > --- a/Makefile
-> > +++ b/Makefile
-> > @@ -330,7 +330,7 @@ PERL		= perl
-> >  CHECK		= sparse
-> >  
-> >  CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-> > -		  -Wbitwise -Wno-return-void $(CF)
-> > +		  -Wbitwise -Wno-return-void -Wno-ptr-subtraction-blows $(CF)
-> >  CFLAGS_MODULE   =
-> >  AFLAGS_MODULE   =
-> >  LDFLAGS_MODULE  =
-> 
-> What is the status of this patch? I don't see it Nacked, but it's not in 
-> linux-next either.
+> Where can I find latest FRV cross compiler workable for Linux kernel?
 
-More details:
+Look in here:
 
-The head (as in
-git://git.kernel.org/pub/scm/devel/sparse/chrisl/sparse.git) has "-Wall"
-renamed to "-Wsparse-all". So the above patch is pretty pointless.
+	ftp://ftp.ges.redhat.com/frv/
 
-But sparse-0.4.2 - the latest release according to
-https://sparse.wiki.kernel.org/index.php/Main_Page - hasn't that
-renamed.
+There's a toolchain here:
 
-	Bernd
--- 
-mobile: +43 664 4416156              http://www.sysprog.at/
-    Linux Software Development, Consulting and Services
+	ftp://ftp.ges.redhat.com/frv/i686-pc-linux-gnulibc2.3-x-frv-linux-gnu.tar.bz2
 
+plus sources.
+
+David
