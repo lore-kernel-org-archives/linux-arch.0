@@ -1,106 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from science.horizon.com ([71.41.210.146]:33542 "HELO
-	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1755757Ab0ITKlM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Sep 2010 06:41:12 -0400
-Date: 20 Sep 2010 06:34:29 -0400
-Message-ID: <20100920103429.8975.qmail@science.horizon.com>
-From: "George Spelvin" <linux@horizon.com>
-Subject: Re: memory barrier question
+Received: from cantor.suse.de ([195.135.220.2]:53445 "EHLO mx1.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752745Ab0IWLX6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Sep 2010 07:23:58 -0400
+Date: Thu, 23 Sep 2010 13:23:56 +0200 (CEST)
+From: Jiri Kosina <jkosina@suse.cz>
+Subject: Re: [PATCH] trivial: disable sparse' warning for "potentially
+ expensive pointer subtraction".
+In-Reply-To: <1282321333.25235.0.camel@thorin>
+Message-ID: <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
+References: <1282321333.25235.0.camel@thorin>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org, miklos@szeredi.hu
-Cc: linux@horizon.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20100920103429.bBX3jBUwFcUoFhd0D9qMLCGHtCBZ963nfQ2682IMMe8@z>
+To: Bernd Petrovitsch <bernd@sysprog.at>
+Cc: linux-kbuild@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Andi Kleen <andi@firstfloor.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com, MXns RullgXrd <mans@mansr.com>
+Message-ID: <20100923112356.K2JVI3UMV7rOj1VO0KpUz4EyCPswHgk-h3q-je_m0DU@z>
 
->>    LOAD inode = next.dentry->inode
->>    if (inode != NULL)
->>    	LOAD inode->f_op
->> 
->> What is there the compiler can optimize?
+On Fri, 20 Aug 2010, Bernd Petrovitsch wrote:
 
-> Those two loads depend on each other, I don't think any implementation
-> can re-order them. In fact, such data dependency is typically what is
-> used to avoid having barriers in some cases. The second load cannot be
-> issued until the value from the first one is returned.
+> Rationale: With a somewhat current gcc (or a somewhat sane peephole
+> optimizer), the (expensive) "div" is converted to a "shift" or
+> "mul" with the inverse.
+> This warning is disabled per default in sparse but the "-Wall" in
+> the kernels CFLAGS enables it.
+> 
+> Signed-off-by: Bernd Petrovitsch <bernd@sysprog.at>
+> ---
+> This patch is trivial and affects only calls to sparse (read: make C=1) and
+> removes false warnings. So it should be considered for inclusion immediately.
+> 
+> Sorry for the long Cc: - I included everyone in the thread and added
+> linux-kbuild@ (as it IMHO belongs there) and trivial@ (because of the
+> complexity of the patch).
+> 
+>  Makefile |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/Makefile b/Makefile
+> index f3bdff8..851c0fa 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -330,7 +330,7 @@ PERL		= perl
+>  CHECK		= sparse
+>  
+>  CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
+> -		  -Wbitwise -Wno-return-void $(CF)
+> +		  -Wbitwise -Wno-return-void -Wno-ptr-subtraction-blows $(CF)
+>  CFLAGS_MODULE   =
+>  AFLAGS_MODULE   =
+>  LDFLAGS_MODULE  =
 
-It's quite hard for the *compiler* to do the loads out of order, but it's
-vaguely possible on, say, an ia64 system which supports non-faulting loads.
+What is the status of this patch? I don't see it Nacked, but it's not in 
+linux-next either.
 
-That is, the compiled code could be:
+Thanks,
 
-"I guess the next inode will be at address X"
-retry:
-LOAD preloaded == *X;
-LOAD inode = next.dentry->inode
-if (inode == X)
-	TRAP if fetch of preloaded had a page fault
-	LOAD preloaded.f_op (guaranteed non blocking)
-else
-	update guess X = inode
-	goto retry;
-	
-However, it's *very* easy for a processor to do exactly that!  There
-days, hardware cache prefetchers look for sequential access patterns,
-and if your inodes happen to get allocated to consecutive addresses,
-it's possible that the prefetcher could have done the read ahead of you.
-
-Even if reads are generated in one order, there's no reason that one can't
-be stalled due to some resource conflict (say a bank conflict in the L1
-cache) while the second is not stalled and ends up completing first.
-
-
-So, for example, the following is not safe without barriers:
-
-START:
-	dentry->inode == a
-	a->f_op == a_op
-	b->f_op = INVALID
-CPU 1:
-	b->f_op = b_op
-	dentry->inode = b
-CPU 2:
-	LOAD inode = dentry->inode
-	LOAD op = inode->f_op
-	assert(op != INVALID)
-
-While this is a FALSE OVERSIMPLIFICATION that will lead you astray if
-you take it to far, you can describe hazards in terms of a serialized stream
-of "external observer" memory updates.
-
-The above code has two hazards:
-- CPU 1 might write dentry->inode before the b->f_op write is complete, or
-- CPU 2 might read inode->f_op befire is reads dentry->inode.  This is
-  difficult, but a hardware prefetcher might make a lucky guess.
-
-Either way, CPU 2 ends up reading an invalid op vector.
-
-
-Although the single serialized stream conceptual model works fine between
-two processors, it is not guaranteed to work between three.  That is,
-there is no guarantee that the following won't happen:
-
-START:
-	a = b = 0
-CPU 1:
-	a = 1;
-	/* No barrier! */
-	b = 1;
-CPU 2:
-	LOAD a;	(loads 1)
-	-- read barrier --
-	LOAD b; (loads 0)
-CPU 3:
-	LOAD b;	(loads 1)
-	-- read barrier --
-	LOAD a; (loads 0)
-
-This is obviously inconsistent with the existence of a "true" sequential
-ordering, but is entirely legal according to a less-strict memory ordering.
-
-The lack of a write barrier on CPU 1 means that the order in which the
-writes will be seen by other processor is not only undefined, it might
-be different for different processors!
-
-The Alpha processor manual had a good description of various ugly corner
-cases.
+-- 
+Jiri Kosina
+SUSE Labs, Novell Inc.
