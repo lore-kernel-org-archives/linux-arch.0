@@ -1,59 +1,173 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: + x86-avoid-constant_test_bit-misoptimization-due-to-cast-to-non-volatile.patch
- added to -mm tree
-Date: Thu, 23 Sep 2010 17:23:50 -0700
-Message-ID: <4C9BEF96.50800@zytor.com>
-References: <201009232351.o8NNpsxB026809@imap1.linux-foundation.org> <AANLkTi=QOC22E2WCc7MW+FST2edA5KJ7iOrTSqPeE+A+@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH 1/5] m32r: fix rt_sigsuspend()
+Date: Fri, 24 Sep 2010 06:20:35 +0100
+Message-ID: <20100924052035.GL19804@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:41584 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753032Ab0IXAZF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Sep 2010 20:25:05 -0400
-In-Reply-To: <AANLkTi=QOC22E2WCc7MW+FST2edA5KJ7iOrTSqPeE+A+@mail.gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41070 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751052Ab0IXFUo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Sep 2010 01:20:44 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: akpm@linux-foundation.org, mm-commits@vger.kernel.org, led@altlinux.ru, gcosta@redhat.com, ledest@gmail.com, mike@osdn.org.ua, mingo@elte.hu, tglx@linutronix.de, volodymyrgl@gmail.com, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Hirokazu Takata <takata@linux-m32r.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 09/23/2010 05:08 PM, Linus Torvalds wrote:
-> On Thu, Sep 23, 2010 at 4:51 PM,  <akpm@linux-foundation.org> wrote:
->>
->> Subject: x86: avoid 'constant_test_bit()' misoptimization due to cast to non-volatile
->> From: Led <led@altlinux.ru>
->>
->> While debugging bit_spin_lock() hang, it was tracked down to gcc-4.4
->> misoptimization of constant_test_bit() when 'const volatile unsigned long *addr'
->> cast to 'unsigned long *' with subsequent unconditional jump to pause
->> (and not to the test) leading to hang.
-> 
-> Ack on the patch, however I think the commit message shouldn't make
-> this sound so much like a compiler bug. I think the cast to "unsigned
-> long *" is simply wrong, exactly because it makes it valid for the
-> compiler to merge multiple bit tests. And like it or not, our historic
-> semantics for our bitops are that they are valid on volatile data.
-> 
-> That said, it's really sad how this will make 'test_bit()' potentially
-> suck horribly and cause reloads when not necessary. We should probably
-> (re-)introduce a __test_bit() operation that - like __set_bit and
-> __clear_bit() works on things that are otherwise locked and can avoid
-> reloading the value.
-> 
-> I dunno. Maybe we don't have a lot of users of 'test_bit()' that would
-> actually care. How much does it cost us to have that volatile access?
-> 
+do_signal() should know about saved_mask for it to work...
 
-Somewhat offtopic...
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ arch/m32r/include/asm/signal.h |    1 -
+ arch/m32r/include/asm/unistd.h |    1 +
+ arch/m32r/kernel/entry.S       |    3 +-
+ arch/m32r/kernel/signal.c      |   48 ++++++++++------------------------------
+ 4 files changed, 14 insertions(+), 39 deletions(-)
 
-On the general subject of bit operators, I'm wondering if we should
-change the bit index to "unsigned long" like it already is on sparc64;
-most other architectures have it as "int".  This already causes failures
-if we have more than 16 TiB bytes of RAM in a single node -- not exactly
-urgent stuff but something that might be an issue long term, especially
-for a gigantic all-interleaved-memory machine.  I did try this on x86 a
-while ago and found that it did added less than a kilobyte to the size
-of the allyesconfig x86-64 kernel (unless my memory fails me.)
-
-	-hpa
+diff --git a/arch/m32r/include/asm/signal.h b/arch/m32r/include/asm/signal.h
+index 9c1acb2..b2eeb0d 100644
+--- a/arch/m32r/include/asm/signal.h
++++ b/arch/m32r/include/asm/signal.h
+@@ -157,7 +157,6 @@ typedef struct sigaltstack {
+ #undef __HAVE_ARCH_SIG_BITOPS
+ 
+ struct pt_regs;
+-extern int do_signal(struct pt_regs *regs, sigset_t *oldset);
+ 
+ #define ptrace_signal_deliver(regs, cookie)	do { } while (0)
+ 
+diff --git a/arch/m32r/include/asm/unistd.h b/arch/m32r/include/asm/unistd.h
+index 7612577..c705456 100644
+--- a/arch/m32r/include/asm/unistd.h
++++ b/arch/m32r/include/asm/unistd.h
+@@ -351,6 +351,7 @@
+ #define __ARCH_WANT_SYS_OLD_GETRLIMIT /*will be unused*/
+ #define __ARCH_WANT_SYS_OLDUMOUNT
+ #define __ARCH_WANT_SYS_RT_SIGACTION
++#define __ARCH_WANT_SYS_RT_SIGSUSPEND
+ 
+ #define __IGNORE_lchown
+ #define __IGNORE_setuid
+diff --git a/arch/m32r/kernel/entry.S b/arch/m32r/kernel/entry.S
+index 4038698..90149da 100644
+--- a/arch/m32r/kernel/entry.S
++++ b/arch/m32r/kernel/entry.S
+@@ -235,8 +235,7 @@ work_resched:
+ work_notifysig:				; deal with pending signals and
+ 					; notify-resume requests
+ 	mv	r0, sp			; arg1 : struct pt_regs *regs
+-	ldi	r1, #0			; arg2 : sigset_t *oldset
+-	mv	r2, r9			; arg3 : __u32 thread_info_flags
++	ldi	r1, r9			; arg2 : __u32 thread_info_flags
+ 	bl	do_notify_resume
+ 	bra	restore_all
+ 
+diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
+index 144b0f1..acd69f7 100644
+--- a/arch/m32r/kernel/signal.c
++++ b/arch/m32r/kernel/signal.c
+@@ -28,37 +28,6 @@
+ 
+ #define DEBUG_SIG 0
+ 
+-#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
+-
+-int do_signal(struct pt_regs *, sigset_t *);
+-
+-asmlinkage int
+-sys_rt_sigsuspend(sigset_t __user *unewset, size_t sigsetsize,
+-		  unsigned long r2, unsigned long r3, unsigned long r4,
+-		  unsigned long r5, unsigned long r6, struct pt_regs *regs)
+-{
+-	sigset_t newset;
+-
+-	/* XXX: Don't preclude handling different sized sigset_t's.  */
+-	if (sigsetsize != sizeof(sigset_t))
+-		return -EINVAL;
+-
+-	if (copy_from_user(&newset, unewset, sizeof(newset)))
+-		return -EFAULT;
+-	sigdelsetmask(&newset, sigmask(SIGKILL)|sigmask(SIGSTOP));
+-
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->saved_sigmask = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
+-
+-	current->state = TASK_INTERRUPTIBLE;
+-	schedule();
+-	set_thread_flag(TIF_RESTORE_SIGMASK);
+-	return -ERESTARTNOHAND;
+-}
+-
+ asmlinkage int
+ sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
+ 		unsigned long r2, unsigned long r3, unsigned long r4,
+@@ -332,12 +301,13 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+  * want to handle. Thus you cannot kill init even with a SIGKILL even by
+  * mistake.
+  */
+-int do_signal(struct pt_regs *regs, sigset_t *oldset)
++static int do_signal(struct pt_regs *regs)
+ {
+ 	siginfo_t info;
+ 	int signr;
+ 	struct k_sigaction ka;
+ 	unsigned short inst;
++	sigset_t *oldset;
+ 
+ 	/*
+ 	 * We want the common case to go fast, which
+@@ -351,7 +321,9 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
+ 	if (try_to_freeze()) 
+ 		goto no_signal;
+ 
+-	if (!oldset)
++	if (test_thread_flag(TIF_RESTORE_SIGMASK))
++		oldset = &current->saved_sigmask;
++	else
+ 		oldset = &current->blocked;
+ 
+ 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
+@@ -364,6 +336,7 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
+ 
+ 		/* Whee!  Actually deliver the signal.  */
+ 		handle_signal(signr, &ka, &info, oldset, regs);
++		clear_thread_flag(TIF_RESTORE_SIGMASK);
+ 		return 1;
+ 	}
+ 
+@@ -391,6 +364,10 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
+ 				regs->bpc -= 4;
+ 		}
+ 	}
++	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
++		clear_thread_flag(TIF_RESTORE_SIGMASK);
++		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
++	}
+ 	return 0;
+ }
+ 
+@@ -398,8 +375,7 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
+  * notification of userspace execution resumption
+  * - triggered by current->work.notify_resume
+  */
+-void do_notify_resume(struct pt_regs *regs, sigset_t *oldset,
+-		      __u32 thread_info_flags)
++void do_notify_resume(struct pt_regs *regs, __u32 thread_info_flags)
+ {
+ 	/* Pending single-step? */
+ 	if (thread_info_flags & _TIF_SINGLESTEP)
+@@ -407,7 +383,7 @@ void do_notify_resume(struct pt_regs *regs, sigset_t *oldset,
+ 
+ 	/* deal with pending signal delivery */
+ 	if (thread_info_flags & _TIF_SIGPENDING)
+-		do_signal(regs,oldset);
++		do_signal(regs);
+ 
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+-- 
+1.5.6.5
