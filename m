@@ -1,82 +1,63 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 07/19] genirq; Provide compat handling for chip->ack()
-Date: Mon, 27 Sep 2010 12:44:47 -0000
-Message-ID: <20100927121842.142624725@linutronix.de>
+Subject: [patch 03/19] genirq: Provide advanced irq chip functions
+Date: Mon, 27 Sep 2010 12:44:32 -0000
+Message-ID: <20100927121841.742126604@linutronix.de>
 References: <20100927121651.904100669@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=genirq-wrap-chip-ack.patch
+Content-Disposition: inline;
+	filename=genirq-migration-path-for-irq-chip-functions.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Wrap the old chip function ack() until the migration is complete and
-the old chip functions are removed.
+The low level irq chip functions want access to irq_desc->irq_data.
+Provide new functions which hand down irq_data instead of the irq
+number so these functions avoid to call irq_to_desc() which is a radix
+tree lookup in case of sparse irq.
+
+This provides all the old functions except one: end(). end() is a
+relict of __do_IRQ() and will just go away with the __do_IRQ() code.
+
+The replacement for set_affinity() has an extra argument "bool
+force". The reason for this is to notify the low level code, that the
+move has to be done right away and cannot be delayed until the next
+interrupt happens. That's necessary to handle the irq fixup on cpu
+unplug in the generic code.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/chip.c |   20 ++++++++++++--------
- 1 file changed, 12 insertions(+), 8 deletions(-)
-Index: linux-2.6-tip/kernel/irq/chip.c
+ include/linux/irq.h |   20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+Index: linux-2.6-tip/include/linux/irq.h
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/chip.c
-+++ linux-2.6-tip/kernel/irq/chip.c
-@@ -338,6 +338,11 @@ static void compat_irq_unmask(struct irq
- 	irq_data_to_desc(data)->chip->unmask(data->irq);
- }
+--- linux-2.6-tip.orig/include/linux/irq.h
++++ linux-2.6-tip/include/linux/irq.h
+@@ -151,6 +151,26 @@ struct irq_chip {
+ 	void		(*bus_lock)(unsigned int irq);
+ 	void		(*bus_sync_unlock)(unsigned int irq);
  
-+static void compat_irq_ack(struct irq_data *data)
-+{
-+	irq_data_to_desc(data)->chip->ack(data->irq);
-+}
++	unsigned int	(*irq_startup)(struct irq_data *data);
++	void		(*irq_shutdown)(struct irq_data *data);
++	void		(*irq_enable)(struct irq_data *data);
++	void		(*irq_disable)(struct irq_data *data);
 +
- static void compat_bus_lock(struct irq_data *data)
- {
- 	irq_data_to_desc(data)->chip->bus_lock(data->irq);
-@@ -375,12 +380,12 @@ void irq_chip_set_defaults(struct irq_ch
- 		chip->irq_bus_lock = compat_bus_lock;
- 	if (chip->bus_sync_unlock)
- 		chip->irq_bus_sync_unlock = compat_bus_sync_unlock;
--
- 	if (chip->mask)
- 		chip->irq_mask = compat_irq_mask;
--
- 	if (chip->unmask)
- 		chip->irq_unmask = compat_irq_unmask;
-+	if (chip->ack)
-+		chip->irq_ack = compat_irq_ack;
- }
- 
- static inline void mask_ack_irq(struct irq_desc *desc, int irq)
-@@ -389,8 +394,8 @@ static inline void mask_ack_irq(struct i
- 		desc->chip->mask_ack(irq);
- 	else {
- 		desc->chip->irq_mask(&desc->irq_data);
--		if (desc->chip->ack)
--			desc->chip->ack(irq);
-+		if (desc->chip->irq_ack)
-+			desc->chip->irq_ack(&desc->irq_data);
- 	}
- 	desc->status |= IRQ_MASKED;
- }
-@@ -629,8 +634,7 @@ handle_edge_irq(unsigned int irq, struct
- 	kstat_incr_irqs_this_cpu(irq, desc);
- 
- 	/* Start handling the irq */
--	if (desc->chip->ack)
--		desc->chip->ack(irq);
-+	desc->chip->irq_ack(&desc->irq_data);
- 
- 	/* Mark the IRQ currently in progress.*/
- 	desc->status |= IRQ_INPROGRESS;
-@@ -683,8 +687,8 @@ handle_percpu_irq(unsigned int irq, stru
- 
- 	kstat_incr_irqs_this_cpu(irq, desc);
- 
--	if (desc->chip->ack)
--		desc->chip->ack(irq);
-+	if (desc->chip->irq_ack)
-+		desc->chip->irq_ack(&desc->irq_data);
- 
- 	action_ret = handle_IRQ_event(irq, desc->action);
- 	if (!noirqdebug)
++	void		(*irq_ack)(struct irq_data *data);
++	void		(*irq_mask)(struct irq_data *data);
++	void		(*irq_mask_ack)(struct irq_data *data);
++	void		(*irq_unmask)(struct irq_data *data);
++	void		(*irq_eoi)(struct irq_data *data);
++	void		(*irq_end)(struct irq_data *data);
++
++	int		(*irq_set_affinity)(struct irq_data *data, const struct cpumask *dest, bool force);
++	int		(*irq_retrigger)(struct irq_data *data);
++	int		(*irq_set_type)(struct irq_data *data, unsigned int flow_type);
++	int		(*irq_set_wake)(struct irq_data *data, unsigned int on);
++
++	void		(*irq_bus_lock)(struct irq_data *data);
++	void		(*irq_bus_sync_unlock)(struct irq_data *data);
++
+ 	/* Currently used only by UML, might disappear one day.*/
+ #ifdef CONFIG_IRQ_RELEASE_METHOD
+ 	void		(*release)(unsigned int irq, void *dev_id);
