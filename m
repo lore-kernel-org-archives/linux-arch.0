@@ -1,109 +1,121 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 05/19] genirq; Provide compat handling for chip->mask()
-Date: Mon, 27 Sep 2010 12:44:42 -0000
-Message-ID: <20100927121841.940355859@linutronix.de>
+Subject: [patch 12/19] genirq; Provide compat handling for chip->startup()
+Date: Mon, 27 Sep 2010 12:45:38 -0000
+Message-ID: <20100927121842.635152961@linutronix.de>
 References: <20100927121651.904100669@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:34542 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:34630 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759142Ab0I0Mo7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Sep 2010 08:44:59 -0400
-Content-Disposition: inline; filename=genirq-wrap-chip-mask.patch
+	id S1759212Ab0I0Mpx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Sep 2010 08:45:53 -0400
+Content-Disposition: inline; filename=genirq-wrap-chip-startup.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
 
-Wrap the old chip function mask() until the migration is complete and
+Wrap the old chip function startup() until the migration is complete and
 the old chip functions are removed.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/chip.c      |   22 +++++++++++++++-------
- kernel/irq/migration.c |    2 +-
- 2 files changed, 16 insertions(+), 8 deletions(-)
+ kernel/irq/autoprobe.c |    4 ++--
+ kernel/irq/chip.c      |   19 +++++++++++++------
+ kernel/irq/manage.c    |    2 +-
+ 3 files changed, 16 insertions(+), 9 deletions(-)
+
+Index: linux-2.6-tip/kernel/irq/autoprobe.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/autoprobe.c
++++ linux-2.6-tip/kernel/irq/autoprobe.c
+@@ -59,7 +59,7 @@ unsigned long probe_irq_on(void)
+ 			 */
+ 			if (desc->chip->set_type)
+ 				desc->chip->set_type(i, IRQ_TYPE_PROBE);
+-			desc->chip->startup(i);
++			desc->chip->irq_startup(&desc->irq_data);
+ 		}
+ 		raw_spin_unlock_irq(&desc->lock);
+ 	}
+@@ -76,7 +76,7 @@ unsigned long probe_irq_on(void)
+ 		raw_spin_lock_irq(&desc->lock);
+ 		if (!desc->action && !(desc->status & IRQ_NOPROBE)) {
+ 			desc->status |= IRQ_AUTODETECT | IRQ_WAITING;
+-			if (desc->chip->startup(i))
++			if (desc->chip->irq_startup(&desc->irq_data))
+ 				desc->status |= IRQ_PENDING;
+ 		}
+ 		raw_spin_unlock_irq(&desc->lock);
 Index: linux-2.6-tip/kernel/irq/chip.c
 ===================================================================
 --- linux-2.6-tip.orig/kernel/irq/chip.c
 +++ linux-2.6-tip/kernel/irq/chip.c
-@@ -323,11 +323,16 @@ static void default_shutdown(unsigned in
+@@ -308,11 +308,11 @@ static void default_disable(struct irq_d
+ /*
+  * default startup function
+  */
+-static unsigned int default_startup(unsigned int irq)
++static unsigned int default_startup(struct irq_data *data)
  {
- 	struct irq_desc *desc = irq_to_desc(irq);
+-	struct irq_desc *desc = irq_to_desc(irq);
++	struct irq_desc *desc = irq_data_to_desc(data);
  
--	desc->chip->mask(irq);
-+	desc->chip->irq_mask(&desc->irq_data);
- 	desc->status |= IRQ_MASKED;
+-	desc->chip->irq_enable(&desc->irq_data);
++	desc->chip->irq_enable(data);
+ 	return 0;
  }
  
- /* Temporary migration helpers */
-+static void compat_irq_mask(struct irq_data *data)
+@@ -368,6 +368,11 @@ static void compat_irq_shutdown(struct i
+ 	irq_data_to_desc(data)->chip->shutdown(data->irq);
+ }
+ 
++static unsigned int compat_irq_startup(struct irq_data *data)
 +{
-+	irq_data_to_desc(data)->chip->mask(data->irq);
++	return irq_data_to_desc(data)->chip->startup(data->irq);
 +}
 +
  static void compat_bus_lock(struct irq_data *data)
  {
  	irq_data_to_desc(data)->chip->bus_lock(data->irq);
-@@ -365,6 +370,9 @@ void irq_chip_set_defaults(struct irq_ch
- 		chip->irq_bus_lock = compat_bus_lock;
- 	if (chip->bus_sync_unlock)
- 		chip->irq_bus_sync_unlock = compat_bus_sync_unlock;
-+
-+	if (chip->mask)
-+		chip->irq_mask = compat_irq_mask;
- }
+@@ -393,6 +398,8 @@ void irq_chip_set_defaults(struct irq_ch
+ 		chip->irq_disable = compat_irq_disable;
+ 	if (chip->shutdown)
+ 		chip->irq_shutdown = compat_irq_shutdown;
++	if (chip->startup)
++		chip->irq_startup = compat_irq_startup;
  
- static inline void mask_ack_irq(struct irq_desc *desc, int irq)
-@@ -372,17 +380,17 @@ static inline void mask_ack_irq(struct i
- 	if (desc->chip->mask_ack)
- 		desc->chip->mask_ack(irq);
- 	else {
--		desc->chip->mask(irq);
-+		desc->chip->irq_mask(&desc->irq_data);
- 		if (desc->chip->ack)
- 			desc->chip->ack(irq);
+ 	/*
+ 	 * The real defaults
+@@ -401,8 +408,8 @@ void irq_chip_set_defaults(struct irq_ch
+ 		chip->irq_enable = default_enable;
+ 	if (!chip->irq_disable)
+ 		chip->irq_disable = default_disable;
+-	if (!chip->startup)
+-		chip->startup = default_startup;
++	if (!chip->irq_startup)
++		chip->irq_startup = default_startup;
+ 	/*
+ 	 * We use chip->irq_disable, when the user provided its own. When
+ 	 * we have default_disable set for chip->irq_disable, then we need
+@@ -790,7 +797,7 @@ __set_irq_handler(unsigned int irq, irq_
+ 		desc->status &= ~IRQ_DISABLED;
+ 		desc->status |= IRQ_NOREQUEST | IRQ_NOPROBE;
+ 		desc->depth = 0;
+-		desc->chip->startup(irq);
++		desc->chip->irq_startup(&desc->irq_data);
  	}
- 	desc->status |= IRQ_MASKED;
- }
- 
--static inline void mask_irq(struct irq_desc *desc, int irq)
-+static inline void mask_irq(struct irq_desc *desc)
- {
--	if (desc->chip->mask) {
--		desc->chip->mask(irq);
-+	if (desc->chip->irq_mask) {
-+		desc->chip->irq_mask(&desc->irq_data);
- 		desc->status |= IRQ_MASKED;
- 	}
- }
-@@ -556,7 +564,7 @@ handle_fasteoi_irq(unsigned int irq, str
- 	action = desc->action;
- 	if (unlikely(!action || (desc->status & IRQ_DISABLED))) {
- 		desc->status |= IRQ_PENDING;
--		mask_irq(desc, irq);
-+		mask_irq(desc);
- 		goto out;
- 	}
- 
-@@ -624,7 +632,7 @@ handle_edge_irq(unsigned int irq, struct
- 		irqreturn_t action_ret;
- 
- 		if (unlikely(!action)) {
--			mask_irq(desc, irq);
-+			mask_irq(desc);
- 			goto out_unlock;
- 		}
- 
-Index: linux-2.6-tip/kernel/irq/migration.c
+ 	raw_spin_unlock_irqrestore(&desc->lock, flags);
+ 	chip_bus_sync_unlock(desc);
+Index: linux-2.6-tip/kernel/irq/manage.c
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/migration.c
-+++ linux-2.6-tip/kernel/irq/migration.c
-@@ -61,7 +61,7 @@ void move_native_irq(int irq)
- 	if (unlikely(desc->status & IRQ_DISABLED))
- 		return;
- 
--	desc->chip->mask(irq);
-+	desc->chip->irq_mask(&desc->irq_data);
- 	move_masked_irq(irq);
- 	desc->chip->unmask(irq);
- }
+--- linux-2.6-tip.orig/kernel/irq/manage.c
++++ linux-2.6-tip/kernel/irq/manage.c
+@@ -779,7 +779,7 @@ __setup_irq(unsigned int irq, struct irq
+ 		if (!(desc->status & IRQ_NOAUTOEN)) {
+ 			desc->depth = 0;
+ 			desc->status &= ~IRQ_DISABLED;
+-			desc->chip->startup(irq);
++			desc->chip->irq_startup(&desc->irq_data);
+ 		} else
+ 			/* Undo nested disables: */
+ 			desc->depth = 1;
