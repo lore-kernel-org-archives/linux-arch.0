@@ -1,49 +1,63 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 13/19] genirq; Provide compat handling for chip->set_affinity()
-Date: Mon, 27 Sep 2010 12:45:41 -0000
-Message-ID: <20100927121842.732894108@linutronix.de>
+Subject: [patch 14/19] genirq; Provide compat handling for chip->set_type()
+Date: Mon, 27 Sep 2010 12:45:47 -0000
+Message-ID: <20100927121842.832261548@linutronix.de>
 References: <20100927121651.904100669@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=genirq-wrap-chip-set-affinity.patch
+Content-Disposition: inline; filename=genirq-wrap-chip-set-type.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Wrap the old chip function set_affinity() until the migration is
-complete and the old chip functions are removed.
+Wrap the old chip function set_type() until the migration is complete
+and the old chip functions are removed.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/chip.c      |    8 ++++++++
- kernel/irq/manage.c    |   11 ++++++-----
- kernel/irq/migration.c |    6 ++++--
- kernel/irq/proc.c      |    2 +-
- 4 files changed, 19 insertions(+), 8 deletions(-)
+ kernel/irq/autoprobe.c |    5 +++--
+ kernel/irq/chip.c      |    7 +++++++
+ kernel/irq/manage.c    |   10 +++++-----
+ 3 files changed, 15 insertions(+), 7 deletions(-)
 
+Index: linux-2.6-tip/kernel/irq/autoprobe.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/autoprobe.c
++++ linux-2.6-tip/kernel/irq/autoprobe.c
+@@ -57,8 +57,9 @@ unsigned long probe_irq_on(void)
+ 			 * Some chips need to know about probing in
+ 			 * progress:
+ 			 */
+-			if (desc->chip->set_type)
+-				desc->chip->set_type(i, IRQ_TYPE_PROBE);
++			if (desc->chip->irq_set_type)
++				desc->chip->irq_set_type(&desc->irq_data,
++							 IRQ_TYPE_PROBE);
+ 			desc->chip->irq_startup(&desc->irq_data);
+ 		}
+ 		raw_spin_unlock_irq(&desc->lock);
 Index: linux-2.6-tip/kernel/irq/chip.c
 ===================================================================
 --- linux-2.6-tip.orig/kernel/irq/chip.c
 +++ linux-2.6-tip/kernel/irq/chip.c
-@@ -373,6 +373,12 @@ static unsigned int compat_irq_startup(s
- 	return irq_data_to_desc(data)->chip->startup(data->irq);
+@@ -379,6 +379,11 @@ static int compat_irq_set_affinity(struc
+ 	return irq_data_to_desc(data)->chip->set_affinity(data->irq, dest);
  }
  
-+static int compat_irq_set_affinity(struct irq_data *data,
-+				   const struct cpumask *dest, bool force)
++static int compat_irq_set_type(struct irq_data *data, unsigned int type)
 +{
-+	return irq_data_to_desc(data)->chip->set_affinity(data->irq, dest);
++	return irq_data_to_desc(data)->chip->set_type(data->irq, type);
 +}
 +
  static void compat_bus_lock(struct irq_data *data)
  {
  	irq_data_to_desc(data)->chip->bus_lock(data->irq);
-@@ -439,6 +445,8 @@ void irq_chip_set_defaults(struct irq_ch
- 		chip->irq_mask_ack = compat_irq_mask_ack;
- 	if (chip->eoi)
+@@ -447,6 +452,8 @@ void irq_chip_set_defaults(struct irq_ch
  		chip->irq_eoi = compat_irq_eoi;
-+	if (chip->set_affinity)
-+		chip->irq_set_affinity = compat_irq_set_affinity;
+ 	if (chip->set_affinity)
+ 		chip->irq_set_affinity = compat_irq_set_affinity;
++	if (chip->set_type)
++		chip->irq_set_type = compat_irq_set_type;
  }
  
  static inline void mask_ack_irq(struct irq_desc *desc)
@@ -51,94 +65,33 @@ Index: linux-2.6-tip/kernel/irq/manage.c
 ===================================================================
 --- linux-2.6-tip.orig/kernel/irq/manage.c
 +++ linux-2.6-tip/kernel/irq/manage.c
-@@ -74,7 +74,7 @@ int irq_can_set_affinity(unsigned int ir
- 	struct irq_desc *desc = irq_to_desc(irq);
- 
- 	if (CHECK_IRQ_PER_CPU(desc->status) || !desc->chip ||
--	    !desc->chip->set_affinity)
-+	    !desc->chip->irq_set_affinity)
- 		return 0;
- 
- 	return 1;
-@@ -109,16 +109,17 @@ void irq_set_thread_affinity(struct irq_
- int irq_set_affinity(unsigned int irq, const struct cpumask *cpumask)
- {
- 	struct irq_desc *desc = irq_to_desc(irq);
-+	struct irq_chip *chip = desc->chip;
- 	unsigned long flags;
- 
--	if (!desc->chip->set_affinity)
-+	if (!chip->irq_set_affinity)
- 		return -EINVAL;
- 
- 	raw_spin_lock_irqsave(&desc->lock, flags);
- 
- #ifdef CONFIG_GENERIC_PENDING_IRQ
- 	if (desc->status & IRQ_MOVE_PCNTXT) {
--		if (!desc->chip->set_affinity(irq, cpumask)) {
-+		if (!chip->irq_set_affinity(&desc->irq_data, cpumask, false)) {
- 			cpumask_copy(desc->affinity, cpumask);
- 			irq_set_thread_affinity(desc);
- 		}
-@@ -128,7 +129,7 @@ int irq_set_affinity(unsigned int irq, c
- 		cpumask_copy(desc->pending_mask, cpumask);
- 	}
- #else
--	if (!desc->chip->set_affinity(irq, cpumask)) {
-+	if (!chip->irq_set_affinity(&dest->irq_data, cpumask, false)) {
- 		cpumask_copy(desc->affinity, cpumask);
- 		irq_set_thread_affinity(desc);
- 	}
-@@ -177,7 +178,7 @@ static int setup_affinity(unsigned int i
- 
- 	cpumask_and(desc->affinity, cpu_online_mask, irq_default_affinity);
- set_affinity:
--	desc->chip->set_affinity(irq, desc->affinity);
-+	desc->chip->irq_set_affinity(&desc->irq_data, desc->affinity, false);
- 
- 	return 0;
+@@ -429,12 +429,12 @@ void compat_irq_chip_set_default_handler
  }
-Index: linux-2.6-tip/kernel/irq/migration.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/migration.c
-+++ linux-2.6-tip/kernel/irq/migration.c
-@@ -7,6 +7,7 @@
- void move_masked_irq(int irq)
+ 
+ int __irq_set_trigger(struct irq_desc *desc, unsigned int irq,
+-		unsigned long flags)
++		      unsigned long flags)
  {
- 	struct irq_desc *desc = irq_to_desc(irq);
-+	struct irq_chip *chip = desc->chip;
+ 	int ret;
+ 	struct irq_chip *chip = desc->chip;
  
- 	if (likely(!(desc->status & IRQ_MOVE_PENDING)))
- 		return;
-@@ -24,7 +25,7 @@ void move_masked_irq(int irq)
- 	if (unlikely(cpumask_empty(desc->pending_mask)))
- 		return;
+-	if (!chip || !chip->set_type) {
++	if (!chip || !chip->irq_set_type) {
+ 		/*
+ 		 * IRQF_TRIGGER_* but the PIC does not support multiple
+ 		 * flow-types?
+@@ -445,11 +445,11 @@ int __irq_set_trigger(struct irq_desc *d
+ 	}
  
--	if (!desc->chip->set_affinity)
-+	if (!chip->irq_set_affinity)
- 		return;
+ 	/* caller masked out all except trigger mode flags */
+-	ret = chip->set_type(irq, flags);
++	ret = chip->irq_set_type(&desc->irq_data, flags);
  
- 	assert_raw_spin_locked(&desc->lock);
-@@ -43,7 +44,8 @@ void move_masked_irq(int irq)
- 	 */
- 	if (likely(cpumask_any_and(desc->pending_mask, cpu_online_mask)
- 		   < nr_cpu_ids))
--		if (!desc->chip->set_affinity(irq, desc->pending_mask)) {
-+		if (!chip->irq_set_affinity(&desc->irq_data,
-+					    desc->pending_mask, false)) {
- 			cpumask_copy(desc->affinity, desc->pending_mask);
- 			irq_set_thread_affinity(desc);
- 		}
-Index: linux-2.6-tip/kernel/irq/proc.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/proc.c
-+++ linux-2.6-tip/kernel/irq/proc.c
-@@ -65,7 +65,7 @@ static ssize_t irq_affinity_proc_write(s
- 	cpumask_var_t new_value;
- 	int err;
- 
--	if (!irq_to_desc(irq)->chip->set_affinity || no_irq_affinity ||
-+	if (!irq_to_desc(irq)->chip->irq_set_affinity || no_irq_affinity ||
- 	    irq_balancing_disabled(irq))
- 		return -EIO;
- 
+ 	if (ret)
+-		pr_err("setting trigger mode %d for irq %u failed (%pF)\n",
+-				(int)flags, irq, chip->set_type);
++		pr_err("setting trigger mode %lu for irq %u failed (%pF)\n",
++		       flags, irq, chip->irq_set_type);
+ 	else {
+ 		if (flags & (IRQ_TYPE_LEVEL_LOW | IRQ_TYPE_LEVEL_HIGH))
+ 			flags |= IRQ_LEVEL;
