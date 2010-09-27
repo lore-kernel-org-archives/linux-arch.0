@@ -1,27 +1,117 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH -tip -v4] irq_work: generic hard-irq context callbacks
-Date: Sun, 26 Sep 2010 08:32:03 +0100
-Message-ID: <5042.1285486323@redhat.com>
-References: <1285461624.15685.51.camel@yhuang-dev> <1284627425.2754.434.camel@yhuang-dev> <1284360648.3269.115.camel@yhuang-dev.sh.intel.com> <20100913123213.76b1b5fa@mschwide.boeblingen.de.ibm.com> <1284377790.2275.212.camel@laptop> <1284528590.2256.135.camel@yhuang-dev.sh.intel.com> <1284539320.3764.266.camel@twins> <615.1285272720@redhat.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 06/19] genirq; Provide compat handling for chip->unmask()
+Date: Mon, 27 Sep 2010 12:44:44 -0000
+Message-ID: <20100927121842.043608928@linutronix.de>
+References: <20100927121651.904100669@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:12836 "EHLO mx1.redhat.com"
+Received: from www.tglx.de ([62.245.132.106]:34536 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751467Ab0IZHcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 26 Sep 2010 03:32:54 -0400
-In-Reply-To: <1285461624.15685.51.camel@yhuang-dev>
+	id S1759115Ab0I0Mo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Sep 2010 08:44:57 -0400
+Content-Disposition: inline; filename=genirq-wrap-chip-unmask.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Huang Ying <ying.huang@intel.com>
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
 
-Huang Ying <ying.huang@intel.com> wrote:
+Wrap the old chip function unmask() until the migration is complete
+and the old chip functions are removed.
 
-> /home/caritas/projects/mce/kernel/linux-mce.git/arch/frv/mm/tlb-flush.S: Assembler messages:
-> /home/caritas/projects/mce/kernel/linux-mce.git/arch/frv/mm/tlb-flush.S:51: Error: operand out of range (4294967295 not between -32768 and 32767) `setlos #0xffffffff,gr4'
-
-Hmmm...  It's a newer binutils by the looks of it.  They seem to have made it
-more stroppy about unsigned constants for signed parameters:-(
-
-I'll get back to you on it.
-
-David
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ kernel/irq/chip.c      |   20 ++++++++++++++------
+ kernel/irq/manage.c    |    2 +-
+ kernel/irq/migration.c |    2 +-
+ 3 files changed, 16 insertions(+), 8 deletions(-)
+Index: linux-2.6-tip/kernel/irq/chip.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/chip.c
++++ linux-2.6-tip/kernel/irq/chip.c
+@@ -294,7 +294,7 @@ static void default_enable(unsigned int 
+ {
+ 	struct irq_desc *desc = irq_to_desc(irq);
+ 
+-	desc->chip->unmask(irq);
++	desc->chip->irq_unmask(&desc->irq_data);
+ 	desc->status &= ~IRQ_MASKED;
+ }
+ 
+@@ -333,6 +333,11 @@ static void compat_irq_mask(struct irq_d
+ 	irq_data_to_desc(data)->chip->mask(data->irq);
+ }
+ 
++static void compat_irq_unmask(struct irq_data *data)
++{
++	irq_data_to_desc(data)->chip->unmask(data->irq);
++}
++
+ static void compat_bus_lock(struct irq_data *data)
+ {
+ 	irq_data_to_desc(data)->chip->bus_lock(data->irq);
+@@ -373,6 +378,9 @@ void irq_chip_set_defaults(struct irq_ch
+ 
+ 	if (chip->mask)
+ 		chip->irq_mask = compat_irq_mask;
++
++	if (chip->unmask)
++		chip->irq_unmask = compat_irq_unmask;
+ }
+ 
+ static inline void mask_ack_irq(struct irq_desc *desc, int irq)
+@@ -395,10 +403,10 @@ static inline void mask_irq(struct irq_d
+ 	}
+ }
+ 
+-static inline void unmask_irq(struct irq_desc *desc, int irq)
++static inline void unmask_irq(struct irq_desc *desc)
+ {
+-	if (desc->chip->unmask) {
+-		desc->chip->unmask(irq);
++	if (desc->chip->irq_unmask) {
++		desc->chip->irq_unmask(&desc->irq_data);
+ 		desc->status &= ~IRQ_MASKED;
+ 	}
+ }
+@@ -527,7 +535,7 @@ handle_level_irq(unsigned int irq, struc
+ 	desc->status &= ~IRQ_INPROGRESS;
+ 
+ 	if (!(desc->status & (IRQ_DISABLED | IRQ_ONESHOT)))
+-		unmask_irq(desc, irq);
++		unmask_irq(desc);
+ out_unlock:
+ 	raw_spin_unlock(&desc->lock);
+ }
+@@ -644,7 +652,7 @@ handle_edge_irq(unsigned int irq, struct
+ 		if (unlikely((desc->status &
+ 			       (IRQ_PENDING | IRQ_MASKED | IRQ_DISABLED)) ==
+ 			      (IRQ_PENDING | IRQ_MASKED))) {
+-			unmask_irq(desc, irq);
++			unmask_irq(desc);
+ 		}
+ 
+ 		desc->status &= ~IRQ_PENDING;
+Index: linux-2.6-tip/kernel/irq/manage.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/manage.c
++++ linux-2.6-tip/kernel/irq/manage.c
+@@ -528,7 +528,7 @@ again:
+ 
+ 	if (!(desc->status & IRQ_DISABLED) && (desc->status & IRQ_MASKED)) {
+ 		desc->status &= ~IRQ_MASKED;
+-		desc->chip->unmask(irq);
++		desc->chip->irq_unmask(&desc->irq_data);
+ 	}
+ 	raw_spin_unlock_irq(&desc->lock);
+ 	chip_bus_sync_unlock(desc);
+Index: linux-2.6-tip/kernel/irq/migration.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/migration.c
++++ linux-2.6-tip/kernel/irq/migration.c
+@@ -63,6 +63,6 @@ void move_native_irq(int irq)
+ 
+ 	desc->chip->irq_mask(&desc->irq_data);
+ 	move_masked_irq(irq);
+-	desc->chip->unmask(irq);
++	desc->chip->irq_unmask(&desc->irq_data);
+ }
+ 
