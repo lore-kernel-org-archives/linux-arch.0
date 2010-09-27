@@ -1,67 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:48906 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:48929 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759188Ab0I0Mqb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Sep 2010 08:46:31 -0400
-Message-ID: <20100927121843.025801092@linutronix.de>
-Date: Mon, 27 Sep 2010 12:45:53 -0000
+	id S1759277Ab0I0Mqw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Sep 2010 08:46:52 -0400
+Message-ID: <20100927121843.314600915@linutronix.de>
+Date: Mon, 27 Sep 2010 12:46:02 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 16/19] genirq; Provide compat handling for chip->retrigger()
+Subject: [patch 19/19] x86: Use genirq Kconfig
 References: <20100927121651.904100669@linutronix.de>
-Content-Disposition: inline; filename=genirq-wrap-chip-retrigger.patch
+Content-Disposition: inline; filename=x86-use-genirq-kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20100927124553.wdb_wt4S339H6Vte8QiB3F55PwQSimj1JY87XTZElNQ@z>
-
-Wrap the old chip function retrigger() until the migration is complete
-and the old chip functions are removed.
+Message-ID: <20100927124602.Vtx5lmhg_rjFG62-fTkU3NtH0o75udE98rPHWeceOPw@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/chip.c   |    7 +++++++
- kernel/irq/resend.c |    3 ++-
- 2 files changed, 9 insertions(+), 1 deletion(-)
+ arch/x86/Kconfig |   35 +++++------------------------------
+ 1 file changed, 5 insertions(+), 30 deletions(-)
 
-Index: linux-2.6-tip/kernel/irq/chip.c
+Index: linux-2.6-tip/arch/x86/Kconfig
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/chip.c
-+++ linux-2.6-tip/kernel/irq/chip.c
-@@ -389,6 +389,11 @@ static int compat_irq_set_wake(struct ir
- 	return irq_data_to_desc(data)->chip->set_wake(data->irq, on);
- }
+--- linux-2.6-tip.orig/arch/x86/Kconfig
++++ linux-2.6-tip/arch/x86/Kconfig
+@@ -59,6 +59,10 @@ config X86
+ 	select ANON_INODES
+ 	select HAVE_ARCH_KMEMCHECK
+ 	select HAVE_USER_RETURN_NOTIFIER
++	select HAVE_SPARSE_IRQ
++	select NUMA_IRQ_DESC if (SPARSE_IRQ && NUMA)
++	select GENERIC_IRQ_PROBE
++	select GENERIC_PENDING_IRQ if SMP
  
-+static int compat_irq_retrigger(struct irq_data *data)
-+{
-+	return irq_data_to_desc(data)->chip->retrigger(data->irq);
-+}
-+
- static void compat_bus_lock(struct irq_data *data)
- {
- 	irq_data_to_desc(data)->chip->bus_lock(data->irq);
-@@ -461,6 +466,8 @@ void irq_chip_set_defaults(struct irq_ch
- 		chip->irq_set_type = compat_irq_set_type;
- 	if (chip->set_wake)
- 		chip->irq_set_wake = compat_irq_set_wake;
-+	if (chip->retrigger)
-+		chip->irq_retrigger = compat_irq_retrigger;
- }
+ config INSTRUCTION_DECODER
+ 	def_bool (KPROBES || PERF_EVENTS)
+@@ -200,20 +204,6 @@ config HAVE_INTEL_TXT
+ 	def_bool y
+ 	depends on EXPERIMENTAL && DMAR && ACPI
  
- static inline void mask_ack_irq(struct irq_desc *desc)
-Index: linux-2.6-tip/kernel/irq/resend.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/resend.c
-+++ linux-2.6-tip/kernel/irq/resend.c
-@@ -70,7 +70,8 @@ void check_irq_resend(struct irq_desc *d
- 	if ((status & (IRQ_LEVEL | IRQ_PENDING | IRQ_REPLAY)) == IRQ_PENDING) {
- 		desc->status = (status & ~IRQ_PENDING) | IRQ_REPLAY;
+-# Use the generic interrupt handling code in kernel/irq/:
+-config GENERIC_HARDIRQS
+-	def_bool y
+-
+-config GENERIC_HARDIRQS_NO__DO_IRQ
+-       def_bool y
+-
+-config GENERIC_IRQ_PROBE
+-	def_bool y
+-
+-config GENERIC_PENDING_IRQ
+-	def_bool y
+-	depends on GENERIC_HARDIRQS && SMP
+-
+ config USE_GENERIC_SMP_HELPERS
+ 	def_bool y
+ 	depends on SMP
+@@ -296,22 +286,7 @@ config X86_X2APIC
  
--		if (!desc->chip->retrigger || !desc->chip->retrigger(irq)) {
-+		if (!desc->chip->irq_retrigger ||
-+		    !desc->chip->irq_retrigger(&desc->irq_data)) {
- #ifdef CONFIG_HARDIRQS_SW_RESEND
- 			/* Set it pending and activate the softirq: */
- 			set_bit(irq, irqs_resend);
+ 	  If you don't know what to do here, say N.
+ 
+-config SPARSE_IRQ
+-	bool "Support sparse irq numbering"
+-	depends on PCI_MSI || HT_IRQ
+-	---help---
+-	  This enables support for sparse irqs. This is useful for distro
+-	  kernels that want to define a high CONFIG_NR_CPUS value but still
+-	  want to have low kernel memory footprint on smaller machines.
+-
+-	  ( Sparse IRQs can also be beneficial on NUMA boxes, as they spread
+-	    out the irq_desc[] array in a more NUMA-friendly way. )
+-
+-	  If you don't know what to do here, say N.
+-
+-config NUMA_IRQ_DESC
+-	def_bool y
+-	depends on SPARSE_IRQ && NUMA
++source "kernel/irq/Kconfig"
+ 
+ config X86_MPPARSE
+ 	bool "Enable MPS table" if ACPI
 
 
