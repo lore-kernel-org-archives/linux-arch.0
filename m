@@ -1,78 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from esgaroth.petrovitsch.at ([78.47.184.11]:4185 "EHLO
-	esgaroth.petrovitsch.priv.at" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753529Ab0IWMmL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Sep 2010 08:42:11 -0400
-Subject: Re: [PATCH] trivial: disable sparse' warning for "potentially
- expensive pointer subtraction".
-From: Bernd Petrovitsch <bernd@sysprog.at>
-In-Reply-To: <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
-References: <1282321333.25235.0.camel@thorin>
-	 <alpine.LNX.2.00.1009231323340.26813@pobox.suse.cz>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 23 Sep 2010 14:41:43 +0200
-Message-ID: <1285245703.32001.19.camel@thorin>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from www.tglx.de ([62.245.132.106]:34564 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759197Ab0I0MpF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Sep 2010 08:45:05 -0400
+Message-ID: <20100927121842.142624725@linutronix.de>
+Date: Mon, 27 Sep 2010 12:44:47 -0000
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 07/19] genirq; Provide compat handling for chip->ack()
+References: <20100927121651.904100669@linutronix.de>
+Content-Disposition: inline; filename=genirq-wrap-chip-ack.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Kosina <jkosina@suse.cz>
-Cc: linux-kbuild@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Andi Kleen <andi@firstfloor.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com, MXns RullgXrd <mans@mansr.com>, linux-sparse@vger.kernel.org
-Message-ID: <20100923124143.atvSRfqaL387s8fB1OpSoObFa28Ntri9H0MIybSxSbs@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20100927124447.3lMbnjMyGEsJZB_PCAAyd6BMOr11ms2pUYMlnfkEjfs@z>
 
-Also Cc:ed linux-sparse@vger.kernel.org
+Wrap the old chip function ack() until the migration is complete and
+the old chip functions are removed.
 
-On Don, 2010-09-23 at 13:23 +0200, Jiri Kosina wrote:
-> On Fri, 20 Aug 2010, Bernd Petrovitsch wrote:
-> 
-> > Rationale: With a somewhat current gcc (or a somewhat sane peephole
-> > optimizer), the (expensive) "div" is converted to a "shift" or
-> > "mul" with the inverse.
-> > This warning is disabled per default in sparse but the "-Wall" in
-> > the kernels CFLAGS enables it.
-> > 
-> > Signed-off-by: Bernd Petrovitsch <bernd@sysprog.at>
-> > ---
-> > This patch is trivial and affects only calls to sparse (read: make C=1) and
-> > removes false warnings. So it should be considered for inclusion immediately.
-> > 
-> > Sorry for the long Cc: - I included everyone in the thread and added
-> > linux-kbuild@ (as it IMHO belongs there) and trivial@ (because of the
-> > complexity of the patch).
-> > 
-> >  Makefile |    2 +-
-> >  1 files changed, 1 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/Makefile b/Makefile
-> > index f3bdff8..851c0fa 100644
-> > --- a/Makefile
-> > +++ b/Makefile
-> > @@ -330,7 +330,7 @@ PERL		= perl
-> >  CHECK		= sparse
-> >  
-> >  CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-> > -		  -Wbitwise -Wno-return-void $(CF)
-> > +		  -Wbitwise -Wno-return-void -Wno-ptr-subtraction-blows $(CF)
-> >  CFLAGS_MODULE   =
-> >  AFLAGS_MODULE   =
-> >  LDFLAGS_MODULE  =
-> 
-> What is the status of this patch? I don't see it Nacked, but it's not in 
-> linux-next either.
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+---
+ kernel/irq/chip.c |   20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
+Index: linux-2.6-tip/kernel/irq/chip.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/chip.c
++++ linux-2.6-tip/kernel/irq/chip.c
+@@ -338,6 +338,11 @@ static void compat_irq_unmask(struct irq
+ 	irq_data_to_desc(data)->chip->unmask(data->irq);
+ }
+ 
++static void compat_irq_ack(struct irq_data *data)
++{
++	irq_data_to_desc(data)->chip->ack(data->irq);
++}
++
+ static void compat_bus_lock(struct irq_data *data)
+ {
+ 	irq_data_to_desc(data)->chip->bus_lock(data->irq);
+@@ -375,12 +380,12 @@ void irq_chip_set_defaults(struct irq_ch
+ 		chip->irq_bus_lock = compat_bus_lock;
+ 	if (chip->bus_sync_unlock)
+ 		chip->irq_bus_sync_unlock = compat_bus_sync_unlock;
+-
+ 	if (chip->mask)
+ 		chip->irq_mask = compat_irq_mask;
+-
+ 	if (chip->unmask)
+ 		chip->irq_unmask = compat_irq_unmask;
++	if (chip->ack)
++		chip->irq_ack = compat_irq_ack;
+ }
+ 
+ static inline void mask_ack_irq(struct irq_desc *desc, int irq)
+@@ -389,8 +394,8 @@ static inline void mask_ack_irq(struct i
+ 		desc->chip->mask_ack(irq);
+ 	else {
+ 		desc->chip->irq_mask(&desc->irq_data);
+-		if (desc->chip->ack)
+-			desc->chip->ack(irq);
++		if (desc->chip->irq_ack)
++			desc->chip->irq_ack(&desc->irq_data);
+ 	}
+ 	desc->status |= IRQ_MASKED;
+ }
+@@ -629,8 +634,7 @@ handle_edge_irq(unsigned int irq, struct
+ 	kstat_incr_irqs_this_cpu(irq, desc);
+ 
+ 	/* Start handling the irq */
+-	if (desc->chip->ack)
+-		desc->chip->ack(irq);
++	desc->chip->irq_ack(&desc->irq_data);
+ 
+ 	/* Mark the IRQ currently in progress.*/
+ 	desc->status |= IRQ_INPROGRESS;
+@@ -683,8 +687,8 @@ handle_percpu_irq(unsigned int irq, stru
+ 
+ 	kstat_incr_irqs_this_cpu(irq, desc);
+ 
+-	if (desc->chip->ack)
+-		desc->chip->ack(irq);
++	if (desc->chip->irq_ack)
++		desc->chip->irq_ack(&desc->irq_data);
+ 
+ 	action_ret = handle_IRQ_event(irq, desc->action);
+ 	if (!noirqdebug)
 
-More details:
-
-The head (as in
-git://git.kernel.org/pub/scm/devel/sparse/chrisl/sparse.git) has "-Wall"
-renamed to "-Wsparse-all". So the above patch is pretty pointless.
-
-But sparse-0.4.2 - the latest release according to
-https://sparse.wiki.kernel.org/index.php/Main_Page - hasn't that
-renamed.
-
-	Bernd
--- 
-mobile: +43 664 4416156              http://www.sysprog.at/
-    Linux Software Development, Consulting and Services
 
