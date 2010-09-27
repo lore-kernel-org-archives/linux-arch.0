@@ -1,104 +1,77 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 17/19] genirq: Switch dummy_chip and no_irq_chip to new
-	functions
-Date: Mon, 27 Sep 2010 12:45:56 -0000
-Message-ID: <20100927121843.119867950@linutronix.de>
+Subject: [patch 19/19] x86: Use genirq Kconfig
+Date: Mon, 27 Sep 2010 12:46:02 -0000
+Message-ID: <20100927121843.314600915@linutronix.de>
 References: <20100927121651.904100669@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:48903 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759249Ab0I0Mqa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Sep 2010 08:46:30 -0400
-Content-Disposition: inline; filename=genirq-fixup-dummy-chip.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=x86-use-genirq-kconfig.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>
-
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/handle.c |   44 ++++++++++++++++++++++++--------------------
- 1 file changed, 24 insertions(+), 20 deletions(-)
+ arch/x86/Kconfig |   35 +++++------------------------------
+ 1 file changed, 5 insertions(+), 30 deletions(-)
 
-Index: linux-2.6-tip/kernel/irq/handle.c
+Index: linux-2.6-tip/arch/x86/Kconfig
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/handle.c
-+++ linux-2.6-tip/kernel/irq/handle.c
-@@ -303,37 +303,41 @@ void clear_kstat_irqs(struct irq_desc *d
-  * What should we do if we get a hw irq event on an illegal vector?
-  * Each architecture has to answer this themself.
-  */
--static void ack_bad(unsigned int irq)
-+static void ack_bad(struct irq_data *data)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
-+	struct irq_desc *desc = irq_data_to_desc(data);
+--- linux-2.6-tip.orig/arch/x86/Kconfig
++++ linux-2.6-tip/arch/x86/Kconfig
+@@ -59,6 +59,10 @@ config X86
+ 	select ANON_INODES
+ 	select HAVE_ARCH_KMEMCHECK
+ 	select HAVE_USER_RETURN_NOTIFIER
++	select HAVE_SPARSE_IRQ
++	select NUMA_IRQ_DESC if (SPARSE_IRQ && NUMA)
++	select GENERIC_IRQ_PROBE
++	select GENERIC_PENDING_IRQ if SMP
  
--	print_irq_desc(irq, desc);
--	ack_bad_irq(irq);
-+	print_irq_desc(data->irq, desc);
-+	ack_bad_irq(data->irq);
- }
+ config INSTRUCTION_DECODER
+ 	def_bool (KPROBES || PERF_EVENTS)
+@@ -200,20 +204,6 @@ config HAVE_INTEL_TXT
+ 	def_bool y
+ 	depends on EXPERIMENTAL && DMAR && ACPI
  
- /*
-  * NOP functions
-  */
--static void noop(unsigned int irq)
-+static void noop(struct irq_data *data)
- {
- }
+-# Use the generic interrupt handling code in kernel/irq/:
+-config GENERIC_HARDIRQS
+-	def_bool y
+-
+-config GENERIC_HARDIRQS_NO__DO_IRQ
+-       def_bool y
+-
+-config GENERIC_IRQ_PROBE
+-	def_bool y
+-
+-config GENERIC_PENDING_IRQ
+-	def_bool y
+-	depends on GENERIC_HARDIRQS && SMP
+-
+ config USE_GENERIC_SMP_HELPERS
+ 	def_bool y
+ 	depends on SMP
+@@ -296,22 +286,7 @@ config X86_X2APIC
  
--static unsigned int noop_ret(unsigned int irq)
-+static unsigned int noop_ret(struct irq_data *data)
- {
- 	return 0;
- }
+ 	  If you don't know what to do here, say N.
  
-+static void compat_noop(unsigned int irq)
-+{
-+}
-+
- /*
-  * Generic no controller implementation
-  */
- struct irq_chip no_irq_chip = {
- 	.name		= "none",
--	.startup	= noop_ret,
--	.shutdown	= noop,
--	.enable		= noop,
--	.disable	= noop,
--	.ack		= ack_bad,
--	.end		= noop,
-+	.irq_startup	= noop_ret,
-+	.irq_shutdown	= noop,
-+	.irq_enable	= noop,
-+	.irq_disable	= noop,
-+	.irq_ack	= ack_bad,
-+	.end		= compat_noop,
- };
+-config SPARSE_IRQ
+-	bool "Support sparse irq numbering"
+-	depends on PCI_MSI || HT_IRQ
+-	---help---
+-	  This enables support for sparse irqs. This is useful for distro
+-	  kernels that want to define a high CONFIG_NR_CPUS value but still
+-	  want to have low kernel memory footprint on smaller machines.
+-
+-	  ( Sparse IRQs can also be beneficial on NUMA boxes, as they spread
+-	    out the irq_desc[] array in a more NUMA-friendly way. )
+-
+-	  If you don't know what to do here, say N.
+-
+-config NUMA_IRQ_DESC
+-	def_bool y
+-	depends on SPARSE_IRQ && NUMA
++source "kernel/irq/Kconfig"
  
- /*
-@@ -342,14 +346,14 @@ struct irq_chip no_irq_chip = {
-  */
- struct irq_chip dummy_irq_chip = {
- 	.name		= "dummy",
--	.startup	= noop_ret,
--	.shutdown	= noop,
--	.enable		= noop,
--	.disable	= noop,
--	.ack		= noop,
--	.mask		= noop,
--	.unmask		= noop,
--	.end		= noop,
-+	.irq_startup	= noop_ret,
-+	.irq_shutdown	= noop,
-+	.irq_enable	= noop,
-+	.irq_disable	= noop,
-+	.irq_ack	= noop,
-+	.irq_mask	= noop,
-+	.irq_unmask	= noop,
-+	.end		= compat_noop,
- };
- 
- /*
+ config X86_MPPARSE
+ 	bool "Enable MPS table" if ACPI
