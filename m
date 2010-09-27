@@ -1,58 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33211 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757189Ab0I0Syz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Sep 2010 14:54:55 -0400
-Date: Mon, 27 Sep 2010 20:49:49 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: RE: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
- __do_IRQ() code
-In-Reply-To: <987664A83D2D224EAE907B061CE93D5301604712B4@orsmsx505.amr.corp.intel.com>
-Message-ID: <alpine.LFD.2.00.1009272048100.2416@localhost6.localdomain6>
-References: <20100908152036.643594727@linutronix.de> <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com> <alpine.LFD.2.00.1009271953390.2416@localhost6.localdomain6> <987664A83D2D224EAE907B061CE93D5301604712B4@orsmsx505.amr.corp.intel.com>
+Received: from mail-qw0-f46.google.com ([209.85.216.46]:60920 "EHLO
+	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933389Ab0I0Tsg convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Sep 2010 15:48:36 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <20100908152036.643594727@linutronix.de>
+References: <20100908152036.643594727@linutronix.de>
+Date: Mon, 27 Sep 2010 21:48:34 +0200
+Message-ID: <AANLkTin23sJT+OqjDqjyk-Gr5r-GfJ_03Q1WUqNLCzgH@mail.gmail.com>
+Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
+ __do_IRQ() code
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, Chris Zankel <chris@zankel.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20100927184949.7QEcUWHvW40J_p7ObaoC_R-BuOq8fgmH8TlM95HFn0E@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
+Message-ID: <20100927194834.NGiFYT8V3BkSe4i5vOiaGy77mdPyDtivPQ4chTeg8gU@z>
 
-On Mon, 27 Sep 2010, Luck, Tony wrote:
+On Wed, Sep 8, 2010 at 8:14 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> __do_IRQ() has been deprecated after a two years migration phase in
+>  The following architectures are still using __do_IRQ():
+>
+>  alpha, cris, ia64, h8300, m32r, m68knommu, parisc, um
+>
 
-> > No, it's deliberate. The solution is to use the correct flow handler
-> > for your device. We have currently several flow handlers implemented:
-> 
-> Yes, I found the different "handle_*_irq()" functions. The _percpu_
-> variant works fine for the ia64 per-cpu interrupt paths.
-> 
-> But *NONE* of them call desc->chip->end() (even though the code flow
-> in Documentation/DcoBook/genericirq.tmpl says that three of them do
-> call it].  So it appears that this was thought to be necessary when
-> the docs were written, but was not put into the code.
+Maybe I'm naive but shouldn't this path work?
+Does um need some extra work?
 
-Yeah, sorry.
- 
-> The ia64 chip->end function for edge triggered interrupts is a nop(),
-> so handle_edge_irq() ought to work just fine for it [can't confirm
-> from my initial tests because the HP box I'm using only has level
-> triggered ones].
-> 
-> handle_level_irq() works for my level triggered interrupts if I add
-> a "desc->chip->end(irq)" call to it.
+The linux executable aborts immediately when I apply my patch.
 
-Hmm, why isn't chip->unmask() sufficient ?
- 
-> git grep "chip->end" appears to show that the only use of chip->end
-> is in the "Recovery handler for misrouted interrupts": try_one_irq()
+---cut---
+Locating the bottom of the address space ... 0x10000
+Locating the top of the address space ... 0xc0000000
+Core dump limits :
+        soft - 0
+        hard - NONE
+Checking that ptrace can change system call numbers...OK
+Checking syscall emulation patch for ptrace...OK
+Checking advanced syscall emulation patch for ptrace...OK
+Checking for tmpfs mount on /dev/shm...nothing mounted on /dev/shm
+Checking PROT_EXEC mmap in /tmp/...OK
+Checking for the skas3 patch in the host:
+  - /proc/mm...not found: No such file or directory
+  - PTRACE_FAULTINFO...not found
+  - PTRACE_LDT...not found
+UML running in SKAS0 mode
+Aborted
+---cut---
 
-Right, that's just due to the old __do_IRQ() compability.
- 
-> At minimum we seem to have some documentation inconsistencies with
-> the code.
-
-Will fix.
-
-Thanks,
-
-	tglx
+diff --git a/arch/um/Kconfig.um b/arch/um/Kconfig.um
+index ec2b8da..ae950e0 100644
+--- a/arch/um/Kconfig.um
++++ b/arch/um/Kconfig.um
+@@ -147,3 +147,8 @@ config KERNEL_STACK_ORDER
+          This option determines the size of UML kernel stacks.  They will
+          be 1 << order pages.  The default is OK unless you're running Valgrind
+          on UML, in which case, set this to 3.
++
++config GENERIC_HARDIRQS_NO__DO_IRQ
++       def_bool y
++
++
+diff --git a/arch/um/kernel/irq.c b/arch/um/kernel/irq.c
+index a3f0b04..3d44535 100644
+--- a/arch/um/kernel/irq.c
++++ b/arch/um/kernel/irq.c
+@@ -334,7 +334,7 @@ unsigned int do_IRQ(int irq, struct uml_pt_regs *regs)
+ {
+        struct pt_regs *old_regs = set_irq_regs((struct pt_regs *)regs);
+        irq_enter();
+-       __do_IRQ(irq);
++       generic_handle_irq(irq);
+        irq_exit();
+        set_irq_regs(old_regs);
+        return 1;
