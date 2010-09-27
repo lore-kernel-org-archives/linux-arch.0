@@ -1,48 +1,105 @@
-From: Tony Luck <tony.luck@intel.com>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
  __do_IRQ() code
-Date: Mon, 27 Sep 2010 10:36:16 -0700
-Message-ID: <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com>
-References: <20100908152036.643594727@linutronix.de>
+Date: Mon, 27 Sep 2010 20:01:26 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1009271953390.2416@localhost6.localdomain6>
+References: <20100908152036.643594727@linutronix.de> <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qw0-f46.google.com ([209.85.216.46]:41728 "EHLO
-	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759781Ab0I0RgS convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Sep 2010 13:36:18 -0400
-In-Reply-To: <20100908152036.643594727@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1703548383-1285610489=:2416"
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Tony Luck <tony.luck@intel.com>
 Cc: LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 8, 2010 at 11:14 AM, Thomas Gleixner <tglx@linutronix.de> w=
-rote:
-> =A0The following architectures are still using __do_IRQ():
->
-> =A0alpha, cris, ia64, h8300, m32r, m68knommu, parisc, um
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-Thomas,
+---1463795968-1703548383-1285610489=:2416
+Content-Type: TEXT/PLAIN; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 
-I (belatedly) took a look at fixing ia64 ... but I've run into a small =
-snag.
-The __do_IRQ() routine makes a call to:
 
- desc->chip->end(irq);
 
-while neither of the "handle_level_irq()" nor "handle_edge_irq()"
-functions do this.
+On Mon, 27 Sep 2010, Tony Luck wrote:
 
-On ia64 iosapic_end_level_irq() call iosapic_eoi() for me. Without it
-my system hangs during boot (with some driver timeout complaining
-about dropped interrupts).
+> On Wed, Sep 8, 2010 at 11:14 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> >  The following architectures are still using __do_IRQ():
+> >
+> >  alpha, cris, ia64, h8300, m32r, m68knommu, parisc, um
+> 
+> Thomas,
+> 
+> I (belatedly) took a look at fixing ia64 ... but I've run into a small snag.
+> The __do_IRQ() routine makes a call to:
+> 
+>  desc->chip->end(irq);
+> 
+> while neither of the "handle_level_irq()" nor "handle_edge_irq()"
+> functions do this.
+> 
+> On ia64 iosapic_end_level_irq() call iosapic_eoi() for me. Without it
+> my system hangs during boot (with some driver timeout complaining
+> about dropped interrupts).
+> 
+> Is the omission of desc->chip->end(irq); deliberate? In which case
+> I need to find another place to call iosapic_eoi(). Or is it accidental?
 
-Is the omission of desc->chip->end(irq); deliberate? In which case
-I need to find another place to call iosapic_eoi(). Or is it accidental=
-?
+No, it's deliberate. The solution is to use the correct flow handler
+for your device. We have currently several flow handlers implemented:
 
-Thanks
+    handle_level_irq
+	{
+		if (chip->mask_ack)
+			chip->mask_ack()
+		else {
+		     chip->mask();
+		     if (chip->ack)
+		     	chip->ack();
+		}
 
--Tony
+		....
+
+		chip->unmask();
+	}
+
+    handle_edge_irq
+	{
+		chip->ack()
+
+		...
+	}
+
+    handle_simple_irq
+	{
+		...
+	}
+
+    handle_fasteoi_irq
+	{
+		...
+		chip->eoi();
+	}
+
+    handle_percpu_irq
+	{	
+		if (chip->ack)
+		     	chip->ack();
+		
+		if (chip->eoi)
+		     	chip->eoi();
+	}
+
+Note, that handle_percpu_irq does not take the irq_desc->lock.
+
+So the trick is to select the matching handler and have separate irq
+chip implementations if necessary.
+
+Hope that helps.
+
+Thanks,
+
+	tglx
+
+---1463795968-1703548383-1285610489=:2416--
