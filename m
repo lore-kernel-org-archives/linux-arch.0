@@ -1,41 +1,68 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 1/6] avr32: missed _TIF_NOTIFY_RESUME on one of
- do_notify_resume callers
-Date: Tue, 28 Sep 2010 03:57:22 +0100
-Message-ID: <E1P0QNe-0008Rr-Vf@ZenIV.linux.org.uk>
+Subject: [PATCH 3/6] avr32: fix handling of blocked signals
+Date: Tue, 28 Sep 2010 03:57:42 +0100
+Message-ID: <E1P0QNz-0008ST-00@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40263 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933043Ab0I1C5X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Sep 2010 22:57:23 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: hans-christian.egtvedt@atmel.com
 Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 
-we need that not just on syscall returns but on irq ones as well...
+We do _not_ want to block anything on failure to set sigframe up
+and we do not want to ignore sa_mask even when SA_NODOFER is set.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/avr32/kernel/entry-avr32b.S |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/avr32/kernel/signal.c |   26 +++++++++++---------------
+ 1 files changed, 11 insertions(+), 15 deletions(-)
 
-diff --git a/arch/avr32/kernel/entry-avr32b.S b/arch/avr32/kernel/entry-avr32b.S
-index 169268c..5e6beb2 100644
---- a/arch/avr32/kernel/entry-avr32b.S
-+++ b/arch/avr32/kernel/entry-avr32b.S
-@@ -587,7 +587,7 @@ fault_exit_work:
- 	ld.w	r1, r0[TI_flags]
- 	rjmp	fault_exit_work
+diff --git a/arch/avr32/kernel/signal.c b/arch/avr32/kernel/signal.c
+index 8c481fb..52affae 100644
+--- a/arch/avr32/kernel/signal.c
++++ b/arch/avr32/kernel/signal.c
+@@ -231,28 +231,24 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+ 	/*
+ 	 * Set up the stack frame
+ 	 */
+-	ret = setup_rt_frame(sig, ka, info, oldset, regs);
++	if (setup_rt_frame(sig, ka, info, oldset, regs) != 0)
++		goto fail;
  
--1:	mov	r2, _TIF_SIGPENDING | _TIF_RESTORE_SIGMASK
-+1:	mov	r2, _TIF_SIGPENDING | _TIF_RESTORE_SIGMASK | _TIF_NOTIFY_RESUME
- 	tst	r1, r2
- 	breq	2f
- 	unmask_interrupts
+ 	/*
+ 	 * Check that the resulting registers are sane
+ 	 */
+-	ret |= !valid_user_regs(regs);
++	if (!valid_user_regs(regs))
++		goto fail;
+ 
+-	/*
+-	 * Block the signal if we were unsuccessful.
+-	 */
+-	if (ret != 0 || !(ka->sa.sa_flags & SA_NODEFER)) {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked, &current->blocked,
+-			  &ka->sa.sa_mask);
++	spin_lock_irq(&current->sighand->siglock);
++	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
++	if (!(ka->sa.sa_flags & SA_NODEFER))
+ 		sigaddset(&current->blocked, sig);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
+-	}
+-
+-	if (ret == 0)
+-		return;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++	return;
+ 
++fail:
+ 	force_sigsegv(sig, current);
+ }
+ 
 -- 
 1.5.6.5
