@@ -1,79 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:36604 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752006Ab0I1Ru5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Sep 2010 13:50:57 -0400
-Date: Tue, 28 Sep 2010 18:50:57 +0100
-Subject: [PATCH 5/5] mips: do_sigaltstack() expects userland pointers
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37899 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753478Ab0I1Vik (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Sep 2010 17:38:40 -0400
+Date: Tue, 28 Sep 2010 14:36:55 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch] arch: remove __GFP_REPEAT for order-0 allocations
+Message-ID: <20100928143655.4282a001.akpm@linux-foundation.org>
+In-Reply-To: <alpine.DEB.2.00.1009280344280.11433@chino.kir.corp.google.com>
+References: <alpine.DEB.2.00.1009280344280.11433@chino.kir.corp.google.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Message-ID: <E1P0eKP-0006jZ-5F@ZenIV.linux.org.uk>
-From: Al Viro <viro@ftp.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20100928175057.qKXHuG_GRJ0p4CXOC1oP85WeUot0lORPxn_AWhsl94Y@z>
+To: David Rientjes <rientjes@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20100928213655.HCBzn0UfeX_uGWrTg4jtwPWhYYhpgszcaQP_LT2t1QA@z>
 
+On Tue, 28 Sep 2010 03:45:10 -0700 (PDT)
+David Rientjes <rientjes@google.com> wrote:
 
-o32 compat does the right thing, native and n32 compat do not...
+> Order-0 allocations, including quicklist_alloc(),  are always under 
+> PAGE_ALLOC_COSTLY_ORDER, so they loop endlessly in the page allocator
+> already without the need for __GFP_REPEAT.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- arch/mips/kernel/signal.c     |    5 +----
- arch/mips/kernel/signal_n32.c |    5 +++++
- 2 files changed, 6 insertions(+), 4 deletions(-)
+That's only true for the current implementation of the page allocator.
 
-diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
-index 604f077..5922342 100644
---- a/arch/mips/kernel/signal.c
-+++ b/arch/mips/kernel/signal.c
-@@ -390,7 +390,6 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
- {
- 	struct rt_sigframe __user *frame;
- 	sigset_t set;
--	stack_t st;
- 	int sig;
- 
- 	frame = (struct rt_sigframe __user *) regs.regs[29];
-@@ -411,11 +410,9 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
- 	else if (sig)
- 		force_sig(sig, current);
- 
--	if (__copy_from_user(&st, &frame->rs_uc.uc_stack, sizeof(st)))
--		goto badframe;
- 	/* It is more difficult to avoid calling this function than to
- 	   call it and ignore errors.  */
--	do_sigaltstack((stack_t __user *)&st, NULL, regs.regs[29]);
-+	do_sigaltstack(&frame->rs_uc.uc_stack, NULL, regs.regs[29]);
- 
- 	/*
- 	 * Don't let your children do this ...
-diff --git a/arch/mips/kernel/signal_n32.c b/arch/mips/kernel/signal_n32.c
-index 2c5df81..ee24d81 100644
---- a/arch/mips/kernel/signal_n32.c
-+++ b/arch/mips/kernel/signal_n32.c
-@@ -109,6 +109,7 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
- asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
- {
- 	struct rt_sigframe_n32 __user *frame;
-+	mm_segment_t old_fs;
- 	sigset_t set;
- 	stack_t st;
- 	s32 sp;
-@@ -143,7 +144,11 @@ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
- 
- 	/* It is more difficult to avoid calling this function than to
- 	   call it and ignore errors.  */
-+	old_fs = get_fs();
-+	set_fs(KERNEL_DS);
- 	do_sigaltstack((stack_t __user *)&st, NULL, regs.regs[29]);
-+	set_fs(old_fs);
-+
- 
- 	/*
- 	 * Don't let your children do this ...
--- 
-1.5.6.5
+If we were to change the page allocator behaviour to not do that (and
+we change it daily!) then all those callsites which wanted __GFP_REPEAT
+behaviour will get broken.  So someone would need to go back and work
+out how to unbreak them, if we remembered.
+
+Plus there's presumably some documentary benefit in leaving the
+__GFP_REPEATs in there.
+
+Why are those __GFP_REPEATs present at those callsites?  What were
+developers trying to achieve?
 
