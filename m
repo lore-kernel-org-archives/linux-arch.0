@@ -1,7 +1,7 @@
 From: Al Viro <viro@ftp.linux.org.uk>
-Subject: [PATCH 4/5] mips: fix error values in case of bad_stack
-Date: Tue, 28 Sep 2010 18:50:47 +0100
-Message-ID: <E1P0eKF-0006jH-5I@ZenIV.linux.org.uk>
+Subject: [PATCH 5/5] mips: do_sigaltstack() expects userland pointers
+Date: Tue, 28 Sep 2010 18:50:57 +0100
+Message-ID: <E1P0eKP-0006jZ-5F@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
@@ -12,39 +12,62 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 
-we want EFAULT, not -<syscall number>
+o32 compat does the right thing, native and n32 compat do not...
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/mips/kernel/scall32-o32.S |    2 +-
- arch/mips/kernel/scall64-o32.S |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/mips/kernel/signal.c     |    5 +----
+ arch/mips/kernel/signal_n32.c |    5 +++++
+ 2 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index d3edb9f..da98051 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -169,7 +169,7 @@ stackargs:
- 	 * We probably should handle this case a bit more drastic.
- 	 */
- bad_stack:
--	negu	v0				# error
-+	li	v0, EFAULT
- 	sw	v0, PT_R2(sp)
- 	li	t0, 1				# set error flag
- 	sw	t0, PT_R7(sp)
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index 7ce0a36..d2bc285 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -156,7 +156,7 @@ trace_a_syscall:
- 	 * The stackpointer for a call with more than 4 arguments is bad.
- 	 */
- bad_stack:
--	dnegu	v0			# error
-+	li	v0, EFAULT
- 	sd	v0, PT_R2(sp)
- 	li	t0, 1			# set error flag
- 	sd	t0, PT_R7(sp)
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index 604f077..5922342 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -390,7 +390,6 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ {
+ 	struct rt_sigframe __user *frame;
+ 	sigset_t set;
+-	stack_t st;
+ 	int sig;
+ 
+ 	frame = (struct rt_sigframe __user *) regs.regs[29];
+@@ -411,11 +410,9 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 	else if (sig)
+ 		force_sig(sig, current);
+ 
+-	if (__copy_from_user(&st, &frame->rs_uc.uc_stack, sizeof(st)))
+-		goto badframe;
+ 	/* It is more difficult to avoid calling this function than to
+ 	   call it and ignore errors.  */
+-	do_sigaltstack((stack_t __user *)&st, NULL, regs.regs[29]);
++	do_sigaltstack(&frame->rs_uc.uc_stack, NULL, regs.regs[29]);
+ 
+ 	/*
+ 	 * Don't let your children do this ...
+diff --git a/arch/mips/kernel/signal_n32.c b/arch/mips/kernel/signal_n32.c
+index 2c5df81..ee24d81 100644
+--- a/arch/mips/kernel/signal_n32.c
++++ b/arch/mips/kernel/signal_n32.c
+@@ -109,6 +109,7 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
+ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ {
+ 	struct rt_sigframe_n32 __user *frame;
++	mm_segment_t old_fs;
+ 	sigset_t set;
+ 	stack_t st;
+ 	s32 sp;
+@@ -143,7 +144,11 @@ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 
+ 	/* It is more difficult to avoid calling this function than to
+ 	   call it and ignore errors.  */
++	old_fs = get_fs();
++	set_fs(KERNEL_DS);
+ 	do_sigaltstack((stack_t __user *)&st, NULL, regs.regs[29]);
++	set_fs(old_fs);
++
+ 
+ 	/*
+ 	 * Don't let your children do this ...
 -- 
 1.5.6.5
