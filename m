@@ -1,40 +1,35 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] mfd: speedup twl4030 irq response time and decrease
- irq disable time
-Date: Mon, 27 Sep 2010 22:12:26 -0700
-Message-ID: <20100928051225.GA9864@opensource.wolfsonmicro.com>
-References: <1285120171-3030-1-git-send-email-tom.leiming@gmail.com>
- <20100927154809.GI2560@sortiz-mobl>
- <AANLkTikjGD32hPhwPhZfETZX9H+--_SduTtqgyuqY_72@mail.gmail.com>
- <20100928042416.GA9359@opensource.wolfsonmicro.com>
- <AANLkTimT8WkgiCANL4tXcNgnm63oMnO2d2bKjDD1chJv@mail.gmail.com>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH 6/6] sh: oprofile: Use perf-events oprofile backend
+Date: Tue, 28 Sep 2010 09:33:56 +0100
+Message-ID: <20100928083355.GA4037@console-pimps.org>
+References: <cover.1284357372.git.matt@console-pimps.org> <e75f8fa563b4bfb2b4cf62fe64ae398ea5e1831a.1284357372.git.matt@console-pimps.org> <20100916143254.GC13563@erda.amd.com> <20100927200138.GG28588@console-pimps.org> <20100927220703.GV13563@erda.amd.com> <20100927222627.GH28588@console-pimps.org> <20100927224551.GX13563@erda.amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:58698 "EHLO
-	opensource2.wolfsonmicro.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1750767Ab0I1FMM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Sep 2010 01:12:12 -0400
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <AANLkTimT8WkgiCANL4tXcNgnm63oMnO2d2bKjDD1chJv@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ming Lei <tom.leiming@gmail.com>
-Cc: Samuel Ortiz <sameo@linux.intel.com>, linux-omap@vger.kernel.org, Santosh Shilimkar <santosh.shilimkar@ti.com>, Balaji T K <balajitk@ti.com>, Rajendra Nayak <rnayak@ti.com>, Kevin Hilman <khilman@deeprootsystems.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org
+In-Reply-To: <20100927224551.GX13563@erda.amd.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: Robert Richter <robert.richter@amd.com>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 28, 2010 at 01:01:32PM +0800, Ming Lei wrote:
-> 2010/9/28 Mark Brown <broonie@opensource.wolfsonmicro.com>:
+On Tue, Sep 28, 2010 at 12:45:51AM +0200, Robert Richter wrote:
+> On 27.09.10 18:26:27, Matt Fleming wrote:
+> > 
+> > I don't see why we should pollute the perf namespace with a function
+> > that is only being used inside the SH oprofile code? There would be
+> > exactly one use of this function and I doubt the perf guys will want
+> > this function exposed. In it's current state, it really is no use to any
+> > architecture other than SH.
+> > 
+> > We can always add a generic perf_pmu_name() function later if needed,
+> > but it's definitely not needed at the moment.
+> 
+> Ok, so then let's implement sh_pmu_name() in
+> arch/sh/oprofile/common.c, we import asm/perf_event.h to get access to
+> struct sh_pmu. This could be implemented as a static function then and
+> we also get rid of this interface thing.
 
-> > Have you raised this issue with the genirq guys? =A0This sounds lik=
-e
-> > something that the core infrastructure should be able to cope with.
-
-> Even genirq guys can help us to convert to irq thread framework, I
-> don't think there is good way to set priority for one irq thread.
-
-What I'm saying is that this sounds like something it's reasonable to
-want to do so if there's no way currently to get high priority handling
-of timing sensitive interrupt controllers it'd be good if there could
-be.
+That seems OK to me s'long as Paul (the author of the perf events code
+for SH) doesn't have a problem with us exposing the struct sh_pmu *
+outside of arch/sh/kernel/perf_event.c
