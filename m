@@ -1,97 +1,40 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch] arch: remove __GFP_REPEAT for order-0 allocations
-Date: Tue, 28 Sep 2010 17:41:47 -0700
-Message-ID: <20100928174147.41e48aef.akpm@linux-foundation.org>
-References: <alpine.DEB.2.00.1009280344280.11433@chino.kir.corp.google.com>
-	<20100928143655.4282a001.akpm@linux-foundation.org>
-	<alpine.DEB.2.00.1009281536390.24817@chino.kir.corp.google.com>
-	<20100928155326.9ded5a92.akpm@linux-foundation.org>
-	<alpine.DEB.2.00.1009281605180.24817@chino.kir.corp.google.com>
-	<20100928164006.55c442b1.akpm@linux-foundation.org>
-	<alpine.DEB.2.00.1009281644110.21757@chino.kir.corp.google.com>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
+ __do_IRQ() code
+Date: Tue, 28 Sep 2010 20:46:07 -0400
+Message-ID: <20100929004607.GA18362@bombadil.infradead.org>
+References: <20100908152036.643594727@linutronix.de>
+ <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com>
+ <alpine.LFD.2.00.1009271953390.2416@localhost6.localdomain6>
+ <987664A83D2D224EAE907B061CE93D5301604712B4@orsmsx505.amr.corp.intel.com>
+ <alpine.LFD.2.00.1009272048100.2416@localhost6.localdomain6>
+ <987664A83D2D224EAE907B061CE93D530160471328@orsmsx505.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <alpine.DEB.2.00.1009281644110.21757@chino.kir.corp.google.com>
-Sender: owner-linux-mm@kvack.org
-To: David Rientjes <rientjes@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <dav>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([18.85.46.34]:59550 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753124Ab0I2AqN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Sep 2010 20:46:13 -0400
+Content-Disposition: inline
+In-Reply-To: <987664A83D2D224EAE907B061CE93D530160471328@orsmsx505.amr.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, Chris Zankel <chris@zankel.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Tue, 28 Sep 2010 16:52:01 -0700 (PDT) David Rientjes <rientjes@google.com> wrote:
-
-> On Tue, 28 Sep 2010, Andrew Morton wrote:
+On Mon, Sep 27, 2010 at 12:01:51PM -0700, Luck, Tony wrote:
+> > Hmm, why isn't chip->unmask() sufficient ?
+>  
+> That's a good question.  I'll take a look at what ia64 is doing
+> in the ->unmask() and ->end() functions to see if I can fix this
+> with some code shuffling.
 > 
-> > > > > So we can definitely remove __GFP_REPEAT for any order-0 allocation and 
-> > > > > it's based on its implementation -- poorly defined as it may be -- and the 
-> > > > > inherit design of any sane page allocator that retries such an allocation 
-> > > > > if it's going to use reclaim in the first place.
-> > > > 
-> > > > Why was __GFP_REPEAT used in those callsites?  What were people trying
-> > > > to achieve?
-> > > > 
-> > > 
-> > > I can't predict what they were trying to achieve
-> > 
-> > Using my super powers it took me all of three minutes.
-> > 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/old-2.6-bkcvs.git
-> > 
-> > Do `git log > foo', and search foo for GFP_REPEAT.
-> > 
-> > A couple of interesting ones are:
-> > 
-> 
-> Ok, so __GFP_REPEAT was used to replace the open-coding of retry loops by 
-> putting that logic into the page allocator, and that logic was 
-> subsequently changed to tie the bit to how many pages were reclaimed and 
-> retry iff we haven't reclaimed the number of pages needed (in my patch, 
-> that would be a single page).
 
-It also shows that there was at least one version of the page allocator
-(written by a very skilled and experienced Linux MM developer) which
-would simply return NULL when there was no memory.  And here you are
-assuring us that there will never ever be such a version again.
+Did you end up solving this? ia64 iosapic and parisc iosapic still look
+fairly similar... I hit the same issue of ->end() not being called in
+the handle_level_irq path and ended up just folding in the missing bit
+to ->unmask (we were already EOI the IOSAPIC, but missing the EOI for
+the parisc cpu.)
 
-> It also shows that the page allocator has infinitely looped for 
-> allocations under PAGE_ALLOC_COSTLY_ORDER since your patch from over seven 
-> years ago.
-
-Really don't give a shit what the allocator-of-the-moment happens to be
-doing.
-
-What I care about is that very smart, experienced and hard-working
-Linux developers decided, a long time ago, that page-table allocations
-are special, and need special treatment.  This is information!
-
-What I also care about is lazy MM developers who just rip stuff out
-without understanding it and without even bothering to make an
-*attempt* to understand it.
-
-> So, given the fact that the PAGE_ALLOC_COSTLY_ORDER logic has existed 
-> since the same time, the semantics of __GFP_REPEAT have changed and are 
-> often misrepresented, and we don't even invoke the __GFP_REPEAT logic for 
-> any of the allocations in my patch since they are oom killable,
-
-Probably this is because lazy ignorant MM developers broke earlier
-intentions without even knowing that they were doing so.
-
-> I think my patch should be merged.
-
-Well before destroying the information, you tell me: why did MM
-developers decide that page-table allocations needed special treatment?
- What experience led them to decide to implement that?  Has the problem
-which they solved been fixed by other means?  Are those means
-sufficiently permanently embedded (see "-aa" above) that we can afford
-to destroy this piece of information?
-
-If we break stuff and destroy this sort of historical knowledge then we
-get to make the same mistakes every decade or so and the damn thing
-*never* converges.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+--Kyle
