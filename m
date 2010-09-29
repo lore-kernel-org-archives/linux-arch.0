@@ -1,52 +1,104 @@
-From: Toralf =?utf-8?q?F=C3=B6rster?= <toralf.foerster@gmx.de>
-Subject: dma-mapping commit breaks UML
-Date: Wed, 29 Sep 2010 11:55:30 +0200
-Message-ID: <201009291155.30873.toralf.foerster@gmx.de>
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [PATCH -tip -v6] irq_work: generic hard-irq context callbacks
+Date: Wed, 29 Sep 2010 15:11:02 +0200
+Message-ID: <20100929131052.GA5602@nowhere>
+References: <1285663908.20791.286.camel@yhuang-dev> <20100928155609.GA5354@nowhere> <AANLkTinO6rOmKhQGP9jqN_qaA5bweeXy3bwdDwt9FToG@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=utf-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout-de.gmx.net ([213.165.64.23]:52906 "HELO mail.gmx.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-	id S1751089Ab0I2Jzg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2010 05:55:36 -0400
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:37103 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756094Ab0I2NLO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2010 09:11:14 -0400
+Content-Disposition: inline
+In-Reply-To: <AANLkTinO6rOmKhQGP9jqN_qaA5bweeXy3bwdDwt9FToG@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: fujita.tomonori@lab.ntt.co.jp
-Cc: linux-arch@vger.kernel.org
+To: huang ying <huang.ying.caritas@gmail.com>
+Cc: Huang Ying <ying.huang@intel.com>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, paulus <paulus@samba.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andi Kleen <andi@firstfloor.org>, dhowells <dhowells@redhat.com>, Russell King <rmk@arm.linux.org.uk>, Kyle McMartin <kyle@mcmartin.ca>, Martin Schwidefsky <schwidefsky@de.ibm.com>, davem <davem@davemloft.net>, Linux-Arch <linux-arch@vger.kernel.org>
 
-The=20
+On Wed, Sep 29, 2010 at 04:29:52PM +0800, huang ying wrote:
+> Hi, Frederic,
+>=20
+> On Tue, Sep 28, 2010 at 11:56 PM, Frederic Weisbecker
+> <fweisbec@gmail.com> wrote:
+> > On Tue, Sep 28, 2010 at 04:51:48PM +0800, Huang Ying wrote:
+> >> +++ b/arch/x86/kernel/irq_work.c
+> >> @@ -0,0 +1,30 @@
+> >> +/*
+> >> + * x86 specific code for irq_work
+> >> + *
+> >> + * Copyright (C) 2010 Red Hat, Inc., Peter Zijlstra <pzijlstr@red=
+hat.com>
+> >> + */
+> >> +
+> >> +#include <linux/kernel.h>
+> >> +#include <linux/irq_work.h>
+> >> +#include <linux/hardirq.h>
+> >> +#include <asm/apic.h>
+> >> +
+> >> +void smp_irq_work_interrupt(struct pt_regs *regs)
+> >> +{
+> >> + =A0 =A0 irq_enter();
+> >> + =A0 =A0 ack_APIC_irq();
+> >> + =A0 =A0 inc_irq_stat(apic_irq_work_irqs);
+> >> + =A0 =A0 irq_work_run();
+> >> + =A0 =A0 irq_exit();
+> >> +}
+> >> +
+> >> +void arch_irq_work_raise(void)
+> >> +{
+> >> +#ifdef CONFIG_X86_LOCAL_APIC
+> >> + =A0 =A0 if (!cpu_has_apic)
+> >> + =A0 =A0 =A0 =A0 =A0 =A0 return;
+> >> +
+> >> + =A0 =A0 apic->send_IPI_self(IRQ_WORK_VECTOR);
+> >> + =A0 =A0 apic_wait_icr_idle();
+> >> +#endif
+> >> +}
+> >
+> >
+> >
+> > So basically, CONFIG_X86_LOCAL_APIC =3D=3D !HAVE_IRQ_WORK ?
+> >
+> > But IIUC, this will fallback to the timer interrupt:
+>=20
+> If !CONFIG_X86_LOCAL_APIC or !cpu_has_apic, this will fallback to the
+> timer interrupt.
 
-4565f0170dfc849b3629c27d769db800467baa62 is the first bad commit
-commit 4565f0170dfc849b3629c27d769db800467baa62
-Author: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Date:   Tue Aug 10 18:03:22 2010 -0700
 
-    dma-mapping: unify dma_get_cache_alignment implementations
-   =20
+Ah right, there is cpu_has_apic, so we may need the dynamic and adaptiv=
+e
+fallback. May be cpu_has_apic only appears on very particular configs t=
+hough,
+so that we can narrow down this situation statically?
 
-It produces this compile error for ARCH=3Dum  :
-=2E..
-  CC      init/do_mounts.o
-In file included from include/linux/dmaengine.h:27,
-                 from include/linux/skbuff.h:31,
-                 from include/linux/icmpv6.h:83,
-                 from include/linux/ipv6.h:221,
-                 from include/net/ipv6.h:17,
-                 from include/linux/sunrpc/clnt.h:26,
-                 from include/linux/nfs_fs.h:49,
-                 from init/do_mounts.c:21:
-include/linux/dma-mapping.h:145: error: redefinition of=20
-=E2=80=98dma_get_cache_alignment=E2=80=99
-/home/tfoerste/devel/linux-2.6/arch/um/include/asm/dma-mapping.h:100: n=
-ote:=20
-previous definition of =E2=80=98dma_get_cache_alignment=E2=80=99 was he=
-re
-make[1]: *** [init/do_mounts.o] Error 1
-make: *** [init] Error 2
 
---=20
-MfG/Kind regards
-Toralf F=C3=B6rster
+=20
+> >> @@ -1279,7 +1279,10 @@ void update_process_times(int user_tick)
+> >> =A0 =A0 =A0 run_local_timers();
+> >> =A0 =A0 =A0 rcu_check_callbacks(cpu, user_tick);
+> >> =A0 =A0 =A0 printk_tick();
+> >> - =A0 =A0 perf_event_do_pending();
+> >> +#ifdef CONFIG_IRQ_WORK
+> >> + =A0 =A0 if (in_irq())
+> >> + =A0 =A0 =A0 =A0 =A0 =A0 irq_work_run();
+> >> +#endif
+> >> =A0 =A0 =A0 scheduler_tick();
+> >> =A0 =A0 =A0 run_posix_cpu_timers(p);
+> >> =A0}
+> >
+> > Then HAVE_IRQ_WORK just means that the arch supports self IPIs.
+>=20
+> HAVE_IRQ_WORK means IRQ_WORK is supported on the architecture, it has
+> nothing to do with self IPIs.
 
-pgp finger print: 7B1A 07F4 EC82 0F90 D4C2 8936 872A E508 7DB6 9DA3
+
+Ok, but IRQ_WORK is always supported on the architecture because of
+the fallback. It seems that archs enable HAVE_IRQ_WORK when they find
+an optimization (self IPIs in x86, other shortcuts in other archs), but
+these optimizations never change the core code anyway, right?
+It would have been nice to avoid building the fallback when the archs c=
+an
+already manage the path by themselves.
