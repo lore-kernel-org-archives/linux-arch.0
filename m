@@ -1,58 +1,39 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 01/47] x86: Plug memory leak in sparse irq
-Date: Thu, 30 Sep 2010 23:14:33 -0000
-Message-ID: <20100930221738.572997675@linutronix.de>
+Subject: [patch 02/47] x86: Hpet: Fix bogus error check in hpet_assign_irq()
+Date: Thu, 30 Sep 2010 23:14:40 -0000
+Message-ID: <20100930221738.674120334@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:34739 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751150Ab0I3XZP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:25:15 -0400
-Content-Disposition: inline; filename=x86-plug-memory-leak-in-sparse-irq.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline;
+	filename=x86-hpet-fix-bogus-error-check-in-hpet_assign_irq.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>, Yinghai Lu <yhlu.kernel@gmail.com>, stable@kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>, Venkatesh Pallipadi <venki@google.com>, stable@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-free_irq_cfg() is not freeing the cpumask_vars in irq_cfg. Fixing this
-triggers a use after free caused by the fact that copying struct
-irq_cfg is done with memcpy, which copies the pointer not the cpumask.
+create_irq() returns -1 if the interrupt allocation failed, but the
+code checks for irq == 0.
 
-Fix both places.
+Use create_irq_nr() instead.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Yinghai Lu <yhlu.kernel@gmail.com>
-LKML-Reference: <alpine.LFD.2.00.1009282052570.2416@localhost6.localdomain6>
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Venkatesh Pallipadi <venki@google.com>
+LKML-Reference: <alpine.LFD.2.00.1009282310360.2416@localhost6.localdomain6>
 Cc: stable@kernel.org
 ---
- arch/x86/kernel/apic/io_apic.c |   11 ++++++++---
- 1 file changed, 8 insertions(+), 3 deletions(-)
+ arch/x86/kernel/hpet.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+Index: linux-2.6-tip/arch/x86/kernel/hpet.c
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
-+++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-@@ -307,14 +307,19 @@ void arch_init_copy_chip_data(struct irq
- 
- 	old_cfg = get_irq_desc_chip_data(old_desc);
- 
--	memcpy(cfg, old_cfg, sizeof(struct irq_cfg));
-+	cfg->vector = old_cfg->vector;
-+	cfg->move_in_progress = old_cfg->move_in_progress;
-+	cpumask_copy(cfg->domain, old_cfg->domain);
-+	cpumask_copy(cfg->old_domain, old_cfg->old_domain);
- 
- 	init_copy_irq_2_pin(old_cfg, cfg, node);
- }
- 
--static void free_irq_cfg(struct irq_cfg *old_cfg)
-+static void free_irq_cfg(struct irq_cfg *cfg)
+--- linux-2.6-tip.orig/arch/x86/kernel/hpet.c
++++ linux-2.6-tip/arch/x86/kernel/hpet.c
+@@ -506,7 +506,7 @@ static int hpet_assign_irq(struct hpet_d
  {
--	kfree(old_cfg);
-+	free_cpumask_var(cfg->domain);
-+	free_cpumask_var(cfg->old_domain);
-+	kfree(cfg);
- }
+ 	unsigned int irq;
  
- void arch_free_chip_data(struct irq_desc *old_desc, struct irq_desc *desc)
+-	irq = create_irq();
++	irq = create_irq_nr(0, -1);
+ 	if (!irq)
+ 		return -EINVAL;
+ 
