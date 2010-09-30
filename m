@@ -1,74 +1,53 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 43/47] x86: xen: Sanitise sparse_irq handling
-Date: Thu, 30 Sep 2010 23:18:14 -0000
-Message-ID: <20100930221742.717242572@linutronix.de>
+Subject: [patch 47/47] genirq: Remove the old sparse irq allocator function
+Date: Thu, 30 Sep 2010 23:18:32 -0000
+Message-ID: <20100930221743.113364752@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=xen-sanitise-sparse.patch
+Content-Disposition: inline; filename=genirq-remove-craplocator.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-There seems to be more cleanups possible, but that's left to the xen
-experts :)
+Last user is gone. Remove it.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- drivers/xen/events.c |   23 +++++++++++------------
- 1 file changed, 11 insertions(+), 12 deletions(-)
+ include/linux/irq.h  |    2 --
+ kernel/irq/irqdesc.c |    9 ---------
+ 2 files changed, 11 deletions(-)
 
-Index: linux-2.6-tip/drivers/xen/events.c
+Index: linux-2.6-tip/include/linux/irq.h
 ===================================================================
---- linux-2.6-tip.orig/drivers/xen/events.c
-+++ linux-2.6-tip/drivers/xen/events.c
-@@ -338,30 +338,29 @@ static void unmask_evtchn(int port)
+--- linux-2.6-tip.orig/include/linux/irq.h
++++ linux-2.6-tip/include/linux/irq.h
+@@ -261,8 +261,6 @@ struct irq_desc {
+ extern struct irq_desc irq_desc[NR_IRQS];
+ #endif
  
- static int find_unbound_irq(void)
- {
--	int irq;
--	struct irq_desc *desc;
-+	struct irq_data *data;
-+	int irq, res;
+-extern struct irq_desc *irq_to_desc_alloc_node(unsigned int irq, int node);
+-
+ int irq_alloc_descs(unsigned int irq, unsigned int from, unsigned int cnt, int node);
  
- 	for (irq = 0; irq < nr_irqs; irq++) {
--		desc = irq_to_desc(irq);
-+		data = irq_get_irq_data(irq);
- 		/* only 0->15 have init'd desc; handle irq > 16 */
--		if (desc == NULL)
-+		if (!data)
- 			break;
--		if (desc->chip == &no_irq_chip)
-+		if (data->chip == &no_irq_chip)
- 			break;
--		if (desc->chip != &xen_dynamic_chip)
-+		if (data->chip != &xen_dynamic_chip)
- 			continue;
- 		if (irq_info[irq].type == IRQT_UNBOUND)
--			break;
-+			return irq;
- 	}
- 
- 	if (irq == nr_irqs)
- 		panic("No available IRQ to bind to: increase nr_irqs!\n");
- 
--	desc = irq_to_desc_alloc_node(irq, 0);
--	if (WARN_ON(desc == NULL))
--		return -1;
-+	res = irq_alloc_desc_at(irq, 0);
- 
--	dynamic_irq_init_keep_chip_data(irq);
-+	if (WARN_ON(res != irq))
-+		return -1;
- 
- 	return irq;
+ static inline int irq_alloc_desc(int node)
+Index: linux-2.6-tip/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/irqdesc.c
++++ linux-2.6-tip/kernel/irq/irqdesc.c
+@@ -192,15 +192,6 @@ err:
+ 	return -ENOMEM;
  }
-@@ -495,7 +494,7 @@ static void unbind_from_irq(unsigned int
- 	if (irq_info[irq].type != IRQT_UNBOUND) {
- 		irq_info[irq] = mk_unbound_info();
  
--		dynamic_irq_cleanup(irq);
-+		irq_free_desc(irq);
- 	}
- 
- 	spin_unlock(&irq_mapping_update_lock);
+-struct irq_desc * __ref irq_to_desc_alloc_node(unsigned int irq, int node)
+-{
+-	int res = irq_alloc_descs(irq, irq, 1, node);
+-
+-	if (res == -EEXIST || res == irq)
+-		return irq_to_desc(irq);
+-	return NULL;
+-}
+-
+ int __init early_irq_init(void)
+ {
+ 	int i, initcnt, node = first_online_node;
