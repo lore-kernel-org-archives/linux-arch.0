@@ -1,79 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:43610 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:43628 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756974Ab0I3XSq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:18:46 -0400
-Message-ID: <20100930221743.014571381@linutronix.de>
-Date: Thu, 30 Sep 2010 23:18:28 -0000
+	id S1757012Ab0I3XSx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:18:53 -0400
+Message-ID: <20100930221743.113364752@linutronix.de>
+Date: Thu, 30 Sep 2010 23:18:32 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 46/47] powerpc: Use new irq allocator
+Subject: [patch 47/47] genirq: Remove the old sparse irq allocator function
 References: <20100930221351.682772535@linutronix.de>
-Content-Disposition: inline; filename=powerpc-use-new-allocator.patch
+Content-Disposition: inline; filename=genirq-remove-craplocator.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20100930231828.HGCWMck2TUJmPx5YfATDthYOrz-EgNelG3kVCoXyqhE@z>
+Message-ID: <20100930231832.KPJD0KhXRS0-HDMlakIeDkpHPQI1uvgLzfoyw70NAjg@z>
 
-Use the new functions and free the descriptor when the virq is
-destroyed.
+Last user is gone. Remove it.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/powerpc/kernel/irq.c |   17 +++++++++--------
- 1 file changed, 9 insertions(+), 8 deletions(-)
+ include/linux/irq.h  |    2 --
+ kernel/irq/irqdesc.c |    9 ---------
+ 2 files changed, 11 deletions(-)
 
-Index: linux-2.6-tip/arch/powerpc/kernel/irq.c
+Index: linux-2.6-tip/include/linux/irq.h
 ===================================================================
---- linux-2.6-tip.orig/arch/powerpc/kernel/irq.c
-+++ linux-2.6-tip/arch/powerpc/kernel/irq.c
-@@ -676,16 +676,15 @@ void irq_set_virq_count(unsigned int cou
- static int irq_setup_virq(struct irq_host *host, unsigned int virq,
- 			    irq_hw_number_t hwirq)
- {
--	struct irq_desc *desc;
-+	int res;
+--- linux-2.6-tip.orig/include/linux/irq.h
++++ linux-2.6-tip/include/linux/irq.h
+@@ -261,8 +261,6 @@ struct irq_desc {
+ extern struct irq_desc irq_desc[NR_IRQS];
+ #endif
  
--	desc = irq_to_desc_alloc_node(virq, 0);
--	if (!desc) {
-+	res = irq_alloc_desc_at(virq, 0);
-+	if (res != virq) {
- 		pr_debug("irq: -> allocating desc failed\n");
- 		goto error;
- 	}
+-extern struct irq_desc *irq_to_desc_alloc_node(unsigned int irq, int node);
+-
+ int irq_alloc_descs(unsigned int irq, unsigned int from, unsigned int cnt, int node);
  
--	/* Clear IRQ_NOREQUEST flag */
--	desc->status &= ~IRQ_NOREQUEST;
-+	irq_clear_status_flags(virq, IRQ_NOREQUEST);
- 
- 	/* map it */
- 	smp_wmb();
-@@ -694,11 +693,13 @@ static int irq_setup_virq(struct irq_hos
- 
- 	if (host->ops->map(host, virq, hwirq)) {
- 		pr_debug("irq: -> mapping failed, freeing\n");
--		goto error;
-+		goto errdesc;
- 	}
- 
- 	return 0;
- 
-+errdesc:
-+	irq_free_descs(virq, 1);
- error:
- 	irq_free_virt(virq, 1);
- 	return -1;
-@@ -877,9 +878,9 @@ void irq_dispose_mapping(unsigned int vi
- 	smp_mb();
- 	irq_map[virq].hwirq = host->inval_irq;
- 
--	/* Set some flags */
--	irq_to_desc(virq)->status |= IRQ_NOREQUEST;
-+	irq_set_status_flags(virq, IRQ_NOREQUEST);
- 
-+	irq_free_descs(virq, 1);
- 	/* Free it */
- 	irq_free_virt(virq, 1);
+ static inline int irq_alloc_desc(int node)
+Index: linux-2.6-tip/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/irqdesc.c
++++ linux-2.6-tip/kernel/irq/irqdesc.c
+@@ -192,15 +192,6 @@ err:
+ 	return -ENOMEM;
  }
+ 
+-struct irq_desc * __ref irq_to_desc_alloc_node(unsigned int irq, int node)
+-{
+-	int res = irq_alloc_descs(irq, irq, 1, node);
+-
+-	if (res == -EEXIST || res == irq)
+-		return irq_to_desc(irq);
+-	return NULL;
+-}
+-
+ int __init early_irq_init(void)
+ {
+ 	int i, initcnt, node = first_online_node;
 
 
