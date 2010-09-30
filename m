@@ -1,400 +1,470 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 42/47] genirq: Remove the now unused sparse irq leftovers
-Date: Thu, 30 Sep 2010 23:18:06 -0000
-Message-ID: <20100930221742.618268936@linutronix.de>
+Subject: [patch 36/47] x86: ioapic: Cleanup sparse irq code
+Date: Thu, 30 Sep 2010 23:17:41 -0000
+Message-ID: <20100930221742.015002441@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=genirq-remove-the-gunk.patch
+Content-Disposition: inline; filename=x86-ioapic-cleanup-sparse.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
-The move_irq_desc() function was only used due to the problem that the
-allocator did not free the old descriptors. So the descriptors had to
-be moved in create_irq_nr(). That's history.
-
-The code would have never been able to move active interrupt
-descriptors on affinity settings. That can be done in a completely
-different way w/o all this horror.
-
-Remove all of it.
+Switch over to the new allocator and remove all the magic which was
+caused by the unability to destroy irq descriptors. Get rid of the
+create_irq_nr() loop for sparse and non sparse irq.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/Kconfig          |    1 
- include/linux/irq.h       |   19 -------
- kernel/irq/Kconfig        |    5 -
- kernel/irq/Makefile       |    1 
- kernel/irq/internals.h    |   86 --------------------------------
- kernel/irq/irqdesc.c      |   30 -----------
- kernel/irq/numa_migrate.c |  120 ----------------------------------------------
- 7 files changed, 2 insertions(+), 260 deletions(-)
+ arch/x86/kernel/apic/io_apic.c |  297 ++++++++++++++---------------------------
+ 1 file changed, 105 insertions(+), 192 deletions(-)
 
-Index: linux-2.6-tip/arch/x86/Kconfig
+Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/Kconfig
-+++ linux-2.6-tip/arch/x86/Kconfig
-@@ -61,7 +61,6 @@ config X86
- 	select HAVE_USER_RETURN_NOTIFIER
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_SPARSE_IRQ
--	select NUMA_IRQ_DESC if (SPARSE_IRQ && NUMA)
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
- 
-Index: linux-2.6-tip/include/linux/irq.h
-===================================================================
---- linux-2.6-tip.orig/include/linux/irq.h
-+++ linux-2.6-tip/include/linux/irq.h
-@@ -257,23 +257,10 @@ struct irq_desc {
- 	const char		*name;
- } ____cacheline_internodealigned_in_smp;
- 
--extern void arch_init_copy_chip_data(struct irq_desc *old_desc,
--					struct irq_desc *desc, int node);
--extern void arch_free_chip_data(struct irq_desc *old_desc, struct irq_desc *desc);
--
- #ifndef CONFIG_SPARSE_IRQ
- extern struct irq_desc irq_desc[NR_IRQS];
- #endif
- 
--#ifdef CONFIG_NUMA_IRQ_DESC
--extern struct irq_desc *move_irq_desc(struct irq_desc *old_desc, int node);
--#else
--static inline struct irq_desc *move_irq_desc(struct irq_desc *desc, int node)
--{
--	return desc;
--}
--#endif
--
- extern struct irq_desc *irq_to_desc_alloc_node(unsigned int irq, int node);
- 
- int irq_alloc_descs(unsigned int irq, unsigned int from, unsigned int cnt, int node);
-@@ -539,12 +526,6 @@ static inline struct msi_desc *get_irq_m
- 	return d ? d->msi_desc : NULL;
+--- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
++++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+@@ -174,164 +174,102 @@ int __init arch_early_irq_init(void)
+ 	return 0;
  }
  
--/* Needs to die ! */
--static inline void set_irq_desc_chip_data(struct irq_desc *desc, void *data)
--{
--	desc->irq_data.chip_data = data;
--}
--
- #define get_irq_desc_chip(desc)		((desc)->irq_data.chip)
- #define get_irq_desc_chip_data(desc)	((desc)->irq_data.chip_data)
- #define get_irq_desc_data(desc)		((desc)->irq_data.handler_data)
-Index: linux-2.6-tip/kernel/irq/Kconfig
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/Kconfig
-+++ linux-2.6-tip/kernel/irq/Kconfig
-@@ -22,11 +22,6 @@ config GENERIC_IRQ_PROBE
- config GENERIC_PENDING_IRQ
- 	def_bool n
- 
--if SPARSE_IRQ && NUMA
--config NUMA_IRQ_DESC
--	def_bool n
--endif
--
- config AUTO_IRQ_AFFINITY
-        def_bool n
- 
-Index: linux-2.6-tip/kernel/irq/Makefile
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/Makefile
-+++ linux-2.6-tip/kernel/irq/Makefile
-@@ -3,5 +3,4 @@ obj-y := irqdesc.o handle.o manage.o spu
- obj-$(CONFIG_GENERIC_IRQ_PROBE) += autoprobe.o
- obj-$(CONFIG_PROC_FS) += proc.o
- obj-$(CONFIG_GENERIC_PENDING_IRQ) += migration.o
--obj-$(CONFIG_NUMA_IRQ_DESC) += numa_migrate.o
- obj-$(CONFIG_PM_SLEEP) += pm.o
-Index: linux-2.6-tip/kernel/irq/internals.h
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/internals.h
-+++ linux-2.6-tip/kernel/irq/internals.h
-@@ -15,14 +15,6 @@ extern int __irq_set_trigger(struct irq_
- extern void __disable_irq(struct irq_desc *desc, unsigned int irq, bool susp);
- extern void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume);
- 
--extern struct lock_class_key irq_desc_lock_class;
--extern void init_kstat_irqs(struct irq_desc *desc, int node, int nr);
--extern raw_spinlock_t sparse_irq_lock;
--
--#ifdef CONFIG_SPARSE_IRQ
--void replace_irq_desc(unsigned int irq, struct irq_desc *desc);
--#endif
--
- #ifdef CONFIG_PROC_FS
- extern void register_irq_proc(unsigned int irq, struct irq_desc *desc);
- extern void unregister_irq_proc(unsigned int irq, struct irq_desc *desc);
-@@ -59,84 +51,6 @@ static inline struct irq_desc *irq_data_
- 	return container_of(data, struct irq_desc, irq_data);
- }
- 
--#ifdef CONFIG_SMP
--/**
-- * alloc_desc_masks - allocate cpumasks for irq_desc
-- * @desc:	pointer to irq_desc struct
-- * @node:	node which will be handling the cpumasks
-- * @boot:	true if need bootmem
-- *
-- * Allocates affinity and pending_mask cpumask if required.
-- * Returns true if successful (or not required).
-- */
--static inline bool alloc_desc_masks(struct irq_desc *desc, int node,
--							bool boot)
--{
--#ifdef CONFIG_CPUMASK_OFFSTACK
--	gfp_t gfp = boot ? GFP_NOWAIT : GFP_ATOMIC;
--
--	if (!alloc_cpumask_var_node(&desc->affinity, gfp, node))
--		return false;
--
--#ifdef CONFIG_GENERIC_PENDING_IRQ
--	if (!alloc_cpumask_var_node(&desc->pending_mask, gfp, node)) {
--		free_cpumask_var(desc->affinity);
--		return false;
--	}
--#endif
--#endif
--	return true;
--}
--
--static inline void init_desc_masks(struct irq_desc *desc)
--{
--	cpumask_setall(desc->affinity);
--#ifdef CONFIG_GENERIC_PENDING_IRQ
--	cpumask_clear(desc->pending_mask);
--#endif
--}
--
--/**
-- * init_copy_desc_masks - copy cpumasks for irq_desc
-- * @old_desc:	pointer to old irq_desc struct
-- * @new_desc:	pointer to new irq_desc struct
-- *
-- * Insures affinity and pending_masks are copied to new irq_desc.
-- * If !CONFIG_CPUMASKS_OFFSTACK the cpumasks are embedded in the
-- * irq_desc struct so the copy is redundant.
-- */
--
--static inline void init_copy_desc_masks(struct irq_desc *old_desc,
--					struct irq_desc *new_desc)
--{
--#ifdef CONFIG_CPUMASK_OFFSTACK
--	cpumask_copy(new_desc->affinity, old_desc->affinity);
--
--#ifdef CONFIG_GENERIC_PENDING_IRQ
--	cpumask_copy(new_desc->pending_mask, old_desc->pending_mask);
--#endif
--#endif
--}
--
--static inline void free_desc_masks(struct irq_desc *old_desc,
--				   struct irq_desc *new_desc)
--{
--	free_cpumask_var(old_desc->affinity);
--#ifdef CONFIG_GENERIC_PENDING_IRQ
--	free_cpumask_var(old_desc->pending_mask);
--#endif
--}
--
--#else /* !CONFIG_SMP */
--static inline bool alloc_desc_masks(struct irq_desc *desc, int node, bool boot)
--{
--	return true;
--}
--static inline void init_desc_masks(struct irq_desc *desc) { }
--static inline void init_copy_desc_masks(struct irq_desc *o, struct irq_desc *n) { }
--static inline void free_desc_masks(struct irq_desc *o, struct irq_desc *n) { }
--#endif	/* CONFIG_SMP */
--
- /*
-  * Debugging printout:
-  */
-Index: linux-2.6-tip/kernel/irq/irqdesc.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/irqdesc.c
-+++ linux-2.6-tip/kernel/irq/irqdesc.c
-@@ -20,7 +20,7 @@
- /*
-  * lockdep: we want to handle all irq_desc locks as a single lock-class:
-  */
--struct lock_class_key irq_desc_lock_class;
-+static struct lock_class_key irq_desc_lock_class;
- 
- #if defined(CONFIG_SMP) && defined(CONFIG_GENERIC_HARDIRQS)
- static void __init init_irq_default_affinity(void)
-@@ -85,28 +85,11 @@ static void desc_set_defaults(unsigned i
- int nr_irqs = NR_IRQS;
- EXPORT_SYMBOL_GPL(nr_irqs);
- 
--DEFINE_RAW_SPINLOCK(sparse_irq_lock);
-+static DEFINE_RAW_SPINLOCK(sparse_irq_lock);
- static DECLARE_BITMAP(allocated_irqs, NR_IRQS);
- 
++static struct irq_cfg *get_irq_cfg_at(unsigned int at, int node);
++
  #ifdef CONFIG_SPARSE_IRQ
- 
--void __ref init_kstat_irqs(struct irq_desc *desc, int node, int nr)
--{
--	void *ptr;
--
--	ptr = kzalloc_node(nr * sizeof(*desc->kstat_irqs),
--			   GFP_ATOMIC, node);
--
--	/*
--	 * don't overwite if can not get new one
--	 * init_copy_kstat_irqs() could still use old one
--	 */
--	if (ptr) {
--		printk(KERN_DEBUG "  alloc kstat_irqs on node %d\n", node);
--		desc->kstat_irqs = ptr;
--	}
--}
--
- static RADIX_TREE(irq_desc_tree, GFP_ATOMIC);
- 
- static void irq_insert_desc(unsigned int irq, struct irq_desc *desc)
-@@ -119,15 +102,6 @@ struct irq_desc *irq_to_desc(unsigned in
- 	return radix_tree_lookup(&irq_desc_tree, irq);
+ struct irq_cfg *irq_cfg(unsigned int irq)
+ {
+ 	return get_irq_chip_data(irq);
  }
  
--void replace_irq_desc(unsigned int irq, struct irq_desc *desc)
--{
--	void **ptr;
--
--	ptr = radix_tree_lookup_slot(&irq_desc_tree, irq);
--	if (ptr)
--		radix_tree_replace_slot(ptr, desc);
--}
--
- static void delete_irq_desc(unsigned int irq)
+-static struct irq_cfg *get_one_free_irq_cfg(int node)
++static struct irq_cfg *alloc_irq_cfg(unsigned int irq, int node)
  {
- 	radix_tree_delete(&irq_desc_tree, irq);
-Index: linux-2.6-tip/kernel/irq/numa_migrate.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/numa_migrate.c
-+++ /dev/null
-@@ -1,120 +0,0 @@
--/*
-- * NUMA irq-desc migration code
-- *
-- * Migrate IRQ data structures (irq_desc, chip_data, etc.) over to
-- * the new "home node" of the IRQ.
-- */
+ 	struct irq_cfg *cfg;
+ 
+ 	cfg = kzalloc_node(sizeof(*cfg), GFP_ATOMIC, node);
+-	if (cfg) {
+-		if (!zalloc_cpumask_var_node(&cfg->domain, GFP_ATOMIC, node)) {
+-			kfree(cfg);
+-			cfg = NULL;
+-		} else if (!zalloc_cpumask_var_node(&cfg->old_domain,
+-							  GFP_ATOMIC, node)) {
+-			free_cpumask_var(cfg->domain);
+-			kfree(cfg);
+-			cfg = NULL;
+-		}
+-	}
 -
--#include <linux/irq.h>
--#include <linux/slab.h>
--#include <linux/module.h>
--#include <linux/random.h>
--#include <linux/interrupt.h>
--#include <linux/kernel_stat.h>
--
--#include "internals.h"
--
--static void init_copy_kstat_irqs(struct irq_desc *old_desc,
--				 struct irq_desc *desc,
--				 int node, int nr)
--{
--	init_kstat_irqs(desc, node, nr);
--
--	if (desc->kstat_irqs != old_desc->kstat_irqs)
--		memcpy(desc->kstat_irqs, old_desc->kstat_irqs,
--			 nr * sizeof(*desc->kstat_irqs));
++	if (!cfg)
++		return NULL;
++	if (!zalloc_cpumask_var_node(&cfg->domain, GFP_ATOMIC, node))
++		goto out_cfg;
++	if (!zalloc_cpumask_var_node(&cfg->old_domain, GFP_ATOMIC, node))
++		goto out_domain;
+ 	return cfg;
 -}
--
--static void free_kstat_irqs(struct irq_desc *old_desc, struct irq_desc *desc)
+ 
+-int arch_init_chip_data(struct irq_desc *desc, int node)
 -{
--	if (old_desc->kstat_irqs == desc->kstat_irqs)
+-	struct irq_cfg *cfg;
+-
+-	cfg = get_irq_desc_chip_data(desc);
+-	if (!cfg) {
+-		cfg = get_one_free_irq_cfg(node);
+-		set_irq_desc_chip_data(desc, cfg);
+-		if (!cfg) {
+-			printk(KERN_ERR "can not alloc irq_cfg\n");
+-			BUG_ON(1);
+-		}
+-	}
+-
+-	return 0;
++out_domain:
++	free_cpumask_var(cfg->domain);
++out_cfg:
++	kfree(cfg);
++	return NULL;
+ }
+ 
+-/* for move_irq_desc */
+-static void
+-init_copy_irq_2_pin(struct irq_cfg *old_cfg, struct irq_cfg *cfg, int node)
++static void free_irq_cfg(unsigned int at, struct irq_cfg *cfg)
+ {
+-	struct irq_pin_list *old_entry, *head, *tail, *entry;
+-
+-	cfg->irq_2_pin = NULL;
+-	old_entry = old_cfg->irq_2_pin;
+-	if (!old_entry)
 -		return;
 -
--	kfree(old_desc->kstat_irqs);
--	old_desc->kstat_irqs = NULL;
--}
+-	entry = alloc_irq_pin_list(node);
+-	if (!entry)
++	if (!cfg)
+ 		return;
 -
--static bool init_copy_one_irq_desc(int irq, struct irq_desc *old_desc,
--		 struct irq_desc *desc, int node)
--{
--	memcpy(desc, old_desc, sizeof(struct irq_desc));
--	if (!alloc_desc_masks(desc, node, false)) {
--		printk(KERN_ERR "irq %d: can not get new irq_desc cpumask "
--				"for migration.\n", irq);
--		return false;
+-	entry->apic	= old_entry->apic;
+-	entry->pin	= old_entry->pin;
+-	head		= entry;
+-	tail		= entry;
+-	old_entry	= old_entry->next;
+-	while (old_entry) {
+-		entry = alloc_irq_pin_list(node);
+-		if (!entry) {
+-			entry = head;
+-			while (entry) {
+-				head = entry->next;
+-				kfree(entry);
+-				entry = head;
+-			}
+-			/* still use the old one */
+-			return;
+-		}
+-		entry->apic	= old_entry->apic;
+-		entry->pin	= old_entry->pin;
+-		tail->next	= entry;
+-		tail		= entry;
+-		old_entry	= old_entry->next;
 -	}
--	raw_spin_lock_init(&desc->lock);
--	desc->node = node;
--	lockdep_set_class(&desc->lock, &irq_desc_lock_class);
--	init_copy_kstat_irqs(old_desc, desc, node, nr_cpu_ids);
--	init_copy_desc_masks(old_desc, desc);
--	arch_init_copy_chip_data(old_desc, desc, node);
--	return true;
--}
 -
--static void free_one_irq_desc(struct irq_desc *old_desc, struct irq_desc *desc)
--{
--	free_kstat_irqs(old_desc, desc);
--	free_desc_masks(old_desc, desc);
--	arch_free_chip_data(old_desc, desc);
--}
+-	tail->next = NULL;
+-	cfg->irq_2_pin = head;
++	set_irq_chip_data(at, NULL);
++	free_cpumask_var(cfg->domain);
++	free_cpumask_var(cfg->old_domain);
++	kfree(cfg);
+ }
+ 
+-static void free_irq_2_pin(struct irq_cfg *old_cfg, struct irq_cfg *cfg)
++static struct irq_cfg *alloc_irq_and_cfg_at(unsigned int at, int node)
+ {
+-	struct irq_pin_list *entry, *next;
 -
--static struct irq_desc *__real_move_irq_desc(struct irq_desc *old_desc,
--						int node)
--{
+-	if (old_cfg->irq_2_pin == cfg->irq_2_pin)
+-		return;
++	int res = irq_alloc_desc_at(at, node);
++	struct irq_cfg *cfg;
+ 
+-	entry = old_cfg->irq_2_pin;
++	if (res < 0)
++		return NULL;
+ 
+-	while (entry) {
+-		next = entry->next;
+-		kfree(entry);
+-		entry = next;
+-	}
+-	old_cfg->irq_2_pin = NULL;
++	cfg = alloc_irq_cfg(at, node);
++	if (cfg)
++		set_irq_chip_data(at, cfg);
++	else
++		irq_free_desc(at);
++	return cfg;
+ }
+-
+-void arch_init_copy_chip_data(struct irq_desc *old_desc,
+-				 struct irq_desc *desc, int node)
++#else
++struct irq_cfg *irq_cfg(unsigned int irq)
+ {
+-	struct irq_cfg *cfg;
+-	struct irq_cfg *old_cfg;
+-
+-	cfg = get_one_free_irq_cfg(node);
+-
+-	if (!cfg)
+-		return;
+-
+-	set_irq_desc_chip_data(desc, cfg);
+-
+-	old_cfg = get_irq_desc_chip_data(old_desc);
+-
+-	cfg->vector = old_cfg->vector;
+-	cfg->move_in_progress = old_cfg->move_in_progress;
+-	cpumask_copy(cfg->domain, old_cfg->domain);
+-	cpumask_copy(cfg->old_domain, old_cfg->old_domain);
+-
+-	init_copy_irq_2_pin(old_cfg, cfg, node);
++	return irq < nr_irqs ? irq_cfgx + irq : NULL;
+ }
+ 
+-static void free_irq_cfg(struct irq_cfg *cfg)
++static struct irq_cfg *alloc_irq_cfg(unsigned int irq, int node)
+ {
+-	free_cpumask_var(cfg->domain);
+-	free_cpumask_var(cfg->old_domain);
+-	kfree(cfg);
++	return irq_cfgx + irq;
+ }
+ 
+-void arch_free_chip_data(struct irq_desc *old_desc, struct irq_desc *desc)
++static inline void free_irq_cfg(unsigned int at, struct irq_cfg *cfg) { }
++
++static struct irq_cfg *alloc_irq_and_cfg_at(unsigned int at, int node)
+ {
+-	struct irq_cfg *old_cfg, *cfg;
++	return get_irq_cfg_at(at, node);
++}
++#endif
+ 
+-	old_cfg = get_irq_desc_chip_data(old_desc);
+-	cfg = get_irq_desc_chip_data(desc);
++/*
++ * Allocate a new descriptor at irq number @at. If the allocation
++ * succeeds or the descriptor exists already, return the irq_cfg.
++ */
++static struct irq_cfg *get_irq_cfg_at(unsigned int at, int node)
++{
++	int res = irq_alloc_desc_at(at, node);
+ 
+-	if (old_cfg == cfg)
+-		return;
++	if (res < 0 && res != -EEXIST)
++		return NULL;
+ 
+-	if (old_cfg) {
+-		free_irq_2_pin(old_cfg, cfg);
+-		free_irq_cfg(old_cfg);
+-		set_irq_desc_chip_data(old_desc, NULL);
+-	}
++	return get_irq_chip_data(at);
+ }
+-/* end for move_irq_desc */
+ 
+-#else
+-struct irq_cfg *irq_cfg(unsigned int irq)
++static int alloc_irq_from(unsigned int from, int node)
+ {
+-	return irq < nr_irqs ? irq_cfgx + irq : NULL;
++	return irq_alloc_desc_from(from, node);
+ }
+ 
+-#endif
++static void free_irq_at(unsigned int at, struct irq_cfg *cfg)
++{
++	free_irq_cfg(at, cfg);
++	irq_free_desc(at);
++}
+ 
+ struct io_apic {
+ 	unsigned int index;
+@@ -1233,7 +1171,6 @@ void __setup_vector_irq(int cpu)
+ 	/* Initialize vector_irq on a new cpu */
+ 	int irq, vector;
+ 	struct irq_cfg *cfg;
 -	struct irq_desc *desc;
--	unsigned int irq;
--	unsigned long flags;
+ 
+ 	/*
+ 	 * vector_lock will make sure that we don't run into irq vector
+@@ -1242,9 +1179,10 @@ void __setup_vector_irq(int cpu)
+ 	 */
+ 	raw_spin_lock(&vector_lock);
+ 	/* Mark the inuse vectors */
+-	for_each_irq_desc(irq, desc) {
+-		cfg = get_irq_desc_chip_data(desc);
 -
--	irq = old_desc->irq;
--
--	raw_spin_lock_irqsave(&sparse_irq_lock, flags);
--
--	/* We have to check it to avoid races with another CPU */
++	for_each_irq_nr(irq) {
++		cfg = get_irq_chip_data(irq);
++		if (!cfg)
++			continue;
+ 		/*
+ 		 * If it is a legacy IRQ handled by the legacy PIC, this cpu
+ 		 * will be part of the irq_cfg's domain.
+@@ -1454,11 +1392,9 @@ static struct {
+ 
+ static void __init setup_IO_APIC_irqs(void)
+ {
+-	int apic_id, pin, idx, irq;
+-	int notcon = 0;
+-	struct irq_desc *desc;
+-	struct irq_cfg *cfg;
++	int apic_id, pin, idx, irq, notcon = 0;
+ 	int node = cpu_to_node(boot_cpu_id);
++	struct irq_cfg *cfg;
+ 
+ 	apic_printk(APIC_VERBOSE, KERN_DEBUG "init IO_APIC IRQs\n");
+ 
+@@ -1495,12 +1431,10 @@ static void __init setup_IO_APIC_irqs(vo
+ 				apic->multi_timer_check(apic_id, irq))
+ 			continue;
+ 
+-		desc = irq_to_desc_alloc_node(irq, node);
+-		if (!desc) {
+-			printk(KERN_INFO "can not get irq_desc for %d\n", irq);
++		cfg = get_irq_cfg_at(irq, node);
++		if (!cfg)
+ 			continue;
+-		}
+-		cfg = get_irq_desc_chip_data(desc);
++
+ 		add_pin_to_irq_node(cfg, node, apic_id, pin);
+ 		/*
+ 		 * don't mark it in pin_programmed, so later acpi could
+@@ -1522,9 +1456,7 @@ static void __init setup_IO_APIC_irqs(vo
+  */
+ void setup_IO_APIC_irq_extra(u32 gsi)
+ {
+-	int apic_id = 0, pin, idx, irq;
+-	int node = cpu_to_node(boot_cpu_id);
+-	struct irq_desc *desc;
++	int apic_id = 0, pin, idx, irq, node = cpu_to_node(boot_cpu_id);
+ 	struct irq_cfg *cfg;
+ 
+ 	/*
+@@ -1540,18 +1472,11 @@ void setup_IO_APIC_irq_extra(u32 gsi)
+ 		return;
+ 
+ 	irq = pin_2_irq(idx, apic_id, pin);
+-#ifdef CONFIG_SPARSE_IRQ
 -	desc = irq_to_desc(irq);
--
--	if (desc && old_desc != desc)
--		goto out_unlock;
--
--	desc = kzalloc_node(sizeof(*desc), GFP_ATOMIC, node);
+-	if (desc)
+-		return;
+-#endif
+-	desc = irq_to_desc_alloc_node(irq, node);
 -	if (!desc) {
--		printk(KERN_ERR "irq %d: can not get new irq_desc "
--				"for migration.\n", irq);
--		/* still use old one */
--		desc = old_desc;
--		goto out_unlock;
+-		printk(KERN_INFO "can not get irq_desc for %d\n", irq);
++
++	cfg = alloc_irq_and_cfg_at(irq, node);
++	if (!cfg)
+ 		return;
 -	}
--	if (!init_copy_one_irq_desc(irq, old_desc, desc, node)) {
--		/* still use old one */
--		kfree(desc);
--		desc = old_desc;
--		goto out_unlock;
+ 
+-	cfg = get_irq_desc_chip_data(desc);
+ 	add_pin_to_irq_node(cfg, node, apic_id, pin);
+ 
+ 	if (test_bit(pin, mp_ioapic_routing[apic_id].pin_programmed)) {
+@@ -3153,44 +3078,37 @@ device_initcall(ioapic_init_sysfs);
+ /*
+  * Dynamic irq allocate and deallocation
+  */
+-unsigned int create_irq_nr(unsigned int irq_want, int node)
++unsigned int create_irq_nr(unsigned int from, int node)
+ {
+-	/* Allocate an unused irq */
+-	unsigned int irq;
+-	unsigned int new;
++	struct irq_cfg *cfg;
+ 	unsigned long flags;
+-	struct irq_cfg *cfg_new = NULL;
+-	struct irq_desc *desc_new = NULL;
+-
+-	irq = 0;
+-	if (irq_want < nr_irqs_gsi)
+-		irq_want = nr_irqs_gsi;
+-
+-	raw_spin_lock_irqsave(&vector_lock, flags);
+-	for (new = irq_want; new < nr_irqs; new++) {
+-		desc_new = irq_to_desc_alloc_node(new, node);
+-		if (!desc_new) {
+-			printk(KERN_INFO "can not get irq_desc for %d\n", new);
+-			continue;
+-		}
+-		cfg_new = get_irq_desc_chip_data(desc_new);
+-
+-		if (cfg_new->vector != 0)
+-			continue;
++	unsigned int ret = 0;
++	int irq;
+ 
+-		desc_new = move_irq_desc(desc_new, node);
+-		cfg_new = get_irq_desc_chip_data(desc_new);
++	if (from < nr_irqs_gsi)
++		from = nr_irqs_gsi;
+ 
+-		if (__assign_irq_vector(new, cfg_new, apic->target_cpus()) == 0)
+-			irq = new;
+-		break;
++	irq = alloc_irq_from(from, node);
++	if (irq < 0)
++		return 0;
++	cfg = alloc_irq_cfg(irq, node);
++	if (!cfg) {
++		free_irq_at(irq, NULL);
++		return 0;
+ 	}
+-	raw_spin_unlock_irqrestore(&vector_lock, flags);
+ 
+-	if (irq > 0)
+-		dynamic_irq_init_keep_chip_data(irq);
++	raw_spin_lock_irqsave(&vector_lock, flags);
++	if (!__assign_irq_vector(irq, cfg, apic->target_cpus()))
++		ret = irq;
++	raw_spin_unlock_irqrestore(&vector_lock, flags);
+ 
+-	return irq;
++	if (ret) {
++		set_irq_chip_data(irq, cfg);
++		irq_clear_status_flags(irq, IRQ_NOREQUEST);
++	} else {
++		free_irq_at(irq, cfg);
++	}
++	return ret;
+ }
+ 
+ int create_irq(void)
+@@ -3210,14 +3128,16 @@ int create_irq(void)
+ 
+ void destroy_irq(unsigned int irq)
+ {
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
+ 	unsigned long flags;
+ 
+-	dynamic_irq_cleanup_keep_chip_data(irq);
++	irq_set_status_flags(irq, IRQ_NOREQUEST|IRQ_NOPROBE);
+ 
+ 	free_irte(irq);
+ 	raw_spin_lock_irqsave(&vector_lock, flags);
+-	__clear_irq_vector(irq, get_irq_chip_data(irq));
++	__clear_irq_vector(irq, cfg);
+ 	raw_spin_unlock_irqrestore(&vector_lock, flags);
++	free_irq_at(irq, cfg);
+ }
+ 
+ /*
+@@ -3785,11 +3705,8 @@ int __init arch_probe_nr_irqs(void)
+ static int __io_apic_set_pci_routing(struct device *dev, int irq,
+ 				struct io_apic_irq_attr *irq_attr)
+ {
+-	struct irq_desc *desc;
++	int node, ioapic, pin, trigger, polarity;
+ 	struct irq_cfg *cfg;
+-	int node;
+-	int ioapic, pin;
+-	int trigger, polarity;
+ 
+ 	ioapic = irq_attr->ioapic;
+ 	if (!IO_APIC_IRQ(irq)) {
+@@ -3803,18 +3720,14 @@ static int __io_apic_set_pci_routing(str
+ 	else
+ 		node = cpu_to_node(boot_cpu_id);
+ 
+-	desc = irq_to_desc_alloc_node(irq, node);
+-	if (!desc) {
+-		printk(KERN_INFO "can not get irq_desc %d\n", irq);
++	cfg = get_irq_cfg_at(irq, node);
++	if (!cfg)
+ 		return 0;
 -	}
+ 
+ 	pin = irq_attr->ioapic_pin;
+ 	trigger = irq_attr->trigger;
+ 	polarity = irq_attr->polarity;
+ 
+-	cfg = get_irq_desc_chip_data(desc);
 -
--	replace_irq_desc(irq, desc);
--	raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
--
--	/* free the old one */
--	free_one_irq_desc(old_desc, desc);
--	kfree(old_desc);
--
--	return desc;
--
--out_unlock:
--	raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
--
--	return desc;
--}
--
--struct irq_desc *move_irq_desc(struct irq_desc *desc, int node)
--{
--	/* those static or target node is -1, do not move them */
--	if (desc->irq < NR_IRQS_LEGACY || node == -1)
--		return desc;
--
--	if (desc->node != node)
--		desc = __real_move_irq_desc(desc, node);
--
--	return desc;
--}
--
+ 	/*
+ 	 * IRQs < 16 are already in the irq_2_pin[] map
+ 	 */
+@@ -4215,11 +4128,11 @@ void __init pre_init_apic_IRQ0(void)
+ #ifndef CONFIG_SMP
+ 	phys_cpu_present_map = physid_mask_of_physid(boot_cpu_physical_apicid);
+ #endif
+-	irq_to_desc_alloc_node(0, 0);
++	/* Make sure the irq descriptor is set up */
++	cfg = get_irq_cfg_at(0, 0);
+ 
+ 	setup_local_APIC();
+ 
+-	cfg = irq_cfg(0);
+ 	add_pin_to_irq_node(cfg, 0, 0, 0);
+ 	set_irq_chip_and_handler_name(0, &ioapic_chip, handle_edge_irq, "edge");
+ 
