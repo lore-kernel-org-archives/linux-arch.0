@@ -1,59 +1,89 @@
-From: "Maciej W. Rozycki" <macro@codesourcery.com>
-Subject: Re: [PATCH 3/5] mips: sanitize restart logics
-Date: Thu, 30 Sep 2010 02:50:17 +0100 (BST)
-Message-ID: <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
-References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk> <4CA38538.8000007@caviumnetworks.com>
+From: Kyle McMartin <kyle@mcmartin.ca>
+Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
+ __do_IRQ() code
+Date: Wed, 29 Sep 2010 22:41:03 -0400
+Message-ID: <20100930024103.GB2604@bombadil.infradead.org>
+References: <20100908152036.643594727@linutronix.de>
+ <20100930012641.GA2604@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.codesourcery.com ([38.113.113.100]:40033 "EHLO
-	mail.codesourcery.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751997Ab0I3B5T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2010 21:57:19 -0400
-In-Reply-To: <4CA38538.8000007@caviumnetworks.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney@caviumnetworks.com>
-Cc: Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20100930012641.GA2604@bombadil.infradead.org>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Sep 2010, David Daney wrote:
-
-> > Put the original syscall number into ->regs[0] when we leave syscall
-> > with error.  Use it in restart logics.  Everything else will have
-> > it 0 since we pass through SAVE_SOME on all the ways in.  Note that
-> > in places like bad_stack and inllegal_syscall we leave it 0 - it's
-> > not restartable.
-> > 
+On Wed, Sep 29, 2010 at 09:26:41PM -0400, Kyle McMartin wrote:
+> I'd appreciate a second pair of eyes, and if it's ok, I'll clean it up
+> and submit it.
 > 
-> IIRC Userspace getcontext/setcontext rely on regs[0] having a value of zero in
-> the when the signal handlers are invoked.
 
- Not exactly.  These GNU C library functions rely on the magic value of 
-"1" there to recognise contexts they created themselves and which must 
-therefore be handled by themselves internally (these contexts are not 
-complete and only preserve the call-saved registers as specified by the 
-respective MIPS ABIs, and are therefore unsafe to be passed to the 
-rt_sigreturn(2) syscall).  All the other values, including of course "0", 
-are not treated specially and the context is passed to rt_sigreturn(2) as 
-usually.  This only matters in cases where e.g. setcontext(3) is used to 
-exit from or return to a signal handler.
+Let's do h8300 while we're at it, since that also /looks/ trivial...
+(probably famous last words.)
 
-> I haven't fully traced through the code, but I hope that this 'invariant'
-> holds both before and after this patch.  I think Maciej did the work on
-> getcontext/setcontext, he may know for sure what the requirements are.
+No idea if it's edge or level or what, but given the handlers that would
+be called in the __do_IRQ patch, handle_edge_irq seems most sensible.
 
- Thanks for the heads-up, David -- I would have surely missed this e-mail 
-from the flood I get.  I think the change is safe as MIPS/Linux only uses 
-syscall numbers from 4000 up (not sure why such a non-round number was 
-chosen; one like 4096 would seem more appropriate to me but there you go), 
-so there should be no clash unless an invalid syscall number has a chance 
-to be stored there.
+Executive summary: kill implied .ack = NULL, rename enable to unmask,
+kill empty .end since dummy_irq_chip.end will suit us fine. Kill some
+unneeded irq_desc initializers that are also implicit...
 
- For how exactly the magic value is used please have a look at 
-sysdeps/unix/sysv/linux/mips/*context.S in glibc-ports and search for 
-"magic flag" (yes, I know these pieces of assembly butchered and mixed 
-with CPP mince require some mind-twistedness to parse; sorry about that, 
-but I tried my best and put some comments throughout so that the magic 
-flag is easy to find ;) ).
+Again, if someone could build/boot/whatever test this, that would be
+fantastic, and I'll add their Tested-by and submit.
 
-  Maciej
+--kyle
+
+---
+ irq.c |   16 ++++------------
+ 1 file changed, 4 insertions(+), 12 deletions(-)
+
+diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
+index c25dc2c..acdbc07 100644
+--- a/arch/h8300/kernel/irq.c
++++ b/arch/h8300/kernel/irq.c
+@@ -50,10 +50,6 @@ static void h8300_disable_irq(unsigned int irq)
+ 		IER_REGS &= ~(1 << (irq - EXT_IRQ0));
+ }
+ 
+-static void h8300_end_irq(unsigned int irq)
+-{
+-}
+-
+ static unsigned int h8300_startup_irq(unsigned int irq)
+ {
+ 	if (is_ext_irq(irq))
+@@ -75,10 +71,9 @@ struct irq_chip h8300irq_chip = {
+ 	.name		= "H8300-INTC",
+ 	.startup	= h8300_startup_irq,
+ 	.shutdown	= h8300_shutdown_irq,
+-	.enable		= h8300_enable_irq,
++	.unmask		= h8300_enable_irq,
++	.mask		= h8300_disable_irq,
+ 	.disable	= h8300_disable_irq,
+-	.ack		= NULL,
+-	.end		= h8300_end_irq,
+ };
+ 
+ #if defined(CONFIG_RAMKERNEL)
+@@ -161,17 +156,14 @@ void __init init_IRQ(void)
+ 	setup_vector();
+ 
+ 	for (c = 0; c < NR_IRQS; c++) {
+-		irq_desc[c].status = IRQ_DISABLED;
+-		irq_desc[c].action = NULL;
+-		irq_desc[c].depth = 1;
+-		irq_desc[c].chip = &h8300irq_chip;
++		set_irq_chip_and_handler(c, &h8300_irq_chip, handle_edge_irq);
+ 	}
+ }
+ 
+ asmlinkage void do_IRQ(int irq)
+ {
+ 	irq_enter();
+-	__do_IRQ(irq);
++	generic_handle_irq(irq);
+ 	irq_exit();
+ }
+ 
