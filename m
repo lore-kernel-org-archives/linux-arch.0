@@ -1,108 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:52647 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:52869 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755819Ab0I3XQo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:16:44 -0400
-Message-ID: <20100930221740.545532651@linutronix.de>
-Date: Thu, 30 Sep 2010 23:16:16 -0000
+	id S1756541Ab0I3XRb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:17:31 -0400
+Message-ID: <20100930221740.348118306@linutronix.de>
+Date: Thu, 30 Sep 2010 23:16:06 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 21/47] x86: Sanitize apb timer interrupt handling
+Subject: [patch 19/47] genirq: Query arch for number of early descriptors
 References: <20100930221351.682772535@linutronix.de>
-Content-Disposition: inline; filename=x86-sanitize-abptimer.patch
+Content-Disposition: inline;
+	filename=genirq-ask-arch-for-number-of-irqs-to-init.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20100930231616.nd80oPpRn0B-7DmF6WkY7tKCJnNcrY5RjRAUBImZTQA@z>
+Message-ID: <20100930231606.29i218CNhvxfGJDvC5c3qiIx4hIReoVMSYYSS-NAwEg@z>
 
-Disable the interrupt in CPU_DEAD where it belongs. Remove the
-open coded irq_desc manipulation.
+sparse irq sets up NR_IRQS_LEGACY irq descriptors and archs then go
+ahead and allocate more.
+
+Use the unused return value of arch_probe_nr_irqs() to let the
+architecture return the number of early allocations. Fix up all users.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/kernel/apb_timer.c |   54 +++++++++++++++++++-------------------------
- 1 file changed, 24 insertions(+), 30 deletions(-)
+ arch/arm/kernel/irq.c          |    8 +-------
+ arch/sh/kernel/irq.c           |    2 +-
+ arch/x86/kernel/apic/io_apic.c |    2 +-
+ kernel/irq/irqdesc.c           |    6 +++---
+ kernel/softirq.c               |    2 +-
+ 5 files changed, 7 insertions(+), 13 deletions(-)
 
-Index: linux-2.6-tip/arch/x86/kernel/apb_timer.c
+Index: linux-2.6-tip/arch/arm/kernel/irq.c
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/apb_timer.c
-+++ linux-2.6-tip/arch/x86/kernel/apb_timer.c
-@@ -231,34 +231,6 @@ static void apbt_restart_clocksource(str
- 	apbt_start_counter(phy_cs_timer_id);
- }
+--- linux-2.6-tip.orig/arch/arm/kernel/irq.c
++++ linux-2.6-tip/arch/arm/kernel/irq.c
+@@ -148,12 +148,6 @@ void set_irq_flags(unsigned int irq, uns
  
--/* Setup IRQ routing via IOAPIC */
--#ifdef CONFIG_SMP
--static void apbt_setup_irq(struct apbt_dev *adev)
--{
--	struct irq_chip *chip;
+ void __init init_IRQ(void)
+ {
 -	struct irq_desc *desc;
+-	int irq;
 -
--	/* timer0 irq has been setup early */
--	if (adev->irq == 0)
--		return;
--	desc = irq_to_desc(adev->irq);
--	chip = get_irq_chip(adev->irq);
--	disable_irq(adev->irq);
--	desc->status |= IRQ_MOVE_PCNTXT;
--	irq_set_affinity(adev->irq, cpumask_of(adev->cpu));
--	/* APB timer irqs are set up as mp_irqs, timer is edge triggerred */
--	set_irq_chip_and_handler_name(adev->irq, chip, handle_edge_irq, "edge");
--	enable_irq(adev->irq);
--	if (system_state == SYSTEM_BOOTING)
--		if (request_irq(adev->irq, apbt_interrupt_handler,
--				IRQF_TIMER | IRQF_DISABLED | IRQF_NOBALANCING,
--				adev->name, adev)) {
--			printk(KERN_ERR "Failed request IRQ for APBT%d\n",
--			       adev->num);
--		}
--}
--#endif
+-	for (irq = 0; irq < nr_irqs; irq++)
+-		desc = irq_to_desc_alloc_node(irq, 0);
 -
- static void apbt_enable_int(int n)
- {
- 	unsigned long ctrl = apbt_readl(n, APBTMR_N_CONTROL);
-@@ -334,6 +306,27 @@ static int __init apbt_clockevent_regist
+ 	init_arch_irq();
  }
  
- #ifdef CONFIG_SMP
-+
-+static void apbt_setup_irq(struct apbt_dev *adev)
-+{
-+	/* timer0 irq has been setup early */
-+	if (adev->irq == 0)
-+		return;
-+
-+	if (system_state == SYSTEM_BOOTING) {
-+		irq_modify_status(adev->irq, 0, IRQ_MOVE_PCNTXT);
-+		/* APB timer irqs are set up as mp_irqs, timer is edge type */
-+		__set_irq_handler(adev->irq, handle_edge_irq, 0, "edge");
-+		if (request_irq(adev->irq, apbt_interrupt_handler,
-+				IRQF_TIMER | IRQF_DISABLED | IRQF_NOBALANCING,
-+				adev->name, adev)) {
-+			printk(KERN_ERR "Failed request IRQ for APBT%d\n",
-+			       adev->num);
-+		}
-+	} else
-+		enable_irq(adev->irq);
-+}
-+
- /* Should be called with per cpu */
- void apbt_setup_secondary_clock(void)
+@@ -161,7 +155,7 @@ void __init init_IRQ(void)
+ int __init arch_probe_nr_irqs(void)
  {
-@@ -389,10 +382,11 @@ static int apbt_cpuhp_notify(struct noti
+ 	nr_irqs = arch_nr_irqs ? arch_nr_irqs : NR_IRQS;
+-	return 0;
++	return nr_irqs;
+ }
+ #endif
  
- 	switch (action & 0xf) {
- 	case CPU_DEAD:
-+		disable_irq(adev->irq);
- 		apbt_disable_int(cpu);
--		if (system_state == SYSTEM_RUNNING)
-+		if (system_state == SYSTEM_RUNNING) {
- 			pr_debug("skipping APBT CPU %lu offline\n", cpu);
--		else if (adev) {
-+		}else if (adev) {
- 			pr_debug("APBT clockevent for cpu %lu offline\n", cpu);
- 			free_irq(adev->irq, adev);
- 		}
+Index: linux-2.6-tip/arch/sh/kernel/irq.c
+===================================================================
+--- linux-2.6-tip.orig/arch/sh/kernel/irq.c
++++ linux-2.6-tip/arch/sh/kernel/irq.c
+@@ -290,7 +290,7 @@ void __init init_IRQ(void)
+ int __init arch_probe_nr_irqs(void)
+ {
+ 	nr_irqs = sh_mv.mv_nr_irqs;
+-	return 0;
++	return NR_IRQS_LEGACY;
+ }
+ #endif
+ 
+Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
++++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+@@ -3886,7 +3886,7 @@ int __init arch_probe_nr_irqs(void)
+ 	if (nr < nr_irqs)
+ 		nr_irqs = nr;
+ 
+-	return 0;
++	return nr_irqs_gsi;
+ }
+ #endif
+ 
+Index: linux-2.6-tip/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/irqdesc.c
++++ linux-2.6-tip/kernel/irq/irqdesc.c
+@@ -225,16 +225,16 @@ struct irq_desc * __ref irq_to_desc_allo
+ 
+ int __init early_irq_init(void)
+ {
+-	int i, node = first_online_node;
++	int i, initcnt, node = first_online_node;
+ 	struct irq_desc *desc;
+ 
+ 	init_irq_default_affinity();
+ 
+ 	 /* initialize nr_irqs based on nr_cpu_ids */
+-	arch_probe_nr_irqs();
++	initcnt = arch_probe_nr_irqs();
+ 	printk(KERN_INFO "NR_IRQS:%d nr_irqs:%d\n", NR_IRQS, nr_irqs);
+ 
+-	for (i = 0; i < NR_IRQS_LEGACY; i++) {
++	for (i = 0; i < initcnt; i++) {
+ 		desc = alloc_desc(i, node);
+ 		set_bit(i, allocated_irqs);
+ 		irq_insert_desc(i, desc);
+Index: linux-2.6-tip/kernel/softirq.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/softirq.c
++++ linux-2.6-tip/kernel/softirq.c
+@@ -888,7 +888,7 @@ int __init __weak early_irq_init(void)
+ 
+ int __init __weak arch_probe_nr_irqs(void)
+ {
+-	return 0;
++	return NR_IRQS_LEGACY;
+ }
+ 
+ int __init __weak arch_early_irq_init(void)
 
 
