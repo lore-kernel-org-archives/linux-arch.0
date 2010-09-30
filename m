@@ -1,45 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43366 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752383Ab0I2OiP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2010 10:38:15 -0400
-Date: Wed, 29 Sep 2010 10:38:07 -0400
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
- __do_IRQ() code
-Message-ID: <20100929143807.GB18362@bombadil.infradead.org>
-References: <20100908152036.643594727@linutronix.de>
- <AANLkTikVHO9DmyTX==CwViDK1rP0masBwjMakHZ0U=kZ@mail.gmail.com>
- <alpine.LFD.2.00.1009271953390.2416@localhost6.localdomain6>
- <987664A83D2D224EAE907B061CE93D5301604712B4@orsmsx505.amr.corp.intel.com>
- <alpine.LFD.2.00.1009272048100.2416@localhost6.localdomain6>
- <987664A83D2D224EAE907B061CE93D530160471328@orsmsx505.amr.corp.intel.com>
- <20100929004607.GA18362@bombadil.infradead.org>
- <987664A83D2D224EAE907B061CE93D530160554808@orsmsx505.amr.corp.intel.com>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:49358 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751367Ab0I3BEM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Sep 2010 21:04:12 -0400
+Date: Thu, 30 Sep 2010 10:04:08 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 6/6] sh: oprofile: Use perf-events oprofile backend
+Message-ID: <20100930010407.GA18073@linux-sh.org>
+References: <cover.1284357372.git.matt@console-pimps.org> <e75f8fa563b4bfb2b4cf62fe64ae398ea5e1831a.1284357372.git.matt@console-pimps.org> <20100916143254.GC13563@erda.amd.com> <20100927200138.GG28588@console-pimps.org> <20100927220703.GV13563@erda.amd.com> <20100927222627.GH28588@console-pimps.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <987664A83D2D224EAE907B061CE93D530160554808@orsmsx505.amr.corp.intel.com>
+In-Reply-To: <20100927222627.GH28588@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: Kyle McMartin <kyle@mcmartin.ca>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, "linux-alpha@vger.kernel.org" <linux-alpha@vger.kernel.org>, "linux-cris-kernel@axis.com" <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, Chris Zankel <chris@zankel.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20100929143807.i1A4E5OuBozhx3TDYctV3eLWFhdm55zbonw0EyswtUA@z>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Robert Richter <robert.richter@amd.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20100930010408.gJ-XY6IqOS1XeXQrECy6DbEoWwyatWbYYfvdgVHr1RI@z>
 
-On Tue, Sep 28, 2010 at 09:55:01PM -0700, Luck, Tony wrote:
-> Yes. Take a look in today's linux-next kernel (tag next-20100929)
-> for commit: 5d4bff94f9e0877a85b4dc573eb7a3f1d97c13ae
-> 
-> Essentially I just added an "unmask_irq()" call into the ->end
-> routine, renamed it, and used it as ->unmask.
-> 
+On Mon, Sep 27, 2010 at 11:26:27PM +0100, Matt Fleming wrote:
+> On Tue, Sep 28, 2010 at 12:07:03AM +0200, Robert Richter wrote:
+> > On 27.09.10 16:01:38, Matt Fleming wrote:
+> > > Well, ARM doesn't have names as strings for its pmus currently. What's
+> > > more, ARM wouldn't use it; SH would be the only user of this function. I
+> > > don't think this one makes sense to be a generic function.
+> > 
 
-Ahh, cool, glad to hear it.
+Er, what? Yes it does. It has this silly id to string mapping thing that
+is at present duplicated between the perf and the oprofile code for no
+reason. Having a generic (albeit optional) perf_pmu_name() would allow
+this to be cleaned up.
 
---Kyle
-
-> It seems to work okay - I tried migrating interrupts around by
-> poking at /proc/irq/NNN/smp_affinity - and that still works.
+> > As the implementation of the function would be optional, why should we
+> > make it architectural?
 > 
-> -Tony
+> I don't see why we should pollute the perf namespace with a function
+> that is only being used inside the SH oprofile code? There would be
+> exactly one use of this function and I doubt the perf guys will want
+> this function exposed. In it's current state, it really is no use to any
+> architecture other than SH.
 > 
+This has nothing at all to do with the SH oprofile code and everything to
+do with oprofile in general. This is the vary basis for the CPU model
+matching in the oprofile userspace tools, it's string based by design.
+Given that we're already seeing architetures double up their strings in
+both places, this really wants a consensus and to be dealt with before
+other architetures start getting the wrong idea.
