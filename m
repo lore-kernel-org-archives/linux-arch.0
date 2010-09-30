@@ -1,89 +1,66 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [RFC trollpatch 1/1] genirq: Remove the fits all and nothing
- __do_IRQ() code
-Date: Wed, 29 Sep 2010 22:41:03 -0400
-Message-ID: <20100930024103.GB2604@bombadil.infradead.org>
-References: <20100908152036.643594727@linutronix.de>
- <20100930012641.GA2604@bombadil.infradead.org>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: dma-mapping commit breaks UML
+Date: Thu, 30 Sep 2010 14:45:19 +0900
+Message-ID: <20100930144059N.fujita.tomonori@lab.ntt.co.jp>
+References: <201009291155.30873.toralf.foerster@gmx.de>
+	<20100929221620K.fujita.tomonori@lab.ntt.co.jp>
+	<201009291629.39077.toralf.foerster@gmx.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20100930012641.GA2604@bombadil.infradead.org>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, Christoph Hellwig <hch@infradead.org>, linux-alpha@vger.kernel.org, linux-cris-kernel@axis.com, Haavard Skinnemoen <hskinnemoen@atmel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Hirokazu Takata <takata@linux-m32r.org>, Greg Ungerer <gerg@uclinux.org>, Jeff Dike <jdike@addtoit.com>, linux-parisc@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sh.osrg.net ([192.16.179.4]:56885 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754085Ab0I3Fp1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 01:45:27 -0400
+In-Reply-To: <201009291629.39077.toralf.foerster@gmx.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: toralf.foerster@gmx.de
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Sep 29, 2010 at 09:26:41PM -0400, Kyle McMartin wrote:
-> I'd appreciate a second pair of eyes, and if it's ok, I'll clean it up
-> and submit it.
-> 
+On Wed, 29 Sep 2010 16:29:38 +0200
+Toralf **UNKNOWN CHARSET** <toralf.foerster@gmx.de> wrote:
 
-Let's do h8300 while we're at it, since that also /looks/ trivial...
-(probably famous last words.)
+> but catched another compile error - how can I now automatically
+> git-bisect for that wrong commit w/o heavy scripting ? - Or simply
+> asking who to blame wrt this compile error ?
 
-No idea if it's edge or level or what, but given the handlers that would
-be called in the __do_IRQ patch, handle_edge_irq seems most sensible.
+Fortunately, looks like we can easily figure out the root cause of
+this (commit d6d1b650ae6acce73d55dd0246de22180303ae73), the last
+commit to arch/um/drivers/hostaudio_kern.c
 
-Executive summary: kill implied .ack = NULL, rename enable to unmask,
-kill empty .end since dummy_irq_chip.end will suit us fine. Kill some
-unneeded irq_desc initializers that are also implicit...
+The following patch works?
 
-Again, if someone could build/boot/whatever test this, that would be
-fantastic, and I'll add their Tested-by and submit.
-
---kyle
-
----
- irq.c |   16 ++++------------
- 1 file changed, 4 insertions(+), 12 deletions(-)
-
-diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
-index c25dc2c..acdbc07 100644
---- a/arch/h8300/kernel/irq.c
-+++ b/arch/h8300/kernel/irq.c
-@@ -50,10 +50,6 @@ static void h8300_disable_irq(unsigned int irq)
- 		IER_REGS &= ~(1 << (irq - EXT_IRQ0));
+diff --git a/arch/um/drivers/hostaudio_kern.c b/arch/um/drivers/hostaudio_kern.c
+index 0c46e39..63c740a 100644
+--- a/arch/um/drivers/hostaudio_kern.c
++++ b/arch/um/drivers/hostaudio_kern.c
+@@ -40,6 +40,11 @@ static char *mixer = HOSTAUDIO_DEV_MIXER;
+ "    This is used to specify the host mixer device to the hostaudio driver.\n"\
+ "    The default is \"" HOSTAUDIO_DEV_MIXER "\".\n\n"
+ 
++module_param(dsp, charp, 0644);
++MODULE_PARM_DESC(dsp, DSP_HELP);
++module_param(mixer, charp, 0644);
++MODULE_PARM_DESC(mixer, MIXER_HELP);
++
+ #ifndef MODULE
+ static int set_dsp(char *name, int *add)
+ {
+@@ -56,15 +61,6 @@ static int set_mixer(char *name, int *add)
  }
  
--static void h8300_end_irq(unsigned int irq)
--{
--}
+ __uml_setup("mixer=", set_mixer, "mixer=<mixer device>\n" MIXER_HELP);
 -
- static unsigned int h8300_startup_irq(unsigned int irq)
- {
- 	if (is_ext_irq(irq))
-@@ -75,10 +71,9 @@ struct irq_chip h8300irq_chip = {
- 	.name		= "H8300-INTC",
- 	.startup	= h8300_startup_irq,
- 	.shutdown	= h8300_shutdown_irq,
--	.enable		= h8300_enable_irq,
-+	.unmask		= h8300_enable_irq,
-+	.mask		= h8300_disable_irq,
- 	.disable	= h8300_disable_irq,
--	.ack		= NULL,
--	.end		= h8300_end_irq,
- };
+-#else /*MODULE*/
+-
+-module_param(dsp, charp, 0644);
+-MODULE_PARM_DESC(dsp, DSP_HELP);
+-
+-module_param(mixer, charp, 0644);
+-MODULE_PARM_DESC(mixer, MIXER_HELP);
+-
+ #endif
  
- #if defined(CONFIG_RAMKERNEL)
-@@ -161,17 +156,14 @@ void __init init_IRQ(void)
- 	setup_vector();
- 
- 	for (c = 0; c < NR_IRQS; c++) {
--		irq_desc[c].status = IRQ_DISABLED;
--		irq_desc[c].action = NULL;
--		irq_desc[c].depth = 1;
--		irq_desc[c].chip = &h8300irq_chip;
-+		set_irq_chip_and_handler(c, &h8300_irq_chip, handle_edge_irq);
- 	}
- }
- 
- asmlinkage void do_IRQ(int irq)
- {
- 	irq_enter();
--	__do_IRQ(irq);
-+	generic_handle_irq(irq);
- 	irq_exit();
- }
- 
+ /* /dev/dsp file operations */
