@@ -1,63 +1,71 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 26/47] x86: io_apic: Convert startup to new irq_chip function
-Date: Thu, 30 Sep 2010 23:16:42 -0000
-Message-ID: <20100930221741.032185985@linutronix.de>
+Subject: [patch 16/47] genirq: Implement sane enumeration
+Date: Thu, 30 Sep 2010 23:15:51 -0000
+Message-ID: <20100930221740.055804558@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=x86-ioapic-convert-startup.patch
+Content-Disposition: inline; filename=genirq-implement-sane-enumeration.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 List-Id: linux-arch.vger.kernel.org
 
+Use the allocator bitmap to lookup active interrupts.
+
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/kernel/apic/io_apic.c |   12 +++++-------
- 1 file changed, 5 insertions(+), 7 deletions(-)
+ include/linux/irqnr.h |    5 +++++
+ kernel/irq/irqdesc.c  |   17 +++++++++++++++++
+ 2 files changed, 22 insertions(+)
 
-Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+Index: linux-2.6-tip/include/linux/irqnr.h
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
-+++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-@@ -2232,11 +2232,10 @@ static int __init timer_irq_works(void)
-  * an edge even if it isn't on the 8259A...
-  */
+--- linux-2.6-tip.orig/include/linux/irqnr.h
++++ linux-2.6-tip/include/linux/irqnr.h
+@@ -25,6 +25,7 @@
  
--static unsigned int startup_ioapic_irq(unsigned int irq)
-+static unsigned int startup_ioapic_irq(struct irq_data *data)
+ extern int nr_irqs;
+ extern struct irq_desc *irq_to_desc(unsigned int irq);
++unsigned int irq_get_next_irq(unsigned int offset);
+ 
+ # define for_each_irq_desc(irq, desc)					\
+ 	for (irq = 0, desc = irq_to_desc(irq); irq < nr_irqs;		\
+@@ -47,6 +48,10 @@ extern struct irq_desc *irq_to_desc(unsi
+ #define irq_node(irq)	0
+ #endif
+ 
++# define for_each_active_irq(irq)			\
++	for (irq = irq_get_next_irq(0); irq < nr_irqs;	\
++	     irq = irq_get_next_irq(irq))
++
+ #endif /* CONFIG_GENERIC_HARDIRQS */
+ 
+ #define for_each_irq_nr(irq)                   \
+Index: linux-2.6-tip/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/irqdesc.c
++++ linux-2.6-tip/kernel/irq/irqdesc.c
+@@ -470,6 +470,23 @@ err:
+ 	return ret;
+ }
+ 
++/**
++ * irq_get_next_irq - get next allocated irq number
++ * @offset:	where to start the search
++ *
++ * Returns next irq number after offset or nr_irqs if none is found.
++ */
++unsigned int irq_get_next_irq(unsigned int offset)
++{
++	unsigned long flags;
++	unsigned int res;
++
++	raw_spin_lock_irqsave(&sparse_irq_lock, flags);
++	res = find_next_bit_set(allocated_irqs, nr_irqs, offset);
++	raw_spin_unlock_irqsave(&sparse_irq_lock, flags);
++	return res;
++}
++
+ /* Statistics access */
+ void clear_kstat_irqs(struct irq_desc *desc)
  {
--	int was_pending = 0;
-+	int was_pending = 0, irq = data->irq;
- 	unsigned long flags;
--	struct irq_cfg *cfg;
- 
- 	raw_spin_lock_irqsave(&ioapic_lock, flags);
- 	if (irq < legacy_pic->nr_legacy_irqs) {
-@@ -2244,8 +2243,7 @@ static unsigned int startup_ioapic_irq(u
- 		if (legacy_pic->irq_pending(irq))
- 			was_pending = 1;
- 	}
--	cfg = irq_cfg(irq);
--	__unmask_ioapic(cfg);
-+	__unmask_ioapic(data->chip_data);
- 	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
- 
- 	return was_pending;
-@@ -2709,7 +2707,7 @@ static void ir_ack_apic_level(unsigned i
- 
- static struct irq_chip ioapic_chip __read_mostly = {
- 	.name		= "IO-APIC",
--	.startup	= startup_ioapic_irq,
-+	.irq_startup	= startup_ioapic_irq,
- 	.mask		= mask_ioapic_irq,
- 	.unmask		= unmask_ioapic_irq,
- 	.ack		= ack_apic_edge,
-@@ -2722,7 +2720,7 @@ static struct irq_chip ioapic_chip __rea
- 
- static struct irq_chip ir_ioapic_chip __read_mostly = {
- 	.name		= "IR-IO-APIC",
--	.startup	= startup_ioapic_irq,
-+	.irq_startup	= startup_ioapic_irq,
- 	.mask		= mask_ioapic_irq,
- 	.unmask		= unmask_ioapic_irq,
- #ifdef CONFIG_INTR_REMAP
