@@ -1,85 +1,58 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 07/47] genirq: Remove early_init_irq_lock_class()
-Date: Thu, 30 Sep 2010 23:15:10 -0000
-Message-ID: <20100930221739.171290088@linutronix.de>
+Subject: [patch 01/47] x86: Plug memory leak in sparse irq
+Date: Thu, 30 Sep 2010 23:14:33 -0000
+Message-ID: <20100930221738.572997675@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline;
-	filename=genirq-remove-early-init-irq-lock-class.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:34739 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751150Ab0I3XZP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:25:15 -0400
+Content-Disposition: inline; filename=x86-plug-memory-leak-in-sparse-irq.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>, Yinghai Lu <yhlu.kernel@gmail.com>, stable@kernel.org
 
-early_init_irq_lock_class() is called way before anything touches the
-irq descriptors. In case of SPARSE_IRQ=y this is a NOP operation
-because the radix tree is empty at this point. For the SPARSE_IRQ=n
-case it's sufficient to set the lock class in early_init_irq(). 
+free_irq_cfg() is not freeing the cpumask_vars in irq_cfg. Fixing this
+triggers a use after free caused by the fact that copying struct
+irq_cfg is done with memcpy, which copies the pointer not the cpumask.
+
+Fix both places.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Yinghai Lu <yhlu.kernel@gmail.com>
+LKML-Reference: <alpine.LFD.2.00.1009282052570.2416@localhost6.localdomain6>
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: stable@kernel.org
 ---
- include/linux/lockdep.h |    8 --------
- init/main.c             |    1 -
- kernel/irq/irqdesc.c    |   11 +----------
- 3 files changed, 1 insertion(+), 19 deletions(-)
+ arch/x86/kernel/apic/io_apic.c |   11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
 
-Index: linux-2.6-tip/include/linux/lockdep.h
+Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
 ===================================================================
---- linux-2.6-tip.orig/include/linux/lockdep.h
-+++ linux-2.6-tip/include/linux/lockdep.h
-@@ -424,14 +424,6 @@ do {								\
+--- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
++++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+@@ -307,14 +307,19 @@ void arch_init_copy_chip_data(struct irq
  
- #endif /* CONFIG_LOCKDEP */
+ 	old_cfg = get_irq_desc_chip_data(old_desc);
  
--#ifdef CONFIG_GENERIC_HARDIRQS
--extern void early_init_irq_lock_class(void);
--#else
--static inline void early_init_irq_lock_class(void)
--{
--}
--#endif
--
- #ifdef CONFIG_TRACE_IRQFLAGS
- extern void early_boot_irqs_off(void);
- extern void early_boot_irqs_on(void);
-Index: linux-2.6-tip/init/main.c
-===================================================================
---- linux-2.6-tip.orig/init/main.c
-+++ linux-2.6-tip/init/main.c
-@@ -556,7 +556,6 @@ asmlinkage void __init start_kernel(void
+-	memcpy(cfg, old_cfg, sizeof(struct irq_cfg));
++	cfg->vector = old_cfg->vector;
++	cfg->move_in_progress = old_cfg->move_in_progress;
++	cpumask_copy(cfg->domain, old_cfg->domain);
++	cpumask_copy(cfg->old_domain, old_cfg->old_domain);
  
- 	local_irq_disable();
- 	early_boot_irqs_off();
--	early_init_irq_lock_class();
- 
- /*
-  * Interrupts are still disabled. Do necessary setups, then
-Index: linux-2.6-tip/kernel/irq/irqdesc.c
-===================================================================
---- linux-2.6-tip.orig/kernel/irq/irqdesc.c
-+++ linux-2.6-tip/kernel/irq/irqdesc.c
-@@ -243,6 +243,7 @@ int __init early_irq_init(void)
- 		alloc_desc_masks(&desc[i], 0, true);
- 		init_desc_masks(&desc[i]);
- 		desc[i].kstat_irqs = kstat_irqs_all[i];
-+		lockdep_set_class(&desc[i].lock, &irq_desc_lock_class);
- 	}
- 	return arch_early_irq_init();
- }
-@@ -263,16 +264,6 @@ void clear_kstat_irqs(struct irq_desc *d
- 	memset(desc->kstat_irqs, 0, nr_cpu_ids * sizeof(*(desc->kstat_irqs)));
+ 	init_copy_irq_2_pin(old_cfg, cfg, node);
  }
  
--void early_init_irq_lock_class(void)
--{
--	struct irq_desc *desc;
--	int i;
--
--	for_each_irq_desc(i, desc) {
--		lockdep_set_class(&desc->lock, &irq_desc_lock_class);
--	}
--}
--
- unsigned int kstat_irqs_cpu(unsigned int irq, int cpu)
+-static void free_irq_cfg(struct irq_cfg *old_cfg)
++static void free_irq_cfg(struct irq_cfg *cfg)
  {
- 	struct irq_desc *desc = irq_to_desc(irq);
+-	kfree(old_cfg);
++	free_cpumask_var(cfg->domain);
++	free_cpumask_var(cfg->old_domain);
++	kfree(cfg);
+ }
+ 
+ void arch_free_chip_data(struct irq_desc *old_desc, struct irq_desc *desc)
