@@ -1,89 +1,67 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 38/47] x86: Use sane enumeration
-Date: Thu, 30 Sep 2010 23:17:52 -0000
-Message-ID: <20100930221742.225366306@linutronix.de>
+Subject: [patch 39/47] genirq: Remove arch_init_chip_data()
+Date: Thu, 30 Sep 2010 23:17:54 -0000
+Message-ID: <20100930221742.320643472@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:53041 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:53031 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756680Ab0I3XSN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:18:13 -0400
-Content-Disposition: inline; filename=x86-use-sane-enumeration.patch
+	id S1756112Ab0I3XSM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:18:12 -0400
+Content-Disposition: inline; filename=genirq-remove-arch_init_chip_data.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-Instead of looping through all interrupts, use the bitmap lookup to
-find the next.
+This function should have not been there in the first place.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/kernel/apic/io_apic.c |   16 +++++++---------
- 1 file changed, 7 insertions(+), 9 deletions(-)
+ include/linux/interrupt.h |    3 ---
+ kernel/irq/irqdesc.c      |    2 --
+ kernel/softirq.c          |    5 -----
+ 3 files changed, 10 deletions(-)
 
-Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+Index: linux-2.6-tip/include/linux/interrupt.h
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
-+++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-@@ -1179,7 +1179,7 @@ void __setup_vector_irq(int cpu)
- 	 */
- 	raw_spin_lock(&vector_lock);
- 	/* Mark the inuse vectors */
--	for_each_irq_nr(irq) {
-+	for_each_active_irq(irq) {
- 		cfg = get_irq_chip_data(irq);
- 		if (!cfg)
- 			continue;
-@@ -1537,7 +1537,6 @@ __apicdebuginit(void) print_IO_APIC(void
- 	union IO_APIC_reg_03 reg_03;
- 	unsigned long flags;
- 	struct irq_cfg *cfg;
--	struct irq_desc *desc;
- 	unsigned int irq;
+--- linux-2.6-tip.orig/include/linux/interrupt.h
++++ linux-2.6-tip/include/linux/interrupt.h
+@@ -641,11 +641,8 @@ static inline void init_irq_proc(void)
+ struct seq_file;
+ int show_interrupts(struct seq_file *p, void *v);
  
- 	printk(KERN_DEBUG "number of MP IRQ sources: %d.\n", mp_irq_entries);
-@@ -1624,10 +1623,10 @@ __apicdebuginit(void) print_IO_APIC(void
- 	}
- 	}
- 	printk(KERN_DEBUG "IRQ to pin mappings:\n");
--	for_each_irq_desc(irq, desc) {
-+	for_each_active_irq(irq) {
- 		struct irq_pin_list *entry;
+-struct irq_desc;
+-
+ extern int early_irq_init(void);
+ extern int arch_probe_nr_irqs(void);
+ extern int arch_early_irq_init(void);
+-extern int arch_init_chip_data(struct irq_desc *desc, int node);
  
--		cfg = get_irq_desc_chip_data(desc);
-+		cfg = get_irq_chip_data(irq);
- 		if (!cfg)
- 			continue;
- 		entry = cfg->irq_2_pin;
-@@ -2596,9 +2595,8 @@ static struct irq_chip ir_ioapic_chip __
- 
- static inline void init_IO_APIC_traps(void)
+ #endif
+Index: linux-2.6-tip/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/irq/irqdesc.c
++++ linux-2.6-tip/kernel/irq/irqdesc.c
+@@ -196,8 +196,6 @@ static int alloc_descs(unsigned int star
+ 		desc = alloc_desc(start + i, node);
+ 		if (!desc)
+ 			goto err;
+-		/* temporary until I fixed x86 madness */
+-		arch_init_chip_data(desc, node);
+ 		raw_spin_lock_irqsave(&sparse_irq_lock, flags);
+ 		irq_insert_desc(start + i, desc);
+ 		raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
+Index: linux-2.6-tip/kernel/softirq.c
+===================================================================
+--- linux-2.6-tip.orig/kernel/softirq.c
++++ linux-2.6-tip/kernel/softirq.c
+@@ -895,8 +895,3 @@ int __init __weak arch_early_irq_init(vo
  {
--	int irq;
--	struct irq_desc *desc;
- 	struct irq_cfg *cfg;
-+	unsigned int irq;
- 
- 	/*
- 	 * NOTE! The local APIC isn't very good at handling
-@@ -2611,8 +2609,8 @@ static inline void init_IO_APIC_traps(vo
- 	 * Also, we've got to be careful not to trash gate
- 	 * 0x80, because int 0x80 is hm, kind of importantish. ;)
- 	 */
--	for_each_irq_desc(irq, desc) {
--		cfg = get_irq_desc_chip_data(desc);
-+	for_each_active_irq(irq) {
-+		cfg = get_irq_chip_data(irq);
- 		if (IO_APIC_IRQ(irq) && cfg && !cfg->vector) {
- 			/*
- 			 * Hmm.. We don't have an entry for this,
-@@ -2623,7 +2621,7 @@ static inline void init_IO_APIC_traps(vo
- 				legacy_pic->make_irq(irq);
- 			else
- 				/* Strange. Oh, well.. */
--				desc->chip = &no_irq_chip;
-+				set_irq_chip(irq, &no_irq_chip);
- 		}
- 	}
+ 	return 0;
  }
+-
+-int __weak arch_init_chip_data(struct irq_desc *desc, int node)
+-{
+-	return 0;
+-}
