@@ -1,131 +1,97 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 44/47] sh: Sanitize sparse irq
-Date: Thu, 30 Sep 2010 23:18:21 -0000
-Message-ID: <20100930221742.819254299@linutronix.de>
+Subject: [patch 35/47] x86: ioapic: Cleanup some more
+Date: Thu, 30 Sep 2010 23:17:34 -0000
+Message-ID: <20100930221741.916507277@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:43570 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:52983 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756951Ab0I3XSj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:18:39 -0400
-Content-Disposition: inline; filename=sh-sanitize-sparse-irq.patch
+	id S1756358Ab0I3XSA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:18:00 -0400
+Content-Disposition: inline; filename=x86-ioapic-clenaup-some-more.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-Switch over to the new allocator functions.
+Cleanup after the irq_chip conversion a bit.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/sh/kernel/cpu/irq/ipr.c |    6 +++---
- drivers/sh/intc.c            |   37 ++++++++++++++++---------------------
- 2 files changed, 19 insertions(+), 24 deletions(-)
+ arch/x86/kernel/apic/io_apic.c |   20 ++++++++------------
+ 1 file changed, 8 insertions(+), 12 deletions(-)
 
-Index: linux-2.6-tip/arch/sh/kernel/cpu/irq/ipr.c
+Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
 ===================================================================
---- linux-2.6-tip.orig/arch/sh/kernel/cpu/irq/ipr.c
-+++ linux-2.6-tip/arch/sh/kernel/cpu/irq/ipr.c
-@@ -62,13 +62,13 @@ void register_ipr_controller(struct ipr_
+--- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
++++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+@@ -131,13 +131,9 @@ struct irq_pin_list {
+ 	struct irq_pin_list *next;
+ };
  
- 	for (i = 0; i < desc->nr_irqs; i++) {
- 		struct ipr_data *p = desc->ipr_data + i;
--		struct irq_desc *irq_desc;
-+		int res;
- 
- 		BUG_ON(p->ipr_idx >= desc->nr_offsets);
- 		BUG_ON(!desc->ipr_offsets[p->ipr_idx]);
- 
--		irq_desc = irq_to_desc_alloc_node(p->irq, numa_node_id());
--		if (unlikely(!irq_desc)) {
-+		res = irq_alloc_desc_at(p->irq, numa_node_id());
-+		if (unlikely(res != p->irq && res != -EEXIST))
- 			printk(KERN_INFO "can not get irq_desc for %d\n",
- 			       p->irq);
- 			continue;
-Index: linux-2.6-tip/drivers/sh/intc.c
-===================================================================
---- linux-2.6-tip.orig/drivers/sh/intc.c
-+++ linux-2.6-tip/drivers/sh/intc.c
-@@ -1071,13 +1071,13 @@ int __init register_intc_controller(stru
- 	for (i = 0; i < hw->nr_vectors; i++) {
- 		struct intc_vect *vect = hw->vectors + i;
- 		unsigned int irq = evt2irq(vect->vect);
--		struct irq_desc *irq_desc;
-+		int res;
- 
- 		if (!vect->enum_id)
- 			continue;
- 
--		irq_desc = irq_to_desc_alloc_node(irq, numa_node_id());
--		if (unlikely(!irq_desc)) {
-+		res = irq_alloc_desc_at(irq, numa_node_id());
-+		if (res != irq && res != -EEXIST) {
- 			pr_err("can't get irq_desc for %d\n", irq);
- 			continue;
- 		}
-@@ -1096,8 +1096,8 @@ int __init register_intc_controller(stru
- 			 * IRQ support, each vector still needs to have
- 			 * its own backing irq_desc.
- 			 */
--			irq_desc = irq_to_desc_alloc_node(irq2, numa_node_id());
--			if (unlikely(!irq_desc)) {
-+			res = irq_alloc_desc_at(irq2, numa_node_id());
-+			if (res != irq2 && res != -EEXIST) {
- 				pr_err("can't get irq_desc for %d\n", irq2);
- 				continue;
- 			}
-@@ -1301,7 +1301,6 @@ unsigned int create_irq_nr(unsigned int 
+-static struct irq_pin_list *get_one_free_irq_2_pin(int node)
++static struct irq_pin_list *alloc_irq_pin_list(int node)
  {
- 	unsigned int irq = 0, new;
- 	unsigned long flags;
--	struct irq_desc *desc;
- 
- 	spin_lock_irqsave(&vector_lock, flags);
- 
-@@ -1319,26 +1318,22 @@ unsigned int create_irq_nr(unsigned int 
- 		__set_bit(new, intc_irq_map);
- 	}
- 
--	desc = irq_to_desc_alloc_node(new, node);
--	if (unlikely(!desc)) {
-+	spin_unlock_irqrestore(&vector_lock, flags);
-+
-+	irq = irq_alloc_desc_at(new, node);
-+	if (unlikely(irq != new)) {
- 		pr_err("can't get irq_desc for %d\n", new);
--		goto out_unlock;
-+		return 0;
- 	}
- 
--	desc = move_irq_desc(desc, node);
--	irq = new;
+-	struct irq_pin_list *pin;
 -
--out_unlock:
--	spin_unlock_irqrestore(&vector_lock, flags);
+-	pin = kzalloc_node(sizeof(*pin), GFP_ATOMIC, node);
 -
--	if (irq > 0) {
--		dynamic_irq_init(irq);
- #ifdef CONFIG_ARM
--		set_irq_flags(irq, IRQF_VALID); /* Enable IRQ on ARM systems */
-+	set_irq_flags(irq, IRQF_VALID); /* Enable IRQ on ARM systems */
- #endif
--	}
-+	return 0;
- 
--	return irq;
-+out_unlock:
-+	spin_unlock_irqrestore(&vector_lock, flags);
-+	return 0;
+-	return pin;
++	return kzalloc_node(sizeof(struct irq_pin_list), GFP_ATOMIC, node);
  }
  
- int create_irq(void)
-@@ -1357,7 +1352,7 @@ void destroy_irq(unsigned int irq)
+ /* irq_cfg is indexed by the sum of all RTEs in all I/O APICs. */
+@@ -232,7 +228,7 @@ init_copy_irq_2_pin(struct irq_cfg *old_
+ 	if (!old_entry)
+ 		return;
+ 
+-	entry = get_one_free_irq_2_pin(node);
++	entry = alloc_irq_pin_list(node);
+ 	if (!entry)
+ 		return;
+ 
+@@ -242,7 +238,7 @@ init_copy_irq_2_pin(struct irq_cfg *old_
+ 	tail		= entry;
+ 	old_entry	= old_entry->next;
+ 	while (old_entry) {
+-		entry = get_one_free_irq_2_pin(node);
++		entry = alloc_irq_pin_list(node);
+ 		if (!entry) {
+ 			entry = head;
+ 			while (entry) {
+@@ -471,7 +467,7 @@ static void ioapic_mask_entry(int apic, 
+  * fast in the common case, and fast for shared ISA-space IRQs.
+  */
+ static int
+-add_pin_to_irq_node_nopanic(struct irq_cfg *cfg, int node, int apic, int pin)
++__add_pin_to_irq_node(struct irq_cfg *cfg, int node, int apic, int pin)
  {
- 	unsigned long flags;
+ 	struct irq_pin_list **last, *entry;
  
--	dynamic_irq_cleanup(irq);
-+	irq_free_desc(irq);
+@@ -483,7 +479,7 @@ add_pin_to_irq_node_nopanic(struct irq_c
+ 		last = &entry->next;
+ 	}
  
- 	spin_lock_irqsave(&vector_lock, flags);
- 	__clear_bit(irq, intc_irq_map);
+-	entry = get_one_free_irq_2_pin(node);
++	entry = alloc_irq_pin_list(node);
+ 	if (!entry) {
+ 		printk(KERN_ERR "can not alloc irq_pin_list (%d,%d,%d)\n",
+ 				node, apic, pin);
+@@ -498,7 +494,7 @@ add_pin_to_irq_node_nopanic(struct irq_c
+ 
+ static void add_pin_to_irq_node(struct irq_cfg *cfg, int node, int apic, int pin)
+ {
+-	if (add_pin_to_irq_node_nopanic(cfg, node, apic, pin))
++	if (__add_pin_to_irq_node(cfg, node, apic, pin))
+ 		panic("IO-APIC: failed to add irq-pin. Can not proceed\n");
+ }
+ 
+@@ -3823,7 +3819,7 @@ static int __io_apic_set_pci_routing(str
+ 	 * IRQs < 16 are already in the irq_2_pin[] map
+ 	 */
+ 	if (irq >= legacy_pic->nr_legacy_irqs) {
+-		if (add_pin_to_irq_node_nopanic(cfg, node, ioapic, pin)) {
++		if (__add_pin_to_irq_node(cfg, node, ioapic, pin)) {
+ 			printk(KERN_INFO "can not add pin %d for irq %d\n",
+ 				pin, irq);
+ 			return 0;
