@@ -1,67 +1,131 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 39/47] genirq: Remove arch_init_chip_data()
-Date: Thu, 30 Sep 2010 23:17:54 -0000
-Message-ID: <20100930221742.320643472@linutronix.de>
+Subject: [patch 44/47] sh: Sanitize sparse irq
+Date: Thu, 30 Sep 2010 23:18:21 -0000
+Message-ID: <20100930221742.819254299@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:53031 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:43570 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756112Ab0I3XSM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:18:12 -0400
-Content-Disposition: inline; filename=genirq-remove-arch_init_chip_data.patch
+	id S1756951Ab0I3XSj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:18:39 -0400
+Content-Disposition: inline; filename=sh-sanitize-sparse-irq.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-This function should have not been there in the first place.
+Switch over to the new allocator functions.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- include/linux/interrupt.h |    3 ---
- kernel/irq/irqdesc.c      |    2 --
- kernel/softirq.c          |    5 -----
- 3 files changed, 10 deletions(-)
+ arch/sh/kernel/cpu/irq/ipr.c |    6 +++---
+ drivers/sh/intc.c            |   37 ++++++++++++++++---------------------
+ 2 files changed, 19 insertions(+), 24 deletions(-)
 
-Index: linux-2.6-tip/include/linux/interrupt.h
+Index: linux-2.6-tip/arch/sh/kernel/cpu/irq/ipr.c
 ===================================================================
---- linux-2.6-tip.orig/include/linux/interrupt.h
-+++ linux-2.6-tip/include/linux/interrupt.h
-@@ -641,11 +641,8 @@ static inline void init_irq_proc(void)
- struct seq_file;
- int show_interrupts(struct seq_file *p, void *v);
+--- linux-2.6-tip.orig/arch/sh/kernel/cpu/irq/ipr.c
++++ linux-2.6-tip/arch/sh/kernel/cpu/irq/ipr.c
+@@ -62,13 +62,13 @@ void register_ipr_controller(struct ipr_
  
--struct irq_desc;
--
- extern int early_irq_init(void);
- extern int arch_probe_nr_irqs(void);
- extern int arch_early_irq_init(void);
--extern int arch_init_chip_data(struct irq_desc *desc, int node);
+ 	for (i = 0; i < desc->nr_irqs; i++) {
+ 		struct ipr_data *p = desc->ipr_data + i;
+-		struct irq_desc *irq_desc;
++		int res;
  
- #endif
-Index: linux-2.6-tip/kernel/irq/irqdesc.c
+ 		BUG_ON(p->ipr_idx >= desc->nr_offsets);
+ 		BUG_ON(!desc->ipr_offsets[p->ipr_idx]);
+ 
+-		irq_desc = irq_to_desc_alloc_node(p->irq, numa_node_id());
+-		if (unlikely(!irq_desc)) {
++		res = irq_alloc_desc_at(p->irq, numa_node_id());
++		if (unlikely(res != p->irq && res != -EEXIST))
+ 			printk(KERN_INFO "can not get irq_desc for %d\n",
+ 			       p->irq);
+ 			continue;
+Index: linux-2.6-tip/drivers/sh/intc.c
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/irqdesc.c
-+++ linux-2.6-tip/kernel/irq/irqdesc.c
-@@ -196,8 +196,6 @@ static int alloc_descs(unsigned int star
- 		desc = alloc_desc(start + i, node);
- 		if (!desc)
- 			goto err;
--		/* temporary until I fixed x86 madness */
--		arch_init_chip_data(desc, node);
- 		raw_spin_lock_irqsave(&sparse_irq_lock, flags);
- 		irq_insert_desc(start + i, desc);
- 		raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
-Index: linux-2.6-tip/kernel/softirq.c
-===================================================================
---- linux-2.6-tip.orig/kernel/softirq.c
-+++ linux-2.6-tip/kernel/softirq.c
-@@ -895,8 +895,3 @@ int __init __weak arch_early_irq_init(vo
+--- linux-2.6-tip.orig/drivers/sh/intc.c
++++ linux-2.6-tip/drivers/sh/intc.c
+@@ -1071,13 +1071,13 @@ int __init register_intc_controller(stru
+ 	for (i = 0; i < hw->nr_vectors; i++) {
+ 		struct intc_vect *vect = hw->vectors + i;
+ 		unsigned int irq = evt2irq(vect->vect);
+-		struct irq_desc *irq_desc;
++		int res;
+ 
+ 		if (!vect->enum_id)
+ 			continue;
+ 
+-		irq_desc = irq_to_desc_alloc_node(irq, numa_node_id());
+-		if (unlikely(!irq_desc)) {
++		res = irq_alloc_desc_at(irq, numa_node_id());
++		if (res != irq && res != -EEXIST) {
+ 			pr_err("can't get irq_desc for %d\n", irq);
+ 			continue;
+ 		}
+@@ -1096,8 +1096,8 @@ int __init register_intc_controller(stru
+ 			 * IRQ support, each vector still needs to have
+ 			 * its own backing irq_desc.
+ 			 */
+-			irq_desc = irq_to_desc_alloc_node(irq2, numa_node_id());
+-			if (unlikely(!irq_desc)) {
++			res = irq_alloc_desc_at(irq2, numa_node_id());
++			if (res != irq2 && res != -EEXIST) {
+ 				pr_err("can't get irq_desc for %d\n", irq2);
+ 				continue;
+ 			}
+@@ -1301,7 +1301,6 @@ unsigned int create_irq_nr(unsigned int 
  {
- 	return 0;
- }
+ 	unsigned int irq = 0, new;
+ 	unsigned long flags;
+-	struct irq_desc *desc;
+ 
+ 	spin_lock_irqsave(&vector_lock, flags);
+ 
+@@ -1319,26 +1318,22 @@ unsigned int create_irq_nr(unsigned int 
+ 		__set_bit(new, intc_irq_map);
+ 	}
+ 
+-	desc = irq_to_desc_alloc_node(new, node);
+-	if (unlikely(!desc)) {
++	spin_unlock_irqrestore(&vector_lock, flags);
++
++	irq = irq_alloc_desc_at(new, node);
++	if (unlikely(irq != new)) {
+ 		pr_err("can't get irq_desc for %d\n", new);
+-		goto out_unlock;
++		return 0;
+ 	}
+ 
+-	desc = move_irq_desc(desc, node);
+-	irq = new;
 -
--int __weak arch_init_chip_data(struct irq_desc *desc, int node)
--{
--	return 0;
--}
+-out_unlock:
+-	spin_unlock_irqrestore(&vector_lock, flags);
+-
+-	if (irq > 0) {
+-		dynamic_irq_init(irq);
+ #ifdef CONFIG_ARM
+-		set_irq_flags(irq, IRQF_VALID); /* Enable IRQ on ARM systems */
++	set_irq_flags(irq, IRQF_VALID); /* Enable IRQ on ARM systems */
+ #endif
+-	}
++	return 0;
+ 
+-	return irq;
++out_unlock:
++	spin_unlock_irqrestore(&vector_lock, flags);
++	return 0;
+ }
+ 
+ int create_irq(void)
+@@ -1357,7 +1352,7 @@ void destroy_irq(unsigned int irq)
+ {
+ 	unsigned long flags;
+ 
+-	dynamic_irq_cleanup(irq);
++	irq_free_desc(irq);
+ 
+ 	spin_lock_irqsave(&vector_lock, flags);
+ 	__clear_bit(irq, intc_irq_map);
