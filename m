@@ -1,215 +1,99 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 18/47] genirq: Use sane sparse allocator
-Date: Thu, 30 Sep 2010 23:16:02 -0000
-Message-ID: <20100930221740.248958263@linutronix.de>
+Subject: [patch 30/47] dmar: Convert to new irq chip functions
+Date: Thu, 30 Sep 2010 23:16:58 -0000
+Message-ID: <20100930221741.426534734@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=genirq-use-sane-allocator.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:52845 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756422Ab0I3XRZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:17:25 -0400
+Content-Disposition: inline; filename=dmar-convert-irq-functions.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
-
-Make irq_to_desc_alloc_node() a wrapper around the new allocator.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- kernel/irq/irqdesc.c |  133 ++++++---------------------------------------------
- 1 file changed, 17 insertions(+), 116 deletions(-)
+ arch/ia64/kernel/msi_ia64.c    |    4 ++--
+ arch/x86/kernel/apic/io_apic.c |    4 ++--
+ drivers/pci/dmar.c             |    8 ++++----
+ include/linux/dmar.h           |    5 +++--
+ 4 files changed, 11 insertions(+), 10 deletions(-)
 
-Index: linux-2.6-tip/kernel/irq/irqdesc.c
+Index: linux-2.6-tip/arch/ia64/kernel/msi_ia64.c
 ===================================================================
---- linux-2.6-tip.orig/kernel/irq/irqdesc.c
-+++ linux-2.6-tip/kernel/irq/irqdesc.c
-@@ -85,15 +85,6 @@ static DECLARE_BITMAP(allocated_irqs, NR
+--- linux-2.6-tip.orig/arch/ia64/kernel/msi_ia64.c
++++ linux-2.6-tip/arch/ia64/kernel/msi_ia64.c
+@@ -160,8 +160,8 @@ static int dmar_msi_set_affinity(unsigne
  
- #ifdef CONFIG_SPARSE_IRQ
+ static struct irq_chip dmar_msi_type = {
+ 	.name = "DMAR_MSI",
+-	.unmask = dmar_msi_unmask,
+-	.mask = dmar_msi_mask,
++	.irq_unmask = dmar_msi_unmask,
++	.irq_mask = dmar_msi_mask,
+ 	.ack = ia64_ack_msi_irq,
+ #ifdef CONFIG_SMP
+ 	.set_affinity = dmar_msi_set_affinity,
+Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+===================================================================
+--- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
++++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
+@@ -3599,8 +3599,8 @@ static int dmar_msi_set_affinity(unsigne
  
--static struct irq_desc irq_desc_init = {
--	.irq	    = -1,
--	.status	    = IRQ_DEFAULT_INIT_FLAGS,
--	.chip	    = &no_irq_chip,
--	.handle_irq = handle_bad_irq,
--	.depth      = 1,
--	.lock       = __RAW_SPIN_LOCK_UNLOCKED(irq_desc_init.lock),
--};
--
- void __ref init_kstat_irqs(struct irq_desc *desc, int node, int nr)
- {
- 	void *ptr;
-@@ -111,32 +102,6 @@ void __ref init_kstat_irqs(struct irq_de
+ static struct irq_chip dmar_msi_type = {
+ 	.name = "DMAR_MSI",
+-	.unmask = dmar_msi_unmask,
+-	.mask = dmar_msi_mask,
++	.irq_unmask = dmar_msi_unmask,
++	.irq_mask = dmar_msi_mask,
+ 	.irq_ack = ack_apic_edge,
+ #ifdef CONFIG_SMP
+ 	.set_affinity = dmar_msi_set_affinity,
+Index: linux-2.6-tip/drivers/pci/dmar.c
+===================================================================
+--- linux-2.6-tip.orig/drivers/pci/dmar.c
++++ linux-2.6-tip/drivers/pci/dmar.c
+@@ -1221,9 +1221,9 @@ const char *dmar_get_fault_reason(u8 fau
  	}
  }
  
--static void init_one_irq_desc(int irq, struct irq_desc *desc, int node)
--{
--	memcpy(desc, &irq_desc_init, sizeof(struct irq_desc));
--
--	raw_spin_lock_init(&desc->lock);
--	desc->irq = irq;
--	desc->irq_data.irq = irq;
--	desc->irq_data.chip = desc->chip;
--#ifdef CONFIG_SMP
--	desc->node = node;
--	desc->irq_data.affinity = &desc->affinity;
--#endif
--	lockdep_set_class(&desc->lock, &irq_desc_lock_class);
--	init_kstat_irqs(desc, node, nr_cpu_ids);
--	if (!desc->kstat_irqs) {
--		printk(KERN_ERR "can not alloc kstat_irqs\n");
--		BUG_ON(1);
--	}
--	if (!alloc_desc_masks(desc, node, false)) {
--		printk(KERN_ERR "can not alloc irq_desc cpumasks\n");
--		BUG_ON(1);
--	}
--	init_desc_masks(desc);
--	arch_init_chip_data(desc, node);
--}
--
- static RADIX_TREE(irq_desc_tree, GFP_ATOMIC);
- 
- static void irq_insert_desc(unsigned int irq, struct irq_desc *desc)
-@@ -178,7 +143,7 @@ static inline void free_masks(struct irq
- static struct irq_desc *alloc_desc(int irq, int node)
+-void dmar_msi_unmask(unsigned int irq)
++void dmar_msi_unmask(struct irq_data *data)
  {
- 	struct irq_desc *desc;
--	gfp_t gfp = GFP_KERNEL;
-+	gfp_t gfp = GFP_ATOMIC;
+-	struct intel_iommu *iommu = get_irq_data(irq);
++	struct intel_iommu *iommu = data->handler_data;
+ 	unsigned long flag;
  
- 	desc = kzalloc_node(sizeof(*desc), gfp, node);
- 	if (!desc)
-@@ -231,6 +196,8 @@ static int alloc_descs(unsigned int star
- 		desc = alloc_desc(start + i, node);
- 		if (!desc)
- 			goto err;
-+		/* temporary until I fixed x86 madness */
-+		arch_init_chip_data(desc, node);
- 		raw_spin_lock_irqsave(&sparse_irq_lock, flags);
- 		irq_insert_desc(start + i, desc);
- 		raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
-@@ -247,25 +214,19 @@ err:
- 	return -ENOMEM;
+ 	/* unmask it */
+@@ -1234,10 +1234,10 @@ void dmar_msi_unmask(unsigned int irq)
+ 	spin_unlock_irqrestore(&iommu->register_lock, flag);
  }
  
--static struct irq_desc irq_desc_legacy[NR_IRQS_LEGACY] __cacheline_aligned_in_smp = {
--	[0 ... NR_IRQS_LEGACY-1] = {
--		.irq	    = -1,
--		.status	    = IRQ_DEFAULT_INIT_FLAGS,
--		.chip	    = &no_irq_chip,
--		.handle_irq = handle_bad_irq,
--		.depth	    = 1,
--		.lock	    = __RAW_SPIN_LOCK_UNLOCKED(irq_desc_init.lock),
--	}
--};
-+struct irq_desc * __ref irq_to_desc_alloc_node(unsigned int irq, int node)
-+{
-+	int res = irq_alloc_descs(irq, irq, 1, node);
- 
--static unsigned int *kstat_irqs_legacy;
-+	if (res == -EEXIST || res == irq)
-+		return irq_to_desc(irq);
-+	return NULL;
-+}
- 
- int __init early_irq_init(void)
+-void dmar_msi_mask(unsigned int irq)
++void dmar_msi_mask(struct irq_data *data)
  {
-+	int i, node = first_online_node;
- 	struct irq_desc *desc;
--	int legacy_count;
--	int node;
--	int i;
+ 	unsigned long flag;
+-	struct intel_iommu *iommu = get_irq_data(irq);
++	struct intel_iommu *iommu = data->handler_data;
  
- 	init_irq_default_affinity();
- 
-@@ -273,71 +234,14 @@ int __init early_irq_init(void)
- 	arch_probe_nr_irqs();
- 	printk(KERN_INFO "NR_IRQS:%d nr_irqs:%d\n", NR_IRQS, nr_irqs);
- 
--	desc = irq_desc_legacy;
--	legacy_count = ARRAY_SIZE(irq_desc_legacy);
--	node = first_online_node;
--
--	/* allocate based on nr_cpu_ids */
--	kstat_irqs_legacy = kzalloc_node(NR_IRQS_LEGACY * nr_cpu_ids *
--					  sizeof(int), GFP_NOWAIT, node);
--
--	for (i = 0; i < legacy_count; i++) {
--		desc[i].irq = i;
--		desc[i].irq_data.irq = i;
--		desc[i].irq_data.chip = desc[i].chip;
--#ifdef CONFIG_SMP
--		desc[i].node = node;
--		desc[i].irq_data.affinity = &desc[i].affinity;
--#endif
--		desc[i].kstat_irqs = kstat_irqs_legacy + i * nr_cpu_ids;
--		lockdep_set_class(&desc[i].lock, &irq_desc_lock_class);
--		alloc_desc_masks(&desc[i], node, true);
--		init_desc_masks(&desc[i]);
--		irq_insert_desc(i, &desc[i]);
-+	for (i = 0; i < NR_IRQS_LEGACY; i++) {
-+		desc = alloc_desc(i, node);
-+		set_bit(i, allocated_irqs);
-+		irq_insert_desc(i, desc);
- 	}
--
- 	return arch_early_irq_init();
- }
- 
--struct irq_desc * __ref irq_to_desc_alloc_node(unsigned int irq, int node)
--{
--	struct irq_desc *desc;
--	unsigned long flags;
--
--	if (irq >= nr_irqs) {
--		WARN(1, "irq (%d) >= nr_irqs (%d) in irq_to_desc_alloc\n",
--			irq, nr_irqs);
--		return NULL;
--	}
--
--	desc = irq_to_desc(irq);
--	if (desc)
--		return desc;
--
--	raw_spin_lock_irqsave(&sparse_irq_lock, flags);
--
--	/* We have to check it to avoid races with another CPU */
--	desc = irq_to_desc(irq);
--	if (desc)
--		goto out_unlock;
--
--	desc = kzalloc_node(sizeof(*desc), GFP_ATOMIC, node);
--
--	printk(KERN_DEBUG "  alloc irq_desc for %d on node %d\n", irq, node);
--	if (!desc) {
--		printk(KERN_ERR "can not alloc irq_desc\n");
--		BUG_ON(1);
--	}
--	init_one_irq_desc(irq, desc, node);
--
--	irq_insert_desc(irq, desc);
--
--out_unlock:
--	raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
--
--	return desc;
--}
--
- #else /* !CONFIG_SPARSE_IRQ */
- 
- struct irq_desc irq_desc[NR_IRQS] __cacheline_aligned_in_smp = {
-@@ -368,12 +272,9 @@ int __init early_irq_init(void)
- 		desc[i].irq = i;
- 		desc[i].irq_data.irq = i;
- 		desc[i].irq_data.chip = desc[i].chip;
--#ifdef CONFIG_SMP
--		desc[i].irq_data.affinity = &desc[i].affinity;
--#endif
--		alloc_desc_masks(&desc[i], 0, true);
--		init_desc_masks(&desc[i]);
- 		desc[i].kstat_irqs = kstat_irqs_all[i];
-+		alloc_masks(desc + 1, GFP_KERNEL, first_online_node);
-+		desc_smp_init(desc + i, first_online_node);
- 		lockdep_set_class(&desc[i].lock, &irq_desc_lock_class);
- 	}
- 	return arch_early_irq_init();
+ 	/* mask it */
+ 	spin_lock_irqsave(&iommu->register_lock, flag);
+Index: linux-2.6-tip/include/linux/dmar.h
+===================================================================
+--- linux-2.6-tip.orig/include/linux/dmar.h
++++ linux-2.6-tip/include/linux/dmar.h
+@@ -187,8 +187,9 @@ static inline int set_msi_sid(struct irt
+ /* Can't use the common MSI interrupt functions
+  * since DMAR is not a pci device
+  */
+-extern void dmar_msi_unmask(unsigned int irq);
+-extern void dmar_msi_mask(unsigned int irq);
++struct irq_data;
++extern void dmar_msi_unmask(struct irq_data *data);
++extern void dmar_msi_mask(struct irq_data *data);
+ extern void dmar_msi_read(int irq, struct msi_msg *msg);
+ extern void dmar_msi_write(int irq, struct msi_msg *msg);
+ extern int dmar_set_interrupt(struct intel_iommu *iommu);
