@@ -1,46 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:34740 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:52315 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752250Ab0I3XZP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:25:15 -0400
-Message-ID: <20100930221738.674120334@linutronix.de>
-Date: Thu, 30 Sep 2010 23:14:40 -0000
+	id S1752072Ab0I3XPS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:15:18 -0400
+Message-ID: <20100930221738.868664682@linutronix.de>
+Date: Thu, 30 Sep 2010 23:14:51 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 02/47] x86: Hpet: Fix bogus error check in hpet_assign_irq()
+Subject: [patch 04/47] arm: Use irq status modifier
 References: <20100930221351.682772535@linutronix.de>
-Content-Disposition: inline;
-	filename=x86-hpet-fix-bogus-error-check-in-hpet_assign_irq.patch
+Content-Disposition: inline; filename=arm-use-status-modifier.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>, Venkatesh Pallipadi <venki@google.com>, stable@kernel.org
-Message-ID: <20100930231440.7_C6ES9QYDRTB53UuSh1LcpK_ZsGp0UsV7u0Ff4lVxc@z>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20100930231451.LYJkZZYSZ4wiksLiFaMFeazBlaZAEprA3JCrjiVLc24@z>
 
-create_irq() returns -1 if the interrupt allocation failed, but the
-code checks for irq == 0.
-
-Use create_irq_nr() instead.
+Replace the open coded unlocked access to irq_desc.status
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Venkatesh Pallipadi <venki@google.com>
-LKML-Reference: <alpine.LFD.2.00.1009282310360.2416@localhost6.localdomain6>
-Cc: stable@kernel.org
 ---
- arch/x86/kernel/hpet.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/arm/kernel/irq.c |   20 +++++++-------------
+ 1 file changed, 7 insertions(+), 13 deletions(-)
 
-Index: linux-2.6-tip/arch/x86/kernel/hpet.c
+Index: linux-2.6-tip/arch/arm/kernel/irq.c
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/hpet.c
-+++ linux-2.6-tip/arch/x86/kernel/hpet.c
-@@ -506,7 +506,7 @@ static int hpet_assign_irq(struct hpet_d
+--- linux-2.6-tip.orig/arch/arm/kernel/irq.c
++++ linux-2.6-tip/arch/arm/kernel/irq.c
+@@ -132,24 +132,18 @@ asmlinkage void __exception asm_do_IRQ(u
+ 
+ void set_irq_flags(unsigned int irq, unsigned int iflags)
  {
- 	unsigned int irq;
+-	struct irq_desc *desc;
+-	unsigned long flags;
++	unsigned long clr = 0;
  
--	irq = create_irq();
-+	irq = create_irq_nr(0, -1);
- 	if (!irq)
- 		return -EINVAL;
+-	if (irq >= nr_irqs) {
+-		printk(KERN_ERR "Trying to set irq flags for IRQ%d\n", irq);
+-		return;
+-	}
++	irq_set_status_flags(irq, IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN);
  
+-	desc = irq_to_desc(irq);
+-	raw_spin_lock_irqsave(&desc->lock, flags);
+-	desc->status |= IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
+ 	if (iflags & IRQF_VALID)
+-		desc->status &= ~IRQ_NOREQUEST;
++		clr |= IRQ_NOREQUEST;
+ 	if (iflags & IRQF_PROBE)
+-		desc->status &= ~IRQ_NOPROBE;
++		clr |= IRQ_NOPROBE;
+ 	if (!(iflags & IRQF_NOAUTOEN))
+-		desc->status &= ~IRQ_NOAUTOEN;
+-	raw_spin_unlock_irqrestore(&desc->lock, flags);
++		clr |= IRQ_NOAUTOEN;
++
++	irq_clear_status_flags(irq, clr);
+ }
+ 
+ void __init init_IRQ(void)
 
 
