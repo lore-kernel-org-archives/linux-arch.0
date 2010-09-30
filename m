@@ -1,181 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:52804 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:52647 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756258Ab0I3XRQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:17:16 -0400
-Message-ID: <20100930221741.229471958@linutronix.de>
-Date: Thu, 30 Sep 2010 23:16:51 -0000
+	id S1755819Ab0I3XQo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:16:44 -0400
+Message-ID: <20100930221740.545532651@linutronix.de>
+Date: Thu, 30 Sep 2010 23:16:16 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 28/47] x86: ioapic/hpet: Convert to new chip functions
+Subject: [patch 21/47] x86: Sanitize apb timer interrupt handling
 References: <20100930221351.682772535@linutronix.de>
-Content-Disposition: inline; filename=x86-hept-convert.patch
+Content-Disposition: inline; filename=x86-sanitize-abptimer.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20100930231651.crkMBUvJGElih_kYSWXuYVqEu2eaUcHKblzEAMPA7Q0@z>
+Message-ID: <20100930231616.nd80oPpRn0B-7DmF6WkY7tKCJnNcrY5RjRAUBImZTQA@z>
+
+Disable the interrupt in CPU_DEAD where it belongs. Remove the
+open coded irq_desc manipulation.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/include/asm/hpet.h    |   10 ++++++----
- arch/x86/kernel/apic/io_apic.c |   30 ++++++++++++++----------------
- arch/x86/kernel/hpet.c         |   16 ++++++----------
- 3 files changed, 26 insertions(+), 30 deletions(-)
+ arch/x86/kernel/apb_timer.c |   54 +++++++++++++++++++-------------------------
+ 1 file changed, 24 insertions(+), 30 deletions(-)
 
-Index: linux-2.6-tip/arch/x86/include/asm/hpet.h
+Index: linux-2.6-tip/arch/x86/kernel/apb_timer.c
 ===================================================================
---- linux-2.6-tip.orig/arch/x86/include/asm/hpet.h
-+++ linux-2.6-tip/arch/x86/include/asm/hpet.h
-@@ -74,10 +74,12 @@ extern void hpet_disable(void);
- extern unsigned int hpet_readl(unsigned int a);
- extern void force_hpet_resume(void);
- 
--extern void hpet_msi_unmask(unsigned int irq);
--extern void hpet_msi_mask(unsigned int irq);
--extern void hpet_msi_write(unsigned int irq, struct msi_msg *msg);
--extern void hpet_msi_read(unsigned int irq, struct msi_msg *msg);
-+struct irq_data;
-+extern void hpet_msi_unmask(struct irq_data *data);
-+extern void hpet_msi_mask(struct irq_data *data);
-+struct hpet_dev;
-+extern void hpet_msi_write(struct hpet_dev *hdev, struct msi_msg *msg);
-+extern void hpet_msi_read(struct hpet_dev *hdev, struct msi_msg *msg);
- 
- #ifdef CONFIG_PCI_MSI
- extern int arch_setup_hpet_msi(unsigned int irq, unsigned int id);
-Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
-+++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-@@ -3626,26 +3626,25 @@ int arch_setup_dmar_msi(unsigned int irq
- #ifdef CONFIG_HPET_TIMER
- 
- #ifdef CONFIG_SMP
--static int hpet_msi_set_affinity(unsigned int irq, const struct cpumask *mask)
-+static int hpet_msi_set_affinity(struct irq_data *data,
-+				 const struct cpumask *mask, bool force)
- {
--	struct irq_desc *desc = irq_to_desc(irq);
--	struct irq_cfg *cfg;
-+	struct irq_desc *desc = irq_to_desc(data->irq);
-+	struct irq_cfg *cfg = data->chip_data;
- 	struct msi_msg msg;
- 	unsigned int dest;
- 
- 	if (set_desc_affinity(desc, mask, &dest))
- 		return -1;
- 
--	cfg = get_irq_desc_chip_data(desc);
--
--	hpet_msi_read(irq, &msg);
-+	hpet_msi_read(data->handler_data, &msg);
- 
- 	msg.data &= ~MSI_DATA_VECTOR_MASK;
- 	msg.data |= MSI_DATA_VECTOR(cfg->vector);
- 	msg.address_lo &= ~MSI_ADDR_DEST_ID_MASK;
- 	msg.address_lo |= MSI_ADDR_DEST_ID(dest);
- 
--	hpet_msi_write(irq, &msg);
-+	hpet_msi_write(data->handler_data, &msg);
- 
- 	return 0;
+--- linux-2.6-tip.orig/arch/x86/kernel/apb_timer.c
++++ linux-2.6-tip/arch/x86/kernel/apb_timer.c
+@@ -231,34 +231,6 @@ static void apbt_restart_clocksource(str
+ 	apbt_start_counter(phy_cs_timer_id);
  }
-@@ -3654,8 +3653,8 @@ static int hpet_msi_set_affinity(unsigne
  
- static struct irq_chip ir_hpet_msi_type = {
- 	.name = "IR-HPET_MSI",
--	.unmask = hpet_msi_unmask,
--	.mask = hpet_msi_mask,
-+	.irq_unmask = hpet_msi_unmask,
-+	.irq_mask = hpet_msi_mask,
- #ifdef CONFIG_INTR_REMAP
- 	.irq_ack = ir_ack_apic_edge,
- #ifdef CONFIG_SMP
-@@ -3667,20 +3666,19 @@ static struct irq_chip ir_hpet_msi_type 
- 
- static struct irq_chip hpet_msi_type = {
- 	.name = "HPET_MSI",
--	.unmask = hpet_msi_unmask,
--	.mask = hpet_msi_mask,
-+	.irq_unmask = hpet_msi_unmask,
-+	.irq_mask = hpet_msi_mask,
- 	.irq_ack = ack_apic_edge,
- #ifdef CONFIG_SMP
--	.set_affinity = hpet_msi_set_affinity,
-+	.irq_set_affinity = hpet_msi_set_affinity,
- #endif
- 	.irq_retrigger = ioapic_retrigger_irq,
- };
- 
- int arch_setup_hpet_msi(unsigned int irq, unsigned int id)
- {
--	int ret;
- 	struct msi_msg msg;
--	struct irq_desc *desc = irq_to_desc(irq);
-+	int ret;
- 
- 	if (intr_remapping_enabled) {
- 		struct intel_iommu *iommu = map_hpet_to_ir(id);
-@@ -3698,8 +3696,8 @@ int arch_setup_hpet_msi(unsigned int irq
- 	if (ret < 0)
- 		return ret;
- 
--	hpet_msi_write(irq, &msg);
+-/* Setup IRQ routing via IOAPIC */
+-#ifdef CONFIG_SMP
+-static void apbt_setup_irq(struct apbt_dev *adev)
+-{
+-	struct irq_chip *chip;
+-	struct irq_desc *desc;
+-
+-	/* timer0 irq has been setup early */
+-	if (adev->irq == 0)
+-		return;
+-	desc = irq_to_desc(adev->irq);
+-	chip = get_irq_chip(adev->irq);
+-	disable_irq(adev->irq);
 -	desc->status |= IRQ_MOVE_PCNTXT;
-+	hpet_msi_write(get_irq_data(irq), &msg);
-+	irq_set_status_flags(irq,IRQ_MOVE_PCNTXT);
- 	if (irq_remapped(irq))
- 		set_irq_chip_and_handler_name(irq, &ir_hpet_msi_type,
- 					      handle_edge_irq, "edge");
-Index: linux-2.6-tip/arch/x86/kernel/hpet.c
-===================================================================
---- linux-2.6-tip.orig/arch/x86/kernel/hpet.c
-+++ linux-2.6-tip/arch/x86/kernel/hpet.c
-@@ -440,9 +440,9 @@ static int hpet_legacy_next_event(unsign
- static DEFINE_PER_CPU(struct hpet_dev *, cpu_hpet_dev);
- static struct hpet_dev	*hpet_devs;
- 
--void hpet_msi_unmask(unsigned int irq)
-+void hpet_msi_unmask(struct irq_data *data)
- {
--	struct hpet_dev *hdev = get_irq_data(irq);
-+	struct hpet_dev *hdev = data->handler_data;
- 	unsigned int cfg;
- 
- 	/* unmask it */
-@@ -451,10 +451,10 @@ void hpet_msi_unmask(unsigned int irq)
- 	hpet_writel(cfg, HPET_Tn_CFG(hdev->num));
- }
- 
--void hpet_msi_mask(unsigned int irq)
-+void hpet_msi_mask(struct irq_data *data)
- {
-+	struct hpet_dev *hdev = data->handler_data;
- 	unsigned int cfg;
--	struct hpet_dev *hdev = get_irq_data(irq);
- 
- 	/* mask it */
- 	cfg = hpet_readl(HPET_Tn_CFG(hdev->num));
-@@ -462,18 +462,14 @@ void hpet_msi_mask(unsigned int irq)
- 	hpet_writel(cfg, HPET_Tn_CFG(hdev->num));
- }
- 
--void hpet_msi_write(unsigned int irq, struct msi_msg *msg)
-+void hpet_msi_write(struct hpet_dev *hdev, struct msi_msg *msg)
- {
--	struct hpet_dev *hdev = get_irq_data(irq);
+-	irq_set_affinity(adev->irq, cpumask_of(adev->cpu));
+-	/* APB timer irqs are set up as mp_irqs, timer is edge triggerred */
+-	set_irq_chip_and_handler_name(adev->irq, chip, handle_edge_irq, "edge");
+-	enable_irq(adev->irq);
+-	if (system_state == SYSTEM_BOOTING)
+-		if (request_irq(adev->irq, apbt_interrupt_handler,
+-				IRQF_TIMER | IRQF_DISABLED | IRQF_NOBALANCING,
+-				adev->name, adev)) {
+-			printk(KERN_ERR "Failed request IRQ for APBT%d\n",
+-			       adev->num);
+-		}
+-}
+-#endif
 -
- 	hpet_writel(msg->data, HPET_Tn_ROUTE(hdev->num));
- 	hpet_writel(msg->address_lo, HPET_Tn_ROUTE(hdev->num) + 4);
+ static void apbt_enable_int(int n)
+ {
+ 	unsigned long ctrl = apbt_readl(n, APBTMR_N_CONTROL);
+@@ -334,6 +306,27 @@ static int __init apbt_clockevent_regist
  }
  
--void hpet_msi_read(unsigned int irq, struct msi_msg *msg)
-+void hpet_msi_read(struct hpet_dev *hdev, struct msi_msg *msg)
+ #ifdef CONFIG_SMP
++
++static void apbt_setup_irq(struct apbt_dev *adev)
++{
++	/* timer0 irq has been setup early */
++	if (adev->irq == 0)
++		return;
++
++	if (system_state == SYSTEM_BOOTING) {
++		irq_modify_status(adev->irq, 0, IRQ_MOVE_PCNTXT);
++		/* APB timer irqs are set up as mp_irqs, timer is edge type */
++		__set_irq_handler(adev->irq, handle_edge_irq, 0, "edge");
++		if (request_irq(adev->irq, apbt_interrupt_handler,
++				IRQF_TIMER | IRQF_DISABLED | IRQF_NOBALANCING,
++				adev->name, adev)) {
++			printk(KERN_ERR "Failed request IRQ for APBT%d\n",
++			       adev->num);
++		}
++	} else
++		enable_irq(adev->irq);
++}
++
+ /* Should be called with per cpu */
+ void apbt_setup_secondary_clock(void)
  {
--	struct hpet_dev *hdev = get_irq_data(irq);
--
- 	msg->data = hpet_readl(HPET_Tn_ROUTE(hdev->num));
- 	msg->address_lo = hpet_readl(HPET_Tn_ROUTE(hdev->num) + 4);
- 	msg->address_hi = 0;
+@@ -389,10 +382,11 @@ static int apbt_cpuhp_notify(struct noti
+ 
+ 	switch (action & 0xf) {
+ 	case CPU_DEAD:
++		disable_irq(adev->irq);
+ 		apbt_disable_int(cpu);
+-		if (system_state == SYSTEM_RUNNING)
++		if (system_state == SYSTEM_RUNNING) {
+ 			pr_debug("skipping APBT CPU %lu offline\n", cpu);
+-		else if (adev) {
++		}else if (adev) {
+ 			pr_debug("APBT clockevent for cpu %lu offline\n", cpu);
+ 			free_irq(adev->irq, adev);
+ 		}
 
 
