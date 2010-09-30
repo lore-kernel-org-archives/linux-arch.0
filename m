@@ -1,281 +1,288 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 27/47] x86: ioapic: Convert mask to new irq_chip function
-Date: Thu, 30 Sep 2010 23:16:48 -0000
-Message-ID: <20100930221741.130620472@linutronix.de>
+Subject: [patch 25/47] x86: Cleanup io_apic
+Date: Thu, 30 Sep 2010 23:16:35 -0000
+Message-ID: <20100930221740.937343375@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:52787 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:52785 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756219Ab0I3XRM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:17:12 -0400
-Content-Disposition: inline; filename=x86-ioapic-convert-mask.patch
+	id S1756211Ab0I3XRL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 19:17:11 -0400
+Content-Disposition: inline; filename=x86-cleanup-ioapic.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
+Sanitize functions. Remove irq_desc pointer magic.
+Preparatory patch for further cleanups.
+
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 ---
- arch/x86/kernel/apic/io_apic.c |   95 ++++++++++++++++++-----------------------
- 1 file changed, 43 insertions(+), 52 deletions(-)
+ arch/x86/kernel/apic/io_apic.c |  109 +++++++++++++++--------------------------
+ 1 file changed, 42 insertions(+), 67 deletions(-)
 
 Index: linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
 ===================================================================
 --- linux-2.6-tip.orig/arch/x86/kernel/apic/io_apic.c
 +++ linux-2.6-tip/arch/x86/kernel/apic/io_apic.c
-@@ -592,11 +592,9 @@ static void mask_ioapic(struct irq_cfg *
+@@ -572,11 +572,6 @@ static void __unmask_and_level_IO_APIC_i
+ 			     IO_APIC_REDIR_LEVEL_TRIGGER, NULL);
+ }
+ 
+-static void __unmask_IO_APIC_irq(struct irq_cfg *cfg)
+-{
+-	io_apic_modify_irq(cfg, ~IO_APIC_REDIR_MASKED, 0, NULL);
+-}
+-
+ static void io_apic_sync(struct irq_pin_list *entry)
+ {
+ 	/*
+@@ -588,44 +583,41 @@ static void io_apic_sync(struct irq_pin_
+ 	readl(&io_apic->data);
+ }
+ 
+-static void __mask_IO_APIC_irq(struct irq_cfg *cfg)
++static void mask_ioapic(struct irq_cfg *cfg)
+ {
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&ioapic_lock, flags);
+ 	io_apic_modify_irq(cfg, ~0, IO_APIC_REDIR_MASKED, &io_apic_sync);
++	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
+ }
+ 
+-static void mask_IO_APIC_irq_desc(struct irq_desc *desc)
++static void mask_ioapic_irq(unsigned int irq)
+ {
+-	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
+-	unsigned long flags;
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
+ 
+-	BUG_ON(!cfg);
++	mask_ioapic(cfg);
++}
+ 
+-	raw_spin_lock_irqsave(&ioapic_lock, flags);
+-	__mask_IO_APIC_irq(cfg);
+-	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
++static void __unmask_ioapic(struct irq_cfg *cfg)
++{
++	io_apic_modify_irq(cfg, ~IO_APIC_REDIR_MASKED, 0, NULL);
+ }
+ 
+-static void unmask_IO_APIC_irq_desc(struct irq_desc *desc)
++static void unmask_ioapic(struct irq_cfg *cfg)
+ {
+-	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
+ 	unsigned long flags;
+ 
+ 	raw_spin_lock_irqsave(&ioapic_lock, flags);
+-	__unmask_IO_APIC_irq(cfg);
++	__unmask_ioapic(cfg);
  	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
  }
  
--static void mask_ioapic_irq(unsigned int irq)
-+static void mask_ioapic_irq(struct irq_data *data)
+-static void mask_IO_APIC_irq(unsigned int irq)
++static void unmask_ioapic_irq(unsigned int irq)
  {
--	struct irq_cfg *cfg = get_irq_chip_data(irq);
--
--	mask_ioapic(cfg);
-+	mask_ioapic(data->chip_data);
- }
+-	struct irq_desc *desc = irq_to_desc(irq);
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
  
- static void __unmask_ioapic(struct irq_cfg *cfg)
-@@ -613,11 +611,9 @@ static void unmask_ioapic(struct irq_cfg
- 	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
- }
- 
--static void unmask_ioapic_irq(unsigned int irq)
-+static void unmask_ioapic_irq(struct irq_data *data)
- {
--	struct irq_cfg *cfg = get_irq_chip_data(irq);
+-	mask_IO_APIC_irq_desc(desc);
+-}
+-static void unmask_IO_APIC_irq(unsigned int irq)
+-{
+-	struct irq_desc *desc = irq_to_desc(irq);
 -
--	unmask_ioapic(cfg);
-+	unmask_ioapic(data->chip_data);
+-	unmask_IO_APIC_irq_desc(desc);
++	unmask_ioapic(cfg);
  }
  
  static void clear_IO_APIC_pin(unsigned int apic, unsigned int pin)
-@@ -2249,10 +2245,9 @@ static unsigned int startup_ioapic_irq(s
+@@ -2253,7 +2245,7 @@ static unsigned int startup_ioapic_irq(u
+ 			was_pending = 1;
+ 	}
+ 	cfg = irq_cfg(irq);
+-	__unmask_IO_APIC_irq(cfg);
++	__unmask_ioapic(cfg);
+ 	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
+ 
  	return was_pending;
+@@ -2512,10 +2504,8 @@ unlock:
+ 	irq_exit();
  }
  
--static int ioapic_retrigger_irq(unsigned int irq)
-+static int ioapic_retrigger_irq(struct irq_data *data)
+-static void __irq_complete_move(struct irq_desc **descp, unsigned vector)
++static void __irq_complete_move(struct irq_cfg *cfg, unsigned vector)
  {
--
--	struct irq_cfg *cfg = irq_cfg(irq);
-+	struct irq_cfg *cfg = data->chip_data;
- 	unsigned long flags;
+-	struct irq_desc *desc = *descp;
+-	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
+ 	unsigned me;
  
- 	raw_spin_lock_irqsave(&vector_lock, flags);
-@@ -2533,12 +2528,10 @@ void irq_force_complete_move(int irq)
- static inline void irq_complete_move(struct irq_cfg *cfg) { }
+ 	if (likely(!cfg->move_in_progress))
+@@ -2527,30 +2517,29 @@ static void __irq_complete_move(struct i
+ 		send_cleanup_vector(cfg);
+ }
+ 
+-static void irq_complete_move(struct irq_desc **descp)
++static void irq_complete_move(struct irq_cfg *cfg)
+ {
+-	__irq_complete_move(descp, ~get_irq_regs()->orig_ax);
++	__irq_complete_move(cfg, ~get_irq_regs()->orig_ax);
+ }
+ 
+ void irq_force_complete_move(int irq)
+ {
+-	struct irq_desc *desc = irq_to_desc(irq);
+-	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
+ 
+ 	if (!cfg)
+ 		return;
+ 
+-	__irq_complete_move(&desc, cfg->vector);
++	__irq_complete_move(cfg, cfg->vector);
+ }
+ #else
+-static inline void irq_complete_move(struct irq_desc **descp) {}
++static inline void irq_complete_move(struct irq_cfg *cfg) { }
  #endif
  
--static void ack_apic_edge(unsigned int irq)
-+static void ack_apic_edge(struct irq_data *data)
+ static void ack_apic_edge(unsigned int irq)
  {
--	struct irq_cfg *cfg = get_irq_chip_data(irq);
--
--	irq_complete_move(cfg);
--	move_native_irq(irq);
-+	irq_complete_move(data->chip_data);
-+	move_native_irq(data->irq);
+-	struct irq_desc *desc = irq_to_desc(irq);
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
+ 
+-	irq_complete_move(&desc);
++	irq_complete_move(cfg);
+ 	move_native_irq(irq);
  	ack_APIC_irq();
  }
+@@ -2573,10 +2562,12 @@ atomic_t irq_mis_count;
+  * Otherwise, we simulate the EOI message manually by changing the trigger
+  * mode to edge and then back to level, with RTE being masked during this.
+ */
+-static void __eoi_ioapic_irq(unsigned int irq, struct irq_cfg *cfg)
++static void eoi_ioapic_irq(unsigned int irq, struct irq_cfg *cfg)
+ {
+ 	struct irq_pin_list *entry;
++	unsigned long flags;
  
-@@ -2586,11 +2579,11 @@ static void eoi_ioapic_irq(unsigned int 
++	raw_spin_lock_irqsave(&ioapic_lock, flags);
+ 	for_each_irq_pin(entry, cfg->irq_2_pin) {
+ 		if (mp_ioapics[entry->apic].apicver >= 0x20) {
+ 			/*
+@@ -2594,36 +2585,22 @@ static void __eoi_ioapic_irq(unsigned in
+ 			__unmask_and_level_IO_APIC_irq(entry);
+ 		}
+ 	}
+-}
+-
+-static void eoi_ioapic_irq(struct irq_desc *desc)
+-{
+-	struct irq_cfg *cfg;
+-	unsigned long flags;
+-	unsigned int irq;
+-
+-	irq = desc->irq;
+-	cfg = get_irq_desc_chip_data(desc);
+-
+-	raw_spin_lock_irqsave(&ioapic_lock, flags);
+-	__eoi_ioapic_irq(irq, cfg);
  	raw_spin_unlock_irqrestore(&ioapic_lock, flags);
  }
  
--static void ack_apic_level(unsigned int irq)
-+static void ack_apic_level(struct irq_data *data)
+ static void ack_apic_level(unsigned int irq)
  {
-+	struct irq_cfg *cfg = data->chip_data;
-+	int i, do_unmask_irq = 0, irq = data->irq;
  	struct irq_desc *desc = irq_to_desc(irq);
--	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
--	int i, do_unmask_irq = 0;
++	struct irq_cfg *cfg = get_irq_desc_chip_data(desc);
++	int i, do_unmask_irq = 0;
  	unsigned long v;
+-	int i;
+-	struct irq_cfg *cfg;
+-	int do_unmask_irq = 0;
  
- 	irq_complete_move(cfg);
-@@ -2691,46 +2684,44 @@ static void ack_apic_level(unsigned int 
+-	irq_complete_move(&desc);
++	irq_complete_move(cfg);
+ #ifdef CONFIG_GENERIC_PENDING_IRQ
+ 	/* If we are moving the irq we need to mask it */
+ 	if (unlikely(desc->status & IRQ_MOVE_PENDING)) {
+ 		do_unmask_irq = 1;
+-		mask_IO_APIC_irq_desc(desc);
++		mask_ioapic(cfg);
+ 	}
+ #endif
+ 
+@@ -2659,7 +2636,6 @@ static void ack_apic_level(unsigned int 
+ 	 * we use the above logic (mask+edge followed by unmask+level) from
+ 	 * Manfred Spraul to clear the remote IRR.
+ 	 */
+-	cfg = get_irq_desc_chip_data(desc);
+ 	i = cfg->vector;
+ 	v = apic_read(APIC_TMR + ((i & ~0x1f) >> 1));
+ 
+@@ -2679,7 +2655,7 @@ static void ack_apic_level(unsigned int 
+ 	if (!(v & (1 << (i & 0x1f)))) {
+ 		atomic_inc(&irq_mis_count);
+ 
+-		eoi_ioapic_irq(desc);
++		eoi_ioapic_irq(irq, cfg);
+ 	}
+ 
+ 	/* Now we can move and renable the irq */
+@@ -2710,10 +2686,9 @@ static void ack_apic_level(unsigned int 
+ 		 * accurate and is causing problems then it is a hardware bug
+ 		 * and you can go talk to the chipset vendor about it.
+ 		 */
+-		cfg = get_irq_desc_chip_data(desc);
+ 		if (!io_apic_level_ack_pending(cfg))
+ 			move_masked_irq(irq);
+-		unmask_IO_APIC_irq_desc(desc);
++		unmask_ioapic(cfg);
+ 	}
  }
  
- #ifdef CONFIG_INTR_REMAP
--static void ir_ack_apic_edge(unsigned int irq)
-+static void ir_ack_apic_edge(struct irq_data *data)
- {
- 	ack_APIC_irq();
- }
+@@ -2725,18 +2700,18 @@ static void ir_ack_apic_edge(unsigned in
  
--static void ir_ack_apic_level(unsigned int irq)
-+static void ir_ack_apic_level(struct irq_data *data)
+ static void ir_ack_apic_level(unsigned int irq)
  {
--	struct irq_cfg *cfg = get_irq_chip_data(irq);
--
+-	struct irq_desc *desc = irq_to_desc(irq);
++	struct irq_cfg *cfg = get_irq_chip_data(irq);
+ 
  	ack_APIC_irq();
--	eoi_ioapic_irq(irq, cfg);
-+	eoi_ioapic_irq(data->irq, data->chip_data);
+-	eoi_ioapic_irq(desc);
++	eoi_ioapic_irq(irq, cfg);
  }
  #endif /* CONFIG_INTR_REMAP */
  
  static struct irq_chip ioapic_chip __read_mostly = {
  	.name		= "IO-APIC",
- 	.irq_startup	= startup_ioapic_irq,
--	.mask		= mask_ioapic_irq,
--	.unmask		= unmask_ioapic_irq,
--	.ack		= ack_apic_edge,
--	.eoi		= ack_apic_level,
-+	.irq_mask	= mask_ioapic_irq,
-+	.irq_unmask	= unmask_ioapic_irq,
-+	.irq_ack	= ack_apic_edge,
-+	.irq_eoi	= ack_apic_level,
+ 	.startup	= startup_ioapic_irq,
+-	.mask		= mask_IO_APIC_irq,
+-	.unmask		= unmask_IO_APIC_irq,
++	.mask		= mask_ioapic_irq,
++	.unmask		= unmask_ioapic_irq,
+ 	.ack		= ack_apic_edge,
+ 	.eoi		= ack_apic_level,
  #ifdef CONFIG_SMP
- 	.set_affinity	= set_ioapic_affinity_irq,
- #endif
--	.retrigger	= ioapic_retrigger_irq,
-+	.irq_retrigger	= ioapic_retrigger_irq,
- };
- 
+@@ -2748,8 +2723,8 @@ static struct irq_chip ioapic_chip __rea
  static struct irq_chip ir_ioapic_chip __read_mostly = {
  	.name		= "IR-IO-APIC",
- 	.irq_startup	= startup_ioapic_irq,
--	.mask		= mask_ioapic_irq,
--	.unmask		= unmask_ioapic_irq,
-+	.irq_mask	= mask_ioapic_irq,
-+	.irq_unmask	= unmask_ioapic_irq,
+ 	.startup	= startup_ioapic_irq,
+-	.mask		= mask_IO_APIC_irq,
+-	.unmask		= unmask_IO_APIC_irq,
++	.mask		= mask_ioapic_irq,
++	.unmask		= unmask_ioapic_irq,
  #ifdef CONFIG_INTR_REMAP
--	.ack		= ir_ack_apic_edge,
--	.eoi		= ir_ack_apic_level,
-+	.irq_ack	= ir_ack_apic_edge,
-+	.irq_eoi	= ir_ack_apic_level,
- #ifdef CONFIG_SMP
- 	.set_affinity	= set_ir_ioapic_affinity_irq,
- #endif
- #endif
--	.retrigger	= ioapic_retrigger_irq,
-+	.irq_retrigger	= ioapic_retrigger_irq,
- };
- 
- static inline void init_IO_APIC_traps(void)
-@@ -2771,7 +2762,7 @@ static inline void init_IO_APIC_traps(vo
-  * The local APIC irq-chip implementation:
-  */
- 
--static void mask_lapic_irq(unsigned int irq)
-+static void mask_lapic_irq(struct irq_data *data)
- {
- 	unsigned long v;
- 
-@@ -2779,7 +2770,7 @@ static void mask_lapic_irq(unsigned int 
- 	apic_write(APIC_LVT0, v | APIC_LVT_MASKED);
- }
- 
--static void unmask_lapic_irq(unsigned int irq)
-+static void unmask_lapic_irq(struct irq_data *data)
- {
- 	unsigned long v;
- 
-@@ -2787,16 +2778,16 @@ static void unmask_lapic_irq(unsigned in
- 	apic_write(APIC_LVT0, v & ~APIC_LVT_MASKED);
- }
- 
--static void ack_lapic_irq(unsigned int irq)
-+static void ack_lapic_irq(struct irq_data *data)
- {
- 	ack_APIC_irq();
- }
- 
- static struct irq_chip lapic_chip __read_mostly = {
- 	.name		= "local-APIC",
--	.mask		= mask_lapic_irq,
--	.unmask		= unmask_lapic_irq,
--	.ack		= ack_lapic_irq,
-+	.irq_mask	= mask_lapic_irq,
-+	.irq_unmask	= unmask_lapic_irq,
-+	.irq_ack	= ack_lapic_irq,
- };
- 
- static void lapic_register_intr(int irq, struct irq_desc *desc)
-@@ -3438,11 +3429,11 @@ static struct irq_chip msi_chip = {
- 	.name		= "PCI-MSI",
- 	.unmask		= unmask_msi_irq,
- 	.mask		= mask_msi_irq,
--	.ack		= ack_apic_edge,
-+	.irq_ack	= ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity	= set_msi_irq_affinity,
- #endif
--	.retrigger	= ioapic_retrigger_irq,
-+	.irq_retrigger	= ioapic_retrigger_irq,
- };
- 
- static struct irq_chip msi_ir_chip = {
-@@ -3450,12 +3441,12 @@ static struct irq_chip msi_ir_chip = {
- 	.unmask		= unmask_msi_irq,
- 	.mask		= mask_msi_irq,
- #ifdef CONFIG_INTR_REMAP
--	.ack		= ir_ack_apic_edge,
-+	.irq_ack	= ir_ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity	= ir_set_msi_irq_affinity,
- #endif
- #endif
--	.retrigger	= ioapic_retrigger_irq,
-+	.irq_retrigger	= ioapic_retrigger_irq,
- };
- 
- /*
-@@ -3610,11 +3601,11 @@ static struct irq_chip dmar_msi_type = {
- 	.name = "DMAR_MSI",
- 	.unmask = dmar_msi_unmask,
- 	.mask = dmar_msi_mask,
--	.ack = ack_apic_edge,
-+	.irq_ack = ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity = dmar_msi_set_affinity,
- #endif
--	.retrigger = ioapic_retrigger_irq,
-+	.irq_retrigger = ioapic_retrigger_irq,
- };
- 
- int arch_setup_dmar_msi(unsigned int irq)
-@@ -3666,23 +3657,23 @@ static struct irq_chip ir_hpet_msi_type 
- 	.unmask = hpet_msi_unmask,
- 	.mask = hpet_msi_mask,
- #ifdef CONFIG_INTR_REMAP
--	.ack = ir_ack_apic_edge,
-+	.irq_ack = ir_ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity = ir_set_msi_irq_affinity,
- #endif
- #endif
--	.retrigger = ioapic_retrigger_irq,
-+	.irq_retrigger = ioapic_retrigger_irq,
- };
- 
- static struct irq_chip hpet_msi_type = {
- 	.name = "HPET_MSI",
- 	.unmask = hpet_msi_unmask,
- 	.mask = hpet_msi_mask,
--	.ack = ack_apic_edge,
-+	.irq_ack = ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity = hpet_msi_set_affinity,
- #endif
--	.retrigger = ioapic_retrigger_irq,
-+	.irq_retrigger = ioapic_retrigger_irq,
- };
- 
- int arch_setup_hpet_msi(unsigned int irq, unsigned int id)
-@@ -3764,11 +3755,11 @@ static struct irq_chip ht_irq_chip = {
- 	.name		= "PCI-HT",
- 	.mask		= mask_ht_irq,
- 	.unmask		= unmask_ht_irq,
--	.ack		= ack_apic_edge,
-+	.irq_ack	= ack_apic_edge,
- #ifdef CONFIG_SMP
- 	.set_affinity	= set_ht_irq_affinity,
- #endif
--	.retrigger	= ioapic_retrigger_irq,
-+	.irq_retrigger	= ioapic_retrigger_irq,
- };
- 
- int arch_setup_ht_irq(unsigned int irq, struct pci_dev *dev)
+ 	.ack		= ir_ack_apic_edge,
+ 	.eoi		= ir_ack_apic_level,
+@@ -3010,7 +2985,7 @@ static inline void __init check_timer(vo
+ 			int idx;
+ 			idx = find_irq_entry(apic1, pin1, mp_INT);
+ 			if (idx != -1 && irq_trigger(idx))
+-				unmask_IO_APIC_irq_desc(desc);
++				unmask_ioapic(cfg);
+ 		}
+ 		if (timer_irq_works()) {
+ 			if (nmi_watchdog == NMI_IO_APIC) {
