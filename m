@@ -1,62 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:52315 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752072Ab0I3XPS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Sep 2010 19:15:18 -0400
-Message-ID: <20100930221738.868664682@linutronix.de>
-Date: Thu, 30 Sep 2010 23:14:51 -0000
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 04/47] arm: Use irq status modifier
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:52797 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751769Ab0JADdX convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Sep 2010 23:33:23 -0400
+MIME-Version: 1.0
+In-Reply-To: <20100930221351.682772535@linutronix.de>
 References: <20100930221351.682772535@linutronix.de>
-Content-Disposition: inline; filename=arm-use-status-modifier.patch
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 30 Sep 2010 20:32:26 -0700
+Message-ID: <AANLkTin1titZ1vjGLhBn8CY0CjZDj332zM8DW1JHv7Cx@mail.gmail.com>
+Subject: Re: [patch 00/47] Sparse irq rework
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20100930231451.LYJkZZYSZ4wiksLiFaMFeazBlaZAEprA3JCrjiVLc24@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20101001033226.WXOVw1Mw3FuJBbpfsvC41gMdzcHLL8ifr1ZdRicY_aE@z>
 
-Replace the open coded unlocked access to irq_desc.status
+On Thu, Sep 30, 2010 at 4:14 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+>
+> The overall changes are (full changelog below):
+>    56 files changed, 1229 insertions(+), 1682 deletions(-)
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
----
- arch/arm/kernel/irq.c |   20 +++++++-------------
- 1 file changed, 7 insertions(+), 13 deletions(-)
+I can't really argue with those numbers. And the patches I looked at
+(which was not all of them, but maybe half) looked reasonable.
 
-Index: linux-2.6-tip/arch/arm/kernel/irq.c
-===================================================================
---- linux-2.6-tip.orig/arch/arm/kernel/irq.c
-+++ linux-2.6-tip/arch/arm/kernel/irq.c
-@@ -132,24 +132,18 @@ asmlinkage void __exception asm_do_IRQ(u
- 
- void set_irq_flags(unsigned int irq, unsigned int iflags)
- {
--	struct irq_desc *desc;
--	unsigned long flags;
-+	unsigned long clr = 0;
- 
--	if (irq >= nr_irqs) {
--		printk(KERN_ERR "Trying to set irq flags for IRQ%d\n", irq);
--		return;
--	}
-+	irq_set_status_flags(irq, IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN);
- 
--	desc = irq_to_desc(irq);
--	raw_spin_lock_irqsave(&desc->lock, flags);
--	desc->status |= IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
- 	if (iflags & IRQF_VALID)
--		desc->status &= ~IRQ_NOREQUEST;
-+		clr |= IRQ_NOREQUEST;
- 	if (iflags & IRQF_PROBE)
--		desc->status &= ~IRQ_NOPROBE;
-+		clr |= IRQ_NOPROBE;
- 	if (!(iflags & IRQF_NOAUTOEN))
--		desc->status &= ~IRQ_NOAUTOEN;
--	raw_spin_unlock_irqrestore(&desc->lock, flags);
-+		clr |= IRQ_NOAUTOEN;
-+
-+	irq_clear_status_flags(irq, clr);
- }
- 
- void __init init_IRQ(void)
+Assuming it all _works_ ...
 
-
+                Linus
