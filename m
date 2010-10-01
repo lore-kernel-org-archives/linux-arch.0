@@ -1,34 +1,59 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 14/47] genirq: Implement a sane sparse_irq allocator
-Date: Fri, 1 Oct 2010 22:36:17 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1010012235230.14550@localhost6.localdomain6>
-References: <20100930221351.682772535@linutronix.de> <20100930221739.858896807@linutronix.de> <4CA57173.5060803@kernel.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [patch 46/47] powerpc: Use new irq allocator
+Date: Sat, 02 Oct 2010 06:46:13 +1000
+Message-ID: <1285965973.2463.129.camel@pasglop>
+References: <20100930221351.682772535@linutronix.de>
+	 <20100930221743.014571381@linutronix.de> <1285893737.2463.4.camel@pasglop>
+	 <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:34212 "EHLO www.tglx.de"
+Received: from gate.crashing.org ([63.228.1.57]:48842 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753050Ab0JAUgi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 1 Oct 2010 16:36:38 -0400
-In-Reply-To: <4CA57173.5060803@kernel.org>
+	id S1753830Ab0JAUqt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Oct 2010 16:46:49 -0400
+In-Reply-To: <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On Thu, 30 Sep 2010, Yinghai Lu wrote:
-> On 09/30/2010 04:15 PM, Thomas Gleixner wrote:
-> > +static inline int
-> > +irq_alloc_desc_at(unsigned int at, int node)
-> > +{
-> > +	return irq_alloc_descs(at, 0, 1, node);
+On Fri, 2010-10-01 at 15:07 +0200, Thomas Gleixner wrote:
+> On Fri, 1 Oct 2010, Benjamin Herrenschmidt wrote:
 > 
-> need to change to 
+> > On Thu, 2010-09-30 at 23:18 +0000, Thomas Gleixner wrote:
+> > > plain text document attachment (powerpc-use-new-allocator.patch)
+> > > Use the new functions and free the descriptor when the virq is
+> > > destroyed.
+> > 
+> > Looks ok as a first pass, but we should go further and replace the
+> > allocator we have in powerpc to use yours instead.
+> > 
+> > Then I should get rid of my big irq_map that maps virq to HW number &
+> > domain pointers and instead put those in the irq data. Any objection to
+> > me sticking some archdata there for that purpose ?
 > 
-> 	return irq_alloc_descs(at, at, 1, node);
+> No, though if we can avoid another void pointer and have a sensible
+> data structure for it would be nice.
 
-Good point. Fixed.
+Yes, I'm thinking about an arch defined structure like I did for struct
+device.
 
-Thanks,
+Cheers,
+Ben.
 
-	tglx
+> > That would make things much cleaner and in fact move one large step
+> > toward being able to make powerpc virq scheme generic, which seems to be
+> > a good idea from what I've heard :-)
+> 
+> Yep.
+> 
+> Thanks,
+> 
+> 	tglx
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
