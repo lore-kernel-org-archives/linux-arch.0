@@ -1,71 +1,44 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Thu, 30 Sep 2010 22:54:29 -0700
-Message-ID: <4CA57795.4040308@kernel.org>
-References: <20100930221351.682772535@linutronix.de>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 46/47] powerpc: Use new irq allocator
+Date: Fri, 1 Oct 2010 15:07:19 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
+References: <20100930221351.682772535@linutronix.de>  <20100930221743.014571381@linutronix.de> <1285893737.2463.4.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100930221351.682772535@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:50422 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751166Ab0JANJt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Oct 2010 09:09:49 -0400
+In-Reply-To: <1285893737.2463.4.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On 09/30/2010 04:14 PM, Thomas Gleixner wrote:
-> The following patch series cleans up and mostly reimplements the core
-> sparse irq implementation and sanitizes the most complex (ab)user:
-> arch/x86
->=20
-> The series is based on the previous rework of irq chip functions whic=
-h
-> is available at:
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-tip.git=
- irq/core
->=20
-> A combined throwaway git repository with all the following patches on=
- top of
-> tip/irq/core is available at:
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse=
--irq.git
->=20
-> The overall changes are (full changelog below):
->     56 files changed, 1229 insertions(+), 1682 deletions(-)
->=20
-> The series consists of 3 parts:
->=20
->     - cleanup of kernel/irq code and implementation of new allocator
->     - conversion of x86 to new irq_chip functions and new allocator
->     - trivial cleanup of the remaining users and removal of the old s=
-tuff
->=20
-> It's fully bisectable and survived a night of testing in my testfarm.
+On Fri, 1 Oct 2010, Benjamin Herrenschmidt wrote:
 
-  CC      kernel/irq/irqdesc.o
-kernel/irq/irqdesc.c:123: error: expected =91=3D=92, =91,=92, =91;=92, =
-=91asm=92 or =91__attribute__=92 before =91static=92
-kernel/irq/irqdesc.c: In function =91alloc_descs=92:
-kernel/irq/irqdesc.c:176: error: implicit declaration of function =91al=
-loc_desc=92
-kernel/irq/irqdesc.c:176: warning: assignment makes pointer from intege=
-r without a cast
-kernel/irq/irqdesc.c: In function =91early_irq_init=92:
-kernel/irq/irqdesc.c:207: warning: assignment makes pointer from intege=
-r without a cast
-kernel/irq/irqdesc.c: In function =91irq_get_next_irq=92:
-kernel/irq/irqdesc.c:346: error: implicit declaration of function =91fi=
-nd_next_bit_set=92
-kernel/irq/irqdesc.c:347: error: implicit declaration of function =91ra=
-w_spin_unlock_irqsave=92
-kernel/irq/irqdesc.c: In function =91kstat_irqs_cpu=92:
-kernel/irq/irqdesc.c:369: error: expected =91=3D=92, =91,=92, =91;=92, =
-=91asm=92 or =91__attribute__=92 before =91{=92 token
-kernel/irq/irqdesc.c:374: error: expected =91=3D=92, =91,=92, =91;=92, =
-=91asm=92 or =91__attribute__=92 before =91{=92 token
-kernel/irq/irqdesc.c:377: error: expected =91{=92 at end of input
-make[1]: *** [kernel/irq/irqdesc.o] Error 1
+> On Thu, 2010-09-30 at 23:18 +0000, Thomas Gleixner wrote:
+> > plain text document attachment (powerpc-use-new-allocator.patch)
+> > Use the new functions and free the descriptor when the virq is
+> > destroyed.
+> 
+> Looks ok as a first pass, but we should go further and replace the
+> allocator we have in powerpc to use yours instead.
+> 
+> Then I should get rid of my big irq_map that maps virq to HW number &
+> domain pointers and instead put those in the irq data. Any objection to
+> me sticking some archdata there for that purpose ?
 
-Yinghai
+No, though if we can avoid another void pointer and have a sensible
+data structure for it would be nice.
+ 
+> That would make things much cleaner and in fact move one large step
+> toward being able to make powerpc virq scheme generic, which seems to be
+> a good idea from what I've heard :-)
+
+Yep.
+
+Thanks,
+
+	tglx
