@@ -1,27 +1,104 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Thu, 30 Sep 2010 20:32:26 -0700
-Message-ID: <AANLkTin1titZ1vjGLhBn8CY0CjZDj332zM8DW1JHv7Cx@mail.gmail.com>
-References: <20100930221351.682772535@linutronix.de>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [patch 14/47] genirq: Implement a sane sparse_irq allocator
+Date: Thu, 30 Sep 2010 22:28:19 -0700
+Message-ID: <4CA57173.5060803@kernel.org>
+References: <20100930221351.682772535@linutronix.de> <20100930221739.858896807@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100930221351.682772535@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:53817 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751671Ab0JAFb4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2010 01:31:56 -0400
+In-Reply-To: <20100930221739.858896807@linutronix.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On Thu, Sep 30, 2010 at 4:14 PM, Thomas Gleixner <tglx@linutronix.de> w=
-rote:
->
-> The overall changes are (full changelog below):
-> =A0 =A056 files changed, 1229 insertions(+), 1682 deletions(-)
+On 09/30/2010 04:15 PM, Thomas Gleixner wrote:
+......
+> ---
+>  include/linux/irq.h  |   25 +++++
+>  kernel/irq/irqdesc.c |  226 +++++++++++++++++++++++++++++++++++++++++++++++++--
+>  2 files changed, 243 insertions(+), 8 deletions(-)
+> 
+> Index: linux-2.6-tip/include/linux/irq.h
+> ===================================================================
+> --- linux-2.6-tip.orig/include/linux/irq.h
+> +++ linux-2.6-tip/include/linux/irq.h
+> @@ -276,6 +276,31 @@ static inline struct irq_desc *move_irq_
+>  
+>  extern struct irq_desc *irq_to_desc_alloc_node(unsigned int irq, int node);
+>  
+> +int irq_alloc_descs(unsigned int irq, unsigned int from, unsigned int cnt, int node);
+> +
+> +static inline int irq_alloc_desc(int node)
+> +{
+> +	return irq_alloc_descs(0, 0, 1, node);
+> +}
+> +
+> +static inline int
+> +irq_alloc_desc_at(unsigned int at, int node)
+> +{
+> +	return irq_alloc_descs(at, 0, 1, node);
 
-I can't really argue with those numbers. And the patches I looked at
-(which was not all of them, but maybe half) looked reasonable.
+need to change to 
 
-Assuming it all _works_ ...
+	return irq_alloc_descs(at, at, 1, node);
 
-                Linus
+> +}
+> +
+...
+
+> Index: linux-2.6-tip/kernel/irq/irqdesc.c
+> ===================================================================
+> --- linux-2.6-tip.orig/kernel/irq/irqdesc.c
+> +++ linux-2.6-tip/kernel/irq/irqdesc.c
+...
+
+> +/**
+> + * irq_alloc_descs - allocate and initialize a range of irq descriptors
+> + * @irq:	Allocate for specific irq number if irq > 0
+> + * @from:	Start the search from this irq number
+> + * @cnt:	Number of consecutive irqs to allocate.
+> + * @node:	Preferred node on which the irq descriptor should be allocated
+> + *
+> + * Returns the first irq number or error code
+> + */
+> +int __ref
+> +irq_alloc_descs(unsigned int irq, unsigned int from, unsigned int cnt, int node)
+> +{
+> +	unsigned long flags;
+> +	int start, ret;
+> +
+> +	if (!cnt)
+> +		return -EINVAL;
+> +
+> +	raw_spin_lock_irqsave(&sparse_irq_lock, flags);
+> +
+or add
+	if (irq)
+		from = irq;
+here.
+
+> +	start = bitmap_find_next_zero_area(allocated_irqs, nr_irqs, from, cnt, 0);
+> +	ret = -EEXIST;
+> +	if (irq && start != irq)
+> +		goto err;
+> +
+> +	ret = -ENOMEM;
+> +	if (start >= nr_irqs)
+> +		goto err;
+> +
+> +	bitmap_set(allocated_irqs, start, cnt);
+> +	raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
+> +	return alloc_descs(start, cnt, node);
+> +
+> +err:
+> +	raw_spin_unlock_irqrestore(&sparse_irq_lock, flags);
+> +	return ret;
+> +}
+
+Yinghai
