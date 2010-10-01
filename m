@@ -1,49 +1,36 @@
-From: Grant Likely <grant.likely@secretlab.ca>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [patch 46/47] powerpc: Use new irq allocator
-Date: Sat, 2 Oct 2010 06:11:33 +0900
-Message-ID: <AANLkTi=C+tti-08iti=o-fJG2rj7W5EGvB75u6njz2w9@mail.gmail.com>
-References: <20100930221351.682772535@linutronix.de> <20100930221743.014571381@linutronix.de>
- <1285893737.2463.4.camel@pasglop> <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
- <1285965973.2463.129.camel@pasglop>
+Date: Sat, 02 Oct 2010 07:17:31 +1000
+Message-ID: <1285967851.2463.174.camel@pasglop>
+References: <20100930221351.682772535@linutronix.de>
+	 <20100930221743.014571381@linutronix.de> <1285893737.2463.4.camel@pasglop>
+	 <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
+	 <1285965973.2463.129.camel@pasglop>
+	 <AANLkTi=C+tti-08iti=o-fJG2rj7W5EGvB75u6njz2w9@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:42503 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753125Ab0JAVL4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2010 17:11:56 -0400
-In-Reply-To: <1285965973.2463.129.camel@pasglop>
+Received: from gate.crashing.org ([63.228.1.57]:47625 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756637Ab0JAVSa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Oct 2010 17:18:30 -0400
+In-Reply-To: <AANLkTi=C+tti-08iti=o-fJG2rj7W5EGvB75u6njz2w9@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Grant Likely <grant.likely@secretlab.ca>
 Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On Sat, Oct 2, 2010 at 5:46 AM, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
-> On Fri, 2010-10-01 at 15:07 +0200, Thomas Gleixner wrote:
->> On Fri, 1 Oct 2010, Benjamin Herrenschmidt wrote:
->>
->> > On Thu, 2010-09-30 at 23:18 +0000, Thomas Gleixner wrote:
->> > > plain text document attachment (powerpc-use-new-allocator.patch)
->> > > Use the new functions and free the descriptor when the virq is
->> > > destroyed.
->> >
->> > Looks ok as a first pass, but we should go further and replace the
->> > allocator we have in powerpc to use yours instead.
->> >
->> > Then I should get rid of my big irq_map that maps virq to HW number &
->> > domain pointers and instead put those in the irq data. Any objection to
->> > me sticking some archdata there for that purpose ?
->>
->> No, though if we can avoid another void pointer and have a sensible
->> data structure for it would be nice.
->
-> Yes, I'm thinking about an arch defined structure like I did for struct
-> device.
+On Sat, 2010-10-02 at 06:11 +0900, Grant Likely wrote:
+> 
+> Before doing that, I'd like to see what data members are still needed.
+>  The powerpc use-case is quite sane, and it may turn out to be common
+> code after all.  I certainly want to port the PowerPC functionality to
+> ARM. 
 
-Before doing that, I'd like to see what data members are still needed.
- The powerpc use-case is quite sane, and it may turn out to be common
-code after all.  I certainly want to port the PowerPC functionality to
-ARM.
+Pretty much the host (domain) pointer and the associated HW number. The
+later might want to be an arch typedef tho (on ppc64 at least it wants
+to be 64-bit), and that's it.
 
-g.
+Cheers,
+Ben.
