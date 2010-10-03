@@ -1,63 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:31034 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752695Ab0JAFzt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Oct 2010 01:55:49 -0400
-Message-ID: <4CA57795.4040308@kernel.org>
-Date: Thu, 30 Sep 2010 22:54:29 -0700
-From: Yinghai Lu <yinghai@kernel.org>
-MIME-Version: 1.0
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40282 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753281Ab0JCL3n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Oct 2010 07:29:43 -0400
+Date: Sun, 3 Oct 2010 12:29:20 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [patch 00/47] Sparse irq rework
-References: <20100930221351.682772535@linutronix.de>
-In-Reply-To: <20100930221351.682772535@linutronix.de>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Message-ID: <20101003112920.GB32736@n2100.arm.linux.org.uk>
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20101003112312.GB9844@angua.secretlab.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20101001055429.3WuCxkTVb_0j5BcigujnoDFBw3Ea7s7kS0anm74-9bU@z>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20101003112920.bYxl7AdWTjYRcpj09wTVvQHPmWobnP4mDqwaj_NDG9k@z>
 
-On 09/30/2010 04:14 PM, Thomas Gleixner wrote:
-> The following patch series cleans up and mostly reimplements the core
-> sparse irq implementation and sanitizes the most complex (ab)user:
-> arch/x86
+On Sun, Oct 03, 2010 at 05:23:12AM -0600, Grant Likely wrote:
+> On Thu, Sep 30, 2010 at 11:14:27PM -0000, Thomas Gleixner wrote:
+> > The following patch series cleans up and mostly reimplements the core
+> > sparse irq implementation and sanitizes the most complex (ab)user:
+> > arch/x86
 > 
-> The series is based on the previous rework of irq chip functions which
-> is available at:
+> Hoy Thomas,
 > 
->   git://git.kernel.org/pub/scm/linux/kernel/git/tip/linux-2.6-tip.git irq/core
+> patches 1-13 & 15 all look fine to me.  Feel free to add my Acked-by:
+> line.
 > 
-> A combined throwaway git repository with all the following patches on top of
-> tip/irq/core is available at:
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse-irq.git
-> 
-> The overall changes are (full changelog below):
->     56 files changed, 1229 insertions(+), 1682 deletions(-)
-> 
-> The series consists of 3 parts:
-> 
->     - cleanup of kernel/irq code and implementation of new allocator
->     - conversion of x86 to new irq_chip functions and new allocator
->     - trivial cleanup of the remaining users and removal of the old stuff
-> 
-> It's fully bisectable and survived a night of testing in my testfarm.
+> Patch 14 seems to be missing, and by inference it appears that the
+> all important new allocator is added by patch 14.  All of the rest of
+> the series seems to be fine, but I'm forced to make assumptions about
+> what the new allocator looks like, so I cannot be positive.
 
-  CC      kernel/irq/irqdesc.o
-kernel/irq/irqdesc.c:123: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘static’
-kernel/irq/irqdesc.c: In function ‘alloc_descs’:
-kernel/irq/irqdesc.c:176: error: implicit declaration of function ‘alloc_desc’
-kernel/irq/irqdesc.c:176: warning: assignment makes pointer from integer without a cast
-kernel/irq/irqdesc.c: In function ‘early_irq_init’:
-kernel/irq/irqdesc.c:207: warning: assignment makes pointer from integer without a cast
-kernel/irq/irqdesc.c: In function ‘irq_get_next_irq’:
-kernel/irq/irqdesc.c:346: error: implicit declaration of function ‘find_next_bit_set’
-kernel/irq/irqdesc.c:347: error: implicit declaration of function ‘raw_spin_unlock_irqsave’
-kernel/irq/irqdesc.c: In function ‘kstat_irqs_cpu’:
-kernel/irq/irqdesc.c:369: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘{’ token
-kernel/irq/irqdesc.c:374: error: expected ‘=’, ‘,’, ‘;’, ‘asm’ or ‘__attribute__’ before ‘{’ token
-kernel/irq/irqdesc.c:377: error: expected ‘{’ at end of input
-make[1]: *** [kernel/irq/irqdesc.o] Error 1
-
-Yinghai
+Patch 14 was present, you were even CC'd on it.
