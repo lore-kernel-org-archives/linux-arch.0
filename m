@@ -1,55 +1,53 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [patch 00/47] Sparse irq rework
-Date: Sun, 03 Oct 2010 18:13:15 -0700
-Message-ID: <m11v8692vo.fsf@fess.ebiederm.org>
+Date: Mon, 4 Oct 2010 08:36:34 +0200
+Message-ID: <20101004063634.GA2230@elte.hu>
 References: <20100930221351.682772535@linutronix.de>
-	<m1wrpzfctu.fsf@fess.ebiederm.org>
-	<alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
+ <m1wrpzfctu.fsf@fess.ebiederm.org>
+ <alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
+ <m11v8692vo.fsf@fess.ebiederm.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
-	(Thomas Gleixner's message of "Sun, 3 Oct 2010 21:16:47 +0200 (CEST)")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>
-List-Id: linux-arch.vger.kernel.org
-
-Thomas Gleixner <tglx@linutronix.de> writes:
-
->> I don't know that I have a problem with this but I do have a problem
->> with using a bitmap.  A lot of the kernels irq usage has been distored
->> because we use a compact array, that we cannot grow over time.  Using a
->> bitmap here essentially removes 90% of the point of sparse irq.  The
->> ability to remove a hard coded NR_IRQS from the kernel.
->
-> Well, lets look at some (un)realistic numbers:
->
-> Assume 16k cores and 32 irqs / core. That's 512k interrupts and
-> requires a 64k bitmap.
->
-> If we hit that limit, then we have some other more serious problems to
-> solve.
-
-Possibly. 
-
-Fundamentally keeping NR_IRQS anywhere I see as a problem, and it
-really disturbs me.  Even nr_irqs I see as pretty fishy.
-
-Looking at this objectively I see a bitmap sized to the formula
-32*NR_CPUS with NR_CPUS expected to double every 18-24 months.
-Which means in a decade our worst case will be 2M not 64k.
-
-Can we please build this with scalable interfaces so we don't have to do
-this again in a couple of years, and so we don't have to have little
-machines paying the price for big machines, and so that big machines
-aren't hamstrung because of data structures built for little machines.
-
-Perhaps this just requires using ida instead of a bitmap.
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:51825 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752408Ab0JDGhB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Oct 2010 02:37:01 -0400
+Content-Disposition: inline
+In-Reply-To: <m11v8692vo.fsf@fess.ebiederm.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>
 
 
-I really think it is a mistake to use an irq number outside of the
-functions in interrupt.h that go to the drivers and the userspace
-display functions.
+* Eric W. Biederman <ebiederm@xmission.com> wrote:
 
-Eric
+> Looking at this objectively I see a bitmap sized to the formula 
+> 32*NR_CPUS with NR_CPUS expected to double every 18-24 months. Which 
+> means in a decade our worst case will be 2M not 64k.
+
+On a 16 TB box? Noise.
+
+> Can we please build this with scalable interfaces so we don't have to 
+> do this again in a couple of years, and so we don't have to have 
+> little machines paying the price for big machines, and so that big 
+> machines aren't hamstrung because of data structures built for little 
+> machines.
+
+Bitmaps are rather scalable, we use them all around the place.
+
+> Perhaps this just requires using ida instead of a bitmap.
+
+Erm, IDA/IDR uses a bitmap ...
+
+IDA is a dynamically allocated bitmap - but for something as critical as 
+IRQs i'd rather like to see a preallocated bitmap and platform control 
+over the max (nr_irqs). We dont want to allow crappy drivers to install 
+irq 0x12345678 and blow up the bitmap size to dozens of MB, etc.
+
+Bitmaps are simple - and that's a virtue.
+
+Thanks,
+
+	Ingo
