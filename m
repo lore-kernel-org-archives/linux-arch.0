@@ -1,98 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:60103 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752874Ab0JCWzm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Oct 2010 18:55:42 -0400
-Subject: Re: [patch 46/47] powerpc: Use new irq allocator
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <m1bp7bfc9n.fsf@fess.ebiederm.org>
+Received: from out01.mta.xmission.com ([166.70.13.231]:56542 "EHLO
+	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751573Ab0JDBNb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Oct 2010 21:13:31 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
 References: <20100930221351.682772535@linutronix.de>
-	 <20100930221743.014571381@linutronix.de> <1285893737.2463.4.camel@pasglop>
-	 <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
-	 <m1bp7bfc9n.fsf@fess.ebiederm.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 04 Oct 2010 09:54:19 +1100
-Message-ID: <1286146459.2463.308.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<m1wrpzfctu.fsf@fess.ebiederm.org>
+	<alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
+Date: Sun, 03 Oct 2010 18:13:15 -0700
+In-Reply-To: <alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
+	(Thomas Gleixner's message of "Sun, 3 Oct 2010 21:16:47 +0200 (CEST)")
+Message-ID: <m11v8692vo.fsf@fess.ebiederm.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Subject: Re: [patch 00/47] Sparse irq rework
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101003225419.QnKFRhagnbNWL2Dd5HQtuj7wYvGustaZIuMqIklAe-4@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101004011315.aZpNVzTe6ZqrBPWRvHJ-b7zU3DepXPzzITkZXFqDsnw@z>
 
-On Sun, 2010-10-03 at 09:53 -0700, Eric W. Biederman wrote:
-> Thomas Gleixner <tglx@linutronix.de> writes:
-> 
-> >> That would make things much cleaner and in fact move one large step
-> >> toward being able to make powerpc virq scheme generic, which seems to be
-> >> a good idea from what I've heard :-)
-> >
-> > Yep.
-> 
-> I'm not certain about making the ppc virq scheme generic.  Maybe it is
-> just my distorted impression but I have the understanding that ppc irq
-> numbers mean nothing and are totally unstable whereas on x86 irq numbers
-> in general are stable (across kernel upgrades and changes in device
-> probe order) and the irq number has a useful hardware meaning.  Which
-> means you don't have to go through several layers of translation tables
-> to figure out which hardware pin you are talking about.
+Thomas Gleixner <tglx@linutronix.de> writes:
 
-In addition to Thomas comments, it's actually more complex than that :-)
+>> I don't know that I have a problem with this but I do have a problem
+>> with using a bitmap.  A lot of the kernels irq usage has been distored
+>> because we use a compact array, that we cannot grow over time.  Using a
+>> bitmap here essentially removes 90% of the point of sparse irq.  The
+>> ability to remove a hard coded NR_IRQS from the kernel.
+>
+> Well, lets look at some (un)realistic numbers:
+>
+> Assume 16k cores and 32 irqs / core. That's 512k interrupts and
+> requires a 64k bitmap.
+>
+> If we hit that limit, then we have some other more serious problems to
+> solve.
 
-Even assuming that what you say is true (and last I looked at my x86
-machine, it's not ... x86 remaps "GSI" numbers and the results doesn't
-seem always entirely predictible. HT interrupts makes it worse and MSIs
-just completely kill your argument :-)
+Possibly. 
 
-Some setups have stable numbers, some don't. Hypervisors can return your
-crazy HW interrupt numbers, etc...
+Fundamentally keeping NR_IRQS anywhere I see as a problem, and it
+really disturbs me.  Even nr_irqs I see as pretty fishy.
 
-However, remapping arbitrary crazy HW number is only one aspect of the
-powerpc virq scheme (typically for IRQ domains using the radix tree
-based reverse-map).
+Looking at this objectively I see a bitmap sized to the formula
+32*NR_CPUS with NR_CPUS expected to double every 18-24 months.
+Which means in a decade our worst case will be 2M not 64k.
 
-The main deal I'd say is that in embedded land (and to some extent I
-suspect that's going to happen more with x86), you quickly end up with
-multiple interrupt domains, via cascaded controllers of all kinds etc...
+Can we please build this with scalable interfaces so we don't have to do
+this again in a couple of years, and so we don't have to have little
+machines paying the price for big machines, and so that big machines
+aren't hamstrung because of data structures built for little machines.
 
-In fact, I've been in situations where I want to be able to hot plug
-entire PICs.
+Perhaps this just requires using ida instead of a bitmap.
 
-At this point, you end up having -some- kind of scheme to map the linux
-IRQ numbers to HW numbers. The "old way" to do that tends to be by
-assigning fixed ranges of numbers. This somewhat works, but it is a bit
-clumsy and not very dynamic nor suited for hotpluggable stuff. It
-generally requires the platform code to know about everything and
-declare such ranges, etc...
 
-Now, if the stability of the numbers is a problem for you, there's a few
-easy things to do to solve that:
+I really think it is a mistake to use an irq number outside of the
+functions in interrupt.h that go to the drivers and the userspace
+display functions.
 
- - First, and we do that today on powerpc, we reserve 1...15 as "legacy"
-and only a PIC that claims to be "legacy" can claim them (for us that
-means some kind of 8259). So your old style legacy x86 IRQs can remain
-there if you want to.
-
- - In systems with one domain, we tend to often end up with virq ==
-hwirq since we try to allocate the same number "by default". Probably
-what happens today with GSI on my x86 box here.
-
- - Then, while powerpc allocates virq numbers when irqs are mapped, that
-can be quite "late", it could be perfectly kosher to imagine a way for
-"child" PICs to instead instanciate the mapping of their whole range
-early. That way, their virq numbers remain contiguous, providing a
-simpler 1:N mapping, and in embedded systems, you'll probably end up
-with the same mapping on every boot.
-
- - Appart from the risk of breaking crap that parses /proc/interrupts,
-adding the HW irq information there would be trivial and solve your
-problem.
-
-So overall, I don't see a problem at all. And it makes handling of
-arbitrary combinations of interrupt domains (cascaded PICs) very very
-easy indeed.
-
-Cheers,
-Ben.
+Eric
 
