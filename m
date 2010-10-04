@@ -1,45 +1,68 @@
 From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Mon, 4 Oct 2010 10:31:18 -0600
-Message-ID: <20101004163118.GA13749@angua.secretlab.ca>
+Subject: Re: [patch 46/47] powerpc: Use new irq allocator
+Date: Mon, 4 Oct 2010 10:46:00 -0600
+Message-ID: <20101004164600.GB13749@angua.secretlab.ca>
 References: <20100930221351.682772535@linutronix.de>
- <m1wrpzfctu.fsf@fess.ebiederm.org>
- <alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
- <1286146653.2463.310.camel@pasglop>
+ <20100930221743.014571381@linutronix.de>
+ <1285893737.2463.4.camel@pasglop>
+ <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
+ <m1bp7bfc9n.fsf@fess.ebiederm.org>
+ <1286146459.2463.308.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:45690 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756522Ab0JDQbX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Oct 2010 12:31:23 -0400
+Received: from mail-pv0-f174.google.com ([74.125.83.174]:38305 "EHLO
+	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753201Ab0JDQqD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Oct 2010 12:46:03 -0400
 Content-Disposition: inline
-In-Reply-To: <1286146653.2463.310.camel@pasglop>
+In-Reply-To: <1286146459.2463.308.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, "Eric W. Biederman" <ebiederm@xmission.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>
 
-On Mon, Oct 04, 2010 at 09:57:33AM +1100, Benjamin Herrenschmidt wrote:
-> On Sun, 2010-10-03 at 21:16 +0200, Thomas Gleixner wrote:
+On Mon, Oct 04, 2010 at 09:54:19AM +1100, Benjamin Herrenschmidt wrote:
+> On Sun, 2010-10-03 at 09:53 -0700, Eric W. Biederman wrote:
+> > Thomas Gleixner <tglx@linutronix.de> writes:
 > > 
-> > And I really do not see a point to have a truly random 64bit number
-> > space for interrupts. Especially the dynamically allocated interrupts
-> > (MSI & co) do not care about the number space at all. They care about
-> > getting a unique number, nothing else.
+> > >> That would make things much cleaner and in fact move one large step
+> > >> toward being able to make powerpc virq scheme generic, which seems to be
+> > >> a good idea from what I've heard :-)
+> > >
+> > > Yep.
+> > 
+> > I'm not certain about making the ppc virq scheme generic.  Maybe it is
+> > just my distorted impression but I have the understanding that ppc irq
+> > numbers mean nothing and are totally unstable whereas on x86 irq numbers
+> > in general are stable (across kernel upgrades and changes in device
+> > probe order) and the irq number has a useful hardware meaning.  Which
+> > means you don't have to go through several layers of translation tables
+> > to figure out which hardware pin you are talking about.
+[...]
+>
+> The main deal I'd say is that in embedded land (and to some extent I
+> suspect that's going to happen more with x86), you quickly end up with
+> multiple interrupt domains, via cascaded controllers of all kinds etc...
+[...]
+>  - Appart from the risk of breaking crap that parses /proc/interrupts,
+> adding the HW irq information there would be trivial and solve your
+> problem.
 > 
-> Actually, some implementations care about the actual number... but then,
-> at least on powerpc, those are hidden behind the virq translation so we
-> really don't care :-)
+> So overall, I don't see a problem at all. And it makes handling of
+> arbitrary combinations of interrupt domains (cascaded PICs) very very
+> easy indeed.
 
-In fact, if it wasn't for all the embedded platforms where some hard
-coded irq number is encoded into the static device tables
-(platform_device et al.) I'd argue that the irq number is completely
-meaningless outside of the core irq code, and from a device driver
-point of view it is just an opaque cookie.
+Right, the stability of irq numbers is more of a user-interface
+problem than a technical deficiency with virq, and a solvable one at
+that.  If fact, I'd go as far as saying that having irq numbers mean
+nothing is a *virtue* of the approach because it forces developers to
+look at the real irq controller attachment rather than some
+hwirq==linux-irq assumption.
 
-Also from the userspace point of view, the attachment to a particular
-irq controller instance is far more interesting than the specific irq
-number.
+As mentioned in my other reply, I'd be perfectly happy to stop exposing
+linux irq numbers to userspace entirely, but I realize that would
+break /proc/interrupts users.  However, I do completely agree that
+exposing the hwirq information is very much required.
 
 g.
