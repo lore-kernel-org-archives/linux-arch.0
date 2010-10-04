@@ -1,68 +1,56 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [patch 46/47] powerpc: Use new irq allocator
-Date: Mon, 4 Oct 2010 10:46:00 -0600
-Message-ID: <20101004164600.GB13749@angua.secretlab.ca>
-References: <20100930221351.682772535@linutronix.de>
- <20100930221743.014571381@linutronix.de>
- <1285893737.2463.4.camel@pasglop>
- <alpine.LFD.2.00.1010011504380.2416@localhost6.localdomain6>
- <m1bp7bfc9n.fsf@fess.ebiederm.org>
- <1286146459.2463.308.camel@pasglop>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH RESEND v3 03/24] ptrace: change signature of arch_ptrace()
+Date: Mon, 4 Oct 2010 21:21:24 +0200
+Message-ID: <AANLkTik1TKERMvPT=p7wQhqmgG6ucX08o3dDZUQMM5vF@mail.gmail.com>
+References: <1285838880-4977-1-git-send-email-namhyung@gmail.com>
+	<1285838880-4977-4-git-send-email-namhyung@gmail.com>
+	<20100930.115828.57462004.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pv0-f174.google.com ([74.125.83.174]:38305 "EHLO
-	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753201Ab0JDQqD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Oct 2010 12:46:03 -0400
-Content-Disposition: inline
-In-Reply-To: <1286146459.2463.308.camel@pasglop>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:36687 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932411Ab0JDTVb convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Oct 2010 15:21:31 -0400
+In-Reply-To: <20100930.115828.57462004.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>
+To: namhyung@gmail.com
+Cc: akpm@linux-foundation.org, roland@redhat.com, oleg@redhat.com, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Oct 04, 2010 at 09:54:19AM +1100, Benjamin Herrenschmidt wrote:
-> On Sun, 2010-10-03 at 09:53 -0700, Eric W. Biederman wrote:
-> > Thomas Gleixner <tglx@linutronix.de> writes:
-> > 
-> > >> That would make things much cleaner and in fact move one large step
-> > >> toward being able to make powerpc virq scheme generic, which seems to be
-> > >> a good idea from what I've heard :-)
-> > >
-> > > Yep.
-> > 
-> > I'm not certain about making the ppc virq scheme generic.  Maybe it is
-> > just my distorted impression but I have the understanding that ppc irq
-> > numbers mean nothing and are totally unstable whereas on x86 irq numbers
-> > in general are stable (across kernel upgrades and changes in device
-> > probe order) and the irq number has a useful hardware meaning.  Which
-> > means you don't have to go through several layers of translation tables
-> > to figure out which hardware pin you are talking about.
-[...]
+On Thu, Sep 30, 2010 at 20:58, David Miller <davem@davemloft.net> wrote=
+:
+> From: Namhyung Kim <namhyung@gmail.com>
+> Date: Thu, 30 Sep 2010 18:27:38 +0900
 >
-> The main deal I'd say is that in embedded land (and to some extent I
-> suspect that's going to happen more with x86), you quickly end up with
-> multiple interrupt domains, via cascaded controllers of all kinds etc...
-[...]
->  - Appart from the risk of breaking crap that parses /proc/interrupts,
-> adding the HW irq information there would be trivial and solve your
-> problem.
-> 
-> So overall, I don't see a problem at all. And it makes handling of
-> arbitrary combinations of interrupt domains (cascaded PICs) very very
-> easy indeed.
+>> Fix up the arguments to arch_ptrace() to take account of the fact th=
+at
+>> @addr and @data are now unsigned long rather than long as of a prece=
+ding
+>> patch in this series.
+>>
+>> Signed-off-by: Namhyung Kim <namhyung@gmail.com>
+>> Cc: linux-arch@vger.kernel.org
+>> Acked-by: Roland McGrath <roland@redhat.com>
+>> Acked-by: David Howells <dhowells@redhat.com>
+>
+> Acked-by: David S. Miller <davem@davemloft.net>
 
-Right, the stability of irq numbers is more of a user-interface
-problem than a technical deficiency with virq, and a solvable one at
-that.  If fact, I'd go as far as saying that having irq numbers mean
-nothing is a *virtue* of the approach because it forces developers to
-look at the real irq controller attachment rather than some
-hwirq==linux-irq assumption.
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-As mentioned in my other reply, I'd be perfectly happy to stop exposing
-linux irq numbers to userspace entirely, but I realize that would
-break /proc/interrupts users.  However, I do completely agree that
-exposing the hwirq information is very much required.
+Gr{oetje,eeting}s,
 
-g.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
