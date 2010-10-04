@@ -1,61 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:56542 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751573Ab0JDBNb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Oct 2010 21:13:31 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-References: <20100930221351.682772535@linutronix.de>
-	<m1wrpzfctu.fsf@fess.ebiederm.org>
-	<alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
-Date: Sun, 03 Oct 2010 18:13:15 -0700
-In-Reply-To: <alpine.LFD.2.00.1010032034420.14550@localhost6.localdomain6>
-	(Thomas Gleixner's message of "Sun, 3 Oct 2010 21:16:47 +0200 (CEST)")
-Message-ID: <m11v8692vo.fsf@fess.ebiederm.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Subject: Re: [patch 00/47] Sparse irq rework
+Received: from arkanian.console-pimps.org ([212.110.184.194]:46731 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757131Ab0JDUo2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Oct 2010 16:44:28 -0400
+From: Matt Fleming <matt@console-pimps.org>
+Subject: [PATCH V4 0/7] Generalise ARM perf-events backend for oprofile
+Date: Mon,  4 Oct 2010 21:44:18 +0100
+Message-ID: <cover.1286222593.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101004011315.aZpNVzTe6ZqrBPWRvHJ-b7zU3DepXPzzITkZXFqDsnw@z>
+To: Robert Richter <robert.richter@amd.com>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101004204418.dyPB_tSypkIo8rFffSs2uN05fZAdRo4ULZ7S3AtWkoU@z>
 
-Thomas Gleixner <tglx@linutronix.de> writes:
+The perf-events backend for OProfile that Will Deacon wrote in
+8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+perf-events framework as backend") is of use to more architectures
+than just ARM. Move the code into drivers/oprofile/ so that SH can use
+it instead of the nearly identical copy of its OProfile code.
 
->> I don't know that I have a problem with this but I do have a problem
->> with using a bitmap.  A lot of the kernels irq usage has been distored
->> because we use a compact array, that we cannot grow over time.  Using a
->> bitmap here essentially removes 90% of the point of sparse irq.  The
->> ability to remove a hard coded NR_IRQS from the kernel.
->
-> Well, lets look at some (un)realistic numbers:
->
-> Assume 16k cores and 32 irqs / core. That's 512k interrupts and
-> requires a 64k bitmap.
->
-> If we hit that limit, then we have some other more serious problems to
-> solve.
+The benefit of the backend is that it becomes necessary to only
+maintain one copy of the PMU accessor functions for each architecture,
+with bug fixes and new features benefiting both OProfile and perf.
 
-Possibly. 
+Note that I haven't been able to test these patches on an ARM board to
+see if I've caused any regressions. If anyone else could do that I'd
+appreciate it. Though, I have been able to compile this version of the
+series.
 
-Fundamentally keeping NR_IRQS anywhere I see as a problem, and it
-really disturbs me.  Even nr_irqs I see as pretty fishy.
+This patch series is based on,
 
-Looking at this objectively I see a bitmap sized to the formula
-32*NR_CPUS with NR_CPUS expected to double every 18-24 months.
-Which means in a decade our worst case will be 2M not 64k.
+    git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
 
-Can we please build this with scalable interfaces so we don't have to do
-this again in a couple of years, and so we don't have to have little
-machines paying the price for big machines, and so that big machines
-aren't hamstrung because of data structures built for little machines.
+These patches can also be found at,
 
-Perhaps this just requires using ida instead of a bitmap.
+    git://git.kernel.org/pub/scm/linux/kernel/git/mfleming/sh-2.6.git perf-oprofile
 
 
-I really think it is a mistake to use an irq number outside of the
-functions in interrupt.h that go to the drivers and the userspace
-display functions.
+Robert, I haven't rebased this work on your oprofile updates for
+2.6.37. If you need me to do that, just shout.
 
-Eric
+
+Changes from v3:
+ - New perf_pmu_name() function
+ - Sprinkled an EXPORT_SYMBOL_GPL()
+ - Don't repeatedly call perf_num_counters()
+ - Change name of oprofile_driver to "oprofile-perf"
+ - Hard overwrite the oprofile_operations in oprofile_perf_init()
+ - Dropped the patch that made oprofile depend on HW_PERF_EVENTS for ARM
+
+Changes from v2:
+ - Rebased against Robert's oprofile core branch
+ - Moved even more of the ARM code into the generic oprofile code
+ - Broke the patches up into more logical steps
+
+Changes from v1:
+ - Prefix the new functons with "oprofile_" instead of "op_".
+ - Fix ARM compilation errors
+ - Move all the oprofile-perf logic into oprofile_perf.c
+ - Include cleanup patch from Will
+
+Matt Fleming (7):
+  perf: Add helper function to return number of counters
+  perf: New helper function for pmu name
+  ARM: oprofile: Rename op_arm to oprofile_perf
+  ARM: oprofile: Move non-ARM code into separate init/exit
+  oprofile: Abstract the perf-events backend
+  sh: oprofile: Use perf-events oprofile backend
+  sh: Annotate oprofile_arch_exit() with __exit marker
+
+ arch/arm/kernel/perf_event.c     |   29 ++++
+ arch/arm/oprofile/Makefile       |    4 +
+ arch/arm/oprofile/common.c       |  327 +-------------------------------------
+ arch/sh/Kconfig                  |   13 ++
+ arch/sh/kernel/perf_event.c      |   23 +++
+ arch/sh/oprofile/Makefile        |    4 +
+ arch/sh/oprofile/common.c        |  109 ++------------
+ arch/sh/oprofile/op_impl.h       |   33 ----
+ drivers/oprofile/oprofile_perf.c |  326 +++++++++++++++++++++++++++++++++++++
+ include/linux/oprofile.h         |    6 +
+ include/linux/perf_event.h       |    2 +
+ kernel/perf_event.c              |    5 +
+ 12 files changed, 425 insertions(+), 456 deletions(-)
+ delete mode 100644 arch/sh/oprofile/op_impl.h
+ create mode 100644 drivers/oprofile/oprofile_perf.c
 
