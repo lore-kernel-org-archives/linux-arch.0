@@ -1,30 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:39469 "EHLO
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:36456 "EHLO
 	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752392Ab0JEIIg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Oct 2010 04:08:36 -0400
-Date: Tue, 5 Oct 2010 17:08:34 +0900
+	with ESMTP id S1752392Ab0JEIK7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Oct 2010 04:10:59 -0400
+Date: Tue, 5 Oct 2010 17:10:57 +0900
 From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 6/7] sh: oprofile: Use perf-events oprofile backend
-Message-ID: <20101005080833.GA7984@linux-sh.org>
-References: <cover.1286222593.git.matt@console-pimps.org> <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org>
+Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
+Message-ID: <20101005081057.GB7984@linux-sh.org>
+References: <cover.1286222593.git.matt@console-pimps.org> <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org>
+In-Reply-To: <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Matt Fleming <matt@console-pimps.org>
 Cc: Robert Richter <robert.richter@amd.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101005080834.9HKLCeRpAw8lbPm1zC9y_h2VtSnPs_NnLwveyEc-vY4@z>
+Message-ID: <20101005081057.Yb4SCTSTc0jk0MviqCwhDVH4-wYTHq206FpnxBVIkHU@z>
 
-On Mon, Oct 04, 2010 at 09:44:24PM +0100, Matt Fleming wrote:
-> Now that we've got a generic perf-events based oprofile backend we might
-> as well make use of it seeing as SH doesn't do anything special with its
-> oprofile backend. Also introduce a new CONFIG_HW_PERF_EVENTS symbol so
-> that we can fallback to using the timer interrupt for oprofile if the
-> CPU doesn't support perf events.
+On Mon, Oct 04, 2010 at 09:44:20PM +0100, Matt Fleming wrote:
+> Introduce perf_pmu_name() helper function that returns the name of the
+> pmu. This gives us a generic way to get the name of a pmu regardless of
+> how an architecture identifies it internally, e.g. ARM uses an id
+> whereas SH currently uses a string.
 > 
 > Signed-off-by: Matt Fleming <matt@console-pimps.org>
+
+This looks fine too. Later we can see about switching the SH case over to
+CPU subtype IDs, but it doesn't matter for now.
 
 Acked-by: Paul Mundt <lethal@linux-sh.org>
