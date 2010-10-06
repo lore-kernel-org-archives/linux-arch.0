@@ -1,45 +1,104 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
-Date: Wed, 6 Oct 2010 23:13:47 +0900
-Message-ID: <20101006141347.GA32376@linux-sh.org>
-References: <cover.1286222593.git.matt@console-pimps.org> <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org> <20101006122736.GL13563@erda.amd.com> <20101006123950.GA29118@linux-sh.org> <20101006131825.GO13563@erda.amd.com> <20101006133041.GA29273@linux-sh.org>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH 4/7] ARM: oprofile: Move non-ARM code into separate
+ init/exit
+Date: Wed, 6 Oct 2010 16:49:21 +0200
+Message-ID: <20101006144921.GQ13563@erda.amd.com>
+References: <cover.1286222593.git.matt@console-pimps.org>
+ <74092b0d162aafc21e408033cec6146e227363b5.1286222593.git.matt@console-pimps.org>
+ <20101006133309.GP13563@erda.amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20101006133041.GA29273@linux-sh.org>
+In-Reply-To: <20101006133309.GP13563@erda.amd.com>
 Sender: linux-sh-owner@vger.kernel.org
-To: Robert Richter <robert.richter@amd.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 06, 2010 at 10:30:41PM +0900, Paul Mundt wrote:
-> On Wed, Oct 06, 2010 at 03:18:25PM +0200, Robert Richter wrote:
-> > I am not against adding the pmu name to the perf API. But the oprofile
-> > cpu_type strings are oprofile centric esp. for the userland. So these
-> > strings will remain part of oprofile. Also I don't think we want to
-> > polute the perf pmu names with it.
+On 06.10.10 15:33:09, Robert Richter wrote:
+> On 04.10.10 16:44:22, Matt Fleming wrote:
+> > In preparation for moving the majority of this oprofile code into an
+> > architecture-neutral place separate the architecture-independent code
+> > into oprofile_perf_init() and oprofile_perf_exit().
 > > 
-> And those architectures that have opted to use different strings for perf
-> events are free to mangle them however they want for the oprofile case.
-> It doesn't change the fact that strings are still being managed by all of
-> the architectures. The perf PMU names aren't presently locked in to an
-> ABI, whereas the oprofile strings are, so it seems fairly straightforward
-> to develop standard mangling rules for preventing an oprofile-facing
-> string, or to simply reuse the strings verbatim.
+> > Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> > Tested-by: Will Deacon <will.deacon@arm.com>
+> > ---
+> >  arch/arm/oprofile/common.c |   17 ++++++++++++++---
+> >  1 files changed, 14 insertions(+), 3 deletions(-)
+> > 
+> > diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
+> > index 86df75f..e4cd332 100644
+> > --- a/arch/arm/oprofile/common.c
+> > +++ b/arch/arm/oprofile/common.c
+> > @@ -327,7 +327,7 @@ static void arm_backtrace(struct pt_regs * const regs, unsigned int depth)
+> >  		tail = user_backtrace(tail);
+> >  }
+> >  
+> > -int __init oprofile_arch_init(struct oprofile_operations *ops)
+> > +int __init oprofile_perf_init(struct oprofile_operations *ops)
+> >  {
+> >  	int cpu, ret = 0;
+> >  
+> > @@ -365,7 +365,6 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
+> >  		}
+> >  	}
+> >  
+> > -	ops->backtrace		= arm_backtrace;
+> >  	ops->create_files	= oprofile_perf_create_files;
+> >  	ops->setup		= oprofile_perf_setup;
+> >  	ops->start		= oprofile_perf_start;
+> > @@ -388,7 +387,14 @@ out:
+> >  	return ret;
+> >  }
+> >  
+> > -void __exit oprofile_arch_exit(void)
+> > +int __init oprofile_arch_init(struct oprofile_operations *ops)
+> > +{
 > 
-So to add a bit of context here, I was just looking at the oprofile
-tools. The naming format here is one of:
+> We should do here a:
+> 
+> 	memset(ops, 0, sizeof(*ops));
 
-	<arch>/<pmu>
+Matt,
 
-if there were a generic perf to oprofile pmu name mangler that did this
-it would cover almost all of the ARM cases already, the SH strings I'm
-happy to convert to work this way, and a good chunk of the PowerPC PMUs
-would work fine, too. PowerPC already has an oprofile CPU string in its
-CPU spec, so this would be even more trivial to wire up there if such a
-generic interface were to exist.
+an alternative would be to move this to oprofile_perf_init() and
+modify ops->backtrace afterwards, but then we will lose the function's
+tail call. Not sure that is better. Paul, what do you think?
 
-This would just leave x86 as the odd one out, but I suppose if x86 were
-to move to the oprofile perf wrapper in the future then a bit of id to
-name mangling as an override wouldn't be too much work.
+-Robert
+
+> 
+> Otherwise it looks good.
+> 
+> -Robert
+> 
+> > +	ops->backtrace		= arm_backtrace;
+> > +
+> > +	return oprofile_perf_init(ops);
+> > +}
+> > +
+> > +void __exit oprofile_perf_exit(void)
+> >  {
+> >  	int cpu, id;
+> >  	struct perf_event *event;
+> > @@ -406,6 +412,11 @@ void __exit oprofile_arch_exit(void)
+> >  	kfree(counter_config);
+> >  	exit_driverfs();
+> >  }
+> > +
+> > +void __exit oprofile_arch_exit(void)
+> > +{
+> > +	oprofile_perf_exit();
+> > +}
+> >  #else
+> >  int __init oprofile_arch_init(struct oprofile_operations *ops)
+> >  {
+> > -- 
+> > 1.7.1
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
+
