@@ -1,61 +1,47 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 4/7] ARM: oprofile: Move non-ARM code into separate init/exit
-Date: Wed, 6 Oct 2010 12:23:17 -0600
-Message-ID: <AANLkTikGQe99k_fK5pZtkn-ht9jgC0guDkn28dSedjUo@mail.gmail.com>
-References: <cover.1286222593.git.matt@console-pimps.org> <74092b0d162aafc21e408033cec6146e227363b5.1286222593.git.matt@console-pimps.org>
- <20101006133309.GP13563@erda.amd.com> <20101006144921.GQ13563@erda.amd.com>
- <20101006145311.GA3754@linux-sh.org> <20101006145903.GR13563@erda.amd.com>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH 5/7] oprofile: Abstract the perf-events backend
+Date: Wed, 6 Oct 2010 20:34:22 +0200
+Message-ID: <20101006183422.GV13563@erda.amd.com>
+References: <cover.1286222593.git.matt@console-pimps.org>
+ <f1c48cb70de8129566db8a9196bcf3a3bc500aa8.1286222593.git.matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <20101006145903.GR13563@erda.amd.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Robert Richter <robert.richter@amd.com>
-Cc: Paul Mundt <lethal@linux-sh.org>, Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from va3ehsobe004.messaging.microsoft.com ([216.32.180.14]:37060
+	"EHLO VA3EHSOBE004.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1759477Ab0JFSee (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 14:34:34 -0400
+Content-Disposition: inline
+In-Reply-To: <f1c48cb70de8129566db8a9196bcf3a3bc500aa8.1286222593.git.matt@console-pimps.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
 
-On Wed, Oct 6, 2010 at 8:59 AM, Robert Richter <robert.richter@amd.com>=
- wrote:
-> On 06.10.10 10:53:11, Paul Mundt wrote:
->> On Wed, Oct 06, 2010 at 04:49:21PM +0200, Robert Richter wrote:
->> > On 06.10.10 15:33:09, Robert Richter wrote:
->> > > On 04.10.10 16:44:22, Matt Fleming wrote:
->> > > > -void __exit oprofile_arch_exit(void)
->> > > > +int __init oprofile_arch_init(struct oprofile_operations *ops=
-)
->> > > > +{
->> > >
->> > > We should do here a:
->> > >
->> > > =A0 memset(ops, 0, sizeof(*ops));
->> >
->> > Matt,
->> >
->> > an alternative would be to move this to oprofile_perf_init() and
->> > modify ops->backtrace afterwards, but then we will lose the functi=
-on's
->> > tail call. Not sure that is better. Paul, what do you think?
->> >
->> I'm a bit confused as to why we just don't do:
->>
->> ---
->>
->> diff --git a/drivers/oprofile/oprof.c b/drivers/oprofile/oprof.c
->> index b336cd9..76d97a5 100644
->> --- a/drivers/oprofile/oprof.c
->> +++ b/drivers/oprofile/oprof.c
->> @@ -252,6 +252,8 @@ static int __init oprofile_init(void)
->> =A0{
->> =A0 =A0 =A0 int err;
->>
->> + =A0 =A0 memset(&oprofile_ops, 0, sizeof(struct oprofile_operations=
-));
->> +
->
-> Yes, this looks much better. Thanks Paul.
+On 04.10.10 16:44:23, Matt Fleming wrote:
+> Move the perf-events backend from arch/arm/oprofile into
+> drivers/oprofile so that the code can be shared between architectures.
+> 
+> This allows each architecture to maintain only a single copy of the PMU
+> accessor functions instead of one for both perf and OProfile. It also
+> becomes possible for other architectures to delete much of their
+> OProfile code in favour of the common code now available in
+> drivers/oprofile/oprofile_perf.c.
+> 
+> Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> Tested-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/arm/oprofile/Makefile       |    4 +
+>  arch/arm/oprofile/common.c       |  319 -------------------------------------
+>  drivers/oprofile/oprofile_perf.c |  326 ++++++++++++++++++++++++++++++++++++++
+>  include/linux/oprofile.h         |    6 +
+>  4 files changed, 336 insertions(+), 319 deletions(-)
+>  create mode 100644 drivers/oprofile/oprofile_perf.c
 
-oprofile_ops is allocated in bss and so is already zeroed.  No need to
-do it explicitly.
+This patch looks good.
 
-g.
+-Robert
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
