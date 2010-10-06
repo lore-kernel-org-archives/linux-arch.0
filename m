@@ -1,59 +1,80 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 4/7] ARM: oprofile: Move non-ARM code into separate init/exit
-Date: Thu, 7 Oct 2010 00:00:35 +0900
-Message-ID: <20101006150035.GB3754@linux-sh.org>
-References: <cover.1286222593.git.matt@console-pimps.org> <74092b0d162aafc21e408033cec6146e227363b5.1286222593.git.matt@console-pimps.org> <20101006133309.GP13563@erda.amd.com> <20101006144921.GQ13563@erda.amd.com> <20101006145311.GA3754@linux-sh.org> <20101006145903.GR13563@erda.amd.com>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
+Date: Wed, 6 Oct 2010 17:37:10 +0200
+Message-ID: <20101006153710.GS13563@erda.amd.com>
+References: <cover.1286222593.git.matt@console-pimps.org>
+ <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org>
+ <20101006122736.GL13563@erda.amd.com>
+ <20101006123950.GA29118@linux-sh.org>
+ <20101006131825.GO13563@erda.amd.com>
+ <20101006133041.GA29273@linux-sh.org>
+ <20101006141347.GA32376@linux-sh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:58374 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757536Ab0JFPAl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 11:00:41 -0400
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20101006145903.GR13563@erda.amd.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <robert.richter@amd.com>
-Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+In-Reply-To: <20101006141347.GA32376@linux-sh.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 06, 2010 at 04:59:03PM +0200, Robert Richter wrote:
-> On 06.10.10 10:53:11, Paul Mundt wrote:
-> > On Wed, Oct 06, 2010 at 04:49:21PM +0200, Robert Richter wrote:
-> > > On 06.10.10 15:33:09, Robert Richter wrote:
-> > > > On 04.10.10 16:44:22, Matt Fleming wrote:
-> > > > > -void __exit oprofile_arch_exit(void)
-> > > > > +int __init oprofile_arch_init(struct oprofile_operations *ops)
-> > > > > +{
-> > > > 
-> > > > We should do here a:
-> > > > 
-> > > > 	memset(ops, 0, sizeof(*ops));
+On 06.10.10 10:13:47, Paul Mundt wrote:
+> On Wed, Oct 06, 2010 at 10:30:41PM +0900, Paul Mundt wrote:
+> > On Wed, Oct 06, 2010 at 03:18:25PM +0200, Robert Richter wrote:
+> > > I am not against adding the pmu name to the perf API. But the oprofile
+> > > cpu_type strings are oprofile centric esp. for the userland. So these
+> > > strings will remain part of oprofile. Also I don't think we want to
+> > > polute the perf pmu names with it.
 > > > 
-> > > Matt,
-> > > 
-> > > an alternative would be to move this to oprofile_perf_init() and
-> > > modify ops->backtrace afterwards, but then we will lose the function's
-> > > tail call. Not sure that is better. Paul, what do you think?
-> > > 
-> > I'm a bit confused as to why we just don't do:
+> > And those architectures that have opted to use different strings for perf
+> > events are free to mangle them however they want for the oprofile case.
+> > It doesn't change the fact that strings are still being managed by all of
+> > the architectures. The perf PMU names aren't presently locked in to an
+> > ABI, whereas the oprofile strings are, so it seems fairly straightforward
+> > to develop standard mangling rules for preventing an oprofile-facing
+> > string, or to simply reuse the strings verbatim.
 > > 
-> > ---
-> > 
-> > diff --git a/drivers/oprofile/oprof.c b/drivers/oprofile/oprof.c
-> > index b336cd9..76d97a5 100644
-> > --- a/drivers/oprofile/oprof.c
-> > +++ b/drivers/oprofile/oprof.c
-> > @@ -252,6 +252,8 @@ static int __init oprofile_init(void)
-> >  {
-> >  	int err;
-> >  
-> > +	memset(&oprofile_ops, 0, sizeof(struct oprofile_operations));
-> > +
+> So to add a bit of context here, I was just looking at the oprofile
+> tools. The naming format here is one of:
 > 
-> Yes, this looks much better. Thanks Paul.
-> 
-> 
-In which case, if you want to take it:
+> 	<arch>/<pmu>
 
-Signed-off-by: Paul Mundt <lethal@linux-sh.org>
+Do you really want the oprofile name scheme move to perf?
+
+> 
+> if there were a generic perf to oprofile pmu name mangler that did this
+
+Or, do you mean here to derive an oprofile name from the pmu string in
+a generic way? I was suggesting this for SH when commenting on version
+3 of this patch set. We dropped this idea to keep changes simple for
+this initial patch set, because it was much easier to implement it
+with strcmp() and the pmu strings are not expected to be changed for
+sh in the near future.
+
+So, can't we use op_name_from_perf_name() from [PATCH -v3 6/6] for SH
+here and implement a perf_pmu_name() function for sh that is part of
+perf's generic interface? 
+
+Later we can add a generic function for sh ...
+
+> it would cover almost all of the ARM cases already, the SH strings I'm
+> happy to convert to work this way, and a good chunk of the PowerPC PMUs
+> would work fine, too. PowerPC already has an oprofile CPU string in its
+> CPU spec, so this would be even more trivial to wire up there if such a
+> generic interface were to exist.
+> 
+> This would just leave x86 as the odd one out, but I suppose if x86 were
+> to move to the oprofile perf wrapper in the future then a bit of id to
+> name mangling as an override wouldn't be too much work.
+
+... and also other architectures on top of these patches.
+
+Thanks,
+
+-Robert
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
+
