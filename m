@@ -1,36 +1,45 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 1/7] perf: Add helper function to return number of
- counters
-Date: Wed, 06 Oct 2010 15:41:32 +0200
-Message-ID: <1286372492.2144.181.camel@laptop>
-References: <cover.1286222593.git.matt@console-pimps.org>
-	 <c4eb88b09da564fe093cc6571ed747971425e69a.1286222593.git.matt@console-pimps.org>
-	 <20101006121410.GK13563@erda.amd.com>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
+Date: Wed, 6 Oct 2010 23:13:47 +0900
+Message-ID: <20101006141347.GA32376@linux-sh.org>
+References: <cover.1286222593.git.matt@console-pimps.org> <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org> <20101006122736.GL13563@erda.amd.com> <20101006123950.GA29118@linux-sh.org> <20101006131825.GO13563@erda.amd.com> <20101006133041.GA29273@linux-sh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:43230 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932343Ab0JFNmb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 09:42:31 -0400
-In-Reply-To: <20101006121410.GK13563@erda.amd.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20101006133041.GA29273@linux-sh.org>
+Sender: linux-sh-owner@vger.kernel.org
 To: Robert Richter <robert.richter@amd.com>
-Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Cc: Peter Zijlstra <peterz@infradead.org>, Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2010-10-06 at 14:14 +0200, Robert Richter wrote:
-> > +int perf_num_counters(void)
-> > +{
-> > +     return armpmu_get_max_events();
-> > +}
-> > +EXPORT_SYMBOL_GPL(perf_num_counters);
+On Wed, Oct 06, 2010 at 10:30:41PM +0900, Paul Mundt wrote:
+> On Wed, Oct 06, 2010 at 03:18:25PM +0200, Robert Richter wrote:
+> > I am not against adding the pmu name to the perf API. But the oprofile
+> > cpu_type strings are oprofile centric esp. for the userland. So these
+> > strings will remain part of oprofile. Also I don't think we want to
+> > polute the perf pmu names with it.
+> > 
+> And those architectures that have opted to use different strings for perf
+> events are free to mangle them however they want for the oprofile case.
+> It doesn't change the fact that strings are still being managed by all of
+> the architectures. The perf PMU names aren't presently locked in to an
+> ABI, whereas the oprofile strings are, so it seems fairly straightforward
+> to develop standard mangling rules for preventing an oprofile-facing
+> string, or to simply reuse the strings verbatim.
 > 
-> Peter,
-> 
-> can you please ack this interface? 
+So to add a bit of context here, I was just looking at the oprofile
+tools. The naming format here is one of:
 
-It does seem like the best way forward for this, so
+	<arch>/<pmu>
 
-Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+if there were a generic perf to oprofile pmu name mangler that did this
+it would cover almost all of the ARM cases already, the SH strings I'm
+happy to convert to work this way, and a good chunk of the PowerPC PMUs
+would work fine, too. PowerPC already has an oprofile CPU string in its
+CPU spec, so this would be even more trivial to wire up there if such a
+generic interface were to exist.
+
+This would just leave x86 as the odd one out, but I suppose if x86 were
+to move to the oprofile perf wrapper in the future then a bit of id to
+name mangling as an override wouldn't be too much work.
