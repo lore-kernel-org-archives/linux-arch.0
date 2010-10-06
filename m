@@ -1,50 +1,80 @@
-From: Yinghai Lu <yinghai@kernel.org>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [patch 00/47] Sparse irq rework
-Date: Wed, 06 Oct 2010 15:45:55 -0700
-Message-ID: <4CACFC23.4080504@kernel.org>
-References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6> <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6>
+Date: Thu, 7 Oct 2010 00:52:43 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6>
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
+ <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:44667 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760004Ab0JFWrS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 18:47:18 -0400
-In-Reply-To: <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6>
+Received: from www.tglx.de ([62.245.132.106]:45861 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932904Ab0JFWzJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Oct 2010 18:55:09 -0400
+In-Reply-To: <4CACFC23.4080504@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
+To: Yinghai Lu <yinghai@kernel.org>
 Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On 10/05/2010 03:22 AM, Thomas Gleixner wrote:
-> On Sun, 3 Oct 2010, Thomas Gleixner wrote:
->> On Sun, 3 Oct 2010, Grant Likely wrote:
->>> Okay, patch 14 looks good to me too (including Yinghai's comment).
->>> The new allocator seems sane, and I didn't see any obvious errors in
->>> patches 16-47.  I've not tested any of this yet.  Hopefully I'll be
->>> able to carve out some time to do so early this week.
->>
->> Wait until I pushed out a fixed tree. In meantime I found out how I
->> managed to screw up the quilt series :(
->>
->> Will post, once it's ready.
-> 
-> Pushed out an updated tree to
-> 
->  git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse-irq.git master
-> 
+On Wed, 6 Oct 2010, Yinghai Lu wrote:
 
-test it together with tip, it seems all io apic routing is not set rightly. MSI is ok...
+> On 10/05/2010 03:22 AM, Thomas Gleixner wrote:
+> > On Sun, 3 Oct 2010, Thomas Gleixner wrote:
+> >> On Sun, 3 Oct 2010, Grant Likely wrote:
+> >>> Okay, patch 14 looks good to me too (including Yinghai's comment).
+> >>> The new allocator seems sane, and I didn't see any obvious errors in
+> >>> patches 16-47.  I've not tested any of this yet.  Hopefully I'll be
+> >>> able to carve out some time to do so early this week.
+> >>
+> >> Wait until I pushed out a fixed tree. In meantime I found out how I
+> >> managed to screw up the quilt series :(
+> >>
+> >> Will post, once it's ready.
+> > 
+> > Pushed out an updated tree to
+> > 
+> >  git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse-irq.git master
+> > 
+> 
+> test it together with tip, it seems all io apic routing is not set rightly. MSI is ok...
+> 
+> [  200.290040] ehci_hcd 0000:00:1d.7: PCI INT A -> GSI 23 (level, low) -> IRQ 23
+> [  200.290991] ehci_hcd 0000:00:1d.7: setting latency timer to 64
+> [  200.310002] ehci_hcd 0000:00:1d.7: EHCI Host Controller
+> [  200.310455] ehci_hcd 0000:00:1d.7: new USB bus registered, assigned bus number 1
+> [  200.330127] ehci_hcd 0000:00:1d.7: debug port 1
+> [  200.334395] ehci_hcd 0000:00:1d.7: cache line size of 256 is not supported
+> [  200.350042] ehci_hcd 0000:00:1d.7: request interrupt 23 failed
+> [  200.350491] ehci_hcd 0000:00:1d.7: USB bus 1 deregistered
+> [  200.372257] ehci_hcd 0000:00:1d.7: PCI INT A disabled
+> [  200.372644] ehci_hcd 0000:00:1d.7: init 0000:00:1d.7 fail, -38
+> [  200.389916] ehci_hcd: probe of 0000:00:1d.7 failed with error -38
 
-[  200.290040] ehci_hcd 0000:00:1d.7: PCI INT A -> GSI 23 (level, low) -> IRQ 23
-[  200.290991] ehci_hcd 0000:00:1d.7: setting latency timer to 64
-[  200.310002] ehci_hcd 0000:00:1d.7: EHCI Host Controller
-[  200.310455] ehci_hcd 0000:00:1d.7: new USB bus registered, assigned bus number 1
-[  200.330127] ehci_hcd 0000:00:1d.7: debug port 1
-[  200.334395] ehci_hcd 0000:00:1d.7: cache line size of 256 is not supported
-[  200.350042] ehci_hcd 0000:00:1d.7: request interrupt 23 failed
-[  200.350491] ehci_hcd 0000:00:1d.7: USB bus 1 deregistered
-[  200.372257] ehci_hcd 0000:00:1d.7: PCI INT A disabled
-[  200.372644] ehci_hcd 0000:00:1d.7: init 0000:00:1d.7 fail, -38
-[  200.389916] ehci_hcd: probe of 0000:00:1d.7 failed with error -38
+Yep. Ingo's testing found that already. Does the patch below fix it ?
+
+Thanks,
+
+	tglx
+---
+diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
+index 2f171df..eb3d01d 100644
+--- a/arch/x86/kernel/apic/io_apic.c
++++ b/arch/x86/kernel/apic/io_apic.c
+@@ -252,11 +252,15 @@ static struct irq_cfg *alloc_irq_and_cfg_at(unsigned int at, int node)
+ static struct irq_cfg *get_irq_cfg_at(unsigned int at, int node)
+ {
+ 	int res = irq_alloc_desc_at(at, node);
++	struct irq_data *data;
+ 
+ 	if (res < 0 && res != -EEXIST)
+ 		return NULL;
+ 
+-	return get_irq_chip_data(at);
++	data = irq_get_irq_data(at);
++	if (res >= 0 && !data->chip_data)
++		data->chip_data = alloc_irq_cfg(at, node);
++	return data->chip_data;
+ }
+ 
+ static int alloc_irq_from(unsigned int from, int node)
