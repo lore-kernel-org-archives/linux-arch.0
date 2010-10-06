@@ -1,45 +1,50 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 6/7] sh: oprofile: Use perf-events oprofile backend
-Date: Thu, 7 Oct 2010 06:03:18 +0900
-Message-ID: <20101006210317.GA7294@linux-sh.org>
-References: <cover.1286222593.git.matt@console-pimps.org> <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org> <20101006183549.GW13563@erda.amd.com> <20101006194507.GA30419@console-pimps.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [patch 00/47] Sparse irq rework
+Date: Wed, 06 Oct 2010 15:45:55 -0700
+Message-ID: <4CACFC23.4080504@kernel.org>
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6> <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:37523 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754555Ab0JFVDT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 17:03:19 -0400
-Content-Disposition: inline
-In-Reply-To: <20101006194507.GA30419@console-pimps.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:44667 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760004Ab0JFWrS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 18:47:18 -0400
+In-Reply-To: <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Robert Richter <robert.richter@amd.com>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On Wed, Oct 06, 2010 at 08:45:07PM +0100, Matt Fleming wrote:
-> On Wed, Oct 06, 2010 at 08:35:49PM +0200, Robert Richter wrote:
-> > On 04.10.10 16:44:24, Matt Fleming wrote:
-> > > Now that we've got a generic perf-events based oprofile backend we might
-> > > as well make use of it seeing as SH doesn't do anything special with its
-> > > oprofile backend. Also introduce a new CONFIG_HW_PERF_EVENTS symbol so
-> > > that we can fallback to using the timer interrupt for oprofile if the
-> > > CPU doesn't support perf events.
-> > > 
-> > > Signed-off-by: Matt Fleming <matt@console-pimps.org>
-> > > ---
-> > >  arch/sh/Kconfig            |   13 +++++
-> > >  arch/sh/oprofile/Makefile  |    4 ++
-> > >  arch/sh/oprofile/common.c  |  109 ++++---------------------------------------
-> > >  arch/sh/oprofile/op_impl.h |   33 -------------
-> > >  4 files changed, 28 insertions(+), 131 deletions(-)
-> > >  delete mode 100644 arch/sh/oprofile/op_impl.h
-> > 
-> > This patch looks good.
-> > 
-> > We might merge it with patch 7/7.
+On 10/05/2010 03:22 AM, Thomas Gleixner wrote:
+> On Sun, 3 Oct 2010, Thomas Gleixner wrote:
+>> On Sun, 3 Oct 2010, Grant Likely wrote:
+>>> Okay, patch 14 looks good to me too (including Yinghai's comment).
+>>> The new allocator seems sane, and I didn't see any obvious errors in
+>>> patches 16-47.  I've not tested any of this yet.  Hopefully I'll be
+>>> able to carve out some time to do so early this week.
+>>
+>> Wait until I pushed out a fixed tree. In meantime I found out how I
+>> managed to screw up the quilt series :(
+>>
+>> Will post, once it's ready.
 > 
-> This patch was broken out for Paul's benefit to ease review. If he's
-> happy for me to merge this with 7/7 then that's fine with me.
+> Pushed out an updated tree to
+> 
+>  git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse-irq.git master
+> 
 
-Yes, no objections from me.
+test it together with tip, it seems all io apic routing is not set rightly. MSI is ok...
+
+[  200.290040] ehci_hcd 0000:00:1d.7: PCI INT A -> GSI 23 (level, low) -> IRQ 23
+[  200.290991] ehci_hcd 0000:00:1d.7: setting latency timer to 64
+[  200.310002] ehci_hcd 0000:00:1d.7: EHCI Host Controller
+[  200.310455] ehci_hcd 0000:00:1d.7: new USB bus registered, assigned bus number 1
+[  200.330127] ehci_hcd 0000:00:1d.7: debug port 1
+[  200.334395] ehci_hcd 0000:00:1d.7: cache line size of 256 is not supported
+[  200.350042] ehci_hcd 0000:00:1d.7: request interrupt 23 failed
+[  200.350491] ehci_hcd 0000:00:1d.7: USB bus 1 deregistered
+[  200.372257] ehci_hcd 0000:00:1d.7: PCI INT A disabled
+[  200.372644] ehci_hcd 0000:00:1d.7: init 0000:00:1d.7 fail, -38
+[  200.389916] ehci_hcd: probe of 0000:00:1d.7 failed with error -38
