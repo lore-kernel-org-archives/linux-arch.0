@@ -1,66 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from db3ehsobe001.messaging.microsoft.com ([213.199.154.139]:59993
-	"EHLO DB3EHSOBE001.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755667Ab0JFMf6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 08:35:58 -0400
-Date: Wed, 6 Oct 2010 14:35:21 +0200
-From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH 1/7] perf: Add helper function to return number of
- counters
-Message-ID: <20101006123521.GM13563@erda.amd.com>
-References: <cover.1286222593.git.matt@console-pimps.org>
- <c4eb88b09da564fe093cc6571ed747971425e69a.1286222593.git.matt@console-pimps.org>
- <20101006121410.GK13563@erda.amd.com>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:40529 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755799Ab0JFMjz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 08:39:55 -0400
+Date: Wed, 6 Oct 2010 21:39:50 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
+Message-ID: <20101006123950.GA29118@linux-sh.org>
+References: <cover.1286222593.git.matt@console-pimps.org> <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org> <20101006122736.GL13563@erda.amd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20101006121410.GK13563@erda.amd.com>
+In-Reply-To: <20101006122736.GL13563@erda.amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101006123521.xvY6OWHPdVVfB1ThNf-Qaam6ruCzHQh4DzqqWTHSQBQ@z>
+To: Robert Richter <robert.richter@amd.com>
+Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101006123950.VK0OKwY2xV9IjjUSCTUXH8edsDdoXKHw5UZQJY9-lTw@z>
 
-On 06.10.10 14:14:10, Robert Richter wrote:
-> On 04.10.10 16:44:19, Matt Fleming wrote:
-> > The number of counters for the registered pmu is needed in a few places
-> > so provide a helper function that returns this number.
-> > 
-> > Signed-off-by: Matt Fleming <matt@console-pimps.org>
-> > Tested-by: Will Deacon <will.deacon@arm.com>
-> > ---
-> >  arch/arm/kernel/perf_event.c |    6 ++++++
-> >  arch/arm/oprofile/common.c   |   31 ++++++++++++++++++-------------
-> >  arch/sh/kernel/perf_event.c  |    9 +++++++++
-> >  include/linux/perf_event.h   |    1 +
-> >  4 files changed, 34 insertions(+), 13 deletions(-)
+On Wed, Oct 06, 2010 at 02:27:36PM +0200, Robert Richter wrote:
+> On 04.10.10 16:44:20, Matt Fleming wrote:
+> > Introduce perf_pmu_name() helper function that returns the name of the
+> > pmu. This gives us a generic way to get the name of a pmu regardless of
+> > how an architecture identifies it internally, e.g. ARM uses an id
+> > whereas SH currently uses a string.
+> 
+> I rather want use here the solution we discussed earlier, simply
+> including <asm/perf_event.h> and then access sh_pmu->name directly
+> from oprofile.
+> 
+No. Exposing sh_pmu generically is unacceptable. This is already
+centrally managed through perf, and if oprofile needs any additional
+information then it needs to get that through the perf layer. We already
+have the situation that effectively every architecture with perf support
+implements a name string already, so making this part of the perf API
+hardly seems like that big of a stretch. If the perf people are violently
+opposed to this, then of course we can look at alternatives.
 
-> > diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
-> > index d660cb8..23f18a0 100644
-> > --- a/arch/arm/oprofile/common.c
-> > +++ b/arch/arm/oprofile/common.c
-> > @@ -43,7 +43,7 @@ static DEFINE_MUTEX(op_arm_mutex);
-> >  
-> >  static struct op_counter_config *counter_config;
-> >  static struct perf_event **perf_events[nr_cpumask_bits];
-> > -static int perf_num_counters;
-> > +static int perf_nr_counters;
-
-Matt,
-
-as we will have one more version with this patch set, please use
-num_counters instead of perf_nr_counters. The same name is used also
-for x86.
-
-Thanks,
-
--Robert
-
-> >  
-> >  /*
-> >   * Overflow callback for oprofile.
-
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
-
+sh_pmu is created for use solely by the perf events code, we are not
+going to have oprofile poking around in data structures it has no place
+knowing anything about when 99% of everything else it is doing is already
+abstracted cleanly through the perf events interfaces. Likewise for
+special oprofile-specific APIs.
