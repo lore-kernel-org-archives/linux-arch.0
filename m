@@ -1,180 +1,205 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from va3ehsobe005.messaging.microsoft.com ([216.32.180.31]:56122
-	"EHLO VA3EHSOBE005.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1755274Ab0JFM1v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 08:27:51 -0400
-Date: Wed, 6 Oct 2010 14:27:36 +0200
+Received: from am1ehsobe005.messaging.microsoft.com ([213.199.154.208]:40644
+	"EHLO AM1EHSOBE005.bigfish.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755274Ab0JFM3l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 08:29:41 -0400
+Date: Wed, 6 Oct 2010 14:14:10 +0200
 From: Robert Richter <robert.richter@amd.com>
-Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
-Message-ID: <20101006122736.GL13563@erda.amd.com>
+Subject: Re: [PATCH 1/7] perf: Add helper function to return number of
+ counters
+Message-ID: <20101006121410.GK13563@erda.amd.com>
 References: <cover.1286222593.git.matt@console-pimps.org>
- <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org>
+ <c4eb88b09da564fe093cc6571ed747971425e69a.1286222593.git.matt@console-pimps.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Disposition: inline
-In-Reply-To: <59a8e68894a2e755232189abbe9b1a3b892e309c.1286222593.git.matt@console-pimps.org>
+In-Reply-To: <c4eb88b09da564fe093cc6571ed747971425e69a.1286222593.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101006122736.6CnVYsaw7Wvf1ZKY1ZCrlgC5FTFbQl-sYJPUHMbBekw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101006121410.1nJzyOSGBSGwkDh4gMNAcNKn-E1rL1AdVqbzB6aDt8s@z>
 
-On 04.10.10 16:44:20, Matt Fleming wrote:
-> Introduce perf_pmu_name() helper function that returns the name of the
-> pmu. This gives us a generic way to get the name of a pmu regardless of
-> how an architecture identifies it internally, e.g. ARM uses an id
-> whereas SH currently uses a string.
+On 04.10.10 16:44:19, Matt Fleming wrote:
+> The number of counters for the registered pmu is needed in a few places
+> so provide a helper function that returns this number.
 > 
 > Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> Tested-by: Will Deacon <will.deacon@arm.com>
 > ---
->  arch/arm/kernel/perf_event.c |   23 +++++++++++++++++++++++
->  arch/arm/oprofile/common.c   |   22 +---------------------
->  arch/sh/kernel/perf_event.c  |   14 ++++++++++++++
+>  arch/arm/kernel/perf_event.c |    6 ++++++
+>  arch/arm/oprofile/common.c   |   31 ++++++++++++++++++-------------
+>  arch/sh/kernel/perf_event.c  |    9 +++++++++
 >  include/linux/perf_event.h   |    1 +
->  kernel/perf_event.c          |    5 +++++
->  5 files changed, 44 insertions(+), 21 deletions(-)
+>  4 files changed, 34 insertions(+), 13 deletions(-)
 > 
 > diff --git a/arch/arm/kernel/perf_event.c b/arch/arm/kernel/perf_event.c
-> index ef3bc33..3bff24d 100644
+> index ecbb028..ef3bc33 100644
 > --- a/arch/arm/kernel/perf_event.c
 > +++ b/arch/arm/kernel/perf_event.c
-> @@ -123,6 +123,29 @@ armpmu_get_max_events(void)
+> @@ -123,6 +123,12 @@ armpmu_get_max_events(void)
 >  }
 >  EXPORT_SYMBOL_GPL(armpmu_get_max_events);
 >  
-> +const char *perf_pmu_name(void)
+> +int perf_num_counters(void)
 > +{
-> +	enum arm_perf_pmu_ids id = armpmu_get_pmu_id();
-> +
-> +	switch (id) {
-> +	case ARM_PERF_PMU_ID_XSCALE1:
-> +		return "arm/xscale1";
-> +	case ARM_PERF_PMU_ID_XSCALE2:
-> +		return "arm/xscale2";
-> +	case ARM_PERF_PMU_ID_V6:
-> +		return "arm/armv6";
-> +	case ARM_PERF_PMU_ID_V6MP:
-> +		return "arm/mpcore";
-> +	case ARM_PERF_PMU_ID_CA8:
-> +		return "arm/armv7";
-> +	case ARM_PERF_PMU_ID_CA9:
-> +		return "arm/armv7-ca9";
-> +	default:
-> +		return NULL;
-> +	}
+> +	return armpmu_get_max_events();
 > +}
-> +EXPORT_SYMBOL_GPL(perf_pmu_name);
-> +
->  int perf_num_counters(void)
->  {
->  	return armpmu_get_max_events();
-> diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
-> index 23f18a0..cb224ee 100644
-> --- a/arch/arm/oprofile/common.c
-> +++ b/arch/arm/oprofile/common.c
-> @@ -155,26 +155,6 @@ static void op_perf_stop(void)
->  }
->  
->  
-> -static char *op_name_from_perf_id(enum arm_perf_pmu_ids id)
-> -{
-> -	switch (id) {
-> -	case ARM_PERF_PMU_ID_XSCALE1:
-> -		return "arm/xscale1";
-> -	case ARM_PERF_PMU_ID_XSCALE2:
-> -		return "arm/xscale2";
-> -	case ARM_PERF_PMU_ID_V6:
-> -		return "arm/armv6";
-> -	case ARM_PERF_PMU_ID_V6MP:
-> -		return "arm/mpcore";
-> -	case ARM_PERF_PMU_ID_CA8:
-> -		return "arm/armv7";
-> -	case ARM_PERF_PMU_ID_CA9:
-> -		return "arm/armv7-ca9";
-> -	default:
-> -		return NULL;
-> -	}
-> -}
+> +EXPORT_SYMBOL_GPL(perf_num_counters);
 
-I don't like moving this oprofile names out to perf. These strings
-don't have much to do with the pmu names and are hints for the
-oprofile daemon to detect the pmu type with no other use. Of course
-this is more human readable than an enum or so, but it is of no worth
-other than oprofile. So it should be kept inside oprofile.
+Peter,
 
-> -
->  static int op_arm_create_files(struct super_block *sb, struct dentry *root)
->  {
->  	unsigned int i;
-> @@ -391,7 +371,7 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
->  	ops->start		= op_arm_start;
->  	ops->stop		= op_arm_stop;
->  	ops->shutdown		= op_arm_stop;
-> -	ops->cpu_type		= op_name_from_perf_id(armpmu_get_pmu_id());
-> +	ops->cpu_type		= perf_pmu_name();
->  
->  	if (!ops->cpu_type)
->  		ret = -ENODEV;
-> diff --git a/arch/sh/kernel/perf_event.c b/arch/sh/kernel/perf_event.c
-> index 2cb9ad5..e065a1d 100644
-> --- a/arch/sh/kernel/perf_event.c
-> +++ b/arch/sh/kernel/perf_event.c
-> @@ -59,6 +59,20 @@ static inline int sh_pmu_initialized(void)
->  	return !!sh_pmu;
->  }
->  
-> +const char *perf_pmu_name(void)
-> +{
-> +	if (!sh_pmu)
-> +		return NULL;
-> +
-> +	if (!strcmp(sh_pmu->name, "SH7750"))
-> +		return "sh/sh7750";
-> +	if (!strcmp(sh_pmu->name, "SH-4A"))
-> +		return "sh/sh4a";
-> +
-> +	return NULL;
-> +}
-> +EXPORT_SYMBOL_GPL(perf_pmu_name);
+can you please ack this interface?
 
-I rather want use here the solution we discussed earlier, simply
-including <asm/perf_event.h> and then access sh_pmu->name directly
-from oprofile.
+Thanks,
 
 -Robert
 
 > +
->  int perf_num_counters(void)
+>  #define HW_OP_UNSUPPORTED		0xFFFF
+>  
+>  #define C(_x) \
+> diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
+> index d660cb8..23f18a0 100644
+> --- a/arch/arm/oprofile/common.c
+> +++ b/arch/arm/oprofile/common.c
+> @@ -43,7 +43,7 @@ static DEFINE_MUTEX(op_arm_mutex);
+>  
+>  static struct op_counter_config *counter_config;
+>  static struct perf_event **perf_events[nr_cpumask_bits];
+> -static int perf_num_counters;
+> +static int perf_nr_counters;
+>  
+>  /*
+>   * Overflow callback for oprofile.
+> @@ -54,11 +54,11 @@ static void op_overflow_handler(struct perf_event *event, int unused,
+>  	int id;
+>  	u32 cpu = smp_processor_id();
+>  
+> -	for (id = 0; id < perf_num_counters; ++id)
+> +	for (id = 0; id < perf_nr_counters; ++id)
+>  		if (perf_events[cpu][id] == event)
+>  			break;
+>  
+> -	if (id != perf_num_counters)
+> +	if (id != perf_nr_counters)
+>  		oprofile_add_sample(regs, id);
+>  	else
+>  		pr_warning("oprofile: ignoring spurious overflow "
+> @@ -76,7 +76,7 @@ static void op_perf_setup(void)
+>  	u32 size = sizeof(struct perf_event_attr);
+>  	struct perf_event_attr *attr;
+>  
+> -	for (i = 0; i < perf_num_counters; ++i) {
+> +	for (i = 0; i < perf_nr_counters; ++i) {
+>  		attr = &counter_config[i].attr;
+>  		memset(attr, 0, size);
+>  		attr->type		= PERF_TYPE_RAW;
+> @@ -131,7 +131,7 @@ static int op_perf_start(void)
+>  	int cpu, event, ret = 0;
+>  
+>  	for_each_online_cpu(cpu) {
+> -		for (event = 0; event < perf_num_counters; ++event) {
+> +		for (event = 0; event < perf_nr_counters; ++event) {
+>  			ret = op_create_counter(cpu, event);
+>  			if (ret)
+>  				goto out;
+> @@ -150,7 +150,7 @@ static void op_perf_stop(void)
+>  	int cpu, event;
+>  
+>  	for_each_online_cpu(cpu)
+> -		for (event = 0; event < perf_num_counters; ++event)
+> +		for (event = 0; event < perf_nr_counters; ++event)
+>  			op_destroy_counter(cpu, event);
+>  }
+>  
+> @@ -179,7 +179,7 @@ static int op_arm_create_files(struct super_block *sb, struct dentry *root)
 >  {
->  	if (!sh_pmu)
+>  	unsigned int i;
+>  
+> -	for (i = 0; i < perf_num_counters; i++) {
+> +	for (i = 0; i < perf_nr_counters; i++) {
+>  		struct dentry *dir;
+>  		char buf[4];
+>  
+> @@ -353,14 +353,19 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
+>  
+>  	memset(&perf_events, 0, sizeof(perf_events));
+>  
+> -	perf_num_counters = armpmu_get_max_events();
+> +	perf_nr_counters = perf_num_counters();
+> +	if (perf_nr_counters <= 0) {
+> +		pr_info("oprofile: no performance counters\n");
+> +		ret = -ENODEV;
+> +		goto out;
+> +	}
+>  
+> -	counter_config = kcalloc(perf_num_counters,
+> +	counter_config = kcalloc(perf_nr_counters,
+>  			sizeof(struct op_counter_config), GFP_KERNEL);
+>  
+>  	if (!counter_config) {
+>  		pr_info("oprofile: failed to allocate %d "
+> -				"counters\n", perf_num_counters);
+> +				"counters\n", perf_nr_counters);
+>  		ret = -ENOMEM;
+>  		goto out;
+>  	}
+> @@ -370,11 +375,11 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
+>  		goto out;
+>  
+>  	for_each_possible_cpu(cpu) {
+> -		perf_events[cpu] = kcalloc(perf_num_counters,
+> +		perf_events[cpu] = kcalloc(perf_nr_counters,
+>  				sizeof(struct perf_event *), GFP_KERNEL);
+>  		if (!perf_events[cpu]) {
+>  			pr_info("oprofile: failed to allocate %d perf events "
+> -					"for cpu %d\n", perf_num_counters, cpu);
+> +					"for cpu %d\n", perf_nr_counters, cpu);
+>  			ret = -ENOMEM;
+>  			goto out;
+>  		}
+> @@ -409,7 +414,7 @@ void __exit oprofile_arch_exit(void)
+>  	struct perf_event *event;
+>  
+>  	for_each_possible_cpu(cpu) {
+> -		for (id = 0; id < perf_num_counters; ++id) {
+> +		for (id = 0; id < perf_nr_counters; ++id) {
+>  			event = perf_events[cpu][id];
+>  			if (event)
+>  				perf_event_release_kernel(event);
+> diff --git a/arch/sh/kernel/perf_event.c b/arch/sh/kernel/perf_event.c
+> index 7a3dc35..2cb9ad5 100644
+> --- a/arch/sh/kernel/perf_event.c
+> +++ b/arch/sh/kernel/perf_event.c
+> @@ -59,6 +59,15 @@ static inline int sh_pmu_initialized(void)
+>  	return !!sh_pmu;
+>  }
+>  
+> +int perf_num_counters(void)
+> +{
+> +	if (!sh_pmu)
+> +		return 0;
+> +
+> +	return sh_pmu->num_events;
+> +}
+> +EXPORT_SYMBOL_GPL(perf_num_counters);
+> +
+>  /*
+>   * Release the PMU if this is the last perf_event.
+>   */
 > diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-> index 1a02192..33f08da 100644
+> index 716f99b..1a02192 100644
 > --- a/include/linux/perf_event.h
 > +++ b/include/linux/perf_event.h
-> @@ -850,6 +850,7 @@ extern int perf_max_events;
+> @@ -849,6 +849,7 @@ extern int perf_max_events;
+>  
 >  extern const struct pmu *hw_perf_event_init(struct perf_event *event);
 >  
->  extern int perf_num_counters(void);
-> +extern const char *perf_pmu_name(void);
+> +extern int perf_num_counters(void);
 >  extern void perf_event_task_sched_in(struct task_struct *task);
 >  extern void perf_event_task_sched_out(struct task_struct *task, struct task_struct *next);
 >  extern void perf_event_task_tick(struct task_struct *task);
-> diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-> index db5b560..fc51268 100644
-> --- a/kernel/perf_event.c
-> +++ b/kernel/perf_event.c
-> @@ -85,6 +85,11 @@ void __weak hw_perf_enable(void)		{ barrier(); }
->  
->  void __weak perf_event_print_debug(void)	{ }
->  
-> +extern __weak const char *perf_pmu_name(void)
-> +{
-> +	return "pmu";
-> +}
-> +
->  static DEFINE_PER_CPU(int, perf_disable_count);
->  
->  void perf_disable(void)
 > -- 
 > 1.7.1
 > 
