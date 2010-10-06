@@ -1,43 +1,45 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 4/7] ARM: oprofile: Move non-ARM code into separate init/exit
-Date: Thu, 7 Oct 2010 03:50:57 +0900
-Message-ID: <20101006185057.GB13879@linux-sh.org>
-References: <cover.1286222593.git.matt@console-pimps.org> <74092b0d162aafc21e408033cec6146e227363b5.1286222593.git.matt@console-pimps.org> <20101006133309.GP13563@erda.amd.com> <20101006144921.GQ13563@erda.amd.com> <20101006145311.GA3754@linux-sh.org> <20101006145903.GR13563@erda.amd.com> <AANLkTikGQe99k_fK5pZtkn-ht9jgC0guDkn28dSedjUo@mail.gmail.com> <20101006184407.GY13563@erda.amd.com>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH 6/7] sh: oprofile: Use perf-events oprofile backend
+Date: Wed, 6 Oct 2010 20:35:49 +0200
+Message-ID: <20101006183549.GW13563@erda.amd.com>
+References: <cover.1286222593.git.matt@console-pimps.org>
+ <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from va3ehsobe010.messaging.microsoft.com ([216.32.180.30]:27430
+	"EHLO VA3EHSOBE010.bigfish.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1759761Ab0JFSvD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 14:51:03 -0400
 Content-Disposition: inline
-In-Reply-To: <20101006184407.GY13563@erda.amd.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Robert Richter <robert.richter@amd.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
 
-On Wed, Oct 06, 2010 at 08:44:07PM +0200, Robert Richter wrote:
-> On 06.10.10 14:23:17, Grant Likely wrote:
-> > >> diff --git a/drivers/oprofile/oprof.c b/drivers/oprofile/oprof.c
-> > >> index b336cd9..76d97a5 100644
-> > >> --- a/drivers/oprofile/oprof.c
-> > >> +++ b/drivers/oprofile/oprof.c
-> > >> @@ -252,6 +252,8 @@ static int __init oprofile_init(void)
-> > >> ?{
-> > >> ? ? ? int err;
-> > >>
-> > >> + ? ? memset(&oprofile_ops, 0, sizeof(struct oprofile_operations));
-> > >> +
-> > >
-> > > Yes, this looks much better. Thanks Paul.
-> > 
-> > oprofile_ops is allocated in bss and so is already zeroed.  No need to
-> > do it explicitly.
+On 04.10.10 16:44:24, Matt Fleming wrote:
+> Now that we've got a generic perf-events based oprofile backend we might
+> as well make use of it seeing as SH doesn't do anything special with its
+> oprofile backend. Also introduce a new CONFIG_HW_PERF_EVENTS symbol so
+> that we can fallback to using the timer interrupt for oprofile if the
+> CPU doesn't support perf events.
 > 
-> Before oprofile_arch_init() it isn't necessarily needed, but we should
-> definitely add it before oprofile_timer_init(). For code readability I
-> would rather tend to let the first in too.
-> 
-No, it was intentionally not added in between because architectures could
-set a backtrace op even if they had no actual counter information to plug
-in. oprofile_timer_init() is pretty careful to clear out all of the
-unused fields manually, while leaving the backtrace setting untouched.
+> Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> ---
+>  arch/sh/Kconfig            |   13 +++++
+>  arch/sh/oprofile/Makefile  |    4 ++
+>  arch/sh/oprofile/common.c  |  109 ++++---------------------------------------
+>  arch/sh/oprofile/op_impl.h |   33 -------------
+>  4 files changed, 28 insertions(+), 131 deletions(-)
+>  delete mode 100644 arch/sh/oprofile/op_impl.h
 
-sh, ia64, and s390 all depend on this behaviour.
+This patch looks good.
+
+We might merge it with patch 7/7.
+
+-Robert
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
