@@ -1,48 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40121 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752249Ab0JHFhB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 01:37:01 -0400
-Date: Fri, 8 Oct 2010 06:36:56 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 3/5] mips: sanitize restart logics
-Message-ID: <20101008053656.GU19804@ZenIV.linux.org.uk>
-References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
- <4CA38538.8000007@caviumnetworks.com>
- <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
+Received: from [150.82.175.143] ([150.82.175.143]:35251 "EHLO
+	dhcpa11143.tky.aist.go.jp" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756876Ab0JHKFx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 06:05:53 -0400
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 5/5] bitops: forbid asm-generic/bitops/le.h direct inclusion
+Date: Fri,  8 Oct 2010 19:03:13 +0900
+Message-ID: <1286532193-29814-5-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
+References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Maciej W. Rozycki" <macro@codesourcery.com>
-Cc: David Daney <ddaney@caviumnetworks.com>, Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
-Message-ID: <20101008053656.Y97lnhUG7qqv1lH2wuaviJVpGtphvWAS21e18kb9bWA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Message-ID: <20101008100313.BrWBf8nGqJnCbxZu-cp42zOUvS91ZpRNZi3iywcDQAs@z>
 
-On Thu, Sep 30, 2010 at 02:50:17AM +0100, Maciej W. Rozycki wrote:
-> On Wed, 29 Sep 2010, David Daney wrote:
->  Not exactly.  These GNU C library functions rely on the magic value of 
-> "1" there to recognise contexts they created themselves and which must 
-> therefore be handled by themselves internally (these contexts are not 
-> complete and only preserve the call-saved registers as specified by the 
-> respective MIPS ABIs, and are therefore unsafe to be passed to the 
-> rt_sigreturn(2) syscall).  All the other values, including of course "0", 
-> are not treated specially and the context is passed to rt_sigreturn(2) as 
-> usually.  This only matters in cases where e.g. setcontext(3) is used to 
-> exit from or return to a signal handler.
+asm-generic/bitops/le.h is only intended to be included directly from
+asm-generic/bitops/ext2-non-atomic.h or asm-generic/bitops/minix-le.h
+which implements generic ext2 or minix bit operations.
 
-Nothing has changed in that respect; setup_sigcontext() (and its counterparts)
-do _not_ use regs->regs[0].  Note
-        err |= __put_user(0, &sc->sc_regs[0]);
-        for (i = 1; i < 32; i++)
-                err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
-in there.  The whole point of ->regs[0] uses (both original and modified)
-is that $0 is constant 0 and thus the kernel is free to use that member
-of pt_regs to indicate that syscall restart might be needed.  So's libc,
-for that matter (to distinguish between sigreturn and setcontext ones).
-When sigframe is created we still discard the value - the fragment above
-is not modified at all.
+But there were some source files that include it directly.
+(those are already fixed by other commits)
 
-BTW, with original code regs->regs[0] *can* be 1, if you are leaving syscall
-with -EINVAL.  It won't reach the userland, though.
+This forbids asm-generic/bitops/le.h direct inclusion in the future.
+
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+---
+ include/asm-generic/bitops/le.h |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index db2be81..f8d0225 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -1,6 +1,11 @@
+ #ifndef _ASM_GENERIC_BITOPS_LE_H_
+ #define _ASM_GENERIC_BITOPS_LE_H_
+ 
++#if !defined(_ASM_GENERIC_BITOPS_MINIX_LE_H_) && \
++	!defined(_ASM_GENERIC_BITOPS_EXT2_NON_ATOMIC_H_)
++#error only minix-le.h and ext2-non-atomic.h can be included directly
++#endif
++
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
+ 
+-- 
+1.7.1.231.gd0b16
+
