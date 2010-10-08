@@ -1,45 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:40657 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758128Ab0JFTpJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Oct 2010 15:45:09 -0400
-Date: Wed, 6 Oct 2010 20:45:07 +0100
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 6/7] sh: oprofile: Use perf-events oprofile backend
-Message-ID: <20101006194507.GA30419@console-pimps.org>
-References: <cover.1286222593.git.matt@console-pimps.org>
- <db62cbe463d5bce89196d6456ad386129ce0022a.1286222593.git.matt@console-pimps.org>
- <20101006183549.GW13563@erda.amd.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:40121 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752249Ab0JHFhB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 01:37:01 -0400
+Date: Fri, 8 Oct 2010 06:36:56 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/5] mips: sanitize restart logics
+Message-ID: <20101008053656.GU19804@ZenIV.linux.org.uk>
+References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
+ <4CA38538.8000007@caviumnetworks.com>
+ <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20101006183549.GW13563@erda.amd.com>
+In-Reply-To: <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <robert.richter@amd.com>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101006194507.1JdatAfcu8tyeIbCVDlT7aDEyPBHm93y-6RRRLPFHSQ@z>
+To: "Maciej W. Rozycki" <macro@codesourcery.com>
+Cc: David Daney <ddaney@caviumnetworks.com>, Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+Message-ID: <20101008053656.Y97lnhUG7qqv1lH2wuaviJVpGtphvWAS21e18kb9bWA@z>
 
-On Wed, Oct 06, 2010 at 08:35:49PM +0200, Robert Richter wrote:
-> On 04.10.10 16:44:24, Matt Fleming wrote:
-> > Now that we've got a generic perf-events based oprofile backend we might
-> > as well make use of it seeing as SH doesn't do anything special with its
-> > oprofile backend. Also introduce a new CONFIG_HW_PERF_EVENTS symbol so
-> > that we can fallback to using the timer interrupt for oprofile if the
-> > CPU doesn't support perf events.
-> > 
-> > Signed-off-by: Matt Fleming <matt@console-pimps.org>
-> > ---
-> >  arch/sh/Kconfig            |   13 +++++
-> >  arch/sh/oprofile/Makefile  |    4 ++
-> >  arch/sh/oprofile/common.c  |  109 ++++---------------------------------------
-> >  arch/sh/oprofile/op_impl.h |   33 -------------
-> >  4 files changed, 28 insertions(+), 131 deletions(-)
-> >  delete mode 100644 arch/sh/oprofile/op_impl.h
-> 
-> This patch looks good.
-> 
-> We might merge it with patch 7/7.
+On Thu, Sep 30, 2010 at 02:50:17AM +0100, Maciej W. Rozycki wrote:
+> On Wed, 29 Sep 2010, David Daney wrote:
+>  Not exactly.  These GNU C library functions rely on the magic value of 
+> "1" there to recognise contexts they created themselves and which must 
+> therefore be handled by themselves internally (these contexts are not 
+> complete and only preserve the call-saved registers as specified by the 
+> respective MIPS ABIs, and are therefore unsafe to be passed to the 
+> rt_sigreturn(2) syscall).  All the other values, including of course "0", 
+> are not treated specially and the context is passed to rt_sigreturn(2) as 
+> usually.  This only matters in cases where e.g. setcontext(3) is used to 
+> exit from or return to a signal handler.
 
-This patch was broken out for Paul's benefit to ease review. If he's
-happy for me to merge this with 7/7 then that's fine with me.
+Nothing has changed in that respect; setup_sigcontext() (and its counterparts)
+do _not_ use regs->regs[0].  Note
+        err |= __put_user(0, &sc->sc_regs[0]);
+        for (i = 1; i < 32; i++)
+                err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
+in there.  The whole point of ->regs[0] uses (both original and modified)
+is that $0 is constant 0 and thus the kernel is free to use that member
+of pt_regs to indicate that syscall restart might be needed.  So's libc,
+for that matter (to distinguish between sigreturn and setcontext ones).
+When sigframe is created we still discard the value - the fragment above
+is not modified at all.
+
+BTW, with original code regs->regs[0] *can* be 1, if you are leaving syscall
+with -EINVAL.  It won't reach the userland, though.
