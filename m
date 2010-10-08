@@ -1,43 +1,85 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 3/5] mips: sanitize restart logics
-Date: Fri, 8 Oct 2010 06:36:56 +0100
-Message-ID: <20101008053656.GU19804@ZenIV.linux.org.uk>
-References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
- <4CA38538.8000007@caviumnetworks.com>
- <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 2/5] bitops: cleanup asm-generic/bitops/le.h
+Date: Fri,  8 Oct 2010 19:03:10 +0900
+Message-ID: <1286532193-29814-2-git-send-email-akinobu.mita@gmail.com>
+References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
+In-Reply-To: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: "Maciej W. Rozycki" <macro@codesourcery.com>
-Cc: David Daney <ddaney@caviumnetworks.com>, Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Sep 30, 2010 at 02:50:17AM +0100, Maciej W. Rozycki wrote:
-> On Wed, 29 Sep 2010, David Daney wrote:
->  Not exactly.  These GNU C library functions rely on the magic value of 
-> "1" there to recognise contexts they created themselves and which must 
-> therefore be handled by themselves internally (these contexts are not 
-> complete and only preserve the call-saved registers as specified by the 
-> respective MIPS ABIs, and are therefore unsafe to be passed to the 
-> rt_sigreturn(2) syscall).  All the other values, including of course "0", 
-> are not treated specially and the context is passed to rt_sigreturn(2) as 
-> usually.  This only matters in cases where e.g. setcontext(3) is used to 
-> exit from or return to a signal handler.
+ - Remove unused BITOP_WORD macro
+ - Merge definisions for big endian and little endian as much as possible
 
-Nothing has changed in that respect; setup_sigcontext() (and its counterparts)
-do _not_ use regs->regs[0].  Note
-        err |= __put_user(0, &sc->sc_regs[0]);
-        for (i = 1; i < 32; i++)
-                err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
-in there.  The whole point of ->regs[0] uses (both original and modified)
-is that $0 is constant 0 and thus the kernel is free to use that member
-of pt_regs to indicate that syscall restart might be needed.  So's libc,
-for that matter (to distinguish between sigreturn and setcontext ones).
-When sigframe is created we still discard the value - the fragment above
-is not modified at all.
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+---
+ include/asm-generic/bitops/le.h |   38 +++++++++++++++-----------------------
+ 1 files changed, 15 insertions(+), 23 deletions(-)
 
-BTW, with original code regs->regs[0] *can* be 1, if you are leaving syscall
-with -EINVAL.  It won't reach the userland, though.
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 80e3bf1..db2be81 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -4,27 +4,28 @@
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
+ 
+-#define BITOP_WORD(nr)		((nr) / BITS_PER_LONG)
+-#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+-
+ #if defined(__LITTLE_ENDIAN)
+ 
+-#define generic_test_le_bit(nr, addr) test_bit(nr, addr)
+-#define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
+-#define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
+-
+-#define generic_test_and_set_le_bit(nr, addr) test_and_set_bit(nr, addr)
+-#define generic_test_and_clear_le_bit(nr, addr) test_and_clear_bit(nr, addr)
++#define BITOP_LE_SWIZZLE	0
+ 
+-#define generic___test_and_set_le_bit(nr, addr) __test_and_set_bit(nr, addr)
+-#define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
+-
+-#define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
++#define generic_find_next_zero_le_bit(addr, size, offset) \
++	find_next_zero_bit(addr, size, offset)
+ #define generic_find_next_le_bit(addr, size, offset) \
+-			find_next_bit(addr, size, offset)
++	find_next_bit(addr, size, offset)
+ 
+ #elif defined(__BIG_ENDIAN)
+ 
++#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
++
++extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++
++#else
++#error "Please fix <asm/byteorder.h>"
++#endif
++
+ #define generic_test_le_bit(nr, addr) \
+ 	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ #define generic___set_le_bit(nr, addr) \
+@@ -42,15 +43,6 @@
+ #define generic___test_and_clear_le_bit(nr, addr) \
+ 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ 
+-extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-
+-#else
+-#error "Please fix <asm/byteorder.h>"
+-#endif
+-
+ #define generic_find_first_zero_le_bit(addr, size) \
+         generic_find_next_zero_le_bit((addr), (size), 0)
+ 
+-- 
+1.7.1.231.gd0b16
