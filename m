@@ -1,40 +1,43 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 4/5] rds: stop including asm-generic/bitops/le.h
- directly
-Date: Fri, 08 Oct 2010 11:59:00 -0700 (PDT)
-Message-ID: <20101008.115900.245387221.davem@davemloft.net>
-References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
-	<1286532193-29814-4-git-send-email-akinobu.mita@gmail.com>
-	<4CAF693B.9030706@oracle.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 00/47] Sparse irq rework
+Date: Fri, 8 Oct 2010 23:50:42 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6>
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
+ <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6>
+ <4CAD4EC3.5060809@kernel.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4CAF693B.9030706@oracle.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: andy.grover@oracle.com
-Cc: akinobu.mita@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, rds-devel@oss.oracle.com, netdev@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:47703 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757503Ab0JHVvT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Oct 2010 17:51:19 -0400
+In-Reply-To: <4CAD4EC3.5060809@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-From: Andy Grover <andy.grover@oracle.com>
-Date: Fri, 08 Oct 2010 11:55:55 -0700
-
-> On 10/08/2010 03:03 AM, Akinobu Mita wrote:
->> asm-generic/bitops/le.h is only intended to be included directly from
->> asm-generic/bitops/ext2-non-atomic.h or asm-generic/bitops/minix-le.h
->> which implements generic ext2 or minix bit operations.
->>
->> This stops including asm-generic/bitops/le.h directly and use ext2
->> non-atomic bit operations instead.
->>
->> An alternative approach is introducing little endian bit operations
->> in linux/bitops.h. But it needs to touch more files than this change
->> does.
+On Wed, 6 Oct 2010, Yinghai Lu wrote:
+> On 10/06/2010 09:01 PM, Thomas Gleixner wrote:
+> > Well, I'm not too happy about this preallocated stuff anyway, which is
+> > the reason for the warning below.
+> >  
+> >> [   80.726176] WARNING: at drivers/pci/intr_remapping.c:67 irq_2_iommu_alloc+0x52/0xdc()
+> >> [   80.745935] Hardware name: Sun Fire X4800
+> >> [   80.746179] irq_2_iommu!=NULL irq 8
+> > 
 > 
->> -	generic___set_le_bit(off, (void *)map->m_page_addrs[i]);
->> +	ext2_set_bit(off, (void *)map->m_page_addrs[i]);
-> 
-> I'd like a solution that doesn't have rds calling a function starting
-> with ext2_. Seems wrong.
+> no, irq_2_iommu are all dynamically allocated even for irq < 16.
 
-Agreed.
+I know. I was talking about the preallocated irq descriptors and the
+handling of it in general.
+
+Nevertheless, that irq_2_iommu stuff does not need it's own allocation
+function. It's bound to a specific irq_cfg anyway, so the next logical
+step is to move irq_2_iommu into struct irq_cfg and get rid of the
+extra allocation/free in intr_remapping.c.
+
+Thanks,
+	
+	tglx
