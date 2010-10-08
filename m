@@ -1,56 +1,43 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH 1/3] [ARM] Translate delay.S into (mostly) C
-Date: Thu, 07 Oct 2010 21:12:03 -0400 (EDT)
-Message-ID: <alpine.LFD.2.00.1010072107560.3107@xanadu.home>
-References: <1285644827-6846-1-git-send-email-sboyd@codeaurora.org>
- <1285644827-6846-2-git-send-email-sboyd@codeaurora.org>
- <1286299355.18791.11.camel@c-dwalke-linux.qualcomm.com>
- <4CABEECB.4030301@codeaurora.org>
- <alpine.LFD.2.00.1010061024220.3107@xanadu.home>
- <4CACC053.2090509@codeaurora.org> <1286393743.22265.129.camel@m0nster>
- <alpine.LFD.2.00.1010061553350.3107@xanadu.home>
- <4CAE619A.2050302@codeaurora.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/5] mips: sanitize restart logics
+Date: Fri, 8 Oct 2010 06:36:56 +0100
+Message-ID: <20101008053656.GU19804@ZenIV.linux.org.uk>
+References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
+ <4CA38538.8000007@caviumnetworks.com>
+ <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:62398 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751314Ab0JHBMF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Oct 2010 21:12:05 -0400
-In-reply-to: <4CAE619A.2050302@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Boyd <sboyd@codeaurora.org>
-Cc: Daniel Walker <dwalker@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Kevin Hilman <khilman@deeprootsystems.com>, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, Saravana Kannan <skannan@codeaurora.org>, Santosh Shilimkar <santosh.shilimkar@ti.com>, Colin Cross <ccross@android.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Maciej W. Rozycki" <macro@codesourcery.com>
+Cc: David Daney <ddaney@caviumnetworks.com>, Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 7 Oct 2010, Stephen Boyd wrote:
+On Thu, Sep 30, 2010 at 02:50:17AM +0100, Maciej W. Rozycki wrote:
+> On Wed, 29 Sep 2010, David Daney wrote:
+>  Not exactly.  These GNU C library functions rely on the magic value of 
+> "1" there to recognise contexts they created themselves and which must 
+> therefore be handled by themselves internally (these contexts are not 
+> complete and only preserve the call-saved registers as specified by the 
+> respective MIPS ABIs, and are therefore unsafe to be passed to the 
+> rt_sigreturn(2) syscall).  All the other values, including of course "0", 
+> are not treated specially and the context is passed to rt_sigreturn(2) as 
+> usually.  This only matters in cases where e.g. setcontext(3) is used to 
+> exit from or return to a signal handler.
 
-> Why doesn't any other architecture use assembly for their lpj code? They
-> may use headers with assembly in them or C code with assembly in them,
-> but they don't write all of the delay code in assembly and rely on
-> function interleaving. This leads me to believe other arches aren't
-> concerned about compiler optimizations breaking lpj cmdline parameters,
-> so why should ARM be concerned?
-> 
-> I tested the theory out and scaled down the CPU frequency to 19.2 MHz
-> and then called calibrate_delay(). Before and after applying this series
-> I got the same results.
-> 
-> Calibrating delay loop... 12.67 BogoMIPS (lpj=63360)
-> 
-> Jumping up to 1.2 GHz and calling calibrate_delay() gives me the same
-> before and after
-> 
-> Calibrating delay loop... 792.98 BogoMIPS (lpj=3964928)
+Nothing has changed in that respect; setup_sigcontext() (and its counterparts)
+do _not_ use regs->regs[0].  Note
+        err |= __put_user(0, &sc->sc_regs[0]);
+        for (i = 1; i < 32; i++)
+                err |= __put_user(regs->regs[i], &sc->sc_regs[i]);
+in there.  The whole point of ->regs[0] uses (both original and modified)
+is that $0 is constant 0 and thus the kernel is free to use that member
+of pt_regs to indicate that syscall restart might be needed.  So's libc,
+for that matter (to distinguish between sigreturn and setcontext ones).
+When sigframe is created we still discard the value - the fragment above
+is not modified at all.
 
-OK, fair enough.
-
-> I don't have access to a machine capable of running slower than 19.2
-> MHz. Maybe machines running in the KHz range would experience differences?
-
-Don't worry, I doubt any ARM processor capable of running Linux ever was 
-that slow.
-
-
-Nicolas
+BTW, with original code regs->regs[0] *can* be 1, if you are leaving syscall
+with -EINVAL.  It won't reach the userland, though.
