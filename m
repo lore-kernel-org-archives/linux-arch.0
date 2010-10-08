@@ -1,91 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [150.82.175.143] ([150.82.175.143]:35251 "EHLO
-	dhcpa11143.tky.aist.go.jp" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1756989Ab0JHKFy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 06:05:54 -0400
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 2/5] bitops: cleanup asm-generic/bitops/le.h
-Date: Fri,  8 Oct 2010 19:03:10 +0900
-Message-ID: <1286532193-29814-2-git-send-email-akinobu.mita@gmail.com>
-In-Reply-To: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:48749 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757296Ab0JHKmF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 06:42:05 -0400
+Received: from canuck.infradead.org ([2001:4978:20e::1])
+	by bombadil.infradead.org with esmtps (Exim 4.72 #1 (Red Hat Linux))
+	id 1P4AOq-00065t-BA
+	for linux-arch@vger.kernel.org; Fri, 08 Oct 2010 10:42:04 +0000
+Date: Fri, 8 Oct 2010 06:24:33 -0400
+From: Christoph Hellwig <hch@infradead.org>
+Subject: Re: [PATCH 1/5] bitops: add generic implementation of ext2 atomic
+ bitops by test_and_{set,clear}_bit
+Message-ID: <20101008102433.GA24208@infradead.org>
 References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
-Message-ID: <20101008100310.nxHRNaNmhuV3A8paQkuuV_kcm0cPyImgboUCLdNL8AI@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20101008102433.02g6QoU_PbwzIsj8Sjb3Zx5BD4Xb4mjDDt1ObVPi5CU@z>
 
- - Remove unused BITOP_WORD macro
- - Merge definisions for big endian and little endian as much as possible
+On Fri, Oct 08, 2010 at 07:03:09PM +0900, Akinobu Mita wrote:
+> This introduces asm-generic header file for generic implementation of
+> ext2 atomic bit operations by test_and_set_bit() and test_and_clear_bit().
+> 
+> alpha, arm, cris, frv, ia64, m68k, mn10300, parisc, powerpc, s390,
+> sparc64, x86, xtensa can use this header file in its asm/bitops.h.
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
----
- include/asm-generic/bitops/le.h |   38 +++++++++++++++-----------------------
- 1 files changed, 15 insertions(+), 23 deletions(-)
-
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 80e3bf1..db2be81 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -4,27 +4,28 @@
- #include <asm/types.h>
- #include <asm/byteorder.h>
- 
--#define BITOP_WORD(nr)		((nr) / BITS_PER_LONG)
--#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
--
- #if defined(__LITTLE_ENDIAN)
- 
--#define generic_test_le_bit(nr, addr) test_bit(nr, addr)
--#define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
--#define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
--
--#define generic_test_and_set_le_bit(nr, addr) test_and_set_bit(nr, addr)
--#define generic_test_and_clear_le_bit(nr, addr) test_and_clear_bit(nr, addr)
-+#define BITOP_LE_SWIZZLE	0
- 
--#define generic___test_and_set_le_bit(nr, addr) __test_and_set_bit(nr, addr)
--#define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
--
--#define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
-+#define generic_find_next_zero_le_bit(addr, size, offset) \
-+	find_next_zero_bit(addr, size, offset)
- #define generic_find_next_le_bit(addr, size, offset) \
--			find_next_bit(addr, size, offset)
-+	find_next_bit(addr, size, offset)
- 
- #elif defined(__BIG_ENDIAN)
- 
-+#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
-+
-+extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
-+		unsigned long size, unsigned long offset);
-+extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
-+		unsigned long size, unsigned long offset);
-+
-+#else
-+#error "Please fix <asm/byteorder.h>"
-+#endif
-+
- #define generic_test_le_bit(nr, addr) \
- 	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- #define generic___set_le_bit(nr, addr) \
-@@ -42,15 +43,6 @@
- #define generic___test_and_clear_le_bit(nr, addr) \
- 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- 
--extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
--		unsigned long size, unsigned long offset);
--extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
--		unsigned long size, unsigned long offset);
--
--#else
--#error "Please fix <asm/byteorder.h>"
--#endif
--
- #define generic_find_first_zero_le_bit(addr, size) \
-         generic_find_next_zero_le_bit((addr), (size), 0)
- 
--- 
-1.7.1.231.gd0b16
+Care to rename the functions to le_* instead of ext2_* while you're at
+it and documenting their semantics?
 
