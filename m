@@ -1,47 +1,80 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Sat, 9 Oct 2010 14:12:14 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1010091409450.2640@localhost6.localdomain6>
-References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
- <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6>
- <4CAD4EC3.5060809@kernel.org> <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6> <alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6> <4CAFEEFA.1070000@kernel.org> <alpine.LFD.2.00.1010090758420.13094@localhost6.localdomain6>
- <4CB013CB.1040904@kernel.org>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:57319 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753931Ab0JIMNd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 9 Oct 2010 08:13:33 -0400
-In-Reply-To: <4CB013CB.1040904@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 1/6] asm-generic: make atomic_add_unless a function
+Date: Sat,  9 Oct 2010 21:57:47 +0200
+Message-ID: <1286654272-21483-2-git-send-email-arnd@arndb.de>
+References: <1286654272-21483-1-git-send-email-arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1286654272-21483-1-git-send-email-arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Mathieu Lacage <mathieu.lacage@sophia.inria.fr>, Mathieu Lacage <mathieu.lacage@inria.fr>, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 9 Oct 2010, Yinghai Lu wrote:
-> On 10/08/2010 11:10 PM, Thomas Gleixner wrote:
-> >> [   59.449366] IP: [<ffffffff8147d715>] acpi_pci_irq_find_prt_entry+0x85/0xb1
-> > 
-> > I can hardly see how this is related to the irq work.
-> > 
-> >> [   71.076886] Pid: 1, comm: swapper Tainted: G        W   2.6.36-rc7-tip-yh-01944-ge8a4c5f-dirty #171      /Sun Fire x4800
-> >> [   71.096947] RIP: 0010:[<ffffffff8141e232>]  [<ffffffff8141e232>] strcmp+0x4/0x21
-> > 
-> > Ditto.
-> 
-> don't know.
-> 
-> but without merging your branch, those problems don't come out.
-> 
-> only thing i can think about that you real free irq code could
-> stress or expose other subsystem's bug etc.
+From: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
 
-The first crash is in early boot and that code just fiddles with acpi
-internal stuff.
+atomic_add_unless is a macro so, bad things happen if the caller defines
+a local variable named c, just like like the local variable c defined by
+the macro. Thus, convert atomic_add_unless to a function. (bug triggered
+by net/ipv4/netfilter/ipt_CLUSTERIP.c: clusterip_config_find_get calls
+atomic_inc_not_zero)
 
-Is that fully reproducible ? If yes, any chance you can bisect it ?
+Signed-off-by: Mathieu Lacage <mathieu.lacage@inria.fr>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/atomic.h |   34 +++++++++++++++++-----------------
+ 1 files changed, 17 insertions(+), 17 deletions(-)
 
-Thanks,
-
-	tglx
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index e53347f..a6cc019 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -119,14 +119,23 @@ static inline void atomic_dec(atomic_t *v)
+ #define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
+ #define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
+ 
+-#define atomic_add_unless(v, a, u)				\
+-({								\
+-	int c, old;						\
+-	c = atomic_read(v);					\
+-	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
+-		c = old;					\
+-	c != (u);						\
+-})
++#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
++#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
++
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++static inline int atomic_add_unless(atomic_t *v, int a, int u)
++{
++  int c, old;
++  c = atomic_read(v);
++  while (c != u && (old = atomic_cmpxchg(v, c, c + a)) != c)
++    c = old;
++  return c != u;
++}
+ 
+ #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
+ 
+@@ -140,15 +149,6 @@ static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
+ 	raw_local_irq_restore(flags);
+ }
+ 
+-#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
+-#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
+-
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-
+ /* Assume that atomic operations are already serializing */
+ #define smp_mb__before_atomic_dec()	barrier()
+ #define smp_mb__after_atomic_dec()	barrier()
+-- 
+1.7.1
