@@ -1,48 +1,90 @@
-From: "Mr. Beuker Hendrik" <info@windowslive.co.uk>
-Subject: Good day
-Date: Fri,  8 Oct 2010 19:39:22 -0300
-Message-ID: <20101008193922.5b7pl4am0w4wo80g@www.uccuyo.edu.ar>
-Reply-To: mr_beukerhendrik@live.nl
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Matt Fleming <matt@console-pimps.org>
+Subject: [PATCH V5 0/7] Generalise ARM perf-events backend for oprofile
+Date: Sat,  9 Oct 2010 01:46:15 +0100
+Message-ID: <cover.1286584677.git.matt@console-pimps.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.uccuyo.edu.ar ([200.123.107.120]:59743 "EHLO
-	mail.uccuyo.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754462Ab0JHWRo convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 18:17:44 -0400
-Content-Disposition: inline
+Received: from arkanian.console-pimps.org ([212.110.184.194]:44499 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1759979Ab0JIAqZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 20:46:25 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Robert Richter <robert.richter@amd.com>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+
+The perf-events backend for OProfile that Will Deacon wrote in
+8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+perf-events framework as backend") is of use to more architectures
+than just ARM. Move the code into drivers/oprofile/ so that SH can use
+it instead of the nearly identical copy of its OProfile code.
+
+The benefit of the backend is that it becomes necessary to only
+maintain one copy of the PMU accessor functions for each architecture,
+with bug fixes and new features benefiting both OProfile and perf.
+
+Note that I haven't been able to test these patches on an ARM board to
+see if I've caused any regressions. If anyone else could do that I'd
+appreciate it. Though, I have been able to compile this version of the
+series.
+
+This patch series is based on,
+
+    git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
+
+These patches can also be found at,
+
+    git://git.kernel.org/pub/scm/linux/kernel/git/mfleming/sh-2.6.git perf-oprofile
 
 
+Robert, I haven't rebased this work on your oprofile updates for
+2.6.37. If you need me to do that, just shout. If you have any comments
+I'll respin this ASAP but it's probably ready for merging now.
 
- Good day,
 
- My name is Mr. Beuker Hendrik: I work in the Euro Lottery. I am solici=
-ting
- your assistance for a swift transfer of 2,528,000 GBP, should you be
- willing to assist me in this project, and you will be giving me just 3=
-0%
- of your winnings.
+Changes from v4:
+ - SH is the only arch that doesn't default perf_pmu_name()
+ - Changed perf_nr_counters to num_counters
+ 
+Changes from v3:
+ - New perf_pmu_name() function
+ - Sprinkled an EXPORT_SYMBOL_GPL()
+ - Don't repeatedly call perf_num_counters()
+ - Change name of oprofile_driver to "oprofile-perf"
+ - Hard overwrite the oprofile_operations in oprofile_perf_init()
+ - Dropped the patch that made oprofile depend on HW_PERF_EVENTS for ARM
 
- Just as a brief, you just have to register online; due to my position =
-in
- the company I can make it happen that you would be a winner of the abo=
-ve
- stated amount. Naturally, every body would like to play a lottery if t=
-hey
- are assured of winning. I am assuring you today to be a winner, please=
- do
- not take for granted this once in a life time opportunity as we both s=
-tand
- to collectively gain from this at the success of the transaction.
+Changes from v2:
+ - Rebased against Robert's oprofile core branch
+ - Moved even more of the ARM code into the generic oprofile code
+ - Broke the patches up into more logical steps
 
- E-mail: mr_beukerhendrik@live.nl
+Changes from v1:
+ - Prefix the new functons with "oprofile_" instead of "op_".
+ - Fix ARM compilation errors
+ - Move all the oprofile-perf logic into oprofile_perf.c
+ - Include cleanup patch from Will
 
- Warmest Regards,
- Mr. Beuker Hendrik
+Matt Fleming (7):
+  perf: Add helper function to return number of counters
+  perf: New helper function for pmu name
+  oprofile: Make op_name_from_perf_id() global
+  ARM: oprofile: Rename op_arm to oprofile_perf
+  ARM: oprofile: Move non-ARM code into separate init/exit
+  oprofile: Abstract the perf-events backend
+  sh: oprofile: Use perf-events oprofile backend
 
-_________________________________
-Universidad Cat=F3lica de Cuyo
-www.uccuyo.edu.ar
+ arch/arm/kernel/perf_event.c     |    6 +
+ arch/arm/oprofile/Makefile       |    4 +
+ arch/arm/oprofile/common.c       |  309 +-----------------------------------
+ arch/sh/Kconfig                  |   13 ++
+ arch/sh/kernel/perf_event.c      |   18 ++
+ arch/sh/oprofile/Makefile        |    4 +
+ arch/sh/oprofile/common.c        |  115 +++-----------
+ arch/sh/oprofile/op_impl.h       |   33 ----
+ drivers/oprofile/oprofile_perf.c |  326 ++++++++++++++++++++++++++++++++++++++
+ include/linux/oprofile.h         |    7 +
+ include/linux/perf_event.h       |    2 +
+ kernel/perf_event.c              |    5 +
+ 12 files changed, 412 insertions(+), 430 deletions(-)
+ delete mode 100644 arch/sh/oprofile/op_impl.h
+ create mode 100644 drivers/oprofile/oprofile_perf.c
