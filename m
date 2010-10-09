@@ -1,49 +1,100 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/6] asm-generic: fcntl: make exported headers use strict posix types
-Date: Sat,  9 Oct 2010 21:57:49 +0200
-Message-ID: <1286654272-21483-4-git-send-email-arnd@arndb.de>
+Subject: [PATCH 6/6] bitops: remove duplicated extern declarations
+Date: Sat,  9 Oct 2010 21:57:52 +0200
+Message-ID: <1286654272-21483-7-git-send-email-arnd@arndb.de>
 References: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Lucian Adrian Grijincu <lucian.grijincu@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
+From: Akinobu Mita <akinobu.mita@gmail.com>
 
-All 'pid_t' were changed to '__kernel_pid_t' in a previous commit:
-make exported headers use strict posix types
+If CONFIG_GENERIC_FIND_NEXT_BIT is enabled, find_next_bit() and
+find_next_zero_bit() are doubly declared in asm-generic/bitops/find.h
+and linux/bitops.h.
 
-    A number of standard posix types are used in exported headers,
-    which is not allowed if __STRICT_KERNEL_NAMES is defined. In order
-    to get rid of the non-__STRICT_KERNEL_NAMES part and to make sane
-    headers the default, we have to change them all to safe types.
+asm/bitops.h includes asm-generic/bitops/find.h if and only if the
+architecture enables CONFIG_GENERIC_FIND_NEXT_BIT. And asm/bitops.h
+is included by linux/bitops.h
 
-but a later change introduced 'pid_t' again:
-    fcntl: add F_[SG]ETOWN_EX
+So we can just remove the extern declarations of find_next_bit() and
+find_next_zero_bit() in linux/bitops.h.
 
-This makes asm-generic/fcntl.h d use strict posix types again.
+Also we can remove unneeded #ifndef CONFIG_GENERIC_FIND_NEXT_BIT in
+asm-generic/bitops/find.h.
 
-Signed-off-by: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/fcntl.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ include/asm-generic/bitops/find.h |   14 ++++++++++++--
+ include/linux/bitops.h            |   23 -----------------------
+ 2 files changed, 12 insertions(+), 25 deletions(-)
 
-diff --git a/include/asm-generic/fcntl.h b/include/asm-generic/fcntl.h
-index a70b2d2..0fc16e3 100644
---- a/include/asm-generic/fcntl.h
-+++ b/include/asm-generic/fcntl.h
-@@ -122,7 +122,7 @@
+diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
+index 30afec0..110fa70 100644
+--- a/include/asm-generic/bitops/find.h
++++ b/include/asm-generic/bitops/find.h
+@@ -1,13 +1,23 @@
+ #ifndef _ASM_GENERIC_BITOPS_FIND_H_
+ #define _ASM_GENERIC_BITOPS_FIND_H_
  
- struct f_owner_ex {
- 	int	type;
--	pid_t	pid;
-+	__kernel_pid_t	pid;
- };
+-#ifndef CONFIG_GENERIC_FIND_NEXT_BIT
++/**
++ * find_next_bit - find the next set bit in a memory region
++ * @addr: The address to base the search on
++ * @offset: The bitnumber to start searching at
++ * @size: The bitmap size in bits
++ */
+ extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
+ 		size, unsigned long offset);
  
- /* for F_[GET|SET]FL */
++/**
++ * find_next_zero_bit - find the next cleared bit in a memory region
++ * @addr: The address to base the search on
++ * @offset: The bitnumber to start searching at
++ * @size: The bitmap size in bits
++ */
+ extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
+ 		long size, unsigned long offset);
+-#endif
+ 
+ #ifdef CONFIG_GENERIC_FIND_FIRST_BIT
+ 
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index adb0f11..827cc95 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -149,28 +149,5 @@ extern unsigned long find_last_bit(const unsigned long *addr,
+ 				   unsigned long size);
+ #endif /* CONFIG_GENERIC_FIND_LAST_BIT */
+ 
+-#ifdef CONFIG_GENERIC_FIND_NEXT_BIT
+-
+-/**
+- * find_next_bit - find the next set bit in a memory region
+- * @addr: The address to base the search on
+- * @offset: The bitnumber to start searching at
+- * @size: The bitmap size in bits
+- */
+-extern unsigned long find_next_bit(const unsigned long *addr,
+-				   unsigned long size, unsigned long offset);
+-
+-/**
+- * find_next_zero_bit - find the next cleared bit in a memory region
+- * @addr: The address to base the search on
+- * @offset: The bitnumber to start searching at
+- * @size: The bitmap size in bits
+- */
+-
+-extern unsigned long find_next_zero_bit(const unsigned long *addr,
+-					unsigned long size,
+-					unsigned long offset);
+-
+-#endif /* CONFIG_GENERIC_FIND_NEXT_BIT */
+ #endif /* __KERNEL__ */
+ #endif
 -- 
 1.7.1
