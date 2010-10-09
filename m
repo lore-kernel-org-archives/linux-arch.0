@@ -1,55 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:59476 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:50032 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760519Ab0JIT6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2010 15:58:17 -0400
+	with ESMTP id S1760503Ab0JIT6H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2010 15:58:07 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 3/6] asm-generic: fcntl: make exported headers use strict posix types
-Date: Sat,  9 Oct 2010 21:57:49 +0200
-Message-ID: <1286654272-21483-4-git-send-email-arnd@arndb.de>
+Subject: [PATCH 4/6] asm-generic: kdebug.h: Checkpatch cleanup
+Date: Sat,  9 Oct 2010 21:57:50 +0200
+Message-ID: <1286654272-21483-5-git-send-email-arnd@arndb.de>
 In-Reply-To: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 References: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Lucian Adrian Grijincu <lucian.grijincu@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20101009195749.JMLCq32XIGo1ILsNiYo1-53awOyLSAdranRCE4y1vEc@z>
+Cc: linux-arch@vger.kernel.org, Andrea Gelmini <andrea.gelmini@gelma.net>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20101009195750.vaCbRkQnChP8iOARcM5yE7kxZ3jG19jFD6QwGQX6Ic8@z>
 
-From: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
+From: Andrea Gelmini <andrea.gelmini@gelma.net>
 
-All 'pid_t' were changed to '__kernel_pid_t' in a previous commit:
-make exported headers use strict posix types
+include/asm-generic/kdebug.h:6: ERROR: spaces required around that '=' (ctx:VxV)
 
-    A number of standard posix types are used in exported headers,
-    which is not allowed if __STRICT_KERNEL_NAMES is defined. In order
-    to get rid of the non-__STRICT_KERNEL_NAMES part and to make sane
-    headers the default, we have to change them all to safe types.
-
-but a later change introduced 'pid_t' again:
-    fcntl: add F_[SG]ETOWN_EX
-
-This makes asm-generic/fcntl.h d use strict posix types again.
-
-Signed-off-by: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Andrea Gelmini <andrea.gelmini@gelma.net>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/fcntl.h |    2 +-
+ include/asm-generic/kdebug.h |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/fcntl.h b/include/asm-generic/fcntl.h
-index a70b2d2..0fc16e3 100644
---- a/include/asm-generic/fcntl.h
-+++ b/include/asm-generic/fcntl.h
-@@ -122,7 +122,7 @@
+diff --git a/include/asm-generic/kdebug.h b/include/asm-generic/kdebug.h
+index 11e57b6..d181449 100644
+--- a/include/asm-generic/kdebug.h
++++ b/include/asm-generic/kdebug.h
+@@ -3,7 +3,7 @@
  
- struct f_owner_ex {
- 	int	type;
--	pid_t	pid;
-+	__kernel_pid_t	pid;
+ enum die_val {
+ 	DIE_UNUSED,
+-	DIE_OOPS=1
++	DIE_OOPS = 1,
  };
  
- /* for F_[GET|SET]FL */
+ #endif /* _ASM_GENERIC_KDEBUG_H */
 -- 
 1.7.1
 
