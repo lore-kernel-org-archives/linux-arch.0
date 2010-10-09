@@ -1,80 +1,49 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 1/6] asm-generic: make atomic_add_unless a function
-Date: Sat,  9 Oct 2010 21:57:47 +0200
-Message-ID: <1286654272-21483-2-git-send-email-arnd@arndb.de>
+Subject: [PATCH 3/6] asm-generic: fcntl: make exported headers use strict posix types
+Date: Sat,  9 Oct 2010 21:57:49 +0200
+Message-ID: <1286654272-21483-4-git-send-email-arnd@arndb.de>
 References: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Mathieu Lacage <mathieu.lacage@sophia.inria.fr>, Mathieu Lacage <mathieu.lacage@inria.fr>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Lucian Adrian Grijincu <lucian.grijincu@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
+From: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
 
-atomic_add_unless is a macro so, bad things happen if the caller defines
-a local variable named c, just like like the local variable c defined by
-the macro. Thus, convert atomic_add_unless to a function. (bug triggered
-by net/ipv4/netfilter/ipt_CLUSTERIP.c: clusterip_config_find_get calls
-atomic_inc_not_zero)
+All 'pid_t' were changed to '__kernel_pid_t' in a previous commit:
+make exported headers use strict posix types
 
-Signed-off-by: Mathieu Lacage <mathieu.lacage@inria.fr>
+    A number of standard posix types are used in exported headers,
+    which is not allowed if __STRICT_KERNEL_NAMES is defined. In order
+    to get rid of the non-__STRICT_KERNEL_NAMES part and to make sane
+    headers the default, we have to change them all to safe types.
+
+but a later change introduced 'pid_t' again:
+    fcntl: add F_[SG]ETOWN_EX
+
+This makes asm-generic/fcntl.h d use strict posix types again.
+
+Signed-off-by: Lucian Adrian Grijincu <lucian.grijincu@gmail.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/atomic.h |   34 +++++++++++++++++-----------------
- 1 files changed, 17 insertions(+), 17 deletions(-)
+ include/asm-generic/fcntl.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
-index e53347f..a6cc019 100644
---- a/include/asm-generic/atomic.h
-+++ b/include/asm-generic/atomic.h
-@@ -119,14 +119,23 @@ static inline void atomic_dec(atomic_t *v)
- #define atomic_dec_and_test(v)		(atomic_sub_return(1, (v)) == 0)
- #define atomic_inc_and_test(v)		(atomic_add_return(1, (v)) == 0)
+diff --git a/include/asm-generic/fcntl.h b/include/asm-generic/fcntl.h
+index a70b2d2..0fc16e3 100644
+--- a/include/asm-generic/fcntl.h
++++ b/include/asm-generic/fcntl.h
+@@ -122,7 +122,7 @@
  
--#define atomic_add_unless(v, a, u)				\
--({								\
--	int c, old;						\
--	c = atomic_read(v);					\
--	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c) \
--		c = old;					\
--	c != (u);						\
--})
-+#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
-+#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
-+
-+#define cmpxchg_local(ptr, o, n)				  	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+static inline int atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+  int c, old;
-+  c = atomic_read(v);
-+  while (c != u && (old = atomic_cmpxchg(v, c, c + a)) != c)
-+    c = old;
-+  return c != u;
-+}
+ struct f_owner_ex {
+ 	int	type;
+-	pid_t	pid;
++	__kernel_pid_t	pid;
+ };
  
- #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
- 
-@@ -140,15 +149,6 @@ static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
- 	raw_local_irq_restore(flags);
- }
- 
--#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
--#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
--
--#define cmpxchg_local(ptr, o, n)				  	       \
--	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
--
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
--
- /* Assume that atomic operations are already serializing */
- #define smp_mb__before_atomic_dec()	barrier()
- #define smp_mb__after_atomic_dec()	barrier()
+ /* for F_[GET|SET]FL */
 -- 
 1.7.1
