@@ -1,68 +1,42 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 5/7] ARM: oprofile: Move non-ARM code into separate
- init/exit
-Date: Sat, 9 Oct 2010 11:32:43 +0100
-Message-ID: <20101009103242.GA17466@console-pimps.org>
-References: <cover.1286584677.git.matt@console-pimps.org>
- <0de9eda11dbfe9c21348da07b57f04f35cd9effc.1286584677.git.matt@console-pimps.org>
- <20101009012647.GM13563@erda.amd.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 00/47] Sparse irq rework
+Date: Sat, 9 Oct 2010 14:08:24 +0200 (CEST)
+Message-ID: <alpine.LFD.2.00.1010091407170.2640@localhost6.localdomain6>
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
+ <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6>
+ <4CAD4EC3.5060809@kernel.org> <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6> <alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6> <4CAFEEFA.1070000@kernel.org> <4CB00122.3030301@kernel.org> <alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6>
+ <4CB014F5.5080209@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:56530 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754497Ab0JIKcq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2010 06:32:46 -0400
-Content-Disposition: inline
-In-Reply-To: <20101009012647.GM13563@erda.amd.com>
+Received: from www.tglx.de ([62.245.132.106]:57231 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755285Ab0JIMJ4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 9 Oct 2010 08:09:56 -0400
+In-Reply-To: <4CB014F5.5080209@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <robert.richter@amd.com>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 
-On Sat, Oct 09, 2010 at 03:26:47AM +0200, Robert Richter wrote:
-> On 08.10.10 20:46:20, Matt Fleming wrote:
-> > In preparation for moving the majority of this oprofile code into an
-> > architecture-neutral place separate the architecture-independent code
-> > into oprofile_perf_init() and oprofile_perf_exit().
+On Sat, 9 Oct 2010, Yinghai Lu wrote:
+> On 10/08/2010 11:34 PM, Thomas Gleixner wrote:
+> >>  	irq = pin_2_irq(idx, apic_id, pin);
+> >>  
+> >> +	/* only handle fall out from setup_IO_APIC_irqs() */
 > > 
-> > Signed-off-by: Matt Fleming <matt@console-pimps.org>
-> > Tested-by: Will Deacon <will.deacon@arm.com>
-> > ---
-> >  arch/arm/oprofile/common.c |   27 +++++++++++++++++++--------
-> >  1 files changed, 19 insertions(+), 8 deletions(-)
-> > 
-> > diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
-> > index fd6e323..8718311 100644
-> > --- a/arch/arm/oprofile/common.c
-> > +++ b/arch/arm/oprofile/common.c
-> > @@ -349,7 +349,7 @@ static void arm_backtrace(struct pt_regs * const regs, unsigned int depth)
-> >  		tail = user_backtrace(tail);
-> >  }
-> >  
-> > -int __init oprofile_arch_init(struct oprofile_operations *ops)
-> > +int __init oprofile_perf_init(struct oprofile_operations *ops)
-> >  {
-> >  	int cpu, ret = 0;
-> >  
-> > @@ -387,12 +387,11 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
-> >  		}
-> >  	}
-> >  
-> > -	ops->backtrace		= arm_backtrace;
-> > -	ops->create_files	= op_arm_create_files;
-> > -	ops->setup		= op_arm_setup;
-> > -	ops->start		= op_arm_start;
-> > -	ops->stop		= op_arm_stop;
-> > -	ops->shutdown		= op_arm_stop;
-> > +	ops->create_files	= oprofile_perf_create_files;
-> > +	ops->setup		= oprofile_perf_setup;
-> > +	ops->start		= oprofile_perf_start;
-> > +	ops->stop		= oprofile_perf_stop;
-> > +	ops->shutdown		= oprofile_perf_stop;
+> > What's the fallout ? And why are we coming here in the first place
+> > when the irq is < 16 ?
 > 
-> There is a compile breakage caused by patch #4. Will move the renames
-> to patch #4 when applying the patch.
+> setup_IO_APIC_irqs only handle apic_id == 0 or apic_id > 0 but irq < 16 via acpi override.
+> 
+> it seems IBM's system have apic_id == 1, and sci irq is using 30.
+> 
+> so at that time add that setup_IO_APIC_irq_extra() to workaround it.
+> but it seems we set that two time when irq < 16.
 
-Sorry, I don't know how this happened. These renames were originally in
-patch #4 but seem to have moved into #5 when I was reshuffling stuff.
+Hmm. Ok. Thanks for figuring it out.
+
+Thanks,
+
+	tglx
