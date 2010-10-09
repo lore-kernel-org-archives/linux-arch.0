@@ -1,100 +1,64 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH 6/6] bitops: remove duplicated extern declarations
-Date: Sat,  9 Oct 2010 21:57:52 +0200
-Message-ID: <1286654272-21483-7-git-send-email-arnd@arndb.de>
+Subject: [PATCH 2/6] asm-generic: cmpxchg does not handle non-long arguments
+Date: Sat,  9 Oct 2010 21:57:48 +0200
+Message-ID: <1286654272-21483-3-git-send-email-arnd@arndb.de>
 References: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1286654272-21483-1-git-send-email-arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Mathieu Lacage <mathieu.lacage@sophia.inria.fr>, Mathieu Lacage <mathieu.lacage@inria.fr>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-From: Akinobu Mita <akinobu.mita@gmail.com>
+From: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
 
-If CONFIG_GENERIC_FIND_NEXT_BIT is enabled, find_next_bit() and
-find_next_zero_bit() are doubly declared in asm-generic/bitops/find.h
-and linux/bitops.h.
+The version of cmpxchg defined in asm-generic/system.h does not handle
+correctly non-long arguments. Use the version defined in cmpxchg.h
+instead.
 
-asm/bitops.h includes asm-generic/bitops/find.h if and only if the
-architecture enables CONFIG_GENERIC_FIND_NEXT_BIT. And asm/bitops.h
-is included by linux/bitops.h
-
-So we can just remove the extern declarations of find_next_bit() and
-find_next_zero_bit() in linux/bitops.h.
-
-Also we can remove unneeded #ifndef CONFIG_GENERIC_FIND_NEXT_BIT in
-asm-generic/bitops/find.h.
-
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Signed-off-by: Mathieu Lacage <mathieu.lacage@inria.fr>
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/bitops/find.h |   14 ++++++++++++--
- include/linux/bitops.h            |   23 -----------------------
- 2 files changed, 12 insertions(+), 25 deletions(-)
+ include/asm-generic/system.h |   20 +-------------------
+ 1 files changed, 1 insertions(+), 19 deletions(-)
 
-diff --git a/include/asm-generic/bitops/find.h b/include/asm-generic/bitops/find.h
-index 30afec0..110fa70 100644
---- a/include/asm-generic/bitops/find.h
-+++ b/include/asm-generic/bitops/find.h
-@@ -1,13 +1,23 @@
- #ifndef _ASM_GENERIC_BITOPS_FIND_H_
- #define _ASM_GENERIC_BITOPS_FIND_H_
+diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
+index efa403b..4b0b9cb 100644
+--- a/include/asm-generic/system.h
++++ b/include/asm-generic/system.h
+@@ -21,6 +21,7 @@
+ #include <linux/irqflags.h>
  
--#ifndef CONFIG_GENERIC_FIND_NEXT_BIT
-+/**
-+ * find_next_bit - find the next set bit in a memory region
-+ * @addr: The address to base the search on
-+ * @offset: The bitnumber to start searching at
-+ * @size: The bitmap size in bits
-+ */
- extern unsigned long find_next_bit(const unsigned long *addr, unsigned long
- 		size, unsigned long offset);
+ #include <asm/cmpxchg-local.h>
++#include <asm/cmpxchg.h>
  
-+/**
-+ * find_next_zero_bit - find the next cleared bit in a memory region
-+ * @addr: The address to base the search on
-+ * @offset: The bitnumber to start searching at
-+ * @size: The bitmap size in bits
-+ */
- extern unsigned long find_next_zero_bit(const unsigned long *addr, unsigned
- 		long size, unsigned long offset);
--#endif
+ struct task_struct;
  
- #ifdef CONFIG_GENERIC_FIND_FIRST_BIT
+@@ -136,25 +137,6 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+ #define xchg(ptr, x) \
+ 	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
  
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index adb0f11..827cc95 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -149,28 +149,5 @@ extern unsigned long find_last_bit(const unsigned long *addr,
- 				   unsigned long size);
- #endif /* CONFIG_GENERIC_FIND_LAST_BIT */
- 
--#ifdef CONFIG_GENERIC_FIND_NEXT_BIT
+-static inline unsigned long __cmpxchg(volatile unsigned long *m,
+-				      unsigned long old, unsigned long new)
+-{
+-	unsigned long retval;
+-	unsigned long flags;
 -
--/**
-- * find_next_bit - find the next set bit in a memory region
-- * @addr: The address to base the search on
-- * @offset: The bitnumber to start searching at
-- * @size: The bitmap size in bits
-- */
--extern unsigned long find_next_bit(const unsigned long *addr,
--				   unsigned long size, unsigned long offset);
+-	local_irq_save(flags);
+-	retval = *m;
+-	if (retval == old)
+-		*m = new;
+-	local_irq_restore(flags);
+-	return retval;
+-}
 -
--/**
-- * find_next_zero_bit - find the next cleared bit in a memory region
-- * @addr: The address to base the search on
-- * @offset: The bitnumber to start searching at
-- * @size: The bitmap size in bits
-- */
+-#define cmpxchg(ptr, o, n)					\
+-	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
+-					(unsigned long)(o),	\
+-					(unsigned long)(n)))
 -
--extern unsigned long find_next_zero_bit(const unsigned long *addr,
--					unsigned long size,
--					unsigned long offset);
--
--#endif /* CONFIG_GENERIC_FIND_NEXT_BIT */
+ #endif /* !__ASSEMBLY__ */
+ 
  #endif /* __KERNEL__ */
- #endif
 -- 
 1.7.1
