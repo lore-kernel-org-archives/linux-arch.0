@@ -1,71 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:44534 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760027Ab0JIAq0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 20:46:26 -0400
-From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 3/7] oprofile: Make op_name_from_perf_id() global
-Date: Sat,  9 Oct 2010 01:46:18 +0100
-Message-ID: <7b803da1bb48b15e29c966ff925cfb21f9015e6c.1286584677.git.matt@console-pimps.org>
-In-Reply-To: <cover.1286584677.git.matt@console-pimps.org>
-References: <cover.1286584677.git.matt@console-pimps.org>
-In-Reply-To: <cover.1286584677.git.matt@console-pimps.org>
-References: <cover.1286584677.git.matt@console-pimps.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:46693 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752677Ab0JIHKY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2010 03:10:24 -0400
+Message-ID: <4CB014F5.5080209@kernel.org>
+Date: Sat, 09 Oct 2010 00:08:37 -0700
+From: Yinghai Lu <yinghai@kernel.org>
+MIME-Version: 1.0
+Subject: Re: [patch 00/47] Sparse irq rework
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6> <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6> <4CAD4EC3.5060809@kernel.org> <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6> <alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6> <4CAFEEFA.1070000@kernel.org> <4CB00122.3030301@kernel.org> <alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6>
+In-Reply-To: <alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <robert.richter@amd.com>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101009004618.6WzKUBlZ_fp4Vmgr2UaVXrn9KRYuhBNV_6i7wd-7QoQ@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20101009070837.mdrJNHoV2FNjc_Xy7rShslzuOkf1SRMHjr4ehfYxagM@z>
 
-Make op_name_from_perf_id() global so that we have a way for each
-architecture to construct an oprofile name for op->cpu_type. We need to
-remove the argument from the function prototype so that we can hide all
-implementation details inside the function.
+On 10/08/2010 11:34 PM, Thomas Gleixner wrote:
+> On Fri, 8 Oct 2010, Yinghai Lu wrote:
+>> On 10/08/2010 09:26 PM, Yinghai Lu wrote:
+>> [PATCH] x86: Don't setup ioapic irq for sci two times.
+>>
+>> With Thomas's sparseirq cleanup patchset, found one warning.
+>>
+>> [   37.369332] ------------[ cut here ]------------
+>> [   37.383782] WARNING: at drivers/pci/intr_remapping.c:67 irq_2_iommu_alloc+0x52/0xdc()
+>> [   37.384463] Hardware name: Sun Fire X4800
+>> [   37.403803] irq_2_iommu!=NULL irq 9
+>> [   37.404054] Modules linked in:
+>> [   37.404311] Pid: 1, comm: swapper Not tainted 2.6.36-rc7-tip-yh-01944-ge8a4c5f-dirty #171
+>> [   37.424042] Call Trace:
+>> [   37.424205]  [<ffffffff810787a0>] warn_slowpath_common+0x85/0x9d
+>> [   37.443822]  [<ffffffff8107885b>] warn_slowpath_fmt+0x46/0x48
+>> [   37.444383]  [<ffffffff8141c5f6>] ? radix_tree_lookup+0xb/0xd
+>> [   37.463788]  [<ffffffff8145f97c>] irq_2_iommu_alloc+0x52/0xdc
+>> [   37.464200]  [<ffffffff81ccc593>] ? _raw_spin_lock_irqsave+0x6d/0x7b
+>> [   37.483853]  [<ffffffff8145fb4d>] ? alloc_irte+0x97/0x168
+>> [   37.484296]  [<ffffffff8145fbce>] alloc_irte+0x118/0x168
+>> [   37.503774]  [<ffffffff8105062a>] setup_ioapic_irq+0x13f/0x331
+>> [   37.504278]  [<ffffffff81051d70>] setup_IO_APIC_irq_extra+0xce/0xde
+>> [   37.523868]  [<ffffffff8104c678>] acpi_gsi_to_irq+0x2a/0x31
+>> ...
+>>
+>> It turns We could setup ioapic irq for sci two times if that is normal SCI.
+>>
+>> Actually setup_IO_APIC_irq_extra() is for big apic id or big irq sci.
+>>
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>>
+>> ---
+>>  arch/x86/kernel/apic/io_apic.c |    4 ++++
+>>  1 file changed, 4 insertions(+)
+>>
+>> Index: linux-2.6/arch/x86/kernel/apic/io_apic.c
+>> ===================================================================
+>> --- linux-2.6.orig/arch/x86/kernel/apic/io_apic.c
+>> +++ linux-2.6/arch/x86/kernel/apic/io_apic.c
+>> @@ -1449,6 +1449,10 @@ void setup_IO_APIC_irq_extra(u32 gsi)
+>>  
+>>  	irq = pin_2_irq(idx, apic_id, pin);
+>>  
+>> +	/* only handle fall out from setup_IO_APIC_irqs() */
+> 
+> What's the fallout ? And why are we coming here in the first place
+> when the irq is < 16 ?
 
-Signed-off-by: Matt Fleming <matt@console-pimps.org>
----
- arch/arm/oprofile/common.c |    6 ++++--
- include/linux/oprofile.h   |    4 ++++
- 2 files changed, 8 insertions(+), 2 deletions(-)
+setup_IO_APIC_irqs only handle apic_id == 0 or apic_id > 0 but irq < 16 via acpi override.
 
-diff --git a/arch/arm/oprofile/common.c b/arch/arm/oprofile/common.c
-index 1e971a7..4f67cfa 100644
---- a/arch/arm/oprofile/common.c
-+++ b/arch/arm/oprofile/common.c
-@@ -155,8 +155,10 @@ static void op_perf_stop(void)
- }
- 
- 
--static char *op_name_from_perf_id(enum arm_perf_pmu_ids id)
-+char *op_name_from_perf_id(void)
- {
-+	enum arm_perf_pmu_ids id = armpmu_get_pmu_id();
-+
- 	switch (id) {
- 	case ARM_PERF_PMU_ID_XSCALE1:
- 		return "arm/xscale1";
-@@ -391,7 +393,7 @@ int __init oprofile_arch_init(struct oprofile_operations *ops)
- 	ops->start		= op_arm_start;
- 	ops->stop		= op_arm_stop;
- 	ops->shutdown		= op_arm_stop;
--	ops->cpu_type		= op_name_from_perf_id(armpmu_get_pmu_id());
-+	ops->cpu_type		= op_name_from_perf_id();
- 
- 	if (!ops->cpu_type)
- 		ret = -ENODEV;
-diff --git a/include/linux/oprofile.h b/include/linux/oprofile.h
-index 5171639..1574d4a 100644
---- a/include/linux/oprofile.h
-+++ b/include/linux/oprofile.h
-@@ -185,4 +185,8 @@ int oprofile_add_data(struct op_entry *entry, unsigned long val);
- int oprofile_add_data64(struct op_entry *entry, u64 val);
- int oprofile_write_commit(struct op_entry *entry);
- 
-+#ifdef CONFIG_PERF_EVENTS
-+char *op_name_from_perf_id(void);
-+#endif /* CONFIG_PERF_EVENTS */
-+
- #endif /* OPROFILE_H */
--- 
-1.7.1
+it seems IBM's system have apic_id == 1, and sci irq is using 30.
+
+so at that time add that setup_IO_APIC_irq_extra() to workaround it.
+but it seems we set that two time when irq < 16.
+
+> 
+>> +	if (!((apic_id > 0) && (irq > 16)))
+>> +		return;
+>> +
+>>  	cfg = alloc_irq_and_cfg_at(irq, node);
+>>  	if (!cfg)
+>>  		return;
+>>
 
