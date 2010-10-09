@@ -1,90 +1,75 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH V5 0/7] Generalise ARM perf-events backend for oprofile
-Date: Sat,  9 Oct 2010 01:46:15 +0100
-Message-ID: <cover.1286584677.git.matt@console-pimps.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:44499 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759979Ab0JIAqZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Oct 2010 20:46:25 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 2/7] perf: New helper function for pmu name
+Date: Sat,  9 Oct 2010 01:46:17 +0100
+Message-ID: <a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
+References: <cover.1286584677.git.matt@console-pimps.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <cover.1286584677.git.matt@console-pimps.org>
+In-Reply-To: <cover.1286584677.git.matt@console-pimps.org>
+References: <cover.1286584677.git.matt@console-pimps.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Robert Richter <robert.richter@amd.com>
 Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+List-Id: linux-arch.vger.kernel.org
 
-The perf-events backend for OProfile that Will Deacon wrote in
-8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
-perf-events framework as backend") is of use to more architectures
-than just ARM. Move the code into drivers/oprofile/ so that SH can use
-it instead of the nearly identical copy of its OProfile code.
+Introduce perf_pmu_name() helper function that returns the name of the
+pmu. This gives us a generic way to get the name of a pmu regardless of
+how an architecture identifies it internally.
 
-The benefit of the backend is that it becomes necessary to only
-maintain one copy of the PMU accessor functions for each architecture,
-with bug fixes and new features benefiting both OProfile and perf.
+Signed-off-by: Matt Fleming <matt@console-pimps.org>
+---
+ arch/sh/kernel/perf_event.c |    9 +++++++++
+ include/linux/perf_event.h  |    1 +
+ kernel/perf_event.c         |    5 +++++
+ 3 files changed, 15 insertions(+), 0 deletions(-)
 
-Note that I haven't been able to test these patches on an ARM board to
-see if I've caused any regressions. If anyone else could do that I'd
-appreciate it. Though, I have been able to compile this version of the
-series.
-
-This patch series is based on,
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
-
-These patches can also be found at,
-
-    git://git.kernel.org/pub/scm/linux/kernel/git/mfleming/sh-2.6.git perf-oprofile
-
-
-Robert, I haven't rebased this work on your oprofile updates for
-2.6.37. If you need me to do that, just shout. If you have any comments
-I'll respin this ASAP but it's probably ready for merging now.
-
-
-Changes from v4:
- - SH is the only arch that doesn't default perf_pmu_name()
- - Changed perf_nr_counters to num_counters
+diff --git a/arch/sh/kernel/perf_event.c b/arch/sh/kernel/perf_event.c
+index 2cb9ad5..55fe89b 100644
+--- a/arch/sh/kernel/perf_event.c
++++ b/arch/sh/kernel/perf_event.c
+@@ -59,6 +59,15 @@ static inline int sh_pmu_initialized(void)
+ 	return !!sh_pmu;
+ }
  
-Changes from v3:
- - New perf_pmu_name() function
- - Sprinkled an EXPORT_SYMBOL_GPL()
- - Don't repeatedly call perf_num_counters()
- - Change name of oprofile_driver to "oprofile-perf"
- - Hard overwrite the oprofile_operations in oprofile_perf_init()
- - Dropped the patch that made oprofile depend on HW_PERF_EVENTS for ARM
-
-Changes from v2:
- - Rebased against Robert's oprofile core branch
- - Moved even more of the ARM code into the generic oprofile code
- - Broke the patches up into more logical steps
-
-Changes from v1:
- - Prefix the new functons with "oprofile_" instead of "op_".
- - Fix ARM compilation errors
- - Move all the oprofile-perf logic into oprofile_perf.c
- - Include cleanup patch from Will
-
-Matt Fleming (7):
-  perf: Add helper function to return number of counters
-  perf: New helper function for pmu name
-  oprofile: Make op_name_from_perf_id() global
-  ARM: oprofile: Rename op_arm to oprofile_perf
-  ARM: oprofile: Move non-ARM code into separate init/exit
-  oprofile: Abstract the perf-events backend
-  sh: oprofile: Use perf-events oprofile backend
-
- arch/arm/kernel/perf_event.c     |    6 +
- arch/arm/oprofile/Makefile       |    4 +
- arch/arm/oprofile/common.c       |  309 +-----------------------------------
- arch/sh/Kconfig                  |   13 ++
- arch/sh/kernel/perf_event.c      |   18 ++
- arch/sh/oprofile/Makefile        |    4 +
- arch/sh/oprofile/common.c        |  115 +++-----------
- arch/sh/oprofile/op_impl.h       |   33 ----
- drivers/oprofile/oprofile_perf.c |  326 ++++++++++++++++++++++++++++++++++++++
- include/linux/oprofile.h         |    7 +
- include/linux/perf_event.h       |    2 +
- kernel/perf_event.c              |    5 +
- 12 files changed, 412 insertions(+), 430 deletions(-)
- delete mode 100644 arch/sh/oprofile/op_impl.h
- create mode 100644 drivers/oprofile/oprofile_perf.c
++const char *perf_pmu_name(void)
++{
++	if (!sh_pmu)
++		return NULL;
++
++	return sh_pmu->name;
++}
++EXPORT_SYMBOL_GPL(perf_pmu_name);
++
+ int perf_num_counters(void)
+ {
+ 	if (!sh_pmu)
+diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
+index 1a02192..33f08da 100644
+--- a/include/linux/perf_event.h
++++ b/include/linux/perf_event.h
+@@ -850,6 +850,7 @@ extern int perf_max_events;
+ extern const struct pmu *hw_perf_event_init(struct perf_event *event);
+ 
+ extern int perf_num_counters(void);
++extern const char *perf_pmu_name(void);
+ extern void perf_event_task_sched_in(struct task_struct *task);
+ extern void perf_event_task_sched_out(struct task_struct *task, struct task_struct *next);
+ extern void perf_event_task_tick(struct task_struct *task);
+diff --git a/kernel/perf_event.c b/kernel/perf_event.c
+index db5b560..fc51268 100644
+--- a/kernel/perf_event.c
++++ b/kernel/perf_event.c
+@@ -85,6 +85,11 @@ void __weak hw_perf_enable(void)		{ barrier(); }
+ 
+ void __weak perf_event_print_debug(void)	{ }
+ 
++extern __weak const char *perf_pmu_name(void)
++{
++	return "pmu";
++}
++
+ static DEFINE_PER_CPU(int, perf_disable_count);
+ 
+ void perf_disable(void)
+-- 
+1.7.1
