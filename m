@@ -1,42 +1,43 @@
-From: Anca Emanuel <anca.emanuel@gmail.com>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Sun, 10 Oct 2010 16:30:02 +0300
-Message-ID: <AANLkTimuGDY2OCf9YPH1=ai+K4Vf2HQUBUEWWe-dFTQu@mail.gmail.com>
-References: <20100930221351.682772535@linutronix.de>
-	<20101003112312.GB9844@angua.secretlab.ca>
-	<20101003112920.GB32736@n2100.arm.linux.org.uk>
-	<AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com>
-	<alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
-	<alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6>
-	<4CACFC23.4080504@kernel.org>
-	<alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6>
-	<4CAD082B.40908@kernel.org>
-	<4CAD1154.3080403@kernel.org>
-	<alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6>
-	<4CAD4EC3.5060809@kernel.org>
-	<alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6>
-	<alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6>
-	<4CAFEEFA.1070000@kernel.org>
-	<4CB00122.3030301@kernel.org>
-	<alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6>
-	<4CB014F5.5080209@kernel.org>
-	<alpine.LFD.2.00.1010101130160.2413@localhost6.localdomain6>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: Re: [PATCH 1/5] bitops: add generic implementation of ext2 atomic
+ bitops by test_and_{set,clear}_bit
+Date: Mon, 11 Oct 2010 00:07:26 +0900
+Message-ID: <AANLkTikjb8aTBoXm3+9ULQDB9OvdxwHcQ=BSS4aBJm9i@mail.gmail.com>
+References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
+	<20101008102433.GA24208@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f174.google.com ([209.85.216.174]:45695 "EHLO
-	mail-qy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752994Ab0JJNaF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 09:30:05 -0400
-In-Reply-To: <alpine.LFD.2.00.1010101130160.2413@localhost6.localdomain6>
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:56751 "EHLO
+	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751555Ab0JJPH1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 11:07:27 -0400
+In-Reply-To: <20101008102433.GA24208@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
 
->Folded in the other fix and pushed out an updated tree.
+2010/10/8 Christoph Hellwig <hch@infradead.org>:
+> On Fri, Oct 08, 2010 at 07:03:09PM +0900, Akinobu Mita wrote:
+>> This introduces asm-generic header file for generic implementation of
+>> ext2 atomic bit operations by test_and_set_bit() and test_and_clear_bit().
+>>
+>> alpha, arm, cris, frv, ia64, m68k, mn10300, parisc, powerpc, s390,
+>> sparc64, x86, xtensa can use this header file in its asm/bitops.h.
+>
+> Care to rename the functions to le_* instead of ext2_* while you're at
+> it and documenting their semantics?
 
-Testing: git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-sparse-irq.git
-master
+OK, as several people requested in another threads, I'll introduce
+little endian bit operations for all architectures and rename ext2
+bitops to le bitops.
 
-Running new kernel for 10 minutes. No problems here (Intel Core Duo machine).
+BTW, I have a question about ext2 atomic bit operations.
+
+Some architectures use spinlock to implement it
+(asm-generic/bitops/ext2-atomic.h). Most other architectures use
+test_and_set_bit() and test_and_clear_bit() as this patch shows.
+
+Why are there two implementations? test_and_{set,clear}_bit() are more
+costly operations than spinlock for some architectures?
