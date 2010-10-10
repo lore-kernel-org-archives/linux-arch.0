@@ -1,47 +1,37 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH 4/5] rds: stop including asm-generic/bitops/le.h directly
-Date: Mon, 11 Oct 2010 00:09:36 +0900
-Message-ID: <AANLkTikM35ovGdikDQ6nHs6_GUDF6KTqjjEM20oymOhL@mail.gmail.com>
-References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
-	<1286532193-29814-4-git-send-email-akinobu.mita@gmail.com>
-	<4CAF693B.9030706@oracle.com>
-	<20101008.115900.245387221.davem@davemloft.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] bitops: add generic implementation of ext2 atomic bitops by test_and_{set,clear}_bit
+Date: Sun, 10 Oct 2010 18:36:52 +0200
+Message-ID: <201010101836.52406.arnd@arndb.de>
+References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com> <20101008102433.GA24208@infradead.org> <AANLkTikjb8aTBoXm3+9ULQDB9OvdxwHcQ=BSS4aBJm9i@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20101008.115900.245387221.davem@davemloft.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: andy.grover@oracle.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, rds-devel@oss.oracle.com, netdev@vger.kernel.org, Alexander Graf <agraf@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:55175 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751211Ab0JJQhs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 12:37:48 -0400
+In-Reply-To: <AANLkTikjb8aTBoXm3+9ULQDB9OvdxwHcQ=BSS4aBJm9i@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-2010/10/9 David Miller <davem@davemloft.net>:
-> From: Andy Grover <andy.grover@oracle.com>
-> Date: Fri, 08 Oct 2010 11:55:55 -0700
->
->> On 10/08/2010 03:03 AM, Akinobu Mita wrote:
->>> asm-generic/bitops/le.h is only intended to be included directly fr=
-om
->>> asm-generic/bitops/ext2-non-atomic.h or asm-generic/bitops/minix-le=
-=2Eh
->>> which implements generic ext2 or minix bit operations.
->>>
->>> This stops including asm-generic/bitops/le.h directly and use ext2
->>> non-atomic bit operations instead.
->>>
->>> An alternative approach is introducing little endian bit operations
->>> in linux/bitops.h. But it needs to touch more files than this chang=
-e
->>> does.
->>
->>> - =A0 =A0generic___set_le_bit(off, (void *)map->m_page_addrs[i]);
->>> + =A0 =A0ext2_set_bit(off, (void *)map->m_page_addrs[i]);
->>
->> I'd like a solution that doesn't have rds calling a function startin=
-g
->> with ext2_. Seems wrong.
->
-> Agreed.
+On Sunday 10 October 2010 17:07:26 Akinobu Mita wrote:
+> Some architectures use spinlock to implement it
+> (asm-generic/bitops/ext2-atomic.h). Most other architectures use
+> test_and_set_bit() and test_and_clear_bit() as this patch shows.
+> 
+> Why are there two implementations? test_and_{set,clear}_bit() are more
+> costly operations than spinlock for some architectures?
 
-OK, I'll rewrite the patch series to take the alternative approach.
+I would guess that is only true on architectures that implement all atomics
+using a hashed spinlock like cris, sparc32 or parisc. This way the user
+can decide which spinlock to use rather than have the arch code calculate
+a hash on the pointer.
+
+This is an ext2 specific micro-optimization that I don't think makes
+sense in the generic le bitops code.
+
+	Arnd
