@@ -1,10 +1,10 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:16739 "EHLO
+Received: from rcsinet10.oracle.com ([148.87.113.121]:20613 "EHLO
 	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756140Ab0JJCeL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Oct 2010 22:34:11 -0400
-Message-ID: <4CB125D4.9010003@kernel.org>
-Date: Sat, 09 Oct 2010 19:32:52 -0700
+	with ESMTP id S1750763Ab0JJFMy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 01:12:54 -0400
+Message-ID: <4CB14B03.4000707@kernel.org>
+Date: Sat, 09 Oct 2010 22:11:31 -0700
 From: Yinghai Lu <yinghai@kernel.org>
 MIME-Version: 1.0
 Subject: Re: [patch 00/47] Sparse irq rework
@@ -16,7 +16,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20101010023252.uVw3Nz7VYZGGD3jv9q_DmEOK3SEISyaZI0_dD2XVgos@z>
+Message-ID: <20101010051131.0Ke_sJaKO7o4mtt95l5mlqiNUxpPeT77Mvgltb1qBMw@z>
 
 On 10/09/2010 05:12 AM, Thomas Gleixner wrote:
 > On Sat, 9 Oct 2010, Yinghai Lu wrote:
@@ -40,27 +40,43 @@ On 10/09/2010 05:12 AM, Thomas Gleixner wrote:
 > The first crash is in early boot and that code just fiddles with acpi
 > internal stuff.
 > 
-> Is that fully reproducible ? If yes, any chance you can bisect it ?
-> 
 
-not sure if it is right... the offending commit looks right.
+Need following patch. Please fold it into corresponding commit.
 
-2d80f45874f511aa31c34ab90cbcc5ebc2d62b1d is the first bad commit
-commit 2d80f45874f511aa31c34ab90cbcc5ebc2d62b1d
-Author: Thomas Gleixner <tglx@linutronix.de>
-Date:   Mon Sep 27 20:55:03 2010 +0200
+Yinghai
 
-    genirq: Query arch for number of early descriptors
-    
-    sparse irq sets up NR_IRQS_LEGACY irq descriptors and archs then go
-    ahead and allocate more.
-    
-    Use the unused return value of arch_probe_nr_irqs() to let the
-    architecture return the number of early allocations. Fix up all users.
-    
-    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-    Reviewed-by: Ingo Molnar <mingo@elte.hu>
+[PATCH] sparseirq: Fix kstat_irqs allocation
 
-:040000 040000 36e0def4d755eb235d8fce59ad821c6c6e8e1ca7 e74c903f10df76af20433a3fc6500b4e25de32d5 M	arch
-:040000 040000 9015ff96c3853c81e3848e0921ccde3f56b8d452 c37e782686d0c3c99b42c15258ad07cace9eb415 M	include
-:040000 040000 9ea7cd1eda18286f55b47941ad9ebd810a341b9a c1a57bc71c6769851659913d7b3f1d46577b90b3 M	kernel
+Should allocate array according to cpu num.
+
+Also remove extra desc_smp_init() calling, because it is called in
+desc_set_defaults() already
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ kernel/irq/irqdesc.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+Index: linux-2.6/kernel/irq/irqdesc.c
+===================================================================
+--- linux-2.6.orig/kernel/irq/irqdesc.c
++++ linux-2.6/kernel/irq/irqdesc.c
+@@ -130,7 +130,9 @@ static struct irq_desc *alloc_desc(int i
+ 	desc = kzalloc_node(sizeof(*desc), gfp, node);
+ 	if (!desc)
+ 		return NULL;
+-	desc->kstat_irqs = kzalloc_node(sizeof(*desc->kstat_irqs), gfp, node);
++	/* allocate based on nr_cpu_ids */
++	desc->kstat_irqs = kzalloc_node(nr_cpu_ids * sizeof(*desc->kstat_irqs),
++					 gfp, node);
+ 	if (!desc)
+ 		goto err_desc;
+ 
+@@ -142,7 +144,6 @@ static struct irq_desc *alloc_desc(int i
+ 
+ 	desc_set_defaults(irq, desc, node);
+ 
+-	desc_smp_init(desc, node);
+ 	return desc;
+ 
+ err_kstat:
