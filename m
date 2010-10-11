@@ -1,65 +1,95 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/47] Sparse irq rework
-Date: Mon, 11 Oct 2010 10:16:12 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1010110953420.2909@localhost6.localdomain6>
-References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6>
- <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6>
- <4CAD4EC3.5060809@kernel.org> <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6> <alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6> <4CAFEEFA.1070000@kernel.org> <4CB00122.3030301@kernel.org> <alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6>
- <4CB014F5.5080209@kernel.org> <alpine.LFD.2.00.1010101130160.2413@localhost6.localdomain6> <4CB28988.4090207@kernel.org>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
+Date: Mon, 11 Oct 2010 11:18:10 +0200
+Message-ID: <20101011091809.GQ13563@erda.amd.com>
+References: <cover.1286584677.git.matt@console-pimps.org>
+ <a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:37672 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750731Ab0JKIQm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 04:16:42 -0400
-In-Reply-To: <4CB28988.4090207@kernel.org>
+Received: from db3ehsobe003.messaging.microsoft.com ([213.199.154.141]:26640
+	"EHLO DB3EHSOBE003.bigfish.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753427Ab0JKJSm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Oct 2010 05:18:42 -0400
+Content-Disposition: inline
+In-Reply-To: <a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
 
-On Sun, 10 Oct 2010, Yinghai Lu wrote:
-
-> On 10/10/2010 02:32 AM, Thomas Gleixner wrote:
-> > On Sat, 9 Oct 2010, Yinghai Lu wrote:
-> >> On 10/08/2010 11:34 PM, Thomas Gleixner wrote:
-> >>> On Fri, 8 Oct 2010, Yinghai Lu wrote:
-> >>>> +	/* only handle fall out from setup_IO_APIC_irqs() */
-> >>>
-> >>> What's the fallout ? And why are we coming here in the first place
-> >>> when the irq is < 16 ?
-> >>
-> >> setup_IO_APIC_irqs only handle apic_id == 0 or apic_id > 0 but irq < 16 via acpi override.
-> >>
-> >> it seems IBM's system have apic_id == 1, and sci irq is using 30.
-> >>
-> >> so at that time add that setup_IO_APIC_irq_extra() to workaround it.
-> >> but it seems we set that two time when irq < 16.
-> >>
-> >>>
-> >>>> +	if (!((apic_id > 0) && (irq > 16)))
-> >>>> +		return;
-> > 
-> > I added this into the queue, but simplified it to 
-> > 
-> >   if (apic_id == 0 || irq < NR_IRQS_LEGACY)
-> > 
-> > Folded in the other fix and pushed out an updated tree.
+On 08.10.10 20:46:17, Matt Fleming wrote:
+> Introduce perf_pmu_name() helper function that returns the name of the
+> pmu. This gives us a generic way to get the name of a pmu regardless of
+> how an architecture identifies it internally.
 > 
-> still have the irq_2_iommu_alloc warning from pnpacpi
+> Signed-off-by: Matt Fleming <matt@console-pimps.org>
 
-Hmm, that's probably a problem for all legacy interrupts which are
-never torn down once they are set up. And we set them all up during
-early boot.
-
-So either we special case the legacy area or remove the warning
-alltogether.
-
-Another option I discussed with Suresh recently is to remove the
-allocator in intr_remapping.c and just embedd irq_2_iommu into
-irq_cfg.
+Peter, I need your ack here.
 
 Thanks,
 
-	tglx
+-Robert
+
+> ---
+>  arch/sh/kernel/perf_event.c |    9 +++++++++
+>  include/linux/perf_event.h  |    1 +
+>  kernel/perf_event.c         |    5 +++++
+>  3 files changed, 15 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/sh/kernel/perf_event.c b/arch/sh/kernel/perf_event.c
+> index 2cb9ad5..55fe89b 100644
+> --- a/arch/sh/kernel/perf_event.c
+> +++ b/arch/sh/kernel/perf_event.c
+> @@ -59,6 +59,15 @@ static inline int sh_pmu_initialized(void)
+>  	return !!sh_pmu;
+>  }
+>  
+> +const char *perf_pmu_name(void)
+> +{
+> +	if (!sh_pmu)
+> +		return NULL;
+> +
+> +	return sh_pmu->name;
+> +}
+> +EXPORT_SYMBOL_GPL(perf_pmu_name);
+> +
+>  int perf_num_counters(void)
+>  {
+>  	if (!sh_pmu)
+> diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
+> index 1a02192..33f08da 100644
+> --- a/include/linux/perf_event.h
+> +++ b/include/linux/perf_event.h
+> @@ -850,6 +850,7 @@ extern int perf_max_events;
+>  extern const struct pmu *hw_perf_event_init(struct perf_event *event);
+>  
+>  extern int perf_num_counters(void);
+> +extern const char *perf_pmu_name(void);
+>  extern void perf_event_task_sched_in(struct task_struct *task);
+>  extern void perf_event_task_sched_out(struct task_struct *task, struct task_struct *next);
+>  extern void perf_event_task_tick(struct task_struct *task);
+> diff --git a/kernel/perf_event.c b/kernel/perf_event.c
+> index db5b560..fc51268 100644
+> --- a/kernel/perf_event.c
+> +++ b/kernel/perf_event.c
+> @@ -85,6 +85,11 @@ void __weak hw_perf_enable(void)		{ barrier(); }
+>  
+>  void __weak perf_event_print_debug(void)	{ }
+>  
+> +extern __weak const char *perf_pmu_name(void)
+> +{
+> +	return "pmu";
+> +}
+> +
+>  static DEFINE_PER_CPU(int, perf_disable_count);
+>  
+>  void perf_disable(void)
+> -- 
+> 1.7.1
+> 
+> 
+
+-- 
+Advanced Micro Devices, Inc.
+Operating System Research Center
