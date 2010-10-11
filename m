@@ -1,95 +1,38 @@
-From: Robert Richter <robert.richter@amd.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH 2/7] perf: New helper function for pmu name
-Date: Mon, 11 Oct 2010 11:18:10 +0200
-Message-ID: <20101011091809.GQ13563@erda.amd.com>
+Date: Mon, 11 Oct 2010 11:31:39 +0200
+Message-ID: <1286789499.2336.206.camel@twins>
 References: <cover.1286584677.git.matt@console-pimps.org>
- <a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
+	<a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
+	<20101011091809.GQ13563@erda.amd.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from db3ehsobe003.messaging.microsoft.com ([213.199.154.141]:26640
-	"EHLO DB3EHSOBE003.bigfish.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753427Ab0JKJSm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 05:18:42 -0400
-Content-Disposition: inline
-In-Reply-To: <a72a7968f5e3f64a26875457a7451b34f896f5ae.1286584677.git.matt@console-pimps.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Cc: Matt Fleming <matt@console-pimps.org>, Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20101011091809.GQ13563@erda.amd.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Robert Richter <robert.richter@amd.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Matt Fleming <matt@console-pimps.org>, Russell King <linux@arm.linux.org.uk>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Frederic Weisbecker <fweisbec@gmail.com>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mundt <lethal@linux-sh.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Ingo Molnar <mingo@elte.hu>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 08.10.10 20:46:17, Matt Fleming wrote:
-> Introduce perf_pmu_name() helper function that returns the name of the
-> pmu. This gives us a generic way to get the name of a pmu regardless of
-> how an architecture identifies it internally.
+On Mon, 2010-10-11 at 11:18 +0200, Robert Richter wrote:
+> On 08.10.10 20:46:17, Matt Fleming wrote:
+> > Introduce perf_pmu_name() helper function that returns the name of the
+> > pmu. This gives us a generic way to get the name of a pmu regardless of
+> > how an architecture identifies it internally.
+> > 
+> > Signed-off-by: Matt Fleming <matt@console-pimps.org>
 > 
-> Signed-off-by: Matt Fleming <matt@console-pimps.org>
+> Peter, I need your ack here.
 
-Peter, I need your ack here.
+Sure,
 
-Thanks,
-
--Robert
-
-> ---
->  arch/sh/kernel/perf_event.c |    9 +++++++++
->  include/linux/perf_event.h  |    1 +
->  kernel/perf_event.c         |    5 +++++
->  3 files changed, 15 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/sh/kernel/perf_event.c b/arch/sh/kernel/perf_event.c
-> index 2cb9ad5..55fe89b 100644
-> --- a/arch/sh/kernel/perf_event.c
-> +++ b/arch/sh/kernel/perf_event.c
-> @@ -59,6 +59,15 @@ static inline int sh_pmu_initialized(void)
->  	return !!sh_pmu;
->  }
->  
-> +const char *perf_pmu_name(void)
-> +{
-> +	if (!sh_pmu)
-> +		return NULL;
-> +
-> +	return sh_pmu->name;
-> +}
-> +EXPORT_SYMBOL_GPL(perf_pmu_name);
-> +
->  int perf_num_counters(void)
->  {
->  	if (!sh_pmu)
-> diff --git a/include/linux/perf_event.h b/include/linux/perf_event.h
-> index 1a02192..33f08da 100644
-> --- a/include/linux/perf_event.h
-> +++ b/include/linux/perf_event.h
-> @@ -850,6 +850,7 @@ extern int perf_max_events;
->  extern const struct pmu *hw_perf_event_init(struct perf_event *event);
->  
->  extern int perf_num_counters(void);
-> +extern const char *perf_pmu_name(void);
->  extern void perf_event_task_sched_in(struct task_struct *task);
->  extern void perf_event_task_sched_out(struct task_struct *task, struct task_struct *next);
->  extern void perf_event_task_tick(struct task_struct *task);
-> diff --git a/kernel/perf_event.c b/kernel/perf_event.c
-> index db5b560..fc51268 100644
-> --- a/kernel/perf_event.c
-> +++ b/kernel/perf_event.c
-> @@ -85,6 +85,11 @@ void __weak hw_perf_enable(void)		{ barrier(); }
->  
->  void __weak perf_event_print_debug(void)	{ }
->  
-> +extern __weak const char *perf_pmu_name(void)
-> +{
-> +	return "pmu";
-> +}
-> +
->  static DEFINE_PER_CPU(int, perf_disable_count);
->  
->  void perf_disable(void)
-> -- 
-> 1.7.1
-> 
-> 
-
--- 
-Advanced Micro Devices, Inc.
-Operating System Research Center
+Acked-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
