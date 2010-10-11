@@ -1,48 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f174.google.com ([209.85.216.174]:41838 "EHLO
-	mail-qy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751707Ab0JJPJh convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 11:09:37 -0400
+Received: from rcsinet10.oracle.com ([148.87.113.121]:34082 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752029Ab0JKCXN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Oct 2010 22:23:13 -0400
+Message-ID: <4CB27483.1000109@kernel.org>
+Date: Sun, 10 Oct 2010 19:20:51 -0700
+From: Yinghai Lu <yinghai@kernel.org>
 MIME-Version: 1.0
-In-Reply-To: <20101008.115900.245387221.davem@davemloft.net>
-References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
-	<1286532193-29814-4-git-send-email-akinobu.mita@gmail.com>
-	<4CAF693B.9030706@oracle.com>
-	<20101008.115900.245387221.davem@davemloft.net>
-Date: Mon, 11 Oct 2010 00:09:36 +0900
-Message-ID: <AANLkTikM35ovGdikDQ6nHs6_GUDF6KTqjjEM20oymOhL@mail.gmail.com>
-Subject: Re: [PATCH 4/5] rds: stop including asm-generic/bitops/le.h directly
-From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: Re: [patch 00/47] Sparse irq rework
+References: <20100930221351.682772535@linutronix.de> <20101003112312.GB9844@angua.secretlab.ca> <20101003112920.GB32736@n2100.arm.linux.org.uk> <AANLkTingVuhgdaLZ8U3bM+F2vZJ_kScwKqNtHW=g6DcH@mail.gmail.com> <alpine.LFD.2.00.1010031544340.14550@localhost6.localdomain6> <alpine.LFD.2.00.1010051219580.2556@localhost6.localdomain6> <4CACFC23.4080504@kernel.org> <alpine.LFD.2.00.1010070050410.17015@localhost6.localdomain6> <4CAD082B.40908@kernel.org> <4CAD1154.3080403@kernel.org> <alpine.LFD.2.00.1010070559480.17015@localhost6.localdomain6> <4CAD4EC3.5060809@kernel.org> <alpine.LFD.2.00.1010082346310.13094@localhost6.localdomain6> <alpine.LFD.2.00.1010082351450.13094@localhost6.localdomain6> <4CAFEEFA.1070000@kernel.org> <4CB00122.3030301@kernel.org> <alpine.LFD.2.00.1010090829150.13094@localhost6.localdomain6> <4CB014F5.5080209@kernel.org> <alpine.LFD.2.00.1010101130160.2413@localhost6.localdomain6>
+In-Reply-To: <alpine.LFD.2.00.1010101130160.2413@localhost6.localdomain6>
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: andy.grover@oracle.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, akpm@linux-foundation.org, rds-devel@oss.oracle.com, netdev@vger.kernel.org, Alexander Graf <agraf@suse.de>
-Message-ID: <20101010150936.QMVyQCI3qu-wllHInR9_4vsy5OFNCCBbKsvpPLyeWak@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, David Woodhouse <dwmw2@infradead.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20101011022051.ZZ3n7DfaVOqGr44s6Jvbx7cC9DseXPnYVrrwyv6r5Hs@z>
 
-2010/10/9 David Miller <davem@davemloft.net>:
-> From: Andy Grover <andy.grover@oracle.com>
-> Date: Fri, 08 Oct 2010 11:55:55 -0700
->
->> On 10/08/2010 03:03 AM, Akinobu Mita wrote:
->>> asm-generic/bitops/le.h is only intended to be included directly from
->>> asm-generic/bitops/ext2-non-atomic.h or asm-generic/bitops/minix-le.h
->>> which implements generic ext2 or minix bit operations.
+On 10/10/2010 02:32 AM, Thomas Gleixner wrote:
+> On Sat, 9 Oct 2010, Yinghai Lu wrote:
+>> On 10/08/2010 11:34 PM, Thomas Gleixner wrote:
+>>> On Fri, 8 Oct 2010, Yinghai Lu wrote:
+>>>> +	/* only handle fall out from setup_IO_APIC_irqs() */
 >>>
->>> This stops including asm-generic/bitops/le.h directly and use ext2
->>> non-atomic bit operations instead.
+>>> What's the fallout ? And why are we coming here in the first place
+>>> when the irq is < 16 ?
+>>
+>> setup_IO_APIC_irqs only handle apic_id == 0 or apic_id > 0 but irq < 16 via acpi override.
+>>
+>> it seems IBM's system have apic_id == 1, and sci irq is using 30.
+>>
+>> so at that time add that setup_IO_APIC_irq_extra() to workaround it.
+>> but it seems we set that two time when irq < 16.
+>>
 >>>
->>> An alternative approach is introducing little endian bit operations
->>> in linux/bitops.h. But it needs to touch more files than this change
->>> does.
->>
->>> -    generic___set_le_bit(off, (void *)map->m_page_addrs[i]);
->>> +    ext2_set_bit(off, (void *)map->m_page_addrs[i]);
->>
->> I'd like a solution that doesn't have rds calling a function starting
->> with ext2_. Seems wrong.
->
-> Agreed.
+>>>> +	if (!((apic_id > 0) && (irq > 16)))
+>>>> +		return;
+> 
+> I added this into the queue, but simplified it to 
+> 
+>   if (apic_id == 0 || irq < NR_IRQS_LEGACY)
+> 
+> Folded in the other fix and pushed out an updated tree.
+> 
 
-OK, I'll rewrite the patch series to take the alternative approach.
+ok. please check another small fix.
+
+diff --git a/kernel/irq/irqdesc.c b/kernel/irq/irqdesc.c
+index b3805f3..2fb9df4 100644
+--- a/kernel/irq/irqdesc.c
++++ b/kernel/irq/irqdesc.c
+@@ -130,10 +130,11 @@ static struct irq_desc *alloc_desc(int irq, int node)
+ 	desc = kzalloc_node(sizeof(*desc), gfp, node);
+ 	if (!desc)
+ 		return NULL;
++
+ 	/* allocate based on nr_cpu_ids */
+ 	desc->kstat_irqs = kzalloc_node(nr_cpu_ids * sizeof(*desc->kstat_irqs),
+ 					 gfp, node);
+-	if (!desc)
++	if (!desc->kstat_irqs)
+ 		goto err_desc;
+ 
+ 	if (alloc_masks(desc, gfp, node))
+@@ -226,6 +227,7 @@ struct irq_desc irq_desc[NR_IRQS] __cacheline_aligned_in_smp = {
+ static unsigned int kstat_irqs_all[NR_IRQS][NR_CPUS];
+ int __init early_irq_init(void)
+ {
++	int node = first_online_node;
+ 	struct irq_desc *desc;
+ 	int count;
+ 	int i;
+@@ -241,8 +243,8 @@ int __init early_irq_init(void)
+ 		desc[i].irq_data.irq = i;
+ 		desc[i].irq_data.chip = &no_irq_chip;
+ 		desc[i].kstat_irqs = kstat_irqs_all[i];
+-		alloc_masks(desc + i, GFP_KERNEL, first_online_node);
+-		desc_smp_init(desc + i, first_online_node);
++		alloc_masks(desc + i, GFP_KERNEL, node);
++		desc_smp_init(desc + i, node);
+ 		lockdep_set_class(&desc[i].lock, &irq_desc_lock_class);
+ 	}
+ 	return arch_early_irq_init();
