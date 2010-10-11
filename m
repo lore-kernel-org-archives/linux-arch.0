@@ -1,41 +1,70 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [patch 29/47] pci: Convert msi to new irq_chip functions
-Date: Mon, 11 Oct 2010 10:09:26 -0700
-Message-ID: <20101011100926.29241d87@jbarnes-desktop>
-References: <20100930221351.682772535@linutronix.de>
-	<20100930221741.327789575@linutronix.de>
+From: Robert Richter <robert.richter@amd.com>
+Subject: Re: [PATCH V5 0/7] Generalise ARM perf-events backend for oprofile
+Date: Mon, 11 Oct 2010 20:59:23 +0200
+Message-ID: <20101011185923.GW13563@erda.amd.com>
+References: <cover.1286584677.git.matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20100930221741.327789575@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from tx2ehsobe002.messaging.microsoft.com ([65.55.88.12]:34863 "EHLO
+	TX2EHSOBE004.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753455Ab0JKS7f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Oct 2010 14:59:35 -0400
+Content-Disposition: inline
+In-Reply-To: <cover.1286584677.git.matt@console-pimps.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
 
-On Thu, 30 Sep 2010 23:16:55 -0000
-Thomas Gleixner <tglx@linutronix.de> wrote:
+On 08.10.10 20:46:15, Matt Fleming wrote:
+> The perf-events backend for OProfile that Will Deacon wrote in
+> 8c1fc96f6fd1f361428ba805103af0d0eee65179 ("ARM: 6072/1: oprofile: use
+> perf-events framework as backend") is of use to more architectures
+> than just ARM. Move the code into drivers/oprofile/ so that SH can use
+> it instead of the nearly identical copy of its OProfile code.
+> 
+> The benefit of the backend is that it becomes necessary to only
+> maintain one copy of the PMU accessor functions for each architecture,
+> with bug fixes and new features benefiting both OProfile and perf.
 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  arch/arm/mach-iop13xx/msi.c            |    8 ++++----
->  arch/ia64/kernel/msi_ia64.c            |    4 ++--
->  arch/ia64/sn/kernel/msi_sn.c           |    4 ++--
->  arch/powerpc/platforms/cell/axon_msi.c |    6 +++---
->  arch/powerpc/platforms/pseries/xics.c  |    2 +-
->  arch/powerpc/sysdev/fsl_msi.c          |    4 ++--
->  arch/powerpc/sysdev/mpic_pasemi_msi.c  |   22 +++++++++++-----------
->  arch/powerpc/sysdev/mpic_u3msi.c       |   16 ++++++++--------
->  arch/sparc/kernel/pci_msi.c            |    8 ++++----
->  arch/x86/kernel/apic/io_apic.c         |    8 ++++----
->  drivers/pci/msi.c                      |   14 +++++++-------
->  include/linux/msi.h                    |    5 +++--
->  12 files changed, 51 insertions(+), 50 deletions(-)
+> Matt Fleming (7):
+>   perf: Add helper function to return number of counters
+>   perf: New helper function for pmu name
+>   oprofile: Make op_name_from_perf_id() global
+>   ARM: oprofile: Rename op_arm to oprofile_perf
+>   ARM: oprofile: Move non-ARM code into separate init/exit
+>   oprofile: Abstract the perf-events backend
+>   sh: oprofile: Use perf-events oprofile backend
+> 
+>  arch/arm/kernel/perf_event.c     |    6 +
+>  arch/arm/oprofile/Makefile       |    4 +
+>  arch/arm/oprofile/common.c       |  309 +-----------------------------------
+>  arch/sh/Kconfig                  |   13 ++
+>  arch/sh/kernel/perf_event.c      |   18 ++
+>  arch/sh/oprofile/Makefile        |    4 +
+>  arch/sh/oprofile/common.c        |  115 +++-----------
+>  arch/sh/oprofile/op_impl.h       |   33 ----
+>  drivers/oprofile/oprofile_perf.c |  326 ++++++++++++++++++++++++++++++++++++++
+>  include/linux/oprofile.h         |    7 +
+>  include/linux/perf_event.h       |    2 +
+>  kernel/perf_event.c              |    5 +
+>  12 files changed, 412 insertions(+), 430 deletions(-)
+>  delete mode 100644 arch/sh/oprofile/op_impl.h
+>  create mode 100644 drivers/oprofile/oprofile_perf.c
 
-I like the MSI bits here too.
+Thanks Matt, I applied your patches to the oprofile tree and merged
+them with the core branch. As I already wrote, I modified patch #4 to
+fix the compile breakage.
 
-Acked-by: Jesse Barnes <jbarnes@virtuousgeek.org>
+The patches are available for testing in
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
+
+Thanks again,
+
+-Robert
 
 -- 
-Jesse Barnes, Intel Open Source Technology Center
+Advanced Micro Devices, Inc.
+Operating System Research Center
