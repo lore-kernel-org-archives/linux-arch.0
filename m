@@ -1,47 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cpoproxy2-pub.bluehost.com ([67.222.39.38]:51578 "HELO
-	cpoproxy2-pub.bluehost.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755552Ab0JKRGO (ORCPT
+Received: from arkanian.console-pimps.org ([212.110.184.194]:37055 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755940Ab0JKUNh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 13:06:14 -0400
-Date: Mon, 11 Oct 2010 10:09:26 -0700
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [patch 29/47] pci: Convert msi to new irq_chip functions
-Message-ID: <20101011100926.29241d87@jbarnes-desktop>
-In-Reply-To: <20100930221741.327789575@linutronix.de>
-References: <20100930221351.682772535@linutronix.de>
-	<20100930221741.327789575@linutronix.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+	Mon, 11 Oct 2010 16:13:37 -0400
+Date: Mon, 11 Oct 2010 21:13:35 +0100
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH V5 0/7] Generalise ARM perf-events backend for oprofile
+Message-ID: <20101011201335.GB14561@console-pimps.org>
+References: <cover.1286584677.git.matt@console-pimps.org>
+ <20101011185923.GW13563@erda.amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20101011185923.GW13563@erda.amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@osdl.org>, Andrew Morton <akpm@linux-foundation.org>, x86@kernel.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Yinghai Lu <yinghai@kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20101011170926.HjY0D7pnsKNkXBHAWboQnAdhHdfTF6gMyz3G4ydI3gs@z>
+To: Robert Richter <robert.richter@amd.com>
+Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101011201335.87svAKDCcPHCci4TPXGvH8g2JoPInt3agNY0HzejlvA@z>
 
-On Thu, 30 Sep 2010 23:16:55 -0000
-Thomas Gleixner <tglx@linutronix.de> wrote:
+On Mon, Oct 11, 2010 at 08:59:23PM +0200, Robert Richter wrote:
+> 
+> Thanks Matt, I applied your patches to the oprofile tree and merged
+> them with the core branch. As I already wrote, I modified patch #4 to
+> fix the compile breakage.
+> 
+> The patches are available for testing in
+> 
+>  git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
+> 
+> Thanks again,
+> 
+> -Robert
 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> ---
->  arch/arm/mach-iop13xx/msi.c            |    8 ++++----
->  arch/ia64/kernel/msi_ia64.c            |    4 ++--
->  arch/ia64/sn/kernel/msi_sn.c           |    4 ++--
->  arch/powerpc/platforms/cell/axon_msi.c |    6 +++---
->  arch/powerpc/platforms/pseries/xics.c  |    2 +-
->  arch/powerpc/sysdev/fsl_msi.c          |    4 ++--
->  arch/powerpc/sysdev/mpic_pasemi_msi.c  |   22 +++++++++++-----------
->  arch/powerpc/sysdev/mpic_u3msi.c       |   16 ++++++++--------
->  arch/sparc/kernel/pci_msi.c            |    8 ++++----
->  arch/x86/kernel/apic/io_apic.c         |    8 ++++----
->  drivers/pci/msi.c                      |   14 +++++++-------
->  include/linux/msi.h                    |    5 +++--
->  12 files changed, 51 insertions(+), 50 deletions(-)
-
-I like the MSI bits here too.
-
-Acked-by: Jesse Barnes <jbarnes@virtuousgeek.org>
-
--- 
-Jesse Barnes, Intel Open Source Technology Center
+Thanks Robert, I've just read through the merge and it looks good!
