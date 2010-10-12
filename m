@@ -1,39 +1,43 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 2/4] mips: remove dma64_addr_t usage
-Date: Tue, 12 Oct 2010 12:13:13 +0900
-Message-ID: <1286853195-32202-3-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-References: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: Re: [PATCH 1/5] bitops: add generic implementation of ext2 atomic
+ bitops by test_and_{set,clear}_bit
+Date: Tue, 12 Oct 2010 12:39:37 +0900
+Message-ID: <AANLkTik95xrOw0Y_=63EiJ-EGh95XZGeqMy_-HXorqCS@mail.gmail.com>
+References: <1286532193-29814-1-git-send-email-akinobu.mita@gmail.com>
+	<20101008102433.GA24208@infradead.org>
+	<AANLkTikjb8aTBoXm3+9ULQDB9OvdxwHcQ=BSS4aBJm9i@mail.gmail.com>
+	<201010101836.52406.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:35336 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752121Ab0JLDXC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 23:23:02 -0400
-In-Reply-To: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from mail-qw0-f46.google.com ([209.85.216.46]:36598 "EHLO
+	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755739Ab0JLDji (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Oct 2010 23:39:38 -0400
+In-Reply-To: <201010101836.52406.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-let's use u64 instead.
+2010/10/11 Arnd Bergmann <arnd@arndb.de>:
+> On Sunday 10 October 2010 17:07:26 Akinobu Mita wrote:
+>> Some architectures use spinlock to implement it
+>> (asm-generic/bitops/ext2-atomic.h). Most other architectures use
+>> test_and_set_bit() and test_and_clear_bit() as this patch shows.
+>>
+>> Why are there two implementations? test_and_{set,clear}_bit() are more
+>> costly operations than spinlock for some architectures?
+>
+> I would guess that is only true on architectures that implement all atomics
+> using a hashed spinlock like cris, sparc32 or parisc. This way the user
+> can decide which spinlock to use rather than have the arch code calculate
+> a hash on the pointer.
 
-Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: Ralf Baechle <ralf@linux-mips.org>
----
- arch/mips/include/asm/pci/bridge.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Thanks. It looks quite right.
 
-diff --git a/arch/mips/include/asm/pci/bridge.h b/arch/mips/include/asm/pci/bridge.h
-index 5f4b9d4..f1f508e 100644
---- a/arch/mips/include/asm/pci/bridge.h
-+++ b/arch/mips/include/asm/pci/bridge.h
-@@ -839,7 +839,7 @@ struct bridge_controller {
- 	nasid_t			nasid;
- 	unsigned int		widget_id;
- 	unsigned int 		irq_cpu;
--	dma64_addr_t		baddr;
-+	u64			baddr;
- 	unsigned int		pci_int[8];
- };
- 
--- 
-1.7.1
+> This is an ext2 specific micro-optimization that I don't think makes
+> sense in the generic le bitops code.
+
+OK, I'll only rename ext2 non-atomic bitops to le bitops and
+keep ext2 atomic bitops for now.
