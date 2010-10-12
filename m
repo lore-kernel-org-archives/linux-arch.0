@@ -1,29 +1,35 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH -mm 4/4] remove dma64_addr_t
-Date: Mon, 11 Oct 2010 23:28:25 -0700 (PDT)
-Message-ID: <20101011.232825.115943452.davem@davemloft.net>
-References: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-	<1286853195-32202-5-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+From: "VIVA 48hrs FINANCE LOAN" <info@lenders.co.uk>
+Subject: Apply For A Guaranteed Loan
+Date: Tue, 12 Oct 2010 21:17:32 +0300 (EAT)
+Message-ID: <54866.187.76.92.66.1286907452.squirrel__2967.81766596741$1286932057$gmane$org@mail.page.bi>
+Reply-To: viva.lendersdesk95@gmail.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:49066
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753633Ab0JLG2D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Oct 2010 02:28:03 -0400
-In-Reply-To: <1286853195-32202-5-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Received: from mail.page.bi ([196.2.10.103]:46730 "EHLO mail.page.bi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751484Ab0JMBHR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Oct 2010 21:07:17 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: fujita.tomonori@lab.ntt.co.jp
-Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org
 
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Date: Tue, 12 Oct 2010 12:13:15 +0900
 
-> There is no user now.
-> 
-> Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
 
-Acked-by: David S. Miller <davem@davemloft.net>
+
+VIVA 48hrs FINANCE LOAN
+5 Churchill Place,
+London, E14 5HP.
+Tel:
+
+Attention,
+
+We are currently giving out loans to any part of the world at 2% interest
+rate. If interested, send your name, Resident country and Phone number to
+Mr. Mayson Scout with the email address bellow Email:
+ viva.lendersdesk95@gmail.com .or call: +447024019643
+
+Regards
+Mr. Mayson Scout
+C.E.O
+VIVA 48hrs FINANCE LOAN
