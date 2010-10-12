@@ -1,37 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:37055 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755940Ab0JKUNh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 16:13:37 -0400
-Date: Mon, 11 Oct 2010 21:13:35 +0100
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH V5 0/7] Generalise ARM perf-events backend for oprofile
-Message-ID: <20101011201335.GB14561@console-pimps.org>
-References: <cover.1286584677.git.matt@console-pimps.org>
- <20101011185923.GW13563@erda.amd.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20101011185923.GW13563@erda.amd.com>
+Received: from sh.osrg.net ([192.16.179.4]:35335 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754337Ab0JLDW6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Oct 2010 23:22:58 -0400
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 3/4] alpha: remove dma64_addr_t usage
+Date: Tue, 12 Oct 2010 12:13:14 +0900
+Message-ID: <1286853195-32202-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+In-Reply-To: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+References: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robert Richter <robert.richter@amd.com>
-Cc: Will Deacon <will.deacon@arm.com>, Paul Mundt <lethal@linux-sh.org>, Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@elte.hu>, Frederic Weisbecker <fweisbec@gmail.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101011201335.87svAKDCcPHCci4TPXGvH8g2JoPInt3agNY0HzejlvA@z>
+To: akpm@linux-foundation.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
+Message-ID: <20101012031314.h30pWCRO1NZ3Em1-xapgMbwc8jyRmjPvjWFD-4w3zJE@z>
 
-On Mon, Oct 11, 2010 at 08:59:23PM +0200, Robert Richter wrote:
-> 
-> Thanks Matt, I applied your patches to the oprofile tree and merged
-> them with the core branch. As I already wrote, I modified patch #4 to
-> fix the compile breakage.
-> 
-> The patches are available for testing in
-> 
->  git://git.kernel.org/pub/scm/linux/kernel/git/rric/oprofile.git core
-> 
-> Thanks again,
-> 
-> -Robert
+dma_addr_t is always 64 bit on alpha. So let's use dma_addr_t instead.
 
-Thanks Robert, I've just read through the merge and it looks good!
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-alpha@vger.kernel.org
+---
+ arch/alpha/kernel/pci_iommu.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
+index d1dbd9a..022c274 100644
+--- a/arch/alpha/kernel/pci_iommu.c
++++ b/arch/alpha/kernel/pci_iommu.c
+@@ -223,7 +223,7 @@ iommu_arena_free(struct pci_iommu_arena *arena, long ofs, long n)
+  */
+ static int pci_dac_dma_supported(struct pci_dev *dev, u64 mask)
+ {
+-	dma64_addr_t dac_offset = alpha_mv.pci_dac_offset;
++	dma_addr_t dac_offset = alpha_mv.pci_dac_offset;
+ 	int ok = 1;
+ 
+ 	/* If this is not set, the machine doesn't support DAC at all.  */
+@@ -756,7 +756,7 @@ static void alpha_pci_unmap_sg(struct device *dev, struct scatterlist *sg,
+ 	spin_lock_irqsave(&arena->lock, flags);
+ 
+ 	for (end = sg + nents; sg < end; ++sg) {
+-		dma64_addr_t addr;
++		dma_addr_t addr;
+ 		size_t size;
+ 		long npages, ofs;
+ 		dma_addr_t tend;
+-- 
+1.7.1
+
