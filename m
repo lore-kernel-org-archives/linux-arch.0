@@ -1,36 +1,45 @@
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 0/4] remove dma64_addr_t
-Date: Tue, 12 Oct 2010 12:13:11 +0900
-Message-ID: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:35331 "EHLO sh.osrg.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752121Ab0JLDWx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Oct 2010 23:22:53 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH -mm 3/4] alpha: remove dma64_addr_t usage
+Date: Tue, 12 Oct 2010 12:13:14 +0900
+Message-ID: <1286853195-32202-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+References: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Sender: linux-alpha-owner@vger.kernel.org
 To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-dma64_addr_t looks pointless (at least there is no point that an
-architecture has the own dma64_addr_t typedef).
+dma_addr_t is always 64 bit on alpha. So let's use dma_addr_t instead.
 
-dma_addr_t is set to 32 or 64 bits appropriately. You can use u64
-at places where you know that 64 bit address is always necessary.
+Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Cc: linux-alpha@vger.kernel.org
+---
+ arch/alpha/kernel/pci_iommu.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-=
- arch/alpha/include/asm/types.h     |   11 -----------
- arch/alpha/kernel/pci_iommu.c      |    4 ++--
- arch/arm/include/asm/types.h       |    6 ------
- arch/cris/include/asm/types.h      |    6 ------
- arch/m32r/include/asm/types.h      |    6 ------
- arch/m68k/include/asm/types.h      |    6 ------
- arch/mips/include/asm/pci/bridge.h |    2 +-
- arch/mips/include/asm/types.h      |    2 --
- arch/parisc/include/asm/types.h    |   13 -------------
- arch/powerpc/include/asm/types.h   |    2 --
- arch/s390/include/asm/types.h      |    2 --
- arch/sparc/include/asm/pci_64.h    |    2 +-
- arch/sparc/include/asm/types.h     |   18 ------------------
- arch/x86/include/asm/types.h       |    8 --------
- 14 files changed, 4 insertions(+), 84 deletions(-)
+diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
+index d1dbd9a..022c274 100644
+--- a/arch/alpha/kernel/pci_iommu.c
++++ b/arch/alpha/kernel/pci_iommu.c
+@@ -223,7 +223,7 @@ iommu_arena_free(struct pci_iommu_arena *arena, long ofs, long n)
+  */
+ static int pci_dac_dma_supported(struct pci_dev *dev, u64 mask)
+ {
+-	dma64_addr_t dac_offset = alpha_mv.pci_dac_offset;
++	dma_addr_t dac_offset = alpha_mv.pci_dac_offset;
+ 	int ok = 1;
+ 
+ 	/* If this is not set, the machine doesn't support DAC at all.  */
+@@ -756,7 +756,7 @@ static void alpha_pci_unmap_sg(struct device *dev, struct scatterlist *sg,
+ 	spin_lock_irqsave(&arena->lock, flags);
+ 
+ 	for (end = sg + nents; sg < end; ++sg) {
+-		dma64_addr_t addr;
++		dma_addr_t addr;
+ 		size_t size;
+ 		long npages, ofs;
+ 		dma_addr_t tend;
+-- 
+1.7.1
+
