@@ -1,45 +1,42 @@
 From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: [PATCH -mm 3/4] alpha: remove dma64_addr_t usage
-Date: Tue, 12 Oct 2010 12:13:14 +0900
-Message-ID: <1286853195-32202-4-git-send-email-fujita.tomonori@lab.ntt.co.jp>
+Subject: [PATCH -mm 1/4] sparc: remove dma64_addr_t usage
+Date: Tue, 12 Oct 2010 12:13:12 +0900
+Message-ID: <1286853195-32202-2-git-send-email-fujita.tomonori@lab.ntt.co.jp>
 References: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sh.osrg.net ([192.16.179.4]:35332 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752121Ab0JLDW4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Oct 2010 23:22:56 -0400
 In-Reply-To: <1286853195-32202-1-git-send-email-fujita.tomonori@lab.ntt.co.jp>
-Sender: linux-alpha-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
-Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>
 
-dma_addr_t is always 64 bit on alpha. So let's use dma_addr_t instead.
+let's use u64 instead.
+
+Looks like PCI654_REQUIRED_MASK or PCI64_ADR_BASE isn't used. They can
+be removed?
 
 Signed-off-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Cc: linux-alpha@vger.kernel.org
+Cc: David Miller <davem@davemloft.net>
 ---
- arch/alpha/kernel/pci_iommu.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/sparc/include/asm/pci_64.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/alpha/kernel/pci_iommu.c b/arch/alpha/kernel/pci_iommu.c
-index d1dbd9a..022c274 100644
---- a/arch/alpha/kernel/pci_iommu.c
-+++ b/arch/alpha/kernel/pci_iommu.c
-@@ -223,7 +223,7 @@ iommu_arena_free(struct pci_iommu_arena *arena, long ofs, long n)
+diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_64.h
+index 5312782..948b686 100644
+--- a/arch/sparc/include/asm/pci_64.h
++++ b/arch/sparc/include/asm/pci_64.h
+@@ -38,7 +38,7 @@ static inline void pcibios_penalize_isa_irq(int irq, int active)
+  * types on sparc64.  However, it requires that the device
+  * can drive enough of the 64 bits.
   */
- static int pci_dac_dma_supported(struct pci_dev *dev, u64 mask)
- {
--	dma64_addr_t dac_offset = alpha_mv.pci_dac_offset;
-+	dma_addr_t dac_offset = alpha_mv.pci_dac_offset;
- 	int ok = 1;
+-#define PCI64_REQUIRED_MASK	(~(dma64_addr_t)0)
++#define PCI64_REQUIRED_MASK	(~(u64)0)
+ #define PCI64_ADDR_BASE		0xfffc000000000000UL
  
- 	/* If this is not set, the machine doesn't support DAC at all.  */
-@@ -756,7 +756,7 @@ static void alpha_pci_unmap_sg(struct device *dev, struct scatterlist *sg,
- 	spin_lock_irqsave(&arena->lock, flags);
- 
- 	for (end = sg + nents; sg < end; ++sg) {
--		dma64_addr_t addr;
-+		dma_addr_t addr;
- 		size_t size;
- 		long npages, ofs;
- 		dma_addr_t tend;
+ #ifdef CONFIG_PCI
 -- 
 1.7.1
-
