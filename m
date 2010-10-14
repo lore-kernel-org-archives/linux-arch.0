@@ -1,22 +1,56 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 4/5] mips: fix error values in case of bad_stack
-Date: Thu, 14 Oct 2010 15:45:07 +0100
-Message-ID: <20101014144507.GD32284@linux-mips.org>
-References: <E1P0eKF-0006jH-5I@ZenIV.linux.org.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
+Date: Thu, 14 Oct 2010 08:03:17 -0700
+Message-ID: <AANLkTi=ZjR3bWtZ2x9wRzpzBb1K8Wst3Xg_K4mGX-b6o@mail.gmail.com>
+References: <20101013131057.88238be6.randy.dunlap@oracle.com>
+ <20101014042409.GB29342@aftab> <20101014105855.GB31247@aftab>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:41265 "EHLO h5.dl5rb.org.uk"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754919Ab0JNOpL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Oct 2010 10:45:11 -0400
-Content-Disposition: inline
-In-Reply-To: <E1P0eKF-0006jH-5I@ZenIV.linux.org.uk>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:49545 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754920Ab0JNPJe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Oct 2010 11:09:34 -0400
+In-Reply-To: <20101014105855.GB31247@aftab>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ftp.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+To: Borislav Petkov <bp@amd64.org>
+Cc: Randy Dunlap <randy.dunlap@oracle.com>, lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
-Thanks, applied.
+On Thu, Oct 14, 2010 at 3:58 AM, Borislav Petkov <bp@amd64.org> wrote:
+>>
+>> Ok, so BIT() should be fixed to work with the largest type available,
+>> IMHO. Let me cook up something.
+>
+> Maybe something like the following. Build-tested with the crosstool
+> (http://www.kernel.org/pub/tools/crosstool) on the following arches:
+> alpha blackfin cris hppa64 ia64 mips64 sparc.
+>
+> Any objections?
 
-  Ralf
+Yeah. I object. I have no idea what this will change for everything
+else that expects bitops to work on unsigned long values.
+
+I really think that the bug is not in the BIT() definition, but in the
+use. If somebody wants a non-unsigned-long bit field, they had better
+not use bitops.h.
+
+And no, just changing the BIT() macro to return a 64-bit value is
+_not_ trivially safe. Due to C type rules, now all arithmetic using
+BIT() will suddenly be 64-bit, which is often *much* slower, and can
+introduce real bugs.
+
+On many architectures, a 64-bit non-constant shift will even end up
+being a function call. And if the thing is used in a varargs function,
+the argument layout will be totally different. We've also had several
+issues with 64-bit types and switch() statements, for example. And a
+quick grep for '\<BIT(' shows that non-constant cases are not unheard
+of, and there's a lot of random use where it is not at all obvious
+that it's safe (because it's used for defining other defines).
+
+So no. I do not think BIT() should be 64-bit. It's "unsigned long".
+Look at all the other things around it, and look at all the historical
+uses.
+
+                                    Linus
