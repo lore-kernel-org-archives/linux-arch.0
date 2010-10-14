@@ -1,35 +1,79 @@
-From: "VIVA 48hrs FINANCE LOAN" <info@lenders.co.uk>
-Subject: Apply For A Guaranteed Loan
-Date: Thu, 14 Oct 2010 09:55:19 +0300 (EAT)
-Message-ID: <36563.173.203.116.76.1287039319.squirrel@mail.page.bi>
-Reply-To: viva.lendersdesk95@gmail.com
+From: Borislav Petkov <bp@amd64.org>
+Subject: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
+Date: Thu, 14 Oct 2010 12:58:55 +0200
+Message-ID: <20101014105855.GB31247@aftab>
+References: <20101013131057.88238be6.randy.dunlap@oracle.com>
+ <20101014042409.GB29342@aftab>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.page.bi ([196.2.10.103]:40002 "EHLO mail.page.bi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752335Ab0JNKqd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Oct 2010 06:46:33 -0400
+Received: from s15228384.onlinehome-server.info ([87.106.30.177]:38709 "EHLO
+	mail.x86-64.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751512Ab0JNK6x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Oct 2010 06:58:53 -0400
+Content-Disposition: inline
+In-Reply-To: <20101014042409.GB29342@aftab>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
+> From: Randy Dunlap <randy.dunlap@oracle.com>
+> Date: Wed, Oct 13, 2010 at 04:10:57PM -0400
+> 
+> > The BIT() macro works on unsigned longs, but this warning happens
+> > on i386 (X86_32), where UL is 32 bits and this value needs to be
+> > 64 bits, so use open-coded ULL.
+> > 
+> > drivers/edac/mce_amd.c:262: warning: left shift count >= width of type
+> 
+> Ok, so BIT() should be fixed to work with the largest type available,
+> IMHO. Let me cook up something.
 
+Maybe something like the following. Build-tested with the crosstool
+(http://www.kernel.org/pub/tools/crosstool) on the following arches:
+alpha blackfin cris hppa64 ia64 mips64 sparc.
 
+Any objections?
 
-VIVA 48hrs FINANCE LOAN
-5 Churchill Place,
-London, E14 5HP.
-Tel:
+--
+From: Borislav Petkov <Borislav.Petkov@amd.com>
+Date: Thu, 14 Oct 2010 12:00:17 +0200
+Subject: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
 
-Attention,
+Nowadays, every arch defines an unsigned 64-bit type using either one
+of the include/asm-generic/int-l{,l}64.h headers. Thus, make the BIT()
+macro return that 64-bit type by default. This makes sense on x86 when
+manipulating MSR values and prevents overflow errors on 32-bit arches,
+for example.
 
-We are currently giving out loans to any part of the world at 2% interest
-rate. If interested, send your name, Resident country and Phone number to
-Mr. Mayson Scout with the email address bellow Email:
- viva.48hrslenders85@live.co.uk .or call: +447024019643
+Signed-off-by: Borislav Petkov <borislav.petkov@amd.com>
+---
+ include/linux/bitops.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Regards
-Mr. Mayson Scout
-C.E.O
-VIVA 48hrs FINANCE LOAN
+diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+index fc68053..7b9170b 100644
+--- a/include/linux/bitops.h
++++ b/include/linux/bitops.h
+@@ -3,7 +3,7 @@
+ #include <asm/types.h>
+ 
+ #ifdef	__KERNEL__
+-#define BIT(nr)			(1UL << (nr))
++#define BIT(nr)			(U64_C(1) << (nr))
+ #define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
+ #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+ #define BITS_PER_BYTE		8
+-- 
+1.7.3.1.50.g1e633
+
+-- 
+Regards/Gruss,
+Boris.
+
+Advanced Micro Devices GmbH
+Einsteinring 24, 85609 Dornach
+General Managers: Alberto Bozzo, Andrew Bowd
+Registration: Dornach, Gemeinde Aschheim, Landkreis Muenchen
+Registergericht Muenchen, HRB Nr. 43632
