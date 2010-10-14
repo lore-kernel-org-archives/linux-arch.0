@@ -1,80 +1,117 @@
-From: Borislav Petkov <bp@amd64.org>
-Subject: Re: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
-Date: Thu, 14 Oct 2010 17:36:33 +0200
-Message-ID: <20101014153633.GA4261@kryptos.osrc.amd.com>
-References: <20101013131057.88238be6.randy.dunlap@oracle.com>
- <20101014042409.GB29342@aftab>
- <20101014105855.GB31247@aftab>
- <AANLkTi=ZjR3bWtZ2x9wRzpzBb1K8Wst3Xg_K4mGX-b6o@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from s15228384.onlinehome-server.info ([87.106.30.177]:44496 "EHLO
-	mail.x86-64.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754869Ab0JNPgX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Oct 2010 11:36:23 -0400
-Content-Disposition: inline
-In-Reply-To: <AANLkTi=ZjR3bWtZ2x9wRzpzBb1K8Wst3Xg_K4mGX-b6o@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>, lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
+Date: Thu, 14 Oct 2010 17:00:16 -0400
+Message-ID: <20101014210136.230687571@goodmis.org>
+References: <20101014210014.895157788@goodmis.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=0002-ftrace-x86-Add-support-for-C-version-of-recordmcount.patch
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org, John Reiser <jreiser@bitwagon.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, Oct 14, 2010 at 08:03:17AM -0700
+From: Steven Rostedt <srostedt@redhat.com>
 
-> On Thu, Oct 14, 2010 at 3:58 AM, Borislav Petkov <bp@amd64.org> wrote:
-> >>
-> >> Ok, so BIT() should be fixed to work with the largest type available,
-> >> IMHO. Let me cook up something.
-> >
-> > Maybe something like the following. Build-tested with the crosstool
-> > (http://www.kernel.org/pub/tools/crosstool) on the following arches:
-> > alpha blackfin cris hppa64 ia64 mips64 sparc.
-> >
-> > Any objections?
-> 
-> Yeah. I object. I have no idea what this will change for everything
-> else that expects bitops to work on unsigned long values.
-> 
-> I really think that the bug is not in the BIT() definition, but in the
-> use. If somebody wants a non-unsigned-long bit field, they had better
-> not use bitops.h.
-> 
-> And no, just changing the BIT() macro to return a 64-bit value is
-> _not_ trivially safe. Due to C type rules, now all arithmetic using
-> BIT() will suddenly be 64-bit, which is often *much* slower, and can
-> introduce real bugs.
-> 
-> On many architectures, a 64-bit non-constant shift will even end up
-> being a function call. And if the thing is used in a varargs function,
-> the argument layout will be totally different. We've also had several
-> issues with 64-bit types and switch() statements, for example. And a
-> quick grep for '\<BIT(' shows that non-constant cases are not unheard
-> of, and there's a lot of random use where it is not at all obvious
-> that it's safe (because it's used for defining other defines).
+This patch adds the support for the C version of recordmcount and
+compile times show ~ 12% improvement.
 
-Concerning safety, I actually had a version which did check the bit
-number supplied as an arg for overflowing but this failed when using
-BIT() in struct initializers:
+After verifying this works, other archs can add:
 
-	.struct_member = { BIT(bla) }
+ HAVE_C_MCOUNT_RECORD
 
-But thanks for the detailed explanation! This makes perfect sense; it
-was too much wishful thinking on my part to assume that a ULL BIT()
-would be fine after checking that all arches support the unsigned 64-bit
-type.
+in its Kconfig and it will use the C version of recordmcount
+instead of the perl version.
 
-I'm much better off with a local BIT_64() or similar, definition.
+Cc: <linux-arch@vger.kernel.org>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: linux-kbuild@vger.kernel.org
+Cc: John Reiser <jreiser@bitwagon.com>
+Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+---
+ Makefile               |    6 ++++++
+ arch/x86/Kconfig       |    1 +
+ kernel/trace/Kconfig   |    5 +++++
+ scripts/Makefile       |    1 +
+ scripts/Makefile.build |    4 ++++
+ 5 files changed, 17 insertions(+), 0 deletions(-)
 
-Thanks.
-
+diff --git a/Makefile b/Makefile
+index 534c09c..0dd3a8d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -568,6 +568,12 @@ endif
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+ KBUILD_CFLAGS	+= -pg
++ifdef CONFIG_DYNAMIC_FTRACE
++	ifdef CONFIG_HAVE_C_MCOUNT_RECORD
++		BUILD_C_RECORDMCOUNT := y
++		export BUILD_C_RECORDMCOUNT
++	endif
++endif
+ endif
+ 
+ # We trigger additional mismatches with less inlining
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c14d8b4..788b50e 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -33,6 +33,7 @@ config X86
+ 	select HAVE_KRETPROBES
+ 	select HAVE_OPTPROBES
+ 	select HAVE_FTRACE_MCOUNT_RECORD
++	select HAVE_C_MCOUNT_RECORD
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
+index 538501c..df00fbb 100644
+--- a/kernel/trace/Kconfig
++++ b/kernel/trace/Kconfig
+@@ -49,6 +49,11 @@ config HAVE_SYSCALL_TRACEPOINTS
+ 	help
+ 	  See Documentation/trace/ftrace-design.txt
+ 
++config HAVE_C_MCOUNT_RECORD
++	bool
++	help
++	  C version of recordmcount available?
++
+ config TRACER_MAX_TRACE
+ 	bool
+ 
+diff --git a/scripts/Makefile b/scripts/Makefile
+index 842dbc2..2e08810 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -11,6 +11,7 @@ hostprogs-$(CONFIG_KALLSYMS)     += kallsyms
+ hostprogs-$(CONFIG_LOGO)         += pnmtologo
+ hostprogs-$(CONFIG_VT)           += conmakehash
+ hostprogs-$(CONFIG_IKCONFIG)     += bin2c
++hostprogs-$(BUILD_C_RECORDMCOUNT) += recordmcount
+ 
+ always		:= $(hostprogs-y) $(hostprogs-m)
+ 
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index a1a5cf9..4d03a7e 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -209,12 +209,16 @@ cmd_modversions =								\
+ endif
+ 
+ ifdef CONFIG_FTRACE_MCOUNT_RECORD
++ifdef BUILD_C_RECORDMCOUNT
++cmd_record_mcount = $(srctree)/scripts/recordmcount "$(@)";
++else
+ cmd_record_mcount = set -e ; perl $(srctree)/scripts/recordmcount.pl "$(ARCH)" \
+ 	"$(if $(CONFIG_CPU_BIG_ENDIAN),big,little)" \
+ 	"$(if $(CONFIG_64BIT),64,32)" \
+ 	"$(OBJDUMP)" "$(OBJCOPY)" "$(CC)" "$(LD)" "$(NM)" "$(RM)" "$(MV)" \
+ 	"$(if $(part-of-module),1,0)" "$(@)";
+ endif
++endif
+ 
+ define rule_cc_o_c
+ 	$(call echo-cmd,checksrc) $(cmd_checksrc)			  \
 -- 
-Regards/Gruss,
-Boris.
-
-Advanced Micro Devices GmbH
-Einsteinring 24, 85609 Dornach
-General Managers: Alberto Bozzo, Andrew Bowd
-Registration: Dornach, Gemeinde Aschheim, Landkreis Muenchen
-Registergericht Muenchen, HRB Nr. 43632
+1.7.1
