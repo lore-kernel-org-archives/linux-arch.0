@@ -1,79 +1,31 @@
-From: Borislav Petkov <bp@amd64.org>
-Subject: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
-Date: Thu, 14 Oct 2010 12:58:55 +0200
-Message-ID: <20101014105855.GB31247@aftab>
-References: <20101013131057.88238be6.randy.dunlap@oracle.com>
- <20101014042409.GB29342@aftab>
+From: Matthew Wilcox <matthew@wil.cx>
+Subject: Re: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
+Date: Thu, 14 Oct 2010 05:12:13 -0600
+Message-ID: <20101014111213.GO10421@parisc-linux.org>
+References: <20101013131057.88238be6.randy.dunlap@oracle.com> <20101014042409.GB29342@aftab> <20101014105855.GB31247@aftab>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from s15228384.onlinehome-server.info ([87.106.30.177]:38709 "EHLO
-	mail.x86-64.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751512Ab0JNK6x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Oct 2010 06:58:53 -0400
+Received: from palinux.external.hp.com ([192.25.206.14]:56223 "EHLO
+	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752797Ab0JNLMP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Oct 2010 07:12:15 -0400
 Content-Disposition: inline
-In-Reply-To: <20101014042409.GB29342@aftab>
+In-Reply-To: <20101014105855.GB31247@aftab>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Borislav Petkov <bp@amd64.org>
+Cc: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
-> From: Randy Dunlap <randy.dunlap@oracle.com>
-> Date: Wed, Oct 13, 2010 at 04:10:57PM -0400
-> 
-> > The BIT() macro works on unsigned longs, but this warning happens
-> > on i386 (X86_32), where UL is 32 bits and this value needs to be
-> > 64 bits, so use open-coded ULL.
-> > 
-> > drivers/edac/mce_amd.c:262: warning: left shift count >= width of type
-> 
-> Ok, so BIT() should be fixed to work with the largest type available,
-> IMHO. Let me cook up something.
+On Thu, Oct 14, 2010 at 12:58:55PM +0200, Borislav Petkov wrote:
+>  #ifdef	__KERNEL__
+> -#define BIT(nr)			(1UL << (nr))
+> +#define BIT(nr)			(U64_C(1) << (nr))
 
-Maybe something like the following. Build-tested with the crosstool
-(http://www.kernel.org/pub/tools/crosstool) on the following arches:
-alpha blackfin cris hppa64 ia64 mips64 sparc.
-
-Any objections?
-
---
-From: Borislav Petkov <Borislav.Petkov@amd.com>
-Date: Thu, 14 Oct 2010 12:00:17 +0200
-Subject: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
-
-Nowadays, every arch defines an unsigned 64-bit type using either one
-of the include/asm-generic/int-l{,l}64.h headers. Thus, make the BIT()
-macro return that 64-bit type by default. This makes sense on x86 when
-manipulating MSR values and prevents overflow errors on 32-bit arches,
-for example.
-
-Signed-off-by: Borislav Petkov <borislav.petkov@amd.com>
----
- include/linux/bitops.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index fc68053..7b9170b 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -3,7 +3,7 @@
- #include <asm/types.h>
- 
- #ifdef	__KERNEL__
--#define BIT(nr)			(1UL << (nr))
-+#define BIT(nr)			(U64_C(1) << (nr))
- #define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
- #define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
- #define BITS_PER_BYTE		8
--- 
-1.7.3.1.50.g1e633
+Why not just use 1ULL instead?
 
 -- 
-Regards/Gruss,
-Boris.
-
-Advanced Micro Devices GmbH
-Einsteinring 24, 85609 Dornach
-General Managers: Alberto Bozzo, Andrew Bowd
-Registration: Dornach, Gemeinde Aschheim, Landkreis Muenchen
-Registergericht Muenchen, HRB Nr. 43632
+Matthew Wilcox				Intel Open Source Technology Centre
+"Bill, look, we understand that you're interested in selling us this
+operating system, but compare it to ours.  We can't possibly take such
+a retrograde step."
