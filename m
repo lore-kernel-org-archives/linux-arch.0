@@ -1,40 +1,22 @@
-From: Matthew Wilcox <matthew@wil.cx>
-Subject: Re: [PATCH] bitops.h: Widen BIT macro to support 64-bit types
-Date: Thu, 14 Oct 2010 08:27:01 -0600
-Message-ID: <20101014142701.GP10421@parisc-linux.org>
-References: <20101013131057.88238be6.randy.dunlap@oracle.com> <20101014042409.GB29342@aftab> <20101014105855.GB31247@aftab> <20101014111213.GO10421@parisc-linux.org> <20101014121230.GC31247@aftab>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 3/5] mips: sanitize restart logics
+Date: Thu, 14 Oct 2010 15:44:38 +0100
+Message-ID: <20101014144437.GC32284@linux-mips.org>
+References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from palinux.external.hp.com ([192.25.206.14]:46288 "EHLO
-	mail.parisc-linux.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754594Ab0JNO1E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Oct 2010 10:27:04 -0400
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:41260 "EHLO h5.dl5rb.org.uk"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754698Ab0JNOop (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Oct 2010 10:44:45 -0400
 Content-Disposition: inline
-In-Reply-To: <20101014121230.GC31247@aftab>
+In-Reply-To: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@amd64.org>
-Cc: Randy Dunlap <randy.dunlap@oracle.com>, Linus Torvalds <torvalds@linux-foundation.org>, lkml <linux-kernel@vger.kernel.org>, Doug Thompson <dougthompson@xmission.com>, akpm <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Al Viro <viro@ftp.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 
-On Thu, Oct 14, 2010 at 02:12:30PM +0200, Borislav Petkov wrote:
-> From: Matthew Wilcox <matthew@wil.cx>
-> Date: Thu, Oct 14, 2010 at 07:12:13AM -0400
-> 
-> > On Thu, Oct 14, 2010 at 12:58:55PM +0200, Borislav Petkov wrote:
-> > >  #ifdef	__KERNEL__
-> > > -#define BIT(nr)			(1UL << (nr))
-> > > +#define BIT(nr)			(U64_C(1) << (nr))
-> > 
-> > Why not just use 1ULL instead?
-> 
-> Wanted to be __ASSEMBLY__ safe.
+Thanks, applied.
 
-Admirable, but the entire file is __ASSEMBLY__ unsafe at this point,
-so I don't see the point.
-
--- 
-Matthew Wilcox				Intel Open Source Technology Centre
-"Bill, look, we understand that you're interested in selling us this
-operating system, but compare it to ours.  We can't possibly take such
-a retrograde step."
+  Ralf
