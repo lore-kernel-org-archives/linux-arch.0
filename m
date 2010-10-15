@@ -1,23 +1,52 @@
-From: "Miller, Jeanne" <Jeanne.Miller@richardson.k12.tx.us>
-Subject: Reply Via Email:: barristerstevenrudolf@yahoo.com.hk
-Date: Fri, 15 Oct 2010 05:09:44 -0500
-Message-ID: <9D0E51AB41CCC742A25FF378A37F3B2C18054843F3@email.risd.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
+Date: Fri, 15 Oct 2010 12:53:15 +0200
+Message-ID: <201010151253.15653.arnd@arndb.de>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <1287135981-17604-23-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from exgate.richardson.k12.tx.us ([165.199.3.203]:45694 "EHLO
-	richardson.k12.tx.us" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751677Ab0JOKOu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Oct 2010 06:14:50 -0400
-Content-Language: en-US
+Received: from moutng.kundenserver.de ([212.227.126.171]:61025 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755116Ab0JOKxV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Oct 2010 06:53:21 -0400
+In-Reply-To: <1287135981-17604-23-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "info@notice.org" <info@notice.org>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
 
+On Friday 15 October 2010, Akinobu Mita wrote:
+> minix bit operations are only used by minix filesystem and useless
+> by other modules.
 
+Right.
+ 
+> This provides new config option CONFIG_MINIX_FS_LITTLE_ENDIAN and
+> CONFIG_MINIX_FS_NATIVE_ENDIAN that each architecture selects one of which.
+> Then we can remove minix bit operations from asm/bitops.h from all
+> architectures by making them minix filesystem local macros.
 
-Your Email Id has won =A3850,000. in the British Lottery Promo.send You=
-r
- Names,Country,Tel.Response should be sent to:: barristerstevenrudolf@y=
-ahoo.com.hk
+I would say that any architecture that defines minix bitops as
+little-endian is broken and we should not even need the #define.
+
+You have defined these as "native endian":
+
+always LE:
+	alpha, blackfin, ia64, score, tile, x86
+
+always BE:
+	h8300, microblaze, s390, sparc
+
+configurable:
+	m32r, mips, sh, xtensa
+
+The only ones among these that possibly ever cared about mounting minix
+file systems on a big-endian kernel are really old sparc and mips systems,
+everyone else probably never noticed their mistake.
+
+I'd say let's define the minix bitops as always LE and be done with it.
+
+	Arnd
