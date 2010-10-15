@@ -1,129 +1,61 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 03/22] s390: introduce little endian bitops
-Date: Fri, 15 Oct 2010 18:46:02 +0900
-Message-ID: <1287135981-17604-4-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH 18/22] md: use little endian bit operations
+Date: Fri, 15 Oct 2010 18:46:17 +0900
+Message-ID: <1287135981-17604-19-git-send-email-akinobu.mita@gmail.com>
 References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [150.82.175.143] ([150.82.175.143]:37678 "EHLO
+	dhcpa11143.tky.aist.go.jp" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1755657Ab0JOJo7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Oct 2010 05:44:59 -0400
 In-Reply-To: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Neil Brown <neilb@suse.de>, linux-raid@vger.kernel.org
 
-Introduce little endian bit operations by renaming native ext2 bit
-operations. The ext2 bit operations are kept by using little endian
-bit operations until the conversions are finished.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h. This converts ext2 non-atomic bit operations to
+little endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux390@de.ibm.com
-Cc: linux-s390@vger.kernel.org
+Cc: Neil Brown <neilb@suse.de>
+Cc: linux-raid@vger.kernel.org
 ---
- arch/s390/include/asm/bitops.h |   59 +++++++++++++++++++++++++++------------
- 1 files changed, 41 insertions(+), 18 deletions(-)
+ drivers/md/bitmap.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/s390/include/asm/bitops.h b/arch/s390/include/asm/bitops.h
-index 2e05972..5d14515 100644
---- a/arch/s390/include/asm/bitops.h
-+++ b/arch/s390/include/asm/bitops.h
-@@ -742,18 +742,22 @@ static inline int sched_find_first_bit(unsigned long *b)
-  *    23 22 21 20 19 18 17 16 31 30 29 28 27 26 25 24
-  */
- 
--#define ext2_set_bit(nr, addr)       \
--	__test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
--#define ext2_set_bit_atomic(lock, nr, addr)       \
--	test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
--#define ext2_clear_bit(nr, addr)     \
--	__test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
--#define ext2_clear_bit_atomic(lock, nr, addr)     \
--	test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
--#define ext2_test_bit(nr, addr)      \
--	test_bit((nr)^(__BITOPS_WORDSIZE - 8), (unsigned long *)addr)
--
--static inline int ext2_find_first_zero_bit(void *vaddr, unsigned int size)
-+#define __set_le_bit(nr, addr)	\
-+	__set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define __clear_le_bit(nr, addr)	\
-+	__clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define __test_and_set_le_bit(nr, addr)	\
-+	__test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define test_and_set_le_bit(lock, nr, addr)	\
-+	test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define __test_and_clear_le_bit(nr, addr)	\
-+	__test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define test_and_clear_le_bit(lock, nr, addr)	\
-+	test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+#define test_le_bit(nr, addr)	\
-+	test_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-+
-+static inline int find_first_zero_le_bit(void *vaddr, unsigned int size)
- {
- 	unsigned long bytes, bits;
- 
-@@ -764,7 +768,7 @@ static inline int ext2_find_first_zero_bit(void *vaddr, unsigned int size)
- 	return (bits < size) ? bits : size;
- }
- 
--static inline int ext2_find_next_zero_bit(void *vaddr, unsigned long size,
-+static inline int find_next_zero_le_bit(void *vaddr, unsigned long size,
- 					  unsigned long offset)
- {
-         unsigned long *addr = vaddr, *p;
-@@ -790,11 +794,10 @@ static inline int ext2_find_next_zero_bit(void *vaddr, unsigned long size,
- 		size -= __BITOPS_WORDSIZE;
- 		p++;
-         }
--	return offset + ext2_find_first_zero_bit(p, size);
-+	return offset + find_first_zero_le_bit(p, size);
- }
- 
--static inline unsigned long ext2_find_first_bit(void *vaddr,
--						unsigned long size)
-+static inline unsigned long find_first_le_bit(void *vaddr, unsigned long size)
- {
- 	unsigned long bytes, bits;
- 
-@@ -805,7 +808,7 @@ static inline unsigned long ext2_find_first_bit(void *vaddr,
- 	return (bits < size) ? bits : size;
- }
- 
--static inline int ext2_find_next_bit(void *vaddr, unsigned long size,
-+static inline int find_next_le_bit(void *vaddr, unsigned long size,
- 				     unsigned long offset)
- {
- 	unsigned long *addr = vaddr, *p;
-@@ -831,9 +834,29 @@ static inline int ext2_find_next_bit(void *vaddr, unsigned long size,
- 		size -= __BITOPS_WORDSIZE;
- 		p++;
+diff --git a/drivers/md/bitmap.c b/drivers/md/bitmap.c
+index e4fb58d..2a37051 100644
+--- a/drivers/md/bitmap.c
++++ b/drivers/md/bitmap.c
+@@ -850,7 +850,7 @@ static void bitmap_file_set_bit(struct bitmap *bitmap, sector_t block)
+ 		if (bitmap->flags & BITMAP_HOSTENDIAN)
+ 			set_bit(bit, kaddr);
+ 		else
+-			ext2_set_bit(bit, kaddr);
++			__test_and_set_le_bit(bit, kaddr);
+ 		kunmap_atomic(kaddr, KM_USER0);
+ 		PRINTK("set file bit %lu page %lu\n", bit, page->index);
  	}
--	return offset + ext2_find_first_bit(p, size);
-+	return offset + find_first_le_bit(p, size);
- }
- 
-+#define ext2_set_bit(nr, addr)       \
-+	__test_and_set_le_bit((nr), (unsigned long *)(addr))
-+#define ext2_set_bit_atomic(lock, nr, addr)       \
-+	test_and_set_le_bit((nr), (unsigned long *)(addr))
-+#define ext2_clear_bit(nr, addr)     \
-+	__test_and_clear_le_bit((nr), (unsigned long *)(addr))
-+#define ext2_clear_bit_atomic(lock, nr, addr)     \
-+	test_and_clear_le_bit((nr), (unsigned long *)(addr))
-+#define ext2_test_bit(nr, addr)      \
-+	test_le_bit((nr), (unsigned long *)(addr))
-+
-+#define ext2_find_first_zero_bit(vaddr, size)	\
-+	find_first_zero_le_bit((unsigned long *)(vaddr), (size))
-+#define ext2_find_next_zero_bit(vaddr, size, offset)	\
-+	find_next_zero_le_bit((unsigned long *)(vaddr), (size), (offset))
-+#define ext2_find_first_bit(vaddr, size)	\
-+	find_first_le_bit((unsigned long *)(vaddr), (size))
-+#define ext2_find_next_bit(vaddr, size, offset)	\
-+	find_next_le_bit((unsigned long *)(vaddr), (size), (offset))
-+
- #include <asm-generic/bitops/minix.h>
- 
- #endif /* __KERNEL__ */
+@@ -1046,7 +1046,7 @@ static int bitmap_init_from_disk(struct bitmap *bitmap, sector_t start)
+ 		if (bitmap->flags & BITMAP_HOSTENDIAN)
+ 			b = test_bit(bit, paddr);
+ 		else
+-			b = ext2_test_bit(bit, paddr);
++			b = test_le_bit(bit, paddr);
+ 		kunmap_atomic(paddr, KM_USER0);
+ 		if (b) {
+ 			/* if the disk bit is set, set the memory bit */
+@@ -1222,7 +1222,7 @@ void bitmap_daemon_work(mddev_t *mddev)
+ 						clear_bit(file_page_offset(bitmap, j),
+ 							  paddr);
+ 					else
+-						ext2_clear_bit(file_page_offset(bitmap, j),
++						__test_and_clear_le_bit(file_page_offset(bitmap, j),
+ 							       paddr);
+ 					kunmap_atomic(paddr, KM_USER0);
+ 				} else
 -- 
 1.7.1.231.gd0b16
