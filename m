@@ -1,88 +1,93 @@
-From: tip-bot for Steven Rostedt <srostedt@redhat.com>
-Subject: [tip:perf/core] ftrace: Rename config option HAVE_C_MCOUNT_RECORD to HAVE_C_RECORDMCOUNT
-Date: Fri, 15 Oct 2010 06:21:03 GMT
-Message-ID: <tip-cf4db2597ae93b60efc0a7a4ec08690b75d629b1@git.kernel.org>
-Reply-To: linux-kernel@vger.kernel.org, mingo@redhat.com, hpa@zytor.com,
-	  jreiser@bitwagon.com, mmarek@suse.cz, rostedt@goodmis.org,
-	  srostedt@redhat.com, tglx@linutronix.de,
-	  linux-arch@vger.kernel.org, mingo@elte.hu
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 01/22] bitops: merge little and big endian definisions in asm-generic/bitops/le.h
+Date: Fri, 15 Oct 2010 18:46:00 +0900
+Message-ID: <1287135981-17604-2-git-send-email-akinobu.mita@gmail.com>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:45644 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753232Ab0JOGV2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Oct 2010 02:21:28 -0400
-Content-Disposition: inline
+Received: from [150.82.175.143] ([150.82.175.143]:47193 "EHLO
+	dhcpa11143.tky.aist.go.jp" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753035Ab0JOJoN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 Oct 2010 05:44:13 -0400
+In-Reply-To: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: hpa@zytor.com, mingo@redhat.com, rostedt@goodmis.org, srostedt@redhat.com, jreiser@bitwagon.com, mmarek@suse.cz, tglx@linutronix.de, linux-arch@vger.kernel.org, mingo@elte.hu
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 
-Commit-ID:  cf4db2597ae93b60efc0a7a4ec08690b75d629b1
-Gitweb:     http://git.kernel.org/tip/cf4db2597ae93b60efc0a7a4ec08690b75d629b1
-Author:     Steven Rostedt <srostedt@redhat.com>
-AuthorDate: Thu, 14 Oct 2010 23:32:44 -0400
-Committer:  Steven Rostedt <rostedt@goodmis.org>
-CommitDate: Thu, 14 Oct 2010 23:32:44 -0400
+In order to make the forthcoming changes smaller, this merges
+macro definisions in asm-generic/bitops/le.h for big endian and
+little endian as much as possible.
 
-ftrace: Rename config option HAVE_C_MCOUNT_RECORD to HAVE_C_RECORDMCOUNT
+This also removes unused BITOP_WORD macro.
 
-The config option used by archs to let the build system know that
-the C version of the recordmcount works for said arch is currently
-called HAVE_C_MCOUNT_RECORD which enables BUILD_C_RECORDMCOUNT. To
-be more consistent with the name that all archs may use, it has been
-renamed to HAVE_C_RECORDMCOUNT. This will be less confusing since
-we are building a C recordmcount and not a mcount_record.
-
-Suggested-by: Ingo Molnar <mingo@elte.hu>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Michal Marek <mmarek@suse.cz>
-Cc: linux-kbuild@vger.kernel.org
-Cc: John Reiser <jreiser@bitwagon.com>
-Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
 ---
- Makefile             |    2 +-
- arch/x86/Kconfig     |    2 +-
- kernel/trace/Kconfig |    2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ include/asm-generic/bitops/le.h |   38 +++++++++++++++-----------------------
+ 1 files changed, 15 insertions(+), 23 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index 0dd3a8d..c2362c2 100644
---- a/Makefile
-+++ b/Makefile
-@@ -569,7 +569,7 @@ endif
- ifdef CONFIG_FUNCTION_TRACER
- KBUILD_CFLAGS	+= -pg
- ifdef CONFIG_DYNAMIC_FTRACE
--	ifdef CONFIG_HAVE_C_MCOUNT_RECORD
-+	ifdef CONFIG_HAVE_C_RECORDMCOUNT
- 		BUILD_C_RECORDMCOUNT := y
- 		export BUILD_C_RECORDMCOUNT
- 	endif
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 788b50e..9815221 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -33,7 +33,7 @@ config X86
- 	select HAVE_KRETPROBES
- 	select HAVE_OPTPROBES
- 	select HAVE_FTRACE_MCOUNT_RECORD
--	select HAVE_C_MCOUNT_RECORD
-+	select HAVE_C_RECORDMCOUNT
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FUNCTION_TRACER
- 	select HAVE_FUNCTION_GRAPH_TRACER
-diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
-index df00fbb..e550d2ed 100644
---- a/kernel/trace/Kconfig
-+++ b/kernel/trace/Kconfig
-@@ -49,7 +49,7 @@ config HAVE_SYSCALL_TRACEPOINTS
- 	help
- 	  See Documentation/trace/ftrace-design.txt
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 80e3bf1..db2be81 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -4,27 +4,28 @@
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
  
--config HAVE_C_MCOUNT_RECORD
-+config HAVE_C_RECORDMCOUNT
- 	bool
- 	help
- 	  C version of recordmcount available?
+-#define BITOP_WORD(nr)		((nr) / BITS_PER_LONG)
+-#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+-
+ #if defined(__LITTLE_ENDIAN)
+ 
+-#define generic_test_le_bit(nr, addr) test_bit(nr, addr)
+-#define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
+-#define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
+-
+-#define generic_test_and_set_le_bit(nr, addr) test_and_set_bit(nr, addr)
+-#define generic_test_and_clear_le_bit(nr, addr) test_and_clear_bit(nr, addr)
++#define BITOP_LE_SWIZZLE	0
+ 
+-#define generic___test_and_set_le_bit(nr, addr) __test_and_set_bit(nr, addr)
+-#define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
+-
+-#define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
++#define generic_find_next_zero_le_bit(addr, size, offset) \
++	find_next_zero_bit(addr, size, offset)
+ #define generic_find_next_le_bit(addr, size, offset) \
+-			find_next_bit(addr, size, offset)
++	find_next_bit(addr, size, offset)
+ 
+ #elif defined(__BIG_ENDIAN)
+ 
++#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
++
++extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++
++#else
++#error "Please fix <asm/byteorder.h>"
++#endif
++
+ #define generic_test_le_bit(nr, addr) \
+ 	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ #define generic___set_le_bit(nr, addr) \
+@@ -42,15 +43,6 @@
+ #define generic___test_and_clear_le_bit(nr, addr) \
+ 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ 
+-extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-
+-#else
+-#error "Please fix <asm/byteorder.h>"
+-#endif
+-
+ #define generic_find_first_zero_le_bit(addr, size) \
+         generic_find_next_zero_le_bit((addr), (size), 0)
+ 
+-- 
+1.7.1.231.gd0b16
