@@ -1,70 +1,83 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of
- recordmcount
-Date: Thu, 14 Oct 2010 23:14:09 -0400
-Message-ID: <1287112449.23682.27.camel@gandalf.stny.rr.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
+Date: Fri, 15 Oct 2010 05:18:32 +0200
+Message-ID: <20101015031832.GG9640@elte.hu>
 References: <20101014210014.895157788@goodmis.org>
-	 <20101014210136.230687571@goodmis.org>  <20101015025047.GA9640@elte.hu>
+ <20101014210136.230687571@goodmis.org>
+ <20101015025047.GA9640@elte.hu>
+ <1287112449.23682.27.camel@gandalf.stny.rr.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20101015025047.GA9640@elte.hu>
+Content-Disposition: inline
+In-Reply-To: <1287112449.23682.27.camel@gandalf.stny.rr.com>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
+To: Steven Rostedt <rostedt@goodmis.org>
 Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org, John Reiser <jreiser@bitwagon.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2010-10-15 at 04:50 +0200, Ingo Molnar wrote:
-> * Steven Rostedt <rostedt@goodmis.org> wrote:
-> 
-> > From: Steven Rostedt <srostedt@redhat.com>
+
+* Steven Rostedt <rostedt@goodmis.org> wrote:
+
+> On Fri, 2010-10-15 at 04:50 +0200, Ingo Molnar wrote:
+> > * Steven Rostedt <rostedt@goodmis.org> wrote:
 > > 
-> > This patch adds the support for the C version of recordmcount and
-> > compile times show ~ 12% improvement.
+> > > From: Steven Rostedt <srostedt@redhat.com>
+> > > 
+> > > This patch adds the support for the C version of recordmcount and
+> > > compile times show ~ 12% improvement.
+> > 
+> > I reported this recordmcount performance problem 2 years ago. Better 
+> > later than never i guess.
 > 
-> I reported this recordmcount performance problem 2 years ago. Better 
-> later than never i guess.
+> And I also remember saying after I posted this code that it would have 
+> a compile time performance hit. Heck, it's a perl script running on 
+> every object file. It was obvious what was at issue here. But it's 
+> better to slow down the kernel build than to brick network cards. 
 
-And I also remember saying after I posted this code that it would have a
-compile time performance hit. Heck, it's a perl script running on every
-object file. It was obvious what was at issue here. But it's better to
-slow down the kernel build than to brick network cards. Also, perl was
-much easier to do.
+Well, it's even better to do neither!
 
-That said, the embarrassing thing is not that I knew (or you reported
-it) about this performance problem. I'm actually quite embarrassed that
-I had this code sitting in my inbox for over a year. I just kept having
-other things that were more important coming up than lowering the
-compile time of the kernel. Although, I did work to get streamline
-config to offset this performance hit.
+> Also, perl was much easier to do.
 
-Finally, while at the End Users Summit, I decided to take a look at
-John's code, and I was quite impressed.
+Lets write the whole kernel in perl and forget about performance ;-)
 
-But as you said, better late than never.
-
-
+> That said, the embarrassing thing is not that I knew (or you reported 
+> it) about this performance problem. I'm actually quite embarrassed 
+> that I had this code sitting in my inbox for over a year. I just kept 
+> having other things that were more important coming up than lowering 
+> the compile time of the kernel. Although, I did work to get streamline 
+> config to offset this performance hit.
 > 
-> > +ifdef CONFIG_DYNAMIC_FTRACE
-> > +	ifdef CONFIG_HAVE_C_MCOUNT_RECORD
-> > +		BUILD_C_RECORDMCOUNT := y
-> > +		export BUILD_C_RECORDMCOUNT
+> Finally, while at the End Users Summit, I decided to take a look at 
+> John's code, and I was quite impressed.
 > 
-> > --- a/arch/x86/Kconfig
-> > +++ b/arch/x86/Kconfig
-> > @@ -33,6 +33,7 @@ config X86
-> >  	select HAVE_KRETPROBES
-> >  	select HAVE_OPTPROBES
-> >  	select HAVE_FTRACE_MCOUNT_RECORD
-> > +	select HAVE_C_MCOUNT_RECORD
+> But as you said, better late than never.
+
+Yeah. Note that as a maintainer i need to grumble when i see some 
+not-so-good event - even if there's a happy resolution! Otherwise such 
+cases would tend to creep up in frequency ;-)
+
+> > > +ifdef CONFIG_DYNAMIC_FTRACE
+> > > +	ifdef CONFIG_HAVE_C_MCOUNT_RECORD
+> > > +		BUILD_C_RECORDMCOUNT := y
+> > > +		export BUILD_C_RECORDMCOUNT
+> > 
+> > > --- a/arch/x86/Kconfig
+> > > +++ b/arch/x86/Kconfig
+> > > @@ -33,6 +33,7 @@ config X86
+> > >  	select HAVE_KRETPROBES
+> > >  	select HAVE_OPTPROBES
+> > >  	select HAVE_FTRACE_MCOUNT_RECORD
+> > > +	select HAVE_C_MCOUNT_RECORD
+> > 
+> > The naming is inconsistent here - it should be HAVE_C_RECORDMCOUNT, like 
+> > the build variable has, and like the utility is called. If we are going 
+> > to add this flag to most architectures we should name it consistently.
 > 
-> The naming is inconsistent here - it should be HAVE_C_RECORDMCOUNT, like 
-> the build variable has, and like the utility is called. If we are going 
-> to add this flag to most architectures we should name it consistently.
+> Sure, want me to rebase it or just write a patch on top of it?
 
-Sure, want me to rebase it or just write a patch on top of it?
+Sure, patch on top would be fine.
 
--- Steve
+Thanks,
 
-
+	Ingo
