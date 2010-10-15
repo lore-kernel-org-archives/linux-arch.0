@@ -1,127 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [150.82.175.143] ([150.82.175.143]:37674 "EHLO
+Received: from [150.82.175.143] ([150.82.175.143]:37665 "EHLO
 	dhcpa11143.tky.aist.go.jp" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754838Ab0JOJo5 (ORCPT
+	by vger.kernel.org with ESMTP id S1755499Ab0JOJox (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Oct 2010 05:44:57 -0400
+	Fri, 15 Oct 2010 05:44:53 -0400
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 06/22] m68knommu: introduce little endian bitops
-Date: Fri, 15 Oct 2010 18:46:05 +0900
-Message-ID: <1287135981-17604-7-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH 15/22] reiserfs: use little endian bitops
+Date: Fri, 15 Oct 2010 18:46:14 +0900
+Message-ID: <1287135981-17604-16-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
 References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, linux-m68k@vger.kernel.org
-Message-ID: <20101015094605.KBT7r34EUKUyhIGKYFjHrOJzLSuPqpWL_548ACqqgpM@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, reiserfs-devel@vger.kernel.org
+Message-ID: <20101015094614.xvRNEmAgxg1jHEabRwuvebhp9qMkNyEY_tgKhHwYglI@z>
 
-Introduce little endian bit operations by renaming native ext2 bit
-operations. The ext2 bit operations are kept by using little endian
-bit operations until the conversions are finished.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h. This converts ext2 non-atomic bit operations to
+little endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Greg Ungerer <gerg@uclinux.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org
+Cc: reiserfs-devel@vger.kernel.org
 ---
- arch/m68k/include/asm/bitops_no.h |   40 +++++++++++++++++++++++++++++-------
- 1 files changed, 32 insertions(+), 8 deletions(-)
+ include/linux/reiserfs_fs.h |   34 ++++++++++++++++++++--------------
+ 1 files changed, 20 insertions(+), 14 deletions(-)
 
-diff --git a/arch/m68k/include/asm/bitops_no.h b/arch/m68k/include/asm/bitops_no.h
-index 292e1ce..9f5eb02 100644
---- a/arch/m68k/include/asm/bitops_no.h
-+++ b/arch/m68k/include/asm/bitops_no.h
-@@ -196,7 +196,15 @@ static __inline__ int __test_bit(int nr, const volatile unsigned long * addr)
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
+diff --git a/include/linux/reiserfs_fs.h b/include/linux/reiserfs_fs.h
+index 91a4177..8d5f122 100644
+--- a/include/linux/reiserfs_fs.h
++++ b/include/linux/reiserfs_fs.h
+@@ -1125,15 +1125,21 @@ struct reiserfs_de_head {
+ #   define aligned_address(addr)           ((void *)((long)(addr) & ~((1UL << ADDR_UNALIGNED_BITS) - 1)))
+ #   define unaligned_offset(addr)          (((int)((long)(addr) & ((1 << ADDR_UNALIGNED_BITS) - 1))) << 3)
  
--static __inline__ int ext2_set_bit(int nr, volatile void * addr)
-+#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
-+
-+#define __set_le_bit(nr, addr) \
-+	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+
-+#define __clear_le_bit(nr, addr) \
-+	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+
-+static inline int __test_and_set_le_bit(int nr, volatile void *addr)
- {
- 	char retval;
+-#   define set_bit_unaligned(nr, addr)     ext2_set_bit((nr) + unaligned_offset(addr), aligned_address(addr))
+-#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit((nr) + unaligned_offset(addr), aligned_address(addr))
+-#   define test_bit_unaligned(nr, addr)    ext2_test_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define set_bit_unaligned(nr, addr)	\
++	__test_and_set_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define clear_bit_unaligned(nr, addr)	\
++	__test_and_clear_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define test_bit_unaligned(nr, addr)	\
++	test_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
  
-@@ -215,7 +223,7 @@ static __inline__ int ext2_set_bit(int nr, volatile void * addr)
- 	return retval;
- }
+ #else
  
--static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
-+static inline int __test_and_clear_le_bit(int nr, volatile void *addr)
- {
- 	char retval;
+-#   define set_bit_unaligned(nr, addr)     ext2_set_bit(nr, addr)
+-#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit(nr, addr)
+-#   define test_bit_unaligned(nr, addr)    ext2_test_bit(nr, addr)
++#   define set_bit_unaligned(nr, addr)	\
++	__test_and_set_le_bit(nr, (unsigned long *)(addr))
++#   define clear_bit_unaligned(nr, addr)	\
++	__test_and_clear_le_bit(nr, (unsigned long *)(addr))
++#   define test_bit_unaligned(nr, addr)	\
++	test_le_bit(nr, (unsigned long *)(addr))
  
-@@ -238,7 +246,7 @@ static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
- 	({						\
- 		int ret;				\
- 		spin_lock(lock);			\
--		ret = ext2_set_bit((nr), (addr));	\
-+		ret = __test_and_set_le_bit((nr), (addr));	\
- 		spin_unlock(lock);			\
- 		ret;					\
- 	})
-@@ -247,12 +255,12 @@ static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
- 	({						\
- 		int ret;				\
- 		spin_lock(lock);			\
--		ret = ext2_clear_bit((nr), (addr));	\
-+		ret = __test_and_clear_le_bit((nr), (addr));	\
- 		spin_unlock(lock);			\
- 		ret;					\
- 	})
+ #endif
  
--static __inline__ int ext2_test_bit(int nr, const volatile void * addr)
-+static inline int test_le_bit(int nr, const volatile void *addr)
- {
- 	char retval;
+@@ -2328,14 +2334,14 @@ __u32 keyed_hash(const signed char *msg, int len);
+ __u32 yura_hash(const signed char *msg, int len);
+ __u32 r5_hash(const signed char *msg, int len);
  
-@@ -271,10 +279,10 @@ static __inline__ int ext2_test_bit(int nr, const volatile void * addr)
- 	return retval;
- }
+-/* the ext2 bit routines adjust for big or little endian as
+-** appropriate for the arch, so in our laziness we use them rather
+-** than using the bit routines they call more directly.  These
+-** routines must be used when changing on disk bitmaps.  */
+-#define reiserfs_test_and_set_le_bit   ext2_set_bit
+-#define reiserfs_test_and_clear_le_bit ext2_clear_bit
+-#define reiserfs_test_le_bit           ext2_test_bit
+-#define reiserfs_find_next_zero_le_bit ext2_find_next_zero_bit
++#define reiserfs_test_and_set_le_bit(nr, addr)	\
++	__test_and_set_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_test_and_clear_le_bit(nr, addr)	\
++	__test_and_clear_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_test_le_bit(nr, addr)	\
++	test_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_find_next_zero_le_bit(addr, size, off)	\
++	find_next_zero_le_bit((unsigned long *)(addr), (size), (off))
  
--#define ext2_find_first_zero_bit(addr, size) \
--        ext2_find_next_zero_bit((addr), (size), 0)
-+#define find_first_zero_le_bit(addr, size)	\
-+	find_next_zero_le_bit((addr), (size), 0)
- 
--static __inline__ unsigned long ext2_find_next_zero_bit(void *addr, unsigned long size, unsigned long offset)
-+static inline unsigned long find_next_zero_le_bit(void *addr, unsigned long size, unsigned long offset)
- {
- 	unsigned long *p = ((unsigned long *) addr) + (offset >> 5);
- 	unsigned long result = offset & ~31UL;
-@@ -324,8 +332,24 @@ found_middle:
- 	return result + ffz(__swab32(tmp));
- }
- 
-+#define ext2_set_bit(nr, addr)	\
-+	__test_and_set_le_bit(nr, addr)
-+
-+#define ext2_clear_bit(nr, addr)	\
-+	test_and_clear_le_bit(nr, addr)
-+
-+#define ext2_test_bit(nr, addr)	\
-+	test_le_bit(nr, addr)
-+
-+#define ext2_find_first_zero_bit(addr, size) \
-+	find_first_zero_le_bit(addr, size)
-+
-+#define ext2_find_next_zero_bit(addr, size, offset)	\
-+	find_next_zero_le_bit(addr, size, offset)
-+
- #define ext2_find_next_bit(addr, size, off) \
- 	find_next_le_bit((unsigned long *)(addr), (size), (off))
-+
- #include <asm-generic/bitops/minix.h>
- 
- #endif /* __KERNEL__ */
+ /* sometimes reiserfs_truncate may require to allocate few new blocks
+    to perform indirect2direct conversion. People probably used to
 -- 
 1.7.1.231.gd0b16
 
