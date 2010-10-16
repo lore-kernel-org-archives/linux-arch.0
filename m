@@ -1,51 +1,26 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
-Date: Fri, 15 Oct 2010 22:15:20 +0200
-Message-ID: <201010152215.20400.arnd@arndb.de>
-References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <201010151253.15653.arnd@arndb.de> <AANLkTimK__Z_KrZ+fEUQuu51cdrYviTAmXSfQ0jD_EvP@mail.gmail.com>
+From: "Maciej W. Rozycki" <macro@codesourcery.com>
+Subject: Re: [PATCH 3/5] mips: sanitize restart logics
+Date: Sat, 16 Oct 2010 01:25:45 +0100 (BST)
+Message-ID: <alpine.DEB.1.10.1010160121080.25860@tp.orcam.me.uk>
+References: <E1P0eK5-0006j5-4q@ZenIV.linux.org.uk> <4CA38538.8000007@caviumnetworks.com> <alpine.DEB.1.10.1009300218380.25860@tp.orcam.me.uk> <20101008053656.GU19804@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <AANLkTimK__Z_KrZ+fEUQuu51cdrYviTAmXSfQ0jD_EvP@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.codesourcery.com ([38.113.113.100]:37203 "EHLO
+	mail.codesourcery.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751217Ab0JPAZ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Oct 2010 20:25:59 -0400
+In-Reply-To: <20101008053656.GU19804@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: David Daney <ddaney@caviumnetworks.com>, Al Viro <viro@ftp.linux.org.uk>, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Maciej W. Rozycki" <macro@linux-mips.org>
 
-On Friday 15 October 2010 20:53:16 Mike Frysinger wrote:
-> > You have defined these as "native endian":
-> >
-> > always LE:
-> >        alpha, blackfin, ia64, score, tile, x86
-> >
-> > always BE:
-> >        h8300, microblaze, s390, sparc
-> >
-> > configurable:
-> >        m32r, mips, sh, xtensa
-> >
-> > The only ones among these that possibly ever cared about mounting minix
-> > file systems on a big-endian kernel are really old sparc and mips systems,
-> > everyone else probably never noticed their mistake.
-> >
-> > I'd say let's define the minix bitops as always LE and be done with it.
-> 
-> or at least make it so that this is the default, and you only have to
-> update Kconfig if you need to deviate from the default.  i dont like
-> having to add this minix option to every single arch Kconfig.
+On Fri, 8 Oct 2010, Al Viro wrote:
 
-Yes, that would also work if we find a compelling reason to keep it that
-way. You can actually keep it private to fs/minix/Kconfig by writing it
-as
+> BTW, with original code regs->regs[0] *can* be 1, if you are leaving syscall
+> with -EINVAL.  It won't reach the userland, though.
 
-config MINIX_FS_NATIVE_ENDIAN
-	def_bool y
-	depends on H8300 || M32R || MICROBLAZE || MIPS || S390 || SUPERH || SPARC || XTENSA
+ That's all I'm concerned about, thanks.
 
-We normally use select for arch specific options, but in this case I think
-I would prefer the single option since we know we don't want new architectures
-to do it too.
-
-	Arnd
+  Maciej
