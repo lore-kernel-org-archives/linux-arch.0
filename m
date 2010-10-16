@@ -1,42 +1,75 @@
-From: Shane McDonald <mcdonald.shane@gmail.com>
-Subject: [MIPS] Fix compile failure in 2.6.36-rc8 on 32-bit MIPS
-Date: Fri, 15 Oct 2010 22:26:40 -0600
-Message-ID: <E1P6yLw-0007i6-SH@localhost>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:40900 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750845Ab0JPE0q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Oct 2010 00:26:46 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, viro@ftp.linux.org.uk
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
+Date: Sat, 16 Oct 2010 09:59:24 +0200
+Message-ID: <AANLkTi=cA=yf7NmPVKXaZdoTBYmwdmy_frk7b_feG-WG@mail.gmail.com>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
+	<1287135981-17604-23-git-send-email-akinobu.mita@gmail.com>
+	<201010151253.15653.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <201010151253.15653.arnd@arndb.de>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-There was a typo in commit d27240b, MIPS: Sanitize restart logics,
-that causes a compile failure in 2.6.36-rc8 on 32-bit MIPS systems.
-This patch corrects that typo.
+On Fri, Oct 15, 2010 at 12:53, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 15 October 2010, Akinobu Mita wrote:
+>> minix bit operations are only used by minix filesystem and useless
+>> by other modules.
+>
+> Right.
+>
+>> This provides new config option CONFIG_MINIX_FS_LITTLE_ENDIAN and
+>> CONFIG_MINIX_FS_NATIVE_ENDIAN that each architecture selects one of =
+which.
+>> Then we can remove minix bit operations from asm/bitops.h from all
+>> architectures by making them minix filesystem local macros.
+>
+> I would say that any architecture that defines minix bitops as
+> little-endian is broken and we should not even need the #define.
+>
+> You have defined these as "native endian":
+>
+> always LE:
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0alpha, blackfin, ia64, score, tile, x86
+>
+> always BE:
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0h8300, microblaze, s390, sparc
+>
+> configurable:
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0m32r, mips, sh, xtensa
+>
+> The only ones among these that possibly ever cared about mounting min=
+ix
+> file systems on a big-endian kernel are really old sparc and mips sys=
+tems,
+> everyone else probably never noticed their mistake.
+>
+> I'd say let's define the minix bitops as always LE and be done with i=
+t.
 
-Signed-off-by: Shane McDonald <mcdonald.shane@gmail.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: Ralf Baechle <ralf@linux-mips.org>
----
- arch/mips/kernel/scall32-o32.S |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+=46unny, m68k uses the little endian minix file system?
 
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 58fb2bc..fbaabad 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -63,7 +63,7 @@ stack_done:
- 	sw	t0, PT_R7(sp)		# set error flag
- 	beqz	t0, 1f
- 
--	lw	t1, PR_R2(sp)		# syscall number
-+	lw	t1, PT_R2(sp)		# syscall number
- 	negu	v0			# error
- 	sw	t1, PT_R0(sp)		# save it for syscall restarting
- 1:	sw	v0, PT_R2(sp)		# result
--- 
-1.6.2.4
+Perhaps this was due to minix using the ext2 accessors? And ext2 being
+switched from big to little endian ext2 on m68k, without anyone
+noticing the impact
+on minix?
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
