@@ -1,71 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:55334 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753241Ab0JPH70 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Oct 2010 03:59:26 -0400
-MIME-Version: 1.0
-In-Reply-To: <201010151253.15653.arnd@arndb.de>
+Received: from mail-out.m-online.net ([212.18.0.10]:45985 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754335Ab0JPM5y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Oct 2010 08:57:54 -0400
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
 References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
 	<1287135981-17604-23-git-send-email-akinobu.mita@gmail.com>
 	<201010151253.15653.arnd@arndb.de>
-Date: Sat, 16 Oct 2010 09:59:24 +0200
-Message-ID: <AANLkTi=cA=yf7NmPVKXaZdoTBYmwdmy_frk7b_feG-WG@mail.gmail.com>
-Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+	<AANLkTi=cA=yf7NmPVKXaZdoTBYmwdmy_frk7b_feG-WG@mail.gmail.com>
+	<m262x24j2y.fsf@igel.home>
+	<AANLkTimHYYLZHOxgco3jotD7ikVhaPh8FVcSqeZwtrVc@mail.gmail.com>
+	<AANLkTimtyW8AbOj+w=mjPbpP1j0LB9JXdo7cb=nQAXQ8@mail.gmail.com>
+Date: Sat, 16 Oct 2010 14:57:51 +0200
+In-Reply-To: <AANLkTimtyW8AbOj+w=mjPbpP1j0LB9JXdo7cb=nQAXQ8@mail.gmail.com>
+	(Akinobu Mita's message of "Sat, 16 Oct 2010 21:40:03 +0900")
+Message-ID: <m2aamepa5s.fsf@igel.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>
-Message-ID: <20101016075924.AZjcuBBgHvNgm-PhNHl20cyqURfpY8Eug34FvtfZCuA@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20101016125751.1jj30pyTjoCvBILpY3AzIgArtIv4aX0GulzW_jhEQ0E@z>
 
-On Fri, Oct 15, 2010 at 12:53, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Friday 15 October 2010, Akinobu Mita wrote:
->> minix bit operations are only used by minix filesystem and useless
->> by other modules.
->
-> Right.
->
->> This provides new config option CONFIG_MINIX_FS_LITTLE_ENDIAN and
->> CONFIG_MINIX_FS_NATIVE_ENDIAN that each architecture selects one of which.
->> Then we can remove minix bit operations from asm/bitops.h from all
->> architectures by making them minix filesystem local macros.
->
-> I would say that any architecture that defines minix bitops as
-> little-endian is broken and we should not even need the #define.
->
-> You have defined these as "native endian":
->
-> always LE:
->        alpha, blackfin, ia64, score, tile, x86
->
-> always BE:
->        h8300, microblaze, s390, sparc
->
-> configurable:
->        m32r, mips, sh, xtensa
->
-> The only ones among these that possibly ever cared about mounting minix
-> file systems on a big-endian kernel are really old sparc and mips systems,
-> everyone else probably never noticed their mistake.
->
-> I'd say let's define the minix bitops as always LE and be done with it.
+Akinobu Mita <akinobu.mita@gmail.com> writes:
 
-Funny, m68k uses the little endian minix file system?
+> m68knommu is big-endian minixfs but m68k (mmu) is little-endian minixfs
+> if I read arch/m68k/include/asm/bitops_{mm,no}.h correctly.
 
-Perhaps this was due to minix using the ext2 accessors? And ext2 being
-switched from big to little endian ext2 on m68k, without anyone
-noticing the impact
-on minix?
+Don't be confused by ^16, this is for the 16bit/32bit indexing
+correction.  The nommu version uses big-endian 32bit indexing which yet
+another format.
 
-Gr{oetje,eeting}s,
+Andreas.
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
