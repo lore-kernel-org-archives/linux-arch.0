@@ -1,56 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:62955 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756546Ab0JOUPk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Oct 2010 16:15:40 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
-Date: Fri, 15 Oct 2010 22:15:20 +0200
-References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <201010151253.15653.arnd@arndb.de> <AANLkTimK__Z_KrZ+fEUQuu51cdrYviTAmXSfQ0jD_EvP@mail.gmail.com>
-In-Reply-To: <AANLkTimK__Z_KrZ+fEUQuu51cdrYviTAmXSfQ0jD_EvP@mail.gmail.com>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:55334 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753241Ab0JPH70 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 16 Oct 2010 03:59:26 -0400
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201010152215.20400.arnd@arndb.de>
+In-Reply-To: <201010151253.15653.arnd@arndb.de>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
+	<1287135981-17604-23-git-send-email-akinobu.mita@gmail.com>
+	<201010151253.15653.arnd@arndb.de>
+Date: Sat, 16 Oct 2010 09:59:24 +0200
+Message-ID: <AANLkTi=cA=yf7NmPVKXaZdoTBYmwdmy_frk7b_feG-WG@mail.gmail.com>
+Subject: Re: [PATCH 22/22] bitops: remove minix bitops from asm/bitops.h
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20101015201520.N0UScDdce1DhSMI-a5334OWnKvRU4Lxm0iR2eAQ_t94@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20101016075924.AZjcuBBgHvNgm-PhNHl20cyqURfpY8Eug34FvtfZCuA@z>
 
-On Friday 15 October 2010 20:53:16 Mike Frysinger wrote:
-> > You have defined these as "native endian":
-> >
-> > always LE:
-> >        alpha, blackfin, ia64, score, tile, x86
-> >
-> > always BE:
-> >        h8300, microblaze, s390, sparc
-> >
-> > configurable:
-> >        m32r, mips, sh, xtensa
-> >
-> > The only ones among these that possibly ever cared about mounting minix
-> > file systems on a big-endian kernel are really old sparc and mips systems,
-> > everyone else probably never noticed their mistake.
-> >
-> > I'd say let's define the minix bitops as always LE and be done with it.
-> 
-> or at least make it so that this is the default, and you only have to
-> update Kconfig if you need to deviate from the default.  i dont like
-> having to add this minix option to every single arch Kconfig.
+On Fri, Oct 15, 2010 at 12:53, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 15 October 2010, Akinobu Mita wrote:
+>> minix bit operations are only used by minix filesystem and useless
+>> by other modules.
+>
+> Right.
+>
+>> This provides new config option CONFIG_MINIX_FS_LITTLE_ENDIAN and
+>> CONFIG_MINIX_FS_NATIVE_ENDIAN that each architecture selects one of which.
+>> Then we can remove minix bit operations from asm/bitops.h from all
+>> architectures by making them minix filesystem local macros.
+>
+> I would say that any architecture that defines minix bitops as
+> little-endian is broken and we should not even need the #define.
+>
+> You have defined these as "native endian":
+>
+> always LE:
+>        alpha, blackfin, ia64, score, tile, x86
+>
+> always BE:
+>        h8300, microblaze, s390, sparc
+>
+> configurable:
+>        m32r, mips, sh, xtensa
+>
+> The only ones among these that possibly ever cared about mounting minix
+> file systems on a big-endian kernel are really old sparc and mips systems,
+> everyone else probably never noticed their mistake.
+>
+> I'd say let's define the minix bitops as always LE and be done with it.
 
-Yes, that would also work if we find a compelling reason to keep it that
-way. You can actually keep it private to fs/minix/Kconfig by writing it
-as
+Funny, m68k uses the little endian minix file system?
 
-config MINIX_FS_NATIVE_ENDIAN
-	def_bool y
-	depends on H8300 || M32R || MICROBLAZE || MIPS || S390 || SUPERH || SPARC || XTENSA
+Perhaps this was due to minix using the ext2 accessors? And ext2 being
+switched from big to little endian ext2 on m68k, without anyone
+noticing the impact
+on minix?
 
-We normally use select for arch specific options, but in this case I think
-I would prefer the single option since we know we don't want new architectures
-to do it too.
+Gr{oetje,eeting}s,
 
-	Arnd
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
