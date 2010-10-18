@@ -1,66 +1,39 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 13/20] um: Preemptible mmu_gather
-Date: Mon, 18 Oct 2010 13:24:46 +0200
-Message-ID: <20101018112950.968504648@chello.nl>
+Subject: [PATCH 17/20] mutex: Provide mutex_is_contended
+Date: Mon, 18 Oct 2010 13:24:50 +0200
+Message-ID: <20101018112951.178962037@chello.nl>
 References: <20101018112433.556591568@chello.nl>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-um.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from canuck.infradead.org ([134.117.69.58]:60282 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755348Ab0JRLfr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 07:35:47 -0400
+Content-Disposition: inline; filename=mutex-is-contended.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-Fix up the um mmu_gather code to conform to the new API.
+Usable for lock-breaks and such.
 
-Cc: Jeff Dike <jdike@addtoit.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/um/include/asm/tlb.h |   16 ++--------------
- 1 file changed, 2 insertions(+), 14 deletions(-)
+ include/linux/mutex.h |    5 +++++
+ 1 file changed, 5 insertions(+)
 
-Index: linux-2.6/arch/um/include/asm/tlb.h
+Index: linux-2.6/include/linux/mutex.h
 ===================================================================
---- linux-2.6.orig/arch/um/include/asm/tlb.h
-+++ linux-2.6/arch/um/include/asm/tlb.h
-@@ -22,9 +22,6 @@ struct mmu_gather {
- 	unsigned int		fullmm; /* non-zero means full mm flush */
- };
- 
--/* Users of the generic TLB shootdown code must declare this storage space. */
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
--
- static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
- 					  unsigned long address)
- {
-@@ -47,20 +44,13 @@ static inline void init_tlb_gather(struc
- 	}
+--- linux-2.6.orig/include/linux/mutex.h
++++ linux-2.6/include/linux/mutex.h
+@@ -118,6 +118,11 @@ static inline int mutex_is_locked(struct
+ 	return atomic_read(&lock->count) != 1;
  }
  
--/* tlb_gather_mmu
-- *	Return a pointer to an initialized struct mmu_gather.
-- */
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
- 
- 	init_tlb_gather(tlb);
--
--	return tlb;
- }
- 
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
-@@ -87,8 +77,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	put_cpu_var(mmu_gathers);
- }
- 
- /* tlb_remove_page
++static inline int mutex_is_contended(struct mutex *lock)
++{
++	return atomic_read(&lock->count) < 0;
++}
++
+ /*
+  * See kernel/mutex.c for detailed documentation of these APIs.
+  * Also see Documentation/mutex-design.txt.
