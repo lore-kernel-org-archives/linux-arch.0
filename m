@@ -1,42 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([134.117.69.58]:60282 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755348Ab0JRLfr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 07:35:47 -0400
-Message-ID: <20101018112951.178962037@chello.nl>
-Date: Mon, 18 Oct 2010 13:24:50 +0200
+Received: from casper.infradead.org ([85.118.1.10]:36532 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755343Ab0JRLfq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 07:35:46 -0400
+Message-ID: <20101018112950.297918617@chello.nl>
+Date: Mon, 18 Oct 2010 13:24:34 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 17/20] mutex: Provide mutex_is_contended
+Subject: [PATCH 01/20] powerpc: Use call_rcu_sched() for pagetables
 References: <20101018112433.556591568@chello.nl>
-Content-Disposition: inline; filename=mutex-is-contended.patch
+Content-Disposition: inline; filename=powerpc-pgtable-call_rcu_sched.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20101018112450.V2JTSUW1ObEis1WU9dXdF8k3MTwWjaisrVVhSac0KRo@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Nick Piggin <npiggin@suse.de>
+Message-ID: <20101018112434.nuUaCn-OcIabk1EcW_ZWGo0SzS39DR-5CpIKiSC4M1k@z>
 
-Usable for lock-breaks and such.
+PowerPC relies on IRQ-disable to guard against RCU quiecent states,
+use the appropriate RCU call version.
 
+Cc: Nick Piggin <npiggin@suse.de>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- include/linux/mutex.h |    5 +++++
- 1 file changed, 5 insertions(+)
+ arch/powerpc/mm/pgtable.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Index: linux-2.6/include/linux/mutex.h
+Index: linux-2.6/arch/powerpc/mm/pgtable.c
 ===================================================================
---- linux-2.6.orig/include/linux/mutex.h
-+++ linux-2.6/include/linux/mutex.h
-@@ -118,6 +118,11 @@ static inline int mutex_is_locked(struct
- 	return atomic_read(&lock->count) != 1;
+--- linux-2.6.orig/arch/powerpc/mm/pgtable.c
++++ linux-2.6/arch/powerpc/mm/pgtable.c
+@@ -92,7 +92,7 @@ static void pte_free_rcu_callback(struct
+ 
+ static void pte_free_submit(struct pte_freelist_batch *batch)
+ {
+-	call_rcu(&batch->rcu, pte_free_rcu_callback);
++	call_rcu_sched(&batch->rcu, pte_free_rcu_callback);
  }
  
-+static inline int mutex_is_contended(struct mutex *lock)
-+{
-+	return atomic_read(&lock->count) < 0;
-+}
-+
- /*
-  * See kernel/mutex.c for detailed documentation of these APIs.
-  * Also see Documentation/mutex-design.txt.
+ void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
 
 
