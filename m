@@ -1,63 +1,29 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH 03/22] s390: introduce little endian bitops
-Date: Mon, 18 Oct 2010 13:51:52 +0900
-Message-ID: <AANLkTi=H+c0drWP20JhSs74+V3q2aChgTA1L86pT=FzH@mail.gmail.com>
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: [PATCH 21/22] m68k: convert minix bitops to use little endian bitops
+Date: Mon, 18 Oct 2010 10:58:24 +0200
+Message-ID: <m3r5fnyj0v.fsf@hase.home>
 References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
-	<1287135981-17604-4-git-send-email-akinobu.mita@gmail.com>
-	<201010151312.30843.arnd@arndb.de>
+	<1287135981-17604-22-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f174.google.com ([209.85.216.174]:42209 "EHLO
-	mail-qy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750827Ab0JREvx convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 00:51:53 -0400
-In-Reply-To: <201010151312.30843.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1287135981-17604-22-git-send-email-akinobu.mita@gmail.com>
+	(Akinobu Mita's message of "Fri, 15 Oct 2010 18:46:20 +0900")
+Sender: linux-m68k-owner@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, linux-m68k@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-2010/10/15 Arnd Bergmann <arnd@arndb.de>:
-> On Friday 15 October 2010, Akinobu Mita wrote:
->> +#define __set_le_bit(nr, addr) \
->> + =A0 =A0 =A0 __set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
->> +#define __clear_le_bit(nr, addr) =A0 =A0 =A0 \
->> + =A0 =A0 =A0 __clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
->> +#define __test_and_set_le_bit(nr, addr) =A0 =A0 =A0 =A0\
->> + =A0 =A0 =A0 __test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr=
-))
->> +#define test_and_set_le_bit(lock, nr, addr) =A0 =A0\
->> + =A0 =A0 =A0 test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
->> +#define __test_and_clear_le_bit(nr, addr) =A0 =A0 =A0\
->> + =A0 =A0 =A0 __test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (ad=
-dr))
->> +#define test_and_clear_le_bit(lock, nr, addr) =A0\
->> + =A0 =A0 =A0 test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr=
-))
->> +#define test_le_bit(nr, addr) =A0\
->> + =A0 =A0 =A0 test_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
->
-> The test_and_clear_le_bit and test_and_set_le_bit calling conventions
-> are a little surprising here. I would not pass the lock argument
-> here but leave that to the ext2 wrapper:
->
-> #define test_and_set_le_bit(nr, addr) =A0 =A0\
-> =A0 =A0 =A0 test_and_set_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
-> #define test_and_clear_le_bit(nr, addr) =A0\
-> =A0 =A0 =A0 test_and_clear_bit((nr)^(__BITOPS_WORDSIZE - 8), (addr))
->
-> #define ext2_set_bit_atomic(lock, nr, addr) =A0 =A0 =A0 \
-> =A0 =A0 =A0 test_and_set_le_bit((nr), (unsigned long *)(addr))
-> #define ext2_clear_bit_atomic(lock, nr, addr) =A0 =A0 \
-> =A0 =A0 =A0 test_and_clear_le_bit((nr), (unsigned long *)(addr))
->
-> Same thing on arm and m68k.
+Akinobu Mita <akinobu.mita@gmail.com> writes:
 
-Oops,
-test_and_{set,clear}_le_bit() is only used by ext2_{set,clear}_bit_atom=
-ic
-and I had one additional patch that cleans up these definisions across
-the architectures. So I didn't realize that mistake when I did cross
-compile.
+> The inode and block bitmap for minix filesystem is little endian
+> byte order on m68k.
+
+No, it isn't.
+
+Andreas.
+
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
