@@ -1,72 +1,126 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor.suse.de ([195.135.220.2]:57231 "EHLO mx1.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754540Ab0JRKc6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Oct 2010 06:32:58 -0400
-Date: Mon, 18 Oct 2010 12:31:56 +0200
-From: Jan Kara <jack@suse.cz>
-Subject: Re: [PATCH 11/22] ext3: use little endian bitops
-Message-ID: <20101018103156.GE3826@quack.suse.cz>
-References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
- <1287135981-17604-12-git-send-email-akinobu.mita@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1287135981-17604-12-git-send-email-akinobu.mita@gmail.com>
+Received: from canuck.infradead.org ([134.117.69.58]:60219 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754694Ab0JRLf3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 07:35:29 -0400
+Message-ID: <20101018112951.341395896@chello.nl>
+Date: Mon, 18 Oct 2010 13:24:53 +0200
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 20/20] mm: Optimize page_lock_anon_vma() fast-path
+References: <20101018112433.556591568@chello.nl>
+Content-Disposition: inline; filename=mm-opt-page_lock_anon_vma.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
-Message-ID: <20101018103156.H84GTfBuGasavZCWOYTy7p8v0M223rVWmu1PO-HKiE0@z>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20101018112453.3uvs6w5V5EuUHgEle5-D9k46-2O4sLWu-OUN4Vtom-c@z>
 
-On Fri 15-10-10 18:46:10, Akinobu Mita wrote:
-> As a preparation for removing ext2 non-atomic bit operations from
-> asm/bitops.h. This converts ext2 non-atomic bit operations to
-> little endian bit operations.
-> 
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: Jan Kara <jack@suse.cz>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Andreas Dilger <adilger.kernel@dilger.ca>
-> Cc: linux-ext4@vger.kernel.org
-  Acked-by: Jan Kara <jack@suse.cz>
+Optimize the page_lock_anon_vma() fast path to be one LOCKed op,
+instead of two.
 
-								Honza
-> ---
->  include/linux/ext3_fs.h |   15 ++++++++++-----
->  1 files changed, 10 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/linux/ext3_fs.h b/include/linux/ext3_fs.h
-> index 6ce1bca..34ef455 100644
-> --- a/include/linux/ext3_fs.h
-> +++ b/include/linux/ext3_fs.h
-> @@ -418,13 +418,18 @@ struct ext3_inode {
->  #define EXT2_MOUNT_DATA_FLAGS		EXT3_MOUNT_DATA_FLAGS
->  #endif
->  
-> -#define ext3_set_bit			ext2_set_bit
-> +#define ext3_set_bit(nr, addr)	\
-> +	__test_and_set_le_bit((nr), (unsigned long *)(addr))
->  #define ext3_set_bit_atomic		ext2_set_bit_atomic
-> -#define ext3_clear_bit			ext2_clear_bit
-> +#define ext3_clear_bit(nr, addr)	\
-> +	__test_and_clear_le_bit((nr), (unsigned long *)(addr))
->  #define ext3_clear_bit_atomic		ext2_clear_bit_atomic
-> -#define ext3_test_bit			ext2_test_bit
-> -#define ext3_find_first_zero_bit	ext2_find_first_zero_bit
-> -#define ext3_find_next_zero_bit		ext2_find_next_zero_bit
-> +#define ext3_test_bit(nr, addr)	\
-> +	test_le_bit((nr), (unsigned long *)(addr))
-> +#define ext3_find_first_zero_bit(addr, size)	\
-> +	find_first_zero_le_bit((unsigned long *)(addr), (size))
-> +#define ext3_find_next_zero_bit(addr, size, off)	\
-> +	find_next_zero_le_bit((unsigned long *)(addr), (size), (off))
->  
->  /*
->   * Maximal mount counts between two filesystem checks
-> -- 
-> 1.7.1.231.gd0b16
-> 
--- 
-Jan Kara <jack@suse.cz>
-SUSE Labs, CR
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ mm/rmap.c |   71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 67 insertions(+), 4 deletions(-)
+
+Index: linux-2.6/mm/rmap.c
+===================================================================
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -357,20 +357,75 @@ out:
+ 	return anon_vma;
+ }
+ 
++/*
++ * Similar to page_get_anon_vma() except it locks the anon_vma.
++ *
++ * Its a little more complex as it tries to keep the fast path to a single
++ * atomic op -- the trylock. If we fail the trylock, we fall back to getting a
++ * reference like with page_get_anon_vma() and then block on the mutex.
++ */
+ struct anon_vma *page_lock_anon_vma(struct page *page)
+ {
+-	struct anon_vma *anon_vma = page_get_anon_vma(page);
++	struct anon_vma *anon_vma = NULL;
++	unsigned long anon_mapping;
++
++	rcu_read_lock();
++	anon_mapping = (unsigned long) ACCESS_ONCE(page->mapping);
++	if ((anon_mapping & PAGE_MAPPING_FLAGS) != PAGE_MAPPING_ANON)
++		goto out;
++	if (!page_mapped(page))
++		goto out;
++
++	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
++	if (mutex_trylock(&anon_vma->root->lock)) {
++		/*
++		 * If we observe a !0 refcount, then holding the lock ensures
++		 * the anon_vma will not go away, see __put_anon_vma().
++		 */
++		if (!atomic_read(&anon_vma->refcount)) {
++			anon_vma_unlock(anon_vma);
++			anon_vma = NULL;
++		}
++		goto out;
++	}
+ 
+-	if (anon_vma)
+-		anon_vma_lock(anon_vma);
++	/* trylock failed, we got to sleep */
++	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
++		anon_vma = NULL;
++		goto out;
++	}
++
++	if (!page_mapped(page)) {
++		put_anon_vma(anon_vma);
++		anon_vma = NULL;
++		goto out;
++	}
++
++	/* we pinned the anon_vma, its safe to sleep */
++	rcu_read_unlock();
++	anon_vma_lock(anon_vma);
++
++	if (atomic_dec_and_test(&anon_vma->refcount)) {
++		/*
++		 * Oops, we held the last refcount, release the lock
++		 * and bail -- can't simply use put_anon_vma() because
++		 * we'll deadlock on the anon_vma_lock() recursion.
++		 */
++		anon_vma_unlock(anon_vma);
++		__put_anon_vma(anon_vma);
++		anon_vma = NULL;
++	}
+ 
+ 	return anon_vma;
++
++out:
++	rcu_read_unlock();
++	return anon_vma;
+ }
+ 
+ void page_unlock_anon_vma(struct anon_vma *anon_vma)
+ {
+ 	anon_vma_unlock(anon_vma);
+-	put_anon_vma(anon_vma);
+ }
+ 
+ /*
+@@ -1462,6 +1517,14 @@ int try_to_munlock(struct page *page)
+ 
+ void __put_anon_vma(struct anon_vma *anon_vma)
+ {
++	/*
++	 * Synchronize against page_lock_anon_vma() such that
++	 * we can safely hold the lock without the anon_vma getting
++	 * freed.
++	 */
++	anon_vma_lock(anon_vma);
++	anon_vma_unlock(anon_vma);
++
+ 	if (anon_vma->root != anon_vma)
+ 		put_anon_vma(anon_vma->root);
+ 	anon_vma_free(anon_vma);
+
+
