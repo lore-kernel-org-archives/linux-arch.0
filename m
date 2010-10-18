@@ -1,35 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:37257 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40743 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755995Ab0JRN6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 09:58:30 -0400
-Date: Mon, 18 Oct 2010 14:58:18 +0100
+	with ESMTP id S1754207Ab0JRPHv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 11:07:51 -0400
+Date: Mon, 18 Oct 2010 16:07:37 +0100
 From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [PATCH 04/22] arm: introduce little endian bitops
-Message-ID: <20101018135818.GC12449@n2100.arm.linux.org.uk>
-References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <1287135981-17604-5-git-send-email-akinobu.mita@gmail.com> <20101018092650.GC26183@n2100.arm.linux.org.uk> <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com>
+Message-ID: <20101018150737.GI12449@n2100.arm.linux.org.uk>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com> <20101018135616.GB12449@n2100.arm.linux.org.uk> <201010181645.13349.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com>
+In-Reply-To: <201010181645.13349.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20101018135818.iAsnFVD2dtzx6C7Ds_z3mKLpDPS4Ypmvpc5HoqOYxHI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20101018150737.pVLzO8awZxFfuk7fQmjlqd7_Z9PbvINDUlvk9j-y1UQ@z>
 
-On Mon, Oct 18, 2010 at 10:22:59PM +0900, Akinobu Mita wrote:
-> 2010/10/18 Russell King - ARM Linux <linux@arm.linux.org.uk>:
-> > On Fri, Oct 15, 2010 at 06:46:03PM +0900, Akinobu Mita wrote:
-> >> Introduce little endian bit operations by renaming native ext2 bit
-> >> operations. The ext2 bit operations are kept by using little endian
-> >> bit operations until the conversions are finished.
-> >
-> > Can you explain why we need another level of indirection rather than
-> > using asm-generic/bitops/le.h, asm-generic/bitops/minix.h and
-> > asm-generic/bitops/ext2-non-atomic.h ?
+On Mon, Oct 18, 2010 at 04:45:12PM +0200, Arnd Bergmann wrote:
+> Note that patches 20 and 22 of the series completely eliminate the
+> the minix and ext2 definitions, putting them into architecture independent
+> code in those two file systems where they belong.
+
+Good.
+
+> Adding the new definitions in patch 4 is just a logical step before removing
+> the old definitions in the later patches while maintaining bisectability.
+
+In which case I don't have a problem with the series.
+
+> > What I'm trying to say is please don't make the existing mess of bitops
+> > any worse than it currently is.
 > 
-> Sorry for not CCing the cover letter of this patch series.
+> The series currently adds 20 lines to the arm code (could be reduced to
+> 6 lines), but removes 26 lines which are essentially architecture
+> independent and shouldn't be there to start with. I'd call that the
+> opposite of making the mess worse.
 
-BTW, I've not seen any of the others in this patch series, not even via
-linux-arch...
+Right - if I could've seen the rest of the series, then maybe I'd have
+known that.  However, I seemed to have silently dropped off linux-arch
+back in April and only just noticed, which means I've missed rather a
+lot...
