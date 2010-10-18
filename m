@@ -1,46 +1,224 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 00/20] mm: Preemptibility -v5
-Date: Mon, 18 Oct 2010 13:24:33 +0200
-Message-ID: <20101018112433.556591568@chello.nl>
+Subject: [PATCH 19/20] mm: Extended batches for generic mmu_gather
+Date: Mon, 18 Oct 2010 13:24:52 +0200
+Message-ID: <20101018112951.290525086@chello.nl>
+References: <20101018112433.556591568@chello.nl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=mm-tlb_gather-more-batch.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-This patch-set makes part of the mm a lot more preemptible. It converts
-i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
-preemptible.
+Instead of using a single batch (the small on-stack, or an allocated
+page), try and extend the batch every time it runs out and only flush
+once either the extend fails or we're done.
 
-The main motivation was making mm_take_all_locks() preemptible, since it
-appears people are nesting hundreds of spinlocks there.
+Requested-by: Nick Piggin <npiggin@suse.de>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ include/asm-generic/tlb.h |  122 ++++++++++++++++++++++++++++++----------------
+ 1 file changed, 82 insertions(+), 40 deletions(-)
 
-The side-effects are that can finally make mmu_gather preemptible,
-something which lots of people have wanted to do for a long time.
-
-It also gets us anon_vma refcounting, which seems to result in a nice
-cleanup of the anon_vma lifetime rules wrt KSM and compaction.
-
-This patch-set it build and boot-tested on x86_64 (a previous version was
-also tested on Dave's Niagra2 machines, and I suppose s390 was too when
-Martin provided the conversion patch for his arch).
-
-There are no known architectures left unconverted.
-
-Yanmin ran the -v3 posting through the comprehensive Intel test farm
-and didn't find any regressions.
-
-( Not included in this posting are the 4 Sparc64 patches that implement
-  gup_fast, those can be applied separately after this series gets
-  anywhere. )
-
-The full series (including the Sparc64 gup_fast bits) also available in -git
-form from (against Linus' tree as of about an hour ago):
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git mmu_preempt
-
-DaveM mentioned some sparc64 trouble with the -v4 posting, this turned out to
-be a false positive as unpatched kernels also are having trouble on his
-machines.
-
-Linus, Andrew, Stephen, can we add this to -next for .37?
+Index: linux-2.6/include/asm-generic/tlb.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -17,16 +17,6 @@
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+ 
+-/*
+- * For UP we don't need to worry about TLB flush
+- * and page free order so much..
+- */
+-#ifdef CONFIG_SMP
+-  #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
+-#else
+-  #define tlb_fast_mode(tlb) 1
+-#endif
+-
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ /*
+  * Semi RCU freeing of the page directories.
+@@ -70,31 +60,66 @@ extern void tlb_remove_table(struct mmu_
+ 
+ #endif
+ 
++struct mmu_gather_batch {
++	struct mmu_gather_batch	*next;
++	unsigned int		nr;
++	unsigned int		max;
++	struct page		*pages[0];
++};
++
++#define MAX_GATHER_BATCH	\
++	((PAGE_SIZE - sizeof(struct mmu_gather_batch)) / sizeof(void *))
++
+ /* struct mmu_gather is an opaque type used by the mm code for passing around
+  * any data needed by arch specific code for tlb_remove_page.
+  */
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+-	unsigned int		nr;	/* set to ~0U means fast mode */
+-	unsigned int		max;	/* nr < max */
+-	unsigned int		need_flush;/* Really unmapped some ptes? */
+-	unsigned int		fullmm; /* non-zero means full mm flush */
+-	struct page		**pages;
+-	struct page		*local[8];
++	unsigned int		need_flush : 1,	/* Did free PTEs */
++				fast_mode  : 1; /* No batching   */
++	unsigned int		fullmm;		/* Flush full mm */
++
++	struct mmu_gather_batch *active;
++	struct mmu_gather_batch	local;
++	struct page		*__pages[8];
+ 
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	struct mmu_table_batch	*batch;
+ #endif
+ };
+ 
+-static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
++/*
++ * For UP we don't need to worry about TLB flush
++ * and page free order so much..
++ */
++#ifdef CONFIG_SMP
++  #define tlb_fast_mode(tlb) (tlb->fast_mode)
++#else
++  #define tlb_fast_mode(tlb) 1
++#endif
++
++static inline int tlb_next_batch(struct mmu_gather *tlb)
+ {
+-	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
++	struct mmu_gather_batch *batch;
+ 
+-	if (addr) {
+-		tlb->pages = (void *)addr;
+-		tlb->max = PAGE_SIZE / sizeof(struct page *);
++	batch = tlb->active;
++	if (batch->next) {
++		tlb->active = batch->next;
++		return 1;
+ 	}
++
++	batch = (void *)__get_free_pages(GFP_ATOMIC, 0);
++	if (!batch)
++		return 0;
++
++	batch->next = NULL;
++	batch->nr   = 0;
++	batch->max  = MAX_GATHER_BATCH;
++
++	tlb->active->next = batch;
++	tlb->active = batch;
++
++	return 1;
+ }
+ 
+ /* tlb_gather_mmu
+@@ -105,17 +130,16 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ {
+ 	tlb->mm = mm;
+ 
+-	tlb->max = ARRAY_SIZE(tlb->local);
+-	tlb->pages = tlb->local;
+-
+-	if (num_online_cpus() > 1) {
+-		tlb->nr = 0;
+-		__tlb_alloc_pages(tlb);
+-	} else /* Use fast mode if only one CPU is online */
+-		tlb->nr = ~0U;
+-
++	tlb->need_flush = 0;
++	if (num_online_cpus() == 1)
++		tlb->fast_mode = 1;
+ 	tlb->fullmm = full_mm_flush;
+ 
++	tlb->local.next = NULL;
++	tlb->local.nr   = 0;
++	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
++	tlb->active     = &tlb->local;
++
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb->batch = NULL;
+ #endif
+@@ -124,6 +148,8 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ static inline void
+ tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
++	struct mmu_gather_batch *batch;
++
+ 	if (!tlb->need_flush)
+ 		return;
+ 	tlb->need_flush = 0;
+@@ -131,12 +157,14 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
+-	if (!tlb_fast_mode(tlb)) {
+-		free_pages_and_swap_cache(tlb->pages, tlb->nr);
+-		tlb->nr = 0;
+-		if (tlb->pages == tlb->local)
+-			__tlb_alloc_pages(tlb);
++	if (tlb_fast_mode(tlb))
++		return;
++
++	for (batch = &tlb->local; batch; batch = batch->next) {
++		free_pages_and_swap_cache(batch->pages, batch->nr);
++		batch->nr = 0;
+ 	}
++	tlb->active = &tlb->local;
+ }
+ 
+ /* tlb_finish_mmu
+@@ -146,13 +174,18 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ static inline void
+ tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
++	struct mmu_gather_batch *batch, *next;
++
+ 	tlb_flush_mmu(tlb, start, end);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+ 
+-	if (tlb->pages != tlb->local)
+-		free_pages((unsigned long)tlb->pages, 0);
++	for (batch = tlb->local.next; batch; batch = next) {
++		next = batch->next;
++		free_pages((unsigned long)batch, 0);
++	}
++	tlb->local.next = NULL;
+ }
+ 
+ /* tlb_remove_page
+@@ -162,14 +195,23 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  */
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
++	struct mmu_gather_batch *batch;
++
+ 	tlb->need_flush = 1;
++
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+ 		return;
+ 	}
+-	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= tlb->max)
+-		tlb_flush_mmu(tlb, 0, 0);
++
++	batch = tlb->active;
++	if (batch->nr == batch->max) {
++		if (!tlb_next_batch(tlb))
++			tlb_flush_mmu(tlb, 0, 0);
++		batch = tlb->active;
++	}
++
++	batch->pages[batch->nr++] = page;
+ }
+ 
+ /**
