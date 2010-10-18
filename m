@@ -1,59 +1,39 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 00/20] mm: Preemptibility -v5
-Date: Tue, 19 Oct 2010 01:55:59 +1100
-Message-ID: <20101019015559.78f20716.sfr@canb.auug.org.au>
-References: <20101018112433.556591568@chello.nl>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 04/22] arm: introduce little endian bitops
+Date: Mon, 18 Oct 2010 16:07:37 +0100
+Message-ID: <20101018150737.GI12449@n2100.arm.linux.org.uk>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com> <20101018135616.GB12449@n2100.arm.linux.org.uk> <201010181645.13349.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__19_Oct_2010_01_55_59_+1100_sS5b+GtoRrtBdBpR"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:44696 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755598Ab0JRO4L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 18 Oct 2010 10:56:11 -0400
-In-Reply-To: <20101018112433.556591568@chello.nl>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-
---Signature=_Tue__19_Oct_2010_01_55_59_+1100_sS5b+GtoRrtBdBpR
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <201010181645.13349.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+On Mon, Oct 18, 2010 at 04:45:12PM +0200, Arnd Bergmann wrote:
+> Note that patches 20 and 22 of the series completely eliminate the
+> the minix and ext2 definitions, putting them into architecture independent
+> code in those two file systems where they belong.
 
-On Mon, 18 Oct 2010 13:24:33 +0200 Peter Zijlstra <a.p.zijlstra@chello.nl> =
-wrote:
->
-> Linus, Andrew, Stephen, can we add this to -next for .37?
+Good.
 
-Well it is late (the merge window will open in a couple of days, I
-suspect) but this is version 5 of these patches (so they have had better
-review than most).  So, if Andrew or Linus want this stuff in .37, I will
-add the tree, otherwise it would just be adding confusion for all the
-code that will be integrated in .37.
+> Adding the new definitions in patch 4 is just a logical step before removing
+> the old definitions in the later patches while maintaining bisectability.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+In which case I don't have a problem with the series.
 
---Signature=_Tue__19_Oct_2010_01_55_59_+1100_sS5b+GtoRrtBdBpR
-Content-Type: application/pgp-signature
+> > What I'm trying to say is please don't make the existing mess of bitops
+> > any worse than it currently is.
+> 
+> The series currently adds 20 lines to the arm code (could be reduced to
+> 6 lines), but removes 26 lines which are essentially architecture
+> independent and shouldn't be there to start with. I'd call that the
+> opposite of making the mess worse.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iQEcBAEBAgAGBQJMvF//AAoJEDMEi1NhKgbsDowH/jih56BkCPCf/Sj3fe51IjSy
-KAUXpr9t8auYaMlMs1AzMgPDkuSHYlY4BpauwFUMK+GH7l/UgZMqZWNJ7QIBvPt1
-ujDX6UyjsMydxpX4sFxgW+Yn/DNCAjGuC9DiH4kinHeHElqnlW4kAPiEaYK554xJ
-uba8MABYn3aROROKG+DwReli/ixxf3YqumafIc973ToY8P9WqdJM6jVVj7CzzRb/
-wPf0Q4IGMdt5GADx3EoLLk2HzoQXBl+uur1f+IT/wxl1SOYmKw5LfgRwRw9EwuY3
-5/cx4WueSEjMnp7RusqpwLrClhrSPVtzNeN9B1lmSLMjF6NwTlGThHSkA25ViJM=
-=o+y8
------END PGP SIGNATURE-----
-
---Signature=_Tue__19_Oct_2010_01_55_59_+1100_sS5b+GtoRrtBdBpR--
+Right - if I could've seen the rest of the series, then maybe I'd have
+known that.  However, I seemed to have silently dropped off linux-arch
+back in April and only just noticed, which means I've missed rather a
+lot...
