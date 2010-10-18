@@ -1,36 +1,66 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 01/20] powerpc: Use call_rcu_sched() for pagetables
-Date: Mon, 18 Oct 2010 13:24:34 +0200
-Message-ID: <20101018112950.297918617@chello.nl>
+Subject: [PATCH 13/20] um: Preemptible mmu_gather
+Date: Mon, 18 Oct 2010 13:24:46 +0200
+Message-ID: <20101018112950.968504648@chello.nl>
 References: <20101018112433.556591568@chello.nl>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=powerpc-pgtable-call_rcu_sched.patch
+Content-Disposition: inline; filename=mm-preempt-tlb-gather-um.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Nick Piggin <npiggin@suse.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>
 List-Id: linux-arch.vger.kernel.org
 
-PowerPC relies on IRQ-disable to guard against RCU quiecent states,
-use the appropriate RCU call version.
+Fix up the um mmu_gather code to conform to the new API.
 
-Cc: Nick Piggin <npiggin@suse.de>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Jeff Dike <jdike@addtoit.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/powerpc/mm/pgtable.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/um/include/asm/tlb.h |   16 ++--------------
+ 1 file changed, 2 insertions(+), 14 deletions(-)
 
-Index: linux-2.6/arch/powerpc/mm/pgtable.c
+Index: linux-2.6/arch/um/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/powerpc/mm/pgtable.c
-+++ linux-2.6/arch/powerpc/mm/pgtable.c
-@@ -92,7 +92,7 @@ static void pte_free_rcu_callback(struct
+--- linux-2.6.orig/arch/um/include/asm/tlb.h
++++ linux-2.6/arch/um/include/asm/tlb.h
+@@ -22,9 +22,6 @@ struct mmu_gather {
+ 	unsigned int		fullmm; /* non-zero means full mm flush */
+ };
  
- static void pte_free_submit(struct pte_freelist_batch *batch)
+-/* Users of the generic TLB shootdown code must declare this storage space. */
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
+ 					  unsigned long address)
  {
--	call_rcu(&batch->rcu, pte_free_rcu_callback);
-+	call_rcu_sched(&batch->rcu, pte_free_rcu_callback);
+@@ -47,20 +44,13 @@ static inline void init_tlb_gather(struc
+ 	}
  }
  
- void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
+-/* tlb_gather_mmu
+- *	Return a pointer to an initialized struct mmu_gather.
+- */
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+ {
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+ 	tlb->fullmm = full_mm_flush;
+ 
+ 	init_tlb_gather(tlb);
+-
+-	return tlb;
+ }
+ 
+ extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+@@ -87,8 +77,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ /* tlb_remove_page
