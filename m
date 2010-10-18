@@ -1,44 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:40743 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754207Ab0JRPHv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 11:07:51 -0400
-Date: Mon, 18 Oct 2010 16:07:37 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 04/22] arm: introduce little endian bitops
-Message-ID: <20101018150737.GI12449@n2100.arm.linux.org.uk>
-References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com> <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com> <20101018135616.GB12449@n2100.arm.linux.org.uk> <201010181645.13349.arnd@arndb.de>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:29910 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754457Ab0JRUVw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Oct 2010 16:21:52 -0400
+Date: Mon, 18 Oct 2010 13:19:31 -0700
+From: Joel Becker <Joel.Becker@oracle.com>
+Subject: Re: [PATCH 13/22] ocfs2: use little endian bitops
+Message-ID: <20101018201931.GB31479@mail.oracle.com>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
+ <1287135981-17604-14-git-send-email-akinobu.mita@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201010181645.13349.arnd@arndb.de>
+In-Reply-To: <1287135981-17604-14-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20101018150737.pVLzO8awZxFfuk7fQmjlqd7_Z9PbvINDUlvk9j-y1UQ@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+Message-ID: <20101018201931.npG0fXNEkAN5j0c7LLf24Jm8VYdFrhSYYchAw_bJDTc@z>
 
-On Mon, Oct 18, 2010 at 04:45:12PM +0200, Arnd Bergmann wrote:
-> Note that patches 20 and 22 of the series completely eliminate the
-> the minix and ext2 definitions, putting them into architecture independent
-> code in those two file systems where they belong.
-
-Good.
-
-> Adding the new definitions in patch 4 is just a logical step before removing
-> the old definitions in the later patches while maintaining bisectability.
-
-In which case I don't have a problem with the series.
-
-> > What I'm trying to say is please don't make the existing mess of bitops
-> > any worse than it currently is.
+On Fri, Oct 15, 2010 at 06:46:12PM +0900, Akinobu Mita wrote:
+> As a preparation for removing ext2 non-atomic bit operations from
+> asm/bitops.h. This converts ext2 non-atomic bit operations to
+> little endian bit operations.
 > 
-> The series currently adds 20 lines to the arm code (could be reduced to
-> 6 lines), but removes 26 lines which are essentially architecture
-> independent and shouldn't be there to start with. I'd call that the
-> opposite of making the mess worse.
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Cc: Mark Fasheh <mfasheh@suse.com>
+> Cc: Joel Becker <joel.becker@oracle.com>
+> Cc: ocfs2-devel@oss.oracle.com
 
-Right - if I could've seen the rest of the series, then maybe I'd have
-known that.  However, I seemed to have silently dropped off linux-arch
-back in April and only just noticed, which means I've missed rather a
-lot...
+Acked-by: Joel Becker <joel.becker@oracle.com>
+
+
+-- 
+
+ There are morethings in heaven and earth, Horatio,
+ Than are dreamt of in your philosophy.
+
+Joel Becker
+Consulting Software Developer
+Oracle
+E-mail: joel.becker@oracle.com
+Phone: (650) 506-8127
