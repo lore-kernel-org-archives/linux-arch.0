@@ -1,53 +1,55 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 11/20] arm: Preemptible mmu_gather
-Date: Mon, 18 Oct 2010 13:24:44 +0200
-Message-ID: <20101018112950.858321201@chello.nl>
-References: <20101018112433.556591568@chello.nl>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: Re: [PATCH 04/22] arm: introduce little endian bitops
+Date: Mon, 18 Oct 2010 22:22:59 +0900
+Message-ID: <AANLkTi=1w9uV81CagrE53xEYkMaFh_3cM_+ybctT2ng4@mail.gmail.com>
+References: <1287135981-17604-1-git-send-email-akinobu.mita@gmail.com>
+	<1287135981-17604-5-git-send-email-akinobu.mita@gmail.com>
+	<20101018092650.GC26183@n2100.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-arm.patch
+In-Reply-To: <20101018092650.GC26183@n2100.arm.linux.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk@arm.linux.org.uk>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix up the arm mmu_gahter code to conform to the new API.
+2010/10/18 Russell King - ARM Linux <linux@arm.linux.org.uk>:
+> On Fri, Oct 15, 2010 at 06:46:03PM +0900, Akinobu Mita wrote:
+>> Introduce little endian bit operations by renaming native ext2 bit
+>> operations. The ext2 bit operations are kept by using little endian
+>> bit operations until the conversions are finished.
+>
+> Can you explain why we need another level of indirection rather than
+> using asm-generic/bitops/le.h, asm-generic/bitops/minix.h and
+> asm-generic/bitops/ext2-non-atomic.h ?
 
-Cc: Russell King <rmk@arm.linux.org.uk>
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- arch/arm/include/asm/tlb.h |   12 ++----------
- 1 file changed, 2 insertions(+), 10 deletions(-)
+Sorry for not CCing the cover letter of this patch series.
 
-Index: linux-2.6/arch/arm/include/asm/tlb.h
-===================================================================
---- linux-2.6.orig/arch/arm/include/asm/tlb.h
-+++ linux-2.6/arch/arm/include/asm/tlb.h
-@@ -40,17 +40,11 @@ struct mmu_gather {
- 	unsigned long		range_end;
- };
- 
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
--
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
--
--	return tlb;
- }
- 
- static inline void
-@@ -61,8 +55,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	put_cpu_var(mmu_gathers);
- }
- 
- /*
+Currently there are no common little-endian bit operations for all
+architectures, although some architectures implicitly include
+asm-generic/bitops/le.h through asm-generic/bitops/minix-le.h or
+asm-generic/bitops/ext2-non-atomic.h.
+
+So some drivers (net/rds/cong.c and virt/kvm/kvm_main.c) need to
+include asm/bitops/le.h directly. When I tried to remove the
+direct inclusion of asm-generic/bitops/le.h by using ext2_*(),
+several people prefer another solution like this patch series does.
+
+This patch series introduces little-endian bit operations for
+all architectures and convert all ext2 non-atomic bit operations
+and minix bit operations to use little-endian bit operations.
+it enables to remove ext2 non-atomic and minix bit operations
+from asm/bitops.h. The reason they should be removed from
+asm/bitops.h is as follows:
+
+For ext2 non-atomic bit operations, they are used for little-endian
+byte order bitmap access by some filesystems and modules.
+But using ext2_*() functions on a module other than ext2 filesystem
+makes someone feel strange.
+
+For minix bit operations, they are only used by minix filesystem
+and useless by other modules. Because byte order of inode and block
+bitmap is defferent on each architectures.
+
+There are several issues including arm part. So I'm now fixing them.
