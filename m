@@ -1,86 +1,65 @@
-From: akpm@linux-foundation.org
-Subject: + vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch added to -mm tree
-Date: Thu, 21 Oct 2010 14:46:33 -0700
-Message-ID: <201010212146.o9LLkXLY005578@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: vapier@gentoo.org, linux-arch@vger.kernel.org, sam@ravnborg.org, viro@zeniv.linux.org.uk
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH v2 22/22] bitops: remove minix bitops from asm/bitops.h
+Date: Fri, 22 Oct 2010 09:19:42 +1000
+Message-ID: <4CC0CA8E.4050600@monstr.eu>
+References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com> <1287672077-5797-23-git-send-email-akinobu.mita@gmail.com>
+Reply-To: monstr@monstr.eu
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1287672077-5797-23-git-send-email-akinobu.mita@gmail.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, microblaze-uclinux@itee.uq.edu.au, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Zankel <chris@zankel.net>
 List-Id: linux-arch.vger.kernel.org
 
+Akinobu Mita wrote:
+> minix bit operations are only used by minix filesystem and useless
+> by other modules. Because byte order of inode and block bitmaps is
+> defferent on each architecture like below:
+> 
+> m68k:
+> 	big-endian 16bit indexed bitmaps
+> 
+> h8300, microblaze, s390, sparc, m68knommu:
+> 	big-endian 32 or 64bit indexed bitmaps
 
-The patch titled
-     vmlinux.lds.h: lower init ramfs alignment to 4
-has been added to the -mm tree.  Its filename is
-     vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch
+Just one small fix microblaze little endian support is ready for merging
+to mainline which means that microblaze is
+big-endian 32bit  and  little-endian 32bit
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+> 
+> m32r, mips, sh, xtensa:
+> 	big-endian 32 or 64bit indexed bitmaps for big-endian mode
+> 	little-endian bitmaps for little-endian mode
+> 
+> Others:
+> 	little-endian bitmaps
+> 
+> In order to move minix bit operations from asm/bitops.h to
+> architecture independent code in minix file system, this provides two
+> config options.
+> 
+> CONFIG_MINIX_FS_BIG_ENDIAN_16BIT_INDEXED is only selected by m68k.
+> CONFIG_MINIX_FS_NATIVE_ENDIAN is selected by the architectures which
+> use native byte order bitmaps (h8300, microblaze, s390, sparc,
+> m68knommu, m32r, mips, sh, xtensa).
+> The architectures which always use little-endian bitmaps do not select
+> these options.
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+I haven't created any Kconfig option for little/big endian microblaze
+but there should be a little bit different handling for MINIX_FS_NATIVE_ENDIAN
+as you are describing above.
+Anyway I think you don't need to reflect this in your patch because
+we are not using that filesystem and I will write it to my to-do list and
+will fix it later.
 
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
+Thanks,
+Michal
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-
-------------------------------------------------------
-Subject: vmlinux.lds.h: lower init ramfs alignment to 4
-From: Mike Frysinger <vapier@gentoo.org>
-
-The new init ramfs format (cpio based) requires an alignment of 4 (per the
-documentation and per the source files themselves).  As for compressed
-sources, the decompressors can all deal with unaligned buffers.
-
-The cpio source is also found in the __init sections of the kernel, so
-once they are read and expanded into a tmpfs, the source is freed.  That
-means there is no need to force page alignment here either.
-
-This has been used on Blackfin systems for many releases without issue.
-
-Signed-off-by: Mike Frysinger <vapier@gentoo.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- include/asm-generic/vmlinux.lds.h |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff -puN include/asm-generic/vmlinux.lds.h~vmlinuxldsh-lower-init-ramfs-alignment-to-4 include/asm-generic/vmlinux.lds.h
---- a/include/asm-generic/vmlinux.lds.h~vmlinuxldsh-lower-init-ramfs-alignment-to-4
-+++ a/include/asm-generic/vmlinux.lds.h
-@@ -637,7 +637,7 @@
- 
- #ifdef CONFIG_BLK_DEV_INITRD
- #define INIT_RAM_FS							\
--	. = ALIGN(PAGE_SIZE);						\
-+	. = ALIGN(4);							\
- 	VMLINUX_SYMBOL(__initramfs_start) = .;				\
- 	*(.init.ramfs)							\
- 	. = ALIGN(8);							\
-_
-
-Patches currently in -mm which might be from vapier@gentoo.org are
-
-drivers-misc-ad525x_dpot-fix-typo-in-spi-write16-and-write24-transfer-counts.patch
-linux-next.patch
-video-backlight-adp8860-fix-ambient-light-zone-overwrite-handling.patch
-m68knommu-blackfin-remove-old-assembler-only-flags-bit-definitions.patch
-vmlinuxldsh-gather-datashared_aligned-sections-in-data_data.patch
-vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch
-drivers-misc-ad525x_dpot-fix-part-name-typos-in-defines.patch
-drivers-misc-ad525x_dpot-new-features.patch
-misc-devices-do-not-enable-by-default.patch
-rtc-bfin-shrink-optimize-interrupt-handler-a-bit.patch
-rtc-bfin-add-debug-markers-to-suspend-resume-paths.patch
-gpio-adp5588-gpio-support-interrupt-controller.patch
-gpio-adp5588-gpio-support-interrupt-controller-update.patch
-gpio-adp5588-gpio-gpio_start-must-be-signed.patch
-ptrace-cleanup-arch_ptrace-and-friends-on-blackfin.patch
-
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
