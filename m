@@ -1,52 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 22/22] bitops: remove minix bitops from asm/bitops.h
-Date: Thu, 21 Oct 2010 17:10:10 +0200
-Message-ID: <201010211710.10736.arnd@arndb.de>
-References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com> <1287672077-5797-23-git-send-email-akinobu.mita@gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1287672077-5797-23-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
+From: Andreas Dilger <adilger@dilger.ca>
+Subject: Re: [PATCH v2 20/22] bitops: remove ext2 non-atomic bitops from asm/bitops.h
+Date: Thu, 21 Oct 2010 11:52:15 -0600
+Message-ID: <AECEA79F-28E8-49B0-8C13-2CF115A6ECB4@dilger.ca>
+References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com> <1287672077-5797-21-git-send-email-akinobu.mita@gmail.com>
+Mime-Version: 1.0 (Apple Message framework v1081)
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-ext4-owner@vger.kernel.org>
+In-Reply-To: <1287672077-5797-21-git-send-email-akinobu.mita@gmail.com>
+Sender: linux-ext4-owner@vger.kernel.org
 To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 21 October 2010, Akinobu Mita wrote:
-> minix bit operations are only used by minix filesystem and useless
-> by other modules. Because byte order of inode and block bitmaps is
-> defferent on each architecture like below:
-> 
-> m68k:
-> 	big-endian 16bit indexed bitmaps
-> 
-> h8300, microblaze, s390, sparc, m68knommu:
-> 	big-endian 32 or 64bit indexed bitmaps
-> 
-> m32r, mips, sh, xtensa:
-> 	big-endian 32 or 64bit indexed bitmaps for big-endian mode
-> 	little-endian bitmaps for little-endian mode
-> 
-> Others:
-> 	little-endian bitmaps
-> 
-> In order to move minix bit operations from asm/bitops.h to
-> architecture independent code in minix file system, this provides two
-> config options.
-> 
-> CONFIG_MINIX_FS_BIG_ENDIAN_16BIT_INDEXED is only selected by m68k.
-> CONFIG_MINIX_FS_NATIVE_ENDIAN is selected by the architectures which
-> use native byte order bitmaps (h8300, microblaze, s390, sparc,
-> m68knommu, m32r, mips, sh, xtensa).
-> The architectures which always use little-endian bitmaps do not select
-> these options.
-> 
-> Finally, we can remove minix bit operations from asm/bitops.h for
-> all architectures.
-> 
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+On 2010-10-21, at 08:41, Akinobu Mita wrote:
+> As the result of conversions, there are no users of ext2 non-atomic bit
+> operations except for ext2 file system itself.  Now we can put them
+> into architecture independent code in ext2 file system, and remove
+> from asm/bitops.h for all architectures.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Presumably there will be a separate patch series to remove the atomic ext2 bitops?  I was going to suggest removing the ext2 comment in bitops.h, but I notice that there are still the atomic bitops left.
+
+In any case, thanks for your efforts.  I agree that these ext2_* functions have no place in the generic code, and are only there for historical reasons.
+
+> --- a/arch/arm/include/asm/bitops.h
+> +++ b/arch/arm/include/asm/bitops.h
+> @@ -327,22 +327,10 @@ static inline int fls(int x)
+> * Ext2 is defined to use little-endian byte ordering.
+> * These do not need to be atomic.
+> */
+> -#define ext2_set_bit(nr,p)			\
+> -		__test_and_set_le_bit(nr, (unsigned long *)(p))
+> #define ext2_set_bit_atomic(lock,nr,p)          \
+> 		test_and_set_le_bit(nr, (unsigned long *)(p))
+> -#define ext2_clear_bit(nr,p)			\
+> -		__test_and_clear_le_bit(nr, (unsigned long *)(p))
+> #define ext2_clear_bit_atomic(lock,nr,p)        \
+> 		test_and_clear_le_bit(nr, (unsigned long *)(p))
+> -#define ext2_test_bit(nr,p)			\
+> -		test_le_bit(nr, (unsigned long *)(p))
+> -#define ext2_find_first_zero_bit(p,sz)		\
+> -		find_first_zero_le_bit((unsigned long *)(p), sz)
+> -#define ext2_find_next_zero_bit(p,sz,off)	\
+> -		find_next_zero_le_bit((unsigned long *)(p), sz, off)
+> -#define ext2_find_next_bit(p, sz, off) \
+> -		find_next_le_bit((unsigned long *)(p), sz, off)
+
+
+Cheers, Andreas
+
+
+
+
+
