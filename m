@@ -1,60 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from idcmail-mo2no.shaw.ca ([64.59.134.9]:15727 "EHLO
-	idcmail-mo2no.shaw.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756047Ab0JURwT convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Oct 2010 13:52:19 -0400
-Subject: Re: [PATCH v2 20/22] bitops: remove ext2 non-atomic bitops from asm/bitops.h
-Mime-Version: 1.0 (Apple Message framework v1081)
-Content-Type: text/plain; charset=us-ascii
-From: Andreas Dilger <adilger@dilger.ca>
-In-Reply-To: <1287672077-5797-21-git-send-email-akinobu.mita@gmail.com>
-Date: Thu, 21 Oct 2010 11:52:15 -0600
-Content-Transfer-Encoding: 8BIT
-Message-ID: <AECEA79F-28E8-49B0-8C13-2CF115A6ECB4@dilger.ca>
-References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com> <1287672077-5797-21-git-send-email-akinobu.mita@gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33370 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752881Ab0JUVqi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Oct 2010 17:46:38 -0400
+Message-ID: <201010212146.o9LLkXLY005578@imap1.linux-foundation.org>
+Subject: + vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch added to -mm tree
+From: akpm@linux-foundation.org
+Date: Thu, 21 Oct 2010 14:46:33 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org
-Message-ID: <20101021175215.SsPdGh4UA5CJOQyHXBDtx4hxyKeT-7Sbl15e04PgHwk@z>
-
-On 2010-10-21, at 08:41, Akinobu Mita wrote:
-> As the result of conversions, there are no users of ext2 non-atomic bit
-> operations except for ext2 file system itself.  Now we can put them
-> into architecture independent code in ext2 file system, and remove
-> from asm/bitops.h for all architectures.
-
-Presumably there will be a separate patch series to remove the atomic ext2 bitops?  I was going to suggest removing the ext2 comment in bitops.h, but I notice that there are still the atomic bitops left.
-
-In any case, thanks for your efforts.  I agree that these ext2_* functions have no place in the generic code, and are only there for historical reasons.
-
-> --- a/arch/arm/include/asm/bitops.h
-> +++ b/arch/arm/include/asm/bitops.h
-> @@ -327,22 +327,10 @@ static inline int fls(int x)
-> * Ext2 is defined to use little-endian byte ordering.
-> * These do not need to be atomic.
-> */
-> -#define ext2_set_bit(nr,p)			\
-> -		__test_and_set_le_bit(nr, (unsigned long *)(p))
-> #define ext2_set_bit_atomic(lock,nr,p)          \
-> 		test_and_set_le_bit(nr, (unsigned long *)(p))
-> -#define ext2_clear_bit(nr,p)			\
-> -		__test_and_clear_le_bit(nr, (unsigned long *)(p))
-> #define ext2_clear_bit_atomic(lock,nr,p)        \
-> 		test_and_clear_le_bit(nr, (unsigned long *)(p))
-> -#define ext2_test_bit(nr,p)			\
-> -		test_le_bit(nr, (unsigned long *)(p))
-> -#define ext2_find_first_zero_bit(p,sz)		\
-> -		find_first_zero_le_bit((unsigned long *)(p), sz)
-> -#define ext2_find_next_zero_bit(p,sz,off)	\
-> -		find_next_zero_le_bit((unsigned long *)(p), sz, off)
-> -#define ext2_find_next_bit(p, sz, off) \
-> -		find_next_le_bit((unsigned long *)(p), sz, off)
+To: mm-commits@vger.kernel.org
+Cc: vapier@gentoo.org, linux-arch@vger.kernel.org, sam@ravnborg.org, viro@zeniv.linux.org.uk
+Message-ID: <20101021214633.S1VtO1E_N8sQqGkcGLxrnoSCAEbBkWSGHL7bsJsbi6U@z>
 
 
-Cheers, Andreas
+The patch titled
+     vmlinux.lds.h: lower init ramfs alignment to 4
+has been added to the -mm tree.  Its filename is
+     vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch
 
+Before you just go and hit "reply", please:
+   a) Consider who else should be cc'ed
+   b) Prefer to cc a suitable mailing list as well
+   c) Ideally: find the original patch on the mailing list and do a
+      reply-to-all to that, adding suitable additional cc's
 
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
 
+See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
+out what to do about this
 
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: vmlinux.lds.h: lower init ramfs alignment to 4
+From: Mike Frysinger <vapier@gentoo.org>
+
+The new init ramfs format (cpio based) requires an alignment of 4 (per the
+documentation and per the source files themselves).  As for compressed
+sources, the decompressors can all deal with unaligned buffers.
+
+The cpio source is also found in the __init sections of the kernel, so
+once they are read and expanded into a tmpfs, the source is freed.  That
+means there is no need to force page alignment here either.
+
+This has been used on Blackfin systems for many releases without issue.
+
+Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ include/asm-generic/vmlinux.lds.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff -puN include/asm-generic/vmlinux.lds.h~vmlinuxldsh-lower-init-ramfs-alignment-to-4 include/asm-generic/vmlinux.lds.h
+--- a/include/asm-generic/vmlinux.lds.h~vmlinuxldsh-lower-init-ramfs-alignment-to-4
++++ a/include/asm-generic/vmlinux.lds.h
+@@ -637,7 +637,7 @@
+ 
+ #ifdef CONFIG_BLK_DEV_INITRD
+ #define INIT_RAM_FS							\
+-	. = ALIGN(PAGE_SIZE);						\
++	. = ALIGN(4);							\
+ 	VMLINUX_SYMBOL(__initramfs_start) = .;				\
+ 	*(.init.ramfs)							\
+ 	. = ALIGN(8);							\
+_
+
+Patches currently in -mm which might be from vapier@gentoo.org are
+
+drivers-misc-ad525x_dpot-fix-typo-in-spi-write16-and-write24-transfer-counts.patch
+linux-next.patch
+video-backlight-adp8860-fix-ambient-light-zone-overwrite-handling.patch
+m68knommu-blackfin-remove-old-assembler-only-flags-bit-definitions.patch
+vmlinuxldsh-gather-datashared_aligned-sections-in-data_data.patch
+vmlinuxldsh-lower-init-ramfs-alignment-to-4.patch
+drivers-misc-ad525x_dpot-fix-part-name-typos-in-defines.patch
+drivers-misc-ad525x_dpot-new-features.patch
+misc-devices-do-not-enable-by-default.patch
+rtc-bfin-shrink-optimize-interrupt-handler-a-bit.patch
+rtc-bfin-add-debug-markers-to-suspend-resume-paths.patch
+gpio-adp5588-gpio-support-interrupt-controller.patch
+gpio-adp5588-gpio-support-interrupt-controller-update.patch
+gpio-adp5588-gpio-gpio_start-must-be-signed.patch
+ptrace-cleanup-arch_ptrace-and-friends-on-blackfin.patch
 
