@@ -1,77 +1,40 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH v2 22/22] bitops: remove minix bitops from asm/bitops.h
-Date: Fri, 22 Oct 2010 16:55:10 +0900
-Message-ID: <AANLkTikgRWWH0RhR2S5cFE+jkJbW30Arwsjic4UANuVd@mail.gmail.com>
+Subject: Re: [PATCH v2 20/22] bitops: remove ext2 non-atomic bitops from asm/bitops.h
+Date: Fri, 22 Oct 2010 16:56:58 +0900
+Message-ID: <AANLkTi=DqhFAXx3yH_NkX=Rp1ntY8X-aUv4UG61QBfRQ@mail.gmail.com>
 References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com>
-	<1287672077-5797-23-git-send-email-akinobu.mita@gmail.com>
-	<4CC0CA8E.4050600@monstr.eu>
+	<1287672077-5797-21-git-send-email-akinobu.mita@gmail.com>
+	<AECEA79F-28E8-49B0-8C13-2CF115A6ECB4@dilger.ca>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <4CC0CA8E.4050600@monstr.eu>
-Sender: sparclinux-owner@vger.kernel.org
-To: monstr@monstr.eu
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Ungerer <gerg@uclinux.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@lists.linux-m68k.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>, microblaze-uclinux@itee.uq.edu.au, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Zankel <chris@zankel.net>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:36623 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751059Ab0JVH47 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Oct 2010 03:56:59 -0400
+In-Reply-To: <AECEA79F-28E8-49B0-8C13-2CF115A6ECB4@dilger.ca>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andreas Dilger <adilger@dilger.ca>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, linux-ext4@vger.kernel.org
 
-2010/10/22 Michal Simek <monstr@monstr.eu>:
-> Akinobu Mita wrote:
->> minix bit operations are only used by minix filesystem and useless
->> by other modules. Because byte order of inode and block bitmaps is
->> defferent on each architecture like below:
->>
->> m68k:
->> =A0 =A0 =A0 big-endian 16bit indexed bitmaps
->>
->> h8300, microblaze, s390, sparc, m68knommu:
->> =A0 =A0 =A0 big-endian 32 or 64bit indexed bitmaps
+2010/10/22 Andreas Dilger <adilger@dilger.ca>:
+> On 2010-10-21, at 08:41, Akinobu Mita wrote:
+>> As the result of conversions, there are no users of ext2 non-atomic =
+bit
+>> operations except for ext2 file system itself. =A0Now we can put the=
+m
+>> into architecture independent code in ext2 file system, and remove
+>> from asm/bitops.h for all architectures.
 >
-> Just one small fix microblaze little endian support is ready for merg=
-ing
-> to mainline which means that microblaze is
-> big-endian 32bit =A0and =A0little-endian 32bit
->
->>
->> m32r, mips, sh, xtensa:
->> =A0 =A0 =A0 big-endian 32 or 64bit indexed bitmaps for big-endian mo=
-de
->> =A0 =A0 =A0 little-endian bitmaps for little-endian mode
->>
->> Others:
->> =A0 =A0 =A0 little-endian bitmaps
->>
->> In order to move minix bit operations from asm/bitops.h to
->> architecture independent code in minix file system, this provides tw=
-o
->> config options.
->>
->> CONFIG_MINIX_FS_BIG_ENDIAN_16BIT_INDEXED is only selected by m68k.
->> CONFIG_MINIX_FS_NATIVE_ENDIAN is selected by the architectures which
->> use native byte order bitmaps (h8300, microblaze, s390, sparc,
->> m68knommu, m32r, mips, sh, xtensa).
->> The architectures which always use little-endian bitmaps do not sele=
-ct
->> these options.
->
-> I haven't created any Kconfig option for little/big endian microblaze
-> but there should be a little bit different handling for MINIX_FS_NATI=
-VE_ENDIAN
-> as you are describing above.
-> Anyway I think you don't need to reflect this in your patch because
-> we are not using that filesystem and I will write it to my to-do list=
- and
-> will fix it later.
+> Presumably there will be a separate patch series to remove the atomic=
+ ext2 bitops? =A0I was going to suggest removing the ext2 comment in bi=
+tops.h, but I notice that there are still the atomic bitops left.
 
-If upcomming microblade little-endian mode will use little-endian
-bitmaps for minixfs, microblade can continue to select
-CONFIG_MINIX_FS_NATIVE_ENDIAN and you don't need to change it.
-
-But if it will use big-endian bitmaps, it may need some extra work
-to support it. Becuase there is no little-endian architecture
-which uses bit-endian bitmaps for minixfs.
---
-To unsubscribe from this list: send the line "unsubscribe sparclinux" i=
-n
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+I wanted to remove them altogether, but it turns out that I need
+more consideration (what is the better name? where should they move to?=
+)
+and I have already touched more files than I expected in this patch ser=
+ies.
+So I decided to make it a pending question.
