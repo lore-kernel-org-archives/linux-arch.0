@@ -1,30 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rere.qmqm.pl ([89.167.52.164]:47391 "EHLO rere.qmqm.pl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755001Ab0JWCax (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 Oct 2010 22:30:53 -0400
-Date: Sat, 23 Oct 2010 04:30:52 +0200
-From: =?iso-8859-2?Q?Micha=B3_Miros=B3aw?= <mirq@rere.qmqm.pl>
-Subject: Re: [PATCH] percpu: Introduce a read-mostly percpu API
-Message-ID: <20101023023052.GA20778@rere.qmqm.pl>
-References: <20101023022545.GA18876@rere.qmqm.pl>
+Received: from moutng.kundenserver.de ([212.227.126.171]:50351 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755594Ab0JYNbi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Oct 2010 09:31:38 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [microblaze-uclinux] Re: [PATCH v2 22/22] bitops: remove minix bitops from asm/bitops.h
+Date: Mon, 25 Oct 2010 15:31:35 +0200
+References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com> <AANLkTikgRWWH0RhR2S5cFE+jkJbW30Arwsjic4UANuVd@mail.gmail.com> <4CC4C1B4.9090907@monstr.eu>
+In-Reply-To: <4CC4C1B4.9090907@monstr.eu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-2
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20101023022545.GA18876@rere.qmqm.pl>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201010251531.35485.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: Shaohua Li <shaohua.li@intel.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101023023052.hD632F0hf_4cCExDTDyFmR9Cf8aEFBwh6xV7Gw30fns@z>
+To: monstr@monstr.eu
+Cc: microblaze-uclinux@itee.uq.edu.au, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20101025133135.2-O37BFxCQ5zu_YVwAbp4jbhxznxUljIvfFLF2uscvw@z>
 
-On Sat, Oct 23, 2010 at 04:25:45AM +0200, Micha³ Miros³aw wrote:
-> Commit c957ef2c59e952803766ddc22e89981ab534606f that just went into
-> Linus' tree has a bug - only one of hunks was modified (.readmostly
-> moved after .page_aligned).
+On Monday 25 October 2010, Michal Simek wrote:
+> > If upcomming microblade little-endian mode will use little-endian
+> > bitmaps for minixfs, microblade can continue to select
+> > CONFIG_MINIX_FS_NATIVE_ENDIAN and you don't need to change it.
+> > 
+> > But if it will use big-endian bitmaps, it may need some extra work
+> > to support it. Becuase there is no little-endian architecture
+> > which uses bit-endian bitmaps for minixfs.
+> 
+> As I wrote I don't know anybody who wants to use minixfs that's why we don't
+> need to do anything with it. I can test it but it has no high priority.
 
-Ah. I just found another commit that fixes it. Sorry for the noise.
+I think it needs to be set up in a way that new architectures (and those
+that never cared about minixfs) automatically get a reasonable default
+and should not need to set anything.
 
-Best Regards,
-Micha³ Miros³aw
+I don't see a reason why little-endian microblaze should use big-endian
+bitops in minixfs, since that file system layout would also be incompatible
+with every other one.
+
+CONFIG_MINIX_FS_NATIVE_ENDIAN seems reasonable for both big- and little-
+endian microblaze, but new architectures should just keep the default
+little-endian bitops IMHO.
+I also don't see a reason for testing. Any new users on microblaze or
+future architectures would use a modern file system anyway.
+
+	Arnd
