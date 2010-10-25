@@ -1,41 +1,43 @@
-From: "Jan Beulich" <JBeulich@novell.com>
-Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h
-	 numbers in brackets
-Date: Mon, 25 Oct 2010 16:05:23 +0100
-Message-ID: <4CC5B8D3020000780001EFB4@vpn.id2.novell.com>
-References: <4CC5B1A1020000780001EF7C@vpn.id2.novell.com>
- <20101025140218.5092.74117.stgit@warthog.procyon.org.uk>
- <28707.1288018465@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h numbers
+ in brackets
+Date: Mon, 25 Oct 2010 08:17:12 -0700
+Message-ID: <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com>
+References: <4CC5B1A1020000780001EF7C@vpn.id2.novell.com> <20101025140218.5092.74117.stgit@warthog.procyon.org.uk>
+ <28707.1288018465@redhat.com> <4CC5B8D3020000780001EFB4@vpn.id2.novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-In-Reply-To: <28707.1288018465@redhat.com>
-Content-Disposition: inline
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33799 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751487Ab0JYPSZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Oct 2010 11:18:25 -0400
+In-Reply-To: <4CC5B8D3020000780001EFB4@vpn.id2.novell.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander van Heukelum <heukelum@fastmail.fm>
-Cc: Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, "H. Peter Anvin" <hpa@linux.intel.com>, torvalds@osdl.org, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Jan Beulich <JBeulich@novell.com>
+Cc: Alexander van Heukelum <heukelum@fastmail.fm>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, "H. Peter Anvin" <hpa@linux.intel.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
->>> On 25.10.10 at 16:54, David Howells <dhowells@redhat.com> wrote:
-> Jan Beulich <JBeulich@novell.com> wrote:
-> 
->> Isn't this a gas bug then? Anywhere you use a plain number you
->> should also be permitted to use an expression.
-> 
-> Whoever defined the gas assembly syntax for binutils specified that (N) as 
-> an
-> operand defines an absolute address and N defines an immediate value.
-> 
-> However, prefixing an expression with a unary plus works for me, so adding
-> this into my patch:
-> 
-> -	s:^->\([^ ]*\) [\$$#]*\([-0-9]*\) \(.*\):#define \1 \2 /* \3 */:; \
-> +	s:^->\([^ ]*\) [\$$#]*\([-0-9]*\) \(.*\):#define \1 +(\2) /* \3 */:; \
-> 
-> Does that work for you?
+On Mon, Oct 25, 2010 at 8:05 AM, Jan Beulich <JBeulich@novell.com> wrote:
+>
+> Alexander, you seem to be having access to a worst case system -
+> could you give this a try?
 
-Alexander, you seem to be having access to a worst case system -
-could you give this a try?
+This all seems very wrong.
 
-Thanks, Jan
+The whole "add parenthesis" seems to break several architectures
+(Power apparently had problems too due to redefining one of the
+macros), and it is ugly.
+
+And the whole thing was added for some stupid gas bug for a very
+specific case, and now we're adding _more_ crap to an already ugly
+workaround.
+
+How about just removing the idiotic workaround entirely, and then on
+x86 passing "-traditional" to cpp for asm input so that it doesn't add
+spaces in argument expansion? Make the workaround more targeted to the
+actual problem, rather than working around it in some unrelated
+thing..
+
+                                       Linus
