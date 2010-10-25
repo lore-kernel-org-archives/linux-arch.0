@@ -1,34 +1,39 @@
-From: "Jan Beulich" <JBeulich@novell.com>
-Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h
-	 numbers in brackets
-Date: Mon, 25 Oct 2010 16:29:39 +0100
-Message-ID: <4CC5BE83020000780001EFE4@vpn.id2.novell.com>
-References: <4CC5B1A1020000780001EF7C@vpn.id2.novell.com>
- <20101025140218.5092.74117.stgit@warthog.procyon.org.uk>
- <28707.1288018465@redhat.com>
- <4CC5B8D3020000780001EFB4@vpn.id2.novell.com>
- <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h numbers
+ in brackets
+Date: Mon, 25 Oct 2010 08:50:32 -0700
+Message-ID: <4CC5A748.6050903@zytor.com>
+References: <4CC5B1A1020000780001EF7C@vpn.id2.novell.com> <20101025140218.5092.74117.stgit@warthog.procyon.org.uk> <28707.1288018465@redhat.com> <4CC5B8D3020000780001EFB4@vpn.id2.novell.com> <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:37689 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751542Ab0JYPvi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Oct 2010 11:51:38 -0400
 In-Reply-To: <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com>
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Alexander van Heukelum <heukelum@fastmail.fm>, akpm@linux-foundation.org, "H. Peter Anvin" <hpa@linux.intel.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Jan Beulich <JBeulich@novell.com>, Alexander van Heukelum <heukelum@fastmail.fm>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, "H. Peter Anvin" <hpa@linux.intel.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
->>> On 25.10.10 at 17:17, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On 10/25/2010 08:17 AM, Linus Torvalds wrote:
+> 
 > How about just removing the idiotic workaround entirely, and then on
 > x86 passing "-traditional" to cpp for asm input so that it doesn't add
 > spaces in argument expansion? Make the workaround more targeted to the
 > actual problem, rather than working around it in some unrelated
 > thing..
+> 
 
-Hmm, I think it was an actual improvement to remove the use of
--traditional. If fiddling with the globally used sed expression isn't
-considered acceptable, how about allowing the architecture to
-override it as necessary?
+We already tried using -traditional, it didn't help the gas braindamage
+and it caused severe problems with header files (since -traditional
+removes the support for #x and x ## y).  Bringing it back won't help.
 
-Jan
+As such, the only options I can really think about overriding the sed
+expression for x86 or just saying gcc 2.16.90 or later is required...
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
