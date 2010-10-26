@@ -1,31 +1,37 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h numbers
- in brackets
-Date: Mon, 25 Oct 2010 10:51:06 -0700
-Message-ID: <4CC5C38A.8090508@linux.intel.com>
-References: <4CC5A748.6050903@zytor.com> <4CC5B1A1020000780001EF7C@vpn.id2.novell.com> <20101025140218.5092.74117.stgit@warthog.procyon.org.uk> <28707.1288018465@redhat.com> <4CC5B8D3020000780001EFB4@vpn.id2.novell.com> <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com> <30620.1288022370@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Reminder: short merge window
+Date: Mon, 25 Oct 2010 19:06:54 -0700
+Message-ID: <AANLkTimNp3EhK=AsVchUMyQ__Yi4m9h1gwd6SYSvtMDA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:22941 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754522Ab0JYRvH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Oct 2010 13:51:07 -0400
-In-Reply-To: <30620.1288022370@redhat.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35510 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755681Ab0JZCHr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Oct 2010 22:07:47 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jan Beulich <JBeulich@novell.com>, Alexander van Heukelum <heukelum@fastmail.fm>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On 10/25/2010 08:59 AM, David Howells wrote:
-> H. Peter Anvin <hpa@zytor.com> wrote:
-> 
->> As such, the only options I can really think about overriding the sed
->> expression for x86 or just saying gcc 2.16.90 or later is required...
-> 
-> Do you mean binutils-2.16.90?
+So this is just a reminder - I'm trying to make sure that everybody is
+aware of the fact that in my 2.6.36 announcement, I was talking about
+trying to do a short merge window. Why?  So that I could release -rc1
+by the time the kernel summit started, despite the release of 2.6.36
+being delayed.
 
-Yes, of course.
+And so far, in the five days since the 2.6.36 release, we've merged
+5500+ commits. That has turned my "maybe we can do a shorter merge
+window" into a "we can definitely do a shorter merge window". Because
+we already have enough changes, and there's almost a week to go - so I
+think we're well on track for doing that. But I'll holler here once
+more, just to try to make sure that nobody gets any big surprise by
+such a shorter-than-usual merge window.
 
-	-hpa
+So for anybody out there planning on pushing things to me for this
+release and haven't yet done so (and I know there are subsystems that
+haven't yet, because they're in linux-next), make sure it happens this
+week by Saturday (because Sunday I'm spending on a plane, and I was
+tentatively planning on doing the release using the free PDX WiFi).
+
+                                                    Linus
