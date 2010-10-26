@@ -1,144 +1,64 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 06/43] Typedef SMP call function pointer
-Date: Tue, 26 Oct 2010 03:53:34 +0100
-Message-ID: <20101026025333.23512.76163.stgit@warthog.procyon.org.uk>
-References: <20101026025301.23512.24525.stgit@warthog.procyon.org.uk>
+From: "Maciej W. Rozycki" <macro@linux-mips.org>
+Subject: Re: [PATCH] Partially revert patch that encloses asm-offset.h numbers
+ in brackets
+Date: Tue, 26 Oct 2010 11:53:47 +0100 (BST)
+Message-ID: <alpine.LFD.2.00.1010261126590.15889@eddie.linux-mips.org>
+References: <4CC5B1A1020000780001EF7C@vpn.id2.novell.com> <20101025140218.5092.74117.stgit@warthog.procyon.org.uk> <28707.1288018465@redhat.com> <4CC5B8D3020000780001EFB4@vpn.id2.novell.com> <AANLkTi=mpKRQgZp5zCoCsBtkuWHrpkOq2Zch-OOGu4CC@mail.gmail.com>
+ <4CC5A748.6050903@zytor.com> <AANLkTik1HB-P0x0e8ucHz7323F-_qAzkaHrHy1Yq4qwo@mail.gmail.com> <4CC5B246.5070909@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20101026025301.23512.24525.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-am33-list@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from eddie.linux-mips.org ([78.24.191.182]:42262 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751561Ab0JZKxu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Oct 2010 06:53:50 -0400
+In-Reply-To: <4CC5B246.5070909@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jan Beulich <JBeulich@novell.com>, Alexander van Heukelum <heukelum@fastmail.fm>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, "H. Peter Anvin" <hpa@linux.intel.com>, David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Typedef the pointer to the function to be called by smp_call_function() and
-friends:
+On Mon, 25 Oct 2010, H. Peter Anvin wrote:
 
-	typedef void (*smp_call_func_t)(void *info);
+> > No reason to make for maintenance problems and uglier code if we can
+> > just say "get a newer gas" to a few people. It's not like we haven't
+> > done that with gcc and other tools too.
+> 
+> The problem is that 2.16 isn't all that old; al lot of the "enterprise"
+> distros still ship it or AFAIK even older versions.  2.6.90 which I
+> *think* is the first fixed version dates from April 2005, so is
+> currently 5 years old; maybe that is within reason to kill off.
 
-as it is used in a fair number of places.
+ For the record -- binutils 2.21 are about to be released and for several 
+years now the schedule has roughly been one major release per year, 
+sometimes followed by some bug-fix minor releases as needed.  That'll make 
+2.16 *five* releases away from the current version and hardly a reason to 
+keep maintaining support for it in the face of critical problems.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-arch@vger.kernel.org
----
+ If some random distribution insists on maintaining such old tools, then 
+it's their responsibility to backport critical fixes, such as these 
+required to get the parser (or whatever piece of code is responsible for 
+the breakage observed here) right, isn't it?  Then once they did it, they 
+can patch up their kernels to accept their tools too.
 
- include/linux/smp.h |   19 ++++++++++---------
- kernel/smp.c        |    8 ++++----
- 2 files changed, 14 insertions(+), 13 deletions(-)
+ Also note that *.*.9x versions are snapshots from the FSF repository (so 
+there's no fixed date associated with them), which also delegates 
+maintenance responsibility to whoever packages them and makes available to 
+people.  In the state as imported from the repository they may have odd 
+problems or grave bugs, as exhaustive regression testing is generally only 
+made after a release branch has been created and otherwise changes to the 
+head of the tree are only tested for a limited subset of targets before 
+they are applied.  Therefore local fixes are inevitable for them anyway.
 
+ And last but not least binutils are one of the easier tools to build from 
+sources, so installing a newer version, especially when it comes to native 
+tools (hardly anyone uses cross-compilation targeting x86, I believe), 
+somewhere under $HOME to use for kernel builds is a trivial effort:
 
-diff --git a/include/linux/smp.h b/include/linux/smp.h
-index cfa2d20..6dc95ca 100644
---- a/include/linux/smp.h
-+++ b/include/linux/smp.h
-@@ -13,9 +13,10 @@
- 
- extern void cpu_idle(void);
- 
-+typedef void (*smp_call_func_t)(void *info);
- struct call_single_data {
- 	struct list_head list;
--	void (*func) (void *info);
-+	smp_call_func_t func;
- 	void *info;
- 	u16 flags;
- 	u16 priv;
-@@ -24,8 +25,8 @@ struct call_single_data {
- /* total number of cpus in this system (may exceed NR_CPUS) */
- extern unsigned int total_cpus;
- 
--int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
--				int wait);
-+int smp_call_function_single(int cpuid, smp_call_func_t func, void *info,
-+			     int wait);
- 
- #ifdef CONFIG_SMP
- 
-@@ -69,15 +70,15 @@ extern void smp_cpus_done(unsigned int max_cpus);
- /*
-  * Call a function on all other processors
-  */
--int smp_call_function(void(*func)(void *info), void *info, int wait);
-+int smp_call_function(smp_call_func_t func, void *info, int wait);
- void smp_call_function_many(const struct cpumask *mask,
--			    void (*func)(void *info), void *info, bool wait);
-+			    smp_call_func_t func, void *info, bool wait);
- 
- void __smp_call_function_single(int cpuid, struct call_single_data *data,
- 				int wait);
- 
- int smp_call_function_any(const struct cpumask *mask,
--			  void (*func)(void *info), void *info, int wait);
-+			  smp_call_func_t func, void *info, int wait);
- 
- /*
-  * Generic and arch helpers
-@@ -94,7 +95,7 @@ void ipi_call_unlock_irq(void);
- /*
-  * Call a function on all processors
-  */
--int on_each_cpu(void (*func) (void *info), void *info, int wait);
-+int on_each_cpu(smp_call_func_t func, void *info, int wait);
- 
- #define MSG_ALL_BUT_SELF	0x8000	/* Assume <32768 CPU's */
- #define MSG_ALL			0x8001
-@@ -122,7 +123,7 @@ static inline void smp_send_stop(void) { }
-  *	These macros fold the SMP functionality into a single CPU system
-  */
- #define raw_smp_processor_id()			0
--static inline int up_smp_call_function(void (*func)(void *), void *info)
-+static inline int up_smp_call_function(smp_call_func_t func, void *info)
- {
- 	return 0;
- }
-@@ -143,7 +144,7 @@ static inline void smp_send_reschedule(int cpu) { }
- static inline void init_call_single_data(void) { }
- 
- static inline int
--smp_call_function_any(const struct cpumask *mask, void (*func)(void *info),
-+smp_call_function_any(const struct cpumask *mask, smp_call_func_t func,
- 		      void *info, int wait)
- {
- 	return smp_call_function_single(0, func, info, wait);
-diff --git a/kernel/smp.c b/kernel/smp.c
-index ed6aacf..12ed8b0 100644
---- a/kernel/smp.c
-+++ b/kernel/smp.c
-@@ -267,7 +267,7 @@ static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_single_data, csd_data);
-  *
-  * Returns 0 on success, else a negative status code.
-  */
--int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-+int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
- 			     int wait)
- {
- 	struct call_single_data d = {
-@@ -336,7 +336,7 @@ EXPORT_SYMBOL(smp_call_function_single);
-  *	3) any other online cpu in @mask
-  */
- int smp_call_function_any(const struct cpumask *mask,
--			  void (*func)(void *info), void *info, int wait)
-+			  smp_call_func_t func, void *info, int wait)
- {
- 	unsigned int cpu;
- 	const struct cpumask *nodemask;
-@@ -416,7 +416,7 @@ void __smp_call_function_single(int cpu, struct call_single_data *data,
-  * must be disabled when calling this function.
-  */
- void smp_call_function_many(const struct cpumask *mask,
--			    void (*func)(void *), void *info, bool wait)
-+			    smp_call_func_t func, void *info, bool wait)
- {
- 	struct call_function_data *data;
- 	unsigned long flags;
-@@ -500,7 +500,7 @@ EXPORT_SYMBOL(smp_call_function_many);
-  * You must not call this function with disabled interrupts or from a
-  * hardware interrupt handler or from a bottom half handler.
-  */
--int smp_call_function(void (*func)(void *), void *info, int wait)
-+int smp_call_function(smp_call_func_t func, void *info, int wait)
- {
- 	preempt_disable();
- 	smp_call_function_many(cpu_online_mask, func, info, wait);
+$ ./configure --prefix=$HOME/somewhere && make && make install
+$ PATH=$HOME/somewhere/bin:$PATH
+
+Certainly much easier than building the kernel, especially when it comes 
+to selecting the right configuration options.
+
+  Maciej
