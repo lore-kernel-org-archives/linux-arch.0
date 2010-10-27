@@ -1,76 +1,46 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
-Date: Wed, 27 Oct 2010 12:25:49 +0900
-Message-ID: <20101027032548.GA5341@linux-sh.org>
-References: <20101014210014.895157788@goodmis.org> <20101014210136.230687571@goodmis.org>
+From: Chris Wilson <chris@chris-wilson.co.uk>
+Subject: Re: [PATCH 0/5] mm, highmem: kmap_atomic rework -v3
+Date: Wed, 27 Oct 2010 11:27:57 +0100
+Message-ID: <849307$a582r7@azsmga001.ch.intel.com>
+References: <20100918155326.478277313@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20101014210136.230687571@goodmis.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org, John Reiser <jreiser@bitwagon.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([143.182.124.37]:12717 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750889Ab0J0K2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Oct 2010 06:28:03 -0400
+In-Reply-To: <20100918155326.478277313@chello.nl>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Thu, Oct 14, 2010 at 05:00:16PM -0400, Steven Rostedt wrote:
-> From: Steven Rostedt <srostedt@redhat.com>
-> 
-> This patch adds the support for the C version of recordmcount and
-> compile times show ~ 12% improvement.
-> 
-> After verifying this works, other archs can add:
-> 
->  HAVE_C_MCOUNT_RECORD
-> 
-> in its Kconfig and it will use the C version of recordmcount
-> instead of the perl version.
-> 
-While I haven't had the chance to debug this yet, turning it on for SH
-blows up immediately:
+On Sat, 18 Sep 2010 17:53:26 +0200, Peter Zijlstra <a.p.zijlstra@chello=
+=2Enl> wrote:
+> Next version of the kmap_atomic rework using Andrew's fancy CPP trick=
+ery to
+> avoid having to convert the whole tree at once.
+>=20
+> This is compile tested for i386-allmodconfig, frv, mips-sb1250-swarm,
+> powerpc-ppc6xx_defconfig, sparc32_defconfig, arm-omap3 (all with
+> HIGHEM=3Dy).
 
-ftrace: allocating 15200 entries in 30 pages
-------------[ cut here ]------------
-WARNING: at /home/pmundt/devel/git/sh-2.6/kernel/trace/ftrace.c:1007
-Modules linked in:
+This break on x86, HIGHMEM=3Dn:
 
-Pid : 0, Comm:           swapper
-CPU : 0                  Not tainted  (2.6.36-05622-g38ab134-dirty #508)
+arch/x86/mm/iomap_32.c: In function =E2=80=98kmap_atomic_prot_pfn=E2=80=
+=99:
+arch/x86/mm/iomap_32.c:64: error: implicit declaration of function
+=E2=80=98kmap_atomic_idx_push=E2=80=99
+arch/x86/mm/iomap_32.c: In function =E2=80=98iounmap_atomic=E2=80=99:
+arch/x86/mm/iomap_32.c:101: error: implicit declaration of function
+=E2=80=98kmap_atomic_idx_pop=E2=80=99
 
-PC is at ftrace_bug+0x78/0x23c
-PR is at ftrace_bug+0x74/0x23c
-PC  : 80064df4 SP  : 8056ff70 SR  : 400080f0 TEA : c0000004
-R0  : 00000001 R1  : 00000001 R2  : 8064d862 R3  : 8056ff64
-R4  : 805b47b4 R5  : 00000001 R6  : 00000000 R7  : 00000001
-R8  : 803b15d8 R9  : 00000001 R10 : 9fc38be8 R11 : 00000000
-R12 : 8064e88c R13 : 8064e880 R14 : 8056ff70
-MACH: 00000000 MACL: 003d0900 GBR : 296e1678 PR  : 80064df0
+The use of the kmap idx there looks a little delicate so I'm not sure h=
+ow
+to fix this.
+-Chris
 
-Call trace:
- [<80066a86>] ftrace_process_locs+0x15a/0x284
- [<803b15d8>] dns_query+0x0/0x26c
- [<805f6a1a>] ftrace_init+0x112/0x1a8
- [<801deec0>] strlen+0x0/0x58
- [<8008f098>] get_zeroed_page+0x0/0x34
- [<805f0918>] start_kernel+0x3e0/0x480
- [<801deec0>] strlen+0x0/0x58
- [<801eb388>] debug_smp_processor_id+0x0/0xe4
- [<80002132>] _stext+0x132/0x140
-
-Code:
-  80064dee:  mov       r9, r5
-  80064df0:  tst       r9, r9
-  80064df2:  bt        80064df6
-->80064df4:  trapa     #62
-  80064df6:  bra       80064ef2
-  80064df8:  mov       r9, r5
-  80064dfa:  mov.l     80064f68 <ftrace_bug+0x1ec/0x23c>, r1  ! 8064d862 <__warned.27604+0x0/0x1>
-  80064dfc:  mov.b     r2, @r1
-  80064dfe:  mov.l     80064f48 <ftrace_bug+0x1cc/0x23c>, r1  ! 8057021c <ftrace_disabled+0x0/0x4>
-
----[ end trace 4eaa2a86a8e2da22 ]---
-ftrace failed to modify [<803b15d8>] dns_query+0x0/0x26c
- actual: 02:d1:22:4f
-Testing tracer nop: PASSED
-
-Suggestions?
+--=20
+Chris Wilson, Intel Open Source Technology Centre
