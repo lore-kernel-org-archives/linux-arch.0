@@ -1,41 +1,62 @@
-From: Rik van Riel <riel@redhat.com>
-Subject: Re: [RFT][PATCH] mm: Fix race in kunmap_atomic()
-Date: Wed, 27 Oct 2010 13:46:47 -0400
-Message-ID: <4CC86587.6010506@redhat.com>
-References: <20101027125154.GA23679@infradead.org> <1288191261.15336.1953.camel@twins>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: [PATCH] parisc: fix compile failure with kmap_atomic changes
+Date: Wed, 27 Oct 2010 13:35:47 -0500
+Message-ID: <1288204547.6886.23.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:43364 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752895Ab0J0RrL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Oct 2010 13:47:11 -0400
-In-Reply-To: <1288191261.15336.1953.camel@twins>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Christoph Hellwig <hch@infradead.org>, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 10/27/2010 10:54 AM, Peter Zijlstra wrote:
+This commit:
 
-> Christoph reported a nice splat which illustrated a race in the new
-> stack based kmap_atomic implementation.
->
-> The problem is that we pop our stack slot before we're completely done
-> resetting its state -- in particular clearing the PTE (sometimes that's
-> CONFIG_DEBUG_HIGHMEM). If an interrupt happens before we actually clear
-> the PTE used for the last slot, that interrupt can reuse the slot in a
-> dirty state, which triggers a BUG in kmap_atomic().
->
-> Fix this by introducing kmap_atomic_idx() which reports the current slot
-> index without actually releasing it and use that to find the PTE and
-> delay the _pop() until after we're completely done.
->
-> Reported-by: Christoph Hellwig<hch@infradead.org>
-> Signed-off-by: Peter Zijlstra<a.p.zijlstra@chello.nl>
+commit 3e4d3af501cccdc8a8cca41bdbe57d54ad7e7e73
+Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Date:   Tue Oct 26 14:21:51 2010 -0700
 
-Acked-by: Rik van Riel <riel@redhat.com>
+    mm: stack based kmap_atomic()
 
--- 
-All rights reversed
+overlooked the fact that parisc uses kmap as a coherence mechanism, so
+even though we have no highmem, we do need to supply our own versions of
+kmap (and atomic).  This patch converts the parisc kmap to the form
+which is needed to keep it compiling (it's a simple prototype and name
+change).
+
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+
+---
+
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index dba11ae..f388a85 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -126,20 +126,20 @@ static inline void *kmap(struct page *page)
+ 
+ #define kunmap(page)			kunmap_parisc(page_address(page))
+ 
+-static inline void *kmap_atomic(struct page *page, enum km_type idx)
++static inline void *__kmap_atomic(struct page *page)
+ {
+ 	pagefault_disable();
+ 	return page_address(page);
+ }
+ 
+-static inline void kunmap_atomic_notypecheck(void *addr, enum km_type idx)
++static inline void __kunmap_atomic(void *addr)
+ {
+ 	kunmap_parisc(addr);
+ 	pagefault_enable();
+ }
+ 
+-#define kmap_atomic_prot(page, idx, prot)	kmap_atomic(page, idx)
+-#define kmap_atomic_pfn(pfn, idx)	kmap_atomic(pfn_to_page(pfn), (idx))
++#define kmap_atomic_prot(page, prot)	kmap_atomic(page)
++#define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
+ #define kmap_atomic_to_page(ptr)	virt_to_page(ptr)
+ #endif
+ 
+
+
