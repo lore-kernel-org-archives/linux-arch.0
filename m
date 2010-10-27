@@ -1,27 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:10998 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755732Ab0J0LPu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Oct 2010 07:15:50 -0400
-Message-ID: <b9dded$gtgeib@orsmga002.jf.intel.com>
-Date: Wed, 27 Oct 2010 12:15:45 +0100
-Subject: Re: [PATCH] mm,x86: fix kmap_atomic_push vs ioremap_32.c
-References: <20100918155326.478277313@chello.nl> <849307$a582r7@azsmga001.ch.intel.com> <1288175638.15336.1538.camel@twins>
-From: Chris Wilson <chris@chris-wilson.co.uk>
-In-Reply-To: <1288175638.15336.1538.camel@twins>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47072 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754931Ab0J0Sft (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Oct 2010 14:35:49 -0400
+Subject: [PATCH] parisc: fix compile failure with kmap_atomic changes
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 27 Oct 2010 13:35:47 -0500
+Message-ID: <1288204547.6886.23.camel@mulgrave.site>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Christoph Hellwig <hch@infradead.org>
-Message-ID: <20101027111545.VZAP52WnrHLzRauXwFa_0pRU-L7f9rFRrc9mkkyKBvc@z>
+To: linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Parisc List <linux-parisc@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20101027183547.6sCgxFs-E2OHzaUg7GMPQ54lFI0ZhBGiFpQEzXF9N4Y@z>
 
-On Wed, 27 Oct 2010 12:33:58 +0200, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> Christoph just complained about the same on IRC, the below seems to cure
-> things for i386-defconfig with CONFIG_HIGHMEM=n
+This commit:
 
-Compiles and boots on the misbehaving box.
-Thanks,
--Chris
+commit 3e4d3af501cccdc8a8cca41bdbe57d54ad7e7e73
+Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Date:   Tue Oct 26 14:21:51 2010 -0700
 
--- 
-Chris Wilson, Intel Open Source Technology Centre
+    mm: stack based kmap_atomic()
+
+overlooked the fact that parisc uses kmap as a coherence mechanism, so
+even though we have no highmem, we do need to supply our own versions of
+kmap (and atomic).  This patch converts the parisc kmap to the form
+which is needed to keep it compiling (it's a simple prototype and name
+change).
+
+Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+
+---
+
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index dba11ae..f388a85 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -126,20 +126,20 @@ static inline void *kmap(struct page *page)
+ 
+ #define kunmap(page)			kunmap_parisc(page_address(page))
+ 
+-static inline void *kmap_atomic(struct page *page, enum km_type idx)
++static inline void *__kmap_atomic(struct page *page)
+ {
+ 	pagefault_disable();
+ 	return page_address(page);
+ }
+ 
+-static inline void kunmap_atomic_notypecheck(void *addr, enum km_type idx)
++static inline void __kunmap_atomic(void *addr)
+ {
+ 	kunmap_parisc(addr);
+ 	pagefault_enable();
+ }
+ 
+-#define kmap_atomic_prot(page, idx, prot)	kmap_atomic(page, idx)
+-#define kmap_atomic_pfn(pfn, idx)	kmap_atomic(pfn_to_page(pfn), (idx))
++#define kmap_atomic_prot(page, prot)	kmap_atomic(page)
++#define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
+ #define kmap_atomic_to_page(ptr)	virt_to_page(ptr)
+ #endif
+ 
+
+
