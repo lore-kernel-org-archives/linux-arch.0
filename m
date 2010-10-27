@@ -1,150 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:7537 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758895Ab0JZCxn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Oct 2010 22:53:43 -0400
-Subject: [PATCH 06/43] Typedef SMP call function pointer
-From: David Howells <dhowells@redhat.com>
-Date: Tue, 26 Oct 2010 03:53:34 +0100
-Message-ID: <20101026025333.23512.76163.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20101026025301.23512.24525.stgit@warthog.procyon.org.uk>
-References: <20101026025301.23512.24525.stgit@warthog.procyon.org.uk>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:52630 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752702Ab0J0D0Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Oct 2010 23:26:16 -0400
+Date: Wed, 27 Oct 2010 12:25:49 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
+Message-ID: <20101027032548.GA5341@linux-sh.org>
+References: <20101014210014.895157788@goodmis.org> <20101014210136.230687571@goodmis.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20101014210136.230687571@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-am33-list@redhat.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101026025334.4LRRBVHgKLNUpseXz8a5uSw0J_-0_3XfnrhfqaRQr7I@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org, John Reiser <jreiser@bitwagon.com>
+Message-ID: <20101027032549.mGRRSuphkqlSRsdohDFzsSaUPNFs0s_q8AlYW9Fux30@z>
 
-Typedef the pointer to the function to be called by smp_call_function() and
-friends:
+On Thu, Oct 14, 2010 at 05:00:16PM -0400, Steven Rostedt wrote:
+> From: Steven Rostedt <srostedt@redhat.com>
+> 
+> This patch adds the support for the C version of recordmcount and
+> compile times show ~ 12% improvement.
+> 
+> After verifying this works, other archs can add:
+> 
+>  HAVE_C_MCOUNT_RECORD
+> 
+> in its Kconfig and it will use the C version of recordmcount
+> instead of the perl version.
+> 
+While I haven't had the chance to debug this yet, turning it on for SH
+blows up immediately:
 
-	typedef void (*smp_call_func_t)(void *info);
+ftrace: allocating 15200 entries in 30 pages
+------------[ cut here ]------------
+WARNING: at /home/pmundt/devel/git/sh-2.6/kernel/trace/ftrace.c:1007
+Modules linked in:
 
-as it is used in a fair number of places.
+Pid : 0, Comm:           swapper
+CPU : 0                  Not tainted  (2.6.36-05622-g38ab134-dirty #508)
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-arch@vger.kernel.org
----
+PC is at ftrace_bug+0x78/0x23c
+PR is at ftrace_bug+0x74/0x23c
+PC  : 80064df4 SP  : 8056ff70 SR  : 400080f0 TEA : c0000004
+R0  : 00000001 R1  : 00000001 R2  : 8064d862 R3  : 8056ff64
+R4  : 805b47b4 R5  : 00000001 R6  : 00000000 R7  : 00000001
+R8  : 803b15d8 R9  : 00000001 R10 : 9fc38be8 R11 : 00000000
+R12 : 8064e88c R13 : 8064e880 R14 : 8056ff70
+MACH: 00000000 MACL: 003d0900 GBR : 296e1678 PR  : 80064df0
 
- include/linux/smp.h |   19 ++++++++++---------
- kernel/smp.c        |    8 ++++----
- 2 files changed, 14 insertions(+), 13 deletions(-)
+Call trace:
+ [<80066a86>] ftrace_process_locs+0x15a/0x284
+ [<803b15d8>] dns_query+0x0/0x26c
+ [<805f6a1a>] ftrace_init+0x112/0x1a8
+ [<801deec0>] strlen+0x0/0x58
+ [<8008f098>] get_zeroed_page+0x0/0x34
+ [<805f0918>] start_kernel+0x3e0/0x480
+ [<801deec0>] strlen+0x0/0x58
+ [<801eb388>] debug_smp_processor_id+0x0/0xe4
+ [<80002132>] _stext+0x132/0x140
 
+Code:
+  80064dee:  mov       r9, r5
+  80064df0:  tst       r9, r9
+  80064df2:  bt        80064df6
+->80064df4:  trapa     #62
+  80064df6:  bra       80064ef2
+  80064df8:  mov       r9, r5
+  80064dfa:  mov.l     80064f68 <ftrace_bug+0x1ec/0x23c>, r1  ! 8064d862 <__warned.27604+0x0/0x1>
+  80064dfc:  mov.b     r2, @r1
+  80064dfe:  mov.l     80064f48 <ftrace_bug+0x1cc/0x23c>, r1  ! 8057021c <ftrace_disabled+0x0/0x4>
 
-diff --git a/include/linux/smp.h b/include/linux/smp.h
-index cfa2d20..6dc95ca 100644
---- a/include/linux/smp.h
-+++ b/include/linux/smp.h
-@@ -13,9 +13,10 @@
- 
- extern void cpu_idle(void);
- 
-+typedef void (*smp_call_func_t)(void *info);
- struct call_single_data {
- 	struct list_head list;
--	void (*func) (void *info);
-+	smp_call_func_t func;
- 	void *info;
- 	u16 flags;
- 	u16 priv;
-@@ -24,8 +25,8 @@ struct call_single_data {
- /* total number of cpus in this system (may exceed NR_CPUS) */
- extern unsigned int total_cpus;
- 
--int smp_call_function_single(int cpuid, void (*func) (void *info), void *info,
--				int wait);
-+int smp_call_function_single(int cpuid, smp_call_func_t func, void *info,
-+			     int wait);
- 
- #ifdef CONFIG_SMP
- 
-@@ -69,15 +70,15 @@ extern void smp_cpus_done(unsigned int max_cpus);
- /*
-  * Call a function on all other processors
-  */
--int smp_call_function(void(*func)(void *info), void *info, int wait);
-+int smp_call_function(smp_call_func_t func, void *info, int wait);
- void smp_call_function_many(const struct cpumask *mask,
--			    void (*func)(void *info), void *info, bool wait);
-+			    smp_call_func_t func, void *info, bool wait);
- 
- void __smp_call_function_single(int cpuid, struct call_single_data *data,
- 				int wait);
- 
- int smp_call_function_any(const struct cpumask *mask,
--			  void (*func)(void *info), void *info, int wait);
-+			  smp_call_func_t func, void *info, int wait);
- 
- /*
-  * Generic and arch helpers
-@@ -94,7 +95,7 @@ void ipi_call_unlock_irq(void);
- /*
-  * Call a function on all processors
-  */
--int on_each_cpu(void (*func) (void *info), void *info, int wait);
-+int on_each_cpu(smp_call_func_t func, void *info, int wait);
- 
- #define MSG_ALL_BUT_SELF	0x8000	/* Assume <32768 CPU's */
- #define MSG_ALL			0x8001
-@@ -122,7 +123,7 @@ static inline void smp_send_stop(void) { }
-  *	These macros fold the SMP functionality into a single CPU system
-  */
- #define raw_smp_processor_id()			0
--static inline int up_smp_call_function(void (*func)(void *), void *info)
-+static inline int up_smp_call_function(smp_call_func_t func, void *info)
- {
- 	return 0;
- }
-@@ -143,7 +144,7 @@ static inline void smp_send_reschedule(int cpu) { }
- static inline void init_call_single_data(void) { }
- 
- static inline int
--smp_call_function_any(const struct cpumask *mask, void (*func)(void *info),
-+smp_call_function_any(const struct cpumask *mask, smp_call_func_t func,
- 		      void *info, int wait)
- {
- 	return smp_call_function_single(0, func, info, wait);
-diff --git a/kernel/smp.c b/kernel/smp.c
-index ed6aacf..12ed8b0 100644
---- a/kernel/smp.c
-+++ b/kernel/smp.c
-@@ -267,7 +267,7 @@ static DEFINE_PER_CPU_SHARED_ALIGNED(struct call_single_data, csd_data);
-  *
-  * Returns 0 on success, else a negative status code.
-  */
--int smp_call_function_single(int cpu, void (*func) (void *info), void *info,
-+int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
- 			     int wait)
- {
- 	struct call_single_data d = {
-@@ -336,7 +336,7 @@ EXPORT_SYMBOL(smp_call_function_single);
-  *	3) any other online cpu in @mask
-  */
- int smp_call_function_any(const struct cpumask *mask,
--			  void (*func)(void *info), void *info, int wait)
-+			  smp_call_func_t func, void *info, int wait)
- {
- 	unsigned int cpu;
- 	const struct cpumask *nodemask;
-@@ -416,7 +416,7 @@ void __smp_call_function_single(int cpu, struct call_single_data *data,
-  * must be disabled when calling this function.
-  */
- void smp_call_function_many(const struct cpumask *mask,
--			    void (*func)(void *), void *info, bool wait)
-+			    smp_call_func_t func, void *info, bool wait)
- {
- 	struct call_function_data *data;
- 	unsigned long flags;
-@@ -500,7 +500,7 @@ EXPORT_SYMBOL(smp_call_function_many);
-  * You must not call this function with disabled interrupts or from a
-  * hardware interrupt handler or from a bottom half handler.
-  */
--int smp_call_function(void (*func)(void *), void *info, int wait)
-+int smp_call_function(smp_call_func_t func, void *info, int wait)
- {
- 	preempt_disable();
- 	smp_call_function_many(cpu_online_mask, func, info, wait);
+---[ end trace 4eaa2a86a8e2da22 ]---
+ftrace failed to modify [<803b15d8>] dns_query+0x0/0x26c
+ actual: 02:d1:22:4f
+Testing tracer nop: PASSED
 
+Suggestions?
