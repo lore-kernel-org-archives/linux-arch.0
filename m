@@ -1,33 +1,78 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: situation with signals
-Date: Thu, 28 Oct 2010 00:30:12 +0100
-Message-ID: <20101027233012.GJ19804@ZenIV.linux.org.uk>
-References: <20100923221141.GK19804@ZenIV.linux.org.uk>
- <9lYpY1#WLHA.1516@exchange1.tad.internal.tilera.com>
- <4CC89352.7020808@tilera.com>
- <20101027213745.GI19804@ZenIV.linux.org.uk>
- <4CC8ACE0.1040407@tilera.com>
+From: "John David Anglin" <dave@hiauly1.hia.nrc.ca>
+Subject: Re: [PATCH] parisc: fix compile failure with kmap_atomic changes
+Date: Thu, 28 Oct 2010 01:18:06 -0400 (EDT)
+Message-ID: <20101028051807.539484D30@hiauly1.hia.nrc.ca>
+References: <1288204547.6886.23.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:38036 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751737Ab0J0XaP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Oct 2010 19:30:15 -0400
-Content-Disposition: inline
-In-Reply-To: <4CC8ACE0.1040407@tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1288204547.6886.23.camel@mulgrave.site> from "James Bottomley" at Oct 27, 2010 01:35:47 pm
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, peterz@infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 27, 2010 at 06:51:12PM -0400, Chris Metcalf wrote:
+Signed-off-by: John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
-> > BTW, is everything in your pt_regs safe to modify?
+Sent effectively the same change to parisc-linux list months ago...
+
+> This commit:
 > 
-> What an interesting observation. :-)  In fact, it would be possible to
-> overwrite the privilege level (the ex1 register) from within the signal
-> handler and then return to run arbitrary code at kernel PL.  I'll fix it.
+> commit 3e4d3af501cccdc8a8cca41bdbe57d54ad7e7e73
+> Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Date:   Tue Oct 26 14:21:51 2010 -0700
+> 
+>     mm: stack based kmap_atomic()
+> 
+> overlooked the fact that parisc uses kmap as a coherence mechanism, so
+> even though we have no highmem, we do need to supply our own versions of
+> kmap (and atomic).  This patch converts the parisc kmap to the form
+> which is needed to keep it compiling (it's a simple prototype and name
+> change).
+> 
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+> 
+> ---
+> 
+> diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+> index dba11ae..f388a85 100644
+> --- a/arch/parisc/include/asm/cacheflush.h
+> +++ b/arch/parisc/include/asm/cacheflush.h
+> @@ -126,20 +126,20 @@ static inline void *kmap(struct page *page)
+>  
+>  #define kunmap(page)			kunmap_parisc(page_address(page))
+>  
+> -static inline void *kmap_atomic(struct page *page, enum km_type idx)
+> +static inline void *__kmap_atomic(struct page *page)
+>  {
+>  	pagefault_disable();
+>  	return page_address(page);
+>  }
+>  
+> -static inline void kunmap_atomic_notypecheck(void *addr, enum km_type idx)
+> +static inline void __kunmap_atomic(void *addr)
+>  {
+>  	kunmap_parisc(addr);
+>  	pagefault_enable();
+>  }
+>  
+> -#define kmap_atomic_prot(page, idx, prot)	kmap_atomic(page, idx)
+> -#define kmap_atomic_pfn(pfn, idx)	kmap_atomic(pfn_to_page(pfn), (idx))
+> +#define kmap_atomic_prot(page, prot)	kmap_atomic(page)
+> +#define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
+>  #define kmap_atomic_to_page(ptr)	virt_to_page(ptr)
+>  #endif
+>  
+> 
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
 
-Then you need to be careful with that in your ptrace as well (POKEUSR and
-SETREGS).
+
+-- 
+J. David Anglin                                  dave.anglin@nrc-cnrc.gc.ca
+National Research Council of Canada              (613) 990-0752 (FAX: 952-6602)
