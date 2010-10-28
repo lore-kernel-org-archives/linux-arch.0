@@ -1,27 +1,57 @@
-From: "John David Anglin" <dave@hiauly1.hia.nrc.ca>
-Subject: Re: [PATCH] parisc: fix compile failure with kmap_atomic changes
-Date: Thu, 28 Oct 2010 14:11:38 -0400 (EDT)
-Message-ID: <20101028181139.558BE4D30@hiauly1.hia.nrc.ca>
-References: <1288287580.3043.159.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1288287580.3043.159.camel@mulgrave.site> from "James Bottomley" at Oct 28, 2010 12:39:40 pm
-Sender: linux-parisc-owner@vger.kernel.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, peterz@infradead.org
-List-Id: linux-arch.vger.kernel.org
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: [PATCH] arch/tile: correct double syscall restart for nested signals
+Date: Thu, 28 Oct 2010 15:03:30 -0400
+Message-ID: <201010282003.o9SK3Sq9006823@farm-0012.internal.tilera.com>
+References: <20100923221141.GK19804@ZenIV.linux.org.uk> <9lYpY1#WLHA.1516@exchange1.tad.internal.tilera.com> <4CC89352.7020808@tilera.com> <20101027213745.GI19804@ZenIV.linux.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from king.tilera.com ([72.1.168.226]:23087 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761329Ab0J1UDc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Oct 2010 16:03:32 -0400
+In-Reply-To: <20101027213745.GI19804@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> The specific problem is that kmap_atomic no longer takes the index
-> argument because Peter moved it to a stack based implementation.  All
-> our kmap_atomic primitives in asm/cacheflush.h still have the extra
-> index argument which causes a compile failure.
+This change is modelled on similar fixes for other architectures.
+The pt_regs "faultnum" member is set to the trap (fault) number that
+caused us to enter the kernel, and is INT_SWINT_1 for the syscall software
+interrupt.  We already supported a pseudo value, INT_SWINT_1_SIGRETURN,
+that we used for the rt_sigreturn syscall; it avoided the case where
+one signal was handled, then we "tail-called" to another handler.
 
-Sorry, missed that.  The issue I was trying to address was the lack of
-calls to pagefault_disable() and pagefault_enable().
+This change avoids the similar case where we start to call one handler,
+then are preempted into another handler when we start trying to run
+the first handler.  We clear ->faultnum after calling handle_signal(),
+and to be paranoid also in the case where there was no signal to deliver.
 
-Dave
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+ arch/tile/kernel/signal.c |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
+
+diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
+index fb28e85..704ce0b 100644
+--- a/arch/tile/kernel/signal.c
++++ b/arch/tile/kernel/signal.c
+@@ -330,7 +330,7 @@ void do_signal(struct pt_regs *regs)
+ 			current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+ 		}
+ 
+-		return;
++		goto done;
+ 	}
+ 
+ 	/* Did we come from a system call? */
+@@ -358,4 +358,8 @@ void do_signal(struct pt_regs *regs)
+ 		current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+ 		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
+ 	}
++
++done:
++	/* Avoid double syscall restart if there are nested signals. */
++	regs->faultnum = INT_SWINT_1_SIGRETURN;
+ }
 -- 
-J. David Anglin                                  dave.anglin@nrc-cnrc.gc.ca
-National Research Council of Canada              (613) 990-0752 (FAX: 952-6602)
+1.6.5.2
