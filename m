@@ -1,51 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([72.1.168.231]:48133 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932230Ab0J0VHl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Oct 2010 17:07:41 -0400
-Message-ID: <4CC89352.7020808@tilera.com>
-Date: Wed, 27 Oct 2010 17:02:10 -0400
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from hiauly1.hia.nrc.ca ([132.246.100.193]:1436 "EHLO
+	hiauly1.hia.nrc.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753005Ab0J1FZd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Oct 2010 01:25:33 -0400
+Subject: Re: [PATCH] parisc: fix compile failure with kmap_atomic changes
+Date: Thu, 28 Oct 2010 01:18:06 -0400 (EDT)
+From: "John David Anglin" <dave@hiauly1.hia.nrc.ca>
+In-Reply-To: <1288204547.6886.23.camel@mulgrave.site> from "James Bottomley" at Oct 27, 2010 01:35:47 pm
 MIME-Version: 1.0
-Subject: Re: situation with signals
-References: <20100923221141.GK19804@ZenIV.linux.org.uk> <9lYpY1#WLHA.1516@exchange1.tad.internal.tilera.com>
-In-Reply-To: <9lYpY1#WLHA.1516@exchange1.tad.internal.tilera.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
+Message-ID: <20101028051807.539484D30@hiauly1.hia.nrc.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101027210210.0l3aeQntSspfGfq4zD10k6zxDZ1nUyDGXD6ehPc0ito@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, peterz@infradead.org
+Message-ID: <20101028051806.23AKssZRJIp8xN1X-ejPiQNAHUmvB-i_SDKosHKi_xI@z>
 
-On 9/24/2010 9:33 AM, Arnd Bergmann wrote:
-> On Friday 24 September 2010, Al Viro wrote:
->>         There are several interesting issues in arch/*/*/*signal* (besides
->> shoggoths starting to show up when one reads that code) and I'd been crawling
->> through that area for the last few weeks.  Here are more or less common
->> issues; there are really arch-specific bugs (e.g. roothole on frv that
->> used to allow reading kernel memory by setting the right sa_handler), but
->> that's a separate story.
+Signed-off-by: John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+Sent effectively the same change to parisc-linux list months ago...
+
+> This commit:
 > 
-> I still plan to make a counterpart to the asm-generic headers with an
-> example architecture that new architectures can copy from. Signal handling
-> is one of the areas that I have very limited understanding of. Did you
-> encounter any architecture that basically gets signal handling right and that
-> can serve as a positive example to others?
+> commit 3e4d3af501cccdc8a8cca41bdbe57d54ad7e7e73
+> Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Date:   Tue Oct 26 14:21:51 2010 -0700
 > 
-> arch/tile/kernel/signal.c was the last one that got merged and I tried
-> to direct the maintainer in the right direction as much as I could, but
-> there are a lot of things I didn't know about.
+>     mm: stack based kmap_atomic()
+> 
+> overlooked the fact that parisc uses kmap as a coherence mechanism, so
+> even though we have no highmem, we do need to supply our own versions of
+> kmap (and atomic).  This patch converts the parisc kmap to the form
+> which is needed to keep it compiling (it's a simple prototype and name
+> change).
+> 
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+> 
+> ---
+> 
+> diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+> index dba11ae..f388a85 100644
+> --- a/arch/parisc/include/asm/cacheflush.h
+> +++ b/arch/parisc/include/asm/cacheflush.h
+> @@ -126,20 +126,20 @@ static inline void *kmap(struct page *page)
+>  
+>  #define kunmap(page)			kunmap_parisc(page_address(page))
+>  
+> -static inline void *kmap_atomic(struct page *page, enum km_type idx)
+> +static inline void *__kmap_atomic(struct page *page)
+>  {
+>  	pagefault_disable();
+>  	return page_address(page);
+>  }
+>  
+> -static inline void kunmap_atomic_notypecheck(void *addr, enum km_type idx)
+> +static inline void __kunmap_atomic(void *addr)
+>  {
+>  	kunmap_parisc(addr);
+>  	pagefault_enable();
+>  }
+>  
+> -#define kmap_atomic_prot(page, idx, prot)	kmap_atomic(page, idx)
+> -#define kmap_atomic_pfn(pfn, idx)	kmap_atomic(pfn_to_page(pfn), (idx))
+> +#define kmap_atomic_prot(page, prot)	kmap_atomic(page)
+> +#define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
+>  #define kmap_atomic_to_page(ptr)	virt_to_page(ptr)
+>  #endif
+>  
+> 
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
 
-(Sorry for the belated reply.)
 
-I set aside this thread to look at when I had a minute, and I believe there
-is just one of the signal issues present in the tile code.  The fix is to
-reset regs->fault to something other than the "syscall" fault type when
-exiting from do_signal(), so I'll submit that up for 2.6.37 shortly.
-
-Otherwise I think tile is doing things right, though I admit, the signal
-support is pretty deep magic generally.
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+J. David Anglin                                  dave.anglin@nrc-cnrc.gc.ca
+National Research Council of Canada              (613) 990-0752 (FAX: 952-6602)
