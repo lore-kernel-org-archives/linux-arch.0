@@ -1,82 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hiauly1.hia.nrc.ca ([132.246.100.193]:1436 "EHLO
-	hiauly1.hia.nrc.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753005Ab0J1FZd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Oct 2010 01:25:33 -0400
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:55890 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758818Ab0J1ODx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Oct 2010 10:03:53 -0400
 Subject: Re: [PATCH] parisc: fix compile failure with kmap_atomic changes
-Date: Thu, 28 Oct 2010 01:18:06 -0400 (EDT)
-From: "John David Anglin" <dave@hiauly1.hia.nrc.ca>
-In-Reply-To: <1288204547.6886.23.camel@mulgrave.site> from "James Bottomley" at Oct 27, 2010 01:35:47 pm
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20101028051807.539484D30@hiauly1.hia.nrc.ca>
+References: <20101028051807.539484D30@hiauly1.hia.nrc.ca>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 28 Oct 2010 09:03:49 -0500
+Message-ID: <1288274629.3043.1.camel@mulgrave.site>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Message-ID: <20101028051807.539484D30@hiauly1.hia.nrc.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
+To: John David Anglin <dave@hiauly1.hia.nrc.ca>
 Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org, peterz@infradead.org
-Message-ID: <20101028051806.23AKssZRJIp8xN1X-ejPiQNAHUmvB-i_SDKosHKi_xI@z>
+Message-ID: <20101028140349.Hy77OslbJ-bZ1DtWQjfOPA91y_5KQvXKxl5M9bTNA7E@z>
 
-Signed-off-by: John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+On Thu, 2010-10-28 at 01:18 -0400, John David Anglin wrote:
+> Signed-off-by: John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+> 
+> Sent effectively the same change to parisc-linux list months ago...
 
-Sent effectively the same change to parisc-linux list months ago...
+You did?  Why didn't you send it to Peter?  When I grumbled at him on
+IRC for breaking parisc (as well as quite a few other 64 bit
+architectures in mainline) he had no idea there was a problem.
 
-> This commit:
-> 
-> commit 3e4d3af501cccdc8a8cca41bdbe57d54ad7e7e73
-> Author: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> Date:   Tue Oct 26 14:21:51 2010 -0700
-> 
->     mm: stack based kmap_atomic()
-> 
-> overlooked the fact that parisc uses kmap as a coherence mechanism, so
-> even though we have no highmem, we do need to supply our own versions of
-> kmap (and atomic).  This patch converts the parisc kmap to the form
-> which is needed to keep it compiling (it's a simple prototype and name
-> change).
-> 
-> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
-> 
-> ---
-> 
-> diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-> index dba11ae..f388a85 100644
-> --- a/arch/parisc/include/asm/cacheflush.h
-> +++ b/arch/parisc/include/asm/cacheflush.h
-> @@ -126,20 +126,20 @@ static inline void *kmap(struct page *page)
->  
->  #define kunmap(page)			kunmap_parisc(page_address(page))
->  
-> -static inline void *kmap_atomic(struct page *page, enum km_type idx)
-> +static inline void *__kmap_atomic(struct page *page)
->  {
->  	pagefault_disable();
->  	return page_address(page);
->  }
->  
-> -static inline void kunmap_atomic_notypecheck(void *addr, enum km_type idx)
-> +static inline void __kunmap_atomic(void *addr)
->  {
->  	kunmap_parisc(addr);
->  	pagefault_enable();
->  }
->  
-> -#define kmap_atomic_prot(page, idx, prot)	kmap_atomic(page, idx)
-> -#define kmap_atomic_pfn(pfn, idx)	kmap_atomic(pfn_to_page(pfn), (idx))
-> +#define kmap_atomic_prot(page, prot)	kmap_atomic(page)
-> +#define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
->  #define kmap_atomic_to_page(ptr)	virt_to_page(ptr)
->  #endif
->  
-> 
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+James
 
 
--- 
-J. David Anglin                                  dave.anglin@nrc-cnrc.gc.ca
-National Research Council of Canada              (613) 990-0752 (FAX: 952-6602)
