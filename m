@@ -1,112 +1,138 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] arch/tile: don't allow user code to set the PL via ptrace or signal return
-Date: Thu, 28 Oct 2010 15:47:06 -0400
-Message-ID: <201010282003.o9SK3YbE006825@farm-0012.internal.tilera.com>
-References: <20100923221141.GK19804@ZenIV.linux.org.uk> <9lYpY1#WLHA.1516@exchange1.tad.internal.tilera.com> <4CC89352.7020808@tilera.com> <20101027213745.GI19804@ZenIV.linux.org.uk> <20101027213745.GI19804@ZenIV.linux.org.uk>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20101027233012.GJ19804@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Subject: [PATCH] asm-generic/stat.h: support 64-bit file time_t for stat()
+Date: Thu, 28 Oct 2010 16:07:07 -0400
+Message-ID: <201010282020.o9SKKe4Y007068@farm-0012.internal.tilera.com>
+References: <201010271612.13950.arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from king.tilera.com ([72.1.168.226]:23226 "EHLO king.tilera.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752858Ab0J1UUo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Oct 2010 16:20:44 -0400
+In-Reply-To: <201010271612.13950.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Michal Simek <monstr@monstr.eu>
 
-The kernel was allowing any component of the pt_regs to be updated either
-by signal handlers writing to the stack, or by processes writing via
-PTRACE_POKEUSR or PTRACE_SETREGS, which meant they could set their PL
-up from 0 to 1 and get access to kernel code and data (or, in practice,
-cause a kernel panic).  We now always reset the ex1 field, allowing the
-user to set their ICS bit only.
+The existing asm-generic/stat.h specifies st_mtime, etc., as a 32-value,
+and works well for 32-bit architectures (currently microblaze, score,
+and 32-bit tile).  However, for 64-bit architectures it isn't sufficient
+to return 32 bits of time_t; this isn't good insurance against the 2037
+rollover.  (It also makes glibc support less convenient, since we can't
+use glibc's handy STAT_IS_KERNEL_STAT mode.)
+
+This change extends the two "timespec" fields for each of the three atime,
+mtime, and ctime fields from "int" to "long".  As a result, on 32-bit
+platforms nothing changes, and 64-bit platforms will now work as expected.
+
+The only wrinkle is 32-bit userspace under 64-bit kernels taking advantage
+of COMPAT mode.  For these, we leave the "struct stat64" definitions with
+the "int" versions of the time_t and nsec fields, so that architectures
+can implement compat_sys_stat64() and friends with sys_stat64(), etc.,
+and get the expected 32-bit structure layout.  This requires a
+field-by-field copy in the kernel, implemented by the code guarded
+under __ARCH_WANT_STAT64.
+
+This does mean that the shape of the "struct stat" and "struct stat64"
+structures is different on a 64-bit kernel, but only one of the two
+structures should ever be used by any given process: "struct stat"
+is meant for 64-bit userspace only, and "struct stat64" for 32-bit
+userspace only.  (On a 32-bit kernel the two structures continue to have
+the same shape, since "long" is 32 bits.)
+
+The alternative is keeping the two structures the same shape on 64-bit
+kernels, which means a 64-bit time_t in "struct stat64" for 32-bit
+processes.  This is a little unnatural since 32-bit userspace can't
+do anything with 64 bits of time_t information, since time_t is just
+"long", not "int64_t"; and in any case 32-bit userspace might expect
+to be running under a 32-bit kernel, which can't provide the high 32
+bits anyway.  In the case of a 32-bit kernel we'd then be extending the
+kernel's 32-bit time_t to 64 bits, then truncating it back to 32 bits
+again in userspace, for no particular reason.  And, as mentioned above,
+if we have 64-bit time_t for 32-bit processes we can't easily use glibc's
+STAT_IS_KERNEL_STAT, since glibc's stat structure requires an embedded
+"struct timespec", which is a pair of "long" (32-bit) values in a 32-bit
+userspace.  "Inventive" solutions are possible, but are pretty hacky.
 
 Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 ---
-This was caught by Al Viro wondering out loud if tile properly handled
-this case, and we didn't.  Thanks Al!
+ arch/tile/include/asm/stat.h   |    3 +++
+ arch/tile/include/asm/unistd.h |    1 +
+ arch/tile/kernel/compat.c      |   10 +++++-----
+ include/asm-generic/stat.h     |   14 +++++++-------
+ 4 files changed, 16 insertions(+), 12 deletions(-)
 
- arch/tile/kernel/ptrace.c |   37 +++++++++++++++++++++----------------
- arch/tile/kernel/signal.c |    3 +++
- 2 files changed, 24 insertions(+), 16 deletions(-)
-
-diff --git a/arch/tile/kernel/ptrace.c b/arch/tile/kernel/ptrace.c
-index 5b20c28..6d0cef8 100644
---- a/arch/tile/kernel/ptrace.c
-+++ b/arch/tile/kernel/ptrace.c
-@@ -49,10 +49,10 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- {
- 	unsigned long __user *datap = (long __user __force *)data;
- 	unsigned long tmp;
--	int i;
- 	long ret = -EIO;
--	unsigned long *childregs;
- 	char *childreg;
-+	struct pt_regs copyregs;
-+	int ex1_offset;
- 
- 	switch (request) {
- 
-@@ -79,6 +79,16 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- 		if (addr < 0 || addr >= PTREGS_SIZE)
- 			break;
- 		childreg = (char *)task_pt_regs(child) + addr;
-+
-+		/* Guard against overwrites of the privilege level. */
-+		ex1_offset = PTREGS_OFFSET_EX1;
-+#if defined(CONFIG_COMPAT) && defined(__BIG_ENDIAN)
-+		if (is_compat_task())   /* point at low word */
-+			ex1_offset += sizeof(compat_long_t);
+diff --git a/arch/tile/include/asm/stat.h b/arch/tile/include/asm/stat.h
+index 3dc90fa..b16e5db 100644
+--- a/arch/tile/include/asm/stat.h
++++ b/arch/tile/include/asm/stat.h
+@@ -1 +1,4 @@
++#ifdef CONFIG_COMPAT
++#define __ARCH_WANT_STAT64	/* Used for compat_sys_stat64() etc. */
 +#endif
-+		if (addr == ex1_offset)
-+			data = PL_ICS_EX1(USER_PL, EX1_ICS(data));
-+
+ #include <asm-generic/stat.h>
+diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
+index f2e3ff4..b35c2db 100644
+--- a/arch/tile/include/asm/unistd.h
++++ b/arch/tile/include/asm/unistd.h
+@@ -41,6 +41,7 @@ __SYSCALL(__NR_cmpxchg_badaddr, sys_cmpxchg_badaddr)
  #ifdef CONFIG_COMPAT
- 		if (is_compat_task()) {
- 			if (addr & (sizeof(compat_long_t)-1))
-@@ -95,24 +105,19 @@ long arch_ptrace(struct task_struct *child, long request, long addr, long data)
- 		break;
+ #define __ARCH_WANT_SYS_LLSEEK
+ #endif
++#define __ARCH_WANT_SYS_NEWFSTATAT
+ #endif
  
- 	case PTRACE_GETREGS:  /* Get all registers from the child. */
--		if (!access_ok(VERIFY_WRITE, datap, PTREGS_SIZE))
--			break;
--		childregs = (long *)task_pt_regs(child);
--		for (i = 0; i < sizeof(struct pt_regs)/sizeof(long); ++i) {
--			ret = __put_user(childregs[i], &datap[i]);
--			if (ret != 0)
--				break;
-+		if (copy_to_user(datap, task_pt_regs(child),
-+				 sizeof(struct pt_regs)) == 0) {
-+			ret = 0;
- 		}
- 		break;
+ #endif /* _ASM_TILE_UNISTD_H */
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 77739cd..67617a0 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -148,11 +148,11 @@ long tile_compat_sys_msgrcv(int msqid,
+ #define compat_sys_readahead sys32_readahead
+ #define compat_sys_sync_file_range compat_sys_sync_file_range2
  
- 	case PTRACE_SETREGS:  /* Set all registers in the child. */
--		if (!access_ok(VERIFY_READ, datap, PTREGS_SIZE))
--			break;
--		childregs = (long *)task_pt_regs(child);
--		for (i = 0; i < sizeof(struct pt_regs)/sizeof(long); ++i) {
--			ret = __get_user(childregs[i], &datap[i]);
--			if (ret != 0)
--				break;
-+		if (copy_from_user(&copyregs, datap,
-+				   sizeof(struct pt_regs)) == 0) {
-+			copyregs.ex1 =
-+				PL_ICS_EX1(USER_PL, EX1_ICS(copyregs.ex1));
-+			*task_pt_regs(child) = copyregs;
-+			ret = 0;
- 		}
- 		break;
+-/* The native 64-bit "struct stat" matches the 32-bit "struct stat64". */
+-#define compat_sys_stat64 sys_newstat
+-#define compat_sys_lstat64 sys_newlstat
+-#define compat_sys_fstat64 sys_newfstat
+-#define compat_sys_fstatat64 sys_newfstatat
++/* We leverage the "struct stat64" type for 32-bit time_t/nsec. */
++#define compat_sys_stat64 sys_stat64
++#define compat_sys_lstat64 sys_lstat64
++#define compat_sys_fstat64 sys_fstat64
++#define compat_sys_fstatat64 sys_fstatat64
  
-diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
-index 704ce0b..687719d 100644
---- a/arch/tile/kernel/signal.c
-+++ b/arch/tile/kernel/signal.c
-@@ -71,6 +71,9 @@ int restore_sigcontext(struct pt_regs *regs,
- 	for (i = 0; i < sizeof(struct pt_regs)/sizeof(long); ++i)
- 		err |= __get_user(regs->regs[i], &sc->gregs[i]);
+ /* The native sys_ptrace dynamically handles compat binaries. */
+ #define compat_sys_ptrace sys_ptrace
+diff --git a/include/asm-generic/stat.h b/include/asm-generic/stat.h
+index 47e6417..bd8cad2 100644
+--- a/include/asm-generic/stat.h
++++ b/include/asm-generic/stat.h
+@@ -33,18 +33,18 @@ struct stat {
+ 	int		st_blksize;	/* Optimal block size for I/O.  */
+ 	int		__pad2;
+ 	long		st_blocks;	/* Number 512-byte blocks allocated. */
+-	int		st_atime;	/* Time of last access.  */
+-	unsigned int	st_atime_nsec;
+-	int		st_mtime;	/* Time of last modification.  */
+-	unsigned int	st_mtime_nsec;
+-	int		st_ctime;	/* Time of last status change.  */
+-	unsigned int	st_ctime_nsec;
++	long		st_atime;	/* Time of last access.  */
++	unsigned long	st_atime_nsec;
++	long		st_mtime;	/* Time of last modification.  */
++	unsigned long	st_mtime_nsec;
++	long		st_ctime;	/* Time of last status change.  */
++	unsigned long	st_ctime_nsec;
+ 	unsigned int	__unused4;
+ 	unsigned int	__unused5;
+ };
  
-+	/* Ensure that the PL is always set to USER_PL. */
-+	regs->ex1 = PL_ICS_EX1(USER_PL, EX1_ICS(regs->ex1));
-+
- 	regs->faultnum = INT_SWINT_1_SIGRETURN;
- 
- 	err |= __get_user(*pr0, &sc->gregs[0]);
+-#if __BITS_PER_LONG != 64
+ /* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
++#if __BITS_PER_LONG != 64 || defined(__ARCH_WANT_STAT64)
+ struct stat64 {
+ 	unsigned long long st_dev;	/* Device.  */
+ 	unsigned long long st_ino;	/* File serial number.  */
 -- 
 1.6.5.2
