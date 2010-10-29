@@ -1,138 +1,153 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] asm-generic/stat.h: support 64-bit file time_t for stat()
-Date: Thu, 28 Oct 2010 16:07:07 -0400
-Message-ID: <201010282020.o9SKKe4Y007068@farm-0012.internal.tilera.com>
-References: <201010271612.13950.arnd@arndb.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from king.tilera.com ([72.1.168.226]:23226 "EHLO king.tilera.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752858Ab0J1UUo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Oct 2010 16:20:44 -0400
-In-Reply-To: <201010271612.13950.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Michal Simek <monstr@monstr.eu>
+From: John Reiser <jreiser@bitwagon.com>
+Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
+Date: Thu, 28 Oct 2010 19:34:31 -0700
+Message-ID: <4CCA32B7.4020605@bitwagon.com>
+References: <20101014210014.895157788@goodmis.org> <20101014210136.230687571@goodmis.org> <20101027032548.GA5341@linux-sh.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20101027032548.GA5341@linux-sh.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The existing asm-generic/stat.h specifies st_mtime, etc., as a 32-value,
-and works well for 32-bit architectures (currently microblaze, score,
-and 32-bit tile).  However, for 64-bit architectures it isn't sufficient
-to return 32 bits of time_t; this isn't good insurance against the 2037
-rollover.  (It also makes glibc support less convenient, since we can't
-use glibc's handy STAT_IS_KERNEL_STAT mode.)
+[Note that I have trimmed the addressees for this reply.]
+On 10/26/2010, Paul Mundt wrote:
 
-This change extends the two "timespec" fields for each of the three atime,
-mtime, and ctime fields from "int" to "long".  As a result, on 32-bit
-platforms nothing changes, and 64-bit platforms will now work as expected.
+>> This patch adds the support for the C version of recordmcount and
+>> compile times show ~ 12% improvement.
 
-The only wrinkle is 32-bit userspace under 64-bit kernels taking advantage
-of COMPAT mode.  For these, we leave the "struct stat64" definitions with
-the "int" versions of the time_t and nsec fields, so that architectures
-can implement compat_sys_stat64() and friends with sys_stat64(), etc.,
-and get the expected 32-bit structure layout.  This requires a
-field-by-field copy in the kernel, implemented by the code guarded
-under __ARCH_WANT_STAT64.
+> While I haven't had the chance to debug this yet, turning it on for SH
+> blows up immediately:
+> 
+> ftrace: allocating 15200 entries in 30 pages
+> ------------[ cut here ]------------
+> WARNING: at /home/pmundt/devel/git/sh-2.6/kernel/trace/ftrace.c:1007
+> Modules linked in:
+> 
+> Pid : 0, Comm:           swapper
+> CPU : 0                  Not tainted  (2.6.36-05622-g38ab134-dirty #508)
+> 
+> PC is at ftrace_bug+0x78/0x23c
+> PR is at ftrace_bug+0x74/0x23c
 
-This does mean that the shape of the "struct stat" and "struct stat64"
-structures is different on a 64-bit kernel, but only one of the two
-structures should ever be used by any given process: "struct stat"
-is meant for 64-bit userspace only, and "struct stat64" for 32-bit
-userspace only.  (On a 32-bit kernel the two structures continue to have
-the same shape, since "long" is 32 bits.)
+> Call trace:
+>  [<80066a86>] ftrace_process_locs+0x15a/0x284
+>  [<803b15d8>] dns_query+0x0/0x26c
 
-The alternative is keeping the two structures the same shape on 64-bit
-kernels, which means a 64-bit time_t in "struct stat64" for 32-bit
-processes.  This is a little unnatural since 32-bit userspace can't
-do anything with 64 bits of time_t information, since time_t is just
-"long", not "int64_t"; and in any case 32-bit userspace might expect
-to be running under a 32-bit kernel, which can't provide the high 32
-bits anyway.  In the case of a 32-bit kernel we'd then be extending the
-kernel's 32-bit time_t to 64 bits, then truncating it back to 32 bits
-again in userspace, for no particular reason.  And, as mentioned above,
-if we have 64-bit time_t for 32-bit processes we can't easily use glibc's
-STAT_IS_KERNEL_STAT, since glibc's stat structure requires an embedded
-"struct timespec", which is a pair of "long" (32-bit) values in a 32-bit
-userspace.  "Inventive" solutions are possible, but are pretty hacky.
+> Code:
+>   80064dee:  mov       r9, r5
+>   80064df0:  tst       r9, r9
+>   80064df2:  bt        80064df6
+> ->80064df4:  trapa     #62
+>   80064df6:  bra       80064ef2
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
- arch/tile/include/asm/stat.h   |    3 +++
- arch/tile/include/asm/unistd.h |    1 +
- arch/tile/kernel/compat.c      |   10 +++++-----
- include/asm-generic/stat.h     |   14 +++++++-------
- 4 files changed, 16 insertions(+), 12 deletions(-)
+> ---[ end trace 4eaa2a86a8e2da22 ]---
+> ftrace failed to modify [<803b15d8>] dns_query+0x0/0x26c
+>  actual: 02:d1:22:4f
+> Testing tracer nop: PASSED
+> 
+> Suggestions?
 
-diff --git a/arch/tile/include/asm/stat.h b/arch/tile/include/asm/stat.h
-index 3dc90fa..b16e5db 100644
---- a/arch/tile/include/asm/stat.h
-+++ b/arch/tile/include/asm/stat.h
-@@ -1 +1,4 @@
-+#ifdef CONFIG_COMPAT
-+#define __ARCH_WANT_STAT64	/* Used for compat_sys_stat64() etc. */
-+#endif
- #include <asm-generic/stat.h>
-diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
-index f2e3ff4..b35c2db 100644
---- a/arch/tile/include/asm/unistd.h
-+++ b/arch/tile/include/asm/unistd.h
-@@ -41,6 +41,7 @@ __SYSCALL(__NR_cmpxchg_badaddr, sys_cmpxchg_badaddr)
- #ifdef CONFIG_COMPAT
- #define __ARCH_WANT_SYS_LLSEEK
- #endif
-+#define __ARCH_WANT_SYS_NEWFSTATAT
- #endif
- 
- #endif /* _ASM_TILE_UNISTD_H */
-diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-index 77739cd..67617a0 100644
---- a/arch/tile/kernel/compat.c
-+++ b/arch/tile/kernel/compat.c
-@@ -148,11 +148,11 @@ long tile_compat_sys_msgrcv(int msqid,
- #define compat_sys_readahead sys32_readahead
- #define compat_sys_sync_file_range compat_sys_sync_file_range2
- 
--/* The native 64-bit "struct stat" matches the 32-bit "struct stat64". */
--#define compat_sys_stat64 sys_newstat
--#define compat_sys_lstat64 sys_newlstat
--#define compat_sys_fstat64 sys_newfstat
--#define compat_sys_fstatat64 sys_newfstatat
-+/* We leverage the "struct stat64" type for 32-bit time_t/nsec. */
-+#define compat_sys_stat64 sys_stat64
-+#define compat_sys_lstat64 sys_lstat64
-+#define compat_sys_fstat64 sys_fstat64
-+#define compat_sys_fstatat64 sys_fstatat64
- 
- /* The native sys_ptrace dynamically handles compat binaries. */
- #define compat_sys_ptrace sys_ptrace
-diff --git a/include/asm-generic/stat.h b/include/asm-generic/stat.h
-index 47e6417..bd8cad2 100644
---- a/include/asm-generic/stat.h
-+++ b/include/asm-generic/stat.h
-@@ -33,18 +33,18 @@ struct stat {
- 	int		st_blksize;	/* Optimal block size for I/O.  */
- 	int		__pad2;
- 	long		st_blocks;	/* Number 512-byte blocks allocated. */
--	int		st_atime;	/* Time of last access.  */
--	unsigned int	st_atime_nsec;
--	int		st_mtime;	/* Time of last modification.  */
--	unsigned int	st_mtime_nsec;
--	int		st_ctime;	/* Time of last status change.  */
--	unsigned int	st_ctime_nsec;
-+	long		st_atime;	/* Time of last access.  */
-+	unsigned long	st_atime_nsec;
-+	long		st_mtime;	/* Time of last modification.  */
-+	unsigned long	st_mtime_nsec;
-+	long		st_ctime;	/* Time of last status change.  */
-+	unsigned long	st_ctime_nsec;
- 	unsigned int	__unused4;
- 	unsigned int	__unused5;
- };
- 
--#if __BITS_PER_LONG != 64
- /* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
-+#if __BITS_PER_LONG != 64 || defined(__ARCH_WANT_STAT64)
- struct stat64 {
- 	unsigned long long st_dev;	/* Device.  */
- 	unsigned long long st_ino;	/* File serial number.  */
+
+This looks like a disagreement over the interpretation of relocation type
+R_SH_DIR32 in Elf32_Rela on a 32-bit EM_SH (SuperH) machine.
+
+arch/sh/kernel/module.c says:
+-----
+                sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
+                        + ELF32_R_SYM(rel[i].r_info);
+                relocation = sym->st_value + rel[i].r_addend;
+   ...
+                case R_SH_DIR32:
+                        value = get_unaligned(location);
+                        value += relocation;
+                        put_unaligned(value, location);
+-----
+
+Paul Mundt sent to me an actual kernel object file main.o compiled -pg for EM_SH.
+According to 'readelf', the Perl script recordmcount.pl generates:
+-----
+Relocation section '.rela__mcount_loc' at offset 0x17ec8 contains 3 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name + Addend
+00000000  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
+00000004  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
+00000008  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
+
+Symbol table '.symtab' contains 198 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+   106: 00000000   364 FUNC    GLOBAL DEFAULT    1 do_one_initcall
+###  (1==Ndx) ==> .text, so do_one_initcall is first in .text
+###  106==0x6a
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 1] .text             PROGBITS        00000000 000034 00026c 00  AX  0   0  4
+  [17] __mcount_loc      PROGBITS        00000000 001140 00000c 00   A  0   0  4
+  [18] .rela__mcount_loc RELA            00000000 017ec8 000024 0c     46  17  4
+  [46] .symtab           SYMTAB          00000000 022ac4 000c60 10     47  71  4
+-----
+where section 17, __mcount_loc, has three 32-bit words with values 0xc, 0x178, 0x1b0.
+
+Also according to 'readelf', the C program recordmcount generates:
+-----
+Relocation section '.rela__mcount_loc' at offset 0x249f4 contains 3 entries:
+ Offset     Info    Type            Sym.Value  Sym. Name + Addend
+00000000  00000201 R_SH_DIR32        00000000   .text + c
+00000004  00000201 R_SH_DIR32        00000000   .text + 178
+00000008  00000201 R_SH_DIR32        00000000   .text + 1b0
+
+Symbol table '.symtab' contains 198 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     2: 00000000     0 SECTION LOCAL  DEFAULT    1
+### (1==Ndx) ==> .text
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 1] .text             PROGBITS        00000000 000034 00026c 00  AX  0   0  4
+  [44] .symtab           SYMTAB          00000000 017440 000c50 10     45  70  4
+  [46] __mcount_loc      PROGBITS        00000000 0249e8 00000c 04   A  0   0  4
+  [47] .rela__mcount_loc RELA            00000000 0249f4 000024 0c     44  46  4
+-----
+where section 46, __mcount_loc, has three 32-bit words with values 0, 0, 0.
+
+Assuming the code in arch/sh/kernel/module.c, then I believe that those two
+descriptions are equivalent.  The output of the Perl script calls for
+
+   *location = *location + do_one_initcall.st_value + .r_addend
+
+with  0==.r_addend  and initially  *location==offset .
+The output of the C version calls for
+
+   *location = *location + .text.st_value           + .r_addend
+
+with  offset==.r_addend  and initially  *location==0.
+
+I did find in binutils-2.18.50.0.9/bfd/elf32-sh.c this ominous comment:
+-----
+      switch ((int) r_type)
+        {
+        final_link_relocate:
+          /* COFF relocs don't use the addend. The addend is used for
+             R_SH_DIR32 to be compatible with other compilers.  */
+          r = _bfd_final_link_relocate (howto, input_bfd, input_section,
+                                        contents, rel->r_offset,
+                                        relocation, addend);
+-----
+
+The natural question is, "Does /bin/ld for EM_SH ignore the .r_addend,
+or does /bin/ld process .r_addend just like arch/sh/kernel/module.c ?"
+If /bin/ld ignores .r_addend for R_SH_DIR32, as hinted in the comment,
+then that would explain the crash.
+
+Another question is, "Does the SECTION LOCAL symbol for .text have
+.st_value equal to the virtual address of the start of the section?"
+If a SECTION LOCAL symbol was not relocated like this, and thus had
+the value 0, then that also would explain the crash.
+
+That's my analysis.  If anyone can shed more light, then please do!
+
 -- 
-1.6.5.2
+John Reiser, jreiser@BitWagon.com
