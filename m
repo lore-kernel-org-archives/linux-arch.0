@@ -1,81 +1,87 @@
-From: Robert Richter <robert.richter@amd.com>
-Subject: [PATCH 31/54] perf: Fix unsafe frame rewinding with hot regs fetching
-Date: Fri, 29 Oct 2010 13:02:39 +0200
-Message-ID: <1288350182-15297-32-git-send-email-robert.richter@amd.com>
-References: <1288350182-15297-1-git-send-email-robert.richter@amd.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic/stat.h: support 64-bit file time_t for stat()
+Date: Fri, 29 Oct 2010 08:25:59 +0200
+Message-ID: <201010290826.00087.arnd@arndb.de>
+References: <201010282020.o9SKKe4Y007068@farm-0012.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tx2ehsobe002.messaging.microsoft.com ([65.55.88.12]:21081 "EHLO
-	TX2EHSOBE004.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932414Ab0J2LEy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2010 07:04:54 -0400
-In-Reply-To: <1288350182-15297-1-git-send-email-robert.richter@amd.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:59703 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759130Ab0J2XXV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2010 19:23:21 -0400
+In-Reply-To: <201010282020.o9SKKe4Y007068@farm-0012.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: osrc-patches@elbe.amd.com
-Cc: Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>, Robert Richter <robert.richter@amd.com>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Michal Simek <monstr@monstr.eu>
 
-From: Frederic Weisbecker <fweisbec@gmail.com>
+On Thursday 28 October 2010, Chris Metcalf wrote:
+> The existing asm-generic/stat.h specifies st_mtime, etc., as a 32-value,
+> and works well for 32-bit architectures (currently microblaze, score,
+> and 32-bit tile).  However, for 64-bit architectures it isn't sufficient
+> to return 32 bits of time_t; this isn't good insurance against the 2037
+> rollover.  (It also makes glibc support less convenient, since we can't
+> use glibc's handy STAT_IS_KERNEL_STAT mode.)
 
-commit ab285f2b5290d92b7ec1a6f9aad54308dadf6157 upstream.
+Yes, this goes back to my ignoring the y2k38 problem when I introduced
+that header. I couldn't think of a reason to make st_mtime longer
+than 32 bits, and defined it in a way that would make the structure
+compatible between 32 and 64 bit code.
 
-When we fetch the hot regs and rewind to the nth caller, it
-might happen that we dereference a frame pointer outside the
-kernel stack boundaries, like in this example:
+> The only wrinkle is 32-bit userspace under 64-bit kernels taking advantage
+> of COMPAT mode.  For these, we leave the "struct stat64" definitions with
+> the "int" versions of the time_t and nsec fields, so that architectures
+> can implement compat_sys_stat64() and friends with sys_stat64(), etc.,
+> and get the expected 32-bit structure layout.  This requires a
+> field-by-field copy in the kernel, implemented by the code guarded
+> under __ARCH_WANT_STAT64.
 
-	perf_trace_sched_switch+0xd5/0x120
-        schedule+0x6b5/0x860
-        retint_careful+0xd/0x21
+Right. That reminds me that I shold go through the system call definitions
+one day and make sure we don't actually build the syscalls into
+the kernel that are not used on tile and other architectures using
+the generic header files.
 
-Since we directly dereference a userspace frame pointer here while
-rewinding behind retint_careful, this may end up in a crash.
+> The alternative is keeping the two structures the same shape on 64-bit
+> kernels, which means a 64-bit time_t in "struct stat64" for 32-bit
+> processes.  This is a little unnatural since 32-bit userspace can't
+> do anything with 64 bits of time_t information, since time_t is just
+> "long", not "int64_t"; and in any case 32-bit userspace might expect
+> to be running under a 32-bit kernel, which can't provide the high 32
+> bits anyway.  In the case of a 32-bit kernel we'd then be extending the
+> kernel's 32-bit time_t to 64 bits, then truncating it back to 32 bits
+> again in userspace, for no particular reason.  And, as mentioned above,
+> if we have 64-bit time_t for 32-bit processes we can't easily use glibc's
+> STAT_IS_KERNEL_STAT, since glibc's stat structure requires an embedded
+> "struct timespec", which is a pair of "long" (32-bit) values in a 32-bit
+> userspace.  "Inventive" solutions are possible, but are pretty hacky.
 
-Fix this by simply using probe_kernel_address() when we rewind the
-frame pointer.
+I'd like to have more opinions on that. Would it be less crazy
+to ignore the y2k38 problem for new 32 bit architectures given that
+we already know about it, or to make those architectures unnecessarily
+slow, given that we still have 27+ years before it hits people in
+a major way?
 
-This issue will have a much more proper fix in the next version of the
-perf_arch_fetch_caller_regs() API that will only need to rewind to the
-first caller.
+I think we have four alternatives here:
 
-Reported-by: Eric Dumazet <eric.dumazet@gmail.com>
-Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
-Tested-by: Eric Dumazet <eric.dumazet@gmail.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: David Miller <davem@davemloft.net>
-Cc: Archs <linux-arch@vger.kernel.org>
-Signed-off-by: Robert Richter <robert.richter@amd.com>
----
- arch/x86/kernel/dumpstack.h |    8 ++++++--
- 1 files changed, 6 insertions(+), 2 deletions(-)
+1. this patch, which is the easiest solution and keeps everything else
+working, but not solving the y2k38 problem on 32 bit.
 
-diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
-index e39e771..e1a93be 100644
---- a/arch/x86/kernel/dumpstack.h
-+++ b/arch/x86/kernel/dumpstack.h
-@@ -14,6 +14,8 @@
- #define get_bp(bp) asm("movq %%rbp, %0" : "=r" (bp) :)
- #endif
- 
-+#include <linux/uaccess.h>
-+
- extern void
- show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
- 		unsigned long *stack, unsigned long bp, char *log_lvl);
-@@ -42,8 +44,10 @@ static inline unsigned long rewind_frame_pointer(int n)
- 	get_bp(frame);
- 
- #ifdef CONFIG_FRAME_POINTER
--	while (n--)
--		frame = frame->next_frame;
-+	while (n--) {
-+		if (probe_kernel_address(&frame->next_frame, frame))
-+			break;
-+	}
- #endif
- 
- 	return (unsigned long)frame;
--- 
-1.7.3.1
+2. make __kernel_time_t 64 bit on new architectures, solving the y2k38
+problem for them at the cost of run-time overhead and possibly application
+porting effort.
+
+3. make struct stat use a 64 bit time field on new architectures at the
+cost of not using STAT_IS_KERNEL_STAT in 32 bit glibc.
+
+4. leave struct stat as it is, and move to struct xstat that does
+everything right from the start.
+
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+
+Your patch looks correct for solution 1, I can forward it if we decide
+to do it this way, or you can take it in your series.
+
+Acked-by: Arnd Bergmann <arnd@arndb.de>
