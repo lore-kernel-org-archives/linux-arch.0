@@ -1,36 +1,81 @@
-From: druv_martindaleyahoolott2010@netspace.net.au
-Subject: Dear Recipient
-Date: Fri, 29 Oct 2010 20:22:30 +1100
-Message-ID: <1288344150.4cca92564e499@webmail.netspace.net.au>
+From: Robert Richter <robert.richter@amd.com>
+Subject: [PATCH 31/54] perf: Fix unsafe frame rewinding with hot regs fetching
+Date: Fri, 29 Oct 2010 13:02:39 +0200
+Message-ID: <1288350182-15297-32-git-send-email-robert.richter@amd.com>
+References: <1288350182-15297-1-git-send-email-robert.richter@amd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out4.netspace.net.au ([203.10.110.77]:59119 "EHLO
-	smtp.netspace.net.au" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S932072Ab0J2JbD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2010 05:31:03 -0400
+Received: from tx2ehsobe002.messaging.microsoft.com ([65.55.88.12]:21081 "EHLO
+	TX2EHSOBE004.bigfish.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932414Ab0J2LEy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Oct 2010 07:04:54 -0400
+In-Reply-To: <1288350182-15297-1-git-send-email-robert.richter@amd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: osrc-patches@elbe.amd.com
+Cc: Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, Paul Mackerras <paulus@samba.org>, David Miller <davem@davemloft.net>, Archs <linux-arch@vger.kernel.org>, Robert Richter <robert.richter@amd.com>
 
+From: Frederic Weisbecker <fweisbec@gmail.com>
 
-Dear Recipient
+commit ab285f2b5290d92b7ec1a6f9aad54308dadf6157 upstream.
 
-w e are pleased to inform you of the just concluded promotions
-that was conducted on the 29th October in regards to the
-UK award promo. in this view you are to collect the
-sum of one million Dollars. grant number.
+When we fetch the hot regs and rewind to the nth caller, it
+might happen that we dereference a frame pointer outside the
+kernel stack boundaries, like in this example:
 
-(CT-222-6747,FGN/P-900-56).
+	perf_trace_sched_switch+0xd5/0x120
+        schedule+0x6b5/0x860
+        retint_careful+0xd/0x21
 
-You are informed  to send us this details
+Since we directly dereference a userspace frame pointer here while
+rewinding behind retint_careful, this may end up in a crash.
 
-1) Full Names, 2) Full Addresss, 3) Sex, 4) Phone Number,
-5) Occupation, 6) Nationality, 7) Age, 8) Country.
+Fix this by simply using probe_kernel_address() when we rewind the
+frame pointer.
 
-Announcer,
-Sophia Buffor
+This issue will have a much more proper fix in the next version of the
+perf_arch_fetch_caller_regs() API that will only need to rewind to the
+first caller.
 
+Reported-by: Eric Dumazet <eric.dumazet@gmail.com>
+Signed-off-by: Frederic Weisbecker <fweisbec@gmail.com>
+Tested-by: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: David Miller <davem@davemloft.net>
+Cc: Archs <linux-arch@vger.kernel.org>
+Signed-off-by: Robert Richter <robert.richter@amd.com>
+---
+ arch/x86/kernel/dumpstack.h |    8 ++++++--
+ 1 files changed, 6 insertions(+), 2 deletions(-)
 
-------------------------------------------------------------
-This email was sent from Netspace Webmail: http://www.netspace.net.au
+diff --git a/arch/x86/kernel/dumpstack.h b/arch/x86/kernel/dumpstack.h
+index e39e771..e1a93be 100644
+--- a/arch/x86/kernel/dumpstack.h
++++ b/arch/x86/kernel/dumpstack.h
+@@ -14,6 +14,8 @@
+ #define get_bp(bp) asm("movq %%rbp, %0" : "=r" (bp) :)
+ #endif
+ 
++#include <linux/uaccess.h>
++
+ extern void
+ show_trace_log_lvl(struct task_struct *task, struct pt_regs *regs,
+ 		unsigned long *stack, unsigned long bp, char *log_lvl);
+@@ -42,8 +44,10 @@ static inline unsigned long rewind_frame_pointer(int n)
+ 	get_bp(frame);
+ 
+ #ifdef CONFIG_FRAME_POINTER
+-	while (n--)
+-		frame = frame->next_frame;
++	while (n--) {
++		if (probe_kernel_address(&frame->next_frame, frame))
++			break;
++	}
+ #endif
+ 
+ 	return (unsigned long)frame;
+-- 
+1.7.3.1
