@@ -1,77 +1,174 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] asm-generic/stat.h: support 64-bit file time_t for stat()
-Date: Sat, 30 Oct 2010 17:06:22 -0400
-Message-ID: <4CCC88CE.5010006@tilera.com>
-References: <201010282020.o9SKKe4Y007068@farm-0012.internal.tilera.com> <201010290826.00087.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+From: Joe Perches <joe@perches.com>
+Subject: [PATCH 00/39] Cleanup WARN #defines
+Date: Sat, 30 Oct 2010 14:08:17 -0700
+Message-ID: <cover.1288471897.git.joe@perches.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([72.1.168.231]:50344 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751367Ab0J3VG0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 30 Oct 2010 17:06:26 -0400
-In-Reply-To: <201010290826.00087.arnd@arndb.de>
+Received: from mail.perches.com ([173.55.12.10]:3682 "EHLO mail.perches.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751414Ab0J3VJT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 30 Oct 2010 17:09:19 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Michal Simek <monstr@monstr.eu>
+To: Jiri Kosina <trivial@kernel.org>
+Cc: linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-omap@vger.kernel.org, linux-tegra@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-pm@lists.linux-foundation.org, discuss@x86-64.org, linux-acpi@vger.kernel.org, linux1394-devel@lists.sourceforge.net, dri-devel@lists.freedesktop.org, intel-gfx@lists.freedesktop.org, linux-media@vger.kernel.org, socketcan-core@lists.berlios.de, netdev@vger.kernel.org, linux-usb@vger.kernel.org, linux-wireless@vger.kernel.org, devel@open-fcoe.org, linux-scsi@vger.kernel.org, devel@driverdev.osuosl.org, linux-fbdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, alsa-devel@alsa-project.org
 
-On 10/29/2010 2:25 AM, Arnd Bergmann wrote:
-> On Thursday 28 October 2010, Chris Metcalf wrote:
->> The alternative is keeping the two structures the same shape on 64-bit
->> kernels, which means a 64-bit time_t in "struct stat64" for 32-bit
->> processes.  This is a little unnatural since 32-bit userspace can't
->> do anything with 64 bits of time_t information, since time_t is just
->> "long", not "int64_t"; and in any case 32-bit userspace might expect
->> to be running under a 32-bit kernel, which can't provide the high 32
->> bits anyway.  In the case of a 32-bit kernel we'd then be extending the
->> kernel's 32-bit time_t to 64 bits, then truncating it back to 32 bits
->> again in userspace, for no particular reason.  And, as mentioned above,
->> if we have 64-bit time_t for 32-bit processes we can't easily use glibc's
->> STAT_IS_KERNEL_STAT, since glibc's stat structure requires an embedded
->> "struct timespec", which is a pair of "long" (32-bit) values in a 32-bit
->> userspace.  "Inventive" solutions are possible, but are pretty hacky.
-> I'd like to have more opinions on that. Would it be less crazy
-> to ignore the y2k38 problem for new 32 bit architectures given that
-> we already know about it, or to make those architectures unnecessarily
-> slow, given that we still have 27+ years before it hits people in
-> a major way?
->
-> I think we have four alternatives here:
->
-> 1. this patch, which is the easiest solution and keeps everything else
-> working, but not solving the y2k38 problem on 32 bit.
+WARN uses sometimes use KERN_<level> but mostly don't
+have any prefix.
 
-Perhaps unsurprisingly, I think this patch strikes a good balance for today
-of allowing <asm-generic/stat.h> to work in the "obviously correct" way for
-64-bit platforms, but without addressing the larger issues.
+Change the WARN macros and the warn_slowpath function to preface
+KERN_WARNING and remove all the KERN_<level> uses from WARN sites.
 
-> 2. make __kernel_time_t 64 bit on new architectures, solving the y2k38
-> problem for them at the cost of run-time overhead and possibly application
-> porting effort.
->
-> 3. make struct stat use a 64 bit time field on new architectures at the
-> cost of not using STAT_IS_KERNEL_STAT in 32 bit glibc.
->
-> 4. leave struct stat as it is, and move to struct xstat that does
-> everything right from the start.
+Neatening clean up of include/asm-generic/bug.h
 
-I'd argue that the longer-term plan might be to work with the glibc
-community to spec out what the eventual 64-bit time_t APIs will look like
-for user-space, and then think about implementing them using xstat() with
-64-bit time_t.  Once this is in place, the kernel will need to move to
-64-bit __kernel_time_t enough in advance of 2038 to hope that it's
-widely-deployed in embedded systems, etc., by then.  But I think this all
-represents a more ambitious project than we need today.
+Update WARN macros
+Add KERN_WARNING to WARN output
+Remove any KERN_<level> from WARN uses
+Coalesce formats
+Align WARN arguments
+Add some missing newlines to WARN uses
+Add some missing first test argument (1, fmt, args) to WARN uses
 
-> Your patch looks correct for solution 1, I can forward it if we decide
-> to do it this way, or you can take it in your series.
->
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Joe Perches (39):
+  include/asm-generic/bug.h: Update WARN macros
+  arch/alpha: Update WARN uses
+  arch/arm: Update WARN uses
+  arch/powerpc: Update WARN uses
+  arch/x86: Update WARN uses
+  drivers/acpi: Update WARN uses
+  drivers/base: Update WARN uses
+  drivers/block: Update WARN uses
+  drivers/cpuidle: Update WARN uses
+  drivers/firewire: Update WARN uses
+  drivers/firmware: Update WARN uses
+  drivers/gpio: Update WARN uses
+  drivers/gpu/drm: Update WARN uses
+  drivers/media/video: Update WARN uses
+  drivers/mfd: Update WARN uses
+  drivers/net/can: Update WARN uses
+  drivers/net/usb: Update WARN uses
+  drivers/net/wireless/iwlwifi: Update WARN uses
+  drivers/regulator: Update WARN uses
+  drivers/scsi/fcoe: Update WARN uses
+  drivers/staging: Update WARN uses
+  drivers/usb/musb: Update WARN uses
+  drivers/video/omap2/dss: Update WARN uses
+  fs/nfsd: Update WARN uses
+  fs/notify/inotify: Update WARN uses
+  fs/sysfs: Update WARN uses
+  fs/proc: Update WARN uses
+  fs: Update WARN uses
+  include/linux/device.h: Update WARN uses
+  kernel/irq: Update WARN uses
+  kernel/panic.c: Update warn_slowpath to use %pV
+  kernel: Update WARN uses
+  lib: Update WARN uses
+  mm: Update WARN uses
+  net/core/dev.c: Update WARN uses
+  net/ipv4/tcp.c: Update WARN uses
+  net/mac80211: Update WARN uses
+  net/rfkill/input.c: Update WARN uses
+  sound/soc/codecs/wm_hubs.c: Update WARN uses
 
-Thanks!
+ arch/alpha/kernel/pci-sysfs.c                |   14 ++--
+ arch/arm/mach-davinci/clock.c                |    4 +-
+ arch/arm/mach-davinci/da830.c                |    2 +-
+ arch/arm/mach-davinci/da850.c                |   12 ++--
+ arch/arm/mach-omap2/clkt_clksel.c            |   12 ++--
+ arch/arm/mach-omap2/clock.c                  |   16 ++--
+ arch/arm/mach-omap2/devices.c                |    4 +-
+ arch/arm/mach-omap2/omap_hwmod.c             |   47 +++++++-----
+ arch/arm/mach-omap2/pm34xx.c                 |    7 +-
+ arch/arm/mach-omap2/serial.c                 |    2 +-
+ arch/arm/mach-omap2/timer-gp.c               |    3 +-
+ arch/arm/mach-tegra/clock.c                  |    3 +-
+ arch/arm/mach-tegra/timer.c                  |    2 +-
+ arch/arm/mach-u300/padmux.c                  |   14 +---
+ arch/arm/plat-omap/omap-pm-noop.c            |   10 ++--
+ arch/powerpc/kernel/hw_breakpoint.c          |    4 +-
+ arch/x86/kernel/acpi/boot.c                  |    2 +-
+ arch/x86/kernel/apic/apic.c                  |    2 +-
+ arch/x86/kernel/apic/es7000_32.c             |    2 +-
+ arch/x86/kernel/cpu/perf_event.c             |    4 +-
+ arch/x86/kernel/pci-calgary_64.c             |    4 +-
+ arch/x86/kernel/tsc_sync.c                   |    4 +-
+ arch/x86/kernel/xsave.c                      |    2 +-
+ arch/x86/mm/ioremap.c                        |    5 +-
+ arch/x86/mm/pageattr-test.c                  |    2 +-
+ arch/x86/mm/pageattr.c                       |    5 +-
+ arch/x86/platform/sfi/sfi.c                  |    4 +-
+ drivers/acpi/ec.c                            |    4 +-
+ drivers/base/class.c                         |    4 +-
+ drivers/base/core.c                          |    5 +-
+ drivers/base/memory.c                        |    4 +-
+ drivers/base/sys.c                           |   10 +--
+ drivers/block/floppy.c                       |    2 +-
+ drivers/cpuidle/driver.c                     |    2 +-
+ drivers/firewire/core-transaction.c          |    6 +-
+ drivers/firmware/dmi_scan.c                  |    2 +-
+ drivers/gpio/gpiolib.c                       |    4 +-
+ drivers/gpio/it8761e_gpio.c                  |    2 +-
+ drivers/gpu/drm/drm_crtc_helper.c            |    2 +-
+ drivers/gpu/drm/i915/i915_gem.c              |    3 +-
+ drivers/gpu/drm/radeon/evergreen.c           |    2 +-
+ drivers/gpu/drm/radeon/r100.c                |    4 +-
+ drivers/gpu/drm/radeon/r300.c                |    2 +-
+ drivers/gpu/drm/radeon/r600.c                |    4 +-
+ drivers/gpu/drm/radeon/radeon_fence.c        |    3 +-
+ drivers/gpu/drm/radeon/radeon_ttm.c          |    3 +-
+ drivers/gpu/drm/radeon/rs400.c               |    2 +-
+ drivers/gpu/drm/radeon/rs600.c               |    4 +-
+ drivers/media/video/s5p-fimc/fimc-core.c     |    2 +-
+ drivers/media/video/sr030pc30.c              |    2 +-
+ drivers/mfd/ezx-pcap.c                       |    5 +-
+ drivers/net/can/mscan/mscan.c                |    2 +-
+ drivers/net/usb/ipheth.c                     |    2 +-
+ drivers/net/wireless/iwlwifi/iwl-agn-lib.c   |    3 +-
+ drivers/net/wireless/iwlwifi/iwl-agn-sta.c   |    6 +-
+ drivers/net/wireless/iwlwifi/iwl-tx.c        |    6 +-
+ drivers/net/wireless/iwlwifi/iwl3945-base.c  |    2 +-
+ drivers/regulator/core.c                     |    3 +-
+ drivers/scsi/fcoe/libfcoe.c                  |    2 +-
+ drivers/staging/memrar/memrar_allocator.c    |    2 +-
+ drivers/staging/solo6x10/solo6010-v4l2-enc.c |    2 +-
+ drivers/usb/musb/musb_host.c                 |    6 +-
+ drivers/video/omap2/dss/core.c               |    3 +-
+ fs/bio.c                                     |    2 +-
+ fs/buffer.c                                  |    2 +-
+ fs/nfsd/nfs4state.c                          |    3 +-
+ fs/notify/inotify/inotify_fsnotify.c         |    4 +-
+ fs/proc/generic.c                            |    9 +--
+ fs/super.c                                   |    5 +-
+ fs/sysfs/dir.c                               |    3 +-
+ fs/sysfs/file.c                              |    4 +-
+ fs/sysfs/group.c                             |    4 +-
+ fs/sysfs/symlink.c                           |   10 +--
+ include/asm-generic/bug.h                    |  101 ++++++++++++++++----------
+ include/linux/device.h                       |    2 +-
+ kernel/irq/chip.c                            |    2 +-
+ kernel/irq/manage.c                          |    2 +-
+ kernel/notifier.c                            |    2 +-
+ kernel/panic.c                               |   40 +++++------
+ kernel/pm_qos_params.c                       |    6 +-
+ lib/debugobjects.c                           |   21 +++---
+ lib/iomap.c                                  |    2 +-
+ lib/kobject.c                                |    9 +--
+ lib/kobject_uevent.c                         |    4 +-
+ lib/list_debug.c                             |   24 +++----
+ lib/plist.c                                  |   12 ++--
+ mm/percpu.c                                  |    4 +-
+ mm/vmalloc.c                                 |    5 +-
+ net/core/dev.c                               |    3 +-
+ net/ipv4/tcp.c                               |   16 ++---
+ net/mac80211/agg-tx.c                        |    5 +-
+ net/mac80211/iface.c                         |    4 +-
+ net/mac80211/mlme.c                          |    2 +-
+ net/mac80211/rx.c                            |    4 +-
+ net/mac80211/tx.c                            |    4 +-
+ net/mac80211/util.c                          |    4 +-
+ net/mac80211/work.c                          |    4 +-
+ net/rfkill/input.c                           |    5 +-
+ sound/soc/codecs/wm_hubs.c                   |    2 +-
+ 99 files changed, 319 insertions(+), 330 deletions(-)
 
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+1.7.3.1.g432b3.dirty
