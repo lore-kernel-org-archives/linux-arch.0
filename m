@@ -1,116 +1,64 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/1] powerpc: Fix initramfs size in PPC32 build
-Date: Sun, 31 Oct 2010 11:14:43 +0100 (CET)
-Message-ID: <alpine.DEB.2.00.1010311101530.29741@ayla.of.borg>
-References: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
+From: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
+Subject: Re: [PATCH v2 02/22] bitops: rename generic little-endian bitops
+ functions
+Date: Sun, 31 Oct 2010 15:02:44 +0100
+Message-ID: <20101031140244.GA2269@ssg-0.norway.atmel.com>
+References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com>
+ <1287672077-5797-3-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Kerstin Jonsson <kerstin.jonsson@ericsson.com>, Hendrik Brueckner <brueckner@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mmc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, WANG Cong <xiyou.wangcong@gmail.com>, Michal Marek <mmarek@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kvm-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1287672077-5797-3-git-send-email-akinobu.mita@gmail.com>
+Sender: kvm-owner@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Andy Grover <andy.grover@oracle.com>, rds-devel@oss.oracle.com, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, kvm@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 22 Oct 2010, Kerstin Jonsson wrote:
-> commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 of the -mm tree
-> fixes the initramfs size calculation for e.g. s390 but breaks it
-> for 32bit architectures which do not define CONFIG_32BIT.
+Around Thu 21 Oct 2010 23:40:57 +0900 or thereabout, Akinobu Mita wrote:
+> As a preparation for providing little-endian bitops for all architectures,
+> This removes generic_ prefix from little-endian bitops function names
+> in asm-generic/bitops/le.h.
 > 
-> This patch fix the problem for PPC32 which will elsewise end up
-> with a __initramfs_size of 0.
+> s/generic_find_next_le_bit/find_next_le_bit/
+> s/generic_find_next_zero_le_bit/find_next_zero_le_bit/
+> s/generic_find_first_zero_le_bit/find_first_zero_le_bit/
+> s/generic___test_and_set_le_bit/__test_and_set_le_bit/
+> s/generic___test_and_clear_le_bit/__test_and_clear_le_bit/
+> s/generic_test_le_bit/test_le_bit/
+> s/generic___set_le_bit/__set_le_bit/
+> s/generic___clear_le_bit/__clear_le_bit/
+> s/generic_test_and_set_le_bit/test_and_set_le_bit/
+> s/generic_test_and_clear_le_bit/test_and_clear_le_bit/
 > 
-> Signed-off-by: Kerstin Jonsson <kerstin.jonsson@ericsson.com>
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Roman Zippel <zippel@linux-m68k.org>
+> Cc: Andreas Schwab <schwab@linux-m68k.org>
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: Greg Ungerer <gerg@uclinux.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 > Cc: Paul Mackerras <paulus@samba.org>
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: Andy Grover <andy.grover@oracle.com>
+> Cc: rds-devel@oss.oracle.com
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: netdev@vger.kernel.org
+> Cc: Avi Kivity <avi@redhat.com>
+> Cc: Marcelo Tosatti <mtosatti@redhat.com>
+> Cc: kvm@vger.kernel.org
 > ---
->  arch/powerpc/Kconfig |    4 ++++
->  1 files changed, 4 insertions(+), 0 deletions(-)
+> No change from previous submission
 > 
-> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-> index 50cc5d9..d536fe4 100644
-> --- a/arch/powerpc/Kconfig
-> +++ b/arch/powerpc/Kconfig
-> @@ -4,6 +4,10 @@ config PPC32
->  	bool
->  	default y if !PPC64
->  
-> +config 32BIT
-> +	bool
-> +	default y if PPC32
-> +
->  config 64BIT
->  	bool
->  	default y if PPC64
-> -- 
-> 1.7.1
+>  arch/avr32/kernel/avr32_ksyms.c              |    4 ++--
+>  arch/avr32/lib/findbit.S                     |    4 ++--
 
-Thanks for the hint!
+For the AVR32 changes.
 
-In the future, please CC linux-arch, or at least lkml, for things like this,
-as it broke allmost all 32-bit arches.
-Only mips, s390, and score set CONFIG_32BIT for 32-bit builds.
-Would have saved me a bisection on m68k...
+Acked-by: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
 
-I came up with the alternative patch below to fix it in a single place.
----
-From d51254ca020a23050f1641d92d68113e55cc0467 Mon Sep 17 00:00:00 2001
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Sun, 31 Oct 2010 10:56:23 +0100
-Subject: [PATCH] initramfs: Fix initramfs size for 32-bit arches
+<snipp patch>
 
-commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 ("initramfs: fix initramfs size
-calculation") broke 32-bit arches like (on ARAnyM):
-
-    VFS: Cannot open root device "hda1" or unknown-block(3,1)
-    Please append a correct "root=" boot option; here are the available partitions:
-    fe80         1059408 nfhd8  (driver?)
-      fe81          921600 nfhd8p1 00000000-0000-0000-0000-000000000nfhd8p1
-      fe82          137807 nfhd8p2 00000000-0000-0000-0000-000000000nfhd8p2
-    0200            3280 fd0  (driver?)
-    0201            3280 fd1  (driver?)
-    0300         1059408 hda  driver: ide-gd
-      0301          921600 hda1 00000000-0000-0000-0000-000000000hda1
-      0302          137807 hda2 00000000-0000-0000-0000-000000000hda2
-    Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(3,1)
-
-As pointed out by Kerstin Jonsson <kerstin.jonsson@ericsson.com>, this is due
-to CONFIG_32BIT not being defined.
-
-Only mips, s390, and score set CONFIG_32BIT for 32-bit builds, so fix it for
-all other 32-bit arches by inverting the logic and testing for CONFIG_64BIT,
-which should be defined on all 64-bit arches.
-
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
- usr/initramfs_data.S |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
-index b9efed5..792a750 100644
---- a/usr/initramfs_data.S
-+++ b/usr/initramfs_data.S
-@@ -30,8 +30,8 @@ __irf_end:
- .section .init.ramfs.info,"a"
- .globl __initramfs_size
- __initramfs_size:
--#ifdef CONFIG_32BIT
--	.long __irf_end - __irf_start
--#else
-+#ifdef CONFIG_64BIT
- 	.quad __irf_end - __irf_start
-+#else
-+	.long __irf_end - __irf_start
- #endif
 -- 
-1.7.0.4
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+Best regards, Hans-Christian Egtvedt
