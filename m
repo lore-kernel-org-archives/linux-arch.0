@@ -1,200 +1,116 @@
-From: Joe Perches <joe@perches.com>
-Subject: [PATCH 01/39] include/asm-generic/bug.h: Update WARN macros
-Date: Sat, 30 Oct 2010 14:08:18 -0700
-Message-ID: <0b9dfb44f83b59f9ebd454afa7d065c41e1f16ba.1288471898.git.joe@perches.com>
-References: <cover.1288471897.git.joe@perches.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.perches.com ([173.55.12.10]:3688 "EHLO mail.perches.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751423Ab0J3VJU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 30 Oct 2010 17:09:20 -0400
-In-Reply-To: <cover.1288471897.git.joe@perches.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jiri Kosina <trivial@kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/1] powerpc: Fix initramfs size in PPC32 build
+Date: Sun, 31 Oct 2010 11:14:43 +0100 (CET)
+Message-ID: <alpine.DEB.2.00.1010311101530.29741@ayla.of.borg>
+References: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kerstin Jonsson <kerstin.jonsson@ericsson.com>, Hendrik Brueckner <brueckner@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mmc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, WANG Cong <xiyou.wangcong@gmail.com>, Michal Marek <mmarek@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Add KERN_EMERG to BUG printk
-Add KERN_WARNING to WARN printk
-Change macros to use (fmt, arg...) style
-Whitespace/checkpatch neatening
+On Fri, 22 Oct 2010, Kerstin Jonsson wrote:
+> commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 of the -mm tree
+> fixes the initramfs size calculation for e.g. s390 but breaks it
+> for 32bit architectures which do not define CONFIG_32BIT.
+> 
+> This patch fix the problem for PPC32 which will elsewise end up
+> with a __initramfs_size of 0.
+> 
+> Signed-off-by: Kerstin Jonsson <kerstin.jonsson@ericsson.com>
+> Cc: Paul Mackerras <paulus@samba.org>
+> ---
+>  arch/powerpc/Kconfig |    4 ++++
+>  1 files changed, 4 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 50cc5d9..d536fe4 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -4,6 +4,10 @@ config PPC32
+>  	bool
+>  	default y if !PPC64
+>  
+> +config 32BIT
+> +	bool
+> +	default y if PPC32
+> +
+>  config 64BIT
+>  	bool
+>  	default y if PPC64
+> -- 
+> 1.7.1
 
-Signed-off-by: Joe Perches <joe@perches.com>
+Thanks for the hint!
+
+In the future, please CC linux-arch, or at least lkml, for things like this,
+as it broke allmost all 32-bit arches.
+Only mips, s390, and score set CONFIG_32BIT for 32-bit builds.
+Would have saved me a bisection on m68k...
+
+I came up with the alternative patch below to fix it in a single place.
 ---
- include/asm-generic/bug.h |  101 +++++++++++++++++++++++++++------------------
- 1 files changed, 61 insertions(+), 40 deletions(-)
+From d51254ca020a23050f1641d92d68113e55cc0467 Mon Sep 17 00:00:00 2001
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Sun, 31 Oct 2010 10:56:23 +0100
+Subject: [PATCH] initramfs: Fix initramfs size for 32-bit arches
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index c2c9ba0..f006309 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -43,9 +43,11 @@ struct bug_entry {
-  * users don't need to reboot ASAP and can mostly shut down cleanly.
-  */
- #ifndef HAVE_ARCH_BUG
--#define BUG() do { \
--	printk("BUG: failure at %s:%d/%s()!\n", __FILE__, __LINE__, __func__); \
--	panic("BUG!"); \
-+#define BUG()							\
-+do {								\
-+	printk(KERN_EMERG "BUG: failure at %s:%d/%s()!\n",	\
-+	       __FILE__, __LINE__, __func__);			\
-+	panic("BUG!");						\
- } while (0)
+commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 ("initramfs: fix initramfs size
+calculation") broke 32-bit arches like (on ARAnyM):
+
+    VFS: Cannot open root device "hda1" or unknown-block(3,1)
+    Please append a correct "root=" boot option; here are the available partitions:
+    fe80         1059408 nfhd8  (driver?)
+      fe81          921600 nfhd8p1 00000000-0000-0000-0000-000000000nfhd8p1
+      fe82          137807 nfhd8p2 00000000-0000-0000-0000-000000000nfhd8p2
+    0200            3280 fd0  (driver?)
+    0201            3280 fd1  (driver?)
+    0300         1059408 hda  driver: ide-gd
+      0301          921600 hda1 00000000-0000-0000-0000-000000000hda1
+      0302          137807 hda2 00000000-0000-0000-0000-000000000hda2
+    Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(3,1)
+
+As pointed out by Kerstin Jonsson <kerstin.jonsson@ericsson.com>, this is due
+to CONFIG_32BIT not being defined.
+
+Only mips, s390, and score set CONFIG_32BIT for 32-bit builds, so fix it for
+all other 32-bit arches by inverting the logic and testing for CONFIG_64BIT,
+which should be defined on all 64-bit arches.
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ usr/initramfs_data.S |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
+index b9efed5..792a750 100644
+--- a/usr/initramfs_data.S
++++ b/usr/initramfs_data.S
+@@ -30,8 +30,8 @@ __irf_end:
+ .section .init.ramfs.info,"a"
+ .globl __initramfs_size
+ __initramfs_size:
+-#ifdef CONFIG_32BIT
+-	.long __irf_end - __irf_start
+-#else
++#ifdef CONFIG_64BIT
+ 	.quad __irf_end - __irf_start
++#else
++	.long __irf_end - __irf_start
  #endif
- 
-@@ -69,40 +71,53 @@ extern void warn_slowpath_fmt_taint(const char *file, const int line,
- extern void warn_slowpath_null(const char *file, const int line);
- #define WANT_WARN_ON_SLOWPATH
- #endif
--#define __WARN()		warn_slowpath_null(__FILE__, __LINE__)
--#define __WARN_printf(arg...)	warn_slowpath_fmt(__FILE__, __LINE__, arg)
--#define __WARN_printf_taint(taint, arg...)				\
--	warn_slowpath_fmt_taint(__FILE__, __LINE__, taint, arg)
-+#define __WARN()						\
-+	warn_slowpath_null(__FILE__, __LINE__)
-+#define __WARN_printf(fmt, args...)				\
-+	warn_slowpath_fmt(__FILE__, __LINE__, fmt, ##args)
-+#define __WARN_printf_taint(taint, fmt, args...)		\
-+	warn_slowpath_fmt_taint(__FILE__, __LINE__, taint, fmt, ##args)
- #else
--#define __WARN()		__WARN_TAINT(TAINT_WARN)
--#define __WARN_printf(arg...)	do { printk(arg); __WARN(); } while (0)
--#define __WARN_printf_taint(taint, arg...)				\
--	do { printk(arg); __WARN_TAINT(taint); } while (0)
-+#define __WARN()						\
-+	__WARN_TAINT(TAINT_WARN)
-+#define __WARN_printf(fmt, args...)				\
-+do {								\
-+	printk(KERN_WARNING fmt, ##args);			\
-+	__WARN();						\
-+} while (0)
-+#define __WARN_printf_taint(taint, fmt, args...)		\
-+do {								\
-+	printk(KERN_WARNING fmt, ##args);			\
-+	__WARN_TAINT(taint);					\
-+} while (0)
- #endif
- 
- #ifndef WARN_ON
--#define WARN_ON(condition) ({						\
--	int __ret_warn_on = !!(condition);				\
--	if (unlikely(__ret_warn_on))					\
--		__WARN();						\
--	unlikely(__ret_warn_on);					\
-+#define WARN_ON(condition)					\
-+({								\
-+	int __ret_warn_on = !!(condition);			\
-+	if (unlikely(__ret_warn_on))				\
-+		__WARN();					\
-+	unlikely(__ret_warn_on);				\
- })
- #endif
- 
- #ifndef WARN
--#define WARN(condition, format...) ({						\
--	int __ret_warn_on = !!(condition);				\
--	if (unlikely(__ret_warn_on))					\
--		__WARN_printf(format);					\
--	unlikely(__ret_warn_on);					\
-+#define WARN(condition, fmt, args...)				\
-+({								\
-+	int __ret_warn_on = !!(condition);			\
-+	if (unlikely(__ret_warn_on))				\
-+		__WARN_printf(fmt, ##args);			\
-+	unlikely(__ret_warn_on);				\
- })
- #endif
- 
--#define WARN_TAINT(condition, taint, format...) ({			\
--	int __ret_warn_on = !!(condition);				\
--	if (unlikely(__ret_warn_on))					\
--		__WARN_printf_taint(taint, format);			\
--	unlikely(__ret_warn_on);					\
-+#define WARN_TAINT(condition, taint, fmt, args...)		\
-+({								\
-+	int __ret_warn_on = !!(condition);			\
-+	if (unlikely(__ret_warn_on))				\
-+		__WARN_printf_taint(taint, fmt, ##args);	\
-+	unlikely(__ret_warn_on);				\
- })
- 
- #else /* !CONFIG_BUG */
-@@ -115,55 +130,61 @@ extern void warn_slowpath_null(const char *file, const int line);
- #endif
- 
- #ifndef HAVE_ARCH_WARN_ON
--#define WARN_ON(condition) ({						\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
-+#define WARN_ON(condition)					\
-+({								\
-+	int __ret_warn_on = !!(condition);			\
-+	unlikely(__ret_warn_on);				\
- })
- #endif
- 
- #ifndef WARN
--#define WARN(condition, format...) ({					\
--	int __ret_warn_on = !!(condition);				\
--	unlikely(__ret_warn_on);					\
-+#define WARN(condition, fmt, args...)				\
-+({								\
-+	int __ret_warn_on = !!(condition);			\
-+	unlikely(__ret_warn_on);				\
- })
- #endif
- 
--#define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
-+#define WARN_TAINT(condition, taint, fmt, args...) 		\
-+	WARN_ON(condition)
- 
- #endif
- 
--#define WARN_ON_ONCE(condition)	({				\
-+#define WARN_ON_ONCE(condition)					\
-+({								\
- 	static bool __warned;					\
- 	int __ret_warn_once = !!(condition);			\
- 								\
- 	if (unlikely(__ret_warn_once))				\
--		if (WARN_ON(!__warned)) 			\
-+		if (WARN_ON(!__warned))				\
- 			__warned = true;			\
- 	unlikely(__ret_warn_once);				\
- })
- 
--#define WARN_ONCE(condition, format...)	({			\
-+#define WARN_ONCE(condition, fmt, args...)			\
-+({								\
- 	static bool __warned;					\
- 	int __ret_warn_once = !!(condition);			\
- 								\
- 	if (unlikely(__ret_warn_once))				\
--		if (WARN(!__warned, format)) 			\
-+		if (WARN(!__warned, fmt, ##args))		\
- 			__warned = true;			\
- 	unlikely(__ret_warn_once);				\
- })
- 
--#define WARN_TAINT_ONCE(condition, taint, format...)	({	\
-+#define WARN_TAINT_ONCE(condition, taint, fmt, args...)		\
-+({								\
- 	static bool __warned;					\
- 	int __ret_warn_once = !!(condition);			\
- 								\
- 	if (unlikely(__ret_warn_once))				\
--		if (WARN_TAINT(!__warned, taint, format))	\
-+		if (WARN_TAINT(!__warned, taint, fmt, ##args))	\
- 			__warned = true;			\
- 	unlikely(__ret_warn_once);				\
- })
- 
- #define WARN_ON_RATELIMIT(condition, state)			\
--		WARN_ON((condition) && __ratelimit(state))
-+	WARN_ON((condition) && __ratelimit(state))
- 
- #ifdef CONFIG_SMP
- # define WARN_ON_SMP(x)			WARN_ON(x)
 -- 
-1.7.3.1.g432b3.dirty
+1.7.0.4
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
