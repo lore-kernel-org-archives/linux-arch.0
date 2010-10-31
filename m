@@ -1,159 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bitwagon.com ([74.82.39.175]:58532 "HELO bitwagon.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S1758164Ab0J2CpA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Oct 2010 22:45:00 -0400
-Received: from f11-64.local ([67.171.188.169]) by bitwagon.com for <linux-arch@vger.kernel.org>; Thu, 28 Oct 2010 19:34:57 -0700
-Message-ID: <4CCA32B7.4020605@bitwagon.com>
-Date: Thu, 28 Oct 2010 19:34:31 -0700
-From: John Reiser <jreiser@bitwagon.com>
+Received: from juliette.telenet-ops.be ([195.130.137.74]:55827 "EHLO
+	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755115Ab0JaKTv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 31 Oct 2010 06:19:51 -0400
+Date: Sun, 31 Oct 2010 11:14:43 +0100 (CET)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/1] powerpc: Fix initramfs size in PPC32 build
+In-Reply-To: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
+Message-ID: <alpine.DEB.2.00.1010311101530.29741@ayla.of.borg>
+References: <1287742675-7614-1-git-send-email-kerstin.jonsson@ericsson.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/3] ftrace/x86: Add support for C version of recordmcount
-References: <20101014210014.895157788@goodmis.org> <20101014210136.230687571@goodmis.org> <20101027032548.GA5341@linux-sh.org>
-In-Reply-To: <20101027032548.GA5341@linux-sh.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
-Message-ID: <20101029023431.96-rmGVq0YrNsiZK6N5Ys2H-NJOiu857l4x6Q_k_Pv4@z>
+To: Kerstin Jonsson <kerstin.jonsson@ericsson.com>, Hendrik Brueckner <brueckner@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mmc@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, WANG Cong <xiyou.wangcong@gmail.com>, Michal Marek <mmarek@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>
+Message-ID: <20101031101443.sokDvBOEse46cl4ppsrDaQ_ECZp_zsMHHylVuriDjNQ@z>
 
-[Note that I have trimmed the addressees for this reply.]
-On 10/26/2010, Paul Mundt wrote:
-
->> This patch adds the support for the C version of recordmcount and
->> compile times show ~ 12% improvement.
-
-> While I haven't had the chance to debug this yet, turning it on for SH
-> blows up immediately:
+On Fri, 22 Oct 2010, Kerstin Jonsson wrote:
+> commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 of the -mm tree
+> fixes the initramfs size calculation for e.g. s390 but breaks it
+> for 32bit architectures which do not define CONFIG_32BIT.
 > 
-> ftrace: allocating 15200 entries in 30 pages
-> ------------[ cut here ]------------
-> WARNING: at /home/pmundt/devel/git/sh-2.6/kernel/trace/ftrace.c:1007
-> Modules linked in:
+> This patch fix the problem for PPC32 which will elsewise end up
+> with a __initramfs_size of 0.
 > 
-> Pid : 0, Comm:           swapper
-> CPU : 0                  Not tainted  (2.6.36-05622-g38ab134-dirty #508)
+> Signed-off-by: Kerstin Jonsson <kerstin.jonsson@ericsson.com>
+> Cc: Paul Mackerras <paulus@samba.org>
+> ---
+>  arch/powerpc/Kconfig |    4 ++++
+>  1 files changed, 4 insertions(+), 0 deletions(-)
 > 
-> PC is at ftrace_bug+0x78/0x23c
-> PR is at ftrace_bug+0x74/0x23c
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index 50cc5d9..d536fe4 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -4,6 +4,10 @@ config PPC32
+>  	bool
+>  	default y if !PPC64
+>  
+> +config 32BIT
+> +	bool
+> +	default y if PPC32
+> +
+>  config 64BIT
+>  	bool
+>  	default y if PPC64
+> -- 
+> 1.7.1
 
-> Call trace:
->  [<80066a86>] ftrace_process_locs+0x15a/0x284
->  [<803b15d8>] dns_query+0x0/0x26c
+Thanks for the hint!
 
-> Code:
->   80064dee:  mov       r9, r5
->   80064df0:  tst       r9, r9
->   80064df2:  bt        80064df6
-> ->80064df4:  trapa     #62
->   80064df6:  bra       80064ef2
+In the future, please CC linux-arch, or at least lkml, for things like this,
+as it broke allmost all 32-bit arches.
+Only mips, s390, and score set CONFIG_32BIT for 32-bit builds.
+Would have saved me a bisection on m68k...
 
-> ---[ end trace 4eaa2a86a8e2da22 ]---
-> ftrace failed to modify [<803b15d8>] dns_query+0x0/0x26c
->  actual: 02:d1:22:4f
-> Testing tracer nop: PASSED
-> 
-> Suggestions?
+I came up with the alternative patch below to fix it in a single place.
+---
+From d51254ca020a23050f1641d92d68113e55cc0467 Mon Sep 17 00:00:00 2001
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Date: Sun, 31 Oct 2010 10:56:23 +0100
+Subject: [PATCH] initramfs: Fix initramfs size for 32-bit arches
 
+commit ffe8018c3424892c9590048fc36caa6c3e0c8a76 ("initramfs: fix initramfs size
+calculation") broke 32-bit arches like (on ARAnyM):
 
-This looks like a disagreement over the interpretation of relocation type
-R_SH_DIR32 in Elf32_Rela on a 32-bit EM_SH (SuperH) machine.
+    VFS: Cannot open root device "hda1" or unknown-block(3,1)
+    Please append a correct "root=" boot option; here are the available partitions:
+    fe80         1059408 nfhd8  (driver?)
+      fe81          921600 nfhd8p1 00000000-0000-0000-0000-000000000nfhd8p1
+      fe82          137807 nfhd8p2 00000000-0000-0000-0000-000000000nfhd8p2
+    0200            3280 fd0  (driver?)
+    0201            3280 fd1  (driver?)
+    0300         1059408 hda  driver: ide-gd
+      0301          921600 hda1 00000000-0000-0000-0000-000000000hda1
+      0302          137807 hda2 00000000-0000-0000-0000-000000000hda2
+    Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(3,1)
 
-arch/sh/kernel/module.c says:
------
-                sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-                        + ELF32_R_SYM(rel[i].r_info);
-                relocation = sym->st_value + rel[i].r_addend;
-   ...
-                case R_SH_DIR32:
-                        value = get_unaligned(location);
-                        value += relocation;
-                        put_unaligned(value, location);
------
+As pointed out by Kerstin Jonsson <kerstin.jonsson@ericsson.com>, this is due
+to CONFIG_32BIT not being defined.
 
-Paul Mundt sent to me an actual kernel object file main.o compiled -pg for EM_SH.
-According to 'readelf', the Perl script recordmcount.pl generates:
------
-Relocation section '.rela__mcount_loc' at offset 0x17ec8 contains 3 entries:
- Offset     Info    Type            Sym.Value  Sym. Name + Addend
-00000000  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
-00000004  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
-00000008  00006a01 R_SH_DIR32        00000000   do_one_initcall + 0
+Only mips, s390, and score set CONFIG_32BIT for 32-bit builds, so fix it for
+all other 32-bit arches by inverting the logic and testing for CONFIG_64BIT,
+which should be defined on all 64-bit arches.
 
-Symbol table '.symtab' contains 198 entries:
-   Num:    Value  Size Type    Bind   Vis      Ndx Name
-   106: 00000000   364 FUNC    GLOBAL DEFAULT    1 do_one_initcall
-###  (1==Ndx) ==> .text, so do_one_initcall is first in .text
-###  106==0x6a
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ usr/initramfs_data.S |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-Section Headers:
-  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
-  [ 1] .text             PROGBITS        00000000 000034 00026c 00  AX  0   0  4
-  [17] __mcount_loc      PROGBITS        00000000 001140 00000c 00   A  0   0  4
-  [18] .rela__mcount_loc RELA            00000000 017ec8 000024 0c     46  17  4
-  [46] .symtab           SYMTAB          00000000 022ac4 000c60 10     47  71  4
------
-where section 17, __mcount_loc, has three 32-bit words with values 0xc, 0x178, 0x1b0.
-
-Also according to 'readelf', the C program recordmcount generates:
------
-Relocation section '.rela__mcount_loc' at offset 0x249f4 contains 3 entries:
- Offset     Info    Type            Sym.Value  Sym. Name + Addend
-00000000  00000201 R_SH_DIR32        00000000   .text + c
-00000004  00000201 R_SH_DIR32        00000000   .text + 178
-00000008  00000201 R_SH_DIR32        00000000   .text + 1b0
-
-Symbol table '.symtab' contains 198 entries:
-   Num:    Value  Size Type    Bind   Vis      Ndx Name
-     2: 00000000     0 SECTION LOCAL  DEFAULT    1
-### (1==Ndx) ==> .text
-
-Section Headers:
-  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
-  [ 1] .text             PROGBITS        00000000 000034 00026c 00  AX  0   0  4
-  [44] .symtab           SYMTAB          00000000 017440 000c50 10     45  70  4
-  [46] __mcount_loc      PROGBITS        00000000 0249e8 00000c 04   A  0   0  4
-  [47] .rela__mcount_loc RELA            00000000 0249f4 000024 0c     44  46  4
------
-where section 46, __mcount_loc, has three 32-bit words with values 0, 0, 0.
-
-Assuming the code in arch/sh/kernel/module.c, then I believe that those two
-descriptions are equivalent.  The output of the Perl script calls for
-
-   *location = *location + do_one_initcall.st_value + .r_addend
-
-with  0==.r_addend  and initially  *location==offset .
-The output of the C version calls for
-
-   *location = *location + .text.st_value           + .r_addend
-
-with  offset==.r_addend  and initially  *location==0.
-
-I did find in binutils-2.18.50.0.9/bfd/elf32-sh.c this ominous comment:
------
-      switch ((int) r_type)
-        {
-        final_link_relocate:
-          /* COFF relocs don't use the addend. The addend is used for
-             R_SH_DIR32 to be compatible with other compilers.  */
-          r = _bfd_final_link_relocate (howto, input_bfd, input_section,
-                                        contents, rel->r_offset,
-                                        relocation, addend);
------
-
-The natural question is, "Does /bin/ld for EM_SH ignore the .r_addend,
-or does /bin/ld process .r_addend just like arch/sh/kernel/module.c ?"
-If /bin/ld ignores .r_addend for R_SH_DIR32, as hinted in the comment,
-then that would explain the crash.
-
-Another question is, "Does the SECTION LOCAL symbol for .text have
-.st_value equal to the virtual address of the start of the section?"
-If a SECTION LOCAL symbol was not relocated like this, and thus had
-the value 0, then that also would explain the crash.
-
-That's my analysis.  If anyone can shed more light, then please do!
-
+diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
+index b9efed5..792a750 100644
+--- a/usr/initramfs_data.S
++++ b/usr/initramfs_data.S
+@@ -30,8 +30,8 @@ __irf_end:
+ .section .init.ramfs.info,"a"
+ .globl __initramfs_size
+ __initramfs_size:
+-#ifdef CONFIG_32BIT
+-	.long __irf_end - __irf_start
+-#else
++#ifdef CONFIG_64BIT
+ 	.quad __irf_end - __irf_start
++#else
++	.long __irf_end - __irf_start
+ #endif
 -- 
-John Reiser, jreiser@BitWagon.com
+1.7.0.4
+
+Gr{oetje,eeting}s,
+
+						Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+							    -- Linus Torvalds
