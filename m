@@ -1,69 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay.atmel.no ([194.19.124.36]:21514 "EHLO relay.atmel.no"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755710Ab0JaOkp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 31 Oct 2010 10:40:45 -0400
-Date: Sun, 31 Oct 2010 15:02:44 +0100
-From: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Subject: Re: [PATCH v2 02/22] bitops: rename generic little-endian bitops
- functions
-Message-ID: <20101031140244.GA2269@ssg-0.norway.atmel.com>
-References: <1287672077-5797-1-git-send-email-akinobu.mita@gmail.com>
- <1287672077-5797-3-git-send-email-akinobu.mita@gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:48762 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753032Ab0KAICH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Nov 2010 04:02:07 -0400
+Date: Mon, 1 Nov 2010 08:02:01 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 2/6] avr32: get rid of useless args in signal.c before
+ other work there
+Message-ID: <20101101080201.GZ19804@ZenIV.linux.org.uk>
+References: <E1P0QNo-0008S7-Vr@ZenIV.linux.org.uk>
+ <1288598309.2843.12.camel@hcegtvedt>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1287672077-5797-3-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1288598309.2843.12.camel@hcegtvedt>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, Andy Grover <andy.grover@oracle.com>, rds-devel@oss.oracle.com, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20101031140244.IPK0u5E9xfFB77f6zWStuseOLWgKtiDuvrbsaqI_2YI@z>
+To: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
+Cc: Al Viro <viro@ftp.linux.org.uk>, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20101101080201.uedT1U8vEjAn6LcULTt15eyU-j9bTYplECEVCf-Faaw@z>
 
-Around Thu 21 Oct 2010 23:40:57 +0900 or thereabout, Akinobu Mita wrote:
-> As a preparation for providing little-endian bitops for all architectures,
-> This removes generic_ prefix from little-endian bitops function names
-> in asm-generic/bitops/le.h.
+On Mon, Nov 01, 2010 at 08:58:29AM +0100, Hans-Christian Egtvedt wrote:
+> On Tue, 2010-09-28 at 03:57 +0100, Al Viro wrote: 
+> > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 > 
-> s/generic_find_next_le_bit/find_next_le_bit/
-> s/generic_find_next_zero_le_bit/find_next_zero_le_bit/
-> s/generic_find_first_zero_le_bit/find_first_zero_le_bit/
-> s/generic___test_and_set_le_bit/__test_and_set_le_bit/
-> s/generic___test_and_clear_le_bit/__test_and_clear_le_bit/
-> s/generic_test_le_bit/test_le_bit/
-> s/generic___set_le_bit/__set_le_bit/
-> s/generic___clear_le_bit/__clear_le_bit/
-> s/generic_test_and_set_le_bit/test_and_set_le_bit/
-> s/generic_test_and_clear_le_bit/test_and_clear_le_bit/
+> <snipp>
 > 
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Roman Zippel <zippel@linux-m68k.org>
-> Cc: Andreas Schwab <schwab@linux-m68k.org>
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: Greg Ungerer <gerg@uclinux.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: Andy Grover <andy.grover@oracle.com>
-> Cc: rds-devel@oss.oracle.com
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: netdev@vger.kernel.org
-> Cc: Avi Kivity <avi@redhat.com>
-> Cc: Marcelo Tosatti <mtosatti@redhat.com>
-> Cc: kvm@vger.kernel.org
-> ---
-> No change from previous submission
+> > @@ -261,11 +261,12 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+> >   * doesn't want to handle. Thus you cannot kill init even with a
+> >   * SIGKILL even by mistake.
+> >   */
+> > -int do_signal(struct pt_regs *regs, sigset_t *oldset, int syscall)
+> > +static void do_signal(struct pt_regs *regs, int syscall)
+> >  {
+> >  	siginfo_t info;
+> >  	int signr;
+> >  	struct k_sigaction ka;
+> > +	sigset_t *oldset;
 > 
->  arch/avr32/kernel/avr32_ksyms.c              |    4 ++--
->  arch/avr32/lib/findbit.S                     |    4 ++--
+> Should be initialized as it is checked in the else if block further
+> below.
 
-For the AVR32 changes.
-
-Acked-by: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-
-<snipp patch>
-
--- 
-Best regards, Hans-Christian Egtvedt
+That else if should be simply else...
