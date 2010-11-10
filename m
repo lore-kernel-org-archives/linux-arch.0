@@ -1,82 +1,60 @@
-From: Grant Likely <grant.likely@secretlab.ca>
+From: Greg KH <gregkh@suse.de>
 Subject: Re: [GPIO]implement sleeping GPIO chip removal
-Date: Wed, 10 Nov 2010 15:14:12 -0700
-Message-ID: <20101110221412.GB7063@angua.secretlab.ca>
-References: <4CD6F049.10102@o2.pl>
- <20101110050947.GC4110@angua.secretlab.ca>
- <4CDABA03.2050000@o2.pl>
- <alpine.LFD.2.00.1011102134350.2900@localhost6.localdomain6>
- <4CDB0834.4080101@o2.pl>
+Date: Wed, 10 Nov 2010 14:45:16 -0800
+Message-ID: <20101110224516.GA19567@suse.de>
+References: <4CD6F049.10102@o2.pl> <20101110050947.GC4110@angua.secretlab.ca> <4CDABA03.2050000@o2.pl> <alpine.LFD.2.00.1011102134350.2900@localhost6.localdomain6> <4CDB0834.4080101@o2.pl> <alpine.LFD.2.00.1011102203500.2900@localhost6.localdomain6> <20101110211540.GA7063@angua.secretlab.ca>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:55504 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756993Ab0KJWOP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Nov 2010 17:14:15 -0500
+Received: from cantor2.suse.de ([195.135.220.15]:44127 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757218Ab0KJWpG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Nov 2010 17:45:06 -0500
 Content-Disposition: inline
-In-Reply-To: <4CDB0834.4080101@o2.pl>
+In-Reply-To: <20101110211540.GA7063@angua.secretlab.ca>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maciej Szmigiero <mhej@o2.pl>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Anton Vorontsov <avorontsov@ru.mvista.com>, Greg Kroah-Hartman <gregkh@suse.de>, Uwe Kleine-K?nig <u.kleine-koenig@pengutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Cameron <jic23@cam.ac.uk>, Ben Nizette <bn@niasdigital.com>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Maciej Szmigiero <mhej@o2.pl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Anton Vorontsov <avorontsov@ru.mvista.com>, Uwe Kleine-K?nig <u.kleine-koenig@pengutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Cameron <jic23@cam.ac.uk>, Ben Nizette <bn@niasdigital.com>
 
-On Wed, Nov 10, 2010 at 10:01:40PM +0100, Maciej Szmigiero wrote:
-> W dniu 10.11.2010 21:42, Thomas Gleixner pisze:
+On Wed, Nov 10, 2010 at 02:15:40PM -0700, Grant Likely wrote:
+> On Wed, Nov 10, 2010 at 10:07:05PM +0100, Thomas Gleixner wrote:
+> > Can you please use a mail client which does proper line breaks at 78 ?
+> > 
 > > On Wed, 10 Nov 2010, Maciej Szmigiero wrote:
-> >> W dniu 10.11.2010 10:49, Thomas Gleixner pisze:
-> >>> Maybe because it open codes a sloppy refcounting with a loop and magic
-> >>> sleeps instead of converting the code to kobjects and proper
-> >>> refcounting ?
-> >>>
-> >>
-> >> The only way to do GPIO chip removal in the current code is to busy-loop.
-> >> "Sloppy" (as you called it) waiting is still more CPU-friendly than looping 
-> >> in hope that somebody will finally release the chip.
-> >> If you would like to implement it as kobject then go ahead and post the code
-> >> so it can be used in drivers.
+> > > You misunderstood me.
 > > 
-> > Wait a moment. You are getting something backwards here.
+> > No, I didnt.
 > > 
-> > Fact is that the current code is not designed for easy hotunplugging
-> > and therefor requires looping.
+> > > By "looping in hope that somebody will finally release the chip" I
+> > > meant the only real way to handle a GPIO chip unplugging in the
+> > > current kernel.  Which is way worse that preventing new requests,
+> > > then waiting for existing one to be released.  And this is exactly
+> > > what my patch does.
 > > 
-> > So _you_ propose a work-around to replace the busy-loop by a sleeping
-> > loop with "hope that ....". Hope is the least thing what counts in
-> > programming.
+> > That still does not make it a good solution.
 > > 
-> > Now a reviewer tells you that your idea of replacing the busy-loop by
-> > a sleeping in hope loop is flawed, because it does not solve the
-> > underlying design problem of the GPIO code. And you get a suggestion
-> > how to solve it correctly.
+> > > I understand that it could be simplified by removing redundant code
+> > > (as Grant Likely had suggested before), and moving it to completion
+> > > interface instead of manipulating a task structure directly, but
+> > > this doesn't mean that the whole GPIO code has to be rewritten just
+> > > to add one functionality.
 > > 
-> > Now you go and request from that reviewer to implement that? That's
-> > not how it works.
+> > It's not about rewriting, it's about fixing the problem in the right
+> > way and not just hacking around it.
 > > 
-> > You sent a flawed patch in the first place and people try to tell you
-> > how to do it right. Then it's on you to either go and do it right or
-> > at least ask politely for help and pointers.
-> > 
-> > Thanks,
-> > 
-> > 	tglx
-> > 
+> > If we see a shortcoming like this, we fix it and do not magically work
+> > around it.
 > 
-> You misunderstood me.
-> By "looping in hope that somebody will finally release the chip" I meant the only
-> real way to handle a GPIO chip unplugging in the current kernel.
-> Which is way worse that preventing new requests, then waiting for existing one to be released.
-> And this is exactly what my patch does.
+> +1
 > 
-> I understand that it could be simplified by removing redundant code (as Grant Likely had suggested before), and
-> moving it to completion interface instead of manipulating a task structure directly, but this doesn't mean
-> that the whole GPIO code has to be rewritten just to add one functionality.
+> Thomas is right.  kobject reference counting is the correct solution.
+> Nack on this approach.
 
-BTW, switching to using a kobject != rewriting the whole GPIO code.
-kobjects are not all that scary and the biggest impact is adding
-kobject get/put operation on the gpio get/release apis.  I don't
-expect it to end up being overly complex.
+Only use a kobject if you want to be in the sysfs hierarchy (which I
+don't think you want to do here.)  If you want proper reference
+counting, use a 'struct kref' instead.
 
-The Documentation/kobject.txt file should offer some insight.
+thanks,
 
-g.
+greg k-h
