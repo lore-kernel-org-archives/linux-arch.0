@@ -1,49 +1,79 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [GPIO]implement sleeping GPIO chip removal
-Date: Thu, 11 Nov 2010 08:15:08 +0900
-Message-ID: <20101110231507.GA6758@linux-sh.org>
-References: <4CD6F049.10102@o2.pl> <20101110050947.GC4110@angua.secretlab.ca> <4CDABA03.2050000@o2.pl> <alpine.LFD.2.00.1011102134350.2900@localhost6.localdomain6> <4CDB0834.4080101@o2.pl> <alpine.LFD.2.00.1011102203500.2900@localhost6.localdomain6> <20101110211540.GA7063@angua.secretlab.ca> <20101110224516.GA19567@suse.de>
+From: Mel Gorman <mel@csn.ul.ie>
+Subject: [BUG] Commit d065bd81 severely regresses huge page allocation
+	success rates
+Date: Thu, 11 Nov 2010 12:15:46 +0000
+Message-ID: <20101111121545.GF19679@csn.ul.ie>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:43246 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753973Ab0KJXPg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Nov 2010 18:15:36 -0500
+Content-Type: text/plain; charset=iso-8859-15
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20101110224516.GA19567@suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@suse.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Thomas Gleixner <tglx@linutronix.de>, Maciej Szmigiero <mhej@o2.pl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Anton Vorontsov <avorontsov@ru.mvista.com>, Uwe Kleine-K?nig <u.kleine-koenig@pengutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Cameron <jic23@cam.ac.uk>, Ben Nizette <bn@niasdigital.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michel Lespinasse <walken@google.com>
+Cc: Rik van Riel <riel@redhat.com>, Wu Fengguang <fengguang.wu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ying Han <yinghan@google.com>, Andrea Arcangeli <aarcange@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 10, 2010 at 02:45:16PM -0800, Greg KH wrote:
-> On Wed, Nov 10, 2010 at 02:15:40PM -0700, Grant Likely wrote:
-> > On Wed, Nov 10, 2010 at 10:07:05PM +0100, Thomas Gleixner wrote:
-> > > > I understand that it could be simplified by removing redundant code
-> > > > (as Grant Likely had suggested before), and moving it to completion
-> > > > interface instead of manipulating a task structure directly, but
-> > > > this doesn't mean that the whole GPIO code has to be rewritten just
-> > > > to add one functionality.
-> > > 
-> > > It's not about rewriting, it's about fixing the problem in the right
-> > > way and not just hacking around it.
-> > > 
-> > > If we see a shortcoming like this, we fix it and do not magically work
-> > > around it.
-> > 
-> > +1
-> > 
-> > Thomas is right.  kobject reference counting is the correct solution.
-> > Nack on this approach.
-> 
-> Only use a kobject if you want to be in the sysfs hierarchy (which I
-> don't think you want to do here.)  If you want proper reference
-> counting, use a 'struct kref' instead.
-> 
-This is actually an interesting problem. The gpiolib code presently has
-its own hand-rolled sysfs support, which is entirely optional. If someone
-is going to go through and do some refactoring anyways it would be
-worthwile to see how much tidying up using a kobject would permit. 
-kobject-based refcounting could in effect be used like kref-refcounting
-with the sysfs interface disabled, too.
+When testing 2.6.37-rc1, I noticed that huge page allocation success
+rates were severely impaired. Bisection showed that commit [d065bd81: mm:
+retry page fault when blocking on disk transfer] was the biggest factor.
+Reverting the patch confirmed this. Here are the results of a high-order
+allocation stress test. The vanilla kernel is 2.6.37-rc1 and the revert
+kernel has this commit removed with minor conflicts cleaned up.
+
+STRESS-HIGHALLOC
+             highalloc-vanilla   revert-d065bd81
+Pass 1           7.00 ( 0.00%)    73.00 (66.00%)
+Pass 2           7.00 ( 0.00%)    92.00 (85.00%)
+At Rest         13.00 ( 0.00%)    93.00 (80.00%)
+
+The "pass 1" and "pass 2" are allocation attempts while the machine is
+under heavy load. One might expect that allocations fail there but when the
+machine is fully at rest, all memory freed and nothing else is going on,
+the pages still cannot be allocated.
+
+I had ftrace enabled and found this.
+
+FTrace Reclaim Statistics: vmscan
+             				   vanilla revert-d065bd81
+Direct reclaims                               3687        889
+Direct reclaim pages scanned              39767013     195182
+Direct reclaim pages reclaimed              115079     107891
+Direct reclaim write file async I/O          13598       5777
+Direct reclaim write anon async I/O          70886      40954
+Direct reclaim write file sync I/O               0          0
+Direct reclaim write anon sync I/O              37        178
+Wake kswapd requests                          6508        868
+Kswapd wakeups                                1291        521
+Kswapd pages scanned                      77859381    3240330
+Kswapd pages reclaimed                     2548099    1965881
+Kswapd reclaim write file async I/O          51266      56838
+Kswapd reclaim write anon async I/O         935070     392199
+Kswapd reclaim write file sync I/O               0          0
+Kswapd reclaim write anon sync I/O               0          0
+Time stalled direct reclaim (seconds)      1160.57     636.24
+Time kswapd awake (seconds)                1453.81     654.25
+
+Total pages scanned                      117626394   3435512
+Total pages reclaimed                      2663178   2073772
+%age total pages scanned/reclaimed           2.26%    60.36%
+%age total pages scanned/written             0.91%    14.44%
+%age  file pages scanned/written             0.06%     1.82%
+Percentage Time Spent Direct Reclaim        25.92%    15.98%
+Percentage Time kswapd Awake                65.57%    36.01%
+
+Reverting the commit improves overall reclaim behaviour when allocating huge
+pages. Note in particular the low percentage for scanned/reclaimed in the
+vanilla kernel which implies the vanilla kernel is endlessly scans pages it
+cannot reclaim. I also note that with the vanilla kernel that nr_inactive_*
+remains high but when the patch is reverted, it drops implying that the
+patch is preventing pages being reclaimed.
+
+It does not make a difference if compaction is used - the figures are
+still brutal.
+
+I have not digested what the patch is doing but am reporting it in case
+people familiar with the patch spot the problem quickly.
+
+-- 
+Mel Gorman
+Part-time Phd Student                          Linux Technology Center
+University of Limerick                         IBM Dublin Software Lab
