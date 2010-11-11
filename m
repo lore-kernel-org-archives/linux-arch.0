@@ -1,85 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moh1-ve2.go2.pl ([193.17.41.132]:36794 "EHLO moh1-ve2.go2.pl"
+Received: from gir.skynet.ie ([193.1.99.77]:52646 "EHLO gir.skynet.ie"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756349Ab0KJVBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Nov 2010 16:01:51 -0500
-Received: from moh1-ve2.go2.pl (unknown [10.0.0.132])
-	by moh1-ve2.go2.pl (Postfix) with ESMTP id 478FB5200CE
-	for <linux-arch@vger.kernel.org>; Wed, 10 Nov 2010 22:01:48 +0100 (CET)
-Received: from unknown (unknown [10.0.0.74])
-	by moh1-ve2.go2.pl (Postfix) with SMTP
-	for <linux-arch@vger.kernel.org>; Wed, 10 Nov 2010 22:01:48 +0100 (CET)
-Message-ID: <4CDB0834.4080101@o2.pl>
-Date: Wed, 10 Nov 2010 22:01:40 +0100
-From: Maciej Szmigiero <mhej@o2.pl>
+	id S1756205Ab0KKMQA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Nov 2010 07:16:00 -0500
+Date: Thu, 11 Nov 2010 12:15:46 +0000
+From: Mel Gorman <mel@csn.ul.ie>
+Subject: [BUG] Commit d065bd81 severely regresses huge page allocation
+	success rates
+Message-ID: <20101111121545.GF19679@csn.ul.ie>
 MIME-Version: 1.0
-Subject: Re: [GPIO]implement sleeping GPIO chip removal
-References: <4CD6F049.10102@o2.pl> <20101110050947.GC4110@angua.secretlab.ca> <4CDABA03.2050000@o2.pl> <alpine.LFD.2.00.1011102134350.2900@localhost6.localdomain6>
-In-Reply-To: <alpine.LFD.2.00.1011102134350.2900@localhost6.localdomain6>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-15
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Anton Vorontsov <avorontsov@ru.mvista.com>, Greg Kroah-Hartman <gregkh@suse.de>, Uwe Kleine-K?nig <u.kleine-koenig@pengutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Cameron <jic23@cam.ac.uk>, Ben Nizette <bn@niasdigital.com>
-Message-ID: <20101110210140.hJVW7aE60wWCfAtaODiJrJZ2TdO7JJRaYZcxvmnYgd0@z>
+To: Michel Lespinasse <walken@google.com>
+Cc: Rik van Riel <riel@redhat.com>, Wu Fengguang <fengguang.wu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ying Han <yinghan@google.com>, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20101111121546.1D7p_ZuGijW8d4KFq0BiNCY8yp2HKTBfbDG02mdORUk@z>
 
-W dniu 10.11.2010 21:42, Thomas Gleixner pisze:
-> On Wed, 10 Nov 2010, Maciej Szmigiero wrote:
->> W dniu 10.11.2010 10:49, Thomas Gleixner pisze:
->>> Maybe because it open codes a sloppy refcounting with a loop and magic
->>> sleeps instead of converting the code to kobjects and proper
->>> refcounting ?
->>>
->>
->> The only way to do GPIO chip removal in the current code is to busy-loop.
->> "Sloppy" (as you called it) waiting is still more CPU-friendly than looping 
->> in hope that somebody will finally release the chip.
->> If you would like to implement it as kobject then go ahead and post the code
->> so it can be used in drivers.
-> 
-> Wait a moment. You are getting something backwards here.
-> 
-> Fact is that the current code is not designed for easy hotunplugging
-> and therefor requires looping.
-> 
-> So _you_ propose a work-around to replace the busy-loop by a sleeping
-> loop with "hope that ....". Hope is the least thing what counts in
-> programming.
-> 
-> Now a reviewer tells you that your idea of replacing the busy-loop by
-> a sleeping in hope loop is flawed, because it does not solve the
-> underlying design problem of the GPIO code. And you get a suggestion
-> how to solve it correctly.
-> 
-> Now you go and request from that reviewer to implement that? That's
-> not how it works.
-> 
-> You sent a flawed patch in the first place and people try to tell you
-> how to do it right. Then it's on you to either go and do it right or
-> at least ask politely for help and pointers.
-> 
-> Thanks,
-> 
-> 	tglx
-> 
+When testing 2.6.37-rc1, I noticed that huge page allocation success
+rates were severely impaired. Bisection showed that commit [d065bd81: mm:
+retry page fault when blocking on disk transfer] was the biggest factor.
+Reverting the patch confirmed this. Here are the results of a high-order
+allocation stress test. The vanilla kernel is 2.6.37-rc1 and the revert
+kernel has this commit removed with minor conflicts cleaned up.
 
-You misunderstood me.
-By "looping in hope that somebody will finally release the chip" I meant the only
-real way to handle a GPIO chip unplugging in the current kernel.
-Which is way worse that preventing new requests, then waiting for existing one to be released.
-And this is exactly what my patch does.
+STRESS-HIGHALLOC
+             highalloc-vanilla   revert-d065bd81
+Pass 1           7.00 ( 0.00%)    73.00 (66.00%)
+Pass 2           7.00 ( 0.00%)    92.00 (85.00%)
+At Rest         13.00 ( 0.00%)    93.00 (80.00%)
 
-I understand that it could be simplified by removing redundant code (as Grant Likely had suggested before), and
-moving it to completion interface instead of manipulating a task structure directly, but this doesn't mean
-that the whole GPIO code has to be rewritten just to add one functionality.
+The "pass 1" and "pass 2" are allocation attempts while the machine is
+under heavy load. One might expect that allocations fail there but when the
+machine is fully at rest, all memory freed and nothing else is going on,
+the pages still cannot be allocated.
 
-Best regards,
-Maciej Szmigiero
+I had ftrace enabled and found this.
 
+FTrace Reclaim Statistics: vmscan
+             				   vanilla revert-d065bd81
+Direct reclaims                               3687        889
+Direct reclaim pages scanned              39767013     195182
+Direct reclaim pages reclaimed              115079     107891
+Direct reclaim write file async I/O          13598       5777
+Direct reclaim write anon async I/O          70886      40954
+Direct reclaim write file sync I/O               0          0
+Direct reclaim write anon sync I/O              37        178
+Wake kswapd requests                          6508        868
+Kswapd wakeups                                1291        521
+Kswapd pages scanned                      77859381    3240330
+Kswapd pages reclaimed                     2548099    1965881
+Kswapd reclaim write file async I/O          51266      56838
+Kswapd reclaim write anon async I/O         935070     392199
+Kswapd reclaim write file sync I/O               0          0
+Kswapd reclaim write anon sync I/O               0          0
+Time stalled direct reclaim (seconds)      1160.57     636.24
+Time kswapd awake (seconds)                1453.81     654.25
 
+Total pages scanned                      117626394   3435512
+Total pages reclaimed                      2663178   2073772
+%age total pages scanned/reclaimed           2.26%    60.36%
+%age total pages scanned/written             0.91%    14.44%
+%age  file pages scanned/written             0.06%     1.82%
+Percentage Time Spent Direct Reclaim        25.92%    15.98%
+Percentage Time kswapd Awake                65.57%    36.01%
 
+Reverting the commit improves overall reclaim behaviour when allocating huge
+pages. Note in particular the low percentage for scanned/reclaimed in the
+vanilla kernel which implies the vanilla kernel is endlessly scans pages it
+cannot reclaim. I also note that with the vanilla kernel that nr_inactive_*
+remains high but when the patch is reverted, it drops implying that the
+patch is preventing pages being reclaimed.
 
+It does not make a difference if compaction is used - the figures are
+still brutal.
 
+I have not digested what the patch is doing but am reporting it in case
+people familiar with the patch spot the problem quickly.
 
-
+-- 
+Mel Gorman
+Part-time Phd Student                          Linux Technology Center
+University of Limerick                         IBM Dublin Software Lab
