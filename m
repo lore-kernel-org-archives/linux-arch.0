@@ -1,79 +1,49 @@
-From: Mel Gorman <mel@csn.ul.ie>
-Subject: [BUG] Commit d065bd81 severely regresses huge page allocation
-	success rates
-Date: Thu, 11 Nov 2010 12:15:46 +0000
-Message-ID: <20101111121545.GF19679@csn.ul.ie>
+From: Michel Lespinasse <walken@google.com>
+Subject: Re: [BUG] Commit d065bd81 severely regresses huge page allocation
+ success rates
+Date: Thu, 11 Nov 2010 04:25:00 -0800
+Message-ID: <AANLkTinxYntXjK7V8W3+3j7m0xQUVpB1eeysSE0ifO1k@mail.gmail.com>
+References: <20101111121545.GF19679@csn.ul.ie>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michel Lespinasse <walken@google.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-out.google.com ([216.239.44.51]:6275 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756328Ab0KKMZI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Nov 2010 07:25:08 -0500
+Received: from kpbe17.cbf.corp.google.com (kpbe17.cbf.corp.google.com [172.25.105.81])
+	by smtp-out.google.com with ESMTP id oABCP2Q0031203
+	for <linux-arch@vger.kernel.org>; Thu, 11 Nov 2010 04:25:02 -0800
+Received: from qwb8 (qwb8.prod.google.com [10.241.193.72])
+	by kpbe17.cbf.corp.google.com with ESMTP id oABCP1on029726
+	for <linux-arch@vger.kernel.org>; Thu, 11 Nov 2010 04:25:01 -0800
+Received: by qwb8 with SMTP id 8so9818qwb.9
+        for <linux-arch@vger.kernel.org>; Thu, 11 Nov 2010 04:25:00 -0800 (PST)
+In-Reply-To: <20101111121545.GF19679@csn.ul.ie>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mel Gorman <mel@csn.ul.ie>
 Cc: Rik van Riel <riel@redhat.com>, Wu Fengguang <fengguang.wu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ying Han <yinghan@google.com>, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
 
-When testing 2.6.37-rc1, I noticed that huge page allocation success
-rates were severely impaired. Bisection showed that commit [d065bd81: mm:
-retry page fault when blocking on disk transfer] was the biggest factor.
-Reverting the patch confirmed this. Here are the results of a high-order
-allocation stress test. The vanilla kernel is 2.6.37-rc1 and the revert
-kernel has this commit removed with minor conflicts cleaned up.
+On Thu, Nov 11, 2010 at 4:15 AM, Mel Gorman <mel@csn.ul.ie> wrote:
+> When testing 2.6.37-rc1, I noticed that huge page allocation success
+> rates were severely impaired. Bisection showed that commit [d065bd81: mm:
+> retry page fault when blocking on disk transfer] was the biggest factor.
+> Reverting the patch confirmed this. Here are the results of a high-order
+> allocation stress test. The vanilla kernel is 2.6.37-rc1 and the revert
+> kernel has this commit removed with minor conflicts cleaned up.
+[...]
+> I have not digested what the patch is doing but am reporting it in case
+> people familiar with the patch spot the problem quickly.
 
-STRESS-HIGHALLOC
-             highalloc-vanilla   revert-d065bd81
-Pass 1           7.00 ( 0.00%)    73.00 (66.00%)
-Pass 2           7.00 ( 0.00%)    92.00 (85.00%)
-At Rest         13.00 ( 0.00%)    93.00 (80.00%)
+There was a bug in that commit, which was fixed in
+d88c0922fa0e2c021a028b310a641126c6d4b7dc
 
-The "pass 1" and "pass 2" are allocation attempts while the machine is
-under heavy load. One might expect that allocations fail there but when the
-machine is fully at rest, all memory freed and nothing else is going on,
-the pages still cannot be allocated.
+I think this may explain the issue; compaction won't work well if
+extra references are kept :/
 
-I had ftrace enabled and found this.
-
-FTrace Reclaim Statistics: vmscan
-             				   vanilla revert-d065bd81
-Direct reclaims                               3687        889
-Direct reclaim pages scanned              39767013     195182
-Direct reclaim pages reclaimed              115079     107891
-Direct reclaim write file async I/O          13598       5777
-Direct reclaim write anon async I/O          70886      40954
-Direct reclaim write file sync I/O               0          0
-Direct reclaim write anon sync I/O              37        178
-Wake kswapd requests                          6508        868
-Kswapd wakeups                                1291        521
-Kswapd pages scanned                      77859381    3240330
-Kswapd pages reclaimed                     2548099    1965881
-Kswapd reclaim write file async I/O          51266      56838
-Kswapd reclaim write anon async I/O         935070     392199
-Kswapd reclaim write file sync I/O               0          0
-Kswapd reclaim write anon sync I/O               0          0
-Time stalled direct reclaim (seconds)      1160.57     636.24
-Time kswapd awake (seconds)                1453.81     654.25
-
-Total pages scanned                      117626394   3435512
-Total pages reclaimed                      2663178   2073772
-%age total pages scanned/reclaimed           2.26%    60.36%
-%age total pages scanned/written             0.91%    14.44%
-%age  file pages scanned/written             0.06%     1.82%
-Percentage Time Spent Direct Reclaim        25.92%    15.98%
-Percentage Time kswapd Awake                65.57%    36.01%
-
-Reverting the commit improves overall reclaim behaviour when allocating huge
-pages. Note in particular the low percentage for scanned/reclaimed in the
-vanilla kernel which implies the vanilla kernel is endlessly scans pages it
-cannot reclaim. I also note that with the vanilla kernel that nr_inactive_*
-remains high but when the patch is reverted, it drops implying that the
-patch is preventing pages being reclaimed.
-
-It does not make a difference if compaction is used - the figures are
-still brutal.
-
-I have not digested what the patch is doing but am reporting it in case
-people familiar with the patch spot the problem quickly.
+Can you check that this indeed solves your test case ?
 
 -- 
-Mel Gorman
-Part-time Phd Student                          Linux Technology Center
-University of Limerick                         IBM Dublin Software Lab
+Michel "Walken" Lespinasse
+A program is never fully debugged until the last user dies.
