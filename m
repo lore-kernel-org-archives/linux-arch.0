@@ -1,30 +1,38 @@
-From: <amandasaleeby1@centrum.sk>
-Subject: hello
-Date: Mon, 15 Nov 2010 17:09:17 +0100
-Message-ID: <201011151709.16508@centrum.cz>
+From: Ming-Yang Lee <ming.yangfundsservice@qatar.io>
+Subject: (unknown)
+Date: Tue, 16 Nov 2010 13:59:33 +0000
+Message-ID: <20101116135933.9lfnni1reokcgc0o__39710.414215415$1289917947$gmane$org@mail.idngh.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain;
+	charset=ISO-8859-1;
+	DelSp="Yes";
+	format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from farizej.centrum.cz ([90.183.38.130]:54470 "EHLO
-	farizej.centrum.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756335Ab0KOQJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Nov 2010 11:09:28 -0500
-Received: by mail255.centrum.cz id S50373782Ab0KOQJR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Nov 2010 17:09:17 +0100
+Received: from mail.idngh.com ([41.204.36.5]:50536 "EHLO idngh.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755183Ab0KPOaG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 16 Nov 2010 09:30:06 -0500
+Subject: 
+Content-Disposition: inline
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: amandasaleeby1 <amandasaleeby1@centrum.sk>
 
-hello with love and trust
-my dearest friend compliment of the day to you.my name is Amanda favour a
-girl of 23years old honest trusting kind caring loving and fun with
-compassionate and generous nature viewing your email address which really interest
-me to know more about you that is having communication friendship with you
-if you will have the desire with me.so that we can get to know each other
-better sharing feelings and thought together .i will like you to write me
-through my email for easiest communication.i will be waiting to read from
-you.I will be waiting for your mail;please make sure you replied to me with the email address below,it is very confidential and private,thanks and have a nice day.
-here is my email address
-Amandasaleeby@she.com
+
+
+Do you need a loan to pay your bills or to start up a business or for Xmas?.
+Kindly apply now for a low rate loan of 3%. for more information contact:
+ming.yangfundsservice@qatar.io
+We Await Your Response.
+Mr Ming-Yang Lee
+
+----------------------------------------------------------------
+This message was sent using IMP, the Internet Messaging Program.
+
+
+
+-- 
+This message has been scanned for viruses and
+dangerous content by MailScanner, and is
+believed to be clean.
