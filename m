@@ -1,60 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:38110 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758260Ab0KPWmX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 17:42:23 -0500
+	with ESMTP id S1751014Ab0KPWmU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 17:42:20 -0500
 From: dirk.brandewie@gmail.com
-Subject: [PATCH 5/5] of/microblaze: Move build to use generic dts->dtb rule
-Date: Tue, 16 Nov 2010 14:41:40 -0800
-Message-ID: <7828dfd67fafcc2bb41e5bde40ac2ed7ef429142.1289943240.git.dirk.brandewie@gmail.com>
+Subject: [PATCH 3/5] x86/of:  Add building device tree blob(s) into image.
+Date: Tue, 16 Nov 2010 14:41:38 -0800
+Message-ID: <35263573f57fd7e780dede628cf489212bfa1400.1289943240.git.dirk.brandewie@gmail.com>
 In-Reply-To: <cover.1289943240.git.dirk.brandewie@gmail.com>
 References: <cover.1289943240.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: devicetree-discuss@lists.ozlabs.org
 Cc: sodaville@linutronix.de, arjan@linux.intel.com, dirk.brandewie@gmail.com, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101116224140.UIs5HXi8eyxy7sxDXIm2Fc4WPBTN3uzGUz1SC-1wSP4@z>
+Message-ID: <20101116224138.e7j2RtkBpnNKv5YRi4LBheVmY5c8wRyh98o0gozHH1Y@z>
 
 From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-This patch changes arch/microblaze/boot/Makefile to use the generic
-rule build the device tree blobs in scripts/Makefile.lib
+This patch adds linking device tree blobs into vmlinux. DTB's are
+added by adding the blob object name to list of objects to be linked
+into the image.
+e.g:
+  obj-$(CONFIG_TEST_DTB) += test.dtb.o
+
+The set of DTB linked into the image is controlled the Kconfig file
+in arch/x86/kernel/dts/Kconfig
 
 Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
 ---
- arch/microblaze/boot/Makefile |   13 +------------
- 1 files changed, 1 insertions(+), 12 deletions(-)
+ arch/x86/Kconfig            |    6 +++++-
+ arch/x86/kernel/Makefile    |    6 ++++++
+ arch/x86/kernel/dts/Kconfig |    7 +++++++
+ 3 files changed, 18 insertions(+), 1 deletions(-)
+ create mode 100644 arch/x86/kernel/dts/Kconfig
 
-diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
-index be01d78..4fda765 100644
---- a/arch/microblaze/boot/Makefile
-+++ b/arch/microblaze/boot/Makefile
-@@ -10,9 +10,6 @@ targets := linux.bin linux.bin.gz simpleImage.%
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5904f38..f2f516a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -299,13 +299,17 @@ config X86_BIGSMP
+ 	---help---
+ 	  This option is needed for the systems that have more than 8 CPUs
  
- OBJCOPYFLAGS := -O binary
+-config X86_OF
++menuconfig X86_OF
+ 	bool "Support for device tree"
+ 	select OF
+ 	select OF_FLATTREE
+ 	---help---
+ 	  Device tree support on X86.
  
--# Where the DTS files live
--dtstree         := $(srctree)/$(src)/dts
--
- # Ensure system.dtb exists
- $(obj)/linked_dtb.o: $(obj)/system.dtb
++if X86_OF
++source arch/x86/kernel/dts/Kconfig
++endif
++
+ if X86_32
+ config X86_EXTENDED_PLATFORM
+ 	bool "Support for extended (non-PC) x86 platforms"
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 586df14..49e017d 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -114,6 +114,12 @@ obj-$(CONFIG_SWIOTLB)			+= pci-swiotlb.o
+ obj-$(CONFIG_X86_OF)			+= prom.o
  
-@@ -51,14 +48,6 @@ $(obj)/simpleImage.%: vmlinux FORCE
- 	$(call if_changed,strip)
- 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
- 
--# Rule to build device tree blobs
--DTC = $(objtree)/scripts/dtc/dtc
--
--# Rule to build device tree blobs
--quiet_cmd_dtc = DTC     $@
--	cmd_dtc = $(DTC) -O dtb -o $(obj)/$*.dtb -b 0 -p 1024 $(dtstree)/$*.dts
--
--$(obj)/%.dtb: $(dtstree)/%.dts FORCE
--	$(call if_changed,dtc)
-+DTS_FLAGS := -p 1024
- 
- clean-files += *.dtb simpleImage.*.unstrip linux.bin.ub
+ ###
++# device tree blobs
++obj-$(CONFIG_CE4100_DTB) += ce4100.dtb.o
++obj-$(CONFIG_TEST_DTB) += test.dtb.o
++
++
++###
+ # 64 bit specific files
+ ifeq ($(CONFIG_X86_64),y)
+ 	obj-$(CONFIG_AUDIT)		+= audit_64.o
+diff --git a/arch/x86/kernel/dts/Kconfig b/arch/x86/kernel/dts/Kconfig
+new file mode 100644
+index 0000000..d3e5cd4
+--- /dev/null
++++ b/arch/x86/kernel/dts/Kconfig
+@@ -0,0 +1,7 @@
++config CE4100_DTB
++       bool "Intel CE4100"
++
++config TEST_DTB
++       bool "Test DTS"
++
++
 -- 
 1.7.2.3
 
