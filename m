@@ -1,118 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:38110 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755803Ab0KPWmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 17:42:16 -0500
+	with ESMTP id S1757009Ab0KPWmW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 17:42:22 -0500
 From: dirk.brandewie@gmail.com
-Subject: [PATCH 1/5] of: Add support for linking device tree blobs into vmlinux
-Date: Tue, 16 Nov 2010 14:41:36 -0800
-Message-ID: <9129f0a21ea48fb2dcb89cea290e88f3e8c0d8a2.1289943240.git.dirk.brandewie@gmail.com>
+Subject: [PATCH 4/5] of/powerpc: Move build to use generic dts->dtb rule
+Date: Tue, 16 Nov 2010 14:41:39 -0800
+Message-ID: <dae91d8292876db96f96896b79076c32cd2bf467.1289943240.git.dirk.brandewie@gmail.com>
 In-Reply-To: <cover.1289943240.git.dirk.brandewie@gmail.com>
 References: <cover.1289943240.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: devicetree-discuss@lists.ozlabs.org
 Cc: sodaville@linutronix.de, arjan@linux.intel.com, dirk.brandewie@gmail.com, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101116224136.3Jb8hIP6o5YlkI8Lu69xGP-7YsTCc8ZytDmPYMqZt9k@z>
+Message-ID: <20101116224139.TGK0AFJdnbruxyVJ7zJCdoXMWkABRQp6MFdj92TQZAA@z>
 
 From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-This patch adds support for linking device tree blobs into
-vmlinux. Modifies asm-generic/vmlinux.lds.h to add linking
-.dtb.init.rodata sections into the .init.data section of the vmlinux
-image. Modifies scripts/Makefile.lib to add a kbuild command to
-compile DTS files to device tree blobs and a rule to create objects to
-wrap the blobs for linking.
-
-The DTB's are placed on 32 byte boundries to allow parsing the blob
-with driver/of/fdt.c during early boot without having to copy the blob
-to get the structure alignment GCC expects.
-
-A DTB is linked in by adding the DTB object to the list of objects to
-be linked into vmlinux in the archtecture specific Makefile using
-   obj-y += foo.dtb.o
+This patch changes arch/powerpc/boot/Makefile to use the generic
+rule build the device tree blobs in scripts/Makefile.lib
 
 Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
 ---
- include/asm-generic/vmlinux.lds.h |   19 +++++++++++++++++--
- scripts/Makefile.lib              |   20 ++++++++++++++++++++
- 2 files changed, 37 insertions(+), 2 deletions(-)
+ arch/powerpc/boot/Makefile |    7 -------
+ 1 files changed, 0 insertions(+), 7 deletions(-)
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bd69d79..ea671e7 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -67,7 +67,14 @@
-  * Align to a 32 byte boundary equal to the
-  * alignment gcc 4.5 uses for a struct
-  */
--#define STRUCT_ALIGN() . = ALIGN(32)
-+#define STRUCT_ALIGNMENT 32
-+#define STRUCT_ALIGN() . = ALIGN(STRUCT_ALIGNMENT)
-+
-+/* Device tree blobs linked into the kernel need to have proper
-+ * structure alignment to be parsed by the flat device tree library
-+ * used in early boot
-+*/
-+#define DTB_ALIGNMENT STRUCT_ALIGNMENT
+diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
+index fae8192..d90c674 100644
+--- a/arch/powerpc/boot/Makefile
++++ b/arch/powerpc/boot/Makefile
+@@ -147,8 +147,6 @@ targets		+= $(patsubst $(obj)/%,%,$(obj-boot) wrapper.a)
+ extra-y		:= $(obj)/wrapper.a $(obj-plat) $(obj)/empty.o \
+ 		   $(obj)/zImage.lds $(obj)/zImage.coff.lds $(obj)/zImage.ps3.lds
  
- /* The actual configuration determine if the init/exit sections
-  * are handled as text/data or they can be discarded (which
-@@ -146,6 +153,13 @@
- #define TRACE_SYSCALLS()
- #endif
+-dtstree		:= $(srctree)/$(src)/dts
+-
+ wrapper		:=$(srctree)/$(src)/wrapper
+ wrapperbits	:= $(extra-y) $(addprefix $(obj)/,addnote hack-coff mktree) \
+ 			$(wrapper) FORCE
+@@ -331,11 +329,6 @@ $(obj)/treeImage.initrd.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ $(obj)/treeImage.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ 	$(call if_changed,wrap,treeboot-$*,,$(obj)/$*.dtb)
  
-+
-+#define KERNEL_DTB()							\
-+	. = ALIGN(DTB_ALIGNMENT);					\
-+	VMLINUX_SYMBOL(__dtb_start) = .;				\
-+	*(.dtb.init.rodata)						\
-+	VMLINUX_SYMBOL(__dtb_end) = .;
-+
- /* .data section */
- #define DATA_DATA							\
- 	*(.data)							\
-@@ -468,7 +482,8 @@
- 	MCOUNT_REC()							\
- 	DEV_DISCARD(init.rodata)					\
- 	CPU_DISCARD(init.rodata)					\
--	MEM_DISCARD(init.rodata)
-+	MEM_DISCARD(init.rodata)					\
-+	KERNEL_DTB()
+-# Rule to build device tree blobs
+-DTC = $(objtree)/scripts/dtc/dtc
+-
+-$(obj)/%.dtb: $(dtstree)/%.dts
+-	$(DTC) -O dtb -o $(obj)/$*.dtb -b 0 $(DTS_FLAGS) $(dtstree)/$*.dts
  
- #define INIT_TEXT							\
- 	*(.init.text)							\
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 4c72c11..29db062 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -200,6 +200,26 @@ quiet_cmd_gzip = GZIP    $@
- cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -f -9 > $@) || \
- 	(rm -f $@ ; false)
- 
-+# DTC
-+#  ---------------------------------------------------------------------------
-+$(obj)/%.dtb.S: $(obj)/%.dtb FORCE
-+	@echo '#include <asm-generic/vmlinux.lds.h>' > $@
-+	@echo '.section .dtb.init.rodata,"a"' >> $@
-+	@echo '.balign DTB_ALIGNMENT' >> $@
-+	@echo '.global __dtb_$(*F)_begin' >> $@
-+	@echo '__dtb_$(*F)_begin:' >> $@
-+	@echo '.incbin "$<" ' >> $@
-+	@echo '__dtb_$(*F)_end:' >> $@
-+	@echo '.global __dtb_$(*F)_end' >> $@
-+	@echo '.balign DTB_ALIGNMENT' >> $@
-+
-+DTC = $(objtree)/scripts/dtc/dtc
-+
-+quiet_cmd_dtc = DTC	$@
-+      cmd_dtc = $(DTC) -O dtb -o $(obj)/$*.dtb -b 0 $(DTS_FLAGS) $(src)/dts/$*.dts
-+
-+$(obj)/%.dtb: $(src)/dts/%.dts
-+	$(call if_changed,dtc)
- 
- # Bzip2
- # ---------------------------------------------------------------------------
+ # If there isn't a platform selected then just strip the vmlinux.
+ ifeq (,$(image-y))
 -- 
 1.7.2.3
 
