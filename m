@@ -1,84 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gir.skynet.ie ([193.1.99.77]:52646 "EHLO gir.skynet.ie"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756205Ab0KKMQA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Nov 2010 07:16:00 -0500
-Date: Thu, 11 Nov 2010 12:15:46 +0000
-From: Mel Gorman <mel@csn.ul.ie>
-Subject: [BUG] Commit d065bd81 severely regresses huge page allocation
-	success rates
-Message-ID: <20101111121545.GF19679@csn.ul.ie>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Disposition: inline
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:38110 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752168Ab0KPWmN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 17:42:13 -0500
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 0/5] Add the ability to link device blobs into vmlinux
+Date: Tue, 16 Nov 2010 14:41:35 -0800
+Message-ID: <cover.1289943240.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michel Lespinasse <walken@google.com>
-Cc: Rik van Riel <riel@redhat.com>, Wu Fengguang <fengguang.wu@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ying Han <yinghan@google.com>, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20101111121546.1D7p_ZuGijW8d4KFq0BiNCY8yp2HKTBfbDG02mdORUk@z>
+To: devicetree-discuss@lists.ozlabs.org
+Cc: sodaville@linutronix.de, arjan@linux.intel.com, dirk.brandewie@gmail.com, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20101116224135.zAbSmimDRRweR9vzKvlQhJpzY7c6CYA8cpWZ3Fmv2PU@z>
 
-When testing 2.6.37-rc1, I noticed that huge page allocation success
-rates were severely impaired. Bisection showed that commit [d065bd81: mm:
-retry page fault when blocking on disk transfer] was the biggest factor.
-Reverting the patch confirmed this. Here are the results of a high-order
-allocation stress test. The vanilla kernel is 2.6.37-rc1 and the revert
-kernel has this commit removed with minor conflicts cleaned up.
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-STRESS-HIGHALLOC
-             highalloc-vanilla   revert-d065bd81
-Pass 1           7.00 ( 0.00%)    73.00 (66.00%)
-Pass 2           7.00 ( 0.00%)    92.00 (85.00%)
-At Rest         13.00 ( 0.00%)    93.00 (80.00%)
+This patch set adds the ability to link device tree blob(s)
+directly into the vmlinux image and specify the blob to be used via a
+kernel command line option.
 
-The "pass 1" and "pass 2" are allocation attempts while the machine is
-under heavy load. One might expect that allocations fail there but when the
-machine is fully at rest, all memory freed and nothing else is going on,
-the pages still cannot be allocated.
+Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h,
+add generic rules for building and linking the DTB's into vmlinux.
 
-I had ftrace enabled and found this.
+Patch 2 adds the command line option, the functions for the
+platform code to retrieve the value passed in and locate the matching
+blob in the image.  This patch has been tested on x86.
 
-FTrace Reclaim Statistics: vmscan
-             				   vanilla revert-d065bd81
-Direct reclaims                               3687        889
-Direct reclaim pages scanned              39767013     195182
-Direct reclaim pages reclaimed              115079     107891
-Direct reclaim write file async I/O          13598       5777
-Direct reclaim write anon async I/O          70886      40954
-Direct reclaim write file sync I/O               0          0
-Direct reclaim write anon sync I/O              37        178
-Wake kswapd requests                          6508        868
-Kswapd wakeups                                1291        521
-Kswapd pages scanned                      77859381    3240330
-Kswapd pages reclaimed                     2548099    1965881
-Kswapd reclaim write file async I/O          51266      56838
-Kswapd reclaim write anon async I/O         935070     392199
-Kswapd reclaim write file sync I/O               0          0
-Kswapd reclaim write anon sync I/O               0          0
-Time stalled direct reclaim (seconds)      1160.57     636.24
-Time kswapd awake (seconds)                1453.81     654.25
+Patch 3-5 show using the generic dts->dtb rule in x86, microblaze and
+powerpc. The microblaze and powerpc patches have only been compile
+tested.
 
-Total pages scanned                      117626394   3435512
-Total pages reclaimed                      2663178   2073772
-%age total pages scanned/reclaimed           2.26%    60.36%
-%age total pages scanned/written             0.91%    14.44%
-%age  file pages scanned/written             0.06%     1.82%
-Percentage Time Spent Direct Reclaim        25.92%    15.98%
-Percentage Time kswapd Awake                65.57%    36.01%
+Dirk Brandewie (5):
+  of: Add support for linking device tree blobs into vmlinux
+  of/fdt: add kernel command line option for dtb_compat string
+  x86/of:  Add building device tree blob(s) into image.
+  of/powerpc: Move build to use generic dts->dtb rule
+  of/microblaze: Move build to use generic dts->dtb rule
 
-Reverting the commit improves overall reclaim behaviour when allocating huge
-pages. Note in particular the low percentage for scanned/reclaimed in the
-vanilla kernel which implies the vanilla kernel is endlessly scans pages it
-cannot reclaim. I also note that with the vanilla kernel that nr_inactive_*
-remains high but when the patch is reverted, it drops implying that the
-patch is preventing pages being reclaimed.
-
-It does not make a difference if compaction is used - the figures are
-still brutal.
-
-I have not digested what the patch is doing but am reporting it in case
-people familiar with the patch spot the problem quickly.
+ Documentation/kernel-parameters.txt |    7 +++++
+ arch/microblaze/boot/Makefile       |   13 +--------
+ arch/powerpc/boot/Makefile          |    7 -----
+ arch/x86/Kconfig                    |    6 +++-
+ arch/x86/kernel/Makefile            |    6 ++++
+ arch/x86/kernel/dts/Kconfig         |    7 +++++
+ drivers/of/fdt.c                    |   52 +++++++++++++++++++++++++++++++++++
+ include/asm-generic/vmlinux.lds.h   |   19 +++++++++++-
+ include/linux/of_fdt.h              |    4 +++
+ scripts/Makefile.lib                |   20 +++++++++++++
+ 10 files changed, 119 insertions(+), 22 deletions(-)
+ create mode 100644 arch/x86/kernel/dts/Kconfig
 
 -- 
-Mel Gorman
-Part-time Phd Student                          Linux Technology Center
-University of Limerick                         IBM Dublin Software Lab
+1.7.2.3
+
