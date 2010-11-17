@@ -1,247 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.35]:23029 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757675Ab0KQDll (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 22:41:41 -0500
-Received: from kpbe14.cbf.corp.google.com (kpbe14.cbf.corp.google.com [172.25.105.78])
-	by smtp-out.google.com with ESMTP id oAH3fUEE011515
-	for <linux-arch@vger.kernel.org>; Tue, 16 Nov 2010 19:41:30 -0800
-Received: from ywa6 (ywa6.prod.google.com [10.192.1.6])
-	by kpbe14.cbf.corp.google.com with ESMTP id oAH3f3HO014849
-	for <linux-arch@vger.kernel.org>; Tue, 16 Nov 2010 19:41:29 -0800
-Received: by ywa6 with SMTP id 6so955012ywa.12
-        for <linux-arch@vger.kernel.org>; Tue, 16 Nov 2010 19:41:28 -0800 (PST)
-Date: Tue, 16 Nov 2010 19:41:25 -0800 (PST)
-From: David Rientjes <rientjes@google.com>
-Subject: [patch 3/3] mm: unify module_alloc code for vmalloc
-In-Reply-To: <alpine.DEB.2.00.1011161935500.19230@chino.kir.corp.google.com>
-Message-ID: <alpine.DEB.2.00.1011161938570.19230@chino.kir.corp.google.com>
-References: <alpine.DEB.2.00.1011161935500.19230@chino.kir.corp.google.com>
+Received: from mail-qw0-f46.google.com ([209.85.216.46]:41708 "EHLO
+	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752332Ab0KQDpn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 22:45:43 -0500
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Date: Tue, 16 Nov 2010 22:45:42 -0500
+Message-ID: <AANLkTinop4_JT4JLtdmWkydPgDDU=TyZNbtiBbgeh1dj@mail.gmail.com>
+Subject: Behavior of BUG() [Was: Re: [PATCH 2/5] of/fdt: add kernel command
+ line option for dtb_compat string]
+From: Arnaud Lacombe <lacombar@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Lameter <cl@linux.com>, Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20101117034125.alc03uRBCKC265yW9ZdDjUdJhe7csLvfZBRhejee8sc@z>
+To: Matt Mackall <mpm@selenic.com>, linux-kernel@vger.kernel.org
+Cc: dirk.brandewie@gmail.com, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>
+Message-ID: <20101117034542._bG2o4LqjCCe-0rpZvvKVfWydDPXFiKjpjPjujV5upg@z>
 
-Four architectures (arm, mips, sparc, x86) use __vmalloc_area() for
-module_init().  Much of the code is duplicated and can be generalized in
-a globally accessible function, __vmalloc_node_range().
+Hi,
 
-__vmalloc_node() now calls into __vmalloc_node_range() with a range of
-[VMALLOC_START, VMALLOC_END) for functionally equivalent behavior.
+[CC: list reduced as starting a new thread, most on the context
+removed as this concern a different issue.]
 
-Each architecture may then use __vmalloc_node_range() directly to remove
-the duplication of code.
+On Tue, Nov 16, 2010 at 7:16 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
+> On Tue, Nov 16, 2010 at 3:41 PM,  <dirk.brandewie@gmail.com> wrote:
+>> From: Dirk Brandewie <dirk.brandewie@gmail.com>
+>> [...]
+> The kernel needs to complain *loudly* if this occurs because it
+> represents a bug.  I'm tempted to say use BUG, but that would halt the
+> kernel and prevent any possibility of kernel log output.
+> [...]
+does it ? if CONFIG_BUG is not enabled and the arch has no define for
+it, the default does _nothing_:
 
-Signed-off-by: David Rientjes <rientjes@google.com>
----
- arch/arm/kernel/module.c   |   14 ++---------
- arch/mips/kernel/module.c  |   14 ++---------
- arch/sparc/kernel/module.c |   14 +++--------
- arch/x86/kernel/module.c   |   17 +++-----------
- include/linux/vmalloc.h    |    5 ++-
- mm/vmalloc.c               |   50 +++++++++++++++++++++++++------------------
- 6 files changed, 46 insertions(+), 68 deletions(-)
+from `include/asm-generic/bug.h':
 
-diff --git a/arch/arm/kernel/module.c b/arch/arm/kernel/module.c
---- a/arch/arm/kernel/module.c
-+++ b/arch/arm/kernel/module.c
-@@ -38,17 +38,9 @@
- #ifdef CONFIG_MMU
- void *module_alloc(unsigned long size)
- {
--	struct vm_struct *area;
--
--	size = PAGE_ALIGN(size);
--	if (!size)
--		return NULL;
--
--	area = __get_vm_area(size, VM_ALLOC, MODULES_VADDR, MODULES_END);
--	if (!area)
--		return NULL;
--
--	return __vmalloc_area(area, GFP_KERNEL, PAGE_KERNEL_EXEC);
-+	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
-+				GFP_KERNEL, PAGE_KERNEL_EXEC, -1,
-+				__builtin_return_address(0));
- }
- #else /* CONFIG_MMU */
- void *module_alloc(unsigned long size)
-diff --git a/arch/mips/kernel/module.c b/arch/mips/kernel/module.c
---- a/arch/mips/kernel/module.c
-+++ b/arch/mips/kernel/module.c
-@@ -46,17 +46,9 @@ static DEFINE_SPINLOCK(dbe_lock);
- void *module_alloc(unsigned long size)
- {
- #ifdef MODULE_START
--	struct vm_struct *area;
--
--	size = PAGE_ALIGN(size);
--	if (!size)
--		return NULL;
--
--	area = __get_vm_area(size, VM_ALLOC, MODULE_START, MODULE_END);
--	if (!area)
--		return NULL;
--
--	return __vmalloc_area(area, GFP_KERNEL, PAGE_KERNEL);
-+	return __vmalloc_node_range(size, 1, MODULE_START, MODULE_END,
-+				GFP_KERNEL, PAGE_KERNEL, -1,
-+				__builtin_return_address(0));
- #else
- 	if (size == 0)
- 		return NULL;
-diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
---- a/arch/sparc/kernel/module.c
-+++ b/arch/sparc/kernel/module.c
-@@ -23,17 +23,11 @@
- 
- static void *module_map(unsigned long size)
- {
--	struct vm_struct *area;
--
--	size = PAGE_ALIGN(size);
--	if (!size || size > MODULES_LEN)
--		return NULL;
--
--	area = __get_vm_area(size, VM_ALLOC, MODULES_VADDR, MODULES_END);
--	if (!area)
-+	if (PAGE_ALIGN(size) > MODULES_LEN)
- 		return NULL;
--
--	return __vmalloc_area(area, GFP_KERNEL, PAGE_KERNEL);
-+	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
-+				GFP_KERNEL, PAGE_KERNEL, -1,
-+				__builtin_return_address(0));
- }
- 
- static char *dot2underscore(char *name)
-diff --git a/arch/x86/kernel/module.c b/arch/x86/kernel/module.c
---- a/arch/x86/kernel/module.c
-+++ b/arch/x86/kernel/module.c
-@@ -37,20 +37,11 @@
- 
- void *module_alloc(unsigned long size)
- {
--	struct vm_struct *area;
--
--	if (!size)
--		return NULL;
--	size = PAGE_ALIGN(size);
--	if (size > MODULES_LEN)
-+	if (PAGE_ALIGN(size) > MODULES_LEN)
- 		return NULL;
--
--	area = __get_vm_area(size, VM_ALLOC, MODULES_VADDR, MODULES_END);
--	if (!area)
--		return NULL;
--
--	return __vmalloc_area(area, GFP_KERNEL | __GFP_HIGHMEM,
--					PAGE_KERNEL_EXEC);
-+	return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
-+				GFP_KERNEL | __GFP_HIGHMEM, PAGE_KERNEL_EXEC,
-+				-1, __builtin_return_address(0));
- }
- 
- /* Free memory returned from module_alloc */
-diff --git a/include/linux/vmalloc.h b/include/linux/vmalloc.h
---- a/include/linux/vmalloc.h
-+++ b/include/linux/vmalloc.h
-@@ -61,8 +61,9 @@ extern void *vmalloc_exec(unsigned long size);
- extern void *vmalloc_32(unsigned long size);
- extern void *vmalloc_32_user(unsigned long size);
- extern void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot);
--extern void *__vmalloc_area(struct vm_struct *area, gfp_t gfp_mask,
--				pgprot_t prot);
-+extern void *__vmalloc_node_range(unsigned long size, unsigned long align,
-+			unsigned long start, unsigned long end, gfp_t gfp_mask,
-+			pgprot_t prot, int node, void *caller);
- extern void vfree(const void *addr);
- 
- extern void *vmap(struct page **pages, unsigned int count,
-diff --git a/mm/vmalloc.c b/mm/vmalloc.c
---- a/mm/vmalloc.c
-+++ b/mm/vmalloc.c
-@@ -1524,25 +1524,12 @@ fail:
- 	return NULL;
- }
- 
--void *__vmalloc_area(struct vm_struct *area, gfp_t gfp_mask, pgprot_t prot)
--{
--	void *addr = __vmalloc_area_node(area, gfp_mask, prot, -1,
--					 __builtin_return_address(0));
--
--	/*
--	 * A ref_count = 3 is needed because the vm_struct and vmap_area
--	 * structures allocated in the __get_vm_area_node() function contain
--	 * references to the virtual address of the vmalloc'ed block.
--	 */
--	kmemleak_alloc(addr, area->size - PAGE_SIZE, 3, gfp_mask);
--
--	return addr;
--}
--
- /**
-- *	__vmalloc_node  -  allocate virtually contiguous memory
-+ *	__vmalloc_node_range  -  allocate virtually contiguous memory
-  *	@size:		allocation size
-  *	@align:		desired alignment
-+ *	@start:		vm area range start
-+ *	@end:		vm area range end
-  *	@gfp_mask:	flags for the page level allocator
-  *	@prot:		protection mask for the allocated pages
-  *	@node:		node to use for allocation or -1
-@@ -1552,9 +1539,9 @@ void *__vmalloc_area(struct vm_struct *area, gfp_t gfp_mask, pgprot_t prot)
-  *	allocator with @gfp_mask flags.  Map them into contiguous
-  *	kernel virtual space, using a pagetable protection of @prot.
-  */
--static void *__vmalloc_node(unsigned long size, unsigned long align,
--			    gfp_t gfp_mask, pgprot_t prot,
--			    int node, void *caller)
-+void *__vmalloc_node_range(unsigned long size, unsigned long align,
-+			unsigned long start, unsigned long end, gfp_t gfp_mask,
-+			pgprot_t prot, int node, void *caller)
- {
- 	struct vm_struct *area;
- 	void *addr;
-@@ -1564,8 +1551,8 @@ static void *__vmalloc_node(unsigned long size, unsigned long align,
- 	if (!size || (size >> PAGE_SHIFT) > totalram_pages)
- 		return NULL;
- 
--	area = __get_vm_area_node(size, align, VM_ALLOC, VMALLOC_START,
--				  VMALLOC_END, node, gfp_mask, caller);
-+	area = __get_vm_area_node(size, align, VM_ALLOC, start, end, node,
-+				  gfp_mask, caller);
- 
- 	if (!area)
- 		return NULL;
-@@ -1582,6 +1569,27 @@ static void *__vmalloc_node(unsigned long size, unsigned long align,
- 	return addr;
- }
- 
-+/**
-+ *	__vmalloc_node  -  allocate virtually contiguous memory
-+ *	@size:		allocation size
-+ *	@align:		desired alignment
-+ *	@gfp_mask:	flags for the page level allocator
-+ *	@prot:		protection mask for the allocated pages
-+ *	@node:		node to use for allocation or -1
-+ *	@caller:	caller's return address
-+ *
-+ *	Allocate enough pages to cover @size from the page level
-+ *	allocator with @gfp_mask flags.  Map them into contiguous
-+ *	kernel virtual space, using a pagetable protection of @prot.
-+ */
-+static void *__vmalloc_node(unsigned long size, unsigned long align,
-+			    gfp_t gfp_mask, pgprot_t prot,
-+			    int node, void *caller)
-+{
-+	return __vmalloc_node_range(size, align, VMALLOC_START, VMALLOC_END,
-+				gfp_mask, prot, node, caller);
-+}
-+
- void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
- {
- 	return __vmalloc_node(size, 1, gfp_mask, prot, -1,
+#else /* !CONFIG_BUG */
+#ifndef HAVE_ARCH_BUG
+#define BUG() do {} while(0)
+#endif
+
+#ifndef HAVE_ARCH_BUG_ON
+#define BUG_ON(condition) do { if (condition) ; } while(0)
+#endif
+[...]
+
+gcc is triggering about ~30 warnings (like [0]) on code path using
+BUG(). Most of these path assume BUG() will never return, which is not
+true.
+
+The commit message introducing this behavior state:
+
+commit c8538a7aa5527d02c7191ac5da124efadf6a2827
+Author: Matt Mackall <mpm@selenic.com>
+Date:   Sun May 1 08:59:01 2005 -0700
+
+    [PATCH] remove all kernel BUGs
+
+    This patch eliminates all kernel BUGs, trims about 35k off the typical
+    kernel, and makes the system slightly faster.
+
+    Signed-off-by: Matt Mackall <mpm@selenic.com>
+    Signed-off-by: Andrew Morton <akpm@osdl.org>
+    Signed-off-by: Linus Torvalds <torvalds@osdl.org>
+
+[...]
+
++config BUG
++       bool "BUG() support" if EMBEDDED
++       default y
++       help
++          Disabling this option eliminates support for BUG and WARN, reducing
++          the size of your kernel image and potentially quietly ignoring
++          numerous fatal conditions. You should only consider disabling this
++          option for embedded systems with no facilities for reporting errors.
+
+So how should BUG() been used ?
+ 1) assuming it will never _ever_ return ?
+ 2) assuming it may return ?
+
+if (1), its definition has to be changed, if (2) a lot of path have to be fixed.
+
+Thanks in advance,
+ - Arnaud
+
+[0]: fs/dcache.c:1899:1: warning: control reaches end of non-void
+function, line match an old revision, but the BUG() is still there.
