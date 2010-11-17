@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qw0-f46.google.com ([209.85.216.46]:37556 "EHLO
-	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757894Ab0KQEU7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 23:20:59 -0500
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:51104 "EHLO
+	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932768Ab0KQE36 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Nov 2010 23:29:58 -0500
 MIME-Version: 1.0
-In-Reply-To: <1289966843.26343.359.camel@calx>
+In-Reply-To: <AANLkTimQtXeCE1Gu4YuPBBZ_J3ieW6Z5JtvzF=hF7pWX@mail.gmail.com>
 References: <AANLkTinop4_JT4JLtdmWkydPgDDU=TyZNbtiBbgeh1dj@mail.gmail.com>
-	<1289966843.26343.359.camel@calx>
-Date: Tue, 16 Nov 2010 23:20:59 -0500
-Message-ID: <AANLkTimrR7DEsgtG=+fJzvdaiKQA-kj8KWU5i2qDWK8Q@mail.gmail.com>
+	<AANLkTimQtXeCE1Gu4YuPBBZ_J3ieW6Z5JtvzF=hF7pWX@mail.gmail.com>
+Date: Tue, 16 Nov 2010 23:29:57 -0500
+Message-ID: <AANLkTinz27cfdNKEtyUo9f3nuw+XbZ2Osz0ThRiOQnnL@mail.gmail.com>
 Subject: Re: Behavior of BUG() [Was: Re: [PATCH 2/5] of/fdt: add kernel
  command line option for dtb_compat string]
 From: Arnaud Lacombe <lacombar@gmail.com>
@@ -16,40 +16,58 @@ Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Mackall <mpm@selenic.com>
-Cc: linux-kernel@vger.kernel.org, dirk.brandewie@gmail.com, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20101117042059.3PkeBXWkTmsDkprGUqiu3J4NwASeuivenk7H5ZhUjQU@z>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Matt Mackall <mpm@selenic.com>, linux-kernel@vger.kernel.org, dirk.brandewie@gmail.com, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
+Message-ID: <20101117042957.ShmxywYo854DY3kx7MY02r84bV9VKhDR_1gFh3kHosI@z>
 
 Hi,
 
-On Tue, Nov 16, 2010 at 11:07 PM, Matt Mackall <mpm@selenic.com> wrote:
-> On Tue, 2010-11-16 at 22:45 -0500, Arnaud Lacombe wrote:
+On Tue, Nov 16, 2010 at 11:13 PM, Grant Likely
+<grant.likely@secretlab.ca> wrote:
+> On Tue, Nov 16, 2010 at 8:45 PM, Arnaud Lacombe <lacombar@gmail.com> wrote:
 >> Hi,
 >>
 >> [CC: list reduced as starting a new thread, most on the context
 >> removed as this concern a different issue.]
 >>
 >> On Tue, Nov 16, 2010 at 7:16 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
->> > On Tue, Nov 16, 2010 at 3:41 PM,  <dirk.brandewie@gmail.com> wrote:
->> >> From: Dirk Brandewie <dirk.brandewie@gmail.com>
->> >> [...]
->> > The kernel needs to complain *loudly* if this occurs because it
->> > represents a bug.  I'm tempted to say use BUG, but that would halt the
->> > kernel and prevent any possibility of kernel log output.
->> > [...]
+>>> On Tue, Nov 16, 2010 at 3:41 PM,  <dirk.brandewie@gmail.com> wrote:
+>>>> From: Dirk Brandewie <dirk.brandewie@gmail.com>
+>>>> [...]
+>>> The kernel needs to complain *loudly* if this occurs because it
+>>> represents a bug.  I'm tempted to say use BUG, but that would halt the
+>>> kernel and prevent any possibility of kernel log output.
+>>> [...]
 >> does it ? if CONFIG_BUG is not enabled and the arch has no define for
 >> it, the default does _nothing_:
+>>
+>> from `include/asm-generic/bug.h':
+>>
+>> #else /* !CONFIG_BUG */
+>> #ifndef HAVE_ARCH_BUG
+>> #define BUG() do {} while(0)
+>> #endif
+>>
+>> #ifndef HAVE_ARCH_BUG_ON
+>> #define BUG_ON(condition) do { if (condition) ; } while(0)
+>> #endif
+>> [...]
+>>
+>> gcc is triggering about ~30 warnings (like [0]) on code path using
+>> BUG(). Most of these path assume BUG() will never return, which is not
+>> true.
 >
-> That's because CONFIG_BUG=N is intended for machines where logging is
-> irrelevant/impossible.
+> As far as I know, BUG() is not supposed to return.  Period.
 >
-Yes, but it is still a no-op, where the original programmer made it
-clear he did not want the kernel to go further.
+but the code I pointed out _do_ return.
 
-> You are encouraged to ignore all options under
-> CONFIG_EMBEDDED when trying to have a sensible discussion.
+> The patch
+> below is part of the linux-tiny work, and should only ever be used on
+> embedded systems where small size is more important than debugability.
 >
-Unless it creates a situation where it does the opposite of what the
-intended behavior, I would guess.
+AFAIK, this is not precised anywhere, but I may not have search enough.
+
+Matt, any reason the generic code does not just spin (or OOPS) and
+marked __noreturn in any case ?
 
  - Arnaud
