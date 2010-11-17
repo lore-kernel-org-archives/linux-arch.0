@@ -1,56 +1,137 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH 2/5] of/fdt: add kernel command line option for dtb_compat string
-Date: Tue, 16 Nov 2010 17:16:14 -0700
-Message-ID: <AANLkTik2TP_DUWstn_qmq1oz4HaPHqkoGkN5f1oUiHQa@mail.gmail.com>
-References: <cover.1289943240.git.dirk.brandewie@gmail.com> <348d48851a244bbd60bbfc4d60bee330e5c91eae.1289943240.git.dirk.brandewie@gmail.com>
+From: David Daney <ddaney@caviumnetworks.com>
+Subject: Re: [PATCH 1/5] of: Add support for linking device tree blobs into
+ vmlinux
+Date: Tue, 16 Nov 2010 16:39:47 -0800
+Message-ID: <4CE32453.2090403@caviumnetworks.com>
+References: <cover.1289943240.git.dirk.brandewie@gmail.com> <9129f0a21ea48fb2dcb89cea290e88f3e8c0d8a2.1289943240.git.dirk.brandewie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <348d48851a244bbd60bbfc4d60bee330e5c91eae.1289943240.git.dirk.brandewie@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <9129f0a21ea48fb2dcb89cea290e88f3e8c0d8a2.1289943240.git.dirk.brandewie@gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: dirk.brandewie@gmail.com
-Cc: devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, sodaville@linutronix.de, microblaze-uclinux@itee.uq.edu.au, arjan@linux.intel.com
+Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, arjan@linux.intel.com, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 16, 2010 at 3:41 PM,  <dirk.brandewie@gmail.com> wrote:
-> From: Dirk Brandewie <dirk.brandewie@gmail.com>
+Thanks for doing this.  However I have a few comments...
+
+On 11/16/2010 02:41 PM, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie<dirk.brandewie@gmail.com>
 >
-> Adds a kernel command line option "dtb_compat=3D<string>" and functio=
-ns
-> for architecture/platform specific code to retrieve the command line
-> string and locate the compatible DTB linked into the kernel
+> This patch adds support for linking device tree blobs into
+> vmlinux. Modifies asm-generic/vmlinux.lds.h to add linking
+> .dtb.init.rodata sections into the .init.data section of the vmlinux
+> image. Modifies scripts/Makefile.lib to add a kbuild command to
+> compile DTS files to device tree blobs and a rule to create objects to
+> wrap the blobs for linking.
 >
-> of_flat_dt_get_dtb_compatible_string() returns a pointer string passe=
-d
-> from the command line or a pointer to an empty string.
+> The DTB's are placed on 32 byte boundries to allow parsing the blob
+> with driver/of/fdt.c during early boot without having to copy the blob
+> to get the structure alignment GCC expects.
 >
-> of_flat_dt_find_compatible_dtb() returns a pointer to a DTB that is
-> compatible with the "compatible" string or a NULL pointer if no
-> matching DTB is present.
+> A DTB is linked in by adding the DTB object to the list of objects to
+> be linked into vmlinux in the archtecture specific Makefile using
+>     obj-y += foo.dtb.o
 >
-> Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
+> Signed-off-by: Dirk Brandewie<dirk.brandewie@gmail.com>
 > ---
-[...]
-> +void __init *of_flat_dt_find_compatible_dtb(char *name)
-> +{
-> + =A0 =A0 =A0 void *rc =3D NULL;
-> + =A0 =A0 =A0 unsigned long root, size;
-> + =A0 =A0 =A0 struct boot_param_header =A0*orig_initial_boot_params;
-> + =A0 =A0 =A0 uint8_t *blob;
+>   include/asm-generic/vmlinux.lds.h |   19 +++++++++++++++++--
+>   scripts/Makefile.lib              |   20 ++++++++++++++++++++
+>   2 files changed, 37 insertions(+), 2 deletions(-)
+>
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index bd69d79..ea671e7 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -67,7 +67,14 @@
+>    * Align to a 32 byte boundary equal to the
+>    * alignment gcc 4.5 uses for a struct
+>    */
+> -#define STRUCT_ALIGN() . = ALIGN(32)
+> +#define STRUCT_ALIGNMENT 32
+> +#define STRUCT_ALIGN() . = ALIGN(STRUCT_ALIGNMENT)
 > +
-> + =A0 =A0 =A0 orig_initial_boot_params =3D initial_boot_params;
-> + =A0 =A0 =A0 blob =3D __dtb_start;
-> + =A0 =A0 =A0 initial_boot_params =3D (struct boot_param_header *)blo=
-b;
+> +/* Device tree blobs linked into the kernel need to have proper
+> + * structure alignment to be parsed by the flat device tree library
+> + * used in early boot
+> +*/
+> +#define DTB_ALIGNMENT STRUCT_ALIGNMENT
+>
+>   /* The actual configuration determine if the init/exit sections
+>    * are handled as text/data or they can be discarded (which
+> @@ -146,6 +153,13 @@
+>   #define TRACE_SYSCALLS()
+>   #endif
+>
 > +
-> + =A0 =A0 =A0 while (blob < __dtb_end &&
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 (be32_to_cpu(initial_boot_params->magic=
-) =3D=3D OF_DT_HEADER)) {
+> +#define KERNEL_DTB()							\
+> +	. = ALIGN(DTB_ALIGNMENT);					\
+> +	VMLINUX_SYMBOL(__dtb_start) = .;				\
+> +	*(.dtb.init.rodata)						\
+> +	VMLINUX_SYMBOL(__dtb_end) = .;
+> +
+>   /* .data section */
+>   #define DATA_DATA							\
+>   	*(.data)							\
+> @@ -468,7 +482,8 @@
+>   	MCOUNT_REC()							\
+>   	DEV_DISCARD(init.rodata)					\
+>   	CPU_DISCARD(init.rodata)					\
+> -	MEM_DISCARD(init.rodata)
+> +	MEM_DISCARD(init.rodata)					\
+> +	KERNEL_DTB()
+>
 
-The kernel needs to complain *loudly* if this occurs because it
-represents a bug.  I'm tempted to say use BUG, but that would halt the
-kernel and prevent any possibility of kernel log output.  WARN_ON() is
-probably best.
+I thought the init.rodata was only for data used by __init things. 
+Although the current linker scripts do not put it in the section that 
+gets recycled as usable memory.
 
-g.
+IIRC the unflattened version of the device tree has pointers to the 
+flattened data.  Since the device tree nodes are live for the entire 
+kernel lifecycle, shouldn't the device tree blobs be in non-init memory?
+
+
+>   #define INIT_TEXT							\
+>   	*(.init.text)							\
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 4c72c11..29db062 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -200,6 +200,26 @@ quiet_cmd_gzip = GZIP    $@
+>   cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -f -9>  $@) || \
+>   	(rm -f $@ ; false)
+>
+> +# DTC
+> +#  ---------------------------------------------------------------------------
+> +$(obj)/%.dtb.S: $(obj)/%.dtb FORCE
+
+Why FORCE?
+
+
+> +	@echo '#include<asm-generic/vmlinux.lds.h>'>  $@
+> +	@echo '.section .dtb.init.rodata,"a"'>>  $@
+> +	@echo '.balign DTB_ALIGNMENT'>>  $@
+> +	@echo '.global __dtb_$(*F)_begin'>>  $@
+> +	@echo '__dtb_$(*F)_begin:'>>  $@
+> +	@echo '.incbin "$<" '>>  $@
+> +	@echo '__dtb_$(*F)_end:'>>  $@
+> +	@echo '.global __dtb_$(*F)_end'>>  $@
+> +	@echo '.balign DTB_ALIGNMENT'>>  $@
+> +
+> +DTC = $(objtree)/scripts/dtc/dtc
+> +
+> +quiet_cmd_dtc = DTC	$@
+> +      cmd_dtc = $(DTC) -O dtb -o $(obj)/$*.dtb -b 0 $(DTS_FLAGS) $(src)/dts/$*.dts
+> +
+> +$(obj)/%.dtb: $(src)/dts/%.dts
+> +	$(call if_changed,dtc)
+>
+
+Do all the generated files get cleaned up?
+
+I will try it tomorrow to see for sure.
+
+
+Thanks,
+David Daney
