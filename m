@@ -1,88 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from waste.org ([173.11.57.241]:57781 "EHLO waste.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932950Ab0KQEoK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Nov 2010 23:44:10 -0500
-Subject: Re: Behavior of BUG() [Was: Re: [PATCH 2/5] of/fdt: add kernel
- command line option for dtb_compat string]
-From: Matt Mackall <mpm@selenic.com>
-In-Reply-To: <AANLkTinz27cfdNKEtyUo9f3nuw+XbZ2Osz0ThRiOQnnL@mail.gmail.com>
-References: <AANLkTinop4_JT4JLtdmWkydPgDDU=TyZNbtiBbgeh1dj@mail.gmail.com>
-	 <AANLkTimQtXeCE1Gu4YuPBBZ_J3ieW6Z5JtvzF=hF7pWX@mail.gmail.com>
-	 <AANLkTinz27cfdNKEtyUo9f3nuw+XbZ2Osz0ThRiOQnnL@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 16 Nov 2010 22:44:06 -0600
-Message-ID: <1289969046.26343.380.camel@calx>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:38917 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933592Ab0KQGCc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Nov 2010 01:02:32 -0500
+Date: Tue, 16 Nov 2010 23:02:27 -0700
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 3/5] x86/of:  Add building device tree blob(s) into
+ image.
+Message-ID: <20101117060227.GH12813@angua.secretlab.ca>
+References: <cover.1289943240.git.dirk.brandewie@gmail.com>
+ <35263573f57fd7e780dede628cf489212bfa1400.1289943240.git.dirk.brandewie@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <35263573f57fd7e780dede628cf489212bfa1400.1289943240.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnaud Lacombe <lacombar@gmail.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, linux-kernel@vger.kernel.org, dirk.brandewie@gmail.com, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org
-Message-ID: <20101117044406.kI_6C_mleNx-84GTXNOvip3tkChZjMF0y7tyi6K0lGk@z>
+To: dirk.brandewie@gmail.com
+Cc: devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, sodaville@linutronix.de, microblaze-uclinux@itee.uq.edu.au, arjan@linux.intel.com
+Message-ID: <20101117060227.stEr7Hz5YGxKKM-DkLlySrYQWL89b9OVmI07HPD4JGo@z>
 
-On Tue, 2010-11-16 at 23:29 -0500, Arnaud Lacombe wrote:
-> Hi,
+On Tue, Nov 16, 2010 at 02:41:38PM -0800, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie <dirk.brandewie@gmail.com>
 > 
-> On Tue, Nov 16, 2010 at 11:13 PM, Grant Likely
-> <grant.likely@secretlab.ca> wrote:
-> > On Tue, Nov 16, 2010 at 8:45 PM, Arnaud Lacombe <lacombar@gmail.com> wrote:
-> >> Hi,
-> >>
-> >> [CC: list reduced as starting a new thread, most on the context
-> >> removed as this concern a different issue.]
-> >>
-> >> On Tue, Nov 16, 2010 at 7:16 PM, Grant Likely <grant.likely@secretlab.ca> wrote:
-> >>> On Tue, Nov 16, 2010 at 3:41 PM,  <dirk.brandewie@gmail.com> wrote:
-> >>>> From: Dirk Brandewie <dirk.brandewie@gmail.com>
-> >>>> [...]
-> >>> The kernel needs to complain *loudly* if this occurs because it
-> >>> represents a bug.  I'm tempted to say use BUG, but that would halt the
-> >>> kernel and prevent any possibility of kernel log output.
-> >>> [...]
-> >> does it ? if CONFIG_BUG is not enabled and the arch has no define for
-> >> it, the default does _nothing_:
-> >>
-> >> from `include/asm-generic/bug.h':
-> >>
-> >> #else /* !CONFIG_BUG */
-> >> #ifndef HAVE_ARCH_BUG
-> >> #define BUG() do {} while(0)
-> >> #endif
-> >>
-> >> #ifndef HAVE_ARCH_BUG_ON
-> >> #define BUG_ON(condition) do { if (condition) ; } while(0)
-> >> #endif
-> >> [...]
-> >>
-> >> gcc is triggering about ~30 warnings (like [0]) on code path using
-> >> BUG(). Most of these path assume BUG() will never return, which is not
-> >> true.
-> >
-> > As far as I know, BUG() is not supposed to return.  Period.
-> >
-> but the code I pointed out _do_ return.
+> This patch adds linking device tree blobs into vmlinux. DTB's are
+> added by adding the blob object name to list of objects to be linked
+> into the image.
+> e.g:
+>   obj-$(CONFIG_TEST_DTB) += test.dtb.o
 > 
-> > The patch
-> > below is part of the linux-tiny work, and should only ever be used on
-> > embedded systems where small size is more important than debugability.
-> >
-> AFAIK, this is not precised anywhere, but I may not have search enough.
+> The set of DTB linked into the image is controlled the Kconfig file
+> in arch/x86/kernel/dts/Kconfig
+> 
+> Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
+> ---
+>  arch/x86/Kconfig            |    6 +++++-
+>  arch/x86/kernel/Makefile    |    6 ++++++
+>  arch/x86/kernel/dts/Kconfig |    7 +++++++
+>  3 files changed, 18 insertions(+), 1 deletions(-)
+>  create mode 100644 arch/x86/kernel/dts/Kconfig
+> 
+> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+> index 5904f38..f2f516a 100644
+> --- a/arch/x86/Kconfig
+> +++ b/arch/x86/Kconfig
+> @@ -299,13 +299,17 @@ config X86_BIGSMP
+>  	---help---
+>  	  This option is needed for the systems that have more than 8 CPUs
+>  
+> -config X86_OF
+> +menuconfig X86_OF
+>  	bool "Support for device tree"
+>  	select OF
+>  	select OF_FLATTREE
+>  	---help---
+>  	  Device tree support on X86.
+>  
+> +if X86_OF
+> +source arch/x86/kernel/dts/Kconfig
+> +endif
+> +
+>  if X86_32
+>  config X86_EXTENDED_PLATFORM
+>  	bool "Support for extended (non-PC) x86 platforms"
+> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+> index 586df14..49e017d 100644
+> --- a/arch/x86/kernel/Makefile
+> +++ b/arch/x86/kernel/Makefile
+> @@ -114,6 +114,12 @@ obj-$(CONFIG_SWIOTLB)			+= pci-swiotlb.o
+>  obj-$(CONFIG_X86_OF)			+= prom.o
+>  
+>  ###
+> +# device tree blobs
+> +obj-$(CONFIG_CE4100_DTB) += ce4100.dtb.o
+> +obj-$(CONFIG_TEST_DTB) += test.dtb.o
+> +
+> +
+> +###
+>  # 64 bit specific files
+>  ifeq ($(CONFIG_X86_64),y)
+>  	obj-$(CONFIG_AUDIT)		+= audit_64.o
+> diff --git a/arch/x86/kernel/dts/Kconfig b/arch/x86/kernel/dts/Kconfig
+> new file mode 100644
+> index 0000000..d3e5cd4
+> --- /dev/null
+> +++ b/arch/x86/kernel/dts/Kconfig
+> @@ -0,0 +1,7 @@
+> +config CE4100_DTB
+> +       bool "Intel CE4100"
+> +
+> +config TEST_DTB
+> +       bool "Test DTS"
+> +
+> +
 
-Read the help for CONFIG_BUG and CONFIG_EMBEDDED.
+As previously mentioned, this isn't going to scale.  Need to look at
+allowing the user to specify a list of .dtbs that will be linked in.
 
-> Matt, any reason the generic code does not just spin (or OOPS) and
-> marked __noreturn in any case ?
+g.
 
-Yes. Spinning and oopsing take space. Function calls take space. The
-whole damn point of this option is to say is _we don't care about BUGs,
-we care about space_. In other words, this code is a hack and is marked
-as such. Arguing about "correctness" here is a waste of time, it's
-intentionally not correct.
-
-I seem to recall attempting to fool GCC with a __noreturn and failing.
-
--- 
-Mathematics is the supreme nostalgia of our time.
-
-
+> -- 
+> 1.7.2.3
+> 
+> _______________________________________________
+> devicetree-discuss mailing list
+> devicetree-discuss@lists.ozlabs.org
+> https://lists.ozlabs.org/listinfo/devicetree-discuss
