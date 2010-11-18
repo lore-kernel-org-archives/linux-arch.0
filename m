@@ -1,34 +1,31 @@
-From: Jesmina Domingez <jdmh1083@gmail.com>
-Subject: Your first payment has been made,so contact Mr Kone
-Date: Thu, 18 Nov 2010 07:49:15 -0800 (PST)
-Message-ID: <778005.76335.qm@web83706.mail.sp1.yahoo.com>
-Reply-To: jdmh1083@gmail.com
+From: <akande11@cox.net>
+Subject: XMAS BONANZA
+Date: Thu, 18 Nov 2010 12:42:14 -0800
+Message-ID: <20101118154216.LVPZ8.137379.imail__41432.5800295503$1290115176$gmane$org@fed1rmwml46>
+Reply-To: ericdonald200@aol.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from web83706.mail.sp1.yahoo.com ([69.147.85.74]:24876 "HELO
-	web83706.mail.sp1.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1759366Ab0KRQDz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 18 Nov 2010 11:03:55 -0500
+Received: from fed1rmpop108.cox.net ([68.230.241.12]:32828 "EHLO
+	fed1rmpop108.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752910Ab0KRVT0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Nov 2010 16:19:26 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+You were selected in the British award  that  took place
+November 5th, and you are to claim  the amount
+of one million Pounds which means you are one of our  lucky
+recipents, Your  number is: (CT-222-6747,FGN/P-900-56).
 
-Greetings!!!!
 
-We have concluded yesterday with the Governor of Eco Bank here in Burkina-Faso that you should start receiving your payment of $1M USD through western union money transfer from tomorrow,But you will be receiving $6000 usd only per a day, so you are advice to contact the western union director your informations.
+You are to send us this info
 
-Reciever's Names........
-Country.......
-Home Address.........
-Telephone No.......
-
-Here is there info Mr.David Kone the western union director.
-
-E-mail( eco.western_union.burkina1949@live.fr )
-
-Phone +226 79076009
-
-Yours in service,
-Jesmina Domingez
+NAME IN FULL: 
+DELIVERY ADDRESS: 
+AGE: 
+NATIONALITY: 
+OCCUPATION: 
+PHONE: 
+SEX:
