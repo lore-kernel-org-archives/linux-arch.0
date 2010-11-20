@@ -1,113 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:44368 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934439Ab0KQGnv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Nov 2010 01:43:51 -0500
-Message-ID: <4CE379A3.2060007@gmail.com>
-Date: Tue, 16 Nov 2010 22:43:47 -0800
-From: Dirk Brandewie <dirk.brandewie@gmail.com>
+Received: from pqueuea.post.tele.dk ([193.162.153.9]:51497 "EHLO
+	pqueuea.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753827Ab0KTNtA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Nov 2010 08:49:00 -0500
+Received: from pfepb.post.tele.dk (pfepb.post.tele.dk [195.41.46.236])
+	by pqueuea.post.tele.dk (Postfix) with ESMTP id 802EDDB963
+	for <linux-arch@vger.kernel.org>; Sat, 20 Nov 2010 14:19:36 +0100 (CET)
+Date: Sat, 20 Nov 2010 14:19:14 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Generic support for asm-generic headers [Was: a new UniCore32
+	arch-dependent patch for linux-2.6.37-rc1]
+Message-ID: <20101120131914.GA2396@merkur.ravnborg.org>
+References: <00a701cb8883$649d39f0$2dd7add0$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Subject: Re: [PATCH 3/5] x86/of:  Add building device tree blob(s) into image.
-References: <cover.1289943240.git.dirk.brandewie@gmail.com> <35263573f57fd7e780dede628cf489212bfa1400.1289943240.git.dirk.brandewie@gmail.com> <20101117060227.GH12813@angua.secretlab.ca>
-In-Reply-To: <20101117060227.GH12813@angua.secretlab.ca>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <00a701cb8883$649d39f0$2dd7add0$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, sodaville@linutronix.de, microblaze-uclinux@itee.uq.edu.au, arjan@linux.intel.com
-Message-ID: <20101117064347.vmTsygiDbLkabDkbwyEYPbwrlp9QCpgbURDxzOFGMd8@z>
+To: Guan <guanxuetao@mprc.pku.edu.cn>
+Cc: 'Arnd Bergmann' <arnd@arndb.de>, 'Greg KH' <greg@kroah.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Linus Torvalds' <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20101120131914.S_9B9X41I6OJc4D0EVb8h4TS4kmbmJJl5-mf7xe4RhQ@z>
 
-On 11/16/2010 10:02 PM, Grant Likely wrote:
-> On Tue, Nov 16, 2010 at 02:41:38PM -0800, dirk.brandewie@gmail.com wrote:
->> From: Dirk Brandewie<dirk.brandewie@gmail.com>
->>
->> This patch adds linking device tree blobs into vmlinux. DTB's are
->> added by adding the blob object name to list of objects to be linked
->> into the image.
->> e.g:
->>    obj-$(CONFIG_TEST_DTB) += test.dtb.o
->>
->> The set of DTB linked into the image is controlled the Kconfig file
->> in arch/x86/kernel/dts/Kconfig
->>
->> Signed-off-by: Dirk Brandewie<dirk.brandewie@gmail.com>
->> ---
->>   arch/x86/Kconfig            |    6 +++++-
->>   arch/x86/kernel/Makefile    |    6 ++++++
->>   arch/x86/kernel/dts/Kconfig |    7 +++++++
->>   3 files changed, 18 insertions(+), 1 deletions(-)
->>   create mode 100644 arch/x86/kernel/dts/Kconfig
->>
->> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
->> index 5904f38..f2f516a 100644
->> --- a/arch/x86/Kconfig
->> +++ b/arch/x86/Kconfig
->> @@ -299,13 +299,17 @@ config X86_BIGSMP
->>   	---help---
->>   	  This option is needed for the systems that have more than 8 CPUs
->>
->> -config X86_OF
->> +menuconfig X86_OF
->>   	bool "Support for device tree"
->>   	select OF
->>   	select OF_FLATTREE
->>   	---help---
->>   	  Device tree support on X86.
->>
->> +if X86_OF
->> +source arch/x86/kernel/dts/Kconfig
->> +endif
->> +
->>   if X86_32
->>   config X86_EXTENDED_PLATFORM
->>   	bool "Support for extended (non-PC) x86 platforms"
->> diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
->> index 586df14..49e017d 100644
->> --- a/arch/x86/kernel/Makefile
->> +++ b/arch/x86/kernel/Makefile
->> @@ -114,6 +114,12 @@ obj-$(CONFIG_SWIOTLB)			+= pci-swiotlb.o
->>   obj-$(CONFIG_X86_OF)			+= prom.o
->>
->>   ###
->> +# device tree blobs
->> +obj-$(CONFIG_CE4100_DTB) += ce4100.dtb.o
->> +obj-$(CONFIG_TEST_DTB) += test.dtb.o
->> +
->> +
->> +###
->>   # 64 bit specific files
->>   ifeq ($(CONFIG_X86_64),y)
->>   	obj-$(CONFIG_AUDIT)		+= audit_64.o
->> diff --git a/arch/x86/kernel/dts/Kconfig b/arch/x86/kernel/dts/Kconfig
->> new file mode 100644
->> index 0000000..d3e5cd4
->> --- /dev/null
->> +++ b/arch/x86/kernel/dts/Kconfig
->> @@ -0,0 +1,7 @@
->> +config CE4100_DTB
->> +       bool "Intel CE4100"
->> +
->> +config TEST_DTB
->> +       bool "Test DTS"
->> +
->> +
->
-> As previously mentioned, this isn't going to scale.  Need to look at
-> allowing the user to specify a list of .dtbs that will be linked in.
->
+> 
+> > > +#####
+> > > +# Auto Generate the files that only include the corresponding
+> asm-generic
+> > file
+> > > +#   6 files in 27-uc: errno.h fcntl.h ioctl.h poll.h resource.h
+> siginfo.h
+> > > +
+> > > +define cmd_asmgeneric
+> > > +	(set -e; \
+> > > +	 echo '#include <asm-generic/$(notdir $@)>' )	> $@
+> > > +endef
+> > 
+> > Nice trick. I'd love to have something like this in the common code so
+> > we can do the same for all architectures.
 
-These config variables will likely get pushed into being set when the
-platform configuration is selected. I still need to talk to the x86 maintainers
-and my distribution team to figure out what is going to happen here.
+Just a quick proof-of-concept hack.
 
-> g.
->
->> --
->> 1.7.2.3
->>
->> _______________________________________________
->> devicetree-discuss mailing list
->> devicetree-discuss@lists.ozlabs.org
->> https://lists.ozlabs.org/listinfo/devicetree-discuss
+	Sam
 
+diff --git a/Makefile b/Makefile
+index ab5359d..e878120 100644
+--- a/Makefile
++++ b/Makefile
+@@ -344,7 +344,9 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+ 
+ # Use LINUXINCLUDE when you must reference the include/ directory.
+ # Needed to be compatible with the O= option
+-LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
++LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
++                   $(if $(KBUILD_SRC), -Iarch/$(hdr-arch)/include) \
++                   -Iinclude \
+                    $(if $(KBUILD_SRC), -I$(srctree)/include) \
+                    -include include/generated/autoconf.h
+ 
+@@ -950,7 +952,13 @@ prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
+ 
+ archprepare: prepare1 scripts_basic
+ 
+-prepare0: archprepare FORCE
++archheaders: $(addprefix arch/$(SRCARCH)/include/asm/, $(ARCH_GENERIC_HEADERS))
++
++$(addprefix arch/$(SRCARCH)/include/asm/, $(ARCH_GENERIC_HEADERS)): arch/$(SRCARCH)/Makefile
++	$(Q)mkdir -p $(dir $@)
++	$(Q)echo '#include <asm-generic/$(notdir $@)>' > $@
++
++prepare0: archprepare archheaders FORCE
+ 	$(Q)$(MAKE) $(build)=.
+ 	$(Q)$(MAKE) $(build)=. missing-syscalls
+ 
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index b02e509..fd23d01 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -12,6 +12,8 @@ endif
+ # e.g.: obj-y += foo_$(BITS).o
+ export BITS
+ 
++ARCH_GENERIC_HEADERS := termios.h
++
+ ifeq ($(CONFIG_X86_32),y)
+         BITS := 32
+         UTS_MACHINE := i386
+diff --git a/arch/x86/include/asm/termios.h b/arch/x86/include/asm/termios.h
+deleted file mode 100644
+index 280d78a..0000000
+--- a/arch/x86/include/asm/termios.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/termios.h>
