@@ -1,66 +1,65 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+From: Tony Luck <tony.luck@intel.com>
 Subject: Re: [RFC] persistent store
-Date: Mon, 22 Nov 2010 10:43:12 +0000
-Message-ID: <20101122104312.23b6daea@lxorguk.ukuu.org.uk>
+Date: Mon, 22 Nov 2010 08:55:34 -0800
+Message-ID: <AANLkTi=fNH4-VjLh1zzk-UdEQevR16_K8igdLeodw6yL@mail.gmail.com>
 References: <4ce85e437577ae827@agluck-desktop.sc.intel.com>
 	<1290391175.2903.132.camel@yhuang-dev>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:34169 "EHLO
-	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753303Ab0KVKpH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Nov 2010 05:45:07 -0500
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1290391175.2903.132.camel@yhuang-dev>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Huang Ying <ying.huang@intel.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-> > "reader" which iterates over all records currently in the
-> > store - returning type, size and a record identifier as
-> > well as the actual data.
-> > 
-> > "writer" which writes a record with a type to the persistent store
-> 
-> I think it is necessary to require this to be NMI safe (in comments?),
-> because hardware error handler may need to write to persistent storage
+On Sun, Nov 21, 2010 at 5:59 PM, Huang Ying <ying.huang@intel.com> wrot=
+e:
+> This patch provides a general "read" interface for kmsg_dumper and so=
+me
+> other persistent storage users. Another possible choice is to just
+> extend the original interface to add persistent store support. For
+> example, we can add a "read" function in kmsg_dumper, and output the
+> content of persistent store via extend /dev/kmsg via prefix every lin=
+e
+> comes from persistent store or adding some "ioctl" to do that. (But i=
+t
+> seems that nobody likes "ioctl").
+
+In Linux (and Unix before it) "everything is a file" ... but this
+doesn't work very well if the file has internal structure (e.g.
+is made of records that can be individually changed or
+deleted).  A filesystem seems a much better model.
+
+>> "writer" which writes a record with a type to the persistent store
+>
+> I think it is necessary to require this to be NMI safe (in comments?)=
+,
+> because hardware error handler may need to write to persistent storag=
+e
 > in NMI context. Or we can add a "flag" field to let storage provider
 > advocate its capability of NMI safe.
 
-One thing we need for some of the driver code sitting in the pending pile
-is support for hardware assisted logging, where record numberes are handed
-out by a device register access.
+I can add a comment to pstore.h to document the NMI-safe
+requirement for the "writer" function.
 
-> > The "type" of error record I mentioned earlier is used to
-> > name the files ... saved console logs from kmsg_dmp() are
-> > named with a "dmesg" prefix as shown above.
-> > 
-> > Once an error record has been viewed, analysed, saved. The
-> > user can request it to be cleared by writing its name to the
-> > "erase" file:
-
-How will fragmentation be handled ?
-
-> The persistent storage may be full, and the writing may fail. So I think
+>> =A0 - Which device(s) should error records be written to?
+>> =A0 =A0 All of them? Start with one and move on when it is
+>> =A0 =A0 full? =A0Write some types of records to one device?
+>
+> The persistent storage may be full, and the writing may fail. So I th=
+ink
 > we can just try to write one by one, until the first success writing.
 
-If you intend to treat it basically like an fs why not just make it a
-file system. No more weird echo erase into magic sysfs file node you can
-just use "rm".
+A good option - if we ever find someone luck enough to have
+more than one persistent store device.
 
-The logging off an interrupt isn't a big problem either as you can have a
-pool of blocks which are preallocated for the log files and more can be
-stitched into the files asynchronously after the interrupt logging
-events. For that matter you can keep it as a circular log just easily but
-present it as a file system.
+>> + =A0 =A0 =A0 sysfs_remove_bin_file(&pstore_kset->kobj, &search_psto=
+re->attr);
+>
+> It seems that the corresponding memory is not freed after erasing.
 
-> [...]
-> > + * Erase records by writing their filename to the "erase" file. E.g.
-> > + *     # echo "dmesg-0" > erase
+Ouch!  Good catch.  Will add a kfree()
 
-rm dmesg-0
-
-We have a model for this and filesystem indirected via sysfs commands is
-in the daft category.
+-Tony
