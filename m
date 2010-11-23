@@ -1,62 +1,112 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:59591 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754164Ab0KVQzn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Nov 2010 11:55:43 -0500
-MIME-Version: 1.0
-In-Reply-To: <1290391175.2903.132.camel@yhuang-dev>
-References: <4ce85e437577ae827@agluck-desktop.sc.intel.com>
-	<1290391175.2903.132.camel@yhuang-dev>
-Date: Mon, 22 Nov 2010 08:55:34 -0800
-Message-ID: <AANLkTi=fNH4-VjLh1zzk-UdEQevR16_K8igdLeodw6yL@mail.gmail.com>
-Subject: Re: [RFC] persistent store
-From: Tony Luck <tony.luck@intel.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:57002 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753841Ab0KWNj3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:39:29 -0500
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v3 04/22] arm: introduce little-endian bitops
+Date: Tue, 23 Nov 2010 22:38:06 +0900
+Message-ID: <1290519504-3958-5-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
+References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Huang Ying <ying.huang@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-Message-ID: <20101122165534.1L5E3001Xp_pICA7GQY4YvTv-G01tFJvw_f1yIjF97U@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20101123133806.I9itsRy33DUMDOU0z8nFh9JJ_LM6P8MvakDMkcS23K4@z>
 
-On Sun, Nov 21, 2010 at 5:59 PM, Huang Ying <ying.huang@intel.com> wrote:
-> This patch provides a general "read" interface for kmsg_dumper and some
-> other persistent storage users. Another possible choice is to just
-> extend the original interface to add persistent store support. For
-> example, we can add a "read" function in kmsg_dumper, and output the
-> content of persistent store via extend /dev/kmsg via prefix every line
-> comes from persistent store or adding some "ioctl" to do that. (But it
-> seems that nobody likes "ioctl").
+Introduce little-endian bit operations by renaming native ext2 bit
+operations. The ext2 bit operations are kept as wrapper macros using
+little-endian bit operations to maintain bisectability until the
+conversions are finished.
 
-In Linux (and Unix before it) "everything is a file" ... but this
-doesn't work very well if the file has internal structure (e.g.
-is made of records that can be individually changed or
-deleted).  A filesystem seems a much better model.
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
+---
+No change from previous submission
+ arch/arm/include/asm/bitops.h |   46 +++++++++++++++++++++++++++++-----------
+ 1 files changed, 33 insertions(+), 13 deletions(-)
 
->> "writer" which writes a record with a type to the persistent store
->
-> I think it is necessary to require this to be NMI safe (in comments?),
-> because hardware error handler may need to write to persistent storage
-> in NMI context. Or we can add a "flag" field to let storage provider
-> advocate its capability of NMI safe.
+diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
+index 338ff19..29adaca 100644
+--- a/arch/arm/include/asm/bitops.h
++++ b/arch/arm/include/asm/bitops.h
+@@ -303,41 +303,61 @@ static inline int fls(int x)
+ #include <asm-generic/bitops/hweight.h>
+ #include <asm-generic/bitops/lock.h>
+ 
++#define __set_le_bit(nr, p)			\
++	__set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __clear_le_bit(nr, p)			\
++	__clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __test_and_set_le_bit(nr, p)			\
++		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_and_set_le_bit(nr, p)          \
++		test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __test_and_clear_le_bit(nr, p)			\
++		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_and_clear_le_bit(nr, p)	\
++		test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_le_bit(nr, p)			\
++		test_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define find_first_zero_le_bit(p, sz)		\
++		_find_first_zero_bit_le(p, sz)
++#define find_next_zero_le_bit(p, sz, off)	\
++		_find_next_zero_bit_le(p, sz, off)
++#define find_next_le_bit(p, sz, off) \
++		_find_next_bit_le(p, sz, off)
+ /*
+  * Ext2 is defined to use little-endian byte ordering.
+  * These do not need to be atomic.
+  */
+ #define ext2_set_bit(nr,p)			\
+-		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_set_le_bit(nr, (unsigned long *)(p))
+ #define ext2_set_bit_atomic(lock,nr,p)          \
+-                test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_and_set_le_bit(nr, (unsigned long *)(p))
+ #define ext2_clear_bit(nr,p)			\
+-		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_clear_le_bit(nr, (unsigned long *)(p))
+ #define ext2_clear_bit_atomic(lock,nr,p)        \
+-                test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_and_clear_le_bit(nr, (unsigned long *)(p))
+ #define ext2_test_bit(nr,p)			\
+-		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_le_bit(nr, (unsigned long *)(p))
+ #define ext2_find_first_zero_bit(p,sz)		\
+-		_find_first_zero_bit_le(p,sz)
++		find_first_zero_le_bit((unsigned long *)(p), sz)
+ #define ext2_find_next_zero_bit(p,sz,off)	\
+-		_find_next_zero_bit_le(p,sz,off)
++		find_next_zero_le_bit((unsigned long *)(p), sz, off)
+ #define ext2_find_next_bit(p, sz, off) \
+-		_find_next_bit_le(p, sz, off)
++		find_next_le_bit((unsigned long *)(p), sz, off)
+ 
+ /*
+  * Minix is defined to use little-endian byte ordering.
+  * These do not need to be atomic.
+  */
+ #define minix_set_bit(nr,p)			\
+-		__set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__set_le_bit(nr, (unsigned long *)(p))
+ #define minix_test_bit(nr,p)			\
+-		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_le_bit(nr, (unsigned long *)(p))
+ #define minix_test_and_set_bit(nr,p)		\
+-		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_set_le_bit(nr, (unsigned long *)(p))
+ #define minix_test_and_clear_bit(nr,p)		\
+-		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_clear_le_bit(nr, (unsigned long *)(p))
+ #define minix_find_first_zero_bit(p,sz)		\
+-		_find_first_zero_bit_le(p,sz)
++		find_first_zero_le_bit((unsigned long *)(p), sz)
+ 
+ #endif /* __KERNEL__ */
+ 
+-- 
+1.7.3.2
 
-I can add a comment to pstore.h to document the NMI-safe
-requirement for the "writer" function.
-
->>   - Which device(s) should error records be written to?
->>     All of them? Start with one and move on when it is
->>     full?  Write some types of records to one device?
->
-> The persistent storage may be full, and the writing may fail. So I think
-> we can just try to write one by one, until the first success writing.
-
-A good option - if we ever find someone luck enough to have
-more than one persistent store device.
-
->> +       sysfs_remove_bin_file(&pstore_kset->kobj, &search_pstore->attr);
->
-> It seems that the corresponding memory is not freed after erasing.
-
-Ouch!  Good catch.  Will add a kfree()
-
--Tony
