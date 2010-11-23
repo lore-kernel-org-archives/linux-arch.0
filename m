@@ -1,112 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:57002 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753841Ab0KWNj3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:39:29 -0500
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:40522 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754445Ab0KWNkM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:40:12 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 04/22] arm: introduce little-endian bitops
-Date: Tue, 23 Nov 2010 22:38:06 +0900
-Message-ID: <1290519504-3958-5-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 15/22] reiserfs: use little-endian bitops
+Date: Tue, 23 Nov 2010 22:38:17 +0900
+Message-ID: <1290519504-3958-16-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20101123133806.I9itsRy33DUMDOU0z8nFh9JJ_LM6P8MvakDMkcS23K4@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, reiserfs-devel@vger.kernel.org
+Message-ID: <20101123133817.05pMndy7GFvM0a-ErdqIqf6a83kpPWdCrIs3IfFDOPM@z>
 
-Introduce little-endian bit operations by renaming native ext2 bit
-operations. The ext2 bit operations are kept as wrapper macros using
-little-endian bit operations to maintain bisectability until the
-conversions are finished.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h. This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: reiserfs-devel@vger.kernel.org
 ---
 No change from previous submission
- arch/arm/include/asm/bitops.h |   46 +++++++++++++++++++++++++++++-----------
- 1 files changed, 33 insertions(+), 13 deletions(-)
+ include/linux/reiserfs_fs.h |   34 ++++++++++++++++++++--------------
+ 1 files changed, 20 insertions(+), 14 deletions(-)
 
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index 338ff19..29adaca 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -303,41 +303,61 @@ static inline int fls(int x)
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
+diff --git a/include/linux/reiserfs_fs.h b/include/linux/reiserfs_fs.h
+index c21072a..f50a5e3 100644
+--- a/include/linux/reiserfs_fs.h
++++ b/include/linux/reiserfs_fs.h
+@@ -1124,15 +1124,21 @@ struct reiserfs_de_head {
+ #   define aligned_address(addr)           ((void *)((long)(addr) & ~((1UL << ADDR_UNALIGNED_BITS) - 1)))
+ #   define unaligned_offset(addr)          (((int)((long)(addr) & ((1 << ADDR_UNALIGNED_BITS) - 1))) << 3)
  
-+#define __set_le_bit(nr, p)			\
-+	__set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __clear_le_bit(nr, p)			\
-+	__clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __test_and_set_le_bit(nr, p)			\
-+		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_and_set_le_bit(nr, p)          \
-+		test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __test_and_clear_le_bit(nr, p)			\
-+		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_and_clear_le_bit(nr, p)	\
-+		test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_le_bit(nr, p)			\
-+		test_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define find_first_zero_le_bit(p, sz)		\
-+		_find_first_zero_bit_le(p, sz)
-+#define find_next_zero_le_bit(p, sz, off)	\
-+		_find_next_zero_bit_le(p, sz, off)
-+#define find_next_le_bit(p, sz, off) \
-+		_find_next_bit_le(p, sz, off)
- /*
-  * Ext2 is defined to use little-endian byte ordering.
-  * These do not need to be atomic.
-  */
- #define ext2_set_bit(nr,p)			\
--		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_set_le_bit(nr, (unsigned long *)(p))
- #define ext2_set_bit_atomic(lock,nr,p)          \
--                test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_and_set_le_bit(nr, (unsigned long *)(p))
- #define ext2_clear_bit(nr,p)			\
--		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_clear_le_bit(nr, (unsigned long *)(p))
- #define ext2_clear_bit_atomic(lock,nr,p)        \
--                test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_and_clear_le_bit(nr, (unsigned long *)(p))
- #define ext2_test_bit(nr,p)			\
--		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_le_bit(nr, (unsigned long *)(p))
- #define ext2_find_first_zero_bit(p,sz)		\
--		_find_first_zero_bit_le(p,sz)
-+		find_first_zero_le_bit((unsigned long *)(p), sz)
- #define ext2_find_next_zero_bit(p,sz,off)	\
--		_find_next_zero_bit_le(p,sz,off)
-+		find_next_zero_le_bit((unsigned long *)(p), sz, off)
- #define ext2_find_next_bit(p, sz, off) \
--		_find_next_bit_le(p, sz, off)
-+		find_next_le_bit((unsigned long *)(p), sz, off)
+-#   define set_bit_unaligned(nr, addr)     ext2_set_bit((nr) + unaligned_offset(addr), aligned_address(addr))
+-#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit((nr) + unaligned_offset(addr), aligned_address(addr))
+-#   define test_bit_unaligned(nr, addr)    ext2_test_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define set_bit_unaligned(nr, addr)	\
++	__test_and_set_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define clear_bit_unaligned(nr, addr)	\
++	__test_and_clear_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
++#   define test_bit_unaligned(nr, addr)	\
++	test_le_bit((nr) + unaligned_offset(addr), aligned_address(addr))
  
- /*
-  * Minix is defined to use little-endian byte ordering.
-  * These do not need to be atomic.
-  */
- #define minix_set_bit(nr,p)			\
--		__set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__set_le_bit(nr, (unsigned long *)(p))
- #define minix_test_bit(nr,p)			\
--		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_le_bit(nr, (unsigned long *)(p))
- #define minix_test_and_set_bit(nr,p)		\
--		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_set_le_bit(nr, (unsigned long *)(p))
- #define minix_test_and_clear_bit(nr,p)		\
--		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_clear_le_bit(nr, (unsigned long *)(p))
- #define minix_find_first_zero_bit(p,sz)		\
--		_find_first_zero_bit_le(p,sz)
-+		find_first_zero_le_bit((unsigned long *)(p), sz)
+ #else
  
- #endif /* __KERNEL__ */
+-#   define set_bit_unaligned(nr, addr)     ext2_set_bit(nr, addr)
+-#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit(nr, addr)
+-#   define test_bit_unaligned(nr, addr)    ext2_test_bit(nr, addr)
++#   define set_bit_unaligned(nr, addr)	\
++	__test_and_set_le_bit(nr, (unsigned long *)(addr))
++#   define clear_bit_unaligned(nr, addr)	\
++	__test_and_clear_le_bit(nr, (unsigned long *)(addr))
++#   define test_bit_unaligned(nr, addr)	\
++	test_le_bit(nr, (unsigned long *)(addr))
  
+ #endif
+ 
+@@ -2329,14 +2335,14 @@ __u32 keyed_hash(const signed char *msg, int len);
+ __u32 yura_hash(const signed char *msg, int len);
+ __u32 r5_hash(const signed char *msg, int len);
+ 
+-/* the ext2 bit routines adjust for big or little endian as
+-** appropriate for the arch, so in our laziness we use them rather
+-** than using the bit routines they call more directly.  These
+-** routines must be used when changing on disk bitmaps.  */
+-#define reiserfs_test_and_set_le_bit   ext2_set_bit
+-#define reiserfs_test_and_clear_le_bit ext2_clear_bit
+-#define reiserfs_test_le_bit           ext2_test_bit
+-#define reiserfs_find_next_zero_le_bit ext2_find_next_zero_bit
++#define reiserfs_test_and_set_le_bit(nr, addr)	\
++	__test_and_set_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_test_and_clear_le_bit(nr, addr)	\
++	__test_and_clear_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_test_le_bit(nr, addr)	\
++	test_le_bit((nr), (unsigned long *)(addr))
++#define reiserfs_find_next_zero_le_bit(addr, size, off)	\
++	find_next_zero_le_bit((unsigned long *)(addr), (size), (off))
+ 
+ /* sometimes reiserfs_truncate may require to allocate few new blocks
+    to perform indirect2direct conversion. People probably used to
 -- 
 1.7.3.2
 
