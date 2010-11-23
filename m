@@ -1,67 +1,38 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 19/22] dm: use little-endian bit operations
-Date: Tue, 23 Nov 2010 22:38:21 +0900
-Message-ID: <1290519504-3958-20-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 17/22] ufs: use little-endian bitops
+Date: Tue, 23 Nov 2010 22:38:19 +0900
+Message-ID: <1290519504-3958-18-git-send-email-akinobu.mita@gmail.com>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:40522 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754531Ab0KWNkX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:40:23 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alasdair Kergon <agk@redhat.com>, dm-devel@redhat.com
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Evgeniy Dushistov <dushistov@mail.ru>
+List-Id: linux-arch.vger.kernel.org
 
 As a preparation for removing ext2 non-atomic bit operations from
 asm/bitops.h. This converts ext2 non-atomic bit operations to
 little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Alasdair Kergon <agk@redhat.com>
-Cc: dm-devel@redhat.com
+Cc: Evgeniy Dushistov <dushistov@mail.ru>
 ---
 No change from previous submission
- drivers/md/dm-log.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ fs/ufs/util.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/md/dm-log.c b/drivers/md/dm-log.c
-index 33420e6..8ba6fd8 100644
---- a/drivers/md/dm-log.c
-+++ b/drivers/md/dm-log.c
-@@ -251,20 +251,20 @@ struct log_c {
-  */
- static inline int log_test_bit(uint32_t *bs, unsigned bit)
- {
--	return ext2_test_bit(bit, (unsigned long *) bs) ? 1 : 0;
-+	return test_le_bit(bit, (unsigned long *) bs) ? 1 : 0;
- }
- 
- static inline void log_set_bit(struct log_c *l,
- 			       uint32_t *bs, unsigned bit)
- {
--	ext2_set_bit(bit, (unsigned long *) bs);
-+	__test_and_set_le_bit(bit, (unsigned long *) bs);
- 	l->touched_cleaned = 1;
- }
- 
- static inline void log_clear_bit(struct log_c *l,
- 				 uint32_t *bs, unsigned bit)
- {
--	ext2_clear_bit(bit, (unsigned long *) bs);
-+	__test_and_clear_le_bit(bit, (unsigned long *) bs);
- 	l->touched_dirtied = 1;
- }
- 
-@@ -740,7 +740,7 @@ static int core_get_resync_work(struct dm_dirty_log *log, region_t *region)
- 		return 0;
- 
- 	do {
--		*region = ext2_find_next_zero_bit(
-+		*region = find_next_zero_le_bit(
- 					     (unsigned long *) lc->sync_bits,
- 					     lc->region_count,
- 					     lc->sync_search);
+diff --git a/fs/ufs/util.h b/fs/ufs/util.h
+index 9f8775c..64f7559 100644
+--- a/fs/ufs/util.h
++++ b/fs/ufs/util.h
+@@ -408,7 +408,7 @@ static inline unsigned _ubh_find_next_zero_bit_(
+ 	for (;;) {
+ 		count = min_t(unsigned int, size + offset, uspi->s_bpf);
+ 		size -= count - offset;
+-		pos = ext2_find_next_zero_bit (ubh->bh[base]->b_data, count, offset);
++		pos = find_next_zero_le_bit((unsigned long *)ubh->bh[base]->b_data, count, offset);
+ 		if (pos < count || !size)
+ 			break;
+ 		base++;
 -- 
 1.7.3.2
