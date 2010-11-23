@@ -1,59 +1,67 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 21/22] m68k: remove inline asm from minix_find_first_zero_bit
-Date: Tue, 23 Nov 2010 22:38:23 +0900
-Message-ID: <1290519504-3958-22-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 19/22] dm: use little-endian bit operations
+Date: Tue, 23 Nov 2010 22:38:21 +0900
+Message-ID: <1290519504-3958-20-git-send-email-akinobu.mita@gmail.com>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:40522 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754531Ab0KWNkX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:40:23 -0500
 In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, linux-m68k@lists.linux-m68k.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alasdair Kergon <agk@redhat.com>, dm-devel@redhat.com
 
-As a preparation for moving minix bit operations from asm/bitops.h
-to architecture independent code in minix file system, this removes
-inline asm from minix_find_first_zero_bit() for m68k.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h. This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Roman Zippel <zippel@linux-m68k.org>
-Cc: Andreas Schwab <schwab@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org
+Cc: Alasdair Kergon <agk@redhat.com>
+Cc: dm-devel@redhat.com
 ---
 No change from previous submission
- arch/m68k/include/asm/bitops_mm.h |   10 +++-------
- 1 files changed, 3 insertions(+), 7 deletions(-)
+ drivers/md/dm-log.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/m68k/include/asm/bitops_mm.h b/arch/m68k/include/asm/bitops_mm.h
-index 831d626..f31ed5a 100644
---- a/arch/m68k/include/asm/bitops_mm.h
-+++ b/arch/m68k/include/asm/bitops_mm.h
-@@ -330,23 +330,19 @@ static inline int __fls(int x)
- static inline int minix_find_first_zero_bit(const void *vaddr, unsigned size)
+diff --git a/drivers/md/dm-log.c b/drivers/md/dm-log.c
+index 33420e6..8ba6fd8 100644
+--- a/drivers/md/dm-log.c
++++ b/drivers/md/dm-log.c
+@@ -251,20 +251,20 @@ struct log_c {
+  */
+ static inline int log_test_bit(uint32_t *bs, unsigned bit)
  {
- 	const unsigned short *p = vaddr, *addr = vaddr;
--	int res;
- 	unsigned short num;
- 
- 	if (!size)
- 		return 0;
- 
- 	size = (size >> 4) + ((size & 15) > 0);
--	while (*p++ == 0xffff)
--	{
-+	while (*p++ == 0xffff) {
- 		if (--size == 0)
- 			return (p - addr) << 4;
- 	}
- 
--	num = ~*--p;
--	__asm__ __volatile__ ("bfffo %1{#16,#16},%0"
--			      : "=d" (res) : "d" (num & -num));
--	return ((p - addr) << 4) + (res ^ 31);
-+	num = *--p;
-+	return ((p - addr) << 4) + ffz(num);
+-	return ext2_test_bit(bit, (unsigned long *) bs) ? 1 : 0;
++	return test_le_bit(bit, (unsigned long *) bs) ? 1 : 0;
  }
  
- #define minix_test_and_set_bit(nr, addr)	__test_and_set_bit((nr) ^ 16, (unsigned long *)(addr))
+ static inline void log_set_bit(struct log_c *l,
+ 			       uint32_t *bs, unsigned bit)
+ {
+-	ext2_set_bit(bit, (unsigned long *) bs);
++	__test_and_set_le_bit(bit, (unsigned long *) bs);
+ 	l->touched_cleaned = 1;
+ }
+ 
+ static inline void log_clear_bit(struct log_c *l,
+ 				 uint32_t *bs, unsigned bit)
+ {
+-	ext2_clear_bit(bit, (unsigned long *) bs);
++	__test_and_clear_le_bit(bit, (unsigned long *) bs);
+ 	l->touched_dirtied = 1;
+ }
+ 
+@@ -740,7 +740,7 @@ static int core_get_resync_work(struct dm_dirty_log *log, region_t *region)
+ 		return 0;
+ 
+ 	do {
+-		*region = ext2_find_next_zero_bit(
++		*region = find_next_zero_le_bit(
+ 					     (unsigned long *) lc->sync_bits,
+ 					     lc->region_count,
+ 					     lc->sync_search);
 -- 
 1.7.3.2
