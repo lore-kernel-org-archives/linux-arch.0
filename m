@@ -1,52 +1,58 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 16/22] udf: use little-endian bitops
-Date: Tue, 23 Nov 2010 22:38:18 +0900
-Message-ID: <1290519504-3958-17-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 13/22] ocfs2: use little-endian bitops
+Date: Tue, 23 Nov 2010 22:38:15 +0900
+Message-ID: <1290519504-3958-14-git-send-email-akinobu.mita@gmail.com>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pv0-f174.google.com ([74.125.83.174]:39926 "EHLO
-	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754476Ab0KWNkO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:40:14 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mark Fasheh <mfasheh@suse.com>, ocfs2-devel@oss.oracle.com
+List-Id: linux-arch.vger.kernel.org
 
 As a preparation for removing ext2 non-atomic bit operations from
 asm/bitops.h. This converts ext2 non-atomic bit operations to
 little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Jan Kara <jack@suse.cz>
+Acked-by: Joel Becker <joel.becker@oracle.com>
+Cc: Mark Fasheh <mfasheh@suse.com>
+Cc: ocfs2-devel@oss.oracle.com
 ---
 No change from previous submission
- fs/udf/balloc.c |   11 +++++++----
- 1 files changed, 7 insertions(+), 4 deletions(-)
+ fs/ocfs2/ocfs2.h |   13 ++++++++-----
+ 1 files changed, 8 insertions(+), 5 deletions(-)
 
-diff --git a/fs/udf/balloc.c b/fs/udf/balloc.c
-index b608efa..e55aff9 100644
---- a/fs/udf/balloc.c
-+++ b/fs/udf/balloc.c
-@@ -27,11 +27,14 @@
- #include "udf_i.h"
- #include "udf_sb.h"
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index 1efea36..685f5c5 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -826,18 +826,21 @@ static inline unsigned int ocfs2_clusters_to_megabytes(struct super_block *sb,
  
--#define udf_clear_bit(nr, addr) ext2_clear_bit(nr, addr)
--#define udf_set_bit(nr, addr) ext2_set_bit(nr, addr)
--#define udf_test_bit(nr, addr) ext2_test_bit(nr, addr)
-+#define udf_clear_bit(nr, addr)	\
-+	__test_and_clear_le_bit(nr, (unsigned long *)(addr))
-+#define udf_set_bit(nr, addr)	\
-+	__test_and_set_le_bit(nr, (unsigned long *)(addr))
-+#define udf_test_bit(nr, addr)	\
+ static inline void _ocfs2_set_bit(unsigned int bit, unsigned long *bitmap)
+ {
+-	ext2_set_bit(bit, bitmap);
++	__test_and_set_le_bit(bit, bitmap);
+ }
+ #define ocfs2_set_bit(bit, addr) _ocfs2_set_bit((bit), (unsigned long *)(addr))
+ 
+ static inline void _ocfs2_clear_bit(unsigned int bit, unsigned long *bitmap)
+ {
+-	ext2_clear_bit(bit, bitmap);
++	__test_and_clear_le_bit(bit, bitmap);
+ }
+ #define ocfs2_clear_bit(bit, addr) _ocfs2_clear_bit((bit), (unsigned long *)(addr))
+ 
+-#define ocfs2_test_bit ext2_test_bit
+-#define ocfs2_find_next_zero_bit ext2_find_next_zero_bit
+-#define ocfs2_find_next_bit ext2_find_next_bit
++#define ocfs2_test_bit(nr, addr)	\
 +	test_le_bit(nr, (unsigned long *)(addr))
- #define udf_find_next_one_bit(addr, size, offset) \
--		ext2_find_next_bit(addr, size, offset)
-+	find_next_le_bit((unsigned long *)(addr), size, offset)
++#define ocfs2_find_next_zero_bit(addr, size, off)	\
++	find_next_zero_le_bit((unsigned long *)(addr), size, off)
++#define ocfs2_find_next_bit(addr, size, off)	\
++	find_next_le_bit((unsigned long *)(addr), size, off)
+ #endif  /* OCFS2_H */
  
- static int read_block_bitmap(struct super_block *sb,
- 			     struct udf_bitmap *bitmap, unsigned int block,
 -- 
 1.7.3.2
