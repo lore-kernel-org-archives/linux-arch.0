@@ -1,35 +1,121 @@
-From: Tony Luck <tony.luck@gmail.com>
-Subject: Re: [RFC] persistent store
-Date: Mon, 22 Nov 2010 10:33:05 -0800
-Message-ID: <AANLkTi=YTro_ZgsZCpznXR9aT+rV=Ukg6q1n0m9X724f@mail.gmail.com>
-References: <4ce85e437577ae827@agluck-desktop.sc.intel.com>
-	<1290391175.2903.132.camel@yhuang-dev>
-	<AANLkTi=fNH4-VjLh1zzk-UdEQevR16_K8igdLeodw6yL@mail.gmail.com>
-	<AANLkTimqn+qS5RxETz1DznsMDS4gZBGxkLkdCgTQ7qG-@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v3 00/22] Introduce little endian bitops
+Date: Tue, 23 Nov 2010 22:38:02 +0900
+Message-ID: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw0-f46.google.com ([74.125.83.46]:33362 "EHLO
-	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756567Ab0KVSdG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Nov 2010 13:33:06 -0500
-In-Reply-To: <AANLkTimqn+qS5RxETz1DznsMDS4gZBGxkLkdCgTQ7qG-@mail.gmail.com>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:39323 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751915Ab0KWNie (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:38:34 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Huang Ying <ying.huang@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Linux Embedded <linux-embedded@vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@infradead.org>
 
-On Mon, Nov 22, 2010 at 10:24 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> Any tangents with "pramfs: persistent and protected RAM filesystem"
-> on linux-embedded?
+Andrew, please consider to include this patch series into -mm.
 
-That looks nice for building on top on a sane h/w design (a
-block of non-volatile RAM).  My pstore code works with
-uglier things. The ACPI/ERST interface provides ways to
-read/write/clear "records" from what might be some NVRAM,
-but might also be a channel to a service processor ... and
-ERST is what I'd like to see made usable (without subjecting
-users to the implementation details).
+Changelog:
 
--Tony
+ * v3
+ - add Acked-by: lines
+
+ * v2
+(cover letter for v2 was not delivered to any mailing lists I've CCed may be
+due to Too many recipients to the message)
+ - fix argument of test_and_{set,clear}_le_bit() for s390, arm, m68k
+ - move ext2 bitops to fs/ext2/ext2.h, not include/linux/ext2_fs.h
+ - fix m68k minix bitops incorrect conversion noticed by Andreas Schwab
+ - rewrite minix bitops removal patch based on the suggestion by Arnd
+
+This patch series introduces little-endian bit operations in asm/bitops.h
+for all architectures and converts all ext2 non-atomic and minix bit operations
+to use little-endian bit operations. it enables to remove ext2 non-atomic and
+minix bit operations from asm/bitops.h. The reason they should be removed
+from asm/bitops.h is as follows:
+
+For ext2 non-atomic bit operations, they are used for little-endian byte order
+bitmap access by some filesystems and modules. But using ext2_*() functions on
+a module other than ext2 filesystem makes someone feel strange.
+
+For minix bit operations, they are only used by minix filesystem and useless
+by other modules. Because byte order of inode and block bitmap is defferent
+on each architecture.
+
+
+Akinobu Mita (22):
+  bitops: merge little and big endian definisions in
+    asm-generic/bitops/le.h
+  bitops: rename generic little-endian bitops functions
+  s390: introduce little-endian bitops
+  arm: introduce little-endian bitops
+  m68k: introduce little-endian bitops
+  m68knommu: introduce little-endian bitops
+  bitops: introduce little-endian bitops for most architectures
+  rds: stop including asm-generic/bitops/le.h
+  kvm: stop including asm-generic/bitops/le.h
+  asm-generic: use little-endian bitops
+  ext3: use little-endian bitops
+  ext4: use little-endian bitops
+  ocfs2: use little-endian bitops
+  nilfs2: use little-endian bitops
+  reiserfs: use little-endian bitops
+  udf: use little-endian bitops
+  ufs: use little-endian bitops
+  md: use little-endian bit operations
+  dm: use little-endian bit operations
+  bitops: remove ext2 non-atomic bitops from asm/bitops.h
+  m68k: remove inline asm from minix_find_first_zero_bit
+  bitops: remove minix bitops from asm/bitops.h
+
+ arch/alpha/include/asm/bitops.h              |    4 +-
+ arch/arm/include/asm/bitops.h                |   50 ++++++--------
+ arch/avr32/include/asm/bitops.h              |    3 +-
+ arch/avr32/kernel/avr32_ksyms.c              |    4 +-
+ arch/avr32/lib/findbit.S                     |    4 +-
+ arch/blackfin/include/asm/bitops.h           |    3 +-
+ arch/cris/include/asm/bitops.h               |    3 +-
+ arch/frv/include/asm/bitops.h                |    4 +-
+ arch/h8300/include/asm/bitops.h              |    3 +-
+ arch/ia64/include/asm/bitops.h               |    3 +-
+ arch/m32r/include/asm/bitops.h               |    3 +-
+ arch/m68k/include/asm/bitops_mm.h            |   89 ++++++++++----------------
+ arch/m68k/include/asm/bitops_no.h            |   28 +++++----
+ arch/mips/include/asm/bitops.h               |    3 +-
+ arch/mn10300/include/asm/bitops.h            |    3 +-
+ arch/parisc/include/asm/bitops.h             |    4 +-
+ arch/powerpc/include/asm/bitops.h            |   35 +---------
+ arch/s390/include/asm/bitops.h               |   45 ++++++++------
+ arch/sh/include/asm/bitops.h                 |    3 +-
+ arch/sparc/include/asm/bitops_32.h           |    3 +-
+ arch/sparc/include/asm/bitops_64.h           |    4 +-
+ arch/tile/include/asm/bitops.h               |    3 +-
+ arch/x86/include/asm/bitops.h                |    4 +-
+ arch/xtensa/include/asm/bitops.h             |    3 +-
+ drivers/md/bitmap.c                          |    6 +-
+ drivers/md/dm-log.c                          |    8 +-
+ fs/ext2/ext2.h                               |   11 +++
+ fs/ext4/ext4.h                               |   18 ++++--
+ fs/minix/Kconfig                             |    8 ++
+ fs/minix/minix.h                             |   79 +++++++++++++++++++++++
+ fs/nilfs2/alloc.h                            |    3 +-
+ fs/ocfs2/ocfs2.h                             |   13 ++--
+ fs/udf/balloc.c                              |   11 ++-
+ fs/ufs/util.h                                |    2 +-
+ include/asm-generic/bitops.h                 |    3 +-
+ include/asm-generic/bitops/ext2-atomic.h     |    4 +-
+ include/asm-generic/bitops/ext2-non-atomic.h |   20 ------
+ include/asm-generic/bitops/le.h              |   56 +++++++---------
+ include/asm-generic/bitops/minix-le.h        |   17 -----
+ include/asm-generic/bitops/minix.h           |   15 ----
+ include/linux/ext3_fs.h                      |   15 +++--
+ include/linux/reiserfs_fs.h                  |   34 ++++++----
+ lib/find_next_bit.c                          |    9 +--
+ net/rds/cong.c                               |    8 +--
+ virt/kvm/kvm_main.c                          |    3 +-
+ 45 files changed, 322 insertions(+), 332 deletions(-)
+ delete mode 100644 include/asm-generic/bitops/ext2-non-atomic.h
+ delete mode 100644 include/asm-generic/bitops/minix-le.h
+ delete mode 100644 include/asm-generic/bitops/minix.h
+
+-- 
+1.7.3.2
