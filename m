@@ -1,44 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f174.google.com ([209.85.212.174]:49226 "EHLO
-	mail-px0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754300Ab0KWNjx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:39:53 -0500
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:57002 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754358Ab0KWNj7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:39:59 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 09/22] kvm: stop including asm-generic/bitops/le.h
-Date: Tue, 23 Nov 2010 22:38:11 +0900
-Message-ID: <1290519504-3958-10-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 11/22] ext3: use little-endian bitops
+Date: Tue, 23 Nov 2010 22:38:13 +0900
+Message-ID: <1290519504-3958-12-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20101123133811.i07F28lgaxdvtT6xXkTAjpgg4pjm9smc6q4H7dThKZw@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
+Message-ID: <20101123133813.llrGM2-915JHh4Ynt72wFSGoe6Rs8C0DePqKaNiccoA@z>
 
-No need to include asm-generic/bitops/le.h as all architectures
-provide little-endian bit operations now.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h. This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Avi Kivity <avi@redhat.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: kvm@vger.kernel.org
+Acked-by: Jan Kara <jack@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Cc: linux-ext4@vger.kernel.org
 ---
 No change from previous submission
- virt/kvm/kvm_main.c |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
+ include/linux/ext3_fs.h |   15 ++++++++++-----
+ 1 files changed, 10 insertions(+), 5 deletions(-)
 
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index da16155..57a7e3d 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -52,7 +52,6 @@
- #include <asm/io.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
--#include <asm-generic/bitops/le.h>
+diff --git a/include/linux/ext3_fs.h b/include/linux/ext3_fs.h
+index 6ce1bca..34ef455 100644
+--- a/include/linux/ext3_fs.h
++++ b/include/linux/ext3_fs.h
+@@ -418,13 +418,18 @@ struct ext3_inode {
+ #define EXT2_MOUNT_DATA_FLAGS		EXT3_MOUNT_DATA_FLAGS
+ #endif
  
- #include "coalesced_mmio.h"
+-#define ext3_set_bit			ext2_set_bit
++#define ext3_set_bit(nr, addr)	\
++	__test_and_set_le_bit((nr), (unsigned long *)(addr))
+ #define ext3_set_bit_atomic		ext2_set_bit_atomic
+-#define ext3_clear_bit			ext2_clear_bit
++#define ext3_clear_bit(nr, addr)	\
++	__test_and_clear_le_bit((nr), (unsigned long *)(addr))
+ #define ext3_clear_bit_atomic		ext2_clear_bit_atomic
+-#define ext3_test_bit			ext2_test_bit
+-#define ext3_find_first_zero_bit	ext2_find_first_zero_bit
+-#define ext3_find_next_zero_bit		ext2_find_next_zero_bit
++#define ext3_test_bit(nr, addr)	\
++	test_le_bit((nr), (unsigned long *)(addr))
++#define ext3_find_first_zero_bit(addr, size)	\
++	find_first_zero_le_bit((unsigned long *)(addr), (size))
++#define ext3_find_next_zero_bit(addr, size, off)	\
++	find_next_zero_le_bit((unsigned long *)(addr), (size), (off))
  
+ /*
+  * Maximal mount counts between two filesystem checks
 -- 
 1.7.3.2
 
