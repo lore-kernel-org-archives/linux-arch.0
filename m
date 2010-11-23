@@ -1,51 +1,33 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 10/22] asm-generic: use little-endian bitops
-Date: Tue, 23 Nov 2010 22:38:12 +0900
-Message-ID: <1290519504-3958-11-git-send-email-akinobu.mita@gmail.com>
+From: Ted Ts'o <tytso@mit.edu>
+Subject: Re: [PATCH v3 12/22] ext4: use little-endian bitops
+Date: Tue, 23 Nov 2010 14:29:06 -0500
+Message-ID: <20101123192906.GD2767@thunk.org>
 References: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
+ <1290519504-3958-13-git-send-email-akinobu.mita@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f174.google.com ([209.85.212.174]:49226 "EHLO
-	mail-px0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754319Ab0KWNj4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Nov 2010 08:39:56 -0500
-In-Reply-To: <1290519504-3958-1-git-send-email-akinobu.mita@gmail.com>
+Received: from thunk.org ([69.25.196.29]:55272 "EHLO thunker.thunk.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754449Ab0KWT3H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Nov 2010 14:29:07 -0500
+Content-Disposition: inline
+In-Reply-To: <1290519504-3958-13-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Andreas Dilger <adilger.kernel@dilger.ca>, linux-ext4@vger.kernel.org
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h. This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+On Tue, Nov 23, 2010 at 10:38:14PM +0900, Akinobu Mita wrote:
+> As a preparation for removing ext2 non-atomic bit operations from
+> asm/bitops.h. This converts ext2 non-atomic bit operations to
+> little-endian bit operations.
+> 
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Cc: "Theodore Ts'o" <tytso@mit.edu>
+> Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+> Cc: linux-ext4@vger.kernel.org
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
-No change from previous submission
- include/asm-generic/bitops/ext2-atomic.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+Acked-by: "Theodore Ts'o" <tytso@mit.edu>
 
-diff --git a/include/asm-generic/bitops/ext2-atomic.h b/include/asm-generic/bitops/ext2-atomic.h
-index ab1c875..bcf359f 100644
---- a/include/asm-generic/bitops/ext2-atomic.h
-+++ b/include/asm-generic/bitops/ext2-atomic.h
-@@ -5,7 +5,7 @@
- 	({						\
- 		int ret;				\
- 		spin_lock(lock);			\
--		ret = ext2_set_bit((nr), (unsigned long *)(addr)); \
-+		ret = __test_and_set_le_bit((nr), (unsigned long *)(addr)); \
- 		spin_unlock(lock);			\
- 		ret;					\
- 	})
-@@ -14,7 +14,7 @@
- 	({						\
- 		int ret;				\
- 		spin_lock(lock);			\
--		ret = ext2_clear_bit((nr), (unsigned long *)(addr)); \
-+		ret = __test_and_clear_le_bit((nr), (unsigned long *)(addr)); \
- 		spin_unlock(lock);			\
- 		ret;					\
- 	})
--- 
-1.7.3.2
+						- Ted
