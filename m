@@ -1,44 +1,60 @@
-From: Mitch Bradley <wmb-D5eQfiDGL7eakBO8gow8eQ@public.gmane.org>
-Subject: Re: RFC: Mega rename of device tree routines from of_*() to dt_*()
-Date: Thu, 25 Nov 2010 21:36:19 -1000
-Message-ID: <4CEF6373.60105@firmworks.com>
-References: <1290607413.12457.44.camel@concordia>	
-	<1290692075.689.20.camel@concordia>	
-	<AANLkTiknyKi1pzvUP2WnasudZwH27-a0FxCX0BSHBdQp@mail.gmail.com>	
-	<1290741341.9453.377.camel@concordia>
-	<4CEF3AB1.9060200@firmworks.com>
-	<1290750606.9453.394.camel@concordia>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <1290750606.9453.394.camel@concordia>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
-	<mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
-	<mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Sender: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-To: michael-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org
-Cc: linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-mips <linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linuxppc-dev list <linuxppc-dev-mnsaURCQ41sdnm+yROfE0A@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Andrea Scian <andrea.scian-0U1K5dsi4As@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 03/21] mm: Improve page_lock_anon_vma() comment
+Date: Fri, 26 Nov 2010 15:38:46 +0100
+Message-ID: <20101126145410.435240588@chello.nl>
+References: <20101126143843.801484792@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=mm-page_lock_anon_vma-comment.patch
+Sender: owner-linux-mm@kvack.org
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
+A slightly more verbose comment to go along with the trickery in
+page_lock_anon_vma().
 
->> One Laptop Per Child ships real Open Firmware on its x86 Linux systems,
->> of which approximately 2 million have been shipped or ordered.  An ARM
->> version, also with OFW, is in the works.
->
-> OK. I don't see any code under arch/x86 or arch/arm that uses of_()
-> routines though? Or is it under drivers or something?
->
+Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Acked-by: Mel Gorman <mel@csn.ul.ie>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+LKML-Reference: <1271158226.4807.1107.camel@twins>
+---
+ mm/rmap.c |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-Andres Salomon has been working for some time to get some Open Firmware 
-support for x86 upstream.  As you can probably imagine, it has been slow 
-going, but seems to be getting close.
+Index: linux-2.6/mm/rmap.c
+===================================================================
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -311,8 +311,22 @@ void __init anon_vma_init(void)
+ }
+ 
+ /*
+- * Getting a lock on a stable anon_vma from a page off the LRU is
+- * tricky: page_lock_anon_vma rely on RCU to guard against the races.
++ * Getting a lock on a stable anon_vma from a page off the LRU is tricky!
++ *
++ * Since there is no serialization what so ever against page_remove_rmap()
++ * the best this function can do is return a locked anon_vma that might
++ * have been relevant to this page.
++ *
++ * The page might have been remapped to a different anon_vma or the anon_vma
++ * returned may already be freed (and even reused).
++ *
++ * All users of this function must be very careful when walking the anon_vma
++ * chain and verify that the page in question is indeed mapped in it
++ * [ something equivalent to page_mapped_in_vma() ].
++ *
++ * Since anon_vma's slab is DESTROY_BY_RCU and we know from page_remove_rmap()
++ * that the anon_vma pointer from page->mapping is valid if there is a
++ * mapcount, we can dereference the anon_vma after observing those.
+  */
+ struct anon_vma *page_lock_anon_vma(struct page *page)
+ {
 
-The OLPC ARM work is just beginning, so nothing has been submitted yet. 
-  The first hardware prototypes are still being debugged. Lennert 
-Buytenhek is the key OS person who will be involved.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
