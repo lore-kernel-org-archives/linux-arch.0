@@ -1,48 +1,90 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 00/21] mm: Preemptibility -v6
-Date: Fri, 26 Nov 2010 15:38:43 +0100
-Message-ID: <20101126143843.801484792@chello.nl>
+Subject: [PATCH 07/21] mm: Use refcounts for page_lock_anon_vma()
+Date: Fri, 26 Nov 2010 15:38:50 +0100
+Message-ID: <20101126145410.655255418@chello.nl>
+References: <20101126143843.801484792@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=mm-ref-page_lock_anon_vma.patch
 Sender: owner-linux-mm@kvack.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 List-Id: linux-arch.vger.kernel.org
 
-This patch-set makes part of the mm a lot more preemptible. It converts
-i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
-preemptible.
+Convert page_lock_anon_vma() over to use refcounts. This is
+done for each of convertion of anon_vma from spinlock to mutex.
 
-The main motivation was making mm_take_all_locks() preemptible, since it
-appears people are nesting hundreds of spinlocks there.
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ mm/rmap.c |   34 ++++++++++++++++++++++++----------
+ 1 file changed, 24 insertions(+), 10 deletions(-)
 
-The side-effects are that can finally make mmu_gather preemptible,
-something which lots of people have wanted to do for a long time.
-
-It also gets us anon_vma refcounting, which seems to result in a nice
-cleanup of the anon_vma lifetime rules wrt KSM and compaction.
-
-This patch-set is build and boot-tested on x86_64 (a previous version was
-also tested on Dave's Niagra2 machines, and I suppose s390 was too when
-Martin provided the conversion patch for his arch).
-
-There are no known architectures left unconverted.
-
-Yanmin ran the -v3 posting through the comprehensive Intel test farm
-and didn't find any regressions.
-
-( Not included in this posting are the 4 Sparc64 patches that implement
-  gup_fast, those can be applied separately after this series gets
-  anywhere. )
-
-The full series (including the Sparc64 gup_fast bits) also available in -git
-form from (against Linus' tree as of about an hour ago):
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git
-
-Linus seems to want this to get some serious review and be pushed through
-Andrew (well, anybody but me actually, but since Andrew is mm master...)
-
-Ben, Thomas, Andrew, can I trick you guys into looking at this stuff?
+Index: linux-2.6/mm/rmap.c
+===================================================================
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -332,9 +332,9 @@ void __init anon_vma_init(void)
+  * that the anon_vma pointer from page->mapping is valid if there is a
+  * mapcount, we can dereference the anon_vma after observing those.
+  */
+-struct anon_vma *page_lock_anon_vma(struct page *page)
++struct anon_vma *page_get_anon_vma(struct page *page)
+ {
+-	struct anon_vma *anon_vma, *root_anon_vma;
++	struct anon_vma *anon_vma = NULL;
+ 	unsigned long anon_mapping;
+ 
+ 	rcu_read_lock();
+@@ -345,8 +345,10 @@ struct anon_vma *page_lock_anon_vma(stru
+ 		goto out;
+ 
+ 	anon_vma = (struct anon_vma *) (anon_mapping - PAGE_MAPPING_ANON);
+-	root_anon_vma = ACCESS_ONCE(anon_vma->root);
+-	spin_lock(&root_anon_vma->lock);
++	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
++		anon_vma = NULL;
++		goto out;
++	}
+ 
+ 	/*
+ 	 * If this page is still mapped, then its anon_vma cannot have been
+@@ -356,19 +358,31 @@ struct anon_vma *page_lock_anon_vma(stru
+ 	 * corrupt): with anon_vma_prepare() or anon_vma_fork() redirecting
+ 	 * anon_vma->root before page_unlock_anon_vma() is called to unlock.
+ 	 */
+-	if (page_mapped(page))
+-		return anon_vma;
+-
+-	spin_unlock(&root_anon_vma->lock);
++	if (!page_mapped(page)) {
++		put_anon_vma(anon_vma);
++		anon_vma = NULL;
++		goto out;
++	}
+ out:
+ 	rcu_read_unlock();
+-	return NULL;
++
++	return anon_vma;
++}
++
++struct anon_vma *page_lock_anon_vma(struct page *page)
++{
++	struct anon_vma *anon_vma = page_get_anon_vma(page);
++
++	if (anon_vma)
++		anon_vma_lock(anon_vma);
++
++	return anon_vma;
+ }
+ 
+ void page_unlock_anon_vma(struct anon_vma *anon_vma)
+ {
+ 	anon_vma_unlock(anon_vma);
+-	rcu_read_unlock();
++	put_anon_vma(anon_vma);
+ }
+ 
+ /*
 
 
 --
