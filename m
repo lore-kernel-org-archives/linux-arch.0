@@ -1,73 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([134.117.69.58]:50061 "EHLO
+Received: from canuck.infradead.org ([134.117.69.58]:50031 "EHLO
 	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754921Ab0KZPBb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Nov 2010 10:01:31 -0500
-Message-ID: <20101126145411.051511519@chello.nl>
-Date: Fri, 26 Nov 2010 15:38:57 +0100
+	with ESMTP id S1754669Ab0KZPBZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Nov 2010 10:01:25 -0500
+Message-ID: <20101126145410.435240588@chello.nl>
+Date: Fri, 26 Nov 2010 15:38:46 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 14/21] um: Preemptible mmu_gather
+Subject: [PATCH 03/21] mm: Improve page_lock_anon_vma() comment
 References: <20101126143843.801484792@chello.nl>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-um.patch
+Content-Disposition: inline; filename=mm-page_lock_anon_vma-comment.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Jeff Dike <jdike@addtoit.com>
-Message-ID: <20101126143857.SxTdYvPrXeKDQgo_aKFPzipiyMtYyOXY9Jxbh3AgYxU@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20101126143846.KRyXMuBLXDnx7F8iSPNHzQfnsbOMEHTKcHy90zg74aA@z>
 
-Fix up the um mmu_gather code to conform to the new API.
+A slightly more verbose comment to go along with the trickery in
+page_lock_anon_vma().
 
-Cc: Jeff Dike <jdike@addtoit.com>
+Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Acked-by: Mel Gorman <mel@csn.ul.ie>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+LKML-Reference: <1271158226.4807.1107.camel@twins>
 ---
- arch/um/include/asm/tlb.h |   16 ++--------------
- 1 file changed, 2 insertions(+), 14 deletions(-)
+ mm/rmap.c |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-Index: linux-2.6/arch/um/include/asm/tlb.h
+Index: linux-2.6/mm/rmap.c
 ===================================================================
---- linux-2.6.orig/arch/um/include/asm/tlb.h
-+++ linux-2.6/arch/um/include/asm/tlb.h
-@@ -22,9 +22,6 @@ struct mmu_gather {
- 	unsigned int		fullmm; /* non-zero means full mm flush */
- };
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -311,8 +311,22 @@ void __init anon_vma_init(void)
+ }
  
--/* Users of the generic TLB shootdown code must declare this storage space. */
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
--
- static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
- 					  unsigned long address)
+ /*
+- * Getting a lock on a stable anon_vma from a page off the LRU is
+- * tricky: page_lock_anon_vma rely on RCU to guard against the races.
++ * Getting a lock on a stable anon_vma from a page off the LRU is tricky!
++ *
++ * Since there is no serialization what so ever against page_remove_rmap()
++ * the best this function can do is return a locked anon_vma that might
++ * have been relevant to this page.
++ *
++ * The page might have been remapped to a different anon_vma or the anon_vma
++ * returned may already be freed (and even reused).
++ *
++ * All users of this function must be very careful when walking the anon_vma
++ * chain and verify that the page in question is indeed mapped in it
++ * [ something equivalent to page_mapped_in_vma() ].
++ *
++ * Since anon_vma's slab is DESTROY_BY_RCU and we know from page_remove_rmap()
++ * that the anon_vma pointer from page->mapping is valid if there is a
++ * mapcount, we can dereference the anon_vma after observing those.
+  */
+ struct anon_vma *page_lock_anon_vma(struct page *page)
  {
-@@ -47,20 +44,13 @@ static inline void init_tlb_gather(struc
- 	}
- }
- 
--/* tlb_gather_mmu
-- *	Return a pointer to an initialized struct mmu_gather.
-- */
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
- 
- 	init_tlb_gather(tlb);
--
--	return tlb;
- }
- 
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
-@@ -87,8 +77,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	put_cpu_var(mmu_gathers);
- }
- 
- /* tlb_remove_page
 
 
