@@ -1,53 +1,105 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 12/21] arm: Preemptible mmu_gather
-Date: Fri, 26 Nov 2010 15:38:55 +0100
-Message-ID: <20101126145410.935009801@chello.nl>
+Subject: [PATCH 11/21] s390: preemptible mmu_gather
+Date: Fri, 26 Nov 2010 15:38:54 +0100
+Message-ID: <20101126145410.881573395@chello.nl>
 References: <20101126143843.801484792@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=mm-preempt-tlb-gather-arm.patch
+Content-Disposition: inline; filename=martin-mm-preempt-tlb-gather-s390.patch
 Sender: owner-linux-mm@kvack.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <rmk@arm.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Fix up the arm mmu_gahter code to conform to the new API.
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-Cc: Russell King <rmk@arm.linux.org.uk>
+Adapt the stand-alone s390 mmu_gather implementation to the new
+preemptible mmu_gather interface.
+
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/arm/include/asm/tlb.h |   12 ++----------
- 1 file changed, 2 insertions(+), 10 deletions(-)
+ arch/s390/include/asm/tlb.h |   43 +++++++++++++++++++++++++------------------
+ 1 file changed, 25 insertions(+), 18 deletions(-)
 
-Index: linux-2.6/arch/arm/include/asm/tlb.h
+Index: linux-2.6/arch/s390/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/arm/include/asm/tlb.h
-+++ linux-2.6/arch/arm/include/asm/tlb.h
-@@ -40,17 +40,11 @@ struct mmu_gather {
- 	unsigned long		range_end;
+--- linux-2.6.orig/arch/s390/include/asm/tlb.h
++++ linux-2.6/arch/s390/include/asm/tlb.h
+@@ -28,44 +28,50 @@
+ #include <asm/smp.h>
+ #include <asm/tlbflush.h>
+ 
+-#ifndef CONFIG_SMP
+-#define TLB_NR_PTRS	1
+-#else
+-#define TLB_NR_PTRS	508
+-#endif
+-
+ struct mmu_gather {
+ 	struct mm_struct *mm;
+ 	unsigned int fullmm;
+ 	unsigned int nr_ptes;
+ 	unsigned int nr_pxds;
+-	void *array[TLB_NR_PTRS];
++	unsigned int max;
++	void **array;
++	void *local[8];
  };
  
 -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
 -
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+-static inline struct mmu_gather *tlb_gather_mmu(struct mm_struct *mm,
+-						unsigned int full_mm_flush)
++static inline void __tlb_alloc_pages(struct mmu_gather *tlb)
  {
 -	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
++	unsigned long addr = __get_free_pages(GFP_ATOMIC, 0);
++
++	if (addr) {
++		tlb->array = (void *) addr;
++		tlb->max = PAGE_SIZE / sizeof(void *);
++	}
++}
+ 
++static inline void tlb_gather_mmu(struct mmu_gather *tlb,
++				  struct mm_struct *mm,
++				  unsigned int full_mm_flush)
++{
  	tlb->mm = mm;
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->array = tlb->local;
  	tlb->fullmm = full_mm_flush;
--
+-	tlb->nr_ptes = 0;
+-	tlb->nr_pxds = TLB_NR_PTRS;
+ 	if (tlb->fullmm)
+ 		__tlb_flush_mm(mm);
 -	return tlb;
++	else
++		__tlb_alloc_pages(tlb);
++	tlb->nr_ptes = 0;
++	tlb->nr_pxds = tlb->max;
  }
  
- static inline void
-@@ -61,8 +55,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ static inline void tlb_flush_mmu(struct mmu_gather *tlb,
+ 				 unsigned long start, unsigned long end)
+ {
+-	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < TLB_NR_PTRS))
++	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < tlb->max))
+ 		__tlb_flush_mm(tlb->mm);
+ 	while (tlb->nr_ptes > 0)
+ 		page_table_free_rcu(tlb->mm, tlb->array[--tlb->nr_ptes]);
+-	while (tlb->nr_pxds < TLB_NR_PTRS)
++	while (tlb->nr_pxds < tlb->max)
+ 		crst_table_free_rcu(tlb->mm, tlb->array[tlb->nr_pxds++]);
+ }
  
+@@ -79,7 +85,8 @@ static inline void tlb_finish_mmu(struct
  	/* keep the page table cache within bounds */
  	check_pgt_cache();
--
+ 
 -	put_cpu_var(mmu_gathers);
++	if (tlb->array != tlb->local)
++		free_pages((unsigned long) tlb->array, 0);
  }
  
  /*
