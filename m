@@ -1,167 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([134.117.69.58]:50067 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754920Ab0KZPBd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Nov 2010 10:01:33 -0500
-Message-ID: <20101126145411.215256715@chello.nl>
-Date: Fri, 26 Nov 2010 15:39:00 +0100
+Received: from casper.infradead.org ([85.118.1.10]:35559 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755245Ab0KZPBk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Nov 2010 10:01:40 -0500
+Message-ID: <20101126145410.544741923@chello.nl>
+Date: Fri, 26 Nov 2010 15:38:48 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 17/21] lockdep, mutex: Provide mutex_lock_nest_lock
+Subject: [PATCH 05/21] mm: Move anon_vma ref out from under CONFIG_KSM
 References: <20101126143843.801484792@chello.nl>
-Content-Disposition: inline; filename=mutex_lock_nest_lock.patch
+Content-Disposition: inline; filename=mm-anon_vma-ref.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20101126143900.9gKfnawFyh4BArbrO4MnHcFbc9mFTWxAhGSdBRRMH0U@z>
+Message-ID: <20101126143848.ODOPiJLlSrj0KpG4NUNvPRo-dSd8F-1DNCXBj6zO4IY@z>
 
-Provide the mutex_lock_nest_lock() annotation.
+We need an anon_vma refcount for preemptible anon_vma->lock.
 
+Acked-by: Mel Gorman <mel@csn.ul.ie>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/lockdep.h |    3 +++
- include/linux/mutex.h   |    9 +++++++++
- kernel/mutex.c          |   25 +++++++++++++++++--------
- 3 files changed, 29 insertions(+), 8 deletions(-)
+ include/linux/rmap.h |   40 ++++------------------------------------
+ mm/migrate.c         |    4 ++--
+ mm/rmap.c            |   14 ++++++--------
+ 3 files changed, 12 insertions(+), 46 deletions(-)
 
-Index: linux-2.6/include/linux/lockdep.h
+Index: linux-2.6/include/linux/rmap.h
 ===================================================================
---- linux-2.6.orig/include/linux/lockdep.h
-+++ linux-2.6/include/linux/lockdep.h
-@@ -492,12 +492,15 @@ static inline void print_irqtrace_events
- #ifdef CONFIG_DEBUG_LOCK_ALLOC
- # ifdef CONFIG_PROVE_LOCKING
- #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 2, NULL, i)
-+#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 2, n, i)
- # else
- #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 1, NULL, i)
-+#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 1, n, i)
- # endif
- # define mutex_release(l, n, i)			lock_release(l, n, i)
- #else
- # define mutex_acquire(l, s, t, i)		do { } while (0)
-+# define mutex_acquire_nest(l, s, t, n, i)	do { } while (0)
- # define mutex_release(l, n, i)			do { } while (0)
- #endif
- 
-Index: linux-2.6/include/linux/mutex.h
-===================================================================
---- linux-2.6.orig/include/linux/mutex.h
-+++ linux-2.6/include/linux/mutex.h
-@@ -124,6 +124,7 @@ static inline int mutex_is_locked(struct
-  */
- #ifdef CONFIG_DEBUG_LOCK_ALLOC
- extern void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
-+extern void _mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest_lock);
- extern int __must_check mutex_lock_interruptible_nested(struct mutex *lock,
- 					unsigned int subclass);
- extern int __must_check mutex_lock_killable_nested(struct mutex *lock,
-@@ -132,6 +133,13 @@ extern int __must_check mutex_lock_killa
- #define mutex_lock(lock) mutex_lock_nested(lock, 0)
- #define mutex_lock_interruptible(lock) mutex_lock_interruptible_nested(lock, 0)
- #define mutex_lock_killable(lock) mutex_lock_killable_nested(lock, 0)
-+
-+#define mutex_lock_nest_lock(lock, nest_lock)				\
-+do {									\
-+	typecheck(struct lockdep_map *, &(nest_lock)->dep_map);		\
-+	_mutex_lock_nest_lock(lock, &(nest_lock)->dep_map);		\
-+} while (0)
-+
- #else
- extern void mutex_lock(struct mutex *lock);
- extern int __must_check mutex_lock_interruptible(struct mutex *lock);
-@@ -140,6 +148,7 @@ extern int __must_check mutex_lock_killa
- # define mutex_lock_nested(lock, subclass) mutex_lock(lock)
- # define mutex_lock_interruptible_nested(lock, subclass) mutex_lock_interruptible(lock)
- # define mutex_lock_killable_nested(lock, subclass) mutex_lock_killable(lock)
-+# define mutex_lock_nest_lock(lock, nest_lock) mutex_lock(lock)
- #endif
- 
- /*
-Index: linux-2.6/kernel/mutex.c
-===================================================================
---- linux-2.6.orig/kernel/mutex.c
-+++ linux-2.6/kernel/mutex.c
-@@ -140,14 +140,14 @@ EXPORT_SYMBOL(mutex_unlock);
-  */
- static inline int __sched
- __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
--	       	unsigned long ip)
-+		    struct lockdep_map *nest_lock, unsigned long ip)
- {
- 	struct task_struct *task = current;
- 	struct mutex_waiter waiter;
- 	unsigned long flags;
- 
- 	preempt_disable();
--	mutex_acquire(&lock->dep_map, subclass, 0, ip);
-+	mutex_acquire_nest(&lock->dep_map, subclass, 0, nest_lock, ip);
- 
- #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+--- linux-2.6.orig/include/linux/rmap.h
++++ linux-2.6/include/linux/rmap.h
+@@ -27,18 +27,15 @@
+ struct anon_vma {
+ 	struct anon_vma *root;	/* Root of this anon_vma tree */
+ 	spinlock_t lock;	/* Serialize access to vma list */
+-#if defined(CONFIG_KSM) || defined(CONFIG_MIGRATION)
+-
  	/*
-@@ -285,16 +285,25 @@ void __sched
- mutex_lock_nested(struct mutex *lock, unsigned int subclass)
- {
- 	might_sleep();
--	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, _RET_IP_);
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, NULL, _RET_IP_);
- }
- 
- EXPORT_SYMBOL_GPL(mutex_lock_nested);
- 
-+void __sched
-+_mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest)
-+{
-+	might_sleep();
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, nest, _RET_IP_);
-+}
+-	 * The external_refcount is taken by either KSM or page migration
+-	 * to take a reference to an anon_vma when there is no
++	 * The refcount is taken on an anon_vma when there is no
+ 	 * guarantee that the vma of page tables will exist for
+ 	 * the duration of the operation. A caller that takes
+ 	 * the reference is responsible for clearing up the
+ 	 * anon_vma if they are the last user on release
+ 	 */
+-	atomic_t external_refcount;
+-#endif
++	atomic_t refcount;
 +
-+EXPORT_SYMBOL_GPL(_mutex_lock_nest_lock);
-+
- int __sched
- mutex_lock_killable_nested(struct mutex *lock, unsigned int subclass)
- {
- 	might_sleep();
--	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, NULL, _RET_IP_);
- }
- EXPORT_SYMBOL_GPL(mutex_lock_killable_nested);
+ 	/*
+ 	 * NOTE: the LSB of the head.next is set by
+ 	 * mm_take_all_locks() _after_ taking the above lock. So the
+@@ -71,41 +68,12 @@ struct anon_vma_chain {
+ };
  
-@@ -303,7 +312,7 @@ mutex_lock_interruptible_nested(struct m
+ #ifdef CONFIG_MMU
+-#if defined(CONFIG_KSM) || defined(CONFIG_MIGRATION)
+-static inline void anonvma_external_refcount_init(struct anon_vma *anon_vma)
+-{
+-	atomic_set(&anon_vma->external_refcount, 0);
+-}
+-
+-static inline int anonvma_external_refcount(struct anon_vma *anon_vma)
+-{
+-	return atomic_read(&anon_vma->external_refcount);
+-}
+-
+ static inline void get_anon_vma(struct anon_vma *anon_vma)
  {
- 	might_sleep();
- 	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE,
--				   subclass, _RET_IP_);
-+				   subclass, NULL, _RET_IP_);
- }
- 
- EXPORT_SYMBOL_GPL(mutex_lock_interruptible_nested);
-@@ -409,7 +418,7 @@ __mutex_lock_slowpath(atomic_t *lock_cou
- {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
- 
--	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, _RET_IP_);
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, NULL, _RET_IP_);
+-	atomic_inc(&anon_vma->external_refcount);
++	atomic_inc(&anon_vma->refcount);
  }
  
- static noinline int __sched
-@@ -417,7 +426,7 @@ __mutex_lock_killable_slowpath(atomic_t 
- {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ void put_anon_vma(struct anon_vma *);
+-#else
+-static inline void anonvma_external_refcount_init(struct anon_vma *anon_vma)
+-{
+-}
+-
+-static inline int anonvma_external_refcount(struct anon_vma *anon_vma)
+-{
+-	return 0;
+-}
+-
+-static inline void get_anon_vma(struct anon_vma *anon_vma)
+-{
+-}
+-
+-static inline void put_anon_vma(struct anon_vma *anon_vma)
+-{
+-}
+-#endif /* CONFIG_KSM */
  
--	return __mutex_lock_common(lock, TASK_KILLABLE, 0, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+ static inline struct anon_vma *page_anon_vma(struct page *page)
+ {
+Index: linux-2.6/mm/rmap.c
+===================================================================
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -268,7 +268,7 @@ static void anon_vma_unlink(struct anon_
+ 	list_del(&anon_vma_chain->same_anon_vma);
+ 
+ 	/* We must garbage collect the anon_vma if it's empty */
+-	empty = list_empty(&anon_vma->head) && !anonvma_external_refcount(anon_vma);
++	empty = list_empty(&anon_vma->head) && !atomic_read(&anon_vma->refcount);
+ 	anon_vma_unlock(anon_vma);
+ 
+ 	if (empty) {
+@@ -299,7 +299,7 @@ static void anon_vma_ctor(void *data)
+ 	struct anon_vma *anon_vma = data;
+ 
+ 	spin_lock_init(&anon_vma->lock);
+-	anonvma_external_refcount_init(anon_vma);
++	atomic_set(&anon_vma->refcount, 0);
+ 	INIT_LIST_HEAD(&anon_vma->head);
  }
  
- static noinline int __sched
-@@ -425,7 +434,7 @@ __mutex_lock_interruptible_slowpath(atom
- {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
- 
--	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+@@ -1451,7 +1451,6 @@ int try_to_munlock(struct page *page)
+ 		return try_to_unmap_file(page, TTU_MUNLOCK);
  }
- #endif
  
+-#if defined(CONFIG_KSM) || defined(CONFIG_MIGRATION)
+ /*
+  * Drop an anon_vma refcount, freeing the anon_vma and anon_vma->root
+  * if necessary.  Be careful to do all the tests under the lock.  Once
+@@ -1460,8 +1459,8 @@ int try_to_munlock(struct page *page)
+  */
+ void put_anon_vma(struct anon_vma *anon_vma)
+ {
+-	BUG_ON(atomic_read(&anon_vma->external_refcount) <= 0);
+-	if (atomic_dec_and_lock(&anon_vma->external_refcount, &anon_vma->root->lock)) {
++	BUG_ON(atomic_read(&anon_vma->refcount) <= 0);
++	if (atomic_dec_and_lock(&anon_vma->refcount, &anon_vma->root->lock)) {
+ 		struct anon_vma *root = anon_vma->root;
+ 		int empty = list_empty(&anon_vma->head);
+ 		int last_root_user = 0;
+@@ -1472,8 +1471,8 @@ void put_anon_vma(struct anon_vma *anon_
+ 		 * the refcount on the root and check if we need to free it.
+ 		 */
+ 		if (empty && anon_vma != root) {
+-			BUG_ON(atomic_read(&root->external_refcount) <= 0);
+-			last_root_user = atomic_dec_and_test(&root->external_refcount);
++			BUG_ON(atomic_read(&root->refcount) <= 0);
++			last_root_user = atomic_dec_and_test(&root->refcount);
+ 			root_empty = list_empty(&root->head);
+ 		}
+ 		anon_vma_unlock(anon_vma);
+@@ -1485,7 +1484,6 @@ void put_anon_vma(struct anon_vma *anon_
+ 		}
+ 	}
+ }
+-#endif
+ 
+ #ifdef CONFIG_MIGRATION
+ /*
+Index: linux-2.6/mm/migrate.c
+===================================================================
+--- linux-2.6.orig/mm/migrate.c
++++ linux-2.6/mm/migrate.c
+@@ -833,7 +833,7 @@ static int unmap_and_move_huge_page(new_
+ 
+ 		if (page_mapped(hpage)) {
+ 			anon_vma = page_anon_vma(hpage);
+-			atomic_inc(&anon_vma->external_refcount);
++			atomic_inc(&anon_vma->refcount);
+ 		}
+ 	}
+ 
+@@ -845,7 +845,7 @@ static int unmap_and_move_huge_page(new_
+ 	if (rc)
+ 		remove_migration_ptes(hpage, hpage);
+ 
+-	if (anon_vma && atomic_dec_and_lock(&anon_vma->external_refcount,
++	if (anon_vma && atomic_dec_and_lock(&anon_vma->refcount,
+ 					    &anon_vma->lock)) {
+ 		int empty = list_empty(&anon_vma->head);
+ 		spin_unlock(&anon_vma->lock);
 
 
