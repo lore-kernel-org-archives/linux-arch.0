@@ -1,40 +1,52 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 19/21] mm: Convert i_mmap_lock and anon_vma->lock to
- mutexes
-Date: Mon, 29 Nov 2010 21:50:42 +0100
-Message-ID: <1291063842.32004.386.camel@laptop>
-References: <20101126143843.801484792@chello.nl>
-	 <20101126145411.331356698@chello.nl>
-	 <20101129120530.67013aeb.kamezawa.hiroyu@jp.fujitsu.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v2 0/4] kthread: NUMA aware kthread_create_on_cpu()
+Date: Tue, 30 Nov 2010 10:01:55 +1030
+Message-ID: <201011301001.55968.rusty@rustcorp.com.au>
+References: <20101129090510.GA15763@basil.fritz.box> <20101129.093942.104054089.davem@davemloft.net> <1291053583.3435.1269.camel@edumazet-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20101129120530.67013aeb.kamezawa.hiroyu@jp.fujitsu.com>
-Sender: owner-linux-mm@kvack.org
-To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:50563 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752687Ab0K2Xb5 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 18:31:57 -0500
+In-Reply-To: <1291053583.3435.1269.camel@edumazet-laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, tony.luck@intel.com, fenghua.yu@intel.com
 
-On Mon, 2010-11-29 at 12:05 +0900, KAMEZAWA Hiroyuki wrote:
-> On Fri, 26 Nov 2010 15:39:02 +0100
-> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
->=20
-> > Straight fwd conversion of i_mmap_lock and anon_vma->lock to mutexes.
+On Tue, 30 Nov 2010 04:29:43 am Eric Dumazet wrote:
+> Le lundi 29 novembre 2010 =C3=A0 09:39 -0800, David Miller a =C3=A9cr=
+it :
+> > From: Eric Dumazet <eric.dumazet@gmail.com>
+> > Date: Mon, 29 Nov 2010 16:13:23 +0100
 > >=20
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> > > Note : compiled and tested on x86_32 and x86_64 only, but these p=
+atches
+> > > take care of other arches as well.
+> > >=20
+> > > Cc: linux-arch@vger.kernel.org=20
+> > >=20
+> > > Thanks for your feedback Andi !
+> >=20
+> > I'm fine with these changes:
+> >=20
+> > Acked-by: David S. Miller <davem@davemloft.net>
+> >=20
+> > Since the majority is non-networking it is pretty clear
+> > that someone other than me should integrate these patches.
+> > :-)
 >=20
-> No performance influence ?
+> Sure !
+>=20
+> I was thinking Andrew was the guy to carry this patch series, once
+> things settle down of course...
 
-I couldn't find any, if there was anything the error and per-boot
-deviation was larger.
+I'm happy with that.
 
-Yanmin also ran this though the intel test/performance farm and didn't
-find anything significant.
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cheers,
+Rusty.
