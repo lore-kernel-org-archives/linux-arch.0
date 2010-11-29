@@ -1,35 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59598 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752749Ab0K0V5N (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 27 Nov 2010 16:57:13 -0500
-Subject: Re: [PATCH 02/21] powerpc: Use call_rcu_sched() for pagetables
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20101127103319.GA6830@amd>
+Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:57374 "EHLO
+	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754474Ab0K2CWL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Nov 2010 21:22:11 -0500
+Date: Mon, 29 Nov 2010 11:16:25 +0900
+From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 04/21] mm: Rename drop_anon_vma to put_anon_vma
+Message-ID: <20101129111625.64456ec1.kamezawa.hiroyu@jp.fujitsu.com>
+In-Reply-To: <20101126145410.491545145@chello.nl>
 References: <20101126143843.801484792@chello.nl>
-	 <20101126145410.373743450@chello.nl>  <20101127103319.GA6830@amd>
-Content-Type: text/plain; charset="UTF-8"
-Date: Sun, 28 Nov 2010 08:55:00 +1100
-Message-ID: <1290894900.32570.160.camel@pasglop>
+	<20101126145410.491545145@chello.nl>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Nick Piggin <npiggin@suse.de>
-Message-ID: <20101127215500.YznwhBHCkiPCfQrM4RcCwMz7ml3WVGTN_xaGazZ1Va4@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20101129021625.-FqbSriousGARAyJG9KOVdVWp8FBQQDWmOQ-Llx86bc@z>
 
-On Sat, 2010-11-27 at 21:33 +1100, Nick Piggin wrote:
-> Can this go through powerpc tree as a bugfix?
+On Fri, 26 Nov 2010 15:38:47 +0100
+Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+
+> The normal code pattern used in the kernel is: get/put.
 > 
-> On Fri, Nov 26, 2010 at 03:38:45PM +0100, Peter Zijlstra wrote:
-> > PowerPC relies on IRQ-disable to guard against RCU quiecent states,
-> > use the appropriate RCU call version.
-> > 
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-I'm happy to pick that up tomorrow.
-
-Cheers,
-Ben.
-
+Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
 
