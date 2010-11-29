@@ -1,39 +1,49 @@
-From: David Miller <davem@davemloft.net>
+From: Eric Dumazet <eric.dumazet@gmail.com>
 Subject: Re: [PATCH v2 0/4] kthread: NUMA aware kthread_create_on_cpu()
-Date: Mon, 29 Nov 2010 09:39:42 -0800 (PST)
-Message-ID: <20101129.093942.104054089.davem@davemloft.net>
+Date: Mon, 29 Nov 2010 18:59:43 +0100
+Message-ID: <1291053583.3435.1269.camel@edumazet-laptop>
 References: <20101129090510.GA15763@basil.fritz.box>
-	<1291023532.3435.29.camel@edumazet-laptop>
-	<1291043604.3435.969.camel@edumazet-laptop>
+	 <1291023532.3435.29.camel@edumazet-laptop>
+	 <1291043604.3435.969.camel@edumazet-laptop>
+	 <20101129.093942.104054089.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36573
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750982Ab0K2RjR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Nov 2010 12:39:17 -0500
-In-Reply-To: <1291043604.3435.969.camel@edumazet-laptop>
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:51241 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752006Ab0K2R7s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 12:59:48 -0500
+In-Reply-To: <20101129.093942.104054089.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: eric.dumazet@gmail.com
-Cc: andi@firstfloor.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, rusty@rustcorp.com.au, tony.luck@intel.com, fenghua.yu@intel.com
+To: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>
+Cc: andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, rusty@rustcorp.com.au, tony.luck@intel.com, fenghua.yu@intel.com
 
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Date: Mon, 29 Nov 2010 16:13:23 +0100
+Le lundi 29 novembre 2010 =C3=A0 09:39 -0800, David Miller a =C3=A9crit=
+ :
+> From: Eric Dumazet <eric.dumazet@gmail.com>
+> Date: Mon, 29 Nov 2010 16:13:23 +0100
+>=20
+> > Note : compiled and tested on x86_32 and x86_64 only, but these pat=
+ches
+> > take care of other arches as well.
+> >=20
+> > Cc: linux-arch@vger.kernel.org=20
+> >=20
+> > Thanks for your feedback Andi !
+>=20
+> I'm fine with these changes:
+>=20
+> Acked-by: David S. Miller <davem@davemloft.net>
+>=20
+> Since the majority is non-networking it is pretty clear
+> that someone other than me should integrate these patches.
+> :-)
 
-> Note : compiled and tested on x86_32 and x86_64 only, but these patches
-> take care of other arches as well.
-> 
-> Cc: linux-arch@vger.kernel.org 
-> 
-> Thanks for your feedback Andi !
+Sure !
 
-I'm fine with these changes:
+I was thinking Andrew was the guy to carry this patch series, once
+things settle down of course...
 
-Acked-by: David S. Miller <davem@davemloft.net>
-
-Since the majority is non-networking it is pretty clear
-that someone other than me should integrate these patches.
-:-)
+Thanks
