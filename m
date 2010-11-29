@@ -1,49 +1,36 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [PATCH v2 0/4] kthread: NUMA aware kthread_create_on_cpu()
-Date: Mon, 29 Nov 2010 18:59:43 +0100
-Message-ID: <1291053583.3435.1269.camel@edumazet-laptop>
-References: <20101129090510.GA15763@basil.fritz.box>
-	 <1291023532.3435.29.camel@edumazet-laptop>
-	 <1291043604.3435.969.camel@edumazet-laptop>
-	 <20101129.093942.104054089.davem@davemloft.net>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 07/21] mm: Use refcounts for page_lock_anon_vma()
+Date: Mon, 29 Nov 2010 21:41:23 +0100
+Message-ID: <1291063283.32004.364.camel@laptop>
+References: <20101126143843.801484792@chello.nl>
+	 <20101126145410.655255418@chello.nl>
+	 <20101129113511.296169c9.kamezawa.hiroyu@jp.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:51241 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752006Ab0K2R7s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 12:59:48 -0500
-In-Reply-To: <20101129.093942.104054089.davem@davemloft.net>
+Received: from canuck.infradead.org ([134.117.69.58]:35860 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753828Ab0K2Ult convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 15:41:49 -0500
+In-Reply-To: <20101129113511.296169c9.kamezawa.hiroyu@jp.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>
-Cc: andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, rusty@rustcorp.com.au, tony.luck@intel.com, fenghua.yu@intel.com
+To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-Le lundi 29 novembre 2010 =C3=A0 09:39 -0800, David Miller a =C3=A9crit=
- :
-> From: Eric Dumazet <eric.dumazet@gmail.com>
-> Date: Mon, 29 Nov 2010 16:13:23 +0100
->=20
-> > Note : compiled and tested on x86_32 and x86_64 only, but these pat=
-ches
-> > take care of other arches as well.
-> >=20
-> > Cc: linux-arch@vger.kernel.org=20
-> >=20
-> > Thanks for your feedback Andi !
->=20
-> I'm fine with these changes:
->=20
-> Acked-by: David S. Miller <davem@davemloft.net>
->=20
-> Since the majority is non-networking it is pretty clear
-> that someone other than me should integrate these patches.
-> :-)
+On Mon, 2010-11-29 at 11:35 +0900, KAMEZAWA Hiroyuki wrote:
+> On Fri, 26 Nov 2010 15:38:50 +0100
+> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> 
+> > Convert page_lock_anon_vma() over to use refcounts. This is
+> > done for each of convertion of anon_vma from spinlock to mutex.
+> > 
+> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> 
+> Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+> 
+> Does this patch affect only page_referenced() and try_to_unmap() ?
 
-Sure !
-
-I was thinking Andrew was the guy to carry this patch series, once
-things settle down of course...
-
-Thanks
+git grep page_lock_anon_vma reveals that
+mm/memory-failure.c:collect_procs_anon() is also affected.
