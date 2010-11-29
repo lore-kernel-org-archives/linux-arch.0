@@ -1,29 +1,33 @@
 From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [PATCH 05/21] mm: Move anon_vma ref out from under CONFIG_KSM
-Date: Mon, 29 Nov 2010 11:19:34 +0900
-Message-ID: <20101129111934.e5f206ce.kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 06/21] mm: Simplify anon_vma refcounts
+Date: Mon, 29 Nov 2010 11:30:54 +0900
+Message-ID: <20101129113054.7db4664c.kamezawa.hiroyu@jp.fujitsu.com>
 References: <20101126143843.801484792@chello.nl>
-	<20101126145410.544741923@chello.nl>
+	<20101126145410.601515267@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:47427 "EHLO
-	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754448Ab0K2CZS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Nov 2010 21:25:18 -0500
-In-Reply-To: <20101126145410.544741923@chello.nl>
+Received: from fgwmail7.fujitsu.co.jp ([192.51.44.37]:55308 "EHLO
+	fgwmail7.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754265Ab0K2Cgi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Nov 2010 21:36:38 -0500
+In-Reply-To: <20101126145410.601515267@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-On Fri, 26 Nov 2010 15:38:48 +0100
+On Fri, 26 Nov 2010 15:38:49 +0100
 Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 
-> We need an anon_vma refcount for preemptible anon_vma->lock.
+> This patch changes the anon_vma refcount to be 0 when the object is
+> free. It does this by adding 1 ref to being in use in the anon_vma
+> structure (iow. the anon_vma->head list is not empty).
 > 
-> Acked-by: Mel Gorman <mel@csn.ul.ie>
+> This allows a simpler release scheme without having to check both the
+> refcount and the list as well as avoids taking a ref for each entry
+> on the list.
+> 
 > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-
 Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
