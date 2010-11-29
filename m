@@ -1,52 +1,54 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH v2 0/4] kthread: NUMA aware kthread_create_on_cpu()
-Date: Tue, 30 Nov 2010 10:01:55 +1030
-Message-ID: <201011301001.55968.rusty@rustcorp.com.au>
-References: <20101129090510.GA15763@basil.fritz.box> <20101129.093942.104054089.davem@davemloft.net> <1291053583.3435.1269.camel@edumazet-laptop>
+From: "WEBMASTER SERVICE" <info@webmaster.org>
+Subject: Ensure Your Account
+Date: Mon, 29 Nov 2010 22:45:15 +0100
+Message-ID: <20101129224515.625567wsz7oixyi3__39780.3631531589$1291074473$gmane$org@webmail.rrzn.uni-hannover.de>
+Reply-To: web_master_service@live.co.uk
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=utf-8
+Content-Type: text/plain; charset=ISO-8859-1;
+	DelSp=Yes	format=flowed
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:50563 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752687Ab0K2Xb5 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 18:31:57 -0500
-In-Reply-To: <1291053583.3435.1269.camel@edumazet-laptop>
+Received: from authsmtp.rrzn.uni-hannover.de ([130.75.2.107]:60484 "EHLO
+	authsmtp.rrzn.uni-hannover.de" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755810Ab0K2Xrd convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Nov 2010 18:47:33 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Dumazet <eric.dumazet@gmail.com>
-Cc: David Miller <davem@davemloft.net>, Andrew Morton <akpm@linux-foundation.org>, andi@firstfloor.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, tony.luck@intel.com, fenghua.yu@intel.com
 
-On Tue, 30 Nov 2010 04:29:43 am Eric Dumazet wrote:
-> Le lundi 29 novembre 2010 =C3=A0 09:39 -0800, David Miller a =C3=A9cr=
-it :
-> > From: Eric Dumazet <eric.dumazet@gmail.com>
-> > Date: Mon, 29 Nov 2010 16:13:23 +0100
-> >=20
-> > > Note : compiled and tested on x86_32 and x86_64 only, but these p=
-atches
-> > > take care of other arches as well.
-> > >=20
-> > > Cc: linux-arch@vger.kernel.org=20
-> > >=20
-> > > Thanks for your feedback Andi !
-> >=20
-> > I'm fine with these changes:
-> >=20
-> > Acked-by: David S. Miller <davem@davemloft.net>
-> >=20
-> > Since the majority is non-networking it is pretty clear
-> > that someone other than me should integrate these patches.
-> > :-)
->=20
-> Sure !
->=20
-> I was thinking Andrew was the guy to carry this patch series, once
-> things settle down of course...
 
-I'm happy with that.
+Ensure Your Account
 
-Acked-by: Rusty Russell <rusty@rustcorp.com.au>
 
-Cheers,
-Rusty.
+
+  We are currently upgrading our data base and e-mail home center is =20
+managed. Enter your email to delete accounts that are not actively =20
+users.we parents to create more space for new accounts have also =20
+studied the system security audit to improve and enhance our current =20
+security situation.
+
+Continue to use our services are needed to update and
+re-comfirmed your requested information via e-mail below.
+
+To complete the new account confirmation, reply to this email =20
+immediately and enter the account number below to
+
+Username: ................
+User E-mail ..............
+Password: ..................
+Password: ............
+Date of Birth: .................
+
+
+Otherwise, your account will be disabled immediately to the database =20
+and information service is not interrupted and important messages can =20
+be lost in the reduction of the new coordinates comfirmed to us.
+
+We apologize for any inconvenience this causes this season but is =20
+confident that we are here to serve you better and
+providing more technology which revolves around email and internet.
+
+It is also essential to understand that the most important =20
+epr=E9occupation our customers and the security of their files and =20
+data....
