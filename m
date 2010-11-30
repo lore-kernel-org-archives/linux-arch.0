@@ -1,39 +1,26 @@
 From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: [PATCH 07/21] mm: Use refcounts for page_lock_anon_vma()
-Date: Tue, 30 Nov 2010 10:21:09 +0900 (JST)
-Message-ID: <20101130102137.82F2.A69D9226@jp.fujitsu.com>
-References: <20101126145410.655255418@chello.nl> <20101129113511.296169c9.kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 19/21] mm: Convert i_mmap_lock and anon_vma->lock to mutexes
+Date: Tue, 30 Nov 2010 10:28:58 +0900 (JST)
+Message-ID: <20101130102933.82F8.A69D9226@jp.fujitsu.com>
+References: <20101126143843.801484792@chello.nl> <20101126145411.331356698@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="US-ASCII"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20101129113511.296169c9.kamezawa.hiroyu@jp.fujitsu.com>
-Sender: owner-linux-mm@kvack.org
-To: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Cc: kosaki.motohiro@jp.fujitsu.com, Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:60007 "EHLO
+	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755963Ab0K3B3B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 20:29:01 -0500
+In-Reply-To: <20101126145411.331356698@chello.nl>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: kosaki.motohiro@jp.fujitsu.com, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-> On Fri, 26 Nov 2010 15:38:50 +0100
-> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> Straight fwd conversion of i_mmap_lock and anon_vma->lock to mutexes.
 > 
-> > Convert page_lock_anon_vma() over to use refcounts. This is
-> > done for each of convertion of anon_vma from spinlock to mutex.
-> > 
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> 
-> Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-> 
-> Does this patch affect only page_referenced() and try_to_unmap() ?
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-I like this conversion too.
-	Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
++1.
 
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I don't think this conversion makes performance hurt.
