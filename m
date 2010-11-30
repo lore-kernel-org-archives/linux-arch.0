@@ -1,47 +1,135 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [PATCH v2 4/4] kthread: use kthread_create_on_cpu()
-Date: Tue, 30 Nov 2010 10:59:01 +0100
-Message-ID: <1291111141.2904.17.camel@edumazet-laptop>
-References: <1291043719.3435.981.camel@edumazet-laptop>
-	 <1290972833.29196.90.camel@edumazet-laptop>
-	 <20101128224024.GA12300@basil.fritz.box>
-	 <1290984712.29196.100.camel@edumazet-laptop>
-	 <20101128230146.GB12300@basil.fritz.box>
-	 <1290987424.29196.128.camel@edumazet-laptop>
-	 <20101129090510.GA15763@basil.fritz.box>
-	 <1291023532.3435.29.camel@edumazet-laptop>   <15903.1291109892@redhat.com>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: RE: [PATCH] a new UniCore32 arch-dependent patch for linux-2.6.37-rc1
+Date: Tue, 30 Nov 2010 18:28:55 +0800
+Message-ID: <009b01cb9079$6605cd90$321168b0$@mprc.pku.edu.cn>
+References: <00a701cb8883$649d39f0$2dd7add0$@mprc.pku.edu.cn> <201011241758.14157.arnd@arndb.de> <000c01cb8dde$646f4120$2d4dc360$@mprc.pku.edu.cn> <201011291735.19556.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:32997 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755225Ab0K3J7G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2010 04:59:06 -0500
-In-Reply-To: <15903.1291109892@redhat.com>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:47962 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754718Ab0K3K3S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Nov 2010 05:29:18 -0500
+In-Reply-To: <201011291735.19556.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Andi Kleen <andi@firstfloor.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel <linux-kernel@vger.kernel.org>, netdev <netdev@vger.kernel.org>, David Miller <davem@davemloft.net>, Tejun Heo <tj@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: 'Greg KH' <greg@kroah.com>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Linus Torvalds' <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Le mardi 30 novembre 2010 =C3=A0 09:38 +0000, David Howells a =C3=A9cri=
-t :
-> Eric Dumazet <eric.dumazet@gmail.com> wrote:
->=20
-> > +		p =3D kthread_create_on_cpu(run_ksoftirqd, hcpu, hotcpu,
-> > +					  "ksoftirqd/%d", hotcpu);
->=20
-> Does kthread_create_on_cpu() need to take hotcpu twice?  Can one of t=
-he
-> arguments be folded into the other?
->=20
-> David
 
-The second one is used in a printf() like to build a string, its not
-really part of the API..
 
-Caller could do instead :
+> -----Original Message-----
+> From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-
+> owner@vger.kernel.org] On Behalf Of Arnd Bergmann
+> Sent: Tuesday, November 30, 2010 12:35 AM
+> To: Guan Xuetao
+> Cc: 'Greg KH'; 'Andrew Morton'; 'Linus Torvalds'; linux-
+> kernel@vger.kernel.org; linux-arch@vger.kernel.org
+> Subject: Re: [PATCH] a new UniCore32 arch-dependent patch for linux-
+> 2.6.37-rc1
+> 
+> On Saturday 27 November 2010, Guan Xuetao wrote:
+> 
+> > > > [Guan] when I set MAX_DMA_ADDRESS to PAGE_OFFSET, some pci
+> drivers
+> > > > have problem.
+> > > >   I will check it later.
+> > >
+> > > Interesting. You already allow to override MAX_DMA_ADDRESS to
+> > > (PAGE_OFFSET + SZ_128M) when PCI is enabled. It would be good to
+> > > find out (and document!) the signficance of the extra 128MB here.
+> > >
+> > PCI controller in PKUnity-3 masks highest 5-bit for upstream channel,
+> > so we must Limit the DMA allocation with 128M physical memory for
+> > supporting PCI devices.
+> >
+> > > If it turns out to be required, please make a patch to the
+> > > asm-generic/dma.h file to allow overriding MAX_DMA_ADDRESS in the
+> > > same way you do in your version.
+> > I need to check it later.
+> > I suppose MAX_DMA_ADDRESS is virtual address, so it should be larger
+> > than PAGE_OFFSET.
+> 
+> I had a closer look again at this. MAX_DMA_ADDRESS is meant to reflect the
+> size of ZONE_DMA, which it does in your patch.
+> 
+> However, something else is really wrong, in that ZONE_DMA (i.e. GFP_DMA)
+> should only be used for legacy ISA devices like floppy or parallel port,
+not for
+> PCI devices.
+> 
+> If your PCI bus can only do DMA to a limited memory range, you can not in
+> general use MAX_DMA_ADDRESS/ZONE_DMA for this, but instead need to
+> use the swiotlb code or a hardware IOMMU in place of your asm/dma-
+> mapping.h file.
 
-char name[32];
-sprintf(name, "ksoftirqd/%d", whatever_id);
-p =3D kthread_create_on_cpu(run_ksoftirqd, hcpu, hotcpu, name);
+Ok. Since we have no pci peripherals in our products, I removed these codes.
+
+> 
+> > > > > > + * Nothing too fancy for now.
+> > > > > > + *
+> > > > > > + * On UniCore we already have well known fixed virtual
+> > > > > > + addresses imposed by
+> > > > > > + * the architecture such as the vector page which is located
+> > > > > > + at 0xffff0000,
+> > > > >
+> > > > > The comment is copied from ARM, but is it really true on unicore?
+> > > > >
+> > > > [Guan] Yes.
+> > >
+> > > In what way does the architecture enforce this? What are the
+> > > contents of this page? Can you make it an actual VDSO rather than a
+> > > magic page that sits in the user address space?
+> > Page table is created for vector page and exceptions entry stub.
+> > However, vector page is not in the user address space.
+> 
+> Interesting. So if it's not mapped into user space, why do you even need
+to
+> have the vectors at a specific page? I think ARM only maps it to the high
+page
+> because that page is shared to user space, while most architectures just
+have
+> their interrupt vectors in the linar mapping, since the hardware typically
+uses
+> the physical address to find it.
+
+In UniCore-32, when MMU enabled, vector page address is virtual address.
+
+> > > You could link against libgcc, see arch/tile/Makefile for an example
+> > > how
+> > to do
+> > > that.
+> > Yes, it works. I think it's not a good idea. Kernel should be
+> > independent on libgcc.
+> 
+> I've seen both libgcc based and standalone library approaches in
+> architectures, but I could never see a strong reaons for one way or
+another.
+> Why do you think it should be independent? Licensing technical problems?
+
+No license problem, just my understanding. Thanks.
+
+> 
+> > > > > You might not want to select ZONE_DMA and
+> > > ARCH_USES_GETTIMEOFFSET,
+> > > > > since you are generally better off without them.
+> > > > [Guan] We need ZONE_DMA for only 128M low memory could be used
+> for
+> > > DMA.
+> > >
+> > > Ok. Is this only for some device drivers, or is this a general
+limitation?
+> > The ZONE_DMA only limits pci devices, not a general limitation.
+> > However, many chips could be connected to different bus, so this limit
+> > influences global in our architecture.
+> 
+> As mentioned above, the drivers behind the PCI (except PCI-ISA bridges)
+> should be using dma_map_single/dma_alloc_coherent instead of GFP_DMA
+> to get DMA capable memory, so what you need instead is swiotlb.
+
+Ok, thanks.
+
+Guan Xuetao
