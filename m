@@ -1,54 +1,27 @@
-From: "WEBMASTER SERVICE" <info@webmaster.org>
-Subject: Ensure Your Account
-Date: Mon, 29 Nov 2010 22:45:15 +0100
-Message-ID: <20101129224515.625567wsz7oixyi3__39780.3631531589$1291074473$gmane$org@webmail.rrzn.uni-hannover.de>
-Reply-To: web_master_service@live.co.uk
+From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Subject: Re: [PATCH 01/21] mm: Revert page_lock_anon_vma() lock annotation
+Date: Tue, 30 Nov 2010 10:19:11 +0900 (JST)
+Message-ID: <20101130101931.82EC.A69D9226@jp.fujitsu.com>
+References: <20101126143843.801484792@chello.nl> <20101126145410.315243256@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	DelSp=Yes	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from authsmtp.rrzn.uni-hannover.de ([130.75.2.107]:60484 "EHLO
-	authsmtp.rrzn.uni-hannover.de" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755810Ab0K2Xrd convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Nov 2010 18:47:33 -0500
-Content-Disposition: inline
+Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:58183 "EHLO
+	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755812Ab0K3BTP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Nov 2010 20:19:15 -0500
+In-Reply-To: <20101126145410.315243256@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: kosaki.motohiro@jp.fujitsu.com, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Namhyung Kim <namhyung@gmail.com>
 
+> Its beyond ugly and gets in the way.
+> 
+> Cc: Namhyung Kim <namhyung@gmail.com>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 
-Ensure Your Account
++1
 
-
-
-  We are currently upgrading our data base and e-mail home center is =20
-managed. Enter your email to delete accounts that are not actively =20
-users.we parents to create more space for new accounts have also =20
-studied the system security audit to improve and enhance our current =20
-security situation.
-
-Continue to use our services are needed to update and
-re-comfirmed your requested information via e-mail below.
-
-To complete the new account confirmation, reply to this email =20
-immediately and enter the account number below to
-
-Username: ................
-User E-mail ..............
-Password: ..................
-Password: ............
-Date of Birth: .................
-
-
-Otherwise, your account will be disabled immediately to the database =20
-and information service is not interrupted and important messages can =20
-be lost in the reduction of the new coordinates comfirmed to us.
-
-We apologize for any inconvenience this causes this season but is =20
-confident that we are here to serve you better and
-providing more technology which revolves around email and internet.
-
-It is also essential to understand that the most important =20
-epr=E9occupation our customers and the security of their files and =20
-data....
+/me run away.
