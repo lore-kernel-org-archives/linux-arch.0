@@ -1,36 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([134.117.69.58]:41761 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756255Ab0K3TZg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Nov 2010 14:25:36 -0500
-Subject: Re: [PATCH 09/21] powerpc: Preemptible mmu_gather
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <1291088148.32570.342.camel@pasglop>
-References: <20101126143843.801484792@chello.nl>
-	 <20101126145410.771278578@chello.nl>  <1291086726.32570.341.camel@pasglop>
-	 <1291088148.32570.342.camel@pasglop>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Tue, 30 Nov 2010 20:25:13 +0100
-Message-ID: <1291145113.32004.1152.camel@laptop>
-Mime-Version: 1.0
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:50023 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756498Ab0LATma (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2010 14:42:30 -0500
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 2/4] x86/of: Add building device tree blob(s) into image.
+Date: Wed,  1 Dec 2010 11:41:33 -0800
+Message-ID: <b5a8dfa4d580d8637132f81317390a535ab98511.1291231792.git.dirk.brandewie@gmail.com>
+In-Reply-To: <cover.1289943240.git.dirk.brandewie@gmail.com>
+References: <cover.1289943240.git.dirk.brandewie@gmail.com>
+In-Reply-To: <cover.1291231792.git.dirk.brandewie@gmail.com>
+References: <cover.1291231792.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Stephen Rothwell <sfr@canb.auug.org.au>
-Message-ID: <20101130192513.3xLygMq5nsYb3MqZscpbTznCsE8ynkCw36k5kAr3GwI@z>
+To: linux-serial@vger.kernel.org
+Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
+Message-ID: <20101201194133.Yfsp4B54jjWA8ulEL4cDCaTish2Xp-BfNf8rsQhIjvo@z>
 
-On Tue, 2010-11-30 at 14:35 +1100, Benjamin Herrenschmidt wrote:
-> > This breaks embedded 64-bit build. Replace CONFIG_PPC64 with
-> > CONFIG_PPC_BOOK3S_64 to only hit server when you access the
-> > ppc64_tlb_batch in process.c since it doesn't exist for BOOK3E.
-> > 
-> > This patch to fold into yours fixes it for me:
-> 
-> With this fix and the other Kconfig fix, it seems to boot fine and no
-> obvious breakage doing simple things on G5 and a power6 machine.
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-Awesome, thanks for your fixes, I've folded them in the respective
-patches.
+This patch adds linking device tree blob into vmlinux. DTB's are
+added by adding the blob object name to list of objects to be linked
+into the image.
 
+Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
+---
+ arch/x86/platform/ce4100/Makefile |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/platform/ce4100/Makefile b/arch/x86/platform/ce4100/Makefile
+index 91fc929..3b49187 100644
+--- a/arch/x86/platform/ce4100/Makefile
++++ b/arch/x86/platform/ce4100/Makefile
+@@ -1 +1,11 @@
+ obj-$(CONFIG_X86_INTEL_CE)	+= ce4100.o
++clean-files := *dtb.S
++
++ifdef CONFIG_X86_OF
++###
++# device tree blob
++obj-$(CONFIG_X86_INTEL_CE) += ce4100.dtb.o
++
++$(obj)/%.dtb: $(src)/%.dts
++	$(call if_changed,dtc)
++endif
+-- 
+1.7.2.3
 
