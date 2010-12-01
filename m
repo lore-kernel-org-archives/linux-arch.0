@@ -1,51 +1,67 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: [RFC] persistent store (version 2) (part 1 of 2)
-Date: Tue, 30 Nov 2010 16:58:51 -0800
-Message-ID: <20101201005851.GA31571@kroah.com>
-References: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: RE: [PATCH] a new UniCore32 arch-dependent patch for linux-2.6.37-rc1
+Date: Wed, 1 Dec 2010 20:54:59 +0800
+Message-ID: <00ef01cb9156$fd21d920$f7658b60$@mprc.pku.edu.cn>
+References: <00a701cb8883$649d39f0$2dd7add0$@mprc.pku.edu.cn> <201011291735.19556.arnd@arndb.de> <009b01cb9079$6605cd90$321168b0$@mprc.pku.edu.cn> <201011301626.42547.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kroah.org ([198.145.64.141]:59748 "EHLO coco.kroah.org"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:50606 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753518Ab0LABCe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Nov 2010 20:02:34 -0500
-Content-Disposition: inline
-In-Reply-To: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
+	id S1755024Ab0LAMzV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Dec 2010 07:55:21 -0500
+In-Reply-To: <201011301626.42547.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Nov 30, 2010 at 04:20:50PM -0800, Luck, Tony wrote:
-> Here's version 2 with most of the fixes suggested in the discussion
-> for version 1 (see http://marc.info/?l=linux-arch&m=129045078803118&w=2).
-> 
-> Stuff that I haven't done:
-> 
-> 1) Still has the "daft" echo filename > erase to clear entries from the
-> persistent store.  I looked hard at /sys and can't see how to get a
-> notification for an unlink(2). If I'm missing something, would somebody
-> please send me a clue. If this is a fatal flaw - then this will have to
-> move to debugfs (or turn into its own filesystem type). But I'd really
-> prefer to not give up the convenience of /sys
-> 
-> 2) Did not implement Jim's suggestion to save OOPs ... I'm not at
-> all sure how to let the user configure this. mtdoops.c has a module
-> parameter for it - but I gave up on letting pstore be a module ...
-> it needs to be initialized before the platform driver, and there doesn't
-> seem to be much point in having it be unloadable.
-> 
-> I did write the ERST platform hooks (they are part 2 of 2, but I'd advise
-> the faint of heart not to look too closely at the ACPI/APEI'isms involved).
-> Here's a sample of what it looks like (with a debug call to panic() from
-> the pstore_erase() function added for testing purposes):
-> 
-> $ cd /sys/firmware/pstore
 
-As you are adding new sysfs files, you are required to document them in
-Documentation/ABI/ as well.
 
-thanks,
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Tuesday, November 30, 2010 11:27 PM
+> To: Guan Xuetao
+> Cc: 'Greg KH'; 'Andrew Morton'; 'Linus Torvalds'; linux-
+> kernel@vger.kernel.org; linux-arch@vger.kernel.org
+> Subject: Re: [PATCH] a new UniCore32 arch-dependent patch for linux-
+> 2.6.37-rc1
+> 
+> On Tuesday 30 November 2010, Guan Xuetao wrote:
+> > > On Saturday 27 November 2010, Guan Xuetao wrote:
+> > > > >
+> > > > > In what way does the architecture enforce this? What are the
+> > > > > contents of this page? Can you make it an actual VDSO rather
+> > > > > than a magic page that sits in the user address space?
+> > > > Page table is created for vector page and exceptions entry stub.
+> > > > However, vector page is not in the user address space.
+> > >
+> > > Interesting. So if it's not mapped into user space, why do you even
+> > > need to have the vectors at a specific page? I think ARM only maps
+> > > it to the high page because that page is shared to user space, while
+> > > most architectures just have their interrupt vectors in the linar
+> > > mapping, since the hardware typically uses the physical address to
+find it.
+> >
+> > In UniCore-32, when MMU enabled, vector page address is virtual address.
+> 
+> Ok. I see.
+> 
+> The arch_exit_mmap() and arch_setup_additional_pages() functions seems
+> to refer to how ARM maps this page into user space as well, you should
+> probably change that.
+Vector page is also used as kuser page, so arch_setup_additional_pages need
+to 
+Map it into user space.
 
-greg k-h
+> 
+> I've finished the second half of the code review now, I'll follow up with
+an
+> email but drop the personal Cc to everyone besides us, in case people are
+> getting bored from the discussion by now ;-)
+Thanks again.
+
+Guan Xuetao
