@@ -1,166 +1,51 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: [RFC] persistent store (version 2) (part 2 of 2)
-Date: Tue, 30 Nov 2010 16:20:59 -0800
-Message-ID: <4cf594eb167978312c@agluck-desktop.sc.intel.com>
+From: Greg KH <greg@kroah.com>
+Subject: Re: [RFC] persistent store (version 2) (part 1 of 2)
+Date: Tue, 30 Nov 2010 16:58:51 -0800
+Message-ID: <20101201005851.GA31571@kroah.com>
+References: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:3755 "EHLO mga03.intel.com"
+Received: from kroah.org ([198.145.64.141]:59748 "EHLO coco.kroah.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753196Ab0LAAVA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 30 Nov 2010 19:21:00 -0500
+	id S1753518Ab0LABCe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Nov 2010 20:02:34 -0500
+Content-Disposition: inline
+In-Reply-To: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: ying.huang@intel.com
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-Here are the changes to ERST to use the persistent store.
+On Tue, Nov 30, 2010 at 04:20:50PM -0800, Luck, Tony wrote:
+> Here's version 2 with most of the fixes suggested in the discussion
+> for version 1 (see http://marc.info/?l=linux-arch&m=129045078803118&w=2).
+> 
+> Stuff that I haven't done:
+> 
+> 1) Still has the "daft" echo filename > erase to clear entries from the
+> persistent store.  I looked hard at /sys and can't see how to get a
+> notification for an unlink(2). If I'm missing something, would somebody
+> please send me a clue. If this is a fatal flaw - then this will have to
+> move to debugfs (or turn into its own filesystem type). But I'd really
+> prefer to not give up the convenience of /sys
+> 
+> 2) Did not implement Jim's suggestion to save OOPs ... I'm not at
+> all sure how to let the user configure this. mtdoops.c has a module
+> parameter for it - but I gave up on letting pstore be a module ...
+> it needs to be initialized before the platform driver, and there doesn't
+> seem to be much point in having it be unloadable.
+> 
+> I did write the ERST platform hooks (they are part 2 of 2, but I'd advise
+> the faint of heart not to look too closely at the ACPI/APEI'isms involved).
+> Here's a sample of what it looks like (with a debug call to panic() from
+> the pstore_erase() function added for testing purposes):
+> 
+> $ cd /sys/firmware/pstore
 
--Tony
+As you are adding new sysfs files, you are required to document them in
+Documentation/ABI/ as well.
 
----
+thanks,
 
-diff --git a/drivers/acpi/apei/Kconfig b/drivers/acpi/apei/Kconfig
-index fca34cc..e91680c 100644
---- a/drivers/acpi/apei/Kconfig
-+++ b/drivers/acpi/apei/Kconfig
-@@ -1,5 +1,6 @@
- config ACPI_APEI
- 	bool "ACPI Platform Error Interface (APEI)"
-+	select PSTORE
- 	depends on X86
- 	help
- 	  APEI allows to report errors (for example from the chipset)
-diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
-index 1211c03..2a49015 100644
---- a/drivers/acpi/apei/erst.c
-+++ b/drivers/acpi/apei/erst.c
-@@ -34,6 +34,7 @@
- #include <linux/cper.h>
- #include <linux/nmi.h>
- #include <linux/hardirq.h>
-+#include <linux/pstore.h>
- #include <acpi/apei.h>
- 
- #include "apei-internal.h"
-@@ -781,6 +782,111 @@ static int erst_check_table(struct acpi_table_erst *erst_tab)
- 	return 0;
- }
- 
-+#define CPER_CREATOR_MCE						\
-+	UUID_LE(0x75a574e3, 0x5052, 0x4b29, 0x8a, 0x8e, 0xbe, 0x2c,	\
-+		0x64, 0x90, 0xb8, 0x9d)
-+#define CPER_SECTION_TYPE_DMESG						\
-+	UUID_LE(0xc197e04e, 0xd545, 0x4a70, 0x9c, 0x17, 0xa5, 0x54,	\
-+		0x94, 0x19, 0xeb, 0x12)
-+#define CPER_SECTION_TYPE_MCE						\
-+	UUID_LE(0xfe08ffbe, 0x95e4, 0x4be7, 0xbc, 0x73, 0x40, 0x96,	\
-+		0x04, 0x4a, 0x38, 0xfc)
-+
-+struct cper_mce_record {
-+	struct cper_record_header hdr;
-+	struct cper_section_descriptor sec_hdr;
-+	char data[];
-+} __packed;
-+
-+static int
-+erst_reader(u64 *id, int *type, void *buf, unsigned long *size)
-+{
-+	int rc;
-+	ssize_t len;
-+	unsigned long flags;
-+	u64 record_id;
-+	struct cper_mce_record *rcd = buf;
-+
-+	if (erst_disable)
-+		return -ENODEV;
-+
-+	spin_lock_irqsave(&erst_lock, flags);
-+	rc = __erst_get_next_record_id(&record_id);
-+	if (rc) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return rc;
-+	}
-+	/* no more record */
-+	if (record_id == APEI_ERST_INVALID_RECORD_ID) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return 0;
-+	}
-+
-+	len = __erst_read(record_id, &rcd->hdr, sizeof (struct cper_mce_record) +
-+			  erst_erange.size);
-+	spin_unlock_irqrestore(&erst_lock, flags);
-+
-+	*id = record_id;
-+	if (uuid_le_cmp(rcd->sec_hdr.section_type, CPER_SECTION_TYPE_DMESG) == 0)
-+		*type = PSTORE_TYPE_DMESG;
-+	else if (uuid_le_cmp(rcd->sec_hdr.section_type, CPER_SECTION_TYPE_MCE) == 0)
-+		*type = PSTORE_TYPE_MCE;
-+	else
-+		*type = PSTORE_TYPE_MCE + 1;
-+	*size = len - sizeof (struct cper_mce_record);
-+
-+	return len;
-+}
-+
-+static int
-+erst_writer(int type, void *buf, unsigned long size)
-+{
-+	struct cper_mce_record *rcd = buf;
-+
-+	memset(rcd, 0, sizeof(*rcd));
-+	memcpy(rcd->hdr.signature, CPER_SIG_RECORD, CPER_SIG_SIZE);
-+	rcd->hdr.revision = CPER_RECORD_REV;
-+	rcd->hdr.signature_end = CPER_SIG_END;
-+	rcd->hdr.section_count = 1;
-+	rcd->hdr.error_severity = CPER_SEV_FATAL;
-+	/* timestamp, platform_id, partition_id are all invalid */
-+	rcd->hdr.validation_bits = 0;
-+	rcd->hdr.record_length = sizeof(*rcd) + size;
-+	rcd->hdr.creator_id = CPER_CREATOR_MCE;
-+	rcd->hdr.notification_type = CPER_NOTIFY_MCE;
-+	rcd->hdr.record_id = cper_next_record_id();
-+	rcd->hdr.flags = CPER_HW_ERROR_FLAGS_PREVERR;
-+
-+	rcd->sec_hdr.section_offset = sizeof(*rcd);
-+	rcd->sec_hdr.section_length = size;
-+	rcd->sec_hdr.revision = CPER_SEC_REV;
-+	/* fru_id and fru_text is invalid */
-+	rcd->sec_hdr.validation_bits = 0;
-+	rcd->sec_hdr.flags = CPER_SEC_PRIMARY;
-+	switch (type) {
-+	case PSTORE_TYPE_DMESG:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_DMESG;
-+		break;
-+	case PSTORE_TYPE_MCE:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_MCE;
-+		break;
-+	default:
-+		return -EINVAL;
-+	}
-+	rcd->sec_hdr.section_severity = CPER_SEV_FATAL;
-+
-+	return erst_write(&rcd->hdr);
-+}
-+
-+static struct pstore_info erst_info = {
-+	.header_size	= sizeof (struct cper_mce_record),
-+	.data_size	= 0, /* initialized in erst_init() */
-+	.footer_size	= 0,
-+	.reader		= erst_reader,
-+	.writer		= erst_writer,
-+	.eraser		= erst_clear
-+};
-+
- static int __init erst_init(void)
- {
- 	int rc = 0;
-@@ -854,6 +960,10 @@ static int __init erst_init(void)
- 	if (!erst_erange.vaddr)
- 		goto err_release_erange;
- 
-+	erst_info.data_size = erst_erange.size - sizeof (struct cper_mce_record);
-+	if (pstore_register(&erst_info))
-+		pr_info(ERST_PFX "Could not register with persistent store\n");
-+
- 	pr_info(ERST_PFX
- 	"Error Record Serialization Table (ERST) support is initialized.\n");
- 
+greg k-h
