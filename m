@@ -1,66 +1,62 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: Re: [RFC] persistent store (version 2) (part 1 of 2)
-Date: Wed, 01 Dec 2010 10:01:19 -0800
-Message-ID: <4cf68d6f178373258a@agluck-desktop.sc.intel.com>
-References: <20101201005851.GA31571@kroah.com>
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 0/4] V2 Add ability to link device blob(s) into vmlinux
+Date: Wed,  1 Dec 2010 11:41:31 -0800
+Message-ID: <cover.1291231792.git.dirk.brandewie@gmail.com>
+References: <cover.1289943240.git.dirk.brandewie@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:5574 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755691Ab0LASBT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Dec 2010 13:01:19 -0500
-In-reply-to: <20101201005851.GA31571@kroah.com>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:63667 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756662Ab0LATmT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2010 14:42:19 -0500
+In-Reply-To: <cover.1289943240.git.dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: greg@kroah.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: linux-serial@vger.kernel.org
+Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
 
-> As you are adding new sysfs files, you are required to document them in
-> Documentation/ABI/ as well.
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-Is this what you need?
+This patch set adds the ability to link device tree blobs into
+vmlinux. 
 
--Tony
+Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
+adds a generic rule for generating DTB objects to be linked vmlinux.
 
----
+Patch 2 implements linking a DTB into an x86 image.
 
-diff --git a/Documentation/ABI/testing/sysfs-pstore b/Documentation/ABI/testing/sysfs-pstore
-new file mode 100644
-index 0000000..083fcf7
---- /dev/null
-+++ b/Documentation/ABI/testing/sysfs-pstore
-@@ -0,0 +1,35 @@
-+Where:		/sys/firmware/pstore/...
-+Date:		January 2011
-+Kernel Version: 2.6.38
-+Contact:	tony.luck@intel.com
-+Description:	Generic interface to platform dependent persistent storage.
-+
-+		Platforms that provide a mechanism to preserve some data
-+		across system reboots can register with this driver to
-+		provide a generic interface to show records captured in
-+		the dying moments.  In the case of a panic() the last part
-+		of the console log is captured, but other interesting
-+		data can also be saved.
-+
-+		$ ls -l /sys/firmware/pstore
-+		total 0
-+		-r--r--r-- 1 root root 7896 Nov 30 15:38 dmesg-1
-+		--w------- 1 root root    0 Nov 30 15:38 erase
-+
-+		Different users of this interface will result in different
-+		filename prefixes.  Currently two are defined:
-+
-+		"dmesg"	- saved console log
-+		"mce"	- architecture dependent data from fatal h/w error
-+
-+		The "erase" file is used to signal that a file has been
-+		read and that the underlying platform driver can reclaim
-+		the space in the persistent store. Just write the name of
-+		the file to be removed to the "erase" file:
-+
-+		$ echo dmesg-1 > /sys/firmware/pstore/erase
-+
-+		The expectation is that all files in /sys/firmware/pstore
-+		will be saved elsewhere and erased from persistent store
-+		soon after boot to free up space ready for the next
-+		catastrophe.
+Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
+in patch 1.
+
+This patch set has been tested on x86.
+
+Powerpc and Microblaze have been compile tested with and without patch
+3 and 4 applied.
+
+Changes from V1:
+
+Documentation added for dtc command in Makefile.lib to
+Documentation/kbuild/makefiles.txt
+Separate DTB_ALIGNMENT define removed.
+FORCE removed from dtc rule.
+Removed hardcoded path to dts files from dtc command.  
+Moved %.dtb: %.dts rule to arch specific makefiles. 
+ 
+Patch for adding kernel command line option to pass in dtb_compat
+string dropped from this set will be submitted seperately.
+
+Dirk Brandewie (4):
+  of: Add support for linking device tree blobs into vmlinux
+  x86/of: Add building device tree blob(s) into image.
+  of/powerpc: Use generic rule to build dtb's
+  microblaze/of: Use generic rule to build dtb's
+
+ Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+ arch/microblaze/boot/Makefile      |   10 ++--------
+ arch/powerpc/boot/Makefile         |    8 +++-----
+ arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
+ include/asm-generic/vmlinux.lds.h  |   15 ++++++++++++---
+ scripts/Makefile.lib               |   21 ++++++++++++++++++++-
+ 6 files changed, 62 insertions(+), 17 deletions(-)
+
+-- 
+1.7.2.3
