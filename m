@@ -1,67 +1,66 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: RE: [PATCH] a new UniCore32 arch-dependent patch for linux-2.6.37-rc1
-Date: Wed, 1 Dec 2010 20:54:59 +0800
-Message-ID: <00ef01cb9156$fd21d920$f7658b60$@mprc.pku.edu.cn>
-References: <00a701cb8883$649d39f0$2dd7add0$@mprc.pku.edu.cn> <201011291735.19556.arnd@arndb.de> <009b01cb9079$6605cd90$321168b0$@mprc.pku.edu.cn> <201011301626.42547.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
-Content-Transfer-Encoding: 7bit
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: Re: [RFC] persistent store (version 2) (part 1 of 2)
+Date: Wed, 01 Dec 2010 10:01:19 -0800
+Message-ID: <4cf68d6f178373258a@agluck-desktop.sc.intel.com>
+References: <20101201005851.GA31571@kroah.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:50606 "EHLO mprc.pku.edu.cn"
+Received: from mga11.intel.com ([192.55.52.93]:5574 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755024Ab0LAMzV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Dec 2010 07:55:21 -0500
-In-Reply-To: <201011301626.42547.arnd@arndb.de>
-Content-Language: zh-cn
+	id S1755691Ab0LASBT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Dec 2010 13:01:19 -0500
+In-reply-to: <20101201005851.GA31571@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: greg@kroah.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
+> As you are adding new sysfs files, you are required to document them in
+> Documentation/ABI/ as well.
 
+Is this what you need?
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Tuesday, November 30, 2010 11:27 PM
-> To: Guan Xuetao
-> Cc: 'Greg KH'; 'Andrew Morton'; 'Linus Torvalds'; linux-
-> kernel@vger.kernel.org; linux-arch@vger.kernel.org
-> Subject: Re: [PATCH] a new UniCore32 arch-dependent patch for linux-
-> 2.6.37-rc1
-> 
-> On Tuesday 30 November 2010, Guan Xuetao wrote:
-> > > On Saturday 27 November 2010, Guan Xuetao wrote:
-> > > > >
-> > > > > In what way does the architecture enforce this? What are the
-> > > > > contents of this page? Can you make it an actual VDSO rather
-> > > > > than a magic page that sits in the user address space?
-> > > > Page table is created for vector page and exceptions entry stub.
-> > > > However, vector page is not in the user address space.
-> > >
-> > > Interesting. So if it's not mapped into user space, why do you even
-> > > need to have the vectors at a specific page? I think ARM only maps
-> > > it to the high page because that page is shared to user space, while
-> > > most architectures just have their interrupt vectors in the linar
-> > > mapping, since the hardware typically uses the physical address to
-find it.
-> >
-> > In UniCore-32, when MMU enabled, vector page address is virtual address.
-> 
-> Ok. I see.
-> 
-> The arch_exit_mmap() and arch_setup_additional_pages() functions seems
-> to refer to how ARM maps this page into user space as well, you should
-> probably change that.
-Vector page is also used as kuser page, so arch_setup_additional_pages need
-to 
-Map it into user space.
+-Tony
 
-> 
-> I've finished the second half of the code review now, I'll follow up with
-an
-> email but drop the personal Cc to everyone besides us, in case people are
-> getting bored from the discussion by now ;-)
-Thanks again.
+---
 
-Guan Xuetao
+diff --git a/Documentation/ABI/testing/sysfs-pstore b/Documentation/ABI/testing/sysfs-pstore
+new file mode 100644
+index 0000000..083fcf7
+--- /dev/null
++++ b/Documentation/ABI/testing/sysfs-pstore
+@@ -0,0 +1,35 @@
++Where:		/sys/firmware/pstore/...
++Date:		January 2011
++Kernel Version: 2.6.38
++Contact:	tony.luck@intel.com
++Description:	Generic interface to platform dependent persistent storage.
++
++		Platforms that provide a mechanism to preserve some data
++		across system reboots can register with this driver to
++		provide a generic interface to show records captured in
++		the dying moments.  In the case of a panic() the last part
++		of the console log is captured, but other interesting
++		data can also be saved.
++
++		$ ls -l /sys/firmware/pstore
++		total 0
++		-r--r--r-- 1 root root 7896 Nov 30 15:38 dmesg-1
++		--w------- 1 root root    0 Nov 30 15:38 erase
++
++		Different users of this interface will result in different
++		filename prefixes.  Currently two are defined:
++
++		"dmesg"	- saved console log
++		"mce"	- architecture dependent data from fatal h/w error
++
++		The "erase" file is used to signal that a file has been
++		read and that the underlying platform driver can reclaim
++		the space in the persistent store. Just write the name of
++		the file to be removed to the "erase" file:
++
++		$ echo dmesg-1 > /sys/firmware/pstore/erase
++
++		The expectation is that all files in /sys/firmware/pstore
++		will be saved elsewhere and erased from persistent store
++		soon after boot to free up space ready for the next
++		catastrophe.
