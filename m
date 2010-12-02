@@ -1,58 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:45342 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756576Ab0LATml (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Dec 2010 14:42:41 -0500
-From: dirk.brandewie@gmail.com
-Subject: [PATCH 3/4] of/powerpc: Use generic rule to build dtb's
-Date: Wed,  1 Dec 2010 11:41:34 -0800
-Message-ID: <e1e467f66711f8052abf1e7ff823a5ad6778e0e2.1291231792.git.dirk.brandewie@gmail.com>
-In-Reply-To: <cover.1289943240.git.dirk.brandewie@gmail.com>
-References: <cover.1289943240.git.dirk.brandewie@gmail.com>
-In-Reply-To: <cover.1291231792.git.dirk.brandewie@gmail.com>
-References: <cover.1291231792.git.dirk.brandewie@gmail.com>
+Received: from mail-gw0-f46.google.com ([74.125.83.46]:33414 "EHLO
+	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752892Ab0LBSp1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Dec 2010 13:45:27 -0500
+MIME-Version: 1.0
+In-Reply-To: <AANLkTimPpEyPMVry5jyhOUe=oByp20TGJHk9s0Kz_Pqf@mail.gmail.com>
+References: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
+	<20101201165139.a3bb2199.akpm@linux-foundation.org>
+	<987664A83D2D224EAE907B061CE93D530191F27E0E@orsmsx505.amr.corp.intel.com>
+	<20101202021216.2d7c33f8.akpm@linux-foundation.org>
+	<AANLkTimPpEyPMVry5jyhOUe=oByp20TGJHk9s0Kz_Pqf@mail.gmail.com>
+Date: Thu, 2 Dec 2010 10:45:26 -0800
+Message-ID: <AANLkTinUY3f=ccaLfZB3rToxHaAKTtHK7W=zeWuGek_F@mail.gmail.com>
+Subject: Re: [RFC] persistent store (version 2) (part 1 of 2)
+From: Tony Luck <tony.luck@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-serial@vger.kernel.org
-Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
-Message-ID: <20101201194134.Gb0qh1X30H965rGvF8a8VosO8JO_vYBKmpp0pjOCVBE@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "Huang, Ying" <ying.huang@intel.com>, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20101202184526.jmRoBNBddJlwipPe1wKUcfGlnlj9WlRMYWikYKvRC8s@z>
 
-From: Dirk Brandewie <dirk.brandewie@gmail.com>
+On Thu, Dec 2, 2010 at 8:19 AM, Tony Luck <tony.luck@intel.com> wrote:
+> was being used? But even then, the user interface wouldn't change
+> we could just have each device register a string to be included in
+> the filename. Users could look at it if they cared, or ignore it if
+> they don't care. The "type" of the data should stay at the front
+> of the name so userspace can do "for f in dmesg*" to look at
+> al the saved console logs, and it wouldn't matter if the files were
+> "dmesg-0", "dmesg-1" or "dmesg-erst-0", "dmesg-erst-1". I
+> can't quite see why anyone would care which device was used,
+> but the option to provide it would be there without breaking
+> apps that used the v1 interface.
 
-Modify arch/powerpc/boot/Makefile to use dtc command in
-scripts/Makefile.lib
+Hmmm I may throw the devicename into the filename anyway ... I
+still can't see why anyone would care where it came from, but doing
+this would allow for consistent filenames across reboots.  My old
+code just stuck sequential numbers on the end of the filenames to
+make sure it didn't get collisions.  But this means that someone
+might be looking at /dev/pstore/dmesg-1 when the system panics.
+After the reboot they see two files: the old one and a new one. But
+the old code didn't guarantee that the old one would still be "dmesg-1",
+it might be "dmesg-2" and "dmesg-1" might now have the latest panic
+(ordering is at the whim of the underlying storage, and if it operates in
+a LIFO way this could happen).
 
-Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
----
- arch/powerpc/boot/Makefile |    8 +++-----
- 1 files changed, 3 insertions(+), 5 deletions(-)
+If I name the file "dmesg-{storename}-{recordid}" then unerased
+entries will get the same name next time - which may avoid some
+confusion.
 
-diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
-index fae8192..3afb33a 100644
---- a/arch/powerpc/boot/Makefile
-+++ b/arch/powerpc/boot/Makefile
-@@ -35,7 +35,7 @@ endif
- 
- BOOTCFLAGS	+= -I$(obj) -I$(srctree)/$(obj)
- 
--DTS_FLAGS	?= -p 1024
-+DTC_FLAGS	?= -p 1024
- 
- $(obj)/4xx.o: BOOTCFLAGS += -mcpu=405
- $(obj)/ebony.o: BOOTCFLAGS += -mcpu=405
-@@ -332,10 +332,8 @@ $(obj)/treeImage.%: vmlinux $(obj)/%.dtb $(wrapperbits)
- 	$(call if_changed,wrap,treeboot-$*,,$(obj)/$*.dtb)
- 
- # Rule to build device tree blobs
--DTC = $(objtree)/scripts/dtc/dtc
--
--$(obj)/%.dtb: $(dtstree)/%.dts
--	$(DTC) -O dtb -o $(obj)/$*.dtb -b 0 $(DTS_FLAGS) $(dtstree)/$*.dts
-+$(obj)/%.dtb: $(src)/dts/%.dts
-+	$(call if_changed,dtc)
- 
- # If there isn't a platform selected then just strip the vmlinux.
- ifeq (,$(image-y))
--- 
-1.7.2.3
-
+-Tony
