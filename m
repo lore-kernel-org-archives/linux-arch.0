@@ -1,43 +1,80 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [RFC] persistent store (version 2) (part 1 of 2)
-Date: Wed, 1 Dec 2010 22:00:12 -0800
-Message-ID: <987664A83D2D224EAE907B061CE93D530191F27E0E@orsmsx505.amr.corp.intel.com>
-References: <4cf594e21679631af0@agluck-desktop.sc.intel.com>
- <20101201165139.a3bb2199.akpm@linux-foundation.org>
+From: Huang Ying <ying.huang@intel.com>
+Subject: Re: [RFC] persistent store (version 2) (part 2 of 2)
+Date: Thu, 02 Dec 2010 16:20:46 +0800
+Message-ID: <1291278046.12648.561.camel@yhuang-dev>
+References: <4cf594eb167978312c@agluck-desktop.sc.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:43738 "EHLO mga14.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:58730 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756291Ab0LBGAP convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Dec 2010 01:00:15 -0500
-In-Reply-To: <20101201165139.a3bb2199.akpm@linux-foundation.org>
-Content-Language: en-US
+	id S1752274Ab0LBIUr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 2 Dec 2010 03:20:47 -0500
+In-Reply-To: <4cf594eb167978312c@agluck-desktop.sc.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "Huang, Ying" <ying.huang@intel.com>, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-> filenames refer to files!  And lo, that's what we have here.  A
-> filesystem!  The files are created by the kernel and are read and
-> unlinked by userspace.
->
-> So why not implement this whole thing as a proper filesystem?
-...
-> Wait.  It *is* a filesystem.
-...
-> So why can't I remove these "records" with rm?
+Hi, Tony,
 
-Because I tried to use /sys for this and couldn't find a
-way to get notified about "unlink".  Alan Cox called this
-bit "daft" in v1 (and I agreed with him). Peter Anvin gave
-me some pointers on how easy this would be to do as a real
-filesystem ... so v3 will be out in a little while with
-this insanity removed.
+On Wed, 2010-12-01 at 08:20 +0800, Luck, Tony wrote:
+> Here are the changes to ERST to use the persistent store.
+> 
+> -Tony
+> 
+> ---
+> 
+> diff --git a/drivers/acpi/apei/Kconfig b/drivers/acpi/apei/Kconfig
+> index fca34cc..e91680c 100644
+> --- a/drivers/acpi/apei/Kconfig
+> +++ b/drivers/acpi/apei/Kconfig
+> @@ -1,5 +1,6 @@
+>  config ACPI_APEI
+>  	bool "ACPI Platform Error Interface (APEI)"
+> +	select PSTORE
+>  	depends on X86
+>  	help
+>  	  APEI allows to report errors (for example from the chipset)
+> diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
+> index 1211c03..2a49015 100644
+> --- a/drivers/acpi/apei/erst.c
+> +++ b/drivers/acpi/apei/erst.c
+> @@ -34,6 +34,7 @@
+>  #include <linux/cper.h>
+>  #include <linux/nmi.h>
+>  #include <linux/hardirq.h>
+> +#include <linux/pstore.h>
+>  #include <acpi/apei.h>
+>  
+>  #include "apei-internal.h"
+> @@ -781,6 +782,111 @@ static int erst_check_table(struct acpi_table_erst *erst_tab)
+>  	return 0;
+>  }
+>  
+> +#define CPER_CREATOR_MCE						\
+> +	UUID_LE(0x75a574e3, 0x5052, 0x4b29, 0x8a, 0x8e, 0xbe, 0x2c,	\
+> +		0x64, 0x90, 0xb8, 0x9d)
 
-I'll roll in fixes to address your other comments too.
+How about rename this to CPER_CREATOR_LINUX or CPER_CREATOR_PSTORE?
 
-Thanks for the review.
+> +#define CPER_SECTION_TYPE_DMESG						\
+> +	UUID_LE(0xc197e04e, 0xd545, 0x4a70, 0x9c, 0x17, 0xa5, 0x54,	\
+> +		0x94, 0x19, 0xeb, 0x12)
+> +#define CPER_SECTION_TYPE_MCE						\
+> +	UUID_LE(0xfe08ffbe, 0x95e4, 0x4be7, 0xbc, 0x73, 0x40, 0x96,	\
+> +		0x04, 0x4a, 0x38, 0xfc)
+> +
+> +struct cper_mce_record {
+> +	struct cper_record_header hdr;
+> +	struct cper_section_descriptor sec_hdr;
+> +	char data[];
+> +} __packed;
 
--Tony
+Renamed to cper_pstore_record?
+
+[...]
+
+Best Regards,
+Huang Ying
