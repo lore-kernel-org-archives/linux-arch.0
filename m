@@ -1,16 +1,16 @@
 From: "Microsoft E-mail Promo" <info@windowslive.co.uk>
 Subject: (unknown)
-Date: Sat, 4 Dec 2010 14:20:57 -0200 (BRST)
-Message-ID: <69df7e7c3c08a437e5f32d15dd9e5ab8.squirrel@webmail.ufpr.br>
+Date: Sat, 4 Dec 2010 14:22:31 -0200 (BRST)
+Message-ID: <dcbcc26ff8f0f2fb4ef41f6417508038.squirrel@webmail.ufpr.br>
 Reply-To: micrsoftdispatchoffice@yahoo.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ufpr.br ([200.17.203.37]:58186 "EHLO mail.ufpr.br"
+Received: from mail.ufpr.br ([200.17.203.37]:60805 "EHLO mail.ufpr.br"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755303Ab0LDQmR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 4 Dec 2010 11:42:17 -0500
+	id S1750765Ab0LDQob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 4 Dec 2010 11:44:31 -0500
 Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
