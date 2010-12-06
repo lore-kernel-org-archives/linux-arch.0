@@ -1,56 +1,60 @@
-From: "Microsoft E-mail Promo" <info@windowslive.co.uk>
-Subject: (unknown)
-Date: Sat, 4 Dec 2010 14:22:31 -0200 (BRST)
-Message-ID: <dcbcc26ff8f0f2fb4ef41f6417508038.squirrel@webmail.ufpr.br>
-Reply-To: micrsoftdispatchoffice@yahoo.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 0/4]  V2 Add ability to link device blob(s) into vmlinux
+Date: Mon,  6 Dec 2010 09:35:58 -0800
+Message-ID: <cover.1291656753.git.dirk.brandewie@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ufpr.br ([200.17.203.37]:60805 "EHLO mail.ufpr.br"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750765Ab0LDQob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 4 Dec 2010 11:44:31 -0500
-Subject: 
+Received: from mail-gx0-f180.google.com ([209.85.161.180]:61754 "EHLO
+	mail-gx0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753211Ab0LFRgP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Dec 2010 12:36:15 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
 
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
+This patch set adds the ability to link device tree blobs into
+vmlinux. 
 
+Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
+adds a generic rule for generating DTB objects to be linked vmlinux.
 
+Patch 2 implements linking a DTB into an x86 image.
 
-Reff: YM35447N/2010
-Batch:(Ym09102XN)
-Dear Winner,
+Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
+in patch 1.
 
-You have been awarded with the sum of =A3550.000.00 by our office,
-as one of our internet users who use microsoft in their business privat=
-e
-transaction.
+This patch set has been tested on x86.
 
-This award was been selected through the internet, where your e-mail
-address was indicated and notified. Please provide . Mr. Phillips Webb =
-with
-the following details listed below so that your fund will be remited to
-you.
+Powerpc and Microblaze have been compile tested with and without patch
+3 and 4 applied.
 
-Name:  Mr. Phillips Webb
-EMAIL: microawdispatchdept.2010@live.com
-              : microsoftpatronagepromo@myemail.com
-Phone: +4470359 47984
+Changes from V1:
 
-=46ull Name:
-Address:
-Occuptiaon:
-Age:
-Sex:
-Country:
-Telephone No:
+Documentation added for dtc command in Makefile.lib to
+Documentation/kbuild/makefiles.txt
+Separate DTB_ALIGNMENT define removed.
+FORCE removed from dtc rule.
+Removed hardcoded path to dts files from dtc command.  
+Moved %.dtb: %.dts rule to arch specific makefiles. 
+ 
+Patch for adding kernel command line option to pass in dtb_compat
+string dropped from this set will be submitted seperately.
 
-As soon as these details are received and verified, your fund will be
-transferred to you. Thank you, for using Micrsoft Windows.
+Dirk Brandewie (4):
+  of: Add support for linking device tree blobs into vmlinux
+  x86/of: Add building device tree blob(s) into image.
+  of/powerpc: Use generic rule to build dtb's
+  microblaze/of: Use generic rule to build dtb's
 
-Regards,
-=46rom Mrs. Harriet Bent.
-Executive (Online coordinator).
-Copyright (c) 2005-2010 MS-WORD EMAIL LOTTERY INC.UK
+ Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+ arch/microblaze/boot/Makefile      |   10 ++--------
+ arch/powerpc/boot/Makefile         |    8 +++-----
+ arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
+ include/asm-generic/vmlinux.lds.h  |   15 ++++++++++++---
+ scripts/Makefile.lib               |   21 ++++++++++++++++++++-
+ 6 files changed, 62 insertions(+), 17 deletions(-)
+
+-- 
+1.7.2.3
