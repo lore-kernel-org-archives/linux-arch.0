@@ -1,189 +1,197 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: [RFC] persistent store -x86 platform piece (version 3) (part 2 of 2)
-Date: Mon, 06 Dec 2010 10:31:08 -0800
-Message-ID: <4cfd2bec25858dc899@agluck-desktop.sc.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: ying.huang@intel.com
-List-Id: linux-arch.vger.kernel.org
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/4] of: Add support for linking device tree blobs into
+	vmlinux
+Date: Mon, 6 Dec 2010 20:02:51 +0100
+Message-ID: <20101206190251.GB20882@merkur.ravnborg.org>
+References: <cover.1291656753.git.dirk.brandewie@gmail.com> <76a37fa459aeadce5d11db8a7cc044687a2e0e8c.1291656753.git.dirk.brandewie@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:50309 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751955Ab0LFTC6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Dec 2010 14:02:58 -0500
+Content-Disposition: inline
+In-Reply-To: <76a37fa459aeadce5d11db8a7cc044687a2e0e8c.1291656753.git.dirk.brandewie@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: dirk.brandewie@gmail.com
+Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz
 
-Here are the changes to ERST to use the persistent store.
+On Mon, Dec 06, 2010 at 09:35:59AM -0800, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie <dirk.brandewie@gmail.com>
+> 
+> This patch adds support for linking device tree blob(s) into
+> vmlinux. Modifies asm-generic/vmlinux.lds.h to add linking
+> .dtb sections into vmlinux. To maintain compatiblity with the of/fdt
+> driver code platforms MUST copy the blob to a non-init memory location
+> before the kernel frees the .init.* sections in the image.
+> 
+> Modifies scripts/Makefile.lib to add a kbuild command to
+> compile DTS files to device tree blobs and a rule to create objects to
+> wrap the blobs for linking.
+> 
+> STRUCT_ALIGNMENT is defined in vmlinux.lds.h for use in the rule to
+> create wrapper objects for the dtb in Makefile.lib.  The
+> STRUCT_ALIGN() macro in vmlinux.lds.h is modified to use the
+> STRUCT_ALIGNMENT definition.
+> 
+> The DTB's are placed on 32 byte boundries to allow parsing the blob
+> with driver/of/fdt.c during early boot without having to copy the blob
+> to get the structure alignment GCC expects.
+> 
+> A DTB is linked in by adding the DTB object to the list of objects to
+> be linked into vmlinux in the archtecture specific Makefile using
+>    obj-y += foo.dtb.o
+> 
+> Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
+> ---
+>  Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+>  include/asm-generic/vmlinux.lds.h  |   15 ++++++++++++---
+>  scripts/Makefile.lib               |   21 ++++++++++++++++++++-
+>  3 files changed, 47 insertions(+), 4 deletions(-)
+> 
+> diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> index 0ef00bd..fc18bb1 100644
+> --- a/Documentation/kbuild/makefiles.txt
+> +++ b/Documentation/kbuild/makefiles.txt
+> @@ -1136,6 +1136,21 @@ When kbuild executes, the following steps are followed (roughly):
+>  	      resulting in the target file being recompiled for no
+>  	      obvious reason.
+>  
+> +    dtc
+> +	Create flattend device tree blob object suitable for linking
+> +	into vmlinux. Device tree blobs linked into vmlinux are placed
+> +	in an init section in the image. Platform code *must* copy the
+> +	blob to non-init memory prior to calling unflatten_device_tree().
+> +
+> +	Example:
+> +		#arch/x86/platform/ce4100/Makefile
+> +		clean-files := *dtb.S
+> +
+> +		DTC_FLAGS := -p 1024
+> +		obj-y += foo.dtb.o
+> +
+> +		$(obj)/%.dtb: $(src)/%.dts
+> +			$(call if_changed,dtc)
 
-Signed-off-by: Tony Luck <tony.luck@intel.com>
+When using "if_changed" you need to add your target to targets-y.
+And you need to specify FORCE as a prerequisite to force kbuild
+to use the if_changed logic.
 
----
+The purpose of if_changed is to check if the commandlien has changed
+and execute the command again also if the commandline has changed.
+The simpler variant is $(call cmd,dtc) where you do not check
+the command line and do not need FORCE.
 
-diff --git a/drivers/acpi/apei/Kconfig b/drivers/acpi/apei/Kconfig
-index fca34cc..e91680c 100644
---- a/drivers/acpi/apei/Kconfig
-+++ b/drivers/acpi/apei/Kconfig
-@@ -1,5 +1,6 @@
- config ACPI_APEI
- 	bool "ACPI Platform Error Interface (APEI)"
-+	select PSTORE
- 	depends on X86
- 	help
- 	  APEI allows to report errors (for example from the chipset)
-diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
-index 1211c03..35e0961 100644
---- a/drivers/acpi/apei/erst.c
-+++ b/drivers/acpi/apei/erst.c
-@@ -34,6 +34,7 @@
- #include <linux/cper.h>
- #include <linux/nmi.h>
- #include <linux/hardirq.h>
-+#include <linux/pstore.h>
- #include <acpi/apei.h>
- 
- #include "apei-internal.h"
-@@ -781,6 +782,122 @@ static int erst_check_table(struct acpi_table_erst *erst_tab)
- 	return 0;
- }
- 
-+static int erst_reader(u64 *id, int *type, size_t *size, struct timespec *time);
-+static int erst_writer(int type, size_t size);
-+
-+static struct pstore_info erst_info = {
-+	.owner		= THIS_MODULE,
-+	.name		= "erst",
-+	.read		= erst_reader,
-+	.write		= erst_writer,
-+	.erase		= erst_clear
-+};
-+
-+#define CPER_CREATOR_PSTORE						\
-+	UUID_LE(0x75a574e3, 0x5052, 0x4b29, 0x8a, 0x8e, 0xbe, 0x2c,	\
-+		0x64, 0x90, 0xb8, 0x9d)
-+#define CPER_SECTION_TYPE_DMESG						\
-+	UUID_LE(0xc197e04e, 0xd545, 0x4a70, 0x9c, 0x17, 0xa5, 0x54,	\
-+		0x94, 0x19, 0xeb, 0x12)
-+#define CPER_SECTION_TYPE_MCE						\
-+	UUID_LE(0xfe08ffbe, 0x95e4, 0x4be7, 0xbc, 0x73, 0x40, 0x96,	\
-+		0x04, 0x4a, 0x38, 0xfc)
-+
-+struct cper_pstore_record {
-+	struct cper_record_header hdr;
-+	struct cper_section_descriptor sec_hdr;
-+	char data[];
-+} __packed;
-+
-+static int erst_reader(u64 *id, int *type, size_t *size, struct timespec *time)
-+{
-+	int rc;
-+	ssize_t len;
-+	unsigned long flags;
-+	u64 record_id;
-+	struct cper_pstore_record *rcd = (struct cper_pstore_record *)
-+					(erst_info.buf - sizeof(*rcd));
-+
-+	if (erst_disable)
-+		return -ENODEV;
-+
-+	spin_lock_irqsave(&erst_lock, flags);
-+	rc = __erst_get_next_record_id(&record_id);
-+	if (rc) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return rc;
-+	}
-+	/* no more record */
-+	if (record_id == APEI_ERST_INVALID_RECORD_ID) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return 0;
-+	}
-+
-+	len = __erst_read(record_id, &rcd->hdr, sizeof(*rcd) +
-+			  erst_erange.size);
-+	spin_unlock_irqrestore(&erst_lock, flags);
-+
-+	*id = record_id;
-+	if (uuid_le_cmp(rcd->sec_hdr.section_type,
-+			CPER_SECTION_TYPE_DMESG) == 0)
-+		*type = PSTORE_TYPE_DMESG;
-+	else if (uuid_le_cmp(rcd->sec_hdr.section_type,
-+			     CPER_SECTION_TYPE_MCE) == 0)
-+		*type = PSTORE_TYPE_MCE;
-+	else
-+		*type = PSTORE_TYPE_MCE + 1;
-+	*size = len - sizeof(*rcd);
-+
-+	if (rcd->hdr.validation_bits & CPER_VALID_TIMESTAMP)
-+		time->tv_sec = rcd->hdr.timestamp;
-+	else
-+		time->tv_sec = 0;
-+	time->tv_nsec = 0;
-+
-+	return len;
-+}
-+
-+static int erst_writer(int type, size_t size)
-+{
-+	struct cper_pstore_record *rcd = (struct cper_pstore_record *)
-+					(erst_info.buf - sizeof(*rcd));
-+
-+	memset(rcd, 0, sizeof(*rcd));
-+	memcpy(rcd->hdr.signature, CPER_SIG_RECORD, CPER_SIG_SIZE);
-+	rcd->hdr.revision = CPER_RECORD_REV;
-+	rcd->hdr.signature_end = CPER_SIG_END;
-+	rcd->hdr.section_count = 1;
-+	rcd->hdr.error_severity = CPER_SEV_FATAL;
-+	/* timestamp valid. platform_id, partition_id are invalid */
-+	rcd->hdr.validation_bits = CPER_VALID_TIMESTAMP;
-+	rcd->hdr.timestamp = get_seconds();
-+	rcd->hdr.record_length = sizeof(*rcd) + size;
-+	rcd->hdr.creator_id = CPER_CREATOR_PSTORE;
-+	rcd->hdr.notification_type = CPER_NOTIFY_MCE;
-+	rcd->hdr.record_id = cper_next_record_id();
-+	rcd->hdr.flags = CPER_HW_ERROR_FLAGS_PREVERR;
-+
-+	rcd->sec_hdr.section_offset = sizeof(*rcd);
-+	rcd->sec_hdr.section_length = size;
-+	rcd->sec_hdr.revision = CPER_SEC_REV;
-+	/* fru_id and fru_text is invalid */
-+	rcd->sec_hdr.validation_bits = 0;
-+	rcd->sec_hdr.flags = CPER_SEC_PRIMARY;
-+	switch (type) {
-+	case PSTORE_TYPE_DMESG:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_DMESG;
-+		break;
-+	case PSTORE_TYPE_MCE:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_MCE;
-+		break;
-+	default:
-+		return -EINVAL;
-+	}
-+	rcd->sec_hdr.section_severity = CPER_SEV_FATAL;
-+
-+	return erst_write(&rcd->hdr);
-+}
-+
- static int __init erst_init(void)
- {
- 	int rc = 0;
-@@ -788,6 +905,7 @@ static int __init erst_init(void)
- 	struct apei_exec_context ctx;
- 	struct apei_resources erst_resources;
- 	struct resource *r;
-+	char *buf;
- 
- 	if (acpi_disabled)
- 		goto err;
-@@ -854,6 +972,18 @@ static int __init erst_init(void)
- 	if (!erst_erange.vaddr)
- 		goto err_release_erange;
- 
-+	buf = kmalloc(erst_erange.size, GFP_KERNEL);
-+	mutex_init(&erst_info.mutex);
-+	if (buf) {
-+		erst_info.buf = buf + sizeof(struct cper_pstore_record);
-+		erst_info.bufsize = erst_erange.size -
-+				    sizeof(struct cper_pstore_record);
-+		if (pstore_register(&erst_info)) {
-+			pr_info(ERST_PFX "Could not register with persistent store\n");
-+			kfree(buf);
-+		}
-+	}
-+
- 	pr_info(ERST_PFX
- 	"Error Record Serialization Table (ERST) support is initialized.\n");
- 
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index bd69d79..024d3b9 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -23,7 +23,7 @@
+>   *	_etext = .;
+>   *
+>   *      _sdata = .;
+> - *	RO_DATA_SECTION(PAGE_SIZE)
+> +*	RO_DATA_SECTION(PAGE_SIZE)
+>   *	RW_DATA_SECTION(...)
+>   *	_edata = .;
+>   *
+
+Change seems wrong.
+
+> @@ -67,7 +67,8 @@
+>   * Align to a 32 byte boundary equal to the
+>   * alignment gcc 4.5 uses for a struct
+>   */
+> -#define STRUCT_ALIGN() . = ALIGN(32)
+> +#define STRUCT_ALIGNMENT 32
+> +#define STRUCT_ALIGN() . = ALIGN(STRUCT_ALIGNMENT)
+>  
+>  /* The actual configuration determine if the init/exit sections
+>   * are handled as text/data or they can be discarded (which
+> @@ -146,6 +147,13 @@
+>  #define TRACE_SYSCALLS()
+>  #endif
+>  
+> +
+> +#define KERNEL_DTB()							\
+> +	STRUCT_ALIGN();							\
+> +	VMLINUX_SYMBOL(__dtb_start) = .;				\
+> +	*(.dtb.init.rodata)						\
+> +	VMLINUX_SYMBOL(__dtb_end) = .;
+> +
+>  /* .data section */
+>  #define DATA_DATA							\
+>  	*(.data)							\
+> @@ -468,7 +476,8 @@
+>  	MCOUNT_REC()							\
+>  	DEV_DISCARD(init.rodata)					\
+>  	CPU_DISCARD(init.rodata)					\
+> -	MEM_DISCARD(init.rodata)
+> +	MEM_DISCARD(init.rodata)					\
+> +	KERNEL_DTB()
+>  
+>  #define INIT_TEXT							\
+>  	*(.init.text)							\
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 4c72c11..937eabbb 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -200,7 +200,26 @@ quiet_cmd_gzip = GZIP    $@
+>  cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -f -9 > $@) || \
+>  	(rm -f $@ ; false)
+>  
+> -
+> +# DTC
+> +#  ---------------------------------------------------------------------------
+> +
+> +# Generate an assembly file to wrap the output of the device tree compiler
+> +$(obj)/%.dtb.S: $(obj)/%.dtb
+> +	@echo '#include <asm-generic/vmlinux.lds.h>' > $@
+> +	@echo '.section .dtb.init.rodata,"a"' >> $@
+> +	@echo '.balign STRUCT_ALIGNMENT' >> $@
+> +	@echo '.global __dtb_$(*F)_begin' >> $@
+> +	@echo '__dtb_$(*F)_begin:' >> $@
+> +	@echo '.incbin "$<" ' >> $@
+> +	@echo '__dtb_$(*F)_end:' >> $@
+> +	@echo '.global __dtb_$(*F)_end' >> $@
+> +	@echo '.balign STRUCT_ALIGNMENT' >> $@
+> +
+
+If we really want this rule in Makefile.lib then at least make it less verbose,
+and more secure.
+Something like this:
+quiet_dt_S_dtb_cmd = DTB    $@
+      dt_S_dtb_cmd =                                      \
+(                                                         \
+	@echo '#include <asm-generic/vmlinux.lds.h>';     \
+	@echo '.section .dtb.init.rodata,"a"';            \
+	@echo '.balign STRUCT_ALIGNMENT';                 \
+	echo '.global __dtb_$(*F)_begin';                 \
+	echo '__dtb_$(*F)_begin:';                        \
+	echo '.incbin "$<" ';                             \
+	echo '__dtb_$(*F)_end:';                          \
+	echo '.global __dtb_$(*F)_end';                   \
+	echo '.balign STRUCT_ALIGNMENT';                  \
+) > $@
+
+$(obj)/%.dtb.S: $(obj)/%.dtb
+	$(call cmd,dt_S_dtb)
+
+
+> +DTC = $(objtree)/scripts/dtc/dtc
+
+If this is the only spot where we use DTC then drop the variable.
+
+> +
+> +quiet_cmd_dtc = DTC $@
+> +      cmd_dtc = $(DTC) -O dtb -o $@ -b 0 $(DTC_FLAGS) $<
+
+
+> +ooo
+
+What is the purpose of these "ooo"? A debugging left-over?
+
+
+	Sam
