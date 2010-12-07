@@ -1,86 +1,19 @@
-From: Dirk Brandewie <dirk.brandewie@gmail.com>
-Subject: Re: [PATCH 1/4] of: Add support for linking device tree blobs into
- vmlinux
-Date: Mon, 06 Dec 2010 19:19:11 -0800
-Message-ID: <4CFDA7AF.2060201@gmail.com>
-References: <cover.1291656753.git.dirk.brandewie@gmail.com> <76a37fa459aeadce5d11db8a7cc044687a2e0e8c.1291656753.git.dirk.brandewie@gmail.com> <20101206190251.GB20882@merkur.ravnborg.org>
+From: "yapi_isl" <yapi_isl@mail.dumlupinar.edu.tr>
+Subject: **MICROSOFT END OF YEAR  CONSOLATION PRIZE WINNING**
+Date: Tue, 7 Dec 2010 20:36:23 +0200
+Message-ID: <20101207183623.M83370@mail.dumlupinar.edu.tr>
+Reply-To: mscorporation@live.co.uk
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;charset=iso-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:59502 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752031Ab0LGDTP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Dec 2010 22:19:15 -0500
-In-Reply-To: <20101206190251.GB20882@merkur.ravnborg.org>
+Received: from smtpgw.dpu.edu.tr ([194.27.43.25]:51306 "EHLO
+	smtpgw.dumlupinar.edu.tr" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752068Ab0LGRon (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Dec 2010 12:44:43 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz
 
-On 12/06/2010 11:02 AM, Sam Ravnborg wrote:
-> On Mon, Dec 06, 2010 at 09:35:59AM -0800, dirk.brandewie@gmail.com wrote:
->> From: Dirk Brandewie<dirk.brandewie@gmail.com>
->> -
->> +# DTC
->> +#  ---------------------------------------------------------------------------
->> +
->> +# Generate an assembly file to wrap the output of the device tree compiler
->> +$(obj)/%.dtb.S: $(obj)/%.dtb
->> +	@echo '#include<asm-generic/vmlinux.lds.h>'>  $@
->> +	@echo '.section .dtb.init.rodata,"a"'>>  $@
->> +	@echo '.balign STRUCT_ALIGNMENT'>>  $@
->> +	@echo '.global __dtb_$(*F)_begin'>>  $@
->> +	@echo '__dtb_$(*F)_begin:'>>  $@
->> +	@echo '.incbin "$<" '>>  $@
->> +	@echo '__dtb_$(*F)_end:'>>  $@
->> +	@echo '.global __dtb_$(*F)_end'>>  $@
->> +	@echo '.balign STRUCT_ALIGNMENT'>>  $@
->> +
->
-> If we really want this rule in Makefile.lib then at least make it less verbose,
-> and more secure.
-
-I started with the change in Makefile.lib because it made sense to me, is there 
-a more appropriate place for these rules/commands?
-
-> Something like this:
-> quiet_dt_S_dtb_cmd = DTB    $@
->        dt_S_dtb_cmd =                                      \
-> (                                                         \
-> 	@echo '#include<asm-generic/vmlinux.lds.h>';     \
-> 	@echo '.section .dtb.init.rodata,"a"';            \
-> 	@echo '.balign STRUCT_ALIGNMENT';                 \
-> 	echo '.global __dtb_$(*F)_begin';                 \
-> 	echo '__dtb_$(*F)_begin:';                        \
-> 	echo '.incbin "$<" ';                             \
-> 	echo '__dtb_$(*F)_end:';                          \
-> 	echo '.global __dtb_$(*F)_end';                   \
-> 	echo '.balign STRUCT_ALIGNMENT';                  \
-> )>  $@
->
-> $(obj)/%.dtb.S: $(obj)/%.dtb
-> 	$(call cmd,dt_S_dtb)
->
-
-I will make the changes in next version.
-
->
->> +DTC = $(objtree)/scripts/dtc/dtc
->
-> If this is the only spot where we use DTC then drop the variable.
->
->> +
->> +quiet_cmd_dtc = DTC $@
->> +      cmd_dtc = $(DTC) -O dtb -o $@ -b 0 $(DTC_FLAGS) $<
->
->
->> +ooo
->
-> What is the purpose of these "ooo"? A debugging left-over?
->
-
-Yep sorry
-
->
-> 	Sam
+Your E-mail ID have won 1,550,952.00 GBP credited to MICRO CHIP NO:9465206 
+1. FULL NAMES: 2. RESIDENTIAL ADDRESS: 3. TELL NO: 4. MICRO CHIP NUMBER
+Barrister Nicholas Caldwell.Email : mscorporation@live.co.uk
+For More Information Tel: (+44)704-573-3163
