@@ -1,194 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:51029 "EHLO mga11.intel.com"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:38911 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752693Ab0LFSbJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 6 Dec 2010 13:31:09 -0500
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: [RFC] persistent store -x86 platform piece (version 3) (part 2 of 2)
-Date: Mon, 06 Dec 2010 10:31:08 -0800
-Message-ID: <4cfd2bec25858dc899@agluck-desktop.sc.intel.com>
+	id S1751232Ab0LHKOn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Dec 2010 05:14:43 -0500
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+References: <201011301754.17829.arnd@arndb.de>
+In-Reply-To: <201011301754.17829.arnd@arndb.de>
+Subject: RE: [PATCH] Unicore architecture patch review, part 2
+Date: Wed, 8 Dec 2010 18:14:35 +0800
+Message-ID: <011401cb96c0$b7dca8d0$2795fa70$@mprc.pku.edu.cn>
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: ying.huang@intel.com
-Message-ID: <20101206183108.7n4zOCM1VqCjc8-gXYqbQmFcs8de-uEPR1biPSIx6-Q@z>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20101208101435.uV0Kly45zlsp3tLqyWne5D_RelrgNcsny1XAE04e1Ns@z>
 
-Here are the changes to ERST to use the persistent store.
 
-Signed-off-by: Tony Luck <tony.luck@intel.com>
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/kernel/calls.S linux-
+> 2.6.37.y/arch/unicore32/kernel/calls.S
+> > --- linux-2.6.37-rc2/arch/unicore32/kernel/calls.S	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/kernel/calls.S	2010-11-19
+> 14:33:16.973569009 +0800
+> > @@ -0,0 +1,390 @@
+> > +/* 0 */		CALL(sys_restart_syscall)
+> > +		CALL(sys_exit)
+> > +		CALL(sys_fork_wrapper)
+> > +		CALL(sys_read)
+> > +		CALL(sys_write)
+> > +/* 5 */		CALL(sys_open)
+> > +		CALL(sys_close)
+> 
+> When you start using the generic unistd.h file, you can also replace this
+table
+> with something like arch/tile/kernel/sys.c.
+Well. I will use the generic unistd.h in UniCore-64 version.
 
----
 
-diff --git a/drivers/acpi/apei/Kconfig b/drivers/acpi/apei/Kconfig
-index fca34cc..e91680c 100644
---- a/drivers/acpi/apei/Kconfig
-+++ b/drivers/acpi/apei/Kconfig
-@@ -1,5 +1,6 @@
- config ACPI_APEI
- 	bool "ACPI Platform Error Interface (APEI)"
-+	select PSTORE
- 	depends on X86
- 	help
- 	  APEI allows to report errors (for example from the chipset)
-diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
-index 1211c03..35e0961 100644
---- a/drivers/acpi/apei/erst.c
-+++ b/drivers/acpi/apei/erst.c
-@@ -34,6 +34,7 @@
- #include <linux/cper.h>
- #include <linux/nmi.h>
- #include <linux/hardirq.h>
-+#include <linux/pstore.h>
- #include <acpi/apei.h>
- 
- #include "apei-internal.h"
-@@ -781,6 +782,122 @@ static int erst_check_table(struct acpi_table_erst *erst_tab)
- 	return 0;
- }
- 
-+static int erst_reader(u64 *id, int *type, size_t *size, struct timespec *time);
-+static int erst_writer(int type, size_t size);
-+
-+static struct pstore_info erst_info = {
-+	.owner		= THIS_MODULE,
-+	.name		= "erst",
-+	.read		= erst_reader,
-+	.write		= erst_writer,
-+	.erase		= erst_clear
-+};
-+
-+#define CPER_CREATOR_PSTORE						\
-+	UUID_LE(0x75a574e3, 0x5052, 0x4b29, 0x8a, 0x8e, 0xbe, 0x2c,	\
-+		0x64, 0x90, 0xb8, 0x9d)
-+#define CPER_SECTION_TYPE_DMESG						\
-+	UUID_LE(0xc197e04e, 0xd545, 0x4a70, 0x9c, 0x17, 0xa5, 0x54,	\
-+		0x94, 0x19, 0xeb, 0x12)
-+#define CPER_SECTION_TYPE_MCE						\
-+	UUID_LE(0xfe08ffbe, 0x95e4, 0x4be7, 0xbc, 0x73, 0x40, 0x96,	\
-+		0x04, 0x4a, 0x38, 0xfc)
-+
-+struct cper_pstore_record {
-+	struct cper_record_header hdr;
-+	struct cper_section_descriptor sec_hdr;
-+	char data[];
-+} __packed;
-+
-+static int erst_reader(u64 *id, int *type, size_t *size, struct timespec *time)
-+{
-+	int rc;
-+	ssize_t len;
-+	unsigned long flags;
-+	u64 record_id;
-+	struct cper_pstore_record *rcd = (struct cper_pstore_record *)
-+					(erst_info.buf - sizeof(*rcd));
-+
-+	if (erst_disable)
-+		return -ENODEV;
-+
-+	spin_lock_irqsave(&erst_lock, flags);
-+	rc = __erst_get_next_record_id(&record_id);
-+	if (rc) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return rc;
-+	}
-+	/* no more record */
-+	if (record_id == APEI_ERST_INVALID_RECORD_ID) {
-+		spin_unlock_irqrestore(&erst_lock, flags);
-+		return 0;
-+	}
-+
-+	len = __erst_read(record_id, &rcd->hdr, sizeof(*rcd) +
-+			  erst_erange.size);
-+	spin_unlock_irqrestore(&erst_lock, flags);
-+
-+	*id = record_id;
-+	if (uuid_le_cmp(rcd->sec_hdr.section_type,
-+			CPER_SECTION_TYPE_DMESG) == 0)
-+		*type = PSTORE_TYPE_DMESG;
-+	else if (uuid_le_cmp(rcd->sec_hdr.section_type,
-+			     CPER_SECTION_TYPE_MCE) == 0)
-+		*type = PSTORE_TYPE_MCE;
-+	else
-+		*type = PSTORE_TYPE_MCE + 1;
-+	*size = len - sizeof(*rcd);
-+
-+	if (rcd->hdr.validation_bits & CPER_VALID_TIMESTAMP)
-+		time->tv_sec = rcd->hdr.timestamp;
-+	else
-+		time->tv_sec = 0;
-+	time->tv_nsec = 0;
-+
-+	return len;
-+}
-+
-+static int erst_writer(int type, size_t size)
-+{
-+	struct cper_pstore_record *rcd = (struct cper_pstore_record *)
-+					(erst_info.buf - sizeof(*rcd));
-+
-+	memset(rcd, 0, sizeof(*rcd));
-+	memcpy(rcd->hdr.signature, CPER_SIG_RECORD, CPER_SIG_SIZE);
-+	rcd->hdr.revision = CPER_RECORD_REV;
-+	rcd->hdr.signature_end = CPER_SIG_END;
-+	rcd->hdr.section_count = 1;
-+	rcd->hdr.error_severity = CPER_SEV_FATAL;
-+	/* timestamp valid. platform_id, partition_id are invalid */
-+	rcd->hdr.validation_bits = CPER_VALID_TIMESTAMP;
-+	rcd->hdr.timestamp = get_seconds();
-+	rcd->hdr.record_length = sizeof(*rcd) + size;
-+	rcd->hdr.creator_id = CPER_CREATOR_PSTORE;
-+	rcd->hdr.notification_type = CPER_NOTIFY_MCE;
-+	rcd->hdr.record_id = cper_next_record_id();
-+	rcd->hdr.flags = CPER_HW_ERROR_FLAGS_PREVERR;
-+
-+	rcd->sec_hdr.section_offset = sizeof(*rcd);
-+	rcd->sec_hdr.section_length = size;
-+	rcd->sec_hdr.revision = CPER_SEC_REV;
-+	/* fru_id and fru_text is invalid */
-+	rcd->sec_hdr.validation_bits = 0;
-+	rcd->sec_hdr.flags = CPER_SEC_PRIMARY;
-+	switch (type) {
-+	case PSTORE_TYPE_DMESG:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_DMESG;
-+		break;
-+	case PSTORE_TYPE_MCE:
-+		rcd->sec_hdr.section_type = CPER_SECTION_TYPE_MCE;
-+		break;
-+	default:
-+		return -EINVAL;
-+	}
-+	rcd->sec_hdr.section_severity = CPER_SEV_FATAL;
-+
-+	return erst_write(&rcd->hdr);
-+}
-+
- static int __init erst_init(void)
- {
- 	int rc = 0;
-@@ -788,6 +905,7 @@ static int __init erst_init(void)
- 	struct apei_exec_context ctx;
- 	struct apei_resources erst_resources;
- 	struct resource *r;
-+	char *buf;
- 
- 	if (acpi_disabled)
- 		goto err;
-@@ -854,6 +972,18 @@ static int __init erst_init(void)
- 	if (!erst_erange.vaddr)
- 		goto err_release_erange;
- 
-+	buf = kmalloc(erst_erange.size, GFP_KERNEL);
-+	mutex_init(&erst_info.mutex);
-+	if (buf) {
-+		erst_info.buf = buf + sizeof(struct cper_pstore_record);
-+		erst_info.bufsize = erst_erange.size -
-+				    sizeof(struct cper_pstore_record);
-+		if (pstore_register(&erst_info)) {
-+			pr_info(ERST_PFX "Could not register with persistent store\n");
-+			kfree(buf);
-+		}
-+	}
-+
- 	pr_info(ERST_PFX
- 	"Error Record Serialization Table (ERST) support is initialized.\n");
- 
+> > + * Handle all unrecognised system calls.
+> > + *  0x9f0000 - 0x9fffff are some more esoteric system calls  */
+> > +#define NR(x) ((__UNICORE_NR_##x) - __UNICORE_NR_BASE)
+> asmlinkage int
+> > +uc32_syscall(int no, struct pt_regs *regs)
+> 
+> This function looks very obscure and it seems to deal with legacy ARM
+issues
+> that were copied here.
+> 
+> Better make the unicore specific interfaces regular syscalls
+(sys_breakpoint,
+> sys_cacheflush, sys_cmpxchg, ...).
+We need to handle cacheflush and cmpxchg in this way for compatibility with 
+Existing binary files.
+
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/lib/copy_template.S linux-
+> 2.6.37.y/arch/unicore32/lib/copy_template.S
+> > --- linux-2.6.37-rc2/arch/unicore32/lib/copy_template.S	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/lib/copy_template.S	2010-11-16
+> 18:30:56.013566876 +0800
+> > @@ -0,0 +1,214 @@
+> > +/*
+> > + * linux/arch/unicore32/lib/copy_template.S
+> 
+> This is a copy of the ARM-optimized memcpy code. Is it really better than
+the
+> libgcc version on unicore?
+Yes, we have the similar optimization method with ARM.
+And we do the optimization work for the kernel and libgcc in the meantime.
+
+> A similar question can be asked for much of the assembly code in
+> arch/unicore/lib. The code is rather old and compilers have gotten a lot
+> better in the meantime, so I could imagine that you'd be better off just
+using
+> the C versions.
+To avoid the same code in two different place, I have shrinked the unicore32
+kernel code.
+
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/lib/delay.S linux-2.6.37.y/arch/unicore32/lib/delay.S
+> > --- linux-2.6.37-rc2/arch/unicore32/lib/delay.S	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/lib/delay.S	2010-11-16
+> 18:30:56.015567130 +0800
+> > +
+> > +/*
+> > + * loops = r0 * HZ * loops_per_jiffy / 1000000
+> > + *
+> > + * Oh, if only we had a cycle counter...
+> > + */
+> > +
+> > +@ Delay routine
+> > +ENTRY(__delay)
+> > +		sub.a	r0, r0, #2
+> > +		bua	__delay
+> > +		mov	pc, lr
+> > +ENDPROC(__udelay)
+> 
+> Hmm, when the architecture was being defined, why didn't you ask for a
+> cycle counter? It really improves the delay code a lot.
+No software readable cycle counter in UniCore32.
+
+> If you have a good time base by now, you should use it. Is the OST_OSCR
+> something you could use here?
+OST_OSCR is much coarse in here, which is 14.318M Hz.
+
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/mach-puv3/clock.c linux-2.6.37.y/arch/unicore32/mach-
+> puv3/clock.c
+> > --- linux-2.6.37-rc2/arch/unicore32/mach-puv3/clock.c	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/mach-puv3/clock.c	2010-11-16
+> 18:30:56.020566930 +0800
+> > @@ -0,0 +1,389 @@
+> > +/*
+> > + * linux/arch/unicore32/mach-puv3/clock.c
+> 
+> I would not plan to have multiple mach- directories if you only need one
+> today. It makes sense on ARM, which has dozens of different machines, but
+> in your case, I would hope that you control it well enough to keep
+machines
+> mostly compatible with each other.
+Yes, the mach dir and kernel dir are combined.
+
+> > +/*
+> > + * Very simple clock implementation
+> > + */
+> > +struct clk {
+> > +	struct list_head	node;
+> > +	unsigned long		rate;
+> > +	const char		*name;
+> > +};
+> 
+> There are currently patches under discussion for the ARM architecture that
+> unify the various struct clk definitions. It probably makes sense for you
+to use
+> the same definition.
+At present, clk struct works well, and it is enough for UniCore32.
+I will reconsider this problem later.
+
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/mach-puv3/core.c linux-2.6.37.y/arch/unicore32/mach-
+> puv3/core.c
+> > --- linux-2.6.37-rc2/arch/unicore32/mach-puv3/core.c	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/mach-puv3/core.c	2010-11-19
+> 17:55:34.949943687 +0800
+> > +static struct resource puv3_usb_resources[] = {
+> > +	/* order is significant! */
+> > +	{
+> > +		.start		= PKUNITY_USB_BASE,
+> > +		.end		= PKUNITY_USB_BASE + 0x3ff,
+> > +		.flags		= IORESOURCE_MEM,
+> > +	}, {
+> > +		.start		= IRQ_USB,
+> > +		.flags		= IORESOURCE_IRQ,
+> > +	}, {
+> > +		.start		= IRQ_USB,
+> > +		.flags		= IORESOURCE_IRQ,
+> > +	},
+> > +};
+> > +
+> > +static struct musb_hdrc_config	puv3_usb_config[] = {
+> > +	{
+> > +		.num_eps = 16,
+> > +		.multipoint = 1,
+> > +#ifdef CONFIG_USB_INVENTRA_DMA
+> > +		.dma = 1,
+> > +		.dma_channels = 8,
+> > +#endif
+> > +	},
+> > +};
+> > +
+> > +static struct musb_hdrc_platform_data puv3_usb_plat = {
+> > +	.mode		= MUSB_HOST,
+> > +	.min_power 	= 100,
+> > +	.clock		= 0,
+> > +	.config		= puv3_usb_config,
+> > +};
+> 
+> Please have a look at the flattened device tree format as a way to define
+the
+> SoC components. Defining all the platform data statically is generally not
+a
+> scalable way to support multiple SOCs in the long run, or even multiple
+> boards based on the same SOC in different configurations.
+Also, I will reconsider this problem lator. Thanks.
+
+> Why do you even need to fix up alignment exceptions, can't you just always
+> send SIGBUS in this case?
+We must handle alignment exception in software.
+
+> > diff -uprN -X linux-2.6.37-rc2/Documentation/dontdiff linux-2.6.37-
+> rc2/arch/unicore32/mm/dma-mapping.c linux-
+> 2.6.37.y/arch/unicore32/mm/dma-mapping.c
+> > --- linux-2.6.37-rc2/arch/unicore32/mm/dma-mapping.c	1970-01-01
+> 08:00:00.000000000 +0800
+> > +++ linux-2.6.37.y/arch/unicore32/mm/dma-mapping.c	2010-11-16
+> 18:30:56.024566880 +0800
+> 
+> This file will look very different when you use swiotlb. Given the
+restrictions
+> on your PCI bus, I don't think your current version even works in general
+for
+> PCI devices.
+Also, I will reconsider this problem lator. Thanks.
+
+> When you have addressed the review comments you got up to now, it would
+> be good to start posting the code as separate patches by email to the
+linux-
+> kernel and linux-arch mailing lists as described in the
+> Documentation/SubmittingPatches file. I recommend posting at most 10-20
+> patches at a time, and if you have patches to include/asm-generic or other
+> common kernel code, please make them self-contained with a proper
+> changelog so we can apply them independent of the architecture tree.
+Thanks again.
+
+Guan Xuetao
+
+
