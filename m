@@ -1,45 +1,56 @@
 From: dirk.brandewie@gmail.com
-Subject: [PATCH 2/4] x86/of: Add building device tree blob(s) into image.
-Date: Wed,  8 Dec 2010 07:01:14 -0800
-Message-ID: <abe67e5689fef1d94e57be68ec5ef47a8f13bf8e.1291820034.git.dirk.brandewie@gmail.com>
+Subject: [PATCH 4/4] microblaze/of: Use generic rule to build dtb's
+Date: Wed,  8 Dec 2010 07:01:16 -0800
+Message-ID: <c6ab00e5766fc510ef6d7b9420f19b4397d6a5e8.1291820034.git.dirk.brandewie@gmail.com>
 References: <cover.1291820033.git.dirk.brandewie@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:52823 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755493Ab0LHPBq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Dec 2010 10:01:46 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1291820033.git.dirk.brandewie@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-This patch adds linking device tree blob into vmlinux. DTB's are
-added by adding the blob object name to list of objects to be linked
-into the image.
+Modify arch/powerpc/boot/Makefile to use dtc command in
+scripts/Makefile.lib
 
 Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
 ---
- arch/x86/platform/ce4100/Makefile |   10 ++++++++++
- 1 files changed, 10 insertions(+), 0 deletions(-)
+ arch/microblaze/boot/Makefile |   12 +++---------
+ 1 files changed, 3 insertions(+), 9 deletions(-)
 
-diff --git a/arch/x86/platform/ce4100/Makefile b/arch/x86/platform/ce4100/Makefile
-index 91fc929..e5f3b7b 100644
---- a/arch/x86/platform/ce4100/Makefile
-+++ b/arch/x86/platform/ce4100/Makefile
-@@ -1 +1,11 @@
- obj-$(CONFIG_X86_INTEL_CE)	+= ce4100.o
-+clean-files := *dtb.S
-+
-+ifdef CONFIG_X86_OF
-+###
-+# device tree blob
-+obj-$(CONFIG_X86_INTEL_CE) += ce4100.dtb.o
-+
-+$(obj)/%.dtb: $(src)/%.dts
+diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
+index be01d78..4c4e58e 100644
+--- a/arch/microblaze/boot/Makefile
++++ b/arch/microblaze/boot/Makefile
+@@ -10,9 +10,6 @@ targets := linux.bin linux.bin.gz simpleImage.%
+ 
+ OBJCOPYFLAGS := -O binary
+ 
+-# Where the DTS files live
+-dtstree         := $(srctree)/$(src)/dts
+-
+ # Ensure system.dtb exists
+ $(obj)/linked_dtb.o: $(obj)/system.dtb
+ 
+@@ -51,14 +48,11 @@ $(obj)/simpleImage.%: vmlinux FORCE
+ 	$(call if_changed,strip)
+ 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
+ 
+-# Rule to build device tree blobs
+-DTC = $(objtree)/scripts/dtc/dtc
+ 
+ # Rule to build device tree blobs
+-quiet_cmd_dtc = DTC     $@
+-	cmd_dtc = $(DTC) -O dtb -o $(obj)/$*.dtb -b 0 -p 1024 $(dtstree)/$*.dts
++DTC_FLAGS := -p 1024
+ 
+-$(obj)/%.dtb: $(dtstree)/%.dts FORCE
+-	$(call if_changed,dtc)
++$(obj)/%.dtb: $(src)/dts/%.dts FORCE
 +	$(call cmd,dtc)
-+endif
+ 
+ clean-files += *.dtb simpleImage.*.unstrip linux.bin.ub
 -- 
 1.7.2.3
