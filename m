@@ -1,51 +1,68 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] Unicore architecture patch review, part 2
-Date: Wed, 8 Dec 2010 13:53:44 +0100
-Message-ID: <201012081353.44927.arnd@arndb.de>
-References: <201011301754.17829.arnd@arndb.de> <011401cb96c0$b7dca8d0$2795fa70$@mprc.pku.edu.cn>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 0/4] V3 Add ability to link device blob(s) into vmlinux
+Date: Wed,  8 Dec 2010 07:01:12 -0800
+Message-ID: <cover.1291820033.git.dirk.brandewie@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:49626 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754522Ab0LHMxz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Dec 2010 07:53:55 -0500
-In-Reply-To: <011401cb96c0$b7dca8d0$2795fa70$@mprc.pku.edu.cn>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:51921 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755201Ab0LHPBi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Dec 2010 10:01:38 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, Dirk Brandewie <dirk.brandewie@gmail.com>
 
-On Wednesday 08 December 2010, Guan Xuetao wrote:
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-> > > @@ -0,0 +1,390 @@
-> > > +/* 0 */		CALL(sys_restart_syscall)
-> > > +		CALL(sys_exit)
-> > > +		CALL(sys_fork_wrapper)
-> > > +		CALL(sys_read)
-> > > +		CALL(sys_write)
-> > > +/* 5 */		CALL(sys_open)
-> > > +		CALL(sys_close)
-> > 
-> > When you start using the generic unistd.h file, you can also replace this table
-> > with something like arch/tile/kernel/sys.c.
-> Well. I will use the generic unistd.h in UniCore-64 version.
+This patch set adds the ability to link device tree blobs into
+vmlinux. 
 
-I thought you had agreed to break ABI compatibility with your existing
-code base and use the generic ABI everywhere.
+Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
+adds a generic rule for generating DTB objects to be linked vmlinux.
 
-Did I misunderstand you or did you make up your mind since then?
+Patch 2 implements linking a DTB into an x86 image.
 
-> > Hmm, when the architecture was being defined, why didn't you ask for a
-> > cycle counter? It really improves the delay code a lot.
-> No software readable cycle counter in UniCore32.
-> 
-> > If you have a good time base by now, you should use it. Is the OST_OSCR
-> > something you could use here?
-> OST_OSCR is much coarse in here, which is 14.318M Hz.
+Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
+in patch 1.
 
-Ok, I see.
+This patch set has been tested on x86.
 
-	Arnd
+Powerpc and Microblaze have been compile tested with and without patch
+3 and 4 applied.
+
+Changes from V1:
+
+Documentation added for dtc command in Makefile.lib to
+Documentation/kbuild/makefiles.txt
+Separate DTB_ALIGNMENT define removed.
+FORCE removed from dtc rule.
+Removed hardcoded path to dts files from dtc command.  
+Moved %.dtb: %.dts rule to arch specific makefiles. 
+ 
+Patch for adding kernel command line option to pass in dtb_compat
+string dropped from this set will be submitted seperately.
+
+Changes from V2:
+
+Rule to create assembly wrapper for blob changed to use Sam Ravnborgs
+suggested implementation.
+
+Rules in architecture specific Makefiles changed to use the cmd
+function instead of the if_changed function.
+
+Dirk Brandewie (4):
+  of: Add support for linking device tree blobs into vmlinux
+  x86/of: Add building device tree blob(s) into image.
+  of/powerpc: Use generic rule to build dtb's
+  microblaze/of: Use generic rule to build dtb's
+
+ Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+ arch/microblaze/boot/Makefile      |   12 +++---------
+ arch/powerpc/boot/Makefile         |    8 +++-----
+ arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
+ include/asm-generic/vmlinux.lds.h  |   13 +++++++++++--
+ scripts/Makefile.lib               |   23 +++++++++++++++++++++++
+ 6 files changed, 65 insertions(+), 16 deletions(-)
+
+-- 
+1.7.2.3
