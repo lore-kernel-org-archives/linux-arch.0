@@ -1,97 +1,57 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [RFC] persistent store (version 3) (part 1 of 2)
-Date: Thu, 9 Dec 2010 21:47:09 +0100
-Message-ID: <20101209204708.GA2396@liondog.tnic>
-References: <AANLkTimWT8=fmqbEeb+qXbwsWOmaz5d2_Bsr-=DON7L1@mail.gmail.com>
- <4d012a025304b1f75@agluck-desktop.sc.intel.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 3/3]use new macros for x86 percpu readmostly section
+Date: Thu, 9 Dec 2010 14:32:01 -0800
+Message-ID: <20101209143201.6ab0a49d.akpm@linux-foundation.org>
+References: <1291255350.12777.117.camel@sli10-conroe>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:39481 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757002Ab0LIUrN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 15:47:13 -0500
-Content-Disposition: inline
-In-Reply-To: <4d012a025304b1f75@agluck-desktop.sc.intel.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:45833 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754996Ab0LIWcg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 17:32:36 -0500
+In-Reply-To: <1291255350.12777.117.camel@sli10-conroe>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luck, Tony" <tony.luck@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Shaohua Li <shaohua.li@intel.com>
+Cc: lkml <linux-kernel@vger.kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, sam@ravnborg.org, eric.dumazet@gmail.com, linux-arch@vger.kernel.org
 
-On Thu, Dec 09, 2010 at 11:12:02AM -0800, Luck, Tony wrote:
-> > This upsets the traditional layout of having the error
-> > recovery part of the function undo all the things that
-> > we did leading up to the error. Pity, because your
-> > version is easier to read.
+On Thu, 02 Dec 2010 10:02:30 +0800
+Shaohua Li <shaohua.li@intel.com> wrote:
+
+> Use the new macros to correctly align percpu readmostly data.
 > 
-> But most of your "move the error fixups to the tail, so the
-> normal code path is easier to follow" bit do still hold and
-> can be used.  How about this:
-> 
-> -Tony
-> 
+> Signed-off-by: Shaohua Li <shaohua.li@intel.com>
 > ---
+>  arch/x86/kernel/vmlinux.lds.S |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
 > 
-> int pstore_mkfile(char *name, char *data, size_t size, struct timespec time,
-> 		  void *private)
-> {
-> 	struct dentry	*root = pstore_sb->s_root;
-> 	struct dentry	*dentry;
-> 	struct inode	*inode;
-> 	int		rc;
+> Index: linux/arch/x86/kernel/vmlinux.lds.S
+> ===================================================================
+> --- linux.orig/arch/x86/kernel/vmlinux.lds.S	2010-12-02 09:48:44.000000000 +0800
+> +++ linux/arch/x86/kernel/vmlinux.lds.S	2010-12-02 09:54:24.000000000 +0800
+> @@ -226,7 +226,7 @@ SECTIONS
+>  	 * output PHDR, so the next output section - .init.text - should
+>  	 * start another segment - init.
+>  	 */
+> -	PERCPU_VADDR(0, :percpu)
+> +	PERCPU_VADDR_CACHEALIGNED(0, :percpu, INTERNODE_CACHE_BYTES)
+>  #endif
+>  
+>  	INIT_TEXT_SECTION(PAGE_SIZE)
+> @@ -301,7 +301,7 @@ SECTIONS
+>  	}
+>  
+>  #if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
+> -	PERCPU(THREAD_SIZE)
+> +	PERCPU_CACHEALIGNED(THREAD_SIZE, INTERNODE_CACHE_BYTES)
+>  #endif
+>  
+>  	. = ALIGN(PAGE_SIZE);
 > 
-> 	rc = -ENOMEM;
-> 	inode = pstore_get_inode(pstore_sb, root->d_inode, S_IFREG | 0444, 0);
-> 	if (!inode)
-> 		goto fail;
 
-I'd add a newline here.
+So what is the situation now with all other architectures?  Should they
+be changed to correctly align their read-mostly percpu areas?
 
-> 	inode->i_private = private;
-> 
-> 	mutex_lock(&root->d_inode->i_mutex);
-> 
-> 	rc = -ENOSPC;
-> 	dentry = d_alloc_name(root, name);
-> 	if (IS_ERR(dentry))
-> 		goto fail_alloc;
-
-ditto.
-
-> 	d_add(dentry, inode);
-> 
-> 	mutex_unlock(&root->d_inode->i_mutex);
-> 
-> 	if (!pstore_writefile(inode, dentry, data, size))
-> 		goto fail_write;
-> 
-> 	if (time.tv_sec)
-> 		inode->i_mtime = inode->i_ctime = time;
-> 
-> 	return 0;
-> 
-> fail_write:
-> 	inode->i_nlink--;
-> 	mutex_lock(&root->d_inode->i_mutex);
-> 	d_delete(dentry);
-> 	dput(dentry);
-> 	mutex_unlock(&root->d_inode->i_mutex);
-> 	goto fail;
-
-Yeah, either that or add a "return rc" to save us the jmp. But since
-those paths wouldn't be hit in the normal case, I don't think it matters
-that much.
-
-> 
-> fail_alloc:
-> 	mutex_unlock(&root->d_inode->i_mutex);
-> 	iput(inode);
-> 
-> fail:
-> 	return rc;
-
-Thanks.
-
--- 
-Regards/Gruss,
-    Boris.
+If so, what should the arch maintainers do to achieve this?
