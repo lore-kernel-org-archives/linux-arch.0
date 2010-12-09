@@ -1,106 +1,239 @@
 From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCHv1 006/211] unicore32: new file arch/unicore32/boot/compressed/Makefile
-Date: Thu, 9 Dec 2010 17:35:44 +0800
-Message-ID: <01d601cb9784$741aecf0$5c50c6d0$@mprc.pku.edu.cn>
+Subject: [PATCHv1 007/211] unicore32: new file arch/unicore32/boot/compressed/head.S
+Date: Thu, 9 Dec 2010 17:37:39 +0800
+Message-ID: <01d801cb9784$b8700f20$29502d60$@mprc.pku.edu.cn>
 Mime-Version: 1.0
 Content-Type: text/plain;
 	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:53324 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755800Ab0LIJhm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 04:37:42 -0500
 Content-Language: zh-cn
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-	Makefile for uncompressed head, with autogenerate piggy.S and
-ld-script
+	entry point before uncompressed in UniCore32 linux-kernel
 
 Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 ---
- arch/unicore32/boot/compressed/Makefile |   71
-+++++++++++++++++++++++++++++++
- 1 files changed, 71 insertions(+), 0 deletions(-)
+ arch/unicore32/boot/compressed/head.S |  203
++++++++++++++++++++++++++++++++++
+ 1 files changed, 203 insertions(+), 0 deletions(-)
 
-diff --git a/arch/unicore32/boot/compressed/Makefile
-b/arch/unicore32/boot/compressed/Makefile
+diff --git a/arch/unicore32/boot/compressed/head.S
+b/arch/unicore32/boot/compressed/head.S
 new file mode 100644
-index 0000000..79f8889
+index 0000000..ced47bd
 --- /dev/null
-+++ b/arch/unicore32/boot/compressed/Makefile
-@@ -0,0 +1,71 @@
-+#
-+# linux/arch/unicore32/boot/compressed/Makefile
-+#
-+# create a compressed vmlinuz image from the original vmlinux
-+#
-+# This file is subject to the terms and conditions of the GNU General
-Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 2001~2010 GUAN Xue-tao
-+#
++++ b/arch/unicore32/boot/compressed/head.S
+@@ -0,0 +1,203 @@
++/*
++ * linux/arch/unicore32/boot/compressed/head.S
++ *
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ * Copyright (C) 2001-2010 GUAN Xue-tao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/linkage.h>
 +
-+EXTRA_CFLAGS	:= -fpic -fno-builtin
-+EXTRA_AFLAGS	:= -Wa,-march=all
++#define csub	cmpsub
++#define cand	cmpand
++#define nop8	nop; nop; nop; nop; nop; nop; nop; nop
 +
-+AFLAGS_head.o	+= -DTEXT_OFFSET=$(TEXT_OFFSET)
-+OBJS		:= misc.o
++		.section ".start", #alloc, #execinstr
++		.text
++start:
++		.type	start,#function
 +
-+# font.c and font.o
-+CFLAGS_font.o	:= -Dstatic=
-+$(obj)/font.c: $(srctree)/drivers/video/console/font_8x8.c
-+	$(call cmd,shipped)
++		/* Initialize ASR, PRIV mode and INTR off */
++		mov	r0, #0xD3
++		mov.a	asr, r0
 +
-+# piggy.S and piggy.o
-+suffix_$(CONFIG_KERNEL_GZIP)	:= gzip
-+suffix_$(CONFIG_KERNEL_BZIP2)	:= bz2
-+suffix_$(CONFIG_KERNEL_LZO)	:= lzo
-+suffix_$(CONFIG_KERNEL_LZMA)	:= lzma
++		adr	r0, LC0
++		ldm	(r1, r2, r3, r5, r6, r7, r8), [r0]+
++		ldw	sp, [r0+], #28
++		sub.a	r0, r0, r1		@ calculate the delta offset
 +
-+$(obj)/piggy.$(suffix_y): $(obj)/../Image FORCE
-+	$(call if_changed,$(suffix_y))
++		/*
++		 * if delta is zero, we are running at the address
++		 * we were linked at.
++		 */
++		beq	not_relocated
 +
-+SEDFLAGS_piggy	= s/DECOMP_SUFFIX/$(suffix_y)/
-+$(obj)/piggy.S: $(obj)/piggy.S.in
-+	@sed "$(SEDFLAGS_piggy)" < $< > $@
++		/*
++		 * We're running at a different address.  We need to fix
++		 * up various pointers:
++		 *   r5 - zImage base address (_start)
++		 *   r7 - GOT start
++		 *   r8 - GOT end
++		 */
++		add	r5, r5, r0
++		add	r7, r7, r0
++		add	r8, r8, r0
 +
-+$(obj)/piggy.o:  $(obj)/piggy.$(suffix_y) $(obj)/piggy.S FORCE
++		/*
++		 * we need to fix up pointers into the BSS region.
++		 *   r2 - BSS start
++		 *   r3 - BSS end
++		 *   sp - stack pointer
++		 */
++		add	r2, r2, r0
++		add	r3, r3, r0
++		add	sp, sp, r0
 +
-+targets		:= vmlinux vmlinux.lds font.o font.c head.o misc.o \
-+			piggy.$(suffix_y) piggy.o piggy.S \
++		/*
++		 * Relocate all entries in the GOT table.
++		 * This fixes up the C references.
++		 *   r7 - GOT start
++		 *   r8 - GOT end
++		 */
++1001:		ldw	r1, [r7+], #0
++		add	r1, r1, r0
++		stw.w	r1, [r7]+, #4
++		csub.a	r7, r8
++		bub	1001b
 +
-+# Make sure files are removed during clean
-+extra-y		+= piggy.gzip piggy.bz2 piggy.lzo piggy.lzma
++not_relocated:
++		/*
++		 * Clear BSS region.
++		 *   r2 - BSS start
++		 *   r3 - BSS end
++		 */
++		mov	r0, #0
++1002:		stw.w	r0, [r2]+, #4
++		csub.a	r2, r3
++		bub	1002b
 +
-+# Supply zreladdr to the decompressor via a linker symbol.
-+LDFLAGS_vmlinux := --defsym zreladdr=$(TEXT_OFFSET)
-+# ?
-+LDFLAGS_vmlinux += -p
-+# Report unresolved symbol references
-+LDFLAGS_vmlinux += --no-undefined
-+# Delete all temporary local symbols
-+LDFLAGS_vmlinux += -X
-+# Next argument is a linker script
-+LDFLAGS_vmlinux += -T
++		/*
++		 * Turn on the cache.
++		 */
++                mov     r0, #0
++                movc    p0.c5, r0, #28		@ cache invalidate all
++                nop8
++                movc    p0.c6, r0, #6		@ tlb invalidate all
++                nop8
 +
-+# For uidivmod
-+$(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/head.o $(obj)/piggy.o \
-+		$(obj)/misc.o FORCE
-+	$(call if_changed,ld)
-+	@:
++                mov     r0, #0x1c		@ en icache and wb dcache
++                movc    p0.c1, r0, #0
++                nop8
 +
-+# We now have a PIC decompressor implementation.  Decompressors running
-+# from RAM should not define ZTEXTADDR.  Decompressors running directly
-+# from ROM or Flash must define ZTEXTADDR (preferably via the config)
-+ZTEXTADDR	:= 0
-+ZBSSADDR	:= ALIGN(4)
++		/*
++		 * Set up some pointers, for starting decompressing.
++		 */
 +
-+SEDFLAGS_lds	= s/TEXT_START/$(ZTEXTADDR)/;s/BSS_START/$(ZBSSADDR)/
-+$(obj)/vmlinux.lds: $(obj)/vmlinux.lds.in arch/unicore32/boot/Makefile
-$(KCONFIG_CONFIG)
-+	@sed "$(SEDFLAGS_lds)" < $< > $@
++		mov	r1, sp			@ malloc space above stack
++		add	r2, sp, #0x10000	@ 64k max
 +
++		/*
++		 * Check to see if we will overwrite ourselves.
++		 *   r4 = final kernel address
++		 *   r5 = start of this image
++		 *   r6 = size of decompressed image
++		 *   r2 = end of malloc space (and therefore this image)
++		 * We basically want:
++		 *   r4 >= r2 -> OK
++		 *   r4 + image length <= r5 -> OK
++		 */
++		ldw	r4, =zreladdr
++		csub.a	r4, r2
++		bea	wont_overwrite
++		add	r0, r4, r6
++		csub.a	r0, r5
++		beb	wont_overwrite
++
++		/*
++		 * If overwrite, just print error message
++		 */
++		b	__error_overwrite
++
++		/*
++		 * We're not in danger of overwriting ourselves.
++		 * Do this the simple way.
++		 */
++wont_overwrite:
++		/*
++		 * decompress_kernel:
++		 *   r0: output_start
++		 *   r1: free_mem_ptr_p
++		 *   r2: free_mem_ptr_end_p
++		 */
++		mov	r0, r4
++		b.l	decompress_kernel	@ C functions
++
++		/*
++		 * Clean and flush the cache to maintain consistency.
++		 */
++		mov	r0, #0
++                movc    p0.c5, r0, #14		@ flush dcache
++		nop8
++                movc    p0.c5, r0, #20		@ icache invalidate all
++                nop8
++
++		/*
++		 * Turn off the Cache and MMU.
++		 */
++		mov	r0, #0			@ disable i/d cache and MMU
++		movc	p0.c1, r0, #0
++                nop8
++
++		mov	r0, #0			@ must be zero
++		ldw	r4, =zreladdr
++		mov	pc, r4			@ call kernel
++
++
++		.align	2
++		.type	LC0, #object
++LC0:		.word	LC0			@ r1
++		.word	__bss_start		@ r2
++		.word	_end			@ r3
++		.word	_start			@ r5
++		.word	_image_size		@ r6
++		.word	_got_start		@ r7
++		.word	_got_end		@ r8
++		.word	decompress_stack_end	@ sp
++		.size	LC0, . - LC0
++
++print_string:
++#ifdef CONFIG_DEBUG_OCD
++2001:		ldb.w	r1, [r0]+, #1
++		csub.a	r1, #0
++		bne	2002f
++		mov	pc, lr
++2002:
++		movc	r2, p1.c0, #0
++		cand.a	r2, #2
++		bne	2002b
++		movc	p1.c1, r1, #1
++		csub.a	r1, #'\n'
++		cmoveq	r1, #'\r'
++		beq	2002b
++		b	2001b
++#else
++		mov	pc, lr
++#endif
++
++__error_overwrite:
++		adr	r0, str_error
++		b.l	print_string
++2001:		nop8
++		b	2001b
++str_error:	.asciz	"\nError: Kernel address OVERWRITE\n"
++		.align
++
++		.ltorg
++
++		.align	4
++		.section ".stack", "aw", %nobits
++decompress_stack:	.space	4096
++decompress_stack_end:
