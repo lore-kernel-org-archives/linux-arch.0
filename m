@@ -1,79 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:56652 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753138Ab0LINhM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 08:37:12 -0500
-Date: Thu, 9 Dec 2010 14:37:09 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Message-ID: <20101209133709.GA3133@a1.tnic>
-References: <20101209070938.GA3949@amd>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:49973 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752279Ab0LISXd convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 13:23:33 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20101209070938.GA3949@amd>
+In-Reply-To: <20101209131452.GA2260@a1.tnic>
+References: <AANLkTin7xDWO8fU2WA7cxC55TNi2+kAb50ajCySCfg9G@mail.gmail.com>
+	<4d00164c296166b682@agluck-desktop.sc.intel.com>
+	<20101209131452.GA2260@a1.tnic>
+Date: Thu, 9 Dec 2010 10:23:32 -0800
+Message-ID: <AANLkTimWT8=fmqbEeb+qXbwsWOmaz5d2_Bsr-=DON7L1@mail.gmail.com>
+Subject: Re: [RFC] persistent store (version 3) (part 1 of 2)
+From: Tony Luck <tony.luck@intel.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20101209133709.Me4_BhAk2g_bYcFUv94HILpJwnVNF2Hl_uYgIve-1hs@z>
+To: Borislav Petkov <bp@alien8.de>, "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20101209182332.Uz0gnVvI2MgRDV1P4i3bZRvzIb9XbJrovn-7O13Z2YY@z>
 
-On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
-> I was actually discussing this with Linus a while back, and finally
-> got around to testing it out now that I have a modern CPU to measure
-> it on! CCing linux-arch because it would be interesting to know
-> whether your tuned functions do better than gcc or not (I would
-> suspect not).
-> 
-> BTW. patch and numbers are on top of my scaling series, just for
-> an idea of what it does, I just want to generate some interesting
-> discussion.
-> 
-> If people are interested in running benchmarks, I'll be pushing out
-> a new update soon, after some more testing and debugging here.
-> 
-> The standard memcmp function on a Westmere system shows up hot in
-> profiles in the `git diff` workload (both parallel and single threaded),
-> and it is likely due to the costs associated with trapping into
-> microcode, and little opportunity to improve memory access (dentry
-> name is not likely to take up more than a cacheline).
-> 
-> So replace it with an open-coded byte comparison. This increases code
-> size by 24 bytes in the critical __d_lookup_rcu function, but the
-> speedup is huge, averaging 10 runs of each:
-> 
-> git diff st   user   sys   elapsed  CPU
-> before        1.15   2.57  3.82      97.1
-> after         1.14   2.35  3.61      96.8
-> 
-> git diff mt   user   sys   elapsed  CPU
-> before        1.27   3.85  1.46     349
-> after         1.26   3.54  1.43     333
-> 
-> Elapsed time for single threaded git diff at 95.0% confidence:
->         -0.21  +/- 0.01
->         -5.45% +/- 0.24%
+On Thu, Dec 9, 2010 at 5:14 AM, Borislav Petkov <bp@alien8.de> wrote:
+>>       if (!pstore_writefile(inode, dentry, data, size)) {
+>>               inode->i_nlink--;
+>>               mutex_lock(&root->d_inode->i_mutex);
+>>               d_delete(dentry);
+>>               dput(dentry);
+>>               mutex_unlock(&root->d_inode->i_mutex);
+>>               rc = -ENOSPC;
+>>               goto fail;
+>>       }
+>
+> don't we have to iput() the inode here too if pstore_writefile() fails?
 
-Nice.
+No. d_delete() called iput() for us (passing through
+dentry_iput along the way) - so we must not do it again.
+This upsets the traditional layout of having the error
+recovery part of the function undo all the things that
+we did leading up to the error. Pity, because your
+version is easier to read.
 
-[..]
-
-> +static inline int dentry_memcmp(const unsigned char *cs,
-> +				const unsigned char *ct, size_t count)
-> +{
-> +	while (count) {
-> +		int ret = (*cs != *ct);
-> +		if (ret)
-> +			return ret;
-> +		cs++;
-> +		ct++;
-> +		count--;
-> +	}
-> +	return 0;
-> +}
-
-we have a memcmp() in lib/string.c. Maybe reuse it from there?
-
--- 
-Regards/Gruss,
-Boris.
+-Tony
