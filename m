@@ -1,56 +1,34 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Tejun Heo <tj@kernel.org>
 Subject: Re: [PATCHv1 000/211] unicore32 architecture support
-Date: Thu, 9 Dec 2010 15:18:02 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.1012091516240.2653@localhost6.localdomain6>
-References: <01ca01cb9783$7818c3f0$684a4bd0$@mprc.pku.edu.cn> <4D00A672.9050906@kernel.org> <alpine.LFD.2.00.1012091443580.2653@localhost6.localdomain6> <4D00E212.9080001@kernel.org>
+Date: Thu, 09 Dec 2010 15:27:23 +0100
+Message-ID: <4D00E74B.3030401@kernel.org>
+References: <01ca01cb9783$7818c3f0$684a4bd0$@mprc.pku.edu.cn> <4D00A672.9050906@kernel.org> <alpine.LFD.2.00.1012091443580.2653@localhost6.localdomain6> <4D00E212.9080001@kernel.org> <alpine.LFD.2.00.1012091516240.2653@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:59308 "EHLO www.tglx.de"
+Received: from hera.kernel.org ([140.211.167.34]:47870 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751136Ab0LIOUe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 09:20:34 -0500
-In-Reply-To: <4D00E212.9080001@kernel.org>
+	id S1752421Ab0LIO1f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 09:27:35 -0500
+In-Reply-To: <alpine.LFD.2.00.1012091516240.2653@localhost6.localdomain6>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, 9 Dec 2010, Tejun Heo wrote:
+On 12/09/2010 03:18 PM, Thomas Gleixner wrote:
+> It's not a question of merging. It's a question of reviewing and I've
+> done quite a bunch of reviews on new archs, so I know what I'm talking
+> about. Reviewing a single patch with everything and the world included
+> is just not workable.
 
-> On 12/09/2010 02:49 PM, Thomas Gleixner wrote:
-> >> * Patches should be split according to logical steps of changes, not
-> >>   per-file.
-> >>
-> >> * Patches should be bisectable.  IOW, after applying upto any patch in
-> >>   the series, the tree should be buildable and working.
-> > 
-> > That does not work for a new architecture. There is nothing to bisect.
-> 
-> Sure, but at least it shouldn't introduce build scripts first which
-> wouldn't work at all.
-> 
-> >> * When posting a patch series, especially one as large as 211, please
-> >>   make the mails for the actual patches replies to the head message.
-> >>   Don't post it as 212 separate messages or replies to the immediate
-> >>   previous patch.
-> >>
-> >> So, in short, if you're adding a whole new arch, just post it as a
-> >> single patch or a series of several patches if it requires changes
-> >> outside of the specific arch subtree.
-> > 
-> > Crap. a single patch is a major PITA for review. It's even worse than
-> > 211 per file patches.
-> 
-> Cut the crap.  A single patch may not be perfect for reviewing but
-> archs are often merged as a single giant patch as bisection is
-> meaningless anyway.
+Sure, I agree the per-topic patch series would be much better for
+reviewing.  Then, just make _that_ point.  Don't go to the opposite
+extreme and claim unthreaded per-file 200+ patches in whatever order
+are better as that's painful for everyone on the mailing list.
 
-It's not a question of merging. It's a question of reviewing and I've
-done quite a bunch of reviews on new archs, so I know what I'm talking
-about. Reviewing a single patch with everything and the world included
-is just not workable.
+Thanks.
 
-Thanks,
-
-	tglx
+-- 
+tejun
