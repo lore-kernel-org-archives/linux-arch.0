@@ -1,126 +1,300 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:36758 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754366Ab0LHRMW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Dec 2010 12:12:22 -0500
+Received: from mprc.pku.edu.cn ([162.105.203.9]:53612 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755015Ab0LIJbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 04:31:53 -0500
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: [PATCHv1 002/211] unicore32: new file arch/unicore32/Kconfig
+Date: Thu, 9 Dec 2010 17:31:48 +0800
+Message-ID: <01ce01cb9783$e77278e0$b6576aa0$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-In-Reply-To: <20101208062433.GB29751@liondog.tnic>
-References: <4cfd2b97258571235f@agluck-desktop.sc.intel.com>
-	<20101208062433.GB29751@liondog.tnic>
-Date: Wed, 8 Dec 2010 09:12:21 -0800
-Message-ID: <AANLkTin7xDWO8fU2WA7cxC55TNi2+kAb50ajCySCfg9G@mail.gmail.com>
-Subject: Re: [RFC] persistent store (version 3) (part 1 of 2)
-From: Tony Luck <tony.luck@intel.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20101208171221.S3dJLUgJ0pq6c01wwOypfh-vwYf6nOtGbDIK32iA3nA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20101209093148.enhwmi_W4dQxI0jnNS4aUyc6hZlbfwEBZ37vCk8W-HU@z>
 
-On Tue, Dec 7, 2010 at 10:24 PM, Borislav Petkov <bp@alien8.de> wrote:
-> looks good. Minor nitpicks below.
+From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-Thanks for looking at this.
+	Global Kconfig file for UniCore32
 
->> 1) Is "struct file" too big to be on the stack? I can change it to kmalloc() it.
->
-> Well, this happens during normal operation when we init the pstore and
-> since we don't need it after pstore_mkwrite has returned (do we?), I
-> guess we should be fine.
-struct file is 184 bytes (with the CONFIG options I am using, it can get
-a bit larger, but not much).
+Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+---
+ arch/unicore32/Kconfig |  260
+++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 260 insertions(+), 0 deletions(-)
 
->> +             the dying moments.  In the case of a panic() the last part
->
->                                                    "panic" (I'd remove the
->                                                                     brackets)
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+new file mode 100644
+index 0000000..50ca508
+--- /dev/null
++++ b/arch/unicore32/Kconfig
+@@ -0,0 +1,260 @@
++config UNICORE32
++	bool
++	default y
++	select HAVE_MEMBLOCK
++	select HAVE_GENERIC_DMA_COHERENT
++	select HAVE_KERNEL_GZIP
++	select HAVE_KERNEL_BZIP2
++	select HAVE_KERNEL_LZO
++	select HAVE_KERNEL_LZMA
++	select GENERIC_FIND_FIRST_BIT
++	help
++	  UniCore-32 is 32-bit Instruction Set Architecture,
++	  including a series of low-power-consumption RISC chip
++	  designs licensed by PKUnity Ltd.
++	  Please see web page at <http://www.pkunity.com/>.
++
++config HAVE_PWM
++	bool
++
++config GENERIC_GPIO
++	def_bool y
++
++config GENERIC_CLOCKEVENTS
++	bool
++
++config NO_IOPORT
++	bool
++
++config GENERIC_HARDIRQS
++	bool
++	default y
++
++config STACKTRACE_SUPPORT
++	bool
++	default y
++
++config HAVE_LATENCYTOP_SUPPORT
++	bool
++	default y
++
++config LOCKDEP_SUPPORT
++	bool
++	default y
++
++config TRACE_IRQFLAGS_SUPPORT
++	bool
++	default y
++
++config GENERIC_IRQ_PROBE
++	bool
++	default y
++
++config RWSEM_GENERIC_SPINLOCK
++	bool
++	default y
++
++config RWSEM_XCHGADD_ALGORITHM
++	bool
++
++config ARCH_HAS_ILOG2_U32
++	bool
++
++config ARCH_HAS_ILOG2_U64
++	bool
++
++config ARCH_HAS_CPUFREQ
++	bool
++
++config GENERIC_HWEIGHT
++	bool
++	default y
++
++config GENERIC_CALIBRATE_DELAY
++	bool
++	default y
++
++config ARCH_MAY_HAVE_PC_FDC
++	bool
++
++config NEED_DMA_MAP_STATE
++       def_bool y
++
++config REALMODE
++	bool
++
++config GENERIC_HARDIRQS_NO__DO_IRQ
++	def_bool y
++
++source "init/Kconfig"
++
++source "kernel/Kconfig.freezer"
++
++menu "System Type"
++
++config MMU
++	def_bool y
++
++config ARCH_FPGA
++	bool
++
++choice
++	prompt "PKUnity system type"
++	default ARCH_PUV3
++
++	config ARCH_PUV3
++	bool "PKUnity v3 (SuperK)"
++	select CPU_UCV2
++	select GENERIC_CLOCKEVENTS
++	select HAVE_CLK
++	select ARCH_REQUIRE_GPIOLIB
++	select ARCH_HAS_CPUFREQ
++
++endchoice
++
++# CONFIGs for ARCH_PUV3
++
++if ARCH_PUV3
++
++choice
++	prompt "Board Selection"
++	default PUV3_DB0913
++
++config PUV3_FPGA_DLX200
++	select ARCH_FPGA
++	bool "FPGA board"
++
++config PUV3_DB0913
++	bool "DEBUG board (0913)"
++
++config PUV3_NB0916
++	bool "NetBook board (0916)"
++	select HAVE_PWM
++
++config PUV3_SMW0919
++	bool "Security Mini-Workstation board (0919)"
++
++endchoice
++
++config PUV3_PM
++	bool
++	depends on !ARCH_FPGA
++	default y
++
++endif
++
++source "arch/unicore32/mm/Kconfig"
++
++comment "Floating poing support"
++
++config UNICORE_FPU_F64
++	bool "UniCore-FPU (F64) support"
++	depends on !ARCH_FPGA
++	default y
++
++endmenu
++
++menu "Bus support"
++
++config PCI
++	bool "PCI Support"
++	help
++	  Find out whether you have a PCI motherboard. PCI is the name of a
++	  bus system, i.e. the way the CPU talks to the other stuff inside
++	  your box. Other bus systems are ISA, EISA, MicroChannel (MCA) or
++	  VESA. If you have PCI, say Y, otherwise N.
++
++source "drivers/pci/Kconfig"
++
++source "drivers/pcmcia/Kconfig"
++
++endmenu
++
++menu "Kernel Features"
++
++source "kernel/time/Kconfig"
++
++source "kernel/Kconfig.preempt"
++
++source "kernel/Kconfig.hz"
++
++source "mm/Kconfig"
++
++config LEDS
++	bool "CPU heartbeat LEDs"
++	depends on GENERIC_GPIO
++	default y
++
++config ALIGNMENT_TRAP
++	bool
++	default y
++	help
++	  Unicore processors can not fetch/store information which is not
++	  naturally aligned on the bus, i.e., a 4 byte fetch must start at
+an
++	  address divisible by 4. On 32-bit Unicore processors, these
+non-aligned
++	  fetch/store instructions will be emulated in software if you say
++	  here, which has a severe performance impact. This is necessary for
++	  correct operation of some network protocols. With an IP-only
++	  configuration it is safe to say N, otherwise say Y.
++
++endmenu
++
++menu "Boot options"
++
++config CMDLINE
++	string "Default kernel command string"
++	default ""
++
++config CMDLINE_FORCE
++	bool "Always use the default kernel command string"
++	depends on CMDLINE != ""
++	help
++	  Always use the default kernel command string, even if the boot
++	  loader passes other arguments to the kernel.
++	  This is useful if you cannot or don't want to change the
++	  command-line options your boot loader passes to the kernel.
++
++	  If unsure, say N.
++
++endmenu
++
++menu "Userspace binary formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++menu "Power management options"
++
++source "kernel/power/Kconfig"
++
++if ARCH_HAS_CPUFREQ
++source "drivers/cpufreq/Kconfig"
++endif
++
++config ARCH_SUSPEND_POSSIBLE
++	def_bool y if !ARCH_FPGA
++
++config ARCH_HIBERNATION_POSSIBLE
++	bool
++	default y if !ARCH_FPGA
++
++endmenu
++
++source "net/Kconfig"
++
++if ARCH_PUV3
++source "drivers/staging/puv3/Kconfig"
++endif
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "arch/unicore32/Kconfig.debug"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
 
-Ok. Will do.
 
->> +     dentry = d_alloc_name(root, name);
->> +     if (!IS_ERR(dentry))
->> +             d_add(dentry, inode);
->
-> what happens if it IS_ERR? Error handling like
->
->        goto d_alloc_error;
->
-> d_alloc_error:
->        iput(inode);
->        return -ENOSPC;
->
->
-> or similar, at least this is what ramfs seems to be doing.
-
-Good point - I need to clean up if things fail (and akpm would
-like to see me re-factor so that there is only one "return"
-statement for better maintainabiliy).  I'll fix up stuff here.
-
->> +     kmsg_dump_register(&pstore_dumper);
->
-> You don't check psi->write() method's existence anymore, I'm assuming
-> this is implied now... ?
-
-Andrew's comments on version 2 were:
->It doesn't seem appropriate to check this here.  It's a programming
->error!  Just install the thing and let the kernel oops - the programmer
->will notice.
-
-So I dropped the tests ... just checking whether the function pointer
-was NULL wasn't a very strong test anyway.
-
->> +     if (!psinfo)
->> +             return -ENODEV;
->
-> newline.
-
-OK.
-
->> +#define PSTOREFS_MAGIC               0x6165676C
->
-> what does that mean anyway? "aegl" :)
-
-My initials: Anthony Eric George Luck. I've been using "aegl"
-as my Unix login since 1979 (6th Edition on a pdp11/34).
-
->> +/* types */
->> +#define      PSTORE_TYPE_DMESG       0
->> +#define      PSTORE_TYPE_MCE         1
->
-> You could make this into a proper enum
->
-> enum pstore_type_id {
->        PSTORE_TYPE_DMESG       = 0,
->        PSTORE_TYPE_MCE         = 1,
->        PSTORE_TYPE_MAX,
-> };
-OK. Type checking is nice.  I think I might need a
-PSTORE_TYPE_UNKNOWN to handle the case
-where a new platform driver saves a record to
-persistent store, and then the user boots an older
-kernel that doesn't know about the new type (in
-the APEI/ERST driver the type turns into a UUID
-in the UEFI header for the record - so there is some
-mapping going on at that level).
-
->> +struct pstore_info {
->> +     struct module   *owner;
->> +     char            *name;
->> +     struct mutex    mutex;  /* serialize access to 'buf' */
->
->  [ maybe a more descriptive variable name like buf_mutex or whatever ]
-
-Sure. Will change.
-
->> +#if defined(CONFIG_PSTORE) || defined(CONFIG_PSTORE_MODULE)
->
-> What is CONFIG_PSTORE_MODULE? Can't seem to find it in your (2 of 2)
-> message either.
-
-This is a remnant of when PSTORE was tristate - when I chose 'm'
-rather than 'y' in "make menuconfig" I ended up with CONFIG_PSTORE_MODULE
-rather than CONFIG_PSTORE.  But now it is just a "bool" this isn't
-needed any more. Will fix.
-
--Tony
