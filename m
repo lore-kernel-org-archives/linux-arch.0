@@ -1,74 +1,70 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Thu, 9 Dec 2010 14:37:09 +0100
-Message-ID: <20101209133709.GA3133@a1.tnic>
-References: <20101209070938.GA3949@amd>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCHv1 000/211] unicore32 architecture support
+Date: Thu, 9 Dec 2010 14:49:30 +0100 (CET)
+Message-ID: <alpine.LFD.2.00.1012091443580.2653@localhost6.localdomain6>
+References: <01ca01cb9783$7818c3f0$684a4bd0$@mprc.pku.edu.cn> <4D00A672.9050906@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20101209070938.GA3949@amd>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:34867 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753527Ab0LINwT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 08:52:19 -0500
+In-Reply-To: <4D00A672.9050906@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
-> I was actually discussing this with Linus a while back, and finally
-> got around to testing it out now that I have a modern CPU to measure
-> it on! CCing linux-arch because it would be interesting to know
-> whether your tuned functions do better than gcc or not (I would
-> suspect not).
-> 
-> BTW. patch and numbers are on top of my scaling series, just for
-> an idea of what it does, I just want to generate some interesting
-> discussion.
-> 
-> If people are interested in running benchmarks, I'll be pushing out
-> a new update soon, after some more testing and debugging here.
-> 
-> The standard memcmp function on a Westmere system shows up hot in
-> profiles in the `git diff` workload (both parallel and single threaded),
-> and it is likely due to the costs associated with trapping into
-> microcode, and little opportunity to improve memory access (dentry
-> name is not likely to take up more than a cacheline).
-> 
-> So replace it with an open-coded byte comparison. This increases code
-> size by 24 bytes in the critical __d_lookup_rcu function, but the
-> speedup is huge, averaging 10 runs of each:
-> 
-> git diff st   user   sys   elapsed  CPU
-> before        1.15   2.57  3.82      97.1
-> after         1.14   2.35  3.61      96.8
-> 
-> git diff mt   user   sys   elapsed  CPU
-> before        1.27   3.85  1.46     349
-> after         1.26   3.54  1.43     333
-> 
-> Elapsed time for single threaded git diff at 95.0% confidence:
->         -0.21  +/- 0.01
->         -5.45% +/- 0.24%
+B1;2401;0cOn Thu, 9 Dec 2010, Tejun Heo wrote:
 
-Nice.
+> Hello,
+> 
+> On 12/09/2010 10:28 AM, Guan Xuetao wrote:
+> > From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+> > 
+> > These patches add support for UniCore-32 ISA in linux kernel.
+> > UniCore ISA is defined and developed by Micro-Processor R&D Center of
+> > Peking University, and over the years, the CPUs and SoCs using UniCore ISA
+> > have been successfully applied in a variety of products in China.
+> 
+> * Patches should be split according to logical steps of changes, not
+>   per-file.
+> 
+> * Patches should be bisectable.  IOW, after applying upto any patch in
+>   the series, the tree should be buildable and working.
 
-[..]
+That does not work for a new architecture. There is nothing to bisect.
+  
+> * When posting a patch series, especially one as large as 211, please
+>   make the mails for the actual patches replies to the head message.
+>   Don't post it as 212 separate messages or replies to the immediate
+>   previous patch.
+> 
+> So, in short, if you're adding a whole new arch, just post it as a
+> single patch or a series of several patches if it requires changes
+> outside of the specific arch subtree.
 
-> +static inline int dentry_memcmp(const unsigned char *cs,
-> +				const unsigned char *ct, size_t count)
-> +{
-> +	while (count) {
-> +		int ret = (*cs != *ct);
-> +		if (ret)
-> +			return ret;
-> +		cs++;
-> +		ct++;
-> +		count--;
-> +	}
-> +	return 0;
-> +}
+Crap. a single patch is a major PITA for review. It's even worse than
+211 per file patches.
 
-we have a memcmp() in lib/string.c. Maybe reuse it from there?
+It's ok to have several patches ordered by topics
 
--- 
-Regards/Gruss,
-Boris.
+  - generic header stuff
+  - processor and system headers
+  - low level entry and setup code
+  - process/thread related code
+  - mm related code
+  - timers
+  - interrupts
+  - ptrace
+  - signals
+  - fault handling
+  - misc
+  - build system, main makefile, Kconfig
+
+That makes it actually feasible to review.
+
+Thanks,
+
+	tglx
