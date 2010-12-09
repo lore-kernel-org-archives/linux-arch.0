@@ -1,123 +1,237 @@
 From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCHv1 003/211] unicore32: new file arch/unicore32/Kconfig.debug
-Date: Thu, 9 Dec 2010 17:32:42 +0800
-Message-ID: <01d001cb9784$07a80440$16f80cc0$@mprc.pku.edu.cn>
+Subject: [PATCHv1 004/211] unicore32: new file arch/unicore32/Makefile
+Date: Thu, 9 Dec 2010 17:33:41 +0800
+Message-ID: <01d201cb9784$2ad85910$80890b30$@mprc.pku.edu.cn>
 Mime-Version: 1.0
 Content-Type: text/plain;
 	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:53615 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755037Ab0LIJcq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 04:32:46 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Language: zh-cn
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-	Kconfig file for debugger
+	Global Makefile for UniCore32 architecture
 
 Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 ---
- arch/unicore32/Kconfig.debug |   86
-++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 86 insertions(+), 0 deletions(-)
+ arch/unicore32/Makefile |  151
++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 151 insertions(+), 0 deletions(-)
 
-diff --git a/arch/unicore32/Kconfig.debug b/arch/unicore32/Kconfig.debug
+diff --git a/arch/unicore32/Makefile b/arch/unicore32/Makefile
 new file mode 100644
-index 0000000..e59ab3c
+index 0000000..36eb5f7
 --- /dev/null
-+++ b/arch/unicore32/Kconfig.debug
-@@ -0,0 +1,86 @@
-+menu "Kernel hacking"
++++ b/arch/unicore32/Makefile
+@@ -0,0 +1,151 @@
++#
++# arch/unicore32/Makefile
++#
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies.
++#
++# This file is subject to the terms and conditions of the GNU General
+Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# Copyright (C) 2002~2010 by Guan Xue-tao
++LOCALVERSION	:= -uc32
 +
-+source "lib/Kconfig.debug"
++CROSS_COMPILE	:=
+/usr/unicore/gnu-toolchain-unicore/uc4/bin/unicore32-linux-
 +
-+config STRICT_DEVMEM
-+	bool "Filter access to /dev/mem"
-+	depends on MMU
-+	---help---
-+	  If this option is disabled, you allow userspace (root) access to
-all
-+	  of memory, including kernel and userspace memory. Accidental
-+	  access to this is obviously disastrous, but specific access can
-+	  be used by people debugging the kernel.
++INSTALL_MOD_PATH := $(obj)/usr
 +
-+	  If this option is switched on, the /dev/mem file only allows
-+	  userspace access to memory mapped peripherals.
++LDFLAGS_vmlinux	:=-p --no-undefined -X
 +
-+          If in doubt, say Y.
++OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
++GZFLAGS		:=-9
++#KBUILD_CFLAGS	+=-pipe
++# Explicitly specifiy 32-bit UniCore ISA:
++KBUILD_CFLAGS	+=$(call cc-option,-municore,)
 +
-+config EARLY_PRINTK
-+	bool "Early printk"
-+	default DEBUG_OCD
-+	help
-+	  Write kernel log output directly into the ocd or to a serial port.
++# Never generate .eh_frame
++KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
 +
-+	  This is useful for kernel debugging when your machine crashes very
-+	  early before the console code is initialized. For normal operation
-+	  it is not recommended because it looks ugly and doesn't cooperate
-+	  with klogd/syslogd or the X server. You should normally N here,
-+	  unless you want to debug such a crash.
++ifeq ($(CONFIG_FRAME_POINTER),y)
++KBUILD_CFLAGS	+=-fno-omit-frame-pointer -mno-sched-prolog
++endif
 +
-+config DEBUG_USER
-+	bool "Verbose user fault messages"
-+	help
-+	  When a user program crashes due to an exception, the kernel can
-+	  print a brief message explaining what the problem was. This is
-+	  sometimes helpful for debugging but serves no purpose on a
-+	  production system. Most people should say N here.
++KBUILD_CPPFLAGS	+= -mlittle-endian
++AS		+= -EL
++LD		+= -EL
 +
-+	  In addition, you need to pass user_debug=N on the kernel command
-+	  line to enable this feature.  N consists of the sum of:
++comma = ,
 +
-+	      1 - undefined instruction events
-+	      2 - system calls
-+	      4 - invalid data aborts
-+	      8 - SIGSEGV faults
-+	     16 - SIGBUS faults
++# Need -Uunicore32 for gcc < 3.x
++# delete -mstructure-size-boundary=32, and default being 8
++# delete -funsigned-char, and default being signed-char
++KBUILD_CFLAGS	+=$(call cc-option,-mshort-load-bytes,$(call
+cc-option,-malignment-traps,)) -msoft-float -Uunicore32
++KBUILD_AFLAGS	+=-msoft-float
 +
-+config DEBUG_STACK_USAGE
-+	bool "Enable stack utilization instrumentation"
-+	depends on DEBUG_KERNEL
-+	help
-+	  Enables the display of the minimum amount of free stack which each
-+	  task has ever had available in the sysrq-T output.
++CHECKFLAGS	+= -D__unicore32__
 +
-+# These options are only for real kernel hackers who want to get their
-hands dirty.
-+config DEBUG_LL
-+	bool "Kernel low-level debugging functions"
-+	depends on DEBUG_KERNEL
-+	help
-+	  Say Y here to include definitions of printascii, printch, printhex
-+	  in the kernel.  This is helpful if you are debugging code that
-+	  executes before the console is initialized.
++#Default value
++head-y		:= arch/unicore32/kernel/head.o
+arch/unicore32/kernel/init_task.o
++textofs-y	:= 0x00408000
 +
-+config DEBUG_OCD
-+	bool "Kernel low-level debugging via On-Chip-Debugger"
-+	depends on DEBUG_LL
-+	default y
-+	help
-+	  Say Y here if you want the debug print routines to direct their
-+	  output to the UniCore On-Chip-Debugger channel using CP #1.
++# The byte offset of the kernel image in RAM from the start of RAM.
++TEXT_OFFSET := $(textofs-y)
 +
-+config DEBUG_OCD_BREAKPOINT
-+	bool "Breakpoint support via On-Chip-Debugger"
-+	depends on DEBUG_OCD
++export	TEXT_OFFSET GZFLAGS
 +
-+config DEBUG_UART
-+	int "Kernel low-level debugging messages via serial port"
-+	depends on DEBUG_LL
-+	range 0 1
-+	default "0"
-+	help
-+	  Choice for UART for kernel low-level using PKUnity UARTS,
-+	  should be between zero and one. The port must have been
-+	  initialised by the boot-loader before use.
++core-y				+= arch/unicore32/kernel/ arch/unicore32/mm/
++core-$(CONFIG_UNICORE_FPU_F64)	+= arch/unicore32/uc-f64/
 +
-+endmenu
++drivers-$(CONFIG_ARCH_PUV3)	+= drivers/staging/puv3/
++
++libs-y				+= arch/unicore32/lib/
++libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS)
+-print-file-name=libc.a)
++libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS)
+-print-file-name=libgcc.a)
++
++# Default target when executing plain make
++KBUILD_IMAGE := zImage
++
++all:	$(KBUILD_IMAGE)
++
++boot := arch/unicore32/boot
++
++ASM_GENERIC_HEADERS	:= arch/unicore32/include/asm/atomic.h
+\
++			   arch/unicore32/include/asm/bitsperlong.h
+\
++			   arch/unicore32/include/asm/bug.h
+\
++			   arch/unicore32/include/asm/bugs.h
+\
++			   arch/unicore32/include/asm/cputime.h
+\
++			   arch/unicore32/include/asm/current.h
+\
++			   arch/unicore32/include/asm/device.h
+\
++			   arch/unicore32/include/asm/emergency-restart.h
+\
++			   arch/unicore32/include/asm/errno.h
+\
++			   arch/unicore32/include/asm/fb.h
+\
++			   arch/unicore32/include/asm/fcntl.h
+\
++			   arch/unicore32/include/asm/hardirq.h
+\
++			   arch/unicore32/include/asm/hw_irq.h
+\
++			   arch/unicore32/include/asm/ioctl.h
+\
++			   arch/unicore32/include/asm/ioctls.h
+\
++			   arch/unicore32/include/asm/ipcbuf.h
+\
++			   arch/unicore32/include/asm/irq_regs.h
+\
++			   arch/unicore32/include/asm/kdebug.h
+\
++			   arch/unicore32/include/asm/kmap_types.h
+\
++			   arch/unicore32/include/asm/local.h
+\
++			   arch/unicore32/include/asm/mman.h
+\
++			   arch/unicore32/include/asm/module.h
+\
++			   arch/unicore32/include/asm/msgbuf.h
+\
++			   arch/unicore32/include/asm/param.h
+\
++			   arch/unicore32/include/asm/parport.h
+\
++			   arch/unicore32/include/asm/percpu.h
+\
++			   arch/unicore32/include/asm/poll.h
+\
++			   arch/unicore32/include/asm/posix_types.h
+\
++			   arch/unicore32/include/asm/resource.h
+\
++			   arch/unicore32/include/asm/scatterlist.h
+\
++			   arch/unicore32/include/asm/sections.h
+\
++			   arch/unicore32/include/asm/sembuf.h
+\
++			   arch/unicore32/include/asm/serial.h
+\
++			   arch/unicore32/include/asm/shmbuf.h
+\
++			   arch/unicore32/include/asm/shmparam.h
+\
++			   arch/unicore32/include/asm/siginfo.h
+\
++			   arch/unicore32/include/asm/signal.h
+\
++			   arch/unicore32/include/asm/socket.h
+\
++			   arch/unicore32/include/asm/sockios.h
+\
++			   arch/unicore32/include/asm/statfs.h
+\
++			   arch/unicore32/include/asm/termbits.h
+\
++			   arch/unicore32/include/asm/termios.h
+\
++			   arch/unicore32/include/asm/topology.h
+\
++			   arch/unicore32/include/asm/types.h
+\
++			   arch/unicore32/include/asm/ucontext.h
+\
++			   arch/unicore32/include/asm/unaligned.h
+\
++			   arch/unicore32/include/asm/vga.h
+\
++			   arch/unicore32/include/asm/xor.h
++
++%.h:
++	$(Q)echo '#include <asm-generic/$(notdir $@)>' > $@
++
++archprepare: $(ASM_GENERIC_HEADERS)
++
++# Convert bzImage to zImage
++bzImage: zImage
++
++zImage Image uImage: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++
++zinstall install: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
++
++CLEAN_DIRS += $(INSTALL_MOD_PATH)/lib
++CLEAN_FILES += $(ASM_GENERIC_HEADERS)
++
++# We use MRPROPER_FILES and CLEAN_FILES now
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
++
++define archhelp
++  echo  '* zImage        - Compressed kernel image
+(arch/$(ARCH)/boot/zImage)'
++  echo  '  Image         - Uncompressed kernel image
+(arch/$(ARCH)/boot/Image)'
++  echo  '  uImage        - U-Boot wrapped zImage'
++  echo  '  install       - Install uncompressed kernel'
++  echo  '  zinstall      - Install compressed kernel'
++  echo  '                  Install using (your) ~/bin/$(INSTALLKERNEL) or'
++  echo  '                  (distribution) /sbin/$(INSTALLKERNEL) or'
++  echo  '                  install to $$(INSTALL_PATH) and run lilo'
++endef
