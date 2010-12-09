@@ -1,183 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:53326 "EHLO mprc.pku.edu.cn"
+Received: from mail.skyhub.de ([78.46.96.112]:56652 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755897Ab0LIJi2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 04:38:28 -0500
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCHv1 008/211] unicore32: new file arch/unicore32/boot/compressed/misc.c
-Date: Thu, 9 Dec 2010 17:38:26 +0800
-Message-ID: <01da01cb9784$d44c0460$7ce40d20$@mprc.pku.edu.cn>
+	id S1753138Ab0LINhM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 08:37:12 -0500
+Date: Thu, 9 Dec 2010 14:37:09 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Message-ID: <20101209133709.GA3133@a1.tnic>
+References: <20101209070938.GA3949@amd>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Content-Language: zh-cn
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20101209070938.GA3949@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101209093826.I0hucwmkpaGYJWKx2lBZFSpPpM2iIlmjrtzjzvYU1vc@z>
+To: Nick Piggin <npiggin@kernel.dk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20101209133709.Me4_BhAk2g_bYcFUv94HILpJwnVNF2Hl_uYgIve-1hs@z>
 
-From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
+> I was actually discussing this with Linus a while back, and finally
+> got around to testing it out now that I have a modern CPU to measure
+> it on! CCing linux-arch because it would be interesting to know
+> whether your tuned functions do better than gcc or not (I would
+> suspect not).
+> 
+> BTW. patch and numbers are on top of my scaling series, just for
+> an idea of what it does, I just want to generate some interesting
+> discussion.
+> 
+> If people are interested in running benchmarks, I'll be pushing out
+> a new update soon, after some more testing and debugging here.
+> 
+> The standard memcmp function on a Westmere system shows up hot in
+> profiles in the `git diff` workload (both parallel and single threaded),
+> and it is likely due to the costs associated with trapping into
+> microcode, and little opportunity to improve memory access (dentry
+> name is not likely to take up more than a cacheline).
+> 
+> So replace it with an open-coded byte comparison. This increases code
+> size by 24 bytes in the critical __d_lookup_rcu function, but the
+> speedup is huge, averaging 10 runs of each:
+> 
+> git diff st   user   sys   elapsed  CPU
+> before        1.15   2.57  3.82      97.1
+> after         1.14   2.35  3.61      96.8
+> 
+> git diff mt   user   sys   elapsed  CPU
+> before        1.27   3.85  1.46     349
+> after         1.26   3.54  1.43     333
+> 
+> Elapsed time for single threaded git diff at 95.0% confidence:
+>         -0.21  +/- 0.01
+>         -5.45% +/- 0.24%
 
-	decompress_kernel call wrapper in c function
+Nice.
 
-Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
----
- arch/unicore32/boot/compressed/misc.c |  143
-+++++++++++++++++++++++++++++++++
- 1 files changed, 143 insertions(+), 0 deletions(-)
+[..]
 
-diff --git a/arch/unicore32/boot/compressed/misc.c
-b/arch/unicore32/boot/compressed/misc.c
-new file mode 100644
-index 0000000..28dda37
---- /dev/null
-+++ b/arch/unicore32/boot/compressed/misc.c
-@@ -0,0 +1,143 @@
-+/*
-+ * linux/arch/unicore32/boot/compressed/misc.c
-+ *
-+ * Code specific to PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2010 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <asm/unaligned.h>
-+#include <asm/mach/uncompress.h>
-+
-+/*
-+ * gzip delarations
-+ */
-+unsigned char *output_data;
-+unsigned long output_ptr;
-+
-+unsigned int free_mem_ptr;
-+unsigned int free_mem_end_ptr;
-+
-+#define STATIC static
-+#define STATIC_RW_DATA	/* non-static please */
-+
-+/*
-+ * arch-dependent implementations
-+ */
-+#ifndef ARCH_HAVE_DECOMP_ERROR
-+#define arch_decomp_error(x)
-+#endif
-+
-+#ifndef ARCH_HAVE_DECOMP_SETUP
-+#define	arch_decomp_setup()
-+#endif
-+
-+#ifndef ARCH_HAVE_DECOMP_PUTS
-+#define arch_decomp_puts(p)
-+#endif
-+
-+/* Diagnostic functions */
-+#ifdef DEBUG
-+#  define Assert(cond, msg)	{ if (!(cond)) error(msg); }
-+#  define Trace(x)		fprintf x
-+#  define Tracev(x)		{ if (verbose)			fprintf x; }
-+#  define Tracevv(x)		{ if (verbose > 1)		fprintf x; }
-+#  define Tracec(c, x)		{ if (verbose && (c))		fprintf x; }
-+#  define Tracecv(c, x)		{ if ((verbose > 1) && (c))
-fprintf x; }
-+#else
-+#  define Assert(cond, msg)
-+#  define Trace(x)
-+#  define Tracev(x)
-+#  define Tracevv(x)
-+#  define Tracec(c, x)
-+#  define Tracecv(c, x)
-+#endif
-+
-+void *memcpy(void *__dest, __const void *__src, size_t __n)
-+{
-+	int i = 0;
-+	unsigned char *d = (unsigned char *)__dest, *s = (unsigned char
-*)__src;
-+
-+	for (i = __n >> 3; i > 0; i--) {
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+	}
-+
-+	if (__n & 1 << 2) {
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+		*d++ = *s++;
-+	}
-+
-+	if (__n & 1 << 1) {
-+		*d++ = *s++;
-+		*d++ = *s++;
-+	}
-+
-+	if (__n & 1)
-+		*d++ = *s++;
-+
-+	return __dest;
-+}
-+
-+void error(char *x)
-+{
-+
-+	arch_decomp_puts("\n\n");
-+	arch_decomp_puts(x);
-+	arch_decomp_puts("\n\n -- System halted");
-+
-+	arch_decomp_error(x);
-+
-+	do { } while (1); /* Halt */
-+}
-+
-+/* Heap size should be adjusted for different decompress method */
-+#ifdef CONFIG_KERNEL_GZIP
-+#include "../../../../lib/decompress_inflate.c"
-+#endif
-+
-+#ifdef CONFIG_KERNEL_BZIP2
-+#include "../../../../lib/decompress_bunzip2.c"
-+#endif
-+
-+#ifdef CONFIG_KERNEL_LZO
-+#include "../../../../lib/decompress_unlzo.c"
-+#endif
-+
-+#ifdef CONFIG_KERNEL_LZMA
-+#include "../../../../lib/decompress_unlzma.c"
-+#endif
-+
-+unsigned long
-+decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
-+		unsigned long free_mem_ptr_end_p)
-+{
-+	unsigned char *tmp;
-+
-+	output_data		= (unsigned char *)output_start;
-+	free_mem_ptr		= free_mem_ptr_p;
-+	free_mem_end_ptr	= free_mem_ptr_end_p;
-+
-+	arch_decomp_setup();
-+
-+	tmp = (unsigned char *) (((unsigned long)input_data_end) - 4);
-+	output_ptr = get_unaligned_le32(tmp);
-+
-+	arch_decomp_puts("Uncompressing Linux...");
-+	decompress(input_data, input_data_end - input_data, NULL, NULL,
-+			output_data, NULL, error);
-+	arch_decomp_puts(" done, booting the kernel.\n");
-+	return output_ptr;
-+}
+> +static inline int dentry_memcmp(const unsigned char *cs,
+> +				const unsigned char *ct, size_t count)
+> +{
+> +	while (count) {
+> +		int ret = (*cs != *ct);
+> +		if (ret)
+> +			return ret;
+> +		cs++;
+> +		ct++;
+> +		count--;
+> +	}
+> +	return 0;
+> +}
 
+we have a memcmp() in lib/string.c. Maybe reuse it from there?
+
+-- 
+Regards/Gruss,
+Boris.
