@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:53612 "EHLO mprc.pku.edu.cn"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:53617 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755015Ab0LIJbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 04:31:53 -0500
+	id S1755662Ab0LIJdo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 04:33:44 -0500
 From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCHv1 002/211] unicore32: new file arch/unicore32/Kconfig
-Date: Thu, 9 Dec 2010 17:31:48 +0800
-Message-ID: <01ce01cb9783$e77278e0$b6576aa0$@mprc.pku.edu.cn>
+Subject: [PATCHv1 004/211] unicore32: new file arch/unicore32/Makefile
+Date: Thu, 9 Dec 2010 17:33:41 +0800
+Message-ID: <01d201cb9784$2ad85910$80890b30$@mprc.pku.edu.cn>
 MIME-Version: 1.0
 Content-Type: text/plain;
 	charset="us-ascii"
@@ -16,285 +16,228 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101209093148.enhwmi_W4dQxI0jnNS4aUyc6hZlbfwEBZ37vCk8W-HU@z>
+Message-ID: <20101209093341.8Q3sZ92-jZq0EDvINn4sEgSs3zRI3mCgs9ao8pZhQ0g@z>
 
 From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-	Global Kconfig file for UniCore32
+	Global Makefile for UniCore32 architecture
 
 Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 ---
- arch/unicore32/Kconfig |  260
-++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 260 insertions(+), 0 deletions(-)
+ arch/unicore32/Makefile |  151
++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 151 insertions(+), 0 deletions(-)
 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+diff --git a/arch/unicore32/Makefile b/arch/unicore32/Makefile
 new file mode 100644
-index 0000000..50ca508
+index 0000000..36eb5f7
 --- /dev/null
-+++ b/arch/unicore32/Kconfig
-@@ -0,0 +1,260 @@
-+config UNICORE32
-+	bool
-+	default y
-+	select HAVE_MEMBLOCK
-+	select HAVE_GENERIC_DMA_COHERENT
-+	select HAVE_KERNEL_GZIP
-+	select HAVE_KERNEL_BZIP2
-+	select HAVE_KERNEL_LZO
-+	select HAVE_KERNEL_LZMA
-+	select GENERIC_FIND_FIRST_BIT
-+	help
-+	  UniCore-32 is 32-bit Instruction Set Architecture,
-+	  including a series of low-power-consumption RISC chip
-+	  designs licensed by PKUnity Ltd.
-+	  Please see web page at <http://www.pkunity.com/>.
++++ b/arch/unicore32/Makefile
+@@ -0,0 +1,151 @@
++#
++# arch/unicore32/Makefile
++#
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies.
++#
++# This file is subject to the terms and conditions of the GNU General
+Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# Copyright (C) 2002~2010 by Guan Xue-tao
++LOCALVERSION	:= -uc32
 +
-+config HAVE_PWM
-+	bool
++CROSS_COMPILE	:=
+/usr/unicore/gnu-toolchain-unicore/uc4/bin/unicore32-linux-
 +
-+config GENERIC_GPIO
-+	def_bool y
++INSTALL_MOD_PATH := $(obj)/usr
 +
-+config GENERIC_CLOCKEVENTS
-+	bool
++LDFLAGS_vmlinux	:=-p --no-undefined -X
 +
-+config NO_IOPORT
-+	bool
++OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
++GZFLAGS		:=-9
++#KBUILD_CFLAGS	+=-pipe
++# Explicitly specifiy 32-bit UniCore ISA:
++KBUILD_CFLAGS	+=$(call cc-option,-municore,)
 +
-+config GENERIC_HARDIRQS
-+	bool
-+	default y
++# Never generate .eh_frame
++KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
 +
-+config STACKTRACE_SUPPORT
-+	bool
-+	default y
-+
-+config HAVE_LATENCYTOP_SUPPORT
-+	bool
-+	default y
-+
-+config LOCKDEP_SUPPORT
-+	bool
-+	default y
-+
-+config TRACE_IRQFLAGS_SUPPORT
-+	bool
-+	default y
-+
-+config GENERIC_IRQ_PROBE
-+	bool
-+	default y
-+
-+config RWSEM_GENERIC_SPINLOCK
-+	bool
-+	default y
-+
-+config RWSEM_XCHGADD_ALGORITHM
-+	bool
-+
-+config ARCH_HAS_ILOG2_U32
-+	bool
-+
-+config ARCH_HAS_ILOG2_U64
-+	bool
-+
-+config ARCH_HAS_CPUFREQ
-+	bool
-+
-+config GENERIC_HWEIGHT
-+	bool
-+	default y
-+
-+config GENERIC_CALIBRATE_DELAY
-+	bool
-+	default y
-+
-+config ARCH_MAY_HAVE_PC_FDC
-+	bool
-+
-+config NEED_DMA_MAP_STATE
-+       def_bool y
-+
-+config REALMODE
-+	bool
-+
-+config GENERIC_HARDIRQS_NO__DO_IRQ
-+	def_bool y
-+
-+source "init/Kconfig"
-+
-+source "kernel/Kconfig.freezer"
-+
-+menu "System Type"
-+
-+config MMU
-+	def_bool y
-+
-+config ARCH_FPGA
-+	bool
-+
-+choice
-+	prompt "PKUnity system type"
-+	default ARCH_PUV3
-+
-+	config ARCH_PUV3
-+	bool "PKUnity v3 (SuperK)"
-+	select CPU_UCV2
-+	select GENERIC_CLOCKEVENTS
-+	select HAVE_CLK
-+	select ARCH_REQUIRE_GPIOLIB
-+	select ARCH_HAS_CPUFREQ
-+
-+endchoice
-+
-+# CONFIGs for ARCH_PUV3
-+
-+if ARCH_PUV3
-+
-+choice
-+	prompt "Board Selection"
-+	default PUV3_DB0913
-+
-+config PUV3_FPGA_DLX200
-+	select ARCH_FPGA
-+	bool "FPGA board"
-+
-+config PUV3_DB0913
-+	bool "DEBUG board (0913)"
-+
-+config PUV3_NB0916
-+	bool "NetBook board (0916)"
-+	select HAVE_PWM
-+
-+config PUV3_SMW0919
-+	bool "Security Mini-Workstation board (0919)"
-+
-+endchoice
-+
-+config PUV3_PM
-+	bool
-+	depends on !ARCH_FPGA
-+	default y
-+
++ifeq ($(CONFIG_FRAME_POINTER),y)
++KBUILD_CFLAGS	+=-fno-omit-frame-pointer -mno-sched-prolog
 +endif
 +
-+source "arch/unicore32/mm/Kconfig"
++KBUILD_CPPFLAGS	+= -mlittle-endian
++AS		+= -EL
++LD		+= -EL
 +
-+comment "Floating poing support"
++comma = ,
 +
-+config UNICORE_FPU_F64
-+	bool "UniCore-FPU (F64) support"
-+	depends on !ARCH_FPGA
-+	default y
++# Need -Uunicore32 for gcc < 3.x
++# delete -mstructure-size-boundary=32, and default being 8
++# delete -funsigned-char, and default being signed-char
++KBUILD_CFLAGS	+=$(call cc-option,-mshort-load-bytes,$(call
+cc-option,-malignment-traps,)) -msoft-float -Uunicore32
++KBUILD_AFLAGS	+=-msoft-float
 +
-+endmenu
++CHECKFLAGS	+= -D__unicore32__
 +
-+menu "Bus support"
++#Default value
++head-y		:= arch/unicore32/kernel/head.o
+arch/unicore32/kernel/init_task.o
++textofs-y	:= 0x00408000
 +
-+config PCI
-+	bool "PCI Support"
-+	help
-+	  Find out whether you have a PCI motherboard. PCI is the name of a
-+	  bus system, i.e. the way the CPU talks to the other stuff inside
-+	  your box. Other bus systems are ISA, EISA, MicroChannel (MCA) or
-+	  VESA. If you have PCI, say Y, otherwise N.
++# The byte offset of the kernel image in RAM from the start of RAM.
++TEXT_OFFSET := $(textofs-y)
 +
-+source "drivers/pci/Kconfig"
++export	TEXT_OFFSET GZFLAGS
 +
-+source "drivers/pcmcia/Kconfig"
++core-y				+= arch/unicore32/kernel/ arch/unicore32/mm/
++core-$(CONFIG_UNICORE_FPU_F64)	+= arch/unicore32/uc-f64/
 +
-+endmenu
++drivers-$(CONFIG_ARCH_PUV3)	+= drivers/staging/puv3/
 +
-+menu "Kernel Features"
++libs-y				+= arch/unicore32/lib/
++libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS)
+-print-file-name=libc.a)
++libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS)
+-print-file-name=libgcc.a)
 +
-+source "kernel/time/Kconfig"
++# Default target when executing plain make
++KBUILD_IMAGE := zImage
 +
-+source "kernel/Kconfig.preempt"
++all:	$(KBUILD_IMAGE)
 +
-+source "kernel/Kconfig.hz"
++boot := arch/unicore32/boot
 +
-+source "mm/Kconfig"
++ASM_GENERIC_HEADERS	:= arch/unicore32/include/asm/atomic.h
+\
++			   arch/unicore32/include/asm/bitsperlong.h
+\
++			   arch/unicore32/include/asm/bug.h
+\
++			   arch/unicore32/include/asm/bugs.h
+\
++			   arch/unicore32/include/asm/cputime.h
+\
++			   arch/unicore32/include/asm/current.h
+\
++			   arch/unicore32/include/asm/device.h
+\
++			   arch/unicore32/include/asm/emergency-restart.h
+\
++			   arch/unicore32/include/asm/errno.h
+\
++			   arch/unicore32/include/asm/fb.h
+\
++			   arch/unicore32/include/asm/fcntl.h
+\
++			   arch/unicore32/include/asm/hardirq.h
+\
++			   arch/unicore32/include/asm/hw_irq.h
+\
++			   arch/unicore32/include/asm/ioctl.h
+\
++			   arch/unicore32/include/asm/ioctls.h
+\
++			   arch/unicore32/include/asm/ipcbuf.h
+\
++			   arch/unicore32/include/asm/irq_regs.h
+\
++			   arch/unicore32/include/asm/kdebug.h
+\
++			   arch/unicore32/include/asm/kmap_types.h
+\
++			   arch/unicore32/include/asm/local.h
+\
++			   arch/unicore32/include/asm/mman.h
+\
++			   arch/unicore32/include/asm/module.h
+\
++			   arch/unicore32/include/asm/msgbuf.h
+\
++			   arch/unicore32/include/asm/param.h
+\
++			   arch/unicore32/include/asm/parport.h
+\
++			   arch/unicore32/include/asm/percpu.h
+\
++			   arch/unicore32/include/asm/poll.h
+\
++			   arch/unicore32/include/asm/posix_types.h
+\
++			   arch/unicore32/include/asm/resource.h
+\
++			   arch/unicore32/include/asm/scatterlist.h
+\
++			   arch/unicore32/include/asm/sections.h
+\
++			   arch/unicore32/include/asm/sembuf.h
+\
++			   arch/unicore32/include/asm/serial.h
+\
++			   arch/unicore32/include/asm/shmbuf.h
+\
++			   arch/unicore32/include/asm/shmparam.h
+\
++			   arch/unicore32/include/asm/siginfo.h
+\
++			   arch/unicore32/include/asm/signal.h
+\
++			   arch/unicore32/include/asm/socket.h
+\
++			   arch/unicore32/include/asm/sockios.h
+\
++			   arch/unicore32/include/asm/statfs.h
+\
++			   arch/unicore32/include/asm/termbits.h
+\
++			   arch/unicore32/include/asm/termios.h
+\
++			   arch/unicore32/include/asm/topology.h
+\
++			   arch/unicore32/include/asm/types.h
+\
++			   arch/unicore32/include/asm/ucontext.h
+\
++			   arch/unicore32/include/asm/unaligned.h
+\
++			   arch/unicore32/include/asm/vga.h
+\
++			   arch/unicore32/include/asm/xor.h
 +
-+config LEDS
-+	bool "CPU heartbeat LEDs"
-+	depends on GENERIC_GPIO
-+	default y
++%.h:
++	$(Q)echo '#include <asm-generic/$(notdir $@)>' > $@
 +
-+config ALIGNMENT_TRAP
-+	bool
-+	default y
-+	help
-+	  Unicore processors can not fetch/store information which is not
-+	  naturally aligned on the bus, i.e., a 4 byte fetch must start at
-an
-+	  address divisible by 4. On 32-bit Unicore processors, these
-non-aligned
-+	  fetch/store instructions will be emulated in software if you say
-+	  here, which has a severe performance impact. This is necessary for
-+	  correct operation of some network protocols. With an IP-only
-+	  configuration it is safe to say N, otherwise say Y.
++archprepare: $(ASM_GENERIC_HEADERS)
 +
-+endmenu
++# Convert bzImage to zImage
++bzImage: zImage
 +
-+menu "Boot options"
++zImage Image uImage: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
 +
-+config CMDLINE
-+	string "Default kernel command string"
-+	default ""
++zinstall install: vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
 +
-+config CMDLINE_FORCE
-+	bool "Always use the default kernel command string"
-+	depends on CMDLINE != ""
-+	help
-+	  Always use the default kernel command string, even if the boot
-+	  loader passes other arguments to the kernel.
-+	  This is useful if you cannot or don't want to change the
-+	  command-line options your boot loader passes to the kernel.
++CLEAN_DIRS += $(INSTALL_MOD_PATH)/lib
++CLEAN_FILES += $(ASM_GENERIC_HEADERS)
 +
-+	  If unsure, say N.
++# We use MRPROPER_FILES and CLEAN_FILES now
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
 +
-+endmenu
-+
-+menu "Userspace binary formats"
-+
-+source "fs/Kconfig.binfmt"
-+
-+endmenu
-+
-+menu "Power management options"
-+
-+source "kernel/power/Kconfig"
-+
-+if ARCH_HAS_CPUFREQ
-+source "drivers/cpufreq/Kconfig"
-+endif
-+
-+config ARCH_SUSPEND_POSSIBLE
-+	def_bool y if !ARCH_FPGA
-+
-+config ARCH_HIBERNATION_POSSIBLE
-+	bool
-+	default y if !ARCH_FPGA
-+
-+endmenu
-+
-+source "net/Kconfig"
-+
-+if ARCH_PUV3
-+source "drivers/staging/puv3/Kconfig"
-+endif
-+
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+source "arch/unicore32/Kconfig.debug"
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-
++define archhelp
++  echo  '* zImage        - Compressed kernel image
+(arch/$(ARCH)/boot/zImage)'
++  echo  '  Image         - Uncompressed kernel image
+(arch/$(ARCH)/boot/Image)'
++  echo  '  uImage        - U-Boot wrapped zImage'
++  echo  '  install       - Install uncompressed kernel'
++  echo  '  zinstall      - Install compressed kernel'
++  echo  '                  Install using (your) ~/bin/$(INSTALLKERNEL) or'
++  echo  '                  (distribution) /sbin/$(INSTALLKERNEL) or'
++  echo  '                  install to $$(INSTALL_PATH) and run lilo'
++endef
 
