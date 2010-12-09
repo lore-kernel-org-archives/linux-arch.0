@@ -1,113 +1,148 @@
-From: Nick Piggin <npiggin@kernel.dk>
-Subject: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Thu, 9 Dec 2010 18:09:38 +1100
-Message-ID: <20101209070938.GA3949@amd>
+From: "Jan Beulich" <JBeulich@novell.com>
+Subject: [PATCH] clean up and adjust kmap-types.h
+Date: Thu, 09 Dec 2010 08:24:15 +0000
+Message-ID: <4D00A03F0200007800026DEB@vpn.id2.novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail04.adl6.internode.on.net ([150.101.137.141]:26798 "EHLO
-	ipmail04.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753335Ab0LIHJp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 02:09:45 -0500
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: linux-mm@kvack.org
+Cc: mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, hpa@zytor.com
 
-I was actually discussing this with Linus a while back, and finally
-got around to testing it out now that I have a modern CPU to measure
-it on! CCing linux-arch because it would be interesting to know
-whether your tuned functions do better than gcc or not (I would
-suspect not).
+Several of the types aren't being used at all anymore - those can be
+deleted altogether. Others are used only by single components that can
+be assumed to be enabled everywhere, so those are made dependent upon
+CONFIG_* settings. Since this somewhat conflicts with the sequential
+gap markers used under __WITH_KM_FENCE, and since this can be
+simplified anyway, fold the enumerator definitions with the (modified
+accordingly) KMAP_D() macro always.
 
-BTW. patch and numbers are on top of my scaling series, just for
-an idea of what it does, I just want to generate some interesting
-discussion.
+The whole point of the reduction is that, at least on ix86, the number
+of kmap types can (depending on configuration) affect the amount of
+low memory, and thus unused types should be avoided if possible.
 
-If people are interested in running benchmarks, I'll be pushing out
-a new update soon, after some more testing and debugging here.
+Signed-off-by: Jan Beulich <jbeulich@novell.com>
 
-The standard memcmp function on a Westmere system shows up hot in
-profiles in the `git diff` workload (both parallel and single threaded),
-and it is likely due to the costs associated with trapping into
-microcode, and little opportunity to improve memory access (dentry
-name is not likely to take up more than a cacheline).
+---
+ arch/arm/include/asm/kmap_types.h     |    6 ---
+ arch/powerpc/include/asm/kmap_types.h |   11 -------
+ arch/tile/include/asm/kmap_types.h    |    5 ---
+ include/asm-generic/kmap_types.h      |   53 ++++++++++++++++------------------
+ 4 files changed, 26 insertions(+), 49 deletions(-)
 
-So replace it with an open-coded byte comparison. This increases code
-size by 24 bytes in the critical __d_lookup_rcu function, but the
-speedup is huge, averaging 10 runs of each:
-
-git diff st   user   sys   elapsed  CPU
-before        1.15   2.57  3.82      97.1
-after         1.14   2.35  3.61      96.8
-
-git diff mt   user   sys   elapsed  CPU
-before        1.27   3.85  1.46     349
-after         1.26   3.54  1.43     333
-
-Elapsed time for single threaded git diff at 95.0% confidence:
-        -0.21  +/- 0.01
-        -5.45% +/- 0.24%
-
-Parallel case doesn't gain much, but that's because userspace runs
-out of work to feed it -- efficiency is way up, though.
-
-Signed-off-by: Nick Piggin <npiggin@kernel.dk>
-
-Index: linux-2.6/fs/dcache.c
-===================================================================
---- linux-2.6.orig/fs/dcache.c	2010-12-09 05:07:19.000000000 +1100
-+++ linux-2.6/fs/dcache.c	2010-12-09 17:37:30.000000000 +1100
-@@ -1423,7 +1423,7 @@ static struct dentry *__d_instantiate_un
- 			goto next;
- 		if (qstr->len != len)
- 			goto next;
--		if (memcmp(qstr->name, name, len))
-+		if (dentry_memcmp(qstr->name, name, len))
- 			goto next;
- 		__dget_dlock(alias);
- 		spin_unlock(&alias->d_lock);
-@@ -1771,7 +1771,7 @@ struct dentry *__d_lookup_rcu(struct den
- 		} else {
- 			if (tlen != len)
- 				continue;
--			if (memcmp(tname, str, tlen))
-+			if (dentry_memcmp(tname, str, tlen))
- 				continue;
- 		}
- 		/*
-@@ -1901,7 +1901,7 @@ struct dentry *__d_lookup(struct dentry
- 		} else {
- 			if (tlen != len)
- 				goto next;
--			if (memcmp(tname, str, tlen))
-+			if (dentry_memcmp(tname, str, tlen))
- 				goto next;
- 		}
- 
-Index: linux-2.6/include/linux/dcache.h
-===================================================================
---- linux-2.6.orig/include/linux/dcache.h	2010-12-09 05:07:52.000000000 +1100
-+++ linux-2.6/include/linux/dcache.h	2010-12-09 05:08:36.000000000 +1100
-@@ -47,6 +47,20 @@ struct dentry_stat_t {
+--- 2.6.37-rc5/arch/arm/include/asm/kmap_types.h
++++ 2.6.37-rc5-kmap-types/arch/arm/include/asm/kmap_types.h
+@@ -24,10 +24,4 @@ enum km_type {
+ 	KM_TYPE_NR
  };
- extern struct dentry_stat_t dentry_stat;
  
-+static inline int dentry_memcmp(const unsigned char *cs,
-+				const unsigned char *ct, size_t count)
-+{
-+	while (count) {
-+		int ret = (*cs != *ct);
-+		if (ret)
-+			return ret;
-+		cs++;
-+		ct++;
-+		count--;
-+	}
-+	return 0;
-+}
+-#ifdef CONFIG_DEBUG_HIGHMEM
+-#define KM_NMI		(-1)
+-#define KM_NMI_PTE	(-1)
+-#define KM_IRQ_PTE	(-1)
+-#endif
+-
+ #endif
+--- 2.6.37-rc5/arch/powerpc/include/asm/kmap_types.h
++++ 2.6.37-rc5-kmap-types/arch/powerpc/include/asm/kmap_types.h
+@@ -30,16 +30,5 @@ enum km_type {
+ 	KM_TYPE_NR
+ };
+ 
+-/*
+- * This is a temporary build fix that (so they say on lkml....) should no longer
+- * be required after 2.6.33, because of changes planned to the kmap code.
+- * Let's try to remove this cruft then.
+- */
+-#ifdef CONFIG_DEBUG_HIGHMEM
+-#define KM_NMI		(-1)
+-#define KM_NMI_PTE	(-1)
+-#define KM_IRQ_PTE	(-1)
+-#endif
+-
+ #endif	/* __KERNEL__ */
+ #endif	/* _ASM_POWERPC_KMAP_TYPES_H */
+--- 2.6.37-rc5/arch/tile/include/asm/kmap_types.h
++++ 2.6.37-rc5-kmap-types/arch/tile/include/asm/kmap_types.h
+@@ -45,12 +45,7 @@ enum {
+ 	KM_IRQ1,
+ 	KM_SOFTIRQ0,
+ 	KM_SOFTIRQ1,
+-	KM_SYNC_ICACHE,
+-	KM_SYNC_DCACHE,
+ 	KM_UML_USERCOPY,
+-	KM_IRQ_PTE,
+-	KM_NMI,
+-	KM_NMI_PTE,
+ 	KM_KDB
+ };
+ 
+--- 2.6.37-rc5/include/asm-generic/kmap_types.h
++++ 2.6.37-rc5-kmap-types/include/asm-generic/kmap_types.h
+@@ -2,37 +2,36 @@
+ #define _ASM_GENERIC_KMAP_TYPES_H
+ 
+ #ifdef __WITH_KM_FENCE
+-# define KMAP_D(n) __KM_FENCE_##n ,
++# define KMAP_D(n) __KM_FENCE_##n, KM_##n
+ #else
+-# define KMAP_D(n)
++# define KMAP_D(n) KM_##n
+ #endif
+ 
+ enum km_type {
+-KMAP_D(0)	KM_BOUNCE_READ,
+-KMAP_D(1)	KM_SKB_SUNRPC_DATA,
+-KMAP_D(2)	KM_SKB_DATA_SOFTIRQ,
+-KMAP_D(3)	KM_USER0,
+-KMAP_D(4)	KM_USER1,
+-KMAP_D(5)	KM_BIO_SRC_IRQ,
+-KMAP_D(6)	KM_BIO_DST_IRQ,
+-KMAP_D(7)	KM_PTE0,
+-KMAP_D(8)	KM_PTE1,
+-KMAP_D(9)	KM_IRQ0,
+-KMAP_D(10)	KM_IRQ1,
+-KMAP_D(11)	KM_SOFTIRQ0,
+-KMAP_D(12)	KM_SOFTIRQ1,
+-KMAP_D(13)	KM_SYNC_ICACHE,
+-KMAP_D(14)	KM_SYNC_DCACHE,
+-/* UML specific, for copy_*_user - used in do_op_one_page */
+-KMAP_D(15)	KM_UML_USERCOPY,
+-KMAP_D(16)	KM_IRQ_PTE,
+-KMAP_D(17)	KM_NMI,
+-KMAP_D(18)	KM_NMI_PTE,
+-KMAP_D(19)	KM_KDB,
+-/*
+- * Remember to update debug_kmap_atomic() when adding new kmap types!
+- */
+-KMAP_D(20)	KM_TYPE_NR
++	KMAP_D(BOUNCE_READ),
++#if defined(CONFIG_SUNRPC) || defined(CONFIG_SUNRPC_MODULE)
++	KMAP_D(SKB_SUNRPC_DATA),
++#endif
++	KMAP_D(SKB_DATA_SOFTIRQ),
++	KMAP_D(USER0),
++	KMAP_D(USER1),
++	KMAP_D(BIO_SRC_IRQ),
++	KMAP_D(BIO_DST_IRQ),
++#if defined(CONFIG_X86) && defined(CONFIG_CRASH_DUMP)
++	KMAP_D(PTE0),
++#endif
++	KMAP_D(IRQ0),
++	KMAP_D(IRQ1),
++	KMAP_D(SOFTIRQ0),
++	KMAP_D(SOFTIRQ1),
++#ifdef CONFIG_UML /* for copy_*_user - used in do_op_one_page */
++	KMAP_D(UML_USERCOPY),
++#endif
++#ifdef CONFIG_KGDB_KDB
++	KMAP_D(KDB),
++#endif
 +
- /* Name hashing routines. Initial hash value */
- /* Hash courtesy of the R5 hash in reiserfs modulo sign bits */
- #define init_name_hash()		0
++	KMAP_D(TYPE_NR)
+ };
+ 
+ #undef KMAP_D
