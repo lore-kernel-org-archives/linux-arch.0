@@ -1,76 +1,97 @@
-From: "Luck, Tony" <tony.luck@intel.com>
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [RFC] persistent store (version 3) (part 1 of 2)
-Date: Thu, 09 Dec 2010 11:12:02 -0800
-Message-ID: <4d012a025304b1f75@agluck-desktop.sc.intel.com>
+Date: Thu, 9 Dec 2010 21:47:09 +0100
+Message-ID: <20101209204708.GA2396@liondog.tnic>
 References: <AANLkTimWT8=fmqbEeb+qXbwsWOmaz5d2_Bsr-=DON7L1@mail.gmail.com>
+ <4d012a025304b1f75@agluck-desktop.sc.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:20522 "EHLO mga09.intel.com"
+Received: from mail.skyhub.de ([78.46.96.112]:39481 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756837Ab0LITMD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Dec 2010 14:12:03 -0500
-In-Reply-to: <AANLkTimWT8=fmqbEeb+qXbwsWOmaz5d2_Bsr-=DON7L1@mail.gmail.com>
+	id S1757002Ab0LIUrN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 15:47:13 -0500
+Content-Disposition: inline
+In-Reply-To: <4d012a025304b1f75@agluck-desktop.sc.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: "Luck, Tony" <tony.luck@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-> This upsets the traditional layout of having the error
-> recovery part of the function undo all the things that
-> we did leading up to the error. Pity, because your
-> version is easier to read.
+On Thu, Dec 09, 2010 at 11:12:02AM -0800, Luck, Tony wrote:
+> > This upsets the traditional layout of having the error
+> > recovery part of the function undo all the things that
+> > we did leading up to the error. Pity, because your
+> > version is easier to read.
+> 
+> But most of your "move the error fixups to the tail, so the
+> normal code path is easier to follow" bit do still hold and
+> can be used.  How about this:
+> 
+> -Tony
+> 
+> ---
+> 
+> int pstore_mkfile(char *name, char *data, size_t size, struct timespec time,
+> 		  void *private)
+> {
+> 	struct dentry	*root = pstore_sb->s_root;
+> 	struct dentry	*dentry;
+> 	struct inode	*inode;
+> 	int		rc;
+> 
+> 	rc = -ENOMEM;
+> 	inode = pstore_get_inode(pstore_sb, root->d_inode, S_IFREG | 0444, 0);
+> 	if (!inode)
+> 		goto fail;
 
-But most of your "move the error fixups to the tail, so the
-normal code path is easier to follow" bit do still hold and
-can be used.  How about this:
+I'd add a newline here.
 
--Tony
+> 	inode->i_private = private;
+> 
+> 	mutex_lock(&root->d_inode->i_mutex);
+> 
+> 	rc = -ENOSPC;
+> 	dentry = d_alloc_name(root, name);
+> 	if (IS_ERR(dentry))
+> 		goto fail_alloc;
 
----
+ditto.
 
-int pstore_mkfile(char *name, char *data, size_t size, struct timespec time,
-		  void *private)
-{
-	struct dentry	*root = pstore_sb->s_root;
-	struct dentry	*dentry;
-	struct inode	*inode;
-	int		rc;
+> 	d_add(dentry, inode);
+> 
+> 	mutex_unlock(&root->d_inode->i_mutex);
+> 
+> 	if (!pstore_writefile(inode, dentry, data, size))
+> 		goto fail_write;
+> 
+> 	if (time.tv_sec)
+> 		inode->i_mtime = inode->i_ctime = time;
+> 
+> 	return 0;
+> 
+> fail_write:
+> 	inode->i_nlink--;
+> 	mutex_lock(&root->d_inode->i_mutex);
+> 	d_delete(dentry);
+> 	dput(dentry);
+> 	mutex_unlock(&root->d_inode->i_mutex);
+> 	goto fail;
 
-	rc = -ENOMEM;
-	inode = pstore_get_inode(pstore_sb, root->d_inode, S_IFREG | 0444, 0);
-	if (!inode)
-		goto fail;
-	inode->i_private = private;
+Yeah, either that or add a "return rc" to save us the jmp. But since
+those paths wouldn't be hit in the normal case, I don't think it matters
+that much.
 
-	mutex_lock(&root->d_inode->i_mutex);
+> 
+> fail_alloc:
+> 	mutex_unlock(&root->d_inode->i_mutex);
+> 	iput(inode);
+> 
+> fail:
+> 	return rc;
 
-	rc = -ENOSPC;
-	dentry = d_alloc_name(root, name);
-	if (IS_ERR(dentry))
-		goto fail_alloc;
-	d_add(dentry, inode);
+Thanks.
 
-	mutex_unlock(&root->d_inode->i_mutex);
-
-	if (!pstore_writefile(inode, dentry, data, size))
-		goto fail_write;
-
-	if (time.tv_sec)
-		inode->i_mtime = inode->i_ctime = time;
-
-	return 0;
-
-fail_write:
-	inode->i_nlink--;
-	mutex_lock(&root->d_inode->i_mutex);
-	d_delete(dentry);
-	dput(dentry);
-	mutex_unlock(&root->d_inode->i_mutex);
-	goto fail;
-
-fail_alloc:
-	mutex_unlock(&root->d_inode->i_mutex);
-	iput(inode);
-
-fail:
-	return rc;
-}
+-- 
+Regards/Gruss,
+    Boris.
