@@ -1,42 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:49973 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752279Ab0LISXd convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 13:23:33 -0500
-MIME-Version: 1.0
-In-Reply-To: <20101209131452.GA2260@a1.tnic>
-References: <AANLkTin7xDWO8fU2WA7cxC55TNi2+kAb50ajCySCfg9G@mail.gmail.com>
-	<4d00164c296166b682@agluck-desktop.sc.intel.com>
-	<20101209131452.GA2260@a1.tnic>
-Date: Thu, 9 Dec 2010 10:23:32 -0800
-Message-ID: <AANLkTimWT8=fmqbEeb+qXbwsWOmaz5d2_Bsr-=DON7L1@mail.gmail.com>
-Subject: Re: [RFC] persistent store (version 3) (part 1 of 2)
-From: Tony Luck <tony.luck@intel.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mga01.intel.com ([192.55.52.88]:29389 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756247Ab0LJAVy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Dec 2010 19:21:54 -0500
+Subject: Re: [patch 3/3]use new macros for x86 percpu readmostly section
+From: Shaohua Li <shaohua.li@intel.com>
+In-Reply-To: <20101209143201.6ab0a49d.akpm@linux-foundation.org>
+References: <1291255350.12777.117.camel@sli10-conroe>
+	 <20101209143201.6ab0a49d.akpm@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Fri, 10 Dec 2010 08:21:52 +0800
+Message-ID: <1291940512.2323.11.camel@sli10-conroe>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, "Luck, Tony" <tony.luck@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20101209182332.Uz0gnVvI2MgRDV1P4i3bZRvzIb9XbJrovn-7O13Z2YY@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "sam@ravnborg.org" <sam@ravnborg.org>, "eric.dumazet@gmail.com" <eric.dumazet@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20101210002152.fjMUTpCC0E01ADncgiOwGtuz9TWc6y3i7aZb81nln_k@z>
 
-On Thu, Dec 9, 2010 at 5:14 AM, Borislav Petkov <bp@alien8.de> wrote:
->>       if (!pstore_writefile(inode, dentry, data, size)) {
->>               inode->i_nlink--;
->>               mutex_lock(&root->d_inode->i_mutex);
->>               d_delete(dentry);
->>               dput(dentry);
->>               mutex_unlock(&root->d_inode->i_mutex);
->>               rc = -ENOSPC;
->>               goto fail;
->>       }
->
-> don't we have to iput() the inode here too if pstore_writefile() fails?
+On Fri, 2010-12-10 at 06:32 +0800, Andrew Morton wrote:
+> On Thu, 02 Dec 2010 10:02:30 +0800
+> Shaohua Li <shaohua.li@intel.com> wrote:
+> 
+> > Use the new macros to correctly align percpu readmostly data.
+> > 
+> > Signed-off-by: Shaohua Li <shaohua.li@intel.com>
+> > ---
+> >  arch/x86/kernel/vmlinux.lds.S |    4 ++--
+> >  1 file changed, 2 insertions(+), 2 deletions(-)
+> > 
+> > Index: linux/arch/x86/kernel/vmlinux.lds.S
+> > ===================================================================
+> > --- linux.orig/arch/x86/kernel/vmlinux.lds.S	2010-12-02 09:48:44.000000000 +0800
+> > +++ linux/arch/x86/kernel/vmlinux.lds.S	2010-12-02 09:54:24.000000000 +0800
+> > @@ -226,7 +226,7 @@ SECTIONS
+> >  	 * output PHDR, so the next output section - .init.text - should
+> >  	 * start another segment - init.
+> >  	 */
+> > -	PERCPU_VADDR(0, :percpu)
+> > +	PERCPU_VADDR_CACHEALIGNED(0, :percpu, INTERNODE_CACHE_BYTES)
+> >  #endif
+> >  
+> >  	INIT_TEXT_SECTION(PAGE_SIZE)
+> > @@ -301,7 +301,7 @@ SECTIONS
+> >  	}
+> >  
+> >  #if !defined(CONFIG_X86_64) || !defined(CONFIG_SMP)
+> > -	PERCPU(THREAD_SIZE)
+> > +	PERCPU_CACHEALIGNED(THREAD_SIZE, INTERNODE_CACHE_BYTES)
+> >  #endif
+> >  
+> >  	. = ALIGN(PAGE_SIZE);
+> > 
+> 
+> So what is the situation now with all other architectures?  Should they
+> be changed to correctly align their read-mostly percpu areas?
+> 
+> If so, what should the arch maintainers do to achieve this?
+Yes, other arch should use new macro too with correct cache alignment
+(similar like the alignment for read-mostly section). But currently only
+x86 has read-mostly percpu data.
 
-No. d_delete() called iput() for us (passing through
-dentry_iput along the way) - so we must not do it again.
-This upsets the traditional layout of having the error
-recovery part of the function undo all the things that
-we did leading up to the error. Pity, because your
-version is easier to read.
+Thanks,
+Shaohua
 
--Tony
+
