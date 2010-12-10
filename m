@@ -1,45 +1,46 @@
 From: Nick Piggin <npiggin@kernel.dk>
 Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Fri, 10 Dec 2010 13:38:00 +1100
-Message-ID: <20101210023800.GD3331@amd>
+Date: Fri, 10 Dec 2010 15:27:52 +1100
+Message-ID: <20101210042752.GA3144@amd>
 References: <20101209070938.GA3949@amd>
- <20101209133709.GA3133@a1.tnic>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:54207 "EHLO
-	ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751984Ab0LJCiE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 21:38:04 -0500
+Received: from ipmail06.adl6.internode.on.net ([150.101.137.145]:34216 "EHLO
+	ipmail06.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754127Ab0LJE17 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 23:27:59 -0500
 Content-Disposition: inline
-In-Reply-To: <20101209133709.GA3133@a1.tnic>
+In-Reply-To: <20101209070938.GA3949@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.o
+To: Nick Piggin <npiggin@kernel.dk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Thu, Dec 09, 2010 at 02:37:09PM +0100, Borislav Petkov wrote:
-> On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
-> > +static inline int dentry_memcmp(const unsigned char *cs,
-> > +				const unsigned char *ct, size_t count)
-> > +{
-> > +	while (count) {
-> > +		int ret = (*cs != *ct);
-> > +		if (ret)
-> > +			return ret;
-> > +		cs++;
-> > +		ct++;
-> > +		count--;
-> > +	}
-> > +	return 0;
-> > +}
+On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
+> So replace it with an open-coded byte comparison. This increases code
+> size by 24 bytes in the critical __d_lookup_rcu function, but the
+
+Actually, if the loop assumes len is non zero (which is the case for
+dentry compare), then the bloat is only 8 bytes, so not a problem.
+
+Also got numbers versus vanilla kernel, out of interest.
+
+> speedup is huge, averaging 10 runs of each:
 > 
-> we have a memcmp() in lib/string.c. Maybe reuse it from there?
+> git diff st   user   sys   elapsed  CPU
+  vanilla       1.19   3.21  4.47      98.0
+> before        1.15   2.57  3.82      97.1
+> after         1.14   2.35  3.61      96.8
+> 
+> git diff mt   user   sys   elapsed  CPU
+  vanilla       1.57  45.75  3.60    1312
+> before        1.27   3.85  1.46     349
+> after         1.26   3.54  1.43     333
+> 
 
-Well I think I prefer it to be inline so it doesn't clobber registers,
-and also so that it isn't required to carry an integer value to return
-(only boolean) if that might help.
+Single thread elapsed time improvment vanilla vs vfs 19.23%. Not quite
+as big as the AMD fam10h speedup, that's probably because Westmere does
+atomics so damn quickly.
 
-I might also change it a bit and take advantage of the fact we won't
-have a zero sized count -- this could move the loop branch to after the
-values are loaded, and would mean that the load will get underway
-even if the branch is mispredicted...
+Multi thread numbers are no surprise.
