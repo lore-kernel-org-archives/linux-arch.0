@@ -1,74 +1,68 @@
-From: "J. R. Okajima" <hooanon05@yahoo.co.jp>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Fri, 10 Dec 2010 23:23:17 +0900
-Message-ID: <19324.1291990997@jrobl>
-References: <20101209070938.GA3949@amd>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH] Introduce mips_late_time_init
+Date: Sat, 11 Dec 2010 02:21:25 +0900
+Message-ID: <20101210172125.GA3750@linux-sh.org>
+References: <1291623812.31822.6.camel@paanoop1-desktop> <4CFD2095.9040404@caviumnetworks.com> <20101208203704.GB30923@linux-mips.org> <alpine.LFD.2.00.1012082217230.2653@localhost6.localdomain6> <1291848346.16694.205.camel@pasglop>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mfbichi11.ns.itscom.net ([219.110.2.189]:64296 "EHLO
-	mfbichi11.ns.itscom.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755442Ab0LJPBc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Dec 2010 10:01:32 -0500
-In-Reply-To: <20101209070938.GA3949@amd>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:57503 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750796Ab0LJRWj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Dec 2010 12:22:39 -0500
+Content-Disposition: inline
+In-Reply-To: <1291848346.16694.205.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ralf Baechle <ralf@linux-mips.org>, David Daney <ddaney@caviumnetworks.com>, Anoop P A <anoop.pa@gmail.com>, linux-mips@linux-mips.org, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
+On Thu, Dec 09, 2010 at 09:45:46AM +1100, Benjamin Herrenschmidt wrote:
+> On Wed, 2010-12-08 at 22:21 +0100, Thomas Gleixner wrote:
+> > On Wed, 8 Dec 2010, Ralf Baechle wrote:
+> > > Running everything from late_time_init() instead allows the use of kmalloc.
+> > > X86 has the same issue with requiring kmalloc in time_init which is why
+> > > they had moved everything to late_time_init.
+> > 
+> > It's more ioremap, but yeah.
+> >  
+> > > So the real question is, why can't we just move the call of time_init()
+> > > in setup_kernel() to where late_time_init() is getting called from for
+> > > all architectures, does anything rely on it getting called early?
+> > 
+> > That's a good question and I asked it myself already. I can't see a
+> > real reason why something would need it early. Definitely worth to
+> > try.
+> 
+> Well, I can see some reasons at least...
+> 
+> On ppc at least, we calibrate the timebase/decrementer in time_init, so
+> things like udelay etc... are going to be unreliable until we've done
+> that, which could be a problem if done too late due to sensitive HW
+> accessors that might rely on these.
+> 
+The SH case is similar. We bring up the clock framework during
+time_init() which we need for per-CPU loops_per_jiffy calculation in
+addition to initializing the clocksource/clockevent timers that come up
+during late_time_init.
 
-Nick Piggin:
-> The standard memcmp function on a Westmere system shows up hot in
-> profiles in the `git diff` workload (both parallel and single threaded),
-> and it is likely due to the costs associated with trapping into
-> microcode, and little opportunity to improve memory access (dentry
-> name is not likely to take up more than a cacheline).
+Presently we have a slab_is_available() check in the SH clkdev
+implementation mostly for board PLLs and so on, and our ioremap()
+implementation also transparently bolts on to fixed ioremaps through
+fixmap if we're really early anyways. It's possible that kmalloc is
+usable outright now after the reordering happened, I haven't gone back
+and checked it again since then.
 
-Let me make sure.
-What you are pointing out is
-- asm("repe; cmpsb") may grab CPU long time, and can be a hazard for
-  scaling.
-- by breaking it into pieces, the chances to scale will increase.
-Right?
+> So we'd probably need to move that to a different (early) arch callback
+> if time_init is moved.
+> 
+late_time_init has always struck me as a bit of a misnomer, since it's
+still quite early as far as the rest of the system state is concerned,
+particularly the driver core (all SH and ARM SH-Mobile platforms use
+platform devices for clocksources/clockevents). In any event, SH would
+also need this.
 
-Anyway this appraoch replacing smallest code by larger but faster code
-is interesting.
-How about mixing 'unsigned char *' and 'unsigned long *' in referencing
-the given strings?
-For example,
-
-int f(const unsigned char *cs, const unsigned char *ct, size_t count)
-{
-	int ret;
-	union {
-		const unsigned long *l;
-		const unsigned char *c;
-	} s, t;
-
-/* this macro is your dentry_memcmp() actually */
-#define cmp(s, t, c, step)		      \
-	do {				      \
-		while ((c) >= (step)) {	      \
-			ret = (*(s) != *(t)); \
-			if (ret)	      \
-				return ret;   \
-			(s)++;		      \
-			(t)++;		      \
-			(c) -= (step);	      \
-		}			      \
-	} while (0)
-
-	s.c = cs;
-	t.c = ct;
-	cmp(s.l, t.l, count, sizeof(*s.l));
-	cmp(s.c, t.c, count, sizeof(*s.c));
-	return 0;
-}
-
-What I am thinking here is,
-- in load and compare, there is no difference between 'char*' and
-  'long*', probably.
-- obviously 'step by sizeof(long)' will reduce the number of repeats.
-- but I am not sure whether the length of string is generally longer
-  than 4 (or 8) or not.
-
-
-J. R. Okajima
+On ARM SH-Mobile we use the same approach although each platform
+explicitly calls in to clock framework initialization prior to assigning
+a late_time_init, which in turn gets all wrapped up in the ARM sys_timer
+abstraction.
