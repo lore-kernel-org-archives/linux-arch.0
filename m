@@ -1,46 +1,85 @@
-From: Nick Piggin <npiggin@kernel.dk>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Fri, 10 Dec 2010 15:27:52 +1100
-Message-ID: <20101210042752.GA3144@amd>
-References: <20101209070938.GA3949@amd>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: RE: [PATCHv1 000/211] unicore32 architecture support
+Date: Fri, 10 Dec 2010 16:56:08 +0800
+Message-ID: <026901cb9848$17e71ac0$47b55040$@mprc.pku.edu.cn>
+References: <01ca01cb9783$7818c3f0$684a4bd0$@mprc.pku.edu.cn> <4D00A672.9050906@kernel.org> <alpine.LFD.2.00.1012091443580.2653@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail06.adl6.internode.on.net ([150.101.137.145]:34216 "EHLO
-	ipmail06.adl6.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754127Ab0LJE17 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 23:27:59 -0500
-Content-Disposition: inline
-In-Reply-To: <20101209070938.GA3949@amd>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:55280 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753151Ab0LJI4e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Dec 2010 03:56:34 -0500
+In-Reply-To: <alpine.LFD.2.00.1012091443580.2653@localhost6.localdomain6>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: 'Thomas Gleixner' <tglx@linutronix.de>, 'Tejun Heo' <tj@kernel.org>
+Cc: 'Arnd Bergmann' <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
-> So replace it with an open-coded byte comparison. This increases code
-> size by 24 bytes in the critical __d_lookup_rcu function, but the
 
-Actually, if the loop assumes len is non zero (which is the case for
-dentry compare), then the bloat is only 8 bytes, so not a problem.
 
-Also got numbers versus vanilla kernel, out of interest.
-
-> speedup is huge, averaging 10 runs of each:
+> -----Original Message-----
+> From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-
+> owner@vger.kernel.org] On Behalf Of Thomas Gleixner
+> Sent: Thursday, December 09, 2010 9:50 PM
+> To: Tejun Heo
+> Cc: Guan Xuetao; Arnd Bergmann; linux-arch@vger.kernel.org; linux-
+> kernel@vger.kernel.org
+> Subject: Re: [PATCHv1 000/211] unicore32 architecture support
 > 
-> git diff st   user   sys   elapsed  CPU
-  vanilla       1.19   3.21  4.47      98.0
-> before        1.15   2.57  3.82      97.1
-> after         1.14   2.35  3.61      96.8
+> B1;2401;0cOn Thu, 9 Dec 2010, Tejun Heo wrote:
 > 
-> git diff mt   user   sys   elapsed  CPU
-  vanilla       1.57  45.75  3.60    1312
-> before        1.27   3.85  1.46     349
-> after         1.26   3.54  1.43     333
+> > Hello,
+> >
+> > On 12/09/2010 10:28 AM, Guan Xuetao wrote:
+> > > From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+> > >
+> > > These patches add support for UniCore-32 ISA in linux kernel.
+> > > UniCore ISA is defined and developed by Micro-Processor R&D Center
+> > > of Peking University, and over the years, the CPUs and SoCs using
+> > > UniCore ISA have been successfully applied in a variety of products in
+> China.
+> >
+> > * Patches should be split according to logical steps of changes, not
+> >   per-file.
+> >
+> > * Patches should be bisectable.  IOW, after applying upto any patch in
+> >   the series, the tree should be buildable and working.
 > 
+> That does not work for a new architecture. There is nothing to bisect.
+> 
+> > * When posting a patch series, especially one as large as 211, please
+> >   make the mails for the actual patches replies to the head message.
+> >   Don't post it as 212 separate messages or replies to the immediate
+> >   previous patch.
+> >
+> > So, in short, if you're adding a whole new arch, just post it as a
+> > single patch or a series of several patches if it requires changes
+> > outside of the specific arch subtree.
+> 
+> Crap. a single patch is a major PITA for review. It's even worse than
+> 211 per file patches.
+> 
+> It's ok to have several patches ordered by topics
+> 
+>   - generic header stuff
+>   - processor and system headers
+>   - low level entry and setup code
+>   - process/thread related code
+>   - mm related code
+>   - timers
+>   - interrupts
+>   - ptrace
+>   - signals
+>   - fault handling
+>   - misc
+>   - build system, main makefile, Kconfig
+> 
+> That makes it actually feasible to review.
+Thanks,
+I will rearrange my patches.
 
-Single thread elapsed time improvment vanilla vs vfs 19.23%. Not quite
-as big as the AMD fam10h speedup, that's probably because Westmere does
-atomics so damn quickly.
-
-Multi thread numbers are no surprise.
+Guan Xuetao
