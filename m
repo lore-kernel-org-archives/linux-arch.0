@@ -1,67 +1,74 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] Unicore architecture patch review, part 2
-Date: Fri, 10 Dec 2010 14:10:37 +0100
-Message-ID: <201012101410.37537.arnd@arndb.de>
-References: <201011301754.17829.arnd@arndb.de> <201012081353.44927.arnd@arndb.de> <017801cb9752$79a48a50$6ced9ef0$@mprc.pku.edu.cn>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+From: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: Fri, 10 Dec 2010 23:23:17 +0900
+Message-ID: <19324.1291990997@jrobl>
+References: <20101209070938.GA3949@amd>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:50444 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756256Ab0LJNKp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Dec 2010 08:10:45 -0500
-In-Reply-To: <017801cb9752$79a48a50$6ced9ef0$@mprc.pku.edu.cn>
+Received: from mfbichi11.ns.itscom.net ([219.110.2.189]:64296 "EHLO
+	mfbichi11.ns.itscom.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755442Ab0LJPBc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Dec 2010 10:01:32 -0500
+In-Reply-To: <20101209070938.GA3949@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <npiggin@kernel.dk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Thursday 09 December 2010, Guan Xuetao wrote:
-> > Did I misunderstand you or did you make up your mind since then?
-> > 
-> We do define new 32-bit ABI work at present, and I will use generic unistd
-> in new ABI.
-> But existing machines must be maintained, so many codes need remain
-> compatibility.
 
-Ok, I see.
+Nick Piggin:
+> The standard memcmp function on a Westmere system shows up hot in
+> profiles in the `git diff` workload (both parallel and single threaded),
+> and it is likely due to the costs associated with trapping into
+> microcode, and little opportunity to improve memory access (dentry
+> name is not likely to take up more than a cacheline).
 
-I would suggest a slightly different approach here as a compromise:
+Let me make sure.
+What you are pointing out is
+- asm("repe; cmpsb") may grab CPU long time, and can be a hazard for
+  scaling.
+- by breaking it into pieces, the chances to scale will increase.
+Right?
 
-Make a patch that contains the difference between the backwards-compatible
-and the new ABI. With this, you can run the backwards-compatible
-ABI internally, but send our the new ABI for inclusion in the mainline
-kernel. Send out the patch between the two along with the other
-patches and make it clear that you still depend on this patch but that
-it is not meant to be included.
+Anyway this appraoch replacing smallest code by larger but faster code
+is interesting.
+How about mixing 'unsigned char *' and 'unsigned long *' in referencing
+the given strings?
+For example,
 
-Nothing stops you from using the old ABI as long as you want to, since
-you can always put the patch on top of any upstream kernel when you
-make a system image. It is quite normal to have a few patches required
-to get a working kernel, although of course everyone tries to keep these
-to a minimum.
+int f(const unsigned char *cs, const unsigned char *ct, size_t count)
+{
+	int ret;
+	union {
+		const unsigned long *l;
+		const unsigned char *c;
+	} s, t;
 
-It is probably also a good time for you to start learning about managing
-patches for a submission. Everyone does this a bit differently, but
-there two basic tools that most people use:
+/* this macro is your dentry_memcmp() actually */
+#define cmp(s, t, c, step)		      \
+	do {				      \
+		while ((c) >= (step)) {	      \
+			ret = (*(s) != *(t)); \
+			if (ret)	      \
+				return ret;   \
+			(s)++;		      \
+			(t)++;		      \
+			(c) -= (step);	      \
+		}			      \
+	} while (0)
 
-* Quilt is a simple tool that manages plain files with patches that
-  apply on top of each other. You can easily modify patches in the middle,
-  keep a patch description for each one and reorder the patches. It
-  is mostly compatible with git-send-email for submitting the patches
-  to the mailing list. Typically, you will want to use the quilt series
-  in combination with a sourcecode management tool like git, in order to
-  keep a history of what you have done.
+	s.c = cs;
+	t.c = ct;
+	cmp(s.l, t.l, count, sizeof(*s.l));
+	cmp(s.c, t.c, count, sizeof(*s.c));
+	return 0;
+}
 
-* Git can do everything that quilt does, besides doing many other things
-  as well. The most important sub-command to learn here is 'git rebase -i',
-  which lets you reorder changeset and insert or delete changesets in the
-  middle of a branch. It takes somewhat longer to be productive with git
-  rebase than with quilt, but I personally find it much more reliable.
+What I am thinking here is,
+- in load and compare, there is no difference between 'char*' and
+  'long*', probably.
+- obviously 'step by sizeof(long)' will reduce the number of repeats.
+- but I am not sure whether the length of string is generally longer
+  than 4 (or 8) or not.
 
-stgit is a tool that tries to combine the features of quilt and git, but
-as far as I can tell, most users have moved on to just using git by itself.
 
-	Arnd
+J. R. Okajima
