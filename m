@@ -1,54 +1,45 @@
 From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: RE: [PATCHv1 008/211] unicore32: new file arch/unicore32/boot/compressed/misc.c
-Date: Mon, 13 Dec 2010 14:50:13 +0800
-Message-ID: <004a01cb9a92$02629930$0727cb90$@mprc.pku.edu.cn>
-References: <01da01cb9784$d44c0460$7ce40d20$@mprc.pku.edu.cn> <AANLkTimDWHGsL+1H_VSevSjpFW0-h53NzRynANnayTRm@mail.gmail.com> <028901cb9933$4a2bfe10$de83fa30$@mprc.pku.edu.cn> <201012111456.07925.arnd@arndb.de>
+Subject: RE: [PATCHv1 000/211] unicore32 architecture support
+Date: Mon, 13 Dec 2010 14:58:09 +0800
+Message-ID: <004c01cb9a93$1e17b010$5a471030$@mprc.pku.edu.cn>
+References: <01ca01cb9783$7818c3f0$684a4bd0$@mprc.pku.edu.cn>	 <1291917037.3002.257.camel@mulgrave.site>	 <028701cb9919$df3b7900$9db26b00$@mprc.pku.edu.cn> <1292078266.4722.2.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Type: text/plain;
-	charset="us-ascii"
+	charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:45262 "EHLO mprc.pku.edu.cn"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:43809 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932179Ab0LMGuf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Dec 2010 01:50:35 -0500
-In-Reply-To: <201012111456.07925.arnd@arndb.de>
+	id S932332Ab0LMG6W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Dec 2010 01:58:22 -0500
+In-Reply-To: <1292078266.4722.2.camel@mulgrave.site>
 Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: 'Miguel Ojeda' <miguel.ojeda.sandonis@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: 'James Bottomley' <James.Bottomley@HansenPartnership.com>
+Cc: linux-arch@vger.kernel.org
 
-
-> > > > +/* Diagnostic functions */
-> > > > +#ifdef DEBUG
-> > > > +#  define Assert(cond, msg)    { if (!(cond)) error(msg); }
-> > > > +#  define Trace(x)             fprintf x
-> > > > +#  define Tracev(x)            { if (verbose)                  fprintf x; }
-> > > > +#  define Tracevv(x)           { if (verbose > 1)              fprintf x; }
-> > > > +#  define Tracec(c, x)         { if (verbose && (c))           fprintf x; }
-> > > > +#  define Tracecv(c, x)                { if ((verbose > 1) && (c))
-> > > > fprintf x; }
+> > > > These patches add support for UniCore-32 ISA in linux kernel.
+> > > > UniCore ISA is defined and developed by Micro-Processor R&D Center of
+> > > > Peking University, and over the years, the CPUs and SoCs using UniCore ISA
+> > > > have been successfully applied in a variety of products in China.
 > > >
-> > > Maybe uppercase? Maybe do { ... } while(0)?
-> >
-> > Uppercase  for what? Tracexx to tracexx?
+> > > Could we at least have these 212 emails threaded at least below this
+> > > email ... for those of us who may be tempted to skip a full review with
+> > > a thread delete?
 > 
-> We normally don't have mixed-case identifiers, normally it would be
-> trace() for functions vs. TRACE() for macros, though we also have a
-> lot of lower-case macros as well.
-> 
-> For the debugging macros, I would generally recommend not having
-> any, but simply using the standard pr_debug and dev_dbg macros
-> that everyone knows and understands.
-> 
-> If you really need to do macros, make them so that they work like
-> functions, e.g.
-> 
-> #define foo_tracev(...) do { if (verbose) fprintf(__va_args__); } while (0)
+> Please don't drop cc's ... someone else may be wondering the same thing
+> so keeping the archive preserves the searchable knowledge.
+Ok, I see.
 
-When reviewing misc.c, I find that Tracevv and Tracecv are not used in lib/decompress_inflate.c
-So these macros could be removed directly.
-The same for other architectures, I think.
+> > What's meaning for '212 email threaded below this email'?
+> 
+> Your subject [PATCHv1 000/211] means there are 211 patches plus a
+> description in the set ... that means 212 emails.  If you thread them
+> all below the 000/211 email, it's far easier to handle.
+The rule in Documentations/SubmittingPatches:
+  Do not send more than 15 patches at once to the vger mailing lists!
+So, I suppose I could post 15 patches every two or three days.
 
+Thanks.
 Guan Xuetao
