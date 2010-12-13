@@ -1,91 +1,54 @@
-From: Nick Piggin <npiggin@kernel.dk>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Mon, 13 Dec 2010 12:45:53 +1100
-Message-ID: <20101213014553.GA6522@amd>
-References: <20101209070938.GA3949@amd>
- <19324.1291990997@jrobl>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: RE: [PATCHv1 008/211] unicore32: new file arch/unicore32/boot/compressed/misc.c
+Date: Mon, 13 Dec 2010 14:50:13 +0800
+Message-ID: <004a01cb9a92$02629930$0727cb90$@mprc.pku.edu.cn>
+References: <01da01cb9784$d44c0460$7ce40d20$@mprc.pku.edu.cn> <AANLkTimDWHGsL+1H_VSevSjpFW0-h53NzRynANnayTRm@mail.gmail.com> <028901cb9933$4a2bfe10$de83fa30$@mprc.pku.edu.cn> <201012111456.07925.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail06.adl2.internode.on.net ([150.101.137.129]:3306 "EHLO
-	ipmail06.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752272Ab0LMBqE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 12 Dec 2010 20:46:04 -0500
-Content-Disposition: inline
-In-Reply-To: <19324.1291990997@jrobl>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:45262 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932179Ab0LMGuf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Dec 2010 01:50:35 -0500
+In-Reply-To: <201012111456.07925.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "J. R. Okajima" <hooanon05@yahoo.co.jp>
-Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: 'Miguel Ojeda' <miguel.ojeda.sandonis@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Dec 10, 2010 at 11:23:17PM +0900, J. R. Okajima wrote:
-> 
-> Nick Piggin:
-> > The standard memcmp function on a Westmere system shows up hot in
-> > profiles in the `git diff` workload (both parallel and single threaded),
-> > and it is likely due to the costs associated with trapping into
-> > microcode, and little opportunity to improve memory access (dentry
-> > name is not likely to take up more than a cacheline).
-> 
-> Let me make sure.
-> What you are pointing out is
-> - asm("repe; cmpsb") may grab CPU long time, and can be a hazard for
->   scaling.
-> - by breaking it into pieces, the chances to scale will increase.
-> Right?
 
-It's not scaling but just single threaded performance. gcc turns memcmp
-into rep cmp, which has quite a long latency, so it's not appripriate
-for short strings.
+> > > > +/* Diagnostic functions */
+> > > > +#ifdef DEBUG
+> > > > +#  define Assert(cond, msg)    { if (!(cond)) error(msg); }
+> > > > +#  define Trace(x)             fprintf x
+> > > > +#  define Tracev(x)            { if (verbose)                  fprintf x; }
+> > > > +#  define Tracevv(x)           { if (verbose > 1)              fprintf x; }
+> > > > +#  define Tracec(c, x)         { if (verbose && (c))           fprintf x; }
+> > > > +#  define Tracecv(c, x)                { if ((verbose > 1) && (c))
+> > > > fprintf x; }
+> > >
+> > > Maybe uppercase? Maybe do { ... } while(0)?
+> >
+> > Uppercase  for what? Tracexx to tracexx?
+> 
+> We normally don't have mixed-case identifiers, normally it would be
+> trace() for functions vs. TRACE() for macros, though we also have a
+> lot of lower-case macros as well.
+> 
+> For the debugging macros, I would generally recommend not having
+> any, but simply using the standard pr_debug and dev_dbg macros
+> that everyone knows and understands.
+> 
+> If you really need to do macros, make them so that they work like
+> functions, e.g.
+> 
+> #define foo_tracev(...) do { if (verbose) fprintf(__va_args__); } while (0)
 
- 
-> Anyway this appraoch replacing smallest code by larger but faster code
-> is interesting.
-> How about mixing 'unsigned char *' and 'unsigned long *' in referencing
-> the given strings?
-> For example,
-> 
-> int f(const unsigned char *cs, const unsigned char *ct, size_t count)
-> {
-> 	int ret;
-> 	union {
-> 		const unsigned long *l;
-> 		const unsigned char *c;
-> 	} s, t;
-> 
-> /* this macro is your dentry_memcmp() actually */
-> #define cmp(s, t, c, step)		      \
-> 	do {				      \
-> 		while ((c) >= (step)) {	      \
-> 			ret = (*(s) != *(t)); \
-> 			if (ret)	      \
-> 				return ret;   \
-> 			(s)++;		      \
-> 			(t)++;		      \
-> 			(c) -= (step);	      \
-> 		}			      \
-> 	} while (0)
-> 
-> 	s.c = cs;
-> 	t.c = ct;
-> 	cmp(s.l, t.l, count, sizeof(*s.l));
-> 	cmp(s.c, t.c, count, sizeof(*s.c));
-> 	return 0;
-> }
-> 
-> What I am thinking here is,
-> - in load and compare, there is no difference between 'char*' and
->   'long*', probably.
-> - obviously 'step by sizeof(long)' will reduce the number of repeats.
-> - but I am not sure whether the length of string is generally longer
->   than 4 (or 8) or not.
+When reviewing misc.c, I find that Tracevv and Tracecv are not used in lib/decompress_inflate.c
+So these macros could be removed directly.
+The same for other architectures, I think.
 
-The comparison is no longer an issue, so I think the added complexity
-is not going to be worth it -- think about average length of directory
-entry name, the average is maybe 12? In the kernel tree it's 11.
-
-If we really wanted to do this, we'd round name lengths up to nearest
-sizeof(long) (which should be the case already, but we'd do it
-explicitly), zero fill the last bytes, and do a long compare loop. I
-doubt it would be noticable though.
+Guan Xuetao
