@@ -1,47 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:54207 "EHLO
-	ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751984Ab0LJCiE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Dec 2010 21:38:04 -0500
-Date: Fri, 10 Dec 2010 13:38:00 +1100
-From: Nick Piggin <npiggin@kernel.dk>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Message-ID: <20101210023800.GD3331@amd>
-References: <20101209070938.GA3949@amd>
- <20101209133709.GA3133@a1.tnic>
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:55204 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753236Ab0LMIZH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2010 03:25:07 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20101209133709.GA3133@a1.tnic>
+In-Reply-To: <9580.1292225351@jrobl>
+References: <20101209070938.GA3949@amd>
+	<19324.1291990997@jrobl>
+	<20101213014553.GA6522@amd>
+	<9580.1292225351@jrobl>
+Date: Mon, 13 Dec 2010 19:25:05 +1100
+Message-ID: <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+From: Nick Piggin <npiggin@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20101210023800.6DlkVqSI6RAuz09EzEId5GmmfSdulm60nVXhnSjHRHw@z>
+To: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20101213082505.dcovbil6L4DTGbQp4LEVKXjtL8_Katm95boAHVFqoi4@z>
 
-On Thu, Dec 09, 2010 at 02:37:09PM +0100, Borislav Petkov wrote:
-> On Thu, Dec 09, 2010 at 06:09:38PM +1100, Nick Piggin wrote:
-> > +static inline int dentry_memcmp(const unsigned char *cs,
-> > +				const unsigned char *ct, size_t count)
-> > +{
-> > +	while (count) {
-> > +		int ret = (*cs != *ct);
-> > +		if (ret)
-> > +			return ret;
-> > +		cs++;
-> > +		ct++;
-> > +		count--;
-> > +	}
-> > +	return 0;
-> > +}
-> 
-> we have a memcmp() in lib/string.c. Maybe reuse it from there?
+On Mon, Dec 13, 2010 at 6:29 PM, J. R. Okajima <hooanon05@yahoo.co.jp> wrote:
+>
+> Nick Piggin:
+>> It's not scaling but just single threaded performance. gcc turns memcmp
+>> into rep cmp, which has quite a long latency, so it's not appripriate
+>> for short strings.
+>
+> Honestly speaking I doubt how this 'long *' approach is effective
+> (Of course it never means that your result (by 'char *') is doubtful).
 
-Well I think I prefer it to be inline so it doesn't clobber registers,
-and also so that it isn't required to carry an integer value to return
-(only boolean) if that might help.
+Well, let's see what turns up. We certainly can try the long *
+approach. I suspect on architectures where byte loads are
+very slow, gcc will block the loop into larger loads, so it should
+be no worse than a normal memcmp call, but if we do explicit
+padding we can avoid all the problems associated with tail
+handling.
 
-I might also change it a bit and take advantage of the fact we won't
-have a zero sized count -- this could move the loop branch to after the
-values are loaded, and would mean that the load will get underway
-even if the branch is mispredicted...
+Doing name padding and long * comparison will be practically
+free (because slab allocator will align out to sizeof(long long)
+anyway), so if any architecture prefers to do the long loads, I'd
+be interested to hear and we could whip up a patch.
 
+> But is the "rep cmp has quite a long latency" issue generic for all x86
+> architecture, or Westmere system specific?
+
+I don't believe it is Westmere specific. Intel and AMD have
+been improving these instructions in the past few years, so
+Westmere is probably as good or better than any.
+
+That said, rep cmp may not be as heavily optimized as the
+set and copy string instructions.
+
+In short, I think the change should be suitable for all x86 CPUs,
+but I would like to hear more opinions or see numbers for other
+cores.
+
+Thanks,
+Nick
