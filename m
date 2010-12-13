@@ -1,81 +1,29 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: RE: [PATCH] Unicore architecture patch review, part 2
-Date: Mon, 13 Dec 2010 15:14:50 +0800
-Message-ID: <005f01cb9a95$74e30230$5ea90690$@mprc.pku.edu.cn>
-References: <201011301754.17829.arnd@arndb.de> <201012081353.44927.arnd@arndb.de> <017801cb9752$79a48a50$6ced9ef0$@mprc.pku.edu.cn> <201012101410.37537.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+From: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: Mon, 13 Dec 2010 16:29:11 +0900
+Message-ID: <9580.1292225351@jrobl>
+References: <20101209070938.GA3949@amd> <19324.1291990997@jrobl> <20101213014553.GA6522@amd>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:53734 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751753Ab0LMHPI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Dec 2010 02:15:08 -0500
-In-Reply-To: <201012101410.37537.arnd@arndb.de>
-Content-Language: zh-cn
+Received: from mtoichi14.ns.itscom.net ([219.110.2.184]:39002 "EHLO
+	mtoichi14.ns.itscom.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752765Ab0LMHh2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2010 02:37:28 -0500
+In-Reply-To: <20101213014553.GA6522@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Nick Piggin <npiggin@kernel.dk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
 
+Nick Piggin:
+> It's not scaling but just single threaded performance. gcc turns memcmp
+> into rep cmp, which has quite a long latency, so it's not appripriate
+> for short strings.
 
-> -----Original Message-----
-> From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-owner@vger.kernel.org] On Behalf Of Arnd Bergmann
-> Sent: Friday, December 10, 2010 9:11 PM
-> To: Guan Xuetao
-> Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
-> Subject: Re: [PATCH] Unicore architecture patch review, part 2
-> 
-> On Thursday 09 December 2010, Guan Xuetao wrote:
-> > > Did I misunderstand you or did you make up your mind since then?
-> > >
-> > We do define new 32-bit ABI work at present, and I will use generic unistd
-> > in new ABI.
-> > But existing machines must be maintained, so many codes need remain
-> > compatibility.
-> 
-> Ok, I see.
-> 
-> I would suggest a slightly different approach here as a compromise:
-> 
-> Make a patch that contains the difference between the backwards-compatible
-> and the new ABI. With this, you can run the backwards-compatible
-> ABI internally, but send our the new ABI for inclusion in the mainline
-> kernel. Send out the patch between the two along with the other
-> patches and make it clear that you still depend on this patch but that
-> it is not meant to be included.
-Ok, it's nice. I will build new glibc and busybox to test new ABI.
+Honestly speaking I doubt how this 'long *' approach is effective
+(Of course it never means that your result (by 'char *') is doubtful).
+But is the "rep cmp has quite a long latency" issue generic for all x86
+architecture, or Westmere system specific?
 
-> 
-> Nothing stops you from using the old ABI as long as you want to, since
-> you can always put the patch on top of any upstream kernel when you
-> make a system image. It is quite normal to have a few patches required
-> to get a working kernel, although of course everyone tries to keep these
-> to a minimum.
-> 
-> It is probably also a good time for you to start learning about managing
-> patches for a submission. Everyone does this a bit differently, but
-> there two basic tools that most people use:
-> 
-> * Quilt is a simple tool that manages plain files with patches that
->   apply on top of each other. You can easily modify patches in the middle,
->   keep a patch description for each one and reorder the patches. It
->   is mostly compatible with git-send-email for submitting the patches
->   to the mailing list. Typically, you will want to use the quilt series
->   in combination with a sourcecode management tool like git, in order to
->   keep a history of what you have done.
-> 
-> * Git can do everything that quilt does, besides doing many other things
->   as well. The most important sub-command to learn here is 'git rebase -i',
->   which lets you reorder changeset and insert or delete changesets in the
->   middle of a branch. It takes somewhat longer to be productive with git
->   rebase than with quilt, but I personally find it much more reliable.
-> 
-> stgit is a tool that tries to combine the features of quilt and git, but
-> as far as I can tell, most users have moved on to just using git by itself.
-> 
-Thanks.
 
-Guan Xuetao
+J. R. Okajima
