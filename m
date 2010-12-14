@@ -1,60 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:55204 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753236Ab0LMIZH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Dec 2010 03:25:07 -0500
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:64282 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756206Ab0LNRYR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 12:24:17 -0500
+Message-ID: <4D07A83C.9080707@gmail.com>
+Date: Tue, 14 Dec 2010 09:24:12 -0800
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <9580.1292225351@jrobl>
-References: <20101209070938.GA3949@amd>
-	<19324.1291990997@jrobl>
-	<20101213014553.GA6522@amd>
-	<9580.1292225351@jrobl>
-Date: Mon, 13 Dec 2010 19:25:05 +1100
-Message-ID: <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-From: Nick Piggin <npiggin@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH 0/4] V3 Add ability to link device blob(s) into vmlinux
+References: <cover.1291820033.git.dirk.brandewie@gmail.com>
+In-Reply-To: <cover.1291820033.git.dirk.brandewie@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "J. R. Okajima" <hooanon05@yahoo.co.jp>
-Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20101213082505.dcovbil6L4DTGbQp4LEVKXjtL8_Katm95boAHVFqoi4@z>
+To: dirk.brandewie@gmail.com
+Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, sodaville@linutronix.de, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz
+Message-ID: <20101214172412.cCHi4_b2lOEbFVlbTH8fsjmO4_xFG5-5Th7p3gb0a7o@z>
 
-On Mon, Dec 13, 2010 at 6:29 PM, J. R. Okajima <hooanon05@yahoo.co.jp> wrote:
+On 12/08/2010 07:01 AM, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie<dirk.brandewie@gmail.com>
 >
-> Nick Piggin:
->> It's not scaling but just single threaded performance. gcc turns memcmp
->> into rep cmp, which has quite a long latency, so it's not appripriate
->> for short strings.
+> This patch set adds the ability to link device tree blobs into
+> vmlinux.
 >
-> Honestly speaking I doubt how this 'long *' approach is effective
-> (Of course it never means that your result (by 'char *') is doubtful).
+> Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
+> adds a generic rule for generating DTB objects to be linked vmlinux.
+>
+> Patch 2 implements linking a DTB into an x86 image.
+>
+> Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
+> in patch 1.
+>
+> This patch set has been tested on x86.
+>
+> Powerpc and Microblaze have been compile tested with and without patch
+> 3 and 4 applied.
+>
+> Changes from V1:
+>
+> Documentation added for dtc command in Makefile.lib to
+> Documentation/kbuild/makefiles.txt
+> Separate DTB_ALIGNMENT define removed.
+> FORCE removed from dtc rule.
+> Removed hardcoded path to dts files from dtc command.
+> Moved %.dtb: %.dts rule to arch specific makefiles.
+>
+> Patch for adding kernel command line option to pass in dtb_compat
+> string dropped from this set will be submitted seperately.
+>
+> Changes from V2:
+>
+> Rule to create assembly wrapper for blob changed to use Sam Ravnborgs
+> suggested implementation.
+>
+> Rules in architecture specific Makefiles changed to use the cmd
+> function instead of the if_changed function.
+>
+> Dirk Brandewie (4):
+>    of: Add support for linking device tree blobs into vmlinux
+>    x86/of: Add building device tree blob(s) into image.
+>    of/powerpc: Use generic rule to build dtb's
+>    microblaze/of: Use generic rule to build dtb's
+>
+>   Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+>   arch/microblaze/boot/Makefile      |   12 +++---------
+>   arch/powerpc/boot/Makefile         |    8 +++-----
+>   arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
+>   include/asm-generic/vmlinux.lds.h  |   13 +++++++++++--
+>   scripts/Makefile.lib               |   23 +++++++++++++++++++++++
+>   6 files changed, 65 insertions(+), 16 deletions(-)
+>
 
-Well, let's see what turns up. We certainly can try the long *
-approach. I suspect on architectures where byte loads are
-very slow, gcc will block the loop into larger loads, so it should
-be no worse than a normal memcmp call, but if we do explicit
-padding we can avoid all the problems associated with tail
-handling.
+Any Comments on this patch set?
 
-Doing name padding and long * comparison will be practically
-free (because slab allocator will align out to sizeof(long long)
-anyway), so if any architecture prefers to do the long loads, I'd
-be interested to hear and we could whip up a patch.
-
-> But is the "rep cmp has quite a long latency" issue generic for all x86
-> architecture, or Westmere system specific?
-
-I don't believe it is Westmere specific. Intel and AMD have
-been improving these instructions in the past few years, so
-Westmere is probably as good or better than any.
-
-That said, rep cmp may not be as heavily optimized as the
-set and copy string instructions.
-
-In short, I think the change should be suitable for all x86 CPUs,
-but I would like to hear more opinions or see numbers for other
-cores.
-
-Thanks,
-Nick
+--Dirk
