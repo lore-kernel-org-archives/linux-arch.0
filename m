@@ -1,80 +1,46 @@
-From: Dirk Brandewie <dirk.brandewie-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 0/4] V3 Add ability to link device blob(s) into vmlinux
-Date: Tue, 14 Dec 2010 09:24:12 -0800
-Message-ID: <4D07A83C.9080707@gmail.com>
-References: <cover.1291820033.git.dirk.brandewie@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <cover.1291820033.git.dirk.brandewie-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
-	<mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
-	<mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Sender: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-To: dirk.brandewie-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mmarek-AlSwsSmVLrQ@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sodaville-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+From: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: Wed, 15 Dec 2010 04:01:53 +0900
+Message-ID: <12853.1292353313@jrobl>
+References: <20101209070938.GA3949@amd> <19324.1291990997@jrobl> <20101213014553.GA6522@amd> <9580.1292225351@jrobl> <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtoichi13.ns.itscom.net ([219.110.2.183]:46404 "EHLO
+	mtoichi13.ns.itscom.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758821Ab0LNTCf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 14:02:35 -0500
+In-Reply-To: <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Nick Piggin <npiggin@gmail.com>
+Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On 12/08/2010 07:01 AM, dirk.brandewie-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org wrote:
-> From: Dirk Brandewie<dirk.brandewie-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->
-> This patch set adds the ability to link device tree blobs into
-> vmlinux.
->
-> Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
-> adds a generic rule for generating DTB objects to be linked vmlinux.
->
-> Patch 2 implements linking a DTB into an x86 image.
->
-> Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
-> in patch 1.
->
-> This patch set has been tested on x86.
->
-> Powerpc and Microblaze have been compile tested with and without patch
-> 3 and 4 applied.
->
-> Changes from V1:
->
-> Documentation added for dtc command in Makefile.lib to
-> Documentation/kbuild/makefiles.txt
-> Separate DTB_ALIGNMENT define removed.
-> FORCE removed from dtc rule.
-> Removed hardcoded path to dts files from dtc command.
-> Moved %.dtb: %.dts rule to arch specific makefiles.
->
-> Patch for adding kernel command line option to pass in dtb_compat
-> string dropped from this set will be submitted seperately.
->
-> Changes from V2:
->
-> Rule to create assembly wrapper for blob changed to use Sam Ravnborgs
-> suggested implementation.
->
-> Rules in architecture specific Makefiles changed to use the cmd
-> function instead of the if_changed function.
->
-> Dirk Brandewie (4):
->    of: Add support for linking device tree blobs into vmlinux
->    x86/of: Add building device tree blob(s) into image.
->    of/powerpc: Use generic rule to build dtb's
->    microblaze/of: Use generic rule to build dtb's
->
->   Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
->   arch/microblaze/boot/Makefile      |   12 +++---------
->   arch/powerpc/boot/Makefile         |    8 +++-----
->   arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
->   include/asm-generic/vmlinux.lds.h  |   13 +++++++++++--
->   scripts/Makefile.lib               |   23 +++++++++++++++++++++++
->   6 files changed, 65 insertions(+), 16 deletions(-)
->
 
-Any Comments on this patch set?
+Nick Piggin:
+> Well, let's see what turns up. We certainly can try the long *
+> approach. I suspect on architectures where byte loads are
+> very slow, gcc will block the loop into larger loads, so it should
+> be no worse than a normal memcmp call, but if we do explicit
+> padding we can avoid all the problems associated with tail
+> handling.
 
---Dirk
+Thank you for your reply.
+But unfortunately I am afraid that I cannot understand what you wrote
+clearly due to my poor English. What I understood is,
+- I suggested 'long *' approach
+- You wrote "not bad and possible, but may not be worth"
+- I agreed "the approach may not be effective"
+And you gave deeper consideration, but the result is unchaged which
+means "'long *' approach may not be worth". Am I right?
+
+
+> In short, I think the change should be suitable for all x86 CPUs,
+> but I would like to hear more opinions or see numbers for other
+> cores.
+
+I'd like to hear from other x86 experts too.
+Also I noticed that memcmp for x86_32 is defined as __builtin_memcmp
+(for x86_64 is "rep cmp"). Why does x86_64 doesn't use __builtin_memcmp?
+Is it really worse?
+
+
+J. R. Okajima
