@@ -1,36 +1,43 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Boaz Harrosh <bharrosh@panasas.com>
 Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Tue, 14 Dec 2010 23:12:08 -0800
-Message-ID: <AANLkTinZuGdZ4BMipbeLQH4e6UQ6qVNDCYeOxMpg7+og@mail.gmail.com>
-References: <20101209070938.GA3949@amd> <19324.1291990997@jrobl>
- <20101213014553.GA6522@amd> <9580.1292225351@jrobl> <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
- <20101215043840.GA7692@cr0.nay.redhat.com> <20101215055450.GC3398@amd>
+Date: Wed, 15 Dec 2010 15:15:09 +0200
+Message-ID: <4D08BF5D.1060509@panasas.com>
+References: <20101209070938.GA3949@amd>	<19324.1291990997@jrobl>	<20101213014553.GA6522@amd>	<9580.1292225351@jrobl>	<AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>	<12853.1292353313@jrobl> <AANLkTinjkcciZhJM5FmUkh_YCJ6bc9aTq8zV=SACDb1O@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:41536 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752057Ab0LOHM6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Dec 2010 02:12:58 -0500
-In-Reply-To: <20101215055450.GC3398@amd>
+Received: from daytona.panasas.com ([67.152.220.89]:25433 "EHLO
+	daytona.panasas.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750858Ab0LONPO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Dec 2010 08:15:14 -0500
+In-Reply-To: <AANLkTinjkcciZhJM5FmUkh_YCJ6bc9aTq8zV=SACDb1O@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@kernel.dk>
-Cc: =?ISO-8859-1?Q?Am=E9rico_Wang?= <xiyou.wangcong@gmail.com>, Nick Piggin <npiggin@gmail.com>, "J. R. Okajima" <hooanon05@yahoo.co.jp>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Nick Piggin <npiggin@gmail.com>
+Cc: "J. R. Okajima" <hooanon05@yahoo.co.jp>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-On Tue, Dec 14, 2010 at 9:54 PM, Nick Piggin <npiggin@kernel.dk> wrote:
->
-> That's what I would like to know, but I suspect that for very short
-> strings we are dealing with, the custom loop will be fine for
-> everybody.
+On 12/15/2010 06:06 AM, Nick Piggin wrote:
+> 
+> However instead of a normal memcmp, we could actually pad dentry
+> names out to sizeof(long) with zeros, and take advantage of that with
+> a memcmp that does not have to handle tails -- it would operate
+> entirely with longs.
+> 
+> That would avoid icache and branch regressions, and might speed up
+> the operation on some architectures. I just doubted whether it would
+> show an improvement to be worth doing at all. If it does, I'm all for it.
+> 
 
-Yeah, I can pretty much guarantee it for the common case of short
-strings. Most path components are short enough that a "clever"
-memcmp() is simply likely going to be slower than doing things
-byte-per-byte.
+I agree that the byte-compare or long-compare should give you very close
+results in modern pipeline CPUs. But surly 12 increments-and-test should
+show up against 3 (or even 2). I would say it must be a better plan.
 
-That's especially true if we then in the future end up making it do a
-long-by-long compare instead of the byte-by-byte one.
+BTW the long approach if you assume that the beginning of the string
+is long aligned than it is only a matter of comparing the last byte
+with a mask, no branches. But I'm not saying, just make sure they are
+padded.
 
-                        Linus
+Just my $0.017
+Thanks
+Boaz
