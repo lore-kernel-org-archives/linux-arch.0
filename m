@@ -1,55 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet10.oracle.com ([148.87.113.121]:34794 "EHLO
-	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753078Ab0LOC7B (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 21:59:01 -0500
-Subject: Re: [PATCH] Fix unconditional GFP_KERNEL allocations in
- __vmalloc().
-From: "Ricardo M. Correia" <ricardo.correia@oracle.com>
-In-Reply-To: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
-References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 15 Dec 2010 03:53:20 +0100
-Message-ID: <1292381600.2994.6.camel@oralap>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-vw0-f66.google.com ([209.85.212.66]:39406 "EHLO
+	mail-vw0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755930Ab0LOEi5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 23:38:57 -0500
+Date: Wed, 15 Dec 2010 12:38:40 +0800
+From: =?utf-8?Q?Am=C3=A9rico?= Wang <xiyou.wangcong@gmail.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Message-ID: <20101215043840.GA7692@cr0.nay.redhat.com>
+References: <20101209070938.GA3949@amd>
+ <19324.1291990997@jrobl>
+ <20101213014553.GA6522@amd>
+ <9580.1292225351@jrobl>
+ <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov
-Message-ID: <20101215025320.G-xJjLuzO9Bks7_qEIk2cDfuFdBI4FBX2jVQJBO8KuI@z>
+To: Nick Piggin <npiggin@gmail.com>
+Cc: "J. R. Okajima" <hooanon05@yahoo.co.jp>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20101215043840.vKM9SOLI-5wc6ONz5sUmmugw_kIDBOtO6Q5gOUlhclk@z>
 
-On Wed, 2010-12-15 at 03:45 +0100, Ricardo M. Correia wrote:
-> (Patch based on 2.6.36 tag).
-> 
-> These GFP_KERNEL allocations could happen even though the caller of __vmalloc()
-> requested a stricter gfp mask (such as GFP_NOFS or GFP_ATOMIC).
+On Mon, Dec 13, 2010 at 07:25:05PM +1100, Nick Piggin wrote:
+>On Mon, Dec 13, 2010 at 6:29 PM, J. R. Okajima <hooanon05@yahoo.co.jp> wrote:
+>> But is the "rep cmp has quite a long latency" issue generic for all x86
+>> architecture, or Westmere system specific?
+>
+>I don't believe it is Westmere specific. Intel and AMD have
+>been improving these instructions in the past few years, so
+>Westmere is probably as good or better than any.
+>
+>That said, rep cmp may not be as heavily optimized as the
+>set and copy string instructions.
+>
+>In short, I think the change should be suitable for all x86 CPUs,
+>but I would like to hear more opinions or see numbers for other
+>cores.
+>
 
-Sorry for taking a while to write this patch. For the discussion behind
-it, you can read: http://marc.info/?t=128942209500002&r=1&w=2
+How about other arch? If this is only for x86, shouldn't it be
+protected by CONFIG_X86?
 
-Please note that I have only tested this patch on my laptop (x86-64)
- with one Kconfig.
-
-Since I have done all these changes manually and I don't have any
-non-x86-64 machines, it's possible that I may have typoed or missed
-something and that this patch may break compilation on other
-architectures or with other config options.
-
-Any suggestions are welcome.
-
-Thanks,
-Ricardo
-
-> This was first noticed in Lustre, where it led to deadlocks due to a filesystem
-> thread which requested a GFP_NOFS __vmalloc() allocation ended up calling down
-> to Lustre itself to free memory, despite this not being allowed by GFP_NOFS.
-> 
-> Further analysis showed that some in-tree filesystems (namely GFS, Ceph and XFS)
-> were vulnerable to the same bug due to calling __vmalloc() or vm_map_ram() in
-> contexts where __GFP_FS allocations are not allowed.
-> 
-> Fixing this bug required changing a few mm interfaces to accept gfp flags.
-> This needed to be done in all architectures, thus the large number of changes.
-
-
+Thanks.
