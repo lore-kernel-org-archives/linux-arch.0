@@ -1,46 +1,36 @@
-From: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Wed, 15 Dec 2010 14:57:05 +0900
-Message-ID: <6910.1292392625@jrobl>
-References: <20101209070938.GA3949@amd> <19324.1291990997@jrobl> <20101213014553.GA6522@amd> <9580.1292225351@jrobl> <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com> <12853.1292353313@jrobl> <AANLkTinjkcciZhJM5FmUkh_YCJ6bc9aTq8zV=SACDb1O@mail.gmail.com>
+Date: Tue, 14 Dec 2010 23:12:08 -0800
+Message-ID: <AANLkTinZuGdZ4BMipbeLQH4e6UQ6qVNDCYeOxMpg7+og@mail.gmail.com>
+References: <20101209070938.GA3949@amd> <19324.1291990997@jrobl>
+ <20101213014553.GA6522@amd> <9580.1292225351@jrobl> <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+ <20101215043840.GA7692@cr0.nay.redhat.com> <20101215055450.GC3398@amd>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtoichi14.ns.itscom.net ([219.110.2.184]:37687 "EHLO
-	mtoichi14.ns.itscom.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752158Ab0LOF5v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Dec 2010 00:57:51 -0500
-In-Reply-To: <AANLkTinjkcciZhJM5FmUkh_YCJ6bc9aTq8zV=SACDb1O@mail.gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:41536 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752057Ab0LOHM6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Dec 2010 02:12:58 -0500
+In-Reply-To: <20101215055450.GC3398@amd>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@gmail.com>
-Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+To: Nick Piggin <npiggin@kernel.dk>
+Cc: =?ISO-8859-1?Q?Am=E9rico_Wang?= <xiyou.wangcong@gmail.com>, Nick Piggin <npiggin@gmail.com>, "J. R. Okajima" <hooanon05@yahoo.co.jp>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
-
-Thank you for explanation.
-I understood about padding zero tail bytes as an improvement or a
-variation of the 'long *' approach. But I didn't write about it in my
-previous mail. If I had written, you might not need to describe again.
-
-I have also compared "repe; cmpsb" and __builtin_memcmp "in userspace".
-And __builtin_memcmp shows faster and it looks like an approach of
-mixing pointers. Although the code size grows, in source it will be
-simple #define and it is already done in x86_32. Do you (or any other
-x86 experts) think it is worth to try?
-
-
-J. R. Okajima
-
-Nick Piggin:
-> What I meant is that a "normal" memcmp that does long * memory
-> operations is not a good idea, because it requires code and branches
-> to handle the tail of the string. When average string lengths are less
-> than 16 bytes, it hardly seems wothwhile. It will just get more
-> mispredicts and bigger icache footprint.
+On Tue, Dec 14, 2010 at 9:54 PM, Nick Piggin <npiggin@kernel.dk> wrote:
 >
-> However instead of a normal memcmp, we could actually pad dentry
-> names out to sizeof(long) with zeros, and take advantage of that with
-> a memcmp that does not have to handle tails -- it would operate
-> entirely with longs.
->
-> That would avoid icache and branch regressions, and might speed up
-> the operation on some architectures. I just doubted whether it would
-> show an improvement to be worth doing at all. If it does, I'm all for it.
+> That's what I would like to know, but I suspect that for very short
+> strings we are dealing with, the custom loop will be fine for
+> everybody.
+
+Yeah, I can pretty much guarantee it for the common case of short
+strings. Most path components are short enough that a "clever"
+memcmp() is simply likely going to be slower than doing things
+byte-per-byte.
+
+That's especially true if we then in the future end up making it do a
+long-by-long compare instead of the byte-by-byte one.
+
+                        Linus
