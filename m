@@ -1,62 +1,70 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Cross compilers (Was: Re: [PATCH] Fix unconditional GFP_KERNEL
- allocations in __vmalloc().)
-Date: Wed, 15 Dec 2010 14:48:35 +1100
-Message-ID: <20101215144835.adf2078f.sfr@canb.auug.org.au>
-References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
-	<1292381600.2994.6.camel@oralap>
+From: Nick Piggin <npiggin@gmail.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: Wed, 15 Dec 2010 15:06:00 +1100
+Message-ID: <AANLkTinjkcciZhJM5FmUkh_YCJ6bc9aTq8zV=SACDb1O@mail.gmail.com>
+References: <20101209070938.GA3949@amd>
+	<19324.1291990997@jrobl>
+	<20101213014553.GA6522@amd>
+	<9580.1292225351@jrobl>
+	<AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+	<12853.1292353313@jrobl>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__15_Dec_2010_14_48_35_+1100_H/o3ZMV9DEJ4sqjh"
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:52586 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754893Ab0LODsp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Dec 2010 22:48:45 -0500
-In-Reply-To: <1292381600.2994.6.camel@oralap>
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:65147 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755518Ab0LOEGD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 23:06:03 -0500
+In-Reply-To: <12853.1292353313@jrobl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Ricardo M. Correia" <ricardo.correia@oracle.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov, tony@bakeyournoodle.com
+To: "J. R. Okajima" <hooanon05@yahoo.co.jp>
+Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
 
---Signature=_Wed__15_Dec_2010_14_48_35_+1100_H/o3ZMV9DEJ4sqjh
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi Ricardo,
-
-On Wed, 15 Dec 2010 03:53:20 +0100 "Ricardo M. Correia" <ricardo.correia@or=
-acle.com> wrote:
+On Wed, Dec 15, 2010 at 6:01 AM, J. R. Okajima <hooanon05@yahoo.co.jp> wrote:
 >
-> Since I have done all these changes manually and I don't have any
-> non-x86-64 machines, it's possible that I may have typoed or missed
-> something and that this patch may break compilation on other
-> architectures or with other config options.
->=20
-> Any suggestions are welcome.
+> Nick Piggin:
+>> Well, let's see what turns up. We certainly can try the long *
+>> approach. I suspect on architectures where byte loads are
+>> very slow, gcc will block the loop into larger loads, so it should
+>> be no worse than a normal memcmp call, but if we do explicit
+>> padding we can avoid all the problems associated with tail
+>> handling.
+>
+> Thank you for your reply.
+> But unfortunately I am afraid that I cannot understand what you wrote
+> clearly due to my poor English. What I understood is,
+> - I suggested 'long *' approach
+> - You wrote "not bad and possible, but may not be worth"
+> - I agreed "the approach may not be effective"
+> And you gave deeper consideration, but the result is unchaged which
+> means "'long *' approach may not be worth". Am I right?
 
-See http://kernel.org/pub/tools/crosstool/files/bin
+What I meant is that a "normal" memcmp that does long * memory
+operations is not a good idea, because it requires code and branches
+to handle the tail of the string. When average string lengths are less
+than 16 bytes, it hardly seems wothwhile. It will just get more
+mispredicts and bigger icache footprint.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+However instead of a normal memcmp, we could actually pad dentry
+names out to sizeof(long) with zeros, and take advantage of that with
+a memcmp that does not have to handle tails -- it would operate
+entirely with longs.
 
---Signature=_Wed__15_Dec_2010_14_48_35_+1100_H/o3ZMV9DEJ4sqjh
-Content-Type: application/pgp-signature
+That would avoid icache and branch regressions, and might speed up
+the operation on some architectures. I just doubted whether it would
+show an improvement to be worth doing at all. If it does, I'm all for it.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
 
-iQEcBAEBAgAGBQJNCDqTAAoJEDMEi1NhKgbsXfYH/irDQMvSgk3UaSRCWoP8JlhJ
-ZQ1rzPQ0yYfGmHxaWYuZ14mCWM65CLOdKnmFfzabrVL47/fm6B0Ntzg51DI2ZxzA
-iIRweSPfN/wRHlPiSxlTCYHskR26FymBUKozxKuuMMi9BZJPlBqnO67GT/gT+8Kv
-fFxMi9Kg6EggvwxyYJ/u7kYaOjOpsXXmh+PNjV2oCNl9Vt5yd4Pn4qnllnN37Z+h
-THGprlxk3+6x+2nvP3d+/6LTq5NiAJyO7A6rvC7Ek48Hz6bfZzddNFV8mC37xuiX
-czQNknphi4HaJR1Cf2qHyPwAs20VstDEwAuJH6Igr6CfkfQjqqqxZELcvtBbwDk=
-=xiZ/
------END PGP SIGNATURE-----
-
---Signature=_Wed__15_Dec_2010_14_48_35_+1100_H/o3ZMV9DEJ4sqjh--
+>> In short, I think the change should be suitable for all x86 CPUs,
+>> but I would like to hear more opinions or see numbers for other
+>> cores.
+>
+> I'd like to hear from other x86 experts too.
+> Also I noticed that memcmp for x86_32 is defined as __builtin_memcmp
+> (for x86_64 is "rep cmp"). Why does x86_64 doesn't use __builtin_memcmp?
+> Is it really worse?
+>
+>
+> J. R. Okajima
+>
