@@ -1,45 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f66.google.com ([209.85.212.66]:39406 "EHLO
-	mail-vw0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755930Ab0LOEi5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Dec 2010 23:38:57 -0500
-Date: Wed, 15 Dec 2010 12:38:40 +0800
-From: =?utf-8?Q?Am=C3=A9rico?= Wang <xiyou.wangcong@gmail.com>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36386
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752284Ab0LPR4r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Dec 2010 12:56:47 -0500
+Date: Thu, 16 Dec 2010 09:57:16 -0800 (PST)
+Message-ID: <20101216.095716.71123831.davem@davemloft.net>
 Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Message-ID: <20101215043840.GA7692@cr0.nay.redhat.com>
-References: <20101209070938.GA3949@amd>
- <19324.1291990997@jrobl>
- <20101213014553.GA6522@amd>
- <9580.1292225351@jrobl>
- <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <AANLkTimeWSEUU6EYa4yWY11OyAVQqNu5eoBZc5ddqHQL@mail.gmail.com>
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <4D09E185.2040600@panasas.com>
+References: <4D08BF5D.1060509@panasas.com>
+	<20101215.100055.226772943.davem@davemloft.net>
+	<4D09E185.2040600@panasas.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nick Piggin <npiggin@gmail.com>
-Cc: "J. R. Okajima" <hooanon05@yahoo.co.jp>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20101215043840.vKM9SOLI-5wc6ONz5sUmmugw_kIDBOtO6Q5gOUlhclk@z>
+To: bharrosh@panasas.com
+Cc: npiggin@gmail.com, hooanon05@yahoo.co.jp, npiggin@kernel.dk, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20101216175716.VS_pDddhyEKxPsBVrBx-LRGGHQWh6ki2cAHfxLxiFwA@z>
 
-On Mon, Dec 13, 2010 at 07:25:05PM +1100, Nick Piggin wrote:
->On Mon, Dec 13, 2010 at 6:29 PM, J. R. Okajima <hooanon05@yahoo.co.jp> wrote:
->> But is the "rep cmp has quite a long latency" issue generic for all x86
->> architecture, or Westmere system specific?
->
->I don't believe it is Westmere specific. Intel and AMD have
->been improving these instructions in the past few years, so
->Westmere is probably as good or better than any.
->
->That said, rep cmp may not be as heavily optimized as the
->set and copy string instructions.
->
->In short, I think the change should be suitable for all x86 CPUs,
->but I would like to hear more opinions or see numbers for other
->cores.
->
+From: Boaz Harrosh <bharrosh@panasas.com>
+Date: Thu, 16 Dec 2010 11:53:09 +0200
 
-How about other arch? If this is only for x86, shouldn't it be
-protected by CONFIG_X86?
+> You miss understood me. I'm saying that we know the beggining of the
+> string is aligned and Nick offered to pad the last long, so surly
+> a shift by 2 (or 3) + the reduction of the 12 dec-and-test to 3
+> should give you an optimization?
 
-Thanks.
+Indeed, we could do something interesting in the case where both
+strings are tail padded like that.
