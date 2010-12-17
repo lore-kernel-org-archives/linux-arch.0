@@ -1,58 +1,67 @@
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: [PATCH] Fix unconditional GFP_KERNEL allocations in __vmalloc().
-Date: Fri, 17 Dec 2010 16:27:53 +0900 (JST)
-Message-ID: <20101217162626.DA0A.A69D9226@jp.fujitsu.com>
-References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
+From: Tony Luck <tony.luck@intel.com>
+Subject: Re: [concept & "good taste" review] persistent store
+Date: Fri, 17 Dec 2010 10:09:54 -0800
+Message-ID: <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
+	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
+	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:57807 "EHLO
-	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751226Ab0LQH14 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Dec 2010 02:27:56 -0500
-Received: from m2.gw.fujitsu.co.jp ([10.0.50.72])
-	by fgwmail6.fujitsu.co.jp (Fujitsu Gateway) with ESMTP id oBH7Rsa0017092
-	for <linux-arch@vger.kernel.org> (envelope-from kosaki.motohiro@jp.fujitsu.com);
-	Fri, 17 Dec 2010 16:27:54 +0900
-Received: from smail (m2 [127.0.0.1])
-	by outgoing.m2.gw.fujitsu.co.jp (Postfix) with ESMTP id 5961345DE68
-	for <linux-arch@vger.kernel.org>; Fri, 17 Dec 2010 16:27:54 +0900 (JST)
-Received: from s2.gw.fujitsu.co.jp (s2.gw.fujitsu.co.jp [10.0.50.92])
-	by m2.gw.fujitsu.co.jp (Postfix) with ESMTP id 3F69745DE4D
-	for <linux-arch@vger.kernel.org>; Fri, 17 Dec 2010 16:27:54 +0900 (JST)
-Received: from s2.gw.fujitsu.co.jp (localhost.localdomain [127.0.0.1])
-	by s2.gw.fujitsu.co.jp (Postfix) with ESMTP id 32E551DB803E
-	for <linux-arch@vger.kernel.org>; Fri, 17 Dec 2010 16:27:54 +0900 (JST)
-Received: from m106.s.css.fujitsu.com (m106.s.css.fujitsu.com [10.249.87.106])
-	by s2.gw.fujitsu.co.jp (Postfix) with ESMTP id F0B5B1DB803B
-	for <linux-arch@vger.kernel.org>; Fri, 17 Dec 2010 16:27:53 +0900 (JST)
-In-Reply-To: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Ricardo M. Correia" <ricardo.correia@oracle.com>
-Cc: kosaki.motohiro@jp.fujitsu.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
-> (Patch based on 2.6.36 tag).
-> 
-> These GFP_KERNEL allocations could happen even though the caller of __vmalloc()
-> requested a stricter gfp mask (such as GFP_NOFS or GFP_ATOMIC).
-> 
-> This was first noticed in Lustre, where it led to deadlocks due to a filesystem
-> thread which requested a GFP_NOFS __vmalloc() allocation ended up calling down
-> to Lustre itself to free memory, despite this not being allowed by GFP_NOFS.
-> 
-> Further analysis showed that some in-tree filesystems (namely GFS, Ceph and XFS)
-> were vulnerable to the same bug due to calling __vmalloc() or vm_map_ram() in
-> contexts where __GFP_FS allocations are not allowed.
-> 
-> Fixing this bug required changing a few mm interfaces to accept gfp flags.
-> This needed to be done in all architectures, thus the large number of changes.
+On Thu, Dec 16, 2010 at 10:28 PM, Tony Luck <tony.luck@gmail.com> wrote:
+>> The _only_ valid reason for persistent storage is for things like
+>> oopses that kill the machine.
+>
+> Maybe I misunderstood what "KMSG_DUMP_OOPS" meant ... it
+> looked to me like this code is used for non-fatal OOPsen - ones
+> that will be logged to /var/log/messages.
 
-I like this patch. but please separate it two patches.
+Thinking about this a bit more I see my experiments with
+this were hopelessly naive. There is no way to know at
+"oops" time whether the problem is going to turn out to
+be minor or fatal.  So the right thing to do here is assume
+the worst and squirrel the data away safely just in case
+death is imminent.
 
- 1) add gfp_mask argument to some function
- 2) vmalloc use flexible mask instead GFP_KERNEL always.
+This means that I need to re-think this part too:
++/*
++ * Call platform driver to write a record to the
++ * persistent store. We don't worry about making
++ * this visible in the pstore filesystem as the
++ * presumption is that we only save things to the
++ * store in the dying moments of OS failure. Hence
++ * nobody will see the entries in the filesystem.
++ */
 
-I mean please consider to make reviewers friendly patch.
-IOW, please see your diffstat. ;)
+Since rumors of the death of the kernel may be greatly
+exaggerated ... I *do* need to make the newly added
+records visible in the pstore file system so that we
+don't run into the situation where persistent store
+has been filled with a series of minor oops reports
+(which are in any case also logged elsewhere) with
+no space left to log the fatal message. Adding
+them to the file system would give the user a handle
+to look at them and erase them.
+
+> So in the end, I really don't see any point at all to this thing.
+
+So does fixing this stupidity provide a useful point for this?
+
+The point I see, is providing a generic layer that any platform
+persistent store driver can use by just writing simple
+read/write/erase functions ... rather than everyone
+having to roll their own, slightly different, versions of
+what could be a common interface. There was a
+recent attempt to do exactly this with:
+     drivers/staging/dream/pmem.c
+which has currently been dropped - but it may come
+back (and my version doesn't have, or need, "ioctl"
+operations :-).
+
+-Tony
