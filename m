@@ -1,15 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:61946 "EHLO
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:64815 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755440Ab0LQSJz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Dec 2010 13:09:55 -0500
+	with ESMTP id S1753919Ab0LQXIE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Dec 2010 18:08:04 -0500
 MIME-Version: 1.0
-In-Reply-To: <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+In-Reply-To: <AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
 References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
 	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
 	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
-Date: Fri, 17 Dec 2010 10:09:54 -0800
-Message-ID: <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
+Date: Fri, 17 Dec 2010 15:08:03 -0800
+Message-ID: <AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
 Subject: Re: [concept & "good taste" review] persistent store
 From: Tony Luck <tony.luck@intel.com>
 Content-Type: text/plain; charset=ISO-8859-1
@@ -17,56 +19,46 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20101217180954.2P62IITEYveAPVXoO8udUM4GbfXejSdRPuR2ZRfQTXU@z>
+Message-ID: <20101217230803.0EShtgPwPcAG-iQQ-BsbeRnGZ_027L8E8dK1PWfhpxw@z>
 
-On Thu, Dec 16, 2010 at 10:28 PM, Tony Luck <tony.luck@gmail.com> wrote:
->> The _only_ valid reason for persistent storage is for things like
->> oopses that kill the machine.
+On Fri, Dec 17, 2010 at 1:38 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> Yes. However, I still question the "filesystem" part.
 >
-> Maybe I misunderstood what "KMSG_DUMP_OOPS" meant ... it
-> looked to me like this code is used for non-fatal OOPsen - ones
-> that will be logged to /var/log/messages.
+> Technically, what I think any persistent storage should aim for is to
+> be a "journal" - not a filesystem. It's most useful as a temporary
+> area for data _before_ that data actually hits the disk, and once it
+> has hit the disk (or has been picked up by a network syslog server, of
+> course), the usefulness of the persistent storage immediately
+> vanishes.
+>
+> So I don't really mind having a filesystem interface to that (the
+> whole "everything is a file" model), but I think it can end up
+> confusing people about what this thing is useful for. I fear that
+> people will try to write to it from user space as some kind of
+> mini-filesystem, and that seems pointless.
 
-Thinking about this a bit more I see my experiments with
-this were hopelessly naive. There is no way to know at
-"oops" time whether the problem is going to turn out to
-be minor or fatal.  So the right thing to do here is assume
-the worst and squirrel the data away safely just in case
-death is imminent.
+Do we have any good models for "journals" ... apart from
+the console log?  Ying & I did talk about just using printk
+to drop all the saved information onto the console (with
+some sort of "previous" prefix on each line to make
+it easy to find, and to make sure that someone glancing
+at the messages wouldn't worry that that OOPs scrolling
+by was happening now).  But this seemed like a really bad
+idea (especially if someone has enough persistent store to
+capture all of __logbuf).
 
-This means that I need to re-think this part too:
-+/*
-+ * Call platform driver to write a record to the
-+ * persistent store. We don't worry about making
-+ * this visible in the pstore filesystem as the
-+ * presumption is that we only save things to the
-+ * store in the dying moments of OS failure. Hence
-+ * nobody will see the entries in the filesystem.
-+ */
+So the downside of "everything is a file" is that we don't
+have much infrastructure for things that don't look like
+files - and trying to build some results in some special
+custom tools being needed to access the data, which
+just makes things harder to use.
 
-Since rumors of the death of the kernel may be greatly
-exaggerated ... I *do* need to make the newly added
-records visible in the pstore file system so that we
-don't run into the situation where persistent store
-has been filled with a series of minor oops reports
-(which are in any case also logged elsewhere) with
-no space left to log the fatal message. Adding
-them to the file system would give the user a handle
-to look at them and erase them.
-
-> So in the end, I really don't see any point at all to this thing.
-
-So does fixing this stupidity provide a useful point for this?
-
-The point I see, is providing a generic layer that any platform
-persistent store driver can use by just writing simple
-read/write/erase functions ... rather than everyone
-having to roll their own, slightly different, versions of
-what could be a common interface. There was a
-recent attempt to do exactly this with:
-     drivers/staging/dream/pmem.c
-which has currently been dropped - but it may come
-back (and my version doesn't have, or need, "ioctl"
-operations :-).
+People trying to write to /dev/pstore will figure out quickly
+that you can't do that. There are no "ops" to make new files,
+directories, symlinks or even to rename existing ones. You
+can overwrite existing files (because I don't trap "open" to
+deny them write access - but the 0444 mode is supposed
+to be a visual clue to not do that).
 
 -Tony
