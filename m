@@ -1,33 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:36386
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752284Ab0LPR4r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Dec 2010 12:56:47 -0500
-Date: Thu, 16 Dec 2010 09:57:16 -0800 (PST)
-Message-ID: <20101216.095716.71123831.davem@davemloft.net>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <4D09E185.2040600@panasas.com>
-References: <4D08BF5D.1060509@panasas.com>
-	<20101215.100055.226772943.davem@davemloft.net>
-	<4D09E185.2040600@panasas.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:61946 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755440Ab0LQSJz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Dec 2010 13:09:55 -0500
+MIME-Version: 1.0
+In-Reply-To: <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
+	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
+	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+Date: Fri, 17 Dec 2010 10:09:54 -0800
+Message-ID: <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+Subject: Re: [concept & "good taste" review] persistent store
+From: Tony Luck <tony.luck@intel.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bharrosh@panasas.com
-Cc: npiggin@gmail.com, hooanon05@yahoo.co.jp, npiggin@kernel.dk, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org
-Message-ID: <20101216175716.VS_pDddhyEKxPsBVrBx-LRGGHQWh6ki2cAHfxLxiFwA@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20101217180954.2P62IITEYveAPVXoO8udUM4GbfXejSdRPuR2ZRfQTXU@z>
 
-From: Boaz Harrosh <bharrosh@panasas.com>
-Date: Thu, 16 Dec 2010 11:53:09 +0200
+On Thu, Dec 16, 2010 at 10:28 PM, Tony Luck <tony.luck@gmail.com> wrote:
+>> The _only_ valid reason for persistent storage is for things like
+>> oopses that kill the machine.
+>
+> Maybe I misunderstood what "KMSG_DUMP_OOPS" meant ... it
+> looked to me like this code is used for non-fatal OOPsen - ones
+> that will be logged to /var/log/messages.
 
-> You miss understood me. I'm saying that we know the beggining of the
-> string is aligned and Nick offered to pad the last long, so surly
-> a shift by 2 (or 3) + the reduction of the 12 dec-and-test to 3
-> should give you an optimization?
+Thinking about this a bit more I see my experiments with
+this were hopelessly naive. There is no way to know at
+"oops" time whether the problem is going to turn out to
+be minor or fatal.  So the right thing to do here is assume
+the worst and squirrel the data away safely just in case
+death is imminent.
 
-Indeed, we could do something interesting in the case where both
-strings are tail padded like that.
+This means that I need to re-think this part too:
++/*
++ * Call platform driver to write a record to the
++ * persistent store. We don't worry about making
++ * this visible in the pstore filesystem as the
++ * presumption is that we only save things to the
++ * store in the dying moments of OS failure. Hence
++ * nobody will see the entries in the filesystem.
++ */
+
+Since rumors of the death of the kernel may be greatly
+exaggerated ... I *do* need to make the newly added
+records visible in the pstore file system so that we
+don't run into the situation where persistent store
+has been filled with a series of minor oops reports
+(which are in any case also logged elsewhere) with
+no space left to log the fatal message. Adding
+them to the file system would give the user a handle
+to look at them and erase them.
+
+> So in the end, I really don't see any point at all to this thing.
+
+So does fixing this stupidity provide a useful point for this?
+
+The point I see, is providing a generic layer that any platform
+persistent store driver can use by just writing simple
+read/write/erase functions ... rather than everyone
+having to roll their own, slightly different, versions of
+what could be a common interface. There was a
+recent attempt to do exactly this with:
+     drivers/staging/dream/pmem.c
+which has currently been dropped - but it may come
+back (and my version doesn't have, or need, "ioctl"
+operations :-).
+
+-Tony
