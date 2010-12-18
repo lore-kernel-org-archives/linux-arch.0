@@ -1,67 +1,116 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [concept & "good taste" review] persistent store
-Date: Sat, 18 Dec 2010 10:23:03 -0800
-Message-ID: <AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
-References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
- <AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
- <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
- <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
- <AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
- <AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
- <4D0BEE1F.7020008@zytor.com> <AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:39571 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932097Ab0LRSau (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Dec 2010 13:30:50 -0500
-In-Reply-To: <AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: 18 Dec 2010 17:54:36 -0500
+Message-ID: <20101218225436.28264.qmail@science.horizon.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: bharrosh@panasas.com
+Cc: linux@horizon.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 17, 2010 at 3:53 PM, Tony Luck <tony.luck@intel.com> wrote:
-> On Fri, Dec 17, 2010 at 3:11 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> There are two models I can think of:
->>
->> 1. a file where the head is automatically dropped as space requires.
->> 2. a filesystem where the oldest files are automatically reclaimed.
->>
->> 1 has been implemented in actual systems, 2 is kind of a logical extension.
->
-> #2 sounds more applicable here (we have some multi-kilobyte
-> blobs of data, one from each kmsg_dumper invocation - and
-> it would seem useful to keep them as separate entities)
+> static inline int dentry_memcmp_long(const unsigned char *cs,
+> 				const unsigned char *ct, ssize_t count)
+> {
+> 	int ret;
+> 	const unsigned long *ls = (const unsigned long *)cs;
+> 	const unsigned long *lt = (const unsigned long *)ct;
+> 
+> 	while (count > 8) {
+> 		ret = (*cs != *ct);
+> 		if (ret)
+> 			break;
+> 		cs++;
+> 		ct++;
+> 		count-=8;
+> 	}
+> 	if (count) {
+> 		unsigned long t = *ct & ((0xffffffffffffffff >> ((8 - count) * 8))
+> 		ret = (*cs != t)
+> 	}
+> 
+> 	return ret;
+> }
 
-So I would argue that what we'd want is actually more of a mix of the two.
+First, let's get the code right, and use correct types, but also, there
+are some tricks to reduce the masking cost.
 
-You want to have a ring of events, and into that ring you also have a
-"this event has been read" pointer. And you _never_ overwrite entries
-that haven't been read yet, because quite frankly, if you get some
-nasty memory corruption, you may end up with a thousand oopses in
-rapid succession, and the latter ones are likely to be just fallout
-from the earlier ones. So you definitely don't want to overwrite the
-earlier ones, because they are more likely to contain the clues about
-the actual original cause.
+As long as you have to mask one string, *and* don't have to worry about
+running off the end of mapped memory, there's no additional cost to
+masking both in the loop.  Just test (a ^ b) & mask.
 
-At the same time, you do want to have the capability of saying "I've
-seen this", and let it be overwritten. For example, if we end up
-teaching syslogd or something like that to use this, syslogd would
-write the oops to disk, do a fdatasync() on the oops file, and after
-it's stable on disk it can mark it "read".
+#if 1	/* Table lookup */
 
-Also, since this is very much about persistent storage, I think any
-events from a previous boot that still exists should be marked "read".
-You still want to be able to read them (so marking something "read"
-does not mean that it goes away), but if a new oops happens, you don't
-want some old entries from long ago to stop it from being written to
-persistent storage. So if you don't have any syslogd or any other tool
-that saves things to disk, you'd still get the new oopses into
-persistent storage.
+static unsigned long const dentry_memcmp_mask[8] = {
+#if defined(__LITTLE_ENDIAN)
+	0xff, 0xffff, 0xffffff, 0xffffffff,
+#if sizeof (unsigned long) > 4
+	0xffffffffff, 0xffffffffffff, 0xffffffffffffff, 0xffffffffffffffff
+#endif
+#elif defined(__BIG_ENDIAN)
+#if sizeof (unsigned long) == 4
+	0xff000000, 0xffff0000, 0xffffff00, 0xffffffff
+#else
+	0xff00000000000000, 0xffff000000000000,
+	0xffffff0000000000, 0xffffffff00000000,
+	0xffffffffff000000, 0xffffffffffff0000,
+	0xffffffffffffff00, 0xffffffffffffffff
+#endif
+#else
+#error undefined endianness
+#endif
+};
 
-Doesn't that sound like the best of both worlds?
+#define dentry_memcmp_mask(count) dentry_memcmp_mask[(count)-1]
 
-                         Linus
+#else /* In-line code */
+
+#if defined(__LITTLE_ENDIAN)
+#define dentry_memcmp_mask(count) (-1ul >> (sizeof 1ul - (count)) * 8)
+#elif defined(__BIG_ENDIAN)
+#define dentry_memcmp_mask(count) (-1ul << (sizeof 1ul - (count)) * 8)
+#else
+#error undefined endianness
+
+#endif
+
+static inline bool dentry_memcmp_long(unsigned char const *cs,
+				unsigned char const *ct, ssize_t count)
+{
+	unsigned long const *ls = (unsigned long const *)cs;
+	unsigned long const *lt = (unsigned long const *)ct;
+
+	while (count > sizeof *cs) {
+		if (*cs != *ct)
+			return true;
+		cs++;
+		ct++;
+		count -= sizeof *cs;
+	}
+	/* Last 1..8 bytes */
+	return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+}
+
+If your string is at least 8 bytes long, and the processor has fast unaligned
+loads, you can skip the mask entirely by redundantly comparing some bytes
+(although the code bloat is probably undesirable for inline code):
+
+static inline bool dentry_memcmp_long(const unsigned char *cs,
+				const unsigned char *ct, ssize_t count)
+{
+	unsigned long const *ls = (unsigned long const *)cs;
+	unsigned long const *lt = (unsigned long const *)ct;
+
+	if (count < sizeof *cs)
+		return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+
+	while (count > sizeof *cs) {
+		if (*cs != *ct)
+			return true;
+		cs++;
+		ct++;
+		count -= sizeof *cs;
+	}
+	cs = (unsigned long const *)((char const *)cs + count - sizeof *cs);
+	ct = (unsigned long const *)((char const *)ct + count - sizeof *ct);
+	return *cs != *ct;
+}
