@@ -1,64 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:64815 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753919Ab0LQXIE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Dec 2010 18:08:04 -0500
-MIME-Version: 1.0
-In-Reply-To: <AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
-References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
-	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
-	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
-	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
-	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
-Date: Fri, 17 Dec 2010 15:08:03 -0800
-Message-ID: <AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
-Subject: Re: [concept & "good taste" review] persistent store
-From: Tony Luck <tony.luck@intel.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from science.horizon.com ([71.41.210.146]:16278 "HELO
+	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1757185Ab0LRXBT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Dec 2010 18:01:19 -0500
+Date: 18 Dec 2010 17:54:36 -0500
+Message-ID: <20101218225436.28264.qmail@science.horizon.com>
+From: "George Spelvin" <linux@horizon.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, Borislav Petkov <bp@alien8.de>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20101217230803.0EShtgPwPcAG-iQQ-BsbeRnGZ_027L8E8dK1PWfhpxw@z>
+To: bharrosh@panasas.com
+Cc: linux@horizon.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20101218225436.NBqDQX3hzCW-NEyP83zpNut1eFHL06XqQmOIQasxvPA@z>
 
-On Fri, Dec 17, 2010 at 1:38 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> Yes. However, I still question the "filesystem" part.
->
-> Technically, what I think any persistent storage should aim for is to
-> be a "journal" - not a filesystem. It's most useful as a temporary
-> area for data _before_ that data actually hits the disk, and once it
-> has hit the disk (or has been picked up by a network syslog server, of
-> course), the usefulness of the persistent storage immediately
-> vanishes.
->
-> So I don't really mind having a filesystem interface to that (the
-> whole "everything is a file" model), but I think it can end up
-> confusing people about what this thing is useful for. I fear that
-> people will try to write to it from user space as some kind of
-> mini-filesystem, and that seems pointless.
+> static inline int dentry_memcmp_long(const unsigned char *cs,
+> 				const unsigned char *ct, ssize_t count)
+> {
+> 	int ret;
+> 	const unsigned long *ls = (const unsigned long *)cs;
+> 	const unsigned long *lt = (const unsigned long *)ct;
+> 
+> 	while (count > 8) {
+> 		ret = (*cs != *ct);
+> 		if (ret)
+> 			break;
+> 		cs++;
+> 		ct++;
+> 		count-=8;
+> 	}
+> 	if (count) {
+> 		unsigned long t = *ct & ((0xffffffffffffffff >> ((8 - count) * 8))
+> 		ret = (*cs != t)
+> 	}
+> 
+> 	return ret;
+> }
 
-Do we have any good models for "journals" ... apart from
-the console log?  Ying & I did talk about just using printk
-to drop all the saved information onto the console (with
-some sort of "previous" prefix on each line to make
-it easy to find, and to make sure that someone glancing
-at the messages wouldn't worry that that OOPs scrolling
-by was happening now).  But this seemed like a really bad
-idea (especially if someone has enough persistent store to
-capture all of __logbuf).
+First, let's get the code right, and use correct types, but also, there
+are some tricks to reduce the masking cost.
 
-So the downside of "everything is a file" is that we don't
-have much infrastructure for things that don't look like
-files - and trying to build some results in some special
-custom tools being needed to access the data, which
-just makes things harder to use.
+As long as you have to mask one string, *and* don't have to worry about
+running off the end of mapped memory, there's no additional cost to
+masking both in the loop.  Just test (a ^ b) & mask.
 
-People trying to write to /dev/pstore will figure out quickly
-that you can't do that. There are no "ops" to make new files,
-directories, symlinks or even to rename existing ones. You
-can overwrite existing files (because I don't trap "open" to
-deny them write access - but the 0444 mode is supposed
-to be a visual clue to not do that).
+#if 1	/* Table lookup */
 
--Tony
+static unsigned long const dentry_memcmp_mask[8] = {
+#if defined(__LITTLE_ENDIAN)
+	0xff, 0xffff, 0xffffff, 0xffffffff,
+#if sizeof (unsigned long) > 4
+	0xffffffffff, 0xffffffffffff, 0xffffffffffffff, 0xffffffffffffffff
+#endif
+#elif defined(__BIG_ENDIAN)
+#if sizeof (unsigned long) == 4
+	0xff000000, 0xffff0000, 0xffffff00, 0xffffffff
+#else
+	0xff00000000000000, 0xffff000000000000,
+	0xffffff0000000000, 0xffffffff00000000,
+	0xffffffffff000000, 0xffffffffffff0000,
+	0xffffffffffffff00, 0xffffffffffffffff
+#endif
+#else
+#error undefined endianness
+#endif
+};
+
+#define dentry_memcmp_mask(count) dentry_memcmp_mask[(count)-1]
+
+#else /* In-line code */
+
+#if defined(__LITTLE_ENDIAN)
+#define dentry_memcmp_mask(count) (-1ul >> (sizeof 1ul - (count)) * 8)
+#elif defined(__BIG_ENDIAN)
+#define dentry_memcmp_mask(count) (-1ul << (sizeof 1ul - (count)) * 8)
+#else
+#error undefined endianness
+
+#endif
+
+static inline bool dentry_memcmp_long(unsigned char const *cs,
+				unsigned char const *ct, ssize_t count)
+{
+	unsigned long const *ls = (unsigned long const *)cs;
+	unsigned long const *lt = (unsigned long const *)ct;
+
+	while (count > sizeof *cs) {
+		if (*cs != *ct)
+			return true;
+		cs++;
+		ct++;
+		count -= sizeof *cs;
+	}
+	/* Last 1..8 bytes */
+	return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+}
+
+If your string is at least 8 bytes long, and the processor has fast unaligned
+loads, you can skip the mask entirely by redundantly comparing some bytes
+(although the code bloat is probably undesirable for inline code):
+
+static inline bool dentry_memcmp_long(const unsigned char *cs,
+				const unsigned char *ct, ssize_t count)
+{
+	unsigned long const *ls = (unsigned long const *)cs;
+	unsigned long const *lt = (unsigned long const *)ct;
+
+	if (count < sizeof *cs)
+		return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+
+	while (count > sizeof *cs) {
+		if (*cs != *ct)
+			return true;
+		cs++;
+		ct++;
+		count -= sizeof *cs;
+	}
+	cs = (unsigned long const *)((char const *)cs + count - sizeof *cs);
+	ct = (unsigned long const *)((char const *)ct + count - sizeof *ct);
+	return *cs != *ct;
+}
