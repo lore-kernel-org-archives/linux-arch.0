@@ -1,143 +1,91 @@
-From: Boaz Harrosh <bharrosh@panasas.com>
+From: Nick Piggin <npiggin@gmail.com>
 Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Sun, 19 Dec 2010 16:28:35 +0200
-Message-ID: <4D0E1693.3040106@panasas.com>
+Date: Mon, 20 Dec 2010 02:46:07 +1100
+Message-ID: <AANLkTikwUEBd1Ez75pQ7gw7ShZitwQOQcH6CvCdJV2np@mail.gmail.com>
 References: <20101218225436.28264.qmail@science.horizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:34512 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932271Ab0LSPqK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Dec 2010 10:46:10 -0500
 In-Reply-To: <20101218225436.28264.qmail@science.horizon.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: George Spelvin <linux@horizon.com>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: bharrosh@panasas.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 12/19/2010 12:54 AM, George Spelvin wrote:
+On Sun, Dec 19, 2010 at 9:54 AM, George Spelvin <linux@horizon.com> wro=
+te:
 >> static inline int dentry_memcmp_long(const unsigned char *cs,
->> 				const unsigned char *ct, ssize_t count)
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 const un=
+signed char *ct, ssize_t count)
 >> {
->> 	int ret;
->> 	const unsigned long *ls = (const unsigned long *)cs;
->> 	const unsigned long *lt = (const unsigned long *)ct;
+>> =A0 =A0 =A0 int ret;
+>> =A0 =A0 =A0 const unsigned long *ls =3D (const unsigned long *)cs;
+>> =A0 =A0 =A0 const unsigned long *lt =3D (const unsigned long *)ct;
 >>
->> 	while (count > 8) {
->> 		ret = (*cs != *ct);
->> 		if (ret)
->> 			break;
->> 		cs++;
->> 		ct++;
->> 		count-=8;
->> 	}
->> 	if (count) {
->> 		unsigned long t = *ct & ((0xffffffffffffffff >> ((8 - count) * 8))
->> 		ret = (*cs != t)
->> 	}
+>> =A0 =A0 =A0 while (count > 8) {
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D (*cs !=3D *ct);
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (ret)
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 cs++;
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ct++;
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 count-=3D8;
+>> =A0 =A0 =A0 }
+>> =A0 =A0 =A0 if (count) {
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 unsigned long t =3D *ct & ((0xffffffffff=
+ffffff >> ((8 - count) * 8))
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D (*cs !=3D t)
+>> =A0 =A0 =A0 }
 >>
->> 	return ret;
+>> =A0 =A0 =A0 return ret;
 >> }
-> 
-> First, let's get the code right, and use correct types, but also, there
+>
+> First, let's get the code right, and use correct types, but also, the=
+re
+
+You still used the wrong vars in the loop.
+
 > are some tricks to reduce the masking cost.
-> 
-> As long as you have to mask one string, *and* don't have to worry about
+>
+> As long as you have to mask one string, *and* don't have to worry abo=
+ut
 > running off the end of mapped memory, there's no additional cost to
-> masking both in the loop.  Just test (a ^ b) & mask.
-> 
-> #if 1	/* Table lookup */
-> 
-> static unsigned long const dentry_memcmp_mask[8] = {
-> #if defined(__LITTLE_ENDIAN)
-> 	0xff, 0xffff, 0xffffff, 0xffffffff,
-> #if sizeof (unsigned long) > 4
-> 	0xffffffffff, 0xffffffffffff, 0xffffffffffffff, 0xffffffffffffffff
-> #endif
-> #elif defined(__BIG_ENDIAN)
-> #if sizeof (unsigned long) == 4
-> 	0xff000000, 0xffff0000, 0xffffff00, 0xffffffff
-> #else
-> 	0xff00000000000000, 0xffff000000000000,
-> 	0xffffff0000000000, 0xffffffff00000000,
-> 	0xffffffffff000000, 0xffffffffffff0000,
-> 	0xffffffffffffff00, 0xffffffffffffffff
-> #endif
-> #else
-> #error undefined endianness
-> #endif
-> };
-> 
-> #define dentry_memcmp_mask(count) dentry_memcmp_mask[(count)-1]
-> 
-> #else /* In-line code */
-> 
-> #if defined(__LITTLE_ENDIAN)
-> #define dentry_memcmp_mask(count) (-1ul >> (sizeof 1ul - (count)) * 8)
-> #elif defined(__BIG_ENDIAN)
-> #define dentry_memcmp_mask(count) (-1ul << (sizeof 1ul - (count)) * 8)
-> #else
-> #error undefined endianness
-> 
-> #endif
-> 
+> masking both in the loop. =A0Just test (a ^ b) & mask.
 
-Thanks Yes that fixes the _ENDIANness problem. and unsigned maths 
+Using a lookup table I considered, but maybe not well enough. It is
+another cacheline, but common to all lookups. So it could well be
+worth it, let's keep your code around...
 
-I was considering the table as well. The table might be better or not,
-considering the pipe-line and the multiple-instructions-per-clock. x86
-specially likes the operating on cost values. It should be tested
-with both #ifs
+The big problem for CPUs that don't do well on this type of code is
+what the string goes through during the entire syscall.
 
-> static inline bool dentry_memcmp_long(unsigned char const *cs,
-> 				unsigned char const *ct, ssize_t count)
-> {
-> 	unsigned long const *ls = (unsigned long const *)cs;
-> 	unsigned long const *lt = (unsigned long const *)ct;
-> 
-> 	while (count > sizeof *cs) {
-> 		if (*cs != *ct)
-> 			return true;
-> 		cs++;
-> 		ct++;
-> 		count -= sizeof *cs;
-> 	}
-> 	/* Last 1..8 bytes */
+=46irst, a byte-by-byte strcpy_from_user of the whole name string to
+kernel space. Then a byte-by-byte chunking and hashing component
+paths according to '/'. Then a byte-by-byte memcmp against the
+dentry name.
 
-what if at this point count == 0, I think you need the if (count) still
+I'd love to do everything with 8 byte loads, do the component
+separation and hashing at the same time as copy from user, and
+have the padded and aligned component strings and their hash
+available... but complexity.
 
-> 	return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+On my Westmere system, time to do a stat is 640 cycles plus=A010
+cycles for every byte in the string (this cost holds perfectly
+from=A01 byte name up to 32 byte names in my test range).
+`git diff` average path name strings are 31 bytes, although this
+is much less cache friendly, and over several components (my
+test is just a single component).
 
-	OK I like it, my version could be equally fast if the compiler
-	would use cmov but not all ARChs have it.
+But still, even if the base cost were doubled, it may still
+spend 20% or so kernel cycles in name string handling.
 
-> }
-> 
-> If your string is at least 8 bytes long, and the processor has fast unaligned
-> loads, you can skip the mask entirely by redundantly comparing some bytes
-> (although the code bloat is probably undesirable for inline code):
-> 
-> static inline bool dentry_memcmp_long(const unsigned char *cs,
-> 				const unsigned char *ct, ssize_t count)
-> {
-> 	unsigned long const *ls = (unsigned long const *)cs;
-> 	unsigned long const *lt = (unsigned long const *)ct;
-> 
-> 	if (count < sizeof *cs)
-> 		return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
-> 
-> 	while (count > sizeof *cs) {
-> 		if (*cs != *ct)
-> 			return true;
-> 		cs++;
-> 		ct++;
-> 		count -= sizeof *cs;
-> 	}
-> 	cs = (unsigned long const *)((char const *)cs + count - sizeof *cs);
-> 	ct = (unsigned long const *)((char const *)ct + count - sizeof *ct);
-> 	return *cs != *ct;
-> }
+This 8 byte memcpy takes my microbenchmark down to 8=A0cycles per
+byte, so it may get several more % on git diff.
 
-As Linus said, All this is mute, the qstr part of the compare is not long aligned
-at the start. So I guess we come up loosing.
-
-Thanks
-Boaz
+A careful thinking about the initial strcpy_from_user, and
+hashing code could shave another few cycles off it. Well
+worth investigating I think.
