@@ -1,91 +1,63 @@
-From: Nick Piggin <npiggin@gmail.com>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Mon, 20 Dec 2010 02:46:07 +1100
-Message-ID: <AANLkTikwUEBd1Ez75pQ7gw7ShZitwQOQcH6CvCdJV2np@mail.gmail.com>
-References: <20101218225436.28264.qmail@science.horizon.com>
+From: Florian Mickler <florian@mickler.org>
+Subject: Re: [concept & "good taste" review] persistent store
+Date: Sun, 19 Dec 2010 18:01:09 +0100
+Message-ID: <20101219180109.3c042e43@schatten.dmk.lab>
+References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
+	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
+	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
+	<AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
+	<4D0BEE1F.7020008@zytor.com>
+	<AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
+	<AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
+	<AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
+	<20101219091752.GA16150@liondog.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:34512 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932271Ab0LSPqK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Dec 2010 10:46:10 -0500
-In-Reply-To: <20101218225436.28264.qmail@science.horizon.com>
+Received: from ist.d-labs.de ([213.239.218.44]:39408 "EHLO mx01.d-labs.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752818Ab0LSRBU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Dec 2010 12:01:20 -0500
+In-Reply-To: <20101219091752.GA16150@liondog.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: George Spelvin <linux@horizon.com>
-Cc: bharrosh@panasas.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: Tony Luck <tony.luck@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On Sun, Dec 19, 2010 at 9:54 AM, George Spelvin <linux@horizon.com> wro=
-te:
->> static inline int dentry_memcmp_long(const unsigned char *cs,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 const un=
-signed char *ct, ssize_t count)
->> {
->> =A0 =A0 =A0 int ret;
->> =A0 =A0 =A0 const unsigned long *ls =3D (const unsigned long *)cs;
->> =A0 =A0 =A0 const unsigned long *lt =3D (const unsigned long *)ct;
->>
->> =A0 =A0 =A0 while (count > 8) {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D (*cs !=3D *ct);
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (ret)
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 cs++;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ct++;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 count-=3D8;
->> =A0 =A0 =A0 }
->> =A0 =A0 =A0 if (count) {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 unsigned long t =3D *ct & ((0xffffffffff=
-ffffff >> ((8 - count) * 8))
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D (*cs !=3D t)
->> =A0 =A0 =A0 }
->>
->> =A0 =A0 =A0 return ret;
->> }
->
-> First, let's get the code right, and use correct types, but also, the=
-re
+On Sun, 19 Dec 2010 10:17:52 +0100
+Borislav Petkov <bp@alien8.de> wrote:
 
-You still used the wrong vars in the loop.
+> On Sat, Dec 18, 2010 at 03:06:57PM -0800, Tony Luck wrote:
+> > > Doesn't that sound like the best of both worlds?
+> > 
+> > It sounds like an excellent heuristic for how the platform layer
+> > should manage the persistent store when space is tight. But
+> > I think that I can still keep my /dev/pstore filesystem as a
+> > presentation layer to make the bits available to the user in
+> > a device independent way.
+I agree. As far as I understand, Linus concept could map nicely onto an
+fs:
 
-> are some tricks to reduce the masking cost.
->
-> As long as you have to mask one string, *and* don't have to worry abo=
-ut
-> running off the end of mapped memory, there's no additional cost to
-> masking both in the loop. =A0Just test (a ^ b) & mask.
+1. marking things read:
+	Clients can delete files as soon as they have savely scribled
+	them down somewhere. 
 
-Using a lookup table I considered, but maybe not well enough. It is
-another cacheline, but common to all lookups. So it could well be
-worth it, let's keep your code around...
+2. on boot the persistent storage layer init's any files in an
+'archive' directory. 
 
-The big problem for CPUs that don't do well on this type of code is
-what the string goes through during the entire syscall.
+3. if an oops happens, the persistent storage layer shows them in the
+pstore-root directory. If no space is left, the
+persistent storage layer evicts as much oldest entries from the
+'archive' as necessary. as soon as archive is empty but the pstore is
+full, pstore stops storing new oopses.
 
-=46irst, a byte-by-byte strcpy_from_user of the whole name string to
-kernel space. Then a byte-by-byte chunking and hashing component
-paths according to '/'. Then a byte-by-byte memcmp against the
-dentry name.
+Or not? That way, there would be some sort of journal behaviour, but
+also new oopses will evict old(pre-boot) oopses if necessary. 
+maybe a kernel boot-parameter to disable deleting old oopses could be
+necessary in some cases. But I doubt it.
 
-I'd love to do everything with 8 byte loads, do the component
-separation and hashing at the same time as copy from user, and
-have the padded and aligned component strings and their hash
-available... but complexity.
-
-On my Westmere system, time to do a stat is 640 cycles plus=A010
-cycles for every byte in the string (this cost holds perfectly
-from=A01 byte name up to 32 byte names in my test range).
-`git diff` average path name strings are 31 bytes, although this
-is much less cache friendly, and over several components (my
-test is just a single component).
-
-But still, even if the base cost were doubled, it may still
-spend 20% or so kernel cycles in name string handling.
-
-This 8 byte memcpy takes my microbenchmark down to 8=A0cycles per
-byte, so it may get several more % on git diff.
-
-A careful thinking about the initial strcpy_from_user, and
-hashing code could shave another few cycles off it. Well
-worth investigating I think.
+Regards, 
+Flo
