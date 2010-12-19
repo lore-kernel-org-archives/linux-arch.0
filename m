@@ -1,79 +1,143 @@
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [concept & "good taste" review] persistent store
-Date: Sun, 19 Dec 2010 10:17:52 +0100
-Message-ID: <20101219091752.GA16150@liondog.tnic>
-References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
- <AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
- <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
- <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
- <AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
- <AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
- <4D0BEE1F.7020008@zytor.com>
- <AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
- <AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
- <AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
+From: Boaz Harrosh <bharrosh@panasas.com>
+Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
+Date: Sun, 19 Dec 2010 16:28:35 +0200
+Message-ID: <4D0E1693.3040106@panasas.com>
+References: <20101218225436.28264.qmail@science.horizon.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:35536 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750904Ab0LSJR7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Dec 2010 04:17:59 -0500
-Content-Disposition: inline
-In-Reply-To: <AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, mingo@elte.hu, greg@kroah.com, akpm@linux-foundation.org, ying.huang@intel.com, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <20101218225436.28264.qmail@science.horizon.com>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: George Spelvin <linux@horizon.com>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Dec 18, 2010 at 03:06:57PM -0800, Tony Luck wrote:
-> > Doesn't that sound like the best of both worlds?
+On 12/19/2010 12:54 AM, George Spelvin wrote:
+>> static inline int dentry_memcmp_long(const unsigned char *cs,
+>> 				const unsigned char *ct, ssize_t count)
+>> {
+>> 	int ret;
+>> 	const unsigned long *ls = (const unsigned long *)cs;
+>> 	const unsigned long *lt = (const unsigned long *)ct;
+>>
+>> 	while (count > 8) {
+>> 		ret = (*cs != *ct);
+>> 		if (ret)
+>> 			break;
+>> 		cs++;
+>> 		ct++;
+>> 		count-=8;
+>> 	}
+>> 	if (count) {
+>> 		unsigned long t = *ct & ((0xffffffffffffffff >> ((8 - count) * 8))
+>> 		ret = (*cs != t)
+>> 	}
+>>
+>> 	return ret;
+>> }
 > 
-> It sounds like an excellent heuristic for how the platform layer
-> should manage the persistent store when space is tight. But
-> I think that I can still keep my /dev/pstore filesystem as a
-> presentation layer to make the bits available to the user in
-> a device independent way.
+> First, let's get the code right, and use correct types, but also, there
+> are some tricks to reduce the masking cost.
 > 
-> Or perhaps the pstore layer can help with the implementation
-> of the heuristic. It knows what items are in the pstore, so it
-> could build & maintain the "ring" and pass the id of the least
-> wanted item down to the platform layer whenever it wants to
-> write a record ... with the platform layer giving a status to
-> say whether it had to delete that item to make space for the
-> new one?
+> As long as you have to mask one string, *and* don't have to worry about
+> running off the end of mapped memory, there's no additional cost to
+> masking both in the loop.  Just test (a ^ b) & mask.
+> 
+> #if 1	/* Table lookup */
+> 
+> static unsigned long const dentry_memcmp_mask[8] = {
+> #if defined(__LITTLE_ENDIAN)
+> 	0xff, 0xffff, 0xffffff, 0xffffffff,
+> #if sizeof (unsigned long) > 4
+> 	0xffffffffff, 0xffffffffffff, 0xffffffffffffff, 0xffffffffffffffff
+> #endif
+> #elif defined(__BIG_ENDIAN)
+> #if sizeof (unsigned long) == 4
+> 	0xff000000, 0xffff0000, 0xffffff00, 0xffffffff
+> #else
+> 	0xff00000000000000, 0xffff000000000000,
+> 	0xffffff0000000000, 0xffffffff00000000,
+> 	0xffffffffff000000, 0xffffffffffff0000,
+> 	0xffffffffffffff00, 0xffffffffffffffff
+> #endif
+> #else
+> #error undefined endianness
+> #endif
+> };
+> 
+> #define dentry_memcmp_mask(count) dentry_memcmp_mask[(count)-1]
+> 
+> #else /* In-line code */
+> 
+> #if defined(__LITTLE_ENDIAN)
+> #define dentry_memcmp_mask(count) (-1ul >> (sizeof 1ul - (count)) * 8)
+> #elif defined(__BIG_ENDIAN)
+> #define dentry_memcmp_mask(count) (-1ul << (sizeof 1ul - (count)) * 8)
+> #else
+> #error undefined endianness
+> 
+> #endif
+> 
 
-Before we go and delve into priority-sorting the oopses in the pstore,
-let me ask this: how big an actual persistent storage device are we
-talking?
+Thanks Yes that fixes the _ENDIANness problem. and unsigned maths 
 
-Because if it is big enough - for some value of 'big' - we could try to
-never let it fill up. If want to save space we might even do something
-crazy like compressing the oops info. In the rare event it fills up or
-hits some 'almost-full' watermarks, we can kick some userspace daemon
-to start writing the oopses to fs and clear the pstore. This all should
-happen in the case where all you get is non-critical warnings and the
-system is still alive.
+I was considering the table as well. The table might be better or not,
+considering the pipe-line and the multiple-instructions-per-clock. x86
+specially likes the operating on cost values. It should be tested
+with both #ifs
 
-However, in the critical cases, you get a single "stream" of oopses with
-the first one being the most important one and then you panic. And in
-most cases that stream is only a couple of oopses long. For that, the
-pstore should be big enough to easily contain it.
+> static inline bool dentry_memcmp_long(unsigned char const *cs,
+> 				unsigned char const *ct, ssize_t count)
+> {
+> 	unsigned long const *ls = (unsigned long const *)cs;
+> 	unsigned long const *lt = (unsigned long const *)ct;
+> 
+> 	while (count > sizeof *cs) {
+> 		if (*cs != *ct)
+> 			return true;
+> 		cs++;
+> 		ct++;
+> 		count -= sizeof *cs;
+> 	}
+> 	/* Last 1..8 bytes */
 
-  [ Btw, if we are able to write that stream to pstore before we panic,
- we solve all the problems we have with catching oopses with cameras,
- serial consoles, netconsoles, firewire and pen and paper! ]
+what if at this point count == 0, I think you need the if (count) still
 
-In that case, when you restart the machine, the same daemon notices the
-existence of the oopses and starts writing them to fs, notifies the
-users and clears the pstore.
+> 	return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
 
-So, I think what we could do is keep our big enough pstore with enough
-free space for a bunch of oopses in case we panic. In the remaining
-cases, we write them out thus freeing some more space.
+	OK I like it, my version could be equally fast if the compiler
+	would use cmov but not all ARChs have it.
 
-Hmmm..
+> }
+> 
+> If your string is at least 8 bytes long, and the processor has fast unaligned
+> loads, you can skip the mask entirely by redundantly comparing some bytes
+> (although the code bloat is probably undesirable for inline code):
+> 
+> static inline bool dentry_memcmp_long(const unsigned char *cs,
+> 				const unsigned char *ct, ssize_t count)
+> {
+> 	unsigned long const *ls = (unsigned long const *)cs;
+> 	unsigned long const *lt = (unsigned long const *)ct;
+> 
+> 	if (count < sizeof *cs)
+> 		return ((*ct ^ *cs) & dentry_memcmp_mask(count)) != 0;
+> 
+> 	while (count > sizeof *cs) {
+> 		if (*cs != *ct)
+> 			return true;
+> 		cs++;
+> 		ct++;
+> 		count -= sizeof *cs;
+> 	}
+> 	cs = (unsigned long const *)((char const *)cs + count - sizeof *cs);
+> 	ct = (unsigned long const *)((char const *)ct + count - sizeof *ct);
+> 	return *cs != *ct;
+> }
 
--- 
-Regards/Gruss,
-    Boris.
+As Linus said, All this is mute, the qstr part of the compare is not long aligned
+at the start. So I guess we come up loosing.
+
+Thanks
+Boaz
