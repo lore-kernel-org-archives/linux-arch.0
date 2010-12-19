@@ -1,84 +1,80 @@
-From: "George Spelvin" <linux@horizon.com>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: 19 Dec 2010 12:06:46 -0500
-Message-ID: <20101219170646.482.qmail@science.horizon.com>
-References: <AANLkTikwUEBd1Ez75pQ7gw7ShZitwQOQcH6CvCdJV2np@mail.gmail.com>
+From: Tony Luck <tony.luck@intel.com>
+Subject: Re: [concept & "good taste" review] persistent store
+Date: Sun, 19 Dec 2010 12:17:53 -0800
+Message-ID: <AANLkTi=9UZ5BYWo5xT=jh0upRP6PraH4S=t=tL49YRdr@mail.gmail.com>
+References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
+	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
+	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
+	<AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
+	<4D0BEE1F.7020008@zytor.com>
+	<AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
+	<AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
+	<AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
+	<20101219091752.GA16150@liondog.tnic>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from science.horizon.com ([71.41.210.146]:37278 "HELO
-	science.horizon.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752390Ab0LSRGs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Dec 2010 12:06:48 -0500
-In-Reply-To: <AANLkTikwUEBd1Ez75pQ7gw7ShZitwQOQcH6CvCdJV2np@mail.gmail.com>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:43728 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932435Ab0LSURy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Dec 2010 15:17:54 -0500
+In-Reply-To: <20101219091752.GA16150@liondog.tnic>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@horizon.com, npiggin@gmail.com
-Cc: bharrosh@panasas.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Borislav Petkov <bp@alien8.de>, Tony Luck <tony.luck@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.orglinux-
 
-> First, a byte-by-byte strcpy_from_user of the whole name string to
-> kernel space. Then a byte-by-byte chunking and hashing component
-> paths according to '/'. Then a byte-by-byte memcmp against the
-> dentry name.
+On Sun, Dec 19, 2010 at 1:17 AM, Borislav Petkov <bp@alien8.de> wrote:
+> Before we go and delve into priority-sorting the oopses in the pstore,
+> let me ask this: how big an actual persistent storage device are we
+> talking?
 
-Well, you've put your finger on the obvious place to to the aligned copy,
-if you want.  Looking into it, I note that __d_lookup() does a 32-bit
-hash compare before doing a string compare, so the memcmp should almost
-always succeed.  (Failures are due to hash collisions and rename races.)
+I'm not sure how big the store is on my system ... the ACPI/ERST
+interface on this machine limits each entry to just under 8KB. But
+that isn't inherent to to ERST, both larger and smaller values would
+be an option. 8K seems quite useful for kmsg_dump purposes as
+it grabs a significant number of lines leading up to the oops/panic.
 
-> I'd love to do everything with 8 byte loads, do the component
-> separation and hashing at the same time as copy from user, and
-> have the padded and aligned component strings and their hash
-> available... but complexity.
+After I dropped the "stupid" part about not saving OOPs, I ran a
+test on Friday where I instigated a dozen or so OOPses, and all
+were saved without ERST complaining. There is a "how big is the
+store" call in the protocol - so the only option is to keep writing
+until a failure occurs. I will try this when I'm next in the office,
 
-It actually doesn't seem that difficult to do in fs/namei.c:do_getname
-via a heavily hacked strncpy_from_user.  Call it strhash_from_user, and
-it copies the string, while accumulating the hash and the length,
-until it hits a nul or /.  It has to return the length, the hash,
-and the termination condition: nul, /, or space exhausted.
+> Because if it is big enough - for some value of 'big' - we could try to
+> never let it fill up.
+With the price per GByte of flash memory - the answer *ought* to
+be some huge value
 
-Then you could arrange for each component to be padded so that it
-starts aligned.
+> If want to save space we might even do something
+> crazy like compressing the oops info. In the rare event it fills up or
+> hits some 'almost-full' watermarks, we can kick some userspace daemon
+> to start writing the oopses to fs and clear the pstore. This all should
+> happen in the case where all you get is non-critical warnings and the
+> system is still alive.
 
-(The hash and length can be stored directly in the qstr.  The length is
-only otherwise needed for components that end in /, so you could return
-a magic negative length in those cases.)
+This is a good point. In the case that the OOPs that was recorded to
+persistent store wasn't fatal - then the normal daemons will log it to
+/var/log/messages.  So in the general case, if the system finds that
+it isn't dead a few seconds after logging something - it is most likely
+safe to assume that the persistent store copy isn't vital, as the data
+should be available elsewhere.
 
-If it matters, Bob Jenkins wrote a "one-at-a-time" hash function
-that is actually sligthy less work per character than the current
-partial_name_hash.  (Two shifts, two adds and a *11 gets turned into
-two shifts, two adds, and and an XOR)
+> However, in the critical cases, you get a single "stream" of oopses with
+> the first one being the most important one and then you panic. And in
+> most cases that stream is only a couple of oopses long. For that, the
+> pstore should be big enough to easily contain it.
 
-static inline u32 __attribute__((const))
-partial_name_hash(unsigned char c, u32 hash)
-{
-	hash += c;
-	hash += hash << 10;
-	hash ^= hash >> 6;
-	return hash;
-}
+Yes. At least it is for my test system. I know I can fit a dozen messages.
 
-static inline u32 end_name_hash(u32 hash)
-{
-	hash += hash << 3;
-	hash ^= hash >> 11;
-	hash += hash << 15;
-	return hash;
-}
+> So, I think what we could do is keep our big enough pstore with enough
+> free space for a bunch of oopses in case we panic. In the remaining
+> cases, we write them out thus freeing some more space.
 
-(I note that there's zero reason for the current partial_name_hash to
-use an unsigned long intermediate value, since the high 32 bits have no
-effect on the final result.  It just forces unnecessary REX prefixes.)
+Some feedback from syslogd (or whatever it is that gets things from
+dmesg into /var/log/messages) would help here ... though to be really
+useful it might need "fsync" to /var/log/messages, which might not
+be a welcome addition.
 
-The main problem with initializing all the qstr structures early is that
-it can lead to an oddly dynamic PATH_MAX and/or a type of kernel
-DOS by passing in paths with many short directory names that would need
-maximal padding.
-
-> On my Westmere system, time to do a stat is 640 cycles plus 10
-> cycles for every byte in the string (this cost holds perfectly
-> from 1 byte name up to 32 byte names in my test range).
-> `git diff` average path name strings are 31 bytes, although this
-> is much less cache friendly, and over several components (my
-> test is just a single component).
-
-Thank you for this useful real-world number!
-I hadn't realized the base cost was so low.
+-Tony
