@@ -1,71 +1,34 @@
-From: Nick Piggin <npiggin@kernel.dk>
-Subject: Re: Big git diff speedup by avoiding x86 "fast string" memcmp
-Date: Tue, 21 Dec 2010 20:26:51 +1100
-Message-ID: <20101221092651.GA9242@amd>
-References: <AANLkTikwUEBd1Ez75pQ7gw7ShZitwQOQcH6CvCdJV2np@mail.gmail.com>
- <20101219170646.482.qmail@science.horizon.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [concept & "good taste" review] persistent store
+Date: Tue, 21 Dec 2010 10:10:58 +0000
+Message-ID: <32058.1292926258@redhat.com>
+References: <1292892072.8743.70.camel@yhuang-dev> <1292813234.8743.66.camel@yhuang-dev> <4d0662e511688484b3@agluck-desktop.sc.intel.com> <AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com> <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com> <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com> <AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com> <AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com> <4D0BEE1F.7020008@zytor.com> <AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com> <AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com> <AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com> <20101219091752.GA16150@liondog.tnic> <AANLkTi=9UZ5BYWo5xT=jh0upRP6PraH4S=t=tL49YRdr@mail.gmail.com> <17027.1292841992@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ipmail07.adl2.internode.on.net ([150.101.137.131]:57669 "EHLO
-	ipmail07.adl2.internode.on.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754099Ab0LUJ1M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Dec 2010 04:27:12 -0500
-Content-Disposition: inline
-In-Reply-To: <20101219170646.482.qmail@science.horizon.com>
+Received: from mx1.redhat.com ([209.132.183.28]:56917 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933556Ab0LUKNa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Dec 2010 05:13:30 -0500
+In-Reply-To: <1292892072.8743.70.camel@yhuang-dev>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: George Spelvin <linux@horizon.com>
-Cc: npiggin@gmail.com, bharrosh@panasas.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Huang Ying <ying.huang@intel.com>
+Cc: dhowells@redhat.com, "Luck, Tony" <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, Tony Luck <tony.luck@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On Sun, Dec 19, 2010 at 12:06:46PM -0500, George Spelvin wrote:
-> > First, a byte-by-byte strcpy_from_user of the whole name string to
-> > kernel space. Then a byte-by-byte chunking and hashing component
-> > paths according to '/'. Then a byte-by-byte memcmp against the
-> > dentry name.
+Huang Ying <ying.huang@intel.com> wrote:
+
+> > > - for OOPS messages will not cause system panic, it will go to disk and
+> > > will not use up the persistent storage.
+> > 
+> > You can't guarantee that an oops didn't just kill your ability to actually
+> > write your syslog to disk or out across the network.
 > 
-> Well, you've put your finger on the obvious place to to the aligned copy,
-> if you want.
+> I do not need to guarantee that. If the OOPS message can not be written
+> to disk, just keeping it in persistent storage, and that is the very
+> value of persistent storage.  But for OOPS can go to disk safely, we do
+> not need to waste persistent storage for it.
 
-Yes, this would be a nice place to align things and parse '/' compoents,
-although in fact it doesn't strictly have to be a byte-by-byte copy
-(although doing long loads would put a lot more complexity in fault
-handling and parsing).
+My point is how do you know an oops message will actually manage to get to
+disk?  There's a userspace program (syslogd) between the kernel log and the
+disk or network.
 
-
->  Looking into it, I note that __d_lookup() does a 32-bit
-> hash compare before doing a string compare, so the memcmp should almost
-> always succeed.  (Failures are due to hash collisions and rename races.)
-> 
-> > I'd love to do everything with 8 byte loads, do the component
-> > separation and hashing at the same time as copy from user, and
-> > have the padded and aligned component strings and their hash
-> > available... but complexity.
-> 
-> It actually doesn't seem that difficult to do in fs/namei.c:do_getname
-> via a heavily hacked strncpy_from_user.  Call it strhash_from_user, and
-> it copies the string, while accumulating the hash and the length,
-> until it hits a nul or /.  It has to return the length, the hash,
-> and the termination condition: nul, /, or space exhausted.
-> 
-> Then you could arrange for each component to be padded so that it
-> starts aligned.
-> 
-> (The hash and length can be stored directly in the qstr.  The length is
-> only otherwise needed for components that end in /, so you could return
-> a magic negative length in those cases.)
-
-Probably, due to bloat caused by the hash for small names, and that
-some filesystems do their own hashing, we should still hash in the
-same place. However we can do sizeof(long) at a time hashing, which
-should be nice and fast too.
-
- 
-> The main problem with initializing all the qstr structures early is that
-> it can lead to an oddly dynamic PATH_MAX and/or a type of kernel
-> DOS by passing in paths with many short directory names that would need
-> maximal padding.
-
-If the results are compelling enough, this could be worked around
-some way. Simple realloc probably, seeing as it would be a rare case.
+David
