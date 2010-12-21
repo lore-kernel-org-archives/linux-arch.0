@@ -1,9 +1,8 @@
 From: Huang Ying <ying.huang@intel.com>
 Subject: Re: [concept & "good taste" review] persistent store
-Date: Tue, 21 Dec 2010 08:41:12 +0800
-Message-ID: <1292892072.8743.70.camel@yhuang-dev>
-References: <1292813234.8743.66.camel@yhuang-dev>
-	 <4d0662e511688484b3@agluck-desktop.sc.intel.com>
+Date: Tue, 21 Dec 2010 08:48:14 +0800
+Message-ID: <1292892494.8743.76.camel@yhuang-dev>
+References: <4d0662e511688484b3@agluck-desktop.sc.intel.com>
 	 <AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
 	 <AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
 	 <AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
@@ -15,34 +14,37 @@ References: <1292813234.8743.66.camel@yhuang-dev>
 	 <AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
 	 <20101219091752.GA16150@liondog.tnic>
 	 <AANLkTi=9UZ5BYWo5xT=jh0upRP6PraH4S=t=tL49YRdr@mail.gmail.com>
-	 <17027.1292841992@redhat.com>
+	 <1292813234.8743.66.camel@yhuang-dev>
+	 <AANLkTikULE_Jncjs=PkARjZyxb=f+t=4J8g8LQL+L=BZ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:13015 "EHLO mga03.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:34286 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752838Ab0LUAlY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Dec 2010 19:41:24 -0500
-In-Reply-To: <17027.1292841992@redhat.com>
+	id S1754388Ab0LUAsS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Dec 2010 19:48:18 -0500
+In-Reply-To: <AANLkTikULE_Jncjs=PkARjZyxb=f+t=4J8g8LQL+L=BZ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: "Luck, Tony" <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, Tony Luck <tony.luck@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+To: Tony Luck <tony.luck@gmail.com>
+Cc: Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-On Mon, 2010-12-20 at 18:46 +0800, David Howells wrote:
-> Huang Ying <ying.huang@intel.com> wrote:
+On Tue, 2010-12-21 at 01:19 +0800, Tony Luck wrote:
+> On Sun, Dec 19, 2010 at 6:47 PM, Huang Ying <ying.huang@intel.com> wrote:
+> > 8KB is about 100-200 lines message, sometimes it may be not enough for
+> > all necessary information.  But in fact, we can use multiple ERST
+> > records to save one kernel message dumping. So the real limitation is
+> > just total storage capacity.
 > 
-> > - for OOPS messages will not cause system panic, it will go to disk and
-> > will not use up the persistent storage.
-> 
-> You can't guarantee that an oops didn't just kill your ability to actually
-> write your syslog to disk or out across the network.
+> We can - but it will be a bit messy within my pstore + platform driver
+> framework (I'd have to have erst tell pstore that it could handle some
+> larger size, 2x or 3x the actual record size and then break a write
+> into pieces. Presumably re-assemble on the read side too).
 
-I do not need to guarantee that. If the OOPS message can not be written
-to disk, just keeping it in persistent storage, and that is the very
-value of persistent storage.  But for OOPS can go to disk safely, we do
-not need to waste persistent storage for it.
+If persistent storage driver (such as ERST) implements kmsg_dumper by
+themselves, that should be easier to use multiple records for one
+message dumping request.
 
 Best Regards,
 Huang Ying
