@@ -1,33 +1,69 @@
-From: "Mrs.Comfort Baker" <info@info.com>
-Subject: PLS I NEED YOUR HELP
-Date: Wed, 22 Dec 2010 03:59:20 -0000 (GMT)
-Message-ID: <61927.115.134.213.133.1292990360.squirrel@115.134.213.133>
-Reply-To: comfortb14@v1va.net
+From: Tony Luck <tony.luck@intel.com>
+Subject: Re: [concept & "good taste" review] persistent store
+Date: Tue, 21 Dec 2010 23:34:45 -0800
+Message-ID: <AANLkTi=qhwSM8-849OWwKjSAC17tS1GEk90ixkN9O6AJ@mail.gmail.com>
+References: <1292892072.8743.70.camel@yhuang-dev>
+	<1292813234.8743.66.camel@yhuang-dev>
+	<4d0662e511688484b3@agluck-desktop.sc.intel.com>
+	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
+	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
+	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
+	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
+	<AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
+	<4D0BEE1F.7020008@zytor.com>
+	<AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
+	<AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
+	<AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
+	<20101219091752.GA16150@liondog.tnic>
+	<AANLkTi=9UZ5BYWo5xT=jh0upRP6PraH4S=t=tL49YRdr@mail.gmail.com>
+	<17027.1292841992@redhat.com>
+	<32058.1292926258@redhat.com>
+	<1292977616.8743.87.camel@yhuang-dev>
+	<alpine.DEB.2.00.1012211651000.27461@asgard.lang.hm>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from av1.africaonline.com.gh ([212.85.196.22]:34498 "EHLO
-	av2.africaonline.com.gh" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751922Ab0LVEH4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Dec 2010 23:07:56 -0500
-Received: from av2.africaonline.com.gh (localhost.localdomain [127.0.0.1])
-	(using TLSv1 with cipher ADH-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by av2.africaonline.com.gh (Postfix) with ESMTPS id CD8AC223BA4
-	for <linux-arch@vger.kernel.org>; Wed, 22 Dec 2010 04:01:39 +0000 (GMT)
-Received: from pop.africaonline.com.gh (gh2.africaonline.com.gh [212.85.196.2])
-	by av2.africaonline.com.gh (Postfix) with SMTP id 28E1A223BAB
-	for <linux-arch@vger.kernel.org>; Wed, 22 Dec 2010 04:01:38 +0000 (GMT)
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:54716 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752301Ab0LVHeq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Dec 2010 02:34:46 -0500
+In-Reply-To: <alpine.DEB.2.00.1012211651000.27461@asgard.lang.hm>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: david@lang.hm
+Cc: Huang Ying <ying.huang@intel.com>, David Howells <dhowells@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
 
-I am Mrs.Comfort Baker, my husband deposited 7.5 Million GBP with a Bank
-in UK when he was Alive, presently I'm suffering from esophagea cancer i
-need your to help me collect the Funds from the bank to use it finance
-Charity Organizations. Pls reply to: comfortb14@v1va.net
+On Tue, Dec 21, 2010 at 4:53 PM,  <david@lang.hm> wrote:
+> almost nobody runs syslog with a fsync after each message anymore. the
+> problem is that doing so reduced throughput so much that you ended up
+> loosing more messages (and causing processes to block, resulting in
+> user-visible problems) because the messages had to queue up for processing.
+>
+> so if you want to record critical messages and be guaranteed that they are
+> on disk, you will be needing a specific application, and not just using
+> standard syslog.
 
-Looking forward for your reply.
+Here we are talking about OOPS situations ... when we have an
+oops we will log it to persistent store and make sure we keep it
+until something else says that the information has been saved
+somewhere else.
 
-Remain Blessed
-Mrs.Comfort Baker.
+Not sure how difficult it would be to have syslog parse what it
+copies to look for oops signatures and
+1) Issue an fsync()
+2) Tell the persistent store to drop the record.
+
+Perhaps some other logging mechanism would be better?
+I outlined my thoughts for this yesterday:
+> 1) Oops happens, gets written to persistent store.
+> 2) fs/pstore code makes a file appear in /dev/pstore
+> 3) Daemon that's watching /dev/pstore sees new file
+> 4) File is read, copied some place safe and fsync'd
+> 5) Daemon unlinks file from /dev/pstore
+> 6) fs/pstore code tells platform level to erase record
+
+Since this is only for "oops" class events, I don't think that
+the fsync should be a performance problem (you really have
+much bigger problems if there are that many oopses!)
+
+-Tony
