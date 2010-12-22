@@ -1,69 +1,69 @@
-From: Tony Luck <tony.luck@intel.com>
-Subject: Re: [concept & "good taste" review] persistent store
-Date: Tue, 21 Dec 2010 23:34:45 -0800
-Message-ID: <AANLkTi=qhwSM8-849OWwKjSAC17tS1GEk90ixkN9O6AJ@mail.gmail.com>
-References: <1292892072.8743.70.camel@yhuang-dev>
-	<1292813234.8743.66.camel@yhuang-dev>
-	<4d0662e511688484b3@agluck-desktop.sc.intel.com>
-	<AANLkTindPUkF7fCkdbqSstNHFjF3_7fEYh18nhQFx_AJ@mail.gmail.com>
-	<AANLkTim3OpjPysjdCLDuFgFOipmcxyr2ay5cvUAu5PHi@mail.gmail.com>
-	<AANLkTinpYJddhgbf7=Pw_TtGrnWaC8fwo2xv1XRsT1w7@mail.gmail.com>
-	<AANLkTimA4x8oWyq71nOxB=Otp3Y0i3Kcu27DG0ajaXUG@mail.gmail.com>
-	<AANLkTinCG+E6ZzpeRqsJP+-qvNDQXW4VZFgJ1c-sTryL@mail.gmail.com>
-	<4D0BEE1F.7020008@zytor.com>
-	<AANLkTinwFt+KDKNEYP9MWQ7wGb9qk=E2Xa3RJB3+MJnN@mail.gmail.com>
-	<AANLkTinoV_pL=Ygqq4qt4f8c+wsdc9r9K7rcJ58aHjD1@mail.gmail.com>
-	<AANLkTikhtWjFBQmA111Q+2JGRudrRNAmegGThMagr4vF@mail.gmail.com>
-	<20101219091752.GA16150@liondog.tnic>
-	<AANLkTi=9UZ5BYWo5xT=jh0upRP6PraH4S=t=tL49YRdr@mail.gmail.com>
-	<17027.1292841992@redhat.com>
-	<32058.1292926258@redhat.com>
-	<1292977616.8743.87.camel@yhuang-dev>
-	<alpine.DEB.2.00.1012211651000.27461@asgard.lang.hm>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:54716 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752301Ab0LVHeq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Dec 2010 02:34:46 -0500
-In-Reply-To: <alpine.DEB.2.00.1012211651000.27461@asgard.lang.hm>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: david@lang.hm
-Cc: Huang Ying <ying.huang@intel.com>, David Howells <dhowells@redhat.com>, Borislav Petkov <bp@alien8.de>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@elte.hu" <mingo@elte.hu>, "greg@kroah.com" <greg@kroah.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, David Miller <davem@davemloft.net>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jim Keniston <jkenisto@linux.vnet.ibm.com>, Kyungmin Park <kmpark@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+From: dirk.brandewie@gmail.com
+Subject: [PATCH 0/4] V3 Add ability to link device blob(s) into vmlinux
+Date: Wed, 22 Dec 2010 11:57:25 -0800
+Message-ID: <1293047849-26078-1-git-send-email-dirk.brandewie@gmail.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: devicetree-discuss@lists.ozlabs.org, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, dirk.brandewie@gmail.com, linux-kbuild@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Dec 21, 2010 at 4:53 PM,  <david@lang.hm> wrote:
-> almost nobody runs syslog with a fsync after each message anymore. the
-> problem is that doing so reduced throughput so much that you ended up
-> loosing more messages (and causing processes to block, resulting in
-> user-visible problems) because the messages had to queue up for processing.
->
-> so if you want to record critical messages and be guaranteed that they are
-> on disk, you will be needing a specific application, and not just using
-> standard syslog.
+From: Dirk Brandewie <dirk.brandewie@gmail.com>
 
-Here we are talking about OOPS situations ... when we have an
-oops we will log it to persistent store and make sure we keep it
-until something else says that the information has been saved
-somewhere else.
+This patch set adds the ability to link device tree blobs into
+vmlinux. 
 
-Not sure how difficult it would be to have syslog parse what it
-copies to look for oops signatures and
-1) Issue an fsync()
-2) Tell the persistent store to drop the record.
+Patch 1 implements the changes to include/asm-generic/vmlinux.lds.h and
+adds a generic rule for generating DTB objects to be linked vmlinux.
 
-Perhaps some other logging mechanism would be better?
-I outlined my thoughts for this yesterday:
-> 1) Oops happens, gets written to persistent store.
-> 2) fs/pstore code makes a file appear in /dev/pstore
-> 3) Daemon that's watching /dev/pstore sees new file
-> 4) File is read, copied some place safe and fsync'd
-> 5) Daemon unlinks file from /dev/pstore
-> 6) fs/pstore code tells platform level to erase record
+Patch 2 implements linking a DTB into an x86 image.
 
-Since this is only for "oops" class events, I don't think that
-the fsync should be a performance problem (you really have
-much bigger problems if there are that many oopses!)
+Patch 3-4 move {powerpc,microblaze}/boot/Makefile to use the dtc rule
+in patch 1.
 
--Tony
+This patch set has been tested on x86.
+
+Powerpc and Microblaze have been compile tested with and without patch
+3 and 4 applied.
+
+Changes from V1:
+
+Documentation added for dtc command in Makefile.lib to
+Documentation/kbuild/makefiles.txt
+Separate DTB_ALIGNMENT define removed.
+FORCE removed from dtc rule.
+Removed hardcoded path to dts files from dtc command.  
+Moved %.dtb: %.dts rule to arch specific makefiles. 
+ 
+Patch for adding kernel command line option to pass in dtb_compat
+string dropped from this set will be submitted seperately.
+
+Changes from V2:
+
+Rule to create assembly wrapper for blob changed to use Sam Ravnborgs
+suggested implementation.
+
+Rules in architecture specific Makefiles changed to use the cmd
+function instead of the if_changed function.
+
+Changes from V3:
+
+Cosmetic fix of DTC quiet command
+
+Dirk Brandewie (4):
+  of: Add support for linking device tree blobs into vmlinux
+  x86/of: Add building device tree blob(s) into image.
+  of/powerpc: Use generic rule to build dtb's
+  microblaze/of: Use generic rule to build dtb's
+
+ Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+ arch/microblaze/boot/Makefile      |   12 +++---------
+ arch/powerpc/boot/Makefile         |    8 +++-----
+ arch/x86/platform/ce4100/Makefile  |   10 ++++++++++
+ include/asm-generic/vmlinux.lds.h  |   13 +++++++++++--
+ scripts/Makefile.lib               |   23 +++++++++++++++++++++++
+ 6 files changed, 65 insertions(+), 16 deletions(-)
+
+-- 
+1.7.2.3
+
