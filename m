@@ -1,60 +1,56 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH] Fix unconditional GFP_KERNEL allocations in
- __vmalloc().
-Date: Thu, 23 Dec 2010 13:08:07 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1012231305080.26724@chino.kir.corp.google.com>
-References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com> <20101217162626.DA0A.A69D9226@jp.fujitsu.com>
+From: Randy Dunlap <randy.dunlap@oracle.com>
+Subject: Re: Cross compilers (Was: Re: [PATCH] Fix unconditional GFP_KERNEL
+ allocations in __vmalloc().)
+Date: Thu, 23 Dec 2010 13:37:09 -0800
+Message-ID: <20101223133709.d5973e48.randy.dunlap@oracle.com>
+References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
+	<1292381600.2994.6.camel@oralap>
+	<20101215144835.adf2078f.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:26736 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751418Ab0LWVIT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Dec 2010 16:08:19 -0500
-Received: from hpaq7.eem.corp.google.com (hpaq7.eem.corp.google.com [172.25.149.7])
-	by smtp-out.google.com with ESMTP id oBNL8EZd005353
-	for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2010 13:08:14 -0800
-Received: from pxi17 (pxi17.prod.google.com [10.243.27.17])
-	by hpaq7.eem.corp.google.com with ESMTP id oBNL7eLa013046
-	for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2010 13:08:12 -0800
-Received: by pxi17 with SMTP id 17so1586767pxi.34
-        for <linux-arch@vger.kernel.org>; Thu, 23 Dec 2010 13:08:12 -0800 (PST)
-In-Reply-To: <20101217162626.DA0A.A69D9226@jp.fujitsu.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: "Ricardo M. Correia" <ricardo.correia@oracle.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20101215144835.adf2078f.sfr@canb.auug.org.au>
+Sender: owner-linux-mm@kvack.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: "Ricardo M. Correia" <ricardo.correia@oracle.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov, tony@bakeyournoodle.com
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 17 Dec 2010, KOSAKI Motohiro wrote:
+On Wed, 15 Dec 2010 14:48:35 +1100 Stephen Rothwell wrote:
 
-> > (Patch based on 2.6.36 tag).
-> > 
-> > These GFP_KERNEL allocations could happen even though the caller of __vmalloc()
-> > requested a stricter gfp mask (such as GFP_NOFS or GFP_ATOMIC).
-> > 
-> > This was first noticed in Lustre, where it led to deadlocks due to a filesystem
-> > thread which requested a GFP_NOFS __vmalloc() allocation ended up calling down
-> > to Lustre itself to free memory, despite this not being allowed by GFP_NOFS.
-> > 
-> > Further analysis showed that some in-tree filesystems (namely GFS, Ceph and XFS)
-> > were vulnerable to the same bug due to calling __vmalloc() or vm_map_ram() in
-> > contexts where __GFP_FS allocations are not allowed.
-> > 
-> > Fixing this bug required changing a few mm interfaces to accept gfp flags.
-> > This needed to be done in all architectures, thus the large number of changes.
+> Hi Ricardo,
 > 
-> I like this patch. but please separate it two patches.
+> On Wed, 15 Dec 2010 03:53:20 +0100 "Ricardo M. Correia" <ricardo.correia@oracle.com> wrote:
+> >
+> > Since I have done all these changes manually and I don't have any
+> > non-x86-64 machines, it's possible that I may have typoed or missed
+> > something and that this patch may break compilation on other
+> > architectures or with other config options.
+> > 
+> > Any suggestions are welcome.
 > 
->  1) add gfp_mask argument to some function
->  2) vmalloc use flexible mask instead GFP_KERNEL always.
-> 
-> I mean please consider to make reviewers friendly patch.
-> IOW, please see your diffstat. ;)
-> 
+> See http://kernel.org/pub/tools/crosstool/files/bin
 
-I agree, I'm also wondering if it would be easier to introduce seperate, 
-lower-level versions of the functions that the current interfaces would 
-then use instead of converting all of their current use cases.  Using 
-pmd_alloc_one() as an example: convert existing pmd_alloc_one() to 
-__pmd_alloc_one() for each arch and add the gfp_t formal), then introduce 
-a new pmd_alloc_one() that does __pmd_alloc_one(..., GFP_KERNEL).
+
+OK, what am I doing wrong?
+
+Using alpha or s390x gcc builds on x86_64 host give me:
+
+/local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc)
+
+or
+
+/local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc)
+
+
+---
+~Randy
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
+desserts:  http://www.xenotime.net/linux/recipes/
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
