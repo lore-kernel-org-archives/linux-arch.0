@@ -1,56 +1,160 @@
-From: Randy Dunlap <randy.dunlap@oracle.com>
-Subject: Re: Cross compilers (Was: Re: [PATCH] Fix unconditional GFP_KERNEL
- allocations in __vmalloc().)
-Date: Thu, 23 Dec 2010 13:37:09 -0800
-Message-ID: <20101223133709.d5973e48.randy.dunlap@oracle.com>
-References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
-	<1292381600.2994.6.camel@oralap>
-	<20101215144835.adf2078f.sfr@canb.auug.org.au>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 1/4] of: Add support for linking device tree blobs into
+ vmlinux
+Date: Thu, 23 Dec 2010 14:42:41 -0700
+Message-ID: <20101223214241.GF20384@angua.secretlab.ca>
+References: <1293047849-26078-1-git-send-email-dirk.brandewie@gmail.com>
+ <1293047849-26078-2-git-send-email-dirk.brandewie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20101215144835.adf2078f.sfr@canb.auug.org.au>
-Sender: owner-linux-mm@kvack.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: "Ricardo M. Correia" <ricardo.correia@oracle.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov, tony@bakeyournoodle.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1293047849-26078-2-git-send-email-dirk.brandewie@gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: dirk.brandewie@gmail.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mmarek@suse.cz, linux-kbuild@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, devicetree-discuss@lists.ozlabs.org, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 15 Dec 2010 14:48:35 +1100 Stephen Rothwell wrote:
-
-> Hi Ricardo,
+On Wed, Dec 22, 2010 at 11:57:26AM -0800, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie <dirk.brandewie@gmail.com>
 > 
-> On Wed, 15 Dec 2010 03:53:20 +0100 "Ricardo M. Correia" <ricardo.correia@oracle.com> wrote:
-> >
-> > Since I have done all these changes manually and I don't have any
-> > non-x86-64 machines, it's possible that I may have typoed or missed
-> > something and that this patch may break compilation on other
-> > architectures or with other config options.
-> > 
-> > Any suggestions are welcome.
+> This patch adds support for linking device tree blob(s) into
+> vmlinux. Modifies asm-generic/vmlinux.lds.h to add linking
+> .dtb sections into vmlinux. To maintain compatiblity with the of/fdt
+> driver code platforms MUST copy the blob to a non-init memory location
+> before the kernel frees the .init.* sections in the image.
 > 
-> See http://kernel.org/pub/tools/crosstool/files/bin
+> Modifies scripts/Makefile.lib to add a kbuild command to
+> compile DTS files to device tree blobs and a rule to create objects to
+> wrap the blobs for linking.
+> 
+> STRUCT_ALIGNMENT is defined in vmlinux.lds.h for use in the rule to
+> create wrapper objects for the dtb in Makefile.lib.  The
+> STRUCT_ALIGN() macro in vmlinux.lds.h is modified to use the
+> STRUCT_ALIGNMENT definition.
+> 
+> The DTB's are placed on 32 byte boundries to allow parsing the blob
+> with driver/of/fdt.c during early boot without having to copy the blob
+> to get the structure alignment GCC expects.
+> 
+> A DTB is linked in by adding the DTB object to the list of objects to
+> be linked into vmlinux in the archtecture specific Makefile using
+>    obj-y += foo.dtb.o
+> 
+> Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
 
+merged, thanks.
 
-OK, what am I doing wrong?
+g.
 
-Using alpha or s390x gcc builds on x86_64 host give me:
-
-/local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc)
-
-or
-
-/local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc)
-
-
----
-~Randy
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
-desserts:  http://www.xenotime.net/linux/recipes/
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> ---
+>  Documentation/kbuild/makefiles.txt |   15 +++++++++++++++
+>  include/asm-generic/vmlinux.lds.h  |   13 +++++++++++--
+>  scripts/Makefile.lib               |   23 +++++++++++++++++++++++
+>  3 files changed, 49 insertions(+), 2 deletions(-)
+> 
+> diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> index 0ef00bd..86e3cd0 100644
+> --- a/Documentation/kbuild/makefiles.txt
+> +++ b/Documentation/kbuild/makefiles.txt
+> @@ -1136,6 +1136,21 @@ When kbuild executes, the following steps are followed (roughly):
+>  	      resulting in the target file being recompiled for no
+>  	      obvious reason.
+>  
+> +    dtc
+> +	Create flattend device tree blob object suitable for linking
+> +	into vmlinux. Device tree blobs linked into vmlinux are placed
+> +	in an init section in the image. Platform code *must* copy the
+> +	blob to non-init memory prior to calling unflatten_device_tree().
+> +
+> +	Example:
+> +		#arch/x86/platform/ce4100/Makefile
+> +		clean-files := *dtb.S
+> +
+> +		DTC_FLAGS := -p 1024
+> +		obj-y += foo.dtb.o
+> +
+> +		$(obj)/%.dtb: $(src)/%.dts
+> +			$(call cmd,dtc)
+>  
+>  --- 6.7 Custom kbuild commands
+>  
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index bd69d79..05cbad0 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -67,7 +67,8 @@
+>   * Align to a 32 byte boundary equal to the
+>   * alignment gcc 4.5 uses for a struct
+>   */
+> -#define STRUCT_ALIGN() . = ALIGN(32)
+> +#define STRUCT_ALIGNMENT 32
+> +#define STRUCT_ALIGN() . = ALIGN(STRUCT_ALIGNMENT)
+>  
+>  /* The actual configuration determine if the init/exit sections
+>   * are handled as text/data or they can be discarded (which
+> @@ -146,6 +147,13 @@
+>  #define TRACE_SYSCALLS()
+>  #endif
+>  
+> +
+> +#define KERNEL_DTB()							\
+> +	STRUCT_ALIGN();							\
+> +	VMLINUX_SYMBOL(__dtb_start) = .;				\
+> +	*(.dtb.init.rodata)						\
+> +	VMLINUX_SYMBOL(__dtb_end) = .;
+> +
+>  /* .data section */
+>  #define DATA_DATA							\
+>  	*(.data)							\
+> @@ -468,7 +476,8 @@
+>  	MCOUNT_REC()							\
+>  	DEV_DISCARD(init.rodata)					\
+>  	CPU_DISCARD(init.rodata)					\
+> -	MEM_DISCARD(init.rodata)
+> +	MEM_DISCARD(init.rodata)					\
+> +	KERNEL_DTB()
+>  
+>  #define INIT_TEXT							\
+>  	*(.init.text)							\
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 4c72c11..7df8eb5 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -200,6 +200,29 @@ quiet_cmd_gzip = GZIP    $@
+>  cmd_gzip = (cat $(filter-out FORCE,$^) | gzip -f -9 > $@) || \
+>  	(rm -f $@ ; false)
+>  
+> +# DTC
+> +#  ---------------------------------------------------------------------------
+> +
+> +# Generate an assembly file to wrap the output of the device tree compiler
+> +quiet_cmd_dt_S_dtb= DTB    $@
+> +cmd_dt_S_dtb=						\
+> +(							\
+> +	echo '\#include <asm-generic/vmlinux.lds.h>'; 	\
+> +	echo '.section .dtb.init.rodata,"a"';		\
+> +	echo '.balign STRUCT_ALIGNMENT';                \
+> +	echo '.global __dtb_$(*F)_begin';               \
+> +	echo '__dtb_$(*F)_begin:';                      \
+> +	echo '.incbin "$<" ';                           \
+> +	echo '__dtb_$(*F)_end:';                        \
+> +	echo '.global __dtb_$(*F)_end';                 \
+> +	echo '.balign STRUCT_ALIGNMENT'; 		\
+> +) > $@
+> +
+> +$(obj)/%.dtb.S: $(obj)/%.dtb 
+> +	$(call cmd,dt_S_dtb)
+> +
+> +quiet_cmd_dtc = DTC     $@
+> +      cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) $<
+>  
+>  # Bzip2
+>  # ---------------------------------------------------------------------------
+> -- 
+> 1.7.2.3
+> 
+> _______________________________________________
+> devicetree-discuss mailing list
+> devicetree-discuss@lists.ozlabs.org
+> https://lists.ozlabs.org/listinfo/devicetree-discuss
