@@ -1,37 +1,63 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: + kthread-numa-aware-kthread_create_on_cpu.patch added to -mm
- tree
-Date: Thu, 23 Dec 2010 13:45:54 -0800
-Message-ID: <20101223134554.ec66e229.akpm@linux-foundation.org>
-References: <201012100044.oBA0ivp3016990@imap1.linux-foundation.org>
-	<1293131522.2170.798.camel@laptop>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH 2/4] x86/of: Add building device tree blob(s) into
+ image.
+Date: Thu, 23 Dec 2010 14:58:41 -0700
+Message-ID: <20101223215841.GH20384@angua.secretlab.ca>
+References: <1293047849-26078-1-git-send-email-dirk.brandewie@gmail.com>
+ <1293047849-26078-3-git-send-email-dirk.brandewie@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36412 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751186Ab0LWVwW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Dec 2010 16:52:22 -0500
-In-Reply-To: <1293131522.2170.798.camel@laptop>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:63109 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751186Ab0LWV6o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Dec 2010 16:58:44 -0500
+Content-Disposition: inline
+In-Reply-To: <1293047849-26078-3-git-send-email-dirk.brandewie@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: eric.dumazet@gmail.com, ak@linux.intel.com, davem@davemloft.net, dhowells@redhat.com, fenghua.yu@intel.com, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, tj@kernel.org, tony.luck@intel.com
+To: dirk.brandewie@gmail.com
+Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linuxppc-dev@lists.ozlabs.org, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, mmarek@suse.cz, linux-kbuild@vger.kernel.org
 
-On Thu, 23 Dec 2010 20:12:02 +0100 Peter Zijlstra <peterz@infradead.org> wrote:
-
-> On Thu, 2010-12-09 at 16:44 -0800, akpm@linux-foundation.org wrote:
-> > +struct task_struct *kthread_create_on_cpu(int (*threadfn)(void *data),
-> > +                                         void *data,
-> > +                                         int cpu,
-> > +                                         const char namefmt[],
-> > +                                         ...)
+On Wed, Dec 22, 2010 at 11:57:27AM -0800, dirk.brandewie@gmail.com wrote:
+> From: Dirk Brandewie <dirk.brandewie@gmail.com>
 > 
-> I thought it was agreed that name sucked too much to live?
+> This patch adds linking device tree blob into vmlinux. DTB's are
+> added by adding the blob object name to list of objects to be linked
+> into the image.
 > 
-> All other *_on_cpu() interfaces actually do stuff on that cpu, but this
-> does not in fact create a cpu affine task.
+> Signed-off-by: Dirk Brandewie <dirk.brandewie@gmail.com>
+> ---
+>  arch/x86/platform/ce4100/Makefile |   10 ++++++++++
+>  1 files changed, 10 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/x86/platform/ce4100/Makefile b/arch/x86/platform/ce4100/Makefile
+> index 91fc929..e5f3b7b 100644
+> --- a/arch/x86/platform/ce4100/Makefile
+> +++ b/arch/x86/platform/ce4100/Makefile
+> @@ -1 +1,11 @@
+>  obj-$(CONFIG_X86_INTEL_CE)	+= ce4100.o
+> +clean-files := *dtb.S
+> +
+> +ifdef CONFIG_X86_OF
+> +###
+> +# device tree blob
+> +obj-$(CONFIG_X86_INTEL_CE) += ce4100.dtb.o
+> +
+> +$(obj)/%.dtb: $(src)/%.dts
+> +	$(call cmd,dtc)
+> +endif
 
-Agree.  I'd assumed that a new version was brewing in Dumazet Labs.
+Skipped for now; will pick up after ce4100 is in mainline since this
+is a pretty low-risk change.
+
+g.
+
+> -- 
+> 1.7.2.3
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
