@@ -1,47 +1,50 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH] dma_declare_coherent_memory: push ioremap() up to
-	caller
-Date: Fri, 24 Dec 2010 13:02:00 +0000
-Message-ID: <20101224130200.GG20587@n2100.arm.linux.org.uk>
-References: <201012240020.37208.jkrzyszt@tis.icnet.pl>
+From: Gome Levin <gomelevin@yahoo.com>
+Subject: Re: PLS I NEED YOUR HELP
+Date: Fri, 24 Dec 2010 13:31:43 +0000 (UTC)
+Message-ID: <loom.20101224T142314-316@post.gmane.org>
+References: <61927.115.134.213.133.1292990360.squirrel@115.134.213.133>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:36236 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752161Ab0LXNCn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Dec 2010 08:02:43 -0500
-Content-Disposition: inline
-In-Reply-To: <201012240020.37208.jkrzyszt@tis.icnet.pl>
+Received: from lo.gmane.org ([80.91.229.12]:55180 "EHLO lo.gmane.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752033Ab0LXNkH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Dec 2010 08:40:07 -0500
+Received: from list by lo.gmane.org with local (Exim 4.69)
+	(envelope-from <glka-linux-arch@m.gmane.org>)
+	id 1PW7sL-0007Yb-1R
+	for linux-arch@vger.kernel.org; Fri, 24 Dec 2010 14:40:05 +0100
+Received: from 93-173-35-53.bb.netvision.net.il ([93.173.35.53])
+        by main.gmane.org with esmtp (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Fri, 24 Dec 2010 14:40:05 +0100
+Received: from gomelevin by 93-173-35-53.bb.netvision.net.il with local (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Fri, 24 Dec 2010 14:40:05 +0100
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Janusz Krzysztofik <jkrzyszt@tis.icnet.pl>
-Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Dan Williams <dan.j.williams@intel.com>, linux-sh@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, Sascha Hauer <kernel@pengutronix.de>, linux-usb@vger.kernel.org, David Brownell <dbrownell@users.sourceforge.net>, linux-media@vger.kernel.org, Guennadi Liakhovetski <g.liakhovetski@gmx.de>, linux-scsi@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@suse.de>, Catalin Marinas <catalin.marinas@arm.com>
+To: linux-arch@vger.kernel.org
 
-On Fri, Dec 24, 2010 at 12:20:32AM +0100, Janusz Krzysztofik wrote:
-> The patch tries to implement a solution suggested by Russell King, 
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2010-December/035264.html. 
-> It is expected to solve video buffer allocation issues for at least a 
-> few soc_camera I/O memory less host interface drivers, designed around 
-> the videobuf_dma_contig layer, which allocates video buffers using 
-> dma_alloc_coherent().
+Mrs.Comfort Baker <info <at> info.com> writes:
+
 > 
-> Created against linux-2.6.37-rc5.
+> I am Mrs.Comfort Baker, my husband deposited 7.5 Million GBP with a Bank
+> in UK when he was Alive, presently I'm suffering from esophagea cancer i
+> need your to help me collect the Funds from the bank to use it finance
+> Charity Organizations. Pls reply to: comfortb14 <at> v1va.net
 > 
-> Tested on ARM OMAP1 based Amstrad Delta with a WIP OMAP1 camera patch, 
-> patterned upon two mach-mx3 machine types which already try to use the 
-> dma_declare_coherent_memory() method for reserving a region of system 
-> RAM preallocated with another dma_alloc_coherent(). Compile tested for 
-> all modified files except arch/sh/drivers/pci/fixups-dreamcast.c.
+> Looking forward for your reply.
+> 
+> Remain Blessed
+> Mrs.Comfort Baker.
+> 
+> 
 
-Another note: with the pair of patches I've sent to the linux-arm-kernel
-list earlier today changing the DMA coherent allocator to steal memory
-from the system at boot.
 
-This means there's less need to pre-allocate DMA memory - if there's
-sufficient contiguous space in the DMA region to satisfy the allocation,
-then the allocation will succeed.  It's also independent of the maximum
-page size from the kernel's memory allocators too.
+Dear Mrs. Baker,
 
-So I suspect that mach-mx3 (and others) no longer need to do their own
-pre-allocation anymore if both of these patches go in.
+How can help with this?
+
+Sincerely,
+Gome Levin
