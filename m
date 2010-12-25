@@ -1,112 +1,161 @@
-From: Janusz Krzysztofik <jkrzyszt@tis.icnet.pl>
-Subject: Re: [PATCH] dma_declare_coherent_memory: push ioremap() up to caller
-Date: Sat, 25 Dec 2010 00:24:34 +0100
-Message-ID: <201012250024.38576.jkrzyszt@tis.icnet.pl>
-References: <201012240020.37208.jkrzyszt@tis.icnet.pl> <201012241455.30430.jkrzyszt@tis.icnet.pl> <20101224154120.GH20587@n2100.arm.linux.org.uk>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: [PATCHv1 00/12] unicore32 core architecture
+Date: Sun, 26 Dec 2010 02:40:18 +0800
+Message-ID: <00c401cba463$2e297ea0$8a7c7be0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from d1.icnet.pl ([212.160.220.21]:45960 "EHLO d1.icnet.pl"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:51953 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752848Ab0LXX0S convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Dec 2010 18:26:18 -0500
-In-Reply-To: <20101224154120.GH20587@n2100.arm.linux.org.uk>
-Content-Disposition: inline
+	id S1751038Ab0LYSkW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 25 Dec 2010 13:40:22 -0500
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Dan Williams <dan.j.williams@intel.com>, linux-sh@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, Sascha Hauer <kernel@pengutronix.de>, linux-usb@vger.kernel.org, David Brownell <dbrownell@users.sourceforge.net>, linux-media@vger.kernel.org, Guennadi Liakhovetski <g.liakhovetski@gmx.de>, linux-scsi@vger.kernel.org, "James E.J. Bottomley" <James.Bottomley@suse.de>, Catalin Marinas <catalin.marinas@arm.com>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-=46riday 24 December 2010 16:41:20 Russell King - ARM Linux napisa=C5=82=
-(a):
-> On Fri, Dec 24, 2010 at 02:55:25PM +0100, Janusz Krzysztofik wrote:
-> > Friday 24 December 2010 14:02:00 Russell King - ARM Linux wrote:
-> > > On Fri, Dec 24, 2010 at 12:20:32AM +0100, Janusz Krzysztofik=20
-wrote:
-> > > > The patch tries to implement a solution suggested by Russell
-> > > > King,
-> > > > http://lists.infradead.org/pipermail/linux-arm-kernel/2010-Dece
-> > > >mber /035264.html. It is expected to solve video buffer
-> > > > allocation issues for at least a few soc_camera I/O memory less
-> > > > host interface drivers, designed around the videobuf_dma_contig
-> > > > layer, which allocates video buffers using
-> > > > dma_alloc_coherent().
-> > > >
-> > > > Created against linux-2.6.37-rc5.
-> > > >
-> > > > Tested on ARM OMAP1 based Amstrad Delta with a WIP OMAP1 camera
-> > > > patch, patterned upon two mach-mx3 machine types which already
-> > > > try to use the dma_declare_coherent_memory() method for
-> > > > reserving a region of system RAM preallocated with another
-> > > > dma_alloc_coherent(). Compile tested for all modified files
-> > > > except arch/sh/drivers/pci/fixups-dreamcast.c.
-> > >
-> > > Another note: with the pair of patches I've sent to the
-> > > linux-arm-kernel list earlier today changing the DMA coherent
-> > > allocator to steal memory from the system at boot.
-> > >
-> > > This means there's less need to pre-allocate DMA memory - if
-> > > there's sufficient contiguous space in the DMA region to satisfy
-> > > the allocation, then the allocation will succeed.  It's also
-> > > independent of the maximum page size from the kernel's memory
-> > > allocators too.
-> > >
-> > > So I suspect that mach-mx3 (and others) no longer need to do
-> > > their own pre-allocation anymore if both of these patches go in.
-> >
-> > Then, my rationale will no longer be valid. So, either drop my
-> > patch if you think you have finally come out with a better solution
-> > which doesn't touch any system-wide API, or suggest a new
-> > justification for use in the commit log if you think still the
-> > patch solves something important.
->
-> No.  It's not clear whether my pair of patches are both going to make
-> it into the kernel, or even what timeframe they're going to make it
-> in.
->
-> Irrespective of that, we do need a solution to this problem so that
-> this stuff starts working again.
->
-> In any case, your patch makes complete sense through and through:
->
-> 1. if other architecture/machine wants to reserve a chunk of DMA-able
->    memory for a specific device (eg, because of a restriction on the
->    number of DMA address bits available) and it's completely DMA
->    coherent, it shouldn't have to go through the pains of having that
->    memory unconditionally ioremap'd.
->
-> 2. What if the memory being provided from some source where you
-> already have the mapping setup in a specific way for a reason?
->
-> For example, say I have an ARM design, and all peripherals are in a
-> single 256MB memory region, which includes a chunk of SRAM set aside
-> for DMA purposes.  Let's say I can map that really efficiently by a
-> few page table entries, which means relatively little TLB usage for
-> accessing this region.
->
-> With the current API, it becomes difficult to pass that mapping
-> through the dma_declare_coherent_memory() because the physical
-> address goes through ioremap(), which obfuscates what's going on.=20
-> However, if I could pass the bus and virtual address, then there's no
-> ambiguity over what I want to do.
->
-> What if I want to declare memory to the DMA coherent allocator with
-> attributes different from what ioremap() gives me, maybe with write
-> combining properties (because it happens to be safe for the specific
-> device) ?
->
-> Passing the virtual address allows the API to become much more
-> flexible. Not only that, it allows it to be used on ARM, rather than
-> becoming (as it currently stands) prohibited on ARM.
->
-> I believe that putting ioremap() inside this API was the wrong thing
-> to do, and moving it outside makes the API much more flexible and
-> usable. It's something I still fully support.
+From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-Thanks, this is what I was missing, having my point of view rather my=20
-machine centric, with not much wider experience. I'll quote your=20
-argumentation in next iteration of this patch if required.
+The whole patch could be fetched from:
+  git://git.kernel.org/pub/scm/linux/kernel/git/epip/unicore32.git
+  with branch name: unicore32.
+And it is divided into  three patch sets: core architecture files,
+  additional architecture files, and machine related files.
 
-Thanks,
-Janusz
+This patch set adds the core architecture support for UniCore32 ISA. 
+
+Patch 1 implements build infrastructure.
+
+Patch 2 includes some generic headers stuff. Because all one-line asm-generic headers
+  are auto-generated by ASM_GENERIC_HEADERS in arch/unicore32/Makefile,
+  so the rest seems very little. ELF handling functions are also here.
+
+Patch 3 includes processor and system headers. System call interface is here.
+  We used the similar syscall interface as ARM formerly, so the similar calls.S, unistd.h
+   and sys_unicore.c. While we are defining new ABI, it will use the syscall numbers in
+   asm-generic/unistd.h.
+
+Patch 4 implements low level entry and setup codes.
+
+Patch 5 implements process/thread related codes. Backtrace and stacktrace are here.
+
+Patch 6 includes generic codes of memory management.
+
+Patch 7 implements fault handling of memory management.
+
+Patch 8 implements consistent device DMA handling of memory management.
+  DMA device operations are also here.
+
+Patch 9 implements timer and time. RTC and PWM device drivers are also here.
+
+Patch 10 implements interrupts and gpio. UniCore32 has 9 gpio interrupt sources.
+  And gpio device operations are also here.
+
+Patch 11 implements signals.
+
+Patch 12 implements booting process before uncompressed.
+
+Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+---
+ arch/unicore32/.gitignore                     |   70 ++
+ arch/unicore32/Kconfig                        |  258 ++++++++
+ arch/unicore32/Kconfig.debug                  |   86 +++
+ arch/unicore32/Makefile                       |  153 +++++
+ arch/unicore32/boot/Makefile                  |   47 ++
+ arch/unicore32/boot/compressed/Makefile       |   71 ++
+ arch/unicore32/boot/compressed/head.S         |  203 ++++++
+ arch/unicore32/boot/compressed/misc.c         |  126 ++++
+ arch/unicore32/boot/compressed/piggy.S.in     |    6 +
+ arch/unicore32/boot/compressed/vmlinux.lds.in |   61 ++
+ arch/unicore32/configs/debug_defconfig        |  208 ++++++
+ arch/unicore32/configs/nb0916_defconfig       |  203 ++++++
+ arch/unicore32/include/asm/Kbuild             |    4 +
+ arch/unicore32/include/asm/byteorder.h        |   24 +
+ arch/unicore32/include/asm/cache.h            |   27 +
+ arch/unicore32/include/asm/cacheflush.h       |  211 ++++++
+ arch/unicore32/include/asm/cpu-single.h       |   45 ++
+ arch/unicore32/include/asm/cputype.h          |   33 +
+ arch/unicore32/include/asm/dma-mapping.h      |  124 ++++
+ arch/unicore32/include/asm/dma.h              |   23 +
+ arch/unicore32/include/asm/elf.h              |   94 +++
+ arch/unicore32/include/asm/ftrace.h           |    4 +
+ arch/unicore32/include/asm/gpio.h             |  103 +++
+ arch/unicore32/include/asm/hwcap.h            |   32 +
+ arch/unicore32/include/asm/irq.h              |  107 +++
+ arch/unicore32/include/asm/irqflags.h         |   53 ++
+ arch/unicore32/include/asm/linkage.h          |   22 +
+ arch/unicore32/include/asm/mach/dma.h         |   41 ++
+ arch/unicore32/include/asm/mach/map.h         |   20 +
+ arch/unicore32/include/asm/mach/memory.h      |   53 ++
+ arch/unicore32/include/asm/mach/uncompress.h  |   34 +
+ arch/unicore32/include/asm/memblock.h         |   20 +
+ arch/unicore32/include/asm/memory.h           |  123 ++++
+ arch/unicore32/include/asm/mmu.h              |   17 +
+ arch/unicore32/include/asm/mmu_context.h      |   87 +++
+ arch/unicore32/include/asm/page.h             |   80 +++
+ arch/unicore32/include/asm/pgalloc.h          |  110 +++
+ arch/unicore32/include/asm/pgtable-hwdef.h    |   55 ++
+ arch/unicore32/include/asm/pgtable.h          |  317 +++++++++
+ arch/unicore32/include/asm/processor.h        |   92 +++
+ arch/unicore32/include/asm/setup.h            |   51 ++
+ arch/unicore32/include/asm/sigcontext.h       |   61 ++
+ arch/unicore32/include/asm/sizes.h            |   47 ++
+ arch/unicore32/include/asm/stacktrace.h       |   31 +
+ arch/unicore32/include/asm/stat.h             |   71 ++
+ arch/unicore32/include/asm/string.h           |   52 ++
+ arch/unicore32/include/asm/system.h           |  171 +++++
+ arch/unicore32/include/asm/thread_info.h      |  152 +++++
+ arch/unicore32/include/asm/timex.h            |   34 +
+ arch/unicore32/include/asm/tlb.h              |   98 +++
+ arch/unicore32/include/asm/tlbflush.h         |  192 ++++++
+ arch/unicore32/include/asm/traps.h            |   32 +
+ arch/unicore32/include/asm/unistd.h           |  450 +++++++++++++
+ arch/unicore32/kernel/Makefile                |   34 +
+ arch/unicore32/kernel/asm-offsets.c           |  112 ++++
+ arch/unicore32/kernel/calls.S                 |  390 +++++++++++
+ arch/unicore32/kernel/elf.c                   |   38 ++
+ arch/unicore32/kernel/entry.S                 |  875 +++++++++++++++++++++++++
+ arch/unicore32/kernel/head.S                  |  261 ++++++++
+ arch/unicore32/kernel/init_task.c             |   44 ++
+ arch/unicore32/kernel/irq.c                   |  440 +++++++++++++
+ arch/unicore32/kernel/ksyms.c                 |   87 +++
+ arch/unicore32/kernel/module.c                |  152 +++++
+ arch/unicore32/kernel/process.c               |  389 +++++++++++
+ arch/unicore32/kernel/setup.c                 |  360 ++++++++++
+ arch/unicore32/kernel/setup.h                 |   28 +
+ arch/unicore32/kernel/signal.c                |  571 ++++++++++++++++
+ arch/unicore32/kernel/signal.h                |   16 +
+ arch/unicore32/kernel/stacktrace.c            |  131 ++++
+ arch/unicore32/kernel/sys_unicore.c           |  132 ++++
+ arch/unicore32/kernel/time.c                  |  157 +++++
+ arch/unicore32/kernel/traps.c                 |  498 ++++++++++++++
+ arch/unicore32/kernel/vmlinux.lds.S           |  120 ++++
+ arch/unicore32/lib/backtrace.S                |  163 +++++
+ arch/unicore32/mm/Kconfig                     |   52 ++
+ arch/unicore32/mm/Makefile                    |   15 +
+ arch/unicore32/mm/alignment.c                 |  524 +++++++++++++++
+ arch/unicore32/mm/cache-ucv2.S                |  212 ++++++
+ arch/unicore32/mm/dma-swiotlb.c               |   33 +
+ arch/unicore32/mm/extable.c                   |   24 +
+ arch/unicore32/mm/fault-unicore.c             |   65 ++
+ arch/unicore32/mm/fault.c                     |  491 ++++++++++++++
+ arch/unicore32/mm/fault.h                     |   14 +
+ arch/unicore32/mm/flush.c                     |   98 +++
+ arch/unicore32/mm/init.c                      |  517 +++++++++++++++
+ arch/unicore32/mm/iomap.c                     |   56 ++
+ arch/unicore32/mm/ioremap.c                   |  261 ++++++++
+ arch/unicore32/mm/mm.h                        |   39 ++
+ arch/unicore32/mm/mmu.c                       |  494 ++++++++++++++
+ arch/unicore32/mm/pgd.c                       |  102 +++
+ arch/unicore32/mm/proc-macros.S               |  145 ++++
+ arch/unicore32/mm/proc-syms.c                 |   28 +
+ arch/unicore32/mm/proc-ucv2.S                 |  134 ++++
+ arch/unicore32/mm/tlb-ucv2.S                  |   89 +++
+ drivers/staging/puv3/puv3_dma.c               |  187 ++++++
+ drivers/staging/puv3/puv3_gpio.c              |  129 ++++
+ drivers/staging/puv3/puv3_pwm.c               |  271 ++++++++
+ drivers/staging/puv3/puv3_rtc.c               |  388 +++++++++++
+ firmware/Makefile                             |    2 +-
+ 99 files changed, 14256 insertions(+), 1 deletions(-)
