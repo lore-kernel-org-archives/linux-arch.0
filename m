@@ -1,36 +1,54 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH RESEND percpu#for-next] percpu: align percpu readmostly
- subsection to cacheline
-Date: Mon, 27 Dec 2010 13:03:53 -0800
-Message-ID: <4D18FF39.6080101@zytor.com>
-References: <20101227133719.GD488@htj.dyndns.org> <20101227204309.GA3878@merkur.ravnborg.org>
+From: john stultz <johnstul@us.ibm.com>
+Subject: Re: [PATCHv1 09/12] unicore32 core architecture: timer and time
+Date: Mon, 27 Dec 2010 13:27:20 -0800
+Message-ID: <AANLkTinjzzMz4WFRYmjZiM=P6c1wtSxpY2bzOuUe0Vrd@mail.gmail.com>
+References: <00d601cba465$27154a70$753fdf50$@mprc.pku.edu.cn>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:54010 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751007Ab0L0VGB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Dec 2010 16:06:01 -0500
-In-Reply-To: <20101227204309.GA3878@merkur.ravnborg.org>
+Received: from mail-gw0-f46.google.com ([74.125.83.46]:64478 "EHLO
+	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751707Ab0L0V1V convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Dec 2010 16:27:21 -0500
+In-Reply-To: <00d601cba465$27154a70$753fdf50$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Tejun Heo <tj@kernel.org>, Shaohua Li <shaohua.li@intel.com>, lkml <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, eric.dumazet@gmail.com, linux-arch@vger.kernel.org
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 12/27/2010 12:43 PM, Sam Ravnborg wrote:
-> 
-> It would have been better to include cache.h and then use L1_CACHE_BYTES,
-> as the value differs for EV4.
-> It will work with 64 as this is the bigger of the two.
-> 
-> It looks like we could do this for almost all archs.
-> But then I am not sure if "L1_CACHE_BYTES" is the same as
-> a cacheline on the different archs.
-> 
+2010/12/25 Guan Xuetao <guanxuetao@mprc.pku.edu.cn>:
+> From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+>
+> Patch 9 implements timer and time. RTC and PWM device drivers are als=
+o here.
+>
+> Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-For x86, L1 is definitely not the right cache line to use, in terms of
-what matters for SMP sharing.  And yes, there are x86's with smaller L1
-than L2/3 cache line size.
+Just a small request:
 
-	-hpa
+> +static struct clocksource cksrc_puv3_oscr =3D {
+> + =A0 =A0 =A0 .name =A0 =A0 =A0 =A0 =A0 =3D "oscr",
+> + =A0 =A0 =A0 .rating =A0 =A0 =A0 =A0 =3D 200,
+> + =A0 =A0 =A0 .read =A0 =A0 =A0 =A0 =A0 =3D puv3_read_oscr,
+> + =A0 =A0 =A0 .mask =A0 =A0 =A0 =A0 =A0 =3D CLOCKSOURCE_MASK(32),
+> + =A0 =A0 =A0 .shift =A0 =A0 =A0 =A0 =A0=3D 18,
+
+Drop the shift assignment here.
+
+> + =A0 =A0 =A0 cksrc_puv3_oscr.mult =3D
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 clocksource_hz2mult(CLOCK_TICK_RATE, ck=
+src_puv3_oscr.shift);
+> +
+Drop the mult assignment here.
+
+
+> + =A0 =A0 =A0 clocksource_register(&cksrc_puv3_oscr);
+
+Use "clocksource_register_hz(&cksrc_puv3_oscr, CLOCK_TICK_RATE );" and
+the kernel will fill in mult/shift appropriately.
+
+If you have any troubles after doing so, let me know.
+
+thanks
+-john
