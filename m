@@ -1,36 +1,61 @@
-From: Shaohua Li <shaohua.li@intel.com>
+From: Tejun Heo <tj@kernel.org>
 Subject: Re: [PATCH RESEND percpu#for-next] percpu: align percpu readmostly
  subsection to cacheline
-Date: Tue, 28 Dec 2010 08:48:21 +0800
-Message-ID: <1293497301.10593.27.camel@sli10-conroe>
+Date: Tue, 28 Dec 2010 12:18:22 +0100
+Message-ID: <20101228111822.GF488@htj.dyndns.org>
 References: <20101227133719.GD488@htj.dyndns.org>
+ <20101227204309.GA3878@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20101227133719.GD488@htj.dyndns.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tejun Heo <tj@kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, lkml <linux-kernel@vger.kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, "eric.dumazet@gmail.com" <eric.dumazet@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:47632 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753084Ab0L1LS1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Dec 2010 06:18:27 -0500
+Content-Disposition: inline
+In-Reply-To: <20101227204309.GA3878@merkur.ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Shaohua Li <shaohua.li@intel.com>, lkml <linux-kernel@vger.kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, eric.dumazet@gmail.com, linux-arch@vger.kernel.org
 
-On Mon, 2010-12-27 at 21:37 +0800, Tejun Heo wrote:
-> Currently percpu readmostly subsection may share cachelines with other
-> percpu subsections which may result in unnecessary cacheline bounce
-> and performance degradation.
-> 
-> This patch adds @cacheline parameter to PERCPU() and PERCPU_VADDR()
-> linker macros, makes each arch linker scripts specify its cacheline
-> size and use it to align percpu subsections.
-> 
-> This is based on Shaohua's x86 only patch.
-> 
-> Signed-off-by: Tejun Heo <tj@kernel.org>
-> Cc: Shaohua Li <shaohua.li@intel.com>
-> ---
-> Shaohua, can you please verify this achieves the same result?  If no
-> one objects, I'll route it through the percpu tree.
-yes, the x86 part works.
+Hello,
 
-Thanks,
-Shaohua
+On Mon, Dec 27, 2010 at 09:43:09PM +0100, Sam Ravnborg wrote:
+> > diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+> > index 003ef4c..173518f 100644
+> > --- a/arch/alpha/kernel/vmlinux.lds.S
+> > +++ b/arch/alpha/kernel/vmlinux.lds.S
+> > @@ -38,7 +38,7 @@ SECTIONS
+> >  	__init_begin = ALIGN(PAGE_SIZE);
+> >  	INIT_TEXT_SECTION(PAGE_SIZE)
+> >  	INIT_DATA_SECTION(16)
+> > -	PERCPU(PAGE_SIZE)
+> > +	PERCPU(64, PAGE_SIZE)
+> >  	/* Align to THREAD_SIZE rather than PAGE_SIZE here so any padding page
+> >  	   needed for the THREAD_SIZE aligned init_task gets freed after init */
+> >  	. = ALIGN(THREAD_SIZE);
+> 
+> It would have been better to include cache.h and then use L1_CACHE_BYTES,
+> as the value differs for EV4.
+> It will work with 64 as this is the bigger of the two.
+
+Hmmm... I took the 64 from RW_DATA_SECTION() macro.  If L1_CACHE_BYTES
+is better fit for PERCPU, I'm pretty sure we would be better off with
+that for RW_DATA_SECTION() too.  I'll follow up with a patch to change
+both to L1_CACHE_BYTES.
+
+> It looks like we could do this for almost all archs.
+> But then I am not sure if "L1_CACHE_BYTES" is the same as
+> a cacheline on the different archs.
+
+hpa already replied but it seems that different archs have subtle
+differences regarding which cacheline size determines what.  If we
+want to unify this, it probably would be best to define
+INTERNODE_CACHE_BYTES on all archs and use it for all places where
+false sharing should be avoided.
+
+Thanks.
+
+-- 
+tejun
