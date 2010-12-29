@@ -1,85 +1,155 @@
 From: HATAYAMA Daisuke <d.hatayama@gmail.com>
-Subject: [PATCH 0/4] elf core: Write section header table first
-Date: Thu, 30 Dec 2010 06:16:17 +0900
-Message-ID: <AANLkTimK9gh_LVW2faCbVMpwMeBFOJLRXHJkA4_3Oi6=@mail.gmail.com>
+Subject: [PATCH 2/4] elf core: Remove unused functions
+Date: Thu, 30 Dec 2010 06:21:46 +0900
+Message-ID: <AANLkTindXiXSozMp5NRkTUV0P6z7OcrDY=cX_EJO4tHP@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:38541 "EHLO
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:60445 "EHLO
 	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752811Ab0L2VQT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Dec 2010 16:16:19 -0500
+	with ESMTP id S1752795Ab0L2VVr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Dec 2010 16:21:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: tony.luck@intel.com, jdike@addtoit.com, dhowells@redhat.com, gerg@snapgear.com, roland@redhat.com, oleg@redhat.com, mingo@elte.hu, viro@zeniv.linux.org.uk, andi@firstfloor.org, alan@lxorguk.ukuu.org.uk, akpm@linux-foundation.org, kosaki.motohiro@jp.fujitsu.com, kamezawa.hiroyu@jp.fujitsu.com, suzuki@in.ibm.com, linux-arch@vger.kernel.org
 
-This patchset changes a position of section header table, if exists,
-from the last to the next to ELF header. According to ELF
-specification, the order of ELF component layout is not specified
-except for ELF header. See:
-
-  http://www.sco.com/developers/gabi/latest/ch4.intro.html#file_format
-
-The merits are:
- - reducing tracing memory maps from 3 times to 2 times.
- - simple offset handling that makes the code easier to read.
-
- arch/ia64/kernel/elfcore.c |   16 -----
- arch/um/sys-i386/elfcore.c |   16 -----
- fs/binfmt_elf.c            |  136 +++++++++++++++++-------------------------
- fs/binfmt_elf_fdpic.c      |  141 ++++++++++++++++++--------------------------
- include/linux/elfcore.h    |    1 -
- kernel/elfcore.c           |    5 --
- 6 files changed, 111 insertions(+), 204 deletions(-)
-
-I built and tested this patchset on x86_64. I also built it on ia64,
-um-i386 and frv using cross compilers to cover the range.
-
-Here's a program useful to generate ELF core with many program header
-entries, and three steps to produce such ELF core:
-
- $ sysctl vm.max_map_count=70000
- $ ulimit -c unlimted
- $ mkmmap 65535
-
-== mkmmap.c
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <unistd.h>
-int main(int argc, char **argv)
-{
-        int maps_num;
-        if (argc < 2) {
-                fprintf(stderr, "mkmmaps [number of maps to be created]\n");
-                exit(1);
-        }
-        if (sscanf(argv[1], "%d", &maps_num) == EOF) {
-                perror("sscanf");
-                exit(2);
-        }
-        if (maps_num < 0) {
-                fprintf(stderr, "%d is invalid\n", maps_num);
-                exit(3);
-        }
-        for (; maps_num > 0; --maps_num) {
-                if (MAP_FAILED == mmap((void *)NULL, (size_t) 1, PROT_READ,
-                                       MAP_SHARED | MAP_ANONYMOUS, (int) -1,
-                                       (off_t) NULL)) {
-                        perror("mmap");
-                        exit(4);
-                }
-        }
-        abort();
-        {
-                char buffer[128];
-                sprintf(buffer, "wc -l /proc/%u/maps", getpid());
-                system(buffer);
-        }
-        return 0;
-}
-==
+Remove unused function to calculate vma data size.
 
 Signed-off-by: HATAYAMA Daisuke <d.hatayama@jp.fujitsu.com>
+---
+ arch/ia64/kernel/elfcore.c |   16 ----------------
+ arch/um/sys-i386/elfcore.c |   16 ----------------
+ fs/binfmt_elf.c            |   12 ------------
+ fs/binfmt_elf_fdpic.c      |   11 -----------
+ include/linux/elfcore.h    |    1 -
+ kernel/elfcore.c           |    5 -----
+ 6 files changed, 0 insertions(+), 61 deletions(-)
+
+diff --git a/arch/ia64/kernel/elfcore.c b/arch/ia64/kernel/elfcore.c
+index bac1639..57a2298 100644
+--- a/arch/ia64/kernel/elfcore.c
++++ b/arch/ia64/kernel/elfcore.c
+@@ -62,19 +62,3 @@ int elf_core_write_extra_data(struct file *file,
+size_t *size,
+ 	}
+ 	return 1;
+ }
+-
+-size_t elf_core_extra_data_size(void)
+-{
+-	const struct elf_phdr *const gate_phdrs =
+-		(const struct elf_phdr *) (GATE_ADDR + GATE_EHDR->e_phoff);
+-	int i;
+-	size_t size = 0;
+-
+-	for (i = 0; i < GATE_EHDR->e_phnum; ++i) {
+-		if (gate_phdrs[i].p_type == PT_LOAD) {
+-			size += PAGE_ALIGN(gate_phdrs[i].p_memsz);
+-			break;
+-		}
+-	}
+-	return size;
+-}
+diff --git a/arch/um/sys-i386/elfcore.c b/arch/um/sys-i386/elfcore.c
+index 6bb49b6..30cac52 100644
+--- a/arch/um/sys-i386/elfcore.c
++++ b/arch/um/sys-i386/elfcore.c
+@@ -65,19 +65,3 @@ int elf_core_write_extra_data(struct file *file,
+size_t *size,
+ 	}
+ 	return 1;
+ }
+-
+-size_t elf_core_extra_data_size(void)
+-{
+-	if ( vsyscall_ehdr ) {
+-		const struct elfhdr *const ehdrp =
+-			(struct elfhdr *)vsyscall_ehdr;
+-		const struct elf_phdr *const phdrp =
+-			(const struct elf_phdr *) (vsyscall_ehdr + ehdrp->e_phoff);
+-		int i;
+-
+-		for (i = 0; i < ehdrp->e_phnum; ++i)
+-			if (phdrp[i].p_type == PT_LOAD)
+-				return (size_t) phdrp[i].p_filesz;
+-	}
+-	return 0;
+-}
+diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
+index 5ab062c..f311276 100644
+--- a/fs/binfmt_elf.c
++++ b/fs/binfmt_elf.c
+@@ -1861,18 +1861,6 @@ static void fill_extnum_info(struct elfhdr
+*elf, struct elf_shdr *shdr4extnum,
+ 	shdr4extnum->sh_info = segs;
+ }
+
+-static size_t elf_core_vma_data_size(struct vm_area_struct *gate_vma,
+-				     unsigned long mm_flags)
+-{
+-	struct vm_area_struct *vma;
+-	size_t size = 0;
+-
+-	for (vma = first_vma(current, gate_vma); vma != NULL;
+-	     vma = next_vma(vma, gate_vma))
+-		size += vma_dump_size(vma, mm_flags);
+-	return size;
+-}
+-
+ /*
+  * Actual dumper
+  *
+diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
+index 9ff6bef..715d12d 100644
+--- a/fs/binfmt_elf_fdpic.c
++++ b/fs/binfmt_elf_fdpic.c
+@@ -1582,17 +1582,6 @@ static int elf_fdpic_dump_segments(struct file
+*file, size_t *size,
+ }
+ #endif
+
+-static size_t elf_core_vma_data_size(unsigned long mm_flags)
+-{
+-	struct vm_area_struct *vma;
+-	size_t size = 0;
+-
+-	for (vma = current->mm->mmap; vma; vma = vma->vm_next)
+-		if (maydump(vma, mm_flags))
+-			size += vma->vm_end - vma->vm_start;
+-	return size;
+-}
+-
+ /*
+  * Actual dumper
+  *
+diff --git a/include/linux/elfcore.h b/include/linux/elfcore.h
+index 394a3e0..1f096d4 100644
+--- a/include/linux/elfcore.h
++++ b/include/linux/elfcore.h
+@@ -164,7 +164,6 @@ elf_core_write_extra_phdrs(struct file *file,
+loff_t offset, size_t *size,
+ 			   unsigned long limit);
+ extern int
+ elf_core_write_extra_data(struct file *file, size_t *size, unsigned
+long limit);
+-extern size_t elf_core_extra_data_size(void);
+
+ #endif /* __KERNEL__ */
+
+diff --git a/kernel/elfcore.c b/kernel/elfcore.c
+index ff915ef..5445741 100644
+--- a/kernel/elfcore.c
++++ b/kernel/elfcore.c
+@@ -21,8 +21,3 @@ int __weak elf_core_write_extra_data(struct file
+*file, size_t *size,
+ {
+ 	return 1;
+ }
+-
+-size_t __weak elf_core_extra_data_size(void)
+-{
+-	return 0;
+-}
+-- 
+1.7.1
