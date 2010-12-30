@@ -1,41 +1,45 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Thu, 30 Dec 2010 10:04:23 +0100
-Message-ID: <20101230090423.GA7306@elte.hu>
-References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
+From: Christoph Paasch <christoph.paasch@uclouvain.be>
+Subject: Compilation of pktgen fails for ARCH=um
+Date: Thu, 30 Dec 2010 11:33:14 +0100
+Message-ID: <201012301133.14524.christoph.paasch@uclouvain.be>
+Reply-To: christoph.paasch@uclouvain.be
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:34793 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753177Ab0L3JEk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Dec 2010 04:04:40 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
+Received: from smtp.sgsi.ucl.ac.be ([130.104.5.67]:33712 "EHLO
+	smtp3.sgsi.ucl.ac.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752799Ab0L3Kmp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 05:42:45 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: netdev@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
 
+Hi,
 
-* David Rientjes <rientjes@google.com> wrote:
+compiling the packet generator (NET_PKTGEN) for ARCH=3Dum does not work=
+=2E
 
-> The meaning of CONFIG_EMBEDDED has long since been obsoleted; the option
-> is used to configure any non-standard kernel with a much larger scope
-> than only small devices.
-> 
-> This patch renames the option to CONFIG_EXPERT in init/Kconfig and fixes
-> references to the option in the same file.  Followup patches will fix the
-> remainder of the occurrences in the tree.
-> 
-> Calling the option "EXPERT" more accurately represents its intention:
-> only expert users who understand the impact of the configuration changes
-> they are making should enable it.
-> 
-> Signed-off-by: David Rientjes <rientjes@google.com>
+Since commit 43d28b6515a6ea580a198df3e253e88236f08978 (pktgen: increasi=
+ng=20
+transmission granularity), function spin(...) uses ndelay(...), which i=
+s not=20
+implemented for uml.
 
-Nice! For all patches:
+Should pktgen be disabled for uml?
+Or should ndelay be an empty macro? (in arch/um/include/asm/delay.h)
 
-Reviewed-by: Ingo Molnar <mingo@elte.hu>
+Regards,
+Christoph
 
-	Ingo
+--
+Christoph Paasch
+
+Research Assistant
+IP Networking Lab --- http://inl.info.ucl.ac.be
+MultiPath TCP in the Linux Kernel --- http://inl.info.ucl.ac.be/mptcp
+Universit=E9 Catholique de Louvain
+
+www.rollerbulls.be
+--
