@@ -1,7 +1,7 @@
 From: David Rientjes <rientjes@google.com>
-Subject: [patch 4/8] fs: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Wed, 29 Dec 2010 20:02:43 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1012292000460.27241@chino.kir.corp.google.com>
+Subject: [patch 7/8] lib: rename CONFIG_EMBEDDED to CONFIG_EXPERT
+Date: Wed, 29 Dec 2010 20:02:52 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1012292001430.27241@chino.kir.corp.google.com>
 References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
@@ -12,63 +12,34 @@ To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-CONFIG_EMBEDDED has been renamed to CONFIG_EXPERT, so fix it in the fs/
+CONFIG_EMBEDDED has been renamed to CONFIG_EXPERT, so fix it in the lib/
 directory.
 
 Signed-off-by: David Rientjes <rientjes@google.com>
 ---
- fs/Kconfig       |    2 +-
- fs/proc/Kconfig  |    6 +++---
- fs/sysfs/Kconfig |    2 +-
- 3 files changed, 5 insertions(+), 5 deletions(-)
+ lib/Kconfig.debug |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/fs/Kconfig b/fs/Kconfig
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -51,7 +51,7 @@ config EXPORTFS
- 	tristate
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -656,7 +656,7 @@ config DEBUG_HIGHMEM
+ 	  Disable for production systems.
  
- config FILE_LOCKING
--	bool "Enable POSIX file locking API" if EMBEDDED
-+	bool "Enable POSIX file locking API" if EXPERT
- 	default y
- 	help
- 	  This option enables standard file locking support, required
-diff --git a/fs/proc/Kconfig b/fs/proc/Kconfig
---- a/fs/proc/Kconfig
-+++ b/fs/proc/Kconfig
-@@ -1,5 +1,5 @@
- config PROC_FS
--	bool "/proc file system support" if EMBEDDED
-+	bool "/proc file system support" if EXPERT
- 	default y
- 	help
- 	  This is a virtual file system providing information about the status
-@@ -40,7 +40,7 @@ config PROC_VMCORE
-         Exports the dump image of crashed kernel in ELF format.
+ config DEBUG_BUGVERBOSE
+-	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EMBEDDED
++	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
+ 	depends on BUG
+ 	depends on ARM || AVR32 || M32R || M68K || SPARC32 || SPARC64 || \
+ 		   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300
+@@ -728,8 +728,8 @@ config DEBUG_WRITECOUNT
+ 	  If unsure, say N.
  
- config PROC_SYSCTL
--	bool "Sysctl support (/proc/sys)" if EMBEDDED
-+	bool "Sysctl support (/proc/sys)" if EXPERT
- 	depends on PROC_FS
- 	select SYSCTL
- 	default y
-@@ -61,7 +61,7 @@ config PROC_SYSCTL
- config PROC_PAGE_MONITOR
-  	default y
- 	depends on PROC_FS && MMU
--	bool "Enable /proc page monitoring" if EMBEDDED
-+	bool "Enable /proc page monitoring" if EXPERT
-  	help
- 	  Various /proc files exist to monitor process memory utilization:
- 	  /proc/pid/smaps, /proc/pid/clear_refs, /proc/pid/pagemap,
-diff --git a/fs/sysfs/Kconfig b/fs/sysfs/Kconfig
---- a/fs/sysfs/Kconfig
-+++ b/fs/sysfs/Kconfig
-@@ -1,5 +1,5 @@
- config SYSFS
--	bool "sysfs file system support" if EMBEDDED
-+	bool "sysfs file system support" if EXPERT
- 	default y
+ config DEBUG_MEMORY_INIT
+-	bool "Debug memory initialisation" if EMBEDDED
+-	default !EMBEDDED
++	bool "Debug memory initialisation" if EXPERT
++	default !EXPERT
  	help
- 	The sysfs filesystem is a virtual filesystem that the kernel uses to
+ 	  Enable this for additional checks during memory initialisation.
+ 	  The sanity checks verify aspects of the VM such as the memory model
