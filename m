@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:38150 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:9809 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751872Ab0L3ECy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Dec 2010 23:02:54 -0500
-Received: from wpaz29.hot.corp.google.com (wpaz29.hot.corp.google.com [172.24.198.93])
-	by smtp-out.google.com with ESMTP id oBU42rBL023399
-	for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:53 -0800
-Received: from pvg12 (pvg12.prod.google.com [10.241.210.140])
-	by wpaz29.hot.corp.google.com with ESMTP id oBU42prY003115
-	for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:52 -0800
-Received: by pvg12 with SMTP id 12so3717925pvg.40
-        for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:51 -0800 (PST)
-Date: Wed, 29 Dec 2010 20:02:49 -0800 (PST)
+	with ESMTP id S1752148Ab0L3EC7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Dec 2010 23:02:59 -0500
+Received: from wpaz17.hot.corp.google.com (wpaz17.hot.corp.google.com [172.24.198.81])
+	by smtp-out.google.com with ESMTP id oBU42uu0010553
+	for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:57 -0800
+Received: from pxi17 (pxi17.prod.google.com [10.243.27.17])
+	by wpaz17.hot.corp.google.com with ESMTP id oBU42s9l030999
+	for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:55 -0800
+Received: by pxi17 with SMTP id 17so2188892pxi.6
+        for <linux-arch@vger.kernel.org>; Wed, 29 Dec 2010 20:02:54 -0800 (PST)
+Date: Wed, 29 Dec 2010 20:02:52 -0800 (PST)
 From: David Rientjes <rientjes@google.com>
-Subject: [patch 6/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
+Subject: [patch 7/8] lib: rename CONFIG_EMBEDDED to CONFIG_EXPERT
 In-Reply-To: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
-Message-ID: <alpine.DEB.2.00.1012292001250.27241@chino.kir.corp.google.com>
+Message-ID: <alpine.DEB.2.00.1012292001430.27241@chino.kir.corp.google.com>
 References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
@@ -23,69 +23,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20101230040249.1VGgM562Fun_2HTWs6QKRvesOK628L-HFmBd8n6RzSo@z>
+Message-ID: <20101230040252.-PrtE5IWBJvqminJEIG0SU1FrQJo19Ibcteakbr4akE@z>
 
-CONFIG_EMBEDDED has been renamed to CONFIG_EXPERT, so fix it in the net/
+CONFIG_EMBEDDED has been renamed to CONFIG_EXPERT, so fix it in the lib/
 directory.
 
 Signed-off-by: David Rientjes <rientjes@google.com>
 ---
- net/mac80211/Kconfig |    6 +++---
- net/rfkill/Kconfig   |    4 ++--
- net/wireless/Kconfig |    2 +-
- 3 files changed, 6 insertions(+), 6 deletions(-)
+ lib/Kconfig.debug |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/net/mac80211/Kconfig b/net/mac80211/Kconfig
---- a/net/mac80211/Kconfig
-+++ b/net/mac80211/Kconfig
-@@ -19,7 +19,7 @@ config MAC80211_HAS_RC
- 	def_bool n
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -656,7 +656,7 @@ config DEBUG_HIGHMEM
+ 	  Disable for production systems.
  
- config MAC80211_RC_PID
--	bool "PID controller based rate control algorithm" if EMBEDDED
-+	bool "PID controller based rate control algorithm" if EXPERT
- 	select MAC80211_HAS_RC
- 	---help---
- 	  This option enables a TX rate control algorithm for
-@@ -27,14 +27,14 @@ config MAC80211_RC_PID
- 	  rate.
- 
- config MAC80211_RC_MINSTREL
--	bool "Minstrel" if EMBEDDED
-+	bool "Minstrel" if EXPERT
- 	select MAC80211_HAS_RC
- 	default y
- 	---help---
- 	  This option enables the 'minstrel' TX rate control algorithm
- 
- config MAC80211_RC_MINSTREL_HT
--	bool "Minstrel 802.11n support" if EMBEDDED
-+	bool "Minstrel 802.11n support" if EXPERT
- 	depends on MAC80211_RC_MINSTREL
- 	default y
- 	---help---
-diff --git a/net/rfkill/Kconfig b/net/rfkill/Kconfig
---- a/net/rfkill/Kconfig
-+++ b/net/rfkill/Kconfig
-@@ -18,7 +18,7 @@ config RFKILL_LEDS
- 	default y
- 
- config RFKILL_INPUT
--	bool "RF switch input support" if EMBEDDED
-+	bool "RF switch input support" if EXPERT
- 	depends on RFKILL
- 	depends on INPUT = y || RFKILL = INPUT
--	default y if !EMBEDDED
-+	default y if !EXPERT
-diff --git a/net/wireless/Kconfig b/net/wireless/Kconfig
---- a/net/wireless/Kconfig
-+++ b/net/wireless/Kconfig
-@@ -95,7 +95,7 @@ config CFG80211_DEBUGFS
+ config DEBUG_BUGVERBOSE
+-	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EMBEDDED
++	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
+ 	depends on BUG
+ 	depends on ARM || AVR32 || M32R || M68K || SPARC32 || SPARC64 || \
+ 		   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300
+@@ -728,8 +728,8 @@ config DEBUG_WRITECOUNT
  	  If unsure, say N.
  
- config CFG80211_INTERNAL_REGDB
--	bool "use statically compiled regulatory rules database" if EMBEDDED
-+	bool "use statically compiled regulatory rules database" if EXPERT
- 	default n
- 	depends on CFG80211
- 	---help---
+ config DEBUG_MEMORY_INIT
+-	bool "Debug memory initialisation" if EMBEDDED
+-	default !EMBEDDED
++	bool "Debug memory initialisation" if EXPERT
++	default !EXPERT
+ 	help
+ 	  Enable this for additional checks during memory initialisation.
+ 	  The sanity checks verify aspects of the VM such as the memory model
