@@ -1,37 +1,63 @@
-From: Robin Holt <holt@sgi.com>
-Subject: Re: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Thu, 30 Dec 2010 07:10:31 -0600
-Message-ID: <20101230131031.GF3260@sgi.com>
-References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
- <20101230124535.GA3306@sgi.com>
- <201012301350.28862.arnd@arndb.de>
+From: Randy Dunlap <randy.dunlap@oracle.com>
+Subject: [PATCH/RFC] Re: Compilation of pktgen fails for ARCH=um
+Date: Thu, 30 Dec 2010 09:39:25 -0800
+Message-ID: <20101230093925.3d6b567e.randy.dunlap@oracle.com>
+References: <201012301133.14524.christoph.paasch@uclouvain.be>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relay3.sgi.com ([192.48.152.1]:41066 "EHLO relay.sgi.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751775Ab0L3NKd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Dec 2010 08:10:33 -0500
-Content-Disposition: inline
-In-Reply-To: <201012301350.28862.arnd@arndb.de>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:55382 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754865Ab0L3RkU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 12:40:20 -0500
+In-Reply-To: <201012301133.14524.christoph.paasch@uclouvain.be>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Robin Holt <holt@sgi.com>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: christoph.paasch@uclouvain.be
+Cc: netdev@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Dec 30, 2010 at 01:50:28PM +0100, Arnd Bergmann wrote:
-> On Thursday 30 December 2010, Robin Holt wrote:
-> > Doesn't this patch series break the 'bisectable' rule for patches?
-> > I think you can get by with adding a CONFIG_EXPERT selects CONFIG_EMBEDDED
-> > in the first patch and the last patch removing that same selects.
+On Thu, 30 Dec 2010 11:33:14 +0100 Christoph Paasch wrote:
+
+> Hi,
 > 
-> How about leaving it that way during the merge window even? That would
-> help people sending git pull requests that add new dependencies on
-> CONFIG_EMBEDDED. David can submit another patch that removes the
-> temporary CONFIG_EMBEDDED option along with any new users in -rc2
-> or for 2.6.39 then.
+> compiling the packet generator (NET_PKTGEN) for ARCH=um does not work.
+> 
+> Since commit 43d28b6515a6ea580a198df3e253e88236f08978 (pktgen: increasing 
+> transmission granularity), function spin(...) uses ndelay(...), which is not 
+> implemented for uml.
+> 
+> Should pktgen be disabled for uml?
+> Or should ndelay be an empty macro? (in arch/um/include/asm/delay.h)
 
-That would be fine with me, but I don't think my vote counts for much.
-I was just trying to help prevent the bisectability of your patchset.
+or ndelay() in arch/um/include/asm/delay.y can be removed completely
+and then the default implementation of ndelay() will be used from
+include/linux/delay.h.
+This builds cleanly, but I don't know how well it would work.
 
-Robin
+---
+From: Randy Dunlap <randy.dunlap@oracle.com>
+
+Allow uml to use the default implementation of ndelay() from
+<linux/delay.h>.  Fixes build error:
+
+net/built-in.o: In function `spin':
+pktgen.c:(.text+0x27391): undefined reference to `__unimplemented_ndelay'
+
+Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
+---
+ arch/um/include/asm/delay.h |    5 -----
+ 1 file changed, 5 deletions(-)
+
+--- linux-next-20101214.orig/arch/um/include/asm/delay.h
++++ linux-next-20101214/arch/um/include/asm/delay.h
+@@ -12,9 +12,4 @@ extern void __delay(unsigned long loops)
+ #define udelay(n) ((__builtin_constant_p(n) && (n) > 20000) ? \
+ 	__bad_udelay() : __udelay(n))
+ 
+-/* It appears that ndelay is not used at all for UML, and has never been
+- * implemented. */
+-extern void __unimplemented_ndelay(void);
+-#define ndelay(n) __unimplemented_ndelay()
+-
+ #endif
