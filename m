@@ -1,255 +1,240 @@
-From: HATAYAMA Daisuke <d.hatayama@gmail.com>
-Subject: [PATCH 1/4] elf core: Write section header table first
-Date: Thu, 30 Dec 2010 06:19:51 +0900
-Message-ID: <AANLkTimKUAH3VA6-=moR5nTrmn-yi4D_yoLQtU1ygYAh@mail.gmail.com>
-References: <AANLkTimK9gh_LVW2faCbVMpwMeBFOJLRXHJkA4_3Oi6=@mail.gmail.com>
+From: David Rientjes <rientjes@google.com>
+Subject: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
+Date: Wed, 29 Dec 2010 20:02:26 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw0-f46.google.com ([74.125.83.46]:46744 "EHLO
-	mail-gw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753515Ab0L2V01 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Dec 2010 16:26:27 -0500
-In-Reply-To: <AANLkTimK9gh_LVW2faCbVMpwMeBFOJLRXHJkA4_3Oi6=@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: tony.luck@intel.com, jdike@addtoit.com, dhowells@redhat.com, gerg@snapgear.com, roland@redhat.com, oleg@redhat.com, mingo@elte.hu, viro@zeniv.linux.org.uk, andi@firstfloor.org, alan@lxorguk.ukuu.org.uk, akpm@linux-foundation.org, kosaki.motohiro@jp.fujitsu.com, kamezawa.hiroyu@jp.fujitsu.com, suzuki@in.ibm.com, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Change a position of section header table from the last to the next to
-ELF header. Because section header table offset is located at next to
-ELF header and ELF header size is constant, section header table
-offset is also constant if exists; so is program header table
-offset. We no longer need to calculate vma data size in advance.
+The meaning of CONFIG_EMBEDDED has long since been obsoleted; the option
+is used to configure any non-standard kernel with a much larger scope
+than only small devices.
 
-Signed-off-by: HATAYAMA Daisuke <d.hatayama@jp.fujitsu.com>
+This patch renames the option to CONFIG_EXPERT in init/Kconfig and fixes
+references to the option in the same file.  Followup patches will fix the
+remainder of the occurrences in the tree.
+
+Calling the option "EXPERT" more accurately represents its intention:
+only expert users who understand the impact of the configuration changes
+they are making should enable it.
+
+Signed-off-by: David Rientjes <rientjes@google.com>
 ---
- fs/binfmt_elf.c       |   42 ++++++++++++++++++++++--------------------
- fs/binfmt_elf_fdpic.c |   43 +++++++++++++++++++++++--------------------
- 2 files changed, 45 insertions(+), 40 deletions(-)
+ init/Kconfig |   52 ++++++++++++++++++++++++++--------------------------
+ 1 files changed, 26 insertions(+), 26 deletions(-)
 
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 6884e19..5ab062c 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -1234,11 +1234,17 @@ static void fill_elf_header(struct elfhdr
-*elf, int segs,
- 	elf->e_type = ET_CORE;
- 	elf->e_machine = machine;
- 	elf->e_version = EV_CURRENT;
--	elf->e_phoff = sizeof(struct elfhdr);
- 	elf->e_flags = flags;
- 	elf->e_ehsize = sizeof(struct elfhdr);
- 	elf->e_phentsize = sizeof(struct elf_phdr);
--	elf->e_phnum = segs;
-+
-+	if (segs < PN_XNUM) {
-+		elf->e_phoff = sizeof(struct elfhdr);
-+		elf->e_phnum = segs;
-+	} else {
-+		elf->e_phoff = sizeof(struct elfhdr) + sizeof(struct elf_shdr);
-+		elf->e_phnum = PN_XNUM;
-+	}
-
- 	return;
- }
-@@ -1839,12 +1845,13 @@ static struct vm_area_struct *next_vma(struct
-vm_area_struct *this_vma,
- }
-
- static void fill_extnum_info(struct elfhdr *elf, struct elf_shdr *shdr4extnum,
--			     elf_addr_t e_shoff, int segs)
-+			     int segs)
- {
--	elf->e_shoff = e_shoff;
-+	elf->e_shoff = sizeof(*elf);
- 	elf->e_shentsize = sizeof(*shdr4extnum);
- 	elf->e_shnum = 1;
- 	elf->e_shstrndx = SHN_UNDEF;
-+	elf->e_phoff = elf->e_shoff + elf->e_shnum * elf->e_shentsize;
-
- 	memset(shdr4extnum, 0, sizeof(*shdr4extnum));
-
-@@ -1886,7 +1893,6 @@ static int elf_core_dump(struct coredump_params *cprm)
- 	struct elf_phdr *phdr4note = NULL;
- 	struct elf_shdr *shdr4extnum = NULL;
- 	Elf_Half e_phnum;
--	elf_addr_t e_shoff;
-
- 	/*
- 	 * We no longer stop all VM operations.
-@@ -1937,6 +1943,8 @@ static int elf_core_dump(struct coredump_params *cprm)
- 	set_fs(KERNEL_DS);
-
- 	offset += sizeof(*elf);				/* Elf header */
-+	if (e_phnum == PN_XNUM)				/* Section header */
-+		offset += sizeof(struct elf_shdr);
- 	offset += segs * sizeof(struct elf_phdr);	/* Program headers */
- 	foffset = offset;
-
-@@ -1956,23 +1964,25 @@ static int elf_core_dump(struct coredump_params *cprm)
-
- 	dataoff = offset = roundup(offset, ELF_EXEC_PAGESIZE);
-
--	offset += elf_core_vma_data_size(gate_vma, cprm->mm_flags);
--	offset += elf_core_extra_data_size();
--	e_shoff = offset;
--
- 	if (e_phnum == PN_XNUM) {
- 		shdr4extnum = kmalloc(sizeof(*shdr4extnum), GFP_KERNEL);
- 		if (!shdr4extnum)
- 			goto end_coredump;
--		fill_extnum_info(elf, shdr4extnum, e_shoff, segs);
-+		fill_extnum_info(elf, shdr4extnum, segs);
- 	}
-
--	offset = dataoff;
--
- 	size += sizeof(*elf);
- 	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
- 		goto end_coredump;
-
-+	if (e_phnum == PN_XNUM) {
-+		size += sizeof(*shdr4extnum);
-+		if (size > cprm->limit
-+		    || !dump_write(cprm->file, shdr4extnum,
-+				   sizeof(*shdr4extnum)))
-+			goto end_coredump;
-+	}
-+
- 	size += sizeof(*phdr4note);
- 	if (size > cprm->limit
- 	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
-@@ -2046,14 +2056,6 @@ static int elf_core_dump(struct coredump_params *cprm)
- 	if (!elf_core_write_extra_data(cprm->file, &size, cprm->limit))
- 		goto end_coredump;
-
--	if (e_phnum == PN_XNUM) {
--		size += sizeof(*shdr4extnum);
--		if (size > cprm->limit
--		    || !dump_write(cprm->file, shdr4extnum,
--				   sizeof(*shdr4extnum)))
--			goto end_coredump;
--	}
--
- end_coredump:
- 	set_fs(fs);
-
-diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
-index 63039ed..9ff6bef 100644
---- a/fs/binfmt_elf_fdpic.c
-+++ b/fs/binfmt_elf_fdpic.c
-@@ -1326,15 +1326,22 @@ static inline void
-fill_elf_fdpic_header(struct elfhdr *elf, int segs)
- 	elf->e_machine = ELF_ARCH;
- 	elf->e_version = EV_CURRENT;
- 	elf->e_entry = 0;
--	elf->e_phoff = sizeof(struct elfhdr);
- 	elf->e_shoff = 0;
- 	elf->e_flags = ELF_FDPIC_CORE_EFLAGS;
- 	elf->e_ehsize = sizeof(struct elfhdr);
- 	elf->e_phentsize = sizeof(struct elf_phdr);
--	elf->e_phnum = segs;
- 	elf->e_shentsize = 0;
- 	elf->e_shnum = 0;
- 	elf->e_shstrndx = 0;
-+
-+	if (segs < PN_XNUM) {
-+		elf->e_phoff = sizeof(struct elfhdr);
-+		elf->e_phnum = segs;
-+	} else {
-+		elf->e_phoff = sizeof(struct elfhdr) + sizeof(struct elf_shdr);
-+		elf->e_phnum = PN_XNUM;
-+	}
-+
- 	return;
- }
-
-@@ -1495,12 +1502,13 @@ static int elf_dump_thread_status(long signr,
-struct elf_thread_status *t)
- }
-
- static void fill_extnum_info(struct elfhdr *elf, struct elf_shdr *shdr4extnum,
--			     elf_addr_t e_shoff, int segs)
-+			     int segs)
- {
--	elf->e_shoff = e_shoff;
-+	elf->e_shoff = sizeof(*elf);
- 	elf->e_shentsize = sizeof(*shdr4extnum);
- 	elf->e_shnum = 1;
- 	elf->e_shstrndx = SHN_UNDEF;
-+	elf->e_phoff = elf->e_shoff + elf->e_shnum * elf->e_shentsize;
-
- 	memset(shdr4extnum, 0, sizeof(*shdr4extnum));
-
-@@ -1618,7 +1626,6 @@ static int elf_fdpic_core_dump(struct
-coredump_params *cprm)
- 	struct elf_phdr *phdr4note = NULL;
- 	struct elf_shdr *shdr4extnum = NULL;
- 	Elf_Half e_phnum;
--	elf_addr_t e_shoff;
-
- 	/*
- 	 * We no longer stop all VM operations.
-@@ -1734,6 +1741,8 @@ static int elf_fdpic_core_dump(struct
-coredump_params *cprm)
- 	set_fs(KERNEL_DS);
-
- 	offset += sizeof(*elf);				/* Elf header */
-+	if (e_phnum == PN_XNUM)				/* Section header */
-+		offset += sizeof(struct elf_shdr);
- 	offset += segs * sizeof(struct elf_phdr);	/* Program headers */
- 	foffset = offset;
-
-@@ -1757,23 +1766,25 @@ static int elf_fdpic_core_dump(struct
-coredump_params *cprm)
- 	/* Page-align dumped data */
- 	dataoff = offset = roundup(offset, ELF_EXEC_PAGESIZE);
-
--	offset += elf_core_vma_data_size(cprm->mm_flags);
--	offset += elf_core_extra_data_size();
--	e_shoff = offset;
--
- 	if (e_phnum == PN_XNUM) {
- 		shdr4extnum = kmalloc(sizeof(*shdr4extnum), GFP_KERNEL);
- 		if (!shdr4extnum)
- 			goto end_coredump;
--		fill_extnum_info(elf, shdr4extnum, e_shoff, segs);
-+		fill_extnum_info(elf, shdr4extnum, segs);
- 	}
-
--	offset = dataoff;
--
- 	size += sizeof(*elf);
- 	if (size > cprm->limit || !dump_write(cprm->file, elf, sizeof(*elf)))
- 		goto end_coredump;
-
-+	if (e_phnum == PN_XNUM) {
-+		size += sizeof(*shdr4extnum);
-+		if (size > cprm->limit
-+		    || !dump_write(cprm->file, shdr4extnum,
-+				   sizeof(*shdr4extnum)))
-+			goto end_coredump;
-+	}
-+
- 	size += sizeof(*phdr4note);
- 	if (size > cprm->limit
- 	    || !dump_write(cprm->file, phdr4note, sizeof(*phdr4note)))
-@@ -1834,14 +1845,6 @@ static int elf_fdpic_core_dump(struct
-coredump_params *cprm)
- 	if (!elf_core_write_extra_data(cprm->file, &size, cprm->limit))
- 		goto end_coredump;
-
--	if (e_phnum == PN_XNUM) {
--		size += sizeof(*shdr4extnum);
--		if (size > cprm->limit
--		    || !dump_write(cprm->file, shdr4extnum,
--				   sizeof(*shdr4extnum)))
--			goto end_coredump;
--	}
--
- 	if (cprm->file->f_pos != offset) {
- 		/* Sanity check */
- 		printk(KERN_WARNING
--- 
-1.7.1
+diff --git a/init/Kconfig b/init/Kconfig
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -689,8 +689,8 @@ config DEBUG_BLK_CGROUP
+ endif # CGROUPS
+ 
+ menuconfig NAMESPACES
+-	bool "Namespaces support" if EMBEDDED
+-	default !EMBEDDED
++	bool "Namespaces support" if EXPERT
++	default !EXPERT
+ 	help
+ 	  Provides the way to make tasks work with different objects using
+ 	  the same id. For example same IPC id may refer to different objects
+@@ -830,8 +830,8 @@ config SYSCTL
+ config ANON_INODES
+ 	bool
+ 
+-menuconfig EMBEDDED
+-	bool "Configure standard kernel features (for small systems)"
++menuconfig EXPERT
++	bool "Configure standard kernel features (expert users)"
+ 	help
+ 	  This option allows certain base kernel options and settings
+           to be disabled or tweaked. This is for specialized
+@@ -839,14 +839,14 @@ menuconfig EMBEDDED
+           Only use this if you really know what you are doing.
+ 
+ config UID16
+-	bool "Enable 16-bit UID system calls" if EMBEDDED
++	bool "Enable 16-bit UID system calls" if EXPERT
+ 	depends on ARM || BLACKFIN || CRIS || FRV || H8300 || X86_32 || M68K || (S390 && !64BIT) || SUPERH || SPARC32 || (SPARC64 && COMPAT) || UML || (X86_64 && IA32_EMULATION)
+ 	default y
+ 	help
+ 	  This enables the legacy 16-bit UID syscall wrappers.
+ 
+ config SYSCTL_SYSCALL
+-	bool "Sysctl syscall support" if EMBEDDED
++	bool "Sysctl syscall support" if EXPERT
+ 	depends on PROC_SYSCTL
+ 	default y
+ 	select SYSCTL
+@@ -863,7 +863,7 @@ config SYSCTL_SYSCALL
+ 	  If unsure say Y here.
+ 
+ config KALLSYMS
+-	 bool "Load all symbols for debugging/ksymoops" if EMBEDDED
++	 bool "Load all symbols for debugging/ksymoops" if EXPERT
+ 	 default y
+ 	 help
+ 	   Say Y here to let the kernel print out symbolic crash information and
+@@ -894,7 +894,7 @@ config KALLSYMS_EXTRA_PASS
+ 
+ 
+ config HOTPLUG
+-	bool "Support for hot-pluggable devices" if EMBEDDED
++	bool "Support for hot-pluggable devices" if EXPERT
+ 	default y
+ 	help
+ 	  This option is provided for the case where no hotplug or uevent
+@@ -904,7 +904,7 @@ config HOTPLUG
+ 
+ config PRINTK
+ 	default y
+-	bool "Enable support for printk" if EMBEDDED
++	bool "Enable support for printk" if EXPERT
+ 	help
+ 	  This option enables normal printk support. Removing it
+ 	  eliminates most of the message strings from the kernel image
+@@ -913,7 +913,7 @@ config PRINTK
+ 	  strongly discouraged.
+ 
+ config BUG
+-	bool "BUG() support" if EMBEDDED
++	bool "BUG() support" if EXPERT
+ 	default y
+ 	help
+           Disabling this option eliminates support for BUG and WARN, reducing
+@@ -924,12 +924,12 @@ config BUG
+ 
+ config ELF_CORE
+ 	default y
+-	bool "Enable ELF core dumps" if EMBEDDED
++	bool "Enable ELF core dumps" if EXPERT
+ 	help
+ 	  Enable support for generating core dumps. Disabling saves about 4k.
+ 
+ config PCSPKR_PLATFORM
+-	bool "Enable PC-Speaker support" if EMBEDDED
++	bool "Enable PC-Speaker support" if EXPERT
+ 	depends on ALPHA || X86 || MIPS || PPC_PREP || PPC_CHRP || PPC_PSERIES
+ 	default y
+ 	help
+@@ -938,14 +938,14 @@ config PCSPKR_PLATFORM
+ 
+ config BASE_FULL
+ 	default y
+-	bool "Enable full-sized data structures for core" if EMBEDDED
++	bool "Enable full-sized data structures for core" if EXPERT
+ 	help
+ 	  Disabling this option reduces the size of miscellaneous core
+ 	  kernel data structures. This saves memory on small machines,
+ 	  but may reduce performance.
+ 
+ config FUTEX
+-	bool "Enable futex support" if EMBEDDED
++	bool "Enable futex support" if EXPERT
+ 	default y
+ 	select RT_MUTEXES
+ 	help
+@@ -954,7 +954,7 @@ config FUTEX
+ 	  run glibc-based applications correctly.
+ 
+ config EPOLL
+-	bool "Enable eventpoll support" if EMBEDDED
++	bool "Enable eventpoll support" if EXPERT
+ 	default y
+ 	select ANON_INODES
+ 	help
+@@ -962,7 +962,7 @@ config EPOLL
+ 	  support for epoll family of system calls.
+ 
+ config SIGNALFD
+-	bool "Enable signalfd() system call" if EMBEDDED
++	bool "Enable signalfd() system call" if EXPERT
+ 	select ANON_INODES
+ 	default y
+ 	help
+@@ -972,7 +972,7 @@ config SIGNALFD
+ 	  If unsure, say Y.
+ 
+ config TIMERFD
+-	bool "Enable timerfd() system call" if EMBEDDED
++	bool "Enable timerfd() system call" if EXPERT
+ 	select ANON_INODES
+ 	default y
+ 	help
+@@ -982,7 +982,7 @@ config TIMERFD
+ 	  If unsure, say Y.
+ 
+ config EVENTFD
+-	bool "Enable eventfd() system call" if EMBEDDED
++	bool "Enable eventfd() system call" if EXPERT
+ 	select ANON_INODES
+ 	default y
+ 	help
+@@ -992,7 +992,7 @@ config EVENTFD
+ 	  If unsure, say Y.
+ 
+ config SHMEM
+-	bool "Use full shmem filesystem" if EMBEDDED
++	bool "Use full shmem filesystem" if EXPERT
+ 	default y
+ 	depends on MMU
+ 	help
+@@ -1003,7 +1003,7 @@ config SHMEM
+ 	  which may be appropriate on small systems without swap.
+ 
+ config AIO
+-	bool "Enable AIO support" if EMBEDDED
++	bool "Enable AIO support" if EXPERT
+ 	default y
+ 	help
+ 	  This option enables POSIX asynchronous I/O which may by used
+@@ -1080,16 +1080,16 @@ endmenu
+ 
+ config VM_EVENT_COUNTERS
+ 	default y
+-	bool "Enable VM event counters for /proc/vmstat" if EMBEDDED
++	bool "Enable VM event counters for /proc/vmstat" if EXPERT
+ 	help
+ 	  VM event counters are needed for event counts to be shown.
+ 	  This option allows the disabling of the VM event counters
+-	  on EMBEDDED systems.  /proc/vmstat will only show page counts
++	  on EXPERT systems.  /proc/vmstat will only show page counts
+ 	  if VM event counters are disabled.
+ 
+ config PCI_QUIRKS
+ 	default y
+-	bool "Enable PCI quirk workarounds" if EMBEDDED
++	bool "Enable PCI quirk workarounds" if EXPERT
+ 	depends on PCI
+ 	help
+ 	  This enables workarounds for various PCI chipset
+@@ -1098,7 +1098,7 @@ config PCI_QUIRKS
+ 
+ config SLUB_DEBUG
+ 	default y
+-	bool "Enable SLUB debugging support" if EMBEDDED
++	bool "Enable SLUB debugging support" if EXPERT
+ 	depends on SLUB && SYSFS
+ 	help
+ 	  SLUB has extensive debug support features. Disabling these can
+@@ -1142,7 +1142,7 @@ config SLUB
+ 	   a slab allocator.
+ 
+ config SLOB
+-	depends on EMBEDDED
++	depends on EXPERT
+ 	bool "SLOB (Simple Allocator)"
+ 	help
+ 	   SLOB replaces the stock allocator with a drastically simpler
+@@ -1153,7 +1153,7 @@ endchoice
+ 
+ config MMAP_ALLOW_UNINITIALIZED
+ 	bool "Allow mmapped anonymous memory to be uninitialized"
+-	depends on EMBEDDED && !MMU
++	depends on EXPERT && !MMU
+ 	default n
+ 	help
+ 	  Normally, and according to the Linux spec, anonymous memory obtained
