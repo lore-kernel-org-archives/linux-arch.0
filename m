@@ -1,48 +1,51 @@
-From: David Rientjes <rientjes@google.com>
+From: Valdis.Kletnieks@vt.edu
 Subject: Re: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Thu, 30 Dec 2010 11:17:32 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
+Date: Thu, 30 Dec 2010 16:56:05 -0500
+Message-ID: <15080.1293746165@localhost>
 References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com> <20101230124535.GA3306@sgi.com> <201012301350.28862.arnd@arndb.de>
+            <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201012301350.28862.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Robin Holt <holt@sgi.com>, Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; boundary="==_Exmh_1293746165_4931P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lennier.cc.vt.edu ([198.82.162.213]:56255 "EHLO
+	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751342Ab0L3V4a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 16:56:30 -0500
+In-Reply-To: Your message of "Thu, 30 Dec 2010 11:17:32 PST."
+             <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Robin Holt <holt@sgi.com>, Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, 30 Dec 2010, Arnd Bergmann wrote:
+--==_Exmh_1293746165_4931P
+Content-Type: text/plain; charset=us-ascii
 
-> > Doesn't this patch series break the 'bisectable' rule for patches?
-> > I think you can get by with adding a CONFIG_EXPERT selects CONFIG_EMBEDDED
-> > in the first patch and the last patch removing that same selects.
-> 
-> How about leaving it that way during the merge window even? That would
-> help people sending git pull requests that add new dependencies on
-> CONFIG_EMBEDDED. David can submit another patch that removes the
-> temporary CONFIG_EMBEDDED option along with any new users in -rc2
-> or for 2.6.39 then.
-> 
+On Thu, 30 Dec 2010 11:17:32 PST, David Rientjes said:
 
-Ok, so there are a few pending EMBEDDED dependency additions in linux-next 
-as of next-20101230, which should be a pretty good indicator of what type 
-of conflict we might risk during the merge window.
+> Instead of CONFIG_EXPERT select CONFIG_EMBEDDED, we could add a ninth 
+> patch which does CONFIG_EMBEDDED select CONFIG_EXPERT and tag it in some 
+> way so we know it's only temporary for the merge window to find new 
+> CONFIG_EMBEDDED entries.
 
- - three new defconfig files:
+What's the plan for those people who are currently on (say) 2.6.35, next
+upgrade to 2.6.39 or .40, and thus miss the 9th temporary patch? They'll run
+'make oldconfig' - if they get prompted, do we want to add a line to the help
+text that says "This used to be called EMBEDDED"?
 
-	89ba4d12: arch/arm/configs/ag5evm_defconfig
-	6cfce27c: arch/arm/configs/omap1_defconfig 
-	d58f0967: arch/blackfin/configs/BF561-EZKIT-SMP_defconfig 
 
- - 3ce05168 (drm/kms: load fbcon from drm_kms_helper)
+--==_Exmh_1293746165_4931P
+Content-Type: application/pgp-signature
 
- - b595076a (tree-wide: fix comment/printk typos)
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
 
-Instead of CONFIG_EXPERT select CONFIG_EMBEDDED, we could add a ninth 
-patch which does CONFIG_EMBEDDED select CONFIG_EXPERT and tag it in some 
-way so we know it's only temporary for the merge window to find new 
-CONFIG_EMBEDDED entries.
+iD8DBQFNHP/1cC3lWbTT17ARAr1IAKClAKlktw6RhWYaKrnfzgncvlFFpACfe6Pz
+w2MAmh0VPM7c7jqWxPO4fdU=
+=/lEf
+-----END PGP SIGNATURE-----
 
-Andrew, this would be going through your -mm tree anyway, so how would you 
-prefer to merge it?
+--==_Exmh_1293746165_4931P--
