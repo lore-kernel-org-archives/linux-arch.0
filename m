@@ -1,55 +1,70 @@
-From: "Webmail Account Service Team Management" <info@info.com>
-Subject: Update Your E-mail Account Now.
-Date: Fri, 31 Dec 2010 01:29:10 -0000 (GMT)
-Message-ID: <8586.41.203.64.254.1293758950.squirrel@41.203.64.254>
-Reply-To: upgrade-corporation@live.com
+From: Christoph Paasch <christoph.paasch@uclouvain.be>
+Subject: Re: [PATCH/RFC] Re: Compilation of pktgen fails for ARCH=um
+Date: Fri, 31 Dec 2010 11:26:29 +0100
+Message-ID: <201012311126.30027.christoph.paasch@uclouvain.be>
+References: <201012301133.14524.christoph.paasch@uclouvain.be> <20101230093925.3d6b567e.randy.dunlap@oracle.com>
+Reply-To: christoph.paasch@uclouvain.be
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: Text/Plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from av1.africaonline.com.gh ([212.85.196.25]:34593 "EHLO
-	av1.africaonline.com.gh" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752692Ab0LaB3T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 20:29:19 -0500
-Received: from av1.africaonline.com.gh (localhost.localdomain [127.0.0.1])
-	(using TLSv1 with cipher ADH-AES256-SHA (256/256 bits))
-	(No client certificate requested)
-	by av1.africaonline.com.gh (Postfix) with ESMTPS id 45E943393EA
-	for <linux-arch@vger.kernel.org>; Fri, 31 Dec 2010 01:35:00 +0000 (GMT)
-Received: from pop.africaonline.com.gh (gh2.africaonline.com.gh [212.85.196.2])
-	by av1.africaonline.com.gh (Postfix) with SMTP id DFD723393FF
-	for <linux-arch@vger.kernel.org>; Fri, 31 Dec 2010 01:34:58 +0000 (GMT)
+Received: from smtp.sgsi.ucl.ac.be ([130.104.5.67]:39441 "EHLO
+	smtp4.sgsi.ucl.ac.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752011Ab0LaK0l convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Dec 2010 05:26:41 -0500
+In-Reply-To: <20101230093925.3d6b567e.randy.dunlap@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Randy Dunlap <randy.dunlap@oracle.com>
+Cc: netdev@vger.kernel.org, linux-arch@vger.kernel.org
 
-Update Your E-mail Account Now.
+Hi,
 
-Dear E-mail Account Owner,
-This message is from WEBMAIL  maintenance hosting messaging center to all
-our account owners. We are currently upgrading our data base and e-mail
-center for webmail users. We are deleting all unused account to create
-more space for new ones and to prevent spam e-mails. To prevent your
-account from being closed, you will have to update it below so that we
-will know that the account is currently in use.
+On Thursday, December 30, 2010 wrote Randy Dunlap:
+> or ndelay() in arch/um/include/asm/delay.y can be removed completely
+> and then the default implementation of ndelay() will be used from
+> include/linux/delay.h.
+> This builds cleanly, but I don't know how well it would work.
+This will do a rounded up micro-second sleep. I think that it's ok.
 
-Warning!!! E-mail owner that refuses to update his or her E-mail within
-48hrs of receiving this warning will lose his or her E-mail permanently.
-You are required to send us the below information via email below.
-CONFIRM YOUR EMAIL IDENTITY BELOW:
-First Name:____________________________
-Last Name:_____________________________
-E-mail Username:________________________
-E-mail Password:_______________________
+Christoph
 
-Click on reply and send us the above details.
+> ---
+> From: Randy Dunlap <randy.dunlap@oracle.com>
+>=20
+> Allow uml to use the default implementation of ndelay() from
+> <linux/delay.h>.  Fixes build error:
+>=20
+> net/built-in.o: In function `spin':
+> pktgen.c:(.text+0x27391): undefined reference to `__unimplemented_nde=
+lay'
+>=20
+> Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
+> ---
+>  arch/um/include/asm/delay.h |    5 -----
+>  1 file changed, 5 deletions(-)
+>=20
+> --- linux-next-20101214.orig/arch/um/include/asm/delay.h
+> +++ linux-next-20101214/arch/um/include/asm/delay.h
+> @@ -12,9 +12,4 @@ extern void __delay(unsigned long loops)
+>  #define udelay(n) ((__builtin_constant_p(n) && (n) > 20000) ? \
+>  	__bad_udelay() : __udelay(n))
+>=20
+> -/* It appears that ndelay is not used at all for UML, and has never =
+been
+> - * implemented. */
+> -extern void __unimplemented_ndelay(void);
+> -#define ndelay(n) __unimplemented_ndelay()
+> -
+>  #endif
 
-Warning!!!
-In failure to verify your E-mail account within 48hrs on receiving this
-notification, your account will automatically be deactivated.
-Thank you for patronage.
-Warning Code: QATO8B52AXV
+--
+Christoph Paasch
+PhD Student
 
-Kind Regards,
-Account Service Team Management.
-Thanks for your co-operation.
-Copyright @2010. All rights reserved.
+IP Networking Lab --- http://inl.info.ucl.ac.be
+MultiPath TCP in the Linux Kernel --- http://inl.info.ucl.ac.be/mptcp
+Universit=E9 Catholique de Louvain
+
+www.rollerbulls.be
+--
