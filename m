@@ -1,51 +1,55 @@
-From: Valdis.Kletnieks@vt.edu
-Subject: Re: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Thu, 30 Dec 2010 16:56:05 -0500
-Message-ID: <15080.1293746165@localhost>
-References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com> <20101230124535.GA3306@sgi.com> <201012301350.28862.arnd@arndb.de>
-            <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
+From: "Webmail Account Service Team Management" <info@info.com>
+Subject: Update Your E-mail Account Now.
+Date: Fri, 31 Dec 2010 01:29:10 -0000 (GMT)
+Message-ID: <8586.41.203.64.254.1293758950.squirrel@41.203.64.254>
+Reply-To: upgrade-corporation@live.com
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1293746165_4931P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lennier.cc.vt.edu ([198.82.162.213]:56255 "EHLO
-	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751342Ab0L3V4a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 16:56:30 -0500
-In-Reply-To: Your message of "Thu, 30 Dec 2010 11:17:32 PST."
-             <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
+Received: from av1.africaonline.com.gh ([212.85.196.25]:34593 "EHLO
+	av1.africaonline.com.gh" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752692Ab0LaB3T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Dec 2010 20:29:19 -0500
+Received: from av1.africaonline.com.gh (localhost.localdomain [127.0.0.1])
+	(using TLSv1 with cipher ADH-AES256-SHA (256/256 bits))
+	(No client certificate requested)
+	by av1.africaonline.com.gh (Postfix) with ESMTPS id 45E943393EA
+	for <linux-arch@vger.kernel.org>; Fri, 31 Dec 2010 01:35:00 +0000 (GMT)
+Received: from pop.africaonline.com.gh (gh2.africaonline.com.gh [212.85.196.2])
+	by av1.africaonline.com.gh (Postfix) with SMTP id DFD723393FF
+	for <linux-arch@vger.kernel.org>; Fri, 31 Dec 2010 01:34:58 +0000 (GMT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Robin Holt <holt@sgi.com>, Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
---==_Exmh_1293746165_4931P
-Content-Type: text/plain; charset=us-ascii
+Update Your E-mail Account Now.
 
-On Thu, 30 Dec 2010 11:17:32 PST, David Rientjes said:
+Dear E-mail Account Owner,
+This message is from WEBMAIL  maintenance hosting messaging center to all
+our account owners. We are currently upgrading our data base and e-mail
+center for webmail users. We are deleting all unused account to create
+more space for new ones and to prevent spam e-mails. To prevent your
+account from being closed, you will have to update it below so that we
+will know that the account is currently in use.
 
-> Instead of CONFIG_EXPERT select CONFIG_EMBEDDED, we could add a ninth 
-> patch which does CONFIG_EMBEDDED select CONFIG_EXPERT and tag it in some 
-> way so we know it's only temporary for the merge window to find new 
-> CONFIG_EMBEDDED entries.
+Warning!!! E-mail owner that refuses to update his or her E-mail within
+48hrs of receiving this warning will lose his or her E-mail permanently.
+You are required to send us the below information via email below.
+CONFIRM YOUR EMAIL IDENTITY BELOW:
+First Name:____________________________
+Last Name:_____________________________
+E-mail Username:________________________
+E-mail Password:_______________________
 
-What's the plan for those people who are currently on (say) 2.6.35, next
-upgrade to 2.6.39 or .40, and thus miss the 9th temporary patch? They'll run
-'make oldconfig' - if they get prompted, do we want to add a line to the help
-text that says "This used to be called EMBEDDED"?
+Click on reply and send us the above details.
 
+Warning!!!
+In failure to verify your E-mail account within 48hrs on receiving this
+notification, your account will automatically be deactivated.
+Thank you for patronage.
+Warning Code: QATO8B52AXV
 
---==_Exmh_1293746165_4931P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFNHP/1cC3lWbTT17ARAr1IAKClAKlktw6RhWYaKrnfzgncvlFFpACfe6Pz
-w2MAmh0VPM7c7jqWxPO4fdU=
-=/lEf
------END PGP SIGNATURE-----
-
---==_Exmh_1293746165_4931P--
+Kind Regards,
+Account Service Team Management.
+Thanks for your co-operation.
+Copyright @2010. All rights reserved.
