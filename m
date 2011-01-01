@@ -1,70 +1,28 @@
-From: Christoph Paasch <christoph.paasch@uclouvain.be>
-Subject: Re: [PATCH/RFC] Re: Compilation of pktgen fails for ARCH=um
-Date: Fri, 31 Dec 2010 11:26:29 +0100
-Message-ID: <201012311126.30027.christoph.paasch@uclouvain.be>
-References: <201012301133.14524.christoph.paasch@uclouvain.be> <20101230093925.3d6b567e.randy.dunlap@oracle.com>
-Reply-To: christoph.paasch@uclouvain.be
+From: Maria Loreto Reyes general <mlreyes@med.puc.cl>
+Subject: CONTACT ME VIA PRIVATE EMAIL dean.jeffery11@gmail.com
+Date: Sat, 1 Jan 2011 12:32:59 -0300
+Message-ID: <483960D956DE1D46BA805D426A69E27D03DA73A4DA@CCRBUZON.lansalud.uc.cl>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.sgsi.ucl.ac.be ([130.104.5.67]:39441 "EHLO
-	smtp4.sgsi.ucl.ac.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752011Ab0LaK0l convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 31 Dec 2010 05:26:41 -0500
-In-Reply-To: <20101230093925.3d6b567e.randy.dunlap@oracle.com>
+Received: from [146.155.200.88] ([146.155.200.88]:3820 "EHLO
+	Serrano.lansalud.uc.cl" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750845Ab1AAPeX convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 1 Jan 2011 10:34:23 -0500
+Content-Language: es-CL
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <randy.dunlap@oracle.com>
-Cc: netdev@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi,
-
-On Thursday, December 30, 2010 wrote Randy Dunlap:
-> or ndelay() in arch/um/include/asm/delay.y can be removed completely
-> and then the default implementation of ndelay() will be used from
-> include/linux/delay.h.
-> This builds cleanly, but I don't know how well it would work.
-This will do a rounded up micro-second sleep. I think that it's ok.
-
-Christoph
-
-> ---
-> From: Randy Dunlap <randy.dunlap@oracle.com>
->=20
-> Allow uml to use the default implementation of ndelay() from
-> <linux/delay.h>.  Fixes build error:
->=20
-> net/built-in.o: In function `spin':
-> pktgen.c:(.text+0x27391): undefined reference to `__unimplemented_nde=
-lay'
->=20
-> Signed-off-by: Randy Dunlap <randy.dunlap@oracle.com>
-> ---
->  arch/um/include/asm/delay.h |    5 -----
->  1 file changed, 5 deletions(-)
->=20
-> --- linux-next-20101214.orig/arch/um/include/asm/delay.h
-> +++ linux-next-20101214/arch/um/include/asm/delay.h
-> @@ -12,9 +12,4 @@ extern void __delay(unsigned long loops)
->  #define udelay(n) ((__builtin_constant_p(n) && (n) > 20000) ? \
->  	__bad_udelay() : __udelay(n))
->=20
-> -/* It appears that ndelay is not used at all for UML, and has never =
-been
-> - * implemented. */
-> -extern void __unimplemented_ndelay(void);
-> -#define ndelay(n) __unimplemented_ndelay()
-> -
->  #endif
-
---
-Christoph Paasch
-PhD Student
-
-IP Networking Lab --- http://inl.info.ucl.ac.be
-MultiPath TCP in the Linux Kernel --- http://inl.info.ucl.ac.be/mptcp
-Universit=E9 Catholique de Louvain
-
-www.rollerbulls.be
---
+Good day, 
+  
+My name is Dr. Denis Rise; I work in the Euro Lottery. I am soliciting your assistance for a swift transfer of 4,528,000 GBP, should you be willing to assist me in this project, and you will be giving me just 25% of your winnings. 
+  
+Just as a brief, you just have to register online; due to my position in the company I can make it happen that you would be a winner of the above stated amount. Naturally, every body would like to play a lottery if they are assured of winning. I am assuring you today to be a winner, please do not take for granted this once in a life time opportunity as we both stand to collectively gain from this at the success of the transaction. 
+  
+Should you be willing to assist me in this transaction please do respond to 
+  
+E-mail: dean.jeffery11@gmail.com 
+Regards, 
+Dr.Denis Rise.
