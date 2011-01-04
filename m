@@ -1,101 +1,24 @@
-From: Wolfram Sang <w.sang@pengutronix.de>
-Subject: [PATCH 1/2] gpiolib: annotate gpio-intialization with __must_check
-Date: Tue,  4 Jan 2011 17:51:07 +0100
-Message-ID: <1294159868-4989-2-git-send-email-w.sang@pengutronix.de>
-References: <1294159868-4989-1-git-send-email-w.sang@pengutronix.de>
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1294159868-4989-1-git-send-email-w.sang@pengutronix.de>
-Sender: linux-doc-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Wolfram Sang <w.sang@pengutronix.de>, David Brownell <dbrownell@users.sourceforge.net>, Greg KH <gregkh@suse.de>, Randy Dunlap <rdunlap@xenotime.net>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Anton Vorontsov <cbouatmailru@gmail.com>, Grant Likely <grant.likely@secretlab.ca>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+From: Bjorn Helgaas <bjorn.helgaas@hp.com>
+Subject: Re: [PATCHv1 0/8] unicore32 additional architecture files: summary
+Date: Tue, 4 Jan 2011 11:48:29 -0700
+Message-ID: <201101041148.30482.bjorn.helgaas@hp.com>
+References: <012001cbab3b$f0397a70$d0ac6f50$@mprc.pku.edu.cn>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <012001cbab3b$f0397a70$d0ac6f50$@mprc.pku.edu.cn>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Because GPIOs can have crucial functions especially in embedded systems,
-we are better safe than sorry regarding their configuration. For
-gpio_request, the documentation is simply enforced: <quote>"The return
-value of gpio_request() must be checked."</quote> For gpio_direction_*
-and gpio_request_*, we now act accordingly.
+Would you mind sending the 1/8 through 8/8 patches as responses
+to the 0/8 message?  That makes them all appear in the same thread,
+so it's easier to deal with them as a group.
 
-Signed-off-by: Wolfram Sang <w.sang@pengutronix.de>
-Cc: David Brownell <dbrownell@users.sourceforge.net>
-Cc: Greg KH <gregkh@suse.de>
----
- Documentation/gpio.txt     |    2 +-
- include/asm-generic/gpio.h |   10 +++++-----
- include/linux/gpio.h       |    6 +++---
- 3 files changed, 9 insertions(+), 9 deletions(-)
+(Don't repost the thread just for this.  This is just a suggestion
+for next time you post a patch series.)
 
-diff --git a/Documentation/gpio.txt b/Documentation/gpio.txt
-index 792faa3..a492d92 100644
---- a/Documentation/gpio.txt
-+++ b/Documentation/gpio.txt
-@@ -135,7 +135,7 @@ setting up a platform_device using the GPIO, is mark its direction:
- 	int gpio_direction_input(unsigned gpio);
- 	int gpio_direction_output(unsigned gpio, int value);
- 
--The return value is zero for success, else a negative errno.  It should
-+The return value is zero for success, else a negative errno.  It must
- be checked, since the get/set calls don't have error returns and since
- misconfiguration is possible.  You should normally issue these calls from
- a task context.  However, for spinlock-safe GPIOs it's OK to use them
-diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-index ff5c660..6098cae 100644
---- a/include/asm-generic/gpio.h
-+++ b/include/asm-generic/gpio.h
-@@ -147,11 +147,11 @@ extern struct gpio_chip *gpiochip_find(void *data,
- /* Always use the library code for GPIO management calls,
-  * or when sleeping may be involved.
-  */
--extern int gpio_request(unsigned gpio, const char *label);
-+extern int __must_check gpio_request(unsigned gpio, const char *label);
- extern void gpio_free(unsigned gpio);
- 
--extern int gpio_direction_input(unsigned gpio);
--extern int gpio_direction_output(unsigned gpio, int value);
-+extern int __must_check gpio_direction_input(unsigned gpio);
-+extern int __must_check gpio_direction_output(unsigned gpio, int value);
- 
- extern int gpio_set_debounce(unsigned gpio, unsigned debounce);
- 
-@@ -192,8 +192,8 @@ struct gpio {
- 	const char	*label;
- };
- 
--extern int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
--extern int gpio_request_array(struct gpio *array, size_t num);
-+extern int __must_check gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
-+extern int __must_check gpio_request_array(struct gpio *array, size_t num);
- extern void gpio_free_array(struct gpio *array, size_t num);
- 
- #ifdef CONFIG_GPIO_SYSFS
-diff --git a/include/linux/gpio.h b/include/linux/gpio.h
-index e41f7dd..1d5214a 100644
---- a/include/linux/gpio.h
-+++ b/include/linux/gpio.h
-@@ -29,7 +29,7 @@ static inline int gpio_is_valid(int number)
- 	return 0;
- }
- 
--static inline int gpio_request(unsigned gpio, const char *label)
-+static inline int __must_check gpio_request(unsigned gpio, const char *label)
- {
- 	return -ENOSYS;
- }
-@@ -42,12 +42,12 @@ static inline void gpio_free(unsigned gpio)
- 	WARN_ON(1);
- }
- 
--static inline int gpio_direction_input(unsigned gpio)
-+static inline int __must_check gpio_direction_input(unsigned gpio)
- {
- 	return -ENOSYS;
- }
- 
--static inline int gpio_direction_output(unsigned gpio, int value)
-+static inline int __must_check gpio_direction_output(unsigned gpio, int value)
- {
- 	return -ENOSYS;
- }
--- 
-1.7.2.3
-
+Bjorn
