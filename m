@@ -1,62 +1,62 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch 1/8] init: rename CONFIG_EMBEDDED to CONFIG_EXPERT
-Date: Mon, 3 Jan 2011 13:56:19 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1101031353260.10636@chino.kir.corp.google.com>
-References: <alpine.DEB.2.00.1012291959200.27241@chino.kir.corp.google.com> <20101230124535.GA3306@sgi.com> <201012301350.28862.arnd@arndb.de> <alpine.DEB.2.00.1012301055340.12995@chino.kir.corp.google.com>
- <20110103121030.921f6ff2.akpm@linux-foundation.org>
+From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Subject: Re: [PATCH 0/4] elf core: Write section header table first
+Date: Tue, 4 Jan 2011 10:02:53 +0900
+Message-ID: <20110104100253.42560a2d.kamezawa.hiroyu@jp.fujitsu.com>
+References: <AANLkTimK9gh_LVW2faCbVMpwMeBFOJLRXHJkA4_3Oi6=@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:15008 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754011Ab1ACV42 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jan 2011 16:56:28 -0500
-Received: from wpaz33.hot.corp.google.com (wpaz33.hot.corp.google.com [172.24.198.97])
-	by smtp-out.google.com with ESMTP id p03LuQjh005173
-	for <linux-arch@vger.kernel.org>; Mon, 3 Jan 2011 13:56:27 -0800
-Received: from pzk12 (pzk12.prod.google.com [10.243.19.140])
-	by wpaz33.hot.corp.google.com with ESMTP id p03LuOLA028670
-	for <linux-arch@vger.kernel.org>; Mon, 3 Jan 2011 13:56:25 -0800
-Received: by pzk12 with SMTP id 12so2806710pzk.34
-        for <linux-arch@vger.kernel.org>; Mon, 03 Jan 2011 13:56:24 -0800 (PST)
-In-Reply-To: <20110103121030.921f6ff2.akpm@linux-foundation.org>
+Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:43091 "EHLO
+	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751300Ab1ADBIx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Jan 2011 20:08:53 -0500
+In-Reply-To: <AANLkTimK9gh_LVW2faCbVMpwMeBFOJLRXHJkA4_3Oi6=@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Robin Holt <holt@sgi.com>, Ingo Molnar <mingo@elte.hu>, Greg KH <gregkh@suse.de>, "David S. Miller" <davem@davemloft.net>, Jens Axboe <axboe@kernel.dk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: HATAYAMA Daisuke <d.hatayama@gmail.com>
+Cc: linux-kernel@vger.kernel.org, tony.luck@intel.com, jdike@addtoit.com, dhowells@redhat.com, gerg@snapgear.com, roland@redhat.com, oleg@redhat.com, mingo@elte.hu, viro@zeniv.linux.org.uk, andi@firstfloor.org, alan@lxorguk.ukuu.org.uk, akpm@linux-foundation.org, kosaki.motohiro@jp.fujitsu.com, suzuki@in.ibm.com, linux-arch@vger.kernel.org
 
-On Mon, 3 Jan 2011, Andrew Morton wrote:
+On Thu, 30 Dec 2010 06:16:17 +0900
+HATAYAMA Daisuke <d.hatayama@gmail.com> wrote:
 
-> > Ok, so there are a few pending EMBEDDED dependency additions in linux-next 
-> > as of next-20101230, which should be a pretty good indicator of what type 
-> > of conflict we might risk during the merge window.
-> > 
-> >  - three new defconfig files:
-> > 
-> > 	89ba4d12: arch/arm/configs/ag5evm_defconfig
-> > 	6cfce27c: arch/arm/configs/omap1_defconfig 
-> > 	d58f0967: arch/blackfin/configs/BF561-EZKIT-SMP_defconfig 
-> > 
-> >  - 3ce05168 (drm/kms: load fbcon from drm_kms_helper)
-> > 
-> >  - b595076a (tree-wide: fix comment/printk typos)
-> > 
-> > Instead of CONFIG_EXPERT select CONFIG_EMBEDDED, we could add a ninth 
-> > patch which does CONFIG_EMBEDDED select CONFIG_EXPERT and tag it in some 
-> > way so we know it's only temporary for the merge window to find new 
-> > CONFIG_EMBEDDED entries.
-> > 
-> > Andrew, this would be going through your -mm tree anyway, so how would you 
-> > prefer to merge it?
+> This patchset changes a position of section header table, if exists,
+> from the last to the next to ELF header. According to ELF
+> specification, the order of ELF component layout is not specified
+> except for ELF header. See:
 > 
-> um, one big patch shortly after -rc1 is released?
+>   http://www.sco.com/developers/gabi/latest/ch4.intro.html#file_format
+> 
+> The merits are:
+>  - reducing tracing memory maps from 3 times to 2 times.
+>  - simple offset handling that makes the code easier to read.
 > 
 
-Sounds good, I'll send you a big patch immediately following 2.6.38-rc1 
-and add a "config EMBEDDED" that will simply do a "select EXPERT" so it's 
-easy to use oldconfig.
+Hmm ? What was problem ? And new layout can be handled by usual tools ?
+As gdb, readelf, objdump...etc.
 
-It's debatable whether CONFIG_EMBEDDED would actually make sense, and I 
-think it does: for example, I think it would be helpful to identify kernel 
-options that really only make sense on embedded devices such as device 
-drivers, CONFIG_PRINTK, CONFIG_SLOB, etc.
+
+>  arch/ia64/kernel/elfcore.c |   16 -----
+>  arch/um/sys-i386/elfcore.c |   16 -----
+>  fs/binfmt_elf.c            |  136 +++++++++++++++++-------------------------
+>  fs/binfmt_elf_fdpic.c      |  141 ++++++++++++++++++--------------------------
+>  include/linux/elfcore.h    |    1 -
+>  kernel/elfcore.c           |    5 --
+>  6 files changed, 111 insertions(+), 204 deletions(-)
+> 
+> I built and tested this patchset on x86_64. I also built it on ia64,
+> um-i386 and frv using cross compilers to cover the range.
+> 
+> Here's a program useful to generate ELF core with many program header
+> entries, and three steps to produce such ELF core:
+> 
+>  $ sysctl vm.max_map_count=70000
+>  $ ulimit -c unlimted
+>  $ mkmmap 65535
+> 
+
+What difference will be seen between before/after your patch ?
+coredump will be quicker ?
+
+Thanks,
+-Kame
