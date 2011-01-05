@@ -1,66 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:40144 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751774Ab1AEUeA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 15:34:00 -0500
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52316 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752646Ab1AEVF5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 16:05:57 -0500
+Date: Wed, 5 Jan 2011 21:04:48 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20110105200008.GJ8638@n2100.arm.linux.org.uk>
-References: <1294254337.16957.13.camel@mulgrave.site>
-	 <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
-	 <1294256169.16957.18.camel@mulgrave.site>
-	 <20110105200008.GJ8638@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 05 Jan 2011 14:33:57 -0600
-Message-ID: <1294259637.16957.25.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Message-ID: <20110105210448.GM8638@n2100.arm.linux.org.uk>
+References: <1294254337.16957.13.camel@mulgrave.site> <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com> <1294256169.16957.18.camel@mulgrave.site> <20110105200008.GJ8638@n2100.arm.linux.org.uk> <1294259637.16957.25.camel@mulgrave.site> <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20110105203357.tJSmd8Ku-pvI2Y9c_C5GwNBjH9nZmkJj47GRGZLPIbg@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110105210448.KRzPNGFTAXLOYWqbnD_1kQjvFGKMeKuuSlsuyUzaOyQ@z>
 
-On Wed, 2011-01-05 at 20:00 +0000, Russell King - ARM Linux wrote:
-> On Wed, Jan 05, 2011 at 01:36:09PM -0600, James Bottomley wrote:
-> > On Wed, 2011-01-05 at 11:18 -0800, Linus Torvalds wrote:
-> > > On Wed, Jan 5, 2011 at 11:05 AM, James Bottomley
-> > > <James.Bottomley@hansenpartnership.com> wrote:
-> > > >
-> > > > I think the solution for the kernel direct mapping problem is to take
-> > > > the expected flushes and invalidates into kmap/kunmap[_atomic].
-> > > 
-> > > No, we really can't do that. Most of the time, the kmap() is the only
-> > > way we access the page anyway, so flushing things would just be
-> > > stupid. Why waste time and energy on doing something pointless?
-> > 
-> > It's hardly pointless.  The kmap sets up an inequivalent alias in the
-> > cache.
-> 
-> No it doesn't.  For pages which are inaccessible, it sets up a mapping
-> for those pages.  On aliasing cache architectures, when you tear down
-> such a mapping, you have to flush the cache before you do so (otherwise
-> you can end up with cache lines existing in the cache for inaccessible
-> mappings.)
-> 
-> For lowmem pages, kmap() (should always) bypass the 'setup mapping' stage
-> because all lowmem pages are already accessible.  So kunmap() doesn't
-> do anything - just like the !HIGHMEM implementation for these macros.
+On Wed, Jan 05, 2011 at 12:48:32PM -0800, Linus Torvalds wrote:
+> (You can also force the problem with vmalloc() an then following the
+> kernel page tables, but I hope nobody does that any more. I suspect
+> I'm wrong, though, there's probably code that mixes vmalloc and
+> physical page accesses in various drivers)
 
-well, that depends.  For us on parisc, kmap of a user page in !HIGHMEM
-sets up an inequivalent aliase still ... because the cache colour of the
-user and kernel virtual addresses are different.  Depending on the
-return path to userspace, we still usually have to flush to get the user
-to see the changes the kernel has made.
+Should vmalloc_to_page() (84 users)/vmalloc_to_pfn() (17 users) be
+deprecated then? ;)
 
-James
+However, we seem have new ways of doing this - rather than asking
+vmalloc() for some memory, and then getting at the pages by following
+the page tables, we now have ways to create mappings using arrays of
+struct pages and access them via their already known mappings:
 
-> So, for highmem-enabled systems:
-> 
-> 	low_addr = kmap_atomic(lowmem_page);
-> 	high_addr = kmap_atomic(highmem_page);
-> 
-> results in low_addr in the kernel direct-mapped region, and high_addr
-> in the kmap_atomic region.
+- vm_map_ram(struct page **pages, unsigned int count, int node, pgprot_t prot)
+- map_kernel_range_noflush(unsigned long addr, unsigned long size, pgprot_t prot, struct page **pages)
+- map_vm_area(struct vm_struct *area, pgprot_t prot, struct page ***pages)
+- vmap(struct page **pages, unsigned int count, unsigned long flags, pgprot_t prot)
 
-
+So really it's the same problem, just created by some other easier
+to use methods.
