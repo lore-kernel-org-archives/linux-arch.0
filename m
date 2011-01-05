@@ -1,60 +1,58 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Wed, 05 Jan 2011 20:35:17 +0000
-Message-ID: <1294259717.16957.27.camel@mulgrave.site>
-References: <1294254337.16957.13.camel@mulgrave.site>
-	 <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
-	 <1294256169.16957.18.camel@mulgrave.site>
-	 <AANLkTik214sj_wBJXhJMLRie34moG7ET1Xg62oQXsgxb@mail.gmail.com>
+Date: Wed, 5 Jan 2011 12:48:32 -0800
+Message-ID: <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com>
+References: <1294254337.16957.13.camel@mulgrave.site> <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
+ <1294256169.16957.18.camel@mulgrave.site> <20110105200008.GJ8638@n2100.arm.linux.org.uk>
+ <1294259637.16957.25.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:40167 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752544Ab1AEUfV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 15:35:21 -0500
-In-Reply-To: <AANLkTik214sj_wBJXhJMLRie34moG7ET1Xg62oQXsgxb@mail.gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46706 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752286Ab1AEUt2 convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Jan 2011 15:49:28 -0500
+In-Reply-To: <1294259637.16957.25.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Wed, 2011-01-05 at 11:49 -0800, Linus Torvalds wrote:
-> 2011/1/5 James Bottomley <James.Bottomley@hansenpartnership.com>:
-> >>
-> >> No, we really can't do that. Most of the time, the kmap() is the only
-> >> way we access the page anyway, so flushing things would just be
-> >> stupid. Why waste time and energy on doing something pointless?
-> >
-> > It's hardly pointless.  The kmap sets up an inequivalent alias in the
-> > cache.
-> 
-> NO IT DOES NOT.
+On Wed, Jan 5, 2011 at 12:33 PM, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+>
+> well, that depends. =A0For us on parisc, kmap of a user page in !HIGH=
+MEM
+> sets up an inequivalent aliase still ... because the cache colour of =
+the
+> user and kernel virtual addresses are different. =A0Depending on the
+> return path to userspace, we still usually have to flush to get the u=
+ser
+> to see the changes the kernel has made.
 
-Well, it does ... but not in this case because the page is freshly
-allocated (which I missed before) so it has no use cache colour yet.
+Umm. Again, that has nothing to do with kmap().
 
-James
+This time it's about the user space mapping.
 
-> Stop arguing, when you are so wrong.
-> 
-> kmap() does not create any aliases. For low-memory, it just returns
-> the physical address. No alias. And for high memory, there is no
-> equivalent low memory address to alias _with_.
-> 
-> Now, when you actually mix multiple kmap's and you have a virtually
-> based cache, then the kmap's obviously need to flush that particular
-> page when switching between each other. But that has nothing to do
-> with the actual page being kmap'ed, it's entirely an internal issue
-> about the particular virtual memory area being re-used. And ARM (and
-> any other virtually based CPU) already does that in __kunmap_atomic().
-> 
-> But notice the case of the low-mem. And understand that you are WRONG
-> about the "inequivalent alias" thing.
-> 
-> So I repeat: this has absolutely *NOTHING* to do with kmap(). Stop blathering.
-> 
-> It's _purely_ an issue of vm_map_ram(). Nothing else.
-> 
->                           Linus
+Repeat after me: even without the kmap(), the kernel access to that
+mapping would have caused cache aliases.
+
+See? Once more, the kmap() is entirely innocent. You can have a
+non-highmem mapping that you never use kmap for, and that you map into
+user space, and you'd see exactly the same aliases. Notice? Look ma,
+no kmap().
+
+So clearly kmap() is not the issue. The issue continues to be a
+totally separate virtual mapping. Whether it's a user mapping or
+vm_map_ram() is obviously immaterial - as far as the CPU is concerned,
+there is no difference between the two (apart from the trivial
+differences of virtual location and permissions).
+
+(You can also force the problem with vmalloc() an then following the
+kernel page tables, but I hope nobody does that any more. I suspect
+I'm wrong, though, there's probably code that mixes vmalloc and
+physical page accesses in various drivers)
+
+                    Linus
