@@ -1,59 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:49881 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751330Ab1AETgP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 14:36:15 -0500
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
-References: <1294254337.16957.13.camel@mulgrave.site>
-	 <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 05 Jan 2011 13:36:09 -0600
-Message-ID: <1294256169.16957.18.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:45368 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752357Ab1AETu2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 14:50:28 -0500
+MIME-Version: 1.0
+In-Reply-To: <1294254867.2016.281.camel@laptop>
+References: <20101224122338.172750730@chello.nl> <20101224123742.724459093@chello.nl>
+ <AANLkTikGBsh0-QTe9CA2gwDtwzpdMi+fbDsTEKiJAL0P@mail.gmail.com>
+ <1294054362.2016.74.camel@laptop> <20110104064542.GF3402@amd> <1294254867.2016.281.camel@laptop>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Wed, 5 Jan 2011 11:43:12 -0800
+Message-ID: <AANLkTi=URmD1GYqp+PfVf6rc0tXvRnAQG808LMnBRgG1@mail.gmail.com>
+Subject: Re: [RFC][PATCH] spinlock: Kill spin_unlock_wait()
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20110105193609.C5M1czp7VEEi6I-XDioTRhBw__6XvYBliMZttFhymA4@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Nick Piggin <npiggin@kernel.dk>, Chris Mason <chris.mason@oracle.com>, Frank Rowand <frank.rowand@am.sony.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Mike Galbraith <efault@gmx.de>, Oleg Nesterov <oleg@redhat.com>, Paul Turner <pjt@google.com>, Jens Axboe <axboe@kernel.dk>, Yong Zhang <yong.zhang0@gmail.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, Tejun Heo <tj@kernel.org>
+Message-ID: <20110105194312.Jjan4Al7Zf37fdiURgzgXV7W0QwkpfaUBCci23Nofmo@z>
 
-On Wed, 2011-01-05 at 11:18 -0800, Linus Torvalds wrote:
-> On Wed, Jan 5, 2011 at 11:05 AM, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> >
-> > I think the solution for the kernel direct mapping problem is to take
-> > the expected flushes and invalidates into kmap/kunmap[_atomic].
-> 
-> No, we really can't do that. Most of the time, the kmap() is the only
-> way we access the page anyway, so flushing things would just be
-> stupid. Why waste time and energy on doing something pointless?
+On Wed, Jan 5, 2011 at 11:14 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+>
+> There appear to be only two callsites of said horror, one in the exit
+> path and one in ata-eh, neither appear to be performance critical so I
+> replaced them with a simple lock-unlock sequence.
 
-It's hardly pointless.  The kmap sets up an inequivalent alias in the
-cache.  When you write to the kmap region, you dirty the CPU caches for
-that alias.  If you tear down the mapping without flushing, the CPU will
-write out the cache lines at its leisure.  If you access the line via
-the other mapping *before* the CPU does writeout, you see stale data.
+Again, WHY?
 
-When the kernel dirties a kmap region, it always has to flush somehow
-before kunmap.  One of the problems here is that that flush isn't in the
-NFS code.
+What's the problem with the current code? Instead of generating ugly
+patches to change it, and instead of removing it, just say what the
+PROBLEM is.
 
-> In fact, kmap() here is a total non-issue. It's not the kmap() that
-> introduces any virtual aliases, and never has been. It's the
-> "vm_map_ram()" that is the problem. Unlike the kmap(), that really
-> _does_ introduce a virtual alias, and is a problem for any virtual
-> cache.
-> 
-> So don't blame kmap(). It's innocent and irrelevant - the bug could
-> happen entirely without it (think a 64-bit address space that doesn't
-> even _have_ kmap, but has software that mixes vm_map_ram() with
-> non-mapped accesses).
+Stop this wanking already. The exit path is certainly not unimportant.
 
-I didn't say it was kmap's entire problem ... I just said, can't we
-simplify some of this by consolidating the flushing into the interfaces.
+And if you want to change the thing to be more efficient, I'm ok with
+that, as long as it's done PRETTILY instead of making the damn thing
+an unreadable mess.
 
-James
+The current "spin_unlock_wait()" is obvious. I'm perfectly happy
+improving on it, but I would want to retain the "obvious" part, which
+your previous patch certainly didn't do.
 
+Some simple helper functions to extract the tail/head part of the
+ticket lock to make the comparisons understandable, together with
+always accessing the lock with the proper ACCESS_ONCE() would have
+made your previous patch acceptable. But you ignored that feedback,
+and instead you now want to do a "let's just remove it entirely patch"
+that is even worse.
 
+And in NEITHER version did you actually give any actual *REASON* for
+the change in the first place.
+
+Why? WHY?
+
+                      Linus
