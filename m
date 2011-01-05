@@ -1,40 +1,42 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Wed, 5 Jan 2011 11:18:14 -0800
-Message-ID: <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
-References: <1294254337.16957.13.camel@mulgrave.site>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC][PATCH] spinlock: Kill spin_unlock_wait()
+Date: Wed, 5 Jan 2011 20:26:34 +0100
+Message-ID: <20110105192634.GA30361@redhat.com>
+References: <20101224122338.172750730@chello.nl> <20101224123742.724459093@chello.nl> <AANLkTikGBsh0-QTe9CA2gwDtwzpdMi+fbDsTEKiJAL0P@mail.gmail.com> <1294054362.2016.74.camel@laptop> <20110104064542.GF3402@amd> <1294254867.2016.281.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:45521 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752398Ab1AETSi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Jan 2011 14:18:38 -0500
-In-Reply-To: <1294254337.16957.13.camel@mulgrave.site>
+Received: from mx1.redhat.com ([209.132.183.28]:18899 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751409Ab1AETeg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Jan 2011 14:34:36 -0500
+Content-Disposition: inline
+In-Reply-To: <1294254867.2016.281.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Trond Myklebust <Trond.Myklebust@netapp.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, Chris Mason <chris.mason@oracle.com>, Frank Rowand <frank.rowand@am.sony.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Mike Galbraith <efault@gmx.de>, Paul Turner <pjt@google.com>, Jens Axboe <axboe@kernel.dk>, Yong Zhang <yong.zhang0@gmail.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>, Tejun Heo <tj@kernel.org>
 
-On Wed, Jan 5, 2011 at 11:05 AM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
+On 01/05, Peter Zijlstra wrote:
 >
-> I think the solution for the kernel direct mapping problem is to take
-> the expected flushes and invalidates into kmap/kunmap[_atomic].
+> On Tue, 2011-01-04 at 17:45 +1100, Nick Piggin wrote:
+> > So I agree, taking it out the back and shooting it in the head would make
+> > the world a better place.
+>
+> There appear to be only two callsites of said horror,
 
-No, we really can't do that. Most of the time, the kmap() is the only
-way we access the page anyway, so flushing things would just be
-stupid. Why waste time and energy on doing something pointless?
+Not sure I understand why spin_unlock_wait() is really awful, but OK.
 
-In fact, kmap() here is a total non-issue. It's not the kmap() that
-introduces any virtual aliases, and never has been. It's the
-"vm_map_ram()" that is the problem. Unlike the kmap(), that really
-_does_ introduce a virtual alias, and is a problem for any virtual
-cache.
+> --- a/kernel/exit.c
+> +++ b/kernel/exit.c
+> @@ -956,7 +956,8 @@ NORET_TYPE void do_exit(long code)
+>  	 * an exiting task cleaning up the robust pi futexes.
+>  	 */
+>  	smp_mb();
+> -	raw_spin_unlock_wait(&tsk->pi_lock);
+> +	raw_spin_lock_irq(&tsk->pi_lock);
+> +	raw_spin_unlock_irq(&tsk->pi_lock);
 
-So don't blame kmap(). It's innocent and irrelevant - the bug could
-happen entirely without it (think a 64-bit address space that doesn't
-even _have_ kmap, but has software that mixes vm_map_ram() with
-non-mapped accesses).
+then you can kill smp_mb() above.
 
-                           Linus
+Oleg.
