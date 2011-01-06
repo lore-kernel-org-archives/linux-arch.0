@@ -1,7 +1,7 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: James Bottomley <James.Bottomley-d9PhHud1JfjCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>
 Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Thu, 06 Jan 2011 12:14:30 -0600
-Message-ID: <1294337670.22825.199.camel@mulgrave.site>
+Date: Thu, 06 Jan 2011 12:25:41 -0600
+Message-ID: <1294338341.22825.216.camel@mulgrave.site>
 References: <20110105200008.GJ8638@n2100.arm.linux.org.uk>
 	 <1294259637.16957.25.camel@mulgrave.site>
 	 <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com>
@@ -13,52 +13,57 @@ References: <20110105200008.GJ8638@n2100.arm.linux.org.uk>
 	 <1294270104.16957.73.camel@mulgrave.site>
 	 <1294335614.22825.154.camel@mulgrave.site>
 	 <20110106180530.GI31708@n2100.arm.linux.org.uk>
+	 <1294337670.22825.199.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20110106180530.GI31708@n2100.arm.linux.org.uk>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Trond Myklebust <Trond.Myklebust@netapp.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+Return-path: <linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1294337670.22825.199.camel-0iu6Cu4xQGLYCGPCin2YbQ@public.gmane.org>
+Sender: linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+Cc: Trond Myklebust <Trond.Myklebust-HgOvQuBEEgTQT0dZR+AlfA@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Marc Kleine-Budde <mkl-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Marc Kleine-Budde <m.kleine-budde-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Parisc List <linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-01-06 at 18:05 +0000, Russell King - ARM Linux wrote:
-> On Thu, Jan 06, 2011 at 11:40:13AM -0600, James Bottomley wrote:
-> > On Wed, 2011-01-05 at 23:28 +0000, James Bottomley wrote:
-> > > Can you explain how the code works? it looks to me like you read the xdr
-> > > stuff through the vmap region then write it out directly to the pages? 
-> > 
-> > OK, I think I see how this is supposed to work:  It's a sequential loop
-> > of reading in via the pages (i.e. through the kernel mapping) and then
-> > updating those pages via the vmap.  In which case, I think this patch is
-> > what you need.
-> > 
-> > The theory of operation is that the readdir on pages actually uses the
-> > network DMA operations to perform, so when it's finished, the underlying
+On Thu, 2011-01-06 at 12:14 -0600, James Bottomley wrote:
+> On Thu, 2011-01-06 at 18:05 +0000, Russell King - ARM Linux wrote:
+> > What network DMA operations - what if your NIC doesn't do DMA because
+> > it's an SMSC device?
 > 
-> What network DMA operations - what if your NIC doesn't do DMA because
-> it's an SMSC device?
+> So this is the danger area ... we might be caught by our own flushing
+> tricks.  I can't test this on parisc since all my network drivers use
+> DMA (which automatically coheres the kernel mapping by
+> flush/invalidate).
+> 
+> What should happen is that the kernel mapping pages go through the
+> ->readdir() path.  Any return from this has to be ready to map the pages
+> back to user space, so the kernel alias has to be flushed to make the
+> underlying page up to date.
+> 
+> The exception is pages we haven't yet mapped to userspace.  Here we set
+> the PG_dcache_dirty bit (sparc trick) but don't flush the page, since we
+> expect the addition of a userspace mapping will detect this case and do
+> the flush and clear the bit before the mapping goes live.  I assume
+> you're thinking that because this page is allocated and freed internally
+> to NFS, it never gets a userspace mapping and therefore, we can return
+> from ->readdir() with a dirty kernel cache (and the corresponding flag
+> set)?  I think that is a possible hypothesis in certain cases.
 
-So this is the danger area ... we might be caught by our own flushing
-tricks.  I can't test this on parisc since all my network drivers use
-DMA (which automatically coheres the kernel mapping by
-flush/invalidate).
+OK, so thinking about this, it seems that the only danger is actually
+what NFS is doing: reading cache pages via a vmap.  In that case, since
+the requirement is to invalidate the vmap range to prepare for read, we
+could have invalidate_kernel_vmap_range loop over the underlying pages
+and flush them through the kernel alias if the architecture specific
+flag indicates their contents might be dirty.
 
-What should happen is that the kernel mapping pages go through the
-->readdir() path.  Any return from this has to be ready to map the pages
-back to user space, so the kernel alias has to be flushed to make the
-underlying page up to date.
-
-The exception is pages we haven't yet mapped to userspace.  Here we set
-the PG_dcache_dirty bit (sparc trick) but don't flush the page, since we
-expect the addition of a userspace mapping will detect this case and do
-the flush and clear the bit before the mapping goes live.  I assume
-you're thinking that because this page is allocated and freed internally
-to NFS, it never gets a userspace mapping and therefore, we can return
-from ->readdir() with a dirty kernel cache (and the corresponding flag
-set)?  I think that is a possible hypothesis in certain cases.
+The loop adds expense that is probably largely unnecessary to
+invalidate_kernel_vmap_range() but the alternative is adding to the API
+proliferation with something that only flushes the kernel pages if the
+arch specific flag says they're dirty.
 
 James
 
 
+--
+To unsubscribe from this list: send the line "unsubscribe linux-nfs" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
