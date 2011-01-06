@@ -1,58 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:54947 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751510Ab1AFSB0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jan 2011 13:01:26 -0500
-MIME-Version: 1.0
-In-Reply-To: <1294336054.2905.1.camel@heimdal.trondhjem.org>
-References: <1294254337.16957.13.camel@mulgrave.site> <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
- <1294256169.16957.18.camel@mulgrave.site> <20110105200008.GJ8638@n2100.arm.linux.org.uk>
- <1294259637.16957.25.camel@mulgrave.site> <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com>
- <20110105210448.GM8638@n2100.arm.linux.org.uk> <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com>
- <1294262208.2952.4.camel@heimdal.trondhjem.org> <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com>
- <1294268808.2952.18.camel@heimdal.trondhjem.org> <1294270104.16957.73.camel@mulgrave.site>
- <1294335614.22825.154.camel@mulgrave.site> <1294336054.2905.1.camel@heimdal.trondhjem.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 6 Jan 2011 09:55:30 -0800
-Message-ID: <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:48215 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752535Ab1AFSHH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jan 2011 13:07:07 -0500
+Date: Thu, 6 Jan 2011 18:05:30 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Content-Type: text/plain; charset=ISO-8859-1
+Message-ID: <20110106180530.GI31708@n2100.arm.linux.org.uk>
+References: <20110105200008.GJ8638@n2100.arm.linux.org.uk> <1294259637.16957.25.camel@mulgrave.site> <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com> <20110105210448.GM8638@n2100.arm.linux.org.uk> <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com> <1294262208.2952.4.camel@heimdal.trondhjem.org> <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com> <1294268808.2952.18.camel@heimdal.trondhjem.org> <1294270104.16957.73.camel@mulgrave.site> <1294335614.22825.154.camel@mulgrave.site>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1294335614.22825.154.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Trond Myklebust <Trond.Myklebust@netapp.com>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20110106175530.ME3NZblSdfKI7cpiHGAksQA-V9_yC6NEYdsxDX2xh7A@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: Trond Myklebust <Trond.Myklebust@netapp.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110106180530.5EjTmdUUVV1Rlu3yxou5SFfoKcL00LEfSRmn8SgtAIo@z>
 
-On Thu, Jan 6, 2011 at 9:47 AM, Trond Myklebust
-<Trond.Myklebust@netapp.com> wrote:
->
-> Why is this line needed? We're not writing through the virtual mapping.
+On Thu, Jan 06, 2011 at 11:40:13AM -0600, James Bottomley wrote:
+> On Wed, 2011-01-05 at 23:28 +0000, James Bottomley wrote:
+> > Can you explain how the code works? it looks to me like you read the xdr
+> > stuff through the vmap region then write it out directly to the pages? 
+> 
+> OK, I think I see how this is supposed to work:  It's a sequential loop
+> of reading in via the pages (i.e. through the kernel mapping) and then
+> updating those pages via the vmap.  In which case, I think this patch is
+> what you need.
+> 
+> The theory of operation is that the readdir on pages actually uses the
+> network DMA operations to perform, so when it's finished, the underlying
 
-I haven't looked at the sequence of accesses, but you need to be
-_very_ aware that "write-through" is absolutely NOT sufficient for
-cache coherency.
-
-In cache coherency, you have three options:
-
- - true coherency (eg physically indexed/tagged caches)
-
- - exclusion (eg virtual caches, but with an exclusion guarantee that
-guarantees that aliases cannot happen: either by using physical
-tagging or by not allowing cases that could cause virtual aliases)
-
- - write-through AND non-cached reads (ie "no caching at all").
-
-You seem to be forgetting the "no cached reads" part. It's not
-sufficient to flush after a write - you need to make sure that you
-also don't have a cached copy of the alias for the read.
-
-So "We're not writing through the virtual mapping" is NOT a sufficient
-excuse. If you're reading through the virtual mapping, you need to
-make sure that the virtual mapping is flushed _after_ any writes
-through any other mapping and _before_ any reads through the virtual
-one.
-
-This is why you really really really generally don't want to have
-aliasing. Purely virtual caches are pure crap. Really.
-
-                       Linus
+What network DMA operations - what if your NIC doesn't do DMA because
+it's an SMSC device?
