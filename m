@@ -1,7 +1,7 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
+From: Trond Myklebust <Trond.Myklebust@netapp.com>
 Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Thu, 06 Jan 2011 11:40:13 -0600
-Message-ID: <1294335614.22825.154.camel@mulgrave.site>
+Date: Thu, 06 Jan 2011 12:47:34 -0500
+Message-ID: <1294336054.2905.1.camel@heimdal.trondhjem.org>
 References: <1294254337.16957.13.camel@mulgrave.site>
 	 <AANLkTi=VZUxNFd7n-qwf5aiOeK5rkk8qBmo+kOpgg7up@mail.gmail.com>
 	 <1294256169.16957.18.camel@mulgrave.site>
@@ -14,62 +14,76 @@ References: <1294254337.16957.13.camel@mulgrave.site>
 	 <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com>
 	 <1294268808.2952.18.camel@heimdal.trondhjem.org>
 	 <1294270104.16957.73.camel@mulgrave.site>
+	 <1294335614.22825.154.camel@mulgrave.site>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:33997 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753900Ab1AFRkT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jan 2011 12:40:19 -0500
-In-Reply-To: <1294270104.16957.73.camel@mulgrave.site>
+Received: from mx2.netapp.com ([216.240.18.37]:24739 "EHLO mx2.netapp.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752680Ab1AFRry convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Jan 2011 12:47:54 -0500
+In-Reply-To: <1294335614.22825.154.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Trond Myklebust <Trond.Myklebust@netapp.com>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Wed, 2011-01-05 at 23:28 +0000, James Bottomley wrote:
-> Can you explain how the code works? it looks to me like you read the xdr
-> stuff through the vmap region then write it out directly to the pages? 
+On Thu, 2011-01-06 at 11:40 -0600, James Bottomley wrote: 
+> On Wed, 2011-01-05 at 23:28 +0000, James Bottomley wrote:
+> > Can you explain how the code works? it looks to me like you read the xdr
+> > stuff through the vmap region then write it out directly to the pages? 
+> 
+> OK, I think I see how this is supposed to work:  It's a sequential loop
+> of reading in via the pages (i.e. through the kernel mapping) and then
+> updating those pages via the vmap.  In which case, I think this patch is
+> what you need.
+> 
+> The theory of operation is that the readdir on pages actually uses the
+> network DMA operations to perform, so when it's finished, the underlying
+> page is up to date.  After this you invalidate the vmap range, so we
+> have no cache lines above it (so it picks up the values from the
+> uptodate page).  Finally, after the operation on the vmap region has
+> finished, you flush it so that any updated contents go back to the pages
+> themselves before the next iteration begins.
+> 
+> Does this look right to people?  I've verified it fixes the issues on
+> parisc.
+> 
+> James
+> 
+> ---
+> 
+> diff --git a/fs/nfs/dir.c b/fs/nfs/dir.c
+> index 996dd89..bde1911 100644
+> --- a/fs/nfs/dir.c
+> +++ b/fs/nfs/dir.c
+> @@ -587,12 +587,16 @@ int nfs_readdir_xdr_to_array(nfs_readdir_descriptor_t *desc, struct page *page,
+>  		if (status < 0)
+>  			break;
+>  		pglen = status;
+> +
+> +		invalidate_kernel_vmap_range(pages_ptr, pglen);
+> +
+>  		status = nfs_readdir_page_filler(desc, &entry, pages_ptr, page, pglen);
+>  		if (status < 0) {
+>  			if (status == -ENOSPC)
+>  				status = 0;
+>  			break;
+>  		}
+> +		flush_kernel_vmap_range(pages_ptr, pglen);
 
-OK, I think I see how this is supposed to work:  It's a sequential loop
-of reading in via the pages (i.e. through the kernel mapping) and then
-updating those pages via the vmap.  In which case, I think this patch is
-what you need.
+Why is this line needed? We're not writing through the virtual mapping.
 
-The theory of operation is that the readdir on pages actually uses the
-network DMA operations to perform, so when it's finished, the underlying
-page is up to date.  After this you invalidate the vmap range, so we
-have no cache lines above it (so it picks up the values from the
-uptodate page).  Finally, after the operation on the vmap region has
-finished, you flush it so that any updated contents go back to the pages
-themselves before the next iteration begins.
+We checked using just the invalidate_kernel_vmap_range(), and that
+appeared to suffice to fix the problem on ARM.
 
-Does this look right to people?  I've verified it fixes the issues on
-parisc.
+Cheers
+  Trond
+-- 
+Trond Myklebust
+Linux NFS client maintainer
 
-James
-
----
-
-diff --git a/fs/nfs/dir.c b/fs/nfs/dir.c
-index 996dd89..bde1911 100644
---- a/fs/nfs/dir.c
-+++ b/fs/nfs/dir.c
-@@ -587,12 +587,16 @@ int nfs_readdir_xdr_to_array(nfs_readdir_descriptor_t *desc, struct page *page,
- 		if (status < 0)
- 			break;
- 		pglen = status;
-+
-+		invalidate_kernel_vmap_range(pages_ptr, pglen);
-+
- 		status = nfs_readdir_page_filler(desc, &entry, pages_ptr, page, pglen);
- 		if (status < 0) {
- 			if (status == -ENOSPC)
- 				status = 0;
- 			break;
- 		}
-+		flush_kernel_vmap_range(pages_ptr, pglen);
- 	} while (array->eof_index < 0);
- 
- 	nfs_readdir_free_large_page(pages_ptr, pages, array_size);
+NetApp
+Trond.Myklebust@netapp.com
+www.netapp.com
