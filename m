@@ -1,122 +1,57 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv1 01/12] unicore32 core architecture: build infrastructure
-Date: Fri, 7 Jan 2011 01:18:41 +0100
-Message-ID: <201101070118.41900.arnd@arndb.de>
-References: <00c601cba463$69533750$3bf9a5f0$@mprc.pku.edu.cn>
+Subject: Re: [PATCHv1 02/12] unicore32 core architecture: generic headers stuff
+Date: Fri, 7 Jan 2011 00:55:53 +0100
+Message-ID: <201101070055.53996.arnd@arndb.de>
+References: <00c801cba463$b0f3db00$12db9100$@mprc.pku.edu.cn>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="gb2312"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <00c601cba463$69533750$3bf9a5f0$@mprc.pku.edu.cn>
+In-Reply-To: <00c801cba463$b0f3db00$12db9100$@mprc.pku.edu.cn>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On Saturday 25 December 2010, Guan Xuetao wrote:
-> From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-> 
-> This patch implements build infrastructure.
-
-Sorry for the late reply, I was planning to do the new review earlier, but didn't
-get to it before the Christmas break.
-
-Overall, I can see that there has been a lot of good progress in the code since
-the original versions that I looked at, very nice!
-
-> diff --git a/arch/unicore32/.gitignore b/arch/unicore32/.gitignore
+> diff --git a/arch/unicore32/include/asm/sizes.h b/arch/unicore32/include/asm/sizes.h
 > new file mode 100644
-> index 0000000..f0fc866
+> index 0000000..3720307
 > --- /dev/null
-> +++ b/arch/unicore32/.gitignore
-> @@ -0,0 +1,70 @@
-> +#
-> +# Generated include files
-> +#
-> +include/asm/atomic.h
-> +include/asm/auxvec.h
-> +include/asm/bitsperlong.h
-> +include/asm/bug.h
-> +include/asm/bugs.h
-> +include/asm/cputime.h
-> +include/asm/current.h
-> +include/asm/device.h
-> +include/asm/emergency-restart.h
-> +include/asm/errno.h
-> +include/asm/fb.h
-> +include/asm/fcntl.h
-> +include/asm/hardirq.h
+> +++ b/arch/unicore32/include/asm/sizes.h
+> @@ -0,0 +1,47 @@
+> +/*
+> + * linux/arch/unicore32/include/asm/sizes.h
+> + *
+> + * Code specific to PKUnity SoC and UniCore ISA
+> + *
+> + * Copyright (C) 2001-2010 GUAN Xue-tao
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +#ifndef __UNICORE_SIZES_H__
+> +#define __UNICORE_SIZES_H__
+> +
+> +/* handy sizes */
+> +#define SZ_16				0x00000010
+> +#define SZ_256				0x00000100
+> +#define SZ_512				0x00000200
 > ...
 
-Maybe it would be better to put these files into a separate directory, like
-arch/unicore32/include/generated/asm, to make it easier to separate them
-from the other files and avoid listing them all in .gitignore besides the
-other places.
+This would be nice to have in include/asm-generic. Please make a patch that
+adds the file there and use it with your scripts.
 
-It's certainly good to see so many of these files.
+> --- /dev/null
+> +++ b/arch/unicore32/include/asm/stat.h
+> @@ -0,0 +1,71 @@
+> +/*
+> + * linux/arch/unicore32/include/asm/stat.h
 
-> +config GENERIC_GPIO
-> +	def_bool y
-> +
-> +config GENERIC_CLOCKEVENTS
-> +	bool
-> +
-> +config NO_IOPORT
-> +	bool
-> +
-> +config GENERIC_HARDIRQS
-> +	bool
-> +	default y
-
-You are somewhat inconsistent with "def_bool", "default y" and "select FOO",
-which all have the same effect. I would recommend using def_bool y where
-possible.
-
-> +config REALMODE
-> +	bool
-
-I don't see this being used anywhere. Is it just a leftover from an earlier
-version, or did I miss something?
-
-> +choice
-> +	prompt "PKUnity system type"
-> +	default ARCH_PUV3
-> +
-> +	config ARCH_PUV3
-> +	bool "PKUnity v3 (SuperK)"
-> +	select CPU_UCV2
-> +	select GENERIC_CLOCKEVENTS
-> +	select HAVE_CLK
-> +	select ARCH_REQUIRE_GPIOLIB
-> +	select ARCH_HAS_CPUFREQ
-> +
-> +endchoice
-
-As long as there is only one option, you can drop the entire "choice"
-statement.
-
-> +config DEBUG_USER
-> +	bool "Verbose user fault messages"
-> +	help
-> +	  When a user program crashes due to an exception, the kernel can
-> +	  print a brief message explaining what the problem was. This is
-> +	  sometimes helpful for debugging but serves no purpose on a
-> +	  production system. Most people should say N here.
-> +
-> +	  In addition, you need to pass user_debug=N on the kernel command
-> +	  line to enable this feature.  N consists of the sum of:
-> +
-> +	      1 - undefined instruction events
-> +	      2 - system calls
-> +	      4 - invalid data aborts
-> +	      8 - SIGSEGV faults
-> +	     16 - SIGBUS faults
-
-We already have four architectures doing this using the "exception-trace"
-sysctl and the show_unhandled_signals variable. Please follow what those
-architectures are doing, or remove the option and all code depending on
-it.
-
+I think we discussed this particular header before. There should be no reason
+to have your own version instead of using the generic file like you do for the
+rest of the API headers.
 
 	Arnd
