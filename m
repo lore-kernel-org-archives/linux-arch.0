@@ -1,91 +1,90 @@
-From: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Wed, 5 Jan 2011 23:59:22 +0000
-Message-ID: <20110105235922.GP8638@n2100.arm.linux.org.uk>
-References: <1294256169.16957.18.camel@mulgrave.site> <20110105200008.GJ8638@n2100.arm.linux.org.uk> <1294259637.16957.25.camel@mulgrave.site> <AANLkTimzzBsdtWcZtP5E_CH1hUZugGMoaHOiMdQJf764@mail.gmail.com> <20110105210448.GM8638@n2100.arm.linux.org.uk> <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com> <1294262208.2952.4.camel@heimdal.trondhjem.org> <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com> <1294268808.2952.18.camel@heimdal.trondhjem.org> <AANLkTi=SjMinMp+m726GS1iehj6cQgNy1RqSoUqKhjtv@mail.gmail.com>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: [PATCHv1 0/8] unicore32 machine related files: summary
+Date: Thu, 6 Jan 2011 15:56:35 +0800
+Message-ID: <01de01cbad77$3dbed0a0$b93c71e0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <AANLkTi=SjMinMp+m726GS1iehj6cQgNy1RqSoUqKhjtv-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Trond Myklebust <Trond.Myklebust-HgOvQuBEEgTQT0dZR+AlfA@public.gmane.org>, James Bottomley <James.Bottomley-JuX6DAaQMKPCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Marc Kleine-Budde <mkl-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Marc Kleine-Budde <m.kleine-budde-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Parisc List <linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:50141 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751328Ab1AFH4e (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Jan 2011 02:56:34 -0500
+Content-Language: zh-cn
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Jan 05, 2011 at 03:28:53PM -0800, Linus Torvalds wrote:
-> On Wed, Jan 5, 2011 at 3:06 PM, Trond Myklebust
-> <Trond.Myklebust-HgOvQuBEEgTQT0dZR+AlfA@public.gmane.org> wrote:
-> >
-> > Yes. The fix I sent out was a call to invalidate_kernel_vmap_range(),
-> > which takes care of invalidating the cache prior to a virtual address
-> > read.
-> >
-> > My question was specifically about the write through the regular kernel
-> > mapping: according to Russell and my reading of the cachetlb.txt
-> > documentation, flush_dcache_page() is only guaranteed to have an effect
-> > on page cache pages.
-> 
-> I don't think that should ever matter. It's not like the hardware can
-> know whether it's a dcache page or not.
-> 
-> And if the sw implementation cares, it's doing something really odd.
+From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
-From the hardware perspective you're correct that it doesn't.  However,
-from the efficient implementation perspective it does matter.
+The whole patch could be fetched from:
+  git://git.kernel.org/pub/scm/linux/kernel/git/epip/unicore32.git
+  with branch name: unicore32.
+And it is divided into  three patch sets: core architecture files,
+  additional architecture files, and machine related files.
 
-Take for example the read-ahead done on block devices.  We don't want to
-flush all those pages that were read in when we don't know that they're
-ever going to end up in a user mapping.  So what's commonly done (as
-suggested by DaveM) is that flush_dcache_page() detects that it's a
-dcache page, ensures that there's no user mappings, and sets a 'dirty'
-flag.  This flag is guaranteed to be clear when new, clean, unread
-pages enter the page cache.
+This patch set adds the machine related files for UniCore32 ISA and PKUnity SoC. 
 
-When the page eventually ends up in a user mapping, that dirty flag is
-checked and the necessary cache flushing done at that point.
+Patch 1 adds machine related  core files, also including build infrastructure.
 
-Note that when there are user mappings, flush_dcache_page() has to flush
-those mappings too, otherwise mmap() <-> read()/write() coherency breaks.
-I believe this was what flush_dcache_page() was created to resolve.
+Patch 2 add all hardware registers definitions, which are not split and inserted into
+ different drivers.
 
-flush_kernel_dcache_page() was to solve the problem of PIO drivers
-writing to dcache pages, so that data written into the kernel mapping
-would be visible to subsequent user mappings.
+Patch 3 implements arch-specific pci bus driver.
 
-We chose a different overall approach - which had already been adopted by
-PPC - where we invert the meaning of this 'dirty' bit to mean that it's
-clean.  So every new page cache page starts out life as being marked
-dirty and so nothing needs to be done at flush_kernel_dcache_page().
-We continue to use davem's optimization but with the changed meaning of
-the bit, but as we now support SMP we do the flushing at set_pte_at()
-time.
+Patch 4 implements arch-specific ps2 dirver.
 
-This also means that we don't have to rely on the (endlessly) buggy PIO
-drivers remembering to add flush_kernel_dcache_page() calls - something
-which has been a source of constant never-ending pain for us.
+Patch 5 implements frame buffer driver.
 
-The final piece of the jigsaw is flush_anon_page() which deals with
-kernel<->user coherency for anonymous pages by flushing both the user
-and kernel sides of the mapping.  This was to solve direct-io coherency
-problems.
+Patch 6 implements ac97 driver.
 
-As the users of flush_anon_page() always do:
+Patch 7 implements arch-specific i2c bus driver.
 
-	flush_anon_page(vma, page, addr);
-	flush_dcache_page(page);
+Patch 8 implements network driver.
 
-and documentation doesn't appear to imply that this will always be the
-case, we restrict flush_dcache_page() to only work on page cache pages,
-otherwise we end up flushing the kernel-side mapping multiple time in
-succession.
-
-Maybe we should make flush_anon_page() only flush the user mapping,
-stipulate that it shall always be followed by flush_dcache_page(),
-which shall flush the kernel side mapping even for anonymous pages?
-That sounds to me like a recipe for missing flush_dcache_page() calls
-causing bugs.
---
-To unsubscribe from this list: send the line "unsubscribe linux-nfs" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+---
+ arch/unicore32/include/asm/mach/PKUnity.h     |  104 ++
+ arch/unicore32/include/asm/mach/bitfield.h    |   24 +
+ arch/unicore32/include/asm/mach/hardware.h    |   45 +
+ arch/unicore32/include/asm/mach/regs-ac97.h   |   32 +
+ arch/unicore32/include/asm/mach/regs-dmac.h   |   81 +
+ arch/unicore32/include/asm/mach/regs-gpio.h   |   70 +
+ arch/unicore32/include/asm/mach/regs-i2c.h    |   63 +
+ arch/unicore32/include/asm/mach/regs-intc.h   |   28 +
+ arch/unicore32/include/asm/mach/regs-nand.h   |   79 +
+ arch/unicore32/include/asm/mach/regs-ost.h    |   92 ++
+ arch/unicore32/include/asm/mach/regs-pci.h    |   94 ++
+ arch/unicore32/include/asm/mach/regs-pm.h     |  126 ++
+ arch/unicore32/include/asm/mach/regs-ps2.h    |   20 +
+ arch/unicore32/include/asm/mach/regs-resetc.h |   34 +
+ arch/unicore32/include/asm/mach/regs-rtc.h    |   37 +
+ arch/unicore32/include/asm/mach/regs-sdc.h    |  156 ++
+ arch/unicore32/include/asm/mach/regs-spi.h    |   98 ++
+ arch/unicore32/include/asm/mach/regs-uart.h   |    3 +
+ arch/unicore32/include/asm/mach/regs-umal.h   |  229 +++
+ arch/unicore32/include/asm/mach/regs-unigfx.h |  200 +++
+ arch/unicore32/include/asm/pci.h              |   46 +
+ arch/unicore32/kernel/pci.c                   |  404 +++++
+ arch/unicore32/kernel/puv3-core.c             |  266 ++++
+ arch/unicore32/kernel/puv3-nb0916.c           |  183 +++
+ arch/unicore32/kernel/puv3-smw0919.c          |  120 ++
+ drivers/input/keyboard/Kconfig                |   11 +
+ drivers/input/keyboard/atkbd.c                |    4 +
+ drivers/input/mouse/psmouse-base.c            |   41 +
+ drivers/input/serio/i8042.h                   |    2 +
+ drivers/pci/Makefile                          |    1 +
+ drivers/staging/puv3/Kconfig                  |  142 ++
+ drivers/staging/puv3/Makefile                 |   27 +
+ drivers/staging/puv3/TODO                     |    7 +
+ drivers/staging/puv3/i8042-ucio.h             |   96 ++
+ drivers/staging/puv3/nb0916-atkbd.h           |   43 +
+ drivers/staging/puv3/puv3_ac97.c              |  383 +++++
+ drivers/staging/puv3/puv3_i2c.c               |  325 ++++
+ drivers/staging/puv3/puv3_pcm.c               |  449 ++++++
+ drivers/staging/puv3/puv3_pcm.h               |   33 +
+ drivers/staging/puv3/puv3_umal.c              | 2082 +++++++++++++++++++++++++
+ drivers/staging/puv3/puv3_unifb.c             |  972 ++++++++++++
+ include/linux/fb.h                            |    2 +
+ 42 files changed, 7254 insertions(+), 0 deletions(-)
