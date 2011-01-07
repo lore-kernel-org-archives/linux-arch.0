@@ -1,63 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:61118 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.8]:53497 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752542Ab1AGOJ6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 09:09:58 -0500
+	with ESMTP id S1751371Ab1AGOJy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 09:09:54 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv1 02/12] unicore32 core architecture: generic headers stuff
-Date: Fri, 7 Jan 2011 00:55:53 +0100
-References: <00c801cba463$b0f3db00$12db9100$@mprc.pku.edu.cn>
-In-Reply-To: <00c801cba463$b0f3db00$12db9100$@mprc.pku.edu.cn>
+Subject: Re: [PATCHv1 04/12] unicore32 core architecture: low level entry and setup code
+Date: Fri, 7 Jan 2011 01:04:57 +0100
+References: <00cc01cba464$16e6a410$44b3ec30$@mprc.pku.edu.cn>
+In-Reply-To: <00cc01cba464$16e6a410$44b3ec30$@mprc.pku.edu.cn>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
   charset="gb2312"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201101070055.53996.arnd@arndb.de>
+Message-ID: <201101070104.57770.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110106235553.t-tuYFiVvrbuObsCxLjvcS89V-FXmgEHHO0TlAuRzfI@z>
+Message-ID: <20110107000457.Wk-PTsAPqpddEqK1T6znmnd7exsdABoisC0Zw99VMDo@z>
 
 On Saturday 25 December 2010, Guan Xuetao wrote:
-> diff --git a/arch/unicore32/include/asm/sizes.h b/arch/unicore32/include/asm/sizes.h
-> new file mode 100644
-> index 0000000..3720307
-> --- /dev/null
-> +++ b/arch/unicore32/include/asm/sizes.h
-> @@ -0,0 +1,47 @@
-> +/*
-> + * linux/arch/unicore32/include/asm/sizes.h
-> + *
-> + * Code specific to PKUnity SoC and UniCore ISA
-> + *
-> + * Copyright (C) 2001-2010 GUAN Xue-tao
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +#ifndef __UNICORE_SIZES_H__
-> +#define __UNICORE_SIZES_H__
+> +#ifdef __KERNEL__
 > +
-> +/* handy sizes */
-> +#define SZ_16				0x00000010
-> +#define SZ_256				0x00000100
-> +#define SZ_512				0x00000200
-> ...
-
-This would be nice to have in include/asm-generic. Please make a patch that
-adds the file there and use it with your scripts.
-
-> --- /dev/null
-> +++ b/arch/unicore32/include/asm/stat.h
-> @@ -0,0 +1,71 @@
 > +/*
-> + * linux/arch/unicore32/include/asm/stat.h
+> + * Memory map description
+> + */
+> +# define NR_BANKS 8
+> +
+> +struct membank {
+> +	unsigned long start;
+> +	unsigned long size;
+> +	unsigned int highmem;
+> +};
+> +
+> +struct meminfo {
+> +	int nr_banks;
+> +	struct membank bank[NR_BANKS];
+> +};
+> +
+> +extern struct meminfo meminfo;
+> +
+> +#define for_each_bank(iter, mi)				\
+> +	for (iter = 0; iter < (mi)->nr_banks; iter++)
+> +
+> +#define bank_pfn_start(bank)	__phys_to_pfn((bank)->start)
+> +#define bank_pfn_end(bank)	__phys_to_pfn((bank)->start + (bank)->size)
+> +#define bank_pfn_size(bank)	((bank)->size >> PAGE_SHIFT)
+> +#define bank_phys_start(bank)	((bank)->start)
+> +#define bank_phys_end(bank)	((bank)->start + (bank)->size)
+> +#define bank_phys_size(bank)	((bank)->size)
 
-I think we discussed this particular header before. There should be no reason
-to have your own version instead of using the generic file like you do for the
-rest of the API headers.
+The membank stuff looks like a variation of the generic memblock interfaces.
+
+> +/*
+> + * Handle all unrecognised system calls.
+> + *  0x9f0000 - 0x9fffff are some more esoteric system calls
+> + */
+> +#define NR(x) ((__UNICORE_NR_##x) - __UNICORE_NR_BASE)
+> +asmlinkage int uc32_syscall(int no, struct pt_regs *regs)
+> +{
+> +	if ((no >> 16) != (__UNICORE_NR_BASE >> 16))
+> +		return -ENOSYS;
+> +
+> +	switch (no & 0xffff) {
+> +	/*
+> +	 * Flush a region from virtual address 'r0' to virtual address 'r1'
+> +	 * _exclusive_.  There is no alignment requirement on either address;
+> +	 * user space does not need to know the hardware cache layout.
+> +	 *
+> +	 * r2 contains flags.  It should ALWAYS be passed as ZERO until it
+> +	 * is defined to be something else.  For now we ignore it, but may
+> +	 * the fires of hell burn in your belly if you break this rule. ;)
+> +	 *
+> +	 * (at a later date, we may want to allow this call to not flush
+> +	 * various aspects of the cache.  Passing '0' will guarantee that
+> +	 * everything necessary gets flushed to maintain consistency in
+> +	 * the specified region).
+> +	 */
+> +	case NR(cacheflush):
+> +		do_cache_op(regs->UCreg_00, regs->UCreg_01, regs->UCreg_02);
+> +		return 0;
+> +
+> +	case NR(cmpxchg):
+> +		return do_cmpxchg_op(regs);
+> +
+> +	default:
+> +		return -ENOSYS;
+> +	}
+> +}
+
+With the generic system cal interface, this function should be replaced
+with straight system calls for each of the subfunctions.
+
+Just use things definitions like
+
+#define __NR_cacheflush __NR_arch_specific_syscall
+__SYSCALL(__NR_cacheflush, sys_uc32_cacheflush)
+#define __NR_cmpxchg __NR_arch_specific_syscall+1
+__SYSCALL(__NR_cmpxchg, sys_uc32_cacheflush
+
+in your asm/unistd.h file.
 
 	Arnd
 
