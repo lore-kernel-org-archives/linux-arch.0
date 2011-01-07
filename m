@@ -1,128 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:56394 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:59488 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751338Ab1AGOJ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 09:09:56 -0500
+	with ESMTP id S1752776Ab1AGOJ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 09:09:59 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv1 01/12] unicore32 core architecture: build infrastructure
-Date: Fri, 7 Jan 2011 01:18:41 +0100
-References: <00c601cba463$69533750$3bf9a5f0$@mprc.pku.edu.cn>
-In-Reply-To: <00c601cba463$69533750$3bf9a5f0$@mprc.pku.edu.cn>
+Subject: Re: [PATCHv1 11/12] unicore32 core architecture: signals
+Date: Fri, 7 Jan 2011 01:16:57 +0100
+References: <00da01cba465$6d6e52f0$484af8d0$@mprc.pku.edu.cn>
+In-Reply-To: <00da01cba465$6d6e52f0$484af8d0$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Message-ID: <201101070118.41900.arnd@arndb.de>
 Content-Type: Text/Plain;
   charset="gb2312"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201101070116.57654.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Al Viro <viro@ftp.linux.org.uk>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110107001841.cia6u4AC86ERmdbIGoHmviEZFOcwczLI6WTPHkVT0ME@z>
+Message-ID: <20110107001657.iwTNXw4uS_c86m9YxhAJvEjZDK41SQIJiVLU3LNJx3s@z>
 
 On Saturday 25 December 2010, Guan Xuetao wrote:
 > From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 > 
-> This patch implements build infrastructure.
+> Patch 11 implements signals.
+> 
+> Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+> ---
+>  arch/unicore32/include/asm/sigcontext.h |   61 ++++
+>  arch/unicore32/kernel/signal.c          |  571 +++++++++++++++++++++++++++++++
+>  arch/unicore32/kernel/signal.h          |   16 +
+>  3 files changed, 648 insertions(+), 0 deletions(-)
 
-Sorry for the late reply, I was planning to do the new review earlier, but didn't
-get to it before the Christmas break.
+Al Viro recently did a major cleanup of the signal handling code in a
+number of architectures. He can probably give much better feedback
+on this one than I can.
 
-Overall, I can see that there has been a lot of good progress in the code since
-the original versions that I looked at, very nice!
-
-> diff --git a/arch/unicore32/.gitignore b/arch/unicore32/.gitignore
-> new file mode 100644
-> index 0000000..f0fc866
-> --- /dev/null
-> +++ b/arch/unicore32/.gitignore
-> @@ -0,0 +1,70 @@
-> +#
-> +# Generated include files
-> +#
-> +include/asm/atomic.h
-> +include/asm/auxvec.h
-> +include/asm/bitsperlong.h
-> +include/asm/bug.h
-> +include/asm/bugs.h
-> +include/asm/cputime.h
-> +include/asm/current.h
-> +include/asm/device.h
-> +include/asm/emergency-restart.h
-> +include/asm/errno.h
-> +include/asm/fb.h
-> +include/asm/fcntl.h
-> +include/asm/hardirq.h
-> ...
-
-Maybe it would be better to put these files into a separate directory, like
-arch/unicore32/include/generated/asm, to make it easier to separate them
-from the other files and avoid listing them all in .gitignore besides the
-other places.
-
-It's certainly good to see so many of these files.
-
-> +config GENERIC_GPIO
-> +	def_bool y
-> +
-> +config GENERIC_CLOCKEVENTS
-> +	bool
-> +
-> +config NO_IOPORT
-> +	bool
-> +
-> +config GENERIC_HARDIRQS
-> +	bool
-> +	default y
-
-You are somewhat inconsistent with "def_bool", "default y" and "select FOO",
-which all have the same effect. I would recommend using def_bool y where
-possible.
-
-> +config REALMODE
-> +	bool
-
-I don't see this being used anywhere. Is it just a leftover from an earlier
-version, or did I miss something?
-
-> +choice
-> +	prompt "PKUnity system type"
-> +	default ARCH_PUV3
-> +
-> +	config ARCH_PUV3
-> +	bool "PKUnity v3 (SuperK)"
-> +	select CPU_UCV2
-> +	select GENERIC_CLOCKEVENTS
-> +	select HAVE_CLK
-> +	select ARCH_REQUIRE_GPIOLIB
-> +	select ARCH_HAS_CPUFREQ
-> +
-> +endchoice
-
-As long as there is only one option, you can drop the entire "choice"
-statement.
-
-> +config DEBUG_USER
-> +	bool "Verbose user fault messages"
-> +	help
-> +	  When a user program crashes due to an exception, the kernel can
-> +	  print a brief message explaining what the problem was. This is
-> +	  sometimes helpful for debugging but serves no purpose on a
-> +	  production system. Most people should say N here.
-> +
-> +	  In addition, you need to pass user_debug=N on the kernel command
-> +	  line to enable this feature.  N consists of the sum of:
-> +
-> +	      1 - undefined instruction events
-> +	      2 - system calls
-> +	      4 - invalid data aborts
-> +	      8 - SIGSEGV faults
-> +	     16 - SIGBUS faults
-
-We already have four architectures doing this using the "exception-trace"
-sysctl and the show_unhandled_signals variable. Please follow what those
-architectures are doing, or remove the option and all code depending on
-it.
-
+The one thing that sticks out to me is that you implement both legacy
+and rt signals, where new architectures should generally only need the
+rt variant.
 
 	Arnd
-
