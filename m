@@ -1,62 +1,42 @@
-From: Trond Myklebust <Trond.Myklebust@netapp.com>
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Date: Fri, 07 Jan 2011 14:13:48 -0500
-Message-ID: <1294427628.2929.30.camel@heimdal.trondhjem.org>
-References: <20110105210448.GM8638@n2100.arm.linux.org.uk>
-	 <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com>
-	 <1294262208.2952.4.camel@heimdal.trondhjem.org>
-	 <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com>
-	 <1294268808.2952.18.camel@heimdal.trondhjem.org>
-	 <1294270104.16957.73.camel@mulgrave.site>
-	 <1294335614.22825.154.camel@mulgrave.site>
-	 <1294336054.2905.1.camel@heimdal.trondhjem.org>
-	 <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com>
-	 <1294426405.2929.23.camel@heimdal.trondhjem.org>
-	 <20110107190229.GX31708@n2100.arm.linux.org.uk>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [RFC][PATCH] spinlock: Kill spin_unlock_wait()
+Date: Fri, 7 Jan 2011 16:01:52 -0500
+Message-ID: <20110107210152.GG7355@mtj.dyndns.org>
+References: <20101224122338.172750730@chello.nl>
+ <20101224123742.724459093@chello.nl>
+ <AANLkTikGBsh0-QTe9CA2gwDtwzpdMi+fbDsTEKiJAL0P@mail.gmail.com>
+ <1294054362.2016.74.camel@laptop>
+ <20110104064542.GF3402@amd>
+ <1294254867.2016.281.camel@laptop>
+ <AANLkTi=URmD1GYqp+PfVf6rc0tXvRnAQG808LMnBRgG1@mail.gmail.com>
+ <1294306353.2016.304.camel@laptop>
+ <20110106103841.GA3493@amd>
+ <1294338395.2016.381.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.netapp.com ([216.240.18.37]:45978 "EHLO mx2.netapp.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755021Ab1AGTOF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 14:14:05 -0500
-In-Reply-To: <20110107190229.GX31708@n2100.arm.linux.org.uk>
+Received: from mail-vw0-f46.google.com ([209.85.212.46]:55302 "EHLO
+	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752677Ab1AGVB4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 16:01:56 -0500
+Content-Disposition: inline
+In-Reply-To: <1294338395.2016.381.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, Chris Mason <chris.mason@oracle.com>, Frank Rowand <frank.rowand@am.sony.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Mike Galbraith <efault@gmx.de>, Oleg Nesterov <oleg@redhat.com>, Paul Turner <pjt@google.com>, Jens Axboe <axboe@kernel.dk>, Yong Zhang <yong.zhang0@gmail.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Linux-Arch <linux-arch@vger.kernel.org>, Jeff Garzik <jeff@garzik.org>
 
-On Fri, 2011-01-07 at 19:02 +0000, Russell King - ARM Linux wrote: 
-> On Fri, Jan 07, 2011 at 01:53:25PM -0500, Trond Myklebust wrote:
-> > I'd still like to keep the existing code for those architectures that
-> > don't have problems, since that allows us to send 32k READDIR requests
-> > instead of being limited to 4k. For large directories, that is a clear
-> > win.
-> > For the NOMMU case we will just go back to using a single page for
-> > storage (and 4k READDIR requests only). Should I just do the same for
-> > architectures like ARM and PARISC?
-> 
-> I think you said that readdir reads via the vmalloc mapping of the
-> group of pages, but XDR writes to the individual pages.
-> 
-> As I understand NFS, you receive a packet, you then have to use XDR
-> to unpack the data, which you presumably write into the set of
-> struct page *'s using kmap?
+Hello,
 
-No. The socket or RDMA layers place the data directly into the struct
-pages. We then unpack them in the XDR layer using the vmalloc mapping
-and place the resulting processed readdir data into the page cache.
+On Thu, Jan 06, 2011 at 07:26:35PM +0100, Peter Zijlstra wrote:
+> Jeff, Tejun, could you look at the ata-eh thing, then I'll put sorting
+> through the futex thing on my todo list.
 
-> Isn't a solution to have XDR write directly into the vmalloc mapping
-> rather than using struct page * and kmap?
+Hmm... I think the ->eng_timeout path is already dead.  We no longer
+have any in-kernel implementation, so killing spin_unlock_wait()
+should be fine.  I'll follow up with removal of the unused callback.
 
-Unfortunately that isn't possible. :-(
+Thanks.
 
 -- 
-Trond Myklebust
-Linux NFS client maintainer
-
-NetApp
-Trond.Myklebust@netapp.com
-www.netapp.com
+tejun
