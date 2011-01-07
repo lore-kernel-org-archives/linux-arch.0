@@ -1,105 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:53497 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751371Ab1AGOJy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 09:09:54 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv1 04/12] unicore32 core architecture: low level entry and setup code
-Date: Fri, 7 Jan 2011 01:04:57 +0100
-References: <00cc01cba464$16e6a410$44b3ec30$@mprc.pku.edu.cn>
-In-Reply-To: <00cc01cba464$16e6a410$44b3ec30$@mprc.pku.edu.cn>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:35348 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755069Ab1AGTDx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 14:03:53 -0500
+Date: Fri, 7 Jan 2011 19:02:29 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
+Message-ID: <20110107190229.GX31708@n2100.arm.linux.org.uk>
+References: <20110105210448.GM8638@n2100.arm.linux.org.uk> <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com> <1294262208.2952.4.camel@heimdal.trondhjem.org> <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com> <1294268808.2952.18.camel@heimdal.trondhjem.org> <1294270104.16957.73.camel@mulgrave.site> <1294335614.22825.154.camel@mulgrave.site> <1294336054.2905.1.camel@heimdal.trondhjem.org> <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com> <1294426405.2929.23.camel@heimdal.trondhjem.org>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="gb2312"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201101070104.57770.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1294426405.2929.23.camel@heimdal.trondhjem.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110107000457.Wk-PTsAPqpddEqK1T6znmnd7exsdABoisC0Zw99VMDo@z>
+To: Trond Myklebust <Trond.Myklebust@netapp.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110107190229.jCltl0ifFBx0c1mU74Xk_OzMcHsawpGtyiGKEa0G8zg@z>
 
-On Saturday 25 December 2010, Guan Xuetao wrote:
-> +#ifdef __KERNEL__
-> +
-> +/*
-> + * Memory map description
-> + */
-> +# define NR_BANKS 8
-> +
-> +struct membank {
-> +	unsigned long start;
-> +	unsigned long size;
-> +	unsigned int highmem;
-> +};
-> +
-> +struct meminfo {
-> +	int nr_banks;
-> +	struct membank bank[NR_BANKS];
-> +};
-> +
-> +extern struct meminfo meminfo;
-> +
-> +#define for_each_bank(iter, mi)				\
-> +	for (iter = 0; iter < (mi)->nr_banks; iter++)
-> +
-> +#define bank_pfn_start(bank)	__phys_to_pfn((bank)->start)
-> +#define bank_pfn_end(bank)	__phys_to_pfn((bank)->start + (bank)->size)
-> +#define bank_pfn_size(bank)	((bank)->size >> PAGE_SHIFT)
-> +#define bank_phys_start(bank)	((bank)->start)
-> +#define bank_phys_end(bank)	((bank)->start + (bank)->size)
-> +#define bank_phys_size(bank)	((bank)->size)
+On Fri, Jan 07, 2011 at 01:53:25PM -0500, Trond Myklebust wrote:
+> I'd still like to keep the existing code for those architectures that
+> don't have problems, since that allows us to send 32k READDIR requests
+> instead of being limited to 4k. For large directories, that is a clear
+> win.
+> For the NOMMU case we will just go back to using a single page for
+> storage (and 4k READDIR requests only). Should I just do the same for
+> architectures like ARM and PARISC?
 
-The membank stuff looks like a variation of the generic memblock interfaces.
+I think you said that readdir reads via the vmalloc mapping of the
+group of pages, but XDR writes to the individual pages.
 
-> +/*
-> + * Handle all unrecognised system calls.
-> + *  0x9f0000 - 0x9fffff are some more esoteric system calls
-> + */
-> +#define NR(x) ((__UNICORE_NR_##x) - __UNICORE_NR_BASE)
-> +asmlinkage int uc32_syscall(int no, struct pt_regs *regs)
-> +{
-> +	if ((no >> 16) != (__UNICORE_NR_BASE >> 16))
-> +		return -ENOSYS;
-> +
-> +	switch (no & 0xffff) {
-> +	/*
-> +	 * Flush a region from virtual address 'r0' to virtual address 'r1'
-> +	 * _exclusive_.  There is no alignment requirement on either address;
-> +	 * user space does not need to know the hardware cache layout.
-> +	 *
-> +	 * r2 contains flags.  It should ALWAYS be passed as ZERO until it
-> +	 * is defined to be something else.  For now we ignore it, but may
-> +	 * the fires of hell burn in your belly if you break this rule. ;)
-> +	 *
-> +	 * (at a later date, we may want to allow this call to not flush
-> +	 * various aspects of the cache.  Passing '0' will guarantee that
-> +	 * everything necessary gets flushed to maintain consistency in
-> +	 * the specified region).
-> +	 */
-> +	case NR(cacheflush):
-> +		do_cache_op(regs->UCreg_00, regs->UCreg_01, regs->UCreg_02);
-> +		return 0;
-> +
-> +	case NR(cmpxchg):
-> +		return do_cmpxchg_op(regs);
-> +
-> +	default:
-> +		return -ENOSYS;
-> +	}
-> +}
+As I understand NFS, you receive a packet, you then have to use XDR
+to unpack the data, which you presumably write into the set of
+struct page *'s using kmap?
 
-With the generic system cal interface, this function should be replaced
-with straight system calls for each of the subfunctions.
-
-Just use things definitions like
-
-#define __NR_cacheflush __NR_arch_specific_syscall
-__SYSCALL(__NR_cacheflush, sys_uc32_cacheflush)
-#define __NR_cmpxchg __NR_arch_specific_syscall+1
-__SYSCALL(__NR_cmpxchg, sys_uc32_cacheflush
-
-in your asm/unistd.h file.
-
-	Arnd
-
+Isn't a solution to have XDR write directly into the vmalloc mapping
+rather than using struct page * and kmap?
