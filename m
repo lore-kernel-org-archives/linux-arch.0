@@ -1,68 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:56418 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755116Ab1AGTLJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 14:11:09 -0500
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <20110107190229.GX31708@n2100.arm.linux.org.uk>
-References: <20110105210448.GM8638@n2100.arm.linux.org.uk>
-	 <AANLkTi=EXXBTW7oWHq3D+PHsx=thF1CpkRjn0ax2p5rm@mail.gmail.com>
-	 <1294262208.2952.4.camel@heimdal.trondhjem.org>
-	 <AANLkTi=3Gu-rz=-OdNtUXn4qw60Df6=YePnzvB=s-+Ov@mail.gmail.com>
-	 <1294268808.2952.18.camel@heimdal.trondhjem.org>
-	 <1294270104.16957.73.camel@mulgrave.site>
-	 <1294335614.22825.154.camel@mulgrave.site>
-	 <1294336054.2905.1.camel@heimdal.trondhjem.org>
-	 <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com>
-	 <1294426405.2929.23.camel@heimdal.trondhjem.org>
-	 <20110107190229.GX31708@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 07 Jan 2011 13:11:07 -0600
-Message-ID: <1294427467.4895.66.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:34854 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753298Ab1AGVNz convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 16:13:55 -0500
+MIME-Version: 1.0
+In-Reply-To: <20110107210152.GG7355@mtj.dyndns.org>
+References: <20101224122338.172750730@chello.nl>
+	<20101224123742.724459093@chello.nl>
+	<AANLkTikGBsh0-QTe9CA2gwDtwzpdMi+fbDsTEKiJAL0P@mail.gmail.com>
+	<1294054362.2016.74.camel@laptop>
+	<20110104064542.GF3402@amd>
+	<1294254867.2016.281.camel@laptop>
+	<AANLkTi=URmD1GYqp+PfVf6rc0tXvRnAQG808LMnBRgG1@mail.gmail.com>
+	<1294306353.2016.304.camel@laptop>
+	<20110106103841.GA3493@amd>
+	<1294338395.2016.381.camel@laptop>
+	<20110107210152.GG7355@mtj.dyndns.org>
+Date: Fri, 7 Jan 2011 16:13:53 -0500
+Message-ID: <AANLkTimA9VKO2bW0PtAVKhYdJ_cRi7mpsAC_QDZwrvAM@mail.gmail.com>
+Subject: Re: [RFC][PATCH] spinlock: Kill spin_unlock_wait()
+From: Jeff Garzik <jeff@garzik.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Trond Myklebust <Trond.Myklebust@netapp.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, Marc Kleine-Budde <mkl@pengutronix.de>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org, Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20110107191107.DZjyHzFyBn2aCi14Fl7FmqJdfrsLiV_K4c7DigzFAbU@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, Chris Mason <chris.mason@oracle.com>, Frank Rowand <frank.rowand@am.sony.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Mike Galbraith <efault@gmx.de>, Oleg Nesterov <oleg@redhat.com>, Paul Turner <pjt@google.com>, Jens Axboe <axboe@kernel.dk>, Yong Zhang <yong.zhang0@gmail.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, IDE/ATA development list <linux-ide@vger.kernel.org>
+Message-ID: <20110107211353.AGx98HOHp2uL1Lqps0FUkD-Pt8KxlLM1DwiJU_-yXU8@z>
 
-On Fri, 2011-01-07 at 19:02 +0000, Russell King - ARM Linux wrote:
-> On Fri, Jan 07, 2011 at 01:53:25PM -0500, Trond Myklebust wrote:
-> > I'd still like to keep the existing code for those architectures that
-> > don't have problems, since that allows us to send 32k READDIR requests
-> > instead of being limited to 4k. For large directories, that is a clear
-> > win.
-> > For the NOMMU case we will just go back to using a single page for
-> > storage (and 4k READDIR requests only). Should I just do the same for
-> > architectures like ARM and PARISC?
-> 
-> I think you said that readdir reads via the vmalloc mapping of the
-> group of pages, but XDR writes to the individual pages.
+On Fri, Jan 7, 2011 at 4:01 PM, Tejun Heo <tj@kernel.org> wrote:
+> On Thu, Jan 06, 2011 at 07:26:35PM +0100, Peter Zijlstra wrote:
+>> Jeff, Tejun, could you look at the ata-eh thing, then I'll put sorting
+>> through the futex thing on my todo list.
+>
+> Hmm... I think the ->eng_timeout path is already dead.  We no longer
+> have any in-kernel implementation, so killing spin_unlock_wait()
+> should be fine.  I'll follow up with removal of the unused callback.
 
-Actually it's the other way around, but the point still stands.
+Unfortunately...  libsas continues to avoid the new EH :(
 
-> As I understand NFS, you receive a packet, you then have to use XDR
-> to unpack the data, which you presumably write into the set of
-> struct page *'s using kmap?
-> 
-> Isn't a solution to have XDR write directly into the vmalloc mapping
-> rather than using struct page * and kmap?
+It's a hairy mess to untangle, too.  libata does proper error handling
+of ATA device errors, notably NCQ error handling, which libsas sorely
+misses.  But libata new EH assumes a bit too much about "owning" the
+entirety of the EH process.  These assumptions are proper for wholly
+ATA drivers (drivers/ata/*) where new EH can drive the EH process, but
+in the SAS situation, a phy in SATA mode is simply a subset of a
+larger set of EH conditions that must be handled.
 
-So, unfortuantely, I looked at doing this and we can't.  the ->readdir()
-call takes an array of pages, not a kernel virtual address of the pages,
-so there's no way to tell it to use a different mapping from the usual
-kernel one on them.
+Thus libsas uses the ancient libata hook ->phy_reset and lacks ->error_handler.
 
-On the other hand, the xdr routines, since they take the pages anyway,
-could use a scatterlist approach to writing through the kernel mapping
-instead of using vmap ... we have all the machinery for this in
-lib/scatterlist.c ... it's not designed for this case, since it's
-designed to allow arbitrary linear reads and writes on a block
-scatterlist, but the principle is the same ... it looks like it would be
-rather a big patch, though ... 
+I think libata's old-EH path is entirely SAS-specific at this point.
 
-James
+     Jeff
 
 
+P.S.  Note that libsas and ipr are peers; thus ipr driver also uses old EH.
