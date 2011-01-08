@@ -1,57 +1,33 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Date: Sun, 9 Jan 2011 00:45:39 +1100
-Message-ID: <20110109004539.5bf33510.sfr@canb.auug.org.au>
-References: <20110108130302.GA21698@merkur.ravnborg.org>
-	<20110108130427.GA25461@merkur.ravnborg.org>
+Date: Sat, 8 Jan 2011 15:03:47 +0100
+Message-ID: <20110108140347.GA3928@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110108130427.GA25461@merkur.ravnborg.org> <20110109004539.5bf33510.sfr@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:59222 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752351Ab1AHNp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 8 Jan 2011 08:45:58 -0500
-In-Reply-To: <20110108130427.GA25461@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
-
---Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20110109004539.5bf33510.sfr@canb.auug.org.au>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Sam,
+On Sun, Jan 09, 2011 at 12:45:39AM +1100, Stephen Rothwell wrote:
+> Hi Sam,
+> 
+> On Sat, 8 Jan 2011 14:04:27 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
+> >
+> > -LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
+> > +LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
+> > +                   -Iarch/$(hrd-arch)/include/generated -Iinclude \
+>                                ^^^
+> hdr-arch?
+Good spotted.
 
-On Sat, 8 Jan 2011 14:04:27 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
->
-> -LINUXINCLUDE    :=3D -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
-> +LINUXINCLUDE    :=3D -I$(srctree)/arch/$(hdr-arch)/include \
-> +                   -Iarch/$(hrd-arch)/include/generated -Iinclude \
-                               ^^^
-hdr-arch?
+I wonder how this slipped in?!?
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+If anyone try this - then please fix the misspelling.
+I will repost patch later.
 
---Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iQEcBAEBAgAGBQJNKGqDAAoJEDMEi1NhKgbsK7cIAIpyFKyokfnp2U89n3rW4/Aa
-u7V4p3ZMLn62soxpGh1rGXcxotRkqDZrqYlCbPjX0Gu2zXX02sCLl8EXqV6nZbpS
-ArFbEatYNward2tNfGbC+5oDFk+cjuRytHXc/JfqpejZwDhCwe/OeP9ZQl/P+jB1
-2JQDA/a1gVB8ilzLvyBoJClRcd9X0R6qArn+JjiZetJNEPt0FhtZ0s384FTLs387
-63v0WKpn+QS7AphuppuFjVqMxTitXQoofYpiaBYgE1J5NViYbErLUgkkoIOGmYkl
-E63rwMJ0fkdFIQYHJppNMz/FXEsZmXBRy9xaizNMckWl7EDU7qGzK4IKU218H+U=
-=5zls
------END PGP SIGNATURE-----
-
---Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0--
+	Sam
