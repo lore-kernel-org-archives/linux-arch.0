@@ -1,68 +1,87 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [EXAMPLE PATCH 2/2] x86: start to utilize kbuild asm-generic
-	support
-Date: Sat, 8 Jan 2011 14:05:18 +0100
-Message-ID: <20110108130518.GB25461@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: [PATCH] asm-generic headers: modify stat.h in include/asm-generic to be applicable to more architectures
+Date: Sat, 8 Jan 2011 21:23:57 +0800
+Message-ID: <024501cbaf37$4e479fd0$ead6df70$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:32850 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752045Ab1AHNFT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2011 08:05:19 -0500
-Content-Disposition: inline
-In-Reply-To: <20110108130302.GA21698@merkur.ravnborg.org>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:34811 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752348Ab1AHNYC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 8 Jan 2011 08:24:02 -0500
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-From fd70bb929b975f02879860aefb48f0b0a14d7aab Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Sat, 8 Jan 2011 13:50:52 +0100
-Subject: [PATCH 2/2] x86: start to utilize kbuild asm-generic support
+From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 
+ This patch modifies stat.h in include/asm-generic to be applicable to more architectures.
+ STAT64_HAS_BROKEN_ST_INO is defined in most architecture's asm/stat.h, and it need 
+ 32-bit __st_ino member to be defined in different position of 64-bit st_ino member.
+ STAT64_PAD_BEFORE_ST_SIZE is the pad before st_size member, with default value 8 bytes.
+ STAT64_PAD_BEFORE_ST_BLOCKS is the pad before st_blocks member, with default value
+ 4 bytes to align the following member to 64-bit.
+
+Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 ---
- arch/x86/.gitignore             |    1 +
- arch/x86/include/asm-generic    |    3 +++
- arch/x86/include/asm/termbits.h |    1 -
- arch/x86/include/asm/termios.h  |    1 -
- 4 files changed, 4 insertions(+), 2 deletions(-)
- create mode 100644 arch/x86/include/asm-generic
- delete mode 100644 arch/x86/include/asm/termbits.h
- delete mode 100644 arch/x86/include/asm/termios.h
+ include/asm-generic/stat.h |   26 ++++++++++++++++++++++++--
+ 1 files changed, 24 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/.gitignore b/arch/x86/.gitignore
-index 0280790..1448346 100644
---- a/arch/x86/.gitignore
-+++ b/arch/x86/.gitignore
-@@ -1,3 +1,4 @@
- boot/compressed/vmlinux
- tools/test_get_len
-+include/generated
+diff --git a/include/asm-generic/stat.h b/include/asm-generic/stat.h
+index bd8cad2..82d1108 100644
+--- a/include/asm-generic/stat.h
++++ b/include/asm-generic/stat.h
+@@ -45,18 +45,36 @@ struct stat {
  
-diff --git a/arch/x86/include/asm-generic b/arch/x86/include/asm-generic
-new file mode 100644
-index 0000000..50aa036
---- /dev/null
-+++ b/arch/x86/include/asm-generic
-@@ -0,0 +1,3 @@
-+# generic headers from include/asm-generic/
-+termbits.h
-+termios.h
-diff --git a/arch/x86/include/asm/termbits.h b/arch/x86/include/asm/termbits.h
-deleted file mode 100644
-index 3935b10..0000000
---- a/arch/x86/include/asm/termbits.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termbits.h>
-diff --git a/arch/x86/include/asm/termios.h b/arch/x86/include/asm/termios.h
-deleted file mode 100644
-index 280d78a..0000000
---- a/arch/x86/include/asm/termios.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termios.h>
--- 
-1.6.0.6
+ /* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
+ #if __BITS_PER_LONG != 64 || defined(__ARCH_WANT_STAT64)
++
++#ifndef STAT64_PAD_BEFORE_ST_SIZE
++#define STAT64_PAD_BEFORE_ST_SIZE	8
++#endif
++
++#ifndef STAT64_PAD_BEFORE_ST_BLOCKS
++#define STAT64_PAD_BEFORE_ST_BLOCKS	4
++#endif
++
+ struct stat64 {
+ 	unsigned long long st_dev;	/* Device.  */
++#ifndef STAT64_HAS_BROKEN_ST_INO
+ 	unsigned long long st_ino;	/* File serial number.  */
++#else /* STAT64_HAS_BROKEN_ST_INO */
++	unsigned int	__unused1;	/* aligned to 64-bit. */
++	unsigned int	__st_ino;	/* File serial number.  */
++#endif /* STAT64_HAS_BROKEN_ST_INO */
+ 	unsigned int	st_mode;	/* File mode.  */
+ 	unsigned int	st_nlink;	/* Link count.  */
+ 	unsigned int	st_uid;		/* User ID of the file's owner.  */
+ 	unsigned int	st_gid;		/* Group ID of the file's group. */
+ 	unsigned long long st_rdev;	/* Device number, if device.  */
+-	unsigned long long __pad1;
++#if STAT64_PAD_BEFORE_ST_SIZE != 0
++	unsigned char	__unused2[STAT64_PAD_BEFORE_ST_SIZE];
++#endif
+ 	long long	st_size;	/* Size of file, in bytes.  */
+ 	int		st_blksize;	/* Optimal block size for I/O.  */
+-	int		__pad2;
++#if STAT64_PAD_BEFORE_ST_BLOCKS != 0
++	unsigned char	__unused3[STAT64_PAD_BEFORE_ST_BLOCKS];
++#endif
+ 	long long	st_blocks;	/* Number 512-byte blocks allocated. */
+ 	int		st_atime;	/* Time of last access.  */
+ 	unsigned int	st_atime_nsec;
+@@ -64,8 +82,12 @@ struct stat64 {
+ 	unsigned int	st_mtime_nsec;
+ 	int		st_ctime;	/* Time of last status change.  */
+ 	unsigned int	st_ctime_nsec;
++#ifndef STAT64_HAS_BROKEN_ST_INO
+ 	unsigned int	__unused4;
+ 	unsigned int	__unused5;
++#else /* STAT64_HAS_BROKEN_ST_INO */
++	unsigned long long st_ino;	/* File serial number.  */
++#endif /* STAT64_HAS_BROKEN_ST_INO */
+ };
+ #endif
