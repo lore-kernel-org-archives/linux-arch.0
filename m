@@ -1,50 +1,33 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCH] asm-generic headers: add ftrace.h
-Date: Sat, 8 Jan 2011 20:08:44 +0800
-Message-ID: <024001cbaf2c$cbe9cc70$63bd6550$@mprc.pku.edu.cn>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [RFC] kbuild: generic support for asm-generic
+Date: Sat, 8 Jan 2011 14:03:02 +0100
+Message-ID: <20110108130302.GA21698@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:41749 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750934Ab1AHMIp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 8 Jan 2011 07:08:45 -0500
-Content-Language: zh-cn
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-kbuild-owner@vger.kernel.org
+To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc>
+List-Id: linux-arch.vger.kernel.org
 
-From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Hi Arnd et all.
 
- This patch adds ftrace.h into asm-generic headers.
- The file content could be empty in most architectures.
+This is my second attempt to provide generic support for
+architectures that use existing headers from asm-generic.
 
-Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
----
- include/asm-generic/ftrace.h |   16 ++++++++++++++++
- 1 files changed, 16 insertions(+), 0 deletions(-)
+With this kbuild will read the file: arch/$ARCH/include/asm-generic
 
-diff --git a/include/asm-generic/ftrace.h b/include/asm-generic/ftrace.h
-new file mode 100644
-index 0000000..51abba9
---- /dev/null
-+++ b/include/asm-generic/ftrace.h
-@@ -0,0 +1,16 @@
-+/*
-+ * linux/include/asm-generic/ftrace.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __ASM_GENERIC_FTRACE_H__
-+#define __ASM_GENERIC_FTRACE_H__
-+
-+/*
-+ * Not all architectures need their own ftrace.h, the most
-+ * common definitions are already in linux/ftrace.h.
-+ */
-+
-+#endif /* __ASM_GENERIC_FTRACE_H__ */
+For each file listed in this file a wrapper is generated in
+arch/$ARCH/inclue/generated/asm/
+
+The patch include support so headers_install works.
+
+The inspiration came from the unicore32 patchset,
+but I redid this to make it more general.
+
+I will follow-up with two patches.
+One that implment the functionality.
+A second that convert two headers in x86 to use the
+new asm-generic stuff (only as an example).
+
+	Sam
