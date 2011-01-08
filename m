@@ -1,87 +1,57 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: [PATCH] asm-generic headers: modify stat.h in include/asm-generic to be applicable to more architectures
-Date: Sat, 8 Jan 2011 21:23:57 +0800
-Message-ID: <024501cbaf37$4e479fd0$ead6df70$@mprc.pku.edu.cn>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 1/2] kbuild: asm-generic support
+Date: Sun, 9 Jan 2011 00:45:39 +1100
+Message-ID: <20110109004539.5bf33510.sfr@canb.auug.org.au>
+References: <20110108130302.GA21698@merkur.ravnborg.org>
+	<20110108130427.GA25461@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:34811 "EHLO mprc.pku.edu.cn"
+Received: from chilli.pcug.org.au ([203.10.76.44]:59222 "EHLO smtps.tip.net.au"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752348Ab1AHNYC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 8 Jan 2011 08:24:02 -0500
-Content-Language: zh-cn
+	id S1752351Ab1AHNp6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 8 Jan 2011 08:45:58 -0500
+In-Reply-To: <20110108130427.GA25461@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
 
-From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+--Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
- This patch modifies stat.h in include/asm-generic to be applicable to more architectures.
- STAT64_HAS_BROKEN_ST_INO is defined in most architecture's asm/stat.h, and it need 
- 32-bit __st_ino member to be defined in different position of 64-bit st_ino member.
- STAT64_PAD_BEFORE_ST_SIZE is the pad before st_size member, with default value 8 bytes.
- STAT64_PAD_BEFORE_ST_BLOCKS is the pad before st_blocks member, with default value
- 4 bytes to align the following member to 64-bit.
+Hi Sam,
 
-Signed-off-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
----
- include/asm-generic/stat.h |   26 ++++++++++++++++++++++++--
- 1 files changed, 24 insertions(+), 2 deletions(-)
+On Sat, 8 Jan 2011 14:04:27 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
+>
+> -LINUXINCLUDE    :=3D -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
+> +LINUXINCLUDE    :=3D -I$(srctree)/arch/$(hdr-arch)/include \
+> +                   -Iarch/$(hrd-arch)/include/generated -Iinclude \
+                               ^^^
+hdr-arch?
 
-diff --git a/include/asm-generic/stat.h b/include/asm-generic/stat.h
-index bd8cad2..82d1108 100644
---- a/include/asm-generic/stat.h
-+++ b/include/asm-generic/stat.h
-@@ -45,18 +45,36 @@ struct stat {
- 
- /* This matches struct stat64 in glibc2.1. Only used for 32 bit. */
- #if __BITS_PER_LONG != 64 || defined(__ARCH_WANT_STAT64)
-+
-+#ifndef STAT64_PAD_BEFORE_ST_SIZE
-+#define STAT64_PAD_BEFORE_ST_SIZE	8
-+#endif
-+
-+#ifndef STAT64_PAD_BEFORE_ST_BLOCKS
-+#define STAT64_PAD_BEFORE_ST_BLOCKS	4
-+#endif
-+
- struct stat64 {
- 	unsigned long long st_dev;	/* Device.  */
-+#ifndef STAT64_HAS_BROKEN_ST_INO
- 	unsigned long long st_ino;	/* File serial number.  */
-+#else /* STAT64_HAS_BROKEN_ST_INO */
-+	unsigned int	__unused1;	/* aligned to 64-bit. */
-+	unsigned int	__st_ino;	/* File serial number.  */
-+#endif /* STAT64_HAS_BROKEN_ST_INO */
- 	unsigned int	st_mode;	/* File mode.  */
- 	unsigned int	st_nlink;	/* Link count.  */
- 	unsigned int	st_uid;		/* User ID of the file's owner.  */
- 	unsigned int	st_gid;		/* Group ID of the file's group. */
- 	unsigned long long st_rdev;	/* Device number, if device.  */
--	unsigned long long __pad1;
-+#if STAT64_PAD_BEFORE_ST_SIZE != 0
-+	unsigned char	__unused2[STAT64_PAD_BEFORE_ST_SIZE];
-+#endif
- 	long long	st_size;	/* Size of file, in bytes.  */
- 	int		st_blksize;	/* Optimal block size for I/O.  */
--	int		__pad2;
-+#if STAT64_PAD_BEFORE_ST_BLOCKS != 0
-+	unsigned char	__unused3[STAT64_PAD_BEFORE_ST_BLOCKS];
-+#endif
- 	long long	st_blocks;	/* Number 512-byte blocks allocated. */
- 	int		st_atime;	/* Time of last access.  */
- 	unsigned int	st_atime_nsec;
-@@ -64,8 +82,12 @@ struct stat64 {
- 	unsigned int	st_mtime_nsec;
- 	int		st_ctime;	/* Time of last status change.  */
- 	unsigned int	st_ctime_nsec;
-+#ifndef STAT64_HAS_BROKEN_ST_INO
- 	unsigned int	__unused4;
- 	unsigned int	__unused5;
-+#else /* STAT64_HAS_BROKEN_ST_INO */
-+	unsigned long long st_ino;	/* File serial number.  */
-+#endif /* STAT64_HAS_BROKEN_ST_INO */
- };
- #endif
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iQEcBAEBAgAGBQJNKGqDAAoJEDMEi1NhKgbsK7cIAIpyFKyokfnp2U89n3rW4/Aa
+u7V4p3ZMLn62soxpGh1rGXcxotRkqDZrqYlCbPjX0Gu2zXX02sCLl8EXqV6nZbpS
+ArFbEatYNward2tNfGbC+5oDFk+cjuRytHXc/JfqpejZwDhCwe/OeP9ZQl/P+jB1
+2JQDA/a1gVB8ilzLvyBoJClRcd9X0R6qArn+JjiZetJNEPt0FhtZ0s384FTLs387
+63v0WKpn+QS7AphuppuFjVqMxTitXQoofYpiaBYgE1J5NViYbErLUgkkoIOGmYkl
+E63rwMJ0fkdFIQYHJppNMz/FXEsZmXBRy9xaizNMckWl7EDU7qGzK4IKU218H+U=
+=5zls
+-----END PGP SIGNATURE-----
+
+--Signature=_Sun__9_Jan_2011_00_45_39_+1100_pqCfy2+KC9Q3YZl0--
