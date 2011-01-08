@@ -1,61 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f46.google.com ([209.85.212.46]:54793 "EHLO
-	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751725Ab1AGVdG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Jan 2011 16:33:06 -0500
-Date: Fri, 7 Jan 2011 16:33:02 -0500
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [RFC][PATCH] spinlock: Kill spin_unlock_wait()
-Message-ID: <20110107213302.GI7355@mtj.dyndns.org>
-References: <AANLkTikGBsh0-QTe9CA2gwDtwzpdMi+fbDsTEKiJAL0P@mail.gmail.com>
- <1294054362.2016.74.camel@laptop>
- <20110104064542.GF3402@amd>
- <1294254867.2016.281.camel@laptop>
- <AANLkTi=URmD1GYqp+PfVf6rc0tXvRnAQG808LMnBRgG1@mail.gmail.com>
- <1294306353.2016.304.camel@laptop>
- <20110106103841.GA3493@amd>
- <1294338395.2016.381.camel@laptop>
- <20110107210152.GG7355@mtj.dyndns.org>
- <AANLkTimA9VKO2bW0PtAVKhYdJ_cRi7mpsAC_QDZwrvAM@mail.gmail.com>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:53596 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751548Ab1AHLJf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 8 Jan 2011 06:09:35 -0500
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+References: <00c601cba463$69533750$3bf9a5f0$@mprc.pku.edu.cn> <20110106075553.GC15914@linux-sh.org> <023601cbaef7$850f2af0$8f2d80d0$@mprc.pku.edu.cn> <20110108072053.GA10552@merkur.ravnborg.org>
+In-Reply-To: <20110108072053.GA10552@merkur.ravnborg.org>
+Subject: RE: [PATCHv1 01/12] unicore32 core architecture: build	infrastructure
+Date: Sat, 8 Jan 2011 19:09:29 +0800
+Message-ID: <023c01cbaf24$85a99cc0$90fcd640$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <AANLkTimA9VKO2bW0PtAVKhYdJ_cRi7mpsAC_QDZwrvAM@mail.gmail.com>
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff Garzik <jeff@garzik.org>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Nick Piggin <npiggin@kernel.dk>, Linus Torvalds <torvalds@linux-foundation.org>, Chris Mason <chris.mason@oracle.com>, Frank Rowand <frank.rowand@am.sony.com>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Mike Galbraith <efault@gmx.de>, Oleg Nesterov <oleg@redhat.com>, Paul Turner <pjt@google.com>, Jens Axboe <axboe@kernel.dk>, Yong Zhang <yong.zhang0@gmail.com>, linux-kernel@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-scsi <linux-scsi@vger.kernel.org>, IDE/ATA development list <linux-ide@vger.kernel.org>
-Message-ID: <20110107213302.kA3qgdnK4WsYebdfH41aSiNocR4kymwJJnavRhWZn2Y@z>
+To: 'Sam Ravnborg' <sam@ravnborg.org>
+Cc: 'Paul Mundt' <lethal@linux-sh.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110108110929.MSDoxXWhbuAYe3_PxoXVnUE8hnJs8RSE6Dg4wv2wdSs@z>
 
-Hello, Jeff.
 
-On Fri, Jan 07, 2011 at 04:13:53PM -0500, Jeff Garzik wrote:
-> > Hmm... I think the ->eng_timeout path is already dead.  We no longer
-> > have any in-kernel implementation, so killing spin_unlock_wait()
-> > should be fine.  I'll follow up with removal of the unused callback.
+
+> -----Original Message-----
+> From: Sam Ravnborg [mailto:sam@ravnborg.org]
+> Sent: Saturday, January 08, 2011 3:21 PM
+> To: Guan Xuetao
+> Cc: 'Paul Mundt'; linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org
+> Subject: Re: [PATCHv1 01/12] unicore32 core architecture: build infrastructure
 > 
-> Unfortunately...  libsas continues to avoid the new EH :(
+> Hi Guan.
 > 
-> It's a hairy mess to untangle, too.  libata does proper error handling
-> of ATA device errors, notably NCQ error handling, which libsas sorely
-> misses.  But libata new EH assumes a bit too much about "owning" the
-> entirety of the EH process.  These assumptions are proper for wholly
-> ATA drivers (drivers/ata/*) where new EH can drive the EH process, but
-> in the SAS situation, a phy in SATA mode is simply a subset of a
-> larger set of EH conditions that must be handled.
+> A few nits.
 > 
-> Thus libsas uses the ancient libata hook ->phy_reset and lacks ->error_handler.
+> > +# Explicitly specifiy 32-bit UniCore ISA:
+> > +KBUILD_CFLAGS	+=$(call cc-option,-municore32)
 > 
-> I think libata's old-EH path is entirely SAS-specific at this point.
+> If gcc does not support -municore32 then I assume it
+> is a wrong gcc version used.
+> So just add it unconditionally.
+> 
+> The cc-option macro is used to add options to gcc iff gcc
+> supports this option. So each time you use cc-option we
+> actually run gcc to determine if the opton is supported.
+Corrected.
 
-Hmm... but they don't use ata_scsi_error() and ->eng_timeout() at all,
-no?  We can't remove phy_reset() and need to keep the silly "if
-(->error_handler)" tests around but should be able to remove those
-from ata_scsi_error() and other EH routines, at least.  Am I missing
-something?
+> 
+> Also as a general rule add a space after the equal sign:
+> > +KBUILD_CFLAGS	+= -municore32
+>                           ^
+Ok.
 
-Thanks.
+> > +
+> > +#Default value
+> > +head-y		:= arch/unicore32/kernel/head.o arch/unicore32/kernel/init_task.o
+> Break longer lines in two like this:
+> > +head-y		:= arch/unicore32/kernel/head.o
+> > +head-y		+= arch/unicore32/kernel/init_task.o
+> 
+> Note: I see lots of Makefile where longer lines are continued on
+> the next line using a '\'. But like in regular C code to use an incremental
+> assignment looks just better / is more clear.
+> 
+Ok.
+> > +textofs-y	:= 0x00408000
+> > +
+> > +# The byte offset of the kernel image in RAM from the start of RAM.
+> > +TEXT_OFFSET := $(textofs-y)
+> 
+> If you are going to have different TEXT_OFFSET's then I suggest to move
+> this to KConfig as an "hex "Text offset" config option.
+> You can set default values dependign on BSP etc.
+There is no different TEXT_OFFSET.
 
--- 
-tejun
+> 
+> Also defiing stuff here just to export it for use in boot/
+> has always looked like a strange concept - but many archs do so today.
+> You do not export TEXT_OFFSET but I guess this is a bug?
+I need TEXT_OFFSET for kernel/ and boot/, so export it.
+What's the better method?
+> 
+> > +
+> > +export	TEXT_OFFSET GZFLAGS
+> This variable is never used.
+GZFLAGS is removed.
+> 
+> 
+> > +
+> > +core-y				+= arch/unicore32/kernel/ arch/unicore32/mm/
+> > +core-$(CONFIG_UNICORE_FPU_F64)	+= arch/unicore32/uc-f64/
+> > +
+> > +drivers-$(CONFIG_ARCH_PUV3)	+= drivers/staging/puv3/
+> > +
+> > +libs-y				+= arch/unicore32/lib/
+> > +# include libc.a in libs-y for string functions, like memcpy and so on.
+> > +libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS) -print-file-name=libc.a)
+> > +libs-y				+= $(shell $(CC) $(KBUILD_CFLAGS) -print-file-name=libgcc.a)
+> > +
+> 
+> The other three archs that uses libgcc use:
+> 
+>     $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
+> 
+> So when I read the above I am confused why it looks different than the others.
+> For libc I guess you do nto have that option and what you do is fine there.
+It's the same with -print-libgcc-file-name and -print-file-name=libgcc.a.
+And we need libc.a for string like functions.
+> 
+> > +
+> > +CLEAN_FILES += $(ASM_GENERIC_HEADERS)
+> > +
+> > +# We use MRPROPER_FILES and CLEAN_FILES now
+> 
+> Stale comment
+Removed.
+> 
+> 
+> > +  echo  '                  Install using (your) ~/bin/$(INSTALLKERNEL) or'
+> > +  echo  '                  (distribution) /sbin/$(INSTALLKERNEL) or'
+> > +  echo  '                  install to $$(INSTALL_PATH) and run lilo'
+> 
+> I do not think the three lines above is correct for unicore32.
+> Looks like they are left from a copy from x86.
+Removed.
+> 
+> 	Sam
+Thanks Sam.
+
+Guan Xuetao
+
