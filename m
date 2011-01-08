@@ -1,70 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:32850 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752045Ab1AHNFT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2011 08:05:19 -0500
-Date: Sat, 8 Jan 2011 14:05:18 +0100
+Received: from pfepa.post.tele.dk ([195.41.46.235]:59212 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752351Ab1AHODu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2011 09:03:50 -0500
+Date: Sat, 8 Jan 2011 15:03:47 +0100
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [EXAMPLE PATCH 2/2] x86: start to utilize kbuild asm-generic
-	support
-Message-ID: <20110108130518.GB25461@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org>
+Subject: Re: [PATCH 1/2] kbuild: asm-generic support
+Message-ID: <20110108140347.GA3928@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110108130427.GA25461@merkur.ravnborg.org> <20110109004539.5bf33510.sfr@canb.auug.org.au>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20110108130302.GA21698@merkur.ravnborg.org>
+In-Reply-To: <20110109004539.5bf33510.sfr@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
-Message-ID: <20110108130518.pnCiXF9mA2M9g4Ms36JrEEH1bzousGNCQdTf40kBezw@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
+Message-ID: <20110108140347.wR3GbLsa4Vg9z28O5x5q4M5Tn08Hy-gq1Tz9QbWCJxU@z>
 
-From fd70bb929b975f02879860aefb48f0b0a14d7aab Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Sat, 8 Jan 2011 13:50:52 +0100
-Subject: [PATCH 2/2] x86: start to utilize kbuild asm-generic support
+On Sun, Jan 09, 2011 at 12:45:39AM +1100, Stephen Rothwell wrote:
+> Hi Sam,
+> 
+> On Sat, 8 Jan 2011 14:04:27 +0100 Sam Ravnborg <sam@ravnborg.org> wrote:
+> >
+> > -LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
+> > +LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
+> > +                   -Iarch/$(hrd-arch)/include/generated -Iinclude \
+>                                ^^^
+> hdr-arch?
+Good spotted.
 
----
- arch/x86/.gitignore             |    1 +
- arch/x86/include/asm-generic    |    3 +++
- arch/x86/include/asm/termbits.h |    1 -
- arch/x86/include/asm/termios.h  |    1 -
- 4 files changed, 4 insertions(+), 2 deletions(-)
- create mode 100644 arch/x86/include/asm-generic
- delete mode 100644 arch/x86/include/asm/termbits.h
- delete mode 100644 arch/x86/include/asm/termios.h
+I wonder how this slipped in?!?
 
-diff --git a/arch/x86/.gitignore b/arch/x86/.gitignore
-index 0280790..1448346 100644
---- a/arch/x86/.gitignore
-+++ b/arch/x86/.gitignore
-@@ -1,3 +1,4 @@
- boot/compressed/vmlinux
- tools/test_get_len
-+include/generated
- 
-diff --git a/arch/x86/include/asm-generic b/arch/x86/include/asm-generic
-new file mode 100644
-index 0000000..50aa036
---- /dev/null
-+++ b/arch/x86/include/asm-generic
-@@ -0,0 +1,3 @@
-+# generic headers from include/asm-generic/
-+termbits.h
-+termios.h
-diff --git a/arch/x86/include/asm/termbits.h b/arch/x86/include/asm/termbits.h
-deleted file mode 100644
-index 3935b10..0000000
---- a/arch/x86/include/asm/termbits.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termbits.h>
-diff --git a/arch/x86/include/asm/termios.h b/arch/x86/include/asm/termios.h
-deleted file mode 100644
-index 280d78a..0000000
---- a/arch/x86/include/asm/termios.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termios.h>
--- 
-1.6.0.6
+If anyone try this - then please fix the misspelling.
+I will repost patch later.
 
+	Sam
