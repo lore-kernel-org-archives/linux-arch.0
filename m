@@ -1,61 +1,23 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Date: Sun, 9 Jan 2011 15:03:33 +0100
-Message-ID: <201101091503.34783.arnd@arndb.de>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109082851.GA10463@merkur.ravnborg.org> <20110109083125.GA17045@merkur.ravnborg.org>
+From: PEPSI BOTTLING COMPANY PLC <promo@pepsi.co.uk>
+Subject: YOU ARE A WINNER OF OUR NEW YEAR PROMO!!!
+Date: Sat, 08 Jan 2011 23:38:47 -0700
+Message-ID: <20110108233847.1681772np0cs6nef@mail.freedomnw.com>
+Reply-To: pepsifrancessdave@9.cn
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1;
+	DelSp=Yes	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:56098 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751756Ab1AIODr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 09:03:47 -0500
-In-Reply-To: <20110109083125.GA17045@merkur.ravnborg.org>
+Received: from cp1ips.ipnshosting.com ([208.110.132.19]:37600 "EHLO
+	cp1.ipnshosting.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751756Ab1AIOMa convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 09:12:30 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-Hi Sam,
-
-Looks much cleaner to me now, but I still don't see why we even need
-the new generic-export-y variable in addition to export-y. Can't we
-just simply install all $(filter-out, $(generated-y), $(header-y))
-from arch/$(SRCARCH)/include/asm and all $(filter, $(generated-y),
-$(header-y)) from rch/$(SRCARCH)/include/generated/asm?
-
-I think that would lead to a less confusing set of rules.
-
-On Sunday 09 January 2011, Sam Ravnborg wrote:
->  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm.h \
->                   $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
-> -header-y  += kvm.h
-> +generic-export-y  += kvm.h
->  endif
->  
->  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm_para.h \
->                   $(srctree)/include/asm-$(SRCARCH)/kvm_para.h),)
-> -header-y  += kvm_para.h
-> +generic-export-y  += kvm_para.h
->  endif
->  
->  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
->                   $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
-> -header-y += a.out.h
-> +generic-export-y += a.out.h
->  endif
-
-We can probably use the opportunity to clean this up as well, I never
-like the idea of conditionalizing the installation of a header on the
-presence of the file. Instead, we could either generate these headers
-from new generic versions of them, or just put the header-y+= into
-arch/$(SRCARCH)/include/asm/Kbuild where it belonged in the first
-place.
-
-The Kbuild.asm file was initially meant to list the files that are
-exported from every architecture, so we could see the exact differences
-in each architecture from its asm/Kbuild file.
-
-	Arnd
+  You have won =A3500,000.00POUNDS from Pepsi Company award 2011, Pleas=
+e =20
+provide your Full name, Age, Sex, Country,Occupation,Phone and =20
+Address.and send them to: Mrs. FRANCESS DAVE, Phone# :+447011150911  =20
++4407024015829 E MAIL: pepsifrancessdave@9.cn
