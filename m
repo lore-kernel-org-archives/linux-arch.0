@@ -1,44 +1,45 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Date: Sun, 9 Jan 2011 22:24:34 +0100
-Message-ID: <20110109212434.GA12490@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <201101092131.27694.arnd@arndb.de>
+From: Tony Breeds <tony@bakeyournoodle.com>
+Subject: Re: Cross compilers (Was: Re: [PATCH] Fix unconditional GFP_KERNEL
+ allocations in __vmalloc().)
+Date: Mon, 10 Jan 2011 10:17:07 +1100
+Message-ID: <20110109231707.GD19615@ozlabs.org>
+References: <1292381126-5710-1-git-send-email-ricardo.correia@oracle.com>
+ <1292381600.2994.6.camel@oralap>
+ <20101215144835.adf2078f.sfr@canb.auug.org.au>
+ <20101223133709.d5973e48.randy.dunlap@oracle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:33139 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750849Ab1AIXRJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 9 Jan 2011 18:17:09 -0500
 Content-Disposition: inline
-In-Reply-To: <201101092131.27694.arnd@arndb.de>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20101223133709.d5973e48.randy.dunlap@oracle.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Randy Dunlap <randy.dunlap@oracle.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, "Ricardo M. Correia" <ricardo.correia@oracle.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org, andreas.dilger@oracle.com, behlendorf1@llnl.gov
 
-On Sun, Jan 09, 2011 at 09:31:27PM +0100, Arnd Bergmann wrote:
-> > There is an increasing amount of header files
-> > shared between individual architectures in asm-generic.
-> > To avoid a lot of dummy wrapper files that just
-> > include the corresponding file in asm-generic provide
-> > some basic support in kbuild for this.
-> 
-> Looks almost perfect to me now.
-> 
-> I was about to reply with Reviewed-by, but then it occurred to me
-> that scripts/asm-generic.sh is really much more complicated
-> than doing the same in Makefile syntax.
-> 
-> You already create the wrapper files during headers-install, so why
-> not also create them from make, where we already have access to the
-> file lists in a convenient format.
-> 
-> Or is there a problem getting at stuff defined in the Kbuild files
-> from the prepare stage?
+On Thu, Dec 23, 2010 at 01:37:09PM -0800, Randy Dunlap wrote:
 
-My main issue it that I wanted to offload functionality
-from the top-level Makefile.
-It contains too much weird stuff already.
+> OK, what am I doing wrong?
 
-I considered writing asm-generic.sh as a small
-Makefile but decided for a shell script because there
-are more people confident in shell scripts than in Makefile syntax.
+You're not doign anything wrong.  The build systems ahd glibc2.11 installed and
+the crosstool chains have detected that and explictly set that as the required
+version for mkstemps.
 
-	Sam
+I'll see if I can force an older version for that symbol (without patching
+gcc), until then try a system with 2.11 ?
+
+This does limit the utility of these cross compilers.
+ 
+> Using alpha or s390x gcc builds on x86_64 host give me:
+> 
+> /local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/s390x-linux/bin/s390x-linux-gcc)
+> 
+> or
+> 
+> /local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc: /lib64/libc.so.6: version `GLIBC_2.11' not found (required by /local/cross/gcc-4.5.1-nolibc/alpha-linux/bin/alpha-linux-gcc)
+
+Yours Tony
