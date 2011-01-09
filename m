@@ -1,37 +1,91 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Date: Sun, 9 Jan 2011 17:13:01 +0100
-Message-ID: <201101091713.02243.arnd@arndb.de>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <201101091503.34783.arnd@arndb.de> <20110109151041.GA17237@merkur.ravnborg.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [RFC v3] kbuild: generic support for asm-generic
+Date: Sun, 9 Jan 2011 20:27:07 +0100
+Message-ID: <20110109192707.GA12387@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20110109151041.GA17237@merkur.ravnborg.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>, Stephen Rothwell <sfr@canb.auug.org.au>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pqueuea.post.tele.dk ([193.162.153.9]:41068 "EHLO
+	pqueuea.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751237Ab1AIT1e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 14:27:34 -0500
+Content-Disposition: inline
+In-Reply-To: <20110108130302.GA21698@merkur.ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc>
 
-On Sunday 09 January 2011, Sam Ravnborg wrote:
-> @@ -31,10 +31,10 @@ check-file    := $(install)/.check
->  # generic-export-y list all generic headers to be exported
->  # generic-y list all files an architecture uses from asm-generic
->  # Use this to build a list of headers which require a wrapper
-> -wrapper-files := $(filter $(generic-export-y), $(generic-y))
-> +wrapper-files := $(filter $(header-y), $(generic-y))
->  
->  # all headers files for this dir
-> -header-y      := $(filter-out $(wrapper-files), $(header-y))
-> +header-y      := $(filter-out $(generic-y), $(header-y))
->  all-files     := $(header-y) $(objhdr-y) $(generic-y)
->  input-files   := $(addprefix $(_src)/,$(header-y)) \
->                   $(addprefix $(objtree)/$(obj)/,$(objhdr-y))
-> 
-> And then reverting the changes to Kbuild.asm.
-> Yes this works - and is much simpler. Good!
+Hi Michal, Arnd et all.
+ 
+This is my second attempt to provide generic support for
+architectures that use existing headers from asm-generic.
 
-Ok, excellent!
+@Michal - I consider this ready for you to review / apply.
+I would prefer if this patch could be included in the current
+merge window - allowing us to convert archs until next merge window.
+As this touches the top-level Makefile in an area that is always
+used I suggest to at least let i cook in -next for a few days first.
 
-	Arnd
+It was inspired by unicore32 - but I have requested Guang _not_
+to convert unicore32 to avoid a dependency on this patch.
+
+The patch description:
+
+There is an increasing amount of header files
+shared between individual architectures in asm-generic.
+To avoid a lot of dummy wrapper files that just
+include the corresponding file in asm-generic provide
+some basic support in kbuild for this.
+
+With the following patch an architecture can maintain
+a list of files in the file arch/$(ARCH)/include/asm/Kbuild
+
+To use a generic file just add:
+
+        generic-y += <name-of-header-file.h>
+
+For each file listed kbuild will generate the necessary
+wrapper in arch/$(ARCH)/include/generated/asm.
+
+When installing userspace headers a wrapper is likewise created.
+
+The original inspiration for this came from the unicore32
+patchset - although is used a different method.
+
+
+Changes since v2:
+- Fix spelling miss in LINUXINCLUDE (Stephen)
+- Properly delete file with mrproper (Guang)
+- Fixed support for headers that are not exported (Guang)
+- New way to list files used from the generic set (Arnd)
+
+Changes since v3:
+- Dropped generic-export.y (from Arnd)
+- added check if header is listed as generic but still is present
+- fixed "make headers_check"
+- updated documentation
+
+I did not include an Reviewed-by / Acked-by from Arnd as
+he had not seen the latest iteration in the full.
+
+Diffstat for the patch:
+ .gitignore                         |    1 +
+ Documentation/kbuild/makefiles.txt |   36 ++++++++++++++++++++++++++++++++++++
+ Makefile                           |   15 +++++++++++----
+ scripts/Makefile.headersinst       |   18 +++++++++++++++---
+ scripts/asm-generic.sh             |   33 +++++++++++++++++++++++++++++++++
+ 5 files changed, 96 insertions(+), 7 deletions(-)
+ create mode 100644 scripts/asm-generic.sh
+
+Sample diffstat when using generic-y for three files in x86:
+ arch/x86/include/asm/Kbuild     |    6 ++++++
+ arch/x86/include/asm/rtc.h      |    1 -
+ arch/x86/include/asm/termbits.h |    1 -
+ arch/x86/include/asm/termios.h  |    1 -
+ 4 files changed, 6 insertions(+), 3 deletions(-)
+ delete mode 100644 arch/x86/include/asm/rtc.h
+ delete mode 100644 arch/x86/include/asm/termbits.h
+ delete mode 100644 arch/x86/include/asm/termios.h
+
+	Sam
