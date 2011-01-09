@@ -1,72 +1,61 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [EXAMPLE PATCH 2/2] x86: start to utilize kbuild asm-generic
-	support
-Date: Sun, 9 Jan 2011 09:32:03 +0100
-Message-ID: <20110109083203.GB17045@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109082851.GA10463@merkur.ravnborg.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/2] kbuild: asm-generic support
+Date: Sun, 9 Jan 2011 15:03:33 +0100
+Message-ID: <201101091503.34783.arnd@arndb.de>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109082851.GA10463@merkur.ravnborg.org> <20110109083125.GA17045@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepb.post.tele.dk ([195.41.46.236]:34985 "EHLO
-	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750998Ab1AIIcF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 03:32:05 -0500
-Content-Disposition: inline
-In-Reply-To: <20110109082851.GA10463@merkur.ravnborg.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:56098 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751756Ab1AIODr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 09:03:47 -0500
+In-Reply-To: <20110109083125.GA17045@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>, Stephen Rothwell <sfr@canb.auug.org.au>
 
-From bcd633fff41f218bfd4fa4b8361fa2f80c1f9298 Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Sun, 9 Jan 2011 09:29:57 +0100
-Subject: [PATCH 2/2] x86: start to utilize kbuild asm-generic support
+Hi Sam,
 
----
- arch/x86/include/asm/Kbuild     |    6 ++++++
- arch/x86/include/asm/rtc.h      |    1 -
- arch/x86/include/asm/termbits.h |    1 -
- arch/x86/include/asm/termios.h  |    1 -
- 4 files changed, 6 insertions(+), 3 deletions(-)
- delete mode 100644 arch/x86/include/asm/rtc.h
- delete mode 100644 arch/x86/include/asm/termbits.h
- delete mode 100644 arch/x86/include/asm/termios.h
+Looks much cleaner to me now, but I still don't see why we even need
+the new generic-export-y variable in addition to export-y. Can't we
+just simply install all $(filter-out, $(generated-y), $(header-y))
+from arch/$(SRCARCH)/include/asm and all $(filter, $(generated-y),
+$(header-y)) from rch/$(SRCARCH)/include/generated/asm?
 
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index 6fa90a8..52bf61c 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -23,3 +23,9 @@ header-y += unistd_32.h
- header-y += unistd_64.h
- header-y += vm86.h
- header-y += vsyscall.h
-+
-+# generic headers from include/asm-generic/
-+generic-y += termios.h
-+generic-y += termbits.h
-+generic-y += rtc.h
-+
-diff --git a/arch/x86/include/asm/rtc.h b/arch/x86/include/asm/rtc.h
-deleted file mode 100644
-index f71c3b0..0000000
---- a/arch/x86/include/asm/rtc.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/rtc.h>
-diff --git a/arch/x86/include/asm/termbits.h b/arch/x86/include/asm/termbits.h
-deleted file mode 100644
-index 3935b10..0000000
---- a/arch/x86/include/asm/termbits.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termbits.h>
-diff --git a/arch/x86/include/asm/termios.h b/arch/x86/include/asm/termios.h
-deleted file mode 100644
-index 280d78a..0000000
---- a/arch/x86/include/asm/termios.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termios.h>
--- 
-1.6.0.6
+I think that would lead to a less confusing set of rules.
+
+On Sunday 09 January 2011, Sam Ravnborg wrote:
+>  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm.h \
+>                   $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
+> -header-y  += kvm.h
+> +generic-export-y  += kvm.h
+>  endif
+>  
+>  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm_para.h \
+>                   $(srctree)/include/asm-$(SRCARCH)/kvm_para.h),)
+> -header-y  += kvm_para.h
+> +generic-export-y  += kvm_para.h
+>  endif
+>  
+>  ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+>                   $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
+> -header-y += a.out.h
+> +generic-export-y += a.out.h
+>  endif
+
+We can probably use the opportunity to clean this up as well, I never
+like the idea of conditionalizing the installation of a header on the
+presence of the file. Instead, we could either generate these headers
+from new generic versions of them, or just put the header-y+= into
+arch/$(SRCARCH)/include/asm/Kbuild where it belonged in the first
+place.
+
+The Kbuild.asm file was initially meant to list the files that are
+exported from every architecture, so we could see the exact differences
+in each architecture from its asm/Kbuild file.
+
+	Arnd
