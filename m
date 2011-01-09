@@ -1,36 +1,23 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv1 02/12] unicore32 core architecture: generic headers stuff
-Date: Sun, 9 Jan 2011 01:36:35 +0100
-Message-ID: <201101090136.35793.arnd@arndb.de>
-References: <00c801cba463$b0f3db00$12db9100$@mprc.pku.edu.cn> <201101070055.53996.arnd@arndb.de> <023a01cbaf1b$3022b5b0$90682110$@mprc.pku.edu.cn>
+From: PEPSI BOTTLING COMPANY PLC <promo@pepsi.co.uk>
+Subject: YOU ARE A WINNER OF OUR NEW YEAR PROMO!!!
+Date: Sat, 08 Jan 2011 23:38:20 -0700
+Message-ID: <20110108233820.15453sizkva6jt24@mail.freedomnw.com>
+Reply-To: pepsifrancessdave@9.cn
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1;
+	DelSp=Yes	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:63559 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751383Ab1AIAgm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2011 19:36:42 -0500
-In-Reply-To: <023a01cbaf1b$3022b5b0$90682110$@mprc.pku.edu.cn>
+Received: from cp1ips.ipnshosting.com ([208.110.132.19]:58115 "EHLO
+	cp1.ipnshosting.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750835Ab1AIHvP convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 02:51:15 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Saturday 08 January 2011, Guan Xuetao wrote:
-> > I think we discussed this particular header before. There should be no reason
-> > to have your own version instead of using the generic file like you do for the
-> > rest of the API headers.
->
-> The generic-version stat.h can't work for existing binary file systems in unicore32.
-> I will submit a patch for generic-version stat.h for discussion.
-
-But the generic version of stat.h goes together with the generic version of unistd.h,
-which the code you submitted is now using.
-
-I understand that you are using a patch to use the traditional system call table
-right now, on top of the generalized code. Can't you use the same patch for the
-stat.h file?
-
-	Arnd
+  You have won =A3500,000.00POUNDS from Pepsi Company award 2011, Pleas=
+e =20
+provide your Full name, Age, Sex, Country,Occupation,Phone and =20
+Address.and send them to: Mrs. FRANCESS DAVE, Phone# :+447011150911  =20
++4407024015829 E MAIL: pepsifrancessdave@9.cn
