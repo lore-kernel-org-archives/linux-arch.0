@@ -1,73 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pqueuea.post.tele.dk ([193.162.153.9]:40193 "EHLO
-	pqueuea.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751288Ab1AITaW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 14:30:22 -0500
-Date: Sun, 9 Jan 2011 20:29:57 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [EXAMPLE PATCH 2/2] x86: start to utilize kbuild asm-generic
-	support
-Message-ID: <20110109192957.GB12403@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:58061 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751912Ab1AIUco (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 15:32:44 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/2] kbuild: asm-generic support
+Date: Sun, 9 Jan 2011 21:31:27 +0100
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org>
+In-Reply-To: <20110109192907.GA12403@merkur.ravnborg.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20110109192707.GA12387@merkur.ravnborg.org>
+Message-ID: <201101092131.27694.arnd@arndb.de>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
-Message-ID: <20110109192957.NmDYt1MVFWfqx4nTjaCU6ux9sWIZQAP0b2ASaSqpdn4@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
+Message-ID: <20110109203127.pm2d2EzJnVTs_Is0r47ZxICqBc5CqiiRd9n5hS-PmkM@z>
 
-From e9405a7193563f948d293cfb4b2c0845c1ad54cc Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Sun, 9 Jan 2011 09:29:57 +0100
-Subject: [PATCH 2/2] x86: start to utilize kbuild asm-generic support
+> There is an increasing amount of header files
+> shared between individual architectures in asm-generic.
+> To avoid a lot of dummy wrapper files that just
+> include the corresponding file in asm-generic provide
+> some basic support in kbuild for this.
 
----
- arch/x86/include/asm/Kbuild     |    6 ++++++
- arch/x86/include/asm/rtc.h      |    1 -
- arch/x86/include/asm/termbits.h |    1 -
- arch/x86/include/asm/termios.h  |    1 -
- 4 files changed, 6 insertions(+), 3 deletions(-)
- delete mode 100644 arch/x86/include/asm/rtc.h
- delete mode 100644 arch/x86/include/asm/termbits.h
- delete mode 100644 arch/x86/include/asm/termios.h
+Looks almost perfect to me now.
 
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index 6fa90a8..52bf61c 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -23,3 +23,9 @@ header-y += unistd_32.h
- header-y += unistd_64.h
- header-y += vm86.h
- header-y += vsyscall.h
-+
-+# generic headers from include/asm-generic/
-+generic-y += termios.h
-+generic-y += termbits.h
-+generic-y += rtc.h
-+
-diff --git a/arch/x86/include/asm/rtc.h b/arch/x86/include/asm/rtc.h
-deleted file mode 100644
-index f71c3b0..0000000
---- a/arch/x86/include/asm/rtc.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/rtc.h>
-diff --git a/arch/x86/include/asm/termbits.h b/arch/x86/include/asm/termbits.h
-deleted file mode 100644
-index 3935b10..0000000
---- a/arch/x86/include/asm/termbits.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termbits.h>
-diff --git a/arch/x86/include/asm/termios.h b/arch/x86/include/asm/termios.h
-deleted file mode 100644
-index 280d78a..0000000
---- a/arch/x86/include/asm/termios.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/termios.h>
--- 
-1.6.0.6
+I was about to reply with Reviewed-by, but then it occurred to me
+that scripts/asm-generic.sh is really much more complicated
+than doing the same in Makefile syntax.
 
+You already create the wrapper files during headers-install, so why
+not also create them from make, where we already have access to the
+file lists in a convenient format.
+
+Or is there a problem getting at stuff defined in the Kbuild files
+from the prepare stage?
+
+	Arnd
