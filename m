@@ -1,44 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:64275 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751358Ab1AIA2f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Jan 2011 19:28:35 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic headers: modify stat.h in include/asm-generic to be applicable to more architectures
-Date: Sun, 9 Jan 2011 01:28:25 +0100
-References: <024501cbaf37$4e479fd0$ead6df70$@mprc.pku.edu.cn>
-In-Reply-To: <024501cbaf37$4e479fd0$ead6df70$@mprc.pku.edu.cn>
+Received: from pfepb.post.tele.dk ([195.41.46.236]:34795 "EHLO
+	pfepb.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750911Ab1AII2y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Jan 2011 03:28:54 -0500
+Date: Sun, 9 Jan 2011 09:28:51 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [RFC v2] kbuild: generic support for asm-generic
+Message-ID: <20110109082851.GA10463@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201101090128.25371.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20110108130302.GA21698@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110109002825.suFdMJGIglU0Hd5qMwzjvjvMjwoP0taZiOYwOYyjIBs@z>
+To: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Message-ID: <20110109082851.yTknso7RDMabGQsujDvALWt0nPdmDgiCmO7jBMqrnRw@z>
 
-On Saturday 08 January 2011, Guan Xuetao wrote:
-> From: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+On Sat, Jan 08, 2011 at 02:03:02PM +0100, Sam Ravnborg wrote:
+> Hi Arnd et all.
 > 
->  This patch modifies stat.h in include/asm-generic to be applicable to more architectures.
->  STAT64_HAS_BROKEN_ST_INO is defined in most architecture's asm/stat.h, and it need 
->  32-bit __st_ino member to be defined in different position of 64-bit st_ino member.
->  STAT64_PAD_BEFORE_ST_SIZE is the pad before st_size member, with default value 8 bytes.
->  STAT64_PAD_BEFORE_ST_BLOCKS is the pad before st_blocks member, with default value
->  4 bytes to align the following member to 64-bit.
+> This is my second attempt to provide generic support for
+> architectures that use existing headers from asm-generic.
+> 
+> With this kbuild will read the file: arch/$ARCH/include/asm-generic
+> 
+> For each file listed in this file a wrapper is generated in
+> arch/$ARCH/inclue/generated/asm/
+> 
+> The patch include support so headers_install works.
+> 
+> The inspiration came from the unicore32 patchset,
+> but I redid this to make it more general.
+> 
+> I will follow-up with two patches.
+> One that implment the functionality.
+> A second that convert two headers in x86 to use the
+> new asm-generic stuff (only as an example).
 
-I'd prefer not to apply this patch. It makes the generic header
-significantly more complex, and I can't see a significant benefit.
+Based on feedback from Stephen, Guang and Arnd here
+is a new patchset supporting generic headers.
 
-The existing architectures would all still have to define the macros
-you test and also keep defining stuff like __old_kernel_stat, while
-risking to introduce bugs while changing to the common header. We've
-done similar tricks in other places, where the differences between
-architectures are smaller, but this one doesn't seem worth it
-unless we can get to the point where we can define struct stat in
-linux/stat.h for everyone and only do the macros for the architectures
-that need it.
+Changes since v2:
+- Fix spelling miss in LINUXINCLUDE (Stephen)
+- Properly delete file with mrproper (Guang)
+- Fixed support for headers that are not exported (Guang)
+- New way to list files used from the generic set (Arnd)
 
-	Arnd
+We now list which files are sued from the generic set in:
+arch/$(ARCH)/include/asm/Kbuild like this:
+
+    generic-y += termios.h
+
+	Sam
