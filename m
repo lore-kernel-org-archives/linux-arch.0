@@ -1,53 +1,75 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Date: Mon, 10 Jan 2011 17:26:39 +0100
-Message-ID: <20110110162639.GB13763@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <004e01cbb0c8$4de80470$e9b80d50$@mprc.pku.edu.cn>
+From: Marc Kleine-Budde <mkl-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>
+Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
+Date: Mon, 10 Jan 2011 18:08:19 +0100
+Message-ID: <4D2B3D03.8050504@pengutronix.de>
+References: <1294268808.2952.18.camel@heimdal.trondhjem.org>	 <1294270104.16957.73.camel@mulgrave.site>	 <1294335614.22825.154.camel@mulgrave.site>	 <1294336054.2905.1.camel@heimdal.trondhjem.org>	 <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com>	 <1294426405.2929.23.camel@heimdal.trondhjem.org>	 <20110107190229.GX31708@n2100.arm.linux.org.uk>	 <1294427467.4895.66.camel@mulgrave.site>	 <1294505384.4181.14.camel@heimdal.trondhjem.org>	 <1294528551.4181.19.camel@heimdal.trondhjem.org>	 <20110110105019.GC24920@pengutronix.de> <1294676734.3349.10.camel@heimdal.trondhjem.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <004e01cbb0c8$4de80470$e9b80d50$@mprc.pku.edu.cn>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Michal Marek' <mmarek@suse.cz>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="------------enig534B58FE496CACCAD7436DD7"
+Return-path: <linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1294676734.3349.10.camel-rJ7iovZKK19ZJLDQqaL3InhyD016LWXt@public.gmane.org>
+Sender: linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Trond Myklebust <Trond.Myklebust-HgOvQuBEEgTQT0dZR+AlfA@public.gmane.org>
+Cc: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, James Bottomley <James.Bottomley-d9PhHud1JfjCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Marc Kleine-Budde <m.kleine-budde-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, Parisc List <linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Guan (I will try to spell you name correct fom now on!)
+This is an OpenPGP/MIME signed message (RFC 2440 and 3156)
+--------------enig534B58FE496CACCAD7436DD7
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
 
-> > +	During the prepare phase of the build a wrapper include
-> > +	file is generated in the directory:
-> > +
-> > +		arch/$(ARCH)/include/generated/asm
-> IMHO, the directory could be include/generated/asm
+On 01/10/2011 05:25 PM, Trond Myklebust wrote:
+> On Mon, 2011-01-10 at 11:50 +0100, Uwe Kleine-K=C3=B6nig wrote:=20
+>> Hi Trond,
+>>
+>> On Sat, Jan 08, 2011 at 06:15:51PM -0500, Trond Myklebust wrote:
+>>> ---------------------------------------------------------------------=
+--------------=20
+>> It would be great if you could add a "8<" in the line above next time.=
 
-We have moved all the arch specific files away from include/*
-which is why I invented arch/$(ARCH)/include/generated.
+>> Then git-am -c does the right thing (at least I think so).
+>=20
+> Sorry. I wasn't aware of that particular idiom. So something like
+>=20
+> 8<------------------------------------------------------------
+> From: Trond Myklebust <Trond.Myklebust-HgOvQuBEEgTQT0dZR+AlfA@public.gmane.org>
+> Subject: .....
 
-I was actually considering:
+Yes.
 
-   arch/$(ARCH)/generated.
+=46rom "man git-mailinfo":
+"A line that mainly consists of scissors (either ">8" or "8<") and
+perforation (dash "-")"
 
-But using include/generated just seems wrong.
+BTW:
+Is this patch a candidate for stable?
 
-> > 
-> >  # Work out what needs to be removed
-> > @@ -47,8 +54,12 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-> >        cmd_install = \
-> >          $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
-> >          $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
-> > +        for F in $(wrapper-files); do                                   \
-> > +                echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
-> > +        done;                                                           \
-> >          touch $@
-> > 
-> > +
-> Empty line.
-> 
+regards, Marc
 
-Will fix.
+--=20
+Pengutronix e.K.                  | Marc Kleine-Budde           |
+Industrial Linux Solutions        | Phone: +49-231-2826-924     |
+Vertretung West/Dortmund          | Fax:   +49-5121-206917-5555 |
+Amtsgericht Hildesheim, HRA 2686  | http://www.pengutronix.de   |
 
-As noticed in another mail the patchset has the same issue with rebuilding.
-This will likewise be included in next version.
 
-	Sam
+--------------enig534B58FE496CACCAD7436DD7
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAk0rPQYACgkQjTAFq1RaXHP/EQCfbaFRmy8UKv7kl4gfOuQoA60g
+JMMAniTSFmoSq+LmU6ka2ylzC4XZa35c
+=hVyS
+-----END PGP SIGNATURE-----
+
+--------------enig534B58FE496CACCAD7436DD7--
+--
+To unsubscribe from this list: send the line "unsubscribe linux-nfs" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
