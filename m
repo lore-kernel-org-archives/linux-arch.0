@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:35054 "EHLO mprc.pku.edu.cn"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:54943 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753818Ab1AJNOr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Jan 2011 08:14:47 -0500
+	id S1752327Ab1AJNb5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Jan 2011 08:31:57 -0500
 From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
 References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org>
 In-Reply-To: <20110109192907.GA12403@merkur.ravnborg.org>
 Subject: RE: [PATCH 1/2] kbuild: asm-generic support
-Date: Mon, 10 Jan 2011 21:14:23 +0800
-Message-ID: <004e01cbb0c8$4de80470$e9b80d50$@mprc.pku.edu.cn>
+Date: Mon, 10 Jan 2011 21:31:39 +0800
+Message-ID: <005001cbb0ca$b6bbe280$2433a780$@mprc.pku.edu.cn>
 MIME-Version: 1.0
 Content-Type: text/plain;
 	charset="us-ascii"
@@ -17,12 +17,49 @@ Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: 'Sam Ravnborg' <sam@ravnborg.org>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Michal Marek' <mmarek@suse.cz>
-Message-ID: <20110110131423.WMcHeJVOdPZu8QKL91QC3UldgncQ-hcdnrJIDPBr9X4@z>
+Message-ID: <20110110133139.O7dy31z94w5bvtwbNJ_ykjYKmkJfsaiBQdpxbLuz6Ds@z>
 
+Sam:
+There is a big problem in previous patch set.
+When re-compile kernel image, almost all source files will be re-compiled since
+arch/*/include/generated/asm/* being re-created.
+So I add a judgment before auto-generation, as following:
 
+commit 03e63f75b37a4d6e5668bc07ae385a174efd6e8c
+Author: GuanXuetao <gxt@mprc.pku.edu.cn>
+Date:   Sun Jan 9 22:35:24 2011 +0800
+
+    unicore32: adjust auto-generated asm-generic headers method
+    	solve the problem:
+    		former method will re-generate headers each compile processing
+    	attention for new method:
+    		when add new auto-generated asm-generic header
+    		"make mrproper" is needed first
+
+diff --git a/arch/unicore32/Makefile b/arch/unicore32/Makefile
+index 0be046d..de1ce7d 100644
+--- a/arch/unicore32/Makefile
++++ b/arch/unicore32/Makefile
+@@ -76,11 +76,13 @@ ASM_GENERIC_HEADERS	+= ucontext.h unaligned.h user.h
+ ASM_GENERIC_HEADERS	+= vga.h
+ ASM_GENERIC_HEADERS	+= xor.h
+ 
+-%.h:
++archprepare:
++ifneq ($(ASM_GENERATED_DIR), $(wildcard $(ASM_GENERATED_DIR)))
+ 	$(Q)mkdir -p $(ASM_GENERATED_DIR)/asm
+-	$(Q)echo '#include <asm-generic/$(notdir $@)>' > $(ASM_GENERATED_DIR)/asm/$@
+-
+-archprepare: $(ASM_GENERIC_HEADERS)
++	$(Q)$(foreach a, $(ASM_GENERIC_HEADERS),	\
++		echo '#include <asm-generic/$a>'	\
++			> $(ASM_GENERATED_DIR)/asm/$a; )
++endif
+ 
+ boot			:= arch/unicore32/boot
 
 > -----Original Message-----
-> From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-owner@vger.kernel.org] On Behalf Of Sam Ravnborg
+> From: Sam Ravnborg [mailto:sam@ravnborg.org]
 > Sent: Monday, January 10, 2011 3:29 AM
 > To: lkml; linux-kbuild; linux arch; Arnd Bergmann; Guan Xuetao; Michal Marek
 > Subject: [PATCH 1/2] kbuild: asm-generic support
@@ -131,8 +168,6 @@ Message-ID: <20110110131423.WMcHeJVOdPZu8QKL91QC3UldgncQ-hcdnrJIDPBr9X4@z>
 > +	file is generated in the directory:
 > +
 > +		arch/$(ARCH)/include/generated/asm
-IMHO, the directory could be include/generated/asm
-
 > +
 > +	When a header is exported where the architecture uses
 > +	the generic header a similar wrapper is generated as part
@@ -242,8 +277,6 @@ IMHO, the directory could be include/generated/asm
 >          touch $@
 > 
 > +
-Empty line.
-
 >  quiet_cmd_remove = REMOVE  $(unwanted)
 >        cmd_remove = rm -f $(unwanted-file)
 > 
@@ -298,9 +331,4 @@ Empty line.
 > +done
 > --
 > 1.6.0.6
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
 
