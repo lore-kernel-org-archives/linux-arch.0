@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:51372 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751606Ab1AJTfj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Jan 2011 14:35:39 -0500
+Received: from moutng.kundenserver.de ([212.227.126.186]:63928 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932282Ab1AKPtU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jan 2011 10:49:20 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic headers: add arch-specific __strnlen_user calling in uaccess.h
+Date: Tue, 11 Jan 2011 16:49:14 +0100
+References: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
+In-Reply-To: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-In-Reply-To: <1294687767.3349.28.camel@heimdal.trondhjem.org>
-References: <AANLkTimusF4KCJ4vHPn+T1dUiKxapXaT0QTtFvh8Ykdd@mail.gmail.com>
- <1294426405.2929.23.camel@heimdal.trondhjem.org> <20110107190229.GX31708@n2100.arm.linux.org.uk>
- <1294427467.4895.66.camel@mulgrave.site> <1294505384.4181.14.camel@heimdal.trondhjem.org>
- <1294528551.4181.19.camel@heimdal.trondhjem.org> <20110110105019.GC24920@pengutronix.de>
- <1294676734.3349.10.camel@heimdal.trondhjem.org> <4D2B3D03.8050504@pengutronix.de>
- <1294680035.3349.19.camel@heimdal.trondhjem.org> <20110110192552.GG24920@pengutronix.de>
- <1294687767.3349.28.camel@heimdal.trondhjem.org>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 10 Jan 2011 11:34:49 -0800
-Message-ID: <AANLkTinFenq3BEiUQRsxDy6EKwqSM33RcwFG4fs-sXLJ@mail.gmail.com>
-Subject: Re: still nfs problems [Was: Linux 2.6.37-rc8]
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201101111649.14711.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Trond Myklebust <Trond.Myklebust@netapp.com>
-Cc: =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Marc Kleine-Budde <mkl@pengutronix.de>, linux-arch@vger.kernel.org, linux-nfs@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Parisc List <linux-parisc@vger.kernel.org>, linux-kernel@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Marc Kleine-Budde <m.kleine-budde@pengutronix.de>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20110110193449.0ffTl7XzJGdNStou7XY2rNTsv3vy2d9poduQ0x-DmIs@z>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110111154914.cvJdytM9s_HksdejRKpcIkbrbOtqxsaNhTWUc0tPfPo@z>
 
-2011/1/10 Trond Myklebust <Trond.Myklebust@netapp.com>:
->
-> I usually do this, but there is a slight problem with that approach:
-> Greg gets to do all the work of figuring out to which stable kernels
-> this particular patch applies. In this case, since we're only talking
-> about the 2.6.37 kernel, I prefer to use the mailing lists.
+On Tuesday 11 January 2011, Guan Xuetao wrote:
+> diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+> index b218b85..ac68c99 100644
+> --- a/include/asm-generic/uaccess.h
+> +++ b/include/asm-generic/uaccess.h
+> @@ -288,14 +288,16 @@ strncpy_from_user(char *dst, const char __user *src, long count)
+>   *
+>   * Return 0 on exception, a value greater than N if too long
+>   */
+> -#ifndef strnlen_user
+> +#ifndef __strnlen_user
+> +#define __strnlen_user strnlen
+> +#endif
+> +
+>  static inline long strnlen_user(const char __user *src, long n)
+>  {
+>         if (!access_ok(VERIFY_READ, src, 1))
+>                 return 0;
+> -       return strlen((void * __force)src) + 1;
+> +       return __strnlen_user(src, n);
+>  }
+> -#endif
+>  
+>  static inline long strlen_user(const char __user *src)
 
-Just do
+Yes, looks good. I believe no architecture currently uses the generic
+uaccess.h file directly, so it's not surprising that you find problems
+like this in it.
 
-  Cc: stable@kernel.org  [2.6.37]
-
-or similar. It's quite common.
-
-So EVEN IF you want to email people around about the patch separately,
-do add the "Cc: stable" marker. It's worthwhile information about the
-patch for everybody involved.
-
-                     Linus
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
