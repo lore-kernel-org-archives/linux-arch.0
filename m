@@ -1,51 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:63928 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932282Ab1AKPtU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Jan 2011 10:49:20 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic headers: add arch-specific __strnlen_user calling in uaccess.h
-Date: Tue, 11 Jan 2011 16:49:14 +0100
-References: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
-In-Reply-To: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:55688 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756717Ab1AMRBd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jan 2011 12:01:33 -0500
+Date: Thu, 13 Jan 2011 18:01:31 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/2] kbuild: asm-generic support
+Message-ID: <20110113170131.GA28377@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201101111649.14711.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4D2F24CD.5040101@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110111154914.cvJdytM9s_HksdejRKpcIkbrbOtqxsaNhTWUc0tPfPo@z>
+To: Michal Marek <mmarek@suse.cz>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Message-ID: <20110113170131.9_nr-FbGdCLr18dS1RkxzOWjqduge4jtbi42sVoftAg@z>
 
-On Tuesday 11 January 2011, Guan Xuetao wrote:
-> diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-> index b218b85..ac68c99 100644
-> --- a/include/asm-generic/uaccess.h
-> +++ b/include/asm-generic/uaccess.h
-> @@ -288,14 +288,16 @@ strncpy_from_user(char *dst, const char __user *src, long count)
->   *
->   * Return 0 on exception, a value greater than N if too long
->   */
-> -#ifndef strnlen_user
-> +#ifndef __strnlen_user
-> +#define __strnlen_user strnlen
-> +#endif
-> +
->  static inline long strnlen_user(const char __user *src, long n)
->  {
->         if (!access_ok(VERIFY_READ, src, 1))
->                 return 0;
-> -       return strlen((void * __force)src) + 1;
-> +       return __strnlen_user(src, n);
->  }
-> -#endif
->  
->  static inline long strlen_user(const char __user *src)
+On Thu, Jan 13, 2011 at 05:14:05PM +0100, Michal Marek wrote:
+> On 9.1.2011 20:29, Sam Ravnborg wrote:
+> > diff --git a/scripts/asm-generic.sh b/scripts/asm-generic.sh
+> > new file mode 100644
+> > index 0000000..d28127f
+> > --- /dev/null
+> > +++ b/scripts/asm-generic.sh
+> > @@ -0,0 +1,33 @@
+> > +#!/bin/sh
+> > +#
+> > +# include/asm-generic contains a lot of files that are used
+> > +# verbatim by several architectures.
+> > +#
+> > +# This scripts read the file arch/$(ARCH)/include/asm/Kbuild
+> > +# and for each file listed in this file with generic-y create
+> > +# a small wrapper file in arch/$(ARCH)/include/generated/
+> > +
+> > +# read list of header files form Kbuild
+> > +# The file has make syntax which looks like this:
+> > +#
+> > +# generic-y += <filename>
+> > +
+> > +srcdir=${srctree}/arch/$1/include/asm
+> > +gendir=arch/$1/include/generated/asm
+> > +
+> > +# Read the list of files (note that the list uses make syntax)
+> > +files=$( cat ${srcdir}/Kbuild | \
+> > +          grep -v ^# | grep generic-y | cut -d '=' -f 2)
+> 
+> Now that the list of required generic headers is in a Kbuild file, it
+> would be better to let make parse it, instead of enforcing one way to
+> construct the list (it is the preferred way, but C files that do not
+> conform to Documentation/CodingStyle are not rejected by the compiler
+> either). I will post a patch when I'm back online in the evening.
+Would be great!
 
-Yes, looks good. I believe no architecture currently uses the generic
-uaccess.h file directly, so it's not surprising that you find problems
-like this in it.
+Guan also pointed out a less than minor issue...
+I overwrite the files each time so that I force a rebuild.
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+If you do not find time then I will update the
+patch during the weekend.
+
+	Sam
