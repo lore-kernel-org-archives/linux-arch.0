@@ -1,46 +1,21 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic headers: add arch-specific __strnlen_user calling in uaccess.h
-Date: Tue, 11 Jan 2011 16:49:14 +0100
-Message-ID: <201101111649.14711.arnd@arndb.de>
-References: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: PAGE_KERNEL_RO
+Date: Wed, 12 Jan 2011 16:07:22 -0800
+Message-ID: <20110112160722.6486a6c2.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <008801cbb166$96cd0430$c4670c90$@mprc.pku.edu.cn>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37881 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755712Ab1AMAID (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Jan 2011 19:08:03 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Stefan Richter <stefanr@s5r6.in-berlin.de>
 
-On Tuesday 11 January 2011, Guan Xuetao wrote:
-> diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-> index b218b85..ac68c99 100644
-> --- a/include/asm-generic/uaccess.h
-> +++ b/include/asm-generic/uaccess.h
-> @@ -288,14 +288,16 @@ strncpy_from_user(char *dst, const char __user *src, long count)
->   *
->   * Return 0 on exception, a value greater than N if too long
->   */
-> -#ifndef strnlen_user
-> +#ifndef __strnlen_user
-> +#define __strnlen_user strnlen
-> +#endif
-> +
->  static inline long strnlen_user(const char __user *src, long n)
->  {
->         if (!access_ok(VERIFY_READ, src, 1))
->                 return 0;
-> -       return strlen((void * __force)src) + 1;
-> +       return __strnlen_user(src, n);
->  }
-> -#endif
->  
->  static inline long strlen_user(const char __user *src)
 
-Yes, looks good. I believe no architecture currently uses the generic
-uaccess.h file directly, so it's not surprising that you find problems
-like this in it.
-
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+drivers/firewire/ohci.c now needs PAGE_KERNEL_RO, but many
+architectures don't implement it.  Broke my sparc64 build.
