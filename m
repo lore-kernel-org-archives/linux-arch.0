@@ -1,63 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:55688 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756717Ab1AMRBd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Jan 2011 12:01:33 -0500
-Date: Thu, 13 Jan 2011 18:01:31 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 1/2] kbuild: asm-generic support
-Message-ID: <20110113170131.GA28377@merkur.ravnborg.org>
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4D2F24CD.5040101@suse.cz>
+Received: from mga02.intel.com ([134.134.136.20]:57007 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757693Ab1ANRur (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Jan 2011 12:50:47 -0500
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: ia64 broken by transparent huge pages - other arches too?
+Date: Fri, 14 Jan 2011 09:50:45 -0800
+Message-ID: <4d308cf5394566ccc@agluck-desktop.sc.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Message-ID: <20110113170131.9_nr-FbGdCLr18dS1RkxzOWjqduge4jtbi42sVoftAg@z>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20110114175045.Pix61YImbSPfyDZzYqvc5PiNLhwYdFCvQjfSBZ45qN8@z>
 
-On Thu, Jan 13, 2011 at 05:14:05PM +0100, Michal Marek wrote:
-> On 9.1.2011 20:29, Sam Ravnborg wrote:
-> > diff --git a/scripts/asm-generic.sh b/scripts/asm-generic.sh
-> > new file mode 100644
-> > index 0000000..d28127f
-> > --- /dev/null
-> > +++ b/scripts/asm-generic.sh
-> > @@ -0,0 +1,33 @@
-> > +#!/bin/sh
-> > +#
-> > +# include/asm-generic contains a lot of files that are used
-> > +# verbatim by several architectures.
-> > +#
-> > +# This scripts read the file arch/$(ARCH)/include/asm/Kbuild
-> > +# and for each file listed in this file with generic-y create
-> > +# a small wrapper file in arch/$(ARCH)/include/generated/
-> > +
-> > +# read list of header files form Kbuild
-> > +# The file has make syntax which looks like this:
-> > +#
-> > +# generic-y += <filename>
-> > +
-> > +srcdir=${srctree}/arch/$1/include/asm
-> > +gendir=arch/$1/include/generated/asm
-> > +
-> > +# Read the list of files (note that the list uses make syntax)
-> > +files=$( cat ${srcdir}/Kbuild | \
-> > +          grep -v ^# | grep generic-y | cut -d '=' -f 2)
-> 
-> Now that the list of required generic headers is in a Kbuild file, it
-> would be better to let make parse it, instead of enforcing one way to
-> construct the list (it is the preferred way, but C files that do not
-> conform to Documentation/CodingStyle are not rejected by the compiler
-> either). I will post a patch when I'm back online in the evening.
-Would be great!
+Didn't Andrew make some rash promise at kernel summit about stopping
+eating if "-mm" wasn't included in linux-next by the end of November?
 
-Guan also pointed out a less than minor issue...
-I overwrite the files each time so that I force a rebuild.
+Must be getting pretty hungry by now.
 
-If you do not find time then I will update the
-patch during the weekend.
+The transparent huge page code just arrived in the merge window
+without having been in linux-next.  I see this error when trying
+to build for ia64 from Linus' tree this morning:
 
-	Sam
+In file included from /home/aegl/generic-smp/arch/ia64/include/asm/pgtable.h:611,
+                 from include/linux/mm.h:41,
+                 from /home/aegl/generic-smp/arch/ia64/include/asm/uaccess.h:39,
+                 from include/linux/poll.h:14,
+                 from include/linux/rtc.h:117,
+                 from include/linux/efi.h:19,
+                 from /home/aegl/generic-smp/arch/ia64/include/asm/sal.h:40,
+                 from /home/aegl/generic-smp/arch/ia64/include/asm/mca.h:20,
+                 from arch/ia64/kernel/asm-offsets.c:17:
+include/asm-generic/pgtable.h: In function ‘pmdp_get_and_clear’:
+include/asm-generic/pgtable.h:96: error: implicit declaration of function ‘__pmd’
+include/asm-generic/pgtable.h:96: error: incompatible types in return
+make[1]: *** [arch/ia64/kernel/asm-offsets.s] Error 1
+
+
+Looks like arch/*/include/pgtable.h needs to define __pmd() but only x86
+was blessed with it.
+
+-Tony
