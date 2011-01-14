@@ -1,43 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:57007 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757693Ab1ANRur (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Jan 2011 12:50:47 -0500
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: ia64 broken by transparent huge pages - other arches too?
-Date: Fri, 14 Jan 2011 09:50:45 -0800
-Message-ID: <4d308cf5394566ccc@agluck-desktop.sc.intel.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:59684 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752401Ab1ANWVw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Jan 2011 17:21:52 -0500
+Subject: [PATCH] parisc: fix compile breakage caused by inlining
+ maybe_mkwrite
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Fri, 14 Jan 2011 16:21:47 -0600
+Message-ID: <1295043707.18445.70.camel@mulgrave.site>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
-Message-ID: <20110114175045.Pix61YImbSPfyDZzYqvc5PiNLhwYdFCvQjfSBZ45qN8@z>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110114222147.1flgOT-dWgJ7MhRs8dJ7HjcJFV90BTNn0-f9sSmc1MY@z>
 
-Didn't Andrew make some rash promise at kernel summit about stopping
-eating if "-mm" wasn't included in linux-next by the end of November?
+on Parisc, we have an include of linux/mm.h inside our asm/pgtable.h, so
+this patch 
 
-Must be getting pretty hungry by now.
+commit 14fd403f2146f740942d78af4e0ee59396ad8eab
+Author: Andrea Arcangeli <aarcange@redhat.com>
+Date:   Thu Jan 13 15:46:37 2011 -0800
 
-The transparent huge page code just arrived in the merge window
-without having been in linux-next.  I see this error when trying
-to build for ia64 from Linus' tree this morning:
+    thp: export maybe_mkwrite
 
-In file included from /home/aegl/generic-smp/arch/ia64/include/asm/pgtable.h:611,
-                 from include/linux/mm.h:41,
-                 from /home/aegl/generic-smp/arch/ia64/include/asm/uaccess.h:39,
-                 from include/linux/poll.h:14,
-                 from include/linux/rtc.h:117,
-                 from include/linux/efi.h:19,
-                 from /home/aegl/generic-smp/arch/ia64/include/asm/sal.h:40,
-                 from /home/aegl/generic-smp/arch/ia64/include/asm/mca.h:20,
-                 from arch/ia64/kernel/asm-offsets.c:17:
-include/asm-generic/pgtable.h: In function ‘pmdp_get_and_clear’:
-include/asm-generic/pgtable.h:96: error: implicit declaration of function ‘__pmd’
-include/asm-generic/pgtable.h:96: error: incompatible types in return
-make[1]: *** [arch/ia64/kernel/asm-offsets.s] Error 1
+Causes us an unsatisfiable use of pte_mkwrite in linux/mm.h
+
+The fix is obviously not to include linux/mm.h in our pgtable.h, which
+unbreaks the build.
+
+James
+
+---
+
+diff --git a/arch/parisc/include/asm/pgtable.h b/arch/parisc/include/asm/pgtable.h
+index f3c0973..5d7b8ce 100644
+--- a/arch/parisc/include/asm/pgtable.h
++++ b/arch/parisc/include/asm/pgtable.h
+@@ -10,11 +10,13 @@
+  * we simulate an x86-style page table for the linux mm code
+  */
+ 
+-#include <linux/mm.h>		/* for vm_area_struct */
+ #include <linux/bitops.h>
++#include <linux/spinlock.h>
+ #include <asm/processor.h>
+ #include <asm/cache.h>
+ 
++struct vm_area_struct;
++
+ /*
+  * kern_addr_valid(ADDR) tests if ADDR is pointing to valid kernel
+  * memory.  For the return value to be meaningful, ADDR must be >=
 
 
-Looks like arch/*/include/pgtable.h needs to define __pmd() but only x86
-was blessed with it.
-
--Tony
