@@ -1,82 +1,51 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: ia64 broken by transparent huge pages - other arches too?
-Date: Sun, 16 Jan 2011 08:31:23 +1100
-Message-ID: <1295127083.4875.70.camel@pasglop>
-References: <4d308cf5394566ccc@agluck-desktop.sc.intel.com>
-	 <1295076096.4875.60.camel@pasglop> <20110115155925.GT9506@random.random>
-	 <1295110048.5973.36.camel@mulgrave.site>
-	 <20110115172320.GU9506@random.random>
+From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Subject: Re: Request for unicore32 architecture codes to merge into linux-next
+Date: Sat, 15 Jan 2011 14:08:09 -0800
+Message-ID: <20110115220809.GC19872@core.coreip.homeip.net>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33449 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753462Ab1AOVcU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 15 Jan 2011 16:32:20 -0500
-In-Reply-To: <20110115172320.GU9506@random.random>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: James Bottomley <James.Bottomley@HansenPartnership.com>, "Luck, Tony" <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
+Sender: linux-next-owner@vger.kernel.org
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2011-01-15 at 18:23 +0100, Andrea Arcangeli wrote:
+Hi,
+
+On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
+> Hi,
 > 
+> I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+>   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
 > 
-> By all means next times I'll try to get through linux-next too if this
-> is preferred, but the brainer part has been heavily tested and that's
-> the important thing as far as I can see.
 
-Linux-next is the integration testing essentially. That's where we find
-such build regression and to a lesser extent maybe, runtime regressions.
+Have these changes been reviewed at all? Looking at the input parts I
+doubt it... We try _really_ hard to avoid sprinkling arch #ifedefs in
+the common code.
 
-I think you under estimate the pain caused by build breakage. The main
-problem is that it makes bisection difficult, and that's a pretty big
-deal in a merge window. If everybody stops caring about build breakage,
-bisection would essentially become unusable accross merge windows.
+So, for input:
 
-> I'm also not sure if having it in linux-next instead of -mm, would
-> have been better in terms of handling of the patchstream. I think
-> having it managed in -mm reviewed by all other -mm developers using
-> raw patches floating in the linux-mm and mm-commit lists, was ideal
-> and potentially more valuable for an increased amount of review, than
-> what a blind pull from linux-next could provide. For the brainer part,
-> maximizing the reviewing was certainly more valuable than checking if
-> it builds and boots on some arch not affected in any functional way.
+- how big is the difference between standard keytable and the one you
+  are introducing? Looks like you are just adding 5 new keys that are
+  not critical for booting. So please just update keymap from userpsace
+  as we do for countless laptops and keyboards out there.
 
-It's not a matter of -mm vs. -next. You should not have a patch set that
-is still a work in progress in -next. The later is for things that are
-essentially ready to merge, to simmer there for a few days to find out
-typically bad patch collisions (more than simple fixups), such build
-breakages, major runtime breakages, etc... Ideally, things in -next
-don't need a respin before going upstream but at least there's a last
-chance to do so. 
+- Trying to enable mouse 1000 times can lead to loooong delays. Have
+  you tried to figure out why you need the loop?
 
-The question becomes should -mm itself go into -next, and that I'm less
-certain of. It depends on what criterias Andrew applies to things that
-go into -mm I suppose, but if they qualify as "mature stuff ready to go
-upstream" then by all means.
+- What kind of mice can be connected to teh devices? I am concerned that
+  your super-strict protocol checks will cause more harm then good (i do
+  not believe they are valied in general case, overflow is just and
+  additional bit).
 
-> I think the sparc/arm build issues because of cleanup code refactoring
-> are not worth worrying too much about, or at least they shouldn't be
-> the argument for lack of testing. Said that, I apologize for the
-> annoyance and I appreciate your help in the arm case. ia64 I fixed it
-> with a one liner already.
+Please split changes related into logically separated patches and post
+them on linux-input@vger.kernel.org (along with linux-kernel if you
+prefer) for review and comments.
 
-But that's the whole point... all those "little issues" have actually
-broken build on 3 architectures so far, and this is -bad-. Yes, none of
-them is major, all of them are easily fixed ... and all of them have
-been a pain in the neck for some people somewhere and have broken
-bisection accross a portion of the merge window.
+Thanks.
 
-Having a bit of time in -next allows to easily avoid most of this.
-
-> Overall I think the end result is great, perfection was the goal and
-> if these build issues are the only error I think we got as close as
-> humanly possible to it. And it's definitely thanks to an huge amount
-> of help and feedback from the whole Linux community (both developers,
-> maintainers and testers) if we could achieve this result, I could
-> never achieve this alone.
-
-Cheers,
-Ben.
+-- 
+Dmitry
