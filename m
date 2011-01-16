@@ -1,26 +1,26 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 15/24] ocfs2: use little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:44 +0900
-Message-ID: <1295183333-13802-16-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 05/24] arm: introduce little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:34 +0900
+Message-ID: <1295183333-13802-6-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:49634 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752727Ab1APNJM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:12 -0500
+	with ESMTP id S1752476Ab1APNIf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:08:35 -0500
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Mark Fasheh <mfasheh@suse.com>, Joel Becker <joel.becker@oracle.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Russell King <rmk+kernel@arm.linux.org.uk>
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h.  This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+Introduce little-endian bit operations by renaming native ext2 bit
+operations.  The ext2 bit operations are kept as wrapper macros using
+little-endian bit operations to maintain bisectability until the
+conversions are finished.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Joel Becker <joel.becker@oracle.com>
-Cc: Mark Fasheh <mfasheh@suse.com>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
@@ -30,39 +30,87 @@ Change from v3:
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- fs/ocfs2/ocfs2.h |   13 ++++++++-----
- 1 files changed, 8 insertions(+), 5 deletions(-)
+ arch/arm/include/asm/bitops.h |   46 +++++++++++++++++++++++++++++-----------
+ 1 files changed, 33 insertions(+), 13 deletions(-)
 
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 51cd689..5c31fb9 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -831,18 +831,21 @@ static inline unsigned int ocfs2_clusters_to_megabytes(struct super_block *sb,
+diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
+index 338ff19..37736f6 100644
+--- a/arch/arm/include/asm/bitops.h
++++ b/arch/arm/include/asm/bitops.h
+@@ -303,41 +303,61 @@ static inline int fls(int x)
+ #include <asm-generic/bitops/hweight.h>
+ #include <asm-generic/bitops/lock.h>
  
- static inline void _ocfs2_set_bit(unsigned int bit, unsigned long *bitmap)
- {
--	ext2_set_bit(bit, bitmap);
-+	__test_and_set_bit_le(bit, bitmap);
- }
- #define ocfs2_set_bit(bit, addr) _ocfs2_set_bit((bit), (unsigned long *)(addr))
++#define __set_bit_le(nr, p)			\
++	__set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __clear_bit_le(nr, p)			\
++	__clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __test_and_set_bit_le(nr, p)			\
++		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_and_set_bit_le(nr, p)          \
++		test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define __test_and_clear_bit_le(nr, p)			\
++		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_and_clear_bit_le(nr, p)	\
++		test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define test_bit_le(nr, p)			\
++		test_bit(WORD_BITOFF_TO_LE(nr), (p))
++#define find_first_zero_bit_le(p, sz)		\
++		_find_first_zero_bit_le(p, sz)
++#define find_next_zero_bit_le(p, sz, off)	\
++		_find_next_zero_bit_le(p, sz, off)
++#define find_next_bit_le(p, sz, off) \
++		_find_next_bit_le(p, sz, off)
+ /*
+  * Ext2 is defined to use little-endian byte ordering.
+  * These do not need to be atomic.
+  */
+ #define ext2_set_bit(nr,p)			\
+-		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_set_bit_le(nr, (unsigned long *)(p))
+ #define ext2_set_bit_atomic(lock,nr,p)          \
+-                test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_and_set_bit_le(nr, (unsigned long *)(p))
+ #define ext2_clear_bit(nr,p)			\
+-		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_clear_bit_le(nr, (unsigned long *)(p))
+ #define ext2_clear_bit_atomic(lock,nr,p)        \
+-                test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_and_clear_bit_le(nr, (unsigned long *)(p))
+ #define ext2_test_bit(nr,p)			\
+-		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_bit_le(nr, (unsigned long *)(p))
+ #define ext2_find_first_zero_bit(p,sz)		\
+-		_find_first_zero_bit_le(p,sz)
++		find_first_zero_bit_le((unsigned long *)(p), sz)
+ #define ext2_find_next_zero_bit(p,sz,off)	\
+-		_find_next_zero_bit_le(p,sz,off)
++		find_next_zero_bit_le((unsigned long *)(p), sz, off)
+ #define ext2_find_next_bit(p, sz, off) \
+-		_find_next_bit_le(p, sz, off)
++		find_next_bit_le((unsigned long *)(p), sz, off)
  
- static inline void _ocfs2_clear_bit(unsigned int bit, unsigned long *bitmap)
- {
--	ext2_clear_bit(bit, bitmap);
-+	__test_and_clear_bit_le(bit, bitmap);
- }
- #define ocfs2_clear_bit(bit, addr) _ocfs2_clear_bit((bit), (unsigned long *)(addr))
+ /*
+  * Minix is defined to use little-endian byte ordering.
+  * These do not need to be atomic.
+  */
+ #define minix_set_bit(nr,p)			\
+-		__set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__set_bit_le(nr, (unsigned long *)(p))
+ #define minix_test_bit(nr,p)			\
+-		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		test_bit_le(nr, (unsigned long *)(p))
+ #define minix_test_and_set_bit(nr,p)		\
+-		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_set_bit_le(nr, (unsigned long *)(p))
+ #define minix_test_and_clear_bit(nr,p)		\
+-		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
++		__test_and_clear_bit_le(nr, (unsigned long *)(p))
+ #define minix_find_first_zero_bit(p,sz)		\
+-		_find_first_zero_bit_le(p,sz)
++		find_first_zero_bit_le((unsigned long *)(p), sz)
  
--#define ocfs2_test_bit ext2_test_bit
--#define ocfs2_find_next_zero_bit ext2_find_next_zero_bit
--#define ocfs2_find_next_bit ext2_find_next_bit
-+#define ocfs2_test_bit(nr, addr)	\
-+	test_bit_le(nr, (unsigned long *)(addr))
-+#define ocfs2_find_next_zero_bit(addr, size, off)	\
-+	find_next_zero_bit_le((unsigned long *)(addr), size, off)
-+#define ocfs2_find_next_bit(addr, size, off)	\
-+	find_next_bit_le((unsigned long *)(addr), size, off)
- #endif  /* OCFS2_H */
+ #endif /* __KERNEL__ */
  
 -- 
 1.7.3.4
