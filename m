@@ -1,64 +1,69 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 14/24] ext4: use little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:43 +0900
-Message-ID: <1295183333-13802-15-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 23/24] m68k: remove inline asm from minix_find_first_zero_bit
+Date: Sun, 16 Jan 2011 22:08:52 +0900
+Message-ID: <1295183333-13802-24-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:49634 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752915Ab1APNJe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:34 -0500
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>
-List-Id: linux-arch.vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h.  This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+As a preparation for moving minix bit operations from asm/bitops.h to
+architecture independent code in minix file system, this removes inline
+asm from minix_find_first_zero_bit() for m68k.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: "Theodore Ts'o" <tytso@mit.edu>
-Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v3:
- - change to the post-fix notation e.g. s/test_le_bit/test_bit_le/
+ - No change
 
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- fs/ext4/ext4.h |   18 ++++++++++++------
- 1 files changed, 12 insertions(+), 6 deletions(-)
+ arch/m68k/include/asm/bitops_mm.h |   10 +++-------
+ 1 files changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index 1de65f5..eaad5fc 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -922,14 +922,20 @@ struct ext4_inode_info {
- #define test_opt2(sb, opt)		(EXT4_SB(sb)->s_mount_opt2 & \
- 					 EXT4_MOUNT2_##opt)
+diff --git a/arch/m68k/include/asm/bitops_mm.h b/arch/m68k/include/asm/bitops_mm.h
+index fecd9f3..f6c7dea 100644
+--- a/arch/m68k/include/asm/bitops_mm.h
++++ b/arch/m68k/include/asm/bitops_mm.h
+@@ -330,23 +330,19 @@ static inline int __fls(int x)
+ static inline int minix_find_first_zero_bit(const void *vaddr, unsigned size)
+ {
+ 	const unsigned short *p = vaddr, *addr = vaddr;
+-	int res;
+ 	unsigned short num;
  
--#define ext4_set_bit			ext2_set_bit
-+#define ext4_set_bit(nr, addr)	\
-+	__test_and_set_bit_le((nr), (unsigned long *)(addr))
- #define ext4_set_bit_atomic		ext2_set_bit_atomic
--#define ext4_clear_bit			ext2_clear_bit
-+#define ext4_clear_bit(nr, addr)	\
-+	__test_and_clear_bit_le((nr), (unsigned long *)(addr))
- #define ext4_clear_bit_atomic		ext2_clear_bit_atomic
--#define ext4_test_bit			ext2_test_bit
--#define ext4_find_first_zero_bit	ext2_find_first_zero_bit
--#define ext4_find_next_zero_bit		ext2_find_next_zero_bit
--#define ext4_find_next_bit		ext2_find_next_bit
-+#define ext4_test_bit(nr, addr)	\
-+	test_bit_le((nr), (unsigned long *)(addr))
-+#define ext4_find_first_zero_bit(addr, size)	\
-+	find_first_zero_bit_le((unsigned long *)(addr), (size))
-+#define ext4_find_next_zero_bit(addr, size, off)	\
-+	find_next_zero_bit_le((unsigned long *)(addr), (size), (off))
-+#define ext4_find_next_bit(addr, size, off)	\
-+	find_next_bit_le((unsigned long *)(addr), (size), (off))
+ 	if (!size)
+ 		return 0;
  
- /*
-  * Maximal mount counts between two filesystem checks
+ 	size = (size >> 4) + ((size & 15) > 0);
+-	while (*p++ == 0xffff)
+-	{
++	while (*p++ == 0xffff) {
+ 		if (--size == 0)
+ 			return (p - addr) << 4;
+ 	}
+ 
+-	num = ~*--p;
+-	__asm__ __volatile__ ("bfffo %1{#16,#16},%0"
+-			      : "=d" (res) : "d" (num & -num));
+-	return ((p - addr) << 4) + (res ^ 31);
++	num = *--p;
++	return ((p - addr) << 4) + ffz(num);
+ }
+ 
+ #define minix_test_and_set_bit(nr, addr)	__test_and_set_bit((nr) ^ 16, (unsigned long *)(addr))
 -- 
 1.7.3.4
