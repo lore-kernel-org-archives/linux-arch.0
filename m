@@ -1,26 +1,21 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 05/24] arm: introduce little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:34 +0900
-Message-ID: <1295183333-13802-6-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 18/24] udf: use little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:47 +0900
+Message-ID: <1295183333-13802-19-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:49634 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752476Ab1APNIf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:08:35 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Jan Kara <jack@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-Introduce little-endian bit operations by renaming native ext2 bit
-operations.  The ext2 bit operations are kept as wrapper macros using
-little-endian bit operations to maintain bisectability until the
-conversions are finished.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h.  This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Acked-by: Jan Kara <jack@suse.cz>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
@@ -30,87 +25,31 @@ Change from v3:
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- arch/arm/include/asm/bitops.h |   46 +++++++++++++++++++++++++++++-----------
- 1 files changed, 33 insertions(+), 13 deletions(-)
+ fs/udf/balloc.c |   11 +++++++----
+ 1 files changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index 338ff19..37736f6 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -303,41 +303,61 @@ static inline int fls(int x)
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
+diff --git a/fs/udf/balloc.c b/fs/udf/balloc.c
+index 306ee39..7e71658 100644
+--- a/fs/udf/balloc.c
++++ b/fs/udf/balloc.c
+@@ -27,11 +27,14 @@
+ #include "udf_i.h"
+ #include "udf_sb.h"
  
-+#define __set_bit_le(nr, p)			\
-+	__set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __clear_bit_le(nr, p)			\
-+	__clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __test_and_set_bit_le(nr, p)			\
-+		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_and_set_bit_le(nr, p)          \
-+		test_and_set_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define __test_and_clear_bit_le(nr, p)			\
-+		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_and_clear_bit_le(nr, p)	\
-+		test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define test_bit_le(nr, p)			\
-+		test_bit(WORD_BITOFF_TO_LE(nr), (p))
-+#define find_first_zero_bit_le(p, sz)		\
-+		_find_first_zero_bit_le(p, sz)
-+#define find_next_zero_bit_le(p, sz, off)	\
-+		_find_next_zero_bit_le(p, sz, off)
-+#define find_next_bit_le(p, sz, off) \
-+		_find_next_bit_le(p, sz, off)
- /*
-  * Ext2 is defined to use little-endian byte ordering.
-  * These do not need to be atomic.
-  */
- #define ext2_set_bit(nr,p)			\
--		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_set_bit_le(nr, (unsigned long *)(p))
- #define ext2_set_bit_atomic(lock,nr,p)          \
--                test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_and_set_bit_le(nr, (unsigned long *)(p))
- #define ext2_clear_bit(nr,p)			\
--		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_clear_bit_le(nr, (unsigned long *)(p))
- #define ext2_clear_bit_atomic(lock,nr,p)        \
--                test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_and_clear_bit_le(nr, (unsigned long *)(p))
- #define ext2_test_bit(nr,p)			\
--		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_bit_le(nr, (unsigned long *)(p))
- #define ext2_find_first_zero_bit(p,sz)		\
--		_find_first_zero_bit_le(p,sz)
-+		find_first_zero_bit_le((unsigned long *)(p), sz)
- #define ext2_find_next_zero_bit(p,sz,off)	\
--		_find_next_zero_bit_le(p,sz,off)
-+		find_next_zero_bit_le((unsigned long *)(p), sz, off)
- #define ext2_find_next_bit(p, sz, off) \
--		_find_next_bit_le(p, sz, off)
-+		find_next_bit_le((unsigned long *)(p), sz, off)
+-#define udf_clear_bit(nr, addr) ext2_clear_bit(nr, addr)
+-#define udf_set_bit(nr, addr) ext2_set_bit(nr, addr)
+-#define udf_test_bit(nr, addr) ext2_test_bit(nr, addr)
++#define udf_clear_bit(nr, addr)	\
++	__test_and_clear_bit_le(nr, (unsigned long *)(addr))
++#define udf_set_bit(nr, addr)	\
++	__test_and_set_bit_le(nr, (unsigned long *)(addr))
++#define udf_test_bit(nr, addr)	\
++	test_bit_le(nr, (unsigned long *)(addr))
+ #define udf_find_next_one_bit(addr, size, offset) \
+-		ext2_find_next_bit(addr, size, offset)
++	find_next_bit_le((unsigned long *)(addr), size, offset)
  
- /*
-  * Minix is defined to use little-endian byte ordering.
-  * These do not need to be atomic.
-  */
- #define minix_set_bit(nr,p)			\
--		__set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__set_bit_le(nr, (unsigned long *)(p))
- #define minix_test_bit(nr,p)			\
--		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		test_bit_le(nr, (unsigned long *)(p))
- #define minix_test_and_set_bit(nr,p)		\
--		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_set_bit_le(nr, (unsigned long *)(p))
- #define minix_test_and_clear_bit(nr,p)		\
--		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
-+		__test_and_clear_bit_le(nr, (unsigned long *)(p))
- #define minix_find_first_zero_bit(p,sz)		\
--		_find_first_zero_bit_le(p,sz)
-+		find_first_zero_bit_le((unsigned long *)(p), sz)
- 
- #endif /* __KERNEL__ */
- 
+ static int read_block_bitmap(struct super_block *sb,
+ 			     struct udf_bitmap *bitmap, unsigned int block,
 -- 
 1.7.3.4
