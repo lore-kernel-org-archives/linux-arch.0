@@ -1,125 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:49634 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752372Ab1APNIa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:08:30 -0500
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:48314 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752336Ab1APNJU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:20 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 03/24] powerpc: introduce little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:32 +0900
-Message-ID: <1295183333-13802-4-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 18/24] udf: use little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:47 +0900
+Message-ID: <1295183333-13802-19-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20110116130832.0uPbS6-tNYC3pfU0nVY9AX6LD2dQPO8UQCCAxG8gyPw@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Jan Kara <jack@suse.cz>
+Message-ID: <20110116130847.ZqTNTwvhzfhCpfNdjGoHs7IvMv0A1s1STaE35D7wNeM@z>
 
-Introduce little-endian bit operations by renaming existing powerpc
-native little-endian bit operations.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h.  This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Jan Kara <jack@suse.cz>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
+
+Change from v3:
+ - change to the post-fix notation e.g. s/test_le_bit/test_bit_le/
 
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- arch/powerpc/include/asm/bitops.h |   38 ++++++++++++++++++------------------
- 1 files changed, 19 insertions(+), 19 deletions(-)
+ fs/udf/balloc.c |   11 +++++++----
+ 1 files changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index e903264..7b1c5a9 100644
---- a/arch/powerpc/include/asm/bitops.h
-+++ b/arch/powerpc/include/asm/bitops.h
-@@ -281,29 +281,29 @@ unsigned long __arch_hweight64(__u64 w);
+diff --git a/fs/udf/balloc.c b/fs/udf/balloc.c
+index 306ee39..7e71658 100644
+--- a/fs/udf/balloc.c
++++ b/fs/udf/balloc.c
+@@ -27,11 +27,14 @@
+ #include "udf_i.h"
+ #include "udf_sb.h"
  
- /* Little-endian versions */
+-#define udf_clear_bit(nr, addr) ext2_clear_bit(nr, addr)
+-#define udf_set_bit(nr, addr) ext2_set_bit(nr, addr)
+-#define udf_test_bit(nr, addr) ext2_test_bit(nr, addr)
++#define udf_clear_bit(nr, addr)	\
++	__test_and_clear_bit_le(nr, (unsigned long *)(addr))
++#define udf_set_bit(nr, addr)	\
++	__test_and_set_bit_le(nr, (unsigned long *)(addr))
++#define udf_test_bit(nr, addr)	\
++	test_bit_le(nr, (unsigned long *)(addr))
+ #define udf_find_next_one_bit(addr, size, offset) \
+-		ext2_find_next_bit(addr, size, offset)
++	find_next_bit_le((unsigned long *)(addr), size, offset)
  
--static __inline__ int test_le_bit(unsigned long nr,
-+static __inline__ int test_bit_le(unsigned long nr,
- 				  __const__ unsigned long *addr)
- {
- 	__const__ unsigned char	*tmp = (__const__ unsigned char *) addr;
- 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
- }
- 
--#define __set_le_bit(nr, addr) \
-+#define __set_bit_le(nr, addr) \
- 	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define __clear_le_bit(nr, addr) \
-+#define __clear_bit_le(nr, addr) \
- 	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- 
--#define test_and_set_le_bit(nr, addr) \
-+#define test_and_set_bit_le(nr, addr) \
- 	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define test_and_clear_le_bit(nr, addr) \
-+#define test_and_clear_bit_le(nr, addr) \
- 	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- 
--#define __test_and_set_le_bit(nr, addr) \
-+#define __test_and_set_bit_le(nr, addr) \
- 	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define __test_and_clear_le_bit(nr, addr) \
-+#define __test_and_clear_bit_le(nr, addr) \
- 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- 
--#define find_first_zero_le_bit(addr, size) \
-+#define find_first_zero_bit_le(addr, size) \
- 	find_next_zero_bit_le((addr), (size), 0)
- unsigned long find_next_zero_bit_le(const unsigned long *addr,
- 				    unsigned long size, unsigned long offset);
-@@ -313,19 +313,19 @@ unsigned long find_next_bit_le(const unsigned long *addr,
- /* Bitmap functions for the ext2 filesystem */
- 
- #define ext2_set_bit(nr,addr) \
--	__test_and_set_le_bit((nr), (unsigned long*)addr)
-+	__test_and_set_bit_le((nr), (unsigned long*)addr)
- #define ext2_clear_bit(nr, addr) \
--	__test_and_clear_le_bit((nr), (unsigned long*)addr)
-+	__test_and_clear_bit_le((nr), (unsigned long*)addr)
- 
- #define ext2_set_bit_atomic(lock, nr, addr) \
--	test_and_set_le_bit((nr), (unsigned long*)addr)
-+	test_and_set_bit_le((nr), (unsigned long*)addr)
- #define ext2_clear_bit_atomic(lock, nr, addr) \
--	test_and_clear_le_bit((nr), (unsigned long*)addr)
-+	test_and_clear_bit_le((nr), (unsigned long*)addr)
- 
--#define ext2_test_bit(nr, addr)      test_le_bit((nr),(unsigned long*)addr)
-+#define ext2_test_bit(nr, addr)      test_bit_le((nr),(unsigned long*)addr)
- 
- #define ext2_find_first_zero_bit(addr, size) \
--	find_first_zero_le_bit((unsigned long*)addr, size)
-+	find_first_zero_bit_le((unsigned long*)addr, size)
- #define ext2_find_next_zero_bit(addr, size, off) \
- 	find_next_zero_bit_le((unsigned long *)addr, size, off)
- 
-@@ -334,16 +334,16 @@ unsigned long find_next_bit_le(const unsigned long *addr,
- /* Bitmap functions for the minix filesystem.  */
- 
- #define minix_test_and_set_bit(nr,addr) \
--	__test_and_set_le_bit(nr, (unsigned long *)addr)
-+	__test_and_set_bit_le(nr, (unsigned long *)addr)
- #define minix_set_bit(nr,addr) \
--	__set_le_bit(nr, (unsigned long *)addr)
-+	__set_bit_le(nr, (unsigned long *)addr)
- #define minix_test_and_clear_bit(nr,addr) \
--	__test_and_clear_le_bit(nr, (unsigned long *)addr)
-+	__test_and_clear_bit_le(nr, (unsigned long *)addr)
- #define minix_test_bit(nr,addr) \
--	test_le_bit(nr, (unsigned long *)addr)
-+	test_bit_le(nr, (unsigned long *)addr)
- 
- #define minix_find_first_zero_bit(addr,size) \
--	find_first_zero_le_bit((unsigned long *)addr, size)
-+	find_first_zero_bit_le((unsigned long *)addr, size)
- 
- #include <asm-generic/bitops/sched.h>
- 
+ static int read_block_bitmap(struct super_block *sb,
+ 			     struct udf_bitmap *bitmap, unsigned int block,
 -- 
 1.7.3.4
 
