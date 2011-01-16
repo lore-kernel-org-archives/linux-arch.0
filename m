@@ -1,24 +1,25 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 17/24] reiserfs: use little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:46 +0900
-Message-ID: <1295183333-13802-18-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 16/24] nilfs2: use little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:45 +0900
+Message-ID: <1295183333-13802-17-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iy0-f174.google.com ([209.85.210.174]:48314 "EHLO
 	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752642Ab1APNJR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:17 -0500
+	with ESMTP id S1752359Ab1APNJO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:14 -0500
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
 
 As a preparation for removing ext2 non-atomic bit operations from
 asm/bitops.h.  This converts ext2 non-atomic bit operations to
 little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Acked-by: Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
@@ -28,63 +29,22 @@ Change from v3:
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- include/linux/reiserfs_fs.h |   34 ++++++++++++++++++++--------------
- 1 files changed, 20 insertions(+), 14 deletions(-)
+ fs/nilfs2/alloc.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/reiserfs_fs.h b/include/linux/reiserfs_fs.h
-index c21072a..ca43d57 100644
---- a/include/linux/reiserfs_fs.h
-+++ b/include/linux/reiserfs_fs.h
-@@ -1124,15 +1124,21 @@ struct reiserfs_de_head {
- #   define aligned_address(addr)           ((void *)((long)(addr) & ~((1UL << ADDR_UNALIGNED_BITS) - 1)))
- #   define unaligned_offset(addr)          (((int)((long)(addr) & ((1 << ADDR_UNALIGNED_BITS) - 1))) << 3)
+diff --git a/fs/nilfs2/alloc.h b/fs/nilfs2/alloc.h
+index 9af34a7..8255a42 100644
+--- a/fs/nilfs2/alloc.h
++++ b/fs/nilfs2/alloc.h
+@@ -74,7 +74,8 @@ int nilfs_palloc_freev(struct inode *, __u64 *, size_t);
  
--#   define set_bit_unaligned(nr, addr)     ext2_set_bit((nr) + unaligned_offset(addr), aligned_address(addr))
--#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit((nr) + unaligned_offset(addr), aligned_address(addr))
--#   define test_bit_unaligned(nr, addr)    ext2_test_bit((nr) + unaligned_offset(addr), aligned_address(addr))
-+#   define set_bit_unaligned(nr, addr)	\
-+	__test_and_set_bit_le((nr) + unaligned_offset(addr), aligned_address(addr))
-+#   define clear_bit_unaligned(nr, addr)	\
-+	__test_and_clear_bit_le((nr) + unaligned_offset(addr), aligned_address(addr))
-+#   define test_bit_unaligned(nr, addr)	\
-+	test_bit_le((nr) + unaligned_offset(addr), aligned_address(addr))
- 
- #else
- 
--#   define set_bit_unaligned(nr, addr)     ext2_set_bit(nr, addr)
--#   define clear_bit_unaligned(nr, addr)   ext2_clear_bit(nr, addr)
--#   define test_bit_unaligned(nr, addr)    ext2_test_bit(nr, addr)
-+#   define set_bit_unaligned(nr, addr)	\
-+	__test_and_set_bit_le(nr, (unsigned long *)(addr))
-+#   define clear_bit_unaligned(nr, addr)	\
-+	__test_and_clear_bit_le(nr, (unsigned long *)(addr))
-+#   define test_bit_unaligned(nr, addr)	\
-+	test_bit_le(nr, (unsigned long *)(addr))
- 
- #endif
- 
-@@ -2329,14 +2335,14 @@ __u32 keyed_hash(const signed char *msg, int len);
- __u32 yura_hash(const signed char *msg, int len);
- __u32 r5_hash(const signed char *msg, int len);
- 
--/* the ext2 bit routines adjust for big or little endian as
--** appropriate for the arch, so in our laziness we use them rather
--** than using the bit routines they call more directly.  These
--** routines must be used when changing on disk bitmaps.  */
--#define reiserfs_test_and_set_le_bit   ext2_set_bit
--#define reiserfs_test_and_clear_le_bit ext2_clear_bit
--#define reiserfs_test_le_bit           ext2_test_bit
--#define reiserfs_find_next_zero_le_bit ext2_find_next_zero_bit
-+#define reiserfs_test_and_set_le_bit(nr, addr)	\
-+	__test_and_set_bit_le((nr), (unsigned long *)(addr))
-+#define reiserfs_test_and_clear_le_bit(nr, addr)	\
-+	__test_and_clear_bit_le((nr), (unsigned long *)(addr))
-+#define reiserfs_test_le_bit(nr, addr)	\
-+	test_bit_le((nr), (unsigned long *)(addr))
-+#define reiserfs_find_next_zero_le_bit(addr, size, off)	\
+ #define nilfs_set_bit_atomic		ext2_set_bit_atomic
+ #define nilfs_clear_bit_atomic		ext2_clear_bit_atomic
+-#define nilfs_find_next_zero_bit	ext2_find_next_zero_bit
++#define nilfs_find_next_zero_bit(addr, size, off)	\
 +	find_next_zero_bit_le((unsigned long *)(addr), (size), (off))
  
- /* sometimes reiserfs_truncate may require to allocate few new blocks
-    to perform indirect2direct conversion. People probably used to
+ /*
+  * persistent object allocator cache
 -- 
 1.7.3.4
