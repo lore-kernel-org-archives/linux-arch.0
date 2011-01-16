@@ -1,69 +1,147 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 21/24] dm: use little-endian bit operations
-Date: Sun, 16 Jan 2011 22:08:50 +0900
-Message-ID: <1295183333-13802-22-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 08/24] m68knommu: introduce little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:37 +0900
+Message-ID: <1295183333-13802-9-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alasdair Kergon <agk@redhat.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Greg Ungerer <gerg@uclinux.org>
 List-Id: linux-arch.vger.kernel.org
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h.  This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+Introduce little-endian bit operations by renaming native ext2 bit
+operations.  The ext2 bit operations are kept as wrapper macros using
+little-endian bit operations to maintain bisectability until the
+conversions are finished.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Alasdair Kergon <agk@redhat.com>
+Acked-by: Greg Ungerer <gerg@uclinux.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v3:
  - change to the post-fix notation e.g. s/test_le_bit/test_bit_le/
+ - fix m68knommu build
 
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- drivers/md/dm-log.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ arch/m68k/include/asm/bitops_no.h |   40 +++++++++++++++++++++++++++++-------
+ arch/m68knommu/Kconfig            |    4 ---
+ 2 files changed, 32 insertions(+), 12 deletions(-)
 
-diff --git a/drivers/md/dm-log.c b/drivers/md/dm-log.c
-index 6951536..57968eb 100644
---- a/drivers/md/dm-log.c
-+++ b/drivers/md/dm-log.c
-@@ -251,20 +251,20 @@ struct log_c {
-  */
- static inline int log_test_bit(uint32_t *bs, unsigned bit)
+diff --git a/arch/m68k/include/asm/bitops_no.h b/arch/m68k/include/asm/bitops_no.h
+index 58c67aa..34af922 100644
+--- a/arch/m68k/include/asm/bitops_no.h
++++ b/arch/m68k/include/asm/bitops_no.h
+@@ -196,7 +196,15 @@ static __inline__ int __test_bit(int nr, const volatile unsigned long * addr)
+ #include <asm-generic/bitops/hweight.h>
+ #include <asm-generic/bitops/lock.h>
+ 
+-static __inline__ int ext2_set_bit(int nr, volatile void * addr)
++#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
++
++#define __set_bit_le(nr, addr) \
++	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++
++#define __clear_bit_le(nr, addr) \
++	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++
++static inline int __test_and_set_bit_le(int nr, volatile void *addr)
  {
--	return ext2_test_bit(bit, (unsigned long *) bs) ? 1 : 0;
-+	return test_bit_le(bit, (unsigned long *) bs) ? 1 : 0;
+ 	char retval;
+ 
+@@ -215,7 +223,7 @@ static __inline__ int ext2_set_bit(int nr, volatile void * addr)
+ 	return retval;
  }
  
- static inline void log_set_bit(struct log_c *l,
- 			       uint32_t *bs, unsigned bit)
+-static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
++static inline int __test_and_clear_bit_le(int nr, volatile void *addr)
  {
--	ext2_set_bit(bit, (unsigned long *) bs);
-+	__test_and_set_bit_le(bit, (unsigned long *) bs);
- 	l->touched_cleaned = 1;
+ 	char retval;
+ 
+@@ -238,7 +246,7 @@ static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
+ 	({						\
+ 		int ret;				\
+ 		spin_lock(lock);			\
+-		ret = ext2_set_bit((nr), (addr));	\
++		ret = __test_and_set_bit_le((nr), (addr));	\
+ 		spin_unlock(lock);			\
+ 		ret;					\
+ 	})
+@@ -247,12 +255,12 @@ static __inline__ int ext2_clear_bit(int nr, volatile void * addr)
+ 	({						\
+ 		int ret;				\
+ 		spin_lock(lock);			\
+-		ret = ext2_clear_bit((nr), (addr));	\
++		ret = __test_and_clear_bit_le((nr), (addr));	\
+ 		spin_unlock(lock);			\
+ 		ret;					\
+ 	})
+ 
+-static __inline__ int ext2_test_bit(int nr, const volatile void * addr)
++static inline int test_bit_le(int nr, const volatile void *addr)
+ {
+ 	char retval;
+ 
+@@ -271,10 +279,10 @@ static __inline__ int ext2_test_bit(int nr, const volatile void * addr)
+ 	return retval;
  }
  
- static inline void log_clear_bit(struct log_c *l,
- 				 uint32_t *bs, unsigned bit)
+-#define ext2_find_first_zero_bit(addr, size) \
+-        ext2_find_next_zero_bit((addr), (size), 0)
++#define find_first_zero_bit_le(addr, size)	\
++	find_next_zero_bit_le((addr), (size), 0)
+ 
+-static __inline__ unsigned long ext2_find_next_zero_bit(void *addr, unsigned long size, unsigned long offset)
++static inline unsigned long find_next_zero_bit_le(void *addr, unsigned long size, unsigned long offset)
  {
--	ext2_clear_bit(bit, (unsigned long *) bs);
-+	__test_and_clear_bit_le(bit, (unsigned long *) bs);
- 	l->touched_dirtied = 1;
+ 	unsigned long *p = ((unsigned long *) addr) + (offset >> 5);
+ 	unsigned long result = offset & ~31UL;
+@@ -324,8 +332,24 @@ found_middle:
+ 	return result + ffz(__swab32(tmp));
  }
  
-@@ -740,7 +740,7 @@ static int core_get_resync_work(struct dm_dirty_log *log, region_t *region)
- 		return 0;
++#define ext2_set_bit(nr, addr)	\
++	__test_and_set_bit_le(nr, addr)
++
++#define ext2_clear_bit(nr, addr)	\
++	__test_and_clear_bit_le(nr, addr)
++
++#define ext2_test_bit(nr, addr)	\
++	test_bit_le(nr, addr)
++
++#define ext2_find_first_zero_bit(addr, size) \
++	find_first_zero_bit_le(addr, size)
++
++#define ext2_find_next_zero_bit(addr, size, offset)	\
++	find_next_zero_bit_le(addr, size, offset)
++
+ #define ext2_find_next_bit(addr, size, off) \
+ 	find_next_bit_le((unsigned long *)(addr), (size), (off))
++
+ #include <asm-generic/bitops/minix.h>
  
- 	do {
--		*region = ext2_find_next_zero_bit(
-+		*region = find_next_zero_bit_le(
- 					     (unsigned long *) lc->sync_bits,
- 					     lc->region_count,
- 					     lc->sync_search);
+ #endif /* __KERNEL__ */
+diff --git a/arch/m68knommu/Kconfig b/arch/m68knommu/Kconfig
+index 87b46f8..fa9f746 100644
+--- a/arch/m68knommu/Kconfig
++++ b/arch/m68knommu/Kconfig
+@@ -40,10 +40,6 @@ config GENERIC_FIND_NEXT_BIT
+ 	bool
+ 	default y
+ 
+-config GENERIC_FIND_BIT_LE
+-	bool
+-	default y
+-
+ config GENERIC_GPIO
+ 	bool
+ 	default n
 -- 
 1.7.3.4
