@@ -1,80 +1,75 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH] xfs: Do not name variables "panic"
-Date: Sun, 16 Jan 2011 14:14:25 +0100 (CET)
-Message-ID: <alpine.DEB.2.00.1101161409150.24311@ayla.of.borg>
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+Subject: RE: Request for unicore32 architecture codes to merge into linux-next
+Date: Sun, 16 Jan 2011 23:35:29 +0800
+Message-ID: <005901cbb593$04c7e420$0e57ac60$@mprc.pku.edu.cn>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110115220809.GC19872@core.coreip.homeip.net>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=ISO-8859-7
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:33362 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752301Ab1APNO3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:14:29 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dave Chinner <dchinner@redhat.com>, Alex Elder <aelder@sgi.com>, Christoph Hellwig <hch@lst.de>
-Cc: xfs@oss.sgi.com, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110115220809.GC19872@core.coreip.homeip.net>
+Content-Language: zh-cn
+Sender: linux-kernel-owner@vger.kernel.org
+To: 'Dmitry Torokhov' <dmitry.torokhov@gmail.com>
+Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On platforms that call panic() inside their BUG() macro (m68k/sun3, and
-all platforms that don't set HAVE_ARCH_BUG), compilation fails with:
 
-| fs/xfs/support/debug.c: In function =A1xfs_cmn_err=A2:
-| fs/xfs/support/debug.c:92: error: called object =A1panic=A2 is not a =
-function
 
-as the local variable "panic" conflicts with the "panic()" function.
-Rename the local variable to resolve this.
+> -----Original Message-----
+> From: Dmitry Torokhov [mailto:dmitry.torokhov@gmail.com]
+> Sent: Sunday, January 16, 2011 6:08 AM
+> To: Guan Xuetao
+> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; jbarnes@virtuousgeek.org; rubini@cvml.unipv.it; linux-
+> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
+> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
+> 
+> Hi,
+> 
+> On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
+> > Hi,
+> >
+> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
+> >
+> 
+> Have these changes been reviewed at all? Looking at the input parts I
+> doubt it... We try _really_ hard to avoid sprinkling arch #ifedefs in
+> the common code.
+Many people helped me to review the patchset in linux-arch and linux-kernel mailist.
+For ps2 driver, perhaps I should not introduce bugfix for the machine, so I remove the additional
+modification, and only i8042 is necessary.
+The patchset is rebased, and git dir and branch name remain the same.
+Please update.
+> 
+> So, for input:
+> 
+> - how big is the difference between standard keytable and the one you
+>   are introducing? Looks like you are just adding 5 new keys that are
+>   not critical for booting. So please just update keymap from userpsace
+>   as we do for countless laptops and keyboards out there.
+I understand.
+And I remove the keytable.
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
----
-m68k/sun3: http://kisskb.ellerman.id.au/kisskb/buildresult/3779006/
-None of the !HAVE_ARCH_BUG archs (h8300, m32r, m68knommu, microblaze, s=
-core,
-tile, xtensa) seems to be covered by linux-next
+> 
+> - Trying to enable mouse 1000 times can lead to loooong delays. Have
+>   you tried to figure out why you need the loop?
+> 
+> - What kind of mice can be connected to teh devices? I am concerned that
+>   your super-strict protocol checks will cause more harm then good (i do
+>   not believe they are valied in general case, overflow is just and
+>   additional bit).
+> 
+> Please split changes related into logically separated patches and post
+> them on linux-input@vger.kernel.org (along with linux-kernel if you
+> prefer) for review and comments.
+> 
+> Thanks.
+> 
+> --
+> Dmitry
 
- fs/xfs/support/debug.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+Thanks Dmitry.
 
-diff --git a/fs/xfs/support/debug.c b/fs/xfs/support/debug.c
-index e6cf955..0df8889 100644
---- a/fs/xfs/support/debug.c
-+++ b/fs/xfs/support/debug.c
-@@ -75,11 +75,11 @@ xfs_cmn_err(
- {
- 	struct va_format	vaf;
- 	va_list			args;
--	int			panic =3D 0;
-+	int			do_panic =3D 0;
-=20
- 	if (xfs_panic_mask && (xfs_panic_mask & panic_tag)) {
- 		printk(KERN_ALERT "XFS: Transforming an alert into a BUG.");
--		panic =3D 1;
-+		do_panic =3D 1;
- 	}
-=20
- 	va_start(args, fmt);
-@@ -89,7 +89,7 @@ xfs_cmn_err(
- 	printk(KERN_ALERT "Filesystem %s: %pV", mp->m_fsname, &vaf);
- 	va_end(args);
-=20
--	BUG_ON(panic);
-+	BUG_ON(do_panic);
- }
-=20
- void
---=20
-1.7.0.4
-
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+Guan Xuetao
