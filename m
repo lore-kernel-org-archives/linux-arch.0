@@ -1,70 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:48314 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752359Ab1APNJJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:09:09 -0500
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 14/24] ext4: use little-endian bitops
-Date: Sun, 16 Jan 2011 22:08:43 +0900
-Message-ID: <1295183333-13802-15-git-send-email-akinobu.mita@gmail.com>
-In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:47674 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752764Ab1APPgI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Jan 2011 10:36:08 -0500
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110115220809.GC19872@core.coreip.homeip.net>
+In-Reply-To: <20110115220809.GC19872@core.coreip.homeip.net>
+Subject: RE: Request for unicore32 architecture codes to merge into linux-next
+Date: Sun, 16 Jan 2011 23:35:29 +0800
+Message-ID: <005901cbb593$04c7e420$0e57ac60$@mprc.pku.edu.cn>
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>
-Message-ID: <20110116130843._rhmCAXqG3SQrCLbEYlrSpBiKe9wxvAp89tJhF4NurI@z>
+To: 'Dmitry Torokhov' <dmitry.torokhov@gmail.com>
+Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+Message-ID: <20110116153529.a5GhiNw8iMw2Fqc79c66AQ1ePc8lQ4ZKlVnG6GZpxO0@z>
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h.  This converts ext2 non-atomic bit operations to
-little-endian bit operations.
 
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: "Theodore Ts'o" <tytso@mit.edu>
-Cc: Andreas Dilger <adilger.kernel@dilger.ca>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
 
-Change from v3:
- - change to the post-fix notation e.g. s/test_le_bit/test_bit_le/
+> -----Original Message-----
+> From: Dmitry Torokhov [mailto:dmitry.torokhov@gmail.com]
+> Sent: Sunday, January 16, 2011 6:08 AM
+> To: Guan Xuetao
+> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; jbarnes@virtuousgeek.org; rubini@cvml.unipv.it; linux-
+> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
+> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
+> 
+> Hi,
+> 
+> On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
+> > Hi,
+> >
+> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
+> >
+> 
+> Have these changes been reviewed at all? Looking at the input parts I
+> doubt it... We try _really_ hard to avoid sprinkling arch #ifedefs in
+> the common code.
+Many people helped me to review the patchset in linux-arch and linux-kernel mailist.
+For ps2 driver, perhaps I should not introduce bugfix for the machine, so I remove the additional
+modification, and only i8042 is necessary.
+The patchset is rebased, and git dir and branch name remain the same.
+Please update.
+> 
+> So, for input:
+> 
+> - how big is the difference between standard keytable and the one you
+>   are introducing? Looks like you are just adding 5 new keys that are
+>   not critical for booting. So please just update keymap from userpsace
+>   as we do for countless laptops and keyboards out there.
+I understand.
+And I remove the keytable.
 
-The whole series is available in the git repository at:
- git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
+> 
+> - Trying to enable mouse 1000 times can lead to loooong delays. Have
+>   you tried to figure out why you need the loop?
+> 
+> - What kind of mice can be connected to teh devices? I am concerned that
+>   your super-strict protocol checks will cause more harm then good (i do
+>   not believe they are valied in general case, overflow is just and
+>   additional bit).
+> 
+> Please split changes related into logically separated patches and post
+> them on linux-input@vger.kernel.org (along with linux-kernel if you
+> prefer) for review and comments.
+> 
+> Thanks.
+> 
+> --
+> Dmitry
 
- fs/ext4/ext4.h |   18 ++++++++++++------
- 1 files changed, 12 insertions(+), 6 deletions(-)
+Thanks Dmitry.
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index 1de65f5..eaad5fc 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -922,14 +922,20 @@ struct ext4_inode_info {
- #define test_opt2(sb, opt)		(EXT4_SB(sb)->s_mount_opt2 & \
- 					 EXT4_MOUNT2_##opt)
- 
--#define ext4_set_bit			ext2_set_bit
-+#define ext4_set_bit(nr, addr)	\
-+	__test_and_set_bit_le((nr), (unsigned long *)(addr))
- #define ext4_set_bit_atomic		ext2_set_bit_atomic
--#define ext4_clear_bit			ext2_clear_bit
-+#define ext4_clear_bit(nr, addr)	\
-+	__test_and_clear_bit_le((nr), (unsigned long *)(addr))
- #define ext4_clear_bit_atomic		ext2_clear_bit_atomic
--#define ext4_test_bit			ext2_test_bit
--#define ext4_find_first_zero_bit	ext2_find_first_zero_bit
--#define ext4_find_next_zero_bit		ext2_find_next_zero_bit
--#define ext4_find_next_bit		ext2_find_next_bit
-+#define ext4_test_bit(nr, addr)	\
-+	test_bit_le((nr), (unsigned long *)(addr))
-+#define ext4_find_first_zero_bit(addr, size)	\
-+	find_first_zero_bit_le((unsigned long *)(addr), (size))
-+#define ext4_find_next_zero_bit(addr, size, off)	\
-+	find_next_zero_bit_le((unsigned long *)(addr), (size), (off))
-+#define ext4_find_next_bit(addr, size, off)	\
-+	find_next_bit_le((unsigned long *)(addr), (size), (off))
- 
- /*
-  * Maximal mount counts between two filesystem checks
--- 
-1.7.3.4
+Guan Xuetao
 
