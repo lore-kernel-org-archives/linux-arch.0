@@ -1,56 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:53219 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752783Ab1AOWIP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Jan 2011 17:08:15 -0500
-Date: Sat, 15 Jan 2011 14:08:09 -0800
-From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-Message-ID: <20110115220809.GC19872@core.coreip.homeip.net>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:49634 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752372Ab1APNIa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 08:08:30 -0500
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v4 03/24] powerpc: introduce little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:32 +0900
+Message-ID: <1295183333-13802-4-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
+References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
-Message-ID: <20110115220809.vCV7ifHAijul2wpf-MGl4j17KYEzdJ5UmlnaFj5RtB8@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20110116130832.0uPbS6-tNYC3pfU0nVY9AX6LD2dQPO8UQCCAxG8gyPw@z>
 
-Hi,
+Introduce little-endian bit operations by renaming existing powerpc
+native little-endian bit operations.
 
-On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
-> Hi,
-> 
-> I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
->   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
-> 
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
+---
 
-Have these changes been reviewed at all? Looking at the input parts I
-doubt it... We try _really_ hard to avoid sprinkling arch #ifedefs in
-the common code.
+The whole series is available in the git repository at:
+ git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
-So, for input:
+ arch/powerpc/include/asm/bitops.h |   38 ++++++++++++++++++------------------
+ 1 files changed, 19 insertions(+), 19 deletions(-)
 
-- how big is the difference between standard keytable and the one you
-  are introducing? Looks like you are just adding 5 new keys that are
-  not critical for booting. So please just update keymap from userpsace
-  as we do for countless laptops and keyboards out there.
-
-- Trying to enable mouse 1000 times can lead to loooong delays. Have
-  you tried to figure out why you need the loop?
-
-- What kind of mice can be connected to teh devices? I am concerned that
-  your super-strict protocol checks will cause more harm then good (i do
-  not believe they are valied in general case, overflow is just and
-  additional bit).
-
-Please split changes related into logically separated patches and post
-them on linux-input@vger.kernel.org (along with linux-kernel if you
-prefer) for review and comments.
-
-Thanks.
-
+diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+index e903264..7b1c5a9 100644
+--- a/arch/powerpc/include/asm/bitops.h
++++ b/arch/powerpc/include/asm/bitops.h
+@@ -281,29 +281,29 @@ unsigned long __arch_hweight64(__u64 w);
+ 
+ /* Little-endian versions */
+ 
+-static __inline__ int test_le_bit(unsigned long nr,
++static __inline__ int test_bit_le(unsigned long nr,
+ 				  __const__ unsigned long *addr)
+ {
+ 	__const__ unsigned char	*tmp = (__const__ unsigned char *) addr;
+ 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
+ }
+ 
+-#define __set_le_bit(nr, addr) \
++#define __set_bit_le(nr, addr) \
+ 	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __clear_le_bit(nr, addr) \
++#define __clear_bit_le(nr, addr) \
+ 	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ 
+-#define test_and_set_le_bit(nr, addr) \
++#define test_and_set_bit_le(nr, addr) \
+ 	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define test_and_clear_le_bit(nr, addr) \
++#define test_and_clear_bit_le(nr, addr) \
+ 	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ 
+-#define __test_and_set_le_bit(nr, addr) \
++#define __test_and_set_bit_le(nr, addr) \
+ 	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __test_and_clear_le_bit(nr, addr) \
++#define __test_and_clear_bit_le(nr, addr) \
+ 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ 
+-#define find_first_zero_le_bit(addr, size) \
++#define find_first_zero_bit_le(addr, size) \
+ 	find_next_zero_bit_le((addr), (size), 0)
+ unsigned long find_next_zero_bit_le(const unsigned long *addr,
+ 				    unsigned long size, unsigned long offset);
+@@ -313,19 +313,19 @@ unsigned long find_next_bit_le(const unsigned long *addr,
+ /* Bitmap functions for the ext2 filesystem */
+ 
+ #define ext2_set_bit(nr,addr) \
+-	__test_and_set_le_bit((nr), (unsigned long*)addr)
++	__test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit(nr, addr) \
+-	__test_and_clear_le_bit((nr), (unsigned long*)addr)
++	__test_and_clear_bit_le((nr), (unsigned long*)addr)
+ 
+ #define ext2_set_bit_atomic(lock, nr, addr) \
+-	test_and_set_le_bit((nr), (unsigned long*)addr)
++	test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit_atomic(lock, nr, addr) \
+-	test_and_clear_le_bit((nr), (unsigned long*)addr)
++	test_and_clear_bit_le((nr), (unsigned long*)addr)
+ 
+-#define ext2_test_bit(nr, addr)      test_le_bit((nr),(unsigned long*)addr)
++#define ext2_test_bit(nr, addr)      test_bit_le((nr),(unsigned long*)addr)
+ 
+ #define ext2_find_first_zero_bit(addr, size) \
+-	find_first_zero_le_bit((unsigned long*)addr, size)
++	find_first_zero_bit_le((unsigned long*)addr, size)
+ #define ext2_find_next_zero_bit(addr, size, off) \
+ 	find_next_zero_bit_le((unsigned long *)addr, size, off)
+ 
+@@ -334,16 +334,16 @@ unsigned long find_next_bit_le(const unsigned long *addr,
+ /* Bitmap functions for the minix filesystem.  */
+ 
+ #define minix_test_and_set_bit(nr,addr) \
+-	__test_and_set_le_bit(nr, (unsigned long *)addr)
++	__test_and_set_bit_le(nr, (unsigned long *)addr)
+ #define minix_set_bit(nr,addr) \
+-	__set_le_bit(nr, (unsigned long *)addr)
++	__set_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_and_clear_bit(nr,addr) \
+-	__test_and_clear_le_bit(nr, (unsigned long *)addr)
++	__test_and_clear_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_bit(nr,addr) \
+-	test_le_bit(nr, (unsigned long *)addr)
++	test_bit_le(nr, (unsigned long *)addr)
+ 
+ #define minix_find_first_zero_bit(addr,size) \
+-	find_first_zero_le_bit((unsigned long *)addr, size)
++	find_first_zero_bit_le((unsigned long *)addr, size)
+ 
+ #include <asm-generic/bitops/sched.h>
+ 
 -- 
-Dmitry
+1.7.3.4
+
