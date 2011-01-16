@@ -1,121 +1,64 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v4 01/24] bitops: merge little and big endian definisions in asm-generic/bitops/le.h
-Date: Sun, 16 Jan 2011 22:08:30 +0900
-Message-ID: <1295183333-13802-2-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v4 14/24] ext4: use little-endian bitops
+Date: Sun, 16 Jan 2011 22:08:43 +0900
+Message-ID: <1295183333-13802-15-git-send-email-akinobu.mita@gmail.com>
 References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>
 List-Id: linux-arch.vger.kernel.org
 
-This patch series introduces little-endian bit operations in asm/bitops.h
-for all architectures and converts all ext2 non-atomic and minix bit
-operations to use little-endian bit operations.  It enables us to remove
-ext2 non-atomic and minix bit operations from asm/bitops.h.  The reason
-they should be removed from asm/bitops.h is as follows:
-
-For ext2 non-atomic bit operations, they are used for little-endian byte
-order bitmap access by some filesystems and modules.  But using ext2_*()
-functions on a module other than ext2 filesystem makes some feel strange.
-The other problem is that they take a "void *" but implicitly need a long
-aligned address.
-
-For minix bit operations, they are only used by minix filesystem and are
-useless by other modules.  Because byte order of inode and block bitmap is
-different on each architecture.
-
-This patch:
-
-In order to make the forthcoming changes smaller, this merges macro
-definisions in asm-generic/bitops/le.h for big-endian and little-endian as
-much as possible.
-
-This also removes unused BITOP_WORD macro.
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h.  This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: "Theodore Ts'o" <tytso@mit.edu>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v3:
- - fix inefficienct find_first_zero_le_bit() for a few architectures
+ - change to the post-fix notation e.g. s/test_le_bit/test_bit_le/
 
 The whole series is available in the git repository at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
 
- include/asm-generic/bitops/le.h |   46 +++++++++++++++++----------------------
- 1 files changed, 20 insertions(+), 26 deletions(-)
+ fs/ext4/ext4.h |   18 ++++++++++++------
+ 1 files changed, 12 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 80e3bf1..9085429 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -4,27 +4,33 @@
- #include <asm/types.h>
- #include <asm/byteorder.h>
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 1de65f5..eaad5fc 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -922,14 +922,20 @@ struct ext4_inode_info {
+ #define test_opt2(sb, opt)		(EXT4_SB(sb)->s_mount_opt2 & \
+ 					 EXT4_MOUNT2_##opt)
  
--#define BITOP_WORD(nr)		((nr) / BITS_PER_LONG)
--#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
--
- #if defined(__LITTLE_ENDIAN)
+-#define ext4_set_bit			ext2_set_bit
++#define ext4_set_bit(nr, addr)	\
++	__test_and_set_bit_le((nr), (unsigned long *)(addr))
+ #define ext4_set_bit_atomic		ext2_set_bit_atomic
+-#define ext4_clear_bit			ext2_clear_bit
++#define ext4_clear_bit(nr, addr)	\
++	__test_and_clear_bit_le((nr), (unsigned long *)(addr))
+ #define ext4_clear_bit_atomic		ext2_clear_bit_atomic
+-#define ext4_test_bit			ext2_test_bit
+-#define ext4_find_first_zero_bit	ext2_find_first_zero_bit
+-#define ext4_find_next_zero_bit		ext2_find_next_zero_bit
+-#define ext4_find_next_bit		ext2_find_next_bit
++#define ext4_test_bit(nr, addr)	\
++	test_bit_le((nr), (unsigned long *)(addr))
++#define ext4_find_first_zero_bit(addr, size)	\
++	find_first_zero_bit_le((unsigned long *)(addr), (size))
++#define ext4_find_next_zero_bit(addr, size, off)	\
++	find_next_zero_bit_le((unsigned long *)(addr), (size), (off))
++#define ext4_find_next_bit(addr, size, off)	\
++	find_next_bit_le((unsigned long *)(addr), (size), (off))
  
--#define generic_test_le_bit(nr, addr) test_bit(nr, addr)
--#define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
--#define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
--
--#define generic_test_and_set_le_bit(nr, addr) test_and_set_bit(nr, addr)
--#define generic_test_and_clear_le_bit(nr, addr) test_and_clear_bit(nr, addr)
--
--#define generic___test_and_set_le_bit(nr, addr) __test_and_set_bit(nr, addr)
--#define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
-+#define BITOP_LE_SWIZZLE	0
- 
--#define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
-+#define generic_find_next_zero_le_bit(addr, size, offset) \
-+	find_next_zero_bit(addr, size, offset)
- #define generic_find_next_le_bit(addr, size, offset) \
--			find_next_bit(addr, size, offset)
-+	find_next_bit(addr, size, offset)
-+#define generic_find_first_zero_le_bit(addr, size) \
-+	find_first_zero_bit(addr, size)
- 
- #elif defined(__BIG_ENDIAN)
- 
-+#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
-+
-+extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
-+		unsigned long size, unsigned long offset);
-+extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
-+		unsigned long size, unsigned long offset);
-+
-+#define generic_find_first_zero_le_bit(addr, size) \
-+	generic_find_next_zero_le_bit((addr), (size), 0)
-+
-+#else
-+#error "Please fix <asm/byteorder.h>"
-+#endif
-+
- #define generic_test_le_bit(nr, addr) \
- 	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- #define generic___set_le_bit(nr, addr) \
-@@ -42,16 +48,4 @@
- #define generic___test_and_clear_le_bit(nr, addr) \
- 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
- 
--extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
--		unsigned long size, unsigned long offset);
--extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
--		unsigned long size, unsigned long offset);
--
--#else
--#error "Please fix <asm/byteorder.h>"
--#endif
--
--#define generic_find_first_zero_le_bit(addr, size) \
--        generic_find_next_zero_le_bit((addr), (size), 0)
--
- #endif /* _ASM_GENERIC_BITOPS_LE_H_ */
+ /*
+  * Maximal mount counts between two filesystem checks
 -- 
 1.7.3.4
