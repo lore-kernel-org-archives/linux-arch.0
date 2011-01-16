@@ -1,81 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:47674 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752764Ab1APPgI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Jan 2011 10:36:08 -0500
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110115220809.GC19872@core.coreip.homeip.net>
-In-Reply-To: <20110115220809.GC19872@core.coreip.homeip.net>
-Subject: RE: Request for unicore32 architecture codes to merge into linux-next
-Date: Sun, 16 Jan 2011 23:35:29 +0800
-Message-ID: <005901cbb593$04c7e420$0e57ac60$@mprc.pku.edu.cn>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:54908 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753296Ab1APRv3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Jan 2011 12:51:29 -0500
+Date: Sun, 16 Jan 2011 17:51:09 +0000
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH v4 05/24] arm: introduce little-endian bitops
+Message-ID: <20110116175109.GC13615@flint.arm.linux.org.uk>
+References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com> <1295183333-13802-6-git-send-email-akinobu.mita@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
-Content-Transfer-Encoding: 7bit
-Content-Language: zh-cn
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1295183333-13802-6-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Dmitry Torokhov' <dmitry.torokhov@gmail.com>
-Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
-Message-ID: <20110116153529.a5GhiNw8iMw2Fqc79c66AQ1ePc8lQ4ZKlVnG6GZpxO0@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110116175109.f-IE38zDphcAGgDjI7R1oCEQIliLdTErLIgQMGV2stQ@z>
 
+On Sun, Jan 16, 2011 at 10:08:34PM +0900, Akinobu Mita wrote:
+> Introduce little-endian bit operations by renaming native ext2 bit
+> operations.  The ext2 bit operations are kept as wrapper macros using
+> little-endian bit operations to maintain bisectability until the
+> conversions are finished.
 
+This looks fine to me - is there any chance we can get this in to mainline
+so we can avoid conflicts between this and some patches I'm working on atm
+to fix the unsafe UP+SMP kernel combination with ARMs bitops ?
 
-> -----Original Message-----
-> From: Dmitry Torokhov [mailto:dmitry.torokhov@gmail.com]
-> Sent: Sunday, January 16, 2011 6:08 AM
-> To: Guan Xuetao
-> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; jbarnes@virtuousgeek.org; rubini@cvml.unipv.it; linux-
-> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
-> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-> 
-> Hi,
-> 
-> On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
-> > Hi,
-> >
-> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
-> >
-> 
-> Have these changes been reviewed at all? Looking at the input parts I
-> doubt it... We try _really_ hard to avoid sprinkling arch #ifedefs in
-> the common code.
-Many people helped me to review the patchset in linux-arch and linux-kernel mailist.
-For ps2 driver, perhaps I should not introduce bugfix for the machine, so I remove the additional
-modification, and only i8042 is necessary.
-The patchset is rebased, and git dir and branch name remain the same.
-Please update.
-> 
-> So, for input:
-> 
-> - how big is the difference between standard keytable and the one you
->   are introducing? Looks like you are just adding 5 new keys that are
->   not critical for booting. So please just update keymap from userpsace
->   as we do for countless laptops and keyboards out there.
-I understand.
-And I remove the keytable.
+It's doing some stuff which needs to be done anyway (the casting to
+unsigned long pointers for the ext2/minix find bit functions) which
+otherwise will be duplicated in my patches.
 
-> 
-> - Trying to enable mouse 1000 times can lead to loooong delays. Have
->   you tried to figure out why you need the loop?
-> 
-> - What kind of mice can be connected to teh devices? I am concerned that
->   your super-strict protocol checks will cause more harm then good (i do
->   not believe they are valied in general case, overflow is just and
->   additional bit).
-> 
-> Please split changes related into logically separated patches and post
-> them on linux-input@vger.kernel.org (along with linux-kernel if you
-> prefer) for review and comments.
-> 
-> Thanks.
-> 
-> --
-> Dmitry
-
-Thanks Dmitry.
-
-Guan Xuetao
-
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
