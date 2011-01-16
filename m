@@ -1,23 +1,41 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v4 00/24] Introduce little endian bitops
-Date: Sun, 16 Jan 2011 10:57:18 -0800
-Message-ID: <AANLkTikWZYOqxD_CyJ=zF2Lp2Mnt6Z2E1aPUspwMjrz_@mail.gmail.com>
-References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
+Subject: Re: ia64 broken by transparent huge pages - other arches too?
+Date: Sun, 16 Jan 2011 13:05:15 -0800
+Message-ID: <AANLkTikZ+MmM9f0tidpccDAimtUkDvJ3N=3KE+xFxc63@mail.gmail.com>
+References: <4d308cf5394566ccc@agluck-desktop.sc.intel.com> <1295076096.4875.60.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Russell King <rmk@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:35580 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753752Ab1APVGE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 16 Jan 2011 16:06:04 -0500
+In-Reply-To: <1295076096.4875.60.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "Luck, Tony" <tony.luck@intel.com>, Andrea Arcangeli <aarcange@redhat.com>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On Sun, Jan 16, 2011 at 5:08 AM, Akinobu Mita <akinobu.mita@gmail.com> wrote:
+On Fri, Jan 14, 2011 at 11:21 PM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
 >
-> This problem is not touched.
+> This is insane. Having such a massively invasive change to the whole mm,
+> barely tested on most architecture, and last I heard still generally
+> controversial being merged like that without even some integration
+> testing via -next makes no sense.
+>
+> Linus, wtf is going on ?
 
-So why not? The thing is supposed to be a cleanup, but it generates
-uglier code and more lines added than removed. Why should I pull
-something like that?
+I pretty much take anything from Andrew, unless I hate it (and the
+latest version of the transparent huge-page was ok).
 
-                    Linus
+That said, I did think that Andrew's -mm tree was in -next, and there
+clearly is some serious problem wrt -mm and -next if this wasn't
+caught earlier there.
+
+I was also expecting the fixups to come through Andrew, and they
+haven't. I can apply whatever people agree is sane, but right now I
+don't even know what the final patch for this problem is.
+
+                        Linus
