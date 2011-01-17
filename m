@@ -1,24 +1,42 @@
-From: "MacNair, Russell" <MacnairRN@CDM.com>
-Subject: Your Webmail Quota Has Exceeded The Set Quota/Limit
-Date: Mon, 17 Jan 2011 07:42:55 -0500
-Message-ID: <7D74C4D45606DF428A8DCDB5B621BBB5895784BBE0__42190.3064278469$1295272235$gmane$org@CAMEXCMS1.cdminc.internal.cdm.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] sched: provide scheduler_ipi() callback in response to
+ smp_send_reschedule()
+Date: Mon, 17 Jan 2011 08:52:21 -0500
+Message-ID: <4D344995.80701@tilera.com>
+References: <1295262433.30950.53.camel@laptop>   <20110117112637.GA18599@n2100.arm.linux.org.uk>         <1295263884.30950.54.camel@laptop> <1295264509.30950.59.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from exprod6ob115.obsmtp.com ([64.18.1.34]:35909 "HELO
-	exprod6ob115.obsmtp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1752941Ab1AQNuR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jan 2011 08:50:17 -0500
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "info@webmaster.com" <info@webmaster.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1295264509.30950.59.camel@laptop>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Your Webmail Quota Has Exceeded The Set Quota/Limit Which Is 20GB.
-You Are Currently Running On 23GB Due To Hidden Files And Folder On Your Mailbox.
-Please Click the Link Below To Validate Your Mailbox And Increase Your Quota.
-Click Here: <http://wildpagemarketing.com/Form/use/abegliveam4Godsake/form1.html>
-Failure To Click This Link And Validate Your Quota May Result In Loss Of Important Information In Your Mailbox/Or Cause Limited Access To It.
-Thanks
-HELP DESK
+On 1/17/2011 6:41 AM, Peter Zijlstra wrote:
+> Index: linux-2.6/arch/tile/kernel/smp.c
+> ===================================================================
+> --- linux-2.6.orig/arch/tile/kernel/smp.c
+> +++ linux-2.6/arch/tile/kernel/smp.c
+> @@ -184,12 +184,8 @@ void flush_icache_range(unsigned long st
+>  /* Called when smp_send_reschedule() triggers IRQ_RESCHEDULE. */
+>  static irqreturn_t handle_reschedule_ipi(int irq, void *token)
+>  {
+> -       /*
+> -        * Nothing to do here; when we return from interrupt, the
+> -        * rescheduling will occur there. But do bump the interrupt
+> -        * profiler count in the meantime.
+> -        */
+>         __get_cpu_var(irq_stat).irq_resched_count++;
+> +       scheduler_ipi();
+>
+>         return IRQ_HANDLED;
+>  }
+
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
