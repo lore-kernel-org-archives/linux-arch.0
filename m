@@ -1,66 +1,44 @@
-From: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Subject: Re: [PATCH v4 09/24] bitops: introduce little-endian bitops for
- most architectures
-Date: Mon, 17 Jan 2011 11:01:52 +0100
-Message-ID: <1295258512.15492.13.camel@hcegtvedt>
-References: <1295183333-13802-1-git-send-email-akinobu.mita@gmail.com>
-	 <1295183333-13802-10-git-send-email-akinobu.mita@gmail.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH] sched: provide scheduler_ipi() callback in response to
+        smp_send_reschedule()
+Date: Mon, 17 Jan 2011 11:26:37 +0000
+Message-ID: <20110117112637.GA18599@n2100.arm.linux.org.uk>
+References: <1295262433.30950.53.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1295183333-13802-10-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Bryan Wu <bryan.wu@analog.com>, Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, "Luck, Tony" <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Matthew Wilcox <willy@debian.org>, Grant Grundler <grundler@parisc-linux.org>, Paul Mundt <lethal@linux-sh.org>, Kazumoto Kojima <kkojima@rr.iij4u.or.jp>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Disposition: inline
+In-Reply-To: <1295262433.30950.53.camel@laptop>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>lin
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, 2011-01-16 at 22:08 +0900, Akinobu Mita wrote: 
-> Introduce little-endian bit operations to the architectures which do not
-> have native little-endian bit operations.  (alpha, avr32, blackfin, cris,
-> frv, h8300, ia64, m32r, mips, mn10300, parisc, sh, sparc, tile, x86,
-> xtensa)
-> 
-> These architectures can just include generic implementation
-> (asm-generic/bitops/le.h).
-> 
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-> Cc: Bryan Wu <bryan.wu@analog.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-> Cc: "Luck, Tony" <tony.luck@intel.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: Kyle McMartin <kyle@mcmartin.ca>
-> Cc: Matthew Wilcox <willy@debian.org>
-> Cc: Grant Grundler <grundler@parisc-linux.org>
-> Cc: Paul Mundt <lethal@linux-sh.org>
-> Cc: Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
-> Change from v3:
->  - No change
-> 
-> The whole series is available in the git repository at:
->  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v4
-> 
->  arch/alpha/include/asm/bitops.h              |    1 +
->  arch/avr32/include/asm/bitops.h              |    1 +
+On Mon, Jan 17, 2011 at 12:07:13PM +0100, Peter Zijlstra wrote:
+> diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+> index 42aa078..c4a570b 100644
+> --- a/arch/alpha/kernel/smp.c
+> +++ b/arch/alpha/kernel/smp.c
+> @@ -587,6 +587,7 @@ handle_ipi(struct pt_regs *regs)
+>  		case IPI_RESCHEDULE:
+>  			/* Reschedule callback.  Everything to be done
+>  			   is done by the interrupt return path.  */
+> +			scheduler_ipi();
+>  			break;
+>  
+>  		case IPI_CALL_FUNC:
+> diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
+> index 9066473..ffde790 100644
+> --- a/arch/arm/kernel/smp.c
+> +++ b/arch/arm/kernel/smp.c
+> @@ -579,6 +579,7 @@ asmlinkage void __exception do_IPI(struct pt_regs *regs)
+>  				 * nothing more to do - eveything is
+>  				 * done on the interrupt return path
+>  				 */
+> +				scheduler_ipi();
 
-For the AVR32 related change,
+Maybe remove the comment "everything is done on the interrupt return path"
+as with this function call, that is no longer the case.
 
-Acked-by: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-
-<snipp>
-
--- 
-Hans-Christian Egtvedt
+Looks like the same is true for Alpha as well?
