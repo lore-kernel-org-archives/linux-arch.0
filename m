@@ -1,71 +1,46 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-Date: Tue, 18 Jan 2011 18:53:10 +0900
-Message-ID: <20110118095309.GA18773@linux-sh.org>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110118043323.GF2122@linux-sh.org> <01b501cbb6ef$3299f2a0$97cdd7e0$@mprc.pku.edu.cn> <20110118091032.GA18525@linux-sh.org> <01bf01cbb6f2$cdba4a70$692edf50$@mprc.pku.edu.cn>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
+Date: Tue, 18 Jan 2011 11:30:47 +0100
+Message-ID: <1295346647.30950.477.camel@laptop>
+References: <20101126143843.801484792@chello.nl>
+	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:56959 "EHLO
-	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753239Ab1ARJz2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 04:55:28 -0500
-Content-Disposition: inline
-In-Reply-To: <01bf01cbb6f2$cdba4a70$692edf50$@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 18, 2011 at 05:33:44PM +0800, Guan Xuetao wrote:
-> > -----Original Message-----
-> > From: linux-next-owner@vger.kernel.org [mailto:linux-next-owner@vger.kernel.org] On Behalf Of Paul Mundt
-> > Sent: Tuesday, January 18, 2011 5:11 PM
-> > To: Guan Xuetao
-> > Cc: sfr@canb.auug.org.au; 'Arnd Bergmann'; gregkh@suse.de; jbarnes@virtuousgeek.org; dmitry.torokhov@gmail.com; dtor@mail.ru;
-> > rubini@cvml.unipv.it; linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-
-> > next@vger.kernel.org
-> > Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-> > 
-> > On Tue, Jan 18, 2011 at 05:07:41PM +0800, Guan Xuetao wrote:
-> > > IMO, the whole architecture specific codes need to be merged first, and only some
-> > > necessary drivers are included under staging. Then, I could split the staging drivers
-> > > into corresponding mail-list, and then, additional drivers.
-> > > Otherwise, there are no architecture basic for drivers review.
-> > >
-> > That's of course fine so long as the driver changes are reasonably
-> > self-contained. The situation we want to avoid is that you end up with
-> > drivers that depend on some private infrastructure of API where not
-> > enough context is provided when the two are decoupled.
-> > 
-> > In any event, the architecture bits are the most self-contained and have
-> > had the most review of anything in this series of patches, so it probably
-> > makes sense to work on getting those bits integrated and then dealing
-> > with the rest incrementally.
-> Then, I should:
-> 1. merge reviewed arch dir and reviewed drivers (for now, i8042)
-> 2. submit staging drivers to review
-> Am I right?
-> 
-That would at least make it easier to get parts of it merged while the
-drivers get reviewed and reworked. If enough people are content with the
-state of the architecture patches then there is no reason why they can't
-be pulled in to -next once it's open for .39 changes. The drivers can
-then gradually find their way in to -next via subsystem trees.
+On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
+> I understand you're intending to update your preemptible mmu_gather
+> patchset against 2.6.38-rc1, so I've spent a while looking through
+> (and running) your last posted version (plus its two fixes from BenH).
+>=20
+> I've had no problems in running it, I can't tell if it's quicker or
+> slower than the unpatched.  The only argument against the patchset,
+> really, would be performance: and though there are no bad reports on
+> it as yet, I do wonder how we proceed if a genuine workload shows up
+> which is adversely affected.  Oh well, silly to worry about the
+> hypothetical I suppose.
+>=20
+Wow, _HUGE_ review, thanks! I'll slowly make my way through it when I do
+the rebase against .38-rc1, most suggestions look very good indeed.
 
-From my point of view (though I don't believe I'm a minority in this),
-staging/ in general should be a last resort for new drivers. Since you
-are at least actively replying and making changes that have been
-requested, there should really be no need to go the staging route for
-any of the drivers at all.
+And as to performance, there's the no-regression report from Yanmin
+running it through the Intel test farm. However Nick also had a
+particular workload he wanted to test, Nick, do you think you've got a
+few spare minutes to dig that workload up and give it a run?
 
-On the other hand, if it turns out you have a big chunk of crazed and
-incomprehensible infrastructure like an interpreter or something equally
-perverse in the middle somewhere that everything depends on, that does of
-course complicate things and limit your options somewhat, but those sorts
-of things are hopefully corner cases (I admit the fact that you're
-linking libc in to the kernel has rather scared me away from reviewing
-the rest of the patches under closer scrutiny). Your goal in general
-should be to avoid staging completely and submit small logically isolated
-components that can be reviewed and merged wholly independently of
-anything else.
+But I guess you're right, there's always a chance someone hits
+something, and I guess there's nothing to it but to deal with it when
+that comes..
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
