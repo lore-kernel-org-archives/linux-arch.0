@@ -1,54 +1,28 @@
-From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
-Date: Tue, 18 Jan 2011 19:11:01 +0100
-Message-ID: <1295374261-19609-1-git-send-email-lars@metafoo.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-List-Id: linux-arch.vger.kernel.org
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: Request for unicore32 architecture codes to merge into
+ linux-next
+Date: Tue, 18 Jan 2011 13:33:19 -0500
+Message-ID: <20110118183319.GA13430@dumpdata.com>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet10.oracle.com ([148.87.113.121]:26557 "EHLO
+	rcsinet10.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752457Ab1ARSfu (ORCPT
+	<rfc822;<linux-arch@vger.kernel.org>>);
+	Tue, 18 Jan 2011 13:35:50 -0500
+Content-Disposition: inline
+In-Reply-To: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
 
-Currently io{read,write}{16,32} expand to
-	*addr = cpu_to_leXX(cpu_to_beXX(val))
-and
-	val = beXX_to_cpu(leXX_to_cpu(*addr))
+On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
+> Hi,
+> 
+> I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+>   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
 
-While it should rather be:
-	*addr = cpu_to_be{16,32}(val)
-and
-	val = be{16,32}_to_cpu(*addr)
-
-The current implementation works on litte-endian targets(where cpu_to_leXX is a
-noop), but breaks on on big-endian targets, this patch fixes it.
-
-Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
----
- include/asm-generic/io.h |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 4644c9a..5d93735 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -244,15 +244,15 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
- #ifndef CONFIG_GENERIC_IOMAP
- #define ioread8(addr)		readb(addr)
- #define ioread16(addr)		readw(addr)
--#define ioread16be(addr)	be16_to_cpu(ioread16(addr))
-+#define ioread16be(addr)	be16_to_cpu(__raw_readw(addr))
- #define ioread32(addr)		readl(addr)
--#define ioread32be(addr)	be32_to_cpu(ioread32(addr))
-+#define ioread32be(addr)	be32_to_cpu(__raw_readl(addr))
- 
- #define iowrite8(v, addr)	writeb((v), (addr))
- #define iowrite16(v, addr)	writew((v), (addr))
--#define iowrite16be(v, addr)	iowrite16(be16_to_cpu(v), (addr))
-+#define iowrite16be(v, addr)	__raw_writew(be16_to_cpu(v), (addr))
- #define iowrite32(v, addr)	writel((v), (addr))
--#define iowrite32be(v, addr)	iowrite32(be32_to_cpu(v), (addr))
-+#define iowrite32be(v, addr)	__raw_writel(be32_to_cpu(v), (addr))
- 
- #define ioread8_rep(p, dst, count) \
- 	insb((unsigned long) (p), (dst), (count))
--- 
-1.7.2.3
+Where can one purchase this hardware for testing?
