@@ -1,33 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canuck.infradead.org ([134.117.69.58]:38542 "EHLO
-	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752011Ab1ARKpK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 05:45:10 -0500
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-References: <20101126143843.801484792@chello.nl>
-	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Tue, 18 Jan 2011 11:44:44 +0100
-Message-ID: <1295347484.30950.495.camel@laptop>
-Mime-Version: 1.0
+Received: from smtp-out-138.synserver.de ([212.40.180.138]:1039 "HELO
+	smtp-out-138.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1751122Ab1ARSRy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 13:17:54 -0500
+From: Lars-Peter Clausen <lars@metafoo.de>
+Subject: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
+Date: Tue, 18 Jan 2011 19:11:01 +0100
+Message-ID: <1295374261-19609-1-git-send-email-lars@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hughd@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20110118104444.AdB784tzR3KGpGXHFcRR3ejI1c-VkRMpwdJ8K3Wf7-w@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
+Message-ID: <20110118181101.ttbSdU3v8qbMghmoqMJ6TKg86UD5ZfcLageEQUawAys@z>
 
-On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
-> 18/21 mutex-provide_mutex_is_contended.patch
->       I suppose so, though if we use it in the truncate path, then we are
->       stuck with the vm_truncate_count stuff I'd rather hoped would go away;
->       but I guess you're right, that if we did spin_needbreak/need_lockbreak
->       before, then we ought to do this now - though I suspect I only added
->       it because I had to insert a resched-point anyway, and it seemed a good
->       idea at the time to check lockbreak too since that had just been added. 
+Currently io{read,write}{16,32} expand to
+	*addr = cpu_to_leXX(cpu_to_beXX(val))
+and
+	val = beXX_to_cpu(leXX_to_cpu(*addr))
 
-Like the other missed cleanups now possible, these are things we can
-most definitely look at once the dust settles a bit. I just didn't want
-to rewrite the world in one go.
+While it should rather be:
+	*addr = cpu_to_be{16,32}(val)
+and
+	val = be{16,32}_to_cpu(*addr)
+
+The current implementation works on litte-endian targets(where cpu_to_leXX is a
+noop), but breaks on on big-endian targets, this patch fixes it.
+
+Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+---
+ include/asm-generic/io.h |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 4644c9a..5d93735 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -244,15 +244,15 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
+ #ifndef CONFIG_GENERIC_IOMAP
+ #define ioread8(addr)		readb(addr)
+ #define ioread16(addr)		readw(addr)
+-#define ioread16be(addr)	be16_to_cpu(ioread16(addr))
++#define ioread16be(addr)	be16_to_cpu(__raw_readw(addr))
+ #define ioread32(addr)		readl(addr)
+-#define ioread32be(addr)	be32_to_cpu(ioread32(addr))
++#define ioread32be(addr)	be32_to_cpu(__raw_readl(addr))
+ 
+ #define iowrite8(v, addr)	writeb((v), (addr))
+ #define iowrite16(v, addr)	writew((v), (addr))
+-#define iowrite16be(v, addr)	iowrite16(be16_to_cpu(v), (addr))
++#define iowrite16be(v, addr)	__raw_writew(be16_to_cpu(v), (addr))
+ #define iowrite32(v, addr)	writel((v), (addr))
+-#define iowrite32be(v, addr)	iowrite32(be32_to_cpu(v), (addr))
++#define iowrite32be(v, addr)	__raw_writel(be32_to_cpu(v), (addr))
+ 
+ #define ioread8_rep(p, dst, count) \
+ 	insb((unsigned long) (p), (dst), (count))
+-- 
+1.7.2.3
+
