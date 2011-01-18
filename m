@@ -1,76 +1,53 @@
-From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big
- endian systems
-Date: Tue, 18 Jan 2011 20:01:12 +0100
-Message-ID: <4D35E378.70300@metafoo.de>
-References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101181944.07146.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
+Date: Tue, 18 Jan 2011 20:56:35 +0100
+Message-ID: <201101182056.35673.arnd@arndb.de>
+References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101181944.07146.arnd@arndb.de> <4D35E378.70300@metafoo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201101181944.07146.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:64094 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751745Ab1ART4l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 14:56:41 -0500
+In-Reply-To: <4D35E378.70300@metafoo.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Lars-Peter Clausen <lars@metafoo.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
-
-On 01/18/2011 07:44 PM, Arnd Bergmann wrote:
-> On Tuesday 18 January 2011 19:11:01 Lars-Peter Clausen wrote:
->> Currently io{read,write}{16,32} expand to
->>         *addr = cpu_to_leXX(cpu_to_beXX(val))
->> and
->>         val = beXX_to_cpu(leXX_to_cpu(*addr))
->>
->> While it should rather be:
->>         *addr = cpu_to_be{16,32}(val)
->> and
->>         val = be{16,32}_to_cpu(*addr)
->>
->> The current implementation works on litte-endian targets(where cpu_to_leXX is a
->> noop), but breaks on on big-endian targets, this patch fixes it.
->>
->> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+On Tuesday 18 January 2011 20:01:12 Lars-Peter Clausen wrote:
+> Well, i've though about that as well, but in the current asm-generic/io.h readl is
+> unconditionally defined as cpu_to_le32(__raw_readl(addr)) and ioread32 is defined as
+> readl.
 > 
-> The existing code looks broken on big-endian indeed, thanks
-> for the report!
+> So unless an arch io.h undefines those macros and redefines them (which none of the
+> current archs does, as far as i can see), we are o
 > 
-> However, you cannot use __raw_readl in general, because that
-> function knows nothing about the various kinds of I/O accesses
-> (potentially) handled by readl. Think of architectures where
-> readl is not a pointer dereference but something else.
+> If an arch chooses to redefine ioread or readl, it should probably also redefine
+> ioread{16,32}be.
 
-Well, i've though about that as well, but in the current asm-generic/io.h readl is
-unconditionally defined as cpu_to_le32(__raw_readl(addr)) and ioread32 is defined as
-readl.
+Right, but the header file also serves as a template for new architectures
+that cannot directly use it. I would prefer not to give a possibly bad example
+here, especially when it's in a rarely used function.
 
-So unless an arch io.h undefines those macros and redefines them (which none of the
-current archs does, as far as i can see), we are o
-
-If an arch chooses to redefine ioread or readl, it should probably also redefine
-ioread{16,32}be.
-
+> > The right solution is probably to use swab16/swab32 for the
+> > big-endian functions. This also corrects the iowrite functions
+> > which really should be using cpu_to_be32 instead of be32_to_cpu
+> > (although they are always defined to be the same afaict.
 > 
-> The right solution is probably to use swab16/swab32 for the
-> big-endian functions. This also corrects the iowrite functions
-> which really should be using cpu_to_be32 instead of be32_to_cpu
-> (although they are always defined to be the same afaict.
+> This would first cause a conversion to little-endian, which is a swap() in the
+> generic case and then you would call swap() again on the result. Which is basically a
+> noop, but I'm not sure if compilers will detect this.
 
-This would first cause a conversion to little-endian, which is a swap() in the
-generic case and then you would call swap() again on the result. Which is basically a
-noop, but I'm not sure if compilers will detect this.
+The overhead of the swab() is certainly dwarfed by the long time spent in
+readl().
 
-> 
-> 	Arnd
+I would prefer to swap twice in this case and let the compiler work it out
+if possible. The next best alternative would probably be to define both
+ioread and ioread_be using __raw_readl in combination with a le32_to_cpu
+or be32_to_cpu.
 
-- - Lars
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
-
-iEYEARECAAYFAk0143gACgkQBX4mSR26RiPJwACgh1KJKR6o5X/kazS34g/stGKq
-OQ4AniZR7SlxTzpJDz7xTvPfeqAqH3S6
-=Q6cD
------END PGP SIGNATURE-----
+	Arnd
