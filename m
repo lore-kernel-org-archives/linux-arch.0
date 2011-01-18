@@ -1,38 +1,47 @@
-From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Subject: Re: [PATCH] sched: provide scheduler_ipi()
- callback in response to smp_send_reschedule()
-Date: Mon, 17 Jan 2011 21:43:03 +0100
-Message-ID: <1295296983.30950.369.camel@laptop>
-References: <1295262433.30950.53.camel@laptop>
-	<1295296310.2148.29.camel@pasglop>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: Request for unicore32 architecture codes to merge into linux-next
+Date: Tue, 18 Jan 2011 13:33:24 +0900
+Message-ID: <20110118043323.GF2122@linux-sh.org>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <1295296310.2148.29.camel@pasglop>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Cc: linux-m32r-ja-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, "H. Peter
-	Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, Mikael-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, virtualization-qjLDD68F18O7TbgM5vRIOg@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, xen-devel-GuqFBffKawuULHF6PoxzQEEOCMrvLtNR@public.gmane.org, Chris-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Fen
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 124x34x33x190.ap124.ftth.ucom.ne.jp ([124.34.33.190]:36904 "EHLO
+	master.linux-sh.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751947Ab1AREfm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Jan 2011 23:35:42 -0500
+Content-Disposition: inline
+In-Reply-To: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
 
-On Tue, 2011-01-18 at 07:31 +1100, Benjamin Herrenschmidt wrote:
-> 
-> Beware of false positive, I've used "fake" reschedule IPIs in the past
-> for other things (like kicking a CPU out of sleep state for unrelated
-> reasons). Nothing that I know that is upstream today but some of that
-> might come back. I'd like to avoid having to add an atomic to know if
-> it's a real reschedule, will the scheduler be smart enough to not bother
-> with false positives ? 
+On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
+>  drivers/staging/puv3/Kconfig                  |  125 ++
+>  drivers/staging/puv3/Makefile                 |   22 +
+>  drivers/staging/puv3/TODO                     |    7 +
+>  drivers/staging/puv3/i8042-ucio.h             |   89 ++
+>  drivers/staging/puv3/puv3-atkbd.h             |   43 +
+>  drivers/staging/puv3/puv3_ac97.c              |  369 +++++
+>  drivers/staging/puv3/puv3_i2c.c               |  309 ++++
+>  drivers/staging/puv3/puv3_pcm.c               |  435 ++++++
+>  drivers/staging/puv3/puv3_pcm.h               |   28 +
+>  drivers/staging/puv3/puv3_umal.c              | 2069 +++++++++++++++++++++++++
+>  drivers/staging/puv3/puv3_unifb.c             |  965 ++++++++++++
 
-Yes it can deal with that, some will be for reschedules, some will be
-for ttwu tail ends and x86 too uses this ipi for a few random other
-things like kicking kvm out of guest context..
+Staging is not a shortcut around having things reviewed or broken out
+logically. It's of course fine to merge the bulk of things in one go for
+when a new architecture is going on, but logically disparate parts still
+need to be broken out and sent to the proper places for review. It's
+obvious you haven't done this for any of the non-arch bits and hiding
+things under staging is not going to make this step any less necessary.
+
+If you want your framebuffer driver reviewed, then split it out and
+submit it to the linux-fbdev list for review. Once that's had a going
+over and been Acked then of course it can be merged through whatever tree
+you like, and there's even a good chance that you don't need to bother
+with staging at all.
+
+Using staging as a review circumvention measure however is just not going
+to fly.
