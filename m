@@ -1,60 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-138.synserver.de ([212.40.180.138]:1039 "HELO
-	smtp-out-138.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1751122Ab1ARSRy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 13:17:54 -0500
+Received: from mailhost.informatik.uni-hamburg.de ([134.100.9.70]:50122 "EHLO
+	mailhost.informatik.uni-hamburg.de" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752297Ab1ARTJk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 18 Jan 2011 14:09:40 -0500
+Message-ID: <4D35E378.70300@metafoo.de>
+Date: Tue, 18 Jan 2011 20:01:12 +0100
 From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
-Date: Tue, 18 Jan 2011 19:11:01 +0100
-Message-ID: <1295374261-19609-1-git-send-email-lars@metafoo.de>
+MIME-Version: 1.0
+Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big
+ endian systems
+References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101181944.07146.arnd@arndb.de>
+In-Reply-To: <201101181944.07146.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-Message-ID: <20110118181101.ttbSdU3v8qbMghmoqMJ6TKg86UD5ZfcLageEQUawAys@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110118190112.rIXycsURnCJfyklo9ThguDI9yBTPnZ_HHnR1WjDoJQU@z>
 
-Currently io{read,write}{16,32} expand to
-	*addr = cpu_to_leXX(cpu_to_beXX(val))
-and
-	val = beXX_to_cpu(leXX_to_cpu(*addr))
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
 
-While it should rather be:
-	*addr = cpu_to_be{16,32}(val)
-and
-	val = be{16,32}_to_cpu(*addr)
+On 01/18/2011 07:44 PM, Arnd Bergmann wrote:
+> On Tuesday 18 January 2011 19:11:01 Lars-Peter Clausen wrote:
+>> Currently io{read,write}{16,32} expand to
+>>         *addr = cpu_to_leXX(cpu_to_beXX(val))
+>> and
+>>         val = beXX_to_cpu(leXX_to_cpu(*addr))
+>>
+>> While it should rather be:
+>>         *addr = cpu_to_be{16,32}(val)
+>> and
+>>         val = be{16,32}_to_cpu(*addr)
+>>
+>> The current implementation works on litte-endian targets(where cpu_to_leXX is a
+>> noop), but breaks on on big-endian targets, this patch fixes it.
+>>
+>> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+> 
+> The existing code looks broken on big-endian indeed, thanks
+> for the report!
+> 
+> However, you cannot use __raw_readl in general, because that
+> function knows nothing about the various kinds of I/O accesses
+> (potentially) handled by readl. Think of architectures where
+> readl is not a pointer dereference but something else.
 
-The current implementation works on litte-endian targets(where cpu_to_leXX is a
-noop), but breaks on on big-endian targets, this patch fixes it.
+Well, i've though about that as well, but in the current asm-generic/io.h readl is
+unconditionally defined as cpu_to_le32(__raw_readl(addr)) and ioread32 is defined as
+readl.
 
-Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
----
- include/asm-generic/io.h |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+So unless an arch io.h undefines those macros and redefines them (which none of the
+current archs does, as far as i can see), we are o
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 4644c9a..5d93735 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -244,15 +244,15 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
- #ifndef CONFIG_GENERIC_IOMAP
- #define ioread8(addr)		readb(addr)
- #define ioread16(addr)		readw(addr)
--#define ioread16be(addr)	be16_to_cpu(ioread16(addr))
-+#define ioread16be(addr)	be16_to_cpu(__raw_readw(addr))
- #define ioread32(addr)		readl(addr)
--#define ioread32be(addr)	be32_to_cpu(ioread32(addr))
-+#define ioread32be(addr)	be32_to_cpu(__raw_readl(addr))
- 
- #define iowrite8(v, addr)	writeb((v), (addr))
- #define iowrite16(v, addr)	writew((v), (addr))
--#define iowrite16be(v, addr)	iowrite16(be16_to_cpu(v), (addr))
-+#define iowrite16be(v, addr)	__raw_writew(be16_to_cpu(v), (addr))
- #define iowrite32(v, addr)	writel((v), (addr))
--#define iowrite32be(v, addr)	iowrite32(be32_to_cpu(v), (addr))
-+#define iowrite32be(v, addr)	__raw_writel(be32_to_cpu(v), (addr))
- 
- #define ioread8_rep(p, dst, count) \
- 	insb((unsigned long) (p), (dst), (count))
--- 
-1.7.2.3
+If an arch chooses to redefine ioread or readl, it should probably also redefine
+ioread{16,32}be.
 
+> 
+> The right solution is probably to use swab16/swab32 for the
+> big-endian functions. This also corrects the iowrite functions
+> which really should be using cpu_to_be32 instead of be32_to_cpu
+> (although they are always defined to be the same afaict.
+
+This would first cause a conversion to little-endian, which is a swap() in the
+generic case and then you would call swap() again on the result. Which is basically a
+noop, but I'm not sure if compilers will detect this.
+
+> 
+> 	Arnd
+
+- - Lars
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
+
+iEYEARECAAYFAk0143gACgkQBX4mSR26RiPJwACgh1KJKR6o5X/kazS34g/stGKq
+OQ4AniZR7SlxTzpJDz7xTvPfeqAqH3S6
+=Q6cD
+-----END PGP SIGNATURE-----
