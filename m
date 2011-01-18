@@ -1,28 +1,54 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Date: Tue, 18 Jan 2011 11:50:01 +0100
-Message-ID: <1295347801.30950.505.camel@laptop>
-References: <20101126143843.801484792@chello.nl>
-	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:45102 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752009Ab1ARKt1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 05:49:27 -0500
-In-Reply-To: <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hughd@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+From: Lars-Peter Clausen <lars@metafoo.de>
+Subject: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
+Date: Tue, 18 Jan 2011 19:11:01 +0100
+Message-ID: <1295374261-19609-1-git-send-email-lars@metafoo.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
-> 21/21 mm-optimize_page_lock_anon_vma_fast-path.patch
->       I certainly see the call for this patch, I want to eliminate those
->       doubled atomics too.  This appears correct to me, and I've not dreamt
->       up an alternative; but I do dislike it, and I suspect you don't like
->       it much either.  I'm ambivalent about it, would love a better patch. 
+Currently io{read,write}{16,32} expand to
+	*addr = cpu_to_leXX(cpu_to_beXX(val))
+and
+	val = beXX_to_cpu(leXX_to_cpu(*addr))
 
-Spot on, maybe a one of our keen readers will have a bright idea.. :-)
+While it should rather be:
+	*addr = cpu_to_be{16,32}(val)
+and
+	val = be{16,32}_to_cpu(*addr)
+
+The current implementation works on litte-endian targets(where cpu_to_leXX is a
+noop), but breaks on on big-endian targets, this patch fixes it.
+
+Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+---
+ include/asm-generic/io.h |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 4644c9a..5d93735 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -244,15 +244,15 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
+ #ifndef CONFIG_GENERIC_IOMAP
+ #define ioread8(addr)		readb(addr)
+ #define ioread16(addr)		readw(addr)
+-#define ioread16be(addr)	be16_to_cpu(ioread16(addr))
++#define ioread16be(addr)	be16_to_cpu(__raw_readw(addr))
+ #define ioread32(addr)		readl(addr)
+-#define ioread32be(addr)	be32_to_cpu(ioread32(addr))
++#define ioread32be(addr)	be32_to_cpu(__raw_readl(addr))
+ 
+ #define iowrite8(v, addr)	writeb((v), (addr))
+ #define iowrite16(v, addr)	writew((v), (addr))
+-#define iowrite16be(v, addr)	iowrite16(be16_to_cpu(v), (addr))
++#define iowrite16be(v, addr)	__raw_writew(be16_to_cpu(v), (addr))
+ #define iowrite32(v, addr)	writel((v), (addr))
+-#define iowrite32be(v, addr)	iowrite32(be32_to_cpu(v), (addr))
++#define iowrite32be(v, addr)	__raw_writel(be32_to_cpu(v), (addr))
+ 
+ #define ioread8_rep(p, dst, count) \
+ 	insb((unsigned long) (p), (dst), (count))
+-- 
+1.7.2.3
