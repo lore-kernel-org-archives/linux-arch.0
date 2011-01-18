@@ -1,8 +1,8 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:43632 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751243Ab1ARKaT convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 05:30:19 -0500
+Received: from canuck.infradead.org ([134.117.69.58]:38542 "EHLO
+	canuck.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752011Ab1ARKpK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Jan 2011 05:45:10 -0500
 Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 In-Reply-To: <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
@@ -10,35 +10,24 @@ References: <20101126143843.801484792@chello.nl>
 	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
-Date: Tue, 18 Jan 2011 11:30:47 +0100
-Message-ID: <1295346647.30950.477.camel@laptop>
+Date: Tue, 18 Jan 2011 11:44:44 +0100
+Message-ID: <1295347484.30950.495.camel@laptop>
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Hugh Dickins <hughd@google.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20110118103047._RPB4BGfichFcpMFJLqR7JhjwHuU33Z_Nr61hxZG20I@z>
+Message-ID: <20110118104444.AdB784tzR3KGpGXHFcRR3ejI1c-VkRMpwdJ8K3Wf7-w@z>
 
 On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
-> I understand you're intending to update your preemptible mmu_gather
-> patchset against 2.6.38-rc1, so I've spent a while looking through
-> (and running) your last posted version (plus its two fixes from BenH).
-> 
-> I've had no problems in running it, I can't tell if it's quicker or
-> slower than the unpatched.  The only argument against the patchset,
-> really, would be performance: and though there are no bad reports on
-> it as yet, I do wonder how we proceed if a genuine workload shows up
-> which is adversely affected.  Oh well, silly to worry about the
-> hypothetical I suppose.
-> 
-Wow, _HUGE_ review, thanks! I'll slowly make my way through it when I do
-the rebase against .38-rc1, most suggestions look very good indeed.
+> 18/21 mutex-provide_mutex_is_contended.patch
+>       I suppose so, though if we use it in the truncate path, then we are
+>       stuck with the vm_truncate_count stuff I'd rather hoped would go away;
+>       but I guess you're right, that if we did spin_needbreak/need_lockbreak
+>       before, then we ought to do this now - though I suspect I only added
+>       it because I had to insert a resched-point anyway, and it seemed a good
+>       idea at the time to check lockbreak too since that had just been added. 
 
-And as to performance, there's the no-regression report from Yanmin
-running it through the Intel test farm. However Nick also had a
-particular workload he wanted to test, Nick, do you think you've got a
-few spare minutes to dig that workload up and give it a run?
-
-But I guess you're right, there's always a chance someone hits
-something, and I guess there's nothing to it but to deal with it when
-that comes..
+Like the other missed cleanups now possible, these are things we can
+most definitely look at once the dust settles a bit. I just didn't want
+to rewrite the world in one go.
