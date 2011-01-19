@@ -1,82 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:40766 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:40778 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754734Ab1ASVuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:50:15 -0500
-Message-ID: <20110119210840.471901095@linutronix.de>
-Date: Wed, 19 Jan 2011 21:50:02 -0000
+	id S1753867Ab1ASVuR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:50:17 -0500
+Message-ID: <20110119205258.462759212@linutronix.de>
+Date: Wed, 19 Jan 2011 21:47:44 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 33/37] powerpc: Use generic irq Kconfig
-References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=powerpc-use-generic-irq-Kconfig.patch
+Subject: [patch 00/37] genirq: Remove __do_IRQ() and cleanup irq related
+ Kconfigs
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20110119215002.vl4qXVwIxWpmaNujJXE6gbhHlNEMx509rV8z1fwM_6Q@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Ungerer <gerg@uclinux.org>, Hirokazu Takata <takata@linux-m32r.org>, Jeff Dike <jdike@addtoit.com>, Kyle McMartin <kyle@mcmartin.ca>, Michal Simek <monstr@monstr.eu>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20110119214744.SchkviyEkgeWene8ZSR22R0IuwAP4x06as8Gqn1xQGM@z>
 
-No functional change.
+Now that rc1 is out, I got reliable information about the remaining
+users of __do_IRQ(), which block the removal:
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+  arch/cris, arch/h8300, arch/m32r
+
+The following series converts these architectures to proper flow
+handlers and removes __do_IRQ(). Aside of that if cleans up the irq
+related Kconfigs in the architectures and switches them to the generic
+Kconfig in kernel/irq/
+
+The __do_IRQ() removal is only compile tested, but
+
+ - the CRIS maintainer said some time ago he is fine with breakage
+   and will deal with the fallout
+
+ - h8300 and m32r are basically unmaintained. The last updates from
+   the maintainer side have been more than a year ago.
+
+The conversion of all 3 architectures is straight forward and with low risc,
+though it's only compile tested with all available defconfigs as far as it
+goes. Some of them do not build in vanilla either, but the converted files
+build fine.
+
+The last chunk of this patch series is a straight forward conversion
+of architectures to use the generic irq Kconfig file. Compile tested
+and boot tested on a few.
+
+That said, if there are no objections and Linus does not go berserk on
+me, I'd like to get over with this right now.
+
+Thanks,
+
+	tglx
 ---
- arch/powerpc/Kconfig |   24 +++---------------------
- 1 file changed, 3 insertions(+), 21 deletions(-)
-
-Index: linux-2.6/arch/powerpc/Kconfig
-===================================================================
---- linux-2.6.orig/arch/powerpc/Kconfig
-+++ linux-2.6/arch/powerpc/Kconfig
-@@ -36,20 +36,12 @@ config GENERIC_TIME_VSYSCALL
- config GENERIC_CLOCKEVENTS
- 	def_bool y
- 
--config GENERIC_HARDIRQS
--	bool
--	default y
--
- config HAVE_SETUP_PER_CPU_AREA
- 	def_bool PPC64
- 
- config NEED_PER_CPU_EMBED_FIRST_CHUNK
- 	def_bool PPC64
- 
--config IRQ_PER_CPU
--	bool
--	default y
--
- config NR_IRQS
- 	int "Number of virtual interrupt numbers"
- 	range 32 32768
-@@ -139,6 +131,9 @@ config PPC
- 	select HAVE_PERF_EVENTS
- 	select HAVE_REGS_AND_STACK_ACCESS_API
- 	select HAVE_HW_BREAKPOINT if PERF_EVENTS && PPC_BOOK3S_64
-+	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_SPARSE_IRQ
-+	select IRQ_PER_CPU
- 
- config EARLY_PRINTK
- 	bool
-@@ -388,19 +383,6 @@ config IRQ_ALL_CPUS
- 	  CPU.  Generally saying Y is safe, although some problems have been
- 	  reported with SMP Power Macintoshes with this option enabled.
- 
--config SPARSE_IRQ
--	bool "Support sparse irq numbering"
--	default n
--	help
--	  This enables support for sparse irqs. This is useful for distro
--	  kernels that want to define a high CONFIG_NR_CPUS value but still
--	  want to have low kernel memory footprint on smaller machines.
--
--	  ( Sparse IRQs can also be beneficial on NUMA boxes, as they spread
--	    out the irq_desc[] array in a more NUMA-friendly way. )
--
--	  If you don't know what to do here, say N.
--
- config NUMA
- 	bool "NUMA support"
- 	depends on PPC64
-
+ Documentation/feature-removal-schedule.txt |    8 -
+ arch/alpha/Kconfig                         |   19 --
+ arch/blackfin/Kconfig                      |   17 --
+ arch/cris/Kconfig                          |    6 
+ arch/cris/arch-v10/kernel/irq.c            |   41 +----
+ arch/cris/arch-v32/kernel/irq.c            |   50 +-----
+ arch/cris/kernel/irq.c                     |    6 
+ arch/frv/Kconfig                           |    9 -
+ arch/h8300/Kconfig                         |    6 
+ arch/h8300/kernel/irq.c                    |   50 ++----
+ arch/ia64/Kconfig                          |   26 ---
+ arch/m32r/Kconfig                          |   11 -
+ arch/m32r/kernel/irq.c                     |   10 -
+ arch/m32r/platforms/m32104ut/setup.c       |   58 ++-----
+ arch/m32r/platforms/m32700ut/setup.c       |  214 +++++++++-------------------
+ arch/m32r/platforms/mappi/setup.c          |   78 +++-------
+ arch/m32r/platforms/mappi2/setup.c         |   89 +++--------
+ arch/m32r/platforms/mappi3/setup.c         |   92 ++++--------
+ arch/m32r/platforms/oaks32r/setup.c        |   65 ++------
+ arch/m32r/platforms/opsput/setup.c         |  220 +++++++++--------------------
+ arch/m32r/platforms/usrv/setup.c           |  115 +++++----------
+ arch/m68knommu/Kconfig                     |    9 -
+ arch/microblaze/Kconfig                    |   11 -
+ arch/mips/Kconfig                          |    3 
+ arch/mn10300/Kconfig                       |    8 -
+ arch/parisc/Kconfig                        |   18 --
+ arch/powerpc/Kconfig                       |   28 ---
+ arch/score/Kconfig                         |   10 -
+ arch/sparc/Kconfig                         |    9 -
+ arch/tile/Kconfig                          |   19 --
+ arch/um/Kconfig.common                     |    6 
+ arch/um/Kconfig.um                         |    3 
+ include/linux/irqdesc.h                    |   14 -
+ kernel/irq/Kconfig                         |    3 
+ kernel/irq/handle.c                        |  111 --------------
+ 35 files changed, 413 insertions(+), 1029 deletions(-)
 
