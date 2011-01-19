@@ -1,82 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhost.informatik.uni-hamburg.de ([134.100.9.70]:50122 "EHLO
-	mailhost.informatik.uni-hamburg.de" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752297Ab1ARTJk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Jan 2011 14:09:40 -0500
-Message-ID: <4D35E378.70300@metafoo.de>
-Date: Tue, 18 Jan 2011 20:01:12 +0100
-From: Lars-Peter Clausen <lars@metafoo.de>
-MIME-Version: 1.0
-Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big
- endian systems
-References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101181944.07146.arnd@arndb.de>
-In-Reply-To: <201101181944.07146.arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 7bit
+Received: from www.tglx.de ([62.245.132.106]:33526 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754734Ab1ASVtz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:55 -0500
+Message-ID: <20110119210840.085330728@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:34 -0000
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 25/37] alpha: Use generic irq Kconfig
+References: <20110119205258.462759212@linutronix.de>
+Content-Disposition: inline; filename=alpha-use-generic-irq-Kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110118190112.rIXycsURnCJfyklo9ThguDI9yBTPnZ_HHnR1WjDoJQU@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Richard Henderson <rth@twiddle.net>
+Message-ID: <20110119214934.n_YFRN1GPqKQMU5AMxXLTHOi2KNV4asGKy_lSVx4qc0@z>
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Richard Henderson <rth@twiddle.net>
+---
+ arch/alpha/Kconfig |   16 +++-------------
+ 1 file changed, 3 insertions(+), 13 deletions(-)
 
-On 01/18/2011 07:44 PM, Arnd Bergmann wrote:
-> On Tuesday 18 January 2011 19:11:01 Lars-Peter Clausen wrote:
->> Currently io{read,write}{16,32} expand to
->>         *addr = cpu_to_leXX(cpu_to_beXX(val))
->> and
->>         val = beXX_to_cpu(leXX_to_cpu(*addr))
->>
->> While it should rather be:
->>         *addr = cpu_to_be{16,32}(val)
->> and
->>         val = be{16,32}_to_cpu(*addr)
->>
->> The current implementation works on litte-endian targets(where cpu_to_leXX is a
->> noop), but breaks on on big-endian targets, this patch fixes it.
->>
->> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
-> 
-> The existing code looks broken on big-endian indeed, thanks
-> for the report!
-> 
-> However, you cannot use __raw_readl in general, because that
-> function knows nothing about the various kinds of I/O accesses
-> (potentially) handled by readl. Think of architectures where
-> readl is not a pointer dereference but something else.
+Index: linux-2.6/arch/alpha/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/alpha/Kconfig
++++ linux-2.6/arch/alpha/Kconfig
+@@ -8,6 +8,9 @@ config ALPHA
+ 	select HAVE_IRQ_WORK
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_DMA_ATTRS
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_IRQ_PROBE
++	select AUTO_IRQ_AFFINITY if SMP
+ 	help
+ 	  The Alpha is a 64-bit general-purpose processor designed and
+ 	  marketed by the Digital Equipment Corporation of blessed memory,
+@@ -68,19 +71,6 @@ config GENERIC_IOMAP
+ 	bool
+ 	default n
+ 
+-config GENERIC_HARDIRQS
+-	bool
+-	default y
+-
+-config GENERIC_IRQ_PROBE
+-	bool
+-	default y
+-
+-config AUTO_IRQ_AFFINITY
+-	bool
+-	depends on SMP
+-	default y
+-
+ source "init/Kconfig"
+ source "kernel/Kconfig.freezer"
+ 
 
-Well, i've though about that as well, but in the current asm-generic/io.h readl is
-unconditionally defined as cpu_to_le32(__raw_readl(addr)) and ioread32 is defined as
-readl.
 
-So unless an arch io.h undefines those macros and redefines them (which none of the
-current archs does, as far as i can see), we are o
-
-If an arch chooses to redefine ioread or readl, it should probably also redefine
-ioread{16,32}be.
-
-> 
-> The right solution is probably to use swab16/swab32 for the
-> big-endian functions. This also corrects the iowrite functions
-> which really should be using cpu_to_be32 instead of be32_to_cpu
-> (although they are always defined to be the same afaict.
-
-This would first cause a conversion to little-endian, which is a swap() in the
-generic case and then you would call swap() again on the result. Which is basically a
-noop, but I'm not sure if compilers will detect this.
-
-> 
-> 	Arnd
-
-- - Lars
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-Comment: Using GnuPG with Mozilla - http://enigmail.mozdev.org/
-
-iEYEARECAAYFAk0143gACgkQBX4mSR26RiPJwACgh1KJKR6o5X/kazS34g/stGKq
-OQ4AniZR7SlxTzpJDz7xTvPfeqAqH3S6
-=Q6cD
------END PGP SIGNATURE-----
