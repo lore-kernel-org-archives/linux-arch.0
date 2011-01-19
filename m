@@ -1,96 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33450 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33488 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754447Ab1ASVtk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:40 -0500
-Message-ID: <20110119210839.850567410@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:15 -0000
+	id S1754196Ab1ASVtr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:47 -0500
+Message-ID: <20110119210839.993106232@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:26 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 20/37] m32r: Convert opsput lanpld irq chip
+Subject: [patch 23/37] m32r: Convert to generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=m32r-convert-opsput-lanpld-type.patch
+Content-Disposition: inline; filename=m32r-convert-to-generic-irq-Kconfig
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20110119214915.g1ctZYXmivzU13OyraSbtFHzaoOOeDTgfBDh9nEGk0I@z>
+Message-ID: <20110119214926.Zu2mIKfMLoUCSH4teE3_nmqScChNwyl5J5oJnPjpE5Y@z>
 
-Convert the irq chips to the new functions and use proper flow
-handlers. handle_level_irq is appropriate.
+Use the generic irq Kconfig. Select GENERIC_HARDIRQS_NO_DEPRECATED as
+we have converted all irq_chip functions.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/m32r/platforms/opsput/setup.c |   32 ++++++++++++--------------------
- 1 file changed, 12 insertions(+), 20 deletions(-)
+ arch/m32r/Kconfig |   11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
 
-Index: linux-2.6/arch/m32r/platforms/opsput/setup.c
+Index: linux-2.6/arch/m32r/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/m32r/platforms/opsput/setup.c
-+++ linux-2.6/arch/m32r/platforms/opsput/setup.c
-@@ -167,42 +167,33 @@ static void enable_opsput_lanpld_irq(uns
- 	outw(data, port);
- }
+--- linux-2.6.orig/arch/m32r/Kconfig
++++ linux-2.6/arch/m32r/Kconfig
+@@ -7,6 +7,9 @@ config M32R
+ 	select HAVE_KERNEL_GZIP
+ 	select HAVE_KERNEL_BZIP2
+ 	select HAVE_KERNEL_LZMA
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_HARDIRQS_NO_DEPRECATED
++	select GENERIC_IRQ_PROBE
  
--static void mask_and_ack_opsput_lanpld(unsigned int irq)
-+static void mask_opsput_lanpld(struct irq_data *data)
- {
--	disable_opsput_lanpld_irq(irq);
-+	disable_opsput_lanpld_irq(data->irq);
- }
+ config SBUS
+ 	bool
+@@ -19,14 +22,6 @@ config ZONE_DMA
+ 	bool
+ 	default y
  
--static void end_opsput_lanpld_irq(unsigned int irq)
-+static void unmask_opsput_lanpld(struct irq_data *data)
- {
--	enable_opsput_lanpld_irq(irq);
-+	enable_opsput_lanpld_irq(data->irq);
- 	enable_opsput_irq(M32R_IRQ_INT0);
- }
- 
--static unsigned int startup_opsput_lanpld_irq(unsigned int irq)
--{
--	enable_opsput_lanpld_irq(irq);
--	return (0);
--}
+-config GENERIC_HARDIRQS
+-	bool
+-	default y
 -
--static void shutdown_opsput_lanpld_irq(unsigned int irq)
-+static void shutdown_opsput_lanpld(struct irq_data *data)
- {
- 	unsigned long port;
- 	unsigned int pldirq;
+-config GENERIC_IRQ_PROBE
+-	bool
+-	default y
+-
+ config NO_IOPORT
+ 	def_bool y
  
--	pldirq = irq2lanpldirq(irq);
-+	pldirq = irq2lanpldirq(data->irq);
- 	port = lanpldirq2port(pldirq);
- 	outw(PLD_ICUCR_ILEVEL7, port);
- }
- 
- static struct irq_chip opsput_lanpld_irq_type =
- {
--	.name = "OPSPUT-PLD-LAN-IRQ",
--	.startup = startup_opsput_lanpld_irq,
--	.shutdown = shutdown_opsput_lanpld_irq,
--	.enable = enable_opsput_lanpld_irq,
--	.disable = disable_opsput_lanpld_irq,
--	.ack = mask_and_ack_opsput_lanpld,
--	.end = end_opsput_lanpld_irq
-+	.name		= "OPSPUT-PLD-LAN-IRQ",
-+	.irq_shutdown	= shutdown_opsput_lanpld,
-+	.irq_mask	= mask_opsput_lanpld,
-+	.irq_unmask	= unmask_opsput_lanpld,
- };
- 
- /*
-@@ -278,7 +269,8 @@ void __init init_IRQ(void)
- {
- #if defined(CONFIG_SMC91X)
- 	/* INT#0: LAN controller on OPSPUT-LAN (SMC91C111)*/
--	set_irq_chip(OPSPUT_LAN_IRQ_LAN, &opsput_lanpld_irq_type);
-+	set_irq_chip_and_handler(OPSPUT_LAN_IRQ_LAN, &opsput_lanpld_irq_type,
-+				 handle_level_irq);
- 	lanpld_icu_data[irq2lanpldirq(OPSPUT_LAN_IRQ_LAN)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD02;	/* "H" edge sense */
- 	disable_opsput_lanpld_irq(OPSPUT_LAN_IRQ_LAN);
- #endif  /* CONFIG_SMC91X */
 
 
