@@ -1,53 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:40760 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:40766 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754849Ab1ASVuO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:50:14 -0500
-Message-ID: <20110119210840.337412061@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:52 -0000
+	id S1754734Ab1ASVuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:50:15 -0500
+Message-ID: <20110119210840.471901095@linutronix.de>
+Date: Wed, 19 Jan 2011 21:50:02 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 30/37] microblaze: Use generic irq Kconfig
+Subject: [patch 33/37] powerpc: Use generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=microblaze-use-generic-irq-Kconfig.patch
+Content-Disposition: inline; filename=powerpc-use-generic-irq-Kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Michal Simek <monstr@monstr.eu>
-Message-ID: <20110119214952.t8129MXHa6T9O6m3hv5zip8wh0Cb7J2YqSj6I8cYenM@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20110119215002.vl4qXVwIxWpmaNujJXE6gbhHlNEMx509rV8z1fwM_6Q@z>
 
 No functional change.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Michal Simek <monstr@monstr.eu>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/microblaze/Kconfig |    8 ++------
- 1 file changed, 2 insertions(+), 6 deletions(-)
+ arch/powerpc/Kconfig |   24 +++---------------------
+ 1 file changed, 3 insertions(+), 21 deletions(-)
 
-Index: linux-2.6/arch/microblaze/Kconfig
+Index: linux-2.6/arch/powerpc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/microblaze/Kconfig
-+++ linux-2.6/arch/microblaze/Kconfig
-@@ -15,6 +15,8 @@ config MICROBLAZE
- 	select TRACING_SUPPORT
- 	select OF
- 	select OF_EARLY_FLATTREE
-+	select HAVE_GENERIC_HARDIRQS
-+	select GENERIC_IRQ_PROBE
- 
- config SWAP
- 	def_bool n
-@@ -37,12 +39,6 @@ config GENERIC_FIND_NEXT_BIT
- config GENERIC_HWEIGHT
+--- linux-2.6.orig/arch/powerpc/Kconfig
++++ linux-2.6/arch/powerpc/Kconfig
+@@ -36,20 +36,12 @@ config GENERIC_TIME_VSYSCALL
+ config GENERIC_CLOCKEVENTS
  	def_bool y
  
 -config GENERIC_HARDIRQS
--	def_bool y
+-	bool
+-	default y
 -
--config GENERIC_IRQ_PROBE
--	def_bool y
--
- config GENERIC_CALIBRATE_DELAY
- 	def_bool y
+ config HAVE_SETUP_PER_CPU_AREA
+ 	def_bool PPC64
  
+ config NEED_PER_CPU_EMBED_FIRST_CHUNK
+ 	def_bool PPC64
+ 
+-config IRQ_PER_CPU
+-	bool
+-	default y
+-
+ config NR_IRQS
+ 	int "Number of virtual interrupt numbers"
+ 	range 32 32768
+@@ -139,6 +131,9 @@ config PPC
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_HW_BREAKPOINT if PERF_EVENTS && PPC_BOOK3S_64
++	select HAVE_GENERIC_HARDIRQS
++	select HAVE_SPARSE_IRQ
++	select IRQ_PER_CPU
+ 
+ config EARLY_PRINTK
+ 	bool
+@@ -388,19 +383,6 @@ config IRQ_ALL_CPUS
+ 	  CPU.  Generally saying Y is safe, although some problems have been
+ 	  reported with SMP Power Macintoshes with this option enabled.
+ 
+-config SPARSE_IRQ
+-	bool "Support sparse irq numbering"
+-	default n
+-	help
+-	  This enables support for sparse irqs. This is useful for distro
+-	  kernels that want to define a high CONFIG_NR_CPUS value but still
+-	  want to have low kernel memory footprint on smaller machines.
+-
+-	  ( Sparse IRQs can also be beneficial on NUMA boxes, as they spread
+-	    out the irq_desc[] array in a more NUMA-friendly way. )
+-
+-	  If you don't know what to do here, say N.
+-
+ config NUMA
+ 	bool "NUMA support"
+ 	depends on PPC64
 
 
