@@ -1,47 +1,29 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 31/37] mn10300: Use generic irq Kconfig
-Date: Wed, 19 Jan 2011 21:49:55 -0000
-Message-ID: <20110119210840.381111598@linutronix.de>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [patch 35/37] sparc: Use generic irq Kconfig
+Date: Wed, 19 Jan 2011 13:52:05 -0800 (PST)
+Message-ID: <20110119.135205.173868633.davem@davemloft.net>
 References: <20110119205258.462759212@linutronix.de>
+	<20110119210840.572978979@linutronix.de>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:40789 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754877Ab1ASVuU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:50:20 -0500
-Content-Disposition: inline; filename=mn10300-use-generic-irq-Kconfig.patch
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:44946
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754196Ab1ASVvc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:51:32 -0500
+In-Reply-To: <20110119210840.572978979@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
+To: tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mingo@elte.hu
 
-No functional change.
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Wed, 19 Jan 2011 21:50:09 -0000
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: David Howells <dhowells@redhat.com>
----
- arch/mn10300/Kconfig |    5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+> No functional change.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 
-Index: linux-2.6/arch/mn10300/Kconfig
-===================================================================
---- linux-2.6.orig/arch/mn10300/Kconfig
-+++ linux-2.6/arch/mn10300/Kconfig
-@@ -1,6 +1,7 @@
- config MN10300
- 	def_bool y
- 	select HAVE_OPROFILE
-+	select GENERIC_HARDIRQS
- 
- config AM33_2
- 	def_bool n
-@@ -76,10 +77,6 @@ config QUICKLIST
- config ARCH_HAS_ILOG2_U32
- 	def_bool y
- 
--# Use the generic interrupt handling code in kernel/irq/
--config GENERIC_HARDIRQS
--	def_bool y
--
- config HOTPLUG_CPU
- 	def_bool n
- 
+Acked-by: David S. Miller <davem@davemloft.net>
