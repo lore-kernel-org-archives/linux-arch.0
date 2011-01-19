@@ -1,32 +1,27 @@
-From: Kyle McMartin <kyle@mcmartin.ca>
-Subject: Re: [patch 00/37] genirq: Remove __do_IRQ() and cleanup irq related
- Kconfigs
-Date: Wed, 19 Jan 2011 17:18:28 -0500
-Message-ID: <20110119221828.GD27353@bombadil.infradead.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [patch 00/37] genirq: Remove __do_IRQ() and cleanup irq related Kconfigs
+Date: Wed, 19 Jan 2011 14:13:07 -0800
+Message-ID: <AANLkTineduG23qitc8ggDKShYJi=2vJgXbYJDjLGZKk3@mail.gmail.com>
 References: <20110119205258.462759212@linutronix.de>
- <AANLkTineduG23qitc8ggDKShYJi=2vJgXbYJDjLGZKk3@mail.gmail.com>
- <20110119221706.GC27353@bombadil.infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:37065 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753834Ab1ASWSc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jan 2011 17:18:32 -0500
-Content-Disposition: inline
-In-Reply-To: <20110119221706.GC27353@bombadil.infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Ungerer <gerg@uclinux.org>, Hirokazu Takata <takata@linux-m32r.org>, Jeff Dike <jdike@addtoit.com>, Michal Simek <monstr@monstr.eu>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110119205258.462759212@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Ungerer <gerg@uclinux.org>, Hirokazu Takata <takata@linux-m32r.org>, Jeff Dike <jdike@addtoit.com>, Kyle McMartin <kyle@mcmartin.ca>, Michal Simek <monstr@monstr.eu>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 19, 2011 at 05:17:06PM -0500, Kyle McMartin wrote:
-> I submitted series to clean these 3 up as well (but only got a response
-> from the cris folks...) If the other 2 are effectively unmaintained,
-> should I just submit the clean ups to you? (I think there were some
-> build fixes as well, will have to check.)
-> 
+On Wed, Jan 19, 2011 at 1:47 PM, Thomas Gleixner <tglx@linutronix.de> w=
+rote:
+> Now that rc1 is out, I got reliable information about the remaining
+> users of __do_IRQ(), which block the removal:
+>
+> =A0arch/cris, arch/h8300, arch/m32r
 
-Nevermind, just saw the rest of the series on linux-arch.
+I'm certainly ok with this series. It would be good to finally get rid
+of this legacy interface, and there's no longer any reason to hold it
+up. And getting rid of hundreds of lines of code is good too.
 
---Kyle
+                Linus
