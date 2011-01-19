@@ -1,98 +1,87 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
-Date: Wed, 19 Jan 2011 10:58:29 +0100
-Message-ID: <201101191058.30096.arnd@arndb.de>
-References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101182237.53601.arnd@arndb.de> <4D36129F.8000302@metafoo.de>
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big
+ endian systems
+Date: Wed, 19 Jan 2011 13:28:36 +0100
+Message-ID: <AANLkTimaTOBfC18TUyTDZ-9CLGv8qGJG714-d7Jk7NVr@mail.gmail.com>
+References: <1295374261-19609-1-git-send-email-lars@metafoo.de>
+	<201101182237.53601.arnd@arndb.de>
+	<4D36129F.8000302@metafoo.de>
+	<201101191058.30096.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:53958 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752954Ab1ASJ6f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jan 2011 04:58:35 -0500
-In-Reply-To: <4D36129F.8000302@metafoo.de>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:34061 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752613Ab1ASM2i convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jan 2011 07:28:38 -0500
+In-Reply-To: <201101191058.30096.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lars-Peter Clausen <lars@metafoo.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Lars-Peter Clausen <lars@metafoo.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tuesday 18 January 2011 23:22:23 Lars-Peter Clausen wrote:
-> On 01/18/2011 10:37 PM, Arnd Bergmann wrote:
-> > ...
-> The lm32 architecture is a big-endian softcpu architecture. I'm currently working on
-> the MilkyMist SoC which uses it and all the SoC components have native endianess.
+On 19 January 2011 10:58, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 18 January 2011 23:22:23 Lars-Peter Clausen wrote:
+>> On 01/18/2011 10:37 PM, Arnd Bergmann wrote:
+>> > ...
+>> The lm32 architecture is a big-endian softcpu architecture. I'm curr=
+ently working on
+>> the MilkyMist SoC which uses it and all the SoC components have nati=
+ve endianess.
+>
+> ok.
 
-ok.
+I think this is the key concept that's being missed here:  devices
+with _native_ endianess.  This is something that I've been grappling
+with for the OpenRISC platform, as well.
 
-> > Some architectures also define their own I/O accessors for SoC components,
-> > since those often have other requirements from PCI MMIO areas.
-> > E.g. on powerpc, the in_be32/in_le32 accessor only works on directly
-> > mapped MMIO regions and performs no PCI error handling.
-> 
-> I've seen those and actually the lm32 architecture currently defines (and uses) them
-> as well. But I wanted to replace them with something more generic and try to reuse as
-> much as possible from asm-generic.
+The ioread/write accessors are supposed to be a platform-agnostic
+interface and have a builtin assumption about the endianess of the
+device/bus.  Device drivers that use ioread32 are explicity accessing
+a little-endian device; ioread32be explicitly a big-endian device.
+It's not really for the architecture to redefine these.  The same
+applies to the readl/readw accessors as well, as far as I understand
+it.
 
-That is a very good idea in general. Unfortunately, the asm-generic
-infrastructure is currently missing an interface that is designed for
-SoC components. IMHO, it would be very good if we could use this chance
-to create one, or make an existing interface from one of the architectures
-more generic. I can also understand if you don't want to get caught up
-in the discussion between the architecture maintainers trying to find
-a common position on this ;-).
+What's needed is another way of accessing device memory that doesn't
+carry the endianess implication.  For the Wishbone bus, used by the
+OpenRISC processor, I still haven't found a more satisfactory solution
+than to define "wishbone accessors" that map to the underlying
+io-accessors of the desired endianess.  These allow the endianess of
+the bus to be set at compile time and hopefully for all wishbone
+device drivers to do the right thing.
 
-> > That is indeed huge. Byte swapping is a relatively common operation
-> > in the kernel, so independent of the solution to this particular
-> > problem, it will be a good idea to see if you can do a better
-> > implementation than this, using inline assembly or gcc internal
-> > helpers.
-> 
-> The reason why it got so huge is that the kernel was compiled without barrel-shifter
-> support, so we have basically 4 instructions per shift calling a helper function.
-> 
-> But thats not the point anyway. The point I'm trying to make is, that accessing
-> iomapped memory is exactly a single instruction. And I don't see why - no matter if
-> swab takes 4 or 20 instructions - we should add any additional overhead.
+#ifdef CONFIG_WISHBONE_BIG_ENDIAN
+#define wb_ioread8(p) ioread8(p)
+#define wb_ioread16(p) ioread16be(p)
+#define wb_ioread32(p) ioread32be(p)
+#define wb_iowrite8(p) iowrite8(p)
+#define wb_iowrite16(p) iowrite16be(p)
+#define wb_iowrite32(p) iowrite32be(p)
+#else
+#define wb_ioread8(p) ioread8(p)
+#define wb_ioread16(p) ioread16(p)
+#define wb_ioread32(p) ioread32(p)
+#define wb_iowrite8(p) iowrite8(p)
+#define wb_iowrite16(p) iowrite16(p)
+#define wb_iowrite32(p) iowrite32(p)
+#endif /* CONFIG_WISHBONE_BIG_ENDIAN */
 
-Right, and the point that I was trying to make is that an mmio read access
-typically takes many hundred cycles, somtimes thousands of cycles, to
-complete. Making the accessors out of line would be just fine, and even
-a hundred instructions would not be much of an issue then (although a bit
-silly if we just end up swapping twice, as you pointed out).
+That said, there are architectures that do redefine the endianess of
+the io-accessors to mean "native endianess", but this must have
+implications for a large number of the drivers in the kernel tree and,
+in my opinion, must be technically _incorrect_.  A driver written with
+ioread32 shouldn't have the endianess of the access changed by the
+architecture underneath it... or are others of a different opinion?
 
-In the abscence of the barrel shifter, would it help to define the
-function like this? (independent of the ioread question)
+>> >
+>> > * change the common ioread*/iowrite* functions to all be based on
+>> > =C2=A0 the __raw_* I/O versions, not just the big-endian ones. The
+>> > =C2=A0 space overhead you quoted is enough of a justification for =
+that.
+>>
 
-static inline __u32 __arch__swab32(__u32 x)
-{
-        union { __u32 u; char c[4]; } in, out;
-	in.u = x;
-	out.c[0] = in.c[3];
-	out.c[1] = in.c[2];
-	out.c[2] = in.c[1];
-	out.c[3] = in.c[0];
-        return out.u;
-}
-#define __arch__swab32 __arch__swab32
+Doing this breaks the endianess assumption built into the io-accessors.
 
-If your compiler has a __builtin_bswap32, that would be even better.
-
-> >> So I as someone who implements arch support has two options either redefine
-> >> ioread32be in the arch io header, or use __raw_readl everywhere to access iomap memory.
-> > 
-> > __raw_readl is not a good thing to use, because of a number of reasons.
-> > Please choose one of these four:
-> > 
-> > * change the common ioread*/iowrite* functions to all be based on
-> >   the __raw_* I/O versions, not just the big-endian ones. The
-> >   space overhead you quoted is enough of a justification for that.
-> 
-> I would prefer this solution.
-
-Ok, fair enough. When you send a patch to do that, please indicate whether
-you prefer me to take it in my tree, or you just want to carry it in your
-series with my Ack.
-
-	Arnd
+/Jonas
