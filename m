@@ -1,59 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33526 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:40752 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754734Ab1ASVtz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:55 -0500
-Message-ID: <20110119210840.085330728@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:34 -0000
+	id S1754734Ab1ASVuM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:50:12 -0500
+Message-ID: <20110119210840.290576295@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:48 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 25/37] alpha: Use generic irq Kconfig
+Subject: [patch 29/37] m68knommu: Use generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=alpha-use-generic-irq-Kconfig.patch
+Content-Disposition: inline; filename=m68knommu-use-generic-irq-Kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Richard Henderson <rth@twiddle.net>
-Message-ID: <20110119214934.n_YFRN1GPqKQMU5AMxXLTHOi2KNV4asGKy_lSVx4qc0@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Greg Ungerer <gerg@uclinux.org>
+Message-ID: <20110119214948.FkhGPF_YFzWh8cjGsHcToTy9Qs73JSjgRbMebVh67uY@z>
+
+No functional change.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Richard Henderson <rth@twiddle.net>
+Cc: Greg Ungerer <gerg@uclinux.org>
 ---
- arch/alpha/Kconfig |   16 +++-------------
- 1 file changed, 3 insertions(+), 13 deletions(-)
+ arch/m68knommu/Kconfig |    5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
 
-Index: linux-2.6/arch/alpha/Kconfig
+Index: linux-2.6/arch/m68knommu/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/alpha/Kconfig
-+++ linux-2.6/arch/alpha/Kconfig
-@@ -8,6 +8,9 @@ config ALPHA
- 	select HAVE_IRQ_WORK
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DMA_ATTRS
-+	select HAVE_GENERIC_HARDIRQS
-+	select GENERIC_IRQ_PROBE
-+	select AUTO_IRQ_AFFINITY if SMP
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-@@ -68,19 +71,6 @@ config GENERIC_IOMAP
+--- linux-2.6.orig/arch/m68knommu/Kconfig
++++ linux-2.6/arch/m68knommu/Kconfig
+@@ -2,6 +2,7 @@ config M68K
  	bool
- 	default n
+ 	default y
+ 	select HAVE_IDE
++	select HAVE_GENERIC_HARDIRQS
+ 
+ config MMU
+ 	bool
+@@ -48,10 +49,6 @@ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
  
 -config GENERIC_HARDIRQS
 -	bool
 -	default y
 -
--config GENERIC_IRQ_PROBE
--	bool
--	default y
--
--config AUTO_IRQ_AFFINITY
--	bool
--	depends on SMP
--	default y
--
- source "init/Kconfig"
- source "kernel/Kconfig.freezer"
- 
+ config GENERIC_CALIBRATE_DELAY
+ 	bool
+ 	default y
 
 
