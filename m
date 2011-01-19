@@ -1,45 +1,48 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 37/37] um: Use generic irq Kconfig
-Date: Wed, 19 Jan 2011 21:50:16 -0000
-Message-ID: <20110119210840.679834263@linutronix.de>
+Subject: [patch 34/37] score: Use generic irq Kconfig
+Date: Wed, 19 Jan 2011 21:50:05 -0000
+Message-ID: <20110119210840.524713980@linutronix.de>
 References: <20110119205258.462759212@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:40804 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:40794 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753895Ab1ASVuc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:50:32 -0500
-Content-Disposition: inline; filename=um--use-generic-irq-Kconfig.patch
+	id S1754858Ab1ASVuX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:50:23 -0500
+Content-Disposition: inline; filename=score-use-generic-irq-Kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Jeff Dike <jdike@addtoit.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Chen Liqin <liqin.chen@sunplusct.com>
 
-No functional change.
+No functional change
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
 ---
- arch/um/Kconfig.common |    6 +-----
- 1 file changed, 1 insertion(+), 5 deletions(-)
+ arch/score/Kconfig |    7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-Index: linux-2.6/arch/um/Kconfig.common
+Index: linux-2.6/arch/score/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/um/Kconfig.common
-+++ linux-2.6/arch/um/Kconfig.common
-@@ -3,14 +3,10 @@ config DEFCONFIG_LIST
- 	option defconfig_list
- 	default "arch/$ARCH/defconfig"
+--- linux-2.6.orig/arch/score/Kconfig
++++ linux-2.6/arch/score/Kconfig
+@@ -1,5 +1,9 @@
+ menu "Machine selection"
  
--# UML uses the generic IRQ subsystem
++config SCORE
++       def_bool y
++       select HAVE_GENERIC_HARDIRQS
++
+ choice
+ 	prompt "System type"
+ 	default MACH_SPCT6600
+@@ -65,9 +69,6 @@ menu "Kernel type"
+ config 32BIT
+ 	def_bool y
+ 
 -config GENERIC_HARDIRQS
--	bool
--	default y
+-	def_bool y
 -
- config UML
- 	bool
- 	default y
-+	select HAVE_GENERIC_HARDIRQS
+ config ARCH_FLATMEM_ENABLE
+ 	def_bool y
  
- config MMU
- 	bool
