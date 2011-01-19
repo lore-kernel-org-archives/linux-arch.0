@@ -1,61 +1,60 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 13/37] m32r: Convert m32700ut lcdpld irq chip
-Date: Wed, 19 Jan 2011 21:48:50 -0000
-Message-ID: <20110119210839.482865497@linutronix.de>
+Subject: [patch 21/37] m32r: Convert opsput_lcdpld irq chip
+Date: Wed, 19 Jan 2011 21:49:19 -0000
+Message-ID: <20110119210839.899681212@linutronix.de>
 References: <20110119205258.462759212@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33452 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33418 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754469Ab1ASVtk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:40 -0500
-Content-Disposition: inline;
- filename=m32r-convert-m32700ut-lcdpld_irq_type.patch
+	id S1754362Ab1ASVte (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:34 -0500
+Content-Disposition: inline; filename=m32r-convert-opsput-lcdpld-type.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
 
-Convert the irq chip to the new functions and use proper flow
+Convert the irq chips to the new functions and use proper flow
 handlers. handle_level_irq is appropriate.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/m32r/platforms/m32700ut/setup.c |   32 ++++++++++++--------------------
- 1 file changed, 12 insertions(+), 20 deletions(-)
+ arch/m32r/platforms/opsput/setup.c |   42 ++++++++++++++-----------------------
+ 1 file changed, 16 insertions(+), 26 deletions(-)
 
-Index: linux-2.6/arch/m32r/platforms/m32700ut/setup.c
+Index: linux-2.6/arch/m32r/platforms/opsput/setup.c
 ===================================================================
---- linux-2.6.orig/arch/m32r/platforms/m32700ut/setup.c
-+++ linux-2.6/arch/m32r/platforms/m32700ut/setup.c
-@@ -226,42 +226,33 @@ static void enable_m32700ut_lcdpld_irq(u
+--- linux-2.6.orig/arch/m32r/platforms/opsput/setup.c
++++ linux-2.6/arch/m32r/platforms/opsput/setup.c
+@@ -227,42 +227,32 @@ static void enable_opsput_lcdpld_irq(uns
  	outw(data, port);
  }
  
--static void mask_and_ack_m32700ut_lcdpld(unsigned int irq)
-+static void mask_m32700ut_lcdpld(struct irq_data *data)
+-static void mask_and_ack_opsput_lcdpld(unsigned int irq)
++static void mask_opsput_lcdpld(struct irq_data *data)
  {
--	disable_m32700ut_lcdpld_irq(irq);
-+	disable_m32700ut_lcdpld_irq(data->irq);
+-	disable_opsput_lcdpld_irq(irq);
++	disable_opsput_lcdpld_irq(data->irq);
  }
  
--static void end_m32700ut_lcdpld_irq(unsigned int irq)
-+static void unmask_m32700ut_lcdpld(struct irq_data *data)
+-static void end_opsput_lcdpld_irq(unsigned int irq)
++static void unmask_opsput_lcdpld(struct irq_data *data)
  {
--	enable_m32700ut_lcdpld_irq(irq);
-+	enable_m32700ut_lcdpld_irq(data->irq);
- 	enable_m32700ut_irq(M32R_IRQ_INT2);
+-	enable_opsput_lcdpld_irq(irq);
++	enable_opsput_lcdpld_irq(data->irq);
+ 	enable_opsput_irq(M32R_IRQ_INT2);
  }
  
--static unsigned int startup_m32700ut_lcdpld_irq(unsigned int irq)
+-static unsigned int startup_opsput_lcdpld_irq(unsigned int irq)
 -{
--	enable_m32700ut_lcdpld_irq(irq);
+-	enable_opsput_lcdpld_irq(irq);
 -	return (0);
 -}
 -
--static void shutdown_m32700ut_lcdpld_irq(unsigned int irq)
-+static void shutdown_m32700ut_lcdpld(struct irq_data *data)
+-static void shutdown_opsput_lcdpld_irq(unsigned int irq)
++static void shutdown_opsput_lcdpld(struct irq_data *data)
  {
  	unsigned long port;
  	unsigned int pldirq;
@@ -66,29 +65,37 @@ Index: linux-2.6/arch/m32r/platforms/m32700ut/setup.c
  	outw(PLD_ICUCR_ILEVEL7, port);
  }
  
- static struct irq_chip m32700ut_lcdpld_irq_type =
- {
--	.name = "M32700UT-PLD-LCD-IRQ",
--	.startup = startup_m32700ut_lcdpld_irq,
--	.shutdown = shutdown_m32700ut_lcdpld_irq,
--	.enable = enable_m32700ut_lcdpld_irq,
--	.disable = disable_m32700ut_lcdpld_irq,
--	.ack = mask_and_ack_m32700ut_lcdpld,
--	.end = end_m32700ut_lcdpld_irq
-+	.name		= "M32700UT-PLD-LCD-IRQ",
-+	.irq_shutdown	= shutdown_m32700ut_lcdpld,
-+	.irq_mask	= mask_m32700ut_lcdpld,
-+	.irq_unmask	= unmask_m32700ut_lcdpld,
+-static struct irq_chip opsput_lcdpld_irq_type =
+-{
+-	"OPSPUT-PLD-LCD-IRQ",
+-	startup_opsput_lcdpld_irq,
+-	shutdown_opsput_lcdpld_irq,
+-	enable_opsput_lcdpld_irq,
+-	disable_opsput_lcdpld_irq,
+-	mask_and_ack_opsput_lcdpld,
+-	end_opsput_lcdpld_irq
++static struct irq_chip opsput_lcdpld_irq_type = {
++	.name		= "OPSPUT-PLD-LCD-IRQ",
++	.irq_shutdown	= shutdown_opsput_lcdpld,
++	.irq_mask	= mask_opsput_lcdpld,
++	.irq_unmask	= unmask_opsput_lcdpld,
  };
  
  void __init init_IRQ(void)
-@@ -358,7 +349,8 @@ void __init init_IRQ(void)
+@@ -358,11 +348,11 @@ void __init init_IRQ(void)
+ 	enable_opsput_irq(M32R_IRQ_INT1);
  
  #if defined(CONFIG_USB)
- 	outw(USBCR_OTGS, USBCR); 	/* USBCR: non-OTG */
--	set_irq_chip(M32700UT_LCD_IRQ_USB_INT1, &m32700ut_lcdpld_irq_type);
-+	set_irq_chip_and_handler(M32700UT_LCD_IRQ_USB_INT1,
-+				 &m32700ut_lcdpld_irq_type, handle_level_irq);
- 
- 	lcdpld_icu_data[irq2lcdpldirq(M32700UT_LCD_IRQ_USB_INT1)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD01;	/* "L" level sense */
- 	disable_m32700ut_lcdpld_irq(M32700UT_LCD_IRQ_USB_INT1);
+-	outw(USBCR_OTGS, USBCR); 	/* USBCR: non-OTG */
+-
+-    set_irq_chip(OPSPUT_LCD_IRQ_USB_INT1, &opsput_lcdpld_irq_type);
+-    lcdpld_icu_data[irq2lcdpldirq(OPSPUT_LCD_IRQ_USB_INT1)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD01;	/* "L" level sense */
+-    disable_opsput_lcdpld_irq(OPSPUT_LCD_IRQ_USB_INT1);
++	outw(USBCR_OTGS, USBCR);	/* USBCR: non-OTG */
++	set_irq_chip_and_handler(OPSPUT_LCD_IRQ_USB_INT1,
++				 &opsput_lcdpld_irq_type, handle_level_irq);
++	lcdpld_icu_data[irq2lcdpldirq(OPSPUT_LCD_IRQ_USB_INT1)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD01;	/* "L" level sense */
++	disable_opsput_lcdpld_irq(OPSPUT_LCD_IRQ_USB_INT1);
+ #endif
+ 	/*
+ 	 * INT2# is used for BAT, USB, AUDIO
