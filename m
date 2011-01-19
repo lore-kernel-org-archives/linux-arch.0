@@ -1,52 +1,61 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 25/37] alpha: Use generic irq Kconfig
-Date: Wed, 19 Jan 2011 21:49:34 -0000
-Message-ID: <20110119210840.085330728@linutronix.de>
+Subject: [patch 28/37] ia64: Use generic irq Kconfig
+Date: Wed, 19 Jan 2011 21:49:45 -0000
+Message-ID: <20110119210840.241519669@linutronix.de>
 References: <20110119205258.462759212@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=alpha-use-generic-irq-Kconfig.patch
+Content-Disposition: inline; filename=ia64-use-generic-irq-Kconfig.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Richard Henderson <rth@twiddle.net>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Tony Luck <tony.luck@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Richard Henderson <rth@twiddle.net>
----
- arch/alpha/Kconfig |   16 +++-------------
- 1 file changed, 3 insertions(+), 13 deletions(-)
+No functional change.
 
-Index: linux-2.6/arch/alpha/Kconfig
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tony Luck <tony.luck@intel.com>
+---
+ arch/ia64/Kconfig |   23 ++++-------------------
+ 1 file changed, 4 insertions(+), 19 deletions(-)
+
+Index: linux-2.6/arch/ia64/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/alpha/Kconfig
-+++ linux-2.6/arch/alpha/Kconfig
-@@ -8,6 +8,9 @@ config ALPHA
- 	select HAVE_IRQ_WORK
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DMA_ATTRS
+--- linux-2.6.orig/arch/ia64/Kconfig
++++ linux-2.6/arch/ia64/Kconfig
+@@ -22,6 +22,10 @@ config IA64
+ 	select HAVE_KVM
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_DMA_API_DEBUG
 +	select HAVE_GENERIC_HARDIRQS
 +	select GENERIC_IRQ_PROBE
-+	select AUTO_IRQ_AFFINITY if SMP
++	select GENERIC_PENDING_IRQ if SMP
++	select IRQ_PER_CPU
+ 	default y
  	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-@@ -68,19 +71,6 @@ config GENERIC_IOMAP
- 	bool
- 	default n
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+@@ -678,25 +682,6 @@ source "arch/ia64/kvm/Kconfig"
  
+ source "lib/Kconfig"
+ 
+-#
+-# Use the generic interrupt handling code in kernel/irq/:
+-#
 -config GENERIC_HARDIRQS
--	bool
--	default y
+-	def_bool y
 -
 -config GENERIC_IRQ_PROBE
 -	bool
 -	default y
 -
--config AUTO_IRQ_AFFINITY
+-config GENERIC_PENDING_IRQ
 -	bool
--	depends on SMP
+-	depends on GENERIC_HARDIRQS && SMP
 -	default y
 -
- source "init/Kconfig"
- source "kernel/Kconfig.freezer"
+-config IRQ_PER_CPU
+-	bool
+-	default y
+-
+ config IOMMU_HELPER
+ 	def_bool (IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB || IA64_GENERIC || SWIOTLB)
  
