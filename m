@@ -1,58 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33488 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33561 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754196Ab1ASVtr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:47 -0500
-Message-ID: <20110119210839.993106232@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:26 -0000
+	id S1754734Ab1ASVuB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:50:01 -0500
+Message-ID: <20110119210840.241519669@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:45 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 23/37] m32r: Convert to generic irq Kconfig
+Subject: [patch 28/37] ia64: Use generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=m32r-convert-to-generic-irq-Kconfig
+Content-Disposition: inline; filename=ia64-use-generic-irq-Kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20110119214926.Zu2mIKfMLoUCSH4teE3_nmqScChNwyl5J5oJnPjpE5Y@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20110119214945.txLF3fsyWAket6FOPSHtwmTFf1I8fVIHZR8_AxKlVBg@z>
 
-Use the generic irq Kconfig. Select GENERIC_HARDIRQS_NO_DEPRECATED as
-we have converted all irq_chip functions.
+No functional change.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Tony Luck <tony.luck@intel.com>
 ---
- arch/m32r/Kconfig |   11 +++--------
- 1 file changed, 3 insertions(+), 8 deletions(-)
+ arch/ia64/Kconfig |   23 ++++-------------------
+ 1 file changed, 4 insertions(+), 19 deletions(-)
 
-Index: linux-2.6/arch/m32r/Kconfig
+Index: linux-2.6/arch/ia64/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/m32r/Kconfig
-+++ linux-2.6/arch/m32r/Kconfig
-@@ -7,6 +7,9 @@ config M32R
- 	select HAVE_KERNEL_GZIP
- 	select HAVE_KERNEL_BZIP2
- 	select HAVE_KERNEL_LZMA
+--- linux-2.6.orig/arch/ia64/Kconfig
++++ linux-2.6/arch/ia64/Kconfig
+@@ -22,6 +22,10 @@ config IA64
+ 	select HAVE_KVM
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_DMA_API_DEBUG
 +	select HAVE_GENERIC_HARDIRQS
-+	select GENERIC_HARDIRQS_NO_DEPRECATED
 +	select GENERIC_IRQ_PROBE
- 
- config SBUS
- 	bool
-@@ -19,14 +22,6 @@ config ZONE_DMA
- 	bool
++	select GENERIC_PENDING_IRQ if SMP
++	select IRQ_PER_CPU
  	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+@@ -678,25 +682,6 @@ source "arch/ia64/kvm/Kconfig"
  
+ source "lib/Kconfig"
+ 
+-#
+-# Use the generic interrupt handling code in kernel/irq/:
+-#
 -config GENERIC_HARDIRQS
--	bool
--	default y
+-	def_bool y
 -
 -config GENERIC_IRQ_PROBE
 -	bool
 -	default y
 -
- config NO_IOPORT
- 	def_bool y
+-config GENERIC_PENDING_IRQ
+-	bool
+-	depends on GENERIC_HARDIRQS && SMP
+-	default y
+-
+-config IRQ_PER_CPU
+-	bool
+-	default y
+-
+ config IOMMU_HELPER
+ 	def_bool (IA64_HP_ZX1 || IA64_HP_ZX1_SWIOTLB || IA64_GENERIC || SWIOTLB)
  
 
 
