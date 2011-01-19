@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33353 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33372 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754008Ab1ASVtS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:18 -0500
-Message-ID: <20110119210839.635501556@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:01 -0000
+	id S1754221Ab1ASVtZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:25 -0500
+Message-ID: <20110119210839.741953717@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:08 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 16/37] m32r: Convert mappi3 irq chip
+Subject: [patch 18/37] m32r: Convert opsput irq chip
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=m32r-convert-mappi3.patch
+Content-Disposition: inline; filename=m32r-convert-opsput-opsput_irq_type.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20110119214901.NUnI7f-Mjbi4VatzBH2-0w8QrYMUWa1DdzFTxj2hmd4@z>
+Message-ID: <20110119214908.-DjP4tFRAjIdmXa_6BZqOd-FPsj6SdtASxYji4bDB3Y@z>
 
 Convert the irq chips to the new functions and use proper flow
 handlers. handle_level_irq is appropriate.
@@ -22,39 +22,38 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/m32r/platforms/mappi3/setup.c |   62 ++++++++++++++++++-------------------
- 1 file changed, 31 insertions(+), 31 deletions(-)
-
-Index: linux-2.6/arch/m32r/platforms/mappi3/setup.c
+ arch/m32r/platforms/opsput/setup.c |   58 +++++++++++++++++--------------------
+ 1 file changed, 27 insertions(+), 31 deletions(-)
+Index: linux-2.6/arch/m32r/platforms/opsput/setup.c
 ===================================================================
---- linux-2.6.orig/arch/m32r/platforms/mappi3/setup.c
-+++ linux-2.6/arch/m32r/platforms/mappi3/setup.c
-@@ -46,98 +46,98 @@ static void enable_mappi3_irq(unsigned i
+--- linux-2.6.orig/arch/m32r/platforms/opsput/setup.c
++++ linux-2.6/arch/m32r/platforms/opsput/setup.c
+@@ -46,39 +46,30 @@ static void enable_opsput_irq(unsigned i
  	outl(data, port);
  }
  
--static void mask_and_ack_mappi3(unsigned int irq)
-+static void mask_mappi3(struct irq_data *data)
+-static void mask_and_ack_opsput(unsigned int irq)
++static void mask_opsput(struct irq_data *data)
  {
--	disable_mappi3_irq(irq);
-+	disable_mappi3_irq(data->irq);
+-	disable_opsput_irq(irq);
++	disable_opsput_irq(data->irq);
  }
  
--static void end_mappi3_irq(unsigned int irq)
-+static void unmask_mappi3(struct irq_data *data)
+-static void end_opsput_irq(unsigned int irq)
++static void unmask_opsput(struct irq_data *data)
  {
--	enable_mappi3_irq(irq);
-+	enable_mappi3_irq(data->irq);
+-	enable_opsput_irq(irq);
++	enable_opsput_irq(data->irq);
  }
  
--static unsigned int startup_mappi3_irq(unsigned int irq)
+-static unsigned int startup_opsput_irq(unsigned int irq)
 -{
--	enable_mappi3_irq(irq);
+-	enable_opsput_irq(irq);
 -	return (0);
 -}
 -
--static void shutdown_mappi3_irq(unsigned int irq)
-+static void shutdown_mappi3(struct irq_data *data)
+-static void shutdown_opsput_irq(unsigned int irq)
++static void shutdown_opsput(struct irq_data *data)
  {
  	unsigned long port;
  
@@ -63,101 +62,119 @@ Index: linux-2.6/arch/m32r/platforms/mappi3/setup.c
  	outl(M32R_ICUCR_ILEVEL7, port);
  }
  
--static struct irq_chip mappi3_irq_type =
--{
--	.name = "MAPPI3-IRQ",
--	.startup = startup_mappi3_irq,
--	.shutdown = shutdown_mappi3_irq,
--	.enable = enable_mappi3_irq,
--	.disable = disable_mappi3_irq,
--	.ack = mask_and_ack_mappi3,
--	.end = end_mappi3_irq
-+static struct irq_chip mappi3_irq_type = {
-+	.name		= "MAPPI3-IRQ",
-+	.irq_shutdown	= shutdown_mappi3,
-+	.irq_mask	= mask_mappi3,
-+	.irq_unmask	= unmask_mappi3,
+ static struct irq_chip opsput_irq_type =
+ {
+-	.name = "OPSPUT-IRQ",
+-	.startup = startup_opsput_irq,
+-	.shutdown = shutdown_opsput_irq,
+-	.enable = enable_opsput_irq,
+-	.disable = disable_opsput_irq,
+-	.ack = mask_and_ack_opsput,
+-	.end = end_opsput_irq
++	.name		= "OPSPUT-IRQ",
++	.irq_shutdown	= shutdown_opsput,
++	.irq_mask	= mask_opsput,
++	.irq_unmask	= unmask_opsput,
  };
  
- void __init init_IRQ(void)
+ /*
+@@ -100,7 +91,6 @@ static void disable_opsput_pld_irq(unsig
+ 	unsigned int pldirq;
+ 
+ 	pldirq = irq2pldirq(irq);
+-//	disable_opsput_irq(M32R_IRQ_INT1);
+ 	port = pldirq2port(pldirq);
+ 	data = pld_icu_data[pldirq].icucr|PLD_ICUCR_ILEVEL7;
+ 	outw(data, port);
+@@ -112,7 +102,6 @@ static void enable_opsput_pld_irq(unsign
+ 	unsigned int pldirq;
+ 
+ 	pldirq = irq2pldirq(irq);
+-//	enable_opsput_irq(M32R_IRQ_INT1);
+ 	port = pldirq2port(pldirq);
+ 	data = pld_icu_data[pldirq].icucr|PLD_ICUCR_IEN|PLD_ICUCR_ILEVEL6;
+ 	outw(data, port);
+@@ -127,7 +116,7 @@ static void mask_and_ack_opsput_pld(unsi
+ static void end_opsput_pld_irq(unsigned int irq)
  {
- #if defined(CONFIG_SMC91X)
- 	/* INT0 : LAN controller (SMC91111) */
--	set_irq_chip(M32R_IRQ_INT0, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_INT0, &mappi3_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_INT0].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD10;
- 	disable_mappi3_irq(M32R_IRQ_INT0);
+ 	enable_opsput_pld_irq(irq);
+-	end_opsput_irq(M32R_IRQ_INT1);
++	enable_opsput_irq(M32R_IRQ_INT1);
+ }
+ 
+ static unsigned int startup_opsput_pld_irq(unsigned int irq)
+@@ -197,7 +186,7 @@ static void mask_and_ack_opsput_lanpld(u
+ static void end_opsput_lanpld_irq(unsigned int irq)
+ {
+ 	enable_opsput_lanpld_irq(irq);
+-	end_opsput_irq(M32R_IRQ_INT0);
++	enable_opsput_irq(M32R_IRQ_INT0);
+ }
+ 
+ static unsigned int startup_opsput_lanpld_irq(unsigned int irq)
+@@ -266,7 +255,7 @@ static void mask_and_ack_opsput_lcdpld(u
+ static void end_opsput_lcdpld_irq(unsigned int irq)
+ {
+ 	enable_opsput_lcdpld_irq(irq);
+-	end_opsput_irq(M32R_IRQ_INT2);
++	enable_opsput_irq(M32R_IRQ_INT2);
+ }
+ 
+ static unsigned int startup_opsput_lcdpld_irq(unsigned int irq)
+@@ -306,32 +295,38 @@ void __init init_IRQ(void)
  #endif  /* CONFIG_SMC91X */
  
  	/* MFT2 : system timer */
--	set_irq_chip(M32R_IRQ_MFT2, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_MFT2, &mappi3_irq_type,
+-	set_irq_chip(M32R_IRQ_MFT2, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_MFT2, &opsput_irq_type,
 +				 handle_level_irq);
  	icu_data[M32R_IRQ_MFT2].icucr = M32R_ICUCR_IEN;
- 	disable_mappi3_irq(M32R_IRQ_MFT2);
+ 	disable_opsput_irq(M32R_IRQ_MFT2);
  
- #ifdef CONFIG_SERIAL_M32R_SIO
- 	/* SIO0_R : uart receive data */
--	set_irq_chip(M32R_IRQ_SIO0_R, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO0_R, &mappi3_irq_type,
+ 	/* SIO0 : receive */
+-	set_irq_chip(M32R_IRQ_SIO0_R, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_SIO0_R, &opsput_irq_type,
 +				 handle_level_irq);
  	icu_data[M32R_IRQ_SIO0_R].icucr = 0;
- 	disable_mappi3_irq(M32R_IRQ_SIO0_R);
+ 	disable_opsput_irq(M32R_IRQ_SIO0_R);
  
- 	/* SIO0_S : uart send data */
--	set_irq_chip(M32R_IRQ_SIO0_S, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO0_S, &mappi3_irq_type,
+ 	/* SIO0 : send */
+-	set_irq_chip(M32R_IRQ_SIO0_S, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_SIO0_S, &opsput_irq_type,
 +				 handle_level_irq);
  	icu_data[M32R_IRQ_SIO0_S].icucr = 0;
- 	disable_mappi3_irq(M32R_IRQ_SIO0_S);
- 	/* SIO1_R : uart receive data */
--	set_irq_chip(M32R_IRQ_SIO1_R, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO1_R, &mappi3_irq_type,
+ 	disable_opsput_irq(M32R_IRQ_SIO0_S);
+ 
+ 	/* SIO1 : receive */
+-	set_irq_chip(M32R_IRQ_SIO1_R, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_SIO1_R, &opsput_irq_type,
 +				 handle_level_irq);
  	icu_data[M32R_IRQ_SIO1_R].icucr = 0;
- 	disable_mappi3_irq(M32R_IRQ_SIO1_R);
+ 	disable_opsput_irq(M32R_IRQ_SIO1_R);
  
- 	/* SIO1_S : uart send data */
--	set_irq_chip(M32R_IRQ_SIO1_S, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO1_S, &mappi3_irq_type,
+ 	/* SIO1 : send */
+-	set_irq_chip(M32R_IRQ_SIO1_S, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_SIO1_S, &opsput_irq_type,
 +				 handle_level_irq);
  	icu_data[M32R_IRQ_SIO1_S].icucr = 0;
- 	disable_mappi3_irq(M32R_IRQ_SIO1_S);
- #endif  /* CONFIG_M32R_USE_DBG_CONSOLE */
+ 	disable_opsput_irq(M32R_IRQ_SIO1_S);
  
- #if defined(CONFIG_USB)
- 	/* INT1 : USB Host controller interrupt */
--	set_irq_chip(M32R_IRQ_INT1, &mappi3_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_INT1, &mappi3_irq_type,
+ 	/* DMA1 : */
+-	set_irq_chip(M32R_IRQ_DMA1, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_DMA1, &opsput_irq_type,
 +				 handle_level_irq);
- 	icu_data[M32R_IRQ_INT1].icucr = M32R_ICUCR_ISMOD01;
- 	disable_mappi3_irq(M32R_IRQ_INT1);
- #endif /* CONFIG_USB */
+ 	icu_data[M32R_IRQ_DMA1].icucr = 0;
+ 	disable_opsput_irq(M32R_IRQ_DMA1);
  
- 	/* CFC IREQ */
--	set_irq_chip(PLD_IRQ_CFIREQ, &mappi3_irq_type);
-+	set_irq_chip_and_handler(PLD_IRQ_CFIREQ, &mappi3_irq_type,
+@@ -394,7 +389,8 @@ void __init init_IRQ(void)
+ 	/*
+ 	 * INT3# is used for AR
+ 	 */
+-	set_irq_chip(M32R_IRQ_INT3, &opsput_irq_type);
++	set_irq_chip_and_handler(M32R_IRQ_INT3, &opsput_irq_type,
 +				 handle_level_irq);
- 	icu_data[PLD_IRQ_CFIREQ].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD01;
- 	disable_mappi3_irq(PLD_IRQ_CFIREQ);
- 
- #if defined(CONFIG_M32R_CFC)
- 	/* ICUCR41: CFC Insert & eject */
--	set_irq_chip(PLD_IRQ_CFC_INSERT, &mappi3_irq_type);
-+	set_irq_chip_and_handler(PLD_IRQ_CFC_INSERT, &mappi3_irq_type,
-+				 handle_level_irq);
- 	icu_data[PLD_IRQ_CFC_INSERT].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD00;
- 	disable_mappi3_irq(PLD_IRQ_CFC_INSERT);
- 
- #endif /* CONFIG_M32R_CFC */
- 
- 	/* IDE IREQ */
--	set_irq_chip(PLD_IRQ_IDEIREQ, &mappi3_irq_type);
-+	set_irq_chip_and_handler(PLD_IRQ_IDEIREQ, &mappi3_irq_type,
-+				 handle_level_irq);
- 	icu_data[PLD_IRQ_IDEIREQ].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD10;
- 	disable_mappi3_irq(PLD_IRQ_IDEIREQ);
- 
+ 	icu_data[M32R_IRQ_INT3].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD10;
+ 	disable_opsput_irq(M32R_IRQ_INT3);
+ #endif /* CONFIG_VIDEO_M32R_AR */
 
 
