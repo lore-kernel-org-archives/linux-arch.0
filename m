@@ -1,20 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33410 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33450 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754008Ab1ASVtc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:32 -0500
-Message-ID: <20110119210839.433082613@linutronix.de>
-Date: Wed, 19 Jan 2011 21:48:46 -0000
+	id S1754447Ab1ASVtk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:40 -0500
+Message-ID: <20110119210839.850567410@linutronix.de>
+Date: Wed, 19 Jan 2011 21:49:15 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 12/37] m32r: Convert m32700ut lanpld irq chip
+Subject: [patch 20/37] m32r: Convert opsput lanpld irq chip
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline;
- filename=m32r-convert-m32700ut-lanpld_irq_type.patch
+Content-Disposition: inline; filename=m32r-convert-opsput-lanpld-type.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20110119214846.tzPEtvL-lv6AyALVCYIA-rRMCQ39U8FQ9k_MAF7QE5Q@z>
+Message-ID: <20110119214915.g1ctZYXmivzU13OyraSbtFHzaoOOeDTgfBDh9nEGk0I@z>
 
 Convert the irq chips to the new functions and use proper flow
 handlers. handle_level_irq is appropriate.
@@ -23,40 +22,40 @@ Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
 Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/m32r/platforms/m32700ut/setup.c |   32 ++++++++++++--------------------
+ arch/m32r/platforms/opsput/setup.c |   32 ++++++++++++--------------------
  1 file changed, 12 insertions(+), 20 deletions(-)
 
-Index: linux-2.6/arch/m32r/platforms/m32700ut/setup.c
+Index: linux-2.6/arch/m32r/platforms/opsput/setup.c
 ===================================================================
---- linux-2.6.orig/arch/m32r/platforms/m32700ut/setup.c
-+++ linux-2.6/arch/m32r/platforms/m32700ut/setup.c
-@@ -166,42 +166,33 @@ static void enable_m32700ut_lanpld_irq(u
+--- linux-2.6.orig/arch/m32r/platforms/opsput/setup.c
++++ linux-2.6/arch/m32r/platforms/opsput/setup.c
+@@ -167,42 +167,33 @@ static void enable_opsput_lanpld_irq(uns
  	outw(data, port);
  }
  
--static void mask_and_ack_m32700ut_lanpld(unsigned int irq)
-+static void mask_m32700ut_lanpld(struct irq_data *data)
+-static void mask_and_ack_opsput_lanpld(unsigned int irq)
++static void mask_opsput_lanpld(struct irq_data *data)
  {
--	disable_m32700ut_lanpld_irq(irq);
-+	disable_m32700ut_lanpld_irq(data->irq);
+-	disable_opsput_lanpld_irq(irq);
++	disable_opsput_lanpld_irq(data->irq);
  }
  
--static void end_m32700ut_lanpld_irq(unsigned int irq)
-+static void unmask_m32700ut_lanpld(struct irq_data *data)
+-static void end_opsput_lanpld_irq(unsigned int irq)
++static void unmask_opsput_lanpld(struct irq_data *data)
  {
--	enable_m32700ut_lanpld_irq(irq);
-+	enable_m32700ut_lanpld_irq(data->irq);
- 	enable_m32700ut_irq(M32R_IRQ_INT0);
+-	enable_opsput_lanpld_irq(irq);
++	enable_opsput_lanpld_irq(data->irq);
+ 	enable_opsput_irq(M32R_IRQ_INT0);
  }
  
--static unsigned int startup_m32700ut_lanpld_irq(unsigned int irq)
+-static unsigned int startup_opsput_lanpld_irq(unsigned int irq)
 -{
--	enable_m32700ut_lanpld_irq(irq);
+-	enable_opsput_lanpld_irq(irq);
 -	return (0);
 -}
 -
--static void shutdown_m32700ut_lanpld_irq(unsigned int irq)
-+static void shutdown_m32700ut_lanpld(struct irq_data *data)
+-static void shutdown_opsput_lanpld_irq(unsigned int irq)
++static void shutdown_opsput_lanpld(struct irq_data *data)
  {
  	unsigned long port;
  	unsigned int pldirq;
@@ -67,31 +66,31 @@ Index: linux-2.6/arch/m32r/platforms/m32700ut/setup.c
  	outw(PLD_ICUCR_ILEVEL7, port);
  }
  
- static struct irq_chip m32700ut_lanpld_irq_type =
+ static struct irq_chip opsput_lanpld_irq_type =
  {
--	.name = "M32700UT-PLD-LAN-IRQ",
--	.startup = startup_m32700ut_lanpld_irq,
--	.shutdown = shutdown_m32700ut_lanpld_irq,
--	.enable = enable_m32700ut_lanpld_irq,
--	.disable = disable_m32700ut_lanpld_irq,
--	.ack = mask_and_ack_m32700ut_lanpld,
--	.end = end_m32700ut_lanpld_irq
-+	.name		= "M32700UT-PLD-LAN-IRQ",
-+	.irq_shutdown	= shutdown_m32700ut_lanpld,
-+	.irq_mask	= mask_m32700ut_lanpld,
-+	.irq_unmask	= unmask_m32700ut_lanpld,
+-	.name = "OPSPUT-PLD-LAN-IRQ",
+-	.startup = startup_opsput_lanpld_irq,
+-	.shutdown = shutdown_opsput_lanpld_irq,
+-	.enable = enable_opsput_lanpld_irq,
+-	.disable = disable_opsput_lanpld_irq,
+-	.ack = mask_and_ack_opsput_lanpld,
+-	.end = end_opsput_lanpld_irq
++	.name		= "OPSPUT-PLD-LAN-IRQ",
++	.irq_shutdown	= shutdown_opsput_lanpld,
++	.irq_mask	= mask_opsput_lanpld,
++	.irq_unmask	= unmask_opsput_lanpld,
  };
  
  /*
-@@ -277,7 +268,8 @@ void __init init_IRQ(void)
+@@ -278,7 +269,8 @@ void __init init_IRQ(void)
  {
  #if defined(CONFIG_SMC91X)
- 	/* INT#0: LAN controller on M32700UT-LAN (SMC91C111)*/
--	set_irq_chip(M32700UT_LAN_IRQ_LAN, &m32700ut_lanpld_irq_type);
-+	set_irq_chip_and_handler(M32700UT_LAN_IRQ_LAN,
-+				 &m32700ut_lanpld_irq_type, handle_level_irq);
- 	lanpld_icu_data[irq2lanpldirq(M32700UT_LAN_IRQ_LAN)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD02;	/* "H" edge sense */
- 	disable_m32700ut_lanpld_irq(M32700UT_LAN_IRQ_LAN);
+ 	/* INT#0: LAN controller on OPSPUT-LAN (SMC91C111)*/
+-	set_irq_chip(OPSPUT_LAN_IRQ_LAN, &opsput_lanpld_irq_type);
++	set_irq_chip_and_handler(OPSPUT_LAN_IRQ_LAN, &opsput_lanpld_irq_type,
++				 handle_level_irq);
+ 	lanpld_icu_data[irq2lanpldirq(OPSPUT_LAN_IRQ_LAN)].icucr = PLD_ICUCR_IEN|PLD_ICUCR_ISMOD02;	/* "H" edge sense */
+ 	disable_opsput_lanpld_irq(OPSPUT_LAN_IRQ_LAN);
  #endif  /* CONFIG_SMC91X */
 
 
