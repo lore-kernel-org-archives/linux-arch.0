@@ -1,130 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33519 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33338 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754708Ab1ASVtz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:55 -0500
-Message-ID: <20110119210839.691117182@linutronix.de>
-Date: Wed, 19 Jan 2011 21:49:04 -0000
+	id S1754038Ab1ASVtO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:14 -0500
+Message-ID: <20110119210839.162689615@linutronix.de>
+Date: Wed, 19 Jan 2011 21:48:27 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 17/37] m32r: Convert oaks32r irq chips
+Subject: [patch 07/37] cris: Use generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=m32r-convert-oaks32r.patch
+Content-Disposition: inline; filename=cris-cleanup-kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20110119214904.nvNyv2PSv13NDTB-3a2RNULgAjXo3O8a6Xq5GuAcmLk@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Mikael Starvik <starvik@axis.com>
+Message-ID: <20110119214827.ovygt-aaFSH4A4veOwz8qoWpvBzQD1-p-F0y_bWlI3Y@z>
 
-Convert the irq chips to the new functions and use proper flow
-handlers. handle_level_irq is appropriate.
+Use the generic irq Kconfig. Select GENERIC_HARDIRQS_NO_DEPRECATED as
+we have converted all irq_chip functions. Fix the fallout in
+show_interrupts().
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Mikael Starvik <starvik@axis.com>
 ---
- arch/m32r/platforms/oaks32r/setup.c |   47 ++++++++++++++++--------------------
- 1 file changed, 22 insertions(+), 25 deletions(-)
+ arch/cris/Kconfig      |    6 ++----
+ arch/cris/kernel/irq.c |    2 +-
+ 2 files changed, 3 insertions(+), 5 deletions(-)
 
-Index: linux-2.6/arch/m32r/platforms/oaks32r/setup.c
+Index: linux-2.6/arch/cris/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/m32r/platforms/oaks32r/setup.c
-+++ linux-2.6/arch/m32r/platforms/oaks32r/setup.c
-@@ -37,39 +37,30 @@ static void enable_oaks32r_irq(unsigned 
- 	outl(data, port);
- }
+--- linux-2.6.orig/arch/cris/Kconfig
++++ linux-2.6/arch/cris/Kconfig
+@@ -54,6 +54,8 @@ config CRIS
+ 	bool
+ 	default y
+ 	select HAVE_IDE
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_HARDIRQS_NO_DEPRECATED
  
--static void mask_and_ack_mappi(unsigned int irq)
-+static void mask_oaks32r(struct irq_data *data)
- {
--	disable_oaks32r_irq(irq);
-+	disable_oaks32r_irq(data->irq);
- }
+ config HZ
+ 	int
+@@ -67,10 +69,6 @@ menu "General setup"
  
--static void end_oaks32r_irq(unsigned int irq)
-+static void unmask_oaks32r(struct irq_data *data)
- {
--	enable_oaks32r_irq(irq);
-+	enable_oaks32r_irq(data->irq);
- }
+ source "fs/Kconfig.binfmt"
  
--static unsigned int startup_oaks32r_irq(unsigned int irq)
--{
--	enable_oaks32r_irq(irq);
--	return (0);
--}
+-config GENERIC_HARDIRQS
+-	bool
+-	default y
 -
--static void shutdown_oaks32r_irq(unsigned int irq)
-+static void shutdown_oaks32r(struct irq_data *data)
- {
- 	unsigned long port;
+ config ETRAX_CMDLINE
+ 	string "Kernel command line"
+ 	default "root=/dev/mtdblock3"
+Index: linux-2.6/arch/cris/kernel/irq.c
+===================================================================
+--- linux-2.6.orig/arch/cris/kernel/irq.c
++++ linux-2.6/arch/cris/kernel/irq.c
+@@ -62,7 +62,7 @@ int show_interrupts(struct seq_file *p, 
+ 		for_each_online_cpu(j)
+ 			seq_printf(p, "%10u ", kstat_irqs_cpu(i, j));
+ #endif
+-		seq_printf(p, " %14s", irq_desc[i].chip->name);
++		seq_printf(p, " %14s", irq_desc[i].irq_data.chip->name);
+ 		seq_printf(p, "  %s", action->name);
  
--	port = irq2port(irq);
-+	port = irq2port(data->irq);
- 	outl(M32R_ICUCR_ILEVEL7, port);
- }
- 
- static struct irq_chip oaks32r_irq_type =
- {
--	.name = "OAKS32R-IRQ",
--	.startup = startup_oaks32r_irq,
--	.shutdown = shutdown_oaks32r_irq,
--	.enable = enable_oaks32r_irq,
--	.disable = disable_oaks32r_irq,
--	.ack = mask_and_ack_mappi,
--	.end = end_oaks32r_irq
-+	.name		= "OAKS32R-IRQ",
-+	.irq_shutdown	= shutdown_oaks32r,
-+	.irq_mask	= mask_oaks32r,
-+	.irq_unmask	= unmask_oaks32r,
- };
- 
- void __init init_IRQ(void)
-@@ -83,34 +74,40 @@ void __init init_IRQ(void)
- 
- #ifdef CONFIG_NE2000
- 	/* INT3 : LAN controller (RTL8019AS) */
--	set_irq_chip(M32R_IRQ_INT3, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_INT3, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_INT3].icucr = M32R_ICUCR_IEN|M32R_ICUCR_ISMOD10;
- 	disable_oaks32r_irq(M32R_IRQ_INT3);
- #endif /* CONFIG_M32R_NE2000 */
- 
- 	/* MFT2 : system timer */
--	set_irq_chip(M32R_IRQ_MFT2, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_MFT2, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_MFT2].icucr = M32R_ICUCR_IEN;
- 	disable_oaks32r_irq(M32R_IRQ_MFT2);
- 
- #ifdef CONFIG_SERIAL_M32R_SIO
- 	/* SIO0_R : uart receive data */
--	set_irq_chip(M32R_IRQ_SIO0_R, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO0_R, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_SIO0_R].icucr = 0;
- 	disable_oaks32r_irq(M32R_IRQ_SIO0_R);
- 
- 	/* SIO0_S : uart send data */
--	set_irq_chip(M32R_IRQ_SIO0_S, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO0_S, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_SIO0_S].icucr = 0;
- 	disable_oaks32r_irq(M32R_IRQ_SIO0_S);
- 
- 	/* SIO1_R : uart receive data */
--	set_irq_chip(M32R_IRQ_SIO1_R, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO1_R, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_SIO1_R].icucr = 0;
- 	disable_oaks32r_irq(M32R_IRQ_SIO1_R);
- 
- 	/* SIO1_S : uart send data */
--	set_irq_chip(M32R_IRQ_SIO1_S, &oaks32r_irq_type);
-+	set_irq_chip_and_handler(M32R_IRQ_SIO1_S, &oaks32r_irq_type,
-+				 handle_level_irq);
- 	icu_data[M32R_IRQ_SIO1_S].icucr = 0;
- 	disable_oaks32r_irq(M32R_IRQ_SIO1_S);
- #endif /* CONFIG_SERIAL_M32R_SIO */
+ 		for (action=action->next; action; action = action->next)
 
 
