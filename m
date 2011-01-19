@@ -1,50 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:40775 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33301 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753779Ab1ASVuQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:50:16 -0500
-Message-ID: <20110119210840.572978979@linutronix.de>
-Date: Wed, 19 Jan 2011 21:50:09 -0000
+	id S1753742Ab1ASVtG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:06 -0500
+Message-ID: <20110119210839.060947825@linutronix.de>
+Date: Wed, 19 Jan 2011 21:48:20 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 35/37] sparc: Use generic irq Kconfig 
+Subject: [patch 05/37] cris: Convert V10 interrupt handling
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=sparc-use-generic-irq-Kconfig.patch
+Content-Disposition: inline; filename=cris-cleanup-v10-irq.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20110119215009.bSOnSgQGpXoQEb-B-QRpk2yrocLMTJiPybo25uX5JAU@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Mikael Starvik <starvik@axis.com>
+Message-ID: <20110119214820.87O2DQn3yIB9BuXZsmmzkcWs7ZIdiKvX5OofWRpyl0I@z>
 
-No functional change.
+Convert the irq_chip functions and install handle_simple_irq for each
+interrupt. This converts V10 to the flow handling and lets us remove
+__do_IRQ().
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Mikael Starvik <starvik@axis.com>
 ---
- arch/sparc/Kconfig |    5 +----
- 1 file changed, 1 insertion(+), 4 deletions(-)
+ arch/cris/arch-v10/kernel/irq.c |   41 +++++++++-------------------------------
+ 1 file changed, 10 insertions(+), 31 deletions(-)
 
-Index: linux-2.6/arch/sparc/Kconfig
+Index: linux-2.6/arch/cris/arch-v10/kernel/irq.c
 ===================================================================
---- linux-2.6.orig/arch/sparc/Kconfig
-+++ linux-2.6/arch/sparc/Kconfig
-@@ -50,6 +50,7 @@ config SPARC64
- 	select RTC_DRV_STARFIRE
- 	select HAVE_PERF_EVENTS
- 	select PERF_USE_VMALLOC
-+	select HAVE_GENERIC_HARDIRQS
+--- linux-2.6.orig/arch/cris/arch-v10/kernel/irq.c
++++ linux-2.6/arch/cris/arch-v10/kernel/irq.c
+@@ -104,43 +104,21 @@ static void (*interrupt[NR_IRQS])(void) 
+ 	IRQ31_interrupt
+ };
  
- config ARCH_DEFCONFIG
- 	string
-@@ -272,10 +273,6 @@ config HOTPLUG_CPU
- 	  can be controlled through /sys/devices/system/cpu/cpu#.
- 	  Say N if you want to disable CPU hotplug.
- 
--config GENERIC_HARDIRQS
--	bool
--	default y if SPARC64
+-static void enable_crisv10_irq(unsigned int irq);
 -
- source "kernel/time/Kconfig"
+-static unsigned int startup_crisv10_irq(unsigned int irq)
+-{
+-	enable_crisv10_irq(irq);
+-	return 0;
+-}
+-
+-#define shutdown_crisv10_irq	disable_crisv10_irq
+-
+-static void enable_crisv10_irq(unsigned int irq)
+-{
+-	crisv10_unmask_irq(irq);
+-}
+-
+-static void disable_crisv10_irq(unsigned int irq)
+-{
+-	crisv10_mask_irq(irq);
+-}
+-
+-static void ack_crisv10_irq(unsigned int irq)
++static void enable_crisv10_irq(struct irq_data *data)
+ {
++	crisv10_unmask_irq(data->irq);
+ }
  
- if SPARC64
+-static void end_crisv10_irq(unsigned int irq)
++static void disable_crisv10_irq(struct irq_data *data)
+ {
++	crisv10_mask_irq(data->irq);
+ }
+ 
+ static struct irq_chip crisv10_irq_type = {
+-	.name =        "CRISv10",
+-	.startup =     startup_crisv10_irq,
+-	.shutdown =    shutdown_crisv10_irq,
+-	.enable =      enable_crisv10_irq,
+-	.disable =     disable_crisv10_irq,
+-	.ack =         ack_crisv10_irq,
+-	.end =         end_crisv10_irq,
+-	.set_affinity = NULL
++	.name		= "CRISv10",
++	.irq_shutdown	= disable_crisv10_irq,
++	.irq_enable	= enable_crisv10_irq,
++	.irq_disable	= disable_crisv10_irq,
+ };
+ 
+ void weird_irq(void);
+@@ -221,7 +199,8 @@ init_IRQ(void)
+ 
+ 	/* Initialize IRQ handler descriptors. */
+ 	for(i = 2; i < NR_IRQS; i++) {
+-		irq_desc[i].chip = &crisv10_irq_type;
++		set_irq_desc_and_handler(i, &crisv10_irq_type,
++					 handle_simple_irq);
+ 		set_int_vector(i, interrupt[i]);
+ 	}
+ 
 
 
