@@ -1,110 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33310 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:33328 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753581Ab1ASVtJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 16:49:09 -0500
-Message-ID: <20110119210839.111407986@linutronix.de>
-Date: Wed, 19 Jan 2011 21:48:23 -0000
+	id S1754008Ab1ASVtM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 16:49:12 -0500
+Message-ID: <20110119210838.952039472@linutronix.de>
+Date: Wed, 19 Jan 2011 21:48:13 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 06/37] cris: Convert V32 interrupt handling
+Subject: [patch 03/37] h8300: Use generic irq Kconfig
 References: <20110119205258.462759212@linutronix.de>
-Content-Disposition: inline; filename=cris-cleanup-v32-irq.patch
+Content-Disposition: inline; filename=h8300-use-generic-irq-kconfig.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Mikael Starvik <starvik@axis.com>
-Message-ID: <20110119214823.7goUnfnVq-p0pGKdsMJyle1us2DzfFgv4leFKa0DwBc@z>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Yoshinori Sato <ysato@users.sourceforge.jp>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20110119214813.fK4rM4t9XmS6z5NeKpSgyNWn9FF5QbdmWp_Z51kW5SU@z>
 
-Convert the irq chip functions and install handle_simple_irq for each
-interrupt to get rid of __do_IRQ()
+Switch to the generic irq Kconfig. h8300 has all irq chips converted
+to the new functions, so select the GENERIC_HARDIRQS_NO_DEPRECATED
+switch as well. Fixup the resulting fallout in show_interrupts().
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mikael Starvik <starvik@axis.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/cris/arch-v32/kernel/irq.c |   50 ++++++++++++----------------------------
- 1 file changed, 15 insertions(+), 35 deletions(-)
+ arch/h8300/Kconfig      |    6 ++----
+ arch/h8300/kernel/irq.c |    2 +-
+ 2 files changed, 3 insertions(+), 5 deletions(-)
 
-Index: linux-2.6/arch/cris/arch-v32/kernel/irq.c
+Index: linux-2.6/arch/h8300/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/cris/arch-v32/kernel/irq.c
-+++ linux-2.6/arch/cris/arch-v32/kernel/irq.c
-@@ -291,54 +291,33 @@ void crisv32_unmask_irq(int irq)
- }
+--- linux-2.6.orig/arch/h8300/Kconfig
++++ linux-2.6/arch/h8300/Kconfig
+@@ -2,6 +2,8 @@ config H8300
+ 	bool
+ 	default y
+ 	select HAVE_IDE
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_HARDIRQS_NO_DEPRECATED
  
+ config SYMBOL_PREFIX
+ 	string
+@@ -47,10 +49,6 @@ config GENERIC_HWEIGHT
+ 	bool
+ 	default y
  
--static unsigned int startup_crisv32_irq(unsigned int irq)
-+static void enable_crisv32_irq(struct irq_data *data)
- {
--	crisv32_unmask_irq(irq);
--	return 0;
--}
+-config GENERIC_HARDIRQS
+-	bool
+-	default y
 -
--static void shutdown_crisv32_irq(unsigned int irq)
--{
--	crisv32_mask_irq(irq);
-+	crisv32_unmask_irq(data->irq);
- }
- 
--static void enable_crisv32_irq(unsigned int irq)
-+static void disable_crisv32_irq(struct irq_data *data)
- {
--	crisv32_unmask_irq(irq);
-+	crisv32_mask_irq(data->irq);
- }
- 
--static void disable_crisv32_irq(unsigned int irq)
--{
--	crisv32_mask_irq(irq);
--}
--
--static void ack_crisv32_irq(unsigned int irq)
--{
--}
--
--static void end_crisv32_irq(unsigned int irq)
--{
--}
--
--int set_affinity_crisv32_irq(unsigned int irq, const struct cpumask *dest)
-+static int set_affinity_crisv32_irq(struct irq_data *data,
-+				    const struct cpumask *dest, bool force)
- {
- 	unsigned long flags;
-+
- 	spin_lock_irqsave(&irq_lock, flags);
--	irq_allocations[irq - FIRST_IRQ].mask = *dest;
-+	irq_allocations[data->irq - FIRST_IRQ].mask = *dest;
- 	spin_unlock_irqrestore(&irq_lock, flags);
--
- 	return 0;
- }
- 
- static struct irq_chip crisv32_irq_type = {
--	.name =        "CRISv32",
--	.startup =     startup_crisv32_irq,
--	.shutdown =    shutdown_crisv32_irq,
--	.enable =      enable_crisv32_irq,
--	.disable =     disable_crisv32_irq,
--	.ack =         ack_crisv32_irq,
--	.end =         end_crisv32_irq,
--	.set_affinity = set_affinity_crisv32_irq
-+	.name			= "CRISv32",
-+	.irq_shutdown		= disable_crisv32_irq,
-+	.irq_enable		= enable_crisv32_irq,
-+	.irq_disable		= disable_crisv32_irq,
-+	.irq_set_affinity	= set_affinity_crisv32_irq,
- };
- 
- void
-@@ -472,7 +451,8 @@ init_IRQ(void)
- 
- 	/* Point all IRQ's to bad handlers. */
- 	for (i = FIRST_IRQ, j = 0; j < NR_IRQS; i++, j++) {
--		irq_desc[j].chip = &crisv32_irq_type;
-+		set_irq_chip_and_handler(j, &crisv32_irq_type,
-+					 handle_simple_irq);
- 		set_exception_vector(i, interrupt[j]);
- 	}
+ config GENERIC_CALIBRATE_DELAY
+ 	bool
+ 	default y
+Index: linux-2.6/arch/h8300/kernel/irq.c
+===================================================================
+--- linux-2.6.orig/arch/h8300/kernel/irq.c
++++ linux-2.6/arch/h8300/kernel/irq.c
+@@ -182,7 +182,7 @@ int show_interrupts(struct seq_file *p, 
+ 			goto unlock;
+ 		seq_printf(p, "%3d: ",i);
+ 		seq_printf(p, "%10u ", kstat_irqs(i));
+-		seq_printf(p, " %14s", irq_desc[i].chip->name);
++		seq_printf(p, " %14s", irq_desc[i].irq_data.chip->name);
+ 		seq_printf(p, "-%-8s", irq_desc[i].name);
+ 		seq_printf(p, "  %s", action->name);
  
 
 
