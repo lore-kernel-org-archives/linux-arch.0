@@ -1,40 +1,45 @@
 From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [patch 00/37] genirq: Remove __do_IRQ() and cleanup irq related
  Kconfigs
-Date: Wed, 19 Jan 2011 23:22:22 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.1101192320530.3211@localhost6.localdomain6>
-References: <20110119205258.462759212@linutronix.de> <AANLkTineduG23qitc8ggDKShYJi=2vJgXbYJDjLGZKk3@mail.gmail.com> <20110119221706.GC27353@bombadil.infradead.org> <20110119221828.GD27353@bombadil.infradead.org>
+Date: Wed, 19 Jan 2011 23:25:32 +0100 (CET)
+Message-ID: <alpine.LFD.2.00.1101192323190.3211@localhost6.localdomain6>
+References: <20110119205258.462759212@linutronix.de> <AANLkTineduG23qitc8ggDKShYJi=2vJgXbYJDjLGZKk3@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1342830710-1295475934=:3211"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:58074 "EHLO www.tglx.de"
+Received: from www.tglx.de ([62.245.132.106]:37001 "EHLO www.tglx.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754828Ab1ASWYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 19 Jan 2011 17:24:22 -0500
-In-Reply-To: <20110119221828.GD27353@bombadil.infradead.org>
+	id S1752615Ab1ASW0l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Jan 2011 17:26:41 -0500
+In-Reply-To: <AANLkTineduG23qitc8ggDKShYJi=2vJgXbYJDjLGZKk3@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Ungerer <gerg@uclinux.org>, Hirokazu Takata <takata@linux-m32r.org>, Jeff Dike <jdike@addtoit.com>, Michal Simek <monstr@monstr.eu>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Ungerer <gerg@uclinux.org>, Hirokazu Takata <takata@linux-m32r.org>, Jeff Dike <jdike@addtoit.com>, Kyle McMartin <kyle@mcmartin.ca>, Michal Simek <monstr@monstr.eu>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, Richard Henderson <rth@twiddle.net>, Tony Luck <tony.luck@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
 
-On Wed, 19 Jan 2011, Kyle McMartin wrote:
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-> On Wed, Jan 19, 2011 at 05:17:06PM -0500, Kyle McMartin wrote:
-> > I submitted series to clean these 3 up as well (but only got a response
-> > from the cris folks...) If the other 2 are effectively unmaintained,
+---1463795968-1342830710-1295475934=:3211
+Content-Type: TEXT/PLAIN; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 
-Dammit. Seems they got lost on my side in some mail black hole. I hate
-redundant work
+On Wed, 19 Jan 2011, Linus Torvalds wrote:
 
-> > should I just submit the clean ups to you? (I think there were some
-> > build fixes as well, will have to check.)
-> > 
+> On Wed, Jan 19, 2011 at 1:47 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> > Now that rc1 is out, I got reliable information about the remaining
+> > users of __do_IRQ(), which block the removal:
+> >
+> >  arch/cris, arch/h8300, arch/m32r
 > 
-> Nevermind, just saw the rest of the series on linux-arch.
-> 
-> --Kyle
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+> I'm certainly ok with this series. It would be good to finally get rid
+> of this legacy interface, and there's no longer any reason to hold it
+> up. And getting rid of hundreds of lines of code is good too.
+
+Will wait a day for desperate screams, then collect the incoming acks
+and push it into git for your consumption.
+
+Thanks,
+
+	tglx
+---1463795968-1342830710-1295475934=:3211--
