@@ -1,43 +1,98 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: RE: Request for unicore32 architecture codes to merge into linux-next
-Date: Wed, 19 Jan 2011 10:20:25 +0800
-Message-ID: <01d001cbb77f$713465a0$539d30e0$@mprc.pku.edu.cn>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110118183319.GA13430@dumpdata.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] asm-generic/io.h: Fix io{read,write}{16,32}be for big endian systems
+Date: Wed, 19 Jan 2011 10:58:29 +0100
+Message-ID: <201101191058.30096.arnd@arndb.de>
+References: <1295374261-19609-1-git-send-email-lars@metafoo.de> <201101182237.53601.arnd@arndb.de> <4D36129F.8000302@metafoo.de>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="US-ASCII"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:39060 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753199Ab1ASCVJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Jan 2011 21:21:09 -0500
-In-Reply-To: <20110118183319.GA13430@dumpdata.com>
-Content-Language: zh-cn
+Received: from moutng.kundenserver.de ([212.227.126.187]:53958 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752954Ab1ASJ6f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jan 2011 04:58:35 -0500
+In-Reply-To: <4D36129F.8000302@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>
-Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+To: Lars-Peter Clausen <lars@metafoo.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
+On Tuesday 18 January 2011 23:22:23 Lars-Peter Clausen wrote:
+> On 01/18/2011 10:37 PM, Arnd Bergmann wrote:
+> > ...
+> The lm32 architecture is a big-endian softcpu architecture. I'm currently working on
+> the MilkyMist SoC which uses it and all the SoC components have native endianess.
 
+ok.
 
-> -----Original Message-----
-> From: Konrad Rzeszutek Wilk [mailto:konrad.wilk@oracle.com]
-> Sent: Wednesday, January 19, 2011 2:33 AM
-> To: Guan Xuetao
-> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; jbarnes@virtuousgeek.org; dmitry.torokhov@gmail.com; dtor@mail.ru;
-> rubini@cvml.unipv.it; linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-
-> next@vger.kernel.org
-> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
+> > Some architectures also define their own I/O accessors for SoC components,
+> > since those often have other requirements from PCI MMIO areas.
+> > E.g. on powerpc, the in_be32/in_le32 accessor only works on directly
+> > mapped MMIO regions and performs no PCI error handling.
 > 
-> On Sun, Jan 16, 2011 at 01:00:31AM +0800, Guan Xuetao wrote:
-> > Hi,
-> >
-> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
-> 
-> Where can one purchase this hardware for testing?
-Please contact our company:
-  http://www.pkunity.com/english%20version/engcontact.htm
+> I've seen those and actually the lm32 architecture currently defines (and uses) them
+> as well. But I wanted to replace them with something more generic and try to reuse as
+> much as possible from asm-generic.
 
-Guan Xuetao
+That is a very good idea in general. Unfortunately, the asm-generic
+infrastructure is currently missing an interface that is designed for
+SoC components. IMHO, it would be very good if we could use this chance
+to create one, or make an existing interface from one of the architectures
+more generic. I can also understand if you don't want to get caught up
+in the discussion between the architecture maintainers trying to find
+a common position on this ;-).
+
+> > That is indeed huge. Byte swapping is a relatively common operation
+> > in the kernel, so independent of the solution to this particular
+> > problem, it will be a good idea to see if you can do a better
+> > implementation than this, using inline assembly or gcc internal
+> > helpers.
+> 
+> The reason why it got so huge is that the kernel was compiled without barrel-shifter
+> support, so we have basically 4 instructions per shift calling a helper function.
+> 
+> But thats not the point anyway. The point I'm trying to make is, that accessing
+> iomapped memory is exactly a single instruction. And I don't see why - no matter if
+> swab takes 4 or 20 instructions - we should add any additional overhead.
+
+Right, and the point that I was trying to make is that an mmio read access
+typically takes many hundred cycles, somtimes thousands of cycles, to
+complete. Making the accessors out of line would be just fine, and even
+a hundred instructions would not be much of an issue then (although a bit
+silly if we just end up swapping twice, as you pointed out).
+
+In the abscence of the barrel shifter, would it help to define the
+function like this? (independent of the ioread question)
+
+static inline __u32 __arch__swab32(__u32 x)
+{
+        union { __u32 u; char c[4]; } in, out;
+	in.u = x;
+	out.c[0] = in.c[3];
+	out.c[1] = in.c[2];
+	out.c[2] = in.c[1];
+	out.c[3] = in.c[0];
+        return out.u;
+}
+#define __arch__swab32 __arch__swab32
+
+If your compiler has a __builtin_bswap32, that would be even better.
+
+> >> So I as someone who implements arch support has two options either redefine
+> >> ioread32be in the arch io header, or use __raw_readl everywhere to access iomap memory.
+> > 
+> > __raw_readl is not a good thing to use, because of a number of reasons.
+> > Please choose one of these four:
+> > 
+> > * change the common ioread*/iowrite* functions to all be based on
+> >   the __raw_* I/O versions, not just the big-endian ones. The
+> >   space overhead you quoted is enough of a justification for that.
+> 
+> I would prefer this solution.
+
+Ok, fair enough. When you send a patch to do that, please indicate whether
+you prefer me to take it in my tree, or you just want to carry it in your
+series with my Ack.
+
+	Arnd
