@@ -1,57 +1,45 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [patch 36/37] tile: Use generic irq Kconfig
-Date: Thu, 20 Jan 2011 14:11:32 -0500
-Message-ID: <4D3888E4.1020108@tilera.com>
-References: <20110119205258.462759212@linutronix.de> <20110119210840.631350392@linutronix.de> <4D3884E3.8050009@tilera.com> <20110120190818.GA22638@merkur.ravnborg.org>
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: Request for unicore32 architecture codes to merge into
+ linux-next
+Date: Thu, 20 Jan 2011 11:42:16 -0800
+Message-ID: <20110120114216.4b23182a@jbarnes-desktop>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.70]:27269 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752104Ab1ATTLe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jan 2011 14:11:34 -0500
-In-Reply-To: <20110120190818.GA22638@merkur.ravnborg.org>
+Received: from cpoproxy3-pub.bluehost.com ([67.222.54.6]:60804 "HELO
+	cpoproxy3-pub.bluehost.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1750894Ab1ATTtA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Jan 2011 14:49:00 -0500
+In-Reply-To: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
 
-On 1/20/2011 2:08 PM, Sam Ravnborg wrote:
-> On Thu, Jan 20, 2011 at 01:54:27PM -0500, Chris Metcalf wrote:
->> On 1/19/2011 4:50 PM, Thomas Gleixner wrote:
->>> No functional change.
->>>
->>> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
->>> Cc: Chris Metcalf <cmetcalf@tilera.com>
->>> ---
->>>  arch/tile/Kconfig |   16 ++++++----------
->>>  1 file changed, 6 insertions(+), 10 deletions(-)
->>>
->>> Index: linux-2.6/arch/tile/Kconfig
->>> ===================================================================
->>> --- linux-2.6.orig/arch/tile/Kconfig
->>> +++ linux-2.6/arch/tile/Kconfig
->>> @@ -1,22 +1,18 @@
->>>  # For a description of the syntax of this configuration file,
->>>  # see Documentation/kbuild/config-language.txt.
->>>  
->>> +config TILE
->>> +       def_bool y
->>> +       select HAVE_GENERIC_HARDIRQS
->>> +       select GENERIC_IRQ_PROBE
->>> +       select GENERIC_PENDING_IRQ if SMP
->>> +
->>>  [...]
->> I'm not sure it's legal to have two "config TILE" blocks in this Kconfig
->> file; there's already one further down.
-> It is OK to have two "config TILE" blocks.
-> You should take care of moving the other one up after this goes in.
+On Sun, 16 Jan 2011 01:00:31 +0800
+"Guan Xuetao" <guanxuetao@mprc.pku.edu.cn> wrote:
 
-In that case I'm happy to ack the original patch.
+> Hi,
+> 
+> I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+>   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> ---
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+Took a quick look at the PCI parts, looks like you have a pretty big
+DMA restriction.
+
+You could provide your own dma map ops and make the allocator a bit
+smarter about where it gets memory (preferentially allocating from the
+DMA'able region, which you could hide).  Or do you find that swiotlb
+does ok in general?
+
+Other than that you had pretty tiny bits of enabling code, I assume
+they work on your platform (config space access & setup, etc.).
 
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Jesse Barnes, Intel Open Source Technology Center
