@@ -1,36 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:52137 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750709Ab1ATHPK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jan 2011 02:15:10 -0500
-Message-ID: <4D37E0F9.6030106@monstr.eu>
-Date: Thu, 20 Jan 2011 08:15:05 +0100
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-MIME-Version: 1.0
-Subject: Re: [patch 30/37] microblaze: Use generic irq Kconfig
-References: <20110119205258.462759212@linutronix.de> <20110119210840.337412061@linutronix.de>
-In-Reply-To: <20110119210840.337412061@linutronix.de>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:52036 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755056Ab1ATLbs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Jan 2011 06:31:48 -0500
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH] x86: use asm-generic/cacheflush.h
+Date: Thu, 20 Jan 2011 20:32:14 +0900
+Message-ID: <1295523136-4277-2-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1295523136-4277-1-git-send-email-akinobu.mita@gmail.com>
+References: <1295523136-4277-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>
-Message-ID: <20110120071505.iwMmLTAj_Ys3rcvrfUK5UoLaNPaT3U6Xekmlz_i2MrY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20110120113214._dbvlMDvwaFEknbdEH0rxraZKfosDqzBRc0gZ5jXmCA@z>
 
-> No functional change.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Michal Simek <monstr@monstr.eu>
-> ---
->  arch/microblaze/Kconfig |    8 ++------
->  1 file changed, 2 insertions(+), 6 deletions(-)
+The implementation of the cache flushing interfaces on the x86
+is identical with the default implementation in asm-generic.
 
-Acked-by: Michal Simek <monstr@monstr.eu>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+---
+ arch/x86/include/asm/cacheflush.h |   42 +------------------------------------
+ 1 files changed, 1 insertions(+), 41 deletions(-)
 
+diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
+index 63e35ec..62f0844 100644
+--- a/arch/x86/include/asm/cacheflush.h
++++ b/arch/x86/include/asm/cacheflush.h
+@@ -1,48 +1,8 @@
+ #ifndef _ASM_X86_CACHEFLUSH_H
+ #define _ASM_X86_CACHEFLUSH_H
+ 
+-/* Keep includes the same across arches.  */
+-#include <linux/mm.h>
+-
+ /* Caches aren't brain-dead on the intel. */
+-static inline void flush_cache_all(void) { }
+-static inline void flush_cache_mm(struct mm_struct *mm) { }
+-static inline void flush_cache_dup_mm(struct mm_struct *mm) { }
+-static inline void flush_cache_range(struct vm_area_struct *vma,
+-				     unsigned long start, unsigned long end) { }
+-static inline void flush_cache_page(struct vm_area_struct *vma,
+-				    unsigned long vmaddr, unsigned long pfn) { }
+-#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
+-static inline void flush_dcache_page(struct page *page) { }
+-static inline void flush_dcache_mmap_lock(struct address_space *mapping) { }
+-static inline void flush_dcache_mmap_unlock(struct address_space *mapping) { }
+-static inline void flush_icache_range(unsigned long start,
+-				      unsigned long end) { }
+-static inline void flush_icache_page(struct vm_area_struct *vma,
+-				     struct page *page) { }
+-static inline void flush_icache_user_range(struct vm_area_struct *vma,
+-					   struct page *page,
+-					   unsigned long addr,
+-					   unsigned long len) { }
+-static inline void flush_cache_vmap(unsigned long start, unsigned long end) { }
+-static inline void flush_cache_vunmap(unsigned long start,
+-				      unsigned long end) { }
+-
+-static inline void copy_to_user_page(struct vm_area_struct *vma,
+-				     struct page *page, unsigned long vaddr,
+-				     void *dst, const void *src,
+-				     unsigned long len)
+-{
+-	memcpy(dst, src, len);
+-}
+-
+-static inline void copy_from_user_page(struct vm_area_struct *vma,
+-				       struct page *page, unsigned long vaddr,
+-				       void *dst, const void *src,
+-				       unsigned long len)
+-{
+-	memcpy(dst, src, len);
+-}
++#include <asm-generic/cacheflush.h>
+ 
+ #ifdef CONFIG_X86_PAT
+ /*
 -- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+1.7.3.4
+
