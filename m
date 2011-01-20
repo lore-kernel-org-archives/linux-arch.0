@@ -1,24 +1,57 @@
-From: liqin.chen@sunplusct.com
-Subject: Re: [patch 34/37] score: Use generic irq Kconfig
-Date: Thu, 20 Jan 2011 11:00:06 +0800
-Message-ID: <OF94340DD4.5900C5C9-ON4825781E.00105496-4825781E.00107CCE@sunplusct.com>
-References: <20110119210840.524713980@linutronix.de>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [patch 32/37] parisc: Use generic irq Kconfig
+Date: Wed, 19 Jan 2011 22:58:58 -0600
+Message-ID: <1295499538.12205.670.camel@mulgrave.site>
+References: <20110119205258.462759212@linutronix.de>
+	 <20110119210840.424269590@linutronix.de>
+	 <1295474722.10978.43.camel@mulgrave.site>
+	 <alpine.LFD.2.00.1101192314090.3211@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="GB2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mswedge2.sunplus.com ([124.219.29.227]:46395 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754578Ab1ATDPw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Jan 2011 22:15:52 -0500
-In-Reply-To: <20110119210840.524713980@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <alpine.LFD.2.00.1101192314090.3211@localhost6.localdomain6>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Chen Liqin <liqin.chen@sunplusct.com>, Ingo Molnar <mingo@elte.hu>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Kyle McMartin <kyle@mcmartin.ca>
+List-Id: linux-arch.vger.kernel.org
 
-VGhvbWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+INC009ogMjAxMS0wMS0yMCAwNTo1
-MDowNToNCg0KPiBObyBmdW5jdGlvbmFsIGNoYW5nZQ0KPiANCj4gU2lnbmVkLW9mZi1ieTogVGhv
-bWFzIEdsZWl4bmVyIDx0Z2x4QGxpbnV0cm9uaXguZGU+DQo+IENjOiBDaGVuIExpcWluIDxsaXFp
-bi5jaGVuQHN1bnBsdXNjdC5jb20+DQo+IC0tLQ0KDQpBY2tlZC1ieTogQ2hlbiBMaXFpbiA8bGlx
-aW4uY2hlbkBzdW5wbHVzY3QuY29tPg0KLS0NCg==
+On Wed, 2011-01-19 at 23:16 +0100, Thomas Gleixner wrote:
+> On Wed, 19 Jan 2011, James Bottomley wrote:
+> 
+> > On Wed, 2011-01-19 at 21:49 +0000, Thomas Gleixner wrote:
+> > > plain text document attachment (parisc-use-generic-irq-Kconfig.patch)
+> > > No functional change.
+> > 
+> > Not quite true ... you take out GENERIC_HARDIRQS but select
+> > HAVE_GENERIC_HARDIRQS ... is that right?
+> 
+> HAVE_GENERIC_HARDIRQS enables the Kconfig file in kernel/irq/
+
+Ah, OK, thanks.
+
+> > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> > > Cc: Kyle McMartin <kyle@mcmartin.ca>
+> > 
+> > Plus, it doesn't apply:
+> > 
+> > Hunk #1 FAILED at 12.
+> > Hunk #2 FAILED at 65.
+> > 2 out of 2 hunks FAILED -- saving rejects to file
+> > arch/parisc/Kconfig.rej
+> > 
+> > It looks like it was made before we did our generic irq conversion in
+> > the 2.6.36 merge window.
+> 
+> You meant 38 window :)
+
+No ... it went in when Kyle was maintainer ... so that's at least 37 or
+before.
+
+>  Patch is against 38-rc1 but depends on [patch
+> 24/37] genirq: Remove __do_IRQ in this very same series.
+
+Ah, great ... missed that one.  With this it all seems to work, so you
+can add my ack to the parisc piece.
+
+James
