@@ -1,59 +1,90 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 36/37] tile: Use generic irq Kconfig
-Date: Fri, 21 Jan 2011 11:27:59 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.1101211127260.2971@localhost6.localdomain6>
-References: <20110119205258.462759212@linutronix.de> <20110119210840.631350392@linutronix.de> <4D3884E3.8050009@tilera.com> <20110120190818.GA22638@merkur.ravnborg.org>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
+Date: Fri, 21 Jan 2011 16:33:54 +0100
+Message-ID: <1295624034.28776.303.camel@laptop>
+References: <20101126143843.801484792@chello.nl>
+	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
+	 <1295457039.28776.137.camel@laptop>
+	 <alpine.LSU.2.00.1101201052060.1603@sister.anvils>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:33895 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750710Ab1AUK2q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Jan 2011 05:28:46 -0500
-In-Reply-To: <20110120190818.GA22638@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.LSU.2.00.1101201052060.1603@sister.anvils>
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>, Oleg Nesterov <oleg@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 20 Jan 2011, Sam Ravnborg wrote:
+On Thu, 2011-01-20 at 11:57 -0800, Hugh Dickins wrote:
+> > > 21/21 mm-optimize_page_lock_anon_vma_fast-path.patch
+> > >       I certainly see the call for this patch, I want to eliminate th=
+ose
+> > >       doubled atomics too.  This appears correct to me, and I've not =
+dreamt
+> > >       up an alternative; but I do dislike it, and I suspect you don't=
+ like
+> > >       it much either.  I'm ambivalent about it, would love a better p=
+atch.
+> >=20
+> > Like said, I fully agree with that sentiment, just haven't been able to
+> > come up with anything saner :/ Although I can optimize the
+> > __put_anon_vma() path a bit by doing something like:
+> >=20
+> >   if (mutex_is_locked()) { anon_vma_lock(); anon_vma_unlock(); }
+> >=20
+> > But I bet that wants a barrier someplace and my head hurts..=20
+>=20
+> Without daring to hurt my head very much, yes, I'd say those kind
+> of "optimizations" have a habit of turning out to be racily wrong.
+>=20
+> But you put your finger on it: if you hadn't had to add that lock-
+> unlock pair into __put_anon_vma(), I wouldn't have minded the
+> contortions added to page_lock_anon_vma().=20
 
-> On Thu, Jan 20, 2011 at 01:54:27PM -0500, Chris Metcalf wrote:
-> > On 1/19/2011 4:50 PM, Thomas Gleixner wrote:
-> > > No functional change.
-> > >
-> > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> > > Cc: Chris Metcalf <cmetcalf@tilera.com>
-> > > ---
-> > >  arch/tile/Kconfig |   16 ++++++----------
-> > >  1 file changed, 6 insertions(+), 10 deletions(-)
-> > >
-> > > Index: linux-2.6/arch/tile/Kconfig
-> > > ===================================================================
-> > > --- linux-2.6.orig/arch/tile/Kconfig
-> > > +++ linux-2.6/arch/tile/Kconfig
-> > > @@ -1,22 +1,18 @@
-> > >  # For a description of the syntax of this configuration file,
-> > >  # see Documentation/kbuild/config-language.txt.
-> > >  
-> > > +config TILE
-> > > +       def_bool y
-> > > +       select HAVE_GENERIC_HARDIRQS
-> > > +       select GENERIC_IRQ_PROBE
-> > > +       select GENERIC_PENDING_IRQ if SMP
-> > > +
-> > >  [...]
-> > 
-> > I'm not sure it's legal to have two "config TILE" blocks in this Kconfig
-> > file; there's already one further down.
+I think there's just about enough implied barriers there that the
+'simple' code just works ;-)
 
-Missed that.
- 
-> It is OK to have two "config TILE" blocks.
-> You should take care of moving the other one up after this goes in.
+But given that I'm trying to think with snot for brains thanks to some
+cold, I don't trust myself at all to have gotten this right.
 
-Will consolidate before sending it upstream.
+[ for Oleg and Paul: https://lkml.org/lkml/2010/11/26/213 contains the
+full patch this is against ]
 
-Thanks,
+---
+Index: linux-2.6/mm/rmap.c
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -1559,9 +1559,20 @@ void __put_anon_vma(struct anon_vma *ano
+ 	 * Synchronize against page_lock_anon_vma() such that
+ 	 * we can safely hold the lock without the anon_vma getting
+ 	 * freed.
++	 *
++	 * Relies on the full mb implied by the atomic_dec_and_test() from
++	 * put_anon_vma() against the full mb implied by mutex_trylock() from
++	 * page_lock_anon_vma(). This orders:
++	 *
++	 * page_lock_anon_vma()		VS	put_anon_vma()
++	 *   mutex_trylock()			  atomic_dec_and_test()
++	 *   smp_mb()				  smp_mb()
++	 *   atomic_read()			  mutex_is_locked()
+ 	 */
+-	anon_vma_lock(anon_vma);
+-	anon_vma_unlock(anon_vma);
++	if (mutex_is_locked(&anon_vma->root->mutex)) {
++		anon_vma_lock(anon_vma);
++		anon_vma_unlock(anon_vma);
++	}
+=20
+ 	if (anon_vma->root !=3D anon_vma)
+ 		put_anon_vma(anon_vma->root);
 
-	tglx
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
