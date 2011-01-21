@@ -1,86 +1,66 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+From: Andrea Arcangeli <aarcange@redhat.com>
 Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Date: Fri, 21 Jan 2011 16:33:54 +0100
-Message-ID: <1295624034.28776.303.camel@laptop>
+Date: Fri, 21 Jan 2011 18:44:42 +0100
+Message-ID: <20110121174442.GI9506@random.random>
 References: <20101126143843.801484792@chello.nl>
-	 <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-	 <1295457039.28776.137.camel@laptop>
-	 <alpine.LSU.2.00.1101201052060.1603@sister.anvils>
+ <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
+ <1295457039.28776.137.camel@laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <alpine.LSU.2.00.1101201052060.1603@sister.anvils>
+Content-Disposition: inline
+In-Reply-To: <1295457039.28776.137.camel@laptop>
 Sender: owner-linux-mm@kvack.org
-To: Hugh Dickins <hughd@google.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>, Oleg Nesterov <oleg@redhat.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-01-20 at 11:57 -0800, Hugh Dickins wrote:
-> > > 21/21 mm-optimize_page_lock_anon_vma_fast-path.patch
-> > >       I certainly see the call for this patch, I want to eliminate th=
-ose
-> > >       doubled atomics too.  This appears correct to me, and I've not =
-dreamt
-> > >       up an alternative; but I do dislike it, and I suspect you don't=
- like
-> > >       it much either.  I'm ambivalent about it, would love a better p=
-atch.
-> >=20
-> > Like said, I fully agree with that sentiment, just haven't been able to
-> > come up with anything saner :/ Although I can optimize the
-> > __put_anon_vma() path a bit by doing something like:
-> >=20
-> >   if (mutex_is_locked()) { anon_vma_lock(); anon_vma_unlock(); }
-> >=20
-> > But I bet that wants a barrier someplace and my head hurts..=20
->=20
-> Without daring to hurt my head very much, yes, I'd say those kind
-> of "optimizations" have a habit of turning out to be racily wrong.
->=20
-> But you put your finger on it: if you hadn't had to add that lock-
-> unlock pair into __put_anon_vma(), I wouldn't have minded the
-> contortions added to page_lock_anon_vma().=20
+On Wed, Jan 19, 2011 at 06:10:39PM +0100, Peter Zijlstra wrote:
+> > 19/21 mm-convert_i_mmap_lock_and_anon_vma-_lock_to_mutexes.patch
+> >       I suggest doing the anon_vma lock->mutex conversion separately here.
+> >       Acked-by: Hugh Dickins <hughd@google.com>
+> >       except that in the past we have renamed a lock when we've done this
+> >       kind of conversion, so I'd expect anon_vma->mutex throughout now.
+> >       Or am I just out of date?  I don't feel very strongly about it.
+> 
+> Done.. however:
+> 
+> Index: linux-2.6/include/linux/huge_mm.h
+> ===================================================================
+> --- linux-2.6.orig/include/linux/huge_mm.h
+> +++ linux-2.6/include/linux/huge_mm.h
+> @@ -91,12 +91,8 @@ extern void __split_huge_page_pmd(struct
+>  #define wait_split_huge_page(__anon_vma, __pmd)				\
+>  	do {								\
+>  		pmd_t *____pmd = (__pmd);				\
+> -		spin_unlock_wait(&(__anon_vma)->root->lock);		\
+> -		/*							\
+> -		 * spin_unlock_wait() is just a loop in C and so the	\
+> -		 * CPU can reorder anything around it.			\
+> -		 */							\
+> -		smp_mb();						\
+> +		anon_vma_lock(__anon_vma);				\
+> +		anon_vma_unlock(__anon_vma);				\
+>  		BUG_ON(pmd_trans_splitting(*____pmd) ||			\
+>  		       pmd_trans_huge(*____pmd));			\
+>  	} while (0)
+> 
+> Andrea, is that smp_mb() simply to avoid us doing anything before the
+> lock is free? Why isn't there an mb() before to ensure nothing leaks
+> past it from the other end?
 
-I think there's just about enough implied barriers there that the
-'simple' code just works ;-)
+The idea would be that by the time we read the pmd set to
+pmd_trans_splitting with the page_table_lock hold, we're guaranteed
+we'll see the anon-vma locked (if it's still locked). So it's ok if
+spin_unlock_wait happens before reading the pmd_trans_splitting check
+inside the CPU (all it matters is for it not to happen before the
+spin_lock(&page_table_lock) which it can't by the acquire semantics of
+the spinlock).
 
-But given that I'm trying to think with snot for brains thanks to some
-cold, I don't trust myself at all to have gotten this right.
+So in short we know we start with the anon_vma locked, and we just
+wait as long as needed.
 
-[ for Oleg and Paul: https://lkml.org/lkml/2010/11/26/213 contains the
-full patch this is against ]
-
----
-Index: linux-2.6/mm/rmap.c
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -1559,9 +1559,20 @@ void __put_anon_vma(struct anon_vma *ano
- 	 * Synchronize against page_lock_anon_vma() such that
- 	 * we can safely hold the lock without the anon_vma getting
- 	 * freed.
-+	 *
-+	 * Relies on the full mb implied by the atomic_dec_and_test() from
-+	 * put_anon_vma() against the full mb implied by mutex_trylock() from
-+	 * page_lock_anon_vma(). This orders:
-+	 *
-+	 * page_lock_anon_vma()		VS	put_anon_vma()
-+	 *   mutex_trylock()			  atomic_dec_and_test()
-+	 *   smp_mb()				  smp_mb()
-+	 *   atomic_read()			  mutex_is_locked()
- 	 */
--	anon_vma_lock(anon_vma);
--	anon_vma_unlock(anon_vma);
-+	if (mutex_is_locked(&anon_vma->root->mutex)) {
-+		anon_vma_lock(anon_vma);
-+		anon_vma_unlock(anon_vma);
-+	}
-=20
- 	if (anon_vma->root !=3D anon_vma)
- 		put_anon_vma(anon_vma->root);
+So we only need to protect to the stuff after spin_unlock_wait().
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
