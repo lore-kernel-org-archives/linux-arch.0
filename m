@@ -1,52 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:43821 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753267Ab1AVNOX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:23 -0500
+	with ESMTP id S1753267Ab1AVNOa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:30 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 14/27] kvm: use little-endian bitops
-Date: Sat, 22 Jan 2011 22:13:46 +0900
-Message-ID: <1295702039-23186-15-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 16/27] ext3: use little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:48 +0900
+Message-ID: <1295702039-23186-17-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, kvm@vger.kernel.org
-Message-ID: <20110122131346.FRLjZUESQk53SBOJGEBfplI_kHtjJeojBb4SQPXZaXw@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.cz>
+Message-ID: <20110122131348.ARGwrZVxtPza9ZEGZd0l5wwQ2-wRuLw7z5GyRC12CPA@z>
 
 As a preparation for removing ext2 non-atomic bit operations from
 asm/bitops.h.  This converts ext2 non-atomic bit operations to
 little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Avi Kivity <avi@redhat.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: kvm@vger.kernel.org
+Acked-by: Jan Kara <jack@suse.cz>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v4:
- - splitted into two patches to fix a bisection hole
+ - remove casts to "unsigned long *" due to le-bitops prototype change
 
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- virt/kvm/kvm_main.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ include/linux/ext3_fs.h |   10 +++++-----
+ 1 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index 3461001..508fdb1 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -1420,7 +1420,7 @@ void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
- 	if (memslot && memslot->dirty_bitmap) {
- 		unsigned long rel_gfn = gfn - memslot->base_gfn;
+diff --git a/include/linux/ext3_fs.h b/include/linux/ext3_fs.h
+index 65990ef..fffd3fb 100644
+--- a/include/linux/ext3_fs.h
++++ b/include/linux/ext3_fs.h
+@@ -418,13 +418,13 @@ struct ext3_inode {
+ #define EXT2_MOUNT_DATA_FLAGS		EXT3_MOUNT_DATA_FLAGS
+ #endif
  
--		ext2_set_bit(rel_gfn, memslot->dirty_bitmap);
-+		__set_bit_le(rel_gfn, memslot->dirty_bitmap);
- 	}
- }
+-#define ext3_set_bit			ext2_set_bit
++#define ext3_set_bit			__test_and_set_bit_le
+ #define ext3_set_bit_atomic		ext2_set_bit_atomic
+-#define ext3_clear_bit			ext2_clear_bit
++#define ext3_clear_bit			__test_and_clear_bit_le
+ #define ext3_clear_bit_atomic		ext2_clear_bit_atomic
+-#define ext3_test_bit			ext2_test_bit
+-#define ext3_find_first_zero_bit	ext2_find_first_zero_bit
+-#define ext3_find_next_zero_bit		ext2_find_next_zero_bit
++#define ext3_test_bit			test_bit_le
++#define ext3_find_first_zero_bit	find_first_zero_bit_le
++#define ext3_find_next_zero_bit		find_next_zero_bit_le
  
+ /*
+  * Maximal mount counts between two filesystem checks
 -- 
 1.7.3.4
 
