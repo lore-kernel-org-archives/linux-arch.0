@@ -1,65 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:57659 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754399Ab1AVCRv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Jan 2011 21:17:51 -0500
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110120114216.4b23182a@jbarnes-desktop>
-In-Reply-To: <20110120114216.4b23182a@jbarnes-desktop>
-Subject: RE: Request for unicore32 architecture codes to merge into linux-next
-Date: Sat, 22 Jan 2011 10:17:16 +0800
-Message-ID: <013801cbb9da$7f9bff10$7ed3fd30$@mprc.pku.edu.cn>
-MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Content-Language: zh-cn
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:43821 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753267Ab1AVNOe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:34 -0500
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v5 17/27] ext4: use little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:49 +0900
+Message-ID: <1295702039-23186-18-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
+References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Jesse Barnes' <jbarnes@virtuousgeek.org>
-Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
-Message-ID: <20110122021716.vzAkzgH2BR_pDq3ZB6-1GZkGNEGVguhkcYGHjed1rhA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>
+Message-ID: <20110122131349.uj3tsAHMJPI7huzHg5ZS2sbiOYDqqpy4Wuh_BNU9AR0@z>
 
+As a preparation for removing ext2 non-atomic bit operations from
+asm/bitops.h.  This converts ext2 non-atomic bit operations to
+little-endian bit operations.
 
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Acked-by: "Theodore Ts'o" <tytso@mit.edu>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-> -----Original Message-----
-> From: Jesse Barnes [mailto:jbarnes@virtuousgeek.org]
-> Sent: Friday, January 21, 2011 3:42 AM
-> To: Guan Xuetao
-> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; dmitry.torokhov@gmail.com; dtor@mail.ru; rubini@cvml.unipv.it; linux-
-> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
-> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-> 
-> On Sun, 16 Jan 2011 01:00:31 +0800
-> "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn> wrote:
-> 
-> > Hi,
-> >
-> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
-> >
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> > ---
-> 
-> Took a quick look at the PCI parts, looks like you have a pretty big
-> DMA restriction.
-Yes, only 128MB low memory could be used as dma space for pci devices.
-> 
-> You could provide your own dma map ops and make the allocator a bit
-> smarter about where it gets memory (preferentially allocating from the
-> DMA'able region, which you could hide).  Or do you find that swiotlb
-> does ok in general?
-Swiotlb works well. For almost all functions are provided by IPs inside the SoC,
-the dma function is used mainly through amba/axi bus,  not pci bus.
+Change from v4:
+ - remove casts to "unsigned long *" due to le-bitops prototype change
 
-> 
-> Other than that you had pretty tiny bits of enabling code, I assume
-> they work on your platform (config space access & setup, etc.).
-Yes.
-> 
-> --
-> Jesse Barnes, Intel Open Source Technology Center
-Thanks Jesse
+The whole series is available in the git branch at:
+ git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
-Guan Xuetao
+ fs/ext4/ext4.h |   12 ++++++------
+ 1 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
+index 0c8d97b..ab28816 100644
+--- a/fs/ext4/ext4.h
++++ b/fs/ext4/ext4.h
+@@ -922,14 +922,14 @@ struct ext4_inode_info {
+ #define test_opt2(sb, opt)		(EXT4_SB(sb)->s_mount_opt2 & \
+ 					 EXT4_MOUNT2_##opt)
+ 
+-#define ext4_set_bit			ext2_set_bit
++#define ext4_set_bit			__test_and_set_bit_le
+ #define ext4_set_bit_atomic		ext2_set_bit_atomic
+-#define ext4_clear_bit			ext2_clear_bit
++#define ext4_clear_bit			__test_and_clear_bit_le
+ #define ext4_clear_bit_atomic		ext2_clear_bit_atomic
+-#define ext4_test_bit			ext2_test_bit
+-#define ext4_find_first_zero_bit	ext2_find_first_zero_bit
+-#define ext4_find_next_zero_bit		ext2_find_next_zero_bit
+-#define ext4_find_next_bit		ext2_find_next_bit
++#define ext4_test_bit			test_bit_le
++#define ext4_find_first_zero_bit	find_first_zero_bit_le
++#define ext4_find_next_zero_bit		find_next_zero_bit_le
++#define ext4_find_next_bit		find_next_bit_le
+ 
+ /*
+  * Maximal mount counts between two filesystem checks
+-- 
+1.7.3.4
 
