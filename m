@@ -1,130 +1,119 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 06/27] powerpc: introduce little-endian bitops
-Date: Sat, 22 Jan 2011 22:13:38 +0900
-Message-ID: <1295702039-23186-7-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 03/27] bitops: merge little and big endian definisions in asm-generic/bitops/le.h
+Date: Sat, 22 Jan 2011 22:13:35 +0900
+Message-ID: <1295702039-23186-4-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>, Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Introduce little-endian bit operations by renaming existing powerpc
-native little-endian bit operations and changing them to take any
-pointer types.
+This patch series introduces little-endian bit operations in asm/bitops.h
+for all architectures and converts all ext2 non-atomic and minix bit
+operations to use little-endian bit operations.  It enables us to remove
+ext2 non-atomic and minix bit operations from asm/bitops.h.  The reason
+they should be removed from asm/bitops.h is as follows:
+
+For ext2 non-atomic bit operations, they are used for little-endian byte
+order bitmap access by some filesystems and modules.  But using ext2_*()
+functions on a module other than ext2 filesystem makes some feel strange.
+
+For minix bit operations, they are only used by minix filesystem and are
+useless by other modules.  Because byte order of inode and block bitmap is
+different on each architecture.
+
+This patch:
+
+In order to make the forthcoming changes smaller, this merges macro
+definisions in asm-generic/bitops/le.h for big-endian and little-endian as
+much as possible.
+
+This also removes unused BITOP_WORD macro.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v4:
- - change the prototypes and add casts in the macro to take any pointer types
+ - no changes
 
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- arch/powerpc/include/asm/bitops.h |   46 ++++++++++++++++++------------------
- 1 files changed, 23 insertions(+), 23 deletions(-)
+ include/asm-generic/bitops/le.h |   46 +++++++++++++++++----------------------
+ 1 files changed, 20 insertions(+), 26 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index db567ed..a77f6be 100644
---- a/arch/powerpc/include/asm/bitops.h
-+++ b/arch/powerpc/include/asm/bitops.h
-@@ -281,27 +281,27 @@ unsigned long __arch_hweight64(__u64 w);
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 80e3bf1..9085429 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -4,27 +4,33 @@
+ #include <asm/types.h>
+ #include <asm/byteorder.h>
  
- /* Little-endian versions */
+-#define BITOP_WORD(nr)		((nr) / BITS_PER_LONG)
+-#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+-
+ #if defined(__LITTLE_ENDIAN)
  
--static __inline__ int test_le_bit(unsigned long nr,
--				  __const__ unsigned long *addr)
-+static __inline__ int test_bit_le(unsigned long nr,
-+				  __const__ void *addr)
- {
- 	__const__ unsigned char	*tmp = (__const__ unsigned char *) addr;
- 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
- }
+-#define generic_test_le_bit(nr, addr) test_bit(nr, addr)
+-#define generic___set_le_bit(nr, addr) __set_bit(nr, addr)
+-#define generic___clear_le_bit(nr, addr) __clear_bit(nr, addr)
+-
+-#define generic_test_and_set_le_bit(nr, addr) test_and_set_bit(nr, addr)
+-#define generic_test_and_clear_le_bit(nr, addr) test_and_clear_bit(nr, addr)
+-
+-#define generic___test_and_set_le_bit(nr, addr) __test_and_set_bit(nr, addr)
+-#define generic___test_and_clear_le_bit(nr, addr) __test_and_clear_bit(nr, addr)
++#define BITOP_LE_SWIZZLE	0
  
--#define __set_le_bit(nr, addr) \
--	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define __clear_le_bit(nr, addr) \
--	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+#define __set_bit_le(nr, addr) \
-+	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
-+#define __clear_bit_le(nr, addr) \
-+	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define generic_find_next_zero_le_bit(addr, size, offset) find_next_zero_bit(addr, size, offset)
++#define generic_find_next_zero_le_bit(addr, size, offset) \
++	find_next_zero_bit(addr, size, offset)
+ #define generic_find_next_le_bit(addr, size, offset) \
+-			find_next_bit(addr, size, offset)
++	find_next_bit(addr, size, offset)
++#define generic_find_first_zero_le_bit(addr, size) \
++	find_first_zero_bit(addr, size)
  
--#define test_and_set_le_bit(nr, addr) \
--	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define test_and_clear_le_bit(nr, addr) \
--	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+#define test_and_set_bit_le(nr, addr) \
-+	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
-+#define test_and_clear_bit_le(nr, addr) \
-+	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ #elif defined(__BIG_ENDIAN)
  
--#define __test_and_set_le_bit(nr, addr) \
--	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
--#define __test_and_clear_le_bit(nr, addr) \
--	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+#define __test_and_set_bit_le(nr, addr) \
-+	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
-+#define __test_and_clear_bit_le(nr, addr) \
-+	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
++
++extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
++		unsigned long size, unsigned long offset);
++
++#define generic_find_first_zero_le_bit(addr, size) \
++	generic_find_next_zero_le_bit((addr), (size), 0)
++
++#else
++#error "Please fix <asm/byteorder.h>"
++#endif
++
+ #define generic_test_le_bit(nr, addr) \
+ 	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+ #define generic___set_le_bit(nr, addr) \
+@@ -42,16 +48,4 @@
+ #define generic___test_and_clear_le_bit(nr, addr) \
+ 	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
  
- #define find_first_zero_bit_le(addr, size) \
- 	find_next_zero_bit_le((addr), (size), 0)
-@@ -313,16 +313,16 @@ unsigned long find_next_bit_le(const void *addr,
- /* Bitmap functions for the ext2 filesystem */
- 
- #define ext2_set_bit(nr,addr) \
--	__test_and_set_le_bit((nr), (unsigned long*)addr)
-+	__test_and_set_bit_le((nr), (unsigned long*)addr)
- #define ext2_clear_bit(nr, addr) \
--	__test_and_clear_le_bit((nr), (unsigned long*)addr)
-+	__test_and_clear_bit_le((nr), (unsigned long*)addr)
- 
- #define ext2_set_bit_atomic(lock, nr, addr) \
--	test_and_set_le_bit((nr), (unsigned long*)addr)
-+	test_and_set_bit_le((nr), (unsigned long*)addr)
- #define ext2_clear_bit_atomic(lock, nr, addr) \
--	test_and_clear_le_bit((nr), (unsigned long*)addr)
-+	test_and_clear_bit_le((nr), (unsigned long*)addr)
- 
--#define ext2_test_bit(nr, addr)      test_le_bit((nr),(unsigned long*)addr)
-+#define ext2_test_bit(nr, addr)      test_bit_le((nr),(unsigned long*)addr)
- 
- #define ext2_find_first_zero_bit(addr, size) \
- 	find_first_zero_bit_le((unsigned long*)addr, size)
-@@ -334,13 +334,13 @@ unsigned long find_next_bit_le(const void *addr,
- /* Bitmap functions for the minix filesystem.  */
- 
- #define minix_test_and_set_bit(nr,addr) \
--	__test_and_set_le_bit(nr, (unsigned long *)addr)
-+	__test_and_set_bit_le(nr, (unsigned long *)addr)
- #define minix_set_bit(nr,addr) \
--	__set_le_bit(nr, (unsigned long *)addr)
-+	__set_bit_le(nr, (unsigned long *)addr)
- #define minix_test_and_clear_bit(nr,addr) \
--	__test_and_clear_le_bit(nr, (unsigned long *)addr)
-+	__test_and_clear_bit_le(nr, (unsigned long *)addr)
- #define minix_test_bit(nr,addr) \
--	test_le_bit(nr, (unsigned long *)addr)
-+	test_bit_le(nr, (unsigned long *)addr)
- 
- #define minix_find_first_zero_bit(addr,size) \
- 	find_first_zero_bit_le((unsigned long *)addr, size)
+-extern unsigned long generic_find_next_zero_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-extern unsigned long generic_find_next_le_bit(const unsigned long *addr,
+-		unsigned long size, unsigned long offset);
+-
+-#else
+-#error "Please fix <asm/byteorder.h>"
+-#endif
+-
+-#define generic_find_first_zero_le_bit(addr, size) \
+-        generic_find_next_zero_le_bit((addr), (size), 0)
+-
+ #endif /* _ASM_GENERIC_BITOPS_LE_H_ */
 -- 
 1.7.3.4
