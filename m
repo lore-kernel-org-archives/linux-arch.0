@@ -1,75 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:43821 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753695Ab1AVNO5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:57 -0500
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:57944 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753795Ab1AVNPE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:15:04 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 24/27] dm: use little-endian bitops
-Date: Sat, 22 Jan 2011 22:13:56 +0900
-Message-ID: <1295702039-23186-25-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 26/27] m68k: remove inline asm from minix_find_first_zero_bit
+Date: Sat, 22 Jan 2011 22:13:58 +0900
+Message-ID: <1295702039-23186-27-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Alasdair Kergon <agk@redhat.com>
-Message-ID: <20110122131356.vaBbObYaPVuzbCjioy6_32NTgTYDPR6cX5UD7ZutUKo@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Roman Zippel <zippel@linux-m68k.org>, Andreas Schwab <schwab@linux-m68k.org>
+Message-ID: <20110122131358.R1YahOAl2o61atd-bcRDrvubyZVa8lxqACv7AI3soT4@z>
 
-As a preparation for removing ext2 non-atomic bit operations from
-asm/bitops.h.  This converts ext2 non-atomic bit operations to
-little-endian bit operations.
+As a preparation for moving minix bit operations from asm/bitops.h to
+architecture independent code in minix filesystem, this removes inline
+asm from minix_find_first_zero_bit() for m68k.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Alasdair Kergon <agk@redhat.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Roman Zippel <zippel@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
 Change from v4:
- - no change
+ - no changes
 
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- drivers/md/dm-log.c |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+ arch/m68k/include/asm/bitops_mm.h |   10 +++-------
+ 1 files changed, 3 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/md/dm-log.c b/drivers/md/dm-log.c
-index 6951536..57968eb 100644
---- a/drivers/md/dm-log.c
-+++ b/drivers/md/dm-log.c
-@@ -251,20 +251,20 @@ struct log_c {
-  */
- static inline int log_test_bit(uint32_t *bs, unsigned bit)
+diff --git a/arch/m68k/include/asm/bitops_mm.h b/arch/m68k/include/asm/bitops_mm.h
+index 645a4d5..497e711 100644
+--- a/arch/m68k/include/asm/bitops_mm.h
++++ b/arch/m68k/include/asm/bitops_mm.h
+@@ -330,23 +330,19 @@ static inline int __fls(int x)
+ static inline int minix_find_first_zero_bit(const void *vaddr, unsigned size)
  {
--	return ext2_test_bit(bit, (unsigned long *) bs) ? 1 : 0;
-+	return test_bit_le(bit, (unsigned long *) bs) ? 1 : 0;
- }
+ 	const unsigned short *p = vaddr, *addr = vaddr;
+-	int res;
+ 	unsigned short num;
  
- static inline void log_set_bit(struct log_c *l,
- 			       uint32_t *bs, unsigned bit)
- {
--	ext2_set_bit(bit, (unsigned long *) bs);
-+	__test_and_set_bit_le(bit, (unsigned long *) bs);
- 	l->touched_cleaned = 1;
- }
- 
- static inline void log_clear_bit(struct log_c *l,
- 				 uint32_t *bs, unsigned bit)
- {
--	ext2_clear_bit(bit, (unsigned long *) bs);
-+	__test_and_clear_bit_le(bit, (unsigned long *) bs);
- 	l->touched_dirtied = 1;
- }
- 
-@@ -740,7 +740,7 @@ static int core_get_resync_work(struct dm_dirty_log *log, region_t *region)
+ 	if (!size)
  		return 0;
  
- 	do {
--		*region = ext2_find_next_zero_bit(
-+		*region = find_next_zero_bit_le(
- 					     (unsigned long *) lc->sync_bits,
- 					     lc->region_count,
- 					     lc->sync_search);
+ 	size = (size >> 4) + ((size & 15) > 0);
+-	while (*p++ == 0xffff)
+-	{
++	while (*p++ == 0xffff) {
+ 		if (--size == 0)
+ 			return (p - addr) << 4;
+ 	}
+ 
+-	num = ~*--p;
+-	__asm__ __volatile__ ("bfffo %1{#16,#16},%0"
+-			      : "=d" (res) : "d" (num & -num));
+-	return ((p - addr) << 4) + (res ^ 31);
++	num = *--p;
++	return ((p - addr) << 4) + ffz(num);
+ }
+ 
+ #define minix_test_and_set_bit(nr, addr)	__test_and_set_bit((nr) ^ 16, (unsigned long *)(addr))
 -- 
 1.7.3.4
 
