@@ -1,68 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38705 "EHLO mx1.redhat.com"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:57659 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753649Ab1AURr1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Jan 2011 12:47:27 -0500
-Date: Fri, 21 Jan 2011 18:44:42 +0100
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Message-ID: <20110121174442.GI9506@random.random>
-References: <20101126143843.801484792@chello.nl>
- <alpine.LSU.2.00.1101172301340.2899@sister.anvils>
- <1295457039.28776.137.camel@laptop>
+	id S1754399Ab1AVCRv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Jan 2011 21:17:51 -0500
+From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
+References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110120114216.4b23182a@jbarnes-desktop>
+In-Reply-To: <20110120114216.4b23182a@jbarnes-desktop>
+Subject: RE: Request for unicore32 architecture codes to merge into linux-next
+Date: Sat, 22 Jan 2011 10:17:16 +0800
+Message-ID: <013801cbb9da$7f9bff10$7ed3fd30$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1295457039.28776.137.camel@laptop>
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20110121174442.P4Cwe_19sDqfFQeQXQw76hd0EoSJhzpWVLGQko2il9g@z>
+To: 'Jesse Barnes' <jbarnes@virtuousgeek.org>
+Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
+Message-ID: <20110122021716.vzAkzgH2BR_pDq3ZB6-1GZkGNEGVguhkcYGHjed1rhA@z>
 
-On Wed, Jan 19, 2011 at 06:10:39PM +0100, Peter Zijlstra wrote:
-> > 19/21 mm-convert_i_mmap_lock_and_anon_vma-_lock_to_mutexes.patch
-> >       I suggest doing the anon_vma lock->mutex conversion separately here.
-> >       Acked-by: Hugh Dickins <hughd@google.com>
-> >       except that in the past we have renamed a lock when we've done this
-> >       kind of conversion, so I'd expect anon_vma->mutex throughout now.
-> >       Or am I just out of date?  I don't feel very strongly about it.
+
+
+> -----Original Message-----
+> From: Jesse Barnes [mailto:jbarnes@virtuousgeek.org]
+> Sent: Friday, January 21, 2011 3:42 AM
+> To: Guan Xuetao
+> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; dmitry.torokhov@gmail.com; dtor@mail.ru; rubini@cvml.unipv.it; linux-
+> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
+> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
 > 
-> Done.. however:
+> On Sun, 16 Jan 2011 01:00:31 +0800
+> "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn> wrote:
 > 
-> Index: linux-2.6/include/linux/huge_mm.h
-> ===================================================================
-> --- linux-2.6.orig/include/linux/huge_mm.h
-> +++ linux-2.6/include/linux/huge_mm.h
-> @@ -91,12 +91,8 @@ extern void __split_huge_page_pmd(struct
->  #define wait_split_huge_page(__anon_vma, __pmd)				\
->  	do {								\
->  		pmd_t *____pmd = (__pmd);				\
-> -		spin_unlock_wait(&(__anon_vma)->root->lock);		\
-> -		/*							\
-> -		 * spin_unlock_wait() is just a loop in C and so the	\
-> -		 * CPU can reorder anything around it.			\
-> -		 */							\
-> -		smp_mb();						\
-> +		anon_vma_lock(__anon_vma);				\
-> +		anon_vma_unlock(__anon_vma);				\
->  		BUG_ON(pmd_trans_splitting(*____pmd) ||			\
->  		       pmd_trans_huge(*____pmd));			\
->  	} while (0)
+> > Hi,
+> >
+> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
+> >
+> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> > ---
 > 
-> Andrea, is that smp_mb() simply to avoid us doing anything before the
-> lock is free? Why isn't there an mb() before to ensure nothing leaks
-> past it from the other end?
+> Took a quick look at the PCI parts, looks like you have a pretty big
+> DMA restriction.
+Yes, only 128MB low memory could be used as dma space for pci devices.
+> 
+> You could provide your own dma map ops and make the allocator a bit
+> smarter about where it gets memory (preferentially allocating from the
+> DMA'able region, which you could hide).  Or do you find that swiotlb
+> does ok in general?
+Swiotlb works well. For almost all functions are provided by IPs inside the SoC,
+the dma function is used mainly through amba/axi bus,  not pci bus.
 
-The idea would be that by the time we read the pmd set to
-pmd_trans_splitting with the page_table_lock hold, we're guaranteed
-we'll see the anon-vma locked (if it's still locked). So it's ok if
-spin_unlock_wait happens before reading the pmd_trans_splitting check
-inside the CPU (all it matters is for it not to happen before the
-spin_lock(&page_table_lock) which it can't by the acquire semantics of
-the spinlock).
+> 
+> Other than that you had pretty tiny bits of enabling code, I assume
+> they work on your platform (config space access & setup, etc.).
+Yes.
+> 
+> --
+> Jesse Barnes, Intel Open Source Technology Center
+Thanks Jesse
 
-So in short we know we start with the anon_vma locked, and we just
-wait as long as needed.
+Guan Xuetao
 
-So we only need to protect to the stuff after spin_unlock_wait().
