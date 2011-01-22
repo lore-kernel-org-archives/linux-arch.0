@@ -1,59 +1,153 @@
-From: "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn>
-Subject: RE: Request for unicore32 architecture codes to merge into linux-next
-Date: Sat, 22 Jan 2011 10:17:16 +0800
-Message-ID: <013801cbb9da$7f9bff10$7ed3fd30$@mprc.pku.edu.cn>
-References: <004901cbb4d5$b9bb1370$2d313a50$@mprc.pku.edu.cn> <20110120114216.4b23182a@jbarnes-desktop>
-Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-next-owner@vger.kernel.org>
-In-Reply-To: <20110120114216.4b23182a@jbarnes-desktop>
-Content-Language: zh-cn
-Sender: linux-next-owner@vger.kernel.org
-To: 'Jesse Barnes' <jbarnes@virtuousgeek.org>
-Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, dmitry.torokhov@gmail.com, dtor@mail.ru, rubini@cvml.unipv.it, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fbdev@vger.kernel.org, linux-next@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v5 00/27] Introduce little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:32 +0900
+Message-ID: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:52422 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752921Ab1AVNNU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:13:20 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>
 
+Changelog:
 
+ * v5
+ - change the prototypes and casts in the macro to take any pointer types
+ - remove casts to "unsigned long *" due to le-bitops prototype change
+ - fix a bisection hole for kvm and rds on some architectures
+ - drop Acked-by lines from some patches that got enough changes
 
-> -----Original Message-----
-> From: Jesse Barnes [mailto:jbarnes@virtuousgeek.org]
-> Sent: Friday, January 21, 2011 3:42 AM
-> To: Guan Xuetao
-> Cc: sfr@canb.auug.org.au; Arnd Bergmann; gregkh@suse.de; dmitry.torokhov@gmail.com; dtor@mail.ru; rubini@cvml.unipv.it; linux-
-> arch@vger.kernel.org; linux-kernel@vger.kernel.org; linux-fbdev@vger.kernel.org; linux-next@vger.kernel.org
-> Subject: Re: Request for unicore32 architecture codes to merge into linux-next
-> 
-> On Sun, 16 Jan 2011 01:00:31 +0800
-> "Guan Xuetao" <guanxuetao@mprc.pku.edu.cn> wrote:
-> 
-> > Hi,
-> >
-> > I want to merge unicore32 repo into linux-next tree, the position is (unicore32 branch):
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
-> >
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> > ---
-> 
-> Took a quick look at the PCI parts, looks like you have a pretty big
-> DMA restriction.
-Yes, only 128MB low memory could be used as dma space for pci devices.
-> 
-> You could provide your own dma map ops and make the allocator a bit
-> smarter about where it gets memory (preferentially allocating from the
-> DMA'able region, which you could hide).  Or do you find that swiotlb
-> does ok in general?
-Swiotlb works well. For almost all functions are provided by IPs inside the SoC,
-the dma function is used mainly through amba/axi bus,  not pci bus.
+ * v4
+ - change to the post-fix notation as suggested by Linus
+   (e.g. s/test_le_bit/test_bit_le/)
+ - introduce CONFIG_GENERIC_FIND_BIT_LE
+ - fix m68knommu build
+ - fix inefficienct find_first_zero_le_bit()
 
-> 
-> Other than that you had pretty tiny bits of enabling code, I assume
-> they work on your platform (config space access & setup, etc.).
-Yes.
-> 
-> --
-> Jesse Barnes, Intel Open Source Technology Center
-Thanks Jesse
+ * v3
+ - add Acked-by: lines
 
-Guan Xuetao
+ * v2
+(cover letter for v2 was not delivered to any mailing lists I've CCed may be
+due to Too many recipients to the message)
+ - fix argument of test_and_{set,clear}_le_bit() for s390, arm, m68k
+ - move ext2 bitops to fs/ext2/ext2.h, not include/linux/ext2_fs.h
+ - fix m68k minix bitops incorrect conversion noticed by Andreas Schwab
+ - rewrite minix bitops removal patch based on the suggestion by Arnd
+
+This patch series introduces little-endian bit operations in asm/bitops.h
+for all architectures and converts all ext2 non-atomic and minix bit
+operations to use little-endian bit operations.  It enables us to remove
+ext2 non-atomic and minix bit operations from asm/bitops.h.  The reason
+they should be removed from asm/bitops.h is as follows:
+
+For ext2 non-atomic bit operations, they are used for little-endian byte
+order bitmap access by some filesystems and modules.  But using ext2_*()
+functions on a module other than ext2 filesystem makes some feel strange.
+
+For minix bit operations, they are only used by minix filesystem and are
+useless by other modules.  Because byte order of inode and block bitmap is
+different on each architecture.
+
+The little-endian bitops patch series for this version is available in
+the git branch at:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
+
+Akinobu Mita (27):
+  kvm: stop including asm-generic/bitops/le.h directly
+  rds: stop including asm-generic/bitops/le.h directly
+  bitops: merge little and big endian definisions in
+    asm-generic/bitops/le.h
+  asm-generic: rename generic little-endian bitops functions
+  asm-generic: change little-endian bitops to take any pointer types
+  powerpc: introduce little-endian bitops
+  s390: introduce little-endian bitops
+  arm: introduce little-endian bitops
+  m68k: introduce little-endian bitops
+  bitops: introduce CONFIG_GENERIC_FIND_BIT_LE
+  m68knommu: introduce little-endian bitops
+  bitops: introduce little-endian bitops for most architectures
+  asm-generic: use little-endian bitops
+  kvm: use little-endian bitops
+  rds: use little-endian bitops
+  ext3: use little-endian bitops
+  ext4: use little-endian bitops
+  ocfs2: use little-endian bitops
+  nilfs2: use little-endian bitops
+  reiserfs: use little-endian bitops
+  udf: use little-endian bitops
+  ufs: use little-endian bitops
+  md: use little-endian bitops
+  dm: use little-endian bitops
+  bitops: remove ext2 non-atomic bitops from asm/bitops.h
+  m68k: remove inline asm from minix_find_first_zero_bit
+  bitops: remove minix bitops from asm/bitops.h
+
+ arch/alpha/include/asm/bitops.h              |    4 +-
+ arch/arm/include/asm/bitops.h                |   52 +++++-------
+ arch/avr32/include/asm/bitops.h              |    3 +-
+ arch/avr32/kernel/avr32_ksyms.c              |    4 +-
+ arch/avr32/lib/findbit.S                     |    4 +-
+ arch/blackfin/include/asm/bitops.h           |    3 +-
+ arch/cris/include/asm/bitops.h               |    3 +-
+ arch/frv/Kconfig                             |    4 +
+ arch/frv/include/asm/bitops.h                |    4 +-
+ arch/h8300/Kconfig                           |    4 +
+ arch/h8300/include/asm/bitops.h              |    3 +-
+ arch/ia64/include/asm/bitops.h               |    3 +-
+ arch/m32r/Kconfig                            |    4 +
+ arch/m32r/include/asm/bitops.h               |    3 +-
+ arch/m68k/include/asm/bitops_mm.h            |  107 +++++++++++---------------
+ arch/m68k/include/asm/bitops_no.h            |   28 ++++---
+ arch/microblaze/Kconfig                      |    3 +
+ arch/mips/Kconfig                            |    4 +
+ arch/mips/include/asm/bitops.h               |    3 +-
+ arch/mn10300/include/asm/bitops.h            |    3 +-
+ arch/parisc/Kconfig                          |    4 +
+ arch/parisc/include/asm/bitops.h             |    4 +-
+ arch/powerpc/Kconfig                         |    4 +
+ arch/powerpc/include/asm/bitops.h            |   67 +++++-----------
+ arch/s390/include/asm/bitops.h               |   45 ++++++-----
+ arch/sh/Kconfig                              |    3 +
+ arch/sh/include/asm/bitops.h                 |    3 +-
+ arch/sparc/Kconfig                           |    4 +
+ arch/sparc/include/asm/bitops_32.h           |    3 +-
+ arch/sparc/include/asm/bitops_64.h           |    4 +-
+ arch/tile/include/asm/bitops.h               |    3 +-
+ arch/x86/include/asm/bitops.h                |    4 +-
+ arch/xtensa/Kconfig                          |    3 +
+ arch/xtensa/include/asm/bitops.h             |    3 +-
+ drivers/md/bitmap.c                          |    6 +-
+ drivers/md/dm-log.c                          |    8 +-
+ fs/ext2/ext2.h                               |    6 ++
+ fs/ext4/ext4.h                               |   12 ++--
+ fs/minix/Kconfig                             |    8 ++
+ fs/minix/minix.h                             |   74 ++++++++++++++++++
+ fs/nilfs2/alloc.h                            |    2 +-
+ fs/ocfs2/ocfs2.h                             |   10 +-
+ fs/udf/balloc.c                              |    9 +-
+ fs/ufs/util.h                                |    2 +-
+ include/asm-generic/bitops.h                 |    3 +-
+ include/asm-generic/bitops/ext2-atomic.h     |    4 +-
+ include/asm-generic/bitops/ext2-non-atomic.h |   20 -----
+ include/asm-generic/bitops/le.h              |   64 +++++++---------
+ include/asm-generic/bitops/minix-le.h        |   17 ----
+ include/asm-generic/bitops/minix.h           |   15 ----
+ include/linux/ext3_fs.h                      |   10 +-
+ include/linux/reiserfs_fs.h                  |   27 +++----
+ lib/Kconfig                                  |    3 +
+ lib/Makefile                                 |    1 +
+ lib/find_next_bit.c                          |   18 +++--
+ net/rds/cong.c                               |    9 +-
+ virt/kvm/kvm_main.c                          |    3 +-
+ 57 files changed, 369 insertions(+), 362 deletions(-)
+ delete mode 100644 include/asm-generic/bitops/ext2-non-atomic.h
+ delete mode 100644 include/asm-generic/bitops/minix-le.h
+ delete mode 100644 include/asm-generic/bitops/minix.h
+
+-- 
+1.7.3.4
