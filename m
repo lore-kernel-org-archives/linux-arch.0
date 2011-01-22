@@ -1,63 +1,130 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 01/27] kvm: stop including asm-generic/bitops/le.h directly
-Date: Sat, 22 Jan 2011 22:13:33 +0900
-Message-ID: <1295702039-23186-2-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 06/27] powerpc: introduce little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:38 +0900
+Message-ID: <1295702039-23186-7-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, kvm@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org, Paul Mackerras <paulus@samba.org>, Akinobu Mita <akinobu.mita@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-asm-generic/bitops/le.h is only intended to be included directly from
-asm-generic/bitops/ext2-non-atomic.h or asm-generic/bitops/minix-le.h
-which implements generic ext2 or minix bit operations.
-
-This stops including asm-generic/bitops/le.h directly and use ext2
-non-atomic bit operations instead.
-
-It seems odd to use ext2_set_bit() on kvm, but it will replaced with
-__set_bit_le() after introducing little endian bit operations
-for all architectures.  This indirect step is necessary to maintain
-bisectability for some architectures which have their own little-endian
-bit operations.
+Introduce little-endian bit operations by renaming existing powerpc
+native little-endian bit operations and changing them to take any
+pointer types.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Avi Kivity <avi@redhat.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: kvm@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
 
 Change from v4:
- - splitted into two patches to fix a bisection hole
+ - change the prototypes and add casts in the macro to take any pointer types
 
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- virt/kvm/kvm_main.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+ arch/powerpc/include/asm/bitops.h |   46 ++++++++++++++++++------------------
+ 1 files changed, 23 insertions(+), 23 deletions(-)
 
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index f29abeb..3461001 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -52,7 +52,6 @@
- #include <asm/io.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
--#include <asm-generic/bitops/le.h>
+diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+index db567ed..a77f6be 100644
+--- a/arch/powerpc/include/asm/bitops.h
++++ b/arch/powerpc/include/asm/bitops.h
+@@ -281,27 +281,27 @@ unsigned long __arch_hweight64(__u64 w);
  
- #include "coalesced_mmio.h"
- #include "async_pf.h"
-@@ -1421,7 +1420,7 @@ void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
- 	if (memslot && memslot->dirty_bitmap) {
- 		unsigned long rel_gfn = gfn - memslot->base_gfn;
+ /* Little-endian versions */
  
--		generic___set_le_bit(rel_gfn, memslot->dirty_bitmap);
-+		ext2_set_bit(rel_gfn, memslot->dirty_bitmap);
- 	}
+-static __inline__ int test_le_bit(unsigned long nr,
+-				  __const__ unsigned long *addr)
++static __inline__ int test_bit_le(unsigned long nr,
++				  __const__ void *addr)
+ {
+ 	__const__ unsigned char	*tmp = (__const__ unsigned char *) addr;
+ 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
  }
  
+-#define __set_le_bit(nr, addr) \
+-	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __clear_le_bit(nr, addr) \
+-	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define __set_bit_le(nr, addr) \
++	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define __clear_bit_le(nr, addr) \
++	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ 
+-#define test_and_set_le_bit(nr, addr) \
+-	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define test_and_clear_le_bit(nr, addr) \
+-	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define test_and_set_bit_le(nr, addr) \
++	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define test_and_clear_bit_le(nr, addr) \
++	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ 
+-#define __test_and_set_le_bit(nr, addr) \
+-	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __test_and_clear_le_bit(nr, addr) \
+-	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define __test_and_set_bit_le(nr, addr) \
++	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define __test_and_clear_bit_le(nr, addr) \
++	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ 
+ #define find_first_zero_bit_le(addr, size) \
+ 	find_next_zero_bit_le((addr), (size), 0)
+@@ -313,16 +313,16 @@ unsigned long find_next_bit_le(const void *addr,
+ /* Bitmap functions for the ext2 filesystem */
+ 
+ #define ext2_set_bit(nr,addr) \
+-	__test_and_set_le_bit((nr), (unsigned long*)addr)
++	__test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit(nr, addr) \
+-	__test_and_clear_le_bit((nr), (unsigned long*)addr)
++	__test_and_clear_bit_le((nr), (unsigned long*)addr)
+ 
+ #define ext2_set_bit_atomic(lock, nr, addr) \
+-	test_and_set_le_bit((nr), (unsigned long*)addr)
++	test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit_atomic(lock, nr, addr) \
+-	test_and_clear_le_bit((nr), (unsigned long*)addr)
++	test_and_clear_bit_le((nr), (unsigned long*)addr)
+ 
+-#define ext2_test_bit(nr, addr)      test_le_bit((nr),(unsigned long*)addr)
++#define ext2_test_bit(nr, addr)      test_bit_le((nr),(unsigned long*)addr)
+ 
+ #define ext2_find_first_zero_bit(addr, size) \
+ 	find_first_zero_bit_le((unsigned long*)addr, size)
+@@ -334,13 +334,13 @@ unsigned long find_next_bit_le(const void *addr,
+ /* Bitmap functions for the minix filesystem.  */
+ 
+ #define minix_test_and_set_bit(nr,addr) \
+-	__test_and_set_le_bit(nr, (unsigned long *)addr)
++	__test_and_set_bit_le(nr, (unsigned long *)addr)
+ #define minix_set_bit(nr,addr) \
+-	__set_le_bit(nr, (unsigned long *)addr)
++	__set_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_and_clear_bit(nr,addr) \
+-	__test_and_clear_le_bit(nr, (unsigned long *)addr)
++	__test_and_clear_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_bit(nr,addr) \
+-	test_le_bit(nr, (unsigned long *)addr)
++	test_bit_le(nr, (unsigned long *)addr)
+ 
+ #define minix_find_first_zero_bit(addr,size) \
+ 	find_first_zero_bit_le((unsigned long *)addr, size)
 -- 
 1.7.3.4
