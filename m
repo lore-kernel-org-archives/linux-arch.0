@@ -1,183 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:43821 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752937Ab1AVNNp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:13:45 -0500
+	with ESMTP id S1752937Ab1AVNNt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:13:49 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 05/27] asm-generic: change little-endian bitops to take any pointer types
-Date: Sat, 22 Jan 2011 22:13:37 +0900
-Message-ID: <1295702039-23186-6-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 06/27] powerpc: introduce little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:38 +0900
+Message-ID: <1295702039-23186-7-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, "Luck, Tony" <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Matthew Wilcox <willy@debian.org>, Grant Grundler <grundler@parisc-linux.org>, Paul Mundt <lethal@linux-sh.org>, Kazumoto Kojima <kkojima@rr.iij4u.or.jp>, Hirokazu Takata <takata@linux-m32r.org>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20110122131337.LKude1qmLW9BlvhjALiMm6FN-J48VrZpjBC4EMLtlNU@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20110122131338.2zn9DJomut0SMMHg-W9nPvaESXxk5cFbt70d3b1vQNE@z>
 
-This makes the little-endian bitops take any pointer types by
-changing the prototypes and adding casts in the preprocessor macros.
-
-That would seem to at least make all the filesystem code happier, and
-they can continue to do just something like
-
-  #define ext2_set_bit __test_and_set_bit_le
-
-(or whatever the exact sequence ends up being).
+Introduce little-endian bit operations by renaming existing powerpc
+native little-endian bit operations and changing them to take any
+pointer types.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: "Luck, Tony" <tony.luck@intel.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Matthew Wilcox <willy@debian.org>
-Cc: Grant Grundler <grundler@parisc-linux.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
 
 Change from v4:
- - new patch 
+ - change the prototypes and add casts in the macro to take any pointer types
 
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- arch/powerpc/include/asm/bitops.h |    4 ++--
- include/asm-generic/bitops/le.h   |   24 ++++++++++++------------
- lib/find_next_bit.c               |   10 ++++++----
- 3 files changed, 20 insertions(+), 18 deletions(-)
+ arch/powerpc/include/asm/bitops.h |   46 ++++++++++++++++++------------------
+ 1 files changed, 23 insertions(+), 23 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index 97aacbd..db567ed 100644
+index db567ed..a77f6be 100644
 --- a/arch/powerpc/include/asm/bitops.h
 +++ b/arch/powerpc/include/asm/bitops.h
-@@ -305,10 +305,10 @@ static __inline__ int test_le_bit(unsigned long nr,
+@@ -281,27 +281,27 @@ unsigned long __arch_hweight64(__u64 w);
+ 
+ /* Little-endian versions */
+ 
+-static __inline__ int test_le_bit(unsigned long nr,
+-				  __const__ unsigned long *addr)
++static __inline__ int test_bit_le(unsigned long nr,
++				  __const__ void *addr)
+ {
+ 	__const__ unsigned char	*tmp = (__const__ unsigned char *) addr;
+ 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
+ }
+ 
+-#define __set_le_bit(nr, addr) \
+-	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __clear_le_bit(nr, addr) \
+-	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define __set_bit_le(nr, addr) \
++	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define __clear_bit_le(nr, addr) \
++	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ 
+-#define test_and_set_le_bit(nr, addr) \
+-	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define test_and_clear_le_bit(nr, addr) \
+-	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define test_and_set_bit_le(nr, addr) \
++	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define test_and_clear_bit_le(nr, addr) \
++	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+ 
+-#define __test_and_set_le_bit(nr, addr) \
+-	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
+-#define __test_and_clear_le_bit(nr, addr) \
+-	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
++#define __test_and_set_bit_le(nr, addr) \
++	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++#define __test_and_clear_bit_le(nr, addr) \
++	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
  
  #define find_first_zero_bit_le(addr, size) \
  	find_next_zero_bit_le((addr), (size), 0)
--unsigned long find_next_zero_bit_le(const unsigned long *addr,
-+unsigned long find_next_zero_bit_le(const void *addr,
- 				    unsigned long size, unsigned long offset);
- 
--unsigned long find_next_bit_le(const unsigned long *addr,
-+unsigned long find_next_bit_le(const void *addr,
- 				    unsigned long size, unsigned long offset);
+@@ -313,16 +313,16 @@ unsigned long find_next_bit_le(const void *addr,
  /* Bitmap functions for the ext2 filesystem */
  
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 394ac3e..7644a15 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -9,19 +9,19 @@
- #define BITOP_LE_SWIZZLE	0
+ #define ext2_set_bit(nr,addr) \
+-	__test_and_set_le_bit((nr), (unsigned long*)addr)
++	__test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit(nr, addr) \
+-	__test_and_clear_le_bit((nr), (unsigned long*)addr)
++	__test_and_clear_bit_le((nr), (unsigned long*)addr)
  
- #define find_next_zero_bit_le(addr, size, offset) \
--	find_next_zero_bit(addr, size, offset)
-+	find_next_zero_bit((unsigned long *)(addr), size, offset)
- #define find_next_bit_le(addr, size, offset) \
--	find_next_bit(addr, size, offset)
-+	find_next_bit((unsigned long *)(addr), size, offset)
- #define find_first_zero_bit_le(addr, size) \
--	find_first_zero_bit(addr, size)
-+	find_first_zero_bit((unsigned long *)(addr), size)
+ #define ext2_set_bit_atomic(lock, nr, addr) \
+-	test_and_set_le_bit((nr), (unsigned long*)addr)
++	test_and_set_bit_le((nr), (unsigned long*)addr)
+ #define ext2_clear_bit_atomic(lock, nr, addr) \
+-	test_and_clear_le_bit((nr), (unsigned long*)addr)
++	test_and_clear_bit_le((nr), (unsigned long*)addr)
  
- #elif defined(__BIG_ENDIAN)
+-#define ext2_test_bit(nr, addr)      test_le_bit((nr),(unsigned long*)addr)
++#define ext2_test_bit(nr, addr)      test_bit_le((nr),(unsigned long*)addr)
  
- #define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+ #define ext2_find_first_zero_bit(addr, size) \
+ 	find_first_zero_bit_le((unsigned long*)addr, size)
+@@ -334,13 +334,13 @@ unsigned long find_next_bit_le(const void *addr,
+ /* Bitmap functions for the minix filesystem.  */
  
--extern unsigned long find_next_zero_bit_le(const unsigned long *addr,
-+extern unsigned long find_next_zero_bit_le(const void *addr,
- 		unsigned long size, unsigned long offset);
--extern unsigned long find_next_bit_le(const unsigned long *addr,
-+extern unsigned long find_next_bit_le(const void *addr,
- 		unsigned long size, unsigned long offset);
+ #define minix_test_and_set_bit(nr,addr) \
+-	__test_and_set_le_bit(nr, (unsigned long *)addr)
++	__test_and_set_bit_le(nr, (unsigned long *)addr)
+ #define minix_set_bit(nr,addr) \
+-	__set_le_bit(nr, (unsigned long *)addr)
++	__set_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_and_clear_bit(nr,addr) \
+-	__test_and_clear_le_bit(nr, (unsigned long *)addr)
++	__test_and_clear_bit_le(nr, (unsigned long *)addr)
+ #define minix_test_bit(nr,addr) \
+-	test_le_bit(nr, (unsigned long *)addr)
++	test_bit_le(nr, (unsigned long *)addr)
  
- #define find_first_zero_bit_le(addr, size) \
-@@ -32,20 +32,20 @@ extern unsigned long find_next_bit_le(const unsigned long *addr,
- #endif
- 
- #define test_bit_le(nr, addr) \
--	test_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- #define __set_bit_le(nr, addr) \
--	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- #define __clear_bit_le(nr, addr) \
--	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- 
- #define test_and_set_bit_le(nr, addr) \
--	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- #define test_and_clear_bit_le(nr, addr) \
--	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- 
- #define __test_and_set_bit_le(nr, addr) \
--	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- #define __test_and_clear_bit_le(nr, addr) \
--	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (addr))
-+	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
- 
- #endif /* _ASM_GENERIC_BITOPS_LE_H_ */
-diff --git a/lib/find_next_bit.c b/lib/find_next_bit.c
-index c093ba9..7667c3d 100644
---- a/lib/find_next_bit.c
-+++ b/lib/find_next_bit.c
-@@ -185,15 +185,16 @@ static inline unsigned long ext2_swab(const unsigned long y)
- #endif
- }
- 
--unsigned long find_next_zero_bit_le(const unsigned long *addr, unsigned
-+unsigned long find_next_zero_bit_le(const void *addr, unsigned
- 		long size, unsigned long offset)
- {
--	const unsigned long *p = addr + BITOP_WORD(offset);
-+	const unsigned long *p = addr;
- 	unsigned long result = offset & ~(BITS_PER_LONG - 1);
- 	unsigned long tmp;
- 
- 	if (offset >= size)
- 		return size;
-+	p += BITOP_WORD(offset);
- 	size -= result;
- 	offset &= (BITS_PER_LONG - 1UL);
- 	if (offset) {
-@@ -228,15 +229,16 @@ found_middle_swap:
- }
- EXPORT_SYMBOL(find_next_zero_bit_le);
- 
--unsigned long find_next_bit_le(const unsigned long *addr, unsigned
-+unsigned long find_next_bit_le(const void *addr, unsigned
- 		long size, unsigned long offset)
- {
--	const unsigned long *p = addr + BITOP_WORD(offset);
-+	const unsigned long *p = addr;
- 	unsigned long result = offset & ~(BITS_PER_LONG - 1);
- 	unsigned long tmp;
- 
- 	if (offset >= size)
- 		return size;
-+	p += BITOP_WORD(offset);
- 	size -= result;
- 	offset &= (BITS_PER_LONG - 1UL);
- 	if (offset) {
+ #define minix_find_first_zero_bit(addr,size) \
+ 	find_first_zero_bit_le((unsigned long *)addr, size)
 -- 
 1.7.3.4
 
