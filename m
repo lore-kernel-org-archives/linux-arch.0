@@ -1,27 +1,26 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iw0-f174.google.com ([209.85.214.174]:43821 "EHLO
 	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753267Ab1AVNOe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:34 -0500
+	with ESMTP id S1753529Ab1AVNOk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Jan 2011 08:14:40 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v5 17/27] ext4: use little-endian bitops
-Date: Sat, 22 Jan 2011 22:13:49 +0900
-Message-ID: <1295702039-23186-18-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v5 19/27] nilfs2: use little-endian bitops
+Date: Sat, 22 Jan 2011 22:13:51 +0900
+Message-ID: <1295702039-23186-20-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 References: <1295702039-23186-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andreas Dilger <adilger.kernel@dilger.ca>, Theodore Ts'o <tytso@mit.edu>
-Message-ID: <20110122131349.uj3tsAHMJPI7huzHg5ZS2sbiOYDqqpy4Wuh_BNU9AR0@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
+Message-ID: <20110122131351.QddeOsAbaIjK3MRopMi6N9Vl-vmCuOxD8L7Zj6vfckA@z>
 
 As a preparation for removing ext2 non-atomic bit operations from
 asm/bitops.h.  This converts ext2 non-atomic bit operations to
 little-endian bit operations.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: "Theodore Ts'o" <tytso@mit.edu>
-Cc: Andreas Dilger <adilger.kernel@dilger.ca>
+Acked-by: Ryusuke Konishi <konishi.ryusuke@lab.ntt.co.jp>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
@@ -31,34 +30,22 @@ Change from v4:
 The whole series is available in the git branch at:
  git://git.kernel.org/pub/scm/linux/kernel/git/mita/linux-2.6.git le-bitops-v5
 
- fs/ext4/ext4.h |   12 ++++++------
- 1 files changed, 6 insertions(+), 6 deletions(-)
+ fs/nilfs2/alloc.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/fs/ext4/ext4.h b/fs/ext4/ext4.h
-index 0c8d97b..ab28816 100644
---- a/fs/ext4/ext4.h
-+++ b/fs/ext4/ext4.h
-@@ -922,14 +922,14 @@ struct ext4_inode_info {
- #define test_opt2(sb, opt)		(EXT4_SB(sb)->s_mount_opt2 & \
- 					 EXT4_MOUNT2_##opt)
+diff --git a/fs/nilfs2/alloc.h b/fs/nilfs2/alloc.h
+index 9af34a7..f5fde36 100644
+--- a/fs/nilfs2/alloc.h
++++ b/fs/nilfs2/alloc.h
+@@ -74,7 +74,7 @@ int nilfs_palloc_freev(struct inode *, __u64 *, size_t);
  
--#define ext4_set_bit			ext2_set_bit
-+#define ext4_set_bit			__test_and_set_bit_le
- #define ext4_set_bit_atomic		ext2_set_bit_atomic
--#define ext4_clear_bit			ext2_clear_bit
-+#define ext4_clear_bit			__test_and_clear_bit_le
- #define ext4_clear_bit_atomic		ext2_clear_bit_atomic
--#define ext4_test_bit			ext2_test_bit
--#define ext4_find_first_zero_bit	ext2_find_first_zero_bit
--#define ext4_find_next_zero_bit		ext2_find_next_zero_bit
--#define ext4_find_next_bit		ext2_find_next_bit
-+#define ext4_test_bit			test_bit_le
-+#define ext4_find_first_zero_bit	find_first_zero_bit_le
-+#define ext4_find_next_zero_bit		find_next_zero_bit_le
-+#define ext4_find_next_bit		find_next_bit_le
+ #define nilfs_set_bit_atomic		ext2_set_bit_atomic
+ #define nilfs_clear_bit_atomic		ext2_clear_bit_atomic
+-#define nilfs_find_next_zero_bit	ext2_find_next_zero_bit
++#define nilfs_find_next_zero_bit	find_next_zero_bit_le
  
  /*
-  * Maximal mount counts between two filesystem checks
+  * persistent object allocator cache
 -- 
 1.7.3.4
 
