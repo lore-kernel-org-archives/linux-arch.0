@@ -1,227 +1,364 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:59935 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:59931 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753509Ab1AYR7b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jan 2011 12:59:31 -0500
-Message-ID: <20110125174908.372425841@chello.nl>
-Date: Tue, 25 Jan 2011 18:31:33 +0100
+	with ESMTP id S1753335Ab1AYR7a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jan 2011 12:59:30 -0500
+Message-ID: <20110125174908.531253165@chello.nl>
+Date: Tue, 25 Jan 2011 18:31:36 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 22/25] mm: Convert anon_vma->lock to a mutex
+Subject: [PATCH 25/25] mm, arch: Ensure we never tlb_flush_mmu() from atomic context
 References: <20110125173111.720927511@chello.nl>
-Content-Disposition: inline; filename=peter_zijlstra-mm-anon_vma-lock_to_mutexes.patch
+Content-Disposition: inline; filename=mm-flush-vs-pte_lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
-Message-ID: <20110125173133.9jewlUbZulWiD4xc0g6if6kwbYlX_leojv-vFe4RcbU@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110125173136.UNwCSpVCQxe4slq3wS7PAWLP3v3s89i1E_R0uIO3GGg@z>
 
-Straight fwd conversion of anon_vma->lock to a mutex.
+Hugh noted that we could still end up flushing the batch from atomic
+context because we do tlb_remove_page() while holding the pte_lock.
 
-Acked-by: Hugh Dickins <hughd@google.com>
+This will still generate immense latencies, more so now than ever
+before due to the larger batches. Break tlb_remove_page() into two
+functions, one that queues the page and one that flushes the queue.
+
+Leave the tlb_remove_page() interface for now with the old semantics
+but add a might_sleep() in there to detect callers from atomic
+contexts.
+
+XXX should probably fold back into the mmu_gather preempt patches for
+the various architectures.
+
+Reported-by: Hugh Dickins <hughd@google.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/huge_mm.h      |    8 ++------
- include/linux/mmu_notifier.h |    2 +-
- include/linux/rmap.h         |   14 +++++++-------
- mm/huge_memory.c             |    4 ++--
- mm/mmap.c                    |   10 +++++-----
- mm/rmap.c                    |    8 ++++----
- 6 files changed, 21 insertions(+), 25 deletions(-)
+ arch/arm/include/asm/tlb.h  |   17 ++++++++++++++++-
+ arch/ia64/include/asm/tlb.h |   22 ++++++++++++++++++----
+ arch/s390/include/asm/tlb.h |   18 ++++++++++++------
+ arch/sh/include/asm/tlb.h   |   17 ++++++++++++++++-
+ arch/um/include/asm/tlb.h   |   15 +++++++++++----
+ include/asm-generic/tlb.h   |   22 +++++++++++++++-------
+ mm/memory.c                 |   14 +++++++++++---
+ 7 files changed, 99 insertions(+), 26 deletions(-)
 
-Index: linux-2.6/include/linux/rmap.h
+Index: linux-2.6/include/asm-generic/tlb.h
 ===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -7,7 +7,7 @@
- #include <linux/list.h>
- #include <linux/slab.h>
- #include <linux/mm.h>
--#include <linux/spinlock.h>
-+#include <linux/mutex.h>
- #include <linux/memcontrol.h>
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -146,7 +146,7 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ }
  
- /*
-@@ -26,7 +26,7 @@
+ static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+ 
+@@ -176,7 +176,7 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ {
+ 	struct mmu_gather_batch *batch, *next;
+ 
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+@@ -193,7 +193,7 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  *	handling the additional races in SMP caused by other CPUs caching valid
+  *	mappings in their TLBs.
   */
- struct anon_vma {
- 	struct anon_vma *root;	/* Root of this anon_vma tree */
--	spinlock_t lock;	/* Serialize access to vma list */
-+	struct mutex mutex;	/* Serialize access to vma list */
- 	/*
- 	 * The refcount is taken on an anon_vma when there is no
- 	 * guarantee that the vma of page tables will exist for
-@@ -64,7 +64,7 @@ struct anon_vma_chain {
- 	struct vm_area_struct *vma;
- 	struct anon_vma *anon_vma;
- 	struct list_head same_vma;   /* locked by mmap_sem & page_table_lock */
--	struct list_head same_anon_vma;	/* locked by anon_vma->lock */
-+	struct list_head same_anon_vma;	/* locked by anon_vma->mutex */
- };
- 
- #ifdef CONFIG_MMU
-@@ -93,24 +93,24 @@ static inline void vma_lock_anon_vma(str
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
  {
- 	struct anon_vma *anon_vma = vma->anon_vma;
- 	if (anon_vma)
--		spin_lock(&anon_vma->root->lock);
-+		mutex_lock(&anon_vma->root->mutex);
+ 	struct mmu_gather_batch *batch;
+ 
+@@ -201,17 +201,25 @@ static inline void tlb_remove_page(struc
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
+ 
+ 	batch = tlb->active;
++	batch->pages[batch->nr++] = page;
+ 	if (batch->nr == batch->max) {
+ 		if (!tlb_next_batch(tlb))
+-			tlb_flush_mmu(tlb, 0, 0);
+-		batch = tlb->active;
++			return 1;
+ 	}
+ 
+-	batch->pages[batch->nr++] = page;
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
  }
  
- static inline void vma_unlock_anon_vma(struct vm_area_struct *vma)
- {
- 	struct anon_vma *anon_vma = vma->anon_vma;
- 	if (anon_vma)
--		spin_unlock(&anon_vma->root->lock);
-+		mutex_unlock(&anon_vma->root->mutex);
- }
- 
- static inline void anon_vma_lock(struct anon_vma *anon_vma)
- {
--	spin_lock(&anon_vma->root->lock);
-+	mutex_lock(&anon_vma->root->mutex);
- }
- 
- static inline void anon_vma_unlock(struct anon_vma *anon_vma)
- {
--	spin_unlock(&anon_vma->root->lock);
-+	mutex_unlock(&anon_vma->root->mutex);
- }
- 
- /*
-Index: linux-2.6/mm/rmap.c
+ /**
+Index: linux-2.6/mm/memory.c
 ===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -25,7 +25,7 @@
-  *   mm->mmap_sem
-  *     page->flags PG_locked (lock_page)
-  *       mapping->i_mmap_mutex
-- *         anon_vma->lock
-+ *         anon_vma->mutex
-  *           mm->page_table_lock or pte_lock
-  *             zone->lru_lock (in mark_page_accessed, isolate_lru_page)
-  *             swap_lock (in swap_duplicate, swap_info_get)
-@@ -39,7 +39,7 @@
-  *
-  * (code doesn't rely on that order so it could be switched around)
-  * ->tasklist_lock
-- *   anon_vma->lock      (memory_failure, collect_procs_anon)
-+ *   anon_vma->mutex      (memory_failure, collect_procs_anon)
-  *     pte map lock
-  */
- 
-@@ -306,7 +306,7 @@ static void anon_vma_ctor(void *data)
+--- linux-2.6.orig/mm/memory.c
++++ linux-2.6/mm/memory.c
+@@ -990,11 +990,12 @@ static unsigned long zap_pte_range(struc
  {
- 	struct anon_vma *anon_vma = data;
+ 	struct mm_struct *mm = tlb->mm;
+ 	int rss[NR_MM_COUNTERS];
++	int need_flush = 0;
+ 	spinlock_t *ptl;
+ 	pte_t *pte;
  
--	spin_lock_init(&anon_vma->lock);
-+	mutex_init(&anon_vma->mutex);
- 	atomic_set(&anon_vma->refcount, 0);
- 	INIT_LIST_HEAD(&anon_vma->head);
- }
-@@ -1129,7 +1129,7 @@ int try_to_unmap_one(struct page *page, 
- 	/*
- 	 * We need mmap_sem locking, Otherwise VM_LOCKED check makes
- 	 * unstable result and race. Plus, We can't wait here because
--	 * we now hold anon_vma->lock or mapping->i_mmap_mutex.
-+	 * we now hold anon_vma->mutex or mapping->i_mmap_mutex.
- 	 * if trylock failed, the page remain in evictable lru and later
- 	 * vmscan could retry to move the page to unevictable lru if the
- 	 * page is actually mlocked.
-Index: linux-2.6/mm/mmap.c
-===================================================================
---- linux-2.6.orig/mm/mmap.c
-+++ linux-2.6/mm/mmap.c
-@@ -2523,15 +2523,15 @@ static void vm_lock_anon_vma(struct mm_s
- 		 * The LSB of head.next can't change from under us
- 		 * because we hold the mm_all_locks_mutex.
- 		 */
--		spin_lock_nest_lock(&anon_vma->root->lock, &mm->mmap_sem);
-+		mutex_lock_nest_lock(&anon_vma->root->mutex, &mm->mmap_sem);
+ 	init_rss_vec(rss);
+-
++again:
+ 	pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
+ 	arch_enter_lazy_mmu_mode();
+ 	do {
+@@ -1048,7 +1049,7 @@ static unsigned long zap_pte_range(struc
+ 			page_remove_rmap(page);
+ 			if (unlikely(page_mapcount(page) < 0))
+ 				print_bad_pte(vma, addr, ptent, page);
+-			tlb_remove_page(tlb, page);
++			need_flush = __tlb_remove_page(tlb, page);
+ 			continue;
+ 		}
  		/*
- 		 * We can safely modify head.next after taking the
--		 * anon_vma->root->lock. If some other vma in this mm shares
-+		 * anon_vma->root->mutex. If some other vma in this mm shares
- 		 * the same anon_vma we won't take it again.
- 		 *
- 		 * No need of atomic instructions here, head.next
- 		 * can't change from under us thanks to the
--		 * anon_vma->root->lock.
-+		 * anon_vma->root->mutex.
- 		 */
- 		if (__test_and_set_bit(0, (unsigned long *)
- 				       &anon_vma->root->head.next))
-@@ -2580,7 +2580,7 @@ static void vm_lock_mapping(struct mm_st
-  * vma in this mm is backed by the same anon_vma or address_space.
-  *
-  * We can take all the locks in random order because the VM code
-- * taking i_mmap_mutex or anon_vma->lock outside the mmap_sem never
-+ * taking i_mmap_mutex or anon_vma->mutex outside the mmap_sem never
-  * takes more than one of them in a row. Secondly we're protected
-  * against a concurrent mm_take_all_locks() by the mm_all_locks_mutex.
-  *
-@@ -2636,7 +2636,7 @@ static void vm_unlock_anon_vma(struct an
- 		 *
- 		 * No need of atomic instructions here, head.next
- 		 * can't change from under us until we release the
--		 * anon_vma->root->lock.
-+		 * anon_vma->root->mutex.
- 		 */
- 		if (!__test_and_clear_bit(0, (unsigned long *)
- 					  &anon_vma->root->head.next))
-Index: linux-2.6/include/linux/mmu_notifier.h
-===================================================================
---- linux-2.6.orig/include/linux/mmu_notifier.h
-+++ linux-2.6/include/linux/mmu_notifier.h
-@@ -150,7 +150,7 @@ struct mmu_notifier_ops {
-  * Therefore notifier chains can only be traversed when either
-  *
-  * 1. mmap_sem is held.
-- * 2. One of the reverse map locks is held (i_mmap_mutex or anon_vma->lock).
-+ * 2. One of the reverse map locks is held (i_mmap_mutex or anon_vma->mutex).
-  * 3. No other concurrent thread can access the list (release)
-  */
- struct mmu_notifier {
-Index: linux-2.6/mm/huge_memory.c
-===================================================================
---- linux-2.6.orig/mm/huge_memory.c
-+++ linux-2.6/mm/huge_memory.c
-@@ -1128,7 +1128,7 @@ static int __split_huge_page_splitting(s
- 		 * We can't temporarily set the pmd to null in order
- 		 * to split it, the pmd must remain marked huge at all
- 		 * times or the VM won't take the pmd_trans_huge paths
--		 * and it won't wait on the anon_vma->root->lock to
-+		 * and it won't wait on the anon_vma->root->mutex to
- 		 * serialize against split_huge_page*.
- 		 */
- 		pmdp_splitting_flush_notify(vma, address, pmd);
-@@ -1315,7 +1315,7 @@ static int __split_huge_page_map(struct 
- 	return ret;
+@@ -1069,12 +1070,19 @@ static unsigned long zap_pte_range(struc
+ 				print_bad_pte(vma, addr, ptent, NULL);
+ 		}
+ 		pte_clear_not_present_full(mm, addr, pte, tlb->fullmm);
+-	} while (pte++, addr += PAGE_SIZE, addr != end);
++	} while (pte++, addr += PAGE_SIZE, (addr != end && !need_flush));
+ 
+ 	add_mm_rss_vec(mm, rss);
+ 	arch_leave_lazy_mmu_mode();
+ 	pte_unmap_unlock(pte - 1, ptl);
+ 
++	if (need_flush) {
++		need_flush = 0;
++		tlb_flush_mmu(tlb);
++		if (addr != end)
++			goto again;
++	}
++
+ 	return addr;
  }
  
--/* must be called with anon_vma->root->lock hold */
-+/* must be called with anon_vma->root->mutex hold */
- static void __split_huge_page(struct page *page,
- 			      struct anon_vma *anon_vma)
- {
-Index: linux-2.6/include/linux/huge_mm.h
+Index: linux-2.6/arch/arm/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/include/linux/huge_mm.h
-+++ linux-2.6/include/linux/huge_mm.h
-@@ -91,12 +91,8 @@ extern void __split_huge_page_pmd(struct
- #define wait_split_huge_page(__anon_vma, __pmd)				\
- 	do {								\
- 		pmd_t *____pmd = (__pmd);				\
--		spin_unlock_wait(&(__anon_vma)->root->lock);		\
--		/*							\
--		 * spin_unlock_wait() is just a loop in C and so the	\
--		 * CPU can reorder anything around it.			\
--		 */							\
--		smp_mb();						\
-+		anon_vma_lock(__anon_vma);				\
-+		anon_vma_unlock(__anon_vma);				\
- 		BUG_ON(pmd_trans_splitting(*____pmd) ||			\
- 		       pmd_trans_huge(*____pmd));			\
- 	} while (0)
+--- linux-2.6.orig/arch/arm/include/asm/tlb.h
++++ linux-2.6/arch/arm/include/asm/tlb.h
+@@ -93,7 +93,22 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 		flush_tlb_range(vma, tlb->range_start, tlb->range_end);
+ }
+ 
+-#define tlb_remove_page(tlb,page)	free_page_and_swap_cache(page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++	__tlb_remove_page(tlb, page);
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ 
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -204,14 +204,13 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  * must be delayed until after the TLB has been flushed (see comments at the beginning of
+  * this file).
+  */
+-static inline void
+-tlb_remove_page (struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
+ 
+ 	if (!tlb->nr && tlb->pages == tlb->local)
+@@ -219,7 +218,22 @@ tlb_remove_page (struct mmu_gather *tlb,
+ 
+ 	tlb->pages[tlb->nr++] = page;
+ 	if (tlb->nr >= tlb->max)
+-		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++		return 1;
++
++	return 0;
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++	ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
+ }
+ 
+ /*
+Index: linux-2.6/arch/s390/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/s390/include/asm/tlb.h
++++ linux-2.6/arch/s390/include/asm/tlb.h
+@@ -64,8 +64,7 @@ static inline void tlb_gather_mmu(struct
+ 	tlb->nr_pxds = tlb->max;
+ }
+ 
+-static inline void tlb_flush_mmu(struct mmu_gather *tlb,
+-				 unsigned long start, unsigned long end)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < tlb->max))
+ 		__tlb_flush_mm(tlb->mm);
+@@ -78,7 +77,7 @@ static inline void tlb_flush_mmu(struct 
+ static inline void tlb_finish_mmu(struct mmu_gather *tlb,
+ 				  unsigned long start, unsigned long end)
+ {
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	rcu_table_freelist_finish();
+ 
+@@ -94,8 +93,15 @@ static inline void tlb_finish_mmu(struct
+  * tlb_ptep_clear_flush. In both flush modes the tlb fo a page cache page
+  * has already been freed, so just do free_page_and_swap_cache.
+  */
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
++	might_sleep();
+ 	free_page_and_swap_cache(page);
+ }
+ 
+@@ -109,7 +115,7 @@ static inline void pte_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[tlb->nr_ptes++] = pte;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		page_table_free(tlb->mm, (unsigned long *) pte);
+ }
+@@ -130,7 +136,7 @@ static inline void pmd_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[--tlb->nr_pxds] = pmd;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		crst_table_free(tlb->mm, (unsigned long *) pmd);
+ #endif
+@@ -152,7 +158,7 @@ static inline void pud_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[--tlb->nr_pxds] = pud;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		crst_table_free(tlb->mm, (unsigned long *) pud);
+ #endif
+Index: linux-2.6/arch/sh/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -83,7 +83,22 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 	}
+ }
+ 
+-#define tlb_remove_page(tlb,page)	free_page_and_swap_cache(page)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++	__tlb_remove_page(tlb, page);
++}
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ #define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+Index: linux-2.6/arch/um/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/um/include/asm/tlb.h
++++ linux-2.6/arch/um/include/asm/tlb.h
+@@ -57,7 +57,7 @@ extern void flush_tlb_mm_range(struct mm
+ 			       unsigned long end);
+ 
+ static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	if (!tlb->need_flush)
+ 		return;
+@@ -73,7 +73,7 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ static inline void
+ tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+@@ -84,11 +84,18 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  *	while handling the additional races in SMP caused by other CPUs
+  *	caching valid mappings in their TLBs.
+  */
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 	free_page_and_swap_cache(page);
+-	return;
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++
++	__tlb_remove_page(tlb, page);
+ }
+ 
+ /**
 
 
