@@ -1,35 +1,46 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 20/25] mm: Simplify anon_vma refcounts
-Date: Wed, 26 Jan 2011 06:37:00 +1000
-Message-ID: <AANLkTim_eF4xapv=4rSo=p5_KLGiHh315C=8CKCT-S9=@mail.gmail.com>
-References: <20110125173111.720927511@chello.nl> <20110125174908.262260777@chello.nl>
- <AANLkTikchW7Z6mSgcbt7wn9DWTeEGrKwfMwj1_WjMB5c@mail.gmail.com> <1295987461.28776.1110.camel@laptop>
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [PATCH 00/25] mm: Preemptibility -v7
+Date: Tue, 25 Jan 2011 11:45:28 -0800
+Message-ID: <m2ipxcsr6v.fsf@linux.intel.com>
+References: <20110125173111.720927511@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:35882 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753104Ab1AYUh0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Jan 2011 15:37:26 -0500
-In-Reply-To: <1295987461.28776.1110.camel@laptop>
+Received: from lo.gmane.org ([80.91.229.12]:56031 "EHLO lo.gmane.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751828Ab1AYUkF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Jan 2011 15:40:05 -0500
+Received: from list by lo.gmane.org with local (Exim 4.69)
+	(envelope-from <glka-linux-arch@m.gmane.org>)
+	id 1PhpgJ-0006gi-8W
+	for linux-arch@vger.kernel.org; Tue, 25 Jan 2011 21:40:03 +0100
+Received: from jfdmzpr02-ext.jf.intel.com ([134.134.137.71])
+        by main.gmane.org with esmtp (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Tue, 25 Jan 2011 21:40:03 +0100
+Received: from ak by jfdmzpr02-ext.jf.intel.com with local (Gmexim 0.1 (Debian))
+        id 1AlnuQ-0007hv-00
+        for <linux-arch@vger.kernel.org>; Tue, 25 Jan 2011 21:40:03 +0100
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
+To: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.orglinux-kernel@vger.kernel.org
 
-On Wed, Jan 26, 2011 at 6:31 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+Peter Zijlstra <a.p.zijlstra@chello.nl> writes:
+
+> This patch-set makes part of the mm a lot more preemptible. It converts
+> i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
+> preemptible.
 >
-> It relies on patch 19, which moves the anon_vma refcount out from under
-> CONFIG_goo.
->
-> If however you like it, I can move 19 and this patch up to the start and
-> have that go your way soon.
+> The main motivation was making mm_take_all_locks() preemptible, since it
+> appears people are nesting hundreds of spinlocks there.
 
-So I'd prefer that, and keeping this issue separate. It seems like a
-rather independent cleanup to me (there may be others, this is the
-only one I reacted to when skimming through the series - reading email
-using my small laptop screen and a somewhat flaky 3g hotspot
-connection isn't exactly amenable to deep and careful thinking ;).
+Just curious: why is mm_take_all_locks() a problem? As far as I can see
+it's just used when starting KVM or GRU the first time. Is that a common
+situation?
 
-             Linus
+-Andi
+
+-- 
+Andi Kleen
+Intel Open Source Technology Center
