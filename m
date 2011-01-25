@@ -1,163 +1,360 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 12/25] lockdep, mutex: Provide mutex_lock_nest_lock
-Date: Tue, 25 Jan 2011 18:31:23 +0100
-Message-ID: <20110125174907.831441684@chello.nl>
+Subject: [PATCH 25/25] mm, arch: Ensure we never tlb_flush_mmu() from atomic context
+Date: Tue, 25 Jan 2011 18:31:36 +0100
+Message-ID: <20110125174908.531253165@chello.nl>
 References: <20110125173111.720927511@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=peter_zijlstra-lockdep_mutex-provide_mutex_lock_nest_lock.patch
+Content-Disposition: inline; filename=mm-flush-vs-pte_lock.patch
 Sender: owner-linux-mm@kvack.org
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Provide the mutex_lock_nest_lock() annotation.
+Hugh noted that we could still end up flushing the batch from atomic
+context because we do tlb_remove_page() while holding the pte_lock.
 
+This will still generate immense latencies, more so now than ever
+before due to the larger batches. Break tlb_remove_page() into two
+functions, one that queues the page and one that flushes the queue.
+
+Leave the tlb_remove_page() interface for now with the old semantics
+but add a might_sleep() in there to detect callers from atomic
+contexts.
+
+XXX should probably fold back into the mmu_gather preempt patches for
+the various architectures.
+
+Reported-by: Hugh Dickins <hughd@google.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/lockdep.h |    3 +++
- include/linux/mutex.h   |    9 +++++++++
- kernel/mutex.c          |   25 +++++++++++++++++--------
- 3 files changed, 29 insertions(+), 8 deletions(-)
+ arch/arm/include/asm/tlb.h  |   17 ++++++++++++++++-
+ arch/ia64/include/asm/tlb.h |   22 ++++++++++++++++++----
+ arch/s390/include/asm/tlb.h |   18 ++++++++++++------
+ arch/sh/include/asm/tlb.h   |   17 ++++++++++++++++-
+ arch/um/include/asm/tlb.h   |   15 +++++++++++----
+ include/asm-generic/tlb.h   |   22 +++++++++++++++-------
+ mm/memory.c                 |   14 +++++++++++---
+ 7 files changed, 99 insertions(+), 26 deletions(-)
 
-Index: linux-2.6/include/linux/lockdep.h
+Index: linux-2.6/include/asm-generic/tlb.h
 ===================================================================
---- linux-2.6.orig/include/linux/lockdep.h
-+++ linux-2.6/include/linux/lockdep.h
-@@ -495,12 +495,15 @@ static inline void print_irqtrace_events
- #ifdef CONFIG_DEBUG_LOCK_ALLOC
- # ifdef CONFIG_PROVE_LOCKING
- #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 2, NULL, i)
-+#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 2, n, i)
- # else
- #  define mutex_acquire(l, s, t, i)		lock_acquire(l, s, t, 0, 1, NULL, i)
-+#  define mutex_acquire_nest(l, s, t, n, i)	lock_acquire(l, s, t, 0, 1, n, i)
- # endif
- # define mutex_release(l, n, i)			lock_release(l, n, i)
- #else
- # define mutex_acquire(l, s, t, i)		do { } while (0)
-+# define mutex_acquire_nest(l, s, t, n, i)	do { } while (0)
- # define mutex_release(l, n, i)			do { } while (0)
- #endif
- 
-Index: linux-2.6/include/linux/mutex.h
-===================================================================
---- linux-2.6.orig/include/linux/mutex.h
-+++ linux-2.6/include/linux/mutex.h
-@@ -132,6 +132,7 @@ static inline int mutex_is_locked(struct
-  */
- #ifdef CONFIG_DEBUG_LOCK_ALLOC
- extern void mutex_lock_nested(struct mutex *lock, unsigned int subclass);
-+extern void _mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest_lock);
- extern int __must_check mutex_lock_interruptible_nested(struct mutex *lock,
- 					unsigned int subclass);
- extern int __must_check mutex_lock_killable_nested(struct mutex *lock,
-@@ -140,6 +141,13 @@ extern int __must_check mutex_lock_killa
- #define mutex_lock(lock) mutex_lock_nested(lock, 0)
- #define mutex_lock_interruptible(lock) mutex_lock_interruptible_nested(lock, 0)
- #define mutex_lock_killable(lock) mutex_lock_killable_nested(lock, 0)
-+
-+#define mutex_lock_nest_lock(lock, nest_lock)				\
-+do {									\
-+	typecheck(struct lockdep_map *, &(nest_lock)->dep_map);		\
-+	_mutex_lock_nest_lock(lock, &(nest_lock)->dep_map);		\
-+} while (0)
-+
- #else
- extern void mutex_lock(struct mutex *lock);
- extern int __must_check mutex_lock_interruptible(struct mutex *lock);
-@@ -148,6 +156,7 @@ extern int __must_check mutex_lock_killa
- # define mutex_lock_nested(lock, subclass) mutex_lock(lock)
- # define mutex_lock_interruptible_nested(lock, subclass) mutex_lock_interruptible(lock)
- # define mutex_lock_killable_nested(lock, subclass) mutex_lock_killable(lock)
-+# define mutex_lock_nest_lock(lock, nest_lock) mutex_lock(lock)
- #endif
- 
- /*
-Index: linux-2.6/kernel/mutex.c
-===================================================================
---- linux-2.6.orig/kernel/mutex.c
-+++ linux-2.6/kernel/mutex.c
-@@ -131,14 +131,14 @@ EXPORT_SYMBOL(mutex_unlock);
-  */
- static inline int __sched
- __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
--	       	unsigned long ip)
-+		    struct lockdep_map *nest_lock, unsigned long ip)
- {
- 	struct task_struct *task = current;
- 	struct mutex_waiter waiter;
- 	unsigned long flags;
- 
- 	preempt_disable();
--	mutex_acquire(&lock->dep_map, subclass, 0, ip);
-+	mutex_acquire_nest(&lock->dep_map, subclass, 0, nest_lock, ip);
- 
- #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
- 	/*
-@@ -276,16 +276,25 @@ void __sched
- mutex_lock_nested(struct mutex *lock, unsigned int subclass)
- {
- 	might_sleep();
--	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, _RET_IP_);
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, subclass, NULL, _RET_IP_);
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -146,7 +146,7 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
  }
  
- EXPORT_SYMBOL_GPL(mutex_lock_nested);
+ static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
  
-+void __sched
-+_mutex_lock_nest_lock(struct mutex *lock, struct lockdep_map *nest)
-+{
-+	might_sleep();
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, nest, _RET_IP_);
+@@ -176,7 +176,7 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ {
+ 	struct mmu_gather_batch *batch, *next;
+ 
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+@@ -193,7 +193,7 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  *	handling the additional races in SMP caused by other CPUs caching valid
+  *	mappings in their TLBs.
+  */
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	struct mmu_gather_batch *batch;
+ 
+@@ -201,17 +201,25 @@ static inline void tlb_remove_page(struc
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
+ 
+ 	batch = tlb->active;
++	batch->pages[batch->nr++] = page;
+ 	if (batch->nr == batch->max) {
+ 		if (!tlb_next_batch(tlb))
+-			tlb_flush_mmu(tlb, 0, 0);
+-		batch = tlb->active;
++			return 1;
+ 	}
+ 
+-	batch->pages[batch->nr++] = page;
++	return 0;
 +}
 +
-+EXPORT_SYMBOL_GPL(_mutex_lock_nest_lock);
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
 +
- int __sched
- mutex_lock_killable_nested(struct mutex *lock, unsigned int subclass)
- {
- 	might_sleep();
--	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_KILLABLE, subclass, NULL, _RET_IP_);
- }
- EXPORT_SYMBOL_GPL(mutex_lock_killable_nested);
- 
-@@ -294,7 +303,7 @@ mutex_lock_interruptible_nested(struct m
- {
- 	might_sleep();
- 	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE,
--				   subclass, _RET_IP_);
-+				   subclass, NULL, _RET_IP_);
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
  }
  
- EXPORT_SYMBOL_GPL(mutex_lock_interruptible_nested);
-@@ -400,7 +409,7 @@ __mutex_lock_slowpath(atomic_t *lock_cou
+ /**
+Index: linux-2.6/mm/memory.c
+===================================================================
+--- linux-2.6.orig/mm/memory.c
++++ linux-2.6/mm/memory.c
+@@ -990,11 +990,12 @@ static unsigned long zap_pte_range(struc
  {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+ 	struct mm_struct *mm = tlb->mm;
+ 	int rss[NR_MM_COUNTERS];
++	int need_flush = 0;
+ 	spinlock_t *ptl;
+ 	pte_t *pte;
  
--	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, _RET_IP_);
-+	__mutex_lock_common(lock, TASK_UNINTERRUPTIBLE, 0, NULL, _RET_IP_);
+ 	init_rss_vec(rss);
+-
++again:
+ 	pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
+ 	arch_enter_lazy_mmu_mode();
+ 	do {
+@@ -1048,7 +1049,7 @@ static unsigned long zap_pte_range(struc
+ 			page_remove_rmap(page);
+ 			if (unlikely(page_mapcount(page) < 0))
+ 				print_bad_pte(vma, addr, ptent, page);
+-			tlb_remove_page(tlb, page);
++			need_flush = __tlb_remove_page(tlb, page);
+ 			continue;
+ 		}
+ 		/*
+@@ -1069,12 +1070,19 @@ static unsigned long zap_pte_range(struc
+ 				print_bad_pte(vma, addr, ptent, NULL);
+ 		}
+ 		pte_clear_not_present_full(mm, addr, pte, tlb->fullmm);
+-	} while (pte++, addr += PAGE_SIZE, addr != end);
++	} while (pte++, addr += PAGE_SIZE, (addr != end && !need_flush));
+ 
+ 	add_mm_rss_vec(mm, rss);
+ 	arch_leave_lazy_mmu_mode();
+ 	pte_unmap_unlock(pte - 1, ptl);
+ 
++	if (need_flush) {
++		need_flush = 0;
++		tlb_flush_mmu(tlb);
++		if (addr != end)
++			goto again;
++	}
++
+ 	return addr;
  }
  
- static noinline int __sched
-@@ -408,7 +417,7 @@ __mutex_lock_killable_slowpath(atomic_t 
- {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
- 
--	return __mutex_lock_common(lock, TASK_KILLABLE, 0, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_KILLABLE, 0, NULL, _RET_IP_);
+Index: linux-2.6/arch/arm/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/arm/include/asm/tlb.h
++++ linux-2.6/arch/arm/include/asm/tlb.h
+@@ -93,7 +93,22 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 		flush_tlb_range(vma, tlb->range_start, tlb->range_end);
  }
  
- static noinline int __sched
-@@ -416,7 +425,7 @@ __mutex_lock_interruptible_slowpath(atom
- {
- 	struct mutex *lock = container_of(lock_count, struct mutex, count);
+-#define tlb_remove_page(tlb,page)	free_page_and_swap_cache(page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++	__tlb_remove_page(tlb, page);
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
  
--	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, _RET_IP_);
-+	return __mutex_lock_common(lock, TASK_INTERRUPTIBLE, 0, NULL, _RET_IP_);
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -204,14 +204,13 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  * must be delayed until after the TLB has been flushed (see comments at the beginning of
+  * this file).
+  */
+-static inline void
+-tlb_remove_page (struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
+ 
+ 	if (!tlb->nr && tlb->pages == tlb->local)
+@@ -219,7 +218,22 @@ tlb_remove_page (struct mmu_gather *tlb,
+ 
+ 	tlb->pages[tlb->nr++] = page;
+ 	if (tlb->nr >= tlb->max)
+-		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++		return 1;
++
++	return 0;
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++	ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
  }
+ 
+ /*
+Index: linux-2.6/arch/s390/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/s390/include/asm/tlb.h
++++ linux-2.6/arch/s390/include/asm/tlb.h
+@@ -64,8 +64,7 @@ static inline void tlb_gather_mmu(struct
+ 	tlb->nr_pxds = tlb->max;
+ }
+ 
+-static inline void tlb_flush_mmu(struct mmu_gather *tlb,
+-				 unsigned long start, unsigned long end)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < tlb->max))
+ 		__tlb_flush_mm(tlb->mm);
+@@ -78,7 +77,7 @@ static inline void tlb_flush_mmu(struct 
+ static inline void tlb_finish_mmu(struct mmu_gather *tlb,
+ 				  unsigned long start, unsigned long end)
+ {
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	rcu_table_freelist_finish();
+ 
+@@ -94,8 +93,15 @@ static inline void tlb_finish_mmu(struct
+  * tlb_ptep_clear_flush. In both flush modes the tlb fo a page cache page
+  * has already been freed, so just do free_page_and_swap_cache.
+  */
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
++	might_sleep();
+ 	free_page_and_swap_cache(page);
+ }
+ 
+@@ -109,7 +115,7 @@ static inline void pte_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[tlb->nr_ptes++] = pte;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		page_table_free(tlb->mm, (unsigned long *) pte);
+ }
+@@ -130,7 +136,7 @@ static inline void pmd_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[--tlb->nr_pxds] = pmd;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		crst_table_free(tlb->mm, (unsigned long *) pmd);
  #endif
+@@ -152,7 +158,7 @@ static inline void pud_free_tlb(struct m
+ 	if (!tlb->fullmm) {
+ 		tlb->array[--tlb->nr_pxds] = pud;
+ 		if (tlb->nr_ptes >= tlb->nr_pxds)
+-			tlb_flush_mmu(tlb, 0, 0);
++			tlb_flush_mmu(tlb);
+ 	} else
+ 		crst_table_free(tlb->mm, (unsigned long *) pud);
+ #endif
+Index: linux-2.6/arch/sh/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -83,7 +83,22 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 	}
+ }
  
+-#define tlb_remove_page(tlb,page)	free_page_and_swap_cache(page)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++	__tlb_remove_page(tlb, page);
++}
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ #define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+Index: linux-2.6/arch/um/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/um/include/asm/tlb.h
++++ linux-2.6/arch/um/include/asm/tlb.h
+@@ -57,7 +57,7 @@ extern void flush_tlb_mm_range(struct mm
+ 			       unsigned long end);
+ 
+ static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	if (!tlb->need_flush)
+ 		return;
+@@ -73,7 +73,7 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ static inline void
+ tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+@@ -84,11 +84,18 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  *	while handling the additional races in SMP caused by other CPUs
+  *	caching valid mappings in their TLBs.
+  */
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 	free_page_and_swap_cache(page);
+-	return;
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	might_sleep();
++
++	__tlb_remove_page(tlb, page);
+ }
+ 
+ /**
 
 
 --
