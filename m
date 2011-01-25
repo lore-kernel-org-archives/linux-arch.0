@@ -1,16 +1,16 @@
 From: akpm@linux-foundation.org
-Subject: [patch 22/23] kthread: NUMA aware kthread_create_on_node()
-Date: Tue, 25 Jan 2011 15:07:39 -0800
-Message-ID: <201101252307.p0PN7dVY013504@imap1.linux-foundation.org>
+Subject: [patch 20/23] mm: NUMA aware alloc_task_struct_node()
+Date: Tue, 25 Jan 2011 15:07:36 -0800
+Message-ID: <201101252307.p0PN7a5t013498@imap1.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ANSI_X3.4-1968
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:33210 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59142 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753740Ab1AYXLF (ORCPT
+	by vger.kernel.org with ESMTP id S1752945Ab1AYXLD (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Jan 2011 18:11:05 -0500
+	Tue, 25 Jan 2011 18:11:03 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
@@ -21,11 +21,21 @@ From: Eric Dumazet <eric.dumazet@gmail.com>
 All kthreads being created from a single helper task, they all use memory
 from a single node for their kernel stack and task struct.
 
-This patch suite creates kthread_create_on_node(), adding a 'cpu' parameter
+This patch suite creates kthread_create_on_cpu(), adding a 'cpu' parameter
 to parameters already used by kthread_create().
 
 This parameter serves in allocating memory for the new kthread on its
-memory node if possible.
+memory node if available.
+
+Users of this new function are : ksoftirqd, kworker, migration, pktgend...
+
+
+This patch:
+
+Add a node parameter to alloc_task_struct(), and change its name to
+alloc_task_struct_node()
+
+This change is needed to allow NUMA aware kthread_create_on_cpu()
 
 Signed-off-by: Eric Dumazet <eric.dumazet@gmail.com>
 Acked-by: David S. Miller <davem@davemloft.net>
@@ -39,158 +49,101 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- include/linux/kthread.h |   14 ++++++++++----
- include/linux/sched.h   |    1 +
- kernel/fork.c           |    3 ++-
- kernel/kthread.c        |   31 +++++++++++++++++++++++++------
- 4 files changed, 38 insertions(+), 11 deletions(-)
+ arch/frv/include/asm/processor.h        |    2 +-
+ arch/frv/kernel/process.c               |    5 +++--
+ arch/ia64/include/asm/thread_info.h     |    9 ++++++++-
+ arch/um/include/asm/processor-generic.h |    2 +-
+ kernel/fork.c                           |   10 ++++++----
+ 5 files changed, 19 insertions(+), 9 deletions(-)
 
-diff -puN include/linux/kthread.h~kthread-numa-aware-kthread_create_on_cpu include/linux/kthread.h
---- a/include/linux/kthread.h~kthread-numa-aware-kthread_create_on_cpu
-+++ a/include/linux/kthread.h
-@@ -4,10 +4,15 @@
- #include <linux/err.h>
- #include <linux/sched.h>
+diff -puN arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node arch/frv/include/asm/processor.h
+--- a/arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/frv/include/asm/processor.h
+@@ -137,7 +137,7 @@ unsigned long get_wchan(struct task_stru
+ #define	KSTK_ESP(tsk)	((tsk)->thread.frame0->sp)
  
--struct task_struct *kthread_create(int (*threadfn)(void *data),
--				   void *data,
--				   const char namefmt[], ...)
--	__attribute__((format(printf, 3, 4)));
-+struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
-+					   void *data,
-+					   int node,
-+					   const char namefmt[], ...)
-+	__attribute__((format(printf, 4, 5)));
+ /* Allocation and freeing of basic task resources. */
+-extern struct task_struct *alloc_task_struct(void);
++extern struct task_struct *alloc_task_struct_node(int node);
+ extern void free_task_struct(struct task_struct *p);
+ 
+ #define cpu_relax()    barrier()
+diff -puN arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node arch/frv/kernel/process.c
+--- a/arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node
++++ a/arch/frv/kernel/process.c
+@@ -44,9 +44,10 @@ asmlinkage void ret_from_fork(void);
+ void (*pm_power_off)(void);
+ EXPORT_SYMBOL(pm_power_off);
+ 
+-struct task_struct *alloc_task_struct(void)
++struct task_struct *alloc_task_struct_node(int node)
+ {
+-	struct task_struct *p = kmalloc(THREAD_SIZE, GFP_KERNEL);
++	struct task_struct *p = kmalloc_node(THREAD_SIZE, GFP_KERNEL, node);
 +
-+#define kthread_create(threadfn, data, namefmt, arg...) \
-+	kthread_create_on_node(threadfn, data, -1, namefmt, ##arg)
-+
+ 	if (p)
+ 		atomic_set((atomic_t *)(p+1), 1);
+ 	return p;
+diff -puN arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node arch/ia64/include/asm/thread_info.h
+--- a/arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/ia64/include/asm/thread_info.h
+@@ -84,7 +84,14 @@ struct thread_info {
+ #define end_of_stack(p) (unsigned long *)((void *)(p) + IA64_RBS_OFFSET)
  
- /**
-  * kthread_run - create and wake a thread.
-@@ -34,6 +39,7 @@ void *kthread_data(struct task_struct *k
+ #define __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
+-#define alloc_task_struct()	((struct task_struct *)__get_free_pages(GFP_KERNEL | __GFP_COMP, KERNEL_STACK_SIZE_ORDER))
++#define alloc_task_struct_node(node)						\
++({										\
++	struct page *page = alloc_pages_node(node, GFP_KERNEL | __GFP_COMP,	\
++					     KERNEL_STACK_SIZE_ORDER);		\
++	struct task_struct *ret = page ? page_address(page) : NULL;		\
++										\
++	ret;
++})
+ #define free_task_struct(tsk)	free_pages((unsigned long) (tsk), KERNEL_STACK_SIZE_ORDER)
  
- int kthreadd(void *unused);
- extern struct task_struct *kthreadd_task;
-+extern int tsk_fork_get_node(struct task_struct *tsk);
+ #endif /* !__ASSEMBLY */
+diff -puN arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node arch/um/include/asm/processor-generic.h
+--- a/arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/um/include/asm/processor-generic.h
+@@ -66,7 +66,7 @@ struct thread_struct {
+ 	.request		= { 0 } \
+ }
  
- /*
-  * Simple work processor based on kthread.
-diff -puN include/linux/sched.h~kthread-numa-aware-kthread_create_on_cpu include/linux/sched.h
---- a/include/linux/sched.h~kthread-numa-aware-kthread_create_on_cpu
-+++ a/include/linux/sched.h
-@@ -1472,6 +1472,7 @@ struct task_struct {
- #ifdef CONFIG_NUMA
- 	struct mempolicy *mempolicy;	/* Protected by alloc_lock */
- 	short il_next;
-+	short pref_node_fork;
- #endif
- 	atomic_t fs_excl;	/* holding fs exclusive resources */
- 	struct rcu_head rcu;
-diff -puN kernel/fork.c~kthread-numa-aware-kthread_create_on_cpu kernel/fork.c
---- a/kernel/fork.c~kthread-numa-aware-kthread_create_on_cpu
+-extern struct task_struct *alloc_task_struct(void);
++extern struct task_struct *alloc_task_struct_node(int node);
+ 
+ static inline void release_thread(struct task_struct *task)
+ {
+diff -puN kernel/fork.c~mm-numa-aware-alloc_task_struct_node kernel/fork.c
+--- a/kernel/fork.c~mm-numa-aware-alloc_task_struct_node
 +++ a/kernel/fork.c
-@@ -40,6 +40,7 @@
- #include <linux/tracehook.h>
- #include <linux/futex.h>
- #include <linux/compat.h>
-+#include <linux/kthread.h>
- #include <linux/task_io_accounting_ops.h>
- #include <linux/rcupdate.h>
- #include <linux/ptrace.h>
-@@ -253,7 +254,7 @@ static struct task_struct *dup_task_stru
+@@ -109,8 +109,10 @@ int nr_processes(void)
+ }
+ 
+ #ifndef __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
+-# define alloc_task_struct()	kmem_cache_alloc(task_struct_cachep, GFP_KERNEL)
+-# define free_task_struct(tsk)	kmem_cache_free(task_struct_cachep, (tsk))
++# define alloc_task_struct_node(node)		\
++		kmem_cache_alloc_node(task_struct_cachep, GFP_KERNEL, node)
++# define free_task_struct(tsk)			\
++		kmem_cache_free(task_struct_cachep, (tsk))
+ static struct kmem_cache *task_struct_cachep;
+ #endif
+ 
+@@ -248,12 +250,12 @@ static struct task_struct *dup_task_stru
  	struct task_struct *tsk;
  	struct thread_info *ti;
  	unsigned long *stackend;
--	int node = numa_node_id();
-+	int node = tsk_fork_get_node(orig);
+-
++	int node = numa_node_id();
  	int err;
  
  	prepare_to_copy(orig);
-diff -puN kernel/kthread.c~kthread-numa-aware-kthread_create_on_cpu kernel/kthread.c
---- a/kernel/kthread.c~kthread-numa-aware-kthread_create_on_cpu
-+++ a/kernel/kthread.c
-@@ -27,6 +27,7 @@ struct kthread_create_info
- 	/* Information passed to kthread() from kthreadd. */
- 	int (*threadfn)(void *data);
- 	void *data;
-+	int node;
  
- 	/* Result passed back to kthread_create() from kthreadd. */
- 	struct task_struct *result;
-@@ -98,10 +99,23 @@ static int kthread(void *_create)
- 	do_exit(ret);
- }
+-	tsk = alloc_task_struct();
++	tsk = alloc_task_struct_node(node);
+ 	if (!tsk)
+ 		return NULL;
  
-+/* called from do_fork() to get node information for about to be created task */
-+int tsk_fork_get_node(struct task_struct *tsk)
-+{
-+#ifdef CONFIG_NUMA
-+	if (tsk == kthreadd_task)
-+		return tsk->pref_node_fork;
-+#endif
-+	return numa_node_id();
-+}
-+
- static void create_kthread(struct kthread_create_info *create)
- {
- 	int pid;
- 
-+#ifdef CONFIG_NUMA
-+	current->pref_node_fork = create->node;
-+#endif
- 	/* We want our own signal handler (we take no signals by default). */
- 	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | SIGCHLD);
- 	if (pid < 0) {
-@@ -111,15 +125,18 @@ static void create_kthread(struct kthrea
- }
- 
- /**
-- * kthread_create - create a kthread.
-+ * kthread_create_on_node - create a kthread.
-  * @threadfn: the function to run until signal_pending(current).
-  * @data: data ptr for @threadfn.
-+ * @node: memory node number.
-  * @namefmt: printf-style name for the thread.
-  *
-  * Description: This helper function creates and names a kernel
-  * thread.  The thread will be stopped: use wake_up_process() to start
-  * it.  See also kthread_run().
-  *
-+ * If thread is going to be bound on a particular cpu, give its node
-+ * in @node, to get NUMA affinity for kthread stack, or else give -1.
-  * When woken, the thread will run @threadfn() with @data as its
-  * argument. @threadfn() can either call do_exit() directly if it is a
-  * standalone thread for which noone will call kthread_stop(), or
-@@ -129,15 +146,17 @@ static void create_kthread(struct kthrea
-  *
-  * Returns a task_struct or ERR_PTR(-ENOMEM).
-  */
--struct task_struct *kthread_create(int (*threadfn)(void *data),
--				   void *data,
--				   const char namefmt[],
--				   ...)
-+struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
-+					   void *data,
-+					   int node,
-+					   const char namefmt[],
-+					   ...)
- {
- 	struct kthread_create_info create;
- 
- 	create.threadfn = threadfn;
- 	create.data = data;
-+	create.node = node;
- 	init_completion(&create.done);
- 
- 	spin_lock(&kthread_create_lock);
-@@ -164,7 +183,7 @@ struct task_struct *kthread_create(int (
- 	}
- 	return create.result;
- }
--EXPORT_SYMBOL(kthread_create);
-+EXPORT_SYMBOL(kthread_create_on_node);
- 
- /**
-  * kthread_bind - bind a just-created kthread to a cpu.
 _
