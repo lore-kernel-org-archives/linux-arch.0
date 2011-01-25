@@ -1,51 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:58577 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751508Ab1AYUWO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jan 2011 15:22:14 -0500
-Subject: Re: [PATCH 09/25] ia64: Preemptible mmu_gather
+Received: from casper.infradead.org ([85.118.1.10]:42949 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752101Ab1AYUat convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jan 2011 15:30:49 -0500
+Subject: Re: [PATCH 20/25] mm: Simplify anon_vma refcounts
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <AANLkTikgpX16=ouGCpKqDtr7w-AUWLQNU7cFi4vKWbt+@mail.gmail.com>
+In-Reply-To: <AANLkTikchW7Z6mSgcbt7wn9DWTeEGrKwfMwj1_WjMB5c@mail.gmail.com>
 References: <20110125173111.720927511@chello.nl>
-	 <20110125174907.664402563@chello.nl>
-	 <AANLkTikgpX16=ouGCpKqDtr7w-AUWLQNU7cFi4vKWbt+@mail.gmail.com>
+	 <20110125174908.262260777@chello.nl>
+	 <AANLkTikchW7Z6mSgcbt7wn9DWTeEGrKwfMwj1_WjMB5c@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8BIT
-Date: Tue, 25 Jan 2011 21:22:23 +0100
-Message-ID: <1295986943.28776.1108.camel@laptop>
+Date: Tue, 25 Jan 2011 21:31:01 +0100
+Message-ID: <1295987461.28776.1110.camel@laptop>
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-Message-ID: <20110125202223.AYBeSwxgU37mmORJwG8sU5ln7BckH-q_G3IgFsRwAoc@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
+Message-ID: <20110125203101.fe35cib55siZfEQbpNfeKYG8ghCi2lLSv2hCK9OjsRU@z>
 
-On Tue, 2011-01-25 at 12:12 -0800, Tony Luck wrote:
-> On Tue, Jan 25, 2011 at 9:31 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> >  struct mmu_gather {
-> >        struct mm_struct        *mm;
-> >        unsigned int            nr;             /* == ~0U => fast mode */
-> > +       unsigned int            max;
-> >        unsigned char           fullmm;         /* non-zero means full mm flush */
-> >        unsigned char           need_flush;     /* really unmapped some PTEs? */
-> >        unsigned long           start_addr;
-> >        unsigned long           end_addr;
-> > -       struct page             *pages[FREE_PTE_NR];
-> > +       struct page             **pages;
-> > +       struct page             *local[8];
-> >  };
+On Wed, 2011-01-26 at 06:16 +1000, Linus Torvalds wrote:
+> On Wed, Jan 26, 2011 at 3:31 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> >
+> > This patch changes the anon_vma refcount to be 0 when the object is
+> > free. It does this by adding 1 ref to being in use in the anon_vma
+> > structure (iow. the anon_vma->head list is not empty).
 > 
-> Overall it looks OK - builds, boots & runs too. One question about
-> the above bit ... why "8" elements in the local[] array?  This ought to be
-> a #define, maybe with a comment explaining the significance. It doesn't
-> seem to fill out struct mmu_gather to some "nice" size.  I can't think
-> of why batching 8 at a time (in the fallback cannot allocate **pages case)
-> is a good number. So is there some science to the choice, or did you
-> pluck 8 out of the air? 
+> Why is this patch part of this series, rather than being an
+> independent patch before the whole series?
+> 
+> I think this part of the series is the only total no-brainer, ie we
+> should have done this from the beginning. The preemptability stuff I'm
+> more nervous about (performance issues? semantic differences?)
 
-Yeah, pretty much a random number small enough to make struct mmu_gather
-fit on stack, the reason its not 1 is that a few more entries increase
-performance a little and freeing more pages increases the chance the
-page allocation works next time around.
+It relies on patch 19, which moves the anon_vma refcount out from under
+CONFIG_goo.
 
-
+If however you like it, I can move 19 and this patch up to the start and
+have that go your way soon.
