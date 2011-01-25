@@ -1,69 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:59945 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:59943 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753547Ab1AYR7b (ORCPT
+	with ESMTP id S1753551Ab1AYR7b (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Jan 2011 12:59:31 -0500
-Message-ID: <20110125173111.720927511@chello.nl>
-Date: Tue, 25 Jan 2011 18:31:11 +0100
+Message-ID: <20110125174907.220115681@chello.nl>
+Date: Tue, 25 Jan 2011 18:31:12 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 00/25] mm: Preemptibility -v7
+Subject: [PATCH 01/25] tile: Fix __pte_free_tlb
+References: <20110125173111.720927511@chello.nl>
+Content-Disposition: inline; filename=tile-fix-pte_free_tlb.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-Message-ID: <20110125173111.rlO3MUmY0YIEwqCY1Sjb4bdn2WBwsiPAz8OiOknrX0s@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20110125173112.ue6WKWwB_pKRy12Te2cDAEjKJMkiZXWqABjpV_TFK_w@z>
 
+Tile's __pte_free_tlb() implementation makes assumptions about the
+generic mmu_gather implementation, cure this ;-)
 
-This patch-set makes part of the mm a lot more preemptible. It converts
-i_mmap_lock and anon_vma->lock to mutexes and makes mmu_gather fully
-preemptible.
+[ Chris, from a quick look L2_USER_PGTABLE_PAGES is something like:
+  1 << (24 - 16 + 3), which looks awefully large for an on-stack
+  array. ]
 
-The main motivation was making mm_take_all_locks() preemptible, since it
-appears people are nesting hundreds of spinlocks there.
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/tile/mm/pgtable.c |   15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-The side-effects are that can finally make mmu_gather preemptible,
-something which lots of people have wanted to do for a long time.
-
-It also gets us anon_vma refcounting, which seems to result in a nice
-cleanup of the anon_vma lifetime rules wrt KSM and compaction.
-
-This patch-set is build and boot-tested on x86_64 (a previous version was
-also tested on Dave's Niagra2 machines, and I suppose s390 was too when
-Martin provided the conversion patch for his arch).
-
-There are no known architectures left unconverted.
-
-Yanmin ran the -v3 posting through the comprehensive Intel test farm
-and didn't find any regressions.
-
-( Not included in this posting are the 4 Sparc64 patches that implement
-  gup_fast, those can be applied separately after this series gets
-  anywhere. )
-
-The full series (including the Sparc64 gup_fast bits) also available in -git
-form from (against something post .38-rc2):
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/linux-2.6-mmu_preempt.git
-
-
-Changes since -v6:
-
-Suggested by Hugh:
- - reordered the patches
- - changed to GFP_NOWAIT | __GFP_NOWARN to allocate mmu_gather pages
- - s/lock/mutex/ for the spinlock to mutex conversion
- - removed all DEFINE_PER_CPU(struct mmu_gather, mmu_gather) remnants
- - split the i_mmap_lock and anon_vma->lock conversion
- - removed some KSM wrappers
- - avoid tlb_flush_mmu() while holding pte_lock
-
-Other:
- - remove the i_mmap_lock lockbreak in truncate (XXX)
- - arch/tile __pte_free_tlb() change
-
-TODO:
- - decide if we want to actually remove the i_mmap_lock lockbreak
- - figure out if LOCK vs MB works or add a smp_mb() to patch #23
- - figure out what to do with sparc's tlb_batch lack of ->fullmm
+Index: linux-2.6/arch/tile/mm/pgtable.c
+===================================================================
+--- linux-2.6.orig/arch/tile/mm/pgtable.c
++++ linux-2.6/arch/tile/mm/pgtable.c
+@@ -252,19 +252,8 @@ void __pte_free_tlb(struct mmu_gather *t
+ 	int i;
+ 
+ 	pgtable_page_dtor(pte);
+-	tlb->need_flush = 1;
+-	if (tlb_fast_mode(tlb)) {
+-		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
+-		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
+-			pte_pages[i] = pte + i;
+-		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
+-		return;
+-	}
+-	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
+-		tlb->pages[tlb->nr++] = pte + i;
+-		if (tlb->nr >= FREE_PTE_NR)
+-			tlb_flush_mmu(tlb, 0, 0);
+-	}
++	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
++		tlb_remove_page(tlb, pte + i);
+ }
+ 
+ #ifndef __tilegx__
 
 
