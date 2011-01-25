@@ -1,16 +1,16 @@
 From: akpm@linux-foundation.org
-Subject: [patch 20/23] mm: NUMA aware alloc_task_struct_node()
-Date: Tue, 25 Jan 2011 15:07:36 -0800
-Message-ID: <201101252307.p0PN7a5t013498@imap1.linux-foundation.org>
+Subject: [patch 21/23] mm: NUMA aware alloc_thread_info_node()
+Date: Tue, 25 Jan 2011 15:07:38 -0800
+Message-ID: <201101252307.p0PN7csq013501@imap1.linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ANSI_X3.4-1968
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59142 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:48793 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752945Ab1AYXLD (ORCPT
+	by vger.kernel.org with ESMTP id S1752945Ab1AYXLH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Jan 2011 18:11:03 -0500
+	Tue, 25 Jan 2011 18:11:07 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org
@@ -18,22 +18,8 @@ Cc: akpm@linux-foundation.org, eric.dumazet@gmail.com, ak@linux.intel.com, davem
 
 From: Eric Dumazet <eric.dumazet@gmail.com>
 
-All kthreads being created from a single helper task, they all use memory
-from a single node for their kernel stack and task struct.
-
-This patch suite creates kthread_create_on_cpu(), adding a 'cpu' parameter
-to parameters already used by kthread_create().
-
-This parameter serves in allocating memory for the new kthread on its
-memory node if available.
-
-Users of this new function are : ksoftirqd, kworker, migration, pktgend...
-
-
-This patch:
-
-Add a node parameter to alloc_task_struct(), and change its name to
-alloc_task_struct_node()
+Add a node parameter to alloc_thread_info(), and change its name to
+alloc_thread_info_node()
 
 This change is needed to allow NUMA aware kthread_create_on_cpu()
 
@@ -49,101 +35,414 @@ Cc: <linux-arch@vger.kernel.org>
 Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
 
- arch/frv/include/asm/processor.h        |    2 +-
- arch/frv/kernel/process.c               |    5 +++--
- arch/ia64/include/asm/thread_info.h     |    9 ++++++++-
- arch/um/include/asm/processor-generic.h |    2 +-
- kernel/fork.c                           |   10 ++++++----
- 5 files changed, 19 insertions(+), 9 deletions(-)
+ arch/cris/include/asm/thread_info.h     |    2 -
+ arch/frv/include/asm/thread_info.h      |   13 +++--------
+ arch/ia64/include/asm/thread_info.h     |    5 ++--
+ arch/m32r/include/asm/thread_info.h     |   13 +++--------
+ arch/mips/include/asm/thread_info.h     |    6 +++--
+ arch/mn10300/include/asm/thread_info.h  |    6 +++--
+ arch/powerpc/include/asm/thread_info.h  |    2 -
+ arch/powerpc/kernel/process.c           |    4 +--
+ arch/score/include/asm/thread_info.h    |    2 -
+ arch/sh/include/asm/thread_info.h       |    2 -
+ arch/sh/kernel/process.c                |   16 ++++++++------
+ arch/sparc/include/asm/thread_info_32.h |    6 ++---
+ arch/sparc/include/asm/thread_info_64.h |   24 +++++++++++-----------
+ arch/sparc/mm/srmmu.c                   |    4 +--
+ arch/sparc/mm/sun4c.c                   |    4 +--
+ arch/tile/include/asm/thread_info.h     |    2 -
+ arch/tile/kernel/process.c              |    4 +--
+ arch/x86/include/asm/thread_info.h      |   10 +++++++--
+ kernel/fork.c                           |    9 +++++---
+ 19 files changed, 70 insertions(+), 64 deletions(-)
 
-diff -puN arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node arch/frv/include/asm/processor.h
---- a/arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node
-+++ a/arch/frv/include/asm/processor.h
-@@ -137,7 +137,7 @@ unsigned long get_wchan(struct task_stru
- #define	KSTK_ESP(tsk)	((tsk)->thread.frame0->sp)
+diff -puN arch/cris/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/cris/include/asm/thread_info.h
+--- a/arch/cris/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/cris/include/asm/thread_info.h
+@@ -68,7 +68,7 @@ struct thread_info {
+ #define init_thread_info	(init_thread_union.thread_info)
  
- /* Allocation and freeing of basic task resources. */
--extern struct task_struct *alloc_task_struct(void);
-+extern struct task_struct *alloc_task_struct_node(int node);
- extern void free_task_struct(struct task_struct *p);
+ /* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
++#define alloc_thread_info(tsk, node) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
+ #define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
  
- #define cpu_relax()    barrier()
-diff -puN arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node arch/frv/kernel/process.c
---- a/arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node
-+++ a/arch/frv/kernel/process.c
-@@ -44,9 +44,10 @@ asmlinkage void ret_from_fork(void);
- void (*pm_power_off)(void);
- EXPORT_SYMBOL(pm_power_off);
+ #endif /* !__ASSEMBLY__ */
+diff -puN arch/frv/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/frv/include/asm/thread_info.h
+--- a/arch/frv/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/frv/include/asm/thread_info.h
+@@ -84,16 +84,11 @@ register struct thread_info *__current_t
  
--struct task_struct *alloc_task_struct(void)
-+struct task_struct *alloc_task_struct_node(int node)
- {
--	struct task_struct *p = kmalloc(THREAD_SIZE, GFP_KERNEL);
-+	struct task_struct *p = kmalloc_node(THREAD_SIZE, GFP_KERNEL, node);
-+
- 	if (p)
- 		atomic_set((atomic_t *)(p+1), 1);
- 	return p;
-diff -puN arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node arch/ia64/include/asm/thread_info.h
---- a/arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node
-+++ a/arch/ia64/include/asm/thread_info.h
-@@ -84,7 +84,14 @@ struct thread_info {
- #define end_of_stack(p) (unsigned long *)((void *)(p) + IA64_RBS_OFFSET)
- 
- #define __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
--#define alloc_task_struct()	((struct task_struct *)__get_free_pages(GFP_KERNEL | __GFP_COMP, KERNEL_STACK_SIZE_ORDER))
-+#define alloc_task_struct_node(node)						\
-+({										\
-+	struct page *page = alloc_pages_node(node, GFP_KERNEL | __GFP_COMP,	\
-+					     KERNEL_STACK_SIZE_ORDER);		\
-+	struct task_struct *ret = page ? page_address(page) : NULL;		\
-+										\
-+	ret;
-+})
- #define free_task_struct(tsk)	free_pages((unsigned long) (tsk), KERNEL_STACK_SIZE_ORDER)
- 
- #endif /* !__ASSEMBLY */
-diff -puN arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node arch/um/include/asm/processor-generic.h
---- a/arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node
-+++ a/arch/um/include/asm/processor-generic.h
-@@ -66,7 +66,7 @@ struct thread_struct {
- 	.request		= { 0 } \
- }
- 
--extern struct task_struct *alloc_task_struct(void);
-+extern struct task_struct *alloc_task_struct_node(int node);
- 
- static inline void release_thread(struct task_struct *task)
- {
-diff -puN kernel/fork.c~mm-numa-aware-alloc_task_struct_node kernel/fork.c
---- a/kernel/fork.c~mm-numa-aware-alloc_task_struct_node
-+++ a/kernel/fork.c
-@@ -109,8 +109,10 @@ int nr_processes(void)
- }
- 
- #ifndef __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
--# define alloc_task_struct()	kmem_cache_alloc(task_struct_cachep, GFP_KERNEL)
--# define free_task_struct(tsk)	kmem_cache_free(task_struct_cachep, (tsk))
-+# define alloc_task_struct_node(node)		\
-+		kmem_cache_alloc_node(task_struct_cachep, GFP_KERNEL, node)
-+# define free_task_struct(tsk)			\
-+		kmem_cache_free(task_struct_cachep, (tsk))
- static struct kmem_cache *task_struct_cachep;
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-	({							\
+-		struct thread_info *ret;			\
+-								\
+-		ret = kzalloc(THREAD_SIZE, GFP_KERNEL);		\
+-								\
+-		ret;						\
+-	})
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk)	kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk)				\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
  #endif
  
-@@ -248,12 +250,12 @@ static struct task_struct *dup_task_stru
- 	struct task_struct *tsk;
+ #define free_thread_info(info)	kfree(info)
+diff -puN arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/ia64/include/asm/thread_info.h
+--- a/arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/ia64/include/asm/thread_info.h
+@@ -59,11 +59,12 @@ struct thread_info {
+ #ifndef ASM_OFFSETS_C
+ /* how to get the thread information struct from C */
+ #define current_thread_info()	((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
+-#define alloc_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
++#define alloc_thread_info_node(tsk, node)	\
++		((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
+ #define task_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
+ #else
+ #define current_thread_info()	((struct thread_info *) 0)
+-#define alloc_thread_info(tsk)	((struct thread_info *) 0)
++#define alloc_thread_info_node(tsk, node)	((struct thread_info *) 0)
+ #define task_thread_info(tsk)	((struct thread_info *) 0)
+ #endif
+ #define free_thread_info(ti)	/* nothing */
+diff -puN arch/m32r/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/m32r/include/asm/thread_info.h
+--- a/arch/m32r/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/m32r/include/asm/thread_info.h
+@@ -96,16 +96,11 @@ static inline struct thread_info *curren
+ 
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-	({							\
+-		struct thread_info *ret;			\
+-	 							\
+-	 	ret = kzalloc(THREAD_SIZE, GFP_KERNEL);		\
+-								\
+-	 	ret;						\
+-	 })
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(info) kfree(info)
+diff -puN arch/mips/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/mips/include/asm/thread_info.h
+--- a/arch/mips/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/mips/include/asm/thread_info.h
+@@ -88,9 +88,11 @@ register struct thread_info *__current_t
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) \
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) \
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(info) kfree(info)
+diff -puN arch/mn10300/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/mn10300/include/asm/thread_info.h
+--- a/arch/mn10300/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/mn10300/include/asm/thread_info.h
+@@ -124,9 +124,11 @@ static inline unsigned long current_stac
+ 
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(ti)	kfree((ti))
+diff -puN arch/powerpc/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/powerpc/include/asm/thread_info.h
+--- a/arch/powerpc/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/powerpc/include/asm/thread_info.h
+@@ -72,7 +72,7 @@ struct thread_info {
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node);
+ extern void free_thread_info(struct thread_info *ti);
+ 
+ #endif /* THREAD_SHIFT < PAGE_SHIFT */
+diff -puN arch/powerpc/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/powerpc/kernel/process.c
+--- a/arch/powerpc/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/powerpc/kernel/process.c
+@@ -1216,11 +1216,11 @@ void __ppc64_runlatch_off(void)
+ 
+ static struct kmem_cache *thread_info_cache;
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *tsk)
++struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node)
+ {
  	struct thread_info *ti;
- 	unsigned long *stackend;
+ 
+-	ti = kmem_cache_alloc(thread_info_cache, GFP_KERNEL);
++	ti = kmem_cache_alloc_node(thread_info_cache, GFP_KERNEL, node);
+ 	if (unlikely(ti == NULL))
+ 		return NULL;
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+diff -puN arch/score/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/score/include/asm/thread_info.h
+--- a/arch/score/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/score/include/asm/thread_info.h
+@@ -71,7 +71,7 @@ struct thread_info {
+ register struct thread_info *__current_thread_info __asm__("r28");
+ #define current_thread_info()	__current_thread_info
+ 
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #define free_thread_info(info) kfree(info)
+ 
+ #endif /* !__ASSEMBLY__ */
+diff -puN arch/sh/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/sh/include/asm/thread_info.h
+--- a/arch/sh/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sh/include/asm/thread_info.h
+@@ -95,7 +95,7 @@ static inline struct thread_info *curren
+ 
+ #endif
+ 
+-extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node);
+ extern void free_thread_info(struct thread_info *ti);
+ extern void arch_task_cache_init(void);
+ #define arch_task_cache_init arch_task_cache_init
+diff -puN arch/sh/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/sh/kernel/process.c
+--- a/arch/sh/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sh/kernel/process.c
+@@ -32,16 +32,16 @@ void free_thread_xstate(struct task_stru
+ #if THREAD_SHIFT < PAGE_SHIFT
+ static struct kmem_cache *thread_info_cache;
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *tsk)
++struct thread_info *alloc_thread_info(struct task_struct *tsk, int node)
+ {
+ 	struct thread_info *ti;
 -
-+	int node = numa_node_id();
- 	int err;
+-	ti = kmem_cache_alloc(thread_info_cache, GFP_KERNEL);
+-	if (unlikely(ti == NULL))
+-		return NULL;
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-	memset(ti, 0, THREAD_SIZE);
++	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
++#else
++	gfp_t mask = GFP_KERNEL;
+ #endif
++
++	ti = kmem_cache_alloc_node(thread_info_cache, mask, node);
+ 	return ti;
+ }
  
- 	prepare_to_copy(orig);
+@@ -64,7 +64,9 @@ struct thread_info *alloc_thread_info(st
+ #else
+ 	gfp_t mask = GFP_KERNEL;
+ #endif
+-	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
++	struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
++
++	return page ? page_address(page) : NULL;
+ }
  
--	tsk = alloc_task_struct();
-+	tsk = alloc_task_struct_node(node);
+ void free_thread_info(struct thread_info *ti)
+diff -puN arch/sparc/include/asm/thread_info_32.h~mm-numa-aware-alloc_thread_info_node arch/sparc/include/asm/thread_info_32.h
+--- a/arch/sparc/include/asm/thread_info_32.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/include/asm/thread_info_32.h
+@@ -82,8 +82,8 @@ register struct thread_info *current_thr
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info, void)
+-#define alloc_thread_info(tsk) BTFIXUP_CALL(alloc_thread_info)()
++BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info_node, int)
++#define alloc_thread_info_node(tsk, node) BTFIXUP_CALL(alloc_thread_info_node)(node)
+ 
+ BTFIXUPDEF_CALL(void, free_thread_info, struct thread_info *)
+ #define free_thread_info(ti) BTFIXUP_CALL(free_thread_info)(ti)
+@@ -92,7 +92,7 @@ BTFIXUPDEF_CALL(void, free_thread_info, 
+ 
+ /*
+  * Size of kernel stack for each process.
+- * Observe the order of get_free_pages() in alloc_thread_info().
++ * Observe the order of get_free_pages() in alloc_thread_info_node().
+  * The sun4 has 8K stack too, because it's short on memory, and 16K is a waste.
+  */
+ #define THREAD_SIZE		8192
+diff -puN arch/sparc/include/asm/thread_info_64.h~mm-numa-aware-alloc_thread_info_node arch/sparc/include/asm/thread_info_64.h
+--- a/arch/sparc/include/asm/thread_info_64.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/include/asm/thread_info_64.h
+@@ -146,21 +146,21 @@ register struct thread_info *current_thr
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-({								\
+-	struct thread_info *ret;				\
+-								\
+-	ret = (struct thread_info *)				\
+-	  __get_free_pages(GFP_KERNEL, __THREAD_INFO_ORDER);	\
+-	if (ret)						\
+-		memset(ret, 0, PAGE_SIZE<<__THREAD_INFO_ORDER);	\
+-	ret;							\
+-})
++#define THREAD_FLAGS (GFP_KERNEL | __GFP_ZERO)
+ #else
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL, __THREAD_INFO_ORDER))
++#define THREAD_FLAGS (GFP_KERNEL)
+ #endif
+ 
++#define alloc_thread_info_node(tsk, node)				\
++({									\
++	struct page *page = alloc_pages_node(node, THREAD_FLAGS,	\
++					     __THREAD_INFO_ORDER);	\
++	struct thread_info *ret;					\
++									\
++	ret = page ? page_address(page) : NULL;				\
++	ret;								\
++})
++
+ #define free_thread_info(ti) \
+ 	free_pages((unsigned long)(ti),__THREAD_INFO_ORDER)
+ 
+diff -puN arch/sparc/mm/srmmu.c~mm-numa-aware-alloc_thread_info_node arch/sparc/mm/srmmu.c
+--- a/arch/sparc/mm/srmmu.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/mm/srmmu.c
+@@ -650,7 +650,7 @@ static void srmmu_unmapiorange(unsigned 
+  * mappings on the kernel stack without any special code as we did
+  * need on the sun4c.
+  */
+-static struct thread_info *srmmu_alloc_thread_info(void)
++static struct thread_info *srmmu_alloc_thread_info_node(int node)
+ {
+ 	struct thread_info *ret;
+ 
+@@ -2271,7 +2271,7 @@ void __init ld_mmu_srmmu(void)
+ 
+ 	BTFIXUPSET_CALL(mmu_info, srmmu_mmu_info, BTFIXUPCALL_NORM);
+ 
+-	BTFIXUPSET_CALL(alloc_thread_info, srmmu_alloc_thread_info, BTFIXUPCALL_NORM);
++	BTFIXUPSET_CALL(alloc_thread_info_node, srmmu_alloc_thread_info_node, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(free_thread_info, srmmu_free_thread_info, BTFIXUPCALL_NORM);
+ 
+ 	BTFIXUPSET_CALL(pte_to_pgoff, srmmu_pte_to_pgoff, BTFIXUPCALL_NORM);
+diff -puN arch/sparc/mm/sun4c.c~mm-numa-aware-alloc_thread_info_node arch/sparc/mm/sun4c.c
+--- a/arch/sparc/mm/sun4c.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/mm/sun4c.c
+@@ -922,7 +922,7 @@ static inline void garbage_collect(int e
+ 	free_locked_segment(BUCKET_ADDR(entry));
+ }
+ 
+-static struct thread_info *sun4c_alloc_thread_info(void)
++static struct thread_info *sun4c_alloc_thread_info_node(int node)
+ {
+ 	unsigned long addr, pages;
+ 	int entry;
+@@ -2155,7 +2155,7 @@ void __init ld_mmu_sun4c(void)
+ 	BTFIXUPSET_CALL(__swp_offset, sun4c_swp_offset, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(__swp_entry, sun4c_swp_entry, BTFIXUPCALL_NORM);
+ 
+-	BTFIXUPSET_CALL(alloc_thread_info, sun4c_alloc_thread_info, BTFIXUPCALL_NORM);
++	BTFIXUPSET_CALL(alloc_thread_info_node, sun4c_alloc_thread_info_node, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(free_thread_info, sun4c_free_thread_info, BTFIXUPCALL_NORM);
+ 
+ 	BTFIXUPSET_CALL(mmu_info, sun4c_mmu_info, BTFIXUPCALL_NORM);
+diff -puN arch/tile/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/tile/include/asm/thread_info.h
+--- a/arch/tile/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/tile/include/asm/thread_info.h
+@@ -83,7 +83,7 @@ register unsigned long stack_pointer __a
+   ((struct thread_info *)(stack_pointer & -THREAD_SIZE))
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+-extern struct thread_info *alloc_thread_info(struct task_struct *task);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *task, int node);
+ extern void free_thread_info(struct thread_info *info);
+ 
+ /* Sit on a nap instruction until interrupted. */
+diff -puN arch/tile/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/tile/kernel/process.c
+--- a/arch/tile/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/tile/kernel/process.c
+@@ -109,7 +109,7 @@ void cpu_idle(void)
+ 	}
+ }
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *task)
++struct thread_info *alloc_thread_info_node(struct task_struct *task, int node)
+ {
+ 	struct page *page;
+ 	gfp_t flags = GFP_KERNEL;
+@@ -118,7 +118,7 @@ struct thread_info *alloc_thread_info(st
+ 	flags |= __GFP_ZERO;
+ #endif
+ 
+-	page = alloc_pages(flags, THREAD_SIZE_ORDER);
++	page = alloc_pages_node(node, flags, THREAD_SIZE_ORDER);
+ 	if (!page)
+ 		return NULL;
+ 
+diff -puN arch/x86/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/x86/include/asm/thread_info.h
+--- a/arch/x86/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/x86/include/asm/thread_info.h
+@@ -161,8 +161,14 @@ struct thread_info {
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-#define alloc_thread_info(tsk)						\
+-	((struct thread_info *)__get_free_pages(THREAD_FLAGS, THREAD_ORDER))
++#define alloc_thread_info_node(tsk, node)				\
++({									\
++	struct page *page = alloc_pages_node(node, THREAD_FLAGS,	\
++					     THREAD_ORDER);		\
++	struct thread_info *ret = page ? page_address(page) : NULL;	\
++									\
++	ret;								\
++})
+ 
+ #ifdef CONFIG_X86_32
+ 
+diff -puN kernel/fork.c~mm-numa-aware-alloc_thread_info_node kernel/fork.c
+--- a/kernel/fork.c~mm-numa-aware-alloc_thread_info_node
++++ a/kernel/fork.c
+@@ -117,14 +117,17 @@ static struct kmem_cache *task_struct_ca
+ #endif
+ 
+ #ifndef __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+-static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
++static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
++						  int node)
+ {
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ 	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
+ #else
+ 	gfp_t mask = GFP_KERNEL;
+ #endif
+-	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
++	struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
++
++	return page ? page_address(page) : NULL;
+ }
+ 
+ static inline void free_thread_info(struct thread_info *ti)
+@@ -259,7 +262,7 @@ static struct task_struct *dup_task_stru
  	if (!tsk)
  		return NULL;
  
+-	ti = alloc_thread_info(tsk);
++	ti = alloc_thread_info_node(tsk, node);
+ 	if (!ti) {
+ 		free_task_struct(tsk);
+ 		return NULL;
 _
