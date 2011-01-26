@@ -1,41 +1,39 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [RFC][PATCH 26/25] mm, arch: Convert ia64, arm, sh to generic
- tlb
-Date: Wed, 26 Jan 2011 20:30:18 +0100
-Message-ID: <1296070218.15234.9.camel@laptop>
-References: <20110125173111.720927511@chello.nl>
-	 <1296047601.28776.1162.camel@laptop>
-	 <20110126191901.GA3434@merkur.ravnborg.org>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [patch] kconfig: unify GENERIC_ISA_DMA and ISA_DMA_API
+Date: Wed, 26 Jan 2011 12:00:08 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1101261158490.13163@chino.kir.corp.google.com>
+References: <alpine.DEB.2.00.1101251706040.9641@chino.kir.corp.google.com> <20110126112908.GD2562@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:40845 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753392Ab1AZT3y convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jan 2011 14:29:54 -0500
-In-Reply-To: <20110126191901.GA3434@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110126112908.GD2562@n2100.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Randy Dunlap <randy.dunlap@oracle.com>, x86@kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2011-01-26 at 20:19 +0100, Sam Ravnborg wrote:
-> 
-> /* Users of the generic TLB shootdown code must declare this storage space. */
-> DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
-> 
-> If I understand this correct then this should read:
-> 
-> /*
->  * Users of the generic TLB shootdown
->  * must define mmu_gathers like this:
->  * DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
->  */
-> 
-> The main difference is "declare" => "define".
-> 
-> If you already updated this in you serie then please ignore this mail. 
+On Wed, 26 Jan 2011, Russell King - ARM Linux wrote:
 
-This series rewrites mmu_gather to remove this per-cpu data :-), see
-patch #10 which removes the DEFINE_PER_CPU()s after all users are dead.
+> On Tue, Jan 25, 2011 at 05:06:28PM -0800, David Rientjes wrote:
+> > CONFIG_GENERIC_ISA_DMA and CONFIG_ISA_DMA_API usually have dependencies
+> > on one another depending on the architecture and generic kernel code uses
+> > either to determine whether an ISA-style DMA API is configured.
+> 
+> Wrong.
+> 
+> GENERIC_ISA_DMA enables support for the standard ISA DMA allocator found
+> in kernel/dma.c
+> 
+> ISA_DMA_API says that a platform supports the ISA DMA interfaces.
+> 
+> An architecture can provide the ISA DMA interfaces, but not use the
+> standard ISA DMA allocator found in kernel/dma.c.  Such as the one in
+> arch/arm/kernel/dma.c.
+> 
+> So on ARM, we have platforms where ISA_DMA_API=y but GENERIC_ISA_DMA=n.
+> 
+
+Ok, fair enough.  Thanks for pointing that out.  I'll work to resolve the 
+existing dependency chain on x86 that cause build failures when one is 
+disabled and another is not and add Kconfig dependencies on drivers that 
+require GENERIC_ISA_DMA.
