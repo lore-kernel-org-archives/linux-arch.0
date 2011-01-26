@@ -1,29 +1,43 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 09/25] ia64: Preemptible mmu_gather
-Date: Wed, 26 Jan 2011 12:01:05 +0100
-Message-ID: <1296039665.28776.1152.camel@laptop>
-References: <4d3f3f522012086c15@agluck-desktop.sc.intel.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [patch] kconfig: unify GENERIC_ISA_DMA and ISA_DMA_API
+Date: Wed, 26 Jan 2011 11:29:08 +0000
+Message-ID: <20110126112908.GD2562@n2100.arm.linux.org.uk>
+References: <alpine.DEB.2.00.1101251706040.9641@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4d3f3f522012086c15@agluck-desktop.sc.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: tony.luck@intel.com
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:39677 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752841Ab1AZLbJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jan 2011 06:31:09 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1101251706040.9641@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@redhat.com>, James Bottomley <James.Bottomley@HansenPartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Randy Dunlap <randy.dunlap@oracle.com>, x86@kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, 2011-01-25 at 13:23 -0800, tony.luck@intel.com wrote:
-> Okay ... then could you swap out your part 09/25 for this version that
-> has a #define and a comment.  You can add
->=20
-> Acked-by: Tony Luck <tony.luck@intel.com>
->=20
-Thanks Tony!
+On Tue, Jan 25, 2011 at 05:06:28PM -0800, David Rientjes wrote:
+> CONFIG_GENERIC_ISA_DMA and CONFIG_ISA_DMA_API usually have dependencies
+> on one another depending on the architecture and generic kernel code uses
+> either to determine whether an ISA-style DMA API is configured.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Wrong.
+
+GENERIC_ISA_DMA enables support for the standard ISA DMA allocator found
+in kernel/dma.c
+
+ISA_DMA_API says that a platform supports the ISA DMA interfaces.
+
+An architecture can provide the ISA DMA interfaces, but not use the
+standard ISA DMA allocator found in kernel/dma.c.  Such as the one in
+arch/arm/kernel/dma.c.
+
+So on ARM, we have platforms where ISA_DMA_API=y but GENERIC_ISA_DMA=n.
+
+> This patch unifies both options and consolidates them into a single
+> option: CONFIG_GENERIC_ISA_DMA.  It is also a prerequisite for a 1% text
+> savings for a future x86 patch that allows these options to be disabled
+> on that architecture when CONFIG_ZONE_DMA also becomes configurable.
+
+NAK.  This is wrong.
