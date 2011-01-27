@@ -1,24 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iy0-f174.google.com ([209.85.210.174]:47979 "EHLO
 	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752937Ab1A0N4D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jan 2011 08:56:03 -0500
+	with ESMTP id S1753496Ab1A0Nz4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jan 2011 08:55:56 -0500
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH -mm 4/6] arm: convert little-endian bitops macros to static inline functions
-Date: Thu, 27 Jan 2011 22:56:21 +0900
-Message-ID: <1296136583-13815-5-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH -mm 2/6] powerpc: convert little-endian bitops macros to static inline functions
+Date: Thu, 27 Jan 2011 22:56:19 +0900
+Message-ID: <1296136583-13815-3-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
 References: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Russell King <rmk+kernel@arm.linux.org.uk>
-Message-ID: <20110127135621.TZpkqHDd2kvxvDeYA29Jqi2GQJ6QZK2k-KE689NBl8M@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20110127135619.uZxInBorxi_LwjbsVmMrWDTU3uPmB3N-mt3ejG9wl8I@z>
 
 (This patch is intended to be folded into the patch in -mm:
-arm-introduce-little-endian-bitops.patch)
+powerpc-introduce-little-endian-bitops.patch)
 
-The little-endian bitops on arm are written as preprocessor
+The little-endian bitops on powerpc are written as preprocessor
 macros with the cast to "unsigned long *".
 This means that even non-pointers will be accepted without an error, and
 that is a Very Bad Thing.
@@ -28,92 +28,67 @@ with proper prototypes.
 
 Suggested-by: "H. Peter Anvin" <hpa@zytor.com>
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
- arch/arm/include/asm/bitops.h |   70 +++++++++++++++++++++++++++++------------
- 1 files changed, 50 insertions(+), 20 deletions(-)
+ arch/powerpc/include/asm/bitops.h |   43 +++++++++++++++++++++++++------------
+ 1 files changed, 29 insertions(+), 14 deletions(-)
 
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index 56d6b54..f530d59 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -303,26 +303,56 @@ static inline int fls(int x)
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
+diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+index fe67024..2e56187 100644
+--- a/arch/powerpc/include/asm/bitops.h
++++ b/arch/powerpc/include/asm/bitops.h
+@@ -288,20 +288,35 @@ static __inline__ int test_bit_le(unsigned long nr,
+ 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
+ }
  
--#define __set_bit_le(nr, p)			\
--	__set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define __clear_bit_le(nr, p)			\
--	__clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define __test_and_set_bit_le(nr, p)			\
--		__test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define test_and_set_bit_le(nr, p)          \
--		test_and_set_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define __test_and_clear_bit_le(nr, p)			\
--		__test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define test_and_clear_bit_le(nr, p)	\
--		test_and_clear_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define test_bit_le(nr, p)			\
--		test_bit(WORD_BITOFF_TO_LE(nr), (unsigned long *)(p))
--#define find_first_zero_bit_le(p, sz)		\
--		_find_first_zero_bit_le(p, sz)
--#define find_next_zero_bit_le(p, sz, off)	\
--		_find_next_zero_bit_le(p, sz, off)
--#define find_next_bit_le(p, sz, off) \
--		_find_next_bit_le((unsigned long *)(p), sz, off)
+-#define __set_bit_le(nr, addr) \
+-	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define __clear_bit_le(nr, addr) \
+-	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-
+-#define test_and_set_bit_le(nr, addr) \
+-	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define test_and_clear_bit_le(nr, addr) \
+-	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-
+-#define __test_and_set_bit_le(nr, addr) \
+-	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define __test_and_clear_bit_le(nr, addr) \
+-	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
 +static inline void __set_bit_le(int nr, void *addr)
 +{
-+	__set_bit(WORD_BITOFF_TO_LE(nr), addr);
++	__set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
 +
 +static inline void __clear_bit_le(int nr, void *addr)
 +{
-+	__clear_bit(WORD_BITOFF_TO_LE(nr), addr);
-+}
-+
-+static inline int __test_and_set_bit_le(int nr, void *addr)
-+{
-+	return __test_and_set_bit(WORD_BITOFF_TO_LE(nr), addr);
++	__clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
 +
 +static inline int test_and_set_bit_le(int nr, void *addr)
 +{
-+	return test_and_set_bit(WORD_BITOFF_TO_LE(nr), addr);
-+}
-+
-+static inline int __test_and_clear_bit_le(int nr, void *addr)
-+{
-+	return __test_and_clear_bit(WORD_BITOFF_TO_LE(nr), addr);
++	return test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
 +
 +static inline int test_and_clear_bit_le(int nr, void *addr)
 +{
-+	return test_and_clear_bit(WORD_BITOFF_TO_LE(nr), addr);
++	return test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
 +
-+static inline int test_bit_le(int nr, const void *addr)
++static inline int __test_and_set_bit_le(int nr, void *addr)
 +{
-+	return test_bit(WORD_BITOFF_TO_LE(nr), addr);
++	return __test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
 +
-+static inline int find_first_zero_bit_le(const void *p, unsigned size)
++static inline int __test_and_clear_bit_le(int nr, void *addr)
 +{
-+	return _find_first_zero_bit_le(p, size);
++	return __test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 +}
-+
-+static inline int find_next_zero_bit_le(const void *p, int size, int offset)
-+{
-+	return _find_next_zero_bit_le(p, size, offset);
-+}
-+
-+static inline int find_next_bit_le(const void *p, int size, int offset)
-+{
-+	return _find_next_bit_le(p, size, offset);
-+}
-+
- /*
-  * Ext2 is defined to use little-endian byte ordering.
-  */
+ 
+ #define find_first_zero_bit_le(addr, size) \
+ 	find_next_zero_bit_le((addr), (size), 0)
 -- 
 1.7.3.4
 
