@@ -1,53 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:19444 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752974Ab1AZUAQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Jan 2011 15:00:16 -0500
-Received: from wpaz24.hot.corp.google.com (wpaz24.hot.corp.google.com [172.24.198.88])
-	by smtp-out.google.com with ESMTP id p0QK0EKe020164
-	for <linux-arch@vger.kernel.org>; Wed, 26 Jan 2011 12:00:14 -0800
-Received: from pzk12 (pzk12.prod.google.com [10.243.19.140])
-	by wpaz24.hot.corp.google.com with ESMTP id p0QK0CMk028472
-	(version=TLSv1/SSLv3 cipher=RC4-MD5 bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Wed, 26 Jan 2011 12:00:13 -0800
-Received: by pzk12 with SMTP id 12so145311pzk.34
-        for <linux-arch@vger.kernel.org>; Wed, 26 Jan 2011 12:00:12 -0800 (PST)
-Date: Wed, 26 Jan 2011 12:00:08 -0800 (PST)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch] kconfig: unify GENERIC_ISA_DMA and ISA_DMA_API
-In-Reply-To: <20110126112908.GD2562@n2100.arm.linux.org.uk>
-Message-ID: <alpine.DEB.2.00.1101261158490.13163@chino.kir.corp.google.com>
-References: <alpine.DEB.2.00.1101251706040.9641@chino.kir.corp.google.com> <20110126112908.GD2562@n2100.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:47979 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753214Ab1A0Nzu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jan 2011 08:55:50 -0500
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH -mm 1/6] asm-generic: convert little-endian bitops macros to static inline functions
+Date: Thu, 27 Jan 2011 22:56:18 +0900
+Message-ID: <1296136583-13815-2-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
+References: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@redhat.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Ingo Molnar <mingo@redhat.com>, "David S. Miller" <davem@davemloft.net>, Greg Kroah-Hartman <gregkh@suse.de>, Randy Dunlap <randy.dunlap@oracle.com>, x86@kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-scsi@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110126200008.Vlib0sWhpl7I7Kr1VGmQ8Myzfez8Oa_tNwKFPiaFHAY@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Mikael Starvik <starvik@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, "Luck, Tony" <tony.luck@intel.com>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Matthew Wilcox <matthew@wil.cx>, Grant Grundler <grundler@parisc-linux.org>, Paul Mundt <lethal@linux-sh.org>, Kazumoto Kojima <kkojima@rr.iij4u.or.jp>, Hirokazu Takata <takata@linux-m32r.org>, "David S. Miller" <davem@davemloft.net>, Chris Zankel <chris@zankel.net>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Message-ID: <20110127135618.fGkfATtjbF2a4F0bo8uREzaYlfBDpmeBGVwy7xNo-Uc@z>
 
-On Wed, 26 Jan 2011, Russell King - ARM Linux wrote:
+(This patch is intended to be folded into the patch in -mm:
+asm-generic-change-little-endian-bitops-to-take-any-pointer-types.patch)
 
-> On Tue, Jan 25, 2011 at 05:06:28PM -0800, David Rientjes wrote:
-> > CONFIG_GENERIC_ISA_DMA and CONFIG_ISA_DMA_API usually have dependencies
-> > on one another depending on the architecture and generic kernel code uses
-> > either to determine whether an ISA-style DMA API is configured.
-> 
-> Wrong.
-> 
-> GENERIC_ISA_DMA enables support for the standard ISA DMA allocator found
-> in kernel/dma.c
-> 
-> ISA_DMA_API says that a platform supports the ISA DMA interfaces.
-> 
-> An architecture can provide the ISA DMA interfaces, but not use the
-> standard ISA DMA allocator found in kernel/dma.c.  Such as the one in
-> arch/arm/kernel/dma.c.
-> 
-> So on ARM, we have platforms where ISA_DMA_API=y but GENERIC_ISA_DMA=n.
-> 
+The little-endian bitops on asm-generic are written as preprocessor
+macros with the cast to "unsigned long *".
+This means that even non-pointers will be accepted without an error, and
+that is a Very Bad Thing.
 
-Ok, fair enough.  Thanks for pointing that out.  I'll work to resolve the 
-existing dependency chain on x86 that cause build failures when one is 
-disabled and another is not and add Kconfig dependencies on drivers that 
-require GENERIC_ISA_DMA.
+This converts the little-endian bitops macros to static inline functions
+with proper prototypes.
+
+Suggested-by: "H. Peter Anvin" <hpa@zytor.com>
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: "Luck, Tony" <tony.luck@intel.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Matthew Wilcox <matthew@wil.cx>
+Cc: Grant Grundler <grundler@parisc-linux.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+---
+ include/asm-generic/bitops/le.h |   73 +++++++++++++++++++++++++++------------
+ 1 files changed, 51 insertions(+), 22 deletions(-)
+
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 7644a15..946a21b 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -8,12 +8,23 @@
+ 
+ #define BITOP_LE_SWIZZLE	0
+ 
+-#define find_next_zero_bit_le(addr, size, offset) \
+-	find_next_zero_bit((unsigned long *)(addr), size, offset)
+-#define find_next_bit_le(addr, size, offset) \
+-	find_next_bit((unsigned long *)(addr), size, offset)
+-#define find_first_zero_bit_le(addr, size) \
+-	find_first_zero_bit((unsigned long *)(addr), size)
++static inline unsigned long find_next_zero_bit_le(const void *addr,
++		unsigned long size, unsigned long offset)
++{
++	return find_next_zero_bit(addr, size, offset);
++}
++
++static inline unsigned long find_next_bit_le(const void *addr,
++		unsigned long size, unsigned long offset)
++{
++	return find_next_bit(addr, size, offset);
++}
++
++static inline unsigned long find_first_zero_bit_le(const void *addr,
++		unsigned long size)
++{
++	return find_first_zero_bit(addr, size);
++}
+ 
+ #elif defined(__BIG_ENDIAN)
+ 
+@@ -31,21 +42,39 @@ extern unsigned long find_next_bit_le(const void *addr,
+ #error "Please fix <asm/byteorder.h>"
+ #endif
+ 
+-#define test_bit_le(nr, addr) \
+-	test_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define __set_bit_le(nr, addr) \
+-	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define __clear_bit_le(nr, addr) \
+-	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-
+-#define test_and_set_bit_le(nr, addr) \
+-	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define test_and_clear_bit_le(nr, addr) \
+-	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-
+-#define __test_and_set_bit_le(nr, addr) \
+-	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
+-#define __test_and_clear_bit_le(nr, addr) \
+-	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
++static inline int test_bit_le(int nr, const void *addr)
++{
++	return test_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline void __set_bit_le(int nr, void *addr)
++{
++	__set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline void __clear_bit_le(int nr, void *addr)
++{
++	__clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline int test_and_set_bit_le(int nr, void *addr)
++{
++	return test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline int test_and_clear_bit_le(int nr, void *addr)
++{
++	return test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline int __test_and_set_bit_le(int nr, void *addr)
++{
++	return __test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline int __test_and_clear_bit_le(int nr, void *addr)
++{
++	return __test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
+ 
+ #endif /* _ASM_GENERIC_BITOPS_LE_H_ */
+-- 
+1.7.3.4
+
