@@ -1,94 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:47979 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753496Ab1A0Nz4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Jan 2011 08:55:56 -0500
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH -mm 2/6] powerpc: convert little-endian bitops macros to static inline functions
-Date: Thu, 27 Jan 2011 22:56:19 +0900
-Message-ID: <1296136583-13815-3-git-send-email-akinobu.mita@gmail.com>
-In-Reply-To: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
-References: <1296136583-13815-1-git-send-email-akinobu.mita@gmail.com>
+Received: from mtagate3.uk.ibm.com ([194.196.100.163]:37240 "EHLO
+	mtagate3.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751368Ab1AaKCk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jan 2011 05:02:40 -0500
+Date: Mon, 31 Jan 2011 11:02:37 +0100
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
+Message-ID: <20110131110237.41d48000@mschwide.boeblingen.de.ibm.com>
+In-Reply-To: <1295457039.28776.137.camel@laptop>
+References: <20101126143843.801484792@chello.nl>
+	<alpine.LSU.2.00.1101172301340.2899@sister.anvils>
+	<1295457039.28776.137.camel@laptop>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20110127135619.uZxInBorxi_LwjbsVmMrWDTU3uPmB3N-mt3ejG9wl8I@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20110131100237.Vrv1FnPH4mPn7KPHGJF1bkiFmtCMn7A2xfIHYbYHg6U@z>
 
-(This patch is intended to be folded into the patch in -mm:
-powerpc-introduce-little-endian-bitops.patch)
+On Wed, 19 Jan 2011 18:10:39 +0100
+Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 
-The little-endian bitops on powerpc are written as preprocessor
-macros with the cast to "unsigned long *".
-This means that even non-pointers will be accepted without an error, and
-that is a Very Bad Thing.
+> On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
+> 
+> > 11/21 s390-preemptible_mmu_gather.patch
+> >       I'd prefer __tlb_alloc_page(), with __GFP_NOWARN as suggested above.
+> >       mm/pgtable.c still has DEFINE_PER_CPU(struct mmu_gather, mmu_gathers).
+> 
+> Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
+> bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
+> s390 use the generic bits like sparc and powerpc (see patch 16)?
 
-This converts the little-endian bitops macros to static inline functions
-with proper prototypes.
+Maybe, I will have a look at it.
 
-Suggested-by: "H. Peter Anvin" <hpa@zytor.com>
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
----
- arch/powerpc/include/asm/bitops.h |   43 +++++++++++++++++++++++++------------
- 1 files changed, 29 insertions(+), 14 deletions(-)
-
-diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
-index fe67024..2e56187 100644
---- a/arch/powerpc/include/asm/bitops.h
-+++ b/arch/powerpc/include/asm/bitops.h
-@@ -288,20 +288,35 @@ static __inline__ int test_bit_le(unsigned long nr,
- 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
- }
- 
--#define __set_bit_le(nr, addr) \
--	__set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
--#define __clear_bit_le(nr, addr) \
--	__clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
--
--#define test_and_set_bit_le(nr, addr) \
--	test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
--#define test_and_clear_bit_le(nr, addr) \
--	test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
--
--#define __test_and_set_bit_le(nr, addr) \
--	__test_and_set_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
--#define __test_and_clear_bit_le(nr, addr) \
--	__test_and_clear_bit((nr) ^ BITOP_LE_SWIZZLE, (unsigned long *)(addr))
-+static inline void __set_bit_le(int nr, void *addr)
-+{
-+	__set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
-+
-+static inline void __clear_bit_le(int nr, void *addr)
-+{
-+	__clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
-+
-+static inline int test_and_set_bit_le(int nr, void *addr)
-+{
-+	return test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
-+
-+static inline int test_and_clear_bit_le(int nr, void *addr)
-+{
-+	return test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
-+
-+static inline int __test_and_set_bit_le(int nr, void *addr)
-+{
-+	return __test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
-+
-+static inline int __test_and_clear_bit_le(int nr, void *addr)
-+{
-+	return __test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
-+}
- 
- #define find_first_zero_bit_le(addr, size) \
- 	find_next_zero_bit_le((addr), (size), 0)
 -- 
-1.7.3.4
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
 
