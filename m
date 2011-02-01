@@ -1,44 +1,30 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Date: Mon, 31 Jan 2011 11:02:37 +0100
-Message-ID: <20110131110237.41d48000@mschwide.boeblingen.de.ibm.com>
-References: <20101126143843.801484792@chello.nl>
-	<alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-	<1295457039.28776.137.camel@laptop>
+From: <tyder13@cox.net>
+Subject: Lucky Winner!
+Date: Mon, 31 Jan 2011 17:42:37 -0800
+Message-ID: <20110131204237.17XWR.1067459.imail@fed1rmwml34>
+Reply-To: enquiry_jommyjacob01@londonmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1295457039.28776.137.camel@laptop>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fed1rmmtai113.cox.net ([68.230.241.47]:54321 "EHLO
+	fed1rmmtai113.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754062Ab1BABs7 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jan 2011 20:48:59 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Wed, 19 Jan 2011 18:10:39 +0100
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+You have been awarded =C3=82=C2=A3850,000 from the OXFAM GB - UK=20
+the cash/grant donation Promo for Global Economic Scheme.
+=46or claims, Contact Dr. Ben Andrew.=20
+via e-mail
 
-> On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
-> 
-> > 11/21 s390-preemptible_mmu_gather.patch
-> >       I'd prefer __tlb_alloc_page(), with __GFP_NOWARN as suggested above.
-> >       mm/pgtable.c still has DEFINE_PER_CPU(struct mmu_gather, mmu_gathers).
-> 
-> Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
-> bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
-> s390 use the generic bits like sparc and powerpc (see patch 16)?
+Name:
+Country:
+Age:
+Phone Number:
+Gender:
+Occupation:
+Your Qualification Number (OG/N231/E101/BDB)=20
 
-Maybe, I will have a look at it.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom policy in Canada: sign http://dissolvethecrtc.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ (oxfam003@aol.com)
