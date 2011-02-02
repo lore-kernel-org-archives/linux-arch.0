@@ -1,172 +1,175 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Dmitry Torokhov <dtor@vmware.com>
 Subject: Re: Early crash (was: Re: module: show version information for
  built-in modules in sysfs)
-Date: Wed, 2 Feb 2011 15:48:50 +0100
-Message-ID: <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
+Date: Wed, 2 Feb 2011 11:42:27 -0800
+Message-ID: <20110202194227.GA13794@dtor-ws.eng.vmware.com>
 References: <AANLkTin4gOnEMruLDM=TkNYsNf5S370WqbcDVJzT7_Z4@mail.gmail.com>
-	<20110201210944.GA12348@dtor-ws.eng.vmware.com>
-	<AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
-	<20110201222637.GA17521@dtor-ws.eng.vmware.com>
+ <20110201210944.GA12348@dtor-ws.eng.vmware.com>
+ <AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
+ <20110201222637.GA17521@dtor-ws.eng.vmware.com>
+ <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:63246 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753101Ab1BBOsw convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Feb 2011 09:48:52 -0500
-In-Reply-To: <20110201222637.GA17521@dtor-ws.eng.vmware.com>
+Received: from smtp-outbound-1.vmware.com ([65.115.85.69]:25734 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751297Ab1BBTm1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Feb 2011 14:42:27 -0500
+Content-Disposition: inline
+In-Reply-To: <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Torokhov <dtor@vmware.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Rusty Russell <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Tue, Feb 1, 2011 at 23:26, Dmitry Torokhov <dtor@vmware.com> wrote:
-> On Tue, Feb 01, 2011 at 02:03:23PM -0800, Geert Uytterhoeven wrote:
->> On Tue, Feb 1, 2011 at 22:09, Dmitry Torokhov <dtor@vmware.com> wrot=
-e:
->> > On Tue, Feb 01, 2011 at 12:33:29PM -0800, Geert Uytterhoeven wrote=
+On Wed, Feb 02, 2011 at 06:48:50AM -0800, Geert Uytterhoeven wrote:
+> On Tue, Feb 1, 2011 at 23:26, Dmitry Torokhov <dtor@vmware.com> wrote=
 :
->> >> On Mon, Jan 24, 2011 at 11:59, Linux Kernel Mailing List
->> >> <linux-kernel@vger.kernel.org> wrote:
->> >> > Gitweb: =C2=A0 =C2=A0 http://git.kernel.org/linus/e94965ed5beb2=
-3c6fabf7ed31f625e66d7ff28de
->> >>
->> >> > =C2=A0 =C2=A0module: show version information for built-in modu=
-les in sysfs
->> >> >
->> >> > =C2=A0 =C2=A0Currently only drivers that are built as modules h=
-ave their versions
->> >> > =C2=A0 =C2=A0shown in /sys/module/<module_name>/version, but th=
-is information might
->> >> > =C2=A0 =C2=A0also be useful for built-in drivers as well. This =
-especially important
->> >> > =C2=A0 =C2=A0for drivers that do not define any parameters - su=
-ch drivers, if
->> >> > =C2=A0 =C2=A0built-in, are completely invisible from userspace.
->> >> >
->> >> > =C2=A0 =C2=A0This patch changes MODULE_VERSION() macro so that =
-in case when we are
->> >> > =C2=A0 =C2=A0compiling built-in module, version information is =
-stored in a separate
->> >> > =C2=A0 =C2=A0section. Kernel then uses this data to create 'ver=
-sion' sysfs attribute
->> >> > =C2=A0 =C2=A0in the same fashion it creates attributes for modu=
-le parameters.
->> >>
->> >> This commit causes the crash below on m68k (ARAnyM).
->> >> Reverting this commit and its dependency
->> >> 3b90a5b292321b2acac3921f77046ae195aef53f
->> >> ("module: fix linker error for MODULE_VERSION when !MODULE and CO=
-NFIG_SYSFS=3Dn")
->> >> makes it boot again.
->> >>
->> >
->> > Hi Geert,
->> >
->> > Does the follwing help by any chance?
->> >
->> > From d6fd4a6e0fc2d3f0a74962d4a6f663a46d230ecd Mon Sep 17 00:00:00 =
-2001
->> > diff --git a/arch/m68knommu/kernel/vmlinux.lds.S b/arch/m68knommu/=
-kernel/vmlinux.lds.S
->> > index ef33213..47e15eb 100644
->> > --- a/arch/m68knommu/kernel/vmlinux.lds.S
->> > +++ b/arch/m68knommu/kernel/vmlinux.lds.S
->>
->> The crash happened on m68k with MMU, not m68knommu.
->>
->
-> Hmm, OK then. Could you please see if the crash happens if you return
-> early in kernel/params.c::version_sysfs_builtin() ? Also, do you see
+> > On Tue, Feb 01, 2011 at 02:03:23PM -0800, Geert Uytterhoeven wrote:
+> >> On Tue, Feb 1, 2011 at 22:09, Dmitry Torokhov <dtor@vmware.com> wr=
+ote:
+> >> > On Tue, Feb 01, 2011 at 12:33:29PM -0800, Geert Uytterhoeven wro=
+te:
+> >> >> On Mon, Jan 24, 2011 at 11:59, Linux Kernel Mailing List
+> >> >> <linux-kernel@vger.kernel.org> wrote:
+> >> >> > Gitweb: =A0 =A0 http://git.kernel.org/linus/e94965ed5beb23c6f=
+abf7ed31f625e66d7ff28de
+> >> >>
+> >> >> > =A0 =A0module: show version information for built-in modules =
+in sysfs
+> >> >> >
+> >> >> > =A0 =A0Currently only drivers that are built as modules have =
+their versions
+> >> >> > =A0 =A0shown in /sys/module/<module_name>/version, but this i=
+nformation might
+> >> >> > =A0 =A0also be useful for built-in drivers as well. This espe=
+cially important
+> >> >> > =A0 =A0for drivers that do not define any parameters - such d=
+rivers, if
+> >> >> > =A0 =A0built-in, are completely invisible from userspace.
+> >> >> >
+> >> >> > =A0 =A0This patch changes MODULE_VERSION() macro so that in c=
+ase when we are
+> >> >> > =A0 =A0compiling built-in module, version information is stor=
+ed in a separate
+> >> >> > =A0 =A0section. Kernel then uses this data to create 'version=
+' sysfs attribute
+> >> >> > =A0 =A0in the same fashion it creates attributes for module p=
+arameters.
+> >> >>
+> >> >> This commit causes the crash below on m68k (ARAnyM).
+> >> >> Reverting this commit and its dependency
+> >> >> 3b90a5b292321b2acac3921f77046ae195aef53f
+> >> >> ("module: fix linker error for MODULE_VERSION when !MODULE and =
+CONFIG_SYSFS=3Dn")
+> >> >> makes it boot again.
+> >> >>
+> >> >
+> >> > Hi Geert,
+> >> >
+> >> > Does the follwing help by any chance?
+> >> >
+> >> > From d6fd4a6e0fc2d3f0a74962d4a6f663a46d230ecd Mon Sep 17 00:00:0=
+0 2001
+> >> > diff --git a/arch/m68knommu/kernel/vmlinux.lds.S b/arch/m68knomm=
+u/kernel/vmlinux.lds.S
+> >> > index ef33213..47e15eb 100644
+> >> > --- a/arch/m68knommu/kernel/vmlinux.lds.S
+> >> > +++ b/arch/m68knommu/kernel/vmlinux.lds.S
+> >>
+> >> The crash happened on m68k with MMU, not m68knommu.
+> >>
+> >
+> > Hmm, OK then. Could you please see if the crash happens if you retu=
+rn
+> > early in kernel/params.c::version_sysfs_builtin() ? Also, do you se=
+e
+>=20
+> It does not crash if version_sysfs_builtin() returns early.
+>=20
+> > anything in __modev section of your build?
+>=20
+> "objdump -h" says:
+>=20
+> | Sections:
+> | Idx Name          Size      VMA       LMA       File off  Algn
+> |   7 __modver      0000007c  002e0f84  002e0f84  002e0f84  2**2
+> |                   CONTENTS, ALLOC, LOAD, DATA
+>=20
+> "nm vmlinux | grep __modver" says:
+>=20
+> | 002e0f84 d __modver_version_attr
+> | 002e0fa8 d __modver_version_attr
+> | 00039026 T __modver_version_show
+> | 002e0f84 D __start___modver
+> | 002e0fca D __stop___modver
+>=20
+> The section size (0x7c) is larger than __stop___modver -
+> __start___modver (0x46)?
+>=20
+> Adding some debugging code (which increases the section size even mor=
+e?) shows:
+>=20
+> vattr =3D 002e1004
+> vattr->module_name =3D xz_dec
+>     mk =3D 00c2ee50
+>     err =3D 0
+>     kobject_uevent done
+>     kobject_put done
+> vattr =3D 002e1026
+> vattr->module_name =3D (null)
+> Unable to handle kernel NULL pointer dereference at virtual address 0=
+000002c
+>=20
+> So the second module in the list has no name. Why?
+> Aha, it's not NULL, but just < PAGE_SIZE (0x2c).
+>=20
+> sizeof(struct module_version_attribute) =3D 34, which you can see fro=
+m
+> the 2 consecutive vattr
+> pointers above. But the "aligned(sizeof(void *))" in the definition o=
+f
+> MODULE_VERSION() puts
+> the next module_version_attribute struct in the array at offset 36,
+> not offset 34!
+> On m68k, the alignment of 32-bit integrals is 2 bytes, not 4.
 
-It does not crash if version_sysfs_builtin() returns early.
+But why is it aligned on 2-byte boundary and why m64k is not happy with
+module_version_attribute but is happy with kernel_param which is also
+aligned similarly?
 
-> anything in __modev section of your build?
+If we unroll module_version_attribute it woud look like this:
 
-"objdump -h" says:
+struct module_version_attribute {
 
-| Sections:
-| Idx Name          Size      VMA       LMA       File off  Algn
-|   7 __modver      0000007c  002e0f84  002e0f84  002e0f84  2**2
-|                   CONTENTS, ALLOC, LOAD, DATA
+	struct module_attribute {
 
-"nm vmlinux | grep __modver" says:
+		struct attribute {
+			const char *name;
+			mode_t mode;
+		} attr;
+		...
 
-| 002e0f84 d __modver_version_attr
-| 002e0fa8 d __modver_version_attr
-| 00039026 T __modver_version_show
-| 002e0f84 D __start___modver
-| 002e0fca D __stop___modver
+	} mattr;
 
-The section size (0x7c) is larger than __stop___modver -
-__start___modver (0x46)?
+	const char *module_name;
+	const char *version;
+};
 
-Adding some debugging code (which increases the section size even more?=
-) shows:
+So I would expect it be aligned on (char *) boundary which should be th=
+e
+same as (void *).
 
-vattr =3D 002e1004
-vattr->module_name =3D xz_dec
-    mk =3D 00c2ee50
-    err =3D 0
-    kobject_uevent done
-    kobject_put done
-vattr =3D 002e1026
-vattr->module_name =3D (null)
-Unable to handle kernel NULL pointer dereference at virtual address 000=
-0002c
+Will it help if we rearrange module_version_attribute definition to
+explicitly have first field being a pointer so it is more like
+kernel_param, like this:
 
-So the second module in the list has no name. Why?
-Aha, it's not NULL, but just < PAGE_SIZE (0x2c).
+struct module_version_attribute {
+	const char *module_name;
+	const char *version;
+	struct module_attribute mattr;
+};
 
-sizeof(struct module_version_attribute) =3D 34, which you can see from
-the 2 consecutive vattr
-pointers above. But the "aligned(sizeof(void *))" in the definition of
-MODULE_VERSION() puts
-the next module_version_attribute struct in the array at offset 36,
-not offset 34!
-On m68k, the alignment of 32-bit integrals is 2 bytes, not 4.
-
-Removing the alignment, cfr. this (gmail-pasted hence
-whitespace-corrupted) patch
-fixes it:
-
---- a/include/linux/module.h
-+++ b/include/linux/module.h
-@@ -176,7 +176,7 @@ extern struct module __this_module;
-                                             struct module *, char *); =
- \
-        static struct module_version_attribute __modver_version_attr   =
- \
-        __used                                                         =
- \
--    __attribute__ ((__section__ ("__modver"),aligned(sizeof(void *))))=
- \
-+    __attribute__ ((__section__ ("__modver"))) \
-        =3D {                                                          =
-   \
-                .mattr  =3D {                                          =
-   \
-                        .attr   =3D {                                  =
-   \
-
-Why is the explicit alignment there? Can it be removed?
-If not, you can move the alignment into the definition of struct
-module_version_attribute,
-so it will be honoured everywhere.
-
-Gr{oetje,eeting}s,
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+Thanks,
+Dmitry
