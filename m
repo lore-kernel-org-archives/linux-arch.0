@@ -1,43 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate3.uk.ibm.com ([194.196.100.163]:37240 "EHLO
-	mtagate3.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751368Ab1AaKCk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Jan 2011 05:02:40 -0500
-Date: Mon, 31 Jan 2011 11:02:37 +0100
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Message-ID: <20110131110237.41d48000@mschwide.boeblingen.de.ibm.com>
-In-Reply-To: <1295457039.28776.137.camel@laptop>
-References: <20101126143843.801484792@chello.nl>
-	<alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-	<1295457039.28776.137.camel@laptop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from smtp-outbound-1.vmware.com ([65.115.85.69]:41025 "EHLO
+	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755531Ab1BBX7y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Feb 2011 18:59:54 -0500
+Date: Wed, 2 Feb 2011 15:59:49 -0800
+From: Dmitry Torokhov <dtor@vmware.com>
+Subject: Re: Early crash (was: Re: module: show version information for
+ built-in modules in sysfs)
+Message-ID: <20110202235948.GA8676@dtor-ws.eng.vmware.com>
+References: <AANLkTin4gOnEMruLDM=TkNYsNf5S370WqbcDVJzT7_Z4@mail.gmail.com>
+ <20110201210944.GA12348@dtor-ws.eng.vmware.com>
+ <AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
+ <20110201222637.GA17521@dtor-ws.eng.vmware.com>
+ <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
+ <20110202194227.GA13794@dtor-ws.eng.vmware.com>
+ <m2ipx2dp7v.fsf@igel.home>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <m2ipx2dp7v.fsf@igel.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20110131100237.Vrv1FnPH4mPn7KPHGJF1bkiFmtCMn7A2xfIHYbYHg6U@z>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20110202235949.s0nxf6Gcis_sPb4O1K0v8cg7-9mnGLUKlivMSFB-ICQ@z>
 
-On Wed, 19 Jan 2011 18:10:39 +0100
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-
-> On Mon, 2011-01-17 at 23:12 -0800, Hugh Dickins wrote:
+On Wed, Feb 02, 2011 at 02:52:04PM -0800, Andreas Schwab wrote:
+> Dmitry Torokhov <dtor@vmware.com> writes:
 > 
-> > 11/21 s390-preemptible_mmu_gather.patch
-> >       I'd prefer __tlb_alloc_page(), with __GFP_NOWARN as suggested above.
-> >       mm/pgtable.c still has DEFINE_PER_CPU(struct mmu_gather, mmu_gathers).
+> > But why is it aligned on 2-byte boundary and why m64k is not happy with
+> > module_version_attribute but is happy with kernel_param which is also
+> > aligned similarly?
 > 
-> Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
-> bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
-> s390 use the generic bits like sparc and powerpc (see patch 16)?
+> struct kernel_parm doesn't contain internal padding on 32 bit
+> architectures (it does on 64bit architectures though).
+> 
+> > If we unroll module_version_attribute it woud look like this:
+> >
+> > struct module_version_attribute {
+> >
+> > 	struct module_attribute {
+> >
+> > 		struct attribute {
+> > 			const char *name;
+> > 			mode_t mode;
+> > 		} attr;
+> > 		...
+> >
+> > 	} mattr;
+> >
+> > 	const char *module_name;
+> > 	const char *version;
+> > };
+> >
+> > So I would expect it be aligned on (char *) boundary which should be the
+> > same as (void *).
+> 
+> mode_t is a 16 bit type, thus any following member becomes aligned on an
+> odd 2 byte boundary.
 
-Maybe, I will have a look at it.
+Even pointers? I'd expect pointers to be aligned on 4-bytes boundaries?
 
--- 
-blue skies,
-   Martin.
+Thanks,
 
-"Reality continues to ruin my life." - Calvin.
-
+Dmitry
