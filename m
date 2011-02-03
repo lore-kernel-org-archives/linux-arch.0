@@ -1,77 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-2.vmware.com ([65.115.85.73]:35831 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755180Ab1BCAY7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Feb 2011 19:24:59 -0500
-Date: Wed, 2 Feb 2011 16:24:59 -0800
-From: Dmitry Torokhov <dtor@vmware.com>
-Subject: Re: Early crash (was: Re: module: show version information for
- built-in modules in sysfs)
-Message-ID: <20110203002459.GA26729@dtor-ws.eng.vmware.com>
-References: <AANLkTin4gOnEMruLDM=TkNYsNf5S370WqbcDVJzT7_Z4@mail.gmail.com>
- <20110201210944.GA12348@dtor-ws.eng.vmware.com>
- <AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
- <20110201222637.GA17521@dtor-ws.eng.vmware.com>
- <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
- <20110202194227.GA13794@dtor-ws.eng.vmware.com>
- <m2ipx2dp7v.fsf@igel.home>
- <20110202235948.GA8676@dtor-ws.eng.vmware.com>
- <m2bp2udllv.fsf@igel.home>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <m2bp2udllv.fsf@igel.home>
-Content-Language: en-US
+Received: from bombadil.infradead.org ([18.85.46.34]:50403 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755307Ab1BCPEx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Feb 2011 10:04:53 -0500
+Subject: Re: [PATCH 22/25] mm: Convert anon_vma->lock to a mutex
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <20110203142716.93C5.A69D9226@jp.fujitsu.com>
+References: <20110125173111.720927511@chello.nl>
+	 <20110125174908.372425841@chello.nl>
+	 <20110203142716.93C5.A69D9226@jp.fujitsu.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Thu, 03 Feb 2011 16:04:55 +0100
+Message-ID: <1296745495.26581.370.camel@laptop>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andreas Schwab <schwab@linux-m68k.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20110203002459.eqNQGyto8pCG1G0ulhMMq7b7ofgJ7ATBvQGJLYZvom4@z>
+To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
+Message-ID: <20110203150455.mzl-lzgzmdxBI6c1StE3ZxRABLEwnFSyeHYD2yA7v6c@z>
 
-On Wed, Feb 02, 2011 at 04:10:04PM -0800, Andreas Schwab wrote:
-> Dmitry Torokhov <dtor@vmware.com> writes:
+On Thu, 2011-02-03 at 14:27 +0900, KOSAKI Motohiro wrote:
+> > Straight fwd conversion of anon_vma->lock to a mutex.
+> > 
+> > Acked-by: Hugh Dickins <hughd@google.com>
+> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 > 
-> > Even pointers? I'd expect pointers to be aligned on 4-bytes boundaries?
-> 
-> Pointers are not special in any way.  Why should they?  On the machine
-> level pointers are just numbers.
+> Don't I ack this series at previous iteration? If not, Hmmm.. I haven't remenber
+> the reason.
 
-Are pointers (along with ints/longs) on m68k naturally aligned on word
-boundary even though they are 32 bit?
+I got a +1 email from you on the spinlock to mutex conversion patch, I
+wasn't quite sure to what tag that translated.
 
-Anyway, here is the description that introduced alignment statement:
+>  Anyway
+> 	Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
 
-commit 02dba5c6439cff34936460b95cd1ba42b370f345
-Author: ak <ak>
-Date:   Sat Jun 21 16:18:16 2003 +0000
-
-    [PATCH] Fix over-alignment problem on x86-64
-
-    Thanks to Jan Hubicka who suggested this fix.
-
-    The problem seems to be that gcc generates a 32byte alignment for static
-    objects > 32bytes.  This causes gas to set a high alignment on the
-    section, which causes the uneven (not multiple of sizeof(struct
-    kernel_param)) section size.  The pointer division with a base not being
-    a multiple of sizeof(*ptr) then causes the invalid result.
-
-    This just forces a small alignment, which makes the section end come out
-    with the correct alignment.
-
-    The only mystery left is why ld chose a 16 byte padding instead of
-    32byte.
-
-    BKrev: 3ef485487jZN-h3PtASDeL2Vs55NIg
-
-
-I guess this does not directly apply to modversions since they are
-currently under 32 bytes, but I wonder what happen if we decide to
-extend one of the structures involved...
-
-I guess explicitly setting alignment requirement for struct
-module_version_attribute is the best option.
-
-Thanks,
-Dmitry
-
-
+Is this for this particular patch, or for the series? 
