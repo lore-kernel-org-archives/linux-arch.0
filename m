@@ -1,41 +1,44 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 22/25] mm: Convert anon_vma->lock to a mutex
-Date: Thu, 03 Feb 2011 16:04:55 +0100
-Message-ID: <1296745495.26581.370.camel@laptop>
-References: <20110125173111.720927511@chello.nl>
-	 <20110125174908.372425841@chello.nl>
-	 <20110203142716.93C5.A69D9226@jp.fujitsu.com>
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: Early crash (was: Re: module: show version information for built-in modules in sysfs)
+Date: Thu, 03 Feb 2011 18:38:12 +0100
+Message-ID: <m2mxmdm323.fsf@igel.home>
+References: <AANLkTin4gOnEMruLDM=TkNYsNf5S370WqbcDVJzT7_Z4@mail.gmail.com>
+	<20110201210944.GA12348@dtor-ws.eng.vmware.com>
+	<AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
+	<20110201222637.GA17521@dtor-ws.eng.vmware.com>
+	<AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
+	<20110202194227.GA13794@dtor-ws.eng.vmware.com>
+	<m2ipx2dp7v.fsf@igel.home>
+	<20110202235948.GA8676@dtor-ws.eng.vmware.com>
+	<m2bp2udllv.fsf@igel.home>
+	<20110203002459.GA26729@dtor-ws.eng.vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110203142716.93C5.A69D9226@jp.fujitsu.com>
-Sender: owner-linux-mm@kvack.org
-To: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-out.m-online.net ([212.18.0.9]:46020 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756620Ab1BCRiQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Feb 2011 12:38:16 -0500
+In-Reply-To: <20110203002459.GA26729@dtor-ws.eng.vmware.com> (Dmitry
+	Torokhov's message of "Wed, 2 Feb 2011 16:24:59 -0800")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, 2011-02-03 at 14:27 +0900, KOSAKI Motohiro wrote:
-> > Straight fwd conversion of anon_vma->lock to a mutex.
-> >=20
-> > Acked-by: Hugh Dickins <hughd@google.com>
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
->=20
-> Don't I ack this series at previous iteration? If not, Hmmm.. I haven't r=
-emenber
-> the reason.
+Dmitry Torokhov <dtor@vmware.com> writes:
 
-I got a +1 email from you on the spinlock to mutex conversion patch, I
-wasn't quite sure to what tag that translated.
+> Are pointers (along with ints/longs) on m68k naturally aligned on word
+> boundary even though they are 32 bit?
 
->  Anyway
-> 	Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+On m68k, every object by default is at most aligned to a 2 byte
+boundary.  That's a heritage of the original Sun m68000 compiler, which
+served as the template for the gcc configuration for Linux/m68k when the
+porting started.
 
-Is this for this particular patch, or for the series?=20
+Andreas.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
