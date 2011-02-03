@@ -1,35 +1,70 @@
-From: Andreas Schwab <schwab@linux-m68k.org>
-Subject: Re: Early crash (was: Re: module: show version information for built-in modules in sysfs)
-Date: Thu, 03 Feb 2011 01:10:04 +0100
-Message-ID: <m2bp2udllv.fsf@igel.home>
+From: Dmitry Torokhov <dtor@vmware.com>
+Subject: Re: Early crash (was: Re: module: show version information for
+ built-in modules in sysfs)
+Date: Wed, 2 Feb 2011 16:24:59 -0800
+Message-ID: <20110203002459.GA26729@dtor-ws.eng.vmware.com>
 References: <AANLkTin4gOnEMruLDM=TkNYsNf5S370WqbcDVJzT7_Z4@mail.gmail.com>
-	<20110201210944.GA12348@dtor-ws.eng.vmware.com>
-	<AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
-	<20110201222637.GA17521@dtor-ws.eng.vmware.com>
-	<AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
-	<20110202194227.GA13794@dtor-ws.eng.vmware.com>
-	<m2ipx2dp7v.fsf@igel.home>
-	<20110202235948.GA8676@dtor-ws.eng.vmware.com>
+ <20110201210944.GA12348@dtor-ws.eng.vmware.com>
+ <AANLkTimv=KqtuR36dMNa+=OMi0mgd8JK4qsb_SpmKmhs@mail.gmail.com>
+ <20110201222637.GA17521@dtor-ws.eng.vmware.com>
+ <AANLkTikWVt8NEyHN+=yD4EWSXUQt0gt5nLJtKQDw397M@mail.gmail.com>
+ <20110202194227.GA13794@dtor-ws.eng.vmware.com>
+ <m2ipx2dp7v.fsf@igel.home>
+ <20110202235948.GA8676@dtor-ws.eng.vmware.com>
+ <m2bp2udllv.fsf@igel.home>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20110202235948.GA8676@dtor-ws.eng.vmware.com> (Dmitry Torokhov's
-	message of "Wed, 2 Feb 2011 15:59:49 -0800")
+Content-Disposition: inline
+In-Reply-To: <m2bp2udllv.fsf@igel.home>
+Content-Language: en-US
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dmitry Torokhov <dtor@vmware.com>
+To: Andreas Schwab <schwab@linux-m68k.org>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Dmitry Torokhov <dtor@vmware.com> writes:
+On Wed, Feb 02, 2011 at 04:10:04PM -0800, Andreas Schwab wrote:
+> Dmitry Torokhov <dtor@vmware.com> writes:
+> 
+> > Even pointers? I'd expect pointers to be aligned on 4-bytes boundaries?
+> 
+> Pointers are not special in any way.  Why should they?  On the machine
+> level pointers are just numbers.
 
-> Even pointers? I'd expect pointers to be aligned on 4-bytes boundaries?
+Are pointers (along with ints/longs) on m68k naturally aligned on word
+boundary even though they are 32 bit?
 
-Pointers are not special in any way.  Why should they?  On the machine
-level pointers are just numbers.
+Anyway, here is the description that introduced alignment statement:
 
-Andreas.
+commit 02dba5c6439cff34936460b95cd1ba42b370f345
+Author: ak <ak>
+Date:   Sat Jun 21 16:18:16 2003 +0000
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+    [PATCH] Fix over-alignment problem on x86-64
+
+    Thanks to Jan Hubicka who suggested this fix.
+
+    The problem seems to be that gcc generates a 32byte alignment for static
+    objects > 32bytes.  This causes gas to set a high alignment on the
+    section, which causes the uneven (not multiple of sizeof(struct
+    kernel_param)) section size.  The pointer division with a base not being
+    a multiple of sizeof(*ptr) then causes the invalid result.
+
+    This just forces a small alignment, which makes the section end come out
+    with the correct alignment.
+
+    The only mystery left is why ld chose a 16 byte padding instead of
+    32byte.
+
+    BKrev: 3ef485487jZN-h3PtASDeL2Vs55NIg
+
+
+I guess this does not directly apply to modversions since they are
+currently under 32 bytes, but I wonder what happen if we decide to
+extend one of the structures involved...
+
+I guess explicitly setting alignment requirement for struct
+module_version_attribute is the best option.
+
+Thanks,
+Dmitry
