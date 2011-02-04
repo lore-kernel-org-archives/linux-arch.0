@@ -1,43 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail6.fujitsu.co.jp ([192.51.44.36]:38791 "EHLO
-	fgwmail6.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751480Ab1BDEfc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Feb 2011 23:35:32 -0500
-From: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-Subject: Re: [PATCH 22/25] mm: Convert anon_vma->lock to a mutex
-In-Reply-To: <1296745495.26581.370.camel@laptop>
-References: <20110203142716.93C5.A69D9226@jp.fujitsu.com> <1296745495.26581.370.camel@laptop>
-Message-ID: <20110204133458.17CE.A69D9226@jp.fujitsu.com>
+Received: from usmamail.tilera.com ([206.83.70.70]:10221 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751933Ab1BDUjK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Feb 2011 15:39:10 -0500
+Message-ID: <4D4C63ED.6060104@tilera.com>
+Date: Fri, 4 Feb 2011 15:39:09 -0500
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Date: Fri,  4 Feb 2011 13:35:27 +0900 (JST)
+Subject: Re: [PATCH 01/25] tile: Fix __pte_free_tlb
+References: <20110125173111.720927511@chello.nl> <20110125174907.220115681@chello.nl>
+In-Reply-To: <20110125174907.220115681@chello.nl>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: kosaki.motohiro@jp.fujitsu.com, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
-Message-ID: <20110204043527.6rIXwQYEAMmb_muQTQtJ7QeRDLuQJ8OtVds1YtawM8s@z>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110204203909.zZihk5xylJkZcFI2NiQ-L8q-aA92tfZuOXY-9n1Syi8@z>
 
-> On Thu, 2011-02-03 at 14:27 +0900, KOSAKI Motohiro wrote:
-> > > Straight fwd conversion of anon_vma->lock to a mutex.
-> > > 
-> > > Acked-by: Hugh Dickins <hughd@google.com>
-> > > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > 
-> > Don't I ack this series at previous iteration? If not, Hmmm.. I haven't remenber
-> > the reason.
-> 
-> I got a +1 email from you on the spinlock to mutex conversion patch, I
-> wasn't quite sure to what tag that translated.
+On 1/25/2011 12:31 PM, Peter Zijlstra wrote:
+> Tile's __pte_free_tlb() implementation makes assumptions about the
+> generic mmu_gather implementation, cure this ;-)
 
-I'm sorry. Maybe Im busy and I wrote unkindly mail. yes, it's my fault.
+I assume you will take this patch into your tree?  If so:
 
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-> >  Anyway
-> > 	Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
-> 
-> Is this for this particular patch, or for the series? 
+> [ Chris, from a quick look L2_USER_PGTABLE_PAGES is something like:
+>   1 << (24 - 16 + 3), which looks awefully large for an on-stack
+>   array. ]
 
-series. please.
+Yes, the pte_pages[] array in this routine is 2KB currently.  Currently we
+ship with 64KB pagesize, so the kernel stack has plenty of room.  I do like
+that your patch removes this buffer, however, since we're currently looking
+into (re-)supporting 4KB pages, which would totally blow the kernel stack
+in this routine.
 
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+>  arch/tile/mm/pgtable.c |   15 ++-------------
+>  1 file changed, 2 insertions(+), 13 deletions(-)
+>
+> Index: linux-2.6/arch/tile/mm/pgtable.c
+> ===================================================================
+> --- linux-2.6.orig/arch/tile/mm/pgtable.c
+> +++ linux-2.6/arch/tile/mm/pgtable.c
+> @@ -252,19 +252,8 @@ void __pte_free_tlb(struct mmu_gather *t
+>  	int i;
+>  
+>  	pgtable_page_dtor(pte);
+> -	tlb->need_flush = 1;
+> -	if (tlb_fast_mode(tlb)) {
+> -		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
+> -		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
+> -			pte_pages[i] = pte + i;
+> -		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
+> -		return;
+> -	}
+> -	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
+> -		tlb->pages[tlb->nr++] = pte + i;
+> -		if (tlb->nr >= FREE_PTE_NR)
+> -			tlb_flush_mmu(tlb, 0, 0);
+> -	}
+> +	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
+> +		tlb_remove_page(tlb, pte + i);
+>  }
+>  
+>  #ifndef __tilegx__
+>
+>
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
