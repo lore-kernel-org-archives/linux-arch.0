@@ -1,78 +1,47 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 01/25] tile: Fix __pte_free_tlb
-Date: Fri, 4 Feb 2011 15:39:09 -0500
-Message-ID: <4D4C63ED.6060104@tilera.com>
-References: <20110125173111.720927511@chello.nl> <20110125174907.220115681@chello.nl>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/3] Add ioremap_cache and ioremap_wc to all architectures
+Date: Sun, 6 Feb 2011 13:34:48 +0100
+Message-ID: <AANLkTinQQM7GEsPPg7tA3B+mQWb_V8wySUiHWa7X_cGU@mail.gmail.com>
+References: <201011271437.38126.thomas.schlichter@web.de>
+	<20101130061051.GD17114@linux-sh.org>
+	<201102061202.09503.thomas.schlichter@web.de>
+	<201102061212.32528.thomas.schlichter@web.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110125174907.220115681@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:43574 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752494Ab1BFMeu convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 6 Feb 2011 07:34:50 -0500
+In-Reply-To: <201102061212.32528.thomas.schlichter@web.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Schlichter <thomas.schlichter@web.de>
+Cc: Paul Mundt <lethal@linux-sh.org>, Michal Januszewski <spock@gentoo.org>, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 1/25/2011 12:31 PM, Peter Zijlstra wrote:
-> Tile's __pte_free_tlb() implementation makes assumptions about the
-> generic mmu_gather implementation, cure this ;-)
+This really should go to linux-arch...
 
-I assume you will take this patch into your tree?  If so:
-
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
-> [ Chris, from a quick look L2_USER_PGTABLE_PAGES is something like:
->   1 << (24 - 16 + 3), which looks awefully large for an on-stack
->   array. ]
-
-Yes, the pte_pages[] array in this routine is 2KB currently.  Currently we
-ship with 64KB pagesize, so the kernel stack has plenty of room.  I do like
-that your patch removes this buffer, however, since we're currently looking
-into (re-)supporting 4KB pages, which would totally blow the kernel stack
-in this routine.
-
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
->  arch/tile/mm/pgtable.c |   15 ++-------------
->  1 file changed, 2 insertions(+), 13 deletions(-)
->
-> Index: linux-2.6/arch/tile/mm/pgtable.c
-> ===================================================================
-> --- linux-2.6.orig/arch/tile/mm/pgtable.c
-> +++ linux-2.6/arch/tile/mm/pgtable.c
-> @@ -252,19 +252,8 @@ void __pte_free_tlb(struct mmu_gather *t
->  	int i;
->  
->  	pgtable_page_dtor(pte);
-> -	tlb->need_flush = 1;
-> -	if (tlb_fast_mode(tlb)) {
-> -		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
-> -		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
-> -			pte_pages[i] = pte + i;
-> -		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
-> -		return;
-> -	}
-> -	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
-> -		tlb->pages[tlb->nr++] = pte + i;
-> -		if (tlb->nr >= FREE_PTE_NR)
-> -			tlb_flush_mmu(tlb, 0, 0);
-> -	}
-> +	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
-> +		tlb_remove_page(tlb, pte + i);
->  }
->  
->  #ifndef __tilegx__
+On Sun, Feb 6, 2011 at 12:12, Thomas Schlichter
+<thomas.schlichter@web.de> wrote:
 >
 >
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Oops, no inline patch. Well, people know they can find the attachment
+on lkml ;-)
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
