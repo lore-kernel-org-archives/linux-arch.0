@@ -1,77 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.70]:10221 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751933Ab1BDUjK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Feb 2011 15:39:10 -0500
-Message-ID: <4D4C63ED.6060104@tilera.com>
-Date: Fri, 4 Feb 2011 15:39:09 -0500
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from www.tglx.de ([62.245.132.106]:48424 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753295Ab1BFWGe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Feb 2011 17:06:34 -0500
+Date: Sun, 6 Feb 2011 23:06:13 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: Request (2nd) for unicore32 architecture codes to merge into
+ linux-next
+In-Reply-To: <01c701cbba0f$08185800$18490800$@mprc.pku.edu.cn>
+Message-ID: <alpine.LFD.2.00.1102062254560.31804@localhost6.localdomain6>
+References: <01c701cbba0f$08185800$18490800$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Subject: Re: [PATCH 01/25] tile: Fix __pte_free_tlb
-References: <20110125173111.720927511@chello.nl> <20110125174907.220115681@chello.nl>
-In-Reply-To: <20110125174907.220115681@chello.nl>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-Message-ID: <20110204203909.zZihk5xylJkZcFI2NiQ-L8q-aA92tfZuOXY-9n1Syi8@z>
+To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org
+Message-ID: <20110206220613.0yiZFbp8ZRM-QKSPdp4E7j761xJejLAQ_tc-U4QDHIM@z>
 
-On 1/25/2011 12:31 PM, Peter Zijlstra wrote:
-> Tile's __pte_free_tlb() implementation makes assumptions about the
-> generic mmu_gather implementation, cure this ;-)
+On Sat, 22 Jan 2011, Guan Xuetao wrote:
 
-I assume you will take this patch into your tree?  If so:
+> Hi, I want to merge unicore32 repo into linux-next tree, the
+> position is (unicore32 branch):
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+Sorry for late reply.
+ 
+>  arch/unicore32/kernel/time.c                  |  148 +++++
 
-> [ Chris, from a quick look L2_USER_PGTABLE_PAGES is something like:
->   1 << (24 - 16 + 3), which looks awefully large for an on-stack
->   array. ]
+static struct clock_event_device ckevt_puv3_osmr0 ...
+#ifdef CONFIG_ARCH_FPGA
+        .shift          = 18, /* correct shift val: 16, but warn_on_slowpath */
+#else
+        .shift          = 30,
+#endif
 
-Yes, the pte_pages[] array in this routine is 2KB currently.  Currently we
-ship with 64KB pagesize, so the kernel stack has plenty of room.  I do like
-that your patch removes this buffer, however, since we're currently looking
-into (re-)supporting 4KB pages, which would totally blow the kernel stack
-in this routine.
+....
+        ckevt_puv3_osmr0.mult =
+                div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, ckevt_puv3_osmr0.shift);
 
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
->  arch/tile/mm/pgtable.c |   15 ++-------------
->  1 file changed, 2 insertions(+), 13 deletions(-)
->
-> Index: linux-2.6/arch/tile/mm/pgtable.c
-> ===================================================================
-> --- linux-2.6.orig/arch/tile/mm/pgtable.c
-> +++ linux-2.6/arch/tile/mm/pgtable.c
-> @@ -252,19 +252,8 @@ void __pte_free_tlb(struct mmu_gather *t
->  	int i;
->  
->  	pgtable_page_dtor(pte);
-> -	tlb->need_flush = 1;
-> -	if (tlb_fast_mode(tlb)) {
-> -		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
-> -		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
-> -			pte_pages[i] = pte + i;
-> -		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
-> -		return;
-> -	}
-> -	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
-> -		tlb->pages[tlb->nr++] = pte + i;
-> -		if (tlb->nr >= FREE_PTE_NR)
-> -			tlb_flush_mmu(tlb, 0, 0);
-> -	}
-> +	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
-> +		tlb_remove_page(tlb, pte + i);
->  }
->  
->  #ifndef __tilegx__
->
->
+Please use the function which calculates the optimizes mult/shift
+values for you depending on the clock frequency.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+clockevents_calc_mult_shift() is your friend.
 
+>  arch/unicore32/kernel/irq.c                   |  426 +++++++++++++
+
+Please convert your irq_chips to the new function pointers:
+
+       .mask -> .irq_mask
+       ...
+
+The new functions replace the "unsigned int irq" argument with
+"struct irq_data *d".
+
+So conversion for your chips is simply
+
+s/unsigned int irq/struct irq_data *d/
+
+and 
+
+s/irq/d->irq/ in the implementation.
+
+Then your arch should select: GENERIC_HARDIRQS_NO_DEPRECATED
+
+Otherwise I'm happy with your irq and time related patches.
+
+Thanks,
+
+	tglx
