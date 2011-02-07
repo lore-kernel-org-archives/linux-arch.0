@@ -1,70 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:48424 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753295Ab1BFWGe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 6 Feb 2011 17:06:34 -0500
-Date: Sun, 6 Feb 2011 23:06:13 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: Request (2nd) for unicore32 architecture codes to merge into
- linux-next
-In-Reply-To: <01c701cbba0f$08185800$18490800$@mprc.pku.edu.cn>
-Message-ID: <alpine.LFD.2.00.1102062254560.31804@localhost6.localdomain6>
-References: <01c701cbba0f$08185800$18490800$@mprc.pku.edu.cn>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:43376
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753146Ab1BGItf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 03:49:35 -0500
+Date: Mon, 07 Feb 2011 00:50:10 -0800 (PST)
+Message-ID: <20110207.005010.28814928.davem@davemloft.net>
+Subject: Re: Early crash
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20110207081933.GA11855@dtor-ws.eng.vmware.com>
+References: <m2bp2udllv.fsf@igel.home>
+	<20110203002459.GA26729@dtor-ws.eng.vmware.com>
+	<20110207081933.GA11855@dtor-ws.eng.vmware.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-Cc: sfr@canb.auug.org.au, Arnd Bergmann <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org
-Message-ID: <20110206220613.0yiZFbp8ZRM-QKSPdp4E7j761xJejLAQ_tc-U4QDHIM@z>
+To: dtor@vmware.com
+Cc: schwab@linux-m68k.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110207085010.Hi35GbQz3pkoBy-lPcQKZajQ8lcHDoALFbI_kSIq_vE@z>
 
-On Sat, 22 Jan 2011, Guan Xuetao wrote:
+From: Dmitry Torokhov <dtor@vmware.com>
+Date: Mon, 7 Feb 2011 00:19:33 -0800
 
-> Hi, I want to merge unicore32 repo into linux-next tree, the
-> position is (unicore32 branch):
+> So here is the patch that explicitly specifies alignment for struct
+> module_version_attribute. I tested it on i386 and x86_64 and I believe
+> it will fix the issue with m68k but I do not have access to such a box.
 
-Sorry for late reply.
- 
->  arch/unicore32/kernel/time.c                  |  148 +++++
+While this may or may not fix the m68k issue, this isn't really
+sufficient to make this thing work in all cases.  And the older
+tracepoint commits referenced in this thread are known to cause
+problems with platforms such as sparc64.
 
-static struct clock_event_device ckevt_puv3_osmr0 ...
-#ifdef CONFIG_ARCH_FPGA
-        .shift          = 18, /* correct shift val: 16, but warn_on_slowpath */
-#else
-        .shift          = 30,
-#endif
+You can't reliably put structures into independent objects, put them
+into a special section, and then expect array access over them (via
+the section boundaries) after linking the objects together to just
+"work".
 
-....
-        ckevt_puv3_osmr0.mult =
-                div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, ckevt_puv3_osmr0.shift);
+Your attribute specification is only a lower-bound.
 
-Please use the function which calculates the optimizes mult/shift
-values for you depending on the clock frequency.
+GCC can and does use variable alignment choices in different situations,
+so the align directive in the various objects can all be different.  So
+the array iteration will assume the iterations should use one object
+size, but within the linked together section the alignments are all
+different so the inter-struct gap is different.
 
-clockevents_calc_mult_shift() is your friend.
+The only portable mechanism that will work in all cases, as we've
+found recently for tracepoints and similar, is to make an array of
+plain pointers to the objects in the special section.
 
->  arch/unicore32/kernel/irq.c                   |  426 +++++++++++++
+See:
 
-Please convert your irq_chips to the new function pointers:
-
-       .mask -> .irq_mask
-       ...
-
-The new functions replace the "unsigned int irq" argument with
-"struct irq_data *d".
-
-So conversion for your chips is simply
-
-s/unsigned int irq/struct irq_data *d/
-
-and 
-
-s/irq/d->irq/ in the implementation.
-
-Then your arch should select: GENERIC_HARDIRQS_NO_DEPRECATED
-
-Otherwise I'm happy with your irq and time related patches.
-
-Thanks,
-
-	tglx
+http://marc.info/?l=linux-kernel&m=129674396021733&w=2
+http://marc.info/?l=linux-kernel&m=129674399621795&w=2
+http://marc.info/?l=linux-kernel&m=129674396121739&w=2
+http://marc.info/?l=linux-kernel&m=129674396021735&w=2
