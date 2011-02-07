@@ -1,87 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:45173 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751597Ab1BGMkb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 07:40:31 -0500
+Received: from smtp-outbound-2.vmware.com ([65.115.85.73]:29256 "EHLO
+	smtp-outbound-2.vmware.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753880Ab1BGQ63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 11:58:29 -0500
+Date: Mon, 7 Feb 2011 08:58:29 -0800
+From: Dmitry Torokhov <dtor@vmware.com>
+Subject: Re: Early crash
+Message-ID: <20110207165829.GA13101@dtor-ws.eng.vmware.com>
+References: <m2bp2udllv.fsf@igel.home>
+ <20110203002459.GA26729@dtor-ws.eng.vmware.com>
+ <20110207081933.GA11855@dtor-ws.eng.vmware.com>
+ <20110207.005010.28814928.davem@davemloft.net>
 MIME-Version: 1.0
-In-Reply-To: <1297081335-13631-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-References: <1297081335-13631-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Date: Mon, 7 Feb 2011 13:40:28 +0100
-Message-ID: <AANLkTimxpRHW2TPwSnufpoeOHoEtkz1iaR3-VsC1qM4j@mail.gmail.com>
-Subject: Re: [PATCH] PM: Hide CONFIG_PM from users
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20110207.005010.28814928.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: "Rafael J. Wysocki" <rjw@sisk.pl>, Len Brown <len.brown@intel.com>, Alan Stern <stern@rowland.harvard.edu>, linux-pm@lists.linux-foundation.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Dmitry Torokhov <dmitry.torokhov@gmail.com>, linux-embedded@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110207124028.6Y-6xvWQAXF6vFm0DAPXkxxtrY3aE3dbnUHytg8thAI@z>
+To: David Miller <davem@davemloft.net>
+Cc: "schwab@linux-m68k.org" <schwab@linux-m68k.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20110207165829.paOM7ZTgnQICGTqABI71DO-yload0xUo6SvNnoHeLGQ@z>
 
-On Mon, Feb 7, 2011 at 13:22, Mark Brown
-<broonie@opensource.wolfsonmicro.com> wrote:
-> It is very rare to find a current system which is both sufficiently
-> resource constrained to want to compile out power management support
-> and sufficiently power insensitive to be able to tolerate doing so.
+On Mon, Feb 07, 2011 at 12:50:10AM -0800, David Miller wrote:
+> From: Dmitry Torokhov <dtor@vmware.com>
+> Date: Mon, 7 Feb 2011 00:19:33 -0800
+> 
+> > So here is the patch that explicitly specifies alignment for struct
+> > module_version_attribute. I tested it on i386 and x86_64 and I believe
+> > it will fix the issue with m68k but I do not have access to such a box.
+> 
+> While this may or may not fix the m68k issue, this isn't really
+> sufficient to make this thing work in all cases.  And the older
+> tracepoint commits referenced in this thread are known to cause
+> problems with platforms such as sparc64.
+> 
+> You can't reliably put structures into independent objects, put them
+> into a special section, and then expect array access over them (via
+> the section boundaries) after linking the objects together to just
+> "work".
+> 
+> Your attribute specification is only a lower-bound.
 
-Hmmm...
+Right.
 
-> --- a/kernel/power/Kconfig
-> +++ b/kernel/power/Kconfig
-> @@ -1,23 +1,6 @@
->  config PM
-> -       bool "Power Management support"
-> -       depends on !IA64_HP_SIM
-> -       ---help---
-> -         "Power Management" means that parts of your computer are shut
-> -         off or put into a power conserving "sleep" mode if they are not
-> -         being used.  There are two competing standards for doing this: APM
-> -         and ACPI.  If you want to use either one, say Y here and then also
-> -         to the requisite support below.
+> 
+> GCC can and does use variable alignment choices in different situations,
+> so the align directive in the various objects can all be different.  So
+> the array iteration will assume the iterations should use one object
+> size, but within the linked together section the alignments are all
+> different so the inter-struct gap is different.
+> 
+> The only portable mechanism that will work in all cases, as we've
+> found recently for tracepoints and similar, is to make an array of
+> plain pointers to the objects in the special section.
 
-Good to see the PC-centric comments are going away :-)
+But, theoretically speaking, nothing stops GCC to align pointers with
+"gaps" as well? Let's say having everything (or some) aligned on
+quadword boundary even though arch is 32 bit?
 
-> -
-> -         Power Management is most important for battery powered laptop
-> -         computers; if you have a laptop, check out the Linux Laptop home
-> -         page on the WWW at <http://www.linux-on-laptops.com/> or
-> -         Tuxmobil - Linux on Mobile Computers at <http://www.tuxmobil.org/>
-> -         and the Battery Powered Linux mini-HOWTO, available from
-> -         <http://www.tldp.org/docs.html#howto>.
-> -
-> -         Note that, even if you say N here, Linux on the x86 architecture
-> -         will issue the hlt instruction if nothing is to be done, thereby
-> -         sending the processor to sleep and saving power.
-> +       bool
-> +       default y if !IA64_HP_SIM
 
-The following architectures do not source "kernel/power/Kconfig":
+Thanks,
 
-alpha
-cris
-h8300
-Kconfig
-m32r
-m68k
-m68knommu
-microblaze
-parisc
-score
-sparc
-tile
-um
-xtensa
-
-Which means that (for now) I don't have to care that CONFIG_PM becomes
-unclearable. Other people may care, though...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Dmitry
