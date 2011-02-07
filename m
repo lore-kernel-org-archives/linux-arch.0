@@ -1,57 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:43376
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753146Ab1BGItf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 03:49:35 -0500
-Date: Mon, 07 Feb 2011 00:50:10 -0800 (PST)
-Message-ID: <20110207.005010.28814928.davem@davemloft.net>
-Subject: Re: Early crash
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20110207081933.GA11855@dtor-ws.eng.vmware.com>
-References: <m2bp2udllv.fsf@igel.home>
-	<20110203002459.GA26729@dtor-ws.eng.vmware.com>
-	<20110207081933.GA11855@dtor-ws.eng.vmware.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:45173 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751597Ab1BGMkb convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 07:40:31 -0500
+MIME-Version: 1.0
+In-Reply-To: <1297081335-13631-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+References: <1297081335-13631-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Date: Mon, 7 Feb 2011 13:40:28 +0100
+Message-ID: <AANLkTimxpRHW2TPwSnufpoeOHoEtkz1iaR3-VsC1qM4j@mail.gmail.com>
+Subject: Re: [PATCH] PM: Hide CONFIG_PM from users
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dtor@vmware.com
-Cc: schwab@linux-m68k.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110207085010.Hi35GbQz3pkoBy-lPcQKZajQ8lcHDoALFbI_kSIq_vE@z>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: "Rafael J. Wysocki" <rjw@sisk.pl>, Len Brown <len.brown@intel.com>, Alan Stern <stern@rowland.harvard.edu>, linux-pm@lists.linux-foundation.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Dmitry Torokhov <dmitry.torokhov@gmail.com>, linux-embedded@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110207124028.6Y-6xvWQAXF6vFm0DAPXkxxtrY3aE3dbnUHytg8thAI@z>
 
-From: Dmitry Torokhov <dtor@vmware.com>
-Date: Mon, 7 Feb 2011 00:19:33 -0800
+On Mon, Feb 7, 2011 at 13:22, Mark Brown
+<broonie@opensource.wolfsonmicro.com> wrote:
+> It is very rare to find a current system which is both sufficiently
+> resource constrained to want to compile out power management support
+> and sufficiently power insensitive to be able to tolerate doing so.
 
-> So here is the patch that explicitly specifies alignment for struct
-> module_version_attribute. I tested it on i386 and x86_64 and I believe
-> it will fix the issue with m68k but I do not have access to such a box.
+Hmmm...
 
-While this may or may not fix the m68k issue, this isn't really
-sufficient to make this thing work in all cases.  And the older
-tracepoint commits referenced in this thread are known to cause
-problems with platforms such as sparc64.
+> --- a/kernel/power/Kconfig
+> +++ b/kernel/power/Kconfig
+> @@ -1,23 +1,6 @@
+>  config PM
+> -       bool "Power Management support"
+> -       depends on !IA64_HP_SIM
+> -       ---help---
+> -         "Power Management" means that parts of your computer are shut
+> -         off or put into a power conserving "sleep" mode if they are not
+> -         being used.  There are two competing standards for doing this: APM
+> -         and ACPI.  If you want to use either one, say Y here and then also
+> -         to the requisite support below.
 
-You can't reliably put structures into independent objects, put them
-into a special section, and then expect array access over them (via
-the section boundaries) after linking the objects together to just
-"work".
+Good to see the PC-centric comments are going away :-)
 
-Your attribute specification is only a lower-bound.
+> -
+> -         Power Management is most important for battery powered laptop
+> -         computers; if you have a laptop, check out the Linux Laptop home
+> -         page on the WWW at <http://www.linux-on-laptops.com/> or
+> -         Tuxmobil - Linux on Mobile Computers at <http://www.tuxmobil.org/>
+> -         and the Battery Powered Linux mini-HOWTO, available from
+> -         <http://www.tldp.org/docs.html#howto>.
+> -
+> -         Note that, even if you say N here, Linux on the x86 architecture
+> -         will issue the hlt instruction if nothing is to be done, thereby
+> -         sending the processor to sleep and saving power.
+> +       bool
+> +       default y if !IA64_HP_SIM
 
-GCC can and does use variable alignment choices in different situations,
-so the align directive in the various objects can all be different.  So
-the array iteration will assume the iterations should use one object
-size, but within the linked together section the alignments are all
-different so the inter-struct gap is different.
+The following architectures do not source "kernel/power/Kconfig":
 
-The only portable mechanism that will work in all cases, as we've
-found recently for tracepoints and similar, is to make an array of
-plain pointers to the objects in the special section.
+alpha
+cris
+h8300
+Kconfig
+m32r
+m68k
+m68knommu
+microblaze
+parisc
+score
+sparc
+tile
+um
+xtensa
 
-See:
+Which means that (for now) I don't have to care that CONFIG_PM becomes
+unclearable. Other people may care, though...
 
-http://marc.info/?l=linux-kernel&m=129674396021733&w=2
-http://marc.info/?l=linux-kernel&m=129674399621795&w=2
-http://marc.info/?l=linux-kernel&m=129674396121739&w=2
-http://marc.info/?l=linux-kernel&m=129674396021735&w=2
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
