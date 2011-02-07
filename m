@@ -1,46 +1,59 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 01/25] tile: Fix __pte_free_tlb
-Date: Mon, 07 Feb 2011 14:55:11 +0100
-Message-ID: <1297086911.13327.17.camel@laptop>
-References: <20110125173111.720927511@chello.nl>
-	 <20110125174907.220115681@chello.nl>  <4D4C63ED.6060104@tilera.com>
+From: Dmitry Torokhov <dtor@vmware.com>
+Subject: Re: Early crash
+Date: Mon, 7 Feb 2011 08:58:29 -0800
+Message-ID: <20110207165829.GA13101@dtor-ws.eng.vmware.com>
+References: <m2bp2udllv.fsf@igel.home>
+ <20110203002459.GA26729@dtor-ws.eng.vmware.com>
+ <20110207081933.GA11855@dtor-ws.eng.vmware.com>
+ <20110207.005010.28814928.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:55652 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752739Ab1BGNyK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 08:54:10 -0500
-Received: from j77219.upc-j.chello.nl ([24.132.77.219] helo=dyad.programming.kicks-ass.net)
-	by casper.infradead.org with esmtpsa (Exim 4.72 #1 (Red Hat Linux))
-	id 1PmRXd-0006BP-Af
-	for linux-arch@vger.kernel.org; Mon, 07 Feb 2011 13:54:09 +0000
-In-Reply-To: <4D4C63ED.6060104@tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20110207.005010.28814928.davem@davemloft.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: "schwab@linux-m68k.org" <schwab@linux-m68k.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2011-02-04 at 15:39 -0500, Chris Metcalf wrote:
-> On 1/25/2011 12:31 PM, Peter Zijlstra wrote:
-> > Tile's __pte_free_tlb() implementation makes assumptions about the
-> > generic mmu_gather implementation, cure this ;-)
+On Mon, Feb 07, 2011 at 12:50:10AM -0800, David Miller wrote:
+> From: Dmitry Torokhov <dtor@vmware.com>
+> Date: Mon, 7 Feb 2011 00:19:33 -0800
 > 
-> I assume you will take this patch into your tree?  If so:
+> > So here is the patch that explicitly specifies alignment for struct
+> > module_version_attribute. I tested it on i386 and x86_64 and I believe
+> > it will fix the issue with m68k but I do not have access to such a box.
 > 
-> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-
-Feel free to take it yourself, this series might take a while to land..
-
-> > [ Chris, from a quick look L2_USER_PGTABLE_PAGES is something like:
-> >   1 << (24 - 16 + 3), which looks awefully large for an on-stack
-> >   array. ]
+> While this may or may not fix the m68k issue, this isn't really
+> sufficient to make this thing work in all cases.  And the older
+> tracepoint commits referenced in this thread are known to cause
+> problems with platforms such as sparc64.
 > 
-> Yes, the pte_pages[] array in this routine is 2KB currently.  Currently we
-> ship with 64KB pagesize, so the kernel stack has plenty of room.  I do like
-> that your patch removes this buffer, however, since we're currently looking
-> into (re-)supporting 4KB pages, which would totally blow the kernel stack
-> in this routine.
+> You can't reliably put structures into independent objects, put them
+> into a special section, and then expect array access over them (via
+> the section boundaries) after linking the objects together to just
+> "work".
+> 
+> Your attribute specification is only a lower-bound.
 
-Ah, ok.
+Right.
+
+> 
+> GCC can and does use variable alignment choices in different situations,
+> so the align directive in the various objects can all be different.  So
+> the array iteration will assume the iterations should use one object
+> size, but within the linked together section the alignments are all
+> different so the inter-struct gap is different.
+> 
+> The only portable mechanism that will work in all cases, as we've
+> found recently for tracepoints and similar, is to make an array of
+> plain pointers to the objects in the special section.
+
+But, theoretically speaking, nothing stops GCC to align pointers with
+"gaps" as well? Let's say having everything (or some) aligned on
+quadword boundary even though arch is 32 bit?
+
+
+Thanks,
+
+Dmitry
