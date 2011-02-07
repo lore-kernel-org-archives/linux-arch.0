@@ -1,29 +1,39 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] PM: Hide CONFIG_PM from users
-Date: Mon, 7 Feb 2011 13:26:23 +0000
-Message-ID: <20110207132623.GH10564@opensource.wolfsonmicro.com>
-References: <1297081335-13631-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <AANLkTimxpRHW2TPwSnufpoeOHoEtkz1iaR3-VsC1qM4j@mail.gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] sched: provide scheduler_ipi() callback in response to
+ smp_send_reschedule()
+Date: Mon, 07 Feb 2011 14:54:19 +0100
+Message-ID: <1297086859.13327.16.camel@laptop>
+References: <1295262433.30950.53.camel@laptop>
+         <1297034792.14982.10.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:34523 "EHLO
-	opensource2.wolfsonmicro.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752252Ab1BGN03 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 08:26:29 -0500
-Content-Disposition: inline
-In-Reply-To: <AANLkTimxpRHW2TPwSnufpoeOHoEtkz1iaR3-VsC1qM4j@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "Rafael J. Wysocki" <rjw@sisk.pl>, Len Brown <len.brown@intel.com>, Alan Stern <stern@rowland.harvard.edu>, linux-pm@lists.linux-foundation.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Dmitry Torokhov <dmitry.torokhov@gmail.com>, linux-embedded@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1297034792.14982.10.camel@pasglop>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 07, 2011 at 01:40:28PM +0100, Geert Uytterhoeven wrote:
+On Mon, 2011-02-07 at 10:26 +1100, Benjamin Herrenschmidt wrote:
+> You missed:
+> 
+> diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+> index 9813605..467d122 100644
+> --- a/arch/powerpc/kernel/smp.c
+> +++ b/arch/powerpc/kernel/smp.c
+> @@ -98,6 +98,7 @@ void smp_message_recv(int msg)
+>                 break;
+>         case PPC_MSG_RESCHEDULE:
+>                 /* we notice need_resched on exit */
+> +               scheduler_ipi();
+>                 break;
+>         case PPC_MSG_CALL_FUNC_SINGLE:
+>                 generic_smp_call_function_single_interrupt();
+> 
+> Fold that in and add:
+> 
+> Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-> Which means that (for now) I don't have to care that CONFIG_PM becomes
-> unclearable. Other people may care, though...
-
-The whole point of the patch is that (other than the IA64 emulator which
-explicitly requires that CONFIG_PM be disabled) I strongly suspect that
-nobody is actually using this configuration except as a result of
-randconfig type testing.
+Thanks Ben!
