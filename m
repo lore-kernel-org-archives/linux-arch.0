@@ -1,108 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:47084 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751082Ab1BHVM1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Feb 2011 16:12:27 -0500
-MIME-Version: 1.0
-In-Reply-To: <1297123347-2170-1-git-send-email-dtor@vmware.com>
-References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
-Date: Tue, 8 Feb 2011 22:12:25 +0100
-Message-ID: <AANLkTi=pmWAvsp_3c4NgQYFw_ydfkOMgjDBDKgeFGf=E@mail.gmail.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:58917 "EHLO
+	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755417Ab1BHWpC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Feb 2011 17:45:02 -0500
+From: Wolfram Sang <w.sang@pengutronix.de>
+Subject: [PATCH] gpio: make newer functionality available outside of GPIOLIB
+Date: Tue,  8 Feb 2011 23:44:33 +0100
+Message-ID: <1297205075-11396-1-git-send-email-w.sang@pengutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20110208211225.2bLj8eDbwUEMwiDHm-A9cU6GuwfyVjFUSjF3efB0CEU@z>
+To: linux-kernel@vger.kernel.org
+Cc: Wolfram Sang <w.sang@pengutronix.de>, David Brownell <dbrownell@users.sourceforge.net>, Eric Miao <eric.y.miao@gmail.com>, Dmitry Torokhov <dtor@mail.ru>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Anton Vorontsov <cbouatmailru@gmail.com>, Greg Kroah-Hartman <greg@kroah.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
+Message-ID: <20110208224433.WSXSKrGUMKToHDnQujCZZ6mJfwLhdGkmo6Mvs81JRhE@z>
 
-T24gVHVlLCBGZWIgOCwgMjAxMSBhdCAwMTowMiwgRG1pdHJ5IFRvcm9raG92IDxkdG9yQHZtd2Fy
-ZS5jb20+IHdyb3RlOgo+IE9uIG02OGsgbmF0dXJhbCBhbGlnbm1lbnQgaXMgMi1ieXRlIGJvdW5k
-YXJ5IGJ1dCB3ZSBhcmUgdHJ5aW5nIHRvCj4gYWxpZ24gc3RydWN0dXJlcyBpbiBfX21vZHZlciBz
-ZWN0aW9uIG9uIHNpemVvZih2b2lkICopIGJvdW5kYXJ5Lgo+IFRoaXMgY2F1c2VzIHRyb3VibGUg
-d2hlbiB3ZSB0cnkgdG8gYWNjZXNzIGVsZW1lbnRzIGluIHRoaXMgc2VjdGlvbgo+IGluIGFycmF5
-LWxpa2UgZmFzaGlvbiB3aGVuIGNyZWF0ZSAidmVyc2lvbiIgYXR0cmlidXRlcyBmb3IgYnVpbHQt
-aW4KPiBtb2R1bGVzLgo+Cj4gTW9yZW92ZXIsIGFzIERhdmVNIHNhaWQsIHdlIGNhbid0IHJlbGlh
-Ymx5IHB1dCBzdHJ1Y3R1cmVzIGludG8KPiBpbmRlcGVuZGVudCBvYmplY3RzLCBwdXQgdGhlbSBp
-bnRvIGEgc3BlY2lhbCBzZWN0aW9uLCBhbmQgdGhlbiBleHBlY3QKPiBhcnJheSBhY2Nlc3Mgb3Zl
-ciB0aGVtICh2aWEgdGhlIHNlY3Rpb24gYm91bmRhcmllcykgYWZ0ZXIgbGlua2luZyB0aGUKPiBv
-YmplY3RzIHRvZ2V0aGVyIHRvIGp1c3QgIndvcmsiIGR1ZSB0byB2YXJpYWJsZSBhbGlnbm1lbnQg
-Y2hvaWNlcyBpbgo+IGRpZmZlcmVudCBzaXR1YXRpb25zLiBUaGUgb25seSBzb2x1dGlvbiB0aGF0
-IHNlZW1zIHRvIHdvcmsgcmVsaWFibHkKPiBpcyB0byBtYWtlIGFuIGFycmF5IG9mIHBsYWluIHBv
-aW50ZXJzIHRvIHRoZSBvYmplY3RzIGluIHF1ZXN0aW9uIGFuZAo+IHB1dCB0aG9zZSBwb2ludGVy
-cyBpbiB0aGUgc3BlY2lhbCBzZWN0aW9uLgo+Cj4gUmVwb3J0ZWQtYnk6IEdlZXJ0IFV5dHRlcmhv
-ZXZlbiA8Z2VlcnRAbGludXgtbTY4ay5vcmc+Cj4gU2lnbmVkLW9mZi1ieTogRG1pdHJ5IFRvcm9r
-aG92IDxkdG9yQHZtd2FyZS5jb20+CgpUaGFua3MhCgpUZXN0ZWQtYnk6IEdlZXJ0IFV5dHRlcmhv
-ZXZlbiA8Z2VlcnRAbGludXgtbTY4ay5vcmc+Cgo+IC0tLQo+IMKgaW5jbHVkZS9saW51eC9tb2R1
-bGUuaCB8IMKgIDEwICsrKysrLS0tLS0KPiDCoGtlcm5lbC9wYXJhbXMuYyDCoCDCoCDCoCDCoHwg
-wqAgwqA5ICsrKysrKy0tLQo+IMKgMiBmaWxlcyBjaGFuZ2VkLCAxMSBpbnNlcnRpb25zKCspLCA4
-IGRlbGV0aW9ucygtKQo+Cj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvbW9kdWxlLmggYi9p
-bmNsdWRlL2xpbnV4L21vZHVsZS5oCj4gaW5kZXggOWJkZjI3Yy4uOWI3MDgxYSAxMDA2NDQKPiAt
-LS0gYS9pbmNsdWRlL2xpbnV4L21vZHVsZS5oCj4gKysrIGIvaW5jbHVkZS9saW51eC9tb2R1bGUu
-aAo+IEBAIC0xNzQsMTAgKzE3NCw3IEBAIGV4dGVybiBzdHJ1Y3QgbW9kdWxlIF9fdGhpc19tb2R1
-bGU7Cj4gwqAjZGVmaW5lIE1PRFVMRV9WRVJTSU9OKF92ZXJzaW9uKSDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4gwqAgwqAgwqAgwqBl
-eHRlcm4gc3NpemVfdCBfX21vZHZlcl92ZXJzaW9uX3Nob3coc3RydWN0IG1vZHVsZV9hdHRyaWJ1
-dGUgKiwgXAo+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIHN0cnVjdCBtb2R1bGUgKiwgY2hhciAqKTsgwqBcCj4gLSDCoCDC
-oCDCoCBzdGF0aWMgc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0ZSBfX21vZHZlcl92ZXJz
-aW9uX2F0dHIgwqAgwqBcCj4gLSDCoCDCoCDCoCBfX3VzZWQgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqBcCj4gLSDCoCDCoF9fYXR0cmlidXRlX18gKChfX3NlY3Rpb25fXyAoIl9fbW9kdmVy
-IiksYWxpZ25lZChzaXplb2Yodm9pZCAqKSkpKSBcCj4gLSDCoCDCoCDCoCA9IHsgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgXAo+ICsgwqAgwqAgwqAgc3RhdGljIHN0cnVjdCBtb2R1
-bGVfdmVyc2lvbl9hdHRyaWJ1dGUgX19fbW9kdmVyX2F0dHIgPSB7IMKgIMKgIMKgIFwKPiDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoC5tYXR0ciDCoD0geyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4gwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAuYXR0ciDCoCA9IHsgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgXAo+IMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgLm5hbWUgwqAgPSAidmVyc2lvbiIsIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgXAo+IEBAIC0xODcsNyArMTg0LDEwIEBAIGV4dGVybiBzdHJ1
-Y3QgbW9kdWxlIF9fdGhpc19tb2R1bGU7Cj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqB9LCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoFwKPiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoC5tb2R1bGVfbmFt
-ZSDCoCDCoD0gS0JVSUxEX01PRE5BTUUsIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IFwKPiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoC52ZXJzaW9uIMKgIMKgIMKgIMKgPSBfdmVyc2lv
-biwgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgXAo+IC0gwqAgwqAg
-wqAgfQo+ICsgwqAgwqAgwqAgfTsgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqBc
-Cj4gKyDCoCDCoCDCoCBzdGF0aWMgY29uc3Qgc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0
-ZSDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoFwKPiArIMKgIMKgIMKgIF9fdXNlZCBfX2F0
-dHJpYnV0ZV9fICgoX19zZWN0aW9uX18gKCJfX21vZHZlciIpKSkgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgXAo+ICsgwqAgwqAgwqAgKiBfX21vZHVsZXBhcmFtX2NvbnN0IF9fbW9kdmVyX2F0dHIgPSAm
-X19fbW9kdmVyX2F0dHIKPiDCoCNlbmRpZgo+Cj4gwqAvKiBPcHRpb25hbCBmaXJtd2FyZSBmaWxl
-IChvciBmaWxlcykgbmVlZGVkIGJ5IHRoZSBtb2R1bGUKPiBkaWZmIC0tZ2l0IGEva2VybmVsL3Bh
-cmFtcy5jIGIva2VybmVsL3BhcmFtcy5jCj4gaW5kZXggMGRhMTQxMS4uMDlhMDhjYiAxMDA2NDQK
-PiAtLS0gYS9rZXJuZWwvcGFyYW1zLmMKPiArKysgYi9rZXJuZWwvcGFyYW1zLmMKPiBAQCAtODIx
-LDE1ICs4MjEsMTggQEAgc3NpemVfdCBfX21vZHZlcl92ZXJzaW9uX3Nob3coc3RydWN0IG1vZHVs
-ZV9hdHRyaWJ1dGUgKm1hdHRyLAo+IMKgIMKgIMKgIMKgcmV0dXJuIHNwcmludGYoYnVmLCAiJXNc
-biIsIHZhdHRyLT52ZXJzaW9uKTsKPiDCoH0KPgo+IC1leHRlcm4gc3RydWN0IG1vZHVsZV92ZXJz
-aW9uX2F0dHJpYnV0ZSBfX3N0YXJ0X19fbW9kdmVyW10sIF9fc3RvcF9fX21vZHZlcltdOwo+ICtl
-eHRlcm4gY29uc3Qgc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0ZSAqX19zdGFydF9fX21v
-ZHZlcltdOwo+ICtleHRlcm4gY29uc3Qgc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0ZSAq
-X19zdG9wX19fbW9kdmVyW107Cj4KPiDCoHN0YXRpYyB2b2lkIF9faW5pdCB2ZXJzaW9uX3N5c2Zz
-X2J1aWx0aW4odm9pZCkKPiDCoHsKPiAtIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVy
-c2lvbl9hdHRyaWJ1dGUgKnZhdHRyOwo+ICsgwqAgwqAgwqAgY29uc3Qgc3RydWN0IG1vZHVsZV92
-ZXJzaW9uX2F0dHJpYnV0ZSAqKnA7Cj4gwqAgwqAgwqAgwqBzdHJ1Y3QgbW9kdWxlX2tvYmplY3Qg
-Km1rOwo+IMKgIMKgIMKgIMKgaW50IGVycjsKPgo+IC0gwqAgwqAgwqAgZm9yICh2YXR0ciA9IF9f
-c3RhcnRfX19tb2R2ZXI7IHZhdHRyIDwgX19zdG9wX19fbW9kdmVyOyB2YXR0cisrKSB7Cj4gKyDC
-oCDCoCDCoCBmb3IgKHAgPSBfX3N0YXJ0X19fbW9kdmVyOyBwIDwgX19zdG9wX19fbW9kdmVyOyBw
-KyspIHsKPiArIMKgIMKgIMKgIMKgIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVyc2lv
-bl9hdHRyaWJ1dGUgKnZhdHRyID0gKnA7Cj4gKwo+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgbWsg
-PSBsb2NhdGVfbW9kdWxlX2tvYmplY3QodmF0dHItPm1vZHVsZV9uYW1lKTsKPiDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoGlmIChtaykgewo+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgZXJyID0gc3lzZnNfY3JlYXRlX2ZpbGUoJm1rLT5rb2JqLCAmdmF0dHItPm1hdHRyLmF0dHIp
-Owo+IC0tCj4gMS43LjMuMgo+Cj4gLS0KPiBUbyB1bnN1YnNjcmliZSBmcm9tIHRoaXMgbGlzdDog
-c2VuZCB0aGUgbGluZSAidW5zdWJzY3JpYmUgbGludXgtYXJjaCIgaW4KPiB0aGUgYm9keSBvZiBh
-IG1lc3NhZ2UgdG8gbWFqb3Jkb21vQHZnZXIua2VybmVsLm9yZwo+IE1vcmUgbWFqb3Jkb21vIGlu
-Zm8gYXQgwqBodHRwOi8vdmdlci5rZXJuZWwub3JnL21ham9yZG9tby1pbmZvLmh0bWwKPgoKCgot
-LSAKR3J7b2V0amUsZWV0aW5nfXMsCgrCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCBHZWVydAoKLS0KR2VlcnQgVXl0dGVyaG9ldmVuIC0tIFRoZXJlJ3MgbG90cyBvZiBMaW51eCBi
-ZXlvbmQgaWEzMiAtLSBnZWVydEBsaW51eC1tNjhrLm9yZwoKSW4gcGVyc29uYWwgY29udmVyc2F0
-aW9ucyB3aXRoIHRlY2huaWNhbCBwZW9wbGUsIEkgY2FsbCBteXNlbGYgYSBoYWNrZXIuIEJ1dAp3
-aGVuIEknbSB0YWxraW5nIHRvIGpvdXJuYWxpc3RzIEkganVzdCBzYXkgInByb2dyYW1tZXIiIG9y
-IHNvbWV0aGluZyBsaWtlIHRoYXQuCsKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgIMKgwqAgwqDCoCAtLSBMaW51cyBUb3J2YWxkcwo=
+The gpio subsystems offers an API which requires a dependency on GENERIC_GPIO
+when used by drivers. There is also implementation framework of this API, so
+archs can select GPIOLIB if they intend to use it. But they don't have to, they
+can still provide GENERIC_GPIO without GPIOLIB using custom routines.
+
+Commit 3e45f1d1155894e6f4291f5536b224874d52d8e2 (gpio: introduce
+gpio_request_one() and friends) added some functions, defines and a struct to
+the API, but made them available only for GPIOLIB. So, drivers using these new
+functions will fail in the case of GENERIC_GPIO && !GPIOLIB.
+
+The new functions have already been added to the fallback in <linux/gpio.h>,
+but the data structure were still not available. Change this by reorganizing
+the include-files.
+
+Fixes issues like (in linux-next currently):
+
+drivers/input/touchscreen/ads7846.c:959: error: 'GPIOF_DIR_IN' undeclared (first use in this function)
+
+Signed-off-by: Wolfram Sang <w.sang@pengutronix.de>
+Cc: David Brownell <dbrownell@users.sourceforge.net>
+Cc: Eric Miao <eric.y.miao@gmail.com>
+Cc: Dmitry Torokhov <dtor@mail.ru>
+---
+
+Based on 2.6.38-rc4. Compile tested on x86.
+
+ include/asm-generic/gpio.h   |   31 +++++--------------------------
+ include/linux/gpio.h         |    2 +-
+ include/linux/gpio_generic.h |   26 ++++++++++++++++++++++++++
+ 3 files changed, 32 insertions(+), 27 deletions(-)
+ create mode 100644 include/linux/gpio_generic.h
+
+diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+index ff5c660..ebc73bc 100644
+--- a/include/asm-generic/gpio.h
++++ b/include/asm-generic/gpio.h
+@@ -4,6 +4,7 @@
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+ #include <linux/errno.h>
++#include <linux/gpio_generic.h>
+ 
+ #ifdef CONFIG_GPIOLIB
+ 
+@@ -158,6 +159,10 @@ extern int gpio_set_debounce(unsigned gpio, unsigned debounce);
+ extern int gpio_get_value_cansleep(unsigned gpio);
+ extern void gpio_set_value_cansleep(unsigned gpio, int value);
+ 
++extern int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
++extern int gpio_request_array(struct gpio *array, size_t num);
++extern void gpio_free_array(struct gpio *array, size_t num);
++
+ 
+ /* A platform's <asm/gpio.h> code may want to inline the I/O calls when
+  * the GPIO is constant and refers to some always-present controller,
+@@ -170,32 +175,6 @@ extern int __gpio_cansleep(unsigned gpio);
+ 
+ extern int __gpio_to_irq(unsigned gpio);
+ 
+-#define GPIOF_DIR_OUT	(0 << 0)
+-#define GPIOF_DIR_IN	(1 << 0)
+-
+-#define GPIOF_INIT_LOW	(0 << 1)
+-#define GPIOF_INIT_HIGH	(1 << 1)
+-
+-#define GPIOF_IN		(GPIOF_DIR_IN)
+-#define GPIOF_OUT_INIT_LOW	(GPIOF_DIR_OUT | GPIOF_INIT_LOW)
+-#define GPIOF_OUT_INIT_HIGH	(GPIOF_DIR_OUT | GPIOF_INIT_HIGH)
+-
+-/**
+- * struct gpio - a structure describing a GPIO with configuration
+- * @gpio:	the GPIO number
+- * @flags:	GPIO configuration as specified by GPIOF_*
+- * @label:	a literal description string of this GPIO
+- */
+-struct gpio {
+-	unsigned	gpio;
+-	unsigned long	flags;
+-	const char	*label;
+-};
+-
+-extern int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
+-extern int gpio_request_array(struct gpio *array, size_t num);
+-extern void gpio_free_array(struct gpio *array, size_t num);
+-
+ #ifdef CONFIG_GPIO_SYSFS
+ 
+ /*
+diff --git a/include/linux/gpio.h b/include/linux/gpio.h
+index 32720ba..584ceb6 100644
+--- a/include/linux/gpio.h
++++ b/include/linux/gpio.h
+@@ -11,9 +11,9 @@
+ #include <linux/kernel.h>
+ #include <linux/types.h>
+ #include <linux/errno.h>
++#include <linux/gpio_generic.h>
+ 
+ struct device;
+-struct gpio;
+ struct gpio_chip;
+ 
+ /*
+diff --git a/include/linux/gpio_generic.h b/include/linux/gpio_generic.h
+new file mode 100644
+index 0000000..d662697
+--- /dev/null
++++ b/include/linux/gpio_generic.h
+@@ -0,0 +1,26 @@
++#ifndef __LINUX_GPIO_GENERIC_H
++#define __LINUX_GPIO_GENERIC_H
++
++/**
++ * struct gpio - a structure describing a GPIO with configuration
++ * @gpio:	the GPIO number
++ * @flags:	GPIO configuration as specified by GPIOF_*
++ * @label:	a literal description string of this GPIO
++ */
++struct gpio {
++	unsigned	gpio;
++	unsigned long	flags;
++	const char	*label;
++};
++
++#define GPIOF_DIR_OUT	(0 << 0)
++#define GPIOF_DIR_IN	(1 << 0)
++
++#define GPIOF_INIT_LOW	(0 << 1)
++#define GPIOF_INIT_HIGH	(1 << 1)
++
++#define GPIOF_IN		(GPIOF_DIR_IN)
++#define GPIOF_OUT_INIT_LOW	(GPIOF_DIR_OUT | GPIOF_INIT_LOW)
++#define GPIOF_OUT_INIT_HIGH	(GPIOF_DIR_OUT | GPIOF_INIT_HIGH)
++
++#endif /* __LINUX_GPIO_GENERIC_H */
+-- 
+1.7.2.3
+
