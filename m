@@ -1,43 +1,91 @@
 From: Dmitry Torokhov <dtor@vmware.com>
-Subject: Re: Early crash
-Date: Mon, 7 Feb 2011 11:28:30 -0800
-Message-ID: <20110207192830.GA23476@dtor-ws.eng.vmware.com>
-References: <20110207081933.GA11855@dtor-ws.eng.vmware.com>
- <20110207.005010.28814928.davem@davemloft.net>
- <20110207165829.GA13101@dtor-ws.eng.vmware.com>
- <20110207.112708.193718501.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Subject: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Date: Mon,  7 Feb 2011 16:02:25 -0800
+Message-ID: <1297123347-2170-1-git-send-email-dtor@vmware.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-outbound-1.vmware.com ([65.115.85.69]:40234 "EHLO
+Received: from smtp-outbound-1.vmware.com ([65.115.85.69]:56909 "EHLO
 	smtp-outbound-1.vmware.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753936Ab1BGT2b (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 14:28:31 -0500
-Content-Disposition: inline
-In-Reply-To: <20110207.112708.193718501.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1755178Ab1BHACf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Feb 2011 19:02:35 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: "schwab@linux-m68k.org" <schwab@linux-m68k.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "rusty@rustcorp.com.au" <rusty@rustcorp.com.au>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Dmitry Torokhov <dtor@vmware.com>
 
-On Mon, Feb 07, 2011 at 11:27:08AM -0800, David Miller wrote:
-> From: Dmitry Torokhov <dtor@vmware.com>
-> Date: Mon, 7 Feb 2011 08:58:29 -0800
-> 
-> > But, theoretically speaking, nothing stops GCC to align pointers with
-> > "gaps" as well? Let's say having everything (or some) aligned on
-> > quadword boundary even though arch is 32 bit?
-> 
-> The alignment business only applies to aggregates (ie. structs and
-> unions).
-> 
-> This has been confirmed via several weeks of expermentation with
-> different GCC versions on different platforms as well.
+On m68k natural alignment is 2-byte boundary but we are trying to
+align structures in __modver section on sizeof(void *) boundary.
+This causes trouble when we try to access elements in this section
+in array-like fashion when create "version" attributes for built-in
+modules.
 
-I see. OK, then I'll prepare a patch to switch over to struct + pointer
-scheme.
+Moreover, as DaveM said, we can't reliably put structures into
+independent objects, put them into a special section, and then expect
+array access over them (via the section boundaries) after linking the
+objects together to just "work" due to variable alignment choices in
+different situations. The only solution that seems to work reliably
+is to make an array of plain pointers to the objects in question and
+put those pointers in the special section.
 
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Signed-off-by: Dmitry Torokhov <dtor@vmware.com>
+---
+ include/linux/module.h |   10 +++++-----
+ kernel/params.c        |    9 ++++++---
+ 2 files changed, 11 insertions(+), 8 deletions(-)
 
-Thanks,
-
-Dmitry
+diff --git a/include/linux/module.h b/include/linux/module.h
+index 9bdf27c..9b7081a 100644
+--- a/include/linux/module.h
++++ b/include/linux/module.h
+@@ -174,10 +174,7 @@ extern struct module __this_module;
+ #define MODULE_VERSION(_version)					\
+ 	extern ssize_t __modver_version_show(struct module_attribute *,	\
+ 					     struct module *, char *);	\
+-	static struct module_version_attribute __modver_version_attr	\
+-	__used								\
+-    __attribute__ ((__section__ ("__modver"),aligned(sizeof(void *)))) \
+-	= {								\
++	static struct module_version_attribute ___modver_attr = {	\
+ 		.mattr	= {						\
+ 			.attr	= {					\
+ 				.name	= "version",			\
+@@ -187,7 +184,10 @@ extern struct module __this_module;
+ 		},							\
+ 		.module_name	= KBUILD_MODNAME,			\
+ 		.version	= _version,				\
+-	}
++	};								\
++	static const struct module_version_attribute			\
++	__used __attribute__ ((__section__ ("__modver")))		\
++	* __moduleparam_const __modver_attr = &___modver_attr
+ #endif
+ 
+ /* Optional firmware file (or files) needed by the module
+diff --git a/kernel/params.c b/kernel/params.c
+index 0da1411..09a08cb 100644
+--- a/kernel/params.c
++++ b/kernel/params.c
+@@ -821,15 +821,18 @@ ssize_t __modver_version_show(struct module_attribute *mattr,
+ 	return sprintf(buf, "%s\n", vattr->version);
+ }
+ 
+-extern struct module_version_attribute __start___modver[], __stop___modver[];
++extern const struct module_version_attribute *__start___modver[];
++extern const struct module_version_attribute *__stop___modver[];
+ 
+ static void __init version_sysfs_builtin(void)
+ {
+-	const struct module_version_attribute *vattr;
++	const struct module_version_attribute **p;
+ 	struct module_kobject *mk;
+ 	int err;
+ 
+-	for (vattr = __start___modver; vattr < __stop___modver; vattr++) {
++	for (p = __start___modver; p < __stop___modver; p++) {
++		const struct module_version_attribute *vattr = *p;
++
+ 		mk = locate_module_kobject(vattr->module_name);
+ 		if (mk) {
+ 			err = sysfs_create_file(&mk->kobj, &vattr->mattr.attr);
+-- 
+1.7.3.2
