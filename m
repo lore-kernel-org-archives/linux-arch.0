@@ -1,58 +1,58 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] sched: provide scheduler_ipi() callback in response to
- smp_send_reschedule()
-Date: Wed, 09 Feb 2011 10:37:24 +0100
-Message-ID: <1297244244.13327.147.camel@laptop>
-References: <1295262433.30950.53.camel@laptop>
-         <1297034792.14982.10.camel@pasglop>  <1297086859.13327.16.camel@laptop>
-         <1297232054.14982.346.camel@pasglop>
+From: Wolfram Sang <w.sang@pengutronix.de>
+Subject: Re: [PATCH] gpio: make newer functionality available outside of
+ GPIOLIB
+Date: Wed, 9 Feb 2011 14:34:00 +0100
+Message-ID: <20110209133400.GB2366@pengutronix.de>
+References: <1297205075-11396-1-git-send-email-w.sang@pengutronix.de>
+ <4D51CF3D.9000103@metafoo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1297232054.14982.346.camel@pasglop>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="hQiwHBbRI9kgIhsi"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4D51CF3D.9000103@metafoo.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Lars-Peter Clausen <lars@metafoo.de>
+Cc: linux-kernel@vger.kernel.org, David Brownell <dbrownell@users.sourceforge.net>, Eric Miao <eric.y.miao@gmail.com>, Dmitry Torokhov <dtor@mail.ru>, "Arnd Bergmann (maintainer:GENERIC INCLUDE/A...)" <arnd@arndb.de>, "Andrew Morton (commit_signer:4/8=50%)" <akpm@linux-foundation.org>, "Mark Brown (commit_signer:1/8=12%)" <broonie@opensource.wolfsonmicro.com>, "Anton Vorontsov (commit_signer:1/8=12%)" <cbouatmailru@gmail.com>, "Greg Kroah-Hartman (commit_signer:1/8=12%)" <greg@kroah.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2011-02-09 at 17:14 +1100, Benjamin Herrenschmidt wrote:
-> On Mon, 2011-02-07 at 14:54 +0100, Peter Zijlstra wrote:
-> > On Mon, 2011-02-07 at 10:26 +1100, Benjamin Herrenschmidt wrote:
-> > > You missed:
-> > > 
-> > > diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
-> > > index 9813605..467d122 100644
-> > > --- a/arch/powerpc/kernel/smp.c
-> > > +++ b/arch/powerpc/kernel/smp.c
-> > > @@ -98,6 +98,7 @@ void smp_message_recv(int msg)
-> > >                 break;
-> > >         case PPC_MSG_RESCHEDULE:
-> > >                 /* we notice need_resched on exit */
-> > > +               scheduler_ipi();
-> > >                 break;
-> > >         case PPC_MSG_CALL_FUNC_SINGLE:
-> > >                 generic_smp_call_function_single_interrupt();
-> > > 
-> > > Fold that in and add:
-> > > 
-> > > Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > 
-> > Thanks Ben!
-> 
-> BTW. I we lurking at some of our CPU hotplug code and I think I cannot
-> totally guarantee that this won't be called on an offline CPU. If that's
-> a problem, you may want to add a test for that.
-> 
-> IE. The call function IPIs are normally not going to be sent to an
-> offlined CPU, and stop_machine should be a good enough fence here, but
-> we do abuse reschedule for a number of things (including in some case
-> to wake up a sleeping CPU that was pseudo-offlined :-)
 
-Hmm, I _think_ that should all work out nicely, but we'll see, if when
-this stuff hits the tree powerpc machines start falling over we'd better
-put that check in ;-)
+--hQiwHBbRI9kgIhsi
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Meanwhile I'm going to preserve this comment in the changelog of this
-patch so we don't forget.
+
+> Given that these functions are pretty generic and build on top of the gen=
+eric
+> gpio interface I think they should be available if GENERIC_GPIO is select=
+ed and
+> not only just through GPIOLIB. Otherwise all the archs not using gpiolib =
+but
+> providing the gpio api would have to be patched as well.
+
+I agree that could be argumented for these calls. Will try something
+later if nobody objects that approach.
+
+Regards,
+
+   Wolfram
+
+--=20
+Pengutronix e.K.                           | Wolfram Sang                |
+Industrial Linux Solutions                 | http://www.pengutronix.de/  |
+
+--hQiwHBbRI9kgIhsi
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+Content-Disposition: inline
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAk1Sl8gACgkQD27XaX1/VRtilACfXnxlKX0baCO8Dj6/Ax0JLw7I
+Jh8An3e8cIiFkGF0I2Tvz7TadpMSBTFF
+=P6FG
+-----END PGP SIGNATURE-----
+
+--hQiwHBbRI9kgIhsi--
