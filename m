@@ -1,60 +1,58 @@
-From: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Subject: Re: [PATCH] sched: provide scheduler_ipi()
- callback in response to smp_send_reschedule()
-Date: Wed, 09 Feb 2011 17:14:14 +1100
-Message-ID: <1297232054.14982.346.camel@pasglop>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH] sched: provide scheduler_ipi() callback in response to
+ smp_send_reschedule()
+Date: Wed, 09 Feb 2011 10:37:24 +0100
+Message-ID: <1297244244.13327.147.camel@laptop>
 References: <1295262433.30950.53.camel@laptop>
-	<1297034792.14982.10.camel@pasglop> <1297086859.13327.16.camel@laptop>
+         <1297034792.14982.10.camel@pasglop>  <1297086859.13327.16.camel@laptop>
+         <1297232054.14982.346.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <1297086859.13327.16.camel@laptop>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: linux-m32r-ja-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, "H. Peter
-	Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, Mikael-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, virtualization-qjLDD68F18O7TbgM5vRIOg@public.gmane.org, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, xen-devel-GuqFBffKawuULHF6PoxzQEEOCMrvLtNR@public.gmane.org, Chris-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Fen
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1297232054.14982.346.camel@pasglop>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2011-02-07 at 14:54 +0100, Peter Zijlstra wrote:
-> On Mon, 2011-02-07 at 10:26 +1100, Benjamin Herrenschmidt wrote:
-> > You missed:
+On Wed, 2011-02-09 at 17:14 +1100, Benjamin Herrenschmidt wrote:
+> On Mon, 2011-02-07 at 14:54 +0100, Peter Zijlstra wrote:
+> > On Mon, 2011-02-07 at 10:26 +1100, Benjamin Herrenschmidt wrote:
+> > > You missed:
+> > > 
+> > > diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+> > > index 9813605..467d122 100644
+> > > --- a/arch/powerpc/kernel/smp.c
+> > > +++ b/arch/powerpc/kernel/smp.c
+> > > @@ -98,6 +98,7 @@ void smp_message_recv(int msg)
+> > >                 break;
+> > >         case PPC_MSG_RESCHEDULE:
+> > >                 /* we notice need_resched on exit */
+> > > +               scheduler_ipi();
+> > >                 break;
+> > >         case PPC_MSG_CALL_FUNC_SINGLE:
+> > >                 generic_smp_call_function_single_interrupt();
+> > > 
+> > > Fold that in and add:
+> > > 
+> > > Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 > > 
-> > diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
-> > index 9813605..467d122 100644
-> > --- a/arch/powerpc/kernel/smp.c
-> > +++ b/arch/powerpc/kernel/smp.c
-> > @@ -98,6 +98,7 @@ void smp_message_recv(int msg)
-> >                 break;
-> >         case PPC_MSG_RESCHEDULE:
-> >                 /* we notice need_resched on exit */
-> > +               scheduler_ipi();
-> >                 break;
-> >         case PPC_MSG_CALL_FUNC_SINGLE:
-> >                 generic_smp_call_function_single_interrupt();
-> > 
-> > Fold that in and add:
-> > 
-> > Acked-by: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+> > Thanks Ben!
 > 
-> Thanks Ben!
+> BTW. I we lurking at some of our CPU hotplug code and I think I cannot
+> totally guarantee that this won't be called on an offline CPU. If that's
+> a problem, you may want to add a test for that.
+> 
+> IE. The call function IPIs are normally not going to be sent to an
+> offlined CPU, and stop_machine should be a good enough fence here, but
+> we do abuse reschedule for a number of things (including in some case
+> to wake up a sleeping CPU that was pseudo-offlined :-)
 
-BTW. I we lurking at some of our CPU hotplug code and I think I cannot
-totally guarantee that this won't be called on an offline CPU. If that's
-a problem, you may want to add a test for that.
+Hmm, I _think_ that should all work out nicely, but we'll see, if when
+this stuff hits the tree powerpc machines start falling over we'd better
+put that check in ;-)
 
-IE. The call function IPIs are normally not going to be sent to an
-offlined CPU, and stop_machine should be a good enough fence here, but
-we do abuse reschedule for a number of things (including in some case
-to wake up a sleeping CPU that was pseudo-offlined :-)
-
-Cheers,
-Ben.
+Meanwhile I'm going to preserve this comment in the changelog of this
+patch so we don't forget.
