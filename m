@@ -1,153 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:58917 "EHLO
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:52093 "EHLO
 	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755417Ab1BHWpC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Feb 2011 17:45:02 -0500
+	with ESMTP id S1755167Ab1BINeP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Feb 2011 08:34:15 -0500
+Date: Wed, 9 Feb 2011 14:34:00 +0100
 From: Wolfram Sang <w.sang@pengutronix.de>
-Subject: [PATCH] gpio: make newer functionality available outside of GPIOLIB
-Date: Tue,  8 Feb 2011 23:44:33 +0100
-Message-ID: <1297205075-11396-1-git-send-email-w.sang@pengutronix.de>
+Subject: Re: [PATCH] gpio: make newer functionality available outside of
+ GPIOLIB
+Message-ID: <20110209133400.GB2366@pengutronix.de>
+References: <1297205075-11396-1-git-send-email-w.sang@pengutronix.de>
+ <4D51CF3D.9000103@metafoo.de>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="hQiwHBbRI9kgIhsi"
+Content-Disposition: inline
+In-Reply-To: <4D51CF3D.9000103@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Wolfram Sang <w.sang@pengutronix.de>, David Brownell <dbrownell@users.sourceforge.net>, Eric Miao <eric.y.miao@gmail.com>, Dmitry Torokhov <dtor@mail.ru>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Anton Vorontsov <cbouatmailru@gmail.com>, Greg Kroah-Hartman <greg@kroah.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
-Message-ID: <20110208224433.WSXSKrGUMKToHDnQujCZZ6mJfwLhdGkmo6Mvs81JRhE@z>
+To: Lars-Peter Clausen <lars@metafoo.de>
+Cc: linux-kernel@vger.kernel.org, David Brownell <dbrownell@users.sourceforge.net>, Eric Miao <eric.y.miao@gmail.com>, Dmitry Torokhov <dtor@mail.ru>, "Arnd Bergmann (maintainer:GENERIC INCLUDE/A...)" <arnd@arndb.de>, "Andrew Morton (commit_signer:4/8=50%)" <akpm@linux-foundation.org>, "Mark Brown (commit_signer:1/8=12%)" <broonie@opensource.wolfsonmicro.com>, "Anton Vorontsov (commit_signer:1/8=12%)" <cbouatmailru@gmail.com>, "Greg Kroah-Hartman (commit_signer:1/8=12%)" <greg@kroah.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
+Message-ID: <20110209133400.DFmNCETd10LQgSYUMWHVI0jvCe-WWkH0QnS92_6gZ94@z>
 
-The gpio subsystems offers an API which requires a dependency on GENERIC_GPIO
-when used by drivers. There is also implementation framework of this API, so
-archs can select GPIOLIB if they intend to use it. But they don't have to, they
-can still provide GENERIC_GPIO without GPIOLIB using custom routines.
 
-Commit 3e45f1d1155894e6f4291f5536b224874d52d8e2 (gpio: introduce
-gpio_request_one() and friends) added some functions, defines and a struct to
-the API, but made them available only for GPIOLIB. So, drivers using these new
-functions will fail in the case of GENERIC_GPIO && !GPIOLIB.
+--hQiwHBbRI9kgIhsi
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-The new functions have already been added to the fallback in <linux/gpio.h>,
-but the data structure were still not available. Change this by reorganizing
-the include-files.
 
-Fixes issues like (in linux-next currently):
+> Given that these functions are pretty generic and build on top of the gen=
+eric
+> gpio interface I think they should be available if GENERIC_GPIO is select=
+ed and
+> not only just through GPIOLIB. Otherwise all the archs not using gpiolib =
+but
+> providing the gpio api would have to be patched as well.
 
-drivers/input/touchscreen/ads7846.c:959: error: 'GPIOF_DIR_IN' undeclared (first use in this function)
+I agree that could be argumented for these calls. Will try something
+later if nobody objects that approach.
 
-Signed-off-by: Wolfram Sang <w.sang@pengutronix.de>
-Cc: David Brownell <dbrownell@users.sourceforge.net>
-Cc: Eric Miao <eric.y.miao@gmail.com>
-Cc: Dmitry Torokhov <dtor@mail.ru>
----
+Regards,
 
-Based on 2.6.38-rc4. Compile tested on x86.
+   Wolfram
 
- include/asm-generic/gpio.h   |   31 +++++--------------------------
- include/linux/gpio.h         |    2 +-
- include/linux/gpio_generic.h |   26 ++++++++++++++++++++++++++
- 3 files changed, 32 insertions(+), 27 deletions(-)
- create mode 100644 include/linux/gpio_generic.h
+--=20
+Pengutronix e.K.                           | Wolfram Sang                |
+Industrial Linux Solutions                 | http://www.pengutronix.de/  |
 
-diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-index ff5c660..ebc73bc 100644
---- a/include/asm-generic/gpio.h
-+++ b/include/asm-generic/gpio.h
-@@ -4,6 +4,7 @@
- #include <linux/kernel.h>
- #include <linux/types.h>
- #include <linux/errno.h>
-+#include <linux/gpio_generic.h>
- 
- #ifdef CONFIG_GPIOLIB
- 
-@@ -158,6 +159,10 @@ extern int gpio_set_debounce(unsigned gpio, unsigned debounce);
- extern int gpio_get_value_cansleep(unsigned gpio);
- extern void gpio_set_value_cansleep(unsigned gpio, int value);
- 
-+extern int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
-+extern int gpio_request_array(struct gpio *array, size_t num);
-+extern void gpio_free_array(struct gpio *array, size_t num);
-+
- 
- /* A platform's <asm/gpio.h> code may want to inline the I/O calls when
-  * the GPIO is constant and refers to some always-present controller,
-@@ -170,32 +175,6 @@ extern int __gpio_cansleep(unsigned gpio);
- 
- extern int __gpio_to_irq(unsigned gpio);
- 
--#define GPIOF_DIR_OUT	(0 << 0)
--#define GPIOF_DIR_IN	(1 << 0)
--
--#define GPIOF_INIT_LOW	(0 << 1)
--#define GPIOF_INIT_HIGH	(1 << 1)
--
--#define GPIOF_IN		(GPIOF_DIR_IN)
--#define GPIOF_OUT_INIT_LOW	(GPIOF_DIR_OUT | GPIOF_INIT_LOW)
--#define GPIOF_OUT_INIT_HIGH	(GPIOF_DIR_OUT | GPIOF_INIT_HIGH)
--
--/**
-- * struct gpio - a structure describing a GPIO with configuration
-- * @gpio:	the GPIO number
-- * @flags:	GPIO configuration as specified by GPIOF_*
-- * @label:	a literal description string of this GPIO
-- */
--struct gpio {
--	unsigned	gpio;
--	unsigned long	flags;
--	const char	*label;
--};
--
--extern int gpio_request_one(unsigned gpio, unsigned long flags, const char *label);
--extern int gpio_request_array(struct gpio *array, size_t num);
--extern void gpio_free_array(struct gpio *array, size_t num);
--
- #ifdef CONFIG_GPIO_SYSFS
- 
- /*
-diff --git a/include/linux/gpio.h b/include/linux/gpio.h
-index 32720ba..584ceb6 100644
---- a/include/linux/gpio.h
-+++ b/include/linux/gpio.h
-@@ -11,9 +11,9 @@
- #include <linux/kernel.h>
- #include <linux/types.h>
- #include <linux/errno.h>
-+#include <linux/gpio_generic.h>
- 
- struct device;
--struct gpio;
- struct gpio_chip;
- 
- /*
-diff --git a/include/linux/gpio_generic.h b/include/linux/gpio_generic.h
-new file mode 100644
-index 0000000..d662697
---- /dev/null
-+++ b/include/linux/gpio_generic.h
-@@ -0,0 +1,26 @@
-+#ifndef __LINUX_GPIO_GENERIC_H
-+#define __LINUX_GPIO_GENERIC_H
-+
-+/**
-+ * struct gpio - a structure describing a GPIO with configuration
-+ * @gpio:	the GPIO number
-+ * @flags:	GPIO configuration as specified by GPIOF_*
-+ * @label:	a literal description string of this GPIO
-+ */
-+struct gpio {
-+	unsigned	gpio;
-+	unsigned long	flags;
-+	const char	*label;
-+};
-+
-+#define GPIOF_DIR_OUT	(0 << 0)
-+#define GPIOF_DIR_IN	(1 << 0)
-+
-+#define GPIOF_INIT_LOW	(0 << 1)
-+#define GPIOF_INIT_HIGH	(1 << 1)
-+
-+#define GPIOF_IN		(GPIOF_DIR_IN)
-+#define GPIOF_OUT_INIT_LOW	(GPIOF_DIR_OUT | GPIOF_INIT_LOW)
-+#define GPIOF_OUT_INIT_HIGH	(GPIOF_DIR_OUT | GPIOF_INIT_HIGH)
-+
-+#endif /* __LINUX_GPIO_GENERIC_H */
--- 
-1.7.2.3
+--hQiwHBbRI9kgIhsi
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+Content-Disposition: inline
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iEYEARECAAYFAk1Sl8gACgkQD27XaX1/VRtilACfXnxlKX0baCO8Dj6/Ax0JLw7I
+Jh8An3e8cIiFkGF0I2Tvz7TadpMSBTFF
+=P6FG
+-----END PGP SIGNATURE-----
+
+--hQiwHBbRI9kgIhsi--
