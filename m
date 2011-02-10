@@ -1,150 +1,155 @@
-From: akpm@linux-foundation.org
-Subject: + arch-x86-include-asm-delayh-fix-udelay-and-ndelay-for-8-bit-args.patch added to -mm tree
-Date: Thu, 10 Feb 2011 13:37:14 -0800
-Message-ID: <201102102211.p1AMBVPW021422@imap1.linux-foundation.org>
-Reply-To: linux-kernel@vger.kernel.org
-Return-path: <mm-commits-owner@vger.kernel.org>
-Sender: mm-commits-owner@vger.kernel.org
-To: mm-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 00/75] genirq: Overhaul for 2.6.39
+Date: Thu, 10 Feb 2011 23:35:49 -0000
+Message-ID: <20110210222908.661199947@linutronix.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.tglx.de ([62.245.132.106]:44005 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757429Ab1BJXgh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Feb 2011 18:36:37 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Linus Torvals <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>
 
+This is a major overhaul of the generic interrupt layer.
 
-The patch titled
-     arch/x86/include/asm/delay.h: fix udelay() and ndelay() for 8-bit args
-has been added to the -mm tree.  Its filename is
-     arch-x86-include-asm-delayh-fix-udelay-and-ndelay-for-8-bit-args.patch
+     - Namespace cleanup
 
-Before you just go and hit "reply", please:
-   a) Consider who else should be cc'ed
-   b) Prefer to cc a suitable mailing list as well
-   c) Ideally: find the original patch on the mailing list and do a
-      reply-to-all to that, adding suitable additional cc's
+     - Further encapsulation of the core state
 
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+     - Spurious/Poll handling fixes
 
-See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-out what to do about this
+     - Stop setaffinity blindly manipulating affinity mask
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+     - Cleanups and enhancements all over the place
 
-------------------------------------------------------
-Subject: arch/x86/include/asm/delay.h: fix udelay() and ndelay() for 8-bit args
-From: Andrew Morton <akpm@linux-foundation.org>
+1) Namespace cleanup
 
-With a non-constant 8-bit argument, a call to udelay() generates a warning:
+   I reworked the slightly confusing (sorry, my bad) namespace of the
+   various accessor functions. They follow a simple scheme now:
 
-drivers/gpu/drm/radeon/atom.c: In function 'atom_op_delay':
-drivers/gpu/drm/radeon/atom.c:654: warning: comparison is always false due to limited range of data type
+   irq_set/get_xxx(unsigned int irq, ...)
+   irq_data_set/get_xxx(struct irq_data *d, ...)
 
-The code looks like it works OK with an 8-bit arg, and the calling code is
-doing nothing wrong, so udelay() needs fixing.
+   That's the first patch in the series and I'm going to apply it to
+   a separate rc-4 based branch which everybody can pull in to
+   do the changes now in his tree.
 
-Fixing it was rather tricky.  Simply typecasting `n' in the comparison with
-20000 didn't change anything.  Hence the divide-by-20000 trick.
+2) Encapsulation
 
-Using a do{}while loop didn't work because udelay() is used in ?: statements,
-hence the ({...}) construct.
+   After __do_IRQ() was finally gone (Thanks to all involved!) I
+   wanted to restructure the core status handling and cleanup the
+   IRQ_* flag space.
 
-While I was there I replaced the brain-bending ?:?:?: mess with nice if/else
-code.
+   A quick grep over the tree made me really shudder, so I converted
+   13 archs which are known to follow core changes slow to the new
+   irq_chip callback functions and cleaned up the irq_desc accessors
+   while at it. That way I learned also a lot about arch requirements.
 
-Probably other architectures are generating the same warning and can use a
-similar change.
+   Then I looked at the remaining places which deal with
+   irq_desc->status directly.
 
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+   1) Special EOI handling in sparc64/mips/sh. Easy to replace.
 
- arch/x86/include/asm/delay.h |   33 +++++++++++++++++++++++++++------
- 1 file changed, 27 insertions(+), 6 deletions(-)
+   2) Random abusers of chained_interrupt_handler. The worst offender
+      is arch/powerpc/sysdev/fsl_msi.c, which implements a combo
+      eoi/level flow handler instead of using the existing ones.
 
-diff -puN arch/x86/include/asm/delay.h~arch-x86-include-asm-delayh-fix-udelay-and-ndelay-for-8-bit-args arch/x86/include/asm/delay.h
---- a/arch/x86/include/asm/delay.h~arch-x86-include-asm-delayh-fix-udelay-and-ndelay-for-8-bit-args
-+++ a/arch/x86/include/asm/delay.h
-@@ -16,15 +16,36 @@ extern void __ndelay(unsigned long nsecs
- extern void __const_udelay(unsigned long xloops);
- extern void __delay(unsigned long loops);
- 
-+/*
-+ * The weird n/20000 thing suppresses a "comparison is always false due to
-+ * limited range of data type" warning with non-const 8-bit arguments.
-+ */
-+
- /* 0x10c7 is 2**32 / 1000000 (rounded up) */
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
--	__udelay(n))
-+#define udelay(n)							\
-+	({								\
-+		if (__builtin_constant_p(n)) {				\
-+			if ((n) / 20000 >= 1)				\
-+				 __bad_udelay();			\
-+			else						\
-+				__const_udelay((n) * 0x10c7ul);		\
-+		} else {						\
-+			__udelay(n);					\
-+		}							\
-+	})
- 
- /* 0x5 is 2**32 / 1000000000 (rounded up) */
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
-+#define ndelay(n)							\
-+	({								\
-+		if (__builtin_constant_p(n)) {				\
-+			if ((n) / 20000 >= 1)				\
-+				__bad_ndelay();				\
-+			else						\
-+				__const_udelay((n) * 5ul);		\
-+		} else {						\
-+			__ndelay(n);					\
-+		}							\
-+	})
- 
- void use_tsc_delay(void);
- 
-_
+   3) Random places which quirk around their chip oddities instead of
+      looking for solutions which can be made generic. One of them is
+      the requirement to mask irq chips before setting the trigger
+      type. Why is nobody talking to me ?
 
-Patches currently in -mm which might be from akpm@linux-foundation.org are
+   4) Random leftovers from the __do_IRQ() semantics which are easy to
+      cleanup.
 
-origin.patch
-linux-next.patch
-linux-next-rejects.patch
-next-remove-localversion.patch
-i-need-old-gcc.patch
-arch-alpha-kernel-systblss-remove-debug-check.patch
-mm-vmap-area-cache.patch
-arch-x86-include-asm-delayh-fix-udelay-and-ndelay-for-8-bit-args.patch
-drivers-gpu-drm-radeon-atomc-fix-warning.patch
-leds-convert-bd2802-driver-to-dev_pm_ops-fix.patch
-leds-route-kbd-leds-through-the-generic-leds-layer.patch
-backlight-add-backlight-type-fix.patch
-backlight-add-backlight-type-fix-fix.patch
-fs-ocfs2-dlm-dlmdomainc-avoid-a-gfp_atomic-allocation.patch
-drivers-message-fusion-mptsasc-fix-warning.patch
-drbd-fix-warning.patch
-mm.patch
-mm-allow-gup-to-fail-instead-of-waiting-on-a-page-fix.patch
-mm-batch-free-pcp-list-if-possible-fix.patch
-frv-duplicate-output_buffer-of-e03-checkpatch-fixes.patch
-hpet-factor-timer-allocate-from-open.patch
-arch-alpha-include-asm-ioh-s-extern-inline-static-inline.patch
-kernel-cpuc-fix-many-errors-related-to-style-fix.patch
-epoll-fix-compiler-warning-and-optimize-the-non-blocking-path.patch
-lib-hexdumpc-make-hex2bin-return-the-updated-src-address.patch
-fs-binfmt_miscc-use-kernels-hex_to_bin-method-fix.patch
-fs-binfmt_miscc-use-kernels-hex_to_bin-method-fix-fix.patch
-scatterlist-new-helper-functions.patch
-crash_dump-export-is_kdump_kernel-to-modules-consolidate-elfcorehdr_addr-setup_elfcorehdr-and-saved_max_pfn-fix.patch
-crash_dump-export-is_kdump_kernel-to-modules-consolidate-elfcorehdr_addr-setup_elfcorehdr-and-saved_max_pfn-fix-fix.patch
-journal_add_journal_head-debug.patch
-slab-leaks3-default-y.patch
-put_bh-debug.patch
-memblock-add-input-size-checking-to-memblock_find_region.patch
-memblock-add-input-size-checking-to-memblock_find_region-fix.patch
+   5) Initializations with IRQ_DISABLED and random IRQ_ flags.
+      IRQ_DISABLED is core internal state and already set by default.
+      The settable flags have to use the provided modifier functions.
 
+   6) Weird flow handlers in m68knommu/arm/powerpc. All of them can
+      be either replaced by existing handlers or can use an existing
+      handler with minimal modifications. Patches are already out.
+
+   7) Totally broken debug code in gpiolib and a copy of the same in
+      some arm Soc code. Patch is in this series to kill it. Also
+      remove unused code in arm/mach-tegra which seems to be some
+      relict from the android mess.
+
+   So there is no real requirement to expose the guts of the generic
+   irq code to the world.
+
+   Even if all is cleaned up, I'm tired of:
+
+   	- Having to chase the creative abusage all the time
+
+	- People not talking to me about their special requirements
+	
+	- Spending another day to find out that someone had typoed
+	  desc->status |= IRQ_LEVEL; into desc->status = IRQ_LEVEL;
+	  in some weird arch code and then complaining about the
+	  core code playing silly buggers.
+
+   So I decided to encapsulate the state into the core and make it
+   hard to access and offenders easy to find. For now I keep the
+   existing and used IRQ_* status bits up to date, unless
+   GENERIC_HARDIRQS_NO_COMPAT=y which can be selected by the
+   architecture. Be aware that not setting that config adds extra
+   overhead to the core code.
+
+   For all real requirements which I found, I provided solutions
+   either in the core itself or information accessible via a state
+   field in irq_data, which is handed to the irq_chip functions. So
+   setting GENERIC_HARDIRQS_NO_COMPAT=y should be not a big deal on
+   most architectures. There are some gpio and mfd drivers which need
+   to be converted to threaded interrupts instead of having the old
+   style racy and ugly disable_irq_nosync/schedule_work()
+   implementation.
+
+   There are a few places which need some thought like the powerpc
+   kexec shutdown, but even that stuff should be generic as it makes
+   sense to cleanup irqs before booting into a new kernel. Nothing
+   which can't be solved though.
+
+   Note that most accessors to irq_desc are going away sooner than
+   later and long term I want to remove irq_desc from the public space
+   completely.
+
+   One step to this is a generic show_interrupts() function, which
+   replaces the 23 copies with random modifications and different bugs
+   inside. Unless you switch over you will be reminded by a nice
+   deprecated warning.
+
+3) Spurious/Poll 
+
+   This is a long neglected piece of code and got an overhaul so it's
+   simpler and less broken than it used to be.
+
+4) irq_setaffinity()
+
+   Does not longer blindly update the affinity mask before calling
+   into the arch code. Also the chip functions can now return a 
+   return code, which tells the core that it modified the mask
+   itself. That's useful when arch code restricts the mask further
+   than the core code can do.
+
+5) Cleanups and enhancements
+
+   Main cleanup happened in poll and the consolidation of the flow
+   handlers which moved their duplicated code into handle_irq_event
+   
+   irq_set_type() now checks chip.flags for a chip flag, which indicates
+   that the chip needs to be masked before setting the trigger type.
+   That avoids duplicated code and fiddling with internal core state.
+
+If no major outcry comes I'm going to push this into tip/irq/core and
+next.
+
+A preview is available at:
+
+git://git.kernel.org/pub/scm/linux/kernel/git/tglx/linux-2.6-genirq.git irq/core
+
+Thanks,
+
+	tglx
