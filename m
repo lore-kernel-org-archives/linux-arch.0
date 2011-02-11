@@ -1,62 +1,40 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [patch 00/75] genirq: Overhaul for 2.6.39
-Date: Fri, 11 Feb 2011 14:59:06 +0100
-Message-ID: <20110211135906.GA16358@elte.hu>
-References: <20110210222908.661199947@linutronix.de>
- <AANLkTi=waRQcvdxyKUgcLZ1r-hwUcAVZeVDcBa-apyK2@mail.gmail.com>
- <alpine.LFD.2.00.1102110058450.31804@localhost6.localdomain6>
- <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
- <alpine.LFD.2.00.1102110135320.31804@localhost6.localdomain6>
- <alpine.LFD.2.00.1102111359580.31804@localhost6.localdomain6>
+Date: Fri, 11 Feb 2011 15:26:11 +0100 (CET)
+Message-ID: <alpine.LFD.2.00.1102111516020.31804@localhost6.localdomain6>
+References: <20110210222908.661199947@linutronix.de> <AANLkTi=waRQcvdxyKUgcLZ1r-hwUcAVZeVDcBa-apyK2@mail.gmail.com> <alpine.LFD.2.00.1102110058450.31804@localhost6.localdomain6> <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
+ <alpine.LFD.2.00.1102110135320.31804@localhost6.localdomain6> <alpine.LFD.2.00.1102111359580.31804@localhost6.localdomain6> <20110211135906.GA16358@elte.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:57101 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756214Ab1BKN7V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Feb 2011 08:59:21 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.00.1102111359580.31804@localhost6.localdomain6>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1375176427-1297434372=:31804"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110211135906.GA16358@elte.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>
+List-Id: linux-arch.vger.kernel.org
 
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-* Thomas Gleixner <tglx@linutronix.de> wrote:
+---1463795968-1375176427-1297434372=:31804
+Content-Type: TEXT/PLAIN; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 
-> B1;2401;0cOn Fri, 11 Feb 2011, Thomas Gleixner wrote:
-> > On Thu, 10 Feb 2011, Linus Torvalds wrote:
-> > So yes, it's net more source lines, but not resulting in any binary
-> > bloat.
->=20
-> Just checked. When the compat layer goes away it will kill about 500
-> lines. So it's less code with better encapsulation.
->=20
-> Once all genirq archs convert to the generic irq_show_interrupts(),
-> this will kill another 1000+ lines.
+On Fri, 11 Feb 2011, Ingo Molnar wrote:
+> * Thomas Gleixner <tglx@linutronix.de> wrote:
+> >  129 files changed, 4353 insertions(+), 5400 deletions(-)
+> 
+> Did I get the file count right - roughtly how many files are affected throughout all 
+> architectures? The changes are massively intrusive and widely spread out so we 
+> cannot do them in one go, right?
 
-So while this is the first step:
+Alone the stuff which fiddles in irq_desc->status for whatever reasons
+is >100 files in arch/. And that has do be done manually case by case.
 
-> =A029 files changed, 1353 insertions(+), 899 deletions(-)
-
-It turns into this end result (mockup):
-
-> =A0129 files changed, 1353 insertions(+), 2400 deletions(-)
-
-Right? Or, more likely, considering all the surrounding code changes, s=
-omething=20
-like:
-
-> =A0129 files changed, 4353 insertions(+), 5400 deletions(-)
-
-Did I get the file count right - roughtly how many files are affected t=
-hroughout all=20
-architectures? The changes are massively intrusive and widely spread ou=
-t so we=20
-cannot do them in one go, right?
+The namespace cleanup affects about 300 files in arch, but that can be
+done in one go right after -rc1 if I manage to get the regex straight :)
 
 Thanks,
 
-	Ingo
+	tglx
+---1463795968-1375176427-1297434372=:31804--
