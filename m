@@ -1,68 +1,69 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/75] genirq: Overhaul for 2.6.39
-Date: Fri, 11 Feb 2011 01:49:17 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.1102110135320.31804@localhost6.localdomain6>
-References: <20110210222908.661199947@linutronix.de> <AANLkTi=waRQcvdxyKUgcLZ1r-hwUcAVZeVDcBa-apyK2@mail.gmail.com> <alpine.LFD.2.00.1102110058450.31804@localhost6.localdomain6> <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: Request (2nd) for unicore32 architecture codes to merge into linux-next
+Date: Fri, 11 Feb 2011 11:18:40 +0800
+Message-ID: <022d01cbc99a$63717e80$2a547b80$@mprc.pku.edu.cn>
+References: <01c701cbba0f$08185800$18490800$@mprc.pku.edu.cn> <alpine.LFD.2.00.1102062254560.31804@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1841416187-1297385361=:31804"
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:45887 "EHLO www.tglx.de"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:58850 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756873Ab1BKAtd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Feb 2011 19:49:33 -0500
-In-Reply-To: <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
+	id S1750910Ab1BKDTg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Feb 2011 22:19:36 -0500
+In-Reply-To: <alpine.LFD.2.00.1102062254560.31804@localhost6.localdomain6>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>
+To: 'Thomas Gleixner' <tglx@linutronix.de>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
+Cc: sfr@canb.auug.org.au, 'Arnd Bergmann' <arnd@arndb.de>, gregkh@suse.de, jbarnes@virtuousgeek.org, dmitry.torokhov@gmail.com, dtor@mail.ru, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-next@vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
 
----1463795968-1841416187-1297385361=:31804
-Content-Type: TEXT/PLAIN; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
 
-On Thu, 10 Feb 2011, Linus Torvalds wrote:
-
-> On Thu, Feb 10, 2011 at 4:00 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> >
-> >  29 files changed, 1353 insertions(+), 899 deletions(-)
+> >  arch/unicore32/kernel/time.c                  |  148 +++++
 > 
-> So what is it that adds so many lines? Your description made me think
-> "cleanups", not "50% more code"
+> static struct clock_event_device ckevt_puv3_osmr0 ...
+> #ifdef CONFIG_ARCH_FPGA
+>         .shift          = 18, /* correct shift val: 16, but warn_on_slowpath */
+> #else
+>         .shift          = 30,
+> #endif
 > 
-> (Yeah, yeah, I could look at the code, but I also want to point out
-> that this really doesn't look like much of an improvement from a
-> high-level standpoint)
+> ....
+>         ckevt_puv3_osmr0.mult =
+>                 div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, ckevt_puv3_osmr0.shift);
+> 
+> Please use the function which calculates the optimizes mult/shift
+> values for you depending on the clock frequency.
+> 
+> clockevents_calc_mult_shift() is your friend.
+> 
+> >  arch/unicore32/kernel/irq.c                   |  426 +++++++++++++
+> 
+> Please convert your irq_chips to the new function pointers:
+> 
+>        .mask -> .irq_mask
+>        ...
+> 
+> The new functions replace the "unsigned int irq" argument with
+> "struct irq_data *d".
+> 
+> So conversion for your chips is simply
+> 
+> s/unsigned int irq/struct irq_data *d/
+> 
+> and
+> 
+> s/irq/d->irq/ in the implementation.
+> 
+> Then your arch should select: GENERIC_HARDIRQS_NO_DEPRECATED
+> 
+> Otherwise I'm happy with your irq and time related patches.
+> 
+> Thanks,
+> 
+> 	tglx
+Thanks Thomas. I will apply the advice and test it lator.
 
-Part of it is then namespace cleanup which makes the deprecated
-functions wrappers around the new ones. Easy to solve with a script.
-
-More stuff will go way again when the wrappers which I added to
-prevent wreckage of arch/* fiddling with irq_desc are gone
-
-The other things are simple inline functions which provide accessors
-to state which is intentionally named:
-
-   state_use_accessors, 
-
-For simple reasons:
-
-1) while you type it it should click that you're doing something wrong
-
-2) easy to grep for to find offenderrs. git grep status sucks
-
-There are more wrappers in the core code kernel/irq solely to prevent
-using anything which got deprecated.
-
-So yes, it's net more source lines, but not resulting in any binary
-bloat.
-
-Thanks,
-
-	tglx
-
-
-
----1463795968-1841416187-1297385361=:31804--
+Guan Xuetao
