@@ -1,45 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:35840 "EHLO www.tglx.de"
+Received: from ozlabs.org ([203.10.76.45]:52451 "EHLO ozlabs.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756674Ab1BKO1T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Feb 2011 09:27:19 -0500
-Date: Fri, 11 Feb 2011 15:26:11 +0100 (CET)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/75] genirq: Overhaul for 2.6.39
-In-Reply-To: <20110211135906.GA16358@elte.hu>
-Message-ID: <alpine.LFD.2.00.1102111516020.31804@localhost6.localdomain6>
-References: <20110210222908.661199947@linutronix.de> <AANLkTi=waRQcvdxyKUgcLZ1r-hwUcAVZeVDcBa-apyK2@mail.gmail.com> <alpine.LFD.2.00.1102110058450.31804@localhost6.localdomain6> <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
- <alpine.LFD.2.00.1102110135320.31804@localhost6.localdomain6> <alpine.LFD.2.00.1102111359580.31804@localhost6.localdomain6> <20110211135906.GA16358@elte.hu>
+	id S1755433Ab1BNDwh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 Feb 2011 22:52:37 -0500
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v2] module: deal with alignment issues in built-in module parameters
+Date: Mon, 14 Feb 2011 09:34:17 +1030
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com> <20110211220356.GA13504@dtor-ws.eng.vmware.com>
+In-Reply-To: <20110211220356.GA13504@dtor-ws.eng.vmware.com>
 MIME-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1375176427-1297434372=:31804"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201102140934.17671.rusty@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>
-Message-ID: <20110211142611.2Ud0qNCJNUeZJjz9A6lYS3DT6uiMVN1p0wXp4As803Q@z>
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20110213230417.KvZKeazAErr6kVoys6DFe-8pUs29WJUG2LR3gCQRYFI@z>
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
-
----1463795968-1375176427-1297434372=:31804
-Content-Type: TEXT/PLAIN; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
-
-On Fri, 11 Feb 2011, Ingo Molnar wrote:
-> * Thomas Gleixner <tglx@linutronix.de> wrote:
-> >  129 files changed, 4353 insertions(+), 5400 deletions(-)
+On Sat, 12 Feb 2011 08:33:56 am Dmitry Torokhov wrote:
+> >From 03f1332fc02af7af0d06ab409e3ec72107637845 Mon Sep 17 00:00:00 2001
+> From: Dmitry Torokhov <dtor@vmware.com>
+> Date: Mon, 7 Feb 2011 13:47:20 -0800
+> Subject: [PATCH] module: deal with alignment issues in built-in module parameters
 > 
-> Did I get the file count right - roughtly how many files are affected throughout all 
-> architectures? The changes are massively intrusive and widely spread out so we 
-> cannot do them in one go, right?
+> As DaveM said, we can't reliably put structures into independent
+> objects, put them into a special section, and then expect array
+> access over them (via the section boundaries) after linking the
+> objects together to just "work" due to variable alignment choices
+> in different situations. The only solution that seems to work
+> reliably is to make an array of plain pointers to the objects in
+> question and put those pointers in the special section.
 
-Alone the stuff which fiddles in irq_desc->status for whatever reasons
-is >100 files in arch/. And that has do be done manually case by case.
-
-The namespace cleanup affects about 300 files in arch, but that can be
-done in one go right after -rc1 if I manage to get the regex straight :)
+I've applied this, but won't put it to linux-next.  I'll let it stew for
+a bit longer unless someone actually reports a problem with the current
+code.
 
 Thanks,
-
-	tglx
----1463795968-1375176427-1297434372=:31804--
+Rusty.
