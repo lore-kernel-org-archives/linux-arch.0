@@ -1,78 +1,36 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCHv2 11/11] unicore32 core architecture: signals handling
-Date: Sun, 13 Feb 2011 16:09:21 +0000
-Message-ID: <20110213160921.GA3239@ZenIV.linux.org.uk>
-References: <02f701cbcb49$1defd860$59cf8920$@mprc.pku.edu.cn>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH v2] module: deal with alignment issues in built-in module parameters
+Date: Mon, 14 Feb 2011 09:34:17 +1030
+Message-ID: <201102140934.17671.rusty@rustcorp.com.au>
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com> <20110211220356.GA13504@dtor-ws.eng.vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:55690 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752245Ab1BMQJZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Feb 2011 11:09:25 -0500
-Content-Disposition: inline
-In-Reply-To: <02f701cbcb49$1defd860$59cf8920$@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, 'Greg KH' <greg@kroah.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <20110211220356.GA13504@dtor-ws.eng.vmware.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Feb 13, 2011 at 02:42:00PM +0800, Guan Xuetao wrote:
-> This patch implements signals.
+On Sat, 12 Feb 2011 08:33:56 am Dmitry Torokhov wrote:
+> >From 03f1332fc02af7af0d06ab409e3ec72107637845 Mon Sep 17 00:00:00 2001
+> From: Dmitry Torokhov <dtor@vmware.com>
+> Date: Mon, 7 Feb 2011 13:47:20 -0800
+> Subject: [PATCH] module: deal with alignment issues in built-in module parameters
+> 
+> As DaveM said, we can't reliably put structures into independent
+> objects, put them into a special section, and then expect array
+> access over them (via the section boundaries) after linking the
+> objects together to just "work" due to variable alignment choices
+> in different situations. The only solution that seems to work
+> reliably is to make an array of plain pointers to the objects in
+> question and put those pointers in the special section.
 
-> +static int restore_sigframe(struct pt_regs *regs, struct sigframe __user *sf)
-> +{
-> +	sigset_t set;
-> +	int err;
-> +
-> +	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
-> +	if (err == 0) {
-> +		sigdelsetmask(&set, ~_BLOCKABLE);
-> +		spin_lock_irq(&current->sighand->siglock);
-> +		current->blocked = set;
-> +		recalc_sigpending();
-> +		spin_unlock_irq(&current->sighand->siglock);
-> +	}
-> +
-> +	err |= __get_user(regs->UCreg_00, &sf->uc.uc_mcontext.regs.UCreg_00);
-> +	err |= __get_user(regs->UCreg_01, &sf->uc.uc_mcontext.regs.UCreg_01);
-> +	err |= __get_user(regs->UCreg_02, &sf->uc.uc_mcontext.regs.UCreg_02);
-> +	err |= __get_user(regs->UCreg_03, &sf->uc.uc_mcontext.regs.UCreg_03);
-> +	err |= __get_user(regs->UCreg_04, &sf->uc.uc_mcontext.regs.UCreg_04);
-> +	err |= __get_user(regs->UCreg_05, &sf->uc.uc_mcontext.regs.UCreg_05);
-> +	err |= __get_user(regs->UCreg_06, &sf->uc.uc_mcontext.regs.UCreg_06);
-> +	err |= __get_user(regs->UCreg_07, &sf->uc.uc_mcontext.regs.UCreg_07);
-> +	err |= __get_user(regs->UCreg_08, &sf->uc.uc_mcontext.regs.UCreg_08);
-> +	err |= __get_user(regs->UCreg_09, &sf->uc.uc_mcontext.regs.UCreg_09);
-> +	err |= __get_user(regs->UCreg_10, &sf->uc.uc_mcontext.regs.UCreg_10);
-> +	err |= __get_user(regs->UCreg_11, &sf->uc.uc_mcontext.regs.UCreg_11);
-> +	err |= __get_user(regs->UCreg_12, &sf->uc.uc_mcontext.regs.UCreg_12);
-> +	err |= __get_user(regs->UCreg_13, &sf->uc.uc_mcontext.regs.UCreg_13);
-> +	err |= __get_user(regs->UCreg_14, &sf->uc.uc_mcontext.regs.UCreg_14);
-> +	err |= __get_user(regs->UCreg_15, &sf->uc.uc_mcontext.regs.UCreg_15);
-> +	err |= __get_user(regs->UCreg_16, &sf->uc.uc_mcontext.regs.UCreg_16);
-> +	err |= __get_user(regs->UCreg_17, &sf->uc.uc_mcontext.regs.UCreg_17);
-> +	err |= __get_user(regs->UCreg_18, &sf->uc.uc_mcontext.regs.UCreg_18);
-> +	err |= __get_user(regs->UCreg_19, &sf->uc.uc_mcontext.regs.UCreg_19);
-> +	err |= __get_user(regs->UCreg_20, &sf->uc.uc_mcontext.regs.UCreg_20);
-> +	err |= __get_user(regs->UCreg_21, &sf->uc.uc_mcontext.regs.UCreg_21);
-> +	err |= __get_user(regs->UCreg_22, &sf->uc.uc_mcontext.regs.UCreg_22);
-> +	err |= __get_user(regs->UCreg_23, &sf->uc.uc_mcontext.regs.UCreg_23);
-> +	err |= __get_user(regs->UCreg_24, &sf->uc.uc_mcontext.regs.UCreg_24);
-> +	err |= __get_user(regs->UCreg_25, &sf->uc.uc_mcontext.regs.UCreg_25);
-> +	err |= __get_user(regs->UCreg_26, &sf->uc.uc_mcontext.regs.UCreg_26);
-> +	err |= __get_user(regs->UCreg_fp, &sf->uc.uc_mcontext.regs.UCreg_fp);
-> +	err |= __get_user(regs->UCreg_ip, &sf->uc.uc_mcontext.regs.UCreg_ip);
-> +	err |= __get_user(regs->UCreg_sp, &sf->uc.uc_mcontext.regs.UCreg_sp);
-> +	err |= __get_user(regs->UCreg_lr, &sf->uc.uc_mcontext.regs.UCreg_lr);
-> +	err |= __get_user(regs->UCreg_pc, &sf->uc.uc_mcontext.regs.UCreg_pc);
-> +	err |= __get_user(regs->UCreg_asr, &sf->uc.uc_mcontext.regs.UCreg_asr);
-> +
-> +	err |= !valid_user_regs(regs);
+I've applied this, but won't put it to linux-next.  I'll let it stew for
+a bit longer unless someone actually reports a problem with the current
+code.
 
-a) where is valid_user_regs() defined?
-
-b) assuming it's not always returning true (and it'd better, or you'll be able
-to do interesting things with asr here), can it fail on frame setup path?
-And what do you do if it *does* fail there and resulting SIGSEGV is caught and
-handled?
+Thanks,
+Rusty.
