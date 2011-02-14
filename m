@@ -1,48 +1,56 @@
-From: Takwa Mining Community <tcommunity2@att.net>
-Subject: Alluvial Gold Dust For Sale
-Date: Mon, 14 Feb 2011 18:28:21 -1200
-Message-ID: <4D5A1D05.5030408@att.net>
-Reply-To: tcommunity2@gmail.com
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 00/75] genirq: Overhaul for 2.6.39
+Date: Mon, 14 Feb 2011 20:01:43 +0100 (CET)
+Message-ID: <alpine.LFD.2.00.1102141958020.26192@localhost6.localdomain6>
+References: <20110210222908.661199947@linutronix.de> <AANLkTi=waRQcvdxyKUgcLZ1r-hwUcAVZeVDcBa-apyK2@mail.gmail.com> <alpine.LFD.2.00.1102110058450.31804@localhost6.localdomain6> <AANLkTin3o9eFjpe6TMmKb5LSRUT+0Y2EpD4OU4LzN8Kd@mail.gmail.com>
+ <alpine.LFD.2.00.1102110135320.31804@localhost6.localdomain6> <alpine.LFD.2.00.1102111359580.31804@localhost6.localdomain6> <20110211135906.GA16358@elte.hu> <alpine.LFD.2.00.1102111516020.31804@localhost6.localdomain6>
+ <20110213125053.GA28968@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-2023052230-1297710104=:26192"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nm14-vm1.bullet.mail.sp2.yahoo.com ([98.139.91.247]:30474 "HELO
-	nm14-vm1.bullet.mail.sp2.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751624Ab1BNSfp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Feb 2011 13:35:45 -0500
+Received: from www.tglx.de ([62.245.132.106]:54545 "EHLO www.tglx.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751836Ab1BNTC3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 14 Feb 2011 14:02:29 -0500
+In-Reply-To: <20110213125053.GA28968@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>
 
+  This message is in MIME format.  The first part should be readable text,
+  while the remaining parts are likely unreadable without MIME-aware tools.
 
-Good day
+---1463795968-2023052230-1297710104=:26192
+Content-Type: TEXT/PLAIN; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 
-My name is Opanyni Nana Yaw Dazi from (Takwa) the western region of 
-Ghana we have available the following:
+On Sun, 13 Feb 2011, Sam Ravnborg wrote:
 
-Commodity: Alluvial Gold Dust (Au)
-Quantity:  40 Kg on a weekly basis
-Fineness: 22 carats
-purity over 92.05%
-Origin: Ghana
-Our Price: $38.000 USD Negotiable
+> On Fri, Feb 11, 2011 at 03:26:11PM +0100, Thomas Gleixner wrote:
+> > On Fri, 11 Feb 2011, Ingo Molnar wrote:
+> > > * Thomas Gleixner <tglx@linutronix.de> wrote:
+> > > >  129 files changed, 4353 insertions(+), 5400 deletions(-)
+> > > 
+> > > Did I get the file count right - roughtly how many files are affected throughout all 
+> > > architectures? The changes are massively intrusive and widely spread out so we 
+> > > cannot do them in one go, right?
+> > 
+> > Alone the stuff which fiddles in irq_desc->status for whatever reasons
+> > is >100 files in arch/. And that has do be done manually case by case.
+> 
+> Some kind of arch TODO list wold be nice. Just to let the arch maintainers
+> know what you expect from them (on top of the deprecated warnings).
 
-We are not a company but a groups of small scares miners and an 
-indigence of the above mentioned community in Ghana, frequently we 
-gather our finds and sell to buyers who are interested in buying from us 
-directly and we use the cash returns for our families and the 
-development of our community, so if you are interested see below for the 
-procedures we follow in selling our product.
+One thing which can be done right now is to use the proper existing
+accessors irq_to_desc(), irq_set/clear_status_flags().
 
-PROCEDURES:
+The remaining fixes depend on the yet to be merged queue. I will do
+the namespace cleanup with cocinelle after rc1 as this is purely
+mechanical. The other few things which will be left need manual
+attendance, I will post either patches or a TODO list.
 
-Buyer or buyer's representative is to visit (GHANA) for the inspection 
-and random sampling of the commodity and we will assist in making plans 
-for the products to be shipped to buyers destination, We look forward to 
-establishing a long lasting business relationship with you as direct miners.
+Thanks,
 
-
-Thank You
-
-Opanyni Nana Yaw Daz
+	tglx
+---1463795968-2023052230-1297710104=:26192--
