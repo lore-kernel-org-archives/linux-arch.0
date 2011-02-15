@@ -1,29 +1,40 @@
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Date: Tue, 15 Feb 2011 15:00:17 +0100
-Message-ID: <20110215150017.498fda48@mschwide.boeblingen.de.ibm.com>
+Date: Tue, 15 Feb 2011 16:39:48 +0100
+Message-ID: <20110215163948.429be561@mschwide.boeblingen.de.ibm.com>
 References: <20101126143843.801484792@chello.nl>
 	<alpine.LSU.2.00.1101172301340.2899@sister.anvils>
 	<1295457039.28776.137.camel@laptop>
+	<20110215150017.498fda48@mschwide.boeblingen.de.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1295457039.28776.137.camel@laptop>
-Sender: owner-linux-mm@kvack.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtagate2.uk.ibm.com ([194.196.100.162]:53395 "EHLO
+	mtagate2.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754866Ab1BOPjr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Feb 2011 10:39:47 -0500
+In-Reply-To: <20110215150017.498fda48@mschwide.boeblingen.de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Wed, 19 Jan 2011 18:10:39 +0100
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+On Tue, 15 Feb 2011 15:00:17 +0100
+Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
 
-> Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
-> bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
-> s390 use the generic bits like sparc and powerpc (see patch 16)?
+> On Wed, 19 Jan 2011 18:10:39 +0100
+> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> 
+> > Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
+> > bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
+> > s390 use the generic bits like sparc and powerpc (see patch 16)?
+> 
+> That should do it. 229 deletions vs. 74 insertions, not bad. And the
+> tlb flushing code actually got simpler. Even better :-)
 
-That should do it. 229 deletions vs. 74 insertions, not bad. And the
-tlb flushing code actually got simpler. Even better :-)
+Darn, forgot "quilt refresh". The last patch I've sent is the old,
+broken one. This one is better..
 
 --
 Subject: [PATCH] s390: use generic RCP page-table freeing
@@ -541,16 +552,8 @@ Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
  {
  	struct page *page;
 
-
 -- 
 blue skies,
    Martin.
 
 "Reality continues to ruin my life." - Calvin.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
