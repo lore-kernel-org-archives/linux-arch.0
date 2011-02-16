@@ -1,555 +1,638 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([194.196.100.164]:55090 "EHLO
-	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751466Ab1BOOAU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Feb 2011 09:00:20 -0500
-Date: Tue, 15 Feb 2011 15:00:17 +0100
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 00/21] mm: Preemptibility -v6
-Message-ID: <20110215150017.498fda48@mschwide.boeblingen.de.ibm.com>
-In-Reply-To: <1295457039.28776.137.camel@laptop>
-References: <20101126143843.801484792@chello.nl>
-	<alpine.LSU.2.00.1101172301340.2899@sister.anvils>
-	<1295457039.28776.137.camel@laptop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from mprc.pku.edu.cn ([162.105.203.9]:42697 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755489Ab1BPHuP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Feb 2011 02:50:15 -0500
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: [PATCH 07/12] unicore32 additional architecture files: boot process
+Date: Wed, 16 Feb 2011 15:50:09 +0800
+Message-ID: <014f01cbcdae$22412790$66c376b0$@mprc.pku.edu.cn>
+MIME-Version: 1.0
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20110215140017.AGj5kgeQOYcbnUkjSCM2teM2yhv4ERxpsXz7YHf7DCo@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, 'Greg KH' <greg@kroah.com>
+Message-ID: <20110216075009.W8q0LlFSVuvb-mIo9d4-AdOGnY1zdcpcrHnpvEkOfis@z>
 
-On Wed, 19 Jan 2011 18:10:39 +0100
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+Message-Id: <a62b51cab5f387297db1cade6ccc835711cee4f6.1297842537.git.gxt@mprc.pku.edu.cn>
+In-Reply-To: <cover.1297842537.git.gxt@mprc.pku.edu.cn>
+References: <cover.1297842537.git.gxt@mprc.pku.edu.cn>
+From: GuanXuetao <gxt@mprc.pku.edu.cn>
+Date: Sat, 15 Jan 2011 18:23:31 +0800
 
-> Martin, while doing the below DEFINE_PER_CPU removal I saw you had a
-> bunch of RCU table removal thingies in arch/s390/mm/pgtable.c, could
-> s390 use the generic bits like sparc and powerpc (see patch 16)?
+This patch implements booting process, including uncompression process.
 
-That should do it. 229 deletions vs. 74 insertions, not bad. And the
-tlb flushing code actually got simpler. Even better :-)
-
---
-Subject: [PATCH] s390: use generic RCP page-table freeing
-
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-
-Now that we have a generic implementation for RCU based page table
-freeing, use it for s390 as well. It saves a couple of lines.
-
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 ---
- arch/s390/Kconfig               |    1 
- arch/s390/include/asm/pgalloc.h |   19 +--
- arch/s390/include/asm/tlb.h     |   91 ++++++++----------
- arch/s390/mm/pgtable.c          |  192 +++++-----------------------------------
- 4 files changed, 74 insertions(+), 229 deletions(-)
+ arch/unicore32/boot/Makefile                  |   47 ++++++
+ arch/unicore32/boot/compressed/Makefile       |   68 ++++++++
+ arch/unicore32/boot/compressed/head.S         |  204 +++++++++++++++++++++++++
+ arch/unicore32/boot/compressed/misc.c         |  126 +++++++++++++++
+ arch/unicore32/boot/compressed/piggy.S.in     |    6 +
+ arch/unicore32/boot/compressed/vmlinux.lds.in |   61 ++++++++
+ arch/unicore32/include/mach/uncompress.h      |   34 ++++
+ 7 files changed, 546 insertions(+), 0 deletions(-)
+ create mode 100644 arch/unicore32/boot/Makefile
+ create mode 100644 arch/unicore32/boot/compressed/Makefile
+ create mode 100644 arch/unicore32/boot/compressed/head.S
+ create mode 100644 arch/unicore32/boot/compressed/misc.c
+ create mode 100644 arch/unicore32/boot/compressed/piggy.S.in
+ create mode 100644 arch/unicore32/boot/compressed/vmlinux.lds.in
+ create mode 100644 arch/unicore32/include/mach/uncompress.h
 
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -87,6 +87,7 @@ config S390
- 	select HAVE_KERNEL_LZO
- 	select HAVE_GET_USER_PAGES_FAST
- 	select HAVE_ARCH_MUTEX_CPU_RELAX
-+	select HAVE_RCU_TABLE_FREE
- 	select ARCH_INLINE_SPIN_TRYLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK_BH
- 	select ARCH_INLINE_SPIN_LOCK
---- a/arch/s390/include/asm/pgalloc.h
-+++ b/arch/s390/include/asm/pgalloc.h
-@@ -20,12 +20,11 @@
- #define check_pgt_cache()	do {} while (0)
- 
- unsigned long *crst_table_alloc(struct mm_struct *, int);
--void crst_table_free(struct mm_struct *, unsigned long *);
--void crst_table_free_rcu(struct mm_struct *, unsigned long *);
-+void crst_table_free(unsigned long *);
- 
- unsigned long *page_table_alloc(struct mm_struct *);
--void page_table_free(struct mm_struct *, unsigned long *);
--void page_table_free_rcu(struct mm_struct *, unsigned long *);
-+void page_table_free(unsigned long *);
+diff --git a/arch/unicore32/boot/Makefile b/arch/unicore32/boot/Makefile
+new file mode 100644
+index 0000000..79e5f88
+--- /dev/null
++++ b/arch/unicore32/boot/Makefile
+@@ -0,0 +1,47 @@
++#
++# arch/unicore32/boot/Makefile
++#
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies.
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# Copyright (C) 2001~2010 GUAN Xue-tao
++#
 +
- void disable_noexec(struct mm_struct *, struct task_struct *);
- 
- static inline void clear_table(unsigned long *s, unsigned long val, size_t n)
-@@ -95,7 +94,7 @@ static inline pud_t *pud_alloc_one(struc
- 		crst_table_init(table, _REGION3_ENTRY_EMPTY);
- 	return (pud_t *) table;
- }
--#define pud_free(mm, pud) crst_table_free(mm, (unsigned long *) pud)
-+#define pud_free(mm, pud) crst_table_free((unsigned long *) pud)
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long vmaddr)
- {
-@@ -104,7 +103,7 @@ static inline pmd_t *pmd_alloc_one(struc
- 		crst_table_init(table, _SEGMENT_ENTRY_EMPTY);
- 	return (pmd_t *) table;
- }
--#define pmd_free(mm, pmd) crst_table_free(mm, (unsigned long *) pmd)
-+#define pmd_free(mm, pmd) crst_table_free((unsigned long *) pmd)
- 
- static inline void pgd_populate_kernel(struct mm_struct *mm,
- 				       pgd_t *pgd, pud_t *pud)
-@@ -148,7 +147,7 @@ static inline pgd_t *pgd_alloc(struct mm
- 	return (pgd_t *)
- 		crst_table_alloc(mm, user_mode == SECONDARY_SPACE_MODE);
- }
--#define pgd_free(mm, pgd) crst_table_free(mm, (unsigned long *) pgd)
-+#define pgd_free(mm, pgd) crst_table_free((unsigned long *) pgd)
- 
- static inline void pmd_populate_kernel(struct mm_struct *mm,
- 				       pmd_t *pmd, pte_t *pte)
-@@ -175,9 +174,7 @@ static inline void pmd_populate(struct m
- #define pte_alloc_one_kernel(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
- #define pte_alloc_one(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
- 
--#define pte_free_kernel(mm, pte) page_table_free(mm, (unsigned long *) pte)
--#define pte_free(mm, pte) page_table_free(mm, (unsigned long *) pte)
--
--extern void rcu_table_freelist_finish(void);
-+#define pte_free_kernel(mm, pte) page_table_free((unsigned long *) pte)
-+#define pte_free(mm, pte) page_table_free((unsigned long *) pte)
- 
- #endif /* _S390_PGALLOC_H */
---- a/arch/s390/include/asm/tlb.h
-+++ b/arch/s390/include/asm/tlb.h
-@@ -29,50 +29,42 @@
- #include <asm/smp.h>
- #include <asm/tlbflush.h>
- 
-+struct mmu_table_batch {
-+	struct rcu_head rcu;
-+	unsigned int nr;
-+	void *tables[0];
-+};
++MKIMAGE := $(srctree)/scripts/mkuboot.sh
 +
-+#define MAX_TABLE_BATCH \
-+	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
++targets := Image zImage uImage
 +
-+void tlb_table_flush(struct mmu_gather *);
-+void tlb_remove_table(struct mmu_gather *, void *);
++$(obj)/Image: vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo '  Kernel: $@ is ready'
 +
- struct mmu_gather {
- 	struct mm_struct *mm;
- 	unsigned int fullmm;
--	unsigned int nr_ptes;
--	unsigned int nr_pxds;
--	unsigned int max;
--	void **array;
--	void *local[8];
-+	struct mmu_table_batch *batch;
-+	/* need_flush is used only for page tables */
-+	unsigned int need_flush : 1;
- };
- 
--static inline void __tlb_alloc_page(struct mmu_gather *tlb)
--{
--	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
--
--	if (addr) {
--		tlb->array = (void *) addr;
--		tlb->max = PAGE_SIZE / sizeof(void *);
--	}
--}
--
- static inline void tlb_gather_mmu(struct mmu_gather *tlb,
- 				  struct mm_struct *mm,
- 				  unsigned int full_mm_flush)
- {
- 	tlb->mm = mm;
--	tlb->max = ARRAY_SIZE(tlb->local);
--	tlb->array = tlb->local;
- 	tlb->fullmm = full_mm_flush;
- 	if (tlb->fullmm)
- 		__tlb_flush_mm(mm);
--	else
--		__tlb_alloc_page(tlb);
--	tlb->nr_ptes = 0;
--	tlb->nr_pxds = tlb->max;
-+	tlb->batch = NULL;
-+	tlb->need_flush = 0;
- }
- 
- static inline void tlb_flush_mmu(struct mmu_gather *tlb)
- {
--	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < tlb->max))
--		__tlb_flush_mm(tlb->mm);
--	while (tlb->nr_ptes > 0)
--		page_table_free_rcu(tlb->mm, tlb->array[--tlb->nr_ptes]);
--	while (tlb->nr_pxds < tlb->max)
--		crst_table_free_rcu(tlb->mm, tlb->array[tlb->nr_pxds++]);
-+	if (tlb->need_flush)
-+		tlb_table_flush(tlb);
- }
- 
- static inline void tlb_finish_mmu(struct mmu_gather *tlb,
-@@ -80,13 +72,8 @@ static inline void tlb_finish_mmu(struct
- {
- 	tlb_flush_mmu(tlb);
- 
--	rcu_table_freelist_finish();
--
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	if (tlb->array != tlb->local)
--		free_pages((unsigned long) tlb->array, 0);
- }
- 
- /*
-@@ -113,12 +100,11 @@ static inline void tlb_remove_page(struc
- static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- 				unsigned long address)
- {
--	if (!tlb->fullmm) {
--		tlb->array[tlb->nr_ptes++] = pte;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		page_table_free(tlb->mm, (unsigned long *) pte);
-+	if (!tlb->fullmm)
-+		/* Use LSB to distinguish crst table vs. page table */
-+		tlb_remove_table(tlb, (void *) pte + 1);
-+	else
-+		page_table_free((unsigned long *) pte);
- }
- 
- /*
-@@ -134,12 +120,10 @@ static inline void pmd_free_tlb(struct m
- #ifdef __s390x__
- 	if (tlb->mm->context.asce_limit <= (1UL << 31))
- 		return;
--	if (!tlb->fullmm) {
--		tlb->array[--tlb->nr_pxds] = pmd;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		crst_table_free(tlb->mm, (unsigned long *) pmd);
-+	if (!tlb->fullmm)
-+		tlb_remove_table(tlb, pmd);
-+	else
-+		crst_table_free((unsigned long *) pmd);
- #endif
- }
- 
-@@ -156,15 +140,22 @@ static inline void pud_free_tlb(struct m
- #ifdef __s390x__
- 	if (tlb->mm->context.asce_limit <= (1UL << 42))
- 		return;
--	if (!tlb->fullmm) {
--		tlb->array[--tlb->nr_pxds] = pud;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		crst_table_free(tlb->mm, (unsigned long *) pud);
-+	if (!tlb->fullmm)
-+		tlb_remove_table(tlb, pud);
-+	else
-+		crst_table_free((unsigned long *) pud);
- #endif
- }
- 
-+static inline void __tlb_remove_table(void *table)
++$(obj)/compressed/vmlinux: $(obj)/Image FORCE
++	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
++
++$(obj)/zImage: $(obj)/compressed/vmlinux FORCE
++	$(call if_changed,objcopy)
++	@echo '  Kernel: $@ is ready'
++
++quiet_cmd_uimage = UIMAGE  $@
++      cmd_uimage = $(CONFIG_SHELL) $(MKIMAGE) -A unicore -O linux -T kernel \
++		   -C none -a $(LOADADDR) -e $(STARTADDR) \
++		   -n 'Linux-$(KERNELRELEASE)' -d $< $@
++
++$(obj)/uImage: LOADADDR=0x0
++
++$(obj)/uImage: STARTADDR=$(LOADADDR)
++
++$(obj)/uImage: $(obj)/zImage FORCE
++	$(call if_changed,uimage)
++	@echo '  Image $@ is ready'
++
++PHONY += initrd FORCE
++initrd:
++	@test "$(INITRD)" != "" || \
++	(echo You must specify INITRD; exit -1)
++
++subdir- := compressed
+diff --git a/arch/unicore32/boot/compressed/Makefile b/arch/unicore32/boot/compressed/Makefile
+new file mode 100644
+index 0000000..9537342
+--- /dev/null
++++ b/arch/unicore32/boot/compressed/Makefile
+@@ -0,0 +1,68 @@
++#
++# linux/arch/unicore32/boot/compressed/Makefile
++#
++# create a compressed vmlinuz image from the original vmlinux
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# Copyright (C) 2001~2010 GUAN Xue-tao
++#
++
++EXTRA_CFLAGS	:= -fpic -fno-builtin
++EXTRA_AFLAGS	:= -Wa,-march=all
++
++OBJS		:= misc.o
++
++# font.c and font.o
++CFLAGS_font.o	:= -Dstatic=
++$(obj)/font.c: $(srctree)/drivers/video/console/font_8x8.c
++	$(call cmd,shipped)
++
++# piggy.S and piggy.o
++suffix_$(CONFIG_KERNEL_GZIP)	:= gzip
++suffix_$(CONFIG_KERNEL_BZIP2)	:= bz2
++suffix_$(CONFIG_KERNEL_LZO)	:= lzo
++suffix_$(CONFIG_KERNEL_LZMA)	:= lzma
++
++$(obj)/piggy.$(suffix_y): $(obj)/../Image FORCE
++	$(call if_changed,$(suffix_y))
++
++SEDFLAGS_piggy	= s/DECOMP_SUFFIX/$(suffix_y)/
++$(obj)/piggy.S: $(obj)/piggy.S.in
++	@sed "$(SEDFLAGS_piggy)" < $< > $@
++
++$(obj)/piggy.o:  $(obj)/piggy.$(suffix_y) $(obj)/piggy.S FORCE
++
++targets		:= vmlinux vmlinux.lds font.o font.c head.o misc.o \
++			piggy.$(suffix_y) piggy.o piggy.S \
++
++# Make sure files are removed during clean
++extra-y		+= piggy.gzip piggy.bz2 piggy.lzo piggy.lzma
++
++# ?
++LDFLAGS_vmlinux += -p
++# Report unresolved symbol references
++LDFLAGS_vmlinux += --no-undefined
++# Delete all temporary local symbols
++LDFLAGS_vmlinux += -X
++# Next argument is a linker script
++LDFLAGS_vmlinux += -T
++
++# For uidivmod
++$(obj)/vmlinux: $(obj)/vmlinux.lds $(obj)/head.o $(obj)/piggy.o \
++		$(obj)/misc.o FORCE
++	$(call if_changed,ld)
++	@:
++
++# We now have a PIC decompressor implementation.  Decompressors running
++# from RAM should not define ZTEXTADDR.  Decompressors running directly
++# from ROM or Flash must define ZTEXTADDR (preferably via the config)
++ZTEXTADDR	:= 0
++ZBSSADDR	:= ALIGN(4)
++
++SEDFLAGS_lds	= s/TEXT_START/$(ZTEXTADDR)/;s/BSS_START/$(ZBSSADDR)/
++$(obj)/vmlinux.lds: $(obj)/vmlinux.lds.in arch/unicore32/boot/Makefile $(KCONFIG_CONFIG)
++	@sed "$(SEDFLAGS_lds)" < $< > $@
++
+diff --git a/arch/unicore32/boot/compressed/head.S b/arch/unicore32/boot/compressed/head.S
+new file mode 100644
+index 0000000..fbd1e37
+--- /dev/null
++++ b/arch/unicore32/boot/compressed/head.S
+@@ -0,0 +1,204 @@
++/*
++ * linux/arch/unicore32/boot/compressed/head.S
++ *
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ * Copyright (C) 2001-2010 GUAN Xue-tao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/linkage.h>
++#include <mach/memory.h>
++
++#define csub	cmpsub
++#define cand	cmpand
++#define nop8	nop; nop; nop; nop; nop; nop; nop; nop
++
++		.section ".start", #alloc, #execinstr
++		.text
++start:
++		.type	start,#function
++
++		/* Initialize ASR, PRIV mode and INTR off */
++		mov	r0, #0xD3
++		mov.a	asr, r0
++
++		adr	r0, LC0
++		ldm	(r1, r2, r3, r5, r6, r7, r8), [r0]+
++		ldw	sp, [r0+], #28
++		sub.a	r0, r0, r1		@ calculate the delta offset
++
++		/*
++		 * if delta is zero, we are running at the address
++		 * we were linked at.
++		 */
++		beq	not_relocated
++
++		/*
++		 * We're running at a different address.  We need to fix
++		 * up various pointers:
++		 *   r5 - zImage base address (_start)
++		 *   r7 - GOT start
++		 *   r8 - GOT end
++		 */
++		add	r5, r5, r0
++		add	r7, r7, r0
++		add	r8, r8, r0
++
++		/*
++		 * we need to fix up pointers into the BSS region.
++		 *   r2 - BSS start
++		 *   r3 - BSS end
++		 *   sp - stack pointer
++		 */
++		add	r2, r2, r0
++		add	r3, r3, r0
++		add	sp, sp, r0
++
++		/*
++		 * Relocate all entries in the GOT table.
++		 * This fixes up the C references.
++		 *   r7 - GOT start
++		 *   r8 - GOT end
++		 */
++1001:		ldw	r1, [r7+], #0
++		add	r1, r1, r0
++		stw.w	r1, [r7]+, #4
++		csub.a	r7, r8
++		bub	1001b
++
++not_relocated:
++		/*
++		 * Clear BSS region.
++		 *   r2 - BSS start
++		 *   r3 - BSS end
++		 */
++		mov	r0, #0
++1002:		stw.w	r0, [r2]+, #4
++		csub.a	r2, r3
++		bub	1002b
++
++		/*
++		 * Turn on the cache.
++		 */
++                mov     r0, #0
++                movc    p0.c5, r0, #28		@ cache invalidate all
++                nop8
++                movc    p0.c6, r0, #6		@ tlb invalidate all
++                nop8
++
++                mov     r0, #0x1c		@ en icache and wb dcache
++                movc    p0.c1, r0, #0
++                nop8
++
++		/*
++		 * Set up some pointers, for starting decompressing.
++		 */
++
++		mov	r1, sp			@ malloc space above stack
++		add	r2, sp, #0x10000	@ 64k max
++
++		/*
++		 * Check to see if we will overwrite ourselves.
++		 *   r4 = final kernel address
++		 *   r5 = start of this image
++		 *   r6 = size of decompressed image
++		 *   r2 = end of malloc space (and therefore this image)
++		 * We basically want:
++		 *   r4 >= r2 -> OK
++		 *   r4 + image length <= r5 -> OK
++		 */
++		ldw	r4, =KERNEL_IMAGE_START
++		csub.a	r4, r2
++		bea	wont_overwrite
++		add	r0, r4, r6
++		csub.a	r0, r5
++		beb	wont_overwrite
++
++		/*
++		 * If overwrite, just print error message
++		 */
++		b	__error_overwrite
++
++		/*
++		 * We're not in danger of overwriting ourselves.
++		 * Do this the simple way.
++		 */
++wont_overwrite:
++		/*
++		 * decompress_kernel:
++		 *   r0: output_start
++		 *   r1: free_mem_ptr_p
++		 *   r2: free_mem_ptr_end_p
++		 */
++		mov	r0, r4
++		b.l	decompress_kernel	@ C functions
++
++		/*
++		 * Clean and flush the cache to maintain consistency.
++		 */
++		mov	r0, #0
++                movc    p0.c5, r0, #14		@ flush dcache
++		nop8
++                movc    p0.c5, r0, #20		@ icache invalidate all
++                nop8
++
++		/*
++		 * Turn off the Cache and MMU.
++		 */
++		mov	r0, #0			@ disable i/d cache and MMU
++		movc	p0.c1, r0, #0
++                nop8
++
++		mov	r0, #0			@ must be zero
++		ldw	r4, =KERNEL_IMAGE_START
++		mov	pc, r4			@ call kernel
++
++
++		.align	2
++		.type	LC0, #object
++LC0:		.word	LC0			@ r1
++		.word	__bss_start		@ r2
++		.word	_end			@ r3
++		.word	_start			@ r5
++		.word	_image_size		@ r6
++		.word	_got_start		@ r7
++		.word	_got_end		@ r8
++		.word	decompress_stack_end	@ sp
++		.size	LC0, . - LC0
++
++print_string:
++#ifdef CONFIG_DEBUG_OCD
++2001:		ldb.w	r1, [r0]+, #1
++		csub.a	r1, #0
++		bne	2002f
++		mov	pc, lr
++2002:
++		movc	r2, p1.c0, #0
++		cand.a	r2, #2
++		bne	2002b
++		movc	p1.c1, r1, #1
++		csub.a	r1, #'\n'
++		cmoveq	r1, #'\r'
++		beq	2002b
++		b	2001b
++#else
++		mov	pc, lr
++#endif
++
++__error_overwrite:
++		adr	r0, str_error
++		b.l	print_string
++2001:		nop8
++		b	2001b
++str_error:	.asciz	"\nError: Kernel address OVERWRITE\n"
++		.align
++
++		.ltorg
++
++		.align	4
++		.section ".stack", "aw", %nobits
++decompress_stack:	.space	4096
++decompress_stack_end:
+diff --git a/arch/unicore32/boot/compressed/misc.c b/arch/unicore32/boot/compressed/misc.c
+new file mode 100644
+index 0000000..176d5bd
+--- /dev/null
++++ b/arch/unicore32/boot/compressed/misc.c
+@@ -0,0 +1,126 @@
++/*
++ * linux/arch/unicore32/boot/compressed/misc.c
++ *
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ * Copyright (C) 2001-2010 GUAN Xue-tao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <asm/unaligned.h>
++#include <mach/uncompress.h>
++
++/*
++ * gzip delarations
++ */
++unsigned char *output_data;
++unsigned long output_ptr;
++
++unsigned int free_mem_ptr;
++unsigned int free_mem_end_ptr;
++
++#define STATIC static
++#define STATIC_RW_DATA	/* non-static please */
++
++/*
++ * arch-dependent implementations
++ */
++#ifndef ARCH_HAVE_DECOMP_ERROR
++#define arch_decomp_error(x)
++#endif
++
++#ifndef ARCH_HAVE_DECOMP_SETUP
++#define arch_decomp_setup()
++#endif
++
++#ifndef ARCH_HAVE_DECOMP_PUTS
++#define arch_decomp_puts(p)
++#endif
++
++void *memcpy(void *dest, const void *src, size_t n)
 +{
-+	/* Use LSB to distinguish crst table vs. page table */
-+	if ((unsigned long) table & 1)
-+		page_table_free(table - 1);
-+	else
-+		crst_table_free(table);
++	int i = 0;
++	unsigned char *d = (unsigned char *)dest, *s = (unsigned char *)src;
++
++	for (i = n >> 3; i > 0; i--) {
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++	}
++
++	if (n & 1 << 2) {
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++		*d++ = *s++;
++	}
++
++	if (n & 1 << 1) {
++		*d++ = *s++;
++		*d++ = *s++;
++	}
++
++	if (n & 1)
++		*d++ = *s++;
++
++	return dest;
 +}
 +
- #define tlb_start_vma(tlb, vma)			do { } while (0)
- #define tlb_end_vma(tlb, vma)			do { } while (0)
- #define tlb_remove_tlb_entry(tlb, ptep, addr)	do { } while (0)
---- a/arch/s390/mm/pgtable.c
-+++ b/arch/s390/mm/pgtable.c
-@@ -24,92 +24,17 @@
- #include <asm/tlbflush.h>
- #include <asm/mmu_context.h>
- 
--struct rcu_table_freelist {
--	struct rcu_head rcu;
--	struct mm_struct *mm;
--	unsigned int pgt_index;
--	unsigned int crst_index;
--	unsigned long *table[0];
--};
--
--#define RCU_FREELIST_SIZE \
--	((PAGE_SIZE - sizeof(struct rcu_table_freelist)) \
--	  / sizeof(unsigned long))
--
--static DEFINE_PER_CPU(struct rcu_table_freelist *, rcu_table_freelist);
--
--static void __page_table_free(struct mm_struct *mm, unsigned long *table);
--static void __crst_table_free(struct mm_struct *mm, unsigned long *table);
--
--static struct rcu_table_freelist *rcu_table_freelist_get(struct mm_struct *mm)
--{
--	struct rcu_table_freelist **batchp = &__get_cpu_var(rcu_table_freelist);
--	struct rcu_table_freelist *batch = *batchp;
--
--	if (batch)
--		return batch;
--	batch = (struct rcu_table_freelist *) __get_free_page(GFP_ATOMIC);
--	if (batch) {
--		batch->mm = mm;
--		batch->pgt_index = 0;
--		batch->crst_index = RCU_FREELIST_SIZE;
--		*batchp = batch;
--	}
--	return batch;
--}
--
--static void rcu_table_freelist_callback(struct rcu_head *head)
--{
--	struct rcu_table_freelist *batch =
--		container_of(head, struct rcu_table_freelist, rcu);
--
--	while (batch->pgt_index > 0)
--		__page_table_free(batch->mm, batch->table[--batch->pgt_index]);
--	while (batch->crst_index < RCU_FREELIST_SIZE)
--		__crst_table_free(batch->mm, batch->table[batch->crst_index++]);
--	free_page((unsigned long) batch);
--}
--
--void rcu_table_freelist_finish(void)
--{
--	struct rcu_table_freelist *batch = __get_cpu_var(rcu_table_freelist);
--
--	if (!batch)
--		return;
--	call_rcu(&batch->rcu, rcu_table_freelist_callback);
--	__get_cpu_var(rcu_table_freelist) = NULL;
--}
--
--static void smp_sync(void *arg)
--{
--}
- 
- #ifndef CONFIG_64BIT
- #define ALLOC_ORDER	1
- #define TABLES_PER_PAGE	4
- #define FRAG_MASK	15UL
- #define SECOND_HALVES	10UL
--
--void clear_table_pgstes(unsigned long *table)
--{
--	clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE/4);
--	memset(table + 256, 0, PAGE_SIZE/4);
--	clear_table(table + 512, _PAGE_TYPE_EMPTY, PAGE_SIZE/4);
--	memset(table + 768, 0, PAGE_SIZE/4);
--}
--
- #else
- #define ALLOC_ORDER	2
- #define TABLES_PER_PAGE	2
- #define FRAG_MASK	3UL
- #define SECOND_HALVES	2UL
--
--void clear_table_pgstes(unsigned long *table)
--{
--	clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE/2);
--	memset(table + 256, 0, PAGE_SIZE/2);
--}
--
- #endif
- 
- unsigned long VMALLOC_START = VMALLOC_END - VMALLOC_SIZE;
-@@ -138,6 +63,7 @@ unsigned long *crst_table_alloc(struct m
- 			return NULL;
- 		}
- 		page->index = page_to_phys(shadow);
-+		page->private = (unsigned long) mm;
- 	}
- 	spin_lock_bh(&mm->context.list_lock);
- 	list_add(&page->lru, &mm->context.crst_list);
-@@ -145,47 +71,19 @@ unsigned long *crst_table_alloc(struct m
- 	return (unsigned long *) page_to_phys(page);
- }
- 
--static void __crst_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	unsigned long *shadow = get_shadow_table(table);
--
--	if (shadow)
--		free_pages((unsigned long) shadow, ALLOC_ORDER);
--	free_pages((unsigned long) table, ALLOC_ORDER);
--}
--
--void crst_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	struct page *page = virt_to_page(table);
--
--	spin_lock_bh(&mm->context.list_lock);
--	list_del(&page->lru);
--	spin_unlock_bh(&mm->context.list_lock);
--	__crst_table_free(mm, table);
--}
--
--void crst_table_free_rcu(struct mm_struct *mm, unsigned long *table)
-+void crst_table_free(unsigned long *table)
- {
--	struct rcu_table_freelist *batch;
- 	struct page *page = virt_to_page(table);
-+	struct mm_struct *mm = (struct mm_struct *) page->private;
-+	unsigned long *shadow = get_shadow_table(table);
- 
- 	spin_lock_bh(&mm->context.list_lock);
- 	list_del(&page->lru);
-+	page->private = 0;
- 	spin_unlock_bh(&mm->context.list_lock);
--	if (atomic_read(&mm->mm_users) < 2 &&
--	    cpumask_equal(mm_cpumask(mm), cpumask_of(smp_processor_id()))) {
--		__crst_table_free(mm, table);
--		return;
--	}
--	batch = rcu_table_freelist_get(mm);
--	if (!batch) {
--		smp_call_function(smp_sync, NULL, 1);
--		__crst_table_free(mm, table);
--		return;
--	}
--	batch->table[--batch->crst_index] = table;
--	if (batch->pgt_index >= batch->crst_index)
--		rcu_table_freelist_finish();
-+	if (shadow)
-+		free_pages((unsigned long) shadow, ALLOC_ORDER);
-+	free_pages((unsigned long) table, ALLOC_ORDER);
- }
- 
- #ifdef CONFIG_64BIT
-@@ -223,7 +121,7 @@ repeat:
- 	}
- 	spin_unlock_bh(&mm->page_table_lock);
- 	if (table)
--		crst_table_free(mm, table);
-+		crst_table_free(table);
- 	if (mm->context.asce_limit < limit)
- 		goto repeat;
- 	update_mm(mm, current);
-@@ -257,7 +155,7 @@ void crst_table_downgrade(struct mm_stru
- 		}
- 		mm->pgd = (pgd_t *) (pgd_val(*pgd) & _REGION_ENTRY_ORIGIN);
- 		mm->task_size = mm->context.asce_limit;
--		crst_table_free(mm, (unsigned long *) pgd);
-+		crst_table_free((unsigned long *) pgd);
- 	}
- 	update_mm(mm, current);
- }
-@@ -288,11 +186,7 @@ unsigned long *page_table_alloc(struct m
- 			return NULL;
- 		pgtable_page_ctor(page);
- 		page->flags &= ~FRAG_MASK;
--		table = (unsigned long *) page_to_phys(page);
--		if (mm->context.has_pgste)
--			clear_table_pgstes(table);
--		else
--			clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE);
-+		page->private = (unsigned long) mm;
- 		spin_lock_bh(&mm->context.list_lock);
- 		list_add(&page->lru, &mm->context.pgtable_list);
- 	}
-@@ -305,42 +199,34 @@ unsigned long *page_table_alloc(struct m
- 	if ((page->flags & FRAG_MASK) == ((1UL << TABLES_PER_PAGE) - 1))
- 		list_move_tail(&page->lru, &mm->context.pgtable_list);
- 	spin_unlock_bh(&mm->context.list_lock);
-+	clear_table(table, _PAGE_TYPE_EMPTY, PTRS_PER_PTE * sizeof(long));
-+	if (mm->context.noexec)
-+		clear_table(table + 256, _PAGE_TYPE_EMPTY,
-+			    PTRS_PER_PTE * sizeof(long));
-+	else if (mm->context.has_pgste)
-+		clear_table(table + 256, 0, PTRS_PER_PTE * sizeof(long));
- 	return table;
- }
- 
--static void __page_table_free(struct mm_struct *mm, unsigned long *table)
-+void page_table_free(unsigned long *table)
- {
--	struct page *page;
--	unsigned long bits;
--
--	bits = ((unsigned long) table) & 15;
--	table = (unsigned long *)(((unsigned long) table) ^ bits);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
--	page->flags ^= bits;
--	if (!(page->flags & FRAG_MASK)) {
--		pgtable_page_dtor(page);
--		__free_page(page);
--	}
--}
--
--void page_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	struct page *page;
-+	struct page *page = virt_to_page(table);
-+	struct mm_struct *mm = (struct mm_struct *) page->private;
- 	unsigned long bits;
- 
- 	bits = (mm->context.noexec || mm->context.has_pgste) ? 3UL : 1UL;
- 	bits <<= (__pa(table) & (PAGE_SIZE - 1)) / 256 / sizeof(unsigned long);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
- 	spin_lock_bh(&mm->context.list_lock);
- 	page->flags ^= bits;
- 	if (page->flags & FRAG_MASK) {
- 		/* Page now has some free pgtable fragments. */
--		if (!list_empty(&page->lru))
--			list_move(&page->lru, &mm->context.pgtable_list);
-+		list_move(&page->lru, &mm->context.pgtable_list);
- 		page = NULL;
--	} else
-+	} else {
- 		/* All fragments of the 4K page have been freed. */
- 		list_del(&page->lru);
-+		page->private = 0;
++void error(char *x)
++{
++	arch_decomp_puts("\n\n");
++	arch_decomp_puts(x);
++	arch_decomp_puts("\n\n -- System halted");
++
++	arch_decomp_error(x);
++
++	for (;;)
++		; /* Halt */
++}
++
++/* Heap size should be adjusted for different decompress method */
++#ifdef CONFIG_KERNEL_GZIP
++#include "../../../../lib/decompress_inflate.c"
++#endif
++
++#ifdef CONFIG_KERNEL_BZIP2
++#include "../../../../lib/decompress_bunzip2.c"
++#endif
++
++#ifdef CONFIG_KERNEL_LZO
++#include "../../../../lib/decompress_unlzo.c"
++#endif
++
++#ifdef CONFIG_KERNEL_LZMA
++#include "../../../../lib/decompress_unlzma.c"
++#endif
++
++unsigned long decompress_kernel(unsigned long output_start,
++		unsigned long free_mem_ptr_p,
++		unsigned long free_mem_ptr_end_p)
++{
++	unsigned char *tmp;
++
++	output_data		= (unsigned char *)output_start;
++	free_mem_ptr		= free_mem_ptr_p;
++	free_mem_end_ptr	= free_mem_ptr_end_p;
++
++	arch_decomp_setup();
++
++	tmp = (unsigned char *) (((unsigned long)input_data_end) - 4);
++	output_ptr = get_unaligned_le32(tmp);
++
++	arch_decomp_puts("Uncompressing Linux...");
++	decompress(input_data, input_data_end - input_data, NULL, NULL,
++			output_data, NULL, error);
++	arch_decomp_puts(" done, booting the kernel.\n");
++	return output_ptr;
++}
+diff --git a/arch/unicore32/boot/compressed/piggy.S.in b/arch/unicore32/boot/compressed/piggy.S.in
+new file mode 100644
+index 0000000..b79704d
+--- /dev/null
++++ b/arch/unicore32/boot/compressed/piggy.S.in
+@@ -0,0 +1,6 @@
++	.section .piggydata,#alloc
++	.globl	input_data
++input_data:
++	.incbin	"arch/unicore32/boot/compressed/piggy.DECOMP_SUFFIX"
++	.globl	input_data_end
++input_data_end:
+diff --git a/arch/unicore32/boot/compressed/vmlinux.lds.in b/arch/unicore32/boot/compressed/vmlinux.lds.in
+new file mode 100644
+index 0000000..d5a3ce2
+--- /dev/null
++++ b/arch/unicore32/boot/compressed/vmlinux.lds.in
+@@ -0,0 +1,61 @@
++/*
++ * linux/arch/unicore/boot/compressed/vmlinux.lds.in
++ *
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ * Copyright (C) 2001-2010 GUAN Xue-tao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++OUTPUT_ARCH(unicore32)
++ENTRY(_start)
++SECTIONS
++{
++  /DISCARD/ : {
++    /*
++     * Discard any r/w data - this produces a link error if we have any,
++     * which is required for PIC decompression.  Local data generates
++     * GOTOFF relocations, which prevents it being relocated independently
++     * of the text/got segments.
++     */
++    *(.data)
++  }
++
++  . = TEXT_START;
++  _text = .;
++
++  .text : {
++    _start = .;
++    *(.start)
++    *(.text)
++    *(.text.*)
++    *(.fixup)
++    *(.gnu.warning)
++    *(.rodata)
++    *(.rodata.*)
++    *(.piggydata)
++    . = ALIGN(4);
++  }
++
++  _etext = .;
++
++  /* Assume size of decompressed image is 4x the compressed image */
++  _image_size = (_etext - _text) * 4;
++
++  _got_start = .;
++  .got			: { *(.got) }
++  _got_end = .;
++  .got.plt		: { *(.got.plt) }
++  _edata = .;
++
++  . = BSS_START;
++  __bss_start = .;
++  .bss			: { *(.bss) }
++  _end = .;
++
++  .stack		: { *(.stack) }
++  .comment 0		: { *(.comment) }
++}
++
+diff --git a/arch/unicore32/include/mach/uncompress.h b/arch/unicore32/include/mach/uncompress.h
+new file mode 100644
+index 0000000..142d3e7
+--- /dev/null
++++ b/arch/unicore32/include/mach/uncompress.h
+@@ -0,0 +1,34 @@
++/*
++ * linux/arch/unicore32/include/mach/uncompress.h
++ *
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ * Copyright (C) 2001-2010 GUAN Xue-tao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __MACH_PUV3_UNCOMPRESS_H__
++#define __MACH_PUV3_UNCOMPRESS_H__
++
++#include "hardware.h"
++#include "ocd.h"
++
++extern char input_data[];
++extern char input_data_end[];
++
++static void arch_decomp_puts(const char *ptr)
++{
++	char c;
++
++	while ((c = *ptr++) != '\0') {
++		if (c == '\n')
++			putc('\r');
++		putc(c);
 +	}
- 	spin_unlock_bh(&mm->context.list_lock);
- 	if (page) {
- 		pgtable_page_dtor(page);
-@@ -348,36 +234,6 @@ void page_table_free(struct mm_struct *m
- 	}
- }
- 
--void page_table_free_rcu(struct mm_struct *mm, unsigned long *table)
--{
--	struct rcu_table_freelist *batch;
--	struct page *page;
--	unsigned long bits;
--
--	if (atomic_read(&mm->mm_users) < 2 &&
--	    cpumask_equal(mm_cpumask(mm), cpumask_of(smp_processor_id()))) {
--		page_table_free(mm, table);
--		return;
--	}
--	batch = rcu_table_freelist_get(mm);
--	if (!batch) {
--		smp_call_function(smp_sync, NULL, 1);
--		page_table_free(mm, table);
--		return;
--	}
--	bits = (mm->context.noexec || mm->context.has_pgste) ? 3UL : 1UL;
--	bits <<= (__pa(table) & (PAGE_SIZE - 1)) / 256 / sizeof(unsigned long);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
--	spin_lock_bh(&mm->context.list_lock);
--	/* Delayed freeing with rcu prevents reuse of pgtable fragments */
--	list_del_init(&page->lru);
--	spin_unlock_bh(&mm->context.list_lock);
--	table = (unsigned long *)(((unsigned long) table) | bits);
--	batch->table[batch->pgt_index++] = table;
--	if (batch->pgt_index >= batch->crst_index)
--		rcu_table_freelist_finish();
--}
--
- void disable_noexec(struct mm_struct *mm, struct task_struct *tsk)
- {
- 	struct page *page;
-
-
++}
++#define ARCH_HAVE_DECOMP_PUTS
++
++#endif /* __MACH_PUV3_UNCOMPRESS_H__ */
 -- 
-blue skies,
-   Martin.
+1.6.2.2
 
-"Reality continues to ruin my life." - Calvin.
 
