@@ -1,109 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:36757 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755212Ab1BQMnE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 07:43:04 -0500
-MIME-Version: 1.0
-In-Reply-To: <AANLkTi=pmWAvsp_3c4NgQYFw_ydfkOMgjDBDKgeFGf=E@mail.gmail.com>
-References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
-	<AANLkTi=pmWAvsp_3c4NgQYFw_ydfkOMgjDBDKgeFGf=E@mail.gmail.com>
-Date: Thu, 17 Feb 2011 13:43:02 +0100
-Message-ID: <AANLkTi=cMwbb2Pyv5KhGdfSuR3OwG_mpkFKNd+WrLc-_@mail.gmail.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: base64
+Received: from casper.infradead.org ([85.118.1.10]:36024 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757037Ab1BQRKu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:10:50 -0500
+Message-ID: <20110217163235.245158823@chello.nl>
+Date: Thu, 17 Feb 2011 17:23:35 +0100
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 08/17] um: mmu_gather rework
+References: <20110217162327.434629380@chello.nl>
+Content-Disposition: inline; filename=peter_zijlstra-um-preemptible_mmu_gather.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20110217124302.6FV5UYPMbpDzARtjlzSfehobdKxYuIxkP8ydZoZ6Mek@z>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Jeff Dike <jdike@addtoit.com>
+Message-ID: <20110217162335.5Z6UHybKNtHFwIK412QCx16erA711ifvyGBn3NckPxk@z>
 
-T24gVHVlLCBGZWIgOCwgMjAxMSBhdCAyMjoxMiwgR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBs
-aW51eC1tNjhrLm9yZz4gd3JvdGU6Cj4gT24gVHVlLCBGZWIgOCwgMjAxMSBhdCAwMTowMiwgRG1p
-dHJ5IFRvcm9raG92IDxkdG9yQHZtd2FyZS5jb20+IHdyb3RlOgo+PiBPbiBtNjhrIG5hdHVyYWwg
-YWxpZ25tZW50IGlzIDItYnl0ZSBib3VuZGFyeSBidXQgd2UgYXJlIHRyeWluZyB0bwo+PiBhbGln
-biBzdHJ1Y3R1cmVzIGluIF9fbW9kdmVyIHNlY3Rpb24gb24gc2l6ZW9mKHZvaWQgKikgYm91bmRh
-cnkuCj4+IFRoaXMgY2F1c2VzIHRyb3VibGUgd2hlbiB3ZSB0cnkgdG8gYWNjZXNzIGVsZW1lbnRz
-IGluIHRoaXMgc2VjdGlvbgo+PiBpbiBhcnJheS1saWtlIGZhc2hpb24gd2hlbiBjcmVhdGUgInZl
-cnNpb24iIGF0dHJpYnV0ZXMgZm9yIGJ1aWx0LWluCj4+IG1vZHVsZXMuCj4+Cj4+IE1vcmVvdmVy
-LCBhcyBEYXZlTSBzYWlkLCB3ZSBjYW4ndCByZWxpYWJseSBwdXQgc3RydWN0dXJlcyBpbnRvCj4+
-IGluZGVwZW5kZW50IG9iamVjdHMsIHB1dCB0aGVtIGludG8gYSBzcGVjaWFsIHNlY3Rpb24sIGFu
-ZCB0aGVuIGV4cGVjdAo+PiBhcnJheSBhY2Nlc3Mgb3ZlciB0aGVtICh2aWEgdGhlIHNlY3Rpb24g
-Ym91bmRhcmllcykgYWZ0ZXIgbGlua2luZyB0aGUKPj4gb2JqZWN0cyB0b2dldGhlciB0byBqdXN0
-ICJ3b3JrIiBkdWUgdG8gdmFyaWFibGUgYWxpZ25tZW50IGNob2ljZXMgaW4KPj4gZGlmZmVyZW50
-IHNpdHVhdGlvbnMuIFRoZSBvbmx5IHNvbHV0aW9uIHRoYXQgc2VlbXMgdG8gd29yayByZWxpYWJs
-eQo+PiBpcyB0byBtYWtlIGFuIGFycmF5IG9mIHBsYWluIHBvaW50ZXJzIHRvIHRoZSBvYmplY3Rz
-IGluIHF1ZXN0aW9uIGFuZAo+PiBwdXQgdGhvc2UgcG9pbnRlcnMgaW4gdGhlIHNwZWNpYWwgc2Vj
-dGlvbi4KPj4KPj4gUmVwb3J0ZWQtYnk6IEdlZXJ0IFV5dHRlcmhvZXZlbiA8Z2VlcnRAbGludXgt
-bTY4ay5vcmc+Cj4+IFNpZ25lZC1vZmYtYnk6IERtaXRyeSBUb3Jva2hvdiA8ZHRvckB2bXdhcmUu
-Y29tPgo+Cj4gVGhhbmtzIQo+Cj4gVGVzdGVkLWJ5OiBHZWVydCBVeXR0ZXJob2V2ZW4gPGdlZXJ0
-QGxpbnV4LW02OGsub3JnPgoKQ2FuIHdlIHBsZWFzZSBnZXQgdGhpcyBpbj8gMi42LjM4LXJjNSBz
-dGlsbCBjcmFzaGVzIG9uIG02OGsuCgpUaHghCgo+PiAtLS0KPj4gwqBpbmNsdWRlL2xpbnV4L21v
-ZHVsZS5oIHwgwqAgMTAgKysrKystLS0tLQo+PiDCoGtlcm5lbC9wYXJhbXMuYyDCoCDCoCDCoCDC
-oHwgwqAgwqA5ICsrKysrKy0tLQo+PiDCoDIgZmlsZXMgY2hhbmdlZCwgMTEgaW5zZXJ0aW9ucygr
-KSwgOCBkZWxldGlvbnMoLSkKPj4KPj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvbW9kdWxl
-LmggYi9pbmNsdWRlL2xpbnV4L21vZHVsZS5oCj4+IGluZGV4IDliZGYyN2MuLjliNzA4MWEgMTAw
-NjQ0Cj4+IC0tLSBhL2luY2x1ZGUvbGludXgvbW9kdWxlLmgKPj4gKysrIGIvaW5jbHVkZS9saW51
-eC9tb2R1bGUuaAo+PiBAQCAtMTc0LDEwICsxNzQsNyBAQCBleHRlcm4gc3RydWN0IG1vZHVsZSBf
-X3RoaXNfbW9kdWxlOwo+PiDCoCNkZWZpbmUgTU9EVUxFX1ZFUlNJT04oX3ZlcnNpb24pIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4g
-wqAgwqAgwqAgwqBleHRlcm4gc3NpemVfdCBfX21vZHZlcl92ZXJzaW9uX3Nob3coc3RydWN0IG1v
-ZHVsZV9hdHRyaWJ1dGUgKiwgXAo+PiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBzdHJ1Y3QgbW9kdWxlICosIGNoYXIgKik7
-IMKgXAo+PiAtIMKgIMKgIMKgIHN0YXRpYyBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25fYXR0cmlidXRl
-IF9fbW9kdmVyX3ZlcnNpb25fYXR0ciDCoCDCoFwKPj4gLSDCoCDCoCDCoCBfX3VzZWQgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqBcCj4+IC0gwqAgwqBfX2F0dHJpYnV0ZV9fICgoX19zZWN0
-aW9uX18gKCJfX21vZHZlciIpLGFsaWduZWQoc2l6ZW9mKHZvaWQgKikpKSkgXAo+PiAtIMKgIMKg
-IMKgID0geyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAg
-c3RhdGljIHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgX19fbW9kdmVyX2F0dHIgPSB7
-IMKgIMKgIMKgIFwKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAubWF0dHIgwqA9IHsgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgXAo+PiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoC5hdHRyIMKgID0geyDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgLm5hbWUgwqAg
-PSAidmVyc2lvbiIsIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgXAo+PiBAQCAtMTg3LDcg
-KzE4NCwxMCBAQCBleHRlcm4gc3RydWN0IG1vZHVsZSBfX3RoaXNfbW9kdWxlOwo+PiDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoH0sIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgXAo+PiDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoC5tb2R1bGVfbmFtZSDCoCDCoD0gS0JVSUxEX01PRE5BTUUsIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAudmVy
-c2lvbiDCoCDCoCDCoCDCoD0gX3ZlcnNpb24sIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
-IMKgIMKgIMKgIMKgIFwKPj4gLSDCoCDCoCDCoCB9Cj4+ICsgwqAgwqAgwqAgfTsgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqBcCj4+ICsgwqAgwqAgwqAgc3RhdGljIGNvbnN0IHN0
-cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqBcCj4+ICsgwqAgwqAgwqAgX191c2VkIF9fYXR0cmlidXRlX18gKChfX3NlY3Rpb25fXyAoIl9f
-bW9kdmVyIikpKSDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAgKiBfX21vZHVs
-ZXBhcmFtX2NvbnN0IF9fbW9kdmVyX2F0dHIgPSAmX19fbW9kdmVyX2F0dHIKPj4gwqAjZW5kaWYK
-Pj4KPj4gwqAvKiBPcHRpb25hbCBmaXJtd2FyZSBmaWxlIChvciBmaWxlcykgbmVlZGVkIGJ5IHRo
-ZSBtb2R1bGUKPj4gZGlmZiAtLWdpdCBhL2tlcm5lbC9wYXJhbXMuYyBiL2tlcm5lbC9wYXJhbXMu
-Ywo+PiBpbmRleCAwZGExNDExLi4wOWEwOGNiIDEwMDY0NAo+PiAtLS0gYS9rZXJuZWwvcGFyYW1z
-LmMKPj4gKysrIGIva2VybmVsL3BhcmFtcy5jCj4+IEBAIC04MjEsMTUgKzgyMSwxOCBAQCBzc2l6
-ZV90IF9fbW9kdmVyX3ZlcnNpb25fc2hvdyhzdHJ1Y3QgbW9kdWxlX2F0dHJpYnV0ZSAqbWF0dHIs
-Cj4+IMKgIMKgIMKgIMKgcmV0dXJuIHNwcmludGYoYnVmLCAiJXNcbiIsIHZhdHRyLT52ZXJzaW9u
-KTsKPj4gwqB9Cj4+Cj4+IC1leHRlcm4gc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0ZSBf
-X3N0YXJ0X19fbW9kdmVyW10sIF9fc3RvcF9fX21vZHZlcltdOwo+PiArZXh0ZXJuIGNvbnN0IHN0
-cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgKl9fc3RhcnRfX19tb2R2ZXJbXTsKPj4gK2V4
-dGVybiBjb25zdCBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25fYXR0cmlidXRlICpfX3N0b3BfX19tb2R2
-ZXJbXTsKPj4KPj4gwqBzdGF0aWMgdm9pZCBfX2luaXQgdmVyc2lvbl9zeXNmc19idWlsdGluKHZv
-aWQpCj4+IMKgewo+PiAtIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRy
-aWJ1dGUgKnZhdHRyOwo+PiArIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9h
-dHRyaWJ1dGUgKipwOwo+PiDCoCDCoCDCoCDCoHN0cnVjdCBtb2R1bGVfa29iamVjdCAqbWs7Cj4+
-IMKgIMKgIMKgIMKgaW50IGVycjsKPj4KPj4gLSDCoCDCoCDCoCBmb3IgKHZhdHRyID0gX19zdGFy
-dF9fX21vZHZlcjsgdmF0dHIgPCBfX3N0b3BfX19tb2R2ZXI7IHZhdHRyKyspIHsKPj4gKyDCoCDC
-oCDCoCBmb3IgKHAgPSBfX3N0YXJ0X19fbW9kdmVyOyBwIDwgX19zdG9wX19fbW9kdmVyOyBwKysp
-IHsKPj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCBjb25zdCBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25f
-YXR0cmlidXRlICp2YXR0ciA9ICpwOwo+PiArCj4+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgbWsg
-PSBsb2NhdGVfbW9kdWxlX2tvYmplY3QodmF0dHItPm1vZHVsZV9uYW1lKTsKPj4gwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqBpZiAobWspIHsKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
-wqAgwqBlcnIgPSBzeXNmc19jcmVhdGVfZmlsZSgmbWstPmtvYmosICZ2YXR0ci0+bWF0dHIuYXR0
-cik7Cj4+IC0tCj4+IDEuNy4zLjIKCkdye29ldGplLGVldGluZ31zLAoKwqAgwqAgwqAgwqAgwqAg
-wqAgwqAgwqAgwqAgwqAgwqAgwqAgR2VlcnQKCi0tCkdlZXJ0IFV5dHRlcmhvZXZlbiAtLSBUaGVy
-ZSdzIGxvdHMgb2YgTGludXggYmV5b25kIGlhMzIgLS0gZ2VlcnRAbGludXgtbTY4ay5vcmcKCklu
-IHBlcnNvbmFsIGNvbnZlcnNhdGlvbnMgd2l0aCB0ZWNobmljYWwgcGVvcGxlLCBJIGNhbGwgbXlz
-ZWxmIGEgaGFja2VyLiBCdXQKd2hlbiBJJ20gdGFsa2luZyB0byBqb3VybmFsaXN0cyBJIGp1c3Qg
-c2F5ICJwcm9ncmFtbWVyIiBvciBzb21ldGhpbmcgbGlrZSB0aGF0LgrCoCDCoCDCoCDCoCDCoCDC
-oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoMKgIMKgwqAgLS0gTGludXMgVG9ydmFsZHMK
+Fix up the um mmu_gather code to conform to the new API.
+
+Cc: Jeff Dike <jdike@addtoit.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/um/include/asm/tlb.h |   29 +++++++++++------------------
+ 1 file changed, 11 insertions(+), 18 deletions(-)
+
+Index: linux-2.6/arch/um/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/um/include/asm/tlb.h
++++ linux-2.6/arch/um/include/asm/tlb.h
+@@ -22,9 +22,6 @@ struct mmu_gather {
+ 	unsigned int		fullmm; /* non-zero means full mm flush */
+ };
+ 
+-/* Users of the generic TLB shootdown code must declare this storage space. */
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
+ 					  unsigned long address)
+ {
+@@ -47,27 +44,20 @@ static inline void init_tlb_gather(struc
+ 	}
+ }
+ 
+-/* tlb_gather_mmu
+- *	Return a pointer to an initialized struct mmu_gather.
+- */
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+ {
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+ 	tlb->fullmm = full_mm_flush;
+ 
+ 	init_tlb_gather(tlb);
+-
+-	return tlb;
+ }
+ 
+ extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
+ 			       unsigned long end);
+ 
+ static inline void
+-tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	if (!tlb->need_flush)
+ 		return;
+@@ -83,12 +73,10 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
+ static inline void
+ tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
+-	tlb_flush_mmu(tlb, start, end);
++	tlb_flush_mmu(tlb);
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ /* tlb_remove_page
+@@ -96,11 +84,16 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+  *	while handling the additional races in SMP caused by other CPUs
+  *	caching valid mappings in their TLBs.
+  */
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 	free_page_and_swap_cache(page);
+-	return;
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	__tlb_remove_page(tlb, page);
+ }
+ 
+ /**
+
+
