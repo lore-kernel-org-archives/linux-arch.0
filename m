@@ -1,41 +1,49 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-Date: Thu, 17 Feb 2011 10:06:40 -0800
-Message-ID: <AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
-References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
- <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
- <20110217173136.GA28486@dtor-ws.eng.vmware.com> <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
- <20110217180042.GA30530@dtor-ws.eng.vmware.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
+ module versions
+Date: Thu, 17 Feb 2011 13:01:15 -0800 (PST)
+Message-ID: <20110217.130115.71101941.davem@davemloft.net>
+References: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
+	<20110217180042.GA30530@dtor-ws.eng.vmware.com>
+	<AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20110217180042.GA30530@dtor-ws.eng.vmware.com>
+In-Reply-To: <AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
 Sender: linux-m68k-owner@vger.kernel.org
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 17, 2011 at 10:00 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
->
-> The problem is that on m68k size of the struct module_version_attribute
-> is not evenly divisible by sizeof(void *), thus when we lay out the
-> __modver section we align on 4 bytes but when we iterate we think that
-> the alignment is 2.
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 17 Feb 2011 10:06:40 -0800
 
-So mark the struct properly.
+> David, why are you saying that regular "just mark the structure
+> alignment correctly" doesn't work?
 
-> I/Geert tried adding __attribute__ (aligned(sizeof(void *))) to the type
-> definition itself so we have matching alignment everywhere, but DaveM
-> said that this only guarantees minimum alignment and that using
-> structures like we do shown to break from time to time in kprobes and
-> that only pointers worked reliably.
+Because it's been proven to not work:
 
-That sounds totally bogus. Minimum alignment is all it needs, and we
-do that in other places too. I really don't see the reason to add some
-broken indirection for totally broken reasons. We don't do that with
-anything else.
+http://marc.info/?l=linux-kernel&m=129674396021733&w=2
+http://marc.info/?l=linux-kernel&m=129674399621795&w=2
+http://marc.info/?l=linux-kernel&m=129674396121739&w=2
+http://marc.info/?l=linux-kernel&m=129674396021735&w=2
 
-David, why are you saying that regular "just mark the structure
-alignment correctly" doesn't work?
+GCC is very clever with "static" objects these days.
 
-                                Linus
+It thinks that, because you mark something "static", it can align it
+any way it wants because it controls the domain in which the object
+exists.  It "knows" that the object can't be part of an array, and
+therefore no external entity can be concerned about the true "size" of
+the object (specifically wrt. side effects of the alignment of the
+object).
+
+In these cases it takes the explicit alignment attribute as a minimum,
+not as an absolute requirement.
+
+But we lie to the compiler, we mark things static then put them into a
+special a special section, then try to iterate over those objects
+globally as an array and expect the compiler to lay them all out
+with identical alignments and sizes everywhere.
+
+And this doesn't work.
