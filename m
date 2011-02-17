@@ -1,41 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:58961
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750788Ab1BQWWo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 17:22:44 -0500
-Date: Thu, 17 Feb 2011 14:23:20 -0800 (PST)
-Message-ID: <20110217.142320.102554706.davem@davemloft.net>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
- module versions
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:34310 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752643Ab1BQWtF convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Feb 2011 17:49:05 -0500
+MIME-Version: 1.0
+In-Reply-To: <20110217.142320.102554706.davem@davemloft.net>
 References: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
-	<20110217.140119.39175251.davem@davemloft.net>
-	<20110217221957.GA11244@dtor-ws.eng.vmware.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+ <20110217.140119.39175251.davem@davemloft.net> <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+ <20110217.142320.102554706.davem@davemloft.net>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 17 Feb 2011 14:48:15 -0800
+Message-ID: <AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dtor@vmware.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110217222320.Lk-cJ_frsP3NUB1dwZfOOtCZfat2KSMPtpOA1r43KDQ@z>
+To: David Miller <davem@davemloft.net>
+Cc: dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110217224815.X81luEqhf3AtJdpopnXiNebed9Io5DMU5Trli46_L5U@z>
 
-From: Dmitry Torokhov <dtor@vmware.com>
-Date: Thu, 17 Feb 2011 14:19:57 -0800
+On Thu, Feb 17, 2011 at 2:23 PM, David Miller <davem@davemloft.net> wrote:
+>
+> You have to also pick .word vs. .xword, or whatever the appropriate
+> sized pointer mnenomic is for a given architecture.  I know .word
+> works for 32-bit sparc, and .xword works for 64-bit sparc.
 
-> Any pointers as to how to emit these pointers with asm?
+Gaah, I didn't realize that we've never had to do anything like this
+before, and that the exception table is all arch-specific code. So we
+don't have any way to "output that damned pointer and stop whining
+about it" model at all.
 
-	.section	FOO_SECTION, "a"
-	.align		SIZEOF_POINTER
-	.{,x}word	POINTER
-	.previous
+I really detest gcc sometimes. All these "clever" things that just
+make things harder to do. If the user explicitly tells it the section
+and the alignment, it should damn well not think that it knows better
+and change it. Damn.
 
-Where FOO_SECTION is your special section name, SIZEOF_POINTER is
-sizeof(void *), and POINTER is the pointer you want to add to the
-section.
+Maybe we have to take the "just confuse gcc enough and pray" approach
+on those pointers after all.
 
-You have to also pick .word vs. .xword, or whatever the appropriate
-sized pointer mnenomic is for a given architecture.  I know .word
-works for 32-bit sparc, and .xword works for 64-bit sparc.
+                      Linus
