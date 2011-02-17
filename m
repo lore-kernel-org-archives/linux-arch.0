@@ -1,46 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [65.115.85.73] ([65.115.85.73]:50279 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751599Ab1BQRcc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 12:32:32 -0500
-Date: Thu, 17 Feb 2011 09:31:36 -0800
-From: Dmitry Torokhov <dtor@vmware.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
- module versions
-Message-ID: <20110217173136.GA28486@dtor-ws.eng.vmware.com>
-References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
- <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
+Received: from bombadil.infradead.org ([18.85.46.34]:53544 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751642Ab1BQRhA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:37:00 -0500
+Subject: Re: [PATCH 0/8] mm: Preemptibility -v8
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <20110217170520.229881980@chello.nl>
+References: <20110217170520.229881980@chello.nl>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Thu, 17 Feb 2011 18:36:24 +0100
+Message-ID: <1297964184.2413.2029.camel@twins>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20110217173136.lKiLrdVyZ5Da2M1-5lKVZpW5lBhNbBFxeTOZ2lb6dis@z>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110217173624.NTh2xOZoIbYViOVnzYqbSgmXekBq0qfb2CLPkCPo_yA@z>
 
-On Thu, Feb 17, 2011 at 09:24:58AM -0800, Linus Torvalds wrote:
-> On Mon, Feb 7, 2011 at 4:02 PM, Dmitry Torokhov <dtor@vmware.com> wrote:
-> >
-> > Moreover, as DaveM said, we can't reliably put structures into
-> > independent objects, put them into a special section, and then expect
-> > array access over them (via the section boundaries) after linking the
-> > objects together to just "work" due to variable alignment choices in
-> > different situations.
+On Thu, 2011-02-17 at 18:05 +0100, Peter Zijlstra wrote:
+> This series depends on the previous two series:
+>   - mm: Simplify anon_vma lifetime rules
+>   - mm: mmu_gather rework
 > 
-> Why not?
+> These patches make part of the mm a lot more preemptible. It converts
+> i_mmap_lock and anon_vma->lock to mutexes which together with the mmu_gather
+> rework makes mmu_gather preemptible as well.
 > 
-> That's what we normally do. Just align the "__modver", and you should
-> be all good. What's the problem?
+> Making i_mmap_lock a mutex also enables a clean-up of the truncate code.
+> 
+> This also allows for preemptible mmu_notifiers, something that XPMEM I think
+> wants.
 
-From what I understand __attribute__ ((aligned(x))) only guarantees
-minimum alignment, not exact (gapless) alignment. GCC seems to lay out
-pointers in the section without gaps on all arches that we have.
-
-Thanks.
-
--- 
-Dmitry
+---
+ Documentation/lockstat.txt   |    2 
+ Documentation/vm/locking     |    2 
+ arch/x86/mm/hugetlbpage.c    |    4 
+ fs/gfs2/main.c               |    2 
+ fs/hugetlbfs/inode.c         |    4 
+ fs/inode.c                   |    2 
+ fs/nilfs2/page.c             |    2 
+ include/linux/fs.h           |    3 
+ include/linux/huge_mm.h      |    8 -
+ include/linux/lockdep.h      |    3 
+ include/linux/mm.h           |    2 
+ include/linux/mm_types.h     |    1 
+ include/linux/mmu_notifier.h |    2 
+ include/linux/mutex.h        |    9 +
+ include/linux/rmap.h         |   29 +-----
+ kernel/fork.c                |    5 -
+ kernel/mutex.c               |   25 +++--
+ mm/filemap.c                 |   10 +-
+ mm/filemap_xip.c             |    4 
+ mm/fremap.c                  |    4 
+ mm/huge_memory.c             |    4 
+ mm/hugetlb.c                 |   14 +--
+ mm/memory-failure.c          |    4 
+ mm/memory.c                  |  197 ++++++-------------------------------------
+ mm/migrate.c                 |   17 ---
+ mm/mmap.c                    |   43 +++------
+ mm/mremap.c                  |    7 -
+ mm/rmap.c                    |  171 +++++++++++++++++++++++++++++--------
+ 28 files changed, 258 insertions(+), 322 deletions(-)
 
