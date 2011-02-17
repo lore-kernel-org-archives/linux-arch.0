@@ -1,47 +1,44 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 11/12] unicore32 machine related files: ps2 driver
-Date: Thu, 17 Feb 2011 18:03:15 +0100
-Message-ID: <201102171803.15785.arnd@arndb.de>
-References: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:62880 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752743Ab1BQRDT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:03:19 -0500
-In-Reply-To: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 00/17] mm: mmu_gather rework
+Date: Thu, 17 Feb 2011 17:23:27 +0100
+Message-ID: <20110217162327.434629380@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 16 February 2011, Guan Xuetao wrote:
-> +/*
-> + * Register numbers.
-> + */
-> +#define I8042_COMMAND_REG      ((unsigned long)&PS2_COMMAND)
-> +#define I8042_STATUS_REG       ((unsigned long)&PS2_STATUS)
-> +#define I8042_DATA_REG         ((unsigned long)&PS2_DATA)
-> +
-> +static inline int i8042_read_data(void)
-> +{
-> +       return inb(I8042_DATA_REG);
-> +}
-> +
-> +static inline int i8042_read_status(void)
-> +{
-> +       return inb(I8042_STATUS_REG);
-> +}
-> +
+Rework the existing mmu_gather infrastructure.
 
-This is not a correct way to use inb()/outb(), as far as I can tell:
-PS2_COMMAND is an mmio pointer (or should be, see my other message).
+The direct purpose of these patches was to allow preemptible mmu_gather,
+but even without that I think these patches provide an improvement to the
+status quo.
 
-inb() however is only defined on PCI/ISA PIO port numbers, which
-are in the range between 0 and 65535, and typically get mapped
-into the memory from the PCI driver.
+The first patch is a fix to the tile architecture, the subsequent 9 patches
+rework the mmu_gather infrastructure. For review purpose I've split them
+into generic and per-arch patches with the last of those a generic cleanup.
 
-	Arnd
+For the final commit I would provide a roll-up of these patches so as not
+to wreck bisectability of non generic archs.
+
+The next patch provides generic RCU page-table freeing, and the follow up
+is a patch converting s390 to use this. I've also got 4 patches from
+DaveM lined up (not included in this series) that uses this to implement
+gup_fast() for sparc64.
+
+Then there is one patch that extends the generic mmu_gather batching.
+
+Finally there are 4 patches that convert various architectures over
+to asm-generic/tlb.h, these are compile tested only and basically RFC.
+
+After this only um and s390 are left -- um should be straight forward,
+s390 wants a bit more, but more on that in another email.
+
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
