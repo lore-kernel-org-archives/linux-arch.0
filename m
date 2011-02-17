@@ -1,77 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:47647 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:47642 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757141Ab1BQRLF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:11:05 -0500
-Message-ID: <20110217170854.908328759@chello.nl>
-Date: Thu, 17 Feb 2011 18:05:24 +0100
+	with ESMTP id S1757137Ab1BQRLE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:11:04 -0500
+Message-ID: <20110217163234.756898524@chello.nl>
+Date: Thu, 17 Feb 2011 17:23:28 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 4/8] mm: Revert page_lock_anon_vma() lock annotation
-References: <20110217170520.229881980@chello.nl>
-Content-Disposition: inline; filename=peter_zijlstra-mm-revert_page_lock_anon_vma_lock_annotation.patch
+Subject: [PATCH 01/17] tile: Fix __pte_free_tlb
+References: <20110217162327.434629380@chello.nl>
+Content-Disposition: inline; filename=tile-fix-pte_free_tlb.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Namhyung Kim <namhyung@gmail.com>, Hugh Dickins <hughd@google.com>
-Message-ID: <20110217170524.ffS1Wtxq0WTLgnXxHjR08UL7xeMd9ABSJqukJYpy3w4@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20110217162328.Bz0-XeQTjIH8chsZpyTz1GgA_e8Tfi75Uk_2rW9ubZI@z>
 
-Its beyond ugly and gets in the way.
+Tile's __pte_free_tlb() implementation makes assumptions about the
+generic mmu_gather implementation, cure this ;-)
 
-Cc: Namhyung Kim <namhyung@gmail.com>
-Acked-by: Hugh Dickins <hughd@google.com>
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/linux/rmap.h |   15 +--------------
- mm/rmap.c            |    4 +---
- 2 files changed, 2 insertions(+), 17 deletions(-)
+ arch/tile/mm/pgtable.c |   15 ++-------------
+ 1 file changed, 2 insertions(+), 13 deletions(-)
 
-Index: linux-2.6/include/linux/rmap.h
+Index: linux-2.6/arch/tile/mm/pgtable.c
 ===================================================================
---- linux-2.6.orig/include/linux/rmap.h
-+++ linux-2.6/include/linux/rmap.h
-@@ -243,20 +243,7 @@ int try_to_munlock(struct page *);
- /*
-  * Called by memory-failure.c to kill processes.
-  */
--struct anon_vma *__page_lock_anon_vma(struct page *page);
--
--static inline struct anon_vma *page_lock_anon_vma(struct page *page)
--{
--	struct anon_vma *anon_vma;
--
--	__cond_lock(RCU, anon_vma = __page_lock_anon_vma(page));
--
--	/* (void) is needed to make gcc happy */
--	(void) __cond_lock(&anon_vma->root->lock, anon_vma);
--
--	return anon_vma;
--}
--
-+struct anon_vma *page_lock_anon_vma(struct page *page);
- void page_unlock_anon_vma(struct anon_vma *anon_vma);
- int page_mapped_in_vma(struct page *page, struct vm_area_struct *vma);
+--- linux-2.6.orig/arch/tile/mm/pgtable.c
++++ linux-2.6/arch/tile/mm/pgtable.c
+@@ -252,19 +252,8 @@ void __pte_free_tlb(struct mmu_gather *t
+ 	int i;
  
-Index: linux-2.6/mm/rmap.c
-===================================================================
---- linux-2.6.orig/mm/rmap.c
-+++ linux-2.6/mm/rmap.c
-@@ -318,7 +318,7 @@ void __init anon_vma_init(void)
-  * Getting a lock on a stable anon_vma from a page off the LRU is
-  * tricky: page_lock_anon_vma rely on RCU to guard against the races.
-  */
--struct anon_vma *__page_lock_anon_vma(struct page *page)
-+struct anon_vma *page_lock_anon_vma(struct page *page)
- {
- 	struct anon_vma *anon_vma, *root_anon_vma;
- 	unsigned long anon_mapping;
-@@ -352,8 +352,6 @@ struct anon_vma *__page_lock_anon_vma(st
+ 	pgtable_page_dtor(pte);
+-	tlb->need_flush = 1;
+-	if (tlb_fast_mode(tlb)) {
+-		struct page *pte_pages[L2_USER_PGTABLE_PAGES];
+-		for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
+-			pte_pages[i] = pte + i;
+-		free_pages_and_swap_cache(pte_pages, L2_USER_PGTABLE_PAGES);
+-		return;
+-	}
+-	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i) {
+-		tlb->pages[tlb->nr++] = pte + i;
+-		if (tlb->nr >= FREE_PTE_NR)
+-			tlb_flush_mmu(tlb, 0, 0);
+-	}
++	for (i = 0; i < L2_USER_PGTABLE_PAGES; ++i)
++		tlb_remove_page(tlb, pte + i);
  }
  
- void page_unlock_anon_vma(struct anon_vma *anon_vma)
--	__releases(&anon_vma->root->lock)
--	__releases(RCU)
- {
- 	anon_vma_unlock(anon_vma);
- 	rcu_read_unlock();
+ #ifndef __tilegx__
 
 
