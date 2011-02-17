@@ -1,63 +1,41 @@
-From: Dmitry Torokhov <dtor@vmware.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
- module versions
-Date: Thu, 17 Feb 2011 10:00:42 -0800
-Message-ID: <20110217180042.GA30530@dtor-ws.eng.vmware.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Date: Thu, 17 Feb 2011 10:06:40 -0800
+Message-ID: <AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
 References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
  <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
- <20110217173136.GA28486@dtor-ws.eng.vmware.com>
- <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
+ <20110217173136.GA28486@dtor-ws.eng.vmware.com> <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
+ <20110217180042.GA30530@dtor-ws.eng.vmware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [65.115.85.73] ([65.115.85.73]:63331 "EHLO
-	smtp-outbound-2.vmware.com" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1757390Ab1BQSBh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 13:01:37 -0500
-Content-Disposition: inline
-In-Reply-To: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <20110217180042.GA30530@dtor-ws.eng.vmware.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Dmitry Torokhov <dtor@vmware.com>
 Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 17, 2011 at 09:45:37AM -0800, Linus Torvalds wrote:
-> On Thu, Feb 17, 2011 at 9:31 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
-> >
-> > From what I understand __attribute__ ((aligned(x))) only guarantees
-> > minimum alignment, not exact (gapless) alignment. GCC seems to lay out
-> > pointers in the section without gaps on all arches that we have.
-> 
-> I still don't see the problem.
-> 
-> Have you actually _tried_ just adding the proper alignment to before
-> the __modver thing in include/asm-generic/vmlinux.lds.h ?
-> 
-> As far as I can tell, the bug is really simple:
->  - the section is not aligned
->  - but we told the compiler that that structure is aligned
-> 
-> End result: there is a gap between the section start and the first structure.
-> 
-> And the fix seems obvious: just make sure that the section is
-> sufficiently aligned.
-> 
-> IOW, why isn't the proper fix the obvious trivial one (attached)?
-> 
+On Thu, Feb 17, 2011 at 10:00 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
+>
+> The problem is that on m68k size of the struct module_version_attribute
+> is not evenly divisible by sizeof(void *), thus when we lay out the
+> __modver section we align on 4 bytes but when we iterate we think that
+> the alignment is 2.
 
-The problem is that on m68k size of the struct module_version_attribute
-is not evenly divisible by sizeof(void *), thus when we lay out the
-__modver section we align on 4 bytes but when we iterate we think that
-the alignment is 2.
+So mark the struct properly.
 
-I/Geert tried adding __attribute__ (aligned(sizeof(void *))) to the type
-definition itself so we have matching alignment everywhere, but DaveM
-said that this only guarantees minimum alignment and that using
-structures like we do shown to break from time to time in kprobes and
-that only pointers worked reliably.
+> I/Geert tried adding __attribute__ (aligned(sizeof(void *))) to the type
+> definition itself so we have matching alignment everywhere, but DaveM
+> said that this only guarantees minimum alignment and that using
+> structures like we do shown to break from time to time in kprobes and
+> that only pointers worked reliably.
 
-Thanks.
+That sounds totally bogus. Minimum alignment is all it needs, and we
+do that in other places too. I really don't see the reason to add some
+broken indirection for totally broken reasons. We don't do that with
+anything else.
 
--- 
-Dmitry
+David, why are you saying that regular "just mark the structure
+alignment correctly" doesn't work?
+
+                                Linus
