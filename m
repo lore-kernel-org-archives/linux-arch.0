@@ -1,55 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33202
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:58961
 	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751781Ab1BQVAj (ORCPT
+	by vger.kernel.org with ESMTP id S1750788Ab1BQWWo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 16:00:39 -0500
-Date: Thu, 17 Feb 2011 13:01:15 -0800 (PST)
-Message-ID: <20110217.130115.71101941.davem@davemloft.net>
+	Thu, 17 Feb 2011 17:22:44 -0500
+Date: Thu, 17 Feb 2011 14:23:20 -0800 (PST)
+Message-ID: <20110217.142320.102554706.davem@davemloft.net>
 Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
  module versions
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
-References: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
-	<20110217180042.GA30530@dtor-ws.eng.vmware.com>
-	<AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
+In-Reply-To: <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+References: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
+	<20110217.140119.39175251.davem@davemloft.net>
+	<20110217221957.GA11244@dtor-ws.eng.vmware.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110217210115.yPf2xVxugSzuU3-7v-q8WHxFI6fBKq_-LP-ZJVBmj_Q@z>
+To: dtor@vmware.com
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110217222320.Lk-cJ_frsP3NUB1dwZfOOtCZfat2KSMPtpOA1r43KDQ@z>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Thu, 17 Feb 2011 10:06:40 -0800
+From: Dmitry Torokhov <dtor@vmware.com>
+Date: Thu, 17 Feb 2011 14:19:57 -0800
 
-> David, why are you saying that regular "just mark the structure
-> alignment correctly" doesn't work?
+> Any pointers as to how to emit these pointers with asm?
 
-Because it's been proven to not work:
+	.section	FOO_SECTION, "a"
+	.align		SIZEOF_POINTER
+	.{,x}word	POINTER
+	.previous
 
-http://marc.info/?l=linux-kernel&m=129674396021733&w=2
-http://marc.info/?l=linux-kernel&m=129674399621795&w=2
-http://marc.info/?l=linux-kernel&m=129674396121739&w=2
-http://marc.info/?l=linux-kernel&m=129674396021735&w=2
+Where FOO_SECTION is your special section name, SIZEOF_POINTER is
+sizeof(void *), and POINTER is the pointer you want to add to the
+section.
 
-GCC is very clever with "static" objects these days.
-
-It thinks that, because you mark something "static", it can align it
-any way it wants because it controls the domain in which the object
-exists.  It "knows" that the object can't be part of an array, and
-therefore no external entity can be concerned about the true "size" of
-the object (specifically wrt. side effects of the alignment of the
-object).
-
-In these cases it takes the explicit alignment attribute as a minimum,
-not as an absolute requirement.
-
-But we lie to the compiler, we mark things static then put them into a
-special a special section, then try to iterate over those objects
-globally as an array and expect the compiler to lay them all out
-with identical alignments and sizes everywhere.
-
-And this doesn't work.
+You have to also pick .word vs. .xword, or whatever the appropriate
+sized pointer mnenomic is for a given architecture.  I know .word
+works for 32-bit sparc, and .xword works for 64-bit sparc.
