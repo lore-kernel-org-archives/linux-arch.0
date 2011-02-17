@@ -1,543 +1,480 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:47641 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:47634 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757130Ab1BQRLE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:11:04 -0500
-Message-ID: <20110217163235.523604726@chello.nl>
-Date: Thu, 17 Feb 2011 17:23:39 +0100
+	with ESMTP id S1757062Ab1BQRLC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:11:02 -0500
+Message-ID: <20110217170854.766930171@chello.nl>
+Date: Thu, 17 Feb 2011 18:05:22 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 12/17] s390: use generic RCP page-table freeing
-References: <20110217162327.434629380@chello.nl>
-Content-Disposition: inline; filename=martin_schwidefsky-s390-use_generic_rcp_page-table_freeing.patch
+Subject: [PATCH 2/8] mm: Remove i_mmap_mutex lockbreak
+References: <20110217170520.229881980@chello.nl>
+Content-Disposition: inline; filename=mm-fix-zap_block_size.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20110217162339.UNSxy-u_f3AOCvG2LCVJofDUh1ue1PRMjmjXW6TMXUk@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110217170522.-DwmgcT8Ya35G04jxiPm4fh-uwkCmut_hmNEQnpLCN4@z>
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Hugh says:
+ "The only significant loser, I think, would be page reclaim (when
+  concurrent with truncation): could spin for a long time waiting for
+  the i_mmap_mutex it expects would soon be dropped? "
 
-Now that we have a generic implementation for RCU based page table
-freeing, use it for s390 as well. It saves a couple of lines.
+Counter points:
+ - cpu contention makes the spin stop (need_resched())
+ - zap pages should be freeing pages at a higher rate than reclaim
+   ever can
+ - shouldn't hold up reclaim more than lock_page() would
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+I think the simplification of the truncate code is definately worth
+it.
+
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-LKML-Reference: <20110215193717.30c2bb0a@mschwide.boeblingen.de.ibm.com>
 ---
- arch/s390/Kconfig               |    1 
- arch/s390/include/asm/pgalloc.h |   19 +--
- arch/s390/include/asm/tlb.h     |   92 ++++++++-----------
- arch/s390/mm/pgtable.c          |  192 +++++-----------------------------------
- 4 files changed, 76 insertions(+), 228 deletions(-)
+ include/linux/fs.h       |    1 
+ include/linux/mm.h       |    2 
+ include/linux/mm_types.h |    1 
+ kernel/fork.c            |    1 
+ mm/memory.c              |  193 ++++++-----------------------------------------
+ mm/mmap.c                |   13 ---
+ mm/mremap.c              |    3 
+ 7 files changed, 27 insertions(+), 187 deletions(-)
 
-Index: linux-2.6/arch/s390/Kconfig
+Index: linux-2.6/include/linux/mm.h
 ===================================================================
---- linux-2.6.orig/arch/s390/Kconfig
-+++ linux-2.6/arch/s390/Kconfig
-@@ -87,6 +87,7 @@ config S390
- 	select HAVE_KERNEL_LZO
- 	select HAVE_GET_USER_PAGES_FAST
- 	select HAVE_ARCH_MUTEX_CPU_RELAX
-+	select HAVE_RCU_TABLE_FREE
- 	select ARCH_INLINE_SPIN_TRYLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK_BH
- 	select ARCH_INLINE_SPIN_LOCK
-Index: linux-2.6/arch/s390/include/asm/pgalloc.h
-===================================================================
---- linux-2.6.orig/arch/s390/include/asm/pgalloc.h
-+++ linux-2.6/arch/s390/include/asm/pgalloc.h
-@@ -20,12 +20,11 @@
- #define check_pgt_cache()	do {} while (0)
- 
- unsigned long *crst_table_alloc(struct mm_struct *, int);
--void crst_table_free(struct mm_struct *, unsigned long *);
--void crst_table_free_rcu(struct mm_struct *, unsigned long *);
-+void crst_table_free(unsigned long *);
- 
- unsigned long *page_table_alloc(struct mm_struct *);
--void page_table_free(struct mm_struct *, unsigned long *);
--void page_table_free_rcu(struct mm_struct *, unsigned long *);
-+void page_table_free(unsigned long *);
-+
- void disable_noexec(struct mm_struct *, struct task_struct *);
- 
- static inline void clear_table(unsigned long *s, unsigned long val, size_t n)
-@@ -95,7 +94,7 @@ static inline pud_t *pud_alloc_one(struc
- 		crst_table_init(table, _REGION3_ENTRY_EMPTY);
- 	return (pud_t *) table;
- }
--#define pud_free(mm, pud) crst_table_free(mm, (unsigned long *) pud)
-+#define pud_free(mm, pud) crst_table_free((unsigned long *) pud)
- 
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long vmaddr)
- {
-@@ -104,7 +103,7 @@ static inline pmd_t *pmd_alloc_one(struc
- 		crst_table_init(table, _SEGMENT_ENTRY_EMPTY);
- 	return (pmd_t *) table;
- }
--#define pmd_free(mm, pmd) crst_table_free(mm, (unsigned long *) pmd)
-+#define pmd_free(mm, pmd) crst_table_free((unsigned long *) pmd)
- 
- static inline void pgd_populate_kernel(struct mm_struct *mm,
- 				       pgd_t *pgd, pud_t *pud)
-@@ -148,7 +147,7 @@ static inline pgd_t *pgd_alloc(struct mm
- 	return (pgd_t *)
- 		crst_table_alloc(mm, user_mode == SECONDARY_SPACE_MODE);
- }
--#define pgd_free(mm, pgd) crst_table_free(mm, (unsigned long *) pgd)
-+#define pgd_free(mm, pgd) crst_table_free((unsigned long *) pgd)
- 
- static inline void pmd_populate_kernel(struct mm_struct *mm,
- 				       pmd_t *pmd, pte_t *pte)
-@@ -175,9 +174,7 @@ static inline void pmd_populate(struct m
- #define pte_alloc_one_kernel(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
- #define pte_alloc_one(mm, vmaddr) ((pte_t *) page_table_alloc(mm))
- 
--#define pte_free_kernel(mm, pte) page_table_free(mm, (unsigned long *) pte)
--#define pte_free(mm, pte) page_table_free(mm, (unsigned long *) pte)
--
--extern void rcu_table_freelist_finish(void);
-+#define pte_free_kernel(mm, pte) page_table_free((unsigned long *) pte)
-+#define pte_free(mm, pte) page_table_free((unsigned long *) pte)
- 
- #endif /* _S390_PGALLOC_H */
-Index: linux-2.6/arch/s390/include/asm/tlb.h
-===================================================================
---- linux-2.6.orig/arch/s390/include/asm/tlb.h
-+++ linux-2.6/arch/s390/include/asm/tlb.h
-@@ -29,50 +29,45 @@
- #include <asm/smp.h>
- #include <asm/tlbflush.h>
- 
-+struct mmu_table_batch {
-+	struct rcu_head rcu;
-+	unsigned int nr;
-+	void *tables[0];
-+};
-+
-+#define MAX_TABLE_BATCH \
-+	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
-+
-+void tlb_table_flush(struct mmu_gather *);
-+void tlb_remove_table(struct mmu_gather *, void *);
-+
- struct mmu_gather {
- 	struct mm_struct *mm;
- 	unsigned int fullmm;
--	unsigned int nr_ptes;
--	unsigned int nr_pxds;
--	unsigned int max;
--	void **array;
--	void *local[8];
-+	struct mmu_table_batch *batch;
-+	/* need_flush is used only for page tables */
-+	unsigned int need_flush : 1;
+--- linux-2.6.orig/include/linux/mm.h
++++ linux-2.6/include/linux/mm.h
+@@ -878,8 +878,6 @@ struct zap_details {
+ 	struct address_space *check_mapping;	/* Check page->mapping if set */
+ 	pgoff_t	first_index;			/* Lowest page->index to unmap */
+ 	pgoff_t last_index;			/* Highest page->index to unmap */
+-	spinlock_t *i_mmap_lock;		/* For unmap_mapping_range: */
+-	unsigned long truncate_count;		/* Compare vm_truncate_count */
  };
  
--static inline void __tlb_alloc_page(struct mmu_gather *tlb)
--{
--	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
--
--	if (addr) {
--		tlb->array = (void *) addr;
--		tlb->max = PAGE_SIZE / sizeof(void *);
--	}
--}
--
- static inline void tlb_gather_mmu(struct mmu_gather *tlb,
- 				  struct mm_struct *mm,
- 				  unsigned int full_mm_flush)
- {
- 	tlb->mm = mm;
--	tlb->max = ARRAY_SIZE(tlb->local);
--	tlb->array = tlb->local;
- 	tlb->fullmm = full_mm_flush;
- 	if (tlb->fullmm)
- 		__tlb_flush_mm(mm);
--	else
--		__tlb_alloc_page(tlb);
--	tlb->nr_ptes = 0;
--	tlb->nr_pxds = tlb->max;
-+	tlb->batch = NULL;
-+	tlb->need_flush = 0;
- }
- 
- static inline void tlb_flush_mmu(struct mmu_gather *tlb)
- {
--	if (!tlb->fullmm && (tlb->nr_ptes > 0 || tlb->nr_pxds < tlb->max))
-+	if (tlb->need_flush) {
-+		tlb->need_flush = 0;
- 		__tlb_flush_mm(tlb->mm);
--	while (tlb->nr_ptes > 0)
--		page_table_free_rcu(tlb->mm, tlb->array[--tlb->nr_ptes]);
--	while (tlb->nr_pxds < tlb->max)
--		crst_table_free_rcu(tlb->mm, tlb->array[tlb->nr_pxds++]);
-+		tlb_table_flush(tlb);
-+	}
- }
- 
- static inline void tlb_finish_mmu(struct mmu_gather *tlb,
-@@ -80,13 +75,8 @@ static inline void tlb_finish_mmu(struct
- {
- 	tlb_flush_mmu(tlb);
- 
--	rcu_table_freelist_finish();
--
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
--
--	if (tlb->array != tlb->local)
--		free_pages((unsigned long) tlb->array, 0);
- }
- 
- /*
-@@ -112,12 +102,11 @@ static inline void tlb_remove_page(struc
- static inline void pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
- 				unsigned long address)
- {
--	if (!tlb->fullmm) {
--		tlb->array[tlb->nr_ptes++] = pte;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		page_table_free(tlb->mm, (unsigned long *) pte);
-+	if (!tlb->fullmm)
-+		/* Use LSB to distinguish crst table vs. page table */
-+		tlb_remove_table(tlb, (void *) pte + 1);
-+	else
-+		page_table_free((unsigned long *) pte);
- }
- 
- /*
-@@ -133,12 +122,10 @@ static inline void pmd_free_tlb(struct m
- #ifdef __s390x__
- 	if (tlb->mm->context.asce_limit <= (1UL << 31))
- 		return;
--	if (!tlb->fullmm) {
--		tlb->array[--tlb->nr_pxds] = pmd;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		crst_table_free(tlb->mm, (unsigned long *) pmd);
-+	if (!tlb->fullmm)
-+		tlb_remove_table(tlb, pmd);
-+	else
-+		crst_table_free((unsigned long *) pmd);
- #endif
- }
- 
-@@ -155,15 +142,22 @@ static inline void pud_free_tlb(struct m
- #ifdef __s390x__
- 	if (tlb->mm->context.asce_limit <= (1UL << 42))
- 		return;
--	if (!tlb->fullmm) {
--		tlb->array[--tlb->nr_pxds] = pud;
--		if (tlb->nr_ptes >= tlb->nr_pxds)
--			tlb_flush_mmu(tlb);
--	} else
--		crst_table_free(tlb->mm, (unsigned long *) pud);
-+	if (!tlb->fullmm)
-+		tlb_remove_table(tlb, pud);
-+	else
-+		crst_table_free((unsigned long *) pud);
- #endif
- }
- 
-+static inline void __tlb_remove_table(void *table)
-+{
-+	/* Use LSB to distinguish crst table vs. page table */
-+	if ((unsigned long) table & 1)
-+		page_table_free(table - 1);
-+	else
-+		crst_table_free(table);
-+}
-+
- #define tlb_start_vma(tlb, vma)			do { } while (0)
- #define tlb_end_vma(tlb, vma)			do { } while (0)
- #define tlb_remove_tlb_entry(tlb, ptep, addr)	do { } while (0)
-Index: linux-2.6/arch/s390/mm/pgtable.c
+ struct page *vm_normal_page(struct vm_area_struct *vma, unsigned long addr,
+Index: linux-2.6/mm/memory.c
 ===================================================================
---- linux-2.6.orig/arch/s390/mm/pgtable.c
-+++ linux-2.6/arch/s390/mm/pgtable.c
-@@ -24,92 +24,17 @@
- #include <asm/tlbflush.h>
- #include <asm/mmu_context.h>
+--- linux-2.6.orig/mm/memory.c
++++ linux-2.6/mm/memory.c
+@@ -986,13 +986,13 @@ int copy_page_range(struct mm_struct *ds
+ static unsigned long zap_pte_range(struct mmu_gather *tlb,
+ 				struct vm_area_struct *vma, pmd_t *pmd,
+ 				unsigned long addr, unsigned long end,
+-				long *zap_work, struct zap_details *details)
++				struct zap_details *details)
+ {
+ 	struct mm_struct *mm = tlb->mm;
+ 	int need_flush = 0;
+-	pte_t *pte;
+-	spinlock_t *ptl;
+ 	int rss[NR_MM_COUNTERS];
++	spinlock_t *ptl;
++	pte_t *pte;
  
--struct rcu_table_freelist {
--	struct rcu_head rcu;
--	struct mm_struct *mm;
--	unsigned int pgt_index;
--	unsigned int crst_index;
--	unsigned long *table[0];
--};
--
--#define RCU_FREELIST_SIZE \
--	((PAGE_SIZE - sizeof(struct rcu_table_freelist)) \
--	  / sizeof(unsigned long))
--
--static DEFINE_PER_CPU(struct rcu_table_freelist *, rcu_table_freelist);
--
--static void __page_table_free(struct mm_struct *mm, unsigned long *table);
--static void __crst_table_free(struct mm_struct *mm, unsigned long *table);
--
--static struct rcu_table_freelist *rcu_table_freelist_get(struct mm_struct *mm)
--{
--	struct rcu_table_freelist **batchp = &__get_cpu_var(rcu_table_freelist);
--	struct rcu_table_freelist *batch = *batchp;
--
--	if (batch)
--		return batch;
--	batch = (struct rcu_table_freelist *) __get_free_page(GFP_ATOMIC);
--	if (batch) {
--		batch->mm = mm;
--		batch->pgt_index = 0;
--		batch->crst_index = RCU_FREELIST_SIZE;
--		*batchp = batch;
--	}
--	return batch;
--}
--
--static void rcu_table_freelist_callback(struct rcu_head *head)
--{
--	struct rcu_table_freelist *batch =
--		container_of(head, struct rcu_table_freelist, rcu);
--
--	while (batch->pgt_index > 0)
--		__page_table_free(batch->mm, batch->table[--batch->pgt_index]);
--	while (batch->crst_index < RCU_FREELIST_SIZE)
--		__crst_table_free(batch->mm, batch->table[batch->crst_index++]);
--	free_page((unsigned long) batch);
--}
--
--void rcu_table_freelist_finish(void)
--{
--	struct rcu_table_freelist *batch = __get_cpu_var(rcu_table_freelist);
--
--	if (!batch)
--		return;
--	call_rcu(&batch->rcu, rcu_table_freelist_callback);
--	__get_cpu_var(rcu_table_freelist) = NULL;
--}
--
--static void smp_sync(void *arg)
--{
--}
- 
- #ifndef CONFIG_64BIT
- #define ALLOC_ORDER	1
- #define TABLES_PER_PAGE	4
- #define FRAG_MASK	15UL
- #define SECOND_HALVES	10UL
--
--void clear_table_pgstes(unsigned long *table)
--{
--	clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE/4);
--	memset(table + 256, 0, PAGE_SIZE/4);
--	clear_table(table + 512, _PAGE_TYPE_EMPTY, PAGE_SIZE/4);
--	memset(table + 768, 0, PAGE_SIZE/4);
--}
--
- #else
- #define ALLOC_ORDER	2
- #define TABLES_PER_PAGE	2
- #define FRAG_MASK	3UL
- #define SECOND_HALVES	2UL
--
--void clear_table_pgstes(unsigned long *table)
--{
--	clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE/2);
--	memset(table + 256, 0, PAGE_SIZE/2);
--}
--
- #endif
- 
- unsigned long VMALLOC_START = VMALLOC_END - VMALLOC_SIZE;
-@@ -138,6 +63,7 @@ unsigned long *crst_table_alloc(struct m
- 			return NULL;
+ 	init_rss_vec(rss);
+ again:
+@@ -1001,12 +1001,9 @@ static unsigned long zap_pte_range(struc
+ 	do {
+ 		pte_t ptent = *pte;
+ 		if (pte_none(ptent)) {
+-			(*zap_work)--;
+ 			continue;
  		}
- 		page->index = page_to_phys(shadow);
-+		page->private = (unsigned long) mm;
- 	}
- 	spin_lock_bh(&mm->context.list_lock);
- 	list_add(&page->lru, &mm->context.crst_list);
-@@ -145,47 +71,19 @@ unsigned long *crst_table_alloc(struct m
- 	return (unsigned long *) page_to_phys(page);
- }
  
--static void __crst_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	unsigned long *shadow = get_shadow_table(table);
+-		(*zap_work) -= PAGE_SIZE;
 -
--	if (shadow)
--		free_pages((unsigned long) shadow, ALLOC_ORDER);
--	free_pages((unsigned long) table, ALLOC_ORDER);
--}
--
--void crst_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	struct page *page = virt_to_page(table);
--
--	spin_lock_bh(&mm->context.list_lock);
--	list_del(&page->lru);
--	spin_unlock_bh(&mm->context.list_lock);
--	__crst_table_free(mm, table);
--}
--
--void crst_table_free_rcu(struct mm_struct *mm, unsigned long *table)
-+void crst_table_free(unsigned long *table)
- {
--	struct rcu_table_freelist *batch;
- 	struct page *page = virt_to_page(table);
-+	struct mm_struct *mm = (struct mm_struct *) page->private;
-+	unsigned long *shadow = get_shadow_table(table);
+ 		if (pte_present(ptent)) {
+ 			struct page *page;
  
- 	spin_lock_bh(&mm->context.list_lock);
- 	list_del(&page->lru);
-+	page->private = 0;
- 	spin_unlock_bh(&mm->context.list_lock);
--	if (atomic_read(&mm->mm_users) < 2 &&
--	    cpumask_equal(mm_cpumask(mm), cpumask_of(smp_processor_id()))) {
--		__crst_table_free(mm, table);
--		return;
--	}
--	batch = rcu_table_freelist_get(mm);
--	if (!batch) {
--		smp_call_function(smp_sync, NULL, 1);
--		__crst_table_free(mm, table);
--		return;
--	}
--	batch->table[--batch->crst_index] = table;
--	if (batch->pgt_index >= batch->crst_index)
--		rcu_table_freelist_finish();
-+	if (shadow)
-+		free_pages((unsigned long) shadow, ALLOC_ORDER);
-+	free_pages((unsigned long) table, ALLOC_ORDER);
- }
- 
- #ifdef CONFIG_64BIT
-@@ -223,7 +121,7 @@ int crst_table_upgrade(struct mm_struct 
- 	}
- 	spin_unlock_bh(&mm->page_table_lock);
- 	if (table)
--		crst_table_free(mm, table);
-+		crst_table_free(table);
- 	if (mm->context.asce_limit < limit)
- 		goto repeat;
- 	update_mm(mm, current);
-@@ -257,7 +155,7 @@ void crst_table_downgrade(struct mm_stru
+@@ -1073,8 +1070,7 @@ static unsigned long zap_pte_range(struc
+ 				print_bad_pte(vma, addr, ptent, NULL);
  		}
- 		mm->pgd = (pgd_t *) (pgd_val(*pgd) & _REGION_ENTRY_ORIGIN);
- 		mm->task_size = mm->context.asce_limit;
--		crst_table_free(mm, (unsigned long *) pgd);
-+		crst_table_free((unsigned long *) pgd);
- 	}
- 	update_mm(mm, current);
+ 		pte_clear_not_present_full(mm, addr, pte, tlb->fullmm);
+-	} while (pte++, addr += PAGE_SIZE,
+-			(addr != end && *zap_work > 0 && !need_flush));
++	} while (pte++, addr += PAGE_SIZE, (addr != end && !need_flush));
+ 
+ 	add_mm_rss_vec(mm, rss);
+ 	arch_leave_lazy_mmu_mode();
+@@ -1093,7 +1089,7 @@ static unsigned long zap_pte_range(struc
+ static inline unsigned long zap_pmd_range(struct mmu_gather *tlb,
+ 				struct vm_area_struct *vma, pud_t *pud,
+ 				unsigned long addr, unsigned long end,
+-				long *zap_work, struct zap_details *details)
++				struct zap_details *details)
+ {
+ 	pmd_t *pmd;
+ 	unsigned long next;
+@@ -1105,19 +1101,15 @@ static inline unsigned long zap_pmd_rang
+ 			if (next-addr != HPAGE_PMD_SIZE) {
+ 				VM_BUG_ON(!rwsem_is_locked(&tlb->mm->mmap_sem));
+ 				split_huge_page_pmd(vma->vm_mm, pmd);
+-			} else if (zap_huge_pmd(tlb, vma, pmd)) {
+-				(*zap_work)--;
++			} else if (zap_huge_pmd(tlb, vma, pmd))
+ 				continue;
+-			}
+ 			/* fall through */
+ 		}
+-		if (pmd_none_or_clear_bad(pmd)) {
+-			(*zap_work)--;
++		if (pmd_none_or_clear_bad(pmd))
+ 			continue;
+-		}
+-		next = zap_pte_range(tlb, vma, pmd, addr, next,
+-						zap_work, details);
+-	} while (pmd++, addr = next, (addr != end && *zap_work > 0));
++		next = zap_pte_range(tlb, vma, pmd, addr, next, details);
++		cond_resched();
++	} while (pmd++, addr = next, addr != end);
+ 
+ 	return addr;
  }
-@@ -288,11 +186,7 @@ unsigned long *page_table_alloc(struct m
- 			return NULL;
- 		pgtable_page_ctor(page);
- 		page->flags &= ~FRAG_MASK;
--		table = (unsigned long *) page_to_phys(page);
--		if (mm->context.has_pgste)
--			clear_table_pgstes(table);
--		else
--			clear_table(table, _PAGE_TYPE_EMPTY, PAGE_SIZE);
-+		page->private = (unsigned long) mm;
- 		spin_lock_bh(&mm->context.list_lock);
- 		list_add(&page->lru, &mm->context.pgtable_list);
+@@ -1125,7 +1117,7 @@ static inline unsigned long zap_pmd_rang
+ static inline unsigned long zap_pud_range(struct mmu_gather *tlb,
+ 				struct vm_area_struct *vma, pgd_t *pgd,
+ 				unsigned long addr, unsigned long end,
+-				long *zap_work, struct zap_details *details)
++				struct zap_details *details)
+ {
+ 	pud_t *pud;
+ 	unsigned long next;
+@@ -1133,13 +1125,10 @@ static inline unsigned long zap_pud_rang
+ 	pud = pud_offset(pgd, addr);
+ 	do {
+ 		next = pud_addr_end(addr, end);
+-		if (pud_none_or_clear_bad(pud)) {
+-			(*zap_work)--;
++		if (pud_none_or_clear_bad(pud))
+ 			continue;
+-		}
+-		next = zap_pmd_range(tlb, vma, pud, addr, next,
+-						zap_work, details);
+-	} while (pud++, addr = next, (addr != end && *zap_work > 0));
++		next = zap_pmd_range(tlb, vma, pud, addr, next, details);
++	} while (pud++, addr = next, addr != end);
+ 
+ 	return addr;
+ }
+@@ -1147,7 +1136,7 @@ static inline unsigned long zap_pud_rang
+ static unsigned long unmap_page_range(struct mmu_gather *tlb,
+ 				struct vm_area_struct *vma,
+ 				unsigned long addr, unsigned long end,
+-				long *zap_work, struct zap_details *details)
++				struct zap_details *details)
+ {
+ 	pgd_t *pgd;
+ 	unsigned long next;
+@@ -1161,13 +1150,10 @@ static unsigned long unmap_page_range(st
+ 	pgd = pgd_offset(vma->vm_mm, addr);
+ 	do {
+ 		next = pgd_addr_end(addr, end);
+-		if (pgd_none_or_clear_bad(pgd)) {
+-			(*zap_work)--;
++		if (pgd_none_or_clear_bad(pgd))
+ 			continue;
+-		}
+-		next = zap_pud_range(tlb, vma, pgd, addr, next,
+-						zap_work, details);
+-	} while (pgd++, addr = next, (addr != end && *zap_work > 0));
++		next = zap_pud_range(tlb, vma, pgd, addr, next, details);
++	} while (pgd++, addr = next, addr != end);
+ 	tlb_end_vma(tlb, vma);
+ 	mem_cgroup_uncharge_end();
+ 
+@@ -1212,9 +1198,7 @@ unsigned long unmap_vmas(struct mmu_gath
+ 		unsigned long end_addr, unsigned long *nr_accounted,
+ 		struct zap_details *details)
+ {
+-	long zap_work = ZAP_BLOCK_SIZE;
+ 	unsigned long start = start_addr;
+-	spinlock_t *i_mmap_lock = details? details->i_mmap_lock: NULL;
+ 	struct mm_struct *mm = vma->vm_mm;
+ 
+ 	mmu_notifier_invalidate_range_start(mm, start_addr, end_addr);
+@@ -1247,33 +1231,15 @@ unsigned long unmap_vmas(struct mmu_gath
+ 				 * Since no pte has actually been setup, it is
+ 				 * safe to do nothing in this case.
+ 				 */
+-				if (vma->vm_file) {
++				if (vma->vm_file)
+ 					unmap_hugepage_range(vma, start, end, NULL);
+-					zap_work -= (end - start) /
+-					pages_per_huge_page(hstate_vma(vma));
+-				}
+ 
+ 				start = end;
+ 			} else
+-				start = unmap_page_range(tlb, vma,
+-						start, end, &zap_work, details);
+-
+-			if (zap_work > 0) {
+-				BUG_ON(start != end);
+-				break;
+-			}
+-
+-			if (need_resched() ||
+-				(i_mmap_lock && spin_needbreak(i_mmap_lock))) {
+-				if (i_mmap_lock)
+-					goto out;
+-				cond_resched();
+-			}
+-
+-			zap_work = ZAP_BLOCK_SIZE;
++				start = unmap_page_range(tlb, vma, start, end, details);
+ 		}
  	}
-@@ -305,42 +199,34 @@ unsigned long *page_table_alloc(struct m
- 	if ((page->flags & FRAG_MASK) == ((1UL << TABLES_PER_PAGE) - 1))
- 		list_move_tail(&page->lru, &mm->context.pgtable_list);
- 	spin_unlock_bh(&mm->context.list_lock);
-+	clear_table(table, _PAGE_TYPE_EMPTY, PTRS_PER_PTE * sizeof(long));
-+	if (mm->context.noexec)
-+		clear_table(table + 256, _PAGE_TYPE_EMPTY,
-+			    PTRS_PER_PTE * sizeof(long));
-+	else if (mm->context.has_pgste)
-+		clear_table(table + 256, 0, PTRS_PER_PTE * sizeof(long));
- 	return table;
+-out:
++
+ 	mmu_notifier_invalidate_range_end(mm, start_addr, end_addr);
+ 	return start;	/* which is now the end (or restart) address */
+ }
+@@ -2535,96 +2501,11 @@ static int do_wp_page(struct mm_struct *
+ 	return ret;
  }
  
--static void __page_table_free(struct mm_struct *mm, unsigned long *table)
-+void page_table_free(unsigned long *table)
- {
--	struct page *page;
--	unsigned long bits;
+-/*
+- * Helper functions for unmap_mapping_range().
+- *
+- * __ Notes on dropping i_mmap_lock to reduce latency while unmapping __
+- *
+- * We have to restart searching the prio_tree whenever we drop the lock,
+- * since the iterator is only valid while the lock is held, and anyway
+- * a later vma might be split and reinserted earlier while lock dropped.
+- *
+- * The list of nonlinear vmas could be handled more efficiently, using
+- * a placeholder, but handle it in the same way until a need is shown.
+- * It is important to search the prio_tree before nonlinear list: a vma
+- * may become nonlinear and be shifted from prio_tree to nonlinear list
+- * while the lock is dropped; but never shifted from list to prio_tree.
+- *
+- * In order to make forward progress despite restarting the search,
+- * vm_truncate_count is used to mark a vma as now dealt with, so we can
+- * quickly skip it next time around.  Since the prio_tree search only
+- * shows us those vmas affected by unmapping the range in question, we
+- * can't efficiently keep all vmas in step with mapping->truncate_count:
+- * so instead reset them all whenever it wraps back to 0 (then go to 1).
+- * mapping->truncate_count and vma->vm_truncate_count are protected by
+- * i_mmap_lock.
+- *
+- * In order to make forward progress despite repeatedly restarting some
+- * large vma, note the restart_addr from unmap_vmas when it breaks out:
+- * and restart from that address when we reach that vma again.  It might
+- * have been split or merged, shrunk or extended, but never shifted: so
+- * restart_addr remains valid so long as it remains in the vma's range.
+- * unmap_mapping_range forces truncate_count to leap over page-aligned
+- * values so we can save vma's restart_addr in its truncate_count field.
+- */
+-#define is_restart_addr(truncate_count) (!((truncate_count) & ~PAGE_MASK))
 -
--	bits = ((unsigned long) table) & 15;
--	table = (unsigned long *)(((unsigned long) table) ^ bits);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
--	page->flags ^= bits;
--	if (!(page->flags & FRAG_MASK)) {
--		pgtable_page_dtor(page);
--		__free_page(page);
--	}
+-static void reset_vma_truncate_counts(struct address_space *mapping)
+-{
+-	struct vm_area_struct *vma;
+-	struct prio_tree_iter iter;
+-
+-	vma_prio_tree_foreach(vma, &iter, &mapping->i_mmap, 0, ULONG_MAX)
+-		vma->vm_truncate_count = 0;
+-	list_for_each_entry(vma, &mapping->i_mmap_nonlinear, shared.vm_set.list)
+-		vma->vm_truncate_count = 0;
 -}
 -
--void page_table_free(struct mm_struct *mm, unsigned long *table)
--{
--	struct page *page;
-+	struct page *page = virt_to_page(table);
-+	struct mm_struct *mm = (struct mm_struct *) page->private;
- 	unsigned long bits;
+-static int unmap_mapping_range_vma(struct vm_area_struct *vma,
++static void unmap_mapping_range_vma(struct vm_area_struct *vma,
+ 		unsigned long start_addr, unsigned long end_addr,
+ 		struct zap_details *details)
+ {
+-	unsigned long restart_addr;
+-	int need_break;
+-
+-	/*
+-	 * files that support invalidating or truncating portions of the
+-	 * file from under mmaped areas must have their ->fault function
+-	 * return a locked page (and set VM_FAULT_LOCKED in the return).
+-	 * This provides synchronisation against concurrent unmapping here.
+-	 */
+-
+-again:
+-	restart_addr = vma->vm_truncate_count;
+-	if (is_restart_addr(restart_addr) && start_addr < restart_addr) {
+-		start_addr = restart_addr;
+-		if (start_addr >= end_addr) {
+-			/* Top of vma has been split off since last time */
+-			vma->vm_truncate_count = details->truncate_count;
+-			return 0;
+-		}
+-	}
+-
+-	restart_addr = zap_page_range(vma, start_addr,
+-					end_addr - start_addr, details);
+-	need_break = need_resched() || spin_needbreak(details->i_mmap_lock);
+-
+-	if (restart_addr >= end_addr) {
+-		/* We have now completed this vma: mark it so */
+-		vma->vm_truncate_count = details->truncate_count;
+-		if (!need_break)
+-			return 0;
+-	} else {
+-		/* Note restart_addr in vma's truncate_count field */
+-		vma->vm_truncate_count = restart_addr;
+-		if (!need_break)
+-			goto again;
+-	}
+-
+-	spin_unlock(details->i_mmap_lock);
+-	cond_resched();
+-	spin_lock(details->i_mmap_lock);
+-	return -EINTR;
++	zap_page_range(vma, start_addr, end_addr - start_addr, details);
+ }
  
- 	bits = (mm->context.noexec || mm->context.has_pgste) ? 3UL : 1UL;
- 	bits <<= (__pa(table) & (PAGE_SIZE - 1)) / 256 / sizeof(unsigned long);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
- 	spin_lock_bh(&mm->context.list_lock);
- 	page->flags ^= bits;
- 	if (page->flags & FRAG_MASK) {
- 		/* Page now has some free pgtable fragments. */
--		if (!list_empty(&page->lru))
--			list_move(&page->lru, &mm->context.pgtable_list);
-+		list_move(&page->lru, &mm->context.pgtable_list);
- 		page = NULL;
--	} else
-+	} else {
- 		/* All fragments of the 4K page have been freed. */
- 		list_del(&page->lru);
-+		page->private = 0;
-+	}
- 	spin_unlock_bh(&mm->context.list_lock);
- 	if (page) {
- 		pgtable_page_dtor(page);
-@@ -348,36 +234,6 @@ void page_table_free(struct mm_struct *m
+ static inline void unmap_mapping_range_tree(struct prio_tree_root *root,
+@@ -2634,12 +2515,8 @@ static inline void unmap_mapping_range_t
+ 	struct prio_tree_iter iter;
+ 	pgoff_t vba, vea, zba, zea;
+ 
+-restart:
+ 	vma_prio_tree_foreach(vma, &iter, root,
+ 			details->first_index, details->last_index) {
+-		/* Skip quickly over those we have already dealt with */
+-		if (vma->vm_truncate_count == details->truncate_count)
+-			continue;
+ 
+ 		vba = vma->vm_pgoff;
+ 		vea = vba + ((vma->vm_end - vma->vm_start) >> PAGE_SHIFT) - 1;
+@@ -2651,11 +2528,10 @@ static inline void unmap_mapping_range_t
+ 		if (zea > vea)
+ 			zea = vea;
+ 
+-		if (unmap_mapping_range_vma(vma,
++		unmap_mapping_range_vma(vma,
+ 			((zba - vba) << PAGE_SHIFT) + vma->vm_start,
+ 			((zea - vba + 1) << PAGE_SHIFT) + vma->vm_start,
+-				details) < 0)
+-			goto restart;
++				details);
  	}
  }
  
--void page_table_free_rcu(struct mm_struct *mm, unsigned long *table)
--{
--	struct rcu_table_freelist *batch;
--	struct page *page;
--	unsigned long bits;
+@@ -2670,15 +2546,9 @@ static inline void unmap_mapping_range_l
+ 	 * across *all* the pages in each nonlinear VMA, not just the pages
+ 	 * whose virtual address lies outside the file truncation point.
+ 	 */
+-restart:
+ 	list_for_each_entry(vma, head, shared.vm_set.list) {
+-		/* Skip quickly over those we have already dealt with */
+-		if (vma->vm_truncate_count == details->truncate_count)
+-			continue;
+ 		details->nonlinear_vma = vma;
+-		if (unmap_mapping_range_vma(vma, vma->vm_start,
+-					vma->vm_end, details) < 0)
+-			goto restart;
++		unmap_mapping_range_vma(vma, vma->vm_start, vma->vm_end, details);
+ 	}
+ }
+ 
+@@ -2717,19 +2587,8 @@ void unmap_mapping_range(struct address_
+ 	details.last_index = hba + hlen - 1;
+ 	if (details.last_index < details.first_index)
+ 		details.last_index = ULONG_MAX;
+-	details.i_mmap_lock = &mapping->i_mmap_lock;
+ 
+ 	spin_lock(&mapping->i_mmap_lock);
 -
--	if (atomic_read(&mm->mm_users) < 2 &&
--	    cpumask_equal(mm_cpumask(mm), cpumask_of(smp_processor_id()))) {
--		page_table_free(mm, table);
--		return;
+-	/* Protect against endless unmapping loops */
+-	mapping->truncate_count++;
+-	if (unlikely(is_restart_addr(mapping->truncate_count))) {
+-		if (mapping->truncate_count == 0)
+-			reset_vma_truncate_counts(mapping);
+-		mapping->truncate_count++;
 -	}
--	batch = rcu_table_freelist_get(mm);
--	if (!batch) {
--		smp_call_function(smp_sync, NULL, 1);
--		page_table_free(mm, table);
--		return;
--	}
--	bits = (mm->context.noexec || mm->context.has_pgste) ? 3UL : 1UL;
--	bits <<= (__pa(table) & (PAGE_SIZE - 1)) / 256 / sizeof(unsigned long);
--	page = pfn_to_page(__pa(table) >> PAGE_SHIFT);
--	spin_lock_bh(&mm->context.list_lock);
--	/* Delayed freeing with rcu prevents reuse of pgtable fragments */
--	list_del_init(&page->lru);
--	spin_unlock_bh(&mm->context.list_lock);
--	table = (unsigned long *)(((unsigned long) table) | bits);
--	batch->table[batch->pgt_index++] = table;
--	if (batch->pgt_index >= batch->crst_index)
--		rcu_table_freelist_finish();
--}
+-	details.truncate_count = mapping->truncate_count;
 -
- void disable_noexec(struct mm_struct *mm, struct task_struct *tsk)
- {
- 	struct page *page;
+ 	if (unlikely(!prio_tree_empty(&mapping->i_mmap)))
+ 		unmap_mapping_range_tree(&mapping->i_mmap, &details);
+ 	if (unlikely(!list_empty(&mapping->i_mmap_nonlinear)))
+Index: linux-2.6/include/linux/fs.h
+===================================================================
+--- linux-2.6.orig/include/linux/fs.h
++++ linux-2.6/include/linux/fs.h
+@@ -640,7 +640,6 @@ struct address_space {
+ 	struct prio_tree_root	i_mmap;		/* tree of private and shared mappings */
+ 	struct list_head	i_mmap_nonlinear;/*list VM_NONLINEAR mappings */
+ 	spinlock_t		i_mmap_lock;	/* protect tree, count, list */
+-	unsigned int		truncate_count;	/* Cover race condition with truncate */
+ 	unsigned long		nrpages;	/* number of total pages */
+ 	pgoff_t			writeback_index;/* writeback starts here */
+ 	const struct address_space_operations *a_ops;	/* methods */
+Index: linux-2.6/include/linux/mm_types.h
+===================================================================
+--- linux-2.6.orig/include/linux/mm_types.h
++++ linux-2.6/include/linux/mm_types.h
+@@ -175,7 +175,6 @@ struct vm_area_struct {
+ 					   units, *not* PAGE_CACHE_SIZE */
+ 	struct file * vm_file;		/* File we map to (can be NULL). */
+ 	void * vm_private_data;		/* was vm_pte (shared mem) */
+-	unsigned long vm_truncate_count;/* truncate_count or restart_addr */
+ 
+ #ifndef CONFIG_MMU
+ 	struct vm_region *vm_region;	/* NOMMU mapping region */
+Index: linux-2.6/kernel/fork.c
+===================================================================
+--- linux-2.6.orig/kernel/fork.c
++++ linux-2.6/kernel/fork.c
+@@ -379,7 +379,6 @@ static int dup_mmap(struct mm_struct *mm
+ 			spin_lock(&mapping->i_mmap_lock);
+ 			if (tmp->vm_flags & VM_SHARED)
+ 				mapping->i_mmap_writable++;
+-			tmp->vm_truncate_count = mpnt->vm_truncate_count;
+ 			flush_dcache_mmap_lock(mapping);
+ 			/* insert tmp into the share list, just after mpnt */
+ 			vma_prio_tree_add(tmp, mpnt);
+Index: linux-2.6/mm/mmap.c
+===================================================================
+--- linux-2.6.orig/mm/mmap.c
++++ linux-2.6/mm/mmap.c
+@@ -464,10 +464,8 @@ static void vma_link(struct mm_struct *m
+ 	if (vma->vm_file)
+ 		mapping = vma->vm_file->f_mapping;
+ 
+-	if (mapping) {
++	if (mapping)
+ 		spin_lock(&mapping->i_mmap_lock);
+-		vma->vm_truncate_count = mapping->truncate_count;
+-	}
+ 
+ 	__vma_link(mm, vma, prev, rb_link, rb_parent);
+ 	__vma_link_file(vma);
+@@ -577,16 +575,7 @@ again:			remove_next = 1 + (end > next->
+ 		if (!(vma->vm_flags & VM_NONLINEAR))
+ 			root = &mapping->i_mmap;
+ 		spin_lock(&mapping->i_mmap_lock);
+-		if (importer &&
+-		    vma->vm_truncate_count != next->vm_truncate_count) {
+-			/*
+-			 * unmap_mapping_range might be in progress:
+-			 * ensure that the expanding vma is rescanned.
+-			 */
+-			importer->vm_truncate_count = 0;
+-		}
+ 		if (insert) {
+-			insert->vm_truncate_count = vma->vm_truncate_count;
+ 			/*
+ 			 * Put into prio_tree now, so instantiated pages
+ 			 * are visible to arm/parisc __flush_dcache_page
+Index: linux-2.6/mm/mremap.c
+===================================================================
+--- linux-2.6.orig/mm/mremap.c
++++ linux-2.6/mm/mremap.c
+@@ -94,9 +94,6 @@ static void move_ptes(struct vm_area_str
+ 		 */
+ 		mapping = vma->vm_file->f_mapping;
+ 		spin_lock(&mapping->i_mmap_lock);
+-		if (new_vma->vm_truncate_count &&
+-		    new_vma->vm_truncate_count != vma->vm_truncate_count)
+-			new_vma->vm_truncate_count = 0;
+ 	}
+ 
+ 	/*
 
 
