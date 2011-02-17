@@ -1,231 +1,451 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:58050 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757132Ab1BQRLi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:11:38 -0500
-Message-ID: <20110217163235.590832786@chello.nl>
-Date: Thu, 17 Feb 2011 17:23:40 +0100
+Received: from bombadil.infradead.org ([18.85.46.34]:47582 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757062Ab1BQRK4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:10:56 -0500
+Message-ID: <20110217163235.453685039@chello.nl>
+Date: Thu, 17 Feb 2011 17:23:38 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 13/17] mm: Extended batches for generic mmu_gather
+Subject: [PATCH 11/17] mm, powerpc: Move the RCU page-table freeing into generic code
 References: <20110217162327.434629380@chello.nl>
-Content-Disposition: inline; filename=peter_zijlstra-mm-extended_batches_for_generic_mmu_gather.patch
+Content-Disposition: inline; filename=peter_zijlstra-mm_powerpc-move_the_rcu_page-table_freeing_into.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
-Message-ID: <20110217162340.IJyNf9n2t4X9ZxfuzCuUtKkFuGMH_cJcDcomIpkfci0@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110217162338.Yh0qHAzZkIycbCJf5-kzhNK9Qbu237r9K3QuoG6om6s@z>
 
-Instead of using a single batch (the small on-stack, or an allocated
-page), try and extend the batch every time it runs out and only flush
-once either the extend fails or we're done.
+In case other architectures require RCU freed page-tables to implement
+gup_fast() and software filled hashes and similar things, provide the
+means to do so by moving the logic into generic code.
 
-Requested-by: Nick Piggin <npiggin@suse.de>
-Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Acked-by: Hugh Dickins <hughd@google.com>
+Requested-by: David Miller <davem@davemloft.net>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- include/asm-generic/tlb.h |  120 ++++++++++++++++++++++++++++++----------------
- 1 file changed, 80 insertions(+), 40 deletions(-)
+ arch/Kconfig                       |    3 +
+ arch/powerpc/Kconfig               |    1 
+ arch/powerpc/include/asm/pgalloc.h |   21 ++++++-
+ arch/powerpc/include/asm/tlb.h     |   10 ---
+ arch/powerpc/mm/pgtable.c          |   98 -------------------------------------
+ arch/powerpc/mm/tlb_hash32.c       |    3 -
+ arch/powerpc/mm/tlb_hash64.c       |    3 -
+ arch/powerpc/mm/tlb_nohash.c       |    3 -
+ include/asm-generic/tlb.h          |   57 +++++++++++++++++++--
+ mm/memory.c                        |   77 +++++++++++++++++++++++++++++
+ 10 files changed, 151 insertions(+), 125 deletions(-)
 
+Index: linux-2.6/arch/powerpc/include/asm/pgalloc.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/pgalloc.h
++++ linux-2.6/arch/powerpc/include/asm/pgalloc.h
+@@ -31,14 +31,29 @@ static inline void pte_free(struct mm_st
+ #endif
+ 
+ #ifdef CONFIG_SMP
+-extern void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift);
+-extern void pte_free_finish(struct mmu_gather *tlb);
++struct mmu_gather;
++extern void tlb_remove_table(struct mmu_gather *, void *);
++
++static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, int shift)
++{
++	unsigned long pgf = (unsigned long)table;
++	BUG_ON(shift > MAX_PGTABLE_INDEX_SIZE);
++	pgf |= shift;
++	tlb_remove_table(tlb, (void *)pgf);
++}
++
++static inline void __tlb_remove_table(void *_table)
++{
++	void *table = (void *)((unsigned long)_table & ~MAX_PGTABLE_INDEX_SIZE);
++	unsigned shift = (unsigned long)_table & MAX_PGTABLE_INDEX_SIZE;
++
++	pgtable_free(table, shift);
++}
+ #else /* CONFIG_SMP */
+ static inline void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
+ {
+ 	pgtable_free(table, shift);
+ }
+-static inline void pte_free_finish(struct mmu_gather *tlb) { }
+ #endif /* !CONFIG_SMP */
+ 
+ static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *ptepage,
+Index: linux-2.6/arch/powerpc/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/tlb.h
++++ linux-2.6/arch/powerpc/include/asm/tlb.h
+@@ -28,16 +28,6 @@
+ #define tlb_start_vma(tlb, vma)	do { } while (0)
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
+ 
+-#define HAVE_ARCH_MMU_GATHER 1
+-
+-struct pte_freelist_batch;
+-
+-struct arch_mmu_gather {
+-	struct pte_freelist_batch *batch;
+-};
+-
+-#define ARCH_MMU_GATHER_INIT (struct arch_mmu_gather){ .batch = NULL, }
+-
+ extern void tlb_flush(struct mmu_gather *tlb);
+ 
+ /* Get the generic bits... */
+Index: linux-2.6/arch/powerpc/mm/pgtable.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/pgtable.c
++++ linux-2.6/arch/powerpc/mm/pgtable.c
+@@ -33,104 +33,6 @@
+ 
+ #include "mmu_decl.h"
+ 
+-#ifdef CONFIG_SMP
+-
+-/*
+- * Handle batching of page table freeing on SMP. Page tables are
+- * queued up and send to be freed later by RCU in order to avoid
+- * freeing a page table page that is being walked without locks
+- */
+-
+-static unsigned long pte_freelist_forced_free;
+-
+-struct pte_freelist_batch
+-{
+-	struct rcu_head	rcu;
+-	unsigned int	index;
+-	unsigned long	tables[0];
+-};
+-
+-#define PTE_FREELIST_SIZE \
+-	((PAGE_SIZE - sizeof(struct pte_freelist_batch)) \
+-	  / sizeof(unsigned long))
+-
+-static void pte_free_smp_sync(void *arg)
+-{
+-	/* Do nothing, just ensure we sync with all CPUs */
+-}
+-
+-/* This is only called when we are critically out of memory
+- * (and fail to get a page in pte_free_tlb).
+- */
+-static void pgtable_free_now(void *table, unsigned shift)
+-{
+-	pte_freelist_forced_free++;
+-
+-	smp_call_function(pte_free_smp_sync, NULL, 1);
+-
+-	pgtable_free(table, shift);
+-}
+-
+-static void pte_free_rcu_callback(struct rcu_head *head)
+-{
+-	struct pte_freelist_batch *batch =
+-		container_of(head, struct pte_freelist_batch, rcu);
+-	unsigned int i;
+-
+-	for (i = 0; i < batch->index; i++) {
+-		void *table = (void *)(batch->tables[i] & ~MAX_PGTABLE_INDEX_SIZE);
+-		unsigned shift = batch->tables[i] & MAX_PGTABLE_INDEX_SIZE;
+-
+-		pgtable_free(table, shift);
+-	}
+-
+-	free_page((unsigned long)batch);
+-}
+-
+-static void pte_free_submit(struct pte_freelist_batch *batch)
+-{
+-	call_rcu_sched(&batch->rcu, pte_free_rcu_callback);
+-}
+-
+-void pgtable_free_tlb(struct mmu_gather *tlb, void *table, unsigned shift)
+-{
+-	struct pte_freelist_batch **batchp = &tlb->arch.batch;
+-	unsigned long pgf;
+-
+-	if (atomic_read(&tlb->mm->mm_users) < 2) {
+-		pgtable_free(table, shift);
+-		return;
+-	}
+-
+-	if (*batchp == NULL) {
+-		*batchp = (struct pte_freelist_batch *)__get_free_page(GFP_ATOMIC);
+-		if (*batchp == NULL) {
+-			pgtable_free_now(table, shift);
+-			return;
+-		}
+-		(*batchp)->index = 0;
+-	}
+-	BUG_ON(shift > MAX_PGTABLE_INDEX_SIZE);
+-	pgf = (unsigned long)table | shift;
+-	(*batchp)->tables[(*batchp)->index++] = pgf;
+-	if ((*batchp)->index == PTE_FREELIST_SIZE) {
+-		pte_free_submit(*batchp);
+-		*batchp = NULL;
+-	}
+-}
+-
+-void pte_free_finish(struct mmu_gather *tlb)
+-{
+-	struct pte_freelist_batch **batchp = &tlb->arch.batch;
+-
+-	if (*batchp == NULL)
+-		return;
+-	pte_free_submit(*batchp);
+-	*batchp = NULL;
+-}
+-
+-#endif /* CONFIG_SMP */
+-
+ static inline int is_exec_fault(void)
+ {
+ 	return current->thread.regs && TRAP(current->thread.regs) == 0x400;
+Index: linux-2.6/arch/powerpc/mm/tlb_hash32.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash32.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash32.c
+@@ -71,9 +71,6 @@ void tlb_flush(struct mmu_gather *tlb)
+ 		 */
+ 		_tlbia();
+ 	}
+-
+-	/* Push out batch of freed page tables */
+-	pte_free_finish(tlb);
+ }
+ 
+ /*
+Index: linux-2.6/arch/powerpc/mm/tlb_hash64.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash64.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash64.c
+@@ -165,9 +165,6 @@ void tlb_flush(struct mmu_gather *tlb)
+ 		__flush_tlb_pending(tlbbatch);
+ 
+ 	put_cpu_var(ppc64_tlb_batch);
+-
+-	/* Push out batch of freed page tables */
+-	pte_free_finish(tlb);
+ }
+ 
+ /**
+Index: linux-2.6/arch/powerpc/mm/tlb_nohash.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_nohash.c
++++ linux-2.6/arch/powerpc/mm/tlb_nohash.c
+@@ -299,9 +299,6 @@ EXPORT_SYMBOL(flush_tlb_range);
+ void tlb_flush(struct mmu_gather *tlb)
+ {
+ 	flush_tlb_mm(tlb->mm);
+-
+-	/* Push out batch of freed page tables */
+-	pte_free_finish(tlb);
+ }
+ 
+ /*
 Index: linux-2.6/include/asm-generic/tlb.h
 ===================================================================
 --- linux-2.6.orig/include/asm-generic/tlb.h
 +++ linux-2.6/include/asm-generic/tlb.h
-@@ -19,16 +19,6 @@
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
+@@ -29,6 +29,49 @@
+   #define tlb_fast_mode(tlb) 1
+ #endif
  
--/*
-- * For UP we don't need to worry about TLB flush
-- * and page free order so much..
-- */
--#ifdef CONFIG_SMP
--  #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
--#else
--  #define tlb_fast_mode(tlb) 1
--#endif
--
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- /*
-  * Semi RCU freeing of the page directories.
-@@ -78,31 +68,66 @@ extern void tlb_remove_table(struct mmu_
-  */
- #define MMU_GATHER_BUNDLE	8
- 
-+struct mmu_gather_batch {
-+	struct mmu_gather_batch	*next;
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++/*
++ * Semi RCU freeing of the page directories.
++ *
++ * This is needed by some architectures to implement software pagetable walkers.
++ *
++ * gup_fast() and other software pagetable walkers do a lockless page-table
++ * walk and therefore needs some synchronization with the freeing of the page
++ * directories. The chosen means to accomplish that is by disabling IRQs over
++ * the walk.
++ *
++ * Architectures that use IPIs to flush TLBs will then automagically DTRT,
++ * since we unlink the page, flush TLBs, free the page. Since the disabling of
++ * IRQs delays the completion of the TLB flush we can never observe an already
++ * freed page.
++ *
++ * Architectures that do not have this (PPC) need to delay the freeing by some
++ * other means, this is that means.
++ *
++ * What we do is batch the freed directory pages (tables) and RCU free them.
++ * We use the sched RCU variant, as that guarantees that IRQ/preempt disabling
++ * holds off grace periods.
++ *
++ * However, in order to batch these pages we need to allocate storage, this
++ * allocation is deep inside the MM code and can thus easily fail on memory
++ * pressure. To guarantee progress we fall back to single table freeing, see
++ * the implementation of tlb_remove_table_one().
++ *
++ */
++struct mmu_table_batch {
++	struct rcu_head		rcu;
 +	unsigned int		nr;
-+	unsigned int		max;
-+	struct page		*pages[0];
++	void			*tables[0];
 +};
 +
-+#define MAX_GATHER_BATCH	\
-+	((PAGE_SIZE - sizeof(struct mmu_gather_batch)) / sizeof(void *))
++#define MAX_TABLE_BATCH		\
++	((PAGE_SIZE - sizeof(struct mmu_table_batch)) / sizeof(void *))
 +
- /* struct mmu_gather is an opaque type used by the mm code for passing around
-  * any data needed by arch specific code for tlb_remove_page.
-  */
- struct mmu_gather {
- 	struct mm_struct	*mm;
--	unsigned int		nr;	/* set to ~0U means fast mode */
--	unsigned int		max;	/* nr < max */
--	unsigned int		need_flush;/* Really unmapped some ptes? */
--	unsigned int		fullmm; /* non-zero means full mm flush */
--	struct page		**pages;
--	struct page		*local[MMU_GATHER_BUNDLE];
-+	unsigned int		need_flush : 1,	/* Did free PTEs */
-+				fast_mode  : 1; /* No batching   */
-+	unsigned int		fullmm;		/* Flush full mm */
++extern void tlb_table_flush(struct mmu_gather *tlb);
++extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
 +
-+	struct mmu_gather_batch *active;
-+	struct mmu_gather_batch	local;
-+	struct page		*__pages[MMU_GATHER_BUNDLE];
- 
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	struct mmu_table_batch	*batch;
- #endif
- };
- 
--static inline void __tlb_alloc_page(struct mmu_gather *tlb)
-+/*
-+ * For UP we don't need to worry about TLB flush
-+ * and page free order so much..
-+ */
-+#ifdef CONFIG_SMP
-+  #define tlb_fast_mode(tlb) (tlb->fast_mode)
-+#else
-+  #define tlb_fast_mode(tlb) 1
 +#endif
 +
-+static inline int tlb_next_batch(struct mmu_gather *tlb)
- {
--	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
-+	struct mmu_gather_batch *batch;
+ /*
+  * If we can't allocate a page to make a big patch of page pointers
+  * to work on, then just handle a few from the on-stack structure.
+@@ -44,11 +87,12 @@ struct mmu_gather {
+ 	unsigned int		max;	/* nr < max */
+ 	unsigned int		need_flush;/* Really unmapped some ptes? */
+ 	unsigned int		fullmm; /* non-zero means full mm flush */
+-#ifdef HAVE_ARCH_MMU_GATHER
+-	struct arch_mmu_gather	arch;
+-#endif
+ 	struct page		**pages;
+ 	struct page		*local[MMU_GATHER_BUNDLE];
++
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++	struct mmu_table_batch	*batch;
++#endif
+ };
  
--	if (addr) {
--		tlb->pages = (void *)addr;
--		tlb->max = PAGE_SIZE / sizeof(struct page *);
-+	batch = tlb->active;
-+	if (batch->next) {
-+		tlb->active = batch->next;
-+		return 1;
- 	}
-+
-+	batch = (void *)__get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
-+	if (!batch)
-+		return 0;
-+
-+	batch->next = NULL;
-+	batch->nr   = 0;
-+	batch->max  = MAX_GATHER_BATCH;
-+
-+	tlb->active->next = batch;
-+	tlb->active = batch;
-+
-+	return 1;
- }
+ static inline void __tlb_alloc_page(struct mmu_gather *tlb)
+@@ -80,8 +124,8 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
  
- /* tlb_gather_mmu
-@@ -113,17 +138,16 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
- {
- 	tlb->mm = mm;
- 
--	tlb->max = ARRAY_SIZE(tlb->local);
--	tlb->pages = tlb->local;
--
--	if (num_online_cpus() > 1) {
--		tlb->nr = 0;
--		__tlb_alloc_page(tlb);
--	} else /* Use fast mode if only one CPU is online */
--		tlb->nr = ~0U;
--
-+	tlb->need_flush = 0;
-+	if (num_online_cpus() == 1)
-+		tlb->fast_mode = 1;
  	tlb->fullmm = full_mm_flush;
  
-+	tlb->local.next = NULL;
-+	tlb->local.nr   = 0;
-+	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
-+	tlb->active     = &tlb->local;
-+
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb->batch = NULL;
+-#ifdef HAVE_ARCH_MMU_GATHER
+-	tlb->arch = ARCH_MMU_GATHER_INIT;
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++	tlb->batch = NULL;
  #endif
-@@ -132,6 +156,8 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
- static inline void
- tlb_flush_mmu(struct mmu_gather *tlb)
- {
-+	struct mmu_gather_batch *batch;
-+
- 	if (!tlb->need_flush)
+ }
+ 
+@@ -92,6 +136,9 @@ tlb_flush_mmu(struct mmu_gather *tlb)
  		return;
  	tlb->need_flush = 0;
-@@ -139,12 +165,14 @@ tlb_flush_mmu(struct mmu_gather *tlb)
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
+ 	tlb_flush(tlb);
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++	tlb_table_flush(tlb);
++#endif
+ 	if (!tlb_fast_mode(tlb)) {
+ 		free_pages_and_swap_cache(tlb->pages, tlb->nr);
+ 		tlb->nr = 0;
+Index: linux-2.6/mm/memory.c
+===================================================================
+--- linux-2.6.orig/mm/memory.c
++++ linux-2.6/mm/memory.c
+@@ -193,6 +193,83 @@ static void check_sync_rss_stat(struct t
+ 
  #endif
--	if (!tlb_fast_mode(tlb)) {
--		free_pages_and_swap_cache(tlb->pages, tlb->nr);
--		tlb->nr = 0;
--		if (tlb->pages == tlb->local)
--			__tlb_alloc_page(tlb);
-+	if (tlb_fast_mode(tlb))
+ 
++#ifdef CONFIG_HAVE_RCU_TABLE_FREE
++
++/*
++ * See the comment near struct mmu_table_batch.
++ */
++
++static void tlb_remove_table_smp_sync(void *arg)
++{
++	/* Simply deliver the interrupt */
++}
++
++static void tlb_remove_table_one(void *table)
++{
++	/*
++	 * This isn't an RCU grace period and hence the page-tables cannot be
++	 * assumed to be actually RCU-freed.
++	 *
++	 * It is however sufficient for software page-table walkers that rely on
++	 * IRQ disabling. See the comment near struct mmu_table_batch.
++	 */
++	smp_call_function(tlb_remove_table_smp_sync, NULL, 1);
++	__tlb_remove_table(table);
++}
++
++static void tlb_remove_table_rcu(struct rcu_head *head)
++{
++	struct mmu_table_batch *batch;
++	int i;
++
++	batch = container_of(head, struct mmu_table_batch, rcu);
++
++	for (i = 0; i < batch->nr; i++)
++		__tlb_remove_table(batch->tables[i]);
++
++	free_page((unsigned long)batch);
++}
++
++void tlb_table_flush(struct mmu_gather *tlb)
++{
++	struct mmu_table_batch **batch = &tlb->batch;
++
++	if (*batch) {
++		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
++		*batch = NULL;
++	}
++}
++
++void tlb_remove_table(struct mmu_gather *tlb, void *table)
++{
++	struct mmu_table_batch **batch = &tlb->batch;
++
++	tlb->need_flush = 1;
++
++	/*
++	 * When there's less then two users of this mm there cannot be a
++	 * concurrent page-table walk.
++	 */
++	if (atomic_read(&tlb->mm->mm_users) < 2) {
++		__tlb_remove_table(table);
 +		return;
-+
-+	for (batch = &tlb->local; batch; batch = batch->next) {
-+		free_pages_and_swap_cache(batch->pages, batch->nr);
-+		batch->nr = 0;
- 	}
-+	tlb->active = &tlb->local;
- }
- 
- /* tlb_finish_mmu
-@@ -154,13 +182,18 @@ tlb_flush_mmu(struct mmu_gather *tlb)
- static inline void
- tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
- {
-+	struct mmu_gather_batch *batch, *next;
-+
- 	tlb_flush_mmu(tlb);
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
--	if (tlb->pages != tlb->local)
--		free_pages((unsigned long)tlb->pages, 0);
-+	for (batch = tlb->local.next; batch; batch = next) {
-+		next = batch->next;
-+		free_pages((unsigned long)batch, 0);
 +	}
-+	tlb->local.next = NULL;
- }
- 
- /* tlb_remove_page
-@@ -170,14 +203,21 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
-  */
- static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- {
-+	struct mmu_gather_batch *batch;
 +
- 	tlb->need_flush = 1;
-+
- 	if (tlb_fast_mode(tlb)) {
- 		free_page_and_swap_cache(page);
- 		return 0;
- 	}
--	tlb->pages[tlb->nr++] = page;
--	if (tlb->nr >= tlb->max)
--		return 1;
-+
-+	batch = tlb->active;
-+	batch->pages[batch->nr++] = page;
-+	if (batch->nr == batch->max) {
-+		if (!tlb_next_batch(tlb))
-+			return 1;
++	if (*batch == NULL) {
++		*batch = (struct mmu_table_batch *)__get_free_page(GFP_NOWAIT | __GFP_NOWARN);
++		if (*batch == NULL) {
++			tlb_remove_table_one(table);
++			return;
++		}
++		(*batch)->nr = 0;
 +	}
++	(*batch)->tables[(*batch)->nr++] = table;
++	if ((*batch)->nr == MAX_TABLE_BATCH)
++		tlb_table_flush(tlb);
++}
++
++#endif
++
+ /*
+  * If a p?d_bad entry is found while walking page tables, report
+  * the error, before resetting entry to p?d_none.  Usually (but
+Index: linux-2.6/arch/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/Kconfig
++++ linux-2.6/arch/Kconfig
+@@ -178,4 +178,7 @@ config HAVE_ARCH_JUMP_LABEL
+ config HAVE_ARCH_MUTEX_CPU_RELAX
+ 	bool
  
- 	return 0;
- }
++config HAVE_RCU_TABLE_FREE
++	bool
++
+ source "kernel/gcov/Kconfig"
+Index: linux-2.6/arch/powerpc/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/powerpc/Kconfig
++++ linux-2.6/arch/powerpc/Kconfig
+@@ -134,6 +134,7 @@ config PPC
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select HAVE_SPARSE_IRQ
+ 	select IRQ_PER_CPU
++	select HAVE_RCU_TABLE_FREE if SMP
+ 
+ config EARLY_PRINTK
+ 	bool
 
 
