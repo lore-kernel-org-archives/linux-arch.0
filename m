@@ -1,43 +1,63 @@
-From: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
-Subject: Re: [PATCH 2/8] mm: Remove i_mmap_mutex lockbreak
-Date: Fri, 18 Feb 2011 02:46:03 +0900
-Message-ID: <20110218024603.2089221d.kamezawa.hiroyu@jp.fujitsu.com>
-References: <20110217170520.229881980@chello.nl>
-	<20110217170854.766930171@chello.nl>
+From: Dmitry Torokhov <dtor@vmware.com>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
+ module versions
+Date: Thu, 17 Feb 2011 10:00:42 -0800
+Message-ID: <20110217180042.GA30530@dtor-ws.eng.vmware.com>
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
+ <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
+ <20110217173136.GA28486@dtor-ws.eng.vmware.com>
+ <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fgwmail5.fujitsu.co.jp ([192.51.44.35]:38260 "EHLO
-	fgwmail5.fujitsu.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932069Ab1BQRwh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:52:37 -0500
-In-Reply-To: <20110217170854.766930171@chello.nl>
+Received: from [65.115.85.73] ([65.115.85.73]:63331 "EHLO
+	smtp-outbound-2.vmware.com" rhost-flags-FAIL-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1757390Ab1BQSBh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Feb 2011 13:01:37 -0500
+Content-Disposition: inline
+In-Reply-To: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, 17 Feb 2011 18:05:22 +0100
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-
-> Hugh says:
->  "The only significant loser, I think, would be page reclaim (when
->   concurrent with truncation): could spin for a long time waiting for
->   the i_mmap_mutex it expects would soon be dropped? "
+On Thu, Feb 17, 2011 at 09:45:37AM -0800, Linus Torvalds wrote:
+> On Thu, Feb 17, 2011 at 9:31 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
+> >
+> > From what I understand __attribute__ ((aligned(x))) only guarantees
+> > minimum alignment, not exact (gapless) alignment. GCC seems to lay out
+> > pointers in the section without gaps on all arches that we have.
 > 
-> Counter points:
->  - cpu contention makes the spin stop (need_resched())
->  - zap pages should be freeing pages at a higher rate than reclaim
->    ever can
->  - shouldn't hold up reclaim more than lock_page() would
+> I still don't see the problem.
 > 
-> I think the simplification of the truncate code is definately worth
-> it.
+> Have you actually _tried_ just adding the proper alignment to before
+> the __modver thing in include/asm-generic/vmlinux.lds.h ?
 > 
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> As far as I can tell, the bug is really simple:
+>  - the section is not aligned
+>  - but we told the compiler that that structure is aligned
+> 
+> End result: there is a gap between the section start and the first structure.
+> 
+> And the fix seems obvious: just make sure that the section is
+> sufficiently aligned.
+> 
+> IOW, why isn't the proper fix the obvious trivial one (attached)?
+> 
 
-Maybe I have to improve batched-uncharge in memcg, whose work depends
-on ZAP_BLOCK_SIZE....but the zap routine seems cleaner.
+The problem is that on m68k size of the struct module_version_attribute
+is not evenly divisible by sizeof(void *), thus when we lay out the
+__modver section we align on 4 bytes but when we iterate we think that
+the alignment is 2.
 
-Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+I/Geert tried adding __attribute__ (aligned(sizeof(void *))) to the type
+definition itself so we have matching alignment everywhere, but DaveM
+said that this only guarantees minimum alignment and that using
+structures like we do shown to break from time to time in kprobes and
+that only pointers worked reliably.
+
+Thanks.
+
+-- 
+Dmitry
