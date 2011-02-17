@@ -1,66 +1,40 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-Date: Thu, 17 Feb 2011 13:54:57 -0800
-Message-ID: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
-References: <AANLkTi=bgmRwGXEE_wriYo-5gmyaB43pMUzHf7idiK0k@mail.gmail.com>
- <20110217.130115.71101941.davem@davemloft.net> <AANLkTinA-OP69fqf5jLfedk=dL2vmwdUyzn5E6FHR=Zw@mail.gmail.com>
- <20110217.131702.112601300.davem@davemloft.net>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
+ module versions
+Date: Thu, 17 Feb 2011 14:01:19 -0800 (PST)
+Message-ID: <20110217.140119.39175251.davem@davemloft.net>
+References: <AANLkTinA-OP69fqf5jLfedk=dL2vmwdUyzn5E6FHR=Zw@mail.gmail.com>
+	<20110217.131702.112601300.davem@davemloft.net>
+	<AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:34990 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755963Ab1BQVzq (ORCPT
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:39686
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751634Ab1BQWAn (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 16:55:46 -0500
-In-Reply-To: <20110217.131702.112601300.davem@davemloft.net>
+	Thu, 17 Feb 2011 17:00:43 -0500
+In-Reply-To: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
+To: torvalds@linux-foundation.org
 Cc: dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Feb 17, 2011 at 1:17 PM, David Miller <davem@davemloft.net> wrote:
->> EVERY SINGLE OF YOUR ARGUMENTS WORK FOR "pointer" TOO!
->
-> It at least will not happen at the current time, because GCC only
-> plays these games on aggregates.
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 17 Feb 2011 13:54:57 -0800
 
-So? Do they actually promise to never do it for pointers? What makes
-aggregates so special? Rather than just happenstance?
+> Is there a -fdata-align or something? Or would __attribute__((packed))
+> help? Something that explicitly tells gcc "don't do this", instead of
+> "let's add indirection and hope gcc doesn't add alignment for _that_".
+> Especially as the extra pointer makes the code even uglier.
 
-I wouldn't be surprised if the structure alignment isn't even about
-something even subtler and totally random, like size of structure (ie
-"don't align small structures")
+The tracing folks went down the path of trying to use packed in
+various ways, to no avail, because no matter what they tried it broke
+other things.
 
-> Also, for exception tables, we've avoided this problem because
-> we emit the exception tables by hand using inline asm and therefore
-> explicitly control all aspects of the alignment and size.
+> And if we do have to use the pointer thing, let's at least then do the
+> pointer with asms, so that gcc _really_ can't screw it up. Rather than
+> just move the potential bug around.
 
-.. and maybe that's the right thing to do here too.
-
-> The GCC manual even documents the alignment attribute behavior.
-
-The gcc manual is worthless. Every time some gcc person wants to
-change behavior, they just change the manual. So you can't rely on it
-anyway. We've seen that with inline asm before etc.
-
-> Also, please don't shoot the messenger, I didn't make GCC behave this
-> way but I doubt you'll have any luck undoing this behavior in the
-> tools which therefore means as pragmatists we have to handle it one
-> way or another.
-
-I'm shooting not the messenger, but the people who make these kinds of
-really ugly changes with bad changelogs that don't even explain what
-the actual problem is. And apparently any gcc person is free to break
-it in the future _anyway_.
-
-Is there a -fdata-align or something? Or would __attribute__((packed))
-help? Something that explicitly tells gcc "don't do this", instead of
-"let's add indirection and hope gcc doesn't add alignment for _that_".
-Especially as the extra pointer makes the code even uglier.
-
-And if we do have to use the pointer thing, let's at least then do the
-pointer with asms, so that gcc _really_ can't screw it up. Rather than
-just move the potential bug around.
-
-                            Linus
+That's fine with me.
