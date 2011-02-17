@@ -1,69 +1,89 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 0/8] mm: Preemptibility -v8
-Date: Thu, 17 Feb 2011 18:36:24 +0100
-Message-ID: <1297964184.2413.2029.camel@twins>
-References: <20110217170520.229881980@chello.nl>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 08/12] unicore32 machine related files: core files
+Date: Thu, 17 Feb 2011 18:40:16 +0100
+Message-ID: <201102171840.16430.arnd@arndb.de>
+References: <015101cbcdae$3b4fcc00$b1ef6400$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110217170520.229881980@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:56296 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751642Ab1BQRkZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:40:25 -0500
+In-Reply-To: <015101cbcdae$3b4fcc00$b1ef6400$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
-On Thu, 2011-02-17 at 18:05 +0100, Peter Zijlstra wrote:
-> This series depends on the previous two series:
->   - mm: Simplify anon_vma lifetime rules
->   - mm: mmu_gather rework
->=20
-> These patches make part of the mm a lot more preemptible. It converts
-> i_mmap_lock and anon_vma->lock to mutexes which together with the mmu_gat=
-her
-> rework makes mmu_gather preemptible as well.
->=20
-> Making i_mmap_lock a mutex also enables a clean-up of the truncate code.
->=20
-> This also allows for preemptible mmu_notifiers, something that XPMEM I th=
-ink
-> wants.
+On Wednesday 16 February 2011, Guan Xuetao wrote:
+> Message-Id: <15f7e89c92883a77c96f5f3288c9a4afbd68f8e3.1297842537.git.gxt@mprc.pku.edu.cn>
+> In-Reply-To: <cover.1297842537.git.gxt@mprc.pku.edu.cn>
+> References: <cover.1297842537.git.gxt@mprc.pku.edu.cn>
+> From: GuanXuetao <gxt@mprc.pku.edu.cn>
+> Date: Sat, 15 Jan 2011 18:24:16 +0800
 
----
- Documentation/lockstat.txt   |    2=20
- Documentation/vm/locking     |    2=20
- arch/x86/mm/hugetlbpage.c    |    4=20
- fs/gfs2/main.c               |    2=20
- fs/hugetlbfs/inode.c         |    4=20
- fs/inode.c                   |    2=20
- fs/nilfs2/page.c             |    2=20
- include/linux/fs.h           |    3=20
- include/linux/huge_mm.h      |    8 -
- include/linux/lockdep.h      |    3=20
- include/linux/mm.h           |    2=20
- include/linux/mm_types.h     |    1=20
- include/linux/mmu_notifier.h |    2=20
- include/linux/mutex.h        |    9 +
- include/linux/rmap.h         |   29 +-----
- kernel/fork.c                |    5 -
- kernel/mutex.c               |   25 +++--
- mm/filemap.c                 |   10 +-
- mm/filemap_xip.c             |    4=20
- mm/fremap.c                  |    4=20
- mm/huge_memory.c             |    4=20
- mm/hugetlb.c                 |   14 +--
- mm/memory-failure.c          |    4=20
- mm/memory.c                  |  197 ++++++--------------------------------=
------
- mm/migrate.c                 |   17 ---
- mm/mmap.c                    |   43 +++------
- mm/mremap.c                  |    7 -
- mm/rmap.c                    |  171 +++++++++++++++++++++++++++++--------
- 28 files changed, 258 insertions(+), 322 deletions(-)
+These headers should not be here. When using git-send-email, this will be handled
+automatically, but if you send the patch from a regular email client application,
+you should remove them manually.
+ 
+> diff --git a/arch/unicore32/Kconfig.puv3 b/arch/unicore32/Kconfig.puv3
+> new file mode 100644
+> index 0000000..2ef10db
+> --- /dev/null
+> +++ b/arch/unicore32/Kconfig.puv3
+> @@ -0,0 +1,125 @@
+> +#
+> +# PKUnity v3 Kconfig
+> +#
+> +
+> +if ARCH_PUV3
+> +
+> +menu "PKUnity v3 SoC Features"
+> +
+> +config PUV3_I2C
+> +	bool "PKUnity v3 I2C bus support"
+> +#	default y
+> +	select I2C
+> +	select I2C_CHARDEV
+> +	select I2C_ALGOBIT
+> +
+> +config PUV3_UMAL
+> +	tristate "PKUnity v3 UMAL Gigabit Network Adapter support"
+> +	select MII
+> +	select PHYLIB
+> ...
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Generally, everything in this file should be moved to other files.
+The rule is that the Kconfig entry belongs into the same directory
+as the Makefile referencing it. E.g. the two above should
+be in drivers/i2c/busses/Kconfig and drivers/net/Kconfig, and in
+the same patch as the actual device driver.
+
+> +
+> +static struct platform_device nb0916_device_gpio_button = {
+> +	.name	= "gpio-keys",
+> +	.id	= -1,
+> +	.dev	= {
+> +		.platform_data = &nb0916_gpio_button_data,
+> +	},
+> +};
+> +
+> +static struct platform_device *mach_nb0916_devices[] __initdata = {
+> +	&puv3_device_i2c,
+> +	&physmap_flash,
+> +	&nb0916_device_backlight,
+> +	&nb0916_device_gpio_button,
+> +};
+
+Static platform devices are no longer recommended. You can change these
+to use platform_device_register_simple() or a variant of it.
+
+If you plan to convert the entire architecture to use a flattened
+device tree as we discussed in an earlier review, you don't need to
+bother with this now, because the entire platform device registration
+you have here can then be removed.
+
+	Arnd
