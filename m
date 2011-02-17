@@ -1,103 +1,104 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 00/25] mm: Preemptibility -v7
-Date: Thu, 17 Feb 2011 13:06:39 +0100
-Message-ID: <1297944399.2413.1672.camel@twins>
-References: <20110125173111.720927511@chello.nl>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Date: Thu, 17 Feb 2011 13:43:02 +0100
+Message-ID: <AANLkTi=cMwbb2Pyv5KhGdfSuR3OwG_mpkFKNd+WrLc-_@mail.gmail.com>
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
+	<AANLkTi=pmWAvsp_3c4NgQYFw_ydfkOMgjDBDKgeFGf=E@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110125173111.720927511@chello.nl>
-Sender: owner-linux-mm@kvack.org
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: base64
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <AANLkTi=pmWAvsp_3c4NgQYFw_ydfkOMgjDBDKgeFGf=E@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2011-01-25 at 18:31 +0100, Peter Zijlstra wrote:
->  - figure out what to do with sparc's tlb_batch lack of ->fullmm
-
-David, how does this look?
-
----
-Index: linux-2.6/arch/sparc/mm/tlb.c
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---- linux-2.6.orig/arch/sparc/mm/tlb.c
-+++ linux-2.6/arch/sparc/mm/tlb.c
-@@ -43,7 +43,8 @@ void flush_tlb_pending(void)
- 	put_cpu_var(tlb_batch);
- }
-=20
--void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr, pte_t *ptep,=
- pte_t orig)
-+void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr,=20
-+		   pte_t *ptep, pte_t orig, int fullmm)
- {
- 	struct tlb_batch *tb =3D &get_cpu_var(tlb_batch);
- 	unsigned long nr;
-@@ -77,12 +78,10 @@ void tlb_batch_add(struct mm_struct *mm,
-=20
- no_cache_flush:
-=20
--	/*
--	if (tb->fullmm) {
-+	if (fullmm) {
- 		put_cpu_var(tlb_batch);
- 		return;
- 	}
--	*/
-=20
- 	nr =3D tb->tlb_nr;
-=20
-Index: linux-2.6/arch/sparc/include/asm/pgtable_64.h
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
---- linux-2.6.orig/arch/sparc/include/asm/pgtable_64.h
-+++ linux-2.6/arch/sparc/include/asm/pgtable_64.h
-@@ -655,9 +655,11 @@ static inline int pte_special(pte_t pte)
- #define pte_unmap(pte)			do { } while (0)
-=20
- /* Actual page table PTE updates.  */
--extern void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr, pte_t=
- *ptep, pte_t orig);
-+extern void tlb_batch_add(struct mm_struct *mm, unsigned long vaddr,=20
-+			  pte_t *ptep, pte_t orig, int fullmm);
-=20
--static inline void set_pte_at(struct mm_struct *mm, unsigned long addr, pt=
-e_t *ptep, pte_t pte)
-+static inline void __set_pte_at(struct mm_struct *mm, unsigned long addr,=
-=20
-+			     pte_t *ptep, pte_t pte, int fullmm)
- {
- 	pte_t orig =3D *ptep;
-=20
-@@ -670,12 +672,19 @@ static inline void set_pte_at(struct mm_
- 	 *             and SUN4V pte layout, so this inline test is fine.
- 	 */
- 	if (likely(mm !=3D &init_mm) && (pte_val(orig) & _PAGE_VALID))
--		tlb_batch_add(mm, addr, ptep, orig);
-+		tlb_batch_add(mm, addr, ptep, orig, fullmm);
- }
-=20
-+#define set_pte_at(mm,addr,ptep,pte)	\
-+	__set_pte_at((mm), (addr), (ptep), (pte), 0)
-+
- #define pte_clear(mm,addr,ptep)		\
- 	set_pte_at((mm), (addr), (ptep), __pte(0UL))
-=20
-+#define __HAVE_ARCH_PTE_CLEAR_NOT_PRESENT_FULL
-+#define pte_clear_not_present_full(mm,addr,ptep,fullmm)	\
-+	__set_pte_at((mm), (addr), (ptep), __pte(0UL), (fullmm))
-+
- #ifdef DCACHE_ALIASING_POSSIBLE
- #define __HAVE_ARCH_MOVE_PTE
- #define move_pte(pte, prot, old_addr, new_addr)				\
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+T24gVHVlLCBGZWIgOCwgMjAxMSBhdCAyMjoxMiwgR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBs
+aW51eC1tNjhrLm9yZz4gd3JvdGU6Cj4gT24gVHVlLCBGZWIgOCwgMjAxMSBhdCAwMTowMiwgRG1p
+dHJ5IFRvcm9raG92IDxkdG9yQHZtd2FyZS5jb20+IHdyb3RlOgo+PiBPbiBtNjhrIG5hdHVyYWwg
+YWxpZ25tZW50IGlzIDItYnl0ZSBib3VuZGFyeSBidXQgd2UgYXJlIHRyeWluZyB0bwo+PiBhbGln
+biBzdHJ1Y3R1cmVzIGluIF9fbW9kdmVyIHNlY3Rpb24gb24gc2l6ZW9mKHZvaWQgKikgYm91bmRh
+cnkuCj4+IFRoaXMgY2F1c2VzIHRyb3VibGUgd2hlbiB3ZSB0cnkgdG8gYWNjZXNzIGVsZW1lbnRz
+IGluIHRoaXMgc2VjdGlvbgo+PiBpbiBhcnJheS1saWtlIGZhc2hpb24gd2hlbiBjcmVhdGUgInZl
+cnNpb24iIGF0dHJpYnV0ZXMgZm9yIGJ1aWx0LWluCj4+IG1vZHVsZXMuCj4+Cj4+IE1vcmVvdmVy
+LCBhcyBEYXZlTSBzYWlkLCB3ZSBjYW4ndCByZWxpYWJseSBwdXQgc3RydWN0dXJlcyBpbnRvCj4+
+IGluZGVwZW5kZW50IG9iamVjdHMsIHB1dCB0aGVtIGludG8gYSBzcGVjaWFsIHNlY3Rpb24sIGFu
+ZCB0aGVuIGV4cGVjdAo+PiBhcnJheSBhY2Nlc3Mgb3ZlciB0aGVtICh2aWEgdGhlIHNlY3Rpb24g
+Ym91bmRhcmllcykgYWZ0ZXIgbGlua2luZyB0aGUKPj4gb2JqZWN0cyB0b2dldGhlciB0byBqdXN0
+ICJ3b3JrIiBkdWUgdG8gdmFyaWFibGUgYWxpZ25tZW50IGNob2ljZXMgaW4KPj4gZGlmZmVyZW50
+IHNpdHVhdGlvbnMuIFRoZSBvbmx5IHNvbHV0aW9uIHRoYXQgc2VlbXMgdG8gd29yayByZWxpYWJs
+eQo+PiBpcyB0byBtYWtlIGFuIGFycmF5IG9mIHBsYWluIHBvaW50ZXJzIHRvIHRoZSBvYmplY3Rz
+IGluIHF1ZXN0aW9uIGFuZAo+PiBwdXQgdGhvc2UgcG9pbnRlcnMgaW4gdGhlIHNwZWNpYWwgc2Vj
+dGlvbi4KPj4KPj4gUmVwb3J0ZWQtYnk6IEdlZXJ0IFV5dHRlcmhvZXZlbiA8Z2VlcnRAbGludXgt
+bTY4ay5vcmc+Cj4+IFNpZ25lZC1vZmYtYnk6IERtaXRyeSBUb3Jva2hvdiA8ZHRvckB2bXdhcmUu
+Y29tPgo+Cj4gVGhhbmtzIQo+Cj4gVGVzdGVkLWJ5OiBHZWVydCBVeXR0ZXJob2V2ZW4gPGdlZXJ0
+QGxpbnV4LW02OGsub3JnPgoKQ2FuIHdlIHBsZWFzZSBnZXQgdGhpcyBpbj8gMi42LjM4LXJjNSBz
+dGlsbCBjcmFzaGVzIG9uIG02OGsuCgpUaHghCgo+PiAtLS0KPj4gwqBpbmNsdWRlL2xpbnV4L21v
+ZHVsZS5oIHwgwqAgMTAgKysrKystLS0tLQo+PiDCoGtlcm5lbC9wYXJhbXMuYyDCoCDCoCDCoCDC
+oHwgwqAgwqA5ICsrKysrKy0tLQo+PiDCoDIgZmlsZXMgY2hhbmdlZCwgMTEgaW5zZXJ0aW9ucygr
+KSwgOCBkZWxldGlvbnMoLSkKPj4KPj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvbW9kdWxl
+LmggYi9pbmNsdWRlL2xpbnV4L21vZHVsZS5oCj4+IGluZGV4IDliZGYyN2MuLjliNzA4MWEgMTAw
+NjQ0Cj4+IC0tLSBhL2luY2x1ZGUvbGludXgvbW9kdWxlLmgKPj4gKysrIGIvaW5jbHVkZS9saW51
+eC9tb2R1bGUuaAo+PiBAQCAtMTc0LDEwICsxNzQsNyBAQCBleHRlcm4gc3RydWN0IG1vZHVsZSBf
+X3RoaXNfbW9kdWxlOwo+PiDCoCNkZWZpbmUgTU9EVUxFX1ZFUlNJT04oX3ZlcnNpb24pIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4g
+wqAgwqAgwqAgwqBleHRlcm4gc3NpemVfdCBfX21vZHZlcl92ZXJzaW9uX3Nob3coc3RydWN0IG1v
+ZHVsZV9hdHRyaWJ1dGUgKiwgXAo+PiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBzdHJ1Y3QgbW9kdWxlICosIGNoYXIgKik7
+IMKgXAo+PiAtIMKgIMKgIMKgIHN0YXRpYyBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25fYXR0cmlidXRl
+IF9fbW9kdmVyX3ZlcnNpb25fYXR0ciDCoCDCoFwKPj4gLSDCoCDCoCDCoCBfX3VzZWQgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqBcCj4+IC0gwqAgwqBfX2F0dHJpYnV0ZV9fICgoX19zZWN0
+aW9uX18gKCJfX21vZHZlciIpLGFsaWduZWQoc2l6ZW9mKHZvaWQgKikpKSkgXAo+PiAtIMKgIMKg
+IMKgID0geyDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAg
+c3RhdGljIHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgX19fbW9kdmVyX2F0dHIgPSB7
+IMKgIMKgIMKgIFwKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAubWF0dHIgwqA9IHsgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
+wqAgXAo+PiDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoC5hdHRyIMKgID0geyDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgLm5hbWUgwqAg
+PSAidmVyc2lvbiIsIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgXAo+PiBAQCAtMTg3LDcg
+KzE4NCwxMCBAQCBleHRlcm4gc3RydWN0IG1vZHVsZSBfX3RoaXNfbW9kdWxlOwo+PiDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoH0sIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgXAo+PiDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoC5tb2R1bGVfbmFtZSDCoCDCoD0gS0JVSUxEX01PRE5BTUUsIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIFwKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAudmVy
+c2lvbiDCoCDCoCDCoCDCoD0gX3ZlcnNpb24sIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKg
+IMKgIMKgIMKgIMKgIFwKPj4gLSDCoCDCoCDCoCB9Cj4+ICsgwqAgwqAgwqAgfTsgwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqBcCj4+ICsgwqAgwqAgwqAgc3RhdGljIGNvbnN0IHN0
+cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
+wqBcCj4+ICsgwqAgwqAgwqAgX191c2VkIF9fYXR0cmlidXRlX18gKChfX3NlY3Rpb25fXyAoIl9f
+bW9kdmVyIikpKSDCoCDCoCDCoCDCoCDCoCDCoCDCoCBcCj4+ICsgwqAgwqAgwqAgKiBfX21vZHVs
+ZXBhcmFtX2NvbnN0IF9fbW9kdmVyX2F0dHIgPSAmX19fbW9kdmVyX2F0dHIKPj4gwqAjZW5kaWYK
+Pj4KPj4gwqAvKiBPcHRpb25hbCBmaXJtd2FyZSBmaWxlIChvciBmaWxlcykgbmVlZGVkIGJ5IHRo
+ZSBtb2R1bGUKPj4gZGlmZiAtLWdpdCBhL2tlcm5lbC9wYXJhbXMuYyBiL2tlcm5lbC9wYXJhbXMu
+Ywo+PiBpbmRleCAwZGExNDExLi4wOWEwOGNiIDEwMDY0NAo+PiAtLS0gYS9rZXJuZWwvcGFyYW1z
+LmMKPj4gKysrIGIva2VybmVsL3BhcmFtcy5jCj4+IEBAIC04MjEsMTUgKzgyMSwxOCBAQCBzc2l6
+ZV90IF9fbW9kdmVyX3ZlcnNpb25fc2hvdyhzdHJ1Y3QgbW9kdWxlX2F0dHJpYnV0ZSAqbWF0dHIs
+Cj4+IMKgIMKgIMKgIMKgcmV0dXJuIHNwcmludGYoYnVmLCAiJXNcbiIsIHZhdHRyLT52ZXJzaW9u
+KTsKPj4gwqB9Cj4+Cj4+IC1leHRlcm4gc3RydWN0IG1vZHVsZV92ZXJzaW9uX2F0dHJpYnV0ZSBf
+X3N0YXJ0X19fbW9kdmVyW10sIF9fc3RvcF9fX21vZHZlcltdOwo+PiArZXh0ZXJuIGNvbnN0IHN0
+cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRyaWJ1dGUgKl9fc3RhcnRfX19tb2R2ZXJbXTsKPj4gK2V4
+dGVybiBjb25zdCBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25fYXR0cmlidXRlICpfX3N0b3BfX19tb2R2
+ZXJbXTsKPj4KPj4gwqBzdGF0aWMgdm9pZCBfX2luaXQgdmVyc2lvbl9zeXNmc19idWlsdGluKHZv
+aWQpCj4+IMKgewo+PiAtIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9hdHRy
+aWJ1dGUgKnZhdHRyOwo+PiArIMKgIMKgIMKgIGNvbnN0IHN0cnVjdCBtb2R1bGVfdmVyc2lvbl9h
+dHRyaWJ1dGUgKipwOwo+PiDCoCDCoCDCoCDCoHN0cnVjdCBtb2R1bGVfa29iamVjdCAqbWs7Cj4+
+IMKgIMKgIMKgIMKgaW50IGVycjsKPj4KPj4gLSDCoCDCoCDCoCBmb3IgKHZhdHRyID0gX19zdGFy
+dF9fX21vZHZlcjsgdmF0dHIgPCBfX3N0b3BfX19tb2R2ZXI7IHZhdHRyKyspIHsKPj4gKyDCoCDC
+oCDCoCBmb3IgKHAgPSBfX3N0YXJ0X19fbW9kdmVyOyBwIDwgX19zdG9wX19fbW9kdmVyOyBwKysp
+IHsKPj4gKyDCoCDCoCDCoCDCoCDCoCDCoCDCoCBjb25zdCBzdHJ1Y3QgbW9kdWxlX3ZlcnNpb25f
+YXR0cmlidXRlICp2YXR0ciA9ICpwOwo+PiArCj4+IMKgIMKgIMKgIMKgIMKgIMKgIMKgIMKgbWsg
+PSBsb2NhdGVfbW9kdWxlX2tvYmplY3QodmF0dHItPm1vZHVsZV9uYW1lKTsKPj4gwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqBpZiAobWspIHsKPj4gwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAgwqAg
+wqAgwqBlcnIgPSBzeXNmc19jcmVhdGVfZmlsZSgmbWstPmtvYmosICZ2YXR0ci0+bWF0dHIuYXR0
+cik7Cj4+IC0tCj4+IDEuNy4zLjIKCkdye29ldGplLGVldGluZ31zLAoKwqAgwqAgwqAgwqAgwqAg
+wqAgwqAgwqAgwqAgwqAgwqAgwqAgR2VlcnQKCi0tCkdlZXJ0IFV5dHRlcmhvZXZlbiAtLSBUaGVy
+ZSdzIGxvdHMgb2YgTGludXggYmV5b25kIGlhMzIgLS0gZ2VlcnRAbGludXgtbTY4ay5vcmcKCklu
+IHBlcnNvbmFsIGNvbnZlcnNhdGlvbnMgd2l0aCB0ZWNobmljYWwgcGVvcGxlLCBJIGNhbGwgbXlz
+ZWxmIGEgaGFja2VyLiBCdXQKd2hlbiBJJ20gdGFsa2luZyB0byBqb3VybmFsaXN0cyBJIGp1c3Qg
+c2F5ICJwcm9ncmFtbWVyIiBvciBzb21ldGhpbmcgbGlrZSB0aGF0LgrCoCDCoCDCoCDCoCDCoCDC
+oCDCoCDCoCDCoCDCoCDCoCDCoCDCoCDCoMKgIMKgwqAgLS0gTGludXMgVG9ydmFsZHMK
