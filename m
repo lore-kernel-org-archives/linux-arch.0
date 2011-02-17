@@ -1,26 +1,65 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 07/12] unicore32 additional architecture files: boot process
-Date: Thu, 17 Feb 2011 18:40:47 +0100
-Message-ID: <201102171840.47663.arnd@arndb.de>
-References: <014f01cbcdae$22412790$66c376b0$@mprc.pku.edu.cn>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 00/17] mm: mmu_gather rework
+Date: Thu, 17 Feb 2011 18:42:23 +0100
+Message-ID: <1297964543.2413.2038.camel@twins>
+References: <20110217162327.434629380@chello.nl>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:65059 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753515Ab1BQRkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:40:52 -0500
-In-Reply-To: <014f01cbcdae$22412790$66c376b0$@mprc.pku.edu.cn>
+Received: from casper.infradead.org ([85.118.1.10]:47117 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751514Ab1BQRnH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:43:07 -0500
+In-Reply-To: <20110217162327.434629380@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-On Wednesday 16 February 2011, Guan Xuetao wrote:
-> This patch implements booting process, including uncompression process.
-> 
-> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+On Thu, 2011-02-17 at 17:23 +0100, Peter Zijlstra wrote:
+> s390 wants a bit more, but more on that in another email.
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+So what s390 wants is something like the below, where a fullmm gather
+flushes a-priory and then simply gathers and frees the pages.
+
+I can't see why something like this shouldn't work on x86 and power (the
+only two archs I really looked in depth at), but it certainly is
+something that needs a close look.
+
+---
+Index: linux-2.6/include/asm-generic/tlb.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -145,7 +145,10 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ 	tlb->need_flush = 0;
+ 	if (num_online_cpus() == 1)
+ 		tlb->fast_mode = 1;
++
+ 	tlb->fullmm = full_mm_flush;
++	if (tlb->fullmm)
++		tlb_flush(tlb);
+ 
+ 	tlb->local.next = NULL;
+ 	tlb->local.nr   = 0;
+@@ -162,13 +165,15 @@ tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+ 
+-	if (!tlb->need_flush)
+-		return;
+-	tlb->need_flush = 0;
+-	tlb_flush(tlb);
++	if (tlb->need_flush && !tlb->fullmm) {
++		tlb_flush(tlb);
++		tlb->need_flush = 0;
++	}
++
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
++
+ 	if (tlb_fast_mode(tlb))
+ 		return;
+ 
