@@ -1,34 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
-Date: Thu, 17 Feb 2011 18:45:00 +0100
-Message-ID: <201102171845.01177.arnd@arndb.de>
-References: <014b01cbcdad$f110afb0$d3320f10$@mprc.pku.edu.cn>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Date: Thu, 17 Feb 2011 09:45:37 -0800
+Message-ID: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
+ <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com> <20110217173136.GA28486@dtor-ws.eng.vmware.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:63333 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754105Ab1BQRpE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:45:04 -0500
-In-Reply-To: <014b01cbcdad$f110afb0$d3320f10$@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+Content-Type: multipart/mixed; boundary=90e6ba4fc23c4e4db2049c7df8da
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110217173136.GA28486@dtor-ws.eng.vmware.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 16 February 2011, Guan Xuetao wrote:
-> +
-> +#define __kernel_ok		(segment_eq(get_fs(), KERNEL_DS))
-> +#define __user_ok(addr, size)	(((size) <= TASK_SIZE)			\
-> +				&& ((addr) <= TASK_SIZE - (size)))
-> +#define __access_ok(addr, size)	(__kernel_ok || __user_ok((addr), (size)))
+--90e6ba4fc23c4e4db2049c7df8da
+Content-Type: text/plain; charset=ISO-8859-1
 
-A nice trick to simplify this is to introduce a per-process variable for comparing
-the pointer, set_fs() then sets this variable to either TASK_SIZE or
-UINT_MAX.
+On Thu, Feb 17, 2011 at 9:31 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
+>
+> From what I understand __attribute__ ((aligned(x))) only guarantees
+> minimum alignment, not exact (gapless) alignment. GCC seems to lay out
+> pointers in the section without gaps on all arches that we have.
 
-This saves one conditional branch for each call to __access_ok.
+I still don't see the problem.
 
-	Arnd
+Have you actually _tried_ just adding the proper alignment to before
+the __modver thing in include/asm-generic/vmlinux.lds.h ?
+
+As far as I can tell, the bug is really simple:
+ - the section is not aligned
+ - but we told the compiler that that structure is aligned
+
+End result: there is a gap between the section start and the first structure.
+
+And the fix seems obvious: just make sure that the section is
+sufficiently aligned.
+
+IOW, why isn't the proper fix the obvious trivial one (attached)?
+
+                                    Linus
+
+--90e6ba4fc23c4e4db2049c7df8da
+Content-Type: text/x-patch; charset=US-ASCII; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_gk9yob6k0
+
+IGluY2x1ZGUvYXNtLWdlbmVyaWMvdm1saW51eC5sZHMuaCB8ICAgIDIgKysKIDEgZmlsZXMgY2hh
+bmdlZCwgMiBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2luY2x1
+ZGUvYXNtLWdlbmVyaWMvdm1saW51eC5sZHMuaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvdm1saW51
+eC5sZHMuaAppbmRleCBmZTc3ZTMzLi4zMWE0YjFkIDEwMDY0NAotLS0gYS9pbmNsdWRlL2FzbS1n
+ZW5lcmljL3ZtbGludXgubGRzLmgKKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy92bWxpbnV4Lmxk
+cy5oCkBAIC0zNTgsNiArMzU4LDcgQEAKIAl9CQkJCQkJCQlcCiAJCQkJCQkJCQlcCiAJLyogQnVp
+bHQtaW4gbW9kdWxlIHBhcmFtZXRlcnMuICovCQkJCVwKKwlTVFJVQ1RfQUxJR04oKQkJCQkJCQlc
+CiAJX19wYXJhbSA6IEFUKEFERFIoX19wYXJhbSkgLSBMT0FEX09GRlNFVCkgewkJCVwKIAkJVk1M
+SU5VWF9TWU1CT0woX19zdGFydF9fX3BhcmFtKSA9IC47CQkJXAogCQkqKF9fcGFyYW0pCQkJCQkJ
+XApAQCAtMzY1LDYgKzM2Niw3IEBACiAJfQkJCQkJCQkJXAogCQkJCQkJCQkJXAogCS8qIEJ1aWx0
+LWluIG1vZHVsZSB2ZXJzaW9ucy4gKi8JCQkJCVwKKwlTVFJVQ1RfQUxJR04oKQkJCQkJCQlcCiAJ
+X19tb2R2ZXIgOiBBVChBRERSKF9fbW9kdmVyKSAtIExPQURfT0ZGU0VUKSB7CQkJXAogCQlWTUxJ
+TlVYX1NZTUJPTChfX3N0YXJ0X19fbW9kdmVyKSA9IC47CQkJXAogCQkqKF9fbW9kdmVyKQkJCQkJ
+CVwK
+--90e6ba4fc23c4e4db2049c7df8da--
