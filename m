@@ -1,28 +1,44 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-Date: Thu, 17 Feb 2011 09:24:58 -0800
-Message-ID: <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com>
-References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCHv2 06/11] unicore32 core architecture: mm related: generic codes
+Date: Thu, 17 Feb 2011 18:28:15 +0100
+Message-ID: <201102171828.15482.arnd@arndb.de>
+References: <02ed01cbcb48$3e3781a0$baa684e0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <1297123347-2170-1-git-send-email-dtor@vmware.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:56375 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754325Ab1BQR2T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:28:19 -0500
+In-Reply-To: <02ed01cbcb48$3e3781a0$baa684e0$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
-On Mon, Feb 7, 2011 at 4:02 PM, Dmitry Torokhov <dtor@vmware.com> wrote:
->
-> Moreover, as DaveM said, we can't reliably put structures into
-> independent objects, put them into a special section, and then expect
-> array access over them (via the section boundaries) after linking the
-> objects together to just "work" due to variable alignment choices in
-> different situations.
+On Sunday 13 February 2011, Guan Xuetao wrote:
+> This patch includes generic codes for memory management.
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Why not?
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 
-That's what we normally do. Just align the "__modver", and you should
-be all good. What's the problem?
+> +#ifdef __io
+> +void __iomem *ioport_map(unsigned long port, unsigned int nr)
+> +{
+> +       /* we map PC lagcy 64K IO port to PCI IO space 0x80030000 */
+> +       return (void __iomem *) (unsigned long)
+> +                       io_p2v((port & 0xffff) + PKUNITY_PCILIO_BASE);
+> +}
 
-                     Linus
+Interestingly, this function looks completely correct, but I don't see
+the definition for __io, so I suspect that the function is not actually
+getting used.
+
+Best make this unconditional. The code is obviously derived from the
+ARM version, which uses a macro called __io, but you don't need this
+macro because you only support one SoC platform.
+
+	Arnd
