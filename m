@@ -1,32 +1,67 @@
-From: Mr Dubeam Solion <mrdubeamsolionn@gmail.com>
-Subject: THANKS AND TREAT AS URGENT PLEASE
-Date: Thu, 17 Feb 2011 04:52:56 -0800 (PST)
-Message-ID: <728113.80504.qm@web111705.mail.gq1.yahoo.com>
-Reply-To: mrdubeamsolion1@gmail.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 09/12] unicore32 machine related files: hardware registers
+Date: Thu, 17 Feb 2011 17:59:45 +0100
+Message-ID: <201102171759.45365.arnd@arndb.de>
+References: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nm10-vm1.bullet.mail.sp2.yahoo.com ([98.139.91.199]:21669 "HELO
-	nm10-vm1.bullet.mail.sp2.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751545Ab1BQMw7 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Feb 2011 07:52:59 -0500
+Received: from moutng.kundenserver.de ([212.227.17.8]:62954 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752856Ab1BQRA1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:00:27 -0500
+In-Reply-To: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
+On Wednesday 16 February 2011, Guan Xuetao wrote:
+> +#define io_p2v(x)      ((x) - PKUNITY_IOSPACE_BASE)
+> +#define io_v2p(x)      ((x) + PKUNITY_IOSPACE_BASE)
+> +
+> +#ifndef __ASSEMBLY__
+> +
+> +# define __REG(x)      (*((volatile unsigned long *)io_p2v(x)))
+> +# define __PREG(x)     (io_v2p((unsigned long)&(x)))
+> +
+> +#else
+> +
+> +# define __REG(x)      io_p2v(x)
+> +# define __PREG(x)     io_v2p(x)
 
-Dear Friend,
+> #define PKUNITY_IOSPACE_BASE            0x80000000 /* 0x80000000 - 0xFFFFFFFF 2GB */
 
-Good day to you, I know that my message will come to you as a surprise, but never mind, I am Mr.Solion DUBEAM, the credit officer in BOA Bank of Africa here in my country Burkina-Faso west Africa, In my department here in the bank I discover an abandon sum of $12.5Million United State Dollars, that belong to one of our biggest customer here in this bank, who died years ago in a plane crash with his family, I contacted you so that you will help me see that the total sum of $12.5Million will be transfer into your account in your country.
+The typecasts look wrong here: 
 
-And after the successful transfer i will come over to your country to meet you, and we shall share 50% for you while 50% will be for me, if you agree to help me, I will like you to get back to me immediately
+- "volatile unsigned long*" is not the right pointer type to do I/O on. It
+  should instead be "void __iomem *". Please use the "sparse" tool with "make C=1"
+  to get warnings about incorrect pointer type accesses.
 
-You should call me as soon as you reply my mail so that I can check my mailing box and give you the details about this deal +226 78708420
+- PKUNITY_IOSPACE_BASE seems to be both a virtual and a physical address, which
+  is a bad idea, because it prevents a lot of the checks from working correctly.
 
-Thanks and have a nice day.
-Mr.Solion DUBEAM
-tele: +226 78708420
+- The __REG/__PREG macros seem to have the same purpose as io_p2v/io_v2p, you
+  should not require both.
 
+- The term IOSPACE is confusing, because it normally refers to the PCI PIO
+  space, while you mean the SoC's MMIO region
 
-      
+I would recommend defining these as
+
+#ifndef __ASSEMBLY__
+#define PKUNITY_MMIO_VIRT ((void __iomem *)0x80000000)
+#else
+#define PKUNITY_MMIO_VIRT 0x80000000
+#endif
+
+#define io_p2v(x)	((x) - PKUNITY_MMIO_VIRT)
+#define io_v2p(x)	((x) + PKUNITY_MMIO_VIRT)
+
+/* please remove the two macros below as soon as all users are changed to use io_p2v */
+#define __REG(x) io_p2v(x)
+#define __PREG(x) io_v2p(x)
+
+	Arnd
