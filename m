@@ -1,102 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:35447 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753002Ab1BQRhI convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:37:08 -0500
-Subject: Re: [PATCH 00/17] mm: mmu_gather rework
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <20110217162327.434629380@chello.nl>
-References: <20110217162327.434629380@chello.nl>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Thu, 17 Feb 2011 18:36:20 +0100
-Message-ID: <1297964180.2413.2028.camel@twins>
-Mime-Version: 1.0
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:46876 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757060Ab1BQRq2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 Feb 2011 12:46:28 -0500
+MIME-Version: 1.0
+In-Reply-To: <20110217173136.GA28486@dtor-ws.eng.vmware.com>
+References: <1297123347-2170-1-git-send-email-dtor@vmware.com>
+ <AANLkTim_BL_Cw=X0iuatgw1F4n50CyXv0uqx9n=5=Bq+@mail.gmail.com> <20110217173136.GA28486@dtor-ws.eng.vmware.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 17 Feb 2011 09:45:37 -0800
+Message-ID: <AANLkTikGVS9EM=7uhwYfXrGHg9yzes7m0pxAinRxivPC@mail.gmail.com>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Content-Type: multipart/mixed; boundary=90e6ba4fc23c4e4db2049c7df8da
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
-Message-ID: <20110217173620.kqN3mn6a-hJQRUjS3PC0nd4oE26857Lm3u40SKb2cj0@z>
+To: Dmitry Torokhov <dtor@vmware.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>, Linux/m68k <linux-m68k@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20110217174537.SQ8aQcXs37xhTLP74ZcWPKzeK6pHYGz2sK-15ePYje8@z>
 
-On Thu, 2011-02-17 at 17:23 +0100, Peter Zijlstra wrote:
-> Rework the existing mmu_gather infrastructure.
-> 
-> The direct purpose of these patches was to allow preemptible mmu_gather,
-> but even without that I think these patches provide an improvement to the
-> status quo.
-> 
-> The first patch is a fix to the tile architecture, the subsequent 9 patches
-> rework the mmu_gather infrastructure. For review purpose I've split them
-> into generic and per-arch patches with the last of those a generic cleanup.
-> 
-> For the final commit I would provide a roll-up of these patches so as not
-> to wreck bisectability of non generic archs.
-> 
-> The next patch provides generic RCU page-table freeing, and the follow up
-> is a patch converting s390 to use this. I've also got 4 patches from
-> DaveM lined up (not included in this series) that uses this to implement
-> gup_fast() for sparc64.
-> 
-> Then there is one patch that extends the generic mmu_gather batching.
-> 
-> Finally there are 4 patches that convert various architectures over
-> to asm-generic/tlb.h, these are compile tested only and basically RFC.
-> 
-> After this only um and s390 are left -- um should be straight forward,
-> s390 wants a bit more, but more on that in another email.
+--90e6ba4fc23c4e4db2049c7df8da
+Content-Type: text/plain; charset=ISO-8859-1
 
----
- arch/Kconfig                           |    6 
- arch/alpha/mm/init.c                   |    2 
- arch/arm/Kconfig                       |    1 
- arch/arm/include/asm/tlb.h             |   83 ------------
- arch/arm/include/asm/tlbflush.h        |    5 
- arch/arm/mm/mmu.c                      |    2 
- arch/avr32/mm/init.c                   |    2 
- arch/cris/mm/init.c                    |    2 
- arch/frv/mm/init.c                     |    2 
- arch/ia64/Kconfig                      |    1 
- arch/ia64/include/asm/tlb.h            |  147 +--------------------
- arch/ia64/mm/init.c                    |    2 
- arch/m32r/mm/init.c                    |    2 
- arch/m68k/mm/init.c                    |    2 
- arch/microblaze/mm/init.c              |    2 
- arch/mips/mm/init.c                    |    2 
- arch/mn10300/mm/init.c                 |    2 
- arch/parisc/mm/init.c                  |    2 
- arch/powerpc/Kconfig                   |    1 
- arch/powerpc/include/asm/pgalloc.h     |   21 ++-
- arch/powerpc/include/asm/thread_info.h |    2 
- arch/powerpc/kernel/process.c          |   23 +++
- arch/powerpc/mm/pgtable.c              |  104 ---------------
- arch/powerpc/mm/tlb_hash32.c           |    3 
- arch/powerpc/mm/tlb_hash64.c           |   11 -
- arch/powerpc/mm/tlb_nohash.c           |    3 
- arch/s390/Kconfig                      |    1 
- arch/s390/include/asm/pgalloc.h        |   19 +-
- arch/s390/include/asm/tlb.h            |  100 +++++++-------
- arch/s390/mm/pgtable.c                 |  193 +++-------------------------
- arch/score/mm/init.c                   |    2 
- arch/sh/Kconfig                        |    1 
- arch/sh/include/asm/tlb.h              |   92 -------------
- arch/sh/mm/init.c                      |    1 
- arch/sparc/include/asm/pgalloc_64.h    |    3 
- arch/sparc/include/asm/pgtable_64.h    |   15 +-
- arch/sparc/include/asm/tlb_64.h        |   91 -------------
- arch/sparc/include/asm/tlbflush_64.h   |   12 +
- arch/sparc/mm/init_32.c                |    2 
- arch/sparc/mm/tlb.c                    |   43 +++---
- arch/sparc/mm/tsb.c                    |   15 +-
- arch/tile/mm/init.c                    |    2 
- arch/tile/mm/pgtable.c                 |   15 --
- arch/um/include/asm/tlb.h              |   29 +---
- arch/um/kernel/smp.c                   |    3 
- arch/x86/mm/init.c                     |    2 
- arch/xtensa/mm/mmu.c                   |    2 
- fs/exec.c                              |   10 -
- include/asm-generic/tlb.h              |  227 +++++++++++++++++++++++++++------
- include/linux/mm.h                     |    2 
- mm/memory.c                            |  119 +++++++++++++----
- mm/mmap.c                              |   18 +-
- 52 files changed, 536 insertions(+), 918 deletions(-)
+On Thu, Feb 17, 2011 at 9:31 AM, Dmitry Torokhov <dtor@vmware.com> wrote:
+>
+> From what I understand __attribute__ ((aligned(x))) only guarantees
+> minimum alignment, not exact (gapless) alignment. GCC seems to lay out
+> pointers in the section without gaps on all arches that we have.
 
+I still don't see the problem.
+
+Have you actually _tried_ just adding the proper alignment to before
+the __modver thing in include/asm-generic/vmlinux.lds.h ?
+
+As far as I can tell, the bug is really simple:
+ - the section is not aligned
+ - but we told the compiler that that structure is aligned
+
+End result: there is a gap between the section start and the first structure.
+
+And the fix seems obvious: just make sure that the section is
+sufficiently aligned.
+
+IOW, why isn't the proper fix the obvious trivial one (attached)?
+
+                                    Linus
+
+--90e6ba4fc23c4e4db2049c7df8da
+Content-Type: text/x-patch; charset=US-ASCII; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_gk9yob6k0
+
+IGluY2x1ZGUvYXNtLWdlbmVyaWMvdm1saW51eC5sZHMuaCB8ICAgIDIgKysKIDEgZmlsZXMgY2hh
+bmdlZCwgMiBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2luY2x1
+ZGUvYXNtLWdlbmVyaWMvdm1saW51eC5sZHMuaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvdm1saW51
+eC5sZHMuaAppbmRleCBmZTc3ZTMzLi4zMWE0YjFkIDEwMDY0NAotLS0gYS9pbmNsdWRlL2FzbS1n
+ZW5lcmljL3ZtbGludXgubGRzLmgKKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy92bWxpbnV4Lmxk
+cy5oCkBAIC0zNTgsNiArMzU4LDcgQEAKIAl9CQkJCQkJCQlcCiAJCQkJCQkJCQlcCiAJLyogQnVp
+bHQtaW4gbW9kdWxlIHBhcmFtZXRlcnMuICovCQkJCVwKKwlTVFJVQ1RfQUxJR04oKQkJCQkJCQlc
+CiAJX19wYXJhbSA6IEFUKEFERFIoX19wYXJhbSkgLSBMT0FEX09GRlNFVCkgewkJCVwKIAkJVk1M
+SU5VWF9TWU1CT0woX19zdGFydF9fX3BhcmFtKSA9IC47CQkJXAogCQkqKF9fcGFyYW0pCQkJCQkJ
+XApAQCAtMzY1LDYgKzM2Niw3IEBACiAJfQkJCQkJCQkJXAogCQkJCQkJCQkJXAogCS8qIEJ1aWx0
+LWluIG1vZHVsZSB2ZXJzaW9ucy4gKi8JCQkJCVwKKwlTVFJVQ1RfQUxJR04oKQkJCQkJCQlcCiAJ
+X19tb2R2ZXIgOiBBVChBRERSKF9fbW9kdmVyKSAtIExPQURfT0ZGU0VUKSB7CQkJXAogCQlWTUxJ
+TlVYX1NZTUJPTChfX3N0YXJ0X19fbW9kdmVyKSA9IC47CQkJXAogCQkqKF9fbW9kdmVyKQkJCQkJ
+CVwK
+--90e6ba4fc23c4e4db2049c7df8da--
