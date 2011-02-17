@@ -1,67 +1,47 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 09/12] unicore32 machine related files: hardware registers
-Date: Thu, 17 Feb 2011 17:59:45 +0100
-Message-ID: <201102171759.45365.arnd@arndb.de>
-References: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn>
+Subject: Re: [PATCH 11/12] unicore32 machine related files: ps2 driver
+Date: Thu, 17 Feb 2011 18:03:15 +0100
+Message-ID: <201102171803.15785.arnd@arndb.de>
+References: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:62954 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:62880 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752856Ab1BQRA1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:00:27 -0500
-In-Reply-To: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn>
+	with ESMTP id S1752743Ab1BQRDT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Feb 2011 12:03:19 -0500
+In-Reply-To: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guan Xuetao <gxt@mprc.pku.edu.cn>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
 On Wednesday 16 February 2011, Guan Xuetao wrote:
-> +#define io_p2v(x)      ((x) - PKUNITY_IOSPACE_BASE)
-> +#define io_v2p(x)      ((x) + PKUNITY_IOSPACE_BASE)
+> +/*
+> + * Register numbers.
+> + */
+> +#define I8042_COMMAND_REG      ((unsigned long)&PS2_COMMAND)
+> +#define I8042_STATUS_REG       ((unsigned long)&PS2_STATUS)
+> +#define I8042_DATA_REG         ((unsigned long)&PS2_DATA)
 > +
-> +#ifndef __ASSEMBLY__
+> +static inline int i8042_read_data(void)
+> +{
+> +       return inb(I8042_DATA_REG);
+> +}
 > +
-> +# define __REG(x)      (*((volatile unsigned long *)io_p2v(x)))
-> +# define __PREG(x)     (io_v2p((unsigned long)&(x)))
+> +static inline int i8042_read_status(void)
+> +{
+> +       return inb(I8042_STATUS_REG);
+> +}
 > +
-> +#else
-> +
-> +# define __REG(x)      io_p2v(x)
-> +# define __PREG(x)     io_v2p(x)
 
-> #define PKUNITY_IOSPACE_BASE            0x80000000 /* 0x80000000 - 0xFFFFFFFF 2GB */
+This is not a correct way to use inb()/outb(), as far as I can tell:
+PS2_COMMAND is an mmio pointer (or should be, see my other message).
 
-The typecasts look wrong here: 
-
-- "volatile unsigned long*" is not the right pointer type to do I/O on. It
-  should instead be "void __iomem *". Please use the "sparse" tool with "make C=1"
-  to get warnings about incorrect pointer type accesses.
-
-- PKUNITY_IOSPACE_BASE seems to be both a virtual and a physical address, which
-  is a bad idea, because it prevents a lot of the checks from working correctly.
-
-- The __REG/__PREG macros seem to have the same purpose as io_p2v/io_v2p, you
-  should not require both.
-
-- The term IOSPACE is confusing, because it normally refers to the PCI PIO
-  space, while you mean the SoC's MMIO region
-
-I would recommend defining these as
-
-#ifndef __ASSEMBLY__
-#define PKUNITY_MMIO_VIRT ((void __iomem *)0x80000000)
-#else
-#define PKUNITY_MMIO_VIRT 0x80000000
-#endif
-
-#define io_p2v(x)	((x) - PKUNITY_MMIO_VIRT)
-#define io_v2p(x)	((x) + PKUNITY_MMIO_VIRT)
-
-/* please remove the two macros below as soon as all users are changed to use io_p2v */
-#define __REG(x) io_p2v(x)
-#define __PREG(x) io_v2p(x)
+inb() however is only defined on PCI/ISA PIO port numbers, which
+are in the range between 0 and 65535, and typically get mapped
+into the memory from the PCI driver.
 
 	Arnd
