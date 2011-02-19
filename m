@@ -1,31 +1,55 @@
-From: "Orbit Loans" <admin@uk.org>
-Subject: Loan
-Date: Fri, 18 Feb 2011 20:38:05 +0700 (WIT)
-Message-ID: <c927b5e23e4e86fde1b6ee32ca054303.squirrel__23957.7986569659$1298046264$gmane$org@webmail.powertel.co.id>
-Reply-To: orbitfinancefirmltd@mail2uk.com
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
+ module versions
+Date: Fri, 18 Feb 2011 18:14:15 -0600
+Message-ID: <1298074455.2460.85.camel@pasglop>
+References: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
+	 <20110217.140119.39175251.davem@davemloft.net>
+	 <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+	 <20110217.142320.102554706.davem@davemloft.net>
+	 <AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
+	 <AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [203.190.55.249] ([203.190.55.249]:51219 "EHLO
-	core-tomang.power.net.id" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752662Ab1BRQYP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 Feb 2011 11:24:15 -0500
+Received: from gate.crashing.org ([63.228.1.57]:58191 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752138Ab1BSAOh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Feb 2011 19:14:37 -0500
+In-Reply-To: <AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, rusty@rustcorp.com.au, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
 
-Good day,
+On Thu, 2011-02-17 at 15:08 -0800, Linus Torvalds wrote:
+> On Thu, Feb 17, 2011 at 2:48 PM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+> >
+> > Gaah, I didn't realize that we've never had to do anything like this
+> > before, and that the exception table is all arch-specific code. So we
+> > don't have any way to "output that damned pointer and stop whining
+> > about it" model at all.
+> 
+> Actually, I don't think the problem is about ".word" vs ".xword". We
+> should be able to just use ".long" everywhere.
+> 
+> But the symbol _name_ may have different prefixes, and when we use
+> "asm()" at the top level, we can't use the expressions to fix it up.
+> So a
+> 
+>   asm(".long %0":'i" (symbol))
+> 
+> doesn't work (ignore the lack of section naming, that's not
+> important), and neither can we just do something like
+> 
+>   #define output_asm_pointer(section, symbol) \
+>        asm(".long " #symbol)
+> 
+> portably, because some linker formats want to see prepended underscores etc.
 
-Do you have bad credit?
-Do you want to upgrade your business?
+Except that .long is 32-bit on ppc64 :-( You need .llong for 64-bit.
 
-I give loans to both private and public organizations at
-very low and considerable interest rates.
-
-For more information you could contact me at my email
-address below:orbitfinanceltduk@mail2uk.com
-
-
-Regards
-Hill Colin Neil Esq.
+Cheers,
+Ben.
