@@ -1,96 +1,59 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-Date: Mon, 21 Feb 2011 14:25:58 +0100
-Message-ID: <AANLkTin_vp=+G+AMsfRtet9aWFc4MQnRC_bFZOovvFyg@mail.gmail.com>
-References: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
-	<20110217.140119.39175251.davem@davemloft.net>
-	<20110217221957.GA11244@dtor-ws.eng.vmware.com>
-	<20110217.142320.102554706.davem@davemloft.net>
-	<AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
-	<AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
-	<1298074455.2460.85.camel@pasglop>
-	<87pqqmrq9q.fsf@rustcorp.com.au>
-	<AANLkTinFgma3F7ETwC8Mho7wdDK4V2b+Ao__npJNAW8j@mail.gmail.com>
-	<20110221074947.GA31152@dtor-ws.eng.vmware.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: CLOCK_TICK_RATE, was: Re: [PATCH V4 3/4] ARM: Xilinx: base header files and assembly macros
+Date: Mon, 21 Feb 2011 22:08:10 +0100
+Message-ID: <201102212208.10231.arnd@arndb.de>
+References: <1298052881-14591-1-git-send-email-john.linn@xilinx.com> <201102211548.36296.arnd@arndb.de> <20110221151752.GR14495@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <20110221074947.GA31152@dtor-ws.eng.vmware.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.8]:54122 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751884Ab1BUVIY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2011 16:08:24 -0500
+In-Reply-To: <20110221151752.GR14495@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: John Linn <John.Linn@xilinx.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, catalin.marinas@arm.com, glikely@secretlab.ca, jamie@jamieiles.com, linux-arch@vger.kernel.org
 
-On Mon, Feb 21, 2011 at 08:49, Dmitry Torokhov <dtor@vmware.com> wrote:
-> On Mon, Feb 21, 2011 at 08:38:46AM +0100, Geert Uytterhoeven wrote:
->> On Mon, Feb 21, 2011 at 05:00, Rusty Russell <rusty@rustcorp.com.au>=
- wrote:
->> >> Except that .long is 32-bit on ppc64 :-( You need .llong for 64-b=
-it.
->> >
->> > OK, all options suck. =C2=A0Do we want the workaround or not?
->>
->> We can discuss about that until someone gets bitten by that.
->>
->> But please fix the "aligned(sizeof(void *))"-in-one-place-only issue=
-=2E
->>
->
-> How about this one then?
+On Monday 21 February 2011, Russell King - ARM Linux wrote:
+> Eg, LOW_RES_NSEC is exported to userspace via the posix clocks interface.
+> 
+> NSEC_PER_SEC and TICK_NSEC are used for cmos clock updates, so probably
+> don't matter too much there.  TICK_NSEC is also used by the scheduler,
+> time conversions (timespec/timeval to/from jiffies) and profiling code.
+> 
+> NSEC_PER_JIFFY is used by the jiffy clocksource code, which only matters
+> if you don't have your own clocksource.
+> 
+> So, I feel very uneasy about saying that CLOCK_TICK_RATE doesn't matter
+> anymore given all the places which reference something that's derived
+> from it.
 
-Works.
+All the calculations based off of CLOCK_TICK_RATE are derived from ACTHZ,
+which is either the correct value based on the underlying HW timer tick,
+or slightly off, when either the HW tick or the value of CLOCK_TICK_RATE
+is not a true multiple of HZ.
 
-> From f0e0e10b58b22047e36e21a022abf5e86b5819c2 Mon Sep 17 00:00:00 200=
-1
-> From: Dmitry Torokhov <dtor@vmware.com>
-> Date: Fri, 4 Feb 2011 13:30:10 -0800
-> Subject: [PATCH] module: explicitly align module_version_attribute st=
-ructure
->
-> We force particular alignment when we generate attribute structures
-> when generation MODULE_VERSION() data and we need to make sure that
-> this alignment is followed when we iterate over these structures,
-> otherwise we may crash on platforms whose natural alignment is not
-> sizeof(void *), such as m68k.
->
-> Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Dmitry Torokhov <dtor@vmware.com>
+In fact, I'm pretty sure that it's off on a lot of machines:
 
-Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+arch/frv/include/asm/timex.h:#define CLOCK_TICK_RATE            1193180 /* Underlying HZ */
+arch/m68k/include/asm/timex.h:#define CLOCK_TICK_RATE   1193180 /* Underlying HZ */
+arch/mips/include/asm/timex.h:#define CLOCK_TICK_RATE 1193182
+arch/parisc/include/asm/timex.h:#define CLOCK_TICK_RATE 1193180 /* Underlying HZ */
+arch/s390/include/asm/timex.h:#define CLOCK_TICK_RATE   1193180 /* Underlying HZ */
+arch/sh/include/asm/timex.h:#define CLOCK_TICK_RATE             1193180
+arch/x86/include/asm/timex.h:#define CLOCK_TICK_RATE            PIT_TICK_RATE
+arch/xtensa/include/asm/timex.h:#define CLOCK_TICK_RATE         1193180 /* (everyone is using this value) */
 
-> ---
-> =C2=A0include/linux/module.h | =C2=A0 =C2=A02 +-
-> =C2=A01 files changed, 1 insertions(+), 1 deletions(-)
->
-> diff --git a/include/linux/module.h b/include/linux/module.h
-> index e7c6385..de5cd21 100644
-> --- a/include/linux/module.h
-> +++ b/include/linux/module.h
-> @@ -62,7 +62,7 @@ struct module_version_attribute {
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0struct module_attribute mattr;
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0const char *module_name;
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0const char *version;
-> -};
-> +} __attribute__ ((__aligned__(sizeof(void *))));
->
-> =C2=A0struct module_kobject
-> =C2=A0{
-> --
-> 1.7.3.2
+None of these is actually using a PC-style PIT these days, the just copied the
+definition blindly from old i386. I think a simple
 
-Gr{oetje,eeting}s,
+#define ACTHZ (HZ << 8)
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
+would fix more than it can break, and most likely nobody would ever notice
+the difference. If we do that, CLOCK_TICK_RATE becomes unused.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+	Arnd
