@@ -1,49 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:52181 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753523Ab1BVPTH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Feb 2011 10:19:07 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv2 06/11] unicore32 core architecture: mm related: generic codes
-Date: Tue, 22 Feb 2011 16:18:56 +0100
-References: <02ed01cbcb48$3e3781a0$baa684e0$@mprc.pku.edu.cn> <201102171828.15482.arnd@arndb.de> <018a01cbd29b$1ff4c590$5fde50b0$@mprc.pku.edu.cn>
-In-Reply-To: <018a01cbd29b$1ff4c590$5fde50b0$@mprc.pku.edu.cn>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:42406 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751890Ab1BVUxf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Feb 2011 15:53:35 -0500
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201102221618.56779.arnd@arndb.de>
+In-Reply-To: <20110222170849.GW13204@axis.com>
+References: <20110217.140119.39175251.davem@davemloft.net> <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+ <20110217.142320.102554706.davem@davemloft.net> <AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
+ <AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
+ <1298074455.2460.85.camel@pasglop> <87pqqmrq9q.fsf@rustcorp.com.au>
+ <1298339909.8833.135.camel@pasglop> <AANLkTimyaA+JdBHekm69R5Y2A2DEdPdndFLrKJAaz=vt@mail.gmail.com>
+ <20110222070240.GA21765@dtor-ws.eng.vmware.com> <20110222170849.GW13204@axis.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 22 Feb 2011 12:47:09 -0800
+Message-ID: <AANLkTikd9QJZVoN+N4yLfr+Y+GWkB1EvShrgvb39Fp=0@mail.gmail.com>
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
-Message-ID: <20110222151856.xG0_ylX6xnk6c83BaXY4-GztU8OhnfEsdVAPyerbyDs@z>
+To: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Dmitry Torokhov <dtor@vmware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rusty Russell <rusty@rustcorp.com.au>, David Miller <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>
+Message-ID: <20110222204709.btvFIJ6dT8XcSmoS7XdDppmbuOl6I00eexwvfS196KA@z>
 
-On Tuesday 22 February 2011, Guan Xuetao wrote:
-> > > +#ifdef __io
-> > > +void __iomem *ioport_map(unsigned long port, unsigned int nr)
-> > > +{
-> > > +       /* we map PC lagcy 64K IO port to PCI IO space 0x80030000 */
-> > > +       return (void __iomem *) (unsigned long)
-> > > +                       io_p2v((port & 0xffff) + PKUNITY_PCILIO_BASE);
-> > > +}
-> > 
-> > Interestingly, this function looks completely correct, but I don't see
-> > the definition for __io, so I suspect that the function is not actually
-> > getting used.
-> When I want to use pci device driver,  I will define __io and use ioport_map for drivers.
-> It is obviously a trick.
+On Tue, Feb 22, 2011 at 9:08 AM, Jesper Nilsson <jesper.nilsson@axis.com> wrote:
+>
+> That's probably just a legacy from when I combined the linkscripts
+> for the two architectures. If I remember correctly, RODATA brings
+> in RO_DATA_SECTION which in turn brings in __param and __modver
+> for both architectures. CRISv32 then duplicates the __param stuff
+> for some historical reason.
 
-Ok, I see.
+Hmm. This makes it sound like the patch should be to remove the
+__param thing rather than to add the _modver thing. And I can
+definitely confirm that cris seems to use RODATA, which brings in the
+RO_DATA_SECTION() thing with proper page alignment.
 
-> And with your patch for asm-generic/io.h, these codes could be removed.
+But:
 
-You'd still need to define ioport_map, but the definition could simply
-become
+> True, at least until I've made sure that there isn't any
+> underlying reason for CRISv32 to put __param in a different place...
+>
+> Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-{
-	return PCIO_BASE + port;
-}
+I really am not going to apply a patch that likely just adds another
+redundant field to the linker scripts. So the ack I'm just ignoring,
 
-	ARnd
+But it would be good to get the "remove the legacy __param thing
+because it's already there from the asm-generic version" confirmed by
+testing, and not just looking at the source code.
+
+                     Linus
