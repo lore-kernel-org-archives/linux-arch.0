@@ -1,18 +1,18 @@
 From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 06/12] unicore32 additional architecture files: low-level lib: misc
-Date: Tue, 22 Feb 2011 18:54:59 +0800
-Message-ID: <017701cbd27e$f41992a0$dc4cb7e0$@mprc.pku.edu.cn>
-References: <014d01cbcdae$091bc6d0$1b535470$@mprc.pku.edu.cn> <201102171814.29081.arnd@arndb.de>
+Subject: RE: [PATCH 09/12] unicore32 machine related files: hardware registers
+Date: Tue, 22 Feb 2011 22:09:05 +0800
+Message-ID: <018601cbd29a$118b27c0$34a17740$@mprc.pku.edu.cn>
+References: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn> <201102171759.45365.arnd@arndb.de> <00e901cbcf51$8507c290$8f1747b0$@mprc.pku.edu.cn> <201102181142.42614.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain;
 	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:46037 "EHLO mprc.pku.edu.cn"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:49992 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753841Ab1BVKzL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Feb 2011 05:55:11 -0500
-In-Reply-To: <201102171814.29081.arnd@arndb.de>
+	id S1751648Ab1BVOJS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Feb 2011 09:09:18 -0500
+In-Reply-To: <201102181142.42614.arnd@arndb.de>
 Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -23,164 +23,121 @@ Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kr
 
 > -----Original Message-----
 > From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Friday, February 18, 2011 1:14 AM
+> Sent: Friday, February 18, 2011 6:43 PM
 > To: Guan Xuetao
 > Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> Subject: Re: [PATCH 06/12] unicore32 additional architecture files: low-level lib: misc
+> Subject: Re: [PATCH 09/12] unicore32 machine related files: hardware registers
 > 
-> On Wednesday 16 February 2011, Guan Xuetao wrote:
-> > diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-> > new file mode 100644
-> > index 0000000..d73457c
-> > --- /dev/null
-> > +++ b/arch/unicore32/include/asm/io.h
-> > @@ -0,0 +1,52 @@
-> > +/*
-> > + * linux/arch/unicore32/include/asm/io.h
-> > + *
-> > + * Code specific to PKUnity SoC and UniCore ISA
-> > + *
-> > + * Copyright (C) 2001-2010 GUAN Xue-tao
-> > + *
-> > + * This program is free software; you can redistribute it and/or modify
-> > + * it under the terms of the GNU General Public License version 2 as
-> > + * published by the Free Software Foundation.
-> > + */
-> > +#ifndef __UNICORE_IO_H__
-> > +#define __UNICORE_IO_H__
-> > +
-> > +#ifdef __KERNEL__
-> > +
-> > +#include <asm/byteorder.h>
-> > +#include <asm/memory.h>
-> > +#include <asm/system.h>
-> > +
-> > +#include <asm-generic/io.h>
-> > +
+> On Friday 18 February 2011 10:52:12 Guan Xuetao wrote:
 > 
-> I just realized that the generic io.h implementation is actually wrong here, because it does
-> not offset the PIO port numbers with the PCI I/O range. To get this right, you need
-> the patch below, and also need to define PCI_IOBASE appropriately.
+> > > On Wednesday 16 February 2011, Guan Xuetao wrote:
+> > > > +#define io_p2v(x)      ((x) - PKUNITY_IOSPACE_BASE)
+> > > > +#define io_v2p(x)      ((x) + PKUNITY_IOSPACE_BASE)
+> > > > +
+> > > > +#ifndef __ASSEMBLY__
+> > > > +
+> > > > +# define __REG(x)      (*((volatile unsigned long *)io_p2v(x)))
+> > > > +# define __PREG(x)     (io_v2p((unsigned long)&(x)))
+> > > > +
+> > > > +#else
+> > > > +
+> > > > +# define __REG(x)      io_p2v(x)
+> > > > +# define __PREG(x)     io_v2p(x)
+> > >
+> > > > #define PKUNITY_IOSPACE_BASE            0x80000000 /* 0x80000000 - 0xFFFFFFFF 2GB */
+> > >
+> > > The typecasts look wrong here:
+> > >
+> > > - "volatile unsigned long*" is not the right pointer type to do I/O on. It
+> > >   should instead be "void __iomem *". Please use the "sparse" tool with "make C=1"
+> > >   to get warnings about incorrect pointer type accesses.
+> > __REG() macro could be used in both left and right sides of assignment sentence.
+> > This idea is borrowed from arm/sa1100.
+> >
+> > When used in left side, __REG is a register port, and when used in right side,
+> > __REG is just the value of the register.
+> > It is a trick, but very useful. I'd like to remain the macros.
+> 
+> Ok, I didn't realize this. However, this is a really bad idea
+> and I would strongly advise removing this throughout the code.
+> 
+> The only way we do MMIO accesses in Linux is through the
+> readl()/writel() functions. On many architectures, these
+> contain more than just a pointer dereference, and if you
+> need that, you can change it in just one place.
+> 
+> Things that can go wrong with volatile pointer dereferences include:
+> 
+> * compiler turns 32 bit access into four 8-bit accesses
+> * I/O bus reorders access and it moves outside of a spinlock
+> * non-volatile accesses to system RAM get reordered around
+>   MMIO access, which may break if the MMIO triggers a DMA.
+> 
+> > diff --git a/arch/unicore32/include/mach/PKUnity.h b/arch/unicore32/include/mach/PKUnity.h
+> > index 1e13208..39f27f4 100644
+> > --- a/arch/unicore32/include/mach/PKUnity.h
+> > +++ b/arch/unicore32/include/mach/PKUnity.h
+> > @@ -21,7 +21,7 @@
+> >   * Memory Definitions
+> >   */
+> >  #define PKUNITY_SDRAM_BASE		0x00000000 /* 0x00000000 - 0x7FFFFFFF 2GB */
+> > -#define PKUNITY_IOSPACE_BASE            0x80000000 /* 0x80000000 - 0xFFFFFFFF 2GB */
+> > +#define PKUNITY_MMIO_BASE		0x80000000 /* 0x80000000 - 0xFFFFFFFF 2GB */
+> >  #define PKUNITY_PCI_BASE		0x80000000 /* 0x80000000 - 0xBFFFFFFF 1GB */
+> >  #include "regs-pci.h"
+> >  #define PKUNITY_BOOT_ROM2_BASE		0xF4000000 /* 0xF4000000 - 0xF7FFFFFF 64MB */
+> 
+> This change is ok.
+> 
+> > diff --git a/arch/unicore32/include/mach/hardware.h b/arch/unicore32/include/mach/hardware.h
+> > index 3fb7236..ebce7de 100644
+> > --- a/arch/unicore32/include/mach/hardware.h
+> > +++ b/arch/unicore32/include/mach/hardware.h
+> > @@ -17,19 +17,14 @@
+> >
+> >  #include "PKUnity.h"
+> >
+> > -#define io_p2v(x)	((x) - PKUNITY_IOSPACE_BASE)
+> > -#define io_v2p(x)	((x) + PKUNITY_IOSPACE_BASE)
+> > +#define io_p2v(x)	((x) - PKUNITY_MMIO_BASE)
+> > +#define io_v2p(x)	((x) + PKUNITY_MMIO_BASE)
+> >
+> >  #ifndef __ASSEMBLY__
+> 
+> The result of io_p2v really needs to be a (void __iomem *) pointer, not
+> an integer, so the accesses can work.
+> 
+> >  # define __REG(x)	(*((volatile unsigned long *)io_p2v(x)))
+> >  # define __PREG(x)	(io_v2p((unsigned long)&(x)))
+> 
+> And as explained, these should be removed and all users converted to
+> use readl()/writel().
+I see.
+I apply the patch as following:
+arch/unicore32/include/mach/hardware.h |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/arch/unicore32/include/mach/hardware.h b/arch/unicore32/include/mach/hardware.h
+index ebce7de..b71405a 100644
+--- a/arch/unicore32/include/mach/hardware.h
++++ b/arch/unicore32/include/mach/hardware.h
+@@ -22,8 +22,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ 
+-# define __REG(x)	(*((volatile unsigned long *)io_p2v(x)))
+-# define __PREG(x)	(io_v2p((unsigned long)&(x)))
++# define __REG(x)	(void __iomem *)io_p2v(x)
+ 
+ #endif
+
+---
+__REG reserved only for all registers prefix.
+And all using for __REG converted to readl/writel.
+
 > 
 > 	Arnd
-> 8<-------
-> asm-generic: fix inX/outX functions for architectures that have PCI
-> 
-> The definitions for the PC-style PIO functions in asm-generic/io.h were
-> meant as dummies so you could compile code on architectures without
-> ISA and PCI buses. However, unicore32 actually wants to use them
-> with a real PCI bus, so they need to be defined to actually address
-> the register window holding the I/O ports.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> ---
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index 4644c9a..e0ffa3d 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -94,6 +94,10 @@ static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
->  #define writeq(b,addr) __raw_writeq(__cpu_to_le64(b),addr)
->  #endif
-> 
-> +#ifndef PCI_IOBASE
-> +#define PCI_IOBASE ((void __iomem *) 0)
-> +#endif
-> +
->  /*****************************************************************************/
->  /*
->   * traditional input/output functions
-> @@ -101,32 +105,32 @@ static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
-> 
->  static inline u8 inb(unsigned long addr)
->  {
-> -	return readb((volatile void __iomem *) addr);
-> +	return readb(addr + PCI_IOBASE);
->  }
-> 
->  static inline u16 inw(unsigned long addr)
->  {
-> -	return readw((volatile void __iomem *) addr);
-> +	return readw(addr + PCI_IOBASE);
->  }
-> 
->  static inline u32 inl(unsigned long addr)
->  {
-> -	return readl((volatile void __iomem *) addr);
-> +	return readl(addr + PCI_IOBASE);
->  }
-> 
->  static inline void outb(u8 b, unsigned long addr)
->  {
-> -	writeb(b, (volatile void __iomem *) addr);
-> +	writeb(b, addr + PCI_IOBASE);
->  }
-> 
->  static inline void outw(u16 b, unsigned long addr)
->  {
-> -	writew(b, (volatile void __iomem *) addr);
-> +	writew(b, addr + PCI_IOBASE);
->  }
-> 
->  static inline void outl(u32 b, unsigned long addr)
->  {
-> -	writel(b, (volatile void __iomem *) addr);
-> +	writel(b, addr + PCI_IOBASE);
->  }
-> 
->  #define inb_p(addr)	inb(addr)
-> @@ -213,32 +217,32 @@ static inline void outsl(unsigned long addr, const void *buffer, int count)
-> 
->  static inline void readsl(const void __iomem *addr, void *buf, int len)
->  {
-> -	insl((unsigned long)addr, buf, len);
-> +	insl(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  static inline void readsw(const void __iomem *addr, void *buf, int len)
->  {
-> -	insw((unsigned long)addr, buf, len);
-> +	insw(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  static inline void readsb(const void __iomem *addr, void *buf, int len)
->  {
-> -	insb((unsigned long)addr, buf, len);
-> +	insb(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  static inline void writesl(const void __iomem *addr, const void *buf, int len)
->  {
-> -	outsl((unsigned long)addr, buf, len);
-> +	outsl(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  static inline void writesw(const void __iomem *addr, const void *buf, int len)
->  {
-> -	outsw((unsigned long)addr, buf, len);
-> +	outsw(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  static inline void writesb(const void __iomem *addr, const void *buf, int len)
->  {
-> -	outsb((unsigned long)addr, buf, len);
-> +	outsb(addr - PCI_IOBASE, buf, len);
->  }
-> 
->  #ifndef CONFIG_GENERIC_IOMAP
-> @@ -269,8 +273,9 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
->  	outsl((unsigned long) (p), (src), (count))
->  #endif /* CONFIG_GENERIC_IOMAP */
-> 
-> -
-> -#define IO_SPACE_LIMIT 0xffffffff
-> +#ifndef IO_SPACE_LIMIT
-> +#define IO_SPACE_LIMIT 0xffff
-> +#endif
-> 
->  #ifdef __KERNEL__
-> 
-Thanks Arnd.
-It simples the life for iomapping PCI legacy space. And it looks good to me.
-I apply the patch  at the top of my repo.
+
+Thanks Arnd
 
 Guan Xuetao
