@@ -1,76 +1,44 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 11/12] unicore32 machine related files: ps2 driver
-Date: Tue, 22 Feb 2011 22:26:26 +0800
-Message-ID: <019001cbd29c$7cee6340$76cb29c0$@mprc.pku.edu.cn>
-References: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn> <201102171803.15785.arnd@arndb.de> <00eb01cbcf56$9f372700$dda57500$@mprc.pku.edu.cn> <201102181133.26675.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCHv2 06/11] unicore32 core architecture: mm related: generic codes
+Date: Tue, 22 Feb 2011 16:18:56 +0100
+Message-ID: <201102221618.56779.arnd@arndb.de>
+References: <02ed01cbcb48$3e3781a0$baa684e0$@mprc.pku.edu.cn> <201102171828.15482.arnd@arndb.de> <018a01cbd29b$1ff4c590$5fde50b0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:56387 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753103Ab1BVO0j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Feb 2011 09:26:39 -0500
-In-Reply-To: <201102181133.26675.arnd@arndb.de>
-Content-Language: zh-cn
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: dmitry.torokhov@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <018a01cbd29b$1ff4c590$5fde50b0$@mprc.pku.edu.cn>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+List-Id: linux-arch.vger.kernel.org
 
+On Tuesday 22 February 2011, Guan Xuetao wrote:
+> > > +#ifdef __io
+> > > +void __iomem *ioport_map(unsigned long port, unsigned int nr)
+> > > +{
+> > > +       /* we map PC lagcy 64K IO port to PCI IO space 0x80030000 */
+> > > +       return (void __iomem *) (unsigned long)
+> > > +                       io_p2v((port & 0xffff) + PKUNITY_PCILIO_BASE);
+> > > +}
+> > 
+> > Interestingly, this function looks completely correct, but I don't see
+> > the definition for __io, so I suspect that the function is not actually
+> > getting used.
+> When I want to use pci device driver,  I will define __io and use ioport_map for drivers.
+> It is obviously a trick.
 
+Ok, I see.
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Friday, February 18, 2011 6:33 PM
-> To: Guan Xuetao
-> Cc: dmitry.torokhov@gmail.com; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> Subject: Re: [PATCH 11/12] unicore32 machine related files: ps2 driver
-> 
-> On Friday 18 February 2011 11:28:45 Guan Xuetao wrote:
-> >   * Register numbers.
-> >   */
-> > -#define I8042_COMMAND_REG      ((unsigned long)&PS2_COMMAND)
-> > -#define I8042_STATUS_REG       ((unsigned long)&PS2_STATUS)
-> > -#define I8042_DATA_REG         ((unsigned long)&PS2_DATA)
-> > +#define I8042_COMMAND_REG      ((volatile void __iomem *)&PS2_COMMAND)
-> > +#define I8042_STATUS_REG       ((volatile void __iomem *)&PS2_STATUS)
-> > +#define I8042_DATA_REG         ((volatile void __iomem *)&PS2_DATA)
-> > +
-> > +#define I8042_REGION_START     (resource_size_t)(&PS2_DATA)
-> > +#define I8042_REGION_SIZE      (resource_size_t)(16)
-> 
-> It would be better to remove the cast and make the PS2_COMMAND
-> etc macros have the correct type. Aside from this, the change
-> looks good.
-With the patch for __REG in unicore32, following patch could be applied:
-drivers/input/serio/i8042-unicore32io.h |    8 ++++----
- 1 files changed, 4 insertions(+), 4 deletions(-)
+> And with your patch for asm-generic/io.h, these codes could be removed.
 
-diff --git a/drivers/input/serio/i8042-unicore32io.h b/drivers/input/serio/i8042-unicore32io.h
-index 2cdd872..9350843 100644
---- a/drivers/input/serio/i8042-unicore32io.h
-+++ b/drivers/input/serio/i8042-unicore32io.h
-@@ -29,11 +29,11 @@
- /*
-  * Register numbers.
-  */
--#define I8042_COMMAND_REG	((volatile void __iomem *)&PS2_COMMAND)
--#define I8042_STATUS_REG	((volatile void __iomem *)&PS2_STATUS)
--#define I8042_DATA_REG		((volatile void __iomem *)&PS2_DATA)
-+#define I8042_COMMAND_REG	PS2_COMMAND
-+#define I8042_STATUS_REG	PS2_STATUS
-+#define I8042_DATA_REG		PS2_DATA
- 
--#define I8042_REGION_START	(resource_size_t)(&PS2_DATA)
-+#define I8042_REGION_START	(resource_size_t)(PS2_DATA)
- #define I8042_REGION_SIZE	(resource_size_t)(16)
- 
- static inline int i8042_read_data(void)
+You'd still need to define ioport_map, but the definition could simply
+become
 
-> 
-> 	Arnd
-Thanks & Regards.
+static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+{
+	return PCIO_BASE + port;
+}
 
-Guan Xuetao
+	ARnd
