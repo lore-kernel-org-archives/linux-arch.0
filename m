@@ -1,91 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:54471 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755690Ab1BUN0A convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Feb 2011 08:26:00 -0500
-MIME-Version: 1.0
-In-Reply-To: <20110221074947.GA31152@dtor-ws.eng.vmware.com>
+Received: from gate.crashing.org ([63.228.1.57]:59200 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751151Ab1BVB7Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Feb 2011 20:59:25 -0500
+Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in
+ module versions
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <87pqqmrq9q.fsf@rustcorp.com.au>
 References: <AANLkTi=nQ4c6fgk9_-974QOu=kQkJiGpdzpOa_U6ZZcs@mail.gmail.com>
-	<20110217.140119.39175251.davem@davemloft.net>
-	<20110217221957.GA11244@dtor-ws.eng.vmware.com>
-	<20110217.142320.102554706.davem@davemloft.net>
-	<AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
-	<AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
-	<1298074455.2460.85.camel@pasglop>
-	<87pqqmrq9q.fsf@rustcorp.com.au>
-	<AANLkTinFgma3F7ETwC8Mho7wdDK4V2b+Ao__npJNAW8j@mail.gmail.com>
-	<20110221074947.GA31152@dtor-ws.eng.vmware.com>
-Date: Mon, 21 Feb 2011 14:25:58 +0100
-Message-ID: <AANLkTin_vp=+G+AMsfRtet9aWFc4MQnRC_bFZOovvFyg@mail.gmail.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+	 <20110217.140119.39175251.davem@davemloft.net>
+	 <20110217221957.GA11244@dtor-ws.eng.vmware.com>
+	 <20110217.142320.102554706.davem@davemloft.net>
+	 <AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
+	 <AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
+	 <1298074455.2460.85.camel@pasglop>  <87pqqmrq9q.fsf@rustcorp.com.au>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 22 Feb 2011 12:58:29 +1100
+Message-ID: <1298339909.8833.135.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dmitry Torokhov <dtor@vmware.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110221132558.KLT6HAinlgXgz1fJ_zaTTwH1CD3csMaSl_d2lqn08xc@z>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, dtor@vmware.com, linux-kernel@vger.kernel.org, geert@linux-m68k.org, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110222015829.OS1PeHissiH5MPCQ2G_pRNoRpfas35SaJc3jUpBmlIY@z>
 
-On Mon, Feb 21, 2011 at 08:49, Dmitry Torokhov <dtor@vmware.com> wrote:
-> On Mon, Feb 21, 2011 at 08:38:46AM +0100, Geert Uytterhoeven wrote:
->> On Mon, Feb 21, 2011 at 05:00, Rusty Russell <rusty@rustcorp.com.au> wrote:
->> >> Except that .long is 32-bit on ppc64 :-( You need .llong for 64-bit.
->> >
->> > OK, all options suck.  Do we want the workaround or not?
->>
->> We can discuss about that until someone gets bitten by that.
->>
->> But please fix the "aligned(sizeof(void *))"-in-one-place-only issue.
->>
->
-> How about this one then?
+On Mon, 2011-02-21 at 14:30 +1030, Rusty Russell wrote:
+> > Except that .long is 32-bit on ppc64 :-( You need .llong for 64-bit.
+> 
+> OK, all options suck.  Do we want the workaround or not?
 
-Works.
+The only sane thing I can see is make sure that such structures that
+we put into sections "arrays" like that are naturally aligned with
+padding.
 
-> From f0e0e10b58b22047e36e21a022abf5e86b5819c2 Mon Sep 17 00:00:00 2001
+Cheers,
+Ben.
+
+> Cheers,
+> Rusty.
+> 
+> Subject: module: deal with alignment issues in built-in module versions
+> Date: Mon, 7 Feb 2011 16:02:25 -0800
 > From: Dmitry Torokhov <dtor@vmware.com>
-> Date: Fri, 4 Feb 2011 13:30:10 -0800
-> Subject: [PATCH] module: explicitly align module_version_attribute structure
->
-> We force particular alignment when we generate attribute structures
-> when generation MODULE_VERSION() data and we need to make sure that
-> this alignment is followed when we iterate over these structures,
-> otherwise we may crash on platforms whose natural alignment is not
-> sizeof(void *), such as m68k.
->
+> 
+> On m68k natural alignment is 2-byte boundary but we are trying to
+> align structures in __modver section on sizeof(void *) boundary.
+> This causes trouble when we try to access elements in this section
+> in array-like fashion when create "version" attributes for built-in
+> modules.
+> 
+> Moreover, as DaveM said, we can't reliably put structures into
+> independent objects, put them into a special section, and then expect
+> array access over them (via the section boundaries) after linking the
+> objects together to just "work" due to variable alignment choices in
+> different situations. The only solution that seems to work reliably
+> is to make an array of plain pointers to the objects in question and
+> put those pointers in the special section.
+> 
 > Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > Signed-off-by: Dmitry Torokhov <dtor@vmware.com>
-
-Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
+> Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
 > ---
->  include/linux/module.h |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
->
+>  include/linux/module.h |   10 +++++-----
+>  kernel/params.c        |    9 ++++++---
+>  2 files changed, 11 insertions(+), 8 deletions(-)
+> 
 > diff --git a/include/linux/module.h b/include/linux/module.h
-> index e7c6385..de5cd21 100644
+> index 9bdf27c..9b7081a 100644
 > --- a/include/linux/module.h
 > +++ b/include/linux/module.h
-> @@ -62,7 +62,7 @@ struct module_version_attribute {
->        struct module_attribute mattr;
->        const char *module_name;
->        const char *version;
-> -};
-> +} __attribute__ ((__aligned__(sizeof(void *))));
->
->  struct module_kobject
->  {
+> @@ -174,10 +174,7 @@ extern struct module __this_module;
+>  #define MODULE_VERSION(_version)					\
+>  	extern ssize_t __modver_version_show(struct module_attribute *,	\
+>  					     struct module *, char *);	\
+> -	static struct module_version_attribute __modver_version_attr	\
+> -	__used								\
+> -    __attribute__ ((__section__ ("__modver"),aligned(sizeof(void *)))) \
+> -	= {								\
+> +	static struct module_version_attribute ___modver_attr = {	\
+>  		.mattr	= {						\
+>  			.attr	= {					\
+>  				.name	= "version",			\
+> @@ -187,7 +184,10 @@ extern struct module __this_module;
+>  		},							\
+>  		.module_name	= KBUILD_MODNAME,			\
+>  		.version	= _version,				\
+> -	}
+> +	};								\
+> +	static const struct module_version_attribute			\
+> +	__used __attribute__ ((__section__ ("__modver")))		\
+> +	* __moduleparam_const __modver_attr = &___modver_attr
+>  #endif
+>  
+>  /* Optional firmware file (or files) needed by the module
+> diff --git a/kernel/params.c b/kernel/params.c
+> index 0da1411..09a08cb 100644
+> --- a/kernel/params.c
+> +++ b/kernel/params.c
+> @@ -821,15 +821,18 @@ ssize_t __modver_version_show(struct module_attribute *mattr,
+>  	return sprintf(buf, "%s\n", vattr->version);
+>  }
+>  
+> -extern struct module_version_attribute __start___modver[], __stop___modver[];
+> +extern const struct module_version_attribute *__start___modver[];
+> +extern const struct module_version_attribute *__stop___modver[];
+>  
+>  static void __init version_sysfs_builtin(void)
+>  {
+> -	const struct module_version_attribute *vattr;
+> +	const struct module_version_attribute **p;
+>  	struct module_kobject *mk;
+>  	int err;
+>  
+> -	for (vattr = __start___modver; vattr < __stop___modver; vattr++) {
+> +	for (p = __start___modver; p < __stop___modver; p++) {
+> +		const struct module_version_attribute *vattr = *p;
+> +
+>  		mk = locate_module_kobject(vattr->module_name);
+>  		if (mk) {
+>  			err = sysfs_create_file(&mk->kobj, &vattr->mattr.attr);
 > --
-> 1.7.3.2
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-Gr{oetje,eeting}s,
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
