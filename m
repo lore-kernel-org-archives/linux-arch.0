@@ -1,53 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42406 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751890Ab1BVUxf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Feb 2011 15:53:35 -0500
-MIME-Version: 1.0
-In-Reply-To: <20110222170849.GW13204@axis.com>
-References: <20110217.140119.39175251.davem@davemloft.net> <20110217221957.GA11244@dtor-ws.eng.vmware.com>
- <20110217.142320.102554706.davem@davemloft.net> <AANLkTinMfTss+9K7fPQbxoMD7d-U_AyCc29_RRPRija3@mail.gmail.com>
- <AANLkTikd-OBhe6-wK7-Xvv-asNSeVKs+0-a0d3FF2KVu@mail.gmail.com>
- <1298074455.2460.85.camel@pasglop> <87pqqmrq9q.fsf@rustcorp.com.au>
- <1298339909.8833.135.camel@pasglop> <AANLkTimyaA+JdBHekm69R5Y2A2DEdPdndFLrKJAaz=vt@mail.gmail.com>
- <20110222070240.GA21765@dtor-ws.eng.vmware.com> <20110222170849.GW13204@axis.com>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 22 Feb 2011 12:47:09 -0800
-Message-ID: <AANLkTikd9QJZVoN+N4yLfr+Y+GWkB1EvShrgvb39Fp=0@mail.gmail.com>
-Subject: Re: [PATCH 1/3] module: deal with alignment issues in built-in module versions
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from bombadil.infradead.org ([18.85.46.34]:42605 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756332Ab1BXQfA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Feb 2011 11:35:00 -0500
+Subject: Re: [PATCH 06/17] arm: mmu_gather rework
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+In-Reply-To: <20110217163235.106239192@chello.nl>
+References: <20110217162327.434629380@chello.nl>
+	 <20110217163235.106239192@chello.nl>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Date: Thu, 24 Feb 2011 17:34:13 +0100
+Message-ID: <1298565253.2428.288.camel@twins>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: Dmitry Torokhov <dtor@vmware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Rusty Russell <rusty@rustcorp.com.au>, David Miller <davem@davemloft.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mikael Starvik <starvik@axis.com>
-Message-ID: <20110222204709.btvFIJ6dT8XcSmoS7XdDppmbuOl6I00eexwvfS196KA@z>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Russell King <rmk@arm.linux.org.uk>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+Message-ID: <20110224163413.jlPw5MBp-TW2hW0mir6Ta0ma3UnK7l6gbTCHZaPtHQE@z>
 
-On Tue, Feb 22, 2011 at 9:08 AM, Jesper Nilsson <jesper.nilsson@axis.com> wrote:
->
-> That's probably just a legacy from when I combined the linkscripts
-> for the two architectures. If I remember correctly, RODATA brings
-> in RO_DATA_SECTION which in turn brings in __param and __modver
-> for both architectures. CRISv32 then duplicates the __param stuff
-> for some historical reason.
+On Thu, 2011-02-17 at 17:23 +0100, Peter Zijlstra wrote:
+> plain text document attachment
+> (peter_zijlstra-arm-preemptible_mmu_gather.patch)
+> Fix up the arm mmu_gather code to conform to the new API.
 
-Hmm. This makes it sound like the patch should be to remove the
-__param thing rather than to add the _modver thing. And I can
-definitely confirm that cris seems to use RODATA, which brings in the
-RO_DATA_SECTION() thing with proper page alignment.
+So akpm noted that this one doesn't apply anymore because of:
 
-But:
+commit 06824ba824b3e9f2fedb38bee79af0643198ed7f
+Author: Russell King <rmk+kernel@arm.linux.org.uk>
+Date:   Sun Feb 20 12:16:45 2011 +0000
 
-> True, at least until I've made sure that there isn't any
-> underlying reason for CRISv32 to put __param in a different place...
->
-> Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+    ARM: tlb: delay page freeing for SMP and ARMv7 CPUs
+    
+    We need to delay freeing any mapped page on SMP and ARMv7 systems to
+    ensure that the data is not accessed by other CPUs, or is used for
+    speculative prefetch with ARMv7.  This includes not only mapped pages
+    but also pages used for the page tables themselves.
+    
+    This avoids races with the MMU/other CPUs accessing pages after they've
+    been freed but before we've invalidated the TLB.
+    
+    Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-I really am not going to apply a patch that likely just adds another
-redundant field to the linker scripts. So the ack I'm just ignoring,
 
-But it would be good to get the "remove the legacy __param thing
-because it's already there from the asm-generic version" confirmed by
-testing, and not just looking at the source code.
+Which raises a nice point about shift_arg_pages() which calls
+free_pgd_range(), the other architectures that look similar to arm in
+this respect are ia64 and sh, do they suffer the same problem?
 
-                     Linus
+It doesn't look hard to fold the requirements for this into the generic
+tlb range support (patch 14 in this series).
