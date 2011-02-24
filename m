@@ -1,34 +1,53 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 01/25] tile: Fix __pte_free_tlb
-Date: Wed, 23 Feb 2011 15:59:55 -0500
-Message-ID: <4D65754B.7010608@tilera.com>
-References: <20110125173111.720927511@chello.nl>	 <20110125174907.220115681@chello.nl>  <4D4C63ED.6060104@tilera.com> <1297086911.13327.17.camel@laptop>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 06/17] arm: mmu_gather rework
+Date: Thu, 24 Feb 2011 17:34:13 +0100
+Message-ID: <1298565253.2428.288.camel@twins>
+References: <20110217162327.434629380@chello.nl>
+	 <20110217163235.106239192@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.70]:59698 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755801Ab1BWU74 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Feb 2011 15:59:56 -0500
-In-Reply-To: <1297086911.13327.17.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20110217163235.106239192@chello.nl>
+Sender: owner-linux-mm@kvack.org
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Russell King <rmk@arm.linux.org.uk>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 2/7/2011 8:55 AM, Peter Zijlstra wrote:
-> On Fri, 2011-02-04 at 15:39 -0500, Chris Metcalf wrote:
->> On 1/25/2011 12:31 PM, Peter Zijlstra wrote:
->>> Tile's __pte_free_tlb() implementation makes assumptions about the
->>> generic mmu_gather implementation, cure this ;-)
->> I assume you will take this patch into your tree?  If so:
->>
->> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
-> Feel free to take it yourself, this series might take a while to land..
+On Thu, 2011-02-17 at 17:23 +0100, Peter Zijlstra wrote:
+> plain text document attachment
+> (peter_zijlstra-arm-preemptible_mmu_gather.patch)
+> Fix up the arm mmu_gather code to conform to the new API.
 
-Thanks, I took it into my tree (without the comment about the on-stack array).
+So akpm noted that this one doesn't apply anymore because of:
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+commit 06824ba824b3e9f2fedb38bee79af0643198ed7f
+Author: Russell King <rmk+kernel@arm.linux.org.uk>
+Date:   Sun Feb 20 12:16:45 2011 +0000
+
+    ARM: tlb: delay page freeing for SMP and ARMv7 CPUs
+   =20
+    We need to delay freeing any mapped page on SMP and ARMv7 systems to
+    ensure that the data is not accessed by other CPUs, or is used for
+    speculative prefetch with ARMv7.  This includes not only mapped pages
+    but also pages used for the page tables themselves.
+   =20
+    This avoids races with the MMU/other CPUs accessing pages after they've
+    been freed but before we've invalidated the TLB.
+   =20
+    Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+
+
+Which raises a nice point about shift_arg_pages() which calls
+free_pgd_range(), the other architectures that look similar to arm in
+this respect are ia64 and sh, do they suffer the same problem?
+
+It doesn't look hard to fold the requirements for this into the generic
+tlb range support (patch 14 in this series).
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
