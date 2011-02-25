@@ -1,105 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42538 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932710Ab1BYTpn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Feb 2011 14:45:43 -0500
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:48357 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932105Ab1BYVxi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Feb 2011 16:53:38 -0500
+Date: Fri, 25 Feb 2011 21:51:24 +0000
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-From: Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20110225215123.GA10026@flint.arm.linux.org.uk>
+References: <20110217162327.434629380@chello.nl> <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins> <1298657083.2428.2483.camel@twins>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 In-Reply-To: <1298657083.2428.2483.camel@twins>
-References: <20110217162327.434629380@chello.nl>
-	 <20110217163235.106239192@chello.nl>  <1298565253.2428.288.camel@twins>
-	 <1298657083.2428.2483.camel@twins>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Fri, 25 Feb 2011 20:45:05 +0100
-Message-ID: <1298663105.2428.2693.camel@twins>
-Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Russell King <rmk@arm.linux.org.uk>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
-Message-ID: <20110225194505.OeMEyIb8fqBuFMUPCihLPVdTN30M6jOrvdSceHl7PyU@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+Message-ID: <20110225215124.c3Qfm5VBB__4bre8Q7HzUfqC1Jdjbr28fGvhfSNrugU@z>
 
-On Fri, 2011-02-25 at 19:04 +0100, Peter Zijlstra wrote:
-> On Thu, 2011-02-24 at 17:34 +0100, Peter Zijlstra wrote:
-> > On Thu, 2011-02-17 at 17:23 +0100, Peter Zijlstra wrote:
-> > > plain text document attachment
-> > > (peter_zijlstra-arm-preemptible_mmu_gather.patch)
-> > > Fix up the arm mmu_gather code to conform to the new API.
-> > 
-> > So akpm noted that this one doesn't apply anymore because of:
-> > 
-> > commit 06824ba824b3e9f2fedb38bee79af0643198ed7f
-> > Author: Russell King <rmk+kernel@arm.linux.org.uk>
-> > Date:   Sun Feb 20 12:16:45 2011 +0000
-> > 
-> >     ARM: tlb: delay page freeing for SMP and ARMv7 CPUs
-> >     
-> >     We need to delay freeing any mapped page on SMP and ARMv7 systems to
-> >     ensure that the data is not accessed by other CPUs, or is used for
-> >     speculative prefetch with ARMv7.  This includes not only mapped pages
-> >     but also pages used for the page tables themselves.
-> >     
-> >     This avoids races with the MMU/other CPUs accessing pages after they've
-> >     been freed but before we've invalidated the TLB.
-> >     
-> >     Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
-> > 
-> > 
-> > Which raises a nice point about shift_arg_pages() which calls
-> > free_pgd_range(), the other architectures that look similar to arm in
-> > this respect are ia64 and sh, do they suffer the same problem?
-> > 
-> > It doesn't look hard to fold the requirements for this into the generic
-> > tlb range support (patch 14 in this series).
-> 
-> It looks like both ia64 and sh do indeed suffer there.
-> 
-> I've pulled my generic range tracking to the head of the series so that
-> I can convert ARM, IA64 and SH to generic tlb solving it for those.
-> 
-> Russell, generic tlb doesn't look to need the extra logic you added for
-> the fs/exec.c case, but please double check the patches when I post
-> them.
-> 
-> In short, tlb_end_vma() will call flush_tlb_range() on the tracked range
-> and clear ->need_flush, so things like zap_page_range() will not then
-> also call tlb_flush().
-> 
-> In case of shift_arg_pages() and unmap_region() however we first call
-> free_pgtables() which might end up calling p??_free_tlb() which will
-> then set ->need_flush, and tlb_finish_mmu() will then end up calling
-> tlb_flush().
-> 
+On Fri, Feb 25, 2011 at 07:04:43PM +0100, Peter Zijlstra wrote:
 > I'm not quite sure why you chose to add range tracking on
 > pte_free_tlb(), the only affected code path seems to be unmap_region()
 > where you'll use a flush_tlb_range(), but its buggy, the pte_free_tlb()
 > range is much larger than 1 page, and if you do it there you also need
 > it for all the other p??_free_tlb() functions.
-> 
-> The tlb flush after freeing page-tables is needed for things like
-> gup_fast() which needs to sync against them being freed.
-> 
-> So the stuff I have now will try its best to track ranges on zap_* while
-> clearing the page mapping, will use flush_cache_range() and
-> flush_tlb_range(). But when it comes to tearing down the page-tables
-> themselves we'll punt and use a full mm flush, which seems a waste of
-> all that careful range tracking by zap_*.
-> 
-> One possibility would be to add tlb_start/end_vma() in
-> unmap_page_range(), except we don't need to flush the cache again, also,
-> it would be nice to not have to flush on tlb_end_vma() but delay it all
-> to tlb_finish_mmu() where possible.
-> 
-> OK, let me try and hack up proper range tracking for free_*, that way I
-> can move the flush_tlb_range() from tlb_end_vma() and into
-> tlb_flush_mmu().
 
-Grmbl.. so doing that would require flush_tlb_range() to take an mm, not
-a vma, but tile and arm both use the vma->flags & VM_EXEC test to avoid
-flushing their i-tlbs.
+My reasoning is to do with the way the LPAE stuff works.  For the
+explaination below, I'm going to assume a 2 level page table system
+for simplicity.
 
-I'm tempted to make them flush i-tlbs unconditionally as its still
-better than hitting an mm wide tlb flush due to the page table free.
+The first thing to realise is that if we have L2 entries, then we'll
+have unmapped them first using the usual tlb shootdown interfaces.
 
-Ideas?
+However, when we're freeing the page tables themselves, we should
+already have removed the L2 entries, so all we have are the L1 entries.
+In most 'normal' processors, these aren't cached in any way.
+
+Howver, with LPAE, these are cached.  I'm told that any TLB flush for an
+address which is covered by the L1 entry will cause that cached entry to
+be invalidated.
+
+So really this is about getting rid of cached L1 entries, and not the
+usual TLB lookaside entries that you'd come to expect.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
