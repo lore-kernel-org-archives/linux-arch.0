@@ -1,44 +1,28 @@
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-Date: Fri, 25 Feb 2011 21:51:24 +0000
-Message-ID: <20110225215123.GA10026@flint.arm.linux.org.uk>
-References: <20110217162327.434629380@chello.nl> <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins> <1298657083.2428.2483.camel@twins>
+From: "Mr.Helen" <hcle@perfecto.com.hk>
+Subject: Confidential and Sensitive
+Date: Sat, 26 Feb 2011 06:18:14 +0800
+Message-ID: <20110225205751.M87181@perfecto.com.hk>
+Reply-To: mrs.helen.c@gala.net
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1298657083.2428.2483.camel@twins>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+	charset=iso-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [210.176.113.209] ([210.176.113.209]:33376 "EHLO
+	mail.perfecto.com.hk" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1753033Ab1BYWtx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Feb 2011 17:49:53 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Fri, Feb 25, 2011 at 07:04:43PM +0100, Peter Zijlstra wrote:
-> I'm not quite sure why you chose to add range tracking on
-> pte_free_tlb(), the only affected code path seems to be unmap_region()
-> where you'll use a flush_tlb_range(), but its buggy, the pte_free_tlb()
-> range is much larger than 1 page, and if you do it there you also need
-> it for all the other p??_free_tlb() functions.
+Dear Friend,
 
-My reasoning is to do with the way the LPAE stuff works.  For the
-explaination below, I'm going to assume a 2 level page table system
-for simplicity.
+I'm Helen Cole,right now I'm on my sick bed,I've a project for you please do 
+contact me via email as below for propper briefing as it is a very confidential 
+and sensitive issue
 
-The first thing to realise is that if we have L2 entries, then we'll
-have unmapped them first using the usual tlb shootdown interfaces.
+Mrs.Helen Cole
+e-Mail: mrs.helen.c@gala.net
 
-However, when we're freeing the page tables themselves, we should
-already have removed the L2 entries, so all we have are the L1 entries.
-In most 'normal' processors, these aren't cached in any way.
+Sincerely,
 
-Howver, with LPAE, these are cached.  I'm told that any TLB flush for an
-address which is covered by the L1 entry will cause that cached entry to
-be invalidated.
-
-So really this is about getting rid of cached L1 entries, and not the
-usual TLB lookaside entries that you'd come to expect.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
+God Bless You.
