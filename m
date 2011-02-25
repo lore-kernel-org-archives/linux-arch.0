@@ -1,45 +1,44 @@
-From: Hugh Dickins <hugh.dickins@tiscali.co.uk>
+From: Russell King <rmk@arm.linux.org.uk>
 Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-Date: Fri, 25 Feb 2011 11:59:23 -0800
-Message-ID: <AANLkTinLv=oy5_nPdziV6gpG-BLedsrNF0ew4Wz3x690@mail.gmail.com>
-References: <20110217162327.434629380@chello.nl>
-	<20110217163235.106239192@chello.nl>
-	<1298565253.2428.288.camel@twins>
-	<1298657083.2428.2483.camel@twins>
-	<1298663105.2428.2693.camel@twins>
+Date: Fri, 25 Feb 2011 21:51:24 +0000
+Message-ID: <20110225215123.GA10026@flint.arm.linux.org.uk>
+References: <20110217162327.434629380@chello.nl> <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins> <1298657083.2428.2483.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:55818 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756368Ab1BYT73 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Feb 2011 14:59:29 -0500
-Received: from kpbe17.cbf.corp.google.com (kpbe17.cbf.corp.google.com [172.25.105.81])
-	by smtp-out.google.com with ESMTP id p1PJxRct029999
-	for <linux-arch@vger.kernel.org>; Fri, 25 Feb 2011 11:59:27 -0800
-Received: from vws12 (vws12.prod.google.com [10.241.21.140])
-	by kpbe17.cbf.corp.google.com with ESMTP id p1PJv21V014274
-	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Fri, 25 Feb 2011 11:59:26 -0800
-Received: by vws12 with SMTP id 12so1671642vws.19
-        for <linux-arch@vger.kernel.org>; Fri, 25 Feb 2011 11:59:26 -0800 (PST)
-In-Reply-To: <1298663105.2428.2693.camel@twins>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1298657083.2428.2483.camel@twins>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Russell King <rmk@arm.linux.org.uk>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 25, 2011 at 11:45 AM, Peter Zijlstra <peterz@infradead.org> wrote:
+On Fri, Feb 25, 2011 at 07:04:43PM +0100, Peter Zijlstra wrote:
+> I'm not quite sure why you chose to add range tracking on
+> pte_free_tlb(), the only affected code path seems to be unmap_region()
+> where you'll use a flush_tlb_range(), but its buggy, the pte_free_tlb()
+> range is much larger than 1 page, and if you do it there you also need
+> it for all the other p??_free_tlb() functions.
 
-> Grmbl.. so doing that would require flush_tlb_range() to take an mm, not
-> a vma, but tile and arm both use the vma->flags & VM_EXEC test to avoid
-> flushing their i-tlbs.
->
-> I'm tempted to make them flush i-tlbs unconditionally as its still
-> better than hitting an mm wide tlb flush due to the page table free.
->
-> Ideas?
+My reasoning is to do with the way the LPAE stuff works.  For the
+explaination below, I'm going to assume a 2 level page table system
+for simplicity.
 
-What's wrong with using vma->vm_mm?
+The first thing to realise is that if we have L2 entries, then we'll
+have unmapped them first using the usual tlb shootdown interfaces.
 
-Hugh
+However, when we're freeing the page tables themselves, we should
+already have removed the L2 entries, so all we have are the L1 entries.
+In most 'normal' processors, these aren't cached in any way.
+
+Howver, with LPAE, these are cached.  I'm told that any TLB flush for an
+address which is covered by the L1 entry will cause that cached entry to
+be invalidated.
+
+So really this is about getting rid of cached L1 entries, and not the
+usual TLB lookaside entries that you'd come to expect.
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
