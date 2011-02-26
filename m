@@ -1,53 +1,45 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 11/12] unicore32 machine related files: ps2 driver
-Date: Sat, 26 Feb 2011 20:36:16 +0800
-Message-ID: <011101cbd5b1$c34f6880$49ee3980$@mprc.pku.edu.cn>
-References: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn> <201102181133.26675.arnd@arndb.de> <019001cbd29c$7cee6340$76cb29c0$@mprc.pku.edu.cn> <201102221811.58441.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 09/12] unicore32 machine related files: hardware registers
+Date: Sat, 26 Feb 2011 14:16:09 +0100
+Message-ID: <201102261416.10050.arnd@arndb.de>
+References: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn> <201102221519.03423.arnd@arndb.de> <010f01cbd5b0$09980830$1cc81890$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201102221811.58441.arnd@arndb.de>
-Content-Language: zh-cn
-Sender: linux-kernel-owner@vger.kernel.org
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: dmitry.torokhov@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:49654 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751227Ab1BZNQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Feb 2011 08:16:17 -0500
+In-Reply-To: <010f01cbd5b0$09980830$1cc81890$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
+On Saturday 26 February 2011, Guan Xuetao wrote:
+> > >  #ifndef __ASSEMBLY__
+> > >
+> > > -# define __REG(x)      (*((volatile unsigned long *)io_p2v(x)))
+> > > -# define __PREG(x)     (io_v2p((unsigned long)&(x)))
+> > > +# define __REG(x)      (void __iomem *)io_p2v(x)
+> > 
+> > The patch looks correct, but if you make the the definition for
+> > PKUNITY_MMIO_BASE contain the cast to (void __iomem *), you no
+> > longer need another cast.
+>
+> Because the io_p2v(x) calculate x and PKUNITY_IOSPACE_BASE,
+> all registers should be added with (void __iomem *).
+> So I prefer to remain the previous patch.
 
+The problem with the definition of io_p2v is that it gives you
+an type that is impossible to use correctly, except in assembly
+code. Linux assumes that MMIO registers in virtual space
+are __iomem pointers, and we like that to be consistent.
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Wednesday, February 23, 2011 1:12 AM
-> To: Guan Xuetao
-> Cc: dmitry.torokhov@gmail.com; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> Subject: Re: [PATCH 11/12] unicore32 machine related files: ps2 driver
-> 
-> On Tuesday 22 February 2011, Guan Xuetao wrote:
-> > diff --git a/drivers/input/serio/i8042-unicore32io.h b/drivers/input/serio/i8042-unicore32io.h
-> > index 2cdd872..9350843 100644
-> > --- a/drivers/input/serio/i8042-unicore32io.h
-> > +++ b/drivers/input/serio/i8042-unicore32io.h
-> > @@ -29,11 +29,11 @@
-> >  /*
-> >   * Register numbers.
-> >   */
-> > -#define I8042_COMMAND_REG      ((volatile void __iomem *)&PS2_COMMAND)
-> > -#define I8042_STATUS_REG       ((volatile void __iomem *)&PS2_STATUS)
-> > -#define I8042_DATA_REG         ((volatile void __iomem *)&PS2_DATA)
-> > +#define I8042_COMMAND_REG      PS2_COMMAND
-> > +#define I8042_STATUS_REG       PS2_STATUS
-> > +#define I8042_DATA_REG         PS2_DATA
-> 
-> I wouldn't bother defining two sets of macros then. Either use PS2_COMMAND
-> in the driver, or define I8042_COMMAND_REG in the place where you currently
-> define PS2_COMMAND.
-All I8042_*_REGs are explicitly defined in i8042-*io.h files.
-And I want to reserve the original register names in unicore32 namespace.
-> 
-> Aside from this, it looks good.
-> 
-> 	Arnd
-Thanks & Regards.
-Guan Xuetao
+If you have a function that returns a virtual address, it should
+really have the same type as any other function that uses a virtual
+address.
+
+	Arnd
