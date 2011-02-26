@@ -1,49 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:48357 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932105Ab1BYVxi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Feb 2011 16:53:38 -0500
-Date: Fri, 25 Feb 2011 21:51:24 +0000
-From: Russell King <rmk@arm.linux.org.uk>
-Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-Message-ID: <20110225215123.GA10026@flint.arm.linux.org.uk>
-References: <20110217162327.434629380@chello.nl> <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins> <1298657083.2428.2483.camel@twins>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:47962 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752062Ab1BZMg2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Feb 2011 07:36:28 -0500
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+References: <015701cbcdae$7d5f43f0$781dcbd0$@mprc.pku.edu.cn> <201102181133.26675.arnd@arndb.de> <019001cbd29c$7cee6340$76cb29c0$@mprc.pku.edu.cn> <201102221811.58441.arnd@arndb.de>
+In-Reply-To: <201102221811.58441.arnd@arndb.de>
+Subject: RE: [PATCH 11/12] unicore32 machine related files: ps2 driver
+Date: Sat, 26 Feb 2011 20:36:16 +0800
+Message-ID: <011101cbd5b1$c34f6880$49ee3980$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1298657083.2428.2483.camel@twins>
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
-Message-ID: <20110225215124.c3Qfm5VBB__4bre8Q7HzUfqC1Jdjbr28fGvhfSNrugU@z>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: dmitry.torokhov@gmail.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+Message-ID: <20110226123616.z68IVjLr9rSzAy-9As0TBcybGba6Z4expMXlY1V8gSM@z>
 
-On Fri, Feb 25, 2011 at 07:04:43PM +0100, Peter Zijlstra wrote:
-> I'm not quite sure why you chose to add range tracking on
-> pte_free_tlb(), the only affected code path seems to be unmap_region()
-> where you'll use a flush_tlb_range(), but its buggy, the pte_free_tlb()
-> range is much larger than 1 page, and if you do it there you also need
-> it for all the other p??_free_tlb() functions.
 
-My reasoning is to do with the way the LPAE stuff works.  For the
-explaination below, I'm going to assume a 2 level page table system
-for simplicity.
 
-The first thing to realise is that if we have L2 entries, then we'll
-have unmapped them first using the usual tlb shootdown interfaces.
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Wednesday, February 23, 2011 1:12 AM
+> To: Guan Xuetao
+> Cc: dmitry.torokhov@gmail.com; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
+> Subject: Re: [PATCH 11/12] unicore32 machine related files: ps2 driver
+> 
+> On Tuesday 22 February 2011, Guan Xuetao wrote:
+> > diff --git a/drivers/input/serio/i8042-unicore32io.h b/drivers/input/serio/i8042-unicore32io.h
+> > index 2cdd872..9350843 100644
+> > --- a/drivers/input/serio/i8042-unicore32io.h
+> > +++ b/drivers/input/serio/i8042-unicore32io.h
+> > @@ -29,11 +29,11 @@
+> >  /*
+> >   * Register numbers.
+> >   */
+> > -#define I8042_COMMAND_REG      ((volatile void __iomem *)&PS2_COMMAND)
+> > -#define I8042_STATUS_REG       ((volatile void __iomem *)&PS2_STATUS)
+> > -#define I8042_DATA_REG         ((volatile void __iomem *)&PS2_DATA)
+> > +#define I8042_COMMAND_REG      PS2_COMMAND
+> > +#define I8042_STATUS_REG       PS2_STATUS
+> > +#define I8042_DATA_REG         PS2_DATA
+> 
+> I wouldn't bother defining two sets of macros then. Either use PS2_COMMAND
+> in the driver, or define I8042_COMMAND_REG in the place where you currently
+> define PS2_COMMAND.
+All I8042_*_REGs are explicitly defined in i8042-*io.h files.
+And I want to reserve the original register names in unicore32 namespace.
+> 
+> Aside from this, it looks good.
+> 
+> 	Arnd
+Thanks & Regards.
+Guan Xuetao
 
-However, when we're freeing the page tables themselves, we should
-already have removed the L2 entries, so all we have are the L1 entries.
-In most 'normal' processors, these aren't cached in any way.
-
-Howver, with LPAE, these are cached.  I'm told that any TLB flush for an
-address which is covered by the L1 entry will cause that cached entry to
-be invalidated.
-
-So really this is about getting rid of cached L1 entries, and not the
-usual TLB lookaside entries that you'd come to expect.
-
--- 
-Russell King
- Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
- maintainer of:
