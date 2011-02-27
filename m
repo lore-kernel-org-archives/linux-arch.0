@@ -1,203 +1,125 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCHv2 06/11] unicore32 core architecture: mm related: generic codes
-Date: Sun, 27 Feb 2011 12:46:01 +0800
-Message-ID: <018101cbd639$3c639430$b52abc90$@mprc.pku.edu.cn>
-References: <02ed01cbcb48$3e3781a0$baa684e0$@mprc.pku.edu.cn> <201102171828.15482.arnd@arndb.de> <018a01cbd29b$1ff4c590$5fde50b0$@mprc.pku.edu.cn> <201102221618.56779.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+From: Guan Xuetao <epip@hera.kernel.org>
+Subject: [PATCH 00/17] unicore32: resend patches after machine related files
+Date: Sun, 27 Feb 2011 15:59:28 +0000
+Message-ID: <cover.1298821856.git.epip@hera.kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:59056 "EHLO mprc.pku.edu.cn"
+Received: from hera.kernel.org ([140.211.167.34]:58472 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751584Ab1B0EqL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Feb 2011 23:46:11 -0500
-In-Reply-To: <201102221618.56779.arnd@arndb.de>
-Content-Language: zh-cn
+	id S1752265Ab1B0QA7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Feb 2011 11:00:59 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+To: arnd@arndb.de
+Cc: Guan Xuetao <epip@hera.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, gxt@mprc.pku.edu.cn
 
+This patch set will resend patches after machine related files.
+I2C bus driver and framebuffer driver are also added in this set.
 
+The whole subsystem code could be fetched from:
+  git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git
+  with branch name: unicore32.
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Tuesday, February 22, 2011 11:19 PM
-> To: Guan Xuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> Subject: Re: [PATCHv2 06/11] unicore32 core architecture: mm related: generic codes
-> 
-> On Tuesday 22 February 2011, Guan Xuetao wrote:
-> > > > +#ifdef __io
-> > > > +void __iomem *ioport_map(unsigned long port, unsigned int nr)
-> > > > +{
-> > > > +       /* we map PC lagcy 64K IO port to PCI IO space 0x80030000 */
-> > > > +       return (void __iomem *) (unsigned long)
-> > > > +                       io_p2v((port & 0xffff) + PKUNITY_PCILIO_BASE);
-> > > > +}
-> > >
-> > > Interestingly, this function looks completely correct, but I don't see
-> > > the definition for __io, so I suspect that the function is not actually
-> > > getting used.
-> > When I want to use pci device driver,  I will define __io and use ioport_map for drivers.
-> > It is obviously a trick.
-> 
-> Ok, I see.
-> 
-> > And with your patch for asm-generic/io.h, these codes could be removed.
-> 
-> You'd still need to define ioport_map, but the definition could simply
-> become
-> 
-> static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-> {
-> 	return PCIO_BASE + port;
-> }
-> 
-> 	Arnd
-I have a look to lib/iomap.c, and it is suitable for unicore32.
-So please see following patch:
+GuanXuetao (17):
+  unicore32 machine related files: core files
+  unicore32 machine related files: hardware registers
+  unicore32 machine related files: pci bus handling
+  unicore32 machine related files: ps2 driver
+  unicore32: ADD MAINTAINER for unicore32 architecture
+  unicore32 time.c: change calculate method for clock_event_device
+  unicore32: remove unused lines in arch/unicore32/include/asm/irq.h
+  unicore32: modify function names and parameters for irq_chips
+  unicore32: rename PKUNITY_IOSPACE_BASE to PKUNITY_MMIO_BASE
+  unicore32 i8042: adjust io funcs of i8042-unicore32io.h
+  unicore32 upgrade to v2.6.38-rc5: add one more paramter for pte_alloc_map call
+  unicore32 i8042 upgrade and bugfix: adjust resource request region type
+  unicore32 io: redefine __REG(x) and re-use readl/writel funcs
+  unicore32 machine related files: add i2c bus drivers for pkunity-v3 soc
+  unicore32 machine related: add frame buffer driver for pkunity-v3 soc
+  unicore32: add (void __iomem *) to io_p2v macro
+  unicore32: replace unicore32-specific iomap functions with generic
+    lib implementation
 
-From: GuanXuetao <gxt@mprc.pku.edu.cn>
-Date: Sun, 27 Feb 2011 12:46:06 +0800
-Subject: [PATCH] unicore32: replace unicore32-specific iomap functions with generic lib implementation
-
-1. define and enable CONFIG_GENERIC_IOMAP
-2. define unicore32-specific PCI_IOBASE for asm-generic/io.h
-3. define HAVE_ARCH_PIO_SIZE and unicore32-specific PIO_* macros
-4. remove all unicore32-specific iomap functions
-
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
----
- arch/unicore32/Kconfig          |    3 ++
- arch/unicore32/include/asm/io.h |    9 ++++--
- arch/unicore32/mm/Makefile      |    2 +-
- arch/unicore32/mm/iomap.c       |   56 ---------------------------------------
- 4 files changed, 10 insertions(+), 60 deletions(-)
+ MAINTAINERS                               |   16 +
+ arch/unicore32/Kconfig                    |   29 +
+ arch/unicore32/configs/debug_defconfig    |    7 +-
+ arch/unicore32/include/asm/gpio.h         |    9 +-
+ arch/unicore32/include/asm/io.h           |    9 +-
+ arch/unicore32/include/asm/irq.h          |    2 -
+ arch/unicore32/include/asm/pci.h          |   46 ++
+ arch/unicore32/include/mach/PKUnity.h     |  104 ++++
+ arch/unicore32/include/mach/bitfield.h    |   24 +
+ arch/unicore32/include/mach/dma.h         |   11 +-
+ arch/unicore32/include/mach/hardware.h    |   36 ++
+ arch/unicore32/include/mach/memory.h      |    2 +-
+ arch/unicore32/include/mach/regs-ac97.h   |   32 ++
+ arch/unicore32/include/mach/regs-dmac.h   |   81 +++
+ arch/unicore32/include/mach/regs-gpio.h   |   70 +++
+ arch/unicore32/include/mach/regs-i2c.h    |   63 +++
+ arch/unicore32/include/mach/regs-intc.h   |   28 +
+ arch/unicore32/include/mach/regs-nand.h   |   79 +++
+ arch/unicore32/include/mach/regs-ost.h    |   92 ++++
+ arch/unicore32/include/mach/regs-pci.h    |   94 ++++
+ arch/unicore32/include/mach/regs-pm.h     |  126 +++++
+ arch/unicore32/include/mach/regs-ps2.h    |   20 +
+ arch/unicore32/include/mach/regs-resetc.h |   34 ++
+ arch/unicore32/include/mach/regs-rtc.h    |   37 ++
+ arch/unicore32/include/mach/regs-sdc.h    |  156 ++++++
+ arch/unicore32/include/mach/regs-spi.h    |   98 ++++
+ arch/unicore32/include/mach/regs-uart.h   |    3 +
+ arch/unicore32/include/mach/regs-umal.h   |  229 ++++++++
+ arch/unicore32/include/mach/regs-unigfx.h |  200 +++++++
+ arch/unicore32/kernel/clock.c             |   34 +-
+ arch/unicore32/kernel/dma.c               |   15 +-
+ arch/unicore32/kernel/gpio.c              |   12 +-
+ arch/unicore32/kernel/irq.c               |  148 +++---
+ arch/unicore32/kernel/pci.c               |  404 ++++++++++++++
+ arch/unicore32/kernel/process.c           |   10 +-
+ arch/unicore32/kernel/puv3-core.c         |  285 ++++++++++
+ arch/unicore32/kernel/puv3-nb0916.c       |  145 +++++
+ arch/unicore32/kernel/rtc.c               |   34 +-
+ arch/unicore32/kernel/time.c              |   55 +-
+ arch/unicore32/mm/Makefile                |    2 +-
+ arch/unicore32/mm/iomap.c                 |   56 --
+ arch/unicore32/mm/pgd.c                   |    2 +-
+ drivers/i2c/busses/Kconfig                |   11 +
+ drivers/i2c/busses/Makefile               |    1 +
+ drivers/i2c/busses/i2c-puv3.c             |  306 +++++++++++
+ drivers/input/serio/i8042-unicore32io.h   |   73 +++
+ drivers/input/serio/i8042.h               |    2 +
+ drivers/pci/Makefile                      |    1 +
+ drivers/video/Kconfig                     |   11 +
+ drivers/video/Makefile                    |    1 +
+ drivers/video/fb-puv3.c                   |  846 +++++++++++++++++++++++++++++
+ include/linux/fb.h                        |    2 +
+ 52 files changed, 3968 insertions(+), 225 deletions(-)
+ create mode 100644 arch/unicore32/include/asm/pci.h
+ create mode 100644 arch/unicore32/include/mach/PKUnity.h
+ create mode 100644 arch/unicore32/include/mach/bitfield.h
+ create mode 100644 arch/unicore32/include/mach/hardware.h
+ create mode 100644 arch/unicore32/include/mach/regs-ac97.h
+ create mode 100644 arch/unicore32/include/mach/regs-dmac.h
+ create mode 100644 arch/unicore32/include/mach/regs-gpio.h
+ create mode 100644 arch/unicore32/include/mach/regs-i2c.h
+ create mode 100644 arch/unicore32/include/mach/regs-intc.h
+ create mode 100644 arch/unicore32/include/mach/regs-nand.h
+ create mode 100644 arch/unicore32/include/mach/regs-ost.h
+ create mode 100644 arch/unicore32/include/mach/regs-pci.h
+ create mode 100644 arch/unicore32/include/mach/regs-pm.h
+ create mode 100644 arch/unicore32/include/mach/regs-ps2.h
+ create mode 100644 arch/unicore32/include/mach/regs-resetc.h
+ create mode 100644 arch/unicore32/include/mach/regs-rtc.h
+ create mode 100644 arch/unicore32/include/mach/regs-sdc.h
+ create mode 100644 arch/unicore32/include/mach/regs-spi.h
+ create mode 100644 arch/unicore32/include/mach/regs-uart.h
+ create mode 100644 arch/unicore32/include/mach/regs-umal.h
+ create mode 100644 arch/unicore32/include/mach/regs-unigfx.h
+ create mode 100644 arch/unicore32/kernel/pci.c
+ create mode 100644 arch/unicore32/kernel/puv3-core.c
+ create mode 100644 arch/unicore32/kernel/puv3-nb0916.c
  delete mode 100644 arch/unicore32/mm/iomap.c
+ create mode 100644 drivers/i2c/busses/i2c-puv3.c
+ create mode 100644 drivers/input/serio/i8042-unicore32io.h
+ create mode 100644 drivers/video/fb-puv3.c
 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index 7f65018..4a36db4 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -30,6 +30,9 @@ config GENERIC_CLOCKEVENTS
- config GENERIC_CSUM
- 	def_bool y
- 
-+config GENERIC_IOMAP
-+	def_bool y
-+
- config NO_IOPORT
- 	bool
- 
-diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-index d73457c..2483fcb 100644
---- a/arch/unicore32/include/asm/io.h
-+++ b/arch/unicore32/include/asm/io.h
-@@ -18,6 +18,7 @@
- #include <asm/memory.h>
- #include <asm/system.h>
- 
-+#define PCI_IOBASE	io_p2v(PKUNITY_PCILIO_BASE)
- #include <asm-generic/io.h>
- 
- /*
-@@ -38,9 +39,6 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
- #define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
- #define iounmap(cookie)			__uc32_iounmap(cookie)
- 
--extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
--extern void ioport_unmap(void __iomem *addr);
--
- /*
-  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-  * access
-@@ -48,5 +46,10 @@ extern void ioport_unmap(void __iomem *addr);
- #undef xlate_dev_mem_ptr
- #define xlate_dev_mem_ptr(p)	__va(p)
- 
-+#define HAVE_ARCH_PIO_SIZE
-+#define PIO_OFFSET		(unsigned int)(PCI_IOBASE)
-+#define PIO_MASK		(unsigned int)(IO_SPACE_LIMIT)
-+#define PIO_RESERVED		(PIO_OFFSET + PIO_MASK + 1)
-+
- #endif	/* __KERNEL__ */
- #endif	/* __UNICORE_IO_H__ */
-diff --git a/arch/unicore32/mm/Makefile b/arch/unicore32/mm/Makefile
-index f3ff410..46c1666 100644
---- a/arch/unicore32/mm/Makefile
-+++ b/arch/unicore32/mm/Makefile
-@@ -3,7 +3,7 @@
- #
- 
- obj-y				:= extable.o fault.o init.o pgd.o mmu.o
--obj-y				+= iomap.o flush.o ioremap.o
-+obj-y				+= flush.o ioremap.o
- 
- obj-$(CONFIG_SWIOTLB)		+= dma-swiotlb.o
- 
-diff --git a/arch/unicore32/mm/iomap.c b/arch/unicore32/mm/iomap.c
-deleted file mode 100644
-index a7e1a3d..0000000
---- a/arch/unicore32/mm/iomap.c
-+++ /dev/null
-@@ -1,56 +0,0 @@
--/*
-- * linux/arch/unicore32/mm/iomap.c
-- *
-- * Code specific to PKUnity SoC and UniCore ISA
-- *
-- * Copyright (C) 2001-2010 GUAN Xue-tao
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * Map IO port and PCI memory spaces so that {read,write}[bwl] can
-- * be used to access this memory.
-- */
--#include <linux/module.h>
--#include <linux/pci.h>
--#include <linux/ioport.h>
--#include <linux/io.h>
--
--#ifdef __io
--void __iomem *ioport_map(unsigned long port, unsigned int nr)
--{
--	/* we map PC lagcy 64K IO port to PCI IO space 0x80030000 */
--	return (void __iomem *) (unsigned long)
--			io_p2v((port & 0xffff) + PKUNITY_PCILIO_BASE);
--}
--EXPORT_SYMBOL(ioport_map);
--
--void ioport_unmap(void __iomem *addr)
--{
--}
--EXPORT_SYMBOL(ioport_unmap);
--#endif
--
--#ifdef CONFIG_PCI
--void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
--{
--	resource_size_t start = pci_resource_start(dev, bar);
--	resource_size_t len   = pci_resource_len(dev, bar);
--	unsigned long flags = pci_resource_flags(dev, bar);
--
--	if (!len || !start)
--		return NULL;
--	if (maxlen && len > maxlen)
--		len = maxlen;
--	if (flags & IORESOURCE_IO)
--		return ioport_map(start, len);
--	if (flags & IORESOURCE_MEM) {
--		if (flags & IORESOURCE_CACHEABLE)
--			return ioremap(start, len);
--		return ioremap_nocache(start, len);
--	}
--	return NULL;
--}
--EXPORT_SYMBOL(pci_iomap);
--#endif
 -- 
-1.6.2.2
+1.7.4.1
