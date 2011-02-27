@@ -1,45 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 09/12] unicore32 machine related files: hardware registers
-Date: Sat, 26 Feb 2011 14:16:09 +0100
-Message-ID: <201102261416.10050.arnd@arndb.de>
-References: <015301cbcdae$55cdb7e0$016927a0$@mprc.pku.edu.cn> <201102221519.03423.arnd@arndb.de> <010f01cbd5b0$09980830$1cc81890$@mprc.pku.edu.cn>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
+Date: Sun, 27 Feb 2011 11:21:12 +0800
+Message-ID: <017b01cbd62d$633fd070$29bf7150$@mprc.pku.edu.cn>
+References: <014b01cbcdad$f110afb0$d3320f10$@mprc.pku.edu.cn> <201102171845.01177.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:49654 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751227Ab1BZNQR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Feb 2011 08:16:17 -0500
-In-Reply-To: <010f01cbd5b0$09980830$1cc81890$@mprc.pku.edu.cn>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:54018 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751351Ab1B0DVZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Feb 2011 22:21:25 -0500
+In-Reply-To: <201102171845.01177.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+To: 'Arnd Bergmann' <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
 
-On Saturday 26 February 2011, Guan Xuetao wrote:
-> > >  #ifndef __ASSEMBLY__
-> > >
-> > > -# define __REG(x)      (*((volatile unsigned long *)io_p2v(x)))
-> > > -# define __PREG(x)     (io_v2p((unsigned long)&(x)))
-> > > +# define __REG(x)      (void __iomem *)io_p2v(x)
-> > 
-> > The patch looks correct, but if you make the the definition for
-> > PKUNITY_MMIO_BASE contain the cast to (void __iomem *), you no
-> > longer need another cast.
->
-> Because the io_p2v(x) calculate x and PKUNITY_IOSPACE_BASE,
-> all registers should be added with (void __iomem *).
-> So I prefer to remain the previous patch.
 
-The problem with the definition of io_p2v is that it gives you
-an type that is impossible to use correctly, except in assembly
-code. Linux assumes that MMIO registers in virtual space
-are __iomem pointers, and we like that to be consistent.
 
-If you have a function that returns a virtual address, it should
-really have the same type as any other function that uses a virtual
-address.
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Friday, February 18, 2011 1:45 AM
+> To: Guan Xuetao
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
+> Subject: Re: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
+> 
+> On Wednesday 16 February 2011, Guan Xuetao wrote:
+> > +
+> > +#define __kernel_ok		(segment_eq(get_fs(), KERNEL_DS))
+> > +#define __user_ok(addr, size)	(((size) <= TASK_SIZE)			\
+> > +				&& ((addr) <= TASK_SIZE - (size)))
+> > +#define __access_ok(addr, size)	(__kernel_ok || __user_ok((addr), (size)))
+> 
+> A nice trick to simplify this is to introduce a per-process variable for comparing
+> the pointer, set_fs() then sets this variable to either TASK_SIZE or
+> UINT_MAX.
 
-	Arnd
+Perhaps like this:
+1. add a member named kaddr in thread_info
+2. add following assignment codes in set_fs:
+        current_thread_info()->kaddr =  segment_eq(fs, KERNEL_DS) ? UINT_MAX : TASK_SIZE;
+3. then __access_ok will be:
+        #define addr 
+        #define __access_ok(addr, size)   (((size) <= TASK_SIZE)			\
+				&& ((addr) <= current_thread_info()->kaddr)  - (size)))
+
+> 
+> This saves one conditional branch for each call to __access_ok.
+> 
+> 	Arnd
