@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:58544 "EHLO hera.kernel.org"
+Received: from hera.kernel.org ([140.211.167.34]:58529 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752541Ab1B0QBn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Feb 2011 11:01:43 -0500
+	id S1752410Ab1B0QBj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Feb 2011 11:01:39 -0500
 From: Guan Xuetao <epip@hera.kernel.org>
-Subject: [PATCH 06/17] unicore32 time.c: change calculate method for clock_event_device
-Date: Sun, 27 Feb 2011 15:59:34 +0000
-Message-ID: <5c1cbf284fb0ca905fc3f44a9d17e9cbebfd814e.1298821856.git.epip@hera.kernel.org>
+Subject: [PATCH 04/17] unicore32 machine related files: ps2 driver
+Date: Sun, 27 Feb 2011 15:59:32 +0000
+Message-ID: <1cecab844aa5717d0b989e5a1417af0825f9ceca.1298821856.git.epip@hera.kernel.org>
 In-Reply-To: <cover.1298821856.git.epip@hera.kernel.org>
 References: <cover.1298821856.git.epip@hera.kernel.org>
 In-Reply-To: <cover.1298821856.git.epip@hera.kernel.org>
@@ -15,46 +15,114 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: GuanXuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
-Message-ID: <20110227155934.6rxszbtF-eeDEZPnybcYn42ZVYuJ7KjGTg_Sg6TQPMo@z>
+Message-ID: <20110227155932.cBMc7YTyn8SKqYUNpFt12RRJ4puJxZy237iA2tm8IsM@z>
 
 From: GuanXuetao <gxt@mprc.pku.edu.cn>
 
-apply clockevents_calc_mult_shift() to get rid of
-shift assignment and mult calculation for osmr0
-  -- by advice with Thomas Gleixner
+This patch implements arch-specific ps2 driver.
+
+By reviewed with Dmitry Torokhov:
+     1. move i8042-ucio.h to drivers/input/serio/i8042-unicore32io.h
+     2. move puv3_ps2_init() to arch/unicore32/kernel/puv3-core.c
+     3. remove unused comments.
 
 Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Acked-by: Dmitry Torokhov <dtor@mail.ru>
 ---
- arch/unicore32/kernel/time.c |    9 ++-------
- 1 files changed, 2 insertions(+), 7 deletions(-)
+ drivers/input/serio/i8042-unicore32io.h |   70 +++++++++++++++++++++++++++++++
+ drivers/input/serio/i8042.h             |    2 +
+ 2 files changed, 72 insertions(+), 0 deletions(-)
+ create mode 100644 drivers/input/serio/i8042-unicore32io.h
 
-diff --git a/arch/unicore32/kernel/time.c b/arch/unicore32/kernel/time.c
-index 8090d76..8bb4b81 100644
---- a/arch/unicore32/kernel/time.c
-+++ b/arch/unicore32/kernel/time.c
-@@ -66,11 +66,6 @@ puv3_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *c)
- static struct clock_event_device ckevt_puv3_osmr0 = {
- 	.name		= "osmr0",
- 	.features	= CLOCK_EVT_FEAT_ONESHOT,
--#ifdef CONFIG_ARCH_FPGA
--	.shift		= 18, /* correct shift val: 16, but warn_on_slowpath */
--#else
--	.shift          = 30,
--#endif
- 	.rating		= 200,
- 	.set_next_event	= puv3_osmr0_set_next_event,
- 	.set_mode	= puv3_osmr0_set_mode,
-@@ -101,8 +96,8 @@ void __init time_init(void)
- 	OST_OIER = 0;		/* disable any timer interrupts */
- 	OST_OSSR = 0;		/* clear status on all timers */
- 
--	ckevt_puv3_osmr0.mult =
--		div_sc(CLOCK_TICK_RATE, NSEC_PER_SEC, ckevt_puv3_osmr0.shift);
-+	clockevents_calc_mult_shift(&ckevt_puv3_osmr0, CLOCK_TICK_RATE, 5);
+diff --git a/drivers/input/serio/i8042-unicore32io.h b/drivers/input/serio/i8042-unicore32io.h
+new file mode 100644
+index 0000000..6a7e8b3
+--- /dev/null
++++ b/drivers/input/serio/i8042-unicore32io.h
+@@ -0,0 +1,70 @@
++/*
++ * Code specific to PKUnity SoC and UniCore ISA
++ *
++ *	Maintained by GUAN Xue-tao <gxt@mprc.pku.edu.cn>
++ *	Copyright (C) 2001-2011 Guan Xuetao
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#ifndef _I8042_UNICORE32_H
++#define _I8042_UNICORE32_H
 +
- 	ckevt_puv3_osmr0.max_delta_ns =
- 		clockevent_delta2ns(0x7fffffff, &ckevt_puv3_osmr0);
- 	ckevt_puv3_osmr0.min_delta_ns =
++#include <mach/hardware.h>
++
++/*
++ * Names.
++ */
++#define I8042_KBD_PHYS_DESC "isa0060/serio0"
++#define I8042_AUX_PHYS_DESC "isa0060/serio1"
++#define I8042_MUX_PHYS_DESC "isa0060/serio%d"
++
++/*
++ * IRQs.
++ */
++#define I8042_KBD_IRQ           IRQ_PS2_KBD
++#define I8042_AUX_IRQ           IRQ_PS2_AUX
++
++/*
++ * Register numbers.
++ */
++#define I8042_COMMAND_REG	((unsigned long)&PS2_COMMAND)
++#define I8042_STATUS_REG	((unsigned long)&PS2_STATUS)
++#define I8042_DATA_REG		((unsigned long)&PS2_DATA)
++
++static inline int i8042_read_data(void)
++{
++	return inb(I8042_DATA_REG);
++}
++
++static inline int i8042_read_status(void)
++{
++	return inb(I8042_STATUS_REG);
++}
++
++static inline void i8042_write_data(int val)
++{
++	outb(val, I8042_DATA_REG);
++}
++
++static inline void i8042_write_command(int val)
++{
++	outb(val, I8042_COMMAND_REG);
++}
++
++static inline int i8042_platform_init(void)
++{
++	if (!request_region(I8042_DATA_REG, 16, "i8042"))
++		return -EBUSY;
++
++	i8042_reset = 1;
++	return 0;
++}
++
++static inline void i8042_platform_exit(void)
++{
++	release_region(I8042_DATA_REG, 16);
++}
++
++#endif /* _I8042_UNICORE32_H */
+diff --git a/drivers/input/serio/i8042.h b/drivers/input/serio/i8042.h
+index ac1d759..3452708 100644
+--- a/drivers/input/serio/i8042.h
++++ b/drivers/input/serio/i8042.h
+@@ -26,6 +26,8 @@
+ #include "i8042-sparcio.h"
+ #elif defined(CONFIG_X86) || defined(CONFIG_IA64)
+ #include "i8042-x86ia64io.h"
++#elif defined(CONFIG_UNICORE32)
++#include "i8042-unicore32io.h"
+ #else
+ #include "i8042-io.h"
+ #endif
 -- 
 1.7.4.1
 
