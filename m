@@ -1,7 +1,7 @@
 From: Guan Xuetao <epip@hera.kernel.org>
-Subject: [PATCH 10/17] unicore32 i8042: adjust io funcs of i8042-unicore32io.h
-Date: Sun, 27 Feb 2011 15:59:38 +0000
-Message-ID: <1e4c0d1ca5ed18944ed5de2ba756663dfd85de44.1298821856.git.epip@hera.kernel.org>
+Subject: [PATCH 11/17] unicore32 upgrade to v2.6.38-rc5: add one more paramter for pte_alloc_map call
+Date: Sun, 27 Feb 2011 15:59:39 +0000
+Message-ID: <1719ac5c8ece25521c6a85c21d1ca4a7f508be34.1298821856.git.epip@hera.kernel.org>
 References: <cover.1298821856.git.epip@hera.kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1298821856.git.epip@hera.kernel.org>
@@ -14,72 +14,23 @@ List-Id: linux-arch.vger.kernel.org
 
 From: GuanXuetao <gxt@mprc.pku.edu.cn>
 
-replace inb/outb with readb/writeb in i8042-unicore32io.h
-and correct typecasting of register and region macros
-  -- by advice with Arnd Bergmann
-
 Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 ---
- drivers/input/serio/i8042-unicore32io.h |   21 ++++++++++++---------
- 1 files changed, 12 insertions(+), 9 deletions(-)
+ arch/unicore32/mm/pgd.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/input/serio/i8042-unicore32io.h b/drivers/input/serio/i8042-unicore32io.h
-index 6a7e8b3..2cdd872 100644
---- a/drivers/input/serio/i8042-unicore32io.h
-+++ b/drivers/input/serio/i8042-unicore32io.h
-@@ -29,33 +29,36 @@
- /*
-  * Register numbers.
-  */
--#define I8042_COMMAND_REG	((unsigned long)&PS2_COMMAND)
--#define I8042_STATUS_REG	((unsigned long)&PS2_STATUS)
--#define I8042_DATA_REG		((unsigned long)&PS2_DATA)
-+#define I8042_COMMAND_REG	((volatile void __iomem *)&PS2_COMMAND)
-+#define I8042_STATUS_REG	((volatile void __iomem *)&PS2_STATUS)
-+#define I8042_DATA_REG		((volatile void __iomem *)&PS2_DATA)
-+
-+#define I8042_REGION_START	(resource_size_t)(&PS2_DATA)
-+#define I8042_REGION_SIZE	(resource_size_t)(16)
+diff --git a/arch/unicore32/mm/pgd.c b/arch/unicore32/mm/pgd.c
+index 632cef7..08b8d42 100644
+--- a/arch/unicore32/mm/pgd.c
++++ b/arch/unicore32/mm/pgd.c
+@@ -54,7 +54,7 @@ pgd_t *get_pgd_slow(struct mm_struct *mm)
+ 		if (!new_pmd)
+ 			goto no_pmd;
  
- static inline int i8042_read_data(void)
- {
--	return inb(I8042_DATA_REG);
-+	return readb(I8042_DATA_REG);
- }
+-		new_pte = pte_alloc_map(mm, new_pmd, 0);
++		new_pte = pte_alloc_map(mm, NULL, new_pmd, 0);
+ 		if (!new_pte)
+ 			goto no_pte;
  
- static inline int i8042_read_status(void)
- {
--	return inb(I8042_STATUS_REG);
-+	return readb(I8042_STATUS_REG);
- }
- 
- static inline void i8042_write_data(int val)
- {
--	outb(val, I8042_DATA_REG);
-+	writeb(val, I8042_DATA_REG);
- }
- 
- static inline void i8042_write_command(int val)
- {
--	outb(val, I8042_COMMAND_REG);
-+	writeb(val, I8042_COMMAND_REG);
- }
- 
- static inline int i8042_platform_init(void)
- {
--	if (!request_region(I8042_DATA_REG, 16, "i8042"))
-+	if (!request_region(I8042_REGION_START, I8042_REGION_SIZE, "i8042"))
- 		return -EBUSY;
- 
- 	i8042_reset = 1;
-@@ -64,7 +67,7 @@ static inline int i8042_platform_init(void)
- 
- static inline void i8042_platform_exit(void)
- {
--	release_region(I8042_DATA_REG, 16);
-+	release_region(I8042_REGION_START, I8042_REGION_SIZE);
- }
- 
- #endif /* _I8042_UNICORE32_H */
 -- 
 1.7.4.1
