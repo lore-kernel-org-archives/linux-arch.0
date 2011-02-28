@@ -1,75 +1,38 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
-Date: Mon, 28 Feb 2011 09:04:42 +0800
-Message-ID: <018f01cbd6e3$7c825e70$75871b50$@mprc.pku.edu.cn>
-References: <014b01cbcdad$f110afb0$d3320f10$@mprc.pku.edu.cn> <201102171845.01177.arnd@arndb.de> <017b01cbd62d$633fd070$29bf7150$@mprc.pku.edu.cn> <201102271821.34017.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: [PATCH] asm-generic/user.h: Fix spelling in comment
+Date: Mon, 28 Feb 2011 10:32:22 +0100
+Message-ID: <1298885542-6583-1-git-send-email-tklauser@distanz.ch>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:51911 "EHLO mprc.pku.edu.cn"
+Received: from mx1.zhaw.ch ([160.85.104.50]:53989 "EHLO mx1.zhaw.ch"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752096Ab1B1BE4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Feb 2011 20:04:56 -0500
-In-Reply-To: <201102271821.34017.arnd@arndb.de>
-Content-Language: zh-cn
+	id S1752384Ab1B1JcZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Feb 2011 04:32:25 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Greg KH' <greg@kroah.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, trivial@kernel.org
 
+Fix two misspellings.
 
+Signed-off-by: Tobias Klauser <tklauser@distanz.ch>
+---
+ include/asm-generic/user.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Monday, February 28, 2011 1:22 AM
-> To: Guan Xuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> Subject: Re: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
-> 
-> On Sunday 27 February 2011, Guan Xuetao wrote:
-> > > -----Original Message-----
-> > > From: Arnd Bergmann [mailto:arnd@arndb.de]
-> > > Sent: Friday, February 18, 2011 1:45 AM
-> > > To: Guan Xuetao
-> > > Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; 'Greg KH'
-> > > Subject: Re: [PATCH 05/12] unicore32 additional architecture files: low-level lib: uaccess
-> > >
-> > > On Wednesday 16 February 2011, Guan Xuetao wrote:
-> > > > +
-> > > > +#define __kernel_ok                (segment_eq(get_fs(), KERNEL_DS))
-> > > > +#define __user_ok(addr, size)      (((size) <= TASK_SIZE)                  \
-> > > > +                           && ((addr) <= TASK_SIZE - (size)))
-> > > > +#define __access_ok(addr, size)    (__kernel_ok || __user_ok((addr), (size)))
-> > >
-> > > A nice trick to simplify this is to introduce a per-process variable for comparing
-> > > the pointer, set_fs() then sets this variable to either TASK_SIZE or
-> > > UINT_MAX.
-> >
-> > Perhaps like this:
-> > 1. add a member named kaddr in thread_info
-> > 2. add following assignment codes in set_fs:
-> >         current_thread_info()->kaddr =  segment_eq(fs, KERNEL_DS) ? UINT_MAX : TASK_SIZE;
-> > 3. then __access_ok will be:
-> >         #define addr
-> >         #define __access_ok(addr, size)   (((size) <= TASK_SIZE)                        \
-> >                                 && ((addr) <= current_thread_info()->kaddr)  - (size)))
-> 
-> That would also work. What I meant was to have
-> 
-> #define set_fs(fs) \
-> 	do { current_thread_info()->kaddr = (fs); } while (0)
-> 
-> #define KERNEL_DS	UINT_MAX
-> #define USER_DS		TASK_SIZE
-> 
-> Either way is fine with me, just choose whichever works best for you in terms of code size.
-I can't find the difference between this way and the way in asm-generic/uaccess.h.
-Perhaps, under this idea, __kernel_ok could be ignored.
-
-> 
-> 	Arnd
-
-Thanks & Regards.
-Guan Xuetao
+diff --git a/include/asm-generic/user.h b/include/asm-generic/user.h
+index 8b9c3c9..35638c3 100644
+--- a/include/asm-generic/user.h
++++ b/include/asm-generic/user.h
+@@ -1,8 +1,8 @@
+ #ifndef __ASM_GENERIC_USER_H
+ #define __ASM_GENERIC_USER_H
+ /*
+- * This file may define a 'struct user' structure. However, it it only
+- * used for a.out file, which are not supported on new architectures.
++ * This file may define a 'struct user' structure. However, it is only
++ * used for a.out files, which are not supported on new architectures.
+  */
+ 
+ #endif	/* __ASM_GENERIC_USER_H */
+-- 
+1.7.0.4
