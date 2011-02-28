@@ -1,38 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:52467 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754937Ab1B1PSG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2011 10:18:06 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 15/17] unicore32 machine related: add frame buffer driver for pkunity-v3 soc
-Date: Mon, 28 Feb 2011 16:18:03 +0100
-References: <cover.1298821856.git.epip@hera.kernel.org> <a336d8ba89b5afe129cb9178f26216b22d6beb63.1298821856.git.epip@hera.kernel.org>
-In-Reply-To: <a336d8ba89b5afe129cb9178f26216b22d6beb63.1298821856.git.epip@hera.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43923 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754853Ab1B1PRa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Feb 2011 10:17:30 -0500
+Date: Mon, 28 Feb 2011 15:15:47 +0000
+From: Russell King <rmk@arm.linux.org.uk>
+Subject: Re: [PATCH 06/17] arm: mmu_gather rework
+Message-ID: <20110228151547.GC4911@flint.arm.linux.org.uk>
+References: <20110217162327.434629380@chello.nl> <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins> <1298657083.2428.2483.camel@twins> <20110225215123.GA10026@flint.arm.linux.org.uk> <1298893487.2428.10537.camel@twins> <1298902727.2428.10867.camel@twins> <20110228145750.GA4911@flint.arm.linux.org.uk> <1298905548.5226.848.camel@laptop>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201102281618.03890.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1298905548.5226.848.camel@laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <epip@hera.kernel.org>
-Cc: GuanXuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
-Message-ID: <20110228151803.UVpGQgkotN9EqVVCVPx3qwfHm7ywjiZalq24gBgfiGg@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20110228151547.F4y02Flm-PNTUL2FhugOImZxHl92sVPloZD3JjRm7GQ@z>
 
-On Sunday 27 February 2011, Guan Xuetao wrote:
-> From: GuanXuetao <gxt@mprc.pku.edu.cn>
+On Mon, Feb 28, 2011 at 04:05:48PM +0100, Peter Zijlstra wrote:
+> On Mon, 2011-02-28 at 14:57 +0000, Russell King wrote:
+> > On Mon, Feb 28, 2011 at 03:18:47PM +0100, Peter Zijlstra wrote:
+> > > On Mon, 2011-02-28 at 12:44 +0100, Peter Zijlstra wrote:
+> > > >   unmap_region()
+> > > >     tlb_gather_mmu()
+> > > >     unmap_vmas()
+> > > >       for (; vma; vma = vma->vm_next)
+> > > >         unmao_page_range()
+> > > >           tlb_start_vma() -> flush cache range
+> > > 
+> > > So why is this correct? Can't we race with a concurrent access to the
+> > > memory region (munmap() vs other thread access race)? While
+> > > unmap_region() callers will have removed the vma from the tree so faults
+> > > will not be satisfied, TLBs might still be present and allow us to
+> > > access the memory and thereby reloading it in the cache.
+> > 
+> > It is my understanding that code sections between tlb_gather_mmu() and
+> > tlb_finish_mmu() are non-preemptible - that was the case once upon a
+> > time when this stuff first appeared.  
 > 
-> change from original version -- by advice of Paul Mundt
-> 1. remove videomemorysize definitions
-> 2. remove unifb_enable and unifb_setup
-> 3. use dev_warn instead of printk in fb driver
-> 4. remove judgement for FB_ACCEL_PUV3_UNIGFX
-> 5. adjust clk_get and clk_set_rate calls
-> 6. add resources definitions
-> 7. remove unifb_option
-> 8. adjust register for platform_device
-> 9. adjust unifb_ops position and unifb_regs assignment position
-> 
-> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> It is still so, but that doesn't help with SMP. The case mentioned above
+> has two threads running, one doing munmap() and the other is poking at
+> the memory being unmapped.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Luckily its a no-op on SMP capable CPUs (and actually is also a no-op
+on any PIPT or VIPT ARM CPU.)
+
+-- 
+Russell King
+ Linux kernel    2.6 ARM Linux   - http://www.arm.linux.org.uk/
+ maintainer of:
