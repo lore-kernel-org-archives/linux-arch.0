@@ -1,16 +1,16 @@
 From: "Mr. henry" <henmoralendingfirm1@gmail.com>
 Subject: (unknown)
-Date: Wed, 2 Mar 2011 01:49:20 +0200 (EET)
-Message-ID: <36343.41.204.224.12.1299023360.squirrel__13293.1739943617$1299025435$gmane$org@89.238.215.26>
+Date: Wed, 2 Mar 2011 01:48:36 +0200 (EET)
+Message-ID: <34343.41.204.224.12.1299023316.squirrel__6494.59028286419$1299026525$gmane$org@89.238.215.26>
 Reply-To: henmoralendingfirm@gmail.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.vilaumitel.ro ([89.238.215.26]:36920 "EHLO
+Received: from mail.vilaumitel.ro ([89.238.215.26]:60732 "EHLO
 	mail.vilaumitel.ro" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757662Ab1CBAXm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Mar 2011 19:23:42 -0500
+	with ESMTP id S1756708Ab1CBAl6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Mar 2011 19:41:58 -0500
 Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
