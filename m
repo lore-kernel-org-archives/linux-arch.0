@@ -1,49 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:33260 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:33273 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755791Ab1CBRyq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 12:54:46 -0500
-Message-ID: <20110302175200.810929775@chello.nl>
-Date: Wed, 02 Mar 2011 18:50:12 +0100
+	with ESMTP id S1756339Ab1CBRys (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 12:54:48 -0500
+Message-ID: <20110302175200.664512227@chello.nl>
+Date: Wed, 02 Mar 2011 18:50:10 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 08/13] um: mmu_gather rework
+Subject: [PATCH 06/13] sh: mmu_gather rework
 References: <20110302175004.222724818@chello.nl>
-Content-Disposition: inline; filename=peter_zijlstra-um-preemptible_mmu_gather.patch
+Content-Disposition: inline; filename=peter_zijlstra-sh-preemptible_mmu_gather.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Jeff Dike <jdike@addtoit.com>
-Message-ID: <20110302175012.0vhHZwbjlW6oxPsKadkUxxMFB8P4RbawI-6knN7n648@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20110302175010.M78itL9GuqyYGqxAFQNt7suMpqToqABpc95EMWN3aYg@z>
 
-Fix up the um mmu_gather code to conform to the new API.
+Fix up the sh mmu_gather code to conform to the new API.
 
-Cc: Jeff Dike <jdike@addtoit.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/um/include/asm/tlb.h |   29 +++++++++++------------------
- 1 file changed, 11 insertions(+), 18 deletions(-)
+ arch/sh/include/asm/tlb.h |   28 +++++++++++++++++-----------
+ 1 file changed, 17 insertions(+), 11 deletions(-)
 
-Index: linux-2.6/arch/um/include/asm/tlb.h
+Index: linux-2.6/arch/sh/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/um/include/asm/tlb.h
-+++ linux-2.6/arch/um/include/asm/tlb.h
-@@ -22,9 +22,6 @@ struct mmu_gather {
- 	unsigned int		fullmm; /* non-zero means full mm flush */
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -23,8 +23,6 @@ struct mmu_gather {
+ 	unsigned long		start, end;
  };
  
--/* Users of the generic TLB shootdown code must declare this storage space. */
 -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
 -
- static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
- 					  unsigned long address)
+ static inline void init_tlb_gather(struct mmu_gather *tlb)
  {
-@@ -47,27 +44,20 @@ static inline void init_tlb_gather(struc
+ 	tlb->start = TASK_SIZE;
+@@ -36,17 +34,13 @@ static inline void init_tlb_gather(struc
  	}
  }
  
--/* tlb_gather_mmu
-- *	Return a pointer to an initialized struct mmu_gather.
-- */
 -static inline struct mmu_gather *
 -tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
 +static inline void
@@ -59,21 +55,8 @@ Index: linux-2.6/arch/um/include/asm/tlb.h
 -	return tlb;
  }
  
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- 			       unsigned long end);
- 
  static inline void
--tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
-+tlb_flush_mmu(struct mmu_gather *tlb)
- {
- 	if (!tlb->need_flush)
- 		return;
-@@ -83,12 +73,10 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
- static inline void
- tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
- {
--	tlb_flush_mmu(tlb, start, end);
-+	tlb_flush_mmu(tlb);
+@@ -57,8 +51,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
  
  	/* keep the page table cache within bounds */
  	check_pgt_cache();
@@ -81,25 +64,29 @@ Index: linux-2.6/arch/um/include/asm/tlb.h
 -	put_cpu_var(mmu_gathers);
  }
  
- /* tlb_remove_page
-@@ -96,11 +84,16 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
-  *	while handling the additional races in SMP caused by other CPUs
-  *	caching valid mappings in their TLBs.
-  */
--static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ static inline void
+@@ -91,7 +83,21 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 	}
+ }
+ 
+-#define tlb_remove_page(tlb,page)	free_page_and_swap_cache(page)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
 +static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- {
- 	tlb->need_flush = 1;
- 	free_page_and_swap_cache(page);
--	return;
++{
++	free_page_and_swap_cache(page);
 +	return 0;
 +}
 +
 +static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
 +{
 +	__tlb_remove_page(tlb, page);
- }
- 
- /**
++}
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ #define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
 
 
