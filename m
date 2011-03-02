@@ -1,106 +1,166 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 08/13] um: mmu_gather rework
-Date: Wed, 02 Mar 2011 18:50:12 +0100
-Message-ID: <20110302175200.810929775@chello.nl>
+Subject: [PATCH 07/13] ia64: mmu_gather rework
+Date: Wed, 02 Mar 2011 18:50:11 +0100
+Message-ID: <20110302175200.737479306@chello.nl>
 References: <20110302175004.222724818@chello.nl>
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=peter_zijlstra-um-preemptible_mmu_gather.patch
-Sender: owner-linux-mm@kvack.org
-To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Jeff Dike <jdike@addtoit.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:33257 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753633Ab1CBRyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 12:54:45 -0500
+Content-Disposition: inline; filename=peter_zijlstra-ia64-preemptible_mmu_gather.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Tony Luck <tony.luck@intel.com>
 
-Fix up the um mmu_gather code to conform to the new API.
+Fix up the ia64 mmu_gather code to conform to the new API.
 
-Cc: Jeff Dike <jdike@addtoit.com>
+Acked-by: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/um/include/asm/tlb.h |   29 +++++++++++------------------
- 1 file changed, 11 insertions(+), 18 deletions(-)
+ arch/ia64/include/asm/tlb.h |   67 ++++++++++++++++++++++++++++++--------------
+ 1 file changed, 47 insertions(+), 20 deletions(-)
 
-Index: linux-2.6/arch/um/include/asm/tlb.h
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/um/include/asm/tlb.h
-+++ linux-2.6/arch/um/include/asm/tlb.h
-@@ -22,9 +22,6 @@ struct mmu_gather {
- 	unsigned int		fullmm; /* non-zero means full mm flush */
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -47,21 +47,27 @@
+ #include <asm/machvec.h>
+ 
+ #ifdef CONFIG_SMP
+-# define FREE_PTE_NR		2048
+ # define tlb_fast_mode(tlb)	((tlb)->nr == ~0U)
+ #else
+-# define FREE_PTE_NR		0
+ # define tlb_fast_mode(tlb)	(1)
+ #endif
+ 
++/*
++ * If we can't allocate a page to make a big batch of page pointers
++ * to work on, then just handle a few from the on-stack structure.
++ */
++#define	IA64_GATHER_BUNDLE	8
++
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+ 	unsigned int		nr;		/* == ~0U => fast mode */
++	unsigned int		max;
+ 	unsigned char		fullmm;		/* non-zero means full mm flush */
+ 	unsigned char		need_flush;	/* really unmapped some PTEs? */
+ 	unsigned long		start_addr;
+ 	unsigned long		end_addr;
+-	struct page 		*pages[FREE_PTE_NR];
++	struct page		**pages;
++	struct page		*local[IA64_GATHER_BUNDLE];
  };
+ 
+ struct ia64_tr_entry {
+@@ -90,9 +96,6 @@ extern struct ia64_tr_entry *ia64_idtrs[
+ #define RR_RID_MASK	0x00000000ffffff00L
+ #define RR_TO_RID(val) 	((val >> 8) & 0xffffff)
  
 -/* Users of the generic TLB shootdown code must declare this storage space. */
 -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
 -
- static inline void __tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep,
- 					  unsigned long address)
- {
-@@ -47,27 +44,20 @@ static inline void init_tlb_gather(struc
+ /*
+  * Flush the TLB for address range START to END and, if not in fast mode, release the
+  * freed pages that where gathered up to this point.
+@@ -147,15 +150,23 @@ ia64_tlb_flush_mmu (struct mmu_gather *t
  	}
  }
  
--/* tlb_gather_mmu
-- *	Return a pointer to an initialized struct mmu_gather.
+-/*
+- * Return a pointer to an initialized struct mmu_gather.
 - */
 -static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+-tlb_gather_mmu (struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void __tlb_alloc_page(struct mmu_gather *tlb)
  {
 -	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
- 	tlb->fullmm = full_mm_flush;
++	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
  
- 	init_tlb_gather(tlb);
--
++	if (addr) {
++		tlb->pages = (void *)addr;
++		tlb->max = PAGE_SIZE / sizeof(void *);
++	}
++}
++
++
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
++{
+ 	tlb->mm = mm;
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->pages = tlb->local;
+ 	/*
+ 	 * Use fast mode if only 1 CPU is online.
+ 	 *
+@@ -172,7 +183,6 @@ tlb_gather_mmu (struct mm_struct *mm, un
+ 	tlb->nr = (num_online_cpus() == 1) ? ~0U : 0;
+ 	tlb->fullmm = full_mm_flush;
+ 	tlb->start_addr = ~0UL;
 -	return tlb;
  }
  
- extern void flush_tlb_mm_range(struct mm_struct *mm, unsigned long start,
- 			       unsigned long end);
- 
+ /*
+@@ -180,7 +190,7 @@ tlb_gather_mmu (struct mm_struct *mm, un
+  * collected.
+  */
  static inline void
--tlb_flush_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
-+tlb_flush_mmu(struct mmu_gather *tlb)
+-tlb_finish_mmu (struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
  {
- 	if (!tlb->need_flush)
- 		return;
-@@ -83,12 +73,10 @@ tlb_flush_mmu(struct mmu_gather *tlb, un
- static inline void
- tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
- {
--	tlb_flush_mmu(tlb, start, end);
-+	tlb_flush_mmu(tlb);
- 
+ 	/*
+ 	 * Note: tlb->nr may be 0 at this point, so we can't rely on tlb->start_addr and
+@@ -191,7 +201,8 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
  	/* keep the page table cache within bounds */
  	check_pgt_cache();
--
+ 
 -	put_cpu_var(mmu_gathers);
++	if (tlb->pages != tlb->local)
++		free_pages((unsigned long)tlb->pages, 0);
  }
  
- /* tlb_remove_page
-@@ -96,11 +84,16 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
-  *	while handling the additional races in SMP caused by other CPUs
-  *	caching valid mappings in their TLBs.
+ /*
+@@ -199,18 +210,34 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
+  * must be delayed until after the TLB has been flushed (see comments at the beginning of
+  * this file).
   */
--static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-static inline void
+-tlb_remove_page (struct mmu_gather *tlb, struct page *page)
 +static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
  {
  	tlb->need_flush = 1;
- 	free_page_and_swap_cache(page);
--	return;
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
++
++	if (!tlb->nr && tlb->pages == tlb->local)
++		__tlb_alloc_page(tlb);
++
+ 	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= FREE_PTE_NR)
+-		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++	if (tlb->nr >= tlb->max)
++		return 1;
++
 +	return 0;
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++	ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
 +}
 +
 +static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
 +{
-+	__tlb_remove_page(tlb, page);
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
  }
  
- /**
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ /*
