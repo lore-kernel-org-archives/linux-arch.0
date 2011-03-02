@@ -1,99 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:39799 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756899Ab1CBKwn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 05:52:43 -0500
-Received: from canuck.infradead.org ([2001:4978:20e::1])
-	by bombadil.infradead.org with esmtps (Exim 4.72 #1 (Red Hat Linux))
-	id 1Pujfe-00031j-MI
-	for linux-arch@vger.kernel.org; Wed, 02 Mar 2011 10:52:42 +0000
-Received: from j77219.upc-j.chello.nl ([24.132.77.219] helo=dyad.programming.kicks-ass.net)
-	by canuck.infradead.org with esmtpsa (Exim 4.72 #1 (Red Hat Linux))
-	id 1Pujfc-0002i8-SU
-	for linux-arch@vger.kernel.org; Wed, 02 Mar 2011 10:52:41 +0000
-Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-From: Peter Zijlstra <peterz@infradead.org>
-In-Reply-To: <4D6D6DB4.5020603@tilera.com>
-References: <20110217162327.434629380@chello.nl>
-	 <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins>
-	 <1298657083.2428.2483.camel@twins>
-	 <20110225215123.GA10026@flint.arm.linux.org.uk>
-	 <1298893487.2428.10537.camel@twins>  <4D6D6DB4.5020603@tilera.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 02 Mar 2011 11:54:03 +0100
-Message-ID: <1299063243.1310.12.camel@laptop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from casper.infradead.org ([85.118.1.10]:33257 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753633Ab1CBRyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 12:54:45 -0500
+Message-ID: <20110302175200.737479306@chello.nl>
+Date: Wed, 02 Mar 2011 18:50:11 +0100
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 07/13] ia64: mmu_gather rework
+References: <20110302175004.222724818@chello.nl>
+Content-Disposition: inline; filename=peter_zijlstra-ia64-preemptible_mmu_gather.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Russell King <rmk@arm.linux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
-Message-ID: <20110302105403.sDhSJMwVB-Be9SsVNZ7KH6y0vQY7w0z_sYr07Bvs08c@z>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Tony Luck <tony.luck@intel.com>
+Message-ID: <20110302175011.vJzVbYwmNaaIskdg2epVP4cFXUgPikQ4Yd0KfokTE_s@z>
 
-On Tue, 2011-03-01 at 17:05 -0500, Chris Metcalf wrote:
+Fix up the ia64 mmu_gather code to conform to the new API.
 
-> For Tile, the concern is that we want to make sure to invalidate the
-> i-cache.  The I-TLB is handled by the regular TLB flush just fine, like the
-> other architectures.  So our concern is that once we have cleared the page
-> table entries and invalidated the TLBs, we still have to deal with i-cache
-> lines in any core that may have run code from that page.  The risk is that
-> the kernel might free, reallocate, and then run code from one of those
-> pages, all before the stale i-cache lines happened to be evicted.
+Acked-by: Tony Luck <tony.luck@intel.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/ia64/include/asm/tlb.h |   67 ++++++++++++++++++++++++++++++--------------
+ 1 file changed, 47 insertions(+), 20 deletions(-)
 
-From reading Documentation/cachetlb.txt, update_mmu_cache() can be used
-to flush i-cache whenever you install a pte with executable permissions,
-and covers the particular case you mention above.
-
-DaveM any comment? You seem to be the one who wrote that document :-)
-
-> The current Tile code flushes the icache explicitly at two different times:
-> 
-> 1. Whenever we flush the TLB, since this is one time when we know who might
-> currently be using the page (via cpu_vm_mask) and we can flush all of them
-> easily, piggybacking on the infrastructure we use to flush remote TLBs.
-> 
-> 2. Whenever we context switch, to handle the case where cpu 1 is running
-> process A, then switches to B, but another cpu still running process A
-> unmaps an executable page that was in cpu 1's icache.  This way when cpu 1
-> switches back to A, it doesn't have to worry about any unmaps that occurred
-> while it was switched out.
-> 
-> 
-> > I'm not sure what we can do about TILE's VM_HUGETLB usage though, if it
-> > needs explicit flushes for huge ptes it might just have to issue
-> > multiple tlb invalidates and do them from tlb_start_vma()/tlb_end_vma().
-> 
-> I'm not too concerned about this.  We can make the flush code check both
-> page sizes at a small cost in efficiency, relative to the overall cost of
-> global TLB invalidation.
-
-OK, that's basically what I made it do now:
-
-Index: linux-2.6/arch/tile/kernel/tlb.c
+Index: linux-2.6/arch/ia64/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/tile/kernel/tlb.c
-+++ linux-2.6/arch/tile/kernel/tlb.c
-@@ -64,14 +64,13 @@ void flush_tlb_page(const struct vm_area
+--- linux-2.6.orig/arch/ia64/include/asm/tlb.h
++++ linux-2.6/arch/ia64/include/asm/tlb.h
+@@ -47,21 +47,27 @@
+ #include <asm/machvec.h>
+ 
+ #ifdef CONFIG_SMP
+-# define FREE_PTE_NR		2048
+ # define tlb_fast_mode(tlb)	((tlb)->nr == ~0U)
+ #else
+-# define FREE_PTE_NR		0
+ # define tlb_fast_mode(tlb)	(1)
+ #endif
+ 
++/*
++ * If we can't allocate a page to make a big batch of page pointers
++ * to work on, then just handle a few from the on-stack structure.
++ */
++#define	IA64_GATHER_BUNDLE	8
++
+ struct mmu_gather {
+ 	struct mm_struct	*mm;
+ 	unsigned int		nr;		/* == ~0U => fast mode */
++	unsigned int		max;
+ 	unsigned char		fullmm;		/* non-zero means full mm flush */
+ 	unsigned char		need_flush;	/* really unmapped some PTEs? */
+ 	unsigned long		start_addr;
+ 	unsigned long		end_addr;
+-	struct page 		*pages[FREE_PTE_NR];
++	struct page		**pages;
++	struct page		*local[IA64_GATHER_BUNDLE];
+ };
+ 
+ struct ia64_tr_entry {
+@@ -90,9 +96,6 @@ extern struct ia64_tr_entry *ia64_idtrs[
+ #define RR_RID_MASK	0x00000000ffffff00L
+ #define RR_TO_RID(val) 	((val >> 8) & 0xffffff)
+ 
+-/* Users of the generic TLB shootdown code must declare this storage space. */
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+ /*
+  * Flush the TLB for address range START to END and, if not in fast mode, release the
+  * freed pages that where gathered up to this point.
+@@ -147,15 +150,23 @@ ia64_tlb_flush_mmu (struct mmu_gather *t
+ 	}
  }
- EXPORT_SYMBOL(flush_tlb_page);
-
--void flush_tlb_range(const struct vm_area_struct *vma,
-+void flush_tlb_range(const struct mm_struct *mm,
-                     unsigned long start, unsigned long end)
+ 
+-/*
+- * Return a pointer to an initialized struct mmu_gather.
+- */
+-static inline struct mmu_gather *
+-tlb_gather_mmu (struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void __tlb_alloc_page(struct mmu_gather *tlb)
  {
--       unsigned long size = hv_page_size(vma);
--       struct mm_struct *mm = vma->vm_mm;
--       int cache = (vma->vm_flags & VM_EXEC) ? HV_FLUSH_EVICT_L1I : 0;
--       flush_remote(0, cache, &mm->cpu_vm_mask, start, end - start, size,
--                    &mm->cpu_vm_mask, NULL, 0);
-+       flush_remote(0, HV_FLUSH_EVICT_L1I, &mm->cpu_vm_mask,
-+                    start, end - start, PAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
-+       flush_remote(0, 0, &mm->cpu_vm_mask,
-+                    start, end - start, HPAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
++	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
+ 
++	if (addr) {
++		tlb->pages = (void *)addr;
++		tlb->max = PAGE_SIZE / sizeof(void *);
++	}
++}
++
++
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
++{
+ 	tlb->mm = mm;
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->pages = tlb->local;
+ 	/*
+ 	 * Use fast mode if only 1 CPU is online.
+ 	 *
+@@ -172,7 +183,6 @@ tlb_gather_mmu (struct mm_struct *mm, un
+ 	tlb->nr = (num_online_cpus() == 1) ? ~0U : 0;
+ 	tlb->fullmm = full_mm_flush;
+ 	tlb->start_addr = ~0UL;
+-	return tlb;
  }
-
-And I guess that if the update_mmu_cache() thing works out we can remove
-the HV_FLUSH_EVICT_L1I thing.
-
+ 
+ /*
+@@ -180,7 +190,7 @@ tlb_gather_mmu (struct mm_struct *mm, un
+  * collected.
+  */
+ static inline void
+-tlb_finish_mmu (struct mmu_gather *tlb, unsigned long start, unsigned long end)
++tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+ {
+ 	/*
+ 	 * Note: tlb->nr may be 0 at this point, so we can't rely on tlb->start_addr and
+@@ -191,7 +201,8 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+ 
+-	put_cpu_var(mmu_gathers);
++	if (tlb->pages != tlb->local)
++		free_pages((unsigned long)tlb->pages, 0);
+ }
+ 
+ /*
+@@ -199,18 +210,34 @@ tlb_finish_mmu (struct mmu_gather *tlb, 
+  * must be delayed until after the TLB has been flushed (see comments at the beginning of
+  * this file).
+  */
+-static inline void
+-tlb_remove_page (struct mmu_gather *tlb, struct page *page)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+ {
+ 	tlb->need_flush = 1;
+ 
+ 	if (tlb_fast_mode(tlb)) {
+ 		free_page_and_swap_cache(page);
+-		return;
++		return 0;
+ 	}
++
++	if (!tlb->nr && tlb->pages == tlb->local)
++		__tlb_alloc_page(tlb);
++
+ 	tlb->pages[tlb->nr++] = page;
+-	if (tlb->nr >= FREE_PTE_NR)
+-		ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++	if (tlb->nr >= tlb->max)
++		return 1;
++
++	return 0;
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++	ia64_tlb_flush_mmu(tlb, tlb->start_addr, tlb->end_addr);
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
+ }
+ 
+ /*
 
 
