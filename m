@@ -1,87 +1,82 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 06/17] arm: mmu_gather rework
-Date: Wed, 02 Mar 2011 11:54:03 +0100
-Message-ID: <1299063243.1310.12.camel@laptop>
-References: <20110217162327.434629380@chello.nl>
-	 <20110217163235.106239192@chello.nl> <1298565253.2428.288.camel@twins>
-	 <1298657083.2428.2483.camel@twins>
-	 <20110225215123.GA10026@flint.arm.linux.org.uk>
-	 <1298893487.2428.10537.camel@twins>  <4D6D6DB4.5020603@tilera.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 09/13] unicore: mmu_gather rework
+Date: Wed, 02 Mar 2011 18:50:13 +0100
+Message-ID: <20110302175200.883953013@chello.nl>
+References: <20110302175004.222724818@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4D6D6DB4.5020603@tilera.com>
+Content-Disposition: inline; filename=peter_zijlstra-unicore-mmu_gather.patch
 Sender: owner-linux-mm@kvack.org
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Russell King <rmk@arm.linux.org.uk>, Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, "Luck,Tony" <tony.luck@intel.com>, PaulMundt <lethal@linux-sh.org>
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2011-03-01 at 17:05 -0500, Chris Metcalf wrote:
+Fix up the unicore mmu_gather code to conform to the new API.
 
-> For Tile, the concern is that we want to make sure to invalidate the
-> i-cache.  The I-TLB is handled by the regular TLB flush just fine, like the
-> other architectures.  So our concern is that once we have cleared the page
-> table entries and invalidated the TLBs, we still have to deal with i-cache
-> lines in any core that may have run code from that page.  The risk is that
-> the kernel might free, reallocate, and then run code from one of those
-> pages, all before the stale i-cache lines happened to be evicted.
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/unicore32/include/asm/tlb.h |   32 ++++++++++++++++++++------------
+ 1 file changed, 20 insertions(+), 12 deletions(-)
 
-From reading Documentation/cachetlb.txt, update_mmu_cache() can be used
-to flush i-cache whenever you install a pte with executable permissions,
-and covers the particular case you mention above.
-
-DaveM any comment? You seem to be the one who wrote that document :-)
-
-> The current Tile code flushes the icache explicitly at two different times:
-> 
-> 1. Whenever we flush the TLB, since this is one time when we know who might
-> currently be using the page (via cpu_vm_mask) and we can flush all of them
-> easily, piggybacking on the infrastructure we use to flush remote TLBs.
-> 
-> 2. Whenever we context switch, to handle the case where cpu 1 is running
-> process A, then switches to B, but another cpu still running process A
-> unmaps an executable page that was in cpu 1's icache.  This way when cpu 1
-> switches back to A, it doesn't have to worry about any unmaps that occurred
-> while it was switched out.
-> 
-> 
-> > I'm not sure what we can do about TILE's VM_HUGETLB usage though, if it
-> > needs explicit flushes for huge ptes it might just have to issue
-> > multiple tlb invalidates and do them from tlb_start_vma()/tlb_end_vma().
-> 
-> I'm not too concerned about this.  We can make the flush code check both
-> page sizes at a small cost in efficiency, relative to the overall cost of
-> global TLB invalidation.
-
-OK, that's basically what I made it do now:
-
-Index: linux-2.6/arch/tile/kernel/tlb.c
+Index: linux-2.6/arch/unicore32/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/tile/kernel/tlb.c
-+++ linux-2.6/arch/tile/kernel/tlb.c
-@@ -64,14 +64,13 @@ void flush_tlb_page(const struct vm_area
- }
- EXPORT_SYMBOL(flush_tlb_page);
-
--void flush_tlb_range(const struct vm_area_struct *vma,
-+void flush_tlb_range(const struct mm_struct *mm,
-                     unsigned long start, unsigned long end)
+--- linux-2.6.orig/arch/unicore32/include/asm/tlb.h
++++ linux-2.6/arch/unicore32/include/asm/tlb.h
+@@ -27,17 +27,11 @@ struct mmu_gather {
+ 	unsigned long		range_end;
+ };
+ 
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int fullmm)
  {
--       unsigned long size = hv_page_size(vma);
--       struct mm_struct *mm = vma->vm_mm;
--       int cache = (vma->vm_flags & VM_EXEC) ? HV_FLUSH_EVICT_L1I : 0;
--       flush_remote(0, cache, &mm->cpu_vm_mask, start, end - start, size,
--                    &mm->cpu_vm_mask, NULL, 0);
-+       flush_remote(0, HV_FLUSH_EVICT_L1I, &mm->cpu_vm_mask,
-+                    start, end - start, PAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
-+       flush_remote(0, 0, &mm->cpu_vm_mask,
-+                    start, end - start, HPAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+ 	tlb->mm = mm;
+-	tlb->fullmm = full_mm_flush;
+-
+-	return tlb;
++	tlb->fullmm = fullmm;
  }
-
-And I guess that if the update_mmu_cache() thing works out we can remove
-the HV_FLUSH_EVICT_L1I thing.
-
+ 
+ static inline void
+@@ -48,8 +42,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+ 
+ 	/* keep the page table cache within bounds */
+ 	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+ }
+ 
+ /*
+@@ -88,7 +80,23 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+ 		flush_tlb_range(vma, tlb->range_start, tlb->range_end);
+ }
+ 
+-#define tlb_remove_page(tlb, page)	free_page_and_swap_cache(page)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++}
++
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	free_page_and_swap_cache(page);
++	return 0;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
++{
++	if (__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
++}
++
++
+ #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+ #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ #define pud_free_tlb(tlb, x, addr)      do { } while (0)
 
 
 --
