@@ -1,54 +1,50 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Rik van Riel <riel@redhat.com>
 Subject: Re: [RFC][PATCH 2/6] mm: Change flush_tlb_range() to take an mm_struct
-Date: Wed, 2 Mar 2011 11:19:48 -0800
-Message-ID: <AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>
-References: <20110302175928.022902359@chello.nl> <20110302180258.956518392@chello.nl>
+Date: Wed, 02 Mar 2011 15:58:59 -0500
+Message-ID: <4D6EAF93.5000000@redhat.com>
+References: <20110302175928.022902359@chello.nl> <20110302180258.956518392@chello.nl> <AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:56610 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755440Ab1CBT1E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 14:27:04 -0500
-In-Reply-To: <20110302180258.956518392@chello.nl>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 2, 2011 at 9:59 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> In order to be able to properly support architecture that want/need to
-> support TLB range invalidation, we need to change the
-> flush_tlb_range() argument from a vm_area_struct to an mm_struct
-> because the range might very well extend past one VMA, or not have a
-> VMA at all.
+On 03/02/2011 02:19 PM, Linus Torvalds wrote:
 
-I really don't think this is right. The whole "drop the icache
-information" thing is a total anti-optimization, since for some
-architectures, the icache flush is the _big_ deal. Possibly much
-bigger than the TLB flush itself. Doing an icache flush was much more
-expensive than the TLB flush on alpha, for example (the tlb had ASI's
-etc, the icache did not).
+>> There are various reasons that we need to flush TLBs _after_ freeing
+>> the page-tables themselves. For some architectures (x86 among others)
+>> this serializes against (both hardware and software) page table
+>> walkers like gup_fast().
+>
+> This part of the changelog also makes no sense what-so-ever. It's
+> actively wrong.
+>
+> On x86, we absolutely *must* do the TLB flush _before_ we release the
+> page tables. So your commentary is actively wrong and misleading.
+>
+> The order has to be:
+>   - clear the page table entry, queue the page to be free'd
+>   - flush the TLB
+>   - free the page (and page tables)
+>
+> and nothing else is correct, afaik. So the changelog is pure and utter
+> garbage. I didn't look at what the patch actually changed.
 
-> There are various reasons that we need to flush TLBs _after_ freeing
-> the page-tables themselves. For some architectures (x86 among others)
-> this serializes against (both hardware and software) page table
-> walkers like gup_fast().
+The patch seems to preserve the correct behaviour.
 
-This part of the changelog also makes no sense what-so-ever. It's
-actively wrong.
+The changelog should probably read something along the
+lines of:
 
-On x86, we absolutely *must* do the TLB flush _before_ we release the
-page tables. So your commentary is actively wrong and misleading.
+"There are various reasons that we need to flush TLBs _after_
+  clearing the page-table entries themselves."
 
-The order has to be:
- - clear the page table entry, queue the page to be free'd
- - flush the TLB
- - free the page (and page tables)
-
-and nothing else is correct, afaik. So the changelog is pure and utter
-garbage. I didn't look at what the patch actually changed.
-
-NAK.
-
-                         Linus
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
