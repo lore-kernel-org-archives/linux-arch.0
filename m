@@ -1,136 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:39353 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757440Ab1CBVkv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Mar 2011 16:40:51 -0500
-Received: from canuck.infradead.org ([134.117.69.58])
-	by bombadil.infradead.org with esmtps (Exim 4.72 #1 (Red Hat Linux))
-	id 1Putms-0000L1-BU
-	for linux-arch@vger.kernel.org; Wed, 02 Mar 2011 21:40:50 +0000
-Received: from j77219.upc-j.chello.nl ([24.132.77.219] helo=dyad.programming.kicks-ass.net)
-	by canuck.infradead.org with esmtpsa (Exim 4.72 #1 (Red Hat Linux))
-	id 1Putlm-0000cH-1W
-	for linux-arch@vger.kernel.org; Wed, 02 Mar 2011 21:40:49 +0000
-Subject: Re: [RFC][PATCH 2/6] mm: Change flush_tlb_range() to take an
- mm_struct
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>
-References: <20110302175928.022902359@chello.nl>
-	 <20110302180258.956518392@chello.nl>
-	 <AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 02 Mar 2011 22:40:27 +0100
-Message-ID: <1299102027.1310.39.camel@laptop>
-Mime-Version: 1.0
+Received: from usmamail.tilera.com ([206.83.70.70]:15996 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758503Ab1CCRWl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Mar 2011 12:22:41 -0500
+Message-ID: <4D6FCE5D.4030904@tilera.com>
+Date: Thu, 3 Mar 2011 12:22:37 -0500
+From: Chris Metcalf <cmetcalf@tilera.com>
+MIME-Version: 1.0
+Subject: Re: [RFC][PATCH 2/6] mm: Change flush_tlb_range() to take an mm_struct
+References: <20110302180258.956518392@chello.nl>	<AANLkTimhWKhHojZ-9XZGSh3OzfPhvo__Dib9VfeMWoBQ@mail.gmail.com>	<1299102027.1310.39.camel@laptop> <20110302.134735.260066220.davem@davemloft.net>
+In-Reply-To: <20110302.134735.260066220.davem@davemloft.net>
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20110302214027._qHJAlPBrj-owTXdcok8A4sj0Wu4_l2g1vPH87nMTl0@z>
+To: David Miller <davem@davemloft.net>
+Cc: a.p.zijlstra@chello.nl, torvalds@linux-foundation.org, aarcange@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@kernel.dk, rmk@arm.linux.org.uk, schwidefsky@de.ibm.com
+Message-ID: <20110303172237.324EtsxPBqVpJr7wDXf7e6VEKifoycv8spqtioHntxs@z>
 
-On Wed, 2011-03-02 at 11:19 -0800, Linus Torvalds wrote:
-> On Wed, Mar 2, 2011 at 9:59 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> > In order to be able to properly support architecture that want/need to
-> > support TLB range invalidation, we need to change the
-> > flush_tlb_range() argument from a vm_area_struct to an mm_struct
-> > because the range might very well extend past one VMA, or not have a
-> > VMA at all.
-> 
-> I really don't think this is right. The whole "drop the icache
-> information" thing is a total anti-optimization, since for some
-> architectures, the icache flush is the _big_ deal. 
+On 3/2/2011 4:47 PM, David Miller wrote:
+> From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> Date: Wed, 02 Mar 2011 22:40:27 +0100
+>
+>> On Wed, 2011-03-02 at 11:19 -0800, Linus Torvalds wrote:
+>>> On Wed, Mar 2, 2011 at 9:59 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+>>>> In order to be able to properly support architecture that want/need to
+>>>> support TLB range invalidation, we need to change the
+>>>> flush_tlb_range() argument from a vm_area_struct to an mm_struct
+>>>> because the range might very well extend past one VMA, or not have a
+>>>> VMA at all.
+>>> I really don't think this is right. The whole "drop the icache
+>>> information" thing is a total anti-optimization, since for some
+>>> architectures, the icache flush is the _big_ deal. 
+>> Right, so Tile has the I-cache flush from flush_tlb_range(), I'm not
+>> sure if that's the right thing to do, Documentation/cachetlb.txt seems
+>> to suggest doing it from update_mmu_cache() like things.
+> Sparc32 chips that require a valid TLB entry for I-cache flushes do
+> the flush from flush_cache_range() and similar.
+>
+> Sparc64 does not have the "present TLB entry" requirement (since I-cache
+> is physical), and we handle it in update_mmu_cache() but only as an
+> optimization.  This scheme works in concert with flush_dcache_page().
+>
+> Either scheme is valid, the former is best when flushing is based upon
+> virtual addresses.
+>
+> But I'll be the first to admit that the interfaces we have for doing
+> this stuff is basically nothing more than a set of hooks, with
+> assurances that the hooks will be called in specific situations.  Like
+> anything else, it's evolved over time based upon architectural needs.
 
-Right, so Tile has the I-cache flush from flush_tlb_range(), I'm not
-sure if that's the right thing to do, Documentation/cachetlb.txt seems
-to suggest doing it from update_mmu_cache() like things.
+I'm finding it hard to understand how the Sparc code handles icache
+coherence.  It seems that the Spitfire MMU is the interesting one, but the
+hard case seems to be when a process migrates around to various cores
+during execution (thus leaving incoherent icache lines everywhere), and the
+page is then freed and re-used for different executable code.  I'd think
+that there would have to be xcall IPIs to flush all the cpus' icaches, or
+to flush every core in the cpu_vm_mask plus do something at context switch,
+but I don't see any of that.  No doubt I'm missing something :-)
 
-However, I really don't know, and would happily be explained how these
-things are supposed to work. Also:
+Currently on Tile I assume that we flush icaches in cpu_vm_mask at TLB
+flush time, and flush the icache on context-switch, since I'm confident I
+can reason correctly about that and prove that with this model you can
+never have stale icache data.  But the "every context-switch" is a
+nuisance, only somewhat mitigated by the fact that with 64 cores we don't
+do a lot of context-switching.
 
-> Possibly much
-> bigger than the TLB flush itself. Doing an icache flush was much more
-> expensive than the TLB flush on alpha, for example (the tlb had ASI's
-> etc, the icache did not).
+To give some more specificity to my thinking, here's one optimization we
+could do on Tile, that would both address Peter Zijlstra's generic
+architecture in an obvious way, and also improve context switch time:
 
-Right, but the problem remains that we do page-table teardown without
-having a vma.
+- Add a "free time" field to struct page.  The free time field could be a
+64-bit cycle counter value, or maybe some kind of 32-bit counter that just
+increments every time we free, etc., though then we'd need to worry about
+handling wraparound.  We'd record the free time when we freed the page back
+to the buddy allocator.  Since we only care about executable page frees,
+we'd want to use a page bit to track if a given page was ever associated
+with an executable PTE, and if it wasn't, we could just record the "free
+time" as zero, for book-keeping purposes.
 
-Now we can re-introduce I/D variants again by assuming D-only and using
-tlb_start_vma() to set a I-too bit on VM_EXEC. (this assumes the vm_args
-range is non-executable -- which it had better be).
+- Keep a per-cpu "icache flush time", with the same timekeeping system as
+the page free time.  Every time we flush the whole icache on a cpu, we
+update its per-cpu timestamp.
 
-How about I do something like:
+- When writing an executable PTE into the page table, we'd check the
+cpu_vm_mask, and any cpu that hadn't done a full icache flush since the
+page in question was previously freed would be IPI'ed and would do the
+icache flush, making it safe to start running code on the page with its new
+code.  We'd also update a per-mm "latest free" timestamp to hold the most
+recent "free time" of all the pages faulted in for that mm.
 
-enum {
-  TLB_FLUSH_I = 1,
-  TLB_FLUSH_D = 2,
-  TLB_FLUSH_PAGE = 4,
-  TLB_FLUSH_HPAGE = 8,
-};
+- When context-switching, we'd check the per-mm "latest free" timestamp,
+and if the mm held a page that was freed more recently than that cpu's
+timestamp, we'd do a full icache flush and update the per-cpu timestamp.
 
-void flush_tlb_range(struct mm_struct *mm, unsigned long start,
-		     unsigned long end, unsigned int flags);
+This has several good properties:
 
-And we then do:
+- We are unlikely to do much icache flushing, since we only do it when an
+executable page is freed back to the buddy allocator and then reused as
+executable again.
 
-tlb_gather_mmu(struct mmu_gather *tlb, ...)
-{
-  ...
-  tlb->flush_type = TLB_FLUSH_D | TLB_FLUSH_PAGE;
-}
+- If two processes share a cpu, they don't end up having to icache flush at
+every context switch.
 
-tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
-{
-  if (!tlb->fullmm)
-    flush_cache_range(vma, vma->vm_start, vma->vm_end);
+- We never need to IPI a cpu that isn't actively involved with the process
+that is faulting in a new executable page.  (This is particularly important
+since we want to avoid disturbing "dataplane" cpus that are running
+latency-sensitive tasks.)
 
-  if (vma->vm_flags & VM_EXEC)
-    tlb->flush_type |= TLB_FLUSH_I;
+- We don't need to worry about vma's at flush_tlb_range() time, thus making
+Peter happy :-)
 
-  if (vma->vm_flags & VM_HUGEPAGE)
-    tlb->flush_type |= TLB_FLUSH_HPAGE;
-}
+I'm not worrying about kernel module executable pages, since I'm happy to
+do much more heavy-weight operations for them, i.e. flush all the icaches
+on all the cores.
 
-tlb_flush_mmu(struct mmu_gather *tlb)
-{
-  if (!tlb->fullmm && tlb->need_flush) {
-    flush_tlb_range(tlb->mm, tlb->start, tlb->end, tlb->flush_type);	
-    tlb->start = TASK_SIZE;
-    tlb->end = 0;
-  }
-  ...
-}
+So: does this general approach seem appropriate, or am I missing a key
+subtlety of the Sparc approach that makes this all unnecessary?
 
-> > There are various reasons that we need to flush TLBs _after_ freeing
-> > the page-tables themselves. For some architectures (x86 among others)
-> > this serializes against (both hardware and software) page table
-> > walkers like gup_fast().
-> 
-> This part of the changelog also makes no sense what-so-ever. It's
-> actively wrong.
-> 
-> On x86, we absolutely *must* do the TLB flush _before_ we release the
-> page tables. So your commentary is actively wrong and misleading.
-> 
-> The order has to be:
->  - clear the page table entry, queue the page to be free'd
->  - flush the TLB
->  - free the page (and page tables)
-> 
-> and nothing else is correct, afaik. So the changelog is pure and utter
-> garbage. I didn't look at what the patch actually changed.
-
-OK, so I use the wrong terms, I meant page-table tear-down, where we
-remove the pte page pointer from the pmd, remove the pmd page from the
-pud etc.
-
-We then flush the TLBs and only then actually free the pages. I think
-the confusion stems from the fact that we call tear-down free_pgtables()
-
-The point was that we need to TLB flush _after_ tear-down (before actual
-free), not before tear-down. The problem is that currently we either end
-up doing too many TLB flushes or one too few.
-
-
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
