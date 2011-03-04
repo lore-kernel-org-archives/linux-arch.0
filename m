@@ -1,47 +1,228 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.70]:46075 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758621Ab1CCS4h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Mar 2011 13:56:37 -0500
-Message-ID: <4D6FE462.4080002@tilera.com>
-Date: Thu, 3 Mar 2011 13:56:34 -0500
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:51248 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751509Ab1CDL7O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Mar 2011 06:59:14 -0500
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+References: <20110302175004.222724818@chello.nl> <20110302175200.883953013@chello.nl>
+In-Reply-To: <20110302175200.883953013@chello.nl>
+Subject: RE: [PATCH 09/13] unicore: mmu_gather rework
+Date: Fri, 4 Mar 2011 19:56:12 +0800
+Message-ID: <03ca01cbda63$31930fd0$94b92f70$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Subject: Re: [RFC][PATCH 2/6] mm: Change flush_tlb_range() to take an mm_struct
-References: <1299102027.1310.39.camel@laptop>	<20110302.134735.260066220.davem@davemloft.net>	<4D6FCE5D.4030904@tilera.com> <20110303.104542.104052570.davem@davemloft.net>
-In-Reply-To: <20110303.104542.104052570.davem@davemloft.net>
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: a.p.zijlstra@chello.nl, torvalds@linux-foundation.org, aarcange@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@kernel.dk, rmk@arm.linux.org.uk, schwidefsky@de.ibm.com
-Message-ID: <20110303185634.HHqLxE69sOj3RgBWv4XffA2XVgpvrZyr7-nYX-fbjKE@z>
+To: 'Peter Zijlstra' <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'David Miller' <davem@davemloft.net>, 'Hugh Dickins' <hugh.dickins@tiscali.co.uk>, 'Mel Gorman' <mel@csn.ul.ie>, 'Nick Piggin' <npiggin@kernel.dk>, 'Paul McKenney' <paulmck@linux.vnet.ibm.com>, 'Yanmin Zhang' <yanmin_zhang@linux.intel.com>, 'Andrea Arcangeli' <aarcange@redhat.com>, 'Avi Kivity' <avi@redhat.com>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Rik van Riel' <riel@redhat.com>, 'Ingo Molnar' <mingo@elte.hu>, akpm@linux-foundation.org, 'Linus Torvalds' <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20110304115612.pRSkuKOgrPznaM79q15_1rMm8k7krob6H6c1cBYEiMg@z>
 
-On 3/3/2011 1:45 PM, David Miller wrote:
->> I'm finding it hard to understand how the Sparc code handles icache
->> coherence.  It seems that the Spitfire MMU is the interesting one, but the
->> hard case seems to be when a process migrates around to various cores
->> during execution (thus leaving incoherent icache lines everywhere), and the
->> page is then freed and re-used for different executable code.  I'd think
->> that there would have to be xcall IPIs to flush all the cpus' icaches, or
->> to flush every core in the cpu_vm_mask plus do something at context switch,
->> but I don't see any of that.  No doubt I'm missing something :-)
-> flush_dcache_page() remembers the cpu that wrote to the page (in the
-> page flags), and cross-calls to that specific cpu.
->
-> It is only that cpu which must flush his I-cache, since all other cpus
-> saw the write on the bus and updated their I-cache lines as a result.
->
-> See, in the sparc64 case, the incoherency issue is purely local to the
-> store.  The problem case is specifically the local I-cache not seeing
-> local writes, everything else is fine.  CPU I-caches see writes done
-> by other cpus, just not those done by the local cpu.
 
-Thanks, that makes sense.  Our architecture has no bus to snoop, so we
-couldn't take advantage of that approach.
 
+> -----Original Message-----
+> From: Peter Zijlstra [mailto:a.p.zijlstra@chello.nl]
+> Sent: Thursday, March 03, 2011 1:50 AM
+> To: Andrea Arcangeli; Avi Kivity; Thomas Gleixner; Rik van Riel; Ingo Molnar; akpm@linux-foundation.org; Linus Torvalds
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; linux-mm@kvack.org; Benjamin Herrenschmidt; David Miller; Hugh
+> Dickins; Mel Gorman; Nick Piggin; Peter Zijlstra; Paul McKenney; Yanmin Zhang; Guan Xuetao
+> Subject: [PATCH 09/13] unicore: mmu_gather rework
+> 
+> Fix up the unicore mmu_gather code to conform to the new API.
+> 
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+>  arch/unicore32/include/asm/tlb.h |   32 ++++++++++++++++++++------------
+>  1 file changed, 20 insertions(+), 12 deletions(-)
+> 
+> Index: linux-2.6/arch/unicore32/include/asm/tlb.h
+> ===================================================================
+> --- linux-2.6.orig/arch/unicore32/include/asm/tlb.h
+> +++ linux-2.6/arch/unicore32/include/asm/tlb.h
+> @@ -27,17 +27,11 @@ struct mmu_gather {
+>  	unsigned long		range_end;
+>  };
+> 
+> -DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+> -
+> -static inline struct mmu_gather *
+> -tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
+> +static inline void
+> +tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int fullmm)
+>  {
+> -	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+> -
+>  	tlb->mm = mm;
+> -	tlb->fullmm = full_mm_flush;
+> -
+> -	return tlb;
+> +	tlb->fullmm = fullmm;
+>  }
+> 
+>  static inline void
+> @@ -48,8 +42,6 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
+> 
+>  	/* keep the page table cache within bounds */
+>  	check_pgt_cache();
+> -
+> -	put_cpu_var(mmu_gathers);
+>  }
+> 
+>  /*
+> @@ -88,7 +80,23 @@ tlb_end_vma(struct mmu_gather *tlb, stru
+>  		flush_tlb_range(vma, tlb->range_start, tlb->range_end);
+>  }
+> 
+> -#define tlb_remove_page(tlb, page)	free_page_and_swap_cache(page)
+> +static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+> +{
+> +}
+> +
+> +static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+> +{
+> +	free_page_and_swap_cache(page);
+> +	return 0;
+> +}
+> +
+> +static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+> +{
+> +	if (__tlb_remove_page(tlb, page))
+> +		tlb_flush_mmu(tlb);
+> +}
+> +
+> +
+>  #define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+>  #define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+>  #define pud_free_tlb(tlb, x, addr)      do { } while (0)
+Thanks Peter.
+It looks good to me, though it is dependent on your patch set "mm: Preemptible mmu_gather"
+While I have another look to include/asm-generic/tlb.h, I found it is also suitable for unicore32.
+And so, I rewrite the tlb.h to use asm-generic version, and then your patch set will also work for me.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+
+From: GuanXuetao <gxt@mprc.pku.edu.cn>
+Date: Fri, 4 Mar 2011 20:00:11 +0800
+Subject: [PATCH] unicore32: rewrite arch-specific tlb.h to use asm-generic version
+
+Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+---
+ arch/unicore32/include/asm/tlb.h |   94 +++++---------------------------------
+ 1 files changed, 12 insertions(+), 82 deletions(-)
+
+diff --git a/arch/unicore32/include/asm/tlb.h b/arch/unicore32/include/asm/tlb.h
+index 02ee40e..9cca15c 100644
+--- a/arch/unicore32/include/asm/tlb.h
++++ b/arch/unicore32/include/asm/tlb.h
+@@ -12,87 +12,17 @@
+ #ifndef __UNICORE_TLB_H__
+ #define __UNICORE_TLB_H__
+ 
+-#include <asm/cacheflush.h>
+-#include <asm/tlbflush.h>
+-#include <asm/pgalloc.h>
+-
+-/*
+- * TLB handling.  This allows us to remove pages from the page
+- * tables, and efficiently handle the TLB issues.
+- */
+-struct mmu_gather {
+-	struct mm_struct	*mm;
+-	unsigned int		fullmm;
+-	unsigned long		range_start;
+-	unsigned long		range_end;
+-};
+-
+-DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
+-
+-static inline struct mmu_gather *
+-tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
+-{
+-	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
+-
+-	tlb->mm = mm;
+-	tlb->fullmm = full_mm_flush;
+-
+-	return tlb;
+-}
+-
+-static inline void
+-tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+-{
+-	if (tlb->fullmm)
+-		flush_tlb_mm(tlb->mm);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-
+-	put_cpu_var(mmu_gathers);
+-}
+-
+-/*
+- * Memorize the range for the TLB flush.
+- */
+-static inline void
+-tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long addr)
+-{
+-	if (!tlb->fullmm) {
+-		if (addr < tlb->range_start)
+-			tlb->range_start = addr;
+-		if (addr + PAGE_SIZE > tlb->range_end)
+-			tlb->range_end = addr + PAGE_SIZE;
+-	}
+-}
+-
+-/*
+- * In the case of tlb vma handling, we can optimise these away in the
+- * case where we're doing a full MM flush.  When we're doing a munmap,
+- * the vmas are adjusted to only cover the region to be torn down.
+- */
+-static inline void
+-tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm) {
+-		flush_cache_range(vma, vma->vm_start, vma->vm_end);
+-		tlb->range_start = TASK_SIZE;
+-		tlb->range_end = 0;
+-	}
+-}
+-
+-static inline void
+-tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm && tlb->range_end > 0)
+-		flush_tlb_range(vma, tlb->range_start, tlb->range_end);
+-}
+-
+-#define tlb_remove_page(tlb, page)	free_page_and_swap_cache(page)
+-#define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+-#define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+-#define pud_free_tlb(tlb, x, addr)      do { } while (0)
+-
+-#define tlb_migrate_finish(mm)		do { } while (0)
++#define tlb_start_vma(tlb, vma)				do { } while (0)
++#define tlb_end_vma(tlb, vma)				do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
++#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
++
++#define __pte_free_tlb(tlb, pte, addr)				\
++	do {							\
++		pgtable_page_dtor(pte);				\
++		tlb_remove_page((tlb), (pte));			\
++	} while (0)
++
++#include <asm-generic/tlb.h>
+ 
+ #endif
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+1.6.2.2
+
+Thanks & Regards.
+
+Guan Xuetao
+
+
 
