@@ -1,59 +1,38 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: RE: [PATCH 09/13] unicore: mmu_gather rework
-Date: Fri, 04 Mar 2011 13:17:00 +0100
-Message-ID: <1299241020.2428.13504.camel@twins>
-References: <20110302175004.222724818@chello.nl>
-	 <20110302175200.883953013@chello.nl>
-	 <03ca01cbda63$31930fd0$94b92f70$@mprc.pku.edu.cn>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 16/17] unicore32: add (void __iomem *) to io_p2v macro
+Date: Fri, 4 Mar 2011 12:52:57 +0100
+Message-ID: <201103041252.57410.arnd@arndb.de>
+References: <cover.1298821856.git.epip@hera.kernel.org> <201102281635.56528.arnd@arndb.de> <03ba01cbda54$a5c39f00$f14add00$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <03ca01cbda63$31930fd0$94b92f70$@mprc.pku.edu.cn>
-Sender: owner-linux-mm@kvack.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:64630 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759397Ab1CDM4P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2011 07:56:15 -0500
+In-Reply-To: <03ba01cbda54$a5c39f00$f14add00$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'David Miller' <davem@davemloft.net>, 'Hugh Dickins' <hugh.dickins@tiscali.co.uk>, 'Mel Gorman' <mel@csn.ul.ie>, 'Nick Piggin' <npiggin@kernel.dk>, 'Paul McKenney' <paulmck@linux.vnet.ibm.com>, 'Yanmin Zhang' <yanmin_zhang@linux.intel.com>, 'Andrea Arcangeli' <aarcange@redhat.com>, 'Avi Kivity' <avi@redhat.com>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Rik van Riel' <riel@redhat.com>, 'Ingo Molnar' <mingo@elte.hu>, akpm@linux-foundation.org, 'Linus Torvalds' <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Cc: 'Guan Xuetao' <epip@hera.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
 
-On Fri, 2011-03-04 at 19:56 +0800, Guan Xuetao wrote:
+On Friday 04 March 2011, Guan Xuetao wrote:
+> From: GuanXuetao <gxt@mprc.pku.edu.cn>
+> Date: Fri, 4 Mar 2011 18:07:48 +0800
+> Subject: [PATCH] unicore32: modify io_p2v and io_v2p macros, and adjust PKUNITY_mmio_BASEs
+> 
+> 1. remove __REG macro
+> 2. add (void __iomem *) to io_p2v macro
+> 3. add (phys_addr_t) to io_v2p macro
+> 4. add PKUNITY_AHB_BASE and PKUNITY_APB_BASE definitions
+> 5. modify all PKUNITY_mmio_BASEs from physical addr to virtual addr
+> 6. adjust prefix macro for all usage of PKUNITY_mmio_BASEs
+>   -- by advice with Arnd Bergmann
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-> Thanks Peter.
-> It looks good to me, though it is dependent on your patch set "mm: Preemp=
-tible mmu_gather"
+Looks good,
 
-It is indeed, the split-out per arch is purely to ease review. The final
-commit should be a merge of the first 10 patches so as not to break
-bisection.
-
-> While I have another look to include/asm-generic/tlb.h, I found it is als=
-o suitable for unicore32.
-> And so, I rewrite the tlb.h to use asm-generic version, and then your pat=
-ch set will also work for me.
-
-Awesome, I notice you're loosing flush_tlb_range() support for this, if
-you're fine with that I'm obviously not going to argue, but if its
-better for your platform to keep doing this we can work on that as well
-as I'm trying to add generic support for range tracking into the generic
-tlb code.
-
-More importantly, you seem to loose your call to flush_cache_range()
-which isn't a NOP on your platform.
-
-Furthermore, while arch/unicore32/mm/tlb-ucv2.S is mostly magic to me, I
-see unicore32 is one of the few architectures that actually uses
-vm_flags in flush_tlb_range(). Do you have independent I/D-TLB flushes
-or are you flushing I-cache on VM_EXEC?
-
-Also, I notice your flush_tlb_range() implementation looks to be a loop
-invalidating individual pages, which I can imagine is cheaper for small
-ranges but large ranges might be better of with a full invalidate. Did
-you think about this?
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
