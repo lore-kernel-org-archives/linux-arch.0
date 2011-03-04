@@ -1,48 +1,46 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [RFC][PATCH 2/6] mm: Change flush_tlb_range() to take an mm_struct
-Date: Thu, 3 Mar 2011 13:56:34 -0500
-Message-ID: <4D6FE462.4080002@tilera.com>
-References: <1299102027.1310.39.camel@laptop>	<20110302.134735.260066220.davem@davemloft.net>	<4D6FCE5D.4030904@tilera.com> <20110303.104542.104052570.davem@davemloft.net>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: [PATCH 13/17] unicore32 io: redefine __REG(x) and re-use readl/writel funcs
+Date: Fri, 4 Mar 2011 16:00:55 +0800
+Message-ID: <03a101cbda42$4c48b080$e4da1180$@mprc.pku.edu.cn>
+References: <cover.1298821856.git.epip@hera.kernel.org> <b05e05c32279bbb45939006a6bbaf7e7183f14ce.1298821856.git.epip@hera.kernel.org> <201102281617.00462.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110303.104542.104052570.davem@davemloft.net>
-Sender: owner-linux-mm@kvack.org
-To: David Miller <davem@davemloft.net>
-Cc: a.p.zijlstra@chello.nl, torvalds@linux-foundation.org, aarcange@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@kernel.dk, rmk@arm.linux.org.uk, schwidefsky@de.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:35888 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754237Ab1CDInw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Mar 2011 03:43:52 -0500
+In-Reply-To: <201102281617.00462.arnd@arndb.de>
+Content-Language: zh-cn
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: 'Arnd Bergmann' <arnd@arndb.de>, 'Guan Xuetao' <epip@hera.kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
 
-On 3/3/2011 1:45 PM, David Miller wrote:
->> I'm finding it hard to understand how the Sparc code handles icache
->> coherence.  It seems that the Spitfire MMU is the interesting one, but the
->> hard case seems to be when a process migrates around to various cores
->> during execution (thus leaving incoherent icache lines everywhere), and the
->> page is then freed and re-used for different executable code.  I'd think
->> that there would have to be xcall IPIs to flush all the cpus' icaches, or
->> to flush every core in the cpu_vm_mask plus do something at context switch,
->> but I don't see any of that.  No doubt I'm missing something :-)
-> flush_dcache_page() remembers the cpu that wrote to the page (in the
-> page flags), and cross-calls to that specific cpu.
->
-> It is only that cpu which must flush his I-cache, since all other cpus
-> saw the write on the bus and updated their I-cache lines as a result.
->
-> See, in the sparc64 case, the incoherency issue is purely local to the
-> store.  The problem case is specifically the local I-cache not seeing
-> local writes, everything else is fine.  CPU I-caches see writes done
-> by other cpus, just not those done by the local cpu.
 
-Thanks, that makes sense.  Our architecture has no bus to snoop, so we
-couldn't take advantage of that approach.
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Monday, February 28, 2011 11:17 PM
+> To: Guan Xuetao
+> Cc: GuanXuetao; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com
+> Subject: Re: [PATCH 13/17] unicore32 io: redefine __REG(x) and re-use readl/writel funcs
+> 
+> On Sunday 27 February 2011, Guan Xuetao wrote:
+> > From: GuanXuetao <gxt@mprc.pku.edu.cn>
+> >
+> >   -- by advice of Arnd Bergmann
+> >
+> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> 
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> I was expecting this to get folded into the patches that introduce the files,
+> but this way is fine as well.
+I want to keep the patches for core and additional architecture files stable, so each usage of old __REG macor
+should be replaced by readl/writel and then generating a big patch.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks & Regards.
+Guan Xuetao
