@@ -1,38 +1,75 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 16/17] unicore32: add (void __iomem *) to io_p2v macro
-Date: Fri, 4 Mar 2011 12:52:57 +0100
-Message-ID: <201103041252.57410.arnd@arndb.de>
-References: <cover.1298821856.git.epip@hera.kernel.org> <201102281635.56528.arnd@arndb.de> <03ba01cbda54$a5c39f00$f14add00$@mprc.pku.edu.cn>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [patch 31/37] mn10300: Use generic irq Kconfig
+Date: Sat, 5 Mar 2011 22:02:33 +0100
+Message-ID: <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
+References: <20110119205258.462759212@linutronix.de>
+	<20110119210840.381111598@linutronix.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:64630 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759397Ab1CDM4P (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Mar 2011 07:56:15 -0500
-In-Reply-To: <03ba01cbda54$a5c39f00$f14add00$@mprc.pku.edu.cn>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:57596 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753265Ab1CEVCf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2011 16:02:35 -0500
+In-Reply-To: <20110119210840.381111598@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: 'Guan Xuetao' <epip@hera.kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
 
-On Friday 04 March 2011, Guan Xuetao wrote:
-> From: GuanXuetao <gxt@mprc.pku.edu.cn>
-> Date: Fri, 4 Mar 2011 18:07:48 +0800
-> Subject: [PATCH] unicore32: modify io_p2v and io_v2p macros, and adjust PKUNITY_mmio_BASEs
-> 
-> 1. remove __REG macro
-> 2. add (void __iomem *) to io_p2v macro
-> 3. add (phys_addr_t) to io_v2p macro
-> 4. add PKUNITY_AHB_BASE and PKUNITY_APB_BASE definitions
-> 5. modify all PKUNITY_mmio_BASEs from physical addr to virtual addr
-> 6. adjust prefix macro for all usage of PKUNITY_mmio_BASEs
->   -- by advice with Arnd Bergmann
-> 
-> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+On Wed, Jan 19, 2011 at 22:49, Thomas Gleixner <tglx@linutronix.de> wro=
+te:
+> No functional change.
+>
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: David Howells <dhowells@redhat.com>
+> ---
+> =C2=A0arch/mn10300/Kconfig | =C2=A0 =C2=A05 +----
+> =C2=A01 file changed, 1 insertion(+), 4 deletions(-)
+>
+> Index: linux-2.6/arch/mn10300/Kconfig
+> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
+> --- linux-2.6.orig/arch/mn10300/Kconfig
+> +++ linux-2.6/arch/mn10300/Kconfig
+> @@ -1,6 +1,7 @@
+> =C2=A0config MN10300
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool y
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0select HAVE_OPROFILE
+> + =C2=A0 =C2=A0 =C2=A0 select GENERIC_HARDIRQS
 
-Looks good,
+Wasn't this supposed to be "select HAVE_GENERIC_HARDIRQS"?
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+/me studying generic hardirqs...
+
+>
+> =C2=A0config AM33_2
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool n
+> @@ -76,10 +77,6 @@ config QUICKLIST
+> =C2=A0config ARCH_HAS_ILOG2_U32
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool y
+>
+> -# Use the generic interrupt handling code in kernel/irq/
+> -config GENERIC_HARDIRQS
+> - =C2=A0 =C2=A0 =C2=A0 def_bool y
+> -
+> =C2=A0config HOTPLUG_CPU
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool n
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
