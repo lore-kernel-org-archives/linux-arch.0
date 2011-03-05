@@ -1,75 +1,59 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Sam Ravnborg <sam@ravnborg.org>
 Subject: Re: [patch 31/37] mn10300: Use generic irq Kconfig
-Date: Sat, 5 Mar 2011 22:02:33 +0100
-Message-ID: <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
-References: <20110119205258.462759212@linutronix.de>
-	<20110119210840.381111598@linutronix.de>
+Date: Sat, 5 Mar 2011 23:01:27 +0100
+Message-ID: <20110305220127.GA21728@merkur.ravnborg.org>
+References: <20110119205258.462759212@linutronix.de> <20110119210840.381111598@linutronix.de> <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:57596 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753265Ab1CEVCf convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2011 16:02:35 -0500
-In-Reply-To: <20110119210840.381111598@linutronix.de>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:39603 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751055Ab1CEWB3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2011 17:01:29 -0500
+Content-Disposition: inline
+In-Reply-To: <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
 
-On Wed, Jan 19, 2011 at 22:49, Thomas Gleixner <tglx@linutronix.de> wro=
-te:
-> No functional change.
->
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: David Howells <dhowells@redhat.com>
-> ---
-> =C2=A0arch/mn10300/Kconfig | =C2=A0 =C2=A05 +----
-> =C2=A01 file changed, 1 insertion(+), 4 deletions(-)
->
-> Index: linux-2.6/arch/mn10300/Kconfig
-> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
+On Sat, Mar 05, 2011 at 10:02:33PM +0100, Geert Uytterhoeven wrote:
+> On Wed, Jan 19, 2011 at 22:49, Thomas Gleixner <tglx@linutronix.de> w=
+rote:
+> > No functional change.
+> >
+> > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> > Cc: David Howells <dhowells@redhat.com>
+> > ---
+> > =A0arch/mn10300/Kconfig | =A0 =A05 +----
+> > =A01 file changed, 1 insertion(+), 4 deletions(-)
+> >
+> > Index: linux-2.6/arch/mn10300/Kconfig
+> > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
 =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
 =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> --- linux-2.6.orig/arch/mn10300/Kconfig
-> +++ linux-2.6/arch/mn10300/Kconfig
-> @@ -1,6 +1,7 @@
-> =C2=A0config MN10300
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool y
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0select HAVE_OPROFILE
-> + =C2=A0 =C2=A0 =C2=A0 select GENERIC_HARDIRQS
+> > --- linux-2.6.orig/arch/mn10300/Kconfig
+> > +++ linux-2.6/arch/mn10300/Kconfig
+> > @@ -1,6 +1,7 @@
+> > =A0config MN10300
+> > =A0 =A0 =A0 =A0def_bool y
+> > =A0 =A0 =A0 =A0select HAVE_OPROFILE
+> > + =A0 =A0 =A0 select GENERIC_HARDIRQS
+>=20
+> Wasn't this supposed to be "select HAVE_GENERIC_HARDIRQS"?
+>=20
+> /me studying generic hardirqs...
 
-Wasn't this supposed to be "select HAVE_GENERIC_HARDIRQS"?
+One could hope this was nicely documented in kernel/irq/Kconfig.
+But that file contains only 9 lines of comments for 10 config symbols.
 
-/me studying generic hardirqs...
+Maybe it is just me but I was struggeling understanding the purpose
+of these config symbols.
 
->
-> =C2=A0config AM33_2
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool n
-> @@ -76,10 +77,6 @@ config QUICKLIST
-> =C2=A0config ARCH_HAS_ILOG2_U32
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool y
->
-> -# Use the generic interrupt handling code in kernel/irq/
-> -config GENERIC_HARDIRQS
-> - =C2=A0 =C2=A0 =C2=A0 def_bool y
-> -
-> =C2=A0config HOTPLUG_CPU
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0def_bool n
+I found the individual bits of genirq nicely documented in most cases.
+But the overall picture was/is hard to get.
 
-Gr{oetje,eeting}s,
+And I never got enough understanding to write up something myself :-(
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+	Sam
