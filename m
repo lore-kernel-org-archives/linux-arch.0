@@ -1,59 +1,73 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [patch 31/37] mn10300: Use generic irq Kconfig
-Date: Sat, 5 Mar 2011 23:01:27 +0100
-Message-ID: <20110305220127.GA21728@merkur.ravnborg.org>
-References: <20110119205258.462759212@linutronix.de> <20110119210840.381111598@linutronix.de> <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pfepa.post.tele.dk ([195.41.46.235]:39603 "EHLO
-	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751055Ab1CEWB3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 Mar 2011 17:01:29 -0500
-Content-Disposition: inline
-In-Reply-To: <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [RFC][PATCH 15/15] mm, xtensa: Convert xtensa to generic tlb
+Date: Mon, 07 Mar 2011 18:14:05 +0100
+Message-ID: <20110307172207.513560565@chello.nl>
+References: <20110307171350.989666626@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=xtensa-mmu_range.patch
+Sender: owner-linux-mm@kvack.org
+To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Chris Zankel <chris@zankel.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Mar 05, 2011 at 10:02:33PM +0100, Geert Uytterhoeven wrote:
-> On Wed, Jan 19, 2011 at 22:49, Thomas Gleixner <tglx@linutronix.de> w=
-rote:
-> > No functional change.
-> >
-> > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> > Cc: David Howells <dhowells@redhat.com>
-> > ---
-> > =A0arch/mn10300/Kconfig | =A0 =A05 +----
-> > =A01 file changed, 1 insertion(+), 4 deletions(-)
-> >
-> > Index: linux-2.6/arch/mn10300/Kconfig
-> > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> > --- linux-2.6.orig/arch/mn10300/Kconfig
-> > +++ linux-2.6/arch/mn10300/Kconfig
-> > @@ -1,6 +1,7 @@
-> > =A0config MN10300
-> > =A0 =A0 =A0 =A0def_bool y
-> > =A0 =A0 =A0 =A0select HAVE_OPROFILE
-> > + =A0 =A0 =A0 select GENERIC_HARDIRQS
->=20
-> Wasn't this supposed to be "select HAVE_GENERIC_HARDIRQS"?
->=20
-> /me studying generic hardirqs...
+Cc: Chris Zankel <chris@zankel.net>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/xtensa/Kconfig           |    1 +
+ arch/xtensa/include/asm/tlb.h |   23 -----------------------
+ 2 files changed, 1 insertion(+), 23 deletions(-)
 
-One could hope this was nicely documented in kernel/irq/Kconfig.
-But that file contains only 9 lines of comments for 10 config symbols.
+Index: linux-2.6/arch/xtensa/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/xtensa/Kconfig
++++ linux-2.6/arch/xtensa/Kconfig
+@@ -7,6 +7,7 @@ config ZONE_DMA
+ config XTENSA
+ 	def_bool y
+ 	select HAVE_IDE
++	select HAVE_MMU_GATHER_RANGE
+ 	help
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+ 	  primarily for embedded systems.  These processors are both
+Index: linux-2.6/arch/xtensa/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/xtensa/include/asm/tlb.h
++++ linux-2.6/arch/xtensa/include/asm/tlb.h
+@@ -14,29 +14,6 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
+ 
+-#if (DCACHE_WAY_SIZE <= PAGE_SIZE)
+-
+-/* Note, read http://lkml.org/lkml/2004/1/15/6 */
+-
+-# define tlb_start_vma(tlb,vma)			do { } while (0)
+-# define tlb_end_vma(tlb,vma)			do { } while (0)
+-
+-#else
+-
+-# define tlb_start_vma(tlb, vma)					      \
+-	do {								      \
+-		if (!tlb->fullmm)					      \
+-			flush_cache_range(vma, vma->vm_start, vma->vm_end);   \
+-	} while(0)
+-
+-# define tlb_end_vma(tlb, vma)						      \
+-	do {								      \
+-		if (!tlb->fullmm)					      \
+-			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
+-	} while(0)
+-
+-#endif
+-
+ #define __tlb_remove_tlb_entry(tlb,pte,addr)	do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
 
-Maybe it is just me but I was struggeling understanding the purpose
-of these config symbols.
 
-I found the individual bits of genirq nicely documented in most cases.
-But the overall picture was/is hard to get.
-
-And I never got enough understanding to write up something myself :-(
-
-	Sam
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
