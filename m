@@ -1,70 +1,66 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 02/15] mm, sparc64: Dont use tlb_flush for external tlb flushes
-Date: Mon, 07 Mar 2011 18:13:52 +0100
-Message-ID: <20110307172206.624713531@chello.nl>
+Subject: [RFC][PATCH 04/15] mm: Optimize fullmm TLB flushing
+Date: Mon, 07 Mar 2011 18:13:54 +0100
+Message-ID: <20110307172206.762715755@chello.nl>
 References: <20110307171350.989666626@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=sparc64-tlb_flush.patch
+Content-Disposition: inline; filename=mmu_gather_fullmm.patch
 Sender: owner-linux-mm@kvack.org
 To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Both sparc64 and powerpc64 use tlb_flush() to flush their respective
-hash-tables which is entirely different from what
-flush_tlb_range()/flush_tlb_mm() would do.
+This originated from s390 which does something similar and would allow
+s390 to use the generic TLB flushing code.
 
-Powerpc64 already uses arch_*_lazy_mmu_mode() to batch and flush these
-so any tlb_flush() caller should already find an empty batch, make
-sparc64 do the same.
+The idea is to flush the mm wide cache and tlb a priory and not bother
+with multiple flushes if the batching isn't large enough.
 
-This ensures all platforms now have a tlb_flush() implementation that
-is either flush_tlb_mm() or flush_tlb_range().
+This can be safely done since there cannot be any concurrency on this
+mm, its either after the process died (exit) or in the middle of
+execve where the thread switched to the new mm.
 
-Cc: David Miller <davem@davemloft.net>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/powerpc/mm/tlb_hash64.c         |   10 ----------
- arch/sparc/include/asm/tlb_64.h      |    2 +-
- arch/sparc/include/asm/tlbflush_64.h |   13 +++++++++++++
- 3 files changed, 14 insertions(+), 11 deletions(-)
+ include/asm-generic/tlb.h |   15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-Index: linux-2.6/arch/sparc/include/asm/tlbflush_64.h
+Index: linux-2.6/include/asm-generic/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/tlbflush_64.h
-+++ linux-2.6/arch/sparc/include/asm/tlbflush_64.h
-@@ -26,6 +26,19 @@ extern void flush_tlb_pending(void);
- #define flush_tlb_page(vma,addr)	flush_tlb_pending()
- #define flush_tlb_mm(mm)		flush_tlb_pending()
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -149,6 +149,11 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb->batch = NULL;
+ #endif
++
++	if (fullmm) {
++		flush_cache_mm(mm);
++		flush_tlb_mm(mm);
++	}
+ }
  
-+#define __HAVE_ARCH_ENTER_LAZY_MMU_MODE
-+
-+static inline void arch_enter_lazy_mmu_mode(void)
-+{
-+}
-+
-+static inline void arch_leave_lazy_mmu_mode(void)
-+{
-+	flush_tlb_pending();
-+}
-+
-+#define arch_flush_lazy_mmu_mode()      do {} while (0)
-+
- /* Local cpu only.  */
- extern void __flush_tlb_all(void);
+ static inline void
+@@ -156,13 +161,15 @@ tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
  
-Index: linux-2.6/arch/sparc/include/asm/tlb_64.h
-===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/tlb_64.h
-+++ linux-2.6/arch/sparc/include/asm/tlb_64.h
-@@ -25,7 +25,7 @@ extern void flush_tlb_pending(void);
- #define tlb_start_vma(tlb, vma) do { } while (0)
- #define tlb_end_vma(tlb, vma)	do { } while (0)
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
--#define tlb_flush(tlb)	flush_tlb_pending()
-+#define tlb_flush(tlb)	do { } while (0)
- 
- #include <asm-generic/tlb.h>
+-	if (!tlb->need_flush)
+-		return;
+-	tlb->need_flush = 0;
+-	flush_tlb_mm(tlb->mm);
++	if (!tlb->fullmm && tlb->need_flush) {
++		tlb->need_flush = 0;
++		flush_tlb_mm(tlb->mm);
++	}
++
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
+ #endif
++
+ 	if (tlb_fast_mode(tlb))
+ 		return;
  
 
 
