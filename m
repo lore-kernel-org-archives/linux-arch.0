@@ -1,60 +1,53 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 14/15] mm, sparc32: Convert sparc32 to generic tlb
-Date: Mon, 07 Mar 2011 18:14:04 +0100
-Message-ID: <20110307172207.445811237@chello.nl>
+Subject: [RFC][PATCH 13/15] mm, parisc: Convert parisc to generic tlb
+Date: Mon, 07 Mar 2011 18:14:03 +0100
+Message-ID: <20110307172207.377641805@chello.nl>
 References: <20110307171350.989666626@chello.nl>
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=sparc32-mmu_range.patch
-Sender: owner-linux-mm@kvack.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=parisc-mmu_range.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Kyle McMartin <kyle@mcmartin.ca>, James Bottomley <jejb@parisc-linux.org>
 List-Id: linux-arch.vger.kernel.org
 
-Cc: David Miller <davem@davemloft.net>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: James Bottomley <jejb@parisc-linux.org>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/sparc/Kconfig              |    1 +
- arch/sparc/include/asm/tlb_32.h |   10 ----------
+ arch/parisc/Kconfig           |    1 +
+ arch/parisc/include/asm/tlb.h |   10 ----------
  2 files changed, 1 insertion(+), 10 deletions(-)
 
-Index: linux-2.6/arch/sparc/Kconfig
+Index: linux-2.6/arch/parisc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/sparc/Kconfig
-+++ linux-2.6/arch/sparc/Kconfig
-@@ -25,6 +25,7 @@ config SPARC
- 	select HAVE_DMA_ATTRS
- 	select HAVE_DMA_API_DEBUG
- 	select HAVE_ARCH_JUMP_LABEL
+--- linux-2.6.orig/arch/parisc/Kconfig
++++ linux-2.6/arch/parisc/Kconfig
+@@ -17,6 +17,7 @@ config PARISC
+ 	select IRQ_PER_CPU
+ 	select GENERIC_HARDIRQS_NO_DEPRECATED
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
 +	select HAVE_MMU_GATHER_RANGE
  
- config SPARC32
- 	def_bool !64BIT
-Index: linux-2.6/arch/sparc/include/asm/tlb_32.h
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+Index: linux-2.6/arch/parisc/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/sparc/include/asm/tlb_32.h
-+++ linux-2.6/arch/sparc/include/asm/tlb_32.h
+--- linux-2.6.orig/arch/parisc/include/asm/tlb.h
++++ linux-2.6/arch/parisc/include/asm/tlb.h
 @@ -1,16 +1,6 @@
- #ifndef _SPARC_TLB_H
- #define _SPARC_TLB_H
+ #ifndef _PARISC_TLB_H
+ #define _PARISC_TLB_H
  
 -#define tlb_start_vma(tlb, vma) \
--do {								\
--	flush_cache_range(vma, vma->vm_start, vma->vm_end);	\
+-do {	if (!(tlb)->fullmm)	\
+-		flush_cache_range(vma, vma->vm_start, vma->vm_end); \
 -} while (0)
 -
--#define tlb_end_vma(tlb, vma) \
--do {								\
--	flush_tlb_range(vma, vma->vm_start, vma->vm_end);	\
+-#define tlb_end_vma(tlb, vma)	\
+-do {	if (!(tlb)->fullmm)	\
+-		flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
 -} while (0)
 -
  #define __tlb_remove_tlb_entry(tlb, pte, address) \
  	do { } while (0)
  
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
