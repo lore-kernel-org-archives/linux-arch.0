@@ -1,60 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:43017 "EHLO
+Received: from bombadil.infradead.org ([18.85.46.34]:43059 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755499Ab1CGRtb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2011 12:49:31 -0500
-Message-ID: <20110307172207.377641805@chello.nl>
-Date: Mon, 07 Mar 2011 18:14:03 +0100
+	with ESMTP id S1755709Ab1CGRtq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2011 12:49:46 -0500
+Message-ID: <20110307172207.105394031@chello.nl>
+Date: Mon, 07 Mar 2011 18:13:59 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 13/15] mm, parisc: Convert parisc to generic tlb
+Subject: [RFC][PATCH 09/15] mm, sh: Convert sh to generic tlb
 References: <20110307171350.989666626@chello.nl>
-Content-Disposition: inline; filename=parisc-mmu_range.patch
+Content-Disposition: inline; filename=mm-sh-tlb-range.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Kyle McMartin <kyle@mcmartin.ca>, James Bottomley <jejb@parisc-linux.org>
-Message-ID: <20110307171403.lTCV3OmPWM6sKJjGQIn_EdDYtrVxXRgjn0SiMdo3r64@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20110307171359.N7dhIRbYDCEfNFPKcSvNErsyR_W8kGusEKJLx8NuRBU@z>
 
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: James Bottomley <jejb@parisc-linux.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/parisc/Kconfig           |    1 +
- arch/parisc/include/asm/tlb.h |   10 ----------
- 2 files changed, 1 insertion(+), 10 deletions(-)
+ arch/sh/Kconfig           |    1 
+ arch/sh/include/asm/tlb.h |   98 ++--------------------------------------------
+ 2 files changed, 6 insertions(+), 93 deletions(-)
 
-Index: linux-2.6/arch/parisc/Kconfig
+Index: linux-2.6/arch/sh/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/parisc/Kconfig
-+++ linux-2.6/arch/parisc/Kconfig
-@@ -17,6 +17,7 @@ config PARISC
- 	select IRQ_PER_CPU
- 	select GENERIC_HARDIRQS_NO_DEPRECATED
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-+	select HAVE_MMU_GATHER_RANGE
- 
+--- linux-2.6.orig/arch/sh/Kconfig
++++ linux-2.6/arch/sh/Kconfig
+@@ -24,6 +24,7 @@ config SUPERH
+ 	select HAVE_SPARSE_IRQ
+ 	select RTC_LIB
+ 	select GENERIC_ATOMIC64
++	select HAVE_MMU_GATHER_RANGE if MMU
+ 	# Support the deprecated APIs until MFD and GPIOLIB catch up.
+ 	select GENERIC_HARDIRQS_NO_DEPRECATED if !MFD_SUPPORT && !GPIOLIB
  	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
-Index: linux-2.6/arch/parisc/include/asm/tlb.h
+Index: linux-2.6/arch/sh/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/parisc/include/asm/tlb.h
-+++ linux-2.6/arch/parisc/include/asm/tlb.h
-@@ -1,16 +1,6 @@
- #ifndef _PARISC_TLB_H
- #define _PARISC_TLB_H
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -9,100 +9,14 @@
+ #include <linux/pagemap.h>
  
--#define tlb_start_vma(tlb, vma) \
--do {	if (!(tlb)->fullmm)	\
--		flush_cache_range(vma, vma->vm_start, vma->vm_end); \
--} while (0)
+ #ifdef CONFIG_MMU
+-#include <asm/pgalloc.h>
+-#include <asm/tlbflush.h>
+-#include <asm/mmu_context.h>
 -
--#define tlb_end_vma(tlb, vma)	\
--do {	if (!(tlb)->fullmm)	\
--		flush_tlb_range(vma, vma->vm_start, vma->vm_end); \
--} while (0)
--
- #define __tlb_remove_tlb_entry(tlb, pte, address) \
- 	do { } while (0)
+-/*
+- * TLB handling.  This allows us to remove pages from the page
+- * tables, and efficiently handle the TLB issues.
+- */
+-struct mmu_gather {
+-	struct mm_struct	*mm;
+-	unsigned int		fullmm;
+-	unsigned long		start, end;
+-};
  
+-static inline void init_tlb_gather(struct mmu_gather *tlb)
+-{
+-	tlb->start = TASK_SIZE;
+-	tlb->end = 0;
+-
+-	if (tlb->fullmm) {
+-		tlb->start = 0;
+-		tlb->end = TASK_SIZE;
+-	}
+-}
+-
+-static inline void
+-tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+-{
+-	tlb->mm = mm;
+-	tlb->fullmm = full_mm_flush;
+-
+-	init_tlb_gather(tlb);
+-}
+-
+-static inline void
+-tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
+-{
+-	if (tlb->fullmm)
+-		flush_tlb_mm(tlb->mm);
+-
+-	/* keep the page table cache within bounds */
+-	check_pgt_cache();
+-}
+-
+-static inline void
+-tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long address)
+-{
+-	if (tlb->start > address)
+-		tlb->start = address;
+-	if (tlb->end < address + PAGE_SIZE)
+-		tlb->end = address + PAGE_SIZE;
+-}
+-
+-/*
+- * In the case of tlb vma handling, we can optimise these away in the
+- * case where we're doing a full MM flush.  When we're doing a munmap,
+- * the vmas are adjusted to only cover the region to be torn down.
+- */
+-static inline void
+-tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm)
+-		flush_cache_range(vma, vma->vm_start, vma->vm_end);
+-}
+-
+-static inline void
+-tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
+-{
+-	if (!tlb->fullmm && tlb->end) {
+-		flush_tlb_range(vma, tlb->start, tlb->end);
+-		init_tlb_gather(tlb);
+-	}
+-}
++#define __tlb_remove_tlb_entry(tlb, ptep, addr) do { } while (0)
+ 
+-static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+-{
+-}
++#define __pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
++#define __pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
++#define __pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+ 
+-static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	free_page_and_swap_cache(page);
+-	return 0;
+-}
+-
+-static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
+-{
+-	__tlb_remove_page(tlb, page);
+-}
+-
+-#define pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+-#define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+-#define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+-
+-#define tlb_migrate_finish(mm)		do { } while (0)
++#include <asm-generic/tlb.h>
+ 
+ #if defined(CONFIG_CPU_SH4) || defined(CONFIG_SUPERH64)
+ extern void tlb_wire_entry(struct vm_area_struct *, unsigned long, pte_t);
+@@ -122,8 +36,6 @@ static inline void tlb_unwire_entry(void
+ 
+ #else /* CONFIG_MMU */
+ 
+-#define tlb_start_vma(tlb, vma)				do { } while (0)
+-#define tlb_end_vma(tlb, vma)				do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, pte, address)	do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
 
 
