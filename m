@@ -1,230 +1,424 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 07/15] mm, arm: Convert arm to generic tlb
-Date: Mon, 07 Mar 2011 18:13:57 +0100
-Message-ID: <20110307172206.967487351@chello.nl>
+Subject: [RFC][PATCH 03/15] mm, arch: Remove tlb_flush()
+Date: Mon, 07 Mar 2011 18:13:53 +0100
+Message-ID: <20110307172206.693792867@chello.nl>
 References: <20110307171350.989666626@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=mm-arm-tlb-range.patch
+Content-Disposition: inline; filename=generic_tlb_flush.patch
 Sender: owner-linux-mm@kvack.org
 To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Might want to optimize the tlb_flush() function to do a full mm flush
-when the range is 'large', IA64 does this too.
+Since all asm-generic/tlb.h users their tlb_flush() implementation is
+now either a nop or flush_tlb_mm(), remove it and make the generic
+code use flush_tlb_mm() directly.
 
-Cc: Russell King <rmk@arm.linux.org.uk>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/arm/Kconfig           |    1 
- arch/arm/include/asm/tlb.h |  174 +--------------------------------------------
- 2 files changed, 6 insertions(+), 169 deletions(-)
+ arch/alpha/include/asm/tlb.h      |    2 --
+ arch/arm/include/asm/tlb.h        |    2 --
+ arch/avr32/include/asm/tlb.h      |    5 -----
+ arch/blackfin/include/asm/tlb.h   |    6 ------
+ arch/cris/include/asm/tlb.h       |    1 -
+ arch/frv/include/asm/tlb.h        |    5 -----
+ arch/h8300/include/asm/tlb.h      |   13 -------------
+ arch/m32r/include/asm/tlb.h       |    6 ------
+ arch/m68k/include/asm/tlb.h       |    6 ------
+ arch/microblaze/include/asm/tlb.h |    2 --
+ arch/mips/include/asm/tlb.h       |    5 -----
+ arch/mn10300/include/asm/tlb.h    |    5 -----
+ arch/parisc/include/asm/tlb.h     |    5 -----
+ arch/powerpc/include/asm/tlb.h    |    2 --
+ arch/powerpc/mm/tlb_hash32.c      |   15 ---------------
+ arch/powerpc/mm/tlb_hash64.c      |    4 ----
+ arch/powerpc/mm/tlb_nohash.c      |    5 -----
+ arch/score/include/asm/tlb.h      |    1 -
+ arch/sh/include/asm/tlb.h         |    1 -
+ arch/sparc/include/asm/tlb_32.h   |    5 -----
+ arch/sparc/include/asm/tlb_64.h   |    1 -
+ arch/tile/include/asm/tlb.h       |    1 -
+ arch/x86/include/asm/tlb.h        |    1 -
+ arch/xtensa/include/asm/tlb.h     |    1 -
+ include/asm-generic/tlb.h         |    2 +-
+ 25 files changed, 1 insertion(+), 101 deletions(-)
 
-Index: linux-2.6/arch/arm/Kconfig
+Index: linux-2.6/arch/alpha/include/asm/tlb.h
 ===================================================================
---- linux-2.6.orig/arch/arm/Kconfig
-+++ linux-2.6/arch/arm/Kconfig
-@@ -28,6 +28,7 @@ config ARM
- 	select HAVE_C_RECORDMCOUNT
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_SPARSE_IRQ
-+	select HAVE_MMU_GATHER_RANGE if MMU
- 	help
- 	  The ARM series is a line of low-power-consumption RISC chip designs
- 	  licensed by ARM Ltd and targeted at embedded applications and
+--- linux-2.6.orig/arch/alpha/include/asm/tlb.h
++++ linux-2.6/arch/alpha/include/asm/tlb.h
+@@ -5,8 +5,6 @@
+ #define tlb_end_vma(tlb, vma)			do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, pte, addr)	do { } while (0)
+ 
+-#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #define __pte_free_tlb(tlb, pte, address)		pte_free((tlb)->mm, pte)
 Index: linux-2.6/arch/arm/include/asm/tlb.h
 ===================================================================
 --- linux-2.6.orig/arch/arm/include/asm/tlb.h
 +++ linux-2.6/arch/arm/include/asm/tlb.h
-@@ -27,184 +27,20 @@
+@@ -23,8 +23,6 @@
+ 
+ #include <linux/pagemap.h>
+ 
+-#define tlb_flush(tlb)	((void) tlb)
+-
+ #include <asm-generic/tlb.h>
  
  #else /* !CONFIG_MMU */
+Index: linux-2.6/arch/avr32/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/avr32/include/asm/tlb.h
++++ linux-2.6/arch/avr32/include/asm/tlb.h
+@@ -16,11 +16,6 @@
  
--#include <linux/swap.h>
--#include <asm/pgalloc.h>
--#include <asm/tlbflush.h>
--
+ #define __tlb_remove_tlb_entry(tlb, pte, address) do { } while(0)
+ 
 -/*
-- * We need to delay page freeing for SMP as other CPUs can access pages
-- * which have been removed but not yet had their TLB entries invalidated.
-- * Also, as ARMv7 speculative prefetch can drag new entries into the TLB,
-- * we need to apply this same delaying tactic to ensure correct operation.
+- * Flush whole TLB for MM
 - */
--#if defined(CONFIG_SMP) || defined(CONFIG_CPU_32v7)
--#define tlb_fast_mode(tlb)	0
--#else
--#define tlb_fast_mode(tlb)	1
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+-
+ #include <asm-generic/tlb.h>
+ 
+ /*
+Index: linux-2.6/arch/blackfin/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/blackfin/include/asm/tlb.h
++++ linux-2.6/arch/blackfin/include/asm/tlb.h
+@@ -11,12 +11,6 @@
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+ 
+-/*
+- * .. because we flush the whole mm when it
+- * fills up.
+- */
+-#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #endif				/* _BLACKFIN_TLB_H */
+Index: linux-2.6/arch/cris/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/cris/include/asm/tlb.h
++++ linux-2.6/arch/cris/include/asm/tlb.h
+@@ -13,7 +13,6 @@
+ #define tlb_end_vma(tlb, vma) do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ 
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+ #include <asm-generic/tlb.h>
+ 
+ #endif
+Index: linux-2.6/arch/frv/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/frv/include/asm/tlb.h
++++ linux-2.6/arch/frv/include/asm/tlb.h
+@@ -16,11 +16,6 @@ extern void check_pgt_cache(void);
+ #define tlb_end_vma(tlb, vma)				do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+ 
+-/*
+- * .. because we flush the whole mm when it fills up
+- */
+-#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* _ASM_TLB_H */
+Index: linux-2.6/arch/h8300/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/h8300/include/asm/tlb.h
++++ linux-2.6/arch/h8300/include/asm/tlb.h
+@@ -5,19 +5,6 @@
+ #ifndef __H8300_TLB_H__
+ #define __H8300_TLB_H__
+ 
+-#define tlb_flush(tlb)	do { } while(0)
+-
+-/* 
+-  include/asm-h8300/tlb.h 
+-*/
+-
+-#ifndef __H8300_TLB_H__
+-#define __H8300_TLB_H__
+-
+-#define tlb_flush(tlb)	do { } while(0)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #endif
+-
 -#endif
--
--#define MMU_GATHER_BUNDLE	8
--
--/*
-- * TLB handling.  This allows us to remove pages from the page
-- * tables, and efficiently handle the TLB issues.
-- */
--struct mmu_gather {
--	struct mm_struct	*mm;
--	unsigned int		fullmm;
--	struct vm_area_struct	*vma;
--	unsigned long		range_start;
--	unsigned long		range_end;
--	unsigned int		nr;
--	unsigned int		max;
--	struct page		**pages;
--	struct page		*local[MMU_GATHER_BUNDLE];
--};
--
--DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
--
--/*
-- * This is unnecessarily complex.  There's three ways the TLB shootdown
-- * code is used:
-- *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
-- *     tlb->fullmm = 0, and tlb_start_vma/tlb_end_vma will be called.
-- *     tlb->vma will be non-NULL.
-- *  2. Unmapping all vmas.  See exit_mmap().
-- *     tlb->fullmm = 1, and tlb_start_vma/tlb_end_vma will be called.
-- *     tlb->vma will be non-NULL.  Additionally, page tables will be freed.
-- *  3. Unmapping argument pages.  See shift_arg_pages().
-- *     tlb->fullmm = 0, but tlb_start_vma/tlb_end_vma will not be called.
-- *     tlb->vma will be NULL.
-- */
--static inline void tlb_flush(struct mmu_gather *tlb)
--{
--	if (tlb->fullmm || !tlb->vma)
--		flush_tlb_mm(tlb->mm);
--	else if (tlb->range_end > 0) {
--		flush_tlb_range(tlb->vma, tlb->range_start, tlb->range_end);
--		tlb->range_start = TASK_SIZE;
--		tlb->range_end = 0;
--	}
--}
--
--static inline void tlb_add_flush(struct mmu_gather *tlb, unsigned long addr)
--{
--	if (!tlb->fullmm) {
--		if (addr < tlb->range_start)
--			tlb->range_start = addr;
--		if (addr + PAGE_SIZE > tlb->range_end)
--			tlb->range_end = addr + PAGE_SIZE;
--	}
--}
--
--static inline void __tlb_alloc_page(struct mmu_gather *tlb)
--{
--	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
--
--	if (addr) {
--		tlb->pages = (void *)addr;
--		tlb->max = PAGE_SIZE / sizeof(struct page *);
--	}
--}
--
--static inline void tlb_flush_mmu(struct mmu_gather *tlb)
--{
--	tlb_flush(tlb);
--	if (!tlb_fast_mode(tlb)) {
--		free_pages_and_swap_cache(tlb->pages, tlb->nr);
--		tlb->nr = 0;
--		if (tlb->pages == tlb->local)
--			__tlb_alloc_page(tlb);
--	}
--}
--
--static inline void
--tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int fullmm)
--{
--	tlb->mm = mm;
--	tlb->fullmm = fullmm;
--	tlb->vma = NULL;
--	tlb->max = ARRAY_SIZE(tlb->local);
--	tlb->pages = tlb->local;
--	tlb->nr = 0;
--	__tlb_alloc_page(tlb);
--}
-+#define __tlb_remove_tlb_entry(tlb, ptep, addr) do { } while (0)
- 
- static inline void
--tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
--{
--	tlb_flush_mmu(tlb);
-+__pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte, unsigned long addr);
- 
--	/* keep the page table cache within bounds */
--	check_pgt_cache();
-+#define __pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
- 
--	if (tlb->pages != tlb->local)
--		free_pages((unsigned long)tlb->pages, 0);
--}
-+#include <asm-generic/tlb.h>
+Index: linux-2.6/arch/m32r/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/m32r/include/asm/tlb.h
++++ linux-2.6/arch/m32r/include/asm/tlb.h
+@@ -9,12 +9,6 @@
+ #define tlb_end_vma(tlb, vma) do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, pte, address) do { } while (0)
  
 -/*
-- * Memorize the range for the TLB flush.
+- * .. because we flush the whole mm when it
+- * fills up.
 - */
- static inline void
--tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long addr)
--{
--	tlb_add_flush(tlb, addr);
--}
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
 -
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* _M32R_TLB_H */
+Index: linux-2.6/arch/m68k/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/m68k/include/asm/tlb.h
++++ linux-2.6/arch/m68k/include/asm/tlb.h
+@@ -9,12 +9,6 @@
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+ 
 -/*
-- * In the case of tlb vma handling, we can optimise these away in the
-- * case where we're doing a full MM flush.  When we're doing a munmap,
-- * the vmas are adjusted to only cover the region to be torn down.
+- * .. because we flush the whole mm when it
+- * fills up.
 - */
--static inline void
--tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
--{
--	if (!tlb->fullmm) {
--		flush_cache_range(vma, vma->vm_start, vma->vm_end);
--		tlb->vma = vma;
--		tlb->range_start = TASK_SIZE;
--		tlb->range_end = 0;
--	}
--}
+-#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
 -
--static inline void
--tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
--{
--	if (!tlb->fullmm)
--		tlb_flush(tlb);
--}
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* _M68K_TLB_H */
+Index: linux-2.6/arch/microblaze/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/microblaze/include/asm/tlb.h
++++ linux-2.6/arch/microblaze/include/asm/tlb.h
+@@ -11,8 +11,6 @@
+ #ifndef _ASM_MICROBLAZE_TLB_H
+ #define _ASM_MICROBLAZE_TLB_H
+ 
+-#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
 -
--static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
--{
--	if (tlb_fast_mode(tlb)) {
--		free_page_and_swap_cache(page);
--	} else {
--		tlb->pages[tlb->nr++] = page;
--		if (tlb->nr >= tlb->max)
--			return 1;
--	}
--	return 0;
--}
+ #include <linux/pagemap.h>
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/mips/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/mips/include/asm/tlb.h
++++ linux-2.6/arch/mips/include/asm/tlb.h
+@@ -13,11 +13,6 @@
+ #define tlb_end_vma(tlb, vma) do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+ 
+-/*
+- * .. because we flush the whole mm when it fills up.
+- */
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
 -
--static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
--{
--	if (__tlb_remove_page(tlb, page))
--		tlb_flush_mmu(tlb);
--}
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* __ASM_TLB_H */
+Index: linux-2.6/arch/mn10300/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/mn10300/include/asm/tlb.h
++++ linux-2.6/arch/mn10300/include/asm/tlb.h
+@@ -23,11 +23,6 @@ extern void check_pgt_cache(void);
+ #define tlb_end_vma(tlb, vma)				do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
+ 
+-/*
+- * .. because we flush the whole mm when it fills up
+- */
+-#define tlb_flush(tlb)	flush_tlb_mm((tlb)->mm)
 -
--static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
--	unsigned long addr)
-+__pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte, unsigned long addr)
- {
- 	pgtable_page_dtor(pte);
--	tlb_add_flush(tlb, addr);
- 	tlb_remove_page(tlb, pte);
+ /* for now, just use the generic stuff */
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/parisc/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/parisc/include/asm/tlb.h
++++ linux-2.6/arch/parisc/include/asm/tlb.h
+@@ -1,11 +1,6 @@
+ #ifndef _PARISC_TLB_H
+ #define _PARISC_TLB_H
+ 
+-#define tlb_flush(tlb)			\
+-do {	if ((tlb)->fullmm)		\
+-		flush_tlb_mm((tlb)->mm);\
+-} while (0)
+-
+ #define tlb_start_vma(tlb, vma) \
+ do {	if (!(tlb)->fullmm)	\
+ 		flush_cache_range(vma, vma->vm_start, vma->vm_end); \
+Index: linux-2.6/arch/powerpc/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/powerpc/include/asm/tlb.h
++++ linux-2.6/arch/powerpc/include/asm/tlb.h
+@@ -28,8 +28,6 @@
+ #define tlb_start_vma(tlb, vma)	do { } while (0)
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
+ 
+-extern void tlb_flush(struct mmu_gather *tlb);
+-
+ /* Get the generic bits... */
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/powerpc/mm/tlb_hash32.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash32.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash32.c
+@@ -59,21 +59,6 @@ void flush_tlb_page_nohash(struct vm_are
  }
+ 
+ /*
+- * Called at the end of a mmu_gather operation to make sure the
+- * TLB flush is completely done.
+- */
+-void tlb_flush(struct mmu_gather *tlb)
+-{
+-	if (Hash == 0) {
+-		/*
+-		 * 603 needs to flush the whole TLB here since
+-		 * it doesn't use a hash table.
+-		 */
+-		_tlbia();
+-	}
+-}
 -
--#define pte_free_tlb(tlb, ptep, addr)	__pte_free_tlb(tlb, ptep, addr)
--#define pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
--#define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+-/*
+  * TLB flushing:
+  *
+  *  - flush_tlb_mm(mm) flushes the specified mm context TLB's
+Index: linux-2.6/arch/powerpc/mm/tlb_hash64.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash64.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash64.c
+@@ -153,10 +153,6 @@ void __flush_tlb_pending(struct ppc64_tl
+ 	batch->index = 0;
+ }
+ 
+-void tlb_flush(struct mmu_gather *tlb)
+-{
+-}
 -
--#define tlb_migrate_finish(mm)		do { } while (0)
+ /**
+  * __flush_hash_table_range - Flush all HPTEs for a given address range
+  *                            from the hash table (and the TLB). But keeps
+Index: linux-2.6/arch/powerpc/mm/tlb_nohash.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_nohash.c
++++ linux-2.6/arch/powerpc/mm/tlb_nohash.c
+@@ -296,11 +296,6 @@ void flush_tlb_range(struct vm_area_stru
+ }
+ EXPORT_SYMBOL(flush_tlb_range);
+ 
+-void tlb_flush(struct mmu_gather *tlb)
+-{
+-	flush_tlb_mm(tlb->mm);
+-}
 -
- #endif /* CONFIG_MMU */
+ /*
+  * Below are functions specific to the 64-bit variant of Book3E though that
+  * may change in the future
+Index: linux-2.6/arch/score/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/score/include/asm/tlb.h
++++ linux-2.6/arch/score/include/asm/tlb.h
+@@ -8,7 +8,6 @@
+ #define tlb_start_vma(tlb, vma)		do {} while (0)
+ #define tlb_end_vma(tlb, vma)		do {} while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do {} while (0)
+-#define tlb_flush(tlb)			flush_tlb_mm((tlb)->mm)
+ 
+ extern void score7_FTLB_refill_Handler(void);
+ 
+Index: linux-2.6/arch/sh/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/sh/include/asm/tlb.h
++++ linux-2.6/arch/sh/include/asm/tlb.h
+@@ -125,7 +125,6 @@ static inline void tlb_unwire_entry(void
+ #define tlb_start_vma(tlb, vma)				do { } while (0)
+ #define tlb_end_vma(tlb, vma)				do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, pte, address)	do { } while (0)
+-#define tlb_flush(tlb)					do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/sparc/include/asm/tlb_32.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/tlb_32.h
++++ linux-2.6/arch/sparc/include/asm/tlb_32.h
+@@ -14,11 +14,6 @@ do {								\
+ #define __tlb_remove_tlb_entry(tlb, pte, address) \
+ 	do { } while (0)
+ 
+-#define tlb_flush(tlb) \
+-do {								\
+-	flush_tlb_mm((tlb)->mm);				\
+-} while (0)
+-
+ #include <asm-generic/tlb.h>
+ 
+ #endif /* _SPARC_TLB_H */
+Index: linux-2.6/arch/sparc/include/asm/tlb_64.h
+===================================================================
+--- linux-2.6.orig/arch/sparc/include/asm/tlb_64.h
++++ linux-2.6/arch/sparc/include/asm/tlb_64.h
+@@ -25,7 +25,6 @@ extern void flush_tlb_pending(void);
+ #define tlb_start_vma(tlb, vma) do { } while (0)
+ #define tlb_end_vma(tlb, vma)	do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+-#define tlb_flush(tlb)	do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/tile/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/tile/include/asm/tlb.h
++++ linux-2.6/arch/tile/include/asm/tlb.h
+@@ -18,7 +18,6 @@
+ #define tlb_start_vma(tlb, vma) do { } while (0)
+ #define tlb_end_vma(tlb, vma) do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+ 
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/x86/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/x86/include/asm/tlb.h
++++ linux-2.6/arch/x86/include/asm/tlb.h
+@@ -4,7 +4,6 @@
+ #define tlb_start_vma(tlb, vma) do { } while (0)
+ #define tlb_end_vma(tlb, vma) do { } while (0)
+ #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
+-#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
+ 
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/arch/xtensa/include/asm/tlb.h
+===================================================================
+--- linux-2.6.orig/arch/xtensa/include/asm/tlb.h
++++ linux-2.6/arch/xtensa/include/asm/tlb.h
+@@ -38,7 +38,6 @@
+ #endif
+ 
+ #define __tlb_remove_tlb_entry(tlb,pte,addr)	do { } while (0)
+-#define tlb_flush(tlb)				flush_tlb_mm((tlb)->mm)
+ 
+ #include <asm-generic/tlb.h>
+ 
+Index: linux-2.6/include/asm-generic/tlb.h
+===================================================================
+--- linux-2.6.orig/include/asm-generic/tlb.h
++++ linux-2.6/include/asm-generic/tlb.h
+@@ -159,7 +159,7 @@ tlb_flush_mmu(struct mmu_gather *tlb)
+ 	if (!tlb->need_flush)
+ 		return;
+ 	tlb->need_flush = 0;
+-	tlb_flush(tlb);
++	flush_tlb_mm(tlb->mm);
+ #ifdef CONFIG_HAVE_RCU_TABLE_FREE
+ 	tlb_table_flush(tlb);
  #endif
 
 
