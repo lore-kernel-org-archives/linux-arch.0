@@ -1,52 +1,46 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [RFC][PATCH 01/15] mm, powerpc: Dont use tlb_flush for external tlb flushes
-Date: Mon, 07 Mar 2011 18:13:51 +0100
-Message-ID: <20110307172206.557810970@chello.nl>
+Subject: [RFC][PATCH 05/15] mm, tile: Change flush_tlb_range() VM_HUGETLB semantics
+Date: Mon, 07 Mar 2011 18:13:55 +0100
+Message-ID: <20110307172206.831489809@chello.nl>
 References: <20110307171350.989666626@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=powerpc64-tlb_flush.patch
+Content-Disposition: inline; filename=tile-flush_tlb_range-hugetlb.patch
 Sender: owner-linux-mm@kvack.org
 To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Both sparc64 and powerpc64 use tlb_flush() to flush their respective
-hash-tables which is entirely different from what
-flush_tlb_range()/flush_tlb_mm() would do.
+Since we're going to provide a fake VMA covering a large range, we
+need to change the VM_HUGETLB semantic to mean _also_ wipe HPAGE TLBs.
 
-Powerpc64 already uses arch_*_lazy_mmu_mode() to batch and flush these
-so any tlb_flush() caller should already find an empty batch. So
-remove this functionality from tlb_flush().
-
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/powerpc/mm/tlb_hash64.c         |   10 ----------
- arch/sparc/include/asm/tlb_64.h      |    2 +-
- arch/sparc/include/asm/tlbflush_64.h |   13 +++++++++++++
- 3 files changed, 14 insertions(+), 11 deletions(-)
+ arch/tile/kernel/tlb.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
 
-Index: linux-2.6/arch/powerpc/mm/tlb_hash64.c
+Index: linux-2.6/arch/tile/kernel/tlb.c
 ===================================================================
---- linux-2.6.orig/arch/powerpc/mm/tlb_hash64.c
-+++ linux-2.6/arch/powerpc/mm/tlb_hash64.c
-@@ -155,16 +155,6 @@ void __flush_tlb_pending(struct ppc64_tl
- 
- void tlb_flush(struct mmu_gather *tlb)
+--- linux-2.6.orig/arch/tile/kernel/tlb.c
++++ linux-2.6/arch/tile/kernel/tlb.c
+@@ -67,11 +67,14 @@ EXPORT_SYMBOL(flush_tlb_page);
+ void flush_tlb_range(const struct vm_area_struct *vma,
+ 		     unsigned long start, unsigned long end)
  {
--	struct ppc64_tlb_batch *tlbbatch = &get_cpu_var(ppc64_tlb_batch);
--
--	/* If there's a TLB batch pending, then we must flush it because the
--	 * pages are going to be freed and we really don't want to have a CPU
--	 * access a freed page because it has a stale TLB
--	 */
--	if (tlbbatch->index)
--		__flush_tlb_pending(tlbbatch);
--
--	put_cpu_var(ppc64_tlb_batch);
+-	unsigned long size = hv_page_size(vma);
+ 	struct mm_struct *mm = vma->vm_mm;
+ 	int cache = (vma->vm_flags & VM_EXEC) ? HV_FLUSH_EVICT_L1I : 0;
+-	flush_remote(0, cache, &mm->cpu_vm_mask, start, end - start, size,
+-		     &mm->cpu_vm_mask, NULL, 0);
++	flush_remote(0, cache, &mm->cpu_vm_mask, start, end - start,
++			PAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
++	if (vma->vm_flags & VM_HUGETLB) {
++		flush_remote(0, 0, &mm->cpu_vm_mask, start, end - start,
++				HPAGE_SIZE, &mm->cpu_vm_mask, NULL, 0);
++	}
  }
  
- /**
+ void flush_tlb_all(void)
 
 
 --
