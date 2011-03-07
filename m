@@ -1,44 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:54046 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751138Ab1CGRys convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2011 12:54:48 -0500
-Subject: Re: [RFC][PATCH 14/15] mm, sparc32: Convert sparc32 to generic tlb
+Received: from casper.infradead.org ([85.118.1.10]:56359 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755351Ab1CGRtK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Mar 2011 12:49:10 -0500
+Message-ID: <20110307172206.557810970@chello.nl>
+Date: Mon, 07 Mar 2011 18:13:51 +0100
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-In-Reply-To: <20110307172207.445811237@chello.nl>
+Subject: [RFC][PATCH 01/15] mm, powerpc: Dont use tlb_flush for external tlb flushes
 References: <20110307171350.989666626@chello.nl>
-	 <20110307172207.445811237@chello.nl>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Date: Mon, 07 Mar 2011 18:54:12 +0100
-Message-ID: <1299520452.2308.240.camel@twins>
-Mime-Version: 1.0
+Content-Disposition: inline; filename=powerpc64-tlb_flush.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20110307175412._XwxTUXbJ0WxAmo3HJaPGC2Nw3SN8jfVx76udyi9SRM@z>
+To: Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20110307171351.BW5GGcbpfL4x9D_UF_IboqCpegnTeAryxJ5jPeHYJTc@z>
 
-On Mon, 2011-03-07 at 18:14 +0100, Peter Zijlstra wrote:
-> plain text document attachment (sparc32-mmu_range.patch)
-> Cc: David Miller <davem@davemloft.net>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
->  arch/sparc/Kconfig              |    1 +
->  arch/sparc/include/asm/tlb_32.h |   10 ----------
->  2 files changed, 1 insertion(+), 10 deletions(-)
-> 
-> Index: linux-2.6/arch/sparc/Kconfig
-> ===================================================================
-> --- linux-2.6.orig/arch/sparc/Kconfig
-> +++ linux-2.6/arch/sparc/Kconfig
-> @@ -25,6 +25,7 @@ config SPARC
->  	select HAVE_DMA_ATTRS
->  	select HAVE_DMA_API_DEBUG
->  	select HAVE_ARCH_JUMP_LABEL
-> +	select HAVE_MMU_GATHER_RANGE
->  
->  config SPARC32
->  	def_bool !64BIT
+Both sparc64 and powerpc64 use tlb_flush() to flush their respective
+hash-tables which is entirely different from what
+flush_tlb_range()/flush_tlb_mm() would do.
 
-Ah, I probably should put that in the SPARC32 bit.. ;-)
+Powerpc64 already uses arch_*_lazy_mmu_mode() to batch and flush these
+so any tlb_flush() caller should already find an empty batch. So
+remove this functionality from tlb_flush().
+
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ arch/powerpc/mm/tlb_hash64.c         |   10 ----------
+ arch/sparc/include/asm/tlb_64.h      |    2 +-
+ arch/sparc/include/asm/tlbflush_64.h |   13 +++++++++++++
+ 3 files changed, 14 insertions(+), 11 deletions(-)
+
+Index: linux-2.6/arch/powerpc/mm/tlb_hash64.c
+===================================================================
+--- linux-2.6.orig/arch/powerpc/mm/tlb_hash64.c
++++ linux-2.6/arch/powerpc/mm/tlb_hash64.c
+@@ -155,16 +155,6 @@ void __flush_tlb_pending(struct ppc64_tl
+ 
+ void tlb_flush(struct mmu_gather *tlb)
+ {
+-	struct ppc64_tlb_batch *tlbbatch = &get_cpu_var(ppc64_tlb_batch);
+-
+-	/* If there's a TLB batch pending, then we must flush it because the
+-	 * pages are going to be freed and we really don't want to have a CPU
+-	 * access a freed page because it has a stale TLB
+-	 */
+-	if (tlbbatch->index)
+-		__flush_tlb_pending(tlbbatch);
+-
+-	put_cpu_var(ppc64_tlb_batch);
+ }
+ 
+ /**
+
+
