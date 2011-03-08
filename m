@@ -1,68 +1,34 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 31/37] mn10300: Use generic irq Kconfig
-Date: Tue, 8 Mar 2011 11:41:42 +0100 (CET)
-Message-ID: <alpine.LFD.2.00.1103081140580.2787@localhost6.localdomain6>
-References: <20110119205258.462759212@linutronix.de> <20110119210840.381111598@linutronix.de> <AANLkTi=nLFx7Z7UfiXZrBQoGgC1Fh_dh9--5T=Di9qhc@mail.gmail.com> <20110305220127.GA21728@merkur.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463795968-1698934581-1299580906=:2787"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.tglx.de ([62.245.132.106]:35737 "EHLO www.tglx.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751683Ab1CHKmt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Mar 2011 05:42:49 -0500
-In-Reply-To: <20110305220127.GA21728@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, David Howells <dhowells@redhat.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/2] Define ENONAMESERVICE and ENAMEUNKNOWN to indicate name service errors
+Date: Tue, 08 Mar 2011 15:09:59 +0000
+Message-ID: <14977.1299596999@redhat.com>
+References: <20110307160042.2ddc8e65@lxorguk.ukuu.org.uk> <20110307150208.28218.89348.stgit@warthog.procyon.org.uk> <20110307150218.28218.84916.stgit@warthog.procyon.org.uk>
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <20110307160042.2ddc8e65@lxorguk.ukuu.org.uk>
+Sender: linux-security-module-owner@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: dhowells@redhat.com, linux-security-module@vger.kernel.org, keyrings@linux-nfs.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 
----1463795968-1698934581-1299580906=:2787
-Content-Type: TEXT/PLAIN; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
-
-On Sat, 5 Mar 2011, Sam Ravnborg wrote:
-
-> On Sat, Mar 05, 2011 at 10:02:33PM +0100, Geert Uytterhoeven wrote:
-> > On Wed, Jan 19, 2011 at 22:49, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > > No functional change.
-> > >
-> > > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> > > Cc: David Howells <dhowells@redhat.com>
-> > > ---
-> > >  arch/mn10300/Kconfig |    5 +----
-> > >  1 file changed, 1 insertion(+), 4 deletions(-)
-> > >
-> > > Index: linux-2.6/arch/mn10300/Kconfig
-> > > ===================================================================
-> > > --- linux-2.6.orig/arch/mn10300/Kconfig
-> > > +++ linux-2.6/arch/mn10300/Kconfig
-> > > @@ -1,6 +1,7 @@
-> > >  config MN10300
-> > >        def_bool y
-> > >        select HAVE_OPROFILE
-> > > +       select GENERIC_HARDIRQS
-> > 
-> > Wasn't this supposed to be "select HAVE_GENERIC_HARDIRQS"?
-
-Crap, yes.
-
-> > /me studying generic hardirqs...
+> > Define ENONAMESERVICE to indicate "Network name service unavailable".
+> > This can be used to indicate, for example, that an attempt was made by
+> > dns_query() to make a query, but the name server (e.g. a DNS server) it is
+> > supposed to contact didn't answer or that it couldn't determine the
+> > location of a suitable server.
 > 
-> One could hope this was nicely documented in kernel/irq/Kconfig.
-> But that file contains only 9 lines of comments for 10 config symbols.
-> 
-> Maybe it is just me but I was struggeling understanding the purpose
-> of these config symbols.
-> 
-> I found the individual bits of genirq nicely documented in most cases.
-> But the overall picture was/is hard to get.
-> 
-> And I never got enough understanding to write up something myself :-(
+> Are these in glibc and are there glibc patches submitted and accepted for
+> this ?
 
-Point taken. /me goes and adds comments :)
+No.
 
-      tglx
----1463795968-1698934581-1299580906=:2787--
+Are you saying that I should push them through glibc first - and then submit
+them to the kernel?  Does the kernel lead or the C library?  And, if the
+latter, which C library?  Can I not, for instance, push them through uclibc,
+say?
+
+Does submitting to glibc mean I have to sign my copyrights over to the FSF for
+that code?  I've never gone through this process.
+
+David
