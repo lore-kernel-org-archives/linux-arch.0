@@ -1,39 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:15035 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755247Ab1CHPKP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 8 Mar 2011 10:10:15 -0500
-In-Reply-To: <20110307160042.2ddc8e65@lxorguk.ukuu.org.uk>
-References: <20110307160042.2ddc8e65@lxorguk.ukuu.org.uk> <20110307150208.28218.89348.stgit@warthog.procyon.org.uk> <20110307150218.28218.84916.stgit@warthog.procyon.org.uk>
-Subject: Re: [PATCH 2/2] Define ENONAMESERVICE and ENAMEUNKNOWN to indicate name service errors
-Date: Tue, 08 Mar 2011 15:09:59 +0000
-Message-ID: <14977.1299596999@redhat.com>
-From: David Howells <dhowells@redhat.com>
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:45893 "EHLO
+	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751634Ab1CHPZ3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Mar 2011 10:25:29 -0500
+Date: Tue, 8 Mar 2011 15:25:18 +0000
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: [PATCH 2/2] Define ENONAMESERVICE and ENAMEUNKNOWN to indicate
+ name service errors
+Message-ID: <20110308152518.074d0996@lxorguk.ukuu.org.uk>
+In-Reply-To: <14977.1299596999@redhat.com>
+References: <20110307160042.2ddc8e65@lxorguk.ukuu.org.uk>
+	<20110307150208.28218.89348.stgit@warthog.procyon.org.uk>
+	<20110307150218.28218.84916.stgit@warthog.procyon.org.uk>
+	<14977.1299596999@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: dhowells@redhat.com, linux-security-module@vger.kernel.org, keyrings@linux-nfs.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110308150959.t5-882elfSNIxyS5QEpFfJJCwuxBnMi1srvjFiSa6RE@z>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-security-module@vger.kernel.org, keyrings@linux-nfs.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110308152518.6MSyS6uRpRekGPU86gemODDcm6M7BcCsea1hRCsGnys@z>
 
-Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+On Tue, 08 Mar 2011 15:09:59 +0000
+David Howells <dhowells@redhat.com> wrote:
 
-> > Define ENONAMESERVICE to indicate "Network name service unavailable".
-> > This can be used to indicate, for example, that an attempt was made by
-> > dns_query() to make a query, but the name server (e.g. a DNS server) it is
-> > supposed to contact didn't answer or that it couldn't determine the
-> > location of a suitable server.
+> Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
 > 
-> Are these in glibc and are there glibc patches submitted and accepted for
-> this ?
+> > > Define ENONAMESERVICE to indicate "Network name service unavailable".
+> > > This can be used to indicate, for example, that an attempt was made by
+> > > dns_query() to make a query, but the name server (e.g. a DNS server) it is
+> > > supposed to contact didn't answer or that it couldn't determine the
+> > > location of a suitable server.
+> > 
+> > Are these in glibc and are there glibc patches submitted and accepted for
+> > this ?
+> 
+> No.
+> 
+> Are you saying that I should push them through glibc first - and then submit
+> them to the kernel? 
 
-No.
-
-Are you saying that I should push them through glibc first - and then submit
-them to the kernel?  Does the kernel lead or the C library?  And, if the
-latter, which C library?  Can I not, for instance, push them through uclibc,
-say?
-
-Does submitting to glibc mean I have to sign my copyrights over to the FSF for
-that code?  I've never gone through this process.
-
-David
+I was wondering if at least there was some co-ordination going on so that
+functions like perror() produced sensible answers. Otherwise it's
+debatable if its actually an improvement for the poor end user ?
