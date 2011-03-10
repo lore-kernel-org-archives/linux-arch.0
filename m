@@ -1,37 +1,44 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3] introduce sys_syncfs to sync a single file system
-Date: Thu, 10 Mar 2011 23:08:22 +0100
-Message-ID: <201103102308.23006.arnd@arndb.de>
-References: <Pine.LNX.4.64.1102171035220.13904@cobra.newdream.net> <Pine.LNX.4.64.1103071515070.11152@cobra.newdream.net> <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: [PATCH] arch/tile: optimize icache flush
+Date: Thu, 10 Mar 2011 18:19:54 -0500
+Message-ID: <4D795C9A.1040509@redhat.com>
+References: <201103102125.p2ALPupL017020@farm-0012.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:59107 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751606Ab1CJWIf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2011 17:08:35 -0500
-In-Reply-To: <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sage Weil <sage@newdream.net>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Jonathan Nieder <jrnieder@gmail.com>, akpm@linux-foundation.org, linux-api@vger.kernel.org, mtk.manpages@gmail.com, viro@zeniv.linux.org.uk, hch@lst.de, linux-arch@vger.kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <201103102125.p2ALPupL017020@farm-0012.internal.tilera.com>
+Sender: owner-linux-mm@kvack.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, a.p.zijlstra@chello.nl, torvalds@linux-foundation.org, aarcange@redhat.com, tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, "David Miller <davem@davemloft.net>" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@kernel.dk, rmk@arm.linux.org.uk, schwidefsky@de.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 10 March 2011 20:31:30 Sage Weil wrote:
-> It is frequently useful to sync a single file system, instead of all
-> mounted file systems via sync(2):
-> 
->  - On machines with many mounts, it is not at all uncommon for some of
->    them to hang (e.g. unresponsive NFS server).  sync(2) will get stuck on
->    those and may never get to the one you do care about (e.g., /).
->  - Some applications write lots of data to the file system and then
->    want to make sure it is flushed to disk.  Calling fsync(2) on each
->    file introduces unnecessary ordering constraints that result in a large
->    amount of sub-optimal writeback/flush/commit behavior by the file
->    system.
-> 
-> ...
-> Signed-off-by: Sage Weil <sage@newdream.net>
+On 03/10/2011 01:05 PM, Chris Metcalf wrote:
+> Tile has incoherent icaches, so they must be explicitly invalidated
+> when necessary.  Until now we have done so at tlb flush and context
+> switch time, which means more invalidation than strictly necessary.
+> The new model for icache flush is:
+>
+> - When we fault in a page as executable, we set an "Exec" bit in the
+>    "struct page" information; the bit stays set until page free time.
+>    (We use the arch_1 page bit for our "Exec" bit.)
+>
+> - At page free time, if the Exec bit is set, we do an icache flush.
+>    This should happen relatively rarely: e.g., deleting a binary from disk,
+>    or evicting a binary's pages from the page cache due to memory pressure.
+>
+> Signed-off-by: Chris Metcalf<cmetcalf@tilera.com>
 
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+Nice trick.
+
+Acked-by: Rik van Riel <riel@redhat.com>
+
+-- 
+All rights reversed
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
