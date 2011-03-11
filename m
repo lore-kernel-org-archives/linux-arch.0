@@ -1,42 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16097 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751927Ab1CJXVB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Mar 2011 18:21:01 -0500
-Message-ID: <4D795C9A.1040509@redhat.com>
-Date: Thu, 10 Mar 2011 18:19:54 -0500
-From: Rik van Riel <riel@redhat.com>
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:48152 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751252Ab1CKEos (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Mar 2011 23:44:48 -0500
+From: "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>
+Subject: Re: [PATCH v3] introduce sys_syncfs to sync a single file system
+In-Reply-To: <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
+References: <Pine.LNX.4.64.1102171035220.13904@cobra.newdream.net> <20110303072223.GA28133@elie> <87bp1sziqn.fsf@linux.vnet.ibm.com> <Pine.LNX.4.64.1103071515070.11152@cobra.newdream.net> <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
+Date: Fri, 11 Mar 2011 10:14:35 +0530
+Message-ID: <87zkp21d1o.fsf@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] arch/tile: optimize icache flush
-References: <201103102125.p2ALPupL017020@farm-0012.internal.tilera.com>
-In-Reply-To: <201103102125.p2ALPupL017020@farm-0012.internal.tilera.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, a.p.zijlstra@chello.nl, torvalds@linux-foundation.org, aarcange@redhat.com, tglx@linutronix.de, mingo@elte.hu, akpm@linux-foundation.org, "David Miller <davem@davemloft.net>" <linux-arch@vger.kernel.org>, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, mel@csn.ul.ie, npiggin@kernel.dk, rmk@arm.linux.org.uk, schwidefsky@de.ibm.com
-Message-ID: <20110310231954.sRmTMNRYfXMp9acB7Dn9DKNrJQHde0DjuSd5qtoVOvo@z>
+To: Sage Weil <sage@newdream.net>, linux-fsdevel@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Jonathan Nieder <jrnieder@gmail.com>, akpm@linux-foundation.org, linux-api@vger.kernel.org, arnd@arndb.de, mtk.manpages@gmail.com, viro@zeniv.linux.org.uk, hch@lst.de, linux-arch@vger.kernel.org
+Message-ID: <20110311044435.Z4ABuDPGIl0f_yXBZqcPlvkyWNK6lU9hNyclOgHcmaU@z>
 
-On 03/10/2011 01:05 PM, Chris Metcalf wrote:
-> Tile has incoherent icaches, so they must be explicitly invalidated
-> when necessary.  Until now we have done so at tlb flush and context
-> switch time, which means more invalidation than strictly necessary.
-> The new model for icache flush is:
->
-> - When we fault in a page as executable, we set an "Exec" bit in the
->    "struct page" information; the bit stays set until page free time.
->    (We use the arch_1 page bit for our "Exec" bit.)
->
-> - At page free time, if the Exec bit is set, we do an icache flush.
->    This should happen relatively rarely: e.g., deleting a binary from disk,
->    or evicting a binary's pages from the page cache due to memory pressure.
->
-> Signed-off-by: Chris Metcalf<cmetcalf@tilera.com>
+On Thu, 10 Mar 2011 11:31:30 -0800 (PST), Sage Weil <sage@newdream.net> wrote:
+> It is frequently useful to sync a single file system, instead of all
+> mounted file systems via sync(2):
+> 
+>  - On machines with many mounts, it is not at all uncommon for some of
+>    them to hang (e.g. unresponsive NFS server).  sync(2) will get stuck on
+>    those and may never get to the one you do care about (e.g., /).
+>  - Some applications write lots of data to the file system and then
+>    want to make sure it is flushed to disk.  Calling fsync(2) on each
+>    file introduces unnecessary ordering constraints that result in a large
+>    amount of sub-optimal writeback/flush/commit behavior by the file
+>    system.
+> 
+> There are currently two ways (that I know of) to sync a single super_block:
+> 
+>  - BLKFLSBUF ioctl on the block device: That also invalidates the bdev
+>    mapping, which isn't usually desirable, and doesn't work for non-block
+>    file systems.
+>  - 'mount -o remount,rw' will call sync_filesystem as an artifact of the
+>    current implemention.  Relying on this little-known side effect for
+>    something like data safety sounds foolish.
+> 
+> Both of these approaches require root privileges, which some applications
+> do not have (nor should they need?) given that sync(2) is an unprivileged
+> operation.
+> 
+> This patch introduces a new system call syncfs(2) that takes an fd and
+> syncs only the file system it references.  Maybe someday we can
+> 
+>  $ sync /some/path
+> 
+> and not get
+> 
+>  sync: ignoring all arguments
+> 
+> The syscall is motivated by comments by Al and Christoph at the last LSF.
+> syncfs(2) seems like an appropriate name given statfs(2).
+> 
+> A similar ioctl was also proposed a while back, see
+> 	http://marc.info/?l=linux-fsdevel&m=127970513829285&w=2
+> 
+> Signed-off-by: Sage Weil <sage@newdream.net>
 
-Nice trick.
+Reviewed-by: Aneesh Kumar <aneesh.kumar@linux.vnet.ibm.com>
 
-Acked-by: Rik van Riel <riel@redhat.com>
-
--- 
-All rights reversed
