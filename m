@@ -1,24 +1,70 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v3] introduce sys_syncfs to sync a single file system
-Date: Sun, 13 Mar 2011 21:59:11 +0100
-Message-ID: <20110313205911.GA4239@lst.de>
-References: <Pine.LNX.4.64.1102171035220.13904@cobra.newdream.net> <20110303072223.GA28133@elie> <87bp1sziqn.fsf@linux.vnet.ibm.com> <Pine.LNX.4.64.1103071515070.11152@cobra.newdream.net> <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
+From: Prasad Joshi <prasadjoshi124@gmail.com>
+Subject: [RFC][PATCH v2 00/23] (alpha) __vmalloc: add gfp flags variant of pte
+ and pmd allocation
+Date: Mon, 14 Mar 2011 17:27:10 +0000
+Message-ID: <AANLkTik3qn-RVUTZp5+gTk+wB9SO_MsxySHEwE8Yzi-e__49694.877889897$1300123659$gmane$org@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.1103101125150.4190@cobra.newdream.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sage Weil <sage@newdream.net>
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, "Aneesh Kumar K. V" <aneesh.kumar@linux.vnet.ibm.com>, Jonathan Nieder <jrnieder@gmail.com>, akpm@linux-foundation.org, linux-api@vger.kernel.org, arnd@arndb.de, mtk.manpages@gmail.com, viro@zeniv.linux.org.uk, hch@lst.de, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qw0-f46.google.com ([209.85.216.46]:63467 "EHLO
+	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751606Ab1CNR1b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2011 13:27:31 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.k
 
-> +/*
-> + * sync a single super
-> + */
+__vmalloc: propagating GFP allocation flag.
 
-Not exactly the most descriptive comment.
+- adds functions to allow caller to pass the GFP flag for memory allocation
+- helps in fixing the Bug 30702 (__vmalloc(GFP_NOFS) can callback
+  file system evict_inode).
 
-Otherwise looks good,
+Signed-off-by: Anand Mitra <mitra@kqinfotech.com>
+Signed-off-by: Prasad Joshi <prasadjoshi124@gmail.com>
+---
+Chnagelog:
+arch/alpha/include/asm/pgalloc.h |   18 ++++++++++++++----
+1 files changed, 14 insertions(+), 4 deletions(-)
+---
+diff --git a/arch/alpha/include/asm/pgalloc.h b/arch/alpha/include/asm/pgalloc.h
+index bc2a0da..d05dfc2 100644
+--- a/arch/alpha/include/asm/pgalloc.h
++++ b/arch/alpha/include/asm/pgalloc.h
+@@ -38,10 +38,15 @@ pgd_free(struct mm_struct *mm, pgd_t *pgd)
+ }
 
-Reviewed-by: Christoph Hellwig <hch@lst.de>
+ static inline pmd_t *
++__pmd_alloc_one(struct mm_struct *mm, unsigned long address, gfp_t gfp_mask)
++{
++	return (pmd_t *)__get_free_page(gfp_mask | __GFP_ZERO);
++}
++
++static inline pmd_t *
+ pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+-	pmd_t *ret = (pmd_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
+-	return ret;
++	return __pmd_alloc_one(mm, address, GFP_KERNEL | __GFP_REPEAT);
+ }
+
+ static inline void
+@@ -51,10 +56,15 @@ pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ }
+
+ static inline pte_t *
++__pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addressi,
+gfp_t gfp_mask)
++{
++	return (pte_t *)__get_free_page(gfp_mask | __GFP_ZERO);
++}
++
++static inline pte_t *
+ pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
+ {
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
+-	return pte;
++	return __pte_alloc_one_kernel(mm, address, GFP_KERNEL | __GFP_REPEAT);
+ }
+
+ static inline void
