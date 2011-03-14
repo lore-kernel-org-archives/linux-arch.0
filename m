@@ -1,19 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qw0-f46.google.com ([209.85.216.46]:40354 "EHLO
-	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751554Ab1CNRsc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2011 13:48:32 -0400
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:61116 "EHLO
+	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751249Ab1CNRuu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2011 13:50:50 -0400
 MIME-Version: 1.0
-Date: Mon, 14 Mar 2011 17:48:31 +0000
-Message-ID: <AANLkTikbco0iTe05iD4S+=Tsoi=k=STU-2aiv7+EDF9j@mail.gmail.com>
-Subject: [RFC][PATCH v2 11/23] (mn10300) __vmalloc: add gfp flags variant of
+Date: Mon, 14 Mar 2011 17:50:49 +0000
+Message-ID: <AANLkTin94oVyZ0-6sm5aRi-Xb+2tsNXQ2J+DbyDOMqZB@mail.gmail.com>
+Subject: [RFC][PATCH v2 12/23] (parisc) __vmalloc: add gfp flags variant of
  pte and pmd allocation
 From: Prasad Joshi <prasadjoshi124@gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com, Prasad Joshi <prasadjoshi124@gmail.com>, Anand Mitra <mitra@kqinfotech.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20110314174831.4Fu-nwP4kdcr4KIQwZhLtqqTSFHJt_fhCVCybRSqeoU@z>
+To: Prasad Joshi <prasadjoshi124@gmail.com>, Anand Mitra <mitra@kqinfotech.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
 
 __vmalloc: propagating GFP allocation flag.
 
@@ -25,49 +24,63 @@ Signed-off-by: Anand Mitra <mitra@kqinfotech.com>
 Signed-off-by: Prasad Joshi <prasadjoshi124@gmail.com>
 ---
 Chnagelog:
-arch/mn10300/include/asm/pgalloc.h |    2 ++
-arch/mn10300/mm/pgtable.c          |   10 ++++++++--
-2 files changed, 10 insertions(+), 2 deletions(-)
+arch/parisc/include/asm/pgalloc.h |   21 ++++++++++++++++-----
+1 files changed, 16 insertions(+), 5 deletions(-)
 ---
-diff --git a/arch/mn10300/include/asm/pgalloc.h
-b/arch/mn10300/include/asm/pgalloc.h
-index 146bacf..35150ae 100644
---- a/arch/mn10300/include/asm/pgalloc.h
-+++ b/arch/mn10300/include/asm/pgalloc.h
-@@ -37,6 +37,8 @@ extern pgd_t *pgd_alloc(struct mm_struct *);
- extern void pgd_free(struct mm_struct *, pgd_t *);
-
- extern pte_t *pte_alloc_one_kernel(struct mm_struct *, unsigned long);
-+extern pte_t *__pte_alloc_one_kernel(struct mm_struct *, unsigned long, gfp_t);
-+
- extern struct page *pte_alloc_one(struct mm_struct *, unsigned long);
-
- static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-diff --git a/arch/mn10300/mm/pgtable.c b/arch/mn10300/mm/pgtable.c
-index 450f7ba..05077b4 100644
---- a/arch/mn10300/mm/pgtable.c
-+++ b/arch/mn10300/mm/pgtable.c
-@@ -62,14 +62,20 @@ void set_pmd_pfn(unsigned long vaddr, unsigned
-long pfn, pgprot_t flags)
- 	local_flush_tlb_one(vaddr);
+diff --git a/arch/parisc/include/asm/pgalloc.h
+b/arch/parisc/include/asm/pgalloc.h
+index fc987a1..0284a43 100644
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -61,15 +61,20 @@ static inline void pgd_populate(struct mm_struct
+*mm, pgd_t *pgd, pmd_t *pmd)
+ 		        (__u32)(__pa((unsigned long)pmd) >> PxD_VALUE_SHIFT));
  }
 
--pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
-+pte_t *__pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
-+		gfp_t gfp_mask)
+-static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
++static inline pmd_t *
++__pmd_alloc_one(struct mm_struct *mm, unsigned long address, gfp_t gfp_mask)
  {
--	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT);
-+	pte_t *pte = (pte_t *)__get_free_page(gfp_mask);
- 	if (pte)
- 		clear_page(pte);
- 	return pte;
+-	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL|__GFP_REPEAT,
+-					       PMD_ORDER);
++	pmd_t *pmd = (pmd_t *)__get_free_pages(gfp_mask, PMD_ORDER);
+ 	if (pmd)
+ 		memset(pmd, 0, PAGE_SIZE<<PMD_ORDER);
+ 	return pmd;
  }
 
-+pte_t *pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
 +{
-+	return __pte_alloc_one_kernel(mm, address, GFP_KERNEL | __GFP_REPEAT);
++	return __pmd_alloc_one(mm, address, GFP_KERNEL | __GFP_REPEAT);
 +}
 +
- struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
  {
- 	struct page *pte;
+ #ifdef CONFIG_64BIT
+@@ -90,6 +95,7 @@ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+  * inside the pgd, so has no extra memory associated with it.
+  */
+
++#define __pmd_alloc_one(mm, addr, mask)		({ BUG(); ((pmd_t *)2); })
+ #define pmd_alloc_one(mm, addr)		({ BUG(); ((pmd_t *)2); })
+ #define pmd_free(mm, x)			do { } while (0)
+ #define pgd_populate(mm, pmd, pte)	BUG()
+@@ -127,10 +133,15 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ }
+
+ static inline pte_t *
++__pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr,
+gfp_t gfp_mask)
++{
++	return (pte_t *)__get_free_page(gfp_mask | __GFP_ZERO);
++}
++
++static inline pte_t *
+ pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
+ {
+-	pte_t *pte = (pte_t *)__get_free_page(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO);
+-	return pte;
++	return __pte_alloc_one_kernel(mm, addr, GFP_KERNEL | __GFP_REPEAT);
+ }
+
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
