@@ -1,18 +1,18 @@
 From: Prasad Joshi <prasadjoshi124@gmail.com>
-Subject: [RFC][PATCH v2 17/23] (sparc) __vmalloc: add gfp flags variant of pte
+Subject: [RFC][PATCH v2 18/23] (tile) __vmalloc: add gfp flags variant of pte
  and pmd allocation
-Date: Mon, 14 Mar 2011 18:01:03 +0000
-Message-ID: <AANLkTin1RfkdzK+oXG1mHR_KBAHyQfeOa_WrDEnLiFFW__40492.8465992727$1300125691$gmane$org@mail.gmail.com>
+Date: Mon, 14 Mar 2011 18:02:48 +0000
+Message-ID: <AANLkTi=UH1n1YFBVQwTKUsaLPQXOci_7g-LZV3QtHU2s__42130.2781477154$1300125809$gmane$org@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qw0-f46.google.com ([209.85.216.46]:50848 "EHLO
-	mail-qw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756989Ab1CNSBF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2011 14:01:05 -0400
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:64281 "EHLO
+	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757186Ab1CNSCt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Mar 2011 14:02:49 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Prasad Joshi <prasadjoshi124@gmail.com>, Anand Mitra <mitra@kqinfotech.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@v
+To: Chris Metcalf <cmetcalf@tilera.com>, Prasad Joshi <prasadjoshi124@gmail.com>, Anand Mitra <mitra@kqinfotech.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.
 
 __vmalloc: propagating GFP allocation flag.
 
@@ -24,80 +24,75 @@ Signed-off-by: Anand Mitra <mitra@kqinfotech.com>
 Signed-off-by: Prasad Joshi <prasadjoshi124@gmail.com>
 ---
 Chnagelog:
-arch/sparc/include/asm/pgalloc_32.h |    5 +++++
-arch/sparc/include/asm/pgalloc_64.h |   17 +++++++++++++++--
-2 files changed, 20 insertions(+), 2 deletions(-)
+arch/tile/include/asm/pgalloc.h |   13 ++++++++++++-
+arch/tile/mm/pgtable.c          |   10 ++++++++--
+2 files changed, 20 insertions(+), 3 deletions(-)
 ---
-diff --git a/arch/sparc/include/asm/pgalloc_32.h
-b/arch/sparc/include/asm/pgalloc_32.h
-index ca2b344..ad68597 100644
---- a/arch/sparc/include/asm/pgalloc_32.h
-+++ b/arch/sparc/include/asm/pgalloc_32.h
-@@ -41,6 +41,9 @@ BTFIXUPDEF_CALL(void, pgd_set, pgd_t *, pmd_t *)
- BTFIXUPDEF_CALL(pmd_t *, pmd_alloc_one, struct mm_struct *, unsigned long)
- #define pmd_alloc_one(mm, address)	BTFIXUP_CALL(pmd_alloc_one)(mm, address)
+diff --git a/arch/tile/include/asm/pgalloc.h b/arch/tile/include/asm/pgalloc.h
+index cf52791..2dcad88 100644
+--- a/arch/tile/include/asm/pgalloc.h
++++ b/arch/tile/include/asm/pgalloc.h
+@@ -69,14 +69,23 @@ extern pgd_t *pgd_alloc(struct mm_struct *mm);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
 
-+BTFIXUPDEF_CALL(pmd_t *, __pmd_alloc_one, struct mm_struct *,
-unsigned long, gfp_t)
-+#define __pmd_alloc_one(mm, address,
-gfp_mask)	BTFIXUP_CALL(pmd_alloc_one)(mm, address)
+ extern pgtable_t pte_alloc_one(struct mm_struct *mm, unsigned long address);
++extern pgtable_t __pte_alloc_one(struct mm_struct *, unsigned long, gfp_t);
 +
- BTFIXUPDEF_CALL(void, free_pmd_fast, pmd_t *)
- #define free_pmd_fast(pmd)	BTFIXUP_CALL(free_pmd_fast)(pmd)
+ extern void pte_free(struct mm_struct *mm, struct page *pte);
 
-@@ -57,6 +60,8 @@ BTFIXUPDEF_CALL(pgtable_t , pte_alloc_one, struct
-mm_struct *, unsigned long)
- #define pte_alloc_one(mm, address)	BTFIXUP_CALL(pte_alloc_one)(mm, address)
- BTFIXUPDEF_CALL(pte_t *, pte_alloc_one_kernel, struct mm_struct *,
-unsigned long)
- #define pte_alloc_one_kernel(mm,
-addr)	BTFIXUP_CALL(pte_alloc_one_kernel)(mm, addr)
-+BTFIXUPDEF_CALL(pte_t *, __pte_alloc_one_kernel, struct mm_struct *,
-unsigned long, gfp_t)
-+#define __pte_alloc_one_kernel(mm, addr,
-gfp_mask)	BTFIXUP_CALL(pte_alloc_one_kernel)(mm, addr)
+ #define pmd_pgtable(pmd) pmd_page(pmd)
 
- BTFIXUPDEF_CALL(void, free_pte_fast, pte_t *)
- #define pte_free_kernel(mm, pte)	BTFIXUP_CALL(free_pte_fast)(pte)
-diff --git a/arch/sparc/include/asm/pgalloc_64.h
-b/arch/sparc/include/asm/pgalloc_64.h
-index 5bdfa2c..a7952a5 100644
---- a/arch/sparc/include/asm/pgalloc_64.h
-+++ b/arch/sparc/include/asm/pgalloc_64.h
-@@ -26,9 +26,15 @@ static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-
- #define pud_populate(MM, PUD, PMD)	pud_set(PUD, PMD)
-
-+static inline pmd_t *
-+__pmd_alloc_one(struct mm_struct *mm, unsigned long addr, gfp_t gfp_mask)
-+{
-+	return quicklist_alloc(0, gfp_mask, NULL);
-+}
-+
- static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
- {
--	return quicklist_alloc(0, GFP_KERNEL, NULL);
-+	return __pmd_alloc_one(mm, addr, GFP_KERNEL);
- }
-
- static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-@@ -36,10 +42,17 @@ static inline void pmd_free(struct mm_struct *mm,
-pmd_t *pmd)
- 	quicklist_free(0, NULL, pmd);
- }
-
-+static inline pte_t *
+ static inline pte_t *
 +__pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address,
 +		gfp_t gfp_mask)
 +{
-+	return quicklist_alloc(0, gfp_mask, NULL);
++	return pfn_to_kaddr(page_to_pfn(__pte_alloc_one(mm, address, gfp_mask)));
 +}
 +
- static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
- 					  unsigned long address)
++static inline pte_t *
+ pte_alloc_one_kernel(struct mm_struct *mm, unsigned long address)
  {
--	return quicklist_alloc(0, GFP_KERNEL, NULL);
-+	return __pte_alloc_one_kernel(mm, address, GFP_KERNEL);
+-	return pfn_to_kaddr(page_to_pfn(pte_alloc_one(mm, address)));
++	return __pte_alloc_one_kernel(mm, address, GFP_KERNEL | __GFP_REPEAT);
  }
 
- static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
+@@ -108,6 +117,8 @@ void shatter_pmd(pmd_t *pmd);
+ #define L1_USER_PGTABLE_ORDER L2_USER_PGTABLE_ORDER
+ #define pud_populate(mm, pud, pmd) \
+   pmd_populate_kernel((mm), (pmd_t *)(pud), (pte_t *)(pmd))
++#define __pmd_alloc_one(mm, addr, mask) \
++  ((pmd_t *)page_to_virt(__pte_alloc_one((mm), (addr), (mask))))
+ #define pmd_alloc_one(mm, addr) \
+   ((pmd_t *)page_to_virt(pte_alloc_one((mm), (addr))))
+ #define pmd_free(mm, pmdp) \
+diff --git a/arch/tile/mm/pgtable.c b/arch/tile/mm/pgtable.c
+index 1f5430c..34ee920 100644
+--- a/arch/tile/mm/pgtable.c
++++ b/arch/tile/mm/pgtable.c
+@@ -218,9 +218,10 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+
+ #define L2_USER_PGTABLE_PAGES (1 << L2_USER_PGTABLE_ORDER)
+
+-struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
++struct page *
++__pte_alloc_one(struct mm_struct *mm, unsigned long address, gfp_t gfp_mask)
+ {
+-	gfp_t flags = GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO|__GFP_COMP;
++	gfp_t flags = gfp_mask | __GFP_ZERO | __GFP_COMP;
+ 	struct page *p;
+
+ #ifdef CONFIG_HIGHPTE
+@@ -235,6 +236,11 @@ struct page *pte_alloc_one(struct mm_struct *mm,
+unsigned long address)
+ 	return p;
+ }
+
++struct page *pte_alloc_one(struct mm_struct *mm, unsigned long address)
++{
++	return __pte_alloc_one(mm, address, GFP_KERNEL);
++}
++
+ /*
+  * Free page immediately (used in __pte_alloc if we raced with another
+  * process).  We have to correct whatever pte_alloc_one() did before
