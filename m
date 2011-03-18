@@ -1,54 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp108.prem.mail.ac4.yahoo.com ([76.13.13.47]:47593 "HELO
-	smtp108.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755131Ab1CQSmO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Mar 2011 14:42:14 -0400
-Date: Thu, 17 Mar 2011 13:42:10 -0500 (CDT)
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: Poll about irqsafe_cpu_add and others
-In-Reply-To: <1300386569.6315.404.camel@edumazet-laptop>
-Message-ID: <alpine.DEB.2.00.1103171338350.18529@router.home>
-References: <1300371834.6315.93.camel@edumazet-laptop>  <20110317.081420.71114992.davem@davemloft.net>  <alpine.DEB.2.00.1103171016270.12540@router.home>  <1300380801.6315.306.camel@edumazet-laptop>  <alpine.DEB.2.00.1103171245430.16620@router.home>
- <1300386569.6315.404.camel@edumazet-laptop>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:49977 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757290Ab1CRTlA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Mar 2011 15:41:00 -0400
+Date: Fri, 18 Mar 2011 19:41:35 +0000
+From: Prasad Joshi <prasadjoshi124@gmail.com>
+Subject: [RFC][PATCH v3 00/22] __vmalloc: Propagating GFP allocation flag
+ inside __vmalloc()
+Message-ID: <20110318194135.GA4746@prasad-kvm>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Dumazet <eric.dumazet@gmail.com>
-Cc: David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, netfilter-devel@vger.kernel.org
-Message-ID: <20110317184210.LbCKZX0lbidgf5FS08-2nDMO8HbofV6-qW9fT1D3n5U@z>
+To: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, prasadjoshi124@gmail.com, mitra@kqinfotech.com
+Cc: chris@zankel.net, x86@kernel.org, jdike@addtoit.com, tj@kernel.org, cmetcalf@tilera.com, linux-sh@vger.kernel.org, liqin.chen@sunplusct.com, lennox.wu@gmail.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, linux-parisc@vger.kernel.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, linux-am33-list@redhat.com, ralf@linux-mips.org, linux-mips@linux-mips.org, monstr@monstr.eu, microblaze-uclinux@itee.uq.edu.au, geert@linux-m68k.org, zippel@linux-m68k.org, sammy@sammy.net, linux-m68k@lists.linux-m68k.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, tony.luck@intel.com, fenghua.yu@intel.com, linux-ia64@vger.kernel.org, starvik@axis.com, jesper.nilsson@axis.com, linux-cris-kernel@axis.com, hans-christian.egtvedt@atmel.com, linux@arm.linux.org.uk, rth@twiddle.net, linux-alpha@vger.kernel.org
+Message-ID: <20110318194135.yeMaXRwZ6FqjFeomxNg7OdjuQCKdPXNU55x-L4I-U3E@z>
 
-On Thu, 17 Mar 2011, Eric Dumazet wrote:
+A filesystem might run into a problem while calling __vmalloc(GFP_NOFS)
+inside a lock.
 
-> By the way, I noticed :
->
-> DECLARE_PER_CPU(u64, xt_u64);
-> __this_cpu_add(xt_u64, 2) translates to following x86_32 code :
->
-> 	mov	$xt_u64,%eax
-> 	add	%fs:0x0,%eax
-> 	addl	$0x2,(%eax)
-> 	adcl	$0x0,0x4(%eax)
->
->
-> I wonder why we dont use :
->
-> 	addl	$0x2,%fs:xt_u64
-> 	addcl	$0x0,%fs:xt_u64+4
+It is expected than __vmalloc when called with GFP_NOFS should not
+callback the filesystem code even incase of the increased memory
+pressure. But the problem is that even if we pass this flag, __vmalloc
+itself allocates memory with GFP_KERNEL.
 
-The compiler is fed the following
+Using GFP_KERNEL allocations may go into the memory reclaim path and try
+to free memory by calling file system evict_inode function. Which might
+lead into deadlock.
 
-	*__this_cpu_ptr(xt_u64) += 2
+For further details
+http://marc.info/?l=linux-mm&m=128942194520631&w=4
+https://bugzilla.kernel.org/show_bug.cgi?id=30702
 
-__this_cpu_ptr makes it:
+The patch passes the gfp allocation flag all the way down to those
+allocating functions.
 
-	*(xt_u64 + __my_cpu_offset) += 2
-
-So the compiler calculates the address first and then increments it.
-
-The compiler could optimize this I think. Wonder why that does not happen.
-
-
-
+ arch/arm/include/asm/pgalloc.h           |   11 +++++-
+ arch/avr32/include/asm/pgalloc.h         |    8 ++++-
+ arch/cris/include/asm/pgalloc.h          |   10 ++++-
+ arch/frv/include/asm/pgalloc.h           |    3 ++
+ arch/frv/include/asm/pgtable.h           |    1 +
+ arch/frv/mm/pgalloc.c                    |    9 ++++-
+ arch/ia64/include/asm/pgalloc.h          |   24 +++++++++++--
+ arch/m32r/include/asm/pgalloc.h          |   11 ++++--
+ arch/m68k/include/asm/motorola_pgalloc.h |   20 +++++++++--
+ arch/m68k/include/asm/sun3_pgalloc.h     |   14 ++++++--
+ arch/m68k/mm/memory.c                    |    9 ++++-
+ arch/microblaze/include/asm/pgalloc.h    |    3 ++
+ arch/microblaze/mm/pgtable.c             |   13 +++++--
+ arch/mips/include/asm/pgalloc.h          |   22 ++++++++----
+ arch/mn10300/include/asm/pgalloc.h       |    2 +
+ arch/mn10300/mm/pgtable.c                |   10 ++++-
+ arch/parisc/include/asm/pgalloc.h        |   21 ++++++++---
+ arch/powerpc/include/asm/pgalloc-32.h    |    2 +
+ arch/powerpc/include/asm/pgalloc-64.h    |   27 +++++++++++---
+ arch/powerpc/mm/pgtable_32.c             |   10 ++++-
+ arch/s390/include/asm/pgalloc.h          |   30 +++++++++++++---
+ arch/s390/mm/pgtable.c                   |   22 +++++++++---
+ arch/score/include/asm/pgalloc.h         |   13 ++++---
+ arch/sh/include/asm/pgalloc.h            |    8 ++++-
+ arch/sh/mm/pgtable.c                     |    8 ++++-
+ arch/sparc/include/asm/pgalloc_32.h      |    5 +++
+ arch/sparc/include/asm/pgalloc_64.h      |   17 ++++++++-
+ arch/tile/include/asm/pgalloc.h          |   13 ++++++-
+ arch/tile/mm/pgtable.c                   |   10 ++++-
+ arch/um/include/asm/pgalloc.h            |    1 +
+ arch/um/kernel/mem.c                     |   21 ++++++++---
+ arch/x86/include/asm/pgalloc.h           |   17 ++++++++-
+ arch/x86/mm/pgtable.c                    |    8 ++++-
+ arch/xtensa/include/asm/pgalloc.h        |    9 ++++-
+ arch/xtensa/mm/pgtable.c                 |   11 +++++-
+ include/asm-generic/4level-fixup.h       |    8 +++-
+ include/asm-generic/pgtable-nopmd.h      |    3 +-
+ include/asm-generic/pgtable-nopud.h      |    1 +
+ include/linux/mm.h                       |   40 ++++++++++++++++-----
+ mm/memory.c                              |   14 ++++---
+ mm/vmalloc.c                             |   57 ++++++++++++++++++++----------
+ 41 files changed, 427 insertions(+), 119 deletions(-)
 
