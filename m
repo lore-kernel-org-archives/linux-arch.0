@@ -1,52 +1,49 @@
-From: Christoph Lameter <cl@linux.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: Poll about irqsafe_cpu_add and others
-Date: Thu, 17 Mar 2011 14:21:33 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1103171419280.18529@router.home>
-References: <1300371834.6315.93.camel@edumazet-laptop>  <20110317.081420.71114992.davem@davemloft.net>  <alpine.DEB.2.00.1103171016270.12540@router.home>  <1300380801.6315.306.camel@edumazet-laptop>  <alpine.DEB.2.00.1103171245430.16620@router.home>
- <1300386569.6315.404.camel@edumazet-laptop>  <alpine.DEB.2.00.1103171338350.18529@router.home> <1300388139.6315.418.camel@edumazet-laptop>
+Date: Fri, 18 Mar 2011 17:56:24 +1100
+Message-ID: <1300431384.22236.1280.camel@pasglop>
+References: <1300371834.6315.93.camel@edumazet-laptop>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp110.prem.mail.ac4.yahoo.com ([76.13.13.93]:20788 "HELO
-	smtp110.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755285Ab1CQTVi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 Mar 2011 15:21:38 -0400
-In-Reply-To: <1300388139.6315.418.camel@edumazet-laptop>
+Received: from gate.crashing.org ([63.228.1.57]:56226 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932114Ab1CRG4h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Mar 2011 02:56:37 -0400
+In-Reply-To: <1300371834.6315.93.camel@edumazet-laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Eric Dumazet <eric.dumazet@gmail.com>
-Cc: David Miller <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, netdev@vger.kernel.org, netfilter-devel@vger.kernel.org
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Christoph Lameter <cl@linux-foundation.org>, netdev <netdev@vger.kernel.org>, Netfilter Development Mailinglist <netfilter-devel@vger.kernel.org>
 
-On Thu, 17 Mar 2011, Eric Dumazet wrote:
+On Thu, 2011-03-17 at 15:23 +0100, Eric Dumazet wrote:
+> Hi
+> 
+> irqsafe_cpu_{dec|inc} are used in network stack since 2.6.37 (commit
+> 29b4433d991c88), and I would like to use irqsafe_cpu_add() in netfilter
+> fast path too, and SNMP counters eventually (to lower ram needs by 50%)
+> 
+> Initial support of irqsafe_ was given by Christoph in 2.6.34
+> 
+> It seems only x86 arch is using a native and efficient implementation.
+> 
+> Others use irqsafe_cpu_generic_to_op() and its pair of
+> local_irq_save() / local_irq_restore()
+> 
+> Which other arches could use a native implementation ?
+> 
+> What about defining a HAVE_FAST_IRQSAFE_ADD ?
 
-> > > I wonder why we dont use :
-> > >
-> > > 	addl	$0x2,%fs:xt_u64
-> > > 	addcl	$0x0,%fs:xt_u64+4
-> >
-> > The compiler is fed the following
-> >
-> > 	*__this_cpu_ptr(xt_u64) += 2
-> >
-> > __this_cpu_ptr makes it:
-> >
-> > 	*(xt_u64 + __my_cpu_offset) += 2
-> >
-> > So the compiler calculates the address first and then increments it.
-> >
-> > The compiler could optimize this I think. Wonder why that does not happen.
->
-> Compiler is really forced to compute addr, thats why.
->
-> Hmm, we should not fallback to generic ops I think, but tweak
->
-> percpu_add_op() {
+On powerpc, we use the generic one and it's fast :-) Well, at least on
+ppc64, bcs we do lazy irq disabling, disabling/enabling interrupt is
+basically just poking a byte in a per-cpu data structure (there's a tad
+more work on enable in case the interrupt actually occured and we ended
+up really disabling but that's not the common case). Overall faster than
+using the atomic ops which have to go all the way to the L2 cache.
 
-percpu_add_op() is not used. This is a 64 bit operation on a 32 bit
-machine thus we fall back to this_cpu_generic_to_op()
+So if you define the above, please set in on powerpc despite the fact
+that we use the generic implementation.
 
-#define __this_cpu_generic_to_op(pcp, val, op)                          \
-do {                                                                    \
-        *__this_cpu_ptr(&(pcp)) op val;                                 \
-} while (0)
+Cheers,
+Ben.
