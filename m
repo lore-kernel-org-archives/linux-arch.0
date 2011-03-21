@@ -1,81 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:49977 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757290Ab1CRTlA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Mar 2011 15:41:00 -0400
-Date: Fri, 18 Mar 2011 19:41:35 +0000
-From: Prasad Joshi <prasadjoshi124@gmail.com>
-Subject: [RFC][PATCH v3 00/22] __vmalloc: Propagating GFP allocation flag
- inside __vmalloc()
-Message-ID: <20110318194135.GA4746@prasad-kvm>
+Received: from mx1.redhat.com ([209.132.183.28]:54472 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751623Ab1CUIs5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Mar 2011 04:48:57 -0400
+Message-ID: <4D87109A.1010005@redhat.com>
+Date: Mon, 21 Mar 2011 10:47:22 +0200
+From: Avi Kivity <avi@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Subject: Re: [PATCH 02/17] mm: mmu_gather rework
+References: <20110217162327.434629380@chello.nl>	 <20110217163234.823185666@chello.nl>  <20110310155032.GB32302@csn.ul.ie> <1300301742.2203.1899.camel@twins>
+In-Reply-To: <1300301742.2203.1899.camel@twins>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, prasadjoshi124@gmail.com, mitra@kqinfotech.com
-Cc: chris@zankel.net, x86@kernel.org, jdike@addtoit.com, tj@kernel.org, cmetcalf@tilera.com, linux-sh@vger.kernel.org, liqin.chen@sunplusct.com, lennox.wu@gmail.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, linux-parisc@vger.kernel.org, dhowells@redhat.com, yasutake.koichi@jp.panasonic.com, linux-am33-list@redhat.com, ralf@linux-mips.org, linux-mips@linux-mips.org, monstr@monstr.eu, microblaze-uclinux@itee.uq.edu.au, geert@linux-m68k.org, zippel@linux-m68k.org, sammy@sammy.net, linux-m68k@lists.linux-m68k.org, takata@linux-m32r.org, linux-m32r@ml.linux-m32r.org, tony.luck@intel.com, fenghua.yu@intel.com, linux-ia64@vger.kernel.org, starvik@axis.com, jesper.nilsson@axis.com, linux-cris-kernel@axis.com, hans-christian.egtvedt@atmel.com, linux@arm.linux.org.uk, rth@twiddle.net, linux-alpha@vger.kernel.org
-Message-ID: <20110318194135.yeMaXRwZ6FqjFeomxNg7OdjuQCKdPXNU55x-L4I-U3E@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Mel Gorman <mel@csn.ul.ie>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>, Hugh Dickins <hughd@google.com>
+Message-ID: <20110321084722.Kd-pvJ0Y22dqdWgJyBUlRAaLXn09mHgPRELNH-eGgPc@z>
 
-A filesystem might run into a problem while calling __vmalloc(GFP_NOFS)
-inside a lock.
+On 03/16/2011 08:55 PM, Peter Zijlstra wrote:
+> On Thu, 2011-03-10 at 15:50 +0000, Mel Gorman wrote:
+>
+> >  >  +static inline void
+> >  >  +tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int full_mm_flush)
+> >  >   {
+> >
+> >  checkpatch will bitch about line length.
+>
+> I did a s/full_mm_flush/fullmm/ which puts the line length at 81. At
+> which point I'll ignore it ;-)
 
-It is expected than __vmalloc when called with GFP_NOFS should not
-callback the filesystem code even incase of the increased memory
-pressure. But the problem is that even if we pass this flag, __vmalloc
-itself allocates memory with GFP_KERNEL.
+How about s/unsigned int/bool/?  IIRC you aren't a "bool was invented 
+after 1971, therefore it is evil" type.
 
-Using GFP_KERNEL allocations may go into the memory reclaim path and try
-to free memory by calling file system evict_inode function. Which might
-lead into deadlock.
-
-For further details
-http://marc.info/?l=linux-mm&m=128942194520631&w=4
-https://bugzilla.kernel.org/show_bug.cgi?id=30702
-
-The patch passes the gfp allocation flag all the way down to those
-allocating functions.
-
- arch/arm/include/asm/pgalloc.h           |   11 +++++-
- arch/avr32/include/asm/pgalloc.h         |    8 ++++-
- arch/cris/include/asm/pgalloc.h          |   10 ++++-
- arch/frv/include/asm/pgalloc.h           |    3 ++
- arch/frv/include/asm/pgtable.h           |    1 +
- arch/frv/mm/pgalloc.c                    |    9 ++++-
- arch/ia64/include/asm/pgalloc.h          |   24 +++++++++++--
- arch/m32r/include/asm/pgalloc.h          |   11 ++++--
- arch/m68k/include/asm/motorola_pgalloc.h |   20 +++++++++--
- arch/m68k/include/asm/sun3_pgalloc.h     |   14 ++++++--
- arch/m68k/mm/memory.c                    |    9 ++++-
- arch/microblaze/include/asm/pgalloc.h    |    3 ++
- arch/microblaze/mm/pgtable.c             |   13 +++++--
- arch/mips/include/asm/pgalloc.h          |   22 ++++++++----
- arch/mn10300/include/asm/pgalloc.h       |    2 +
- arch/mn10300/mm/pgtable.c                |   10 ++++-
- arch/parisc/include/asm/pgalloc.h        |   21 ++++++++---
- arch/powerpc/include/asm/pgalloc-32.h    |    2 +
- arch/powerpc/include/asm/pgalloc-64.h    |   27 +++++++++++---
- arch/powerpc/mm/pgtable_32.c             |   10 ++++-
- arch/s390/include/asm/pgalloc.h          |   30 +++++++++++++---
- arch/s390/mm/pgtable.c                   |   22 +++++++++---
- arch/score/include/asm/pgalloc.h         |   13 ++++---
- arch/sh/include/asm/pgalloc.h            |    8 ++++-
- arch/sh/mm/pgtable.c                     |    8 ++++-
- arch/sparc/include/asm/pgalloc_32.h      |    5 +++
- arch/sparc/include/asm/pgalloc_64.h      |   17 ++++++++-
- arch/tile/include/asm/pgalloc.h          |   13 ++++++-
- arch/tile/mm/pgtable.c                   |   10 ++++-
- arch/um/include/asm/pgalloc.h            |    1 +
- arch/um/kernel/mem.c                     |   21 ++++++++---
- arch/x86/include/asm/pgalloc.h           |   17 ++++++++-
- arch/x86/mm/pgtable.c                    |    8 ++++-
- arch/xtensa/include/asm/pgalloc.h        |    9 ++++-
- arch/xtensa/mm/pgtable.c                 |   11 +++++-
- include/asm-generic/4level-fixup.h       |    8 +++-
- include/asm-generic/pgtable-nopmd.h      |    3 +-
- include/asm-generic/pgtable-nopud.h      |    1 +
- include/linux/mm.h                       |   40 ++++++++++++++++-----
- mm/memory.c                              |   14 ++++---
- mm/vmalloc.c                             |   57 ++++++++++++++++++++----------
- 41 files changed, 427 insertions(+), 119 deletions(-)
+-- 
+error compiling committee.c: too many arguments to function
 
