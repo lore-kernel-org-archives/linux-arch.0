@@ -1,253 +1,149 @@
-From: Arnd Bergmann <arnd.bergmann@linaro.org>
-Subject: [PATCH] arm: handle ptrace requests to change PC during interrupted system calls
-Date: Tue, 22 Mar 2011 16:01:25 +0100
-Message-ID: <201103221601.25616.arnd.bergmann@linaro.org>
+From: akpm@linux-foundation.org
+Subject: [patch 026/177] mm: NUMA aware alloc_task_struct_node()
+Date: Tue, 22 Mar 2011 16:30:41 -0700
+Message-ID: <201103222330.p2MNUfK3001867@imap1.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ANSI_X3.4-1968
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:64785 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754036Ab1CVPBj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2011 11:01:39 -0400
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:40652 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751584Ab1CVXbY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Mar 2011 19:31:24 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: linaro-dev@lists.linaro.org, Ulrich Weigand <ulrich.weigand@linaro.org>, linux-arch@vger.kernel.org, patches@linaro.org
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, eric.dumazet@gmail.com, ak@linux.intel.com, davem@davemloft.net, dhowells@redhat.com, fenghua.yu@intel.com, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, tj@kernel.org, tony.luck@intel.com
 
-From: Ulrich Weigand <ulrich.weigand@linaro.org>
+From: Eric Dumazet <eric.dumazet@gmail.com>
 
-GDB's interrupt.exp test cases currenly fail on ARM.  The problem is how do_signal
-handled restarting interrupted system calls:
+All kthreads being created from a single helper task, they all use memory
+from a single node for their kernel stack and task struct.
 
-The entry.S assembler code determines that we come from a system call; and that
-information is passed as "syscall" parameter to do_signal.  That routine then
-calls get_signal_to_deliver [*] and if a signal is to be delivered, calls into
-handle_signal.  If a system call is to be restarted either after the signal
-handler returns, or if no handler is to be called in the first place, the PC
-is updated after the get_signal_to_deliver call, either in handle_signal (if
-we have a handler) or at the end of do_signal (otherwise).
+This patch suite creates kthread_create_on_cpu(), adding a 'cpu' parameter
+to parameters already used by kthread_create().
 
-Now the problem is that during [*], the call to get_signal_to_deliver, a ptrace
-intercept may happen.  During this intercept, the debugger may change registers,
-including the PC.  This is done by GDB if it wants to execute an "inferior call",
-i.e. the execution of some code in the debugged program triggered by GDB.
+This parameter serves in allocating memory for the new kthread on its
+memory node if available.
 
-To this purpose, GDB will save all registers, allocate a stack frame, set up
-PC and arguments as appropriate for the call, and point the link register to
-a dummy breakpoint instruction.  Once the process is restarted, it will execute
-the call and then trap back to the debugger, at which point GDB will restore
-all registers and continue original execution.
-
-This generally works fine.  However, now consider what happens when GDB attempts
-to do exactly that while the process was interrupted during execution of a to-be-
-restarted system call:  do_signal is called with the syscall flag set; it calls
-get_signal_to_deliver, at which point the debugger takes over and changes the PC
-to point to a completely different place.  Now get_signal_to_deliver returns
-without a signal to deliver; but now do_signal decides it should be restarting
-a system call, and decrements the PC by 2 or 4 -- so it now points to 2 or 4
-bytes before the function GDB wants to call -- which leads to a subsequent crash.
-
-To fix this problem, two things need to be supported:
-- do_signal must be able to recognize that get_signal_to_deliver changed the PC
-  to a different location, and skip the restart-syscall sequence
-- once the debugger has restored all registers at the end of the inferior call
-  sequence, do_signal must recognize that *now* it needs to restart the pending
-  system call, even though it was now entered from a breakpoint instead of an
-  actual svc instruction
+Users of this new function are : ksoftirqd, kworker, migration, pktgend...
 
 
-This set of issues is solved on other platforms, usually by one of two
-mechanisms:
+This patch:
 
-- The status information "do_signal is handling a system call that may need
-  restarting" is itself carried in some register that can be accessed via
-  ptrace.  This is e.g. on Intel the "orig_eax" register; on Sparc the kernel
-  defines a magic extra bit in the flags register for this purpose.
-  This allows GDB to manage that state: reset it when doing an inferior call,
-  and restore it after the call is finished.
+Add a node parameter to alloc_task_struct(), and change its name to
+alloc_task_struct_node()
 
-- On s390, do_signal transparently handles this problem without requiring
-  GDB interaction, by performing system call restarting in the following
-  way: first, adjust the PC as necessary for restarting the call.  Then,
-  call get_signal_to_deliver; and finally just continue execution at the
-  PC.  This way, if GDB does not change the PC, everything is as before.
-  If GDB *does* change the PC, execution will simply continue there --
-  and once GDB restores the PC it saved at that point, it will automatically
-  point to the *restarted* system call.  (There is the minor twist how to
-  handle system calls that do *not* need restarting -- do_signal will undo
-  the PC change in this case, after get_signal_to_deliver has returned, and
-  only if ptrace did not change the PC during that call.)
+This change is needed to allow NUMA aware kthread_create_on_cpu()
 
+Signed-off-by: Eric Dumazet <eric.dumazet@gmail.com>
+Acked-by: David S. Miller <davem@davemloft.net>
+Reviewed-by: Andi Kleen <ak@linux.intel.com>
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-Because there does not appear to be any obvious register to carry the
-syscall-restart information on ARM, we'd either have to introduce a new
-artificial ptrace register just for that purpose, or else handle the issue
-transparently like on s390.  The patch below implements the second option;
-using this patch makes the interrupt.exp test cases pass on ARM, with no
-regression in the GDB test suite otherwise.
+ arch/frv/include/asm/processor.h        |    2 +-
+ arch/frv/kernel/process.c               |    5 +++--
+ arch/ia64/include/asm/thread_info.h     |    9 ++++++++-
+ arch/um/include/asm/processor-generic.h |    2 +-
+ kernel/fork.c                           |   10 ++++++----
+ 5 files changed, 19 insertions(+), 9 deletions(-)
 
-Signed-off-by: Ulrich Weigand <ulrich.weigand@linaro.org>
-Signed-off-by: Arnd Bergmann <arnd.bergmann@linaro.org>
-Cc: patches@linaro.org
-
---- 
-
- arch/arm/kernel/signal.c |   90 +++++++++++++++++++++++++++++++++++++--------------------------
- 1 file changed, 53 insertions(+), 37 deletions(-)
-
-diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-index cb83983..8242197 100644
---- a/arch/arm/kernel/signal.c
-+++ b/arch/arm/kernel/signal.c
-@@ -597,19 +597,13 @@ setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
- 	return err;
+diff -puN arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node arch/frv/include/asm/processor.h
+--- a/arch/frv/include/asm/processor.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/frv/include/asm/processor.h
+@@ -137,7 +137,7 @@ unsigned long get_wchan(struct task_stru
+ #define	KSTK_ESP(tsk)	((tsk)->thread.frame0->sp)
+ 
+ /* Allocation and freeing of basic task resources. */
+-extern struct task_struct *alloc_task_struct(void);
++extern struct task_struct *alloc_task_struct_node(int node);
+ extern void free_task_struct(struct task_struct *p);
+ 
+ #define cpu_relax()    barrier()
+diff -puN arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node arch/frv/kernel/process.c
+--- a/arch/frv/kernel/process.c~mm-numa-aware-alloc_task_struct_node
++++ a/arch/frv/kernel/process.c
+@@ -44,9 +44,10 @@ asmlinkage void ret_from_fork(void);
+ void (*pm_power_off)(void);
+ EXPORT_SYMBOL(pm_power_off);
+ 
+-struct task_struct *alloc_task_struct(void)
++struct task_struct *alloc_task_struct_node(int node)
+ {
+-	struct task_struct *p = kmalloc(THREAD_SIZE, GFP_KERNEL);
++	struct task_struct *p = kmalloc_node(THREAD_SIZE, GFP_KERNEL, node);
++
+ 	if (p)
+ 		atomic_set((atomic_t *)(p+1), 1);
+ 	return p;
+diff -puN arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node arch/ia64/include/asm/thread_info.h
+--- a/arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/ia64/include/asm/thread_info.h
+@@ -84,7 +84,14 @@ struct thread_info {
+ #define end_of_stack(p) (unsigned long *)((void *)(p) + IA64_RBS_OFFSET)
+ 
+ #define __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
+-#define alloc_task_struct()	((struct task_struct *)__get_free_pages(GFP_KERNEL | __GFP_COMP, KERNEL_STACK_SIZE_ORDER))
++#define alloc_task_struct_node(node)						\
++({										\
++	struct page *page = alloc_pages_node(node, GFP_KERNEL | __GFP_COMP,	\
++					     KERNEL_STACK_SIZE_ORDER);		\
++	struct task_struct *ret = page ? page_address(page) : NULL;		\
++										\
++	ret;
++})
+ #define free_task_struct(tsk)	free_pages((unsigned long) (tsk), KERNEL_STACK_SIZE_ORDER)
+ 
+ #endif /* !__ASSEMBLY */
+diff -puN arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node arch/um/include/asm/processor-generic.h
+--- a/arch/um/include/asm/processor-generic.h~mm-numa-aware-alloc_task_struct_node
++++ a/arch/um/include/asm/processor-generic.h
+@@ -66,7 +66,7 @@ struct thread_struct {
+ 	.request		= { 0 } \
  }
  
--static inline void setup_syscall_restart(struct pt_regs *regs)
--{
--	regs->ARM_r0 = regs->ARM_ORIG_r0;
--	regs->ARM_pc -= thumb_mode(regs) ? 2 : 4;
--}
--
- /*
-  * OK, we're invoking a handler
-  */	
- static int
- handle_signal(unsigned long sig, struct k_sigaction *ka,
- 	      siginfo_t *info, sigset_t *oldset,
--	      struct pt_regs * regs, int syscall)
-+	      struct pt_regs * regs)
+-extern struct task_struct *alloc_task_struct(void);
++extern struct task_struct *alloc_task_struct_node(int node);
+ 
+ static inline void release_thread(struct task_struct *task)
  {
- 	struct thread_info *thread = current_thread_info();
- 	struct task_struct *tsk = current;
-@@ -617,26 +611,6 @@ handle_signal(unsigned long sig, struct k_sigaction *ka,
- 	int ret;
+diff -puN kernel/fork.c~mm-numa-aware-alloc_task_struct_node kernel/fork.c
+--- a/kernel/fork.c~mm-numa-aware-alloc_task_struct_node
++++ a/kernel/fork.c
+@@ -109,8 +109,10 @@ int nr_processes(void)
+ }
  
- 	/*
--	 * If we were from a system call, check for system call restarting...
--	 */
--	if (syscall) {
--		switch (regs->ARM_r0) {
--		case -ERESTART_RESTARTBLOCK:
--		case -ERESTARTNOHAND:
--			regs->ARM_r0 = -EINTR;
--			break;
--		case -ERESTARTSYS:
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
--				regs->ARM_r0 = -EINTR;
--				break;
--			}
--			/* fallthrough */
--		case -ERESTARTNOINTR:
--			setup_syscall_restart(regs);
--		}
--	}
--
--	/*
- 	 * translate the signal
- 	 */
- 	if (usig < 32 && thread->exec_domain && thread->exec_domain->signal_invmap)
-@@ -685,6 +659,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka,
-  */
- static void do_signal(struct pt_regs *regs, int syscall)
- {
-+	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
- 	struct k_sigaction ka;
- 	siginfo_t info;
- 	int signr;
-@@ -698,18 +673,61 @@ static void do_signal(struct pt_regs *regs, int syscall)
- 	if (!user_mode(regs))
- 		return;
- 
-+	/*
-+	 * If we were from a system call, check for system call restarting...
-+	 */
-+	if (syscall) {
-+		continue_addr = regs->ARM_pc;
-+		restart_addr = continue_addr - (thumb_mode(regs) ? 2 : 4);
-+		retval = regs->ARM_r0;
-+
-+		/*
-+		 * Prepare for system call restart.  We do this here so that a
-+		 * debugger will see the already changed PSW.
-+		 */
-+		switch (retval) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->ARM_r0 = regs->ARM_ORIG_r0;
-+			regs->ARM_pc = restart_addr;
-+			break;
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->ARM_r0 = -EINTR;
-+			break;
-+		}
-+	}
-+
- 	if (try_to_freeze())
- 		goto no_signal;
- 
-+	/*
-+	 * Get the signal to deliver.  When running under ptrace, at this
-+	 * point the debugger may change all our registers ...
-+	 */
- 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
- 	if (signr > 0) {
- 		sigset_t *oldset;
- 
-+		/*
-+		 * Depending on the signal settings we may need to revert the
-+		 * decision to restart the system call.  But skip this if a
-+		 * debugger has chosen to restart at a different PC.
-+		 */
-+		if (regs->ARM_pc == restart_addr) {
-+			if (retval == -ERESTARTNOHAND
-+			    || (retval == -ERESTARTSYS
-+				&& !(ka.sa.sa_flags & SA_RESTART))) {
-+				regs->ARM_r0 = -EINTR;
-+				regs->ARM_pc = continue_addr;
-+			}
-+		}
-+
- 		if (test_thread_flag(TIF_RESTORE_SIGMASK))
- 			oldset = &current->saved_sigmask;
- 		else
- 			oldset = &current->blocked;
--		if (handle_signal(signr, &ka, &info, oldset, regs, syscall) == 0) {
-+		if (handle_signal(signr, &ka, &info, oldset, regs) == 0) {
- 			/*
- 			 * A signal was successfully delivered; the saved
- 			 * sigmask will have been stored in the signal frame,
-@@ -723,11 +741,14 @@ static void do_signal(struct pt_regs *regs, int syscall)
- 	}
- 
-  no_signal:
--	/*
--	 * No signal to deliver to the process - restart the syscall.
--	 */
- 	if (syscall) {
--		if (regs->ARM_r0 == -ERESTART_RESTARTBLOCK) {
-+		/*
-+		 * Handle restarting a different system call.  As above,
-+		 * if a debugger has chosen to restart at a different PC,
-+		 * ignore the restart.
-+		 */
-+		if (retval == -ERESTART_RESTARTBLOCK
-+		    && regs->ARM_pc == continue_addr) {
- 			if (thumb_mode(regs)) {
- 				regs->ARM_r7 = __NR_restart_syscall - __NR_SYSCALL_BASE;
- 				regs->ARM_pc -= 2;
-@@ -750,11 +771,6 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ #ifndef __HAVE_ARCH_TASK_STRUCT_ALLOCATOR
+-# define alloc_task_struct()	kmem_cache_alloc(task_struct_cachep, GFP_KERNEL)
+-# define free_task_struct(tsk)	kmem_cache_free(task_struct_cachep, (tsk))
++# define alloc_task_struct_node(node)		\
++		kmem_cache_alloc_node(task_struct_cachep, GFP_KERNEL, node)
++# define free_task_struct(tsk)			\
++		kmem_cache_free(task_struct_cachep, (tsk))
+ static struct kmem_cache *task_struct_cachep;
  #endif
- 			}
- 		}
--		if (regs->ARM_r0 == -ERESTARTNOHAND ||
--		    regs->ARM_r0 == -ERESTARTSYS ||
--		    regs->ARM_r0 == -ERESTARTNOINTR) {
--			setup_syscall_restart(regs);
--		}
  
- 		/* If there's no signal to deliver, we just put the saved sigmask
- 		 * back.
+@@ -249,12 +251,12 @@ static struct task_struct *dup_task_stru
+ 	struct task_struct *tsk;
+ 	struct thread_info *ti;
+ 	unsigned long *stackend;
+-
++	int node = numa_node_id();
+ 	int err;
+ 
+ 	prepare_to_copy(orig);
+ 
+-	tsk = alloc_task_struct();
++	tsk = alloc_task_struct_node(node);
+ 	if (!tsk)
+ 		return NULL;
+ 
+_
