@@ -1,45 +1,36 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Support for ARM940T core Samsung S3C2510A MCU under Linux
-Date: Tue, 22 Mar 2011 14:12:10 +0100
-Message-ID: <201103221412.10916.arnd@arndb.de>
-References: <AANLkTinSMPPHzmp5e1JrPByXC0XCY-591S=jGATXHR=U@mail.gmail.com> <4D87363A.7090209@snapgear.com> <AANLkTik1jSNpuREDuX3-LhNafD43m5T=14ZDwNUC5a8X@mail.gmail.com>
+From: "Information Technology" <laura.miehlich@cilla.de>
+Subject: Update Your E-Mail Details Account
+Date: Tue, 22 Mar 2011 15:38:38 +0100
+Message-ID: <201103221438.p2MEceu2031319@auth3.smtp.vt.edu>
+Reply-To: <financialcons729@aol.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain;
+	charset="Windows-1251"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:52796 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756083Ab1CVNMT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2011 09:12:19 -0400
-In-Reply-To: <AANLkTik1jSNpuREDuX3-LhNafD43m5T=14ZDwNUC5a8X@mail.gmail.com>
+Received: from lennier.cc.vt.edu ([198.82.162.213]:45664 "EHLO
+	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751877Ab1CVOmn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Mar 2011 10:42:43 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Madhavi Manchala <madhavi.linux@gmail.com>
-Cc: Greg Ungerer <gerg@snapgear.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Tuesday 22 March 2011, Madhavi Manchala wrote:
+Confirm Your E-Mail Details
+                                     
+Dear Email User
+This message is from Information Technology Services of This EMAIL to all our Staff. We are currently upgrading our database and e-mail center and this is our final notification to you.we have sent several messages to you without response.
+We are deleting all unused Mail account to create space for new accounts. In order not to be suspended, you will have to update your account by providing the information listed below:
 
-> These sources (patches) are similar to samsung sources which are
-> available in uClinux-dist. So, I will look into the Ithamar Adema
-> patches and uClinux-dist samsung machine directory sources. Please
-> suggest me.
-> 
-> My final question, All these samsung machines (s3c24a0, s3c3410,
-> s3c44b0x and s5c7375) are ARM7TDMI core based MCUs. My MCU (Samsung
-> s3c2510A) is a ARM9TDMI core based. So, is this porting will help?
+Confirm Your E-Mail Details..
+Email.......................
+User name: ..................
+Password:..............
+Re Confirm Password:.............
 
-The CPU support is really separate from the platform, and
-ARM9TDMI/ARM940T is supported by the platform-independent code.
+If you fail to confirm your continuous usage of our services by confirming your email password now, your account will be disable and you will not be able to access your email.
 
-In the s3c2510-specific portion, you should need very little
-code that has dependencies on the specific ARM code besides
-for the Kconfig 'select CPU_ARM940T' statement.
+You should immediately reply this email:  upgrading2010@mail.md   and enter your password in the above password column.
+Thanks for your understanding.
 
-> I am extreamly sorry, If I asked silly questions here.
-
-No problem at all, these things are not well documented, so it's
-good if at least people can refer to this conversation in the
-email archives.
-
-	Arnd
+Regard,
+IT Services
