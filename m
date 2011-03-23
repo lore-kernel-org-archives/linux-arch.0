@@ -1,74 +1,118 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: generic page.h problem
-Date: Wed, 23 Mar 2011 20:53:40 +0100
-Message-ID: <201103232053.40057.arnd@arndb.de>
-References: <1300907573.15255.224.camel@deneb.localdomain>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+From: akpm@linux-foundation.org
+Subject: [merged] kthread-use-kthread_create_on_cpu.patch removed from -mm tree
+Date: Wed, 23 Mar 2011 13:33:47 -0700
+Message-ID: <201103232037.p2NKbNc9028237@imap1.linux-foundation.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:55060 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932366Ab1CWTxo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2011 15:53:44 -0400
-In-Reply-To: <1300907573.15255.224.camel@deneb.localdomain>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:58776 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S933394Ab1CWUiH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Mar 2011 16:38:07 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: eric.dumazet@gmail.com, ak@linux.intel.com, davem@davemloft.net, dhowells@redhat.com, fenghua.yu@intel.com, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, tj@kernel.org, tony.luck
 
-On Wednesday 23 March 2011 20:12:53 Mark Salter wrote:
-> I'm working with a new architecture port (nommu) and was wanting to use
-> the generic page.h but there is a problem. I'm using CONFIG_FLATMEM with
-> a non-zero CONFIG_KERNEL_RAM_BASE_ADDRESS. The hardware uses this same
-> address to access RAM from code and for DMA purposes. The generic page.h
-> has:
-> 
-> #ifdef CONFIG_KERNEL_RAM_BASE_ADDRESS
-> #define PAGE_OFFSET		(CONFIG_KERNEL_RAM_BASE_ADDRESS)
-> #else
-> #define PAGE_OFFSET		(0)
-> #endif
-> 
-> #ifndef __ASSEMBLY__
-> 
-> #define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
-> #define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
-> 
-> The problem I have is that __va(x) and __pa(x) should do nothing on
-> this architecture. If I use the following, then everything seems to
-> work as it should.
-> 
-> 
-> diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
-> index 75fec18..4dc4a81 100644
-> --- a/include/asm-generic/page.h
-> +++ b/include/asm-generic/page.h
-> @@ -73,8 +73,8 @@ extern unsigned long memory_end;
->  
->  #ifndef __ASSEMBLY__
->  
-> -#define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
-> -#define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
-> +#define __va(x) ((void *)((unsigned long) (x)))
-> +#define __pa(x) ((unsigned long) (x))
->  
->  #define virt_to_pfn(kaddr)     (__pa(kaddr) >> PAGE_SHIFT)
->  #define pfn_to_virt(pfn)       __va((pfn) << PAGE_SHIFT)
-> 
-> 
-> Am I missing something here? The only other arch using the generic
-> page.h is blackfin, but it uses a zero PAGE_OFFSET, so my patch
-> would have no effect there.
 
-I don't think the handling of nonzero PAGE_OFFSET in asm-generic/page.h
-was intentional. When Remis worked on the patch to introduce this file,
-the idea was to take the common parts from all related architectures
-and come up with a way that works on most of them.
+The patch titled
+     kthread: use kthread_create_on_node()
+has been removed from the -mm tree.  Its filename was
+     kthread-use-kthread_create_on_cpu.patch
 
-Maybe one of the other arch maintainers has an opinion on this. If
-not, I don't mind your patch, just add that to your series when submitting
-the architecture for review.
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-	Arnd
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+Subject: kthread: use kthread_create_on_node()
+From: Eric Dumazet <eric.dumazet@gmail.com>
+
+ksoftirqd, kworker, migration, and pktgend kthreads can be created with
+kthread_create_on_node(), to get proper NUMA affinities for their stack and
+task_struct.
+
+Signed-off-by: Eric Dumazet <eric.dumazet@gmail.com>
+Acked-by: David S. Miller <davem@davemloft.net>
+Reviewed-by: Andi Kleen <ak@linux.intel.com>
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+Acked-by: Tejun Heo <tj@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ kernel/softirq.c      |    5 ++++-
+ kernel/stop_machine.c |    6 ++++--
+ kernel/workqueue.c    |    6 ++++--
+ net/core/pktgen.c     |    5 ++++-
+ 4 files changed, 16 insertions(+), 6 deletions(-)
+
+diff -puN kernel/softirq.c~kthread-use-kthread_create_on_cpu kernel/softirq.c
+--- a/kernel/softirq.c~kthread-use-kthread_create_on_cpu
++++ a/kernel/softirq.c
+@@ -845,7 +845,10 @@ static int __cpuinit cpu_callback(struct
+ 	switch (action) {
+ 	case CPU_UP_PREPARE:
+ 	case CPU_UP_PREPARE_FROZEN:
+-		p = kthread_create(run_ksoftirqd, hcpu, "ksoftirqd/%d", hotcpu);
++		p = kthread_create_on_node(run_ksoftirqd,
++					   hcpu,
++					   cpu_to_node(hotcpu),
++					   "ksoftirqd/%d", hotcpu);
+ 		if (IS_ERR(p)) {
+ 			printk("ksoftirqd for %i failed\n", hotcpu);
+ 			return notifier_from_errno(PTR_ERR(p));
+diff -puN kernel/stop_machine.c~kthread-use-kthread_create_on_cpu kernel/stop_machine.c
+--- a/kernel/stop_machine.c~kthread-use-kthread_create_on_cpu
++++ a/kernel/stop_machine.c
+@@ -301,8 +301,10 @@ static int __cpuinit cpu_stop_cpu_callba
+ 	case CPU_UP_PREPARE:
+ 		BUG_ON(stopper->thread || stopper->enabled ||
+ 		       !list_empty(&stopper->works));
+-		p = kthread_create(cpu_stopper_thread, stopper, "migration/%d",
+-				   cpu);
++		p = kthread_create_on_node(cpu_stopper_thread,
++					   stopper,
++					   cpu_to_node(cpu),
++					   "migration/%d", cpu);
+ 		if (IS_ERR(p))
+ 			return notifier_from_errno(PTR_ERR(p));
+ 		get_task_struct(p);
+diff -puN kernel/workqueue.c~kthread-use-kthread_create_on_cpu kernel/workqueue.c
+--- a/kernel/workqueue.c~kthread-use-kthread_create_on_cpu
++++ a/kernel/workqueue.c
+@@ -1366,8 +1366,10 @@ static struct worker *create_worker(stru
+ 	worker->id = id;
+ 
+ 	if (!on_unbound_cpu)
+-		worker->task = kthread_create(worker_thread, worker,
+-					      "kworker/%u:%d", gcwq->cpu, id);
++		worker->task = kthread_create_on_node(worker_thread,
++						      worker,
++						      cpu_to_node(gcwq->cpu),
++						      "kworker/%u:%d", gcwq->cpu, id);
+ 	else
+ 		worker->task = kthread_create(worker_thread, worker,
+ 					      "kworker/u:%d", id);
+diff -puN net/core/pktgen.c~kthread-use-kthread_create_on_cpu net/core/pktgen.c
+--- a/net/core/pktgen.c~kthread-use-kthread_create_on_cpu
++++ a/net/core/pktgen.c
+@@ -3761,7 +3761,10 @@ static int __init pktgen_create_thread(i
+ 	list_add_tail(&t->th_list, &pktgen_threads);
+ 	init_completion(&t->start_done);
+ 
+-	p = kthread_create(pktgen_thread_worker, t, "kpktgend_%d", cpu);
++	p = kthread_create_on_node(pktgen_thread_worker,
++				   t,
++				   cpu_to_node(cpu),
++				   "kpktgend_%d", cpu);
+ 	if (IS_ERR(p)) {
+ 		pr_err("kernel_thread() failed for cpu %d\n", t->cpu);
+ 		list_del(&t->th_list);
+_
+
+Patches currently in -mm which might be from eric.dumazet@gmail.com are
+
+origin.patch
+net-convert-%p-usage-to-%pk.patch
