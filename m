@@ -1,133 +1,463 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:37077 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753232Ab1CWOQa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Mar 2011 10:16:30 -0400
-Date: Wed, 23 Mar 2011 15:16:24 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH RESEND 1/2] vsprintf: introduce %pT format specifier
-Message-ID: <20110323141624.GB18093@elte.hu>
-References: <20110323131213.GA25467@elte.hu>
- <1300886997-30781-1-git-send-email-namhyung@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1300886997-30781-1-git-send-email-namhyung@gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51451 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S933395Ab1CWUiH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Mar 2011 16:38:07 -0400
+Message-ID: <201103232037.p2NKbIbS028228@imap1.linux-foundation.org>
+Subject: [merged] mm-numa-aware-alloc_thread_info_node.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Wed, 23 Mar 2011 13:33:42 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Namhyung Kim <namhyung@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20110323141624.EjgrVAEPMFS8U9wu39JIopMpo7GUcdPYh5CS1mzR1aI@z>
+To: eric.dumazet@gmail.com, ak@linux.intel.com, davem@davemloft.net, dhowells@redhat.com, fenghua.yu@intel.com, linux-arch@vger.kernel.org, rusty@rustcorp.com.au, tj@kernel.org, tony.luck@intel.com, mm-commits@vger.kernel.org
+Message-ID: <20110323203342.7WXUjiifYkN4MXe-youHpcblaE_o-phqWlcsHVMkJKM@z>
 
 
-* Namhyung Kim <namhyung@gmail.com> wrote:
+The patch titled
+     mm: NUMA aware alloc_thread_info_node()
+has been removed from the -mm tree.  Its filename was
+     mm-numa-aware-alloc_thread_info_node.patch
 
-> The %pT format specifier is for stack backtrace. Its handler
-> sprint_trace() does symbol lookup using (address-1) to ensure
-> the address will not point outside of the function.
-> 
-> If there is a tail-call to the function marked "noreturn",
-> gcc optimized out the code after the call then causes saved
-> return address points outside of the function (i.e. the start
-> of the next function), so pollutes call trace somewhat.
-> This patch will fix it.
-> 
-> before:
-> [   18.345923] Call Trace:
-> [   18.346001]  [<ffffffff812a8502>] panic+0x8c/0x18d
-> [   18.346257]  [<ffffffffa000012a>] deep01+0x0/0x38 [test_panic]  <--- bad
-> [   18.346347]  [<ffffffff81104666>] proc_file_write+0x73/0x8d
-> [   18.346432]  [<ffffffff811000b3>] proc_reg_write+0x8d/0xac
-> [   18.346516]  [<ffffffff810c7d32>] vfs_write+0xa1/0xc5
-> [   18.346603]  [<ffffffff810c7e0f>] sys_write+0x45/0x6c
-> [   18.346801]  [<ffffffff8f02943b>] system_call_fastpath+0x16/0x1b
-> 
-> after:
-> [   22.224483] Call Trace:
-> [   22.224569]  [<ffffffff812bce69>] panic+0x8c/0x18d
-> [   22.224848]  [<ffffffffa000012a>] panic_write+0x20/0x20 [test_panic]  <--- ok
-> [   22.224979]  [<ffffffff81115fab>] proc_file_write+0x73/0x8d
-> [   22.225089]  [<ffffffff81111a5f>] proc_reg_write+0x8d/0xac
-> [   22.225199]  [<ffffffff810d90ee>] vfs_write+0xa1/0xc5
-> [   22.225304]  [<ffffffff810d91cb>] sys_write+0x45/0x6c
-> [   22.225408]  [<ffffffff812c07fb>] system_call_fastpath+0x16/0x1b
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-Ok, this looks really useful - we really want 100% perfect backtraces, kernel 
-developers are looking at hundreds of thousands of call traces per year, so 
-every little detail helps in the long run!
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
-[ Nit: please omit the timestamp prefixes from the changelog, they add no 
-  information and just clutter the git log. ]
+------------------------------------------------------
+Subject: mm: NUMA aware alloc_thread_info_node()
+From: Eric Dumazet <eric.dumazet@gmail.com>
 
-The implementation could be done a bit cleaner:
+Add a node parameter to alloc_thread_info(), and change its name to
+alloc_thread_info_node()
 
-> +/**
-> + * sprint_trace - Look up a kernel trace symbol and return it in a text buffer
-> + * @buffer: buffer to be stored
-> + * @address: address to lookup
-> + *
-> + * This function is for stack trace and does the same thing as sprint_symbol()
-> + * but with modified/decreased @address. If there is a tail-call to the
-> + * function marked "noreturn", gcc optimized out code after the call so that
-> + * the stack-saved return address could point outside of the caller. This
-> + * function ensures that kallsyms will find the original caller by decreasing
-> + * @address and then adjusts the result by increasing offset.
-> + *
-> + * This function returns the number of bytes stored in @buffer.
-> + */
-> +int sprint_trace(char *buffer, unsigned long address)
-> +{
-> +	char *modname;
-> +	const char *name;
-> +	unsigned long offset, size;
-> +	int len;
-> +
-> +	name = kallsyms_lookup(address-1, &size, &offset, &modname, buffer);
-> +	if (!name)
-> +		return sprintf(buffer, "0x%lx", address);
-> +
-> +	if (name != buffer)
-> +		strcpy(buffer, name);
-> +	len = strlen(buffer);
-> +	buffer += len;
-> +	offset++;
-> +
-> +	if (modname)
-> +		len += sprintf(buffer, "+%#lx/%#lx [%s]",
-> +						offset, size, modname);
+This change is needed to allow NUMA aware kthread_create_on_cpu()
 
-[ Nit: please do not break the line there, it makes the code less readable. 
-  (ignore checkpatch in this case) ]
+Signed-off-by: Eric Dumazet <eric.dumazet@gmail.com>
+Acked-by: David S. Miller <davem@davemloft.net>
+Reviewed-by: Andi Kleen <ak@linux.intel.com>
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-> +	else
-> +		len += sprintf(buffer, "+%#lx/%#lx", offset, size);
-> +
-> +	return len;
-> +}
+ arch/cris/include/asm/thread_info.h     |    2 -
+ arch/frv/include/asm/thread_info.h      |   13 +++--------
+ arch/ia64/include/asm/thread_info.h     |    5 ++--
+ arch/m32r/include/asm/thread_info.h     |   13 +++--------
+ arch/mips/include/asm/thread_info.h     |    6 +++--
+ arch/mn10300/include/asm/thread_info.h  |    6 +++--
+ arch/powerpc/include/asm/thread_info.h  |    2 -
+ arch/powerpc/kernel/process.c           |    4 +--
+ arch/score/include/asm/thread_info.h    |    2 -
+ arch/sh/include/asm/thread_info.h       |    2 -
+ arch/sh/kernel/process.c                |   16 ++++++++------
+ arch/sparc/include/asm/thread_info_32.h |    6 ++---
+ arch/sparc/include/asm/thread_info_64.h |   24 +++++++++++-----------
+ arch/sparc/mm/srmmu.c                   |    4 +--
+ arch/sparc/mm/sun4c.c                   |    4 +--
+ arch/tile/include/asm/thread_info.h     |    2 -
+ arch/tile/kernel/process.c              |    4 +--
+ arch/x86/include/asm/thread_info.h      |   10 +++++++--
+ kernel/fork.c                           |    9 +++++---
+ 19 files changed, 70 insertions(+), 64 deletions(-)
 
-This is really just a trivial variant of sprint_symbol() AFAICS, to make 
-function return lookups more reliable. You look up address-1 then fix up the 
-resulting offset.
+diff -puN arch/cris/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/cris/include/asm/thread_info.h
+--- a/arch/cris/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/cris/include/asm/thread_info.h
+@@ -68,7 +68,7 @@ struct thread_info {
+ #define init_thread_info	(init_thread_union.thread_info)
+ 
+ /* thread information allocation */
+-#define alloc_thread_info(tsk) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
++#define alloc_thread_info(tsk, node) ((struct thread_info *) __get_free_pages(GFP_KERNEL,1))
+ #define free_thread_info(ti) free_pages((unsigned long) (ti), 1)
+ 
+ #endif /* !__ASSEMBLY__ */
+diff -puN arch/frv/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/frv/include/asm/thread_info.h
+--- a/arch/frv/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/frv/include/asm/thread_info.h
+@@ -84,16 +84,11 @@ register struct thread_info *__current_t
+ 
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-	({							\
+-		struct thread_info *ret;			\
+-								\
+-		ret = kzalloc(THREAD_SIZE, GFP_KERNEL);		\
+-								\
+-		ret;						\
+-	})
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk)	kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk)				\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(info)	kfree(info)
+diff -puN arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/ia64/include/asm/thread_info.h
+--- a/arch/ia64/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/ia64/include/asm/thread_info.h
+@@ -59,11 +59,12 @@ struct thread_info {
+ #ifndef ASM_OFFSETS_C
+ /* how to get the thread information struct from C */
+ #define current_thread_info()	((struct thread_info *) ((char *) current + IA64_TASK_SIZE))
+-#define alloc_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
++#define alloc_thread_info_node(tsk, node)	\
++		((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
+ #define task_thread_info(tsk)	((struct thread_info *) ((char *) (tsk) + IA64_TASK_SIZE))
+ #else
+ #define current_thread_info()	((struct thread_info *) 0)
+-#define alloc_thread_info(tsk)	((struct thread_info *) 0)
++#define alloc_thread_info_node(tsk, node)	((struct thread_info *) 0)
+ #define task_thread_info(tsk)	((struct thread_info *) 0)
+ #endif
+ #define free_thread_info(ti)	/* nothing */
+diff -puN arch/m32r/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/m32r/include/asm/thread_info.h
+--- a/arch/m32r/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/m32r/include/asm/thread_info.h
+@@ -96,16 +96,11 @@ static inline struct thread_info *curren
+ 
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-	({							\
+-		struct thread_info *ret;			\
+-	 							\
+-	 	ret = kzalloc(THREAD_SIZE, GFP_KERNEL);		\
+-								\
+-	 	ret;						\
+-	 })
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(info) kfree(info)
+diff -puN arch/mips/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/mips/include/asm/thread_info.h
+--- a/arch/mips/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/mips/include/asm/thread_info.h
+@@ -88,9 +88,11 @@ register struct thread_info *__current_t
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) \
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) \
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(info) kfree(info)
+diff -puN arch/mn10300/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/mn10300/include/asm/thread_info.h
+--- a/arch/mn10300/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/mn10300/include/asm/thread_info.h
+@@ -124,9 +124,11 @@ static inline unsigned long current_stac
+ 
+ /* thread information allocation */
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kzalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #else
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node)			\
++		kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #endif
+ 
+ #define free_thread_info(ti)	kfree((ti))
+diff -puN arch/powerpc/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/powerpc/include/asm/thread_info.h
+--- a/arch/powerpc/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/powerpc/include/asm/thread_info.h
+@@ -72,7 +72,7 @@ struct thread_info {
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node);
+ extern void free_thread_info(struct thread_info *ti);
+ 
+ #endif /* THREAD_SHIFT < PAGE_SHIFT */
+diff -puN arch/powerpc/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/powerpc/kernel/process.c
+--- a/arch/powerpc/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/powerpc/kernel/process.c
+@@ -1218,11 +1218,11 @@ void __ppc64_runlatch_off(void)
+ 
+ static struct kmem_cache *thread_info_cache;
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *tsk)
++struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node)
+ {
+ 	struct thread_info *ti;
+ 
+-	ti = kmem_cache_alloc(thread_info_cache, GFP_KERNEL);
++	ti = kmem_cache_alloc_node(thread_info_cache, GFP_KERNEL, node);
+ 	if (unlikely(ti == NULL))
+ 		return NULL;
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+diff -puN arch/score/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/score/include/asm/thread_info.h
+--- a/arch/score/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/score/include/asm/thread_info.h
+@@ -71,7 +71,7 @@ struct thread_info {
+ register struct thread_info *__current_thread_info __asm__("r28");
+ #define current_thread_info()	__current_thread_info
+ 
+-#define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
++#define alloc_thread_info_node(tsk, node) kmalloc_node(THREAD_SIZE, GFP_KERNEL, node)
+ #define free_thread_info(info) kfree(info)
+ 
+ #endif /* !__ASSEMBLY__ */
+diff -puN arch/sh/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/sh/include/asm/thread_info.h
+--- a/arch/sh/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sh/include/asm/thread_info.h
+@@ -95,7 +95,7 @@ static inline struct thread_info *curren
+ 
+ #endif
+ 
+-extern struct thread_info *alloc_thread_info(struct task_struct *tsk);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node);
+ extern void free_thread_info(struct thread_info *ti);
+ extern void arch_task_cache_init(void);
+ #define arch_task_cache_init arch_task_cache_init
+diff -puN arch/sh/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/sh/kernel/process.c
+--- a/arch/sh/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sh/kernel/process.c
+@@ -32,16 +32,16 @@ void free_thread_xstate(struct task_stru
+ #if THREAD_SHIFT < PAGE_SHIFT
+ static struct kmem_cache *thread_info_cache;
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *tsk)
++struct thread_info *alloc_thread_info(struct task_struct *tsk, int node)
+ {
+ 	struct thread_info *ti;
+-
+-	ti = kmem_cache_alloc(thread_info_cache, GFP_KERNEL);
+-	if (unlikely(ti == NULL))
+-		return NULL;
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-	memset(ti, 0, THREAD_SIZE);
++	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
++#else
++	gfp_t mask = GFP_KERNEL;
+ #endif
++
++	ti = kmem_cache_alloc_node(thread_info_cache, mask, node);
+ 	return ti;
+ }
+ 
+@@ -64,7 +64,9 @@ struct thread_info *alloc_thread_info(st
+ #else
+ 	gfp_t mask = GFP_KERNEL;
+ #endif
+-	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
++	struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
++
++	return page ? page_address(page) : NULL;
+ }
+ 
+ void free_thread_info(struct thread_info *ti)
+diff -puN arch/sparc/include/asm/thread_info_32.h~mm-numa-aware-alloc_thread_info_node arch/sparc/include/asm/thread_info_32.h
+--- a/arch/sparc/include/asm/thread_info_32.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/include/asm/thread_info_32.h
+@@ -82,8 +82,8 @@ register struct thread_info *current_thr
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info, void)
+-#define alloc_thread_info(tsk) BTFIXUP_CALL(alloc_thread_info)()
++BTFIXUPDEF_CALL(struct thread_info *, alloc_thread_info_node, int)
++#define alloc_thread_info_node(tsk, node) BTFIXUP_CALL(alloc_thread_info_node)(node)
+ 
+ BTFIXUPDEF_CALL(void, free_thread_info, struct thread_info *)
+ #define free_thread_info(ti) BTFIXUP_CALL(free_thread_info)(ti)
+@@ -92,7 +92,7 @@ BTFIXUPDEF_CALL(void, free_thread_info, 
+ 
+ /*
+  * Size of kernel stack for each process.
+- * Observe the order of get_free_pages() in alloc_thread_info().
++ * Observe the order of get_free_pages() in alloc_thread_info_node().
+  * The sun4 has 8K stack too, because it's short on memory, and 16K is a waste.
+  */
+ #define THREAD_SIZE		8192
+diff -puN arch/sparc/include/asm/thread_info_64.h~mm-numa-aware-alloc_thread_info_node arch/sparc/include/asm/thread_info_64.h
+--- a/arch/sparc/include/asm/thread_info_64.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/include/asm/thread_info_64.h
+@@ -146,21 +146,21 @@ register struct thread_info *current_thr
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+-#define alloc_thread_info(tsk)					\
+-({								\
+-	struct thread_info *ret;				\
+-								\
+-	ret = (struct thread_info *)				\
+-	  __get_free_pages(GFP_KERNEL, __THREAD_INFO_ORDER);	\
+-	if (ret)						\
+-		memset(ret, 0, PAGE_SIZE<<__THREAD_INFO_ORDER);	\
+-	ret;							\
+-})
++#define THREAD_FLAGS (GFP_KERNEL | __GFP_ZERO)
+ #else
+-#define alloc_thread_info(tsk) \
+-	((struct thread_info *)__get_free_pages(GFP_KERNEL, __THREAD_INFO_ORDER))
++#define THREAD_FLAGS (GFP_KERNEL)
+ #endif
+ 
++#define alloc_thread_info_node(tsk, node)				\
++({									\
++	struct page *page = alloc_pages_node(node, THREAD_FLAGS,	\
++					     __THREAD_INFO_ORDER);	\
++	struct thread_info *ret;					\
++									\
++	ret = page ? page_address(page) : NULL;				\
++	ret;								\
++})
++
+ #define free_thread_info(ti) \
+ 	free_pages((unsigned long)(ti),__THREAD_INFO_ORDER)
+ 
+diff -puN arch/sparc/mm/srmmu.c~mm-numa-aware-alloc_thread_info_node arch/sparc/mm/srmmu.c
+--- a/arch/sparc/mm/srmmu.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/mm/srmmu.c
+@@ -650,7 +650,7 @@ static void srmmu_unmapiorange(unsigned 
+  * mappings on the kernel stack without any special code as we did
+  * need on the sun4c.
+  */
+-static struct thread_info *srmmu_alloc_thread_info(void)
++static struct thread_info *srmmu_alloc_thread_info_node(int node)
+ {
+ 	struct thread_info *ret;
+ 
+@@ -2271,7 +2271,7 @@ void __init ld_mmu_srmmu(void)
+ 
+ 	BTFIXUPSET_CALL(mmu_info, srmmu_mmu_info, BTFIXUPCALL_NORM);
+ 
+-	BTFIXUPSET_CALL(alloc_thread_info, srmmu_alloc_thread_info, BTFIXUPCALL_NORM);
++	BTFIXUPSET_CALL(alloc_thread_info_node, srmmu_alloc_thread_info_node, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(free_thread_info, srmmu_free_thread_info, BTFIXUPCALL_NORM);
+ 
+ 	BTFIXUPSET_CALL(pte_to_pgoff, srmmu_pte_to_pgoff, BTFIXUPCALL_NORM);
+diff -puN arch/sparc/mm/sun4c.c~mm-numa-aware-alloc_thread_info_node arch/sparc/mm/sun4c.c
+--- a/arch/sparc/mm/sun4c.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/sparc/mm/sun4c.c
+@@ -922,7 +922,7 @@ static inline void garbage_collect(int e
+ 	free_locked_segment(BUCKET_ADDR(entry));
+ }
+ 
+-static struct thread_info *sun4c_alloc_thread_info(void)
++static struct thread_info *sun4c_alloc_thread_info_node(int node)
+ {
+ 	unsigned long addr, pages;
+ 	int entry;
+@@ -2155,7 +2155,7 @@ void __init ld_mmu_sun4c(void)
+ 	BTFIXUPSET_CALL(__swp_offset, sun4c_swp_offset, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(__swp_entry, sun4c_swp_entry, BTFIXUPCALL_NORM);
+ 
+-	BTFIXUPSET_CALL(alloc_thread_info, sun4c_alloc_thread_info, BTFIXUPCALL_NORM);
++	BTFIXUPSET_CALL(alloc_thread_info_node, sun4c_alloc_thread_info_node, BTFIXUPCALL_NORM);
+ 	BTFIXUPSET_CALL(free_thread_info, sun4c_free_thread_info, BTFIXUPCALL_NORM);
+ 
+ 	BTFIXUPSET_CALL(mmu_info, sun4c_mmu_info, BTFIXUPCALL_NORM);
+diff -puN arch/tile/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/tile/include/asm/thread_info.h
+--- a/arch/tile/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/tile/include/asm/thread_info.h
+@@ -84,7 +84,7 @@ register unsigned long stack_pointer __a
+   ((struct thread_info *)(stack_pointer & -THREAD_SIZE))
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+-extern struct thread_info *alloc_thread_info(struct task_struct *task);
++extern struct thread_info *alloc_thread_info_node(struct task_struct *task, int node);
+ extern void free_thread_info(struct thread_info *info);
+ 
+ /* Sit on a nap instruction until interrupted. */
+diff -puN arch/tile/kernel/process.c~mm-numa-aware-alloc_thread_info_node arch/tile/kernel/process.c
+--- a/arch/tile/kernel/process.c~mm-numa-aware-alloc_thread_info_node
++++ a/arch/tile/kernel/process.c
+@@ -109,7 +109,7 @@ void cpu_idle(void)
+ 	}
+ }
+ 
+-struct thread_info *alloc_thread_info(struct task_struct *task)
++struct thread_info *alloc_thread_info_node(struct task_struct *task, int node)
+ {
+ 	struct page *page;
+ 	gfp_t flags = GFP_KERNEL;
+@@ -118,7 +118,7 @@ struct thread_info *alloc_thread_info(st
+ 	flags |= __GFP_ZERO;
+ #endif
+ 
+-	page = alloc_pages(flags, THREAD_SIZE_ORDER);
++	page = alloc_pages_node(node, flags, THREAD_SIZE_ORDER);
+ 	if (!page)
+ 		return NULL;
+ 
+diff -puN arch/x86/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node arch/x86/include/asm/thread_info.h
+--- a/arch/x86/include/asm/thread_info.h~mm-numa-aware-alloc_thread_info_node
++++ a/arch/x86/include/asm/thread_info.h
+@@ -161,8 +161,14 @@ struct thread_info {
+ 
+ #define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+ 
+-#define alloc_thread_info(tsk)						\
+-	((struct thread_info *)__get_free_pages(THREAD_FLAGS, THREAD_ORDER))
++#define alloc_thread_info_node(tsk, node)				\
++({									\
++	struct page *page = alloc_pages_node(node, THREAD_FLAGS,	\
++					     THREAD_ORDER);		\
++	struct thread_info *ret = page ? page_address(page) : NULL;	\
++									\
++	ret;								\
++})
+ 
+ #ifdef CONFIG_X86_32
+ 
+diff -puN kernel/fork.c~mm-numa-aware-alloc_thread_info_node kernel/fork.c
+--- a/kernel/fork.c~mm-numa-aware-alloc_thread_info_node
++++ a/kernel/fork.c
+@@ -117,14 +117,17 @@ static struct kmem_cache *task_struct_ca
+ #endif
+ 
+ #ifndef __HAVE_ARCH_THREAD_INFO_ALLOCATOR
+-static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
++static struct thread_info *alloc_thread_info_node(struct task_struct *tsk,
++						  int node)
+ {
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ 	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
+ #else
+ 	gfp_t mask = GFP_KERNEL;
+ #endif
+-	return (struct thread_info *)__get_free_pages(mask, THREAD_SIZE_ORDER);
++	struct page *page = alloc_pages_node(node, mask, THREAD_SIZE_ORDER);
++
++	return page ? page_address(page) : NULL;
+ }
+ 
+ static inline void free_thread_info(struct thread_info *ti)
+@@ -260,7 +263,7 @@ static struct task_struct *dup_task_stru
+ 	if (!tsk)
+ 		return NULL;
+ 
+-	ti = alloc_thread_info(tsk);
++	ti = alloc_thread_info_node(tsk, node);
+ 	if (!ti) {
+ 		free_task_struct(tsk);
+ 		return NULL;
+_
 
-I'd suggest to introduce __sprint_symbol() internal helper function, with a 
-'symbol_offset' parameter to it.
+Patches currently in -mm which might be from eric.dumazet@gmail.com are
 
-That way sprint_symbol() can be implemented as a __sprint_symbol(..., 0) call, 
-while sprint_trace() can be implemented as a __sprint_symbol(.., -1) call.
+origin.patch
+net-convert-%p-usage-to-%pk.patch
 
-Also, while at it, please rename sprint_trace() to something better. This is 
-not about tracing per se, this is about *backtraces* - and in particular this 
-is about return addresses to noreturn functions pointing outside the kallsyms 
-symbol of that function.
-
-So a better name would be sprint_backtrace() or so?
-
-> @@ -949,6 +951,7 @@ int kptr_restrict = 1;
->   * - 'f' For simple symbolic function names without offset
->   * - 'S' For symbolic direct pointers with offset
->   * - 's' For symbolic direct pointers without offset
-> + * - 'T' For backtraced symbolic direct pointers with offset
-
-[ Nit: 'B' might be a better abbreviation for 'backtrace'. ]
-
-	Ingo
