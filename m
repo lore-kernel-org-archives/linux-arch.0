@@ -1,183 +1,171 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: Support for ARM940T core Samsung S3C2510A MCU under Linux
-Date: Wed, 23 Mar 2011 23:18:42 +1000
-Message-ID: <4D89F332.1050700@snapgear.com>
-References: <AANLkTinSMPPHzmp5e1JrPByXC0XCY-591S=jGATXHR=U@mail.gmail.com>	<4D87363A.7090209@snapgear.com>	<AANLkTik1jSNpuREDuX3-LhNafD43m5T=14ZDwNUC5a8X@mail.gmail.com>	<4D89E270.1080001@snapgear.com> <AANLkTikU=eTioeESyLJyOe=DX0ewJ_1HFDrcOXJHErux@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Namhyung Kim <namhyung@gmail.com>
+Subject: [PATCH RESEND 1/2] vsprintf: introduce %pT format specifier
+Date: Wed, 23 Mar 2011 22:29:57 +0900
+Message-ID: <1300886997-30781-1-git-send-email-namhyung@gmail.com>
+References: <20110323131213.GA25467@elte.hu>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sncsmrelay2.nai.com ([67.97.80.206]:60951 "EHLO
-	sncsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932600Ab1CWNUq convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2011 09:20:46 -0400
-In-Reply-To: <AANLkTikU=eTioeESyLJyOe=DX0ewJ_1HFDrcOXJHErux@mail.gmail.com>
+Received: from mail-pv0-f174.google.com ([74.125.83.174]:35903 "EHLO
+	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932883Ab1CWNax (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2011 09:30:53 -0400
+In-Reply-To: <20110323131213.GA25467@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Madhavi Manchala <madhavi.linux@gmail.com>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+
+The %pT format specifier is for stack backtrace. Its handler
+sprint_trace() does symbol lookup using (address-1) to ensure
+the address will not point outside of the function.
+
+If there is a tail-call to the function marked "noreturn",
+gcc optimized out the code after the call then causes saved
+return address points outside of the function (i.e. the start
+of the next function), so pollutes call trace somewhat.
+This patch will fix it.
+
+before:
+[   18.345923] Call Trace:
+[   18.346001]  [<ffffffff812a8502>] panic+0x8c/0x18d
+[   18.346257]  [<ffffffffa000012a>] deep01+0x0/0x38 [test_panic]  <--- bad
+[   18.346347]  [<ffffffff81104666>] proc_file_write+0x73/0x8d
+[   18.346432]  [<ffffffff811000b3>] proc_reg_write+0x8d/0xac
+[   18.346516]  [<ffffffff810c7d32>] vfs_write+0xa1/0xc5
+[   18.346603]  [<ffffffff810c7e0f>] sys_write+0x45/0x6c
+[   18.346801]  [<ffffffff8f02943b>] system_call_fastpath+0x16/0x1b
+
+after:
+[   22.224483] Call Trace:
+[   22.224569]  [<ffffffff812bce69>] panic+0x8c/0x18d
+[   22.224848]  [<ffffffffa000012a>] panic_write+0x20/0x20 [test_panic]  <--- ok
+[   22.224979]  [<ffffffff81115fab>] proc_file_write+0x73/0x8d
+[   22.225089]  [<ffffffff81111a5f>] proc_reg_write+0x8d/0xac
+[   22.225199]  [<ffffffff810d90ee>] vfs_write+0xa1/0xc5
+[   22.225304]  [<ffffffff810d91cb>] sys_write+0x45/0x6c
+[   22.225408]  [<ffffffff812c07fb>] system_call_fastpath+0x16/0x1b
+
+Signed-off-by: Namhyung Kim <namhyung@gmail.com>
 Cc: linux-arch@vger.kernel.org
+---
+ include/linux/kallsyms.h |    7 +++++++
+ kernel/kallsyms.c        |   40 ++++++++++++++++++++++++++++++++++++++++
+ lib/vsprintf.c           |    7 ++++++-
+ 3 files changed, 53 insertions(+), 1 deletions(-)
 
-
-Hi Madhavi,
-
-On 23/03/11 22:36, Madhavi Manchala wrote:
-> Hi Greg,
->
-> Thanks for your information.
->
-> On Wed, Mar 23, 2011 at 5:37 PM, Greg Ungerer<gerg@snapgear.com>  wro=
-te:
->> Hi Madhavi,
->>
->> On 22/03/11 22:43, Madhavi Manchala wrote:
->>>
->>> Thank you very much for your valuable information and suggestions.
->>>
->>> On Mon, Mar 21, 2011 at 4:57 PM, Greg Ungerer<gerg@snapgear.com>  =C3=
-=A1wrote:
->>>>
->>>> On 19/03/11 01:54, Madhavi Manchala wrote:
->>>>>
->>>>> I have one basic question about the architecture files in Linux
->>>>> kernels. We have a board with Samsung S3C2510A MCU (ARM940T core)
->>>>> which is a no-mmu based CPU. I heard that "there was not a lot of=
- ARM
->>>>> no-mmu support at the moment" from Ben Dooks.
->>>>
->>>> The core is there, but there is very little specific machine suppo=
-rt.
->>>> The one I use for testing is non-MMU ARM is the Atmel/AT91X40 (tha=
-t is
->>>> CONFIG_ARCH_AT91X40). I don't run it on real hardware, but on the
->>>> SkyEye emulator.
->>>
->>> I saw the mach-at91/at91x40.c and mach-at91/at91x40_time.c file
->>> sources. There is a few lines of code is available in these two fil=
-es.
->>> I guess, some of the common files are there for all Atmel boards an=
-d
->>> that is also included as a part of at91x40 board. Am I correct?
->>
->> Yes, exactly. Much of the code is shared by all type of at91 parts,
->> irrespective of whether they have the MMU or not. (Most of the
->> internal peripherals at either the same or very similar - so
->> things like interrupts, etc).
->>
->>
->>> I found only at91_aic_init() function only called from at91x40.c fi=
-le.
->>> What about other initialization like serial etc.? =C3=A1Is this inc=
-luded
->>> from common files for Atmel boards?
->>
->> Serial is a problem for this target, it is a little different
->> on the old at91x40 series to most of the newer at91 parts. Currently
->> it requires a different driver than the standard at91 serial driver.
->> (And that driver is not in mainline, and is not a platform type
->> driver either).
->>
->>
->>>>> So, I started developing the architecture files for my Samsung
->>>>> S3C2510A MCU (ARM940T core) by looking at the existing S3C2410A
->>>>> (ARM920 core) architecture files. Is this my porting (developing =
-the
->>>>> architecture files) correct?
->>>>
->>>> Would make sense to start on something similar, yes.
->>>
->>> I downloaded the latest uClinux sources from
->>> http://sourceforge.net/projects/uclinux/files/uClinux%20Stable/ and
->>> the name of the file is uClinux-dist-20101026.tar.bz2. In this
->>> distribution, I found mach-s3c24a0, mach-s3c3410, s3c44b0x and
->>> mach-s5c7375 sources in linux-2.6.x/arch/arm/ directory. (Arnd aske=
-d
->>> me to see these sources as a reference, only). So, I am looking at
->>> these sources and especially s3c3410 sources as remaining are
->>> different like s3c24a0 is a MMU based etc.
->>>
->>>>
->>>>> How can I port the Linux on to my board which has a Samsung S3C25=
-10A
->>>>> MCU (ARM940T core) which is a NO-MMU based CPU?
->>>>>
->>>>> Thanks for your suggestions / hints / comments.
->>>>
->>>> You can look at what I did with the AT91X40 for an example.
->>>> Or look at the patches that Ithamar Adema sent to the ARM linux
->>>> mailing list in the last few days for supporting the NXP LPC2K
->>>> family as another example (they are also non-MMU parts).
->>>
->>> As I said above, there are only two files which are related to at91=
-x40
->>> board. However, I found some sources for the Ithamar Adema patches =
-at
->>> the following link.
->>> http://www.spinics.net/lists/arm-kernel/msg118932.html
->>>
->>> These sources (patches) are similar to samsung sources which are
->>> available in uClinux-dist. So, I will look into the Ithamar Adema
->>> patches and uClinux-dist samsung machine directory sources. Please
->>> suggest me.
->>
->> Looking at all of these will be useful. The AT91 changes where quite
->> simple due to the high degree of similarity.
->
-> Do you mean similarity between AT91 and S3C2510A processors? Am I
-> understand your statement correct?
-
-No, I meant the similarity between the non-MMU AT91x40 and the
-other MMU AT91 parts.
-
-Regards
-Greg
-
-
-
-> Thanks and Regards,
-> Madhavi M.
->
->>
->>> My final question, All these samsung machines (s3c24a0, s3c3410,
->>> s3c44b0x and s5c7375) are ARM7TDMI core based MCUs. My MCU (Samsung
->>> s3c2510A) is a ARM9TDMI core based. So, is this porting will help?
->>>
->>> I am extreamly sorry, If I asked silly questions here.
->>>
->>> Once again, thanks for your suggestions and valuable inforamtion.
->>
->> No problem, glad to help.
->>
->> Regards
->> Greg
->>
->>
->> --------------------------------------------------------------------=
-----
->> Greg Ungerer =C3=A1-- =C3=A1Principal Engineer =C3=A1 =C3=A1 =C3=A1 =
-=C3=A1EMAIL: =C3=A1 =C3=A1 gerg@snapgear.com
->> SnapGear Group, McAfee =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=
-=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1PHONE: =C3=A1 =C3=A1 =C3=A1 +61 7 3435 2=
-888
->> 8 Gardner Close =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=
-=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 FAX: =C3=A1 =C3=A1 =C3=A1=
- =C3=A1 +61 7 3217 5323
->> Milton, QLD, 4064, Australia =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1 =C3=A1=
- =C3=A1 =C3=A1WEB: http://www.SnapGear.com
->>
->
->
->
-
-
---=20
------------------------------------------------------------------------=
--
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.co=
-m
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 288=
-8
-8 Gardner Close                             FAX:         +61 7 3217 532=
-3
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.co=
-m
+diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
+index d8e9b3d1c23c..4964ed2021cc 100644
+--- a/include/linux/kallsyms.h
++++ b/include/linux/kallsyms.h
+@@ -36,6 +36,7 @@ const char *kallsyms_lookup(unsigned long addr,
+ 
+ /* Look up a kernel symbol and return it in a text buffer. */
+ extern int sprint_symbol(char *buffer, unsigned long address);
++extern int sprint_trace(char *buffer, unsigned long address);
+ 
+ /* Look up a kernel symbol and print it to the kernel messages. */
+ extern void __print_symbol(const char *fmt, unsigned long address);
+@@ -79,6 +80,12 @@ static inline int sprint_symbol(char *buffer, unsigned long addr)
+ 	return 0;
+ }
+ 
++static inline int sprint_trace(char *buffer, unsigned long addr)
++{
++	*buffer = '\0';
++	return 0;
++}
++
+ static inline int lookup_symbol_name(unsigned long addr, char *symname)
+ {
+ 	return -ERANGE;
+diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
+index 6f6d091b5757..1e889477ff618 100644
+--- a/kernel/kallsyms.c
++++ b/kernel/kallsyms.c
+@@ -368,6 +368,46 @@ int sprint_symbol(char *buffer, unsigned long address)
+ }
+ EXPORT_SYMBOL_GPL(sprint_symbol);
+ 
++/**
++ * sprint_trace - Look up a kernel trace symbol and return it in a text buffer
++ * @buffer: buffer to be stored
++ * @address: address to lookup
++ *
++ * This function is for stack trace and does the same thing as sprint_symbol()
++ * but with modified/decreased @address. If there is a tail-call to the
++ * function marked "noreturn", gcc optimized out code after the call so that
++ * the stack-saved return address could point outside of the caller. This
++ * function ensures that kallsyms will find the original caller by decreasing
++ * @address and then adjusts the result by increasing offset.
++ *
++ * This function returns the number of bytes stored in @buffer.
++ */
++int sprint_trace(char *buffer, unsigned long address)
++{
++	char *modname;
++	const char *name;
++	unsigned long offset, size;
++	int len;
++
++	name = kallsyms_lookup(address-1, &size, &offset, &modname, buffer);
++	if (!name)
++		return sprintf(buffer, "0x%lx", address);
++
++	if (name != buffer)
++		strcpy(buffer, name);
++	len = strlen(buffer);
++	buffer += len;
++	offset++;
++
++	if (modname)
++		len += sprintf(buffer, "+%#lx/%#lx [%s]",
++						offset, size, modname);
++	else
++		len += sprintf(buffer, "+%#lx/%#lx", offset, size);
++
++	return len;
++}
++
+ /* Look up a kernel symbol and print it to the kernel messages. */
+ void __print_symbol(const char *fmt, unsigned long address)
+ {
+diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+index d3023df8477f..c9c56a54cc42 100644
+--- a/lib/vsprintf.c
++++ b/lib/vsprintf.c
+@@ -574,7 +574,9 @@ char *symbol_string(char *buf, char *end, void *ptr,
+ 	unsigned long value = (unsigned long) ptr;
+ #ifdef CONFIG_KALLSYMS
+ 	char sym[KSYM_SYMBOL_LEN];
+-	if (ext != 'f' && ext != 's')
++	if (ext == 'T')
++		sprint_trace(sym, value);
++	else if (ext != 'f' && ext != 's')
+ 		sprint_symbol(sym, value);
+ 	else
+ 		kallsyms_lookup(value, NULL, NULL, NULL, sym);
+@@ -949,6 +951,7 @@ int kptr_restrict = 1;
+  * - 'f' For simple symbolic function names without offset
+  * - 'S' For symbolic direct pointers with offset
+  * - 's' For symbolic direct pointers without offset
++ * - 'T' For backtraced symbolic direct pointers with offset
+  * - 'R' For decoded struct resource, e.g., [mem 0x0-0x1f 64bit pref]
+  * - 'r' For raw struct resource, e.g., [mem 0x0-0x1f flags 0x201]
+  * - 'M' For a 6-byte MAC address, it prints the address in the
+@@ -1008,6 +1011,7 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
+ 		/* Fallthrough */
+ 	case 'S':
+ 	case 's':
++	case 'T':
+ 		return symbol_string(buf, end, ptr, spec, *fmt);
+ 	case 'R':
+ 	case 'r':
+@@ -1279,6 +1283,7 @@ qualifier:
+  * %ps output the name of a text symbol without offset
+  * %pF output the name of a function pointer with its offset
+  * %pf output the name of a function pointer without its offset
++ * %pT output the name of a trace symbol with its offset
+  * %pR output the address range in a struct resource with decoded flags
+  * %pr output the address range in a struct resource with raw flags
+  * %pM output a 6-byte MAC address with colons
+-- 
+1.7.4
