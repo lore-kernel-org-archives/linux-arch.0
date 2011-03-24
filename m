@@ -1,197 +1,63 @@
-From: Namhyung Kim <namhyung@gmail.com>
-Subject: [PATCH v2 1/2] vsprintf: introduce %pB format specifier
-Date: Thu, 24 Mar 2011 11:42:29 +0900
-Message-ID: <1300934550-21394-1-git-send-email-namhyung@gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: [BUG] pgprot_noncached() is -NOT- safe for mapping vmalloc buffers
+ into userspace
+Date: Fri, 25 Mar 2011 09:16:48 +1100
+Message-ID: <1301005008.2402.453.camel@pasglop>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-px0-f179.google.com ([209.85.212.179]:37957 "EHLO
-	mail-px0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755635Ab1CXCmj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Mar 2011 22:42:39 -0400
+Received: from gate.crashing.org ([63.228.1.57]:48124 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754863Ab1CXWRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 Mar 2011 18:17:08 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: tiwai@suse.de
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch@vger.kernel.org, Matthew Evans <matt.evans@au1.ibm.com>
 
-The %pB format specifier is for stack backtrace. Its handler
-sprint_backtrace() does symbol lookup using (address-1) to
-ensure the address will not point outside of the function.
+Hi Takashi !
 
-If there is a tail-call to the function marked "noreturn",
-gcc optimized out the code after the call then causes saved
-return address points outside of the function (i.e. the start
-of the next function), so pollutes call trace somewhat.
-This patch will fix it.
+While working on endian-fixing xHCI with Matt (CC), we discovered the
+source of our problems with usb-audio on a board we were working on.
 
-before:
- Call Trace:
-  [<ffffffff812a8502>] panic+0x8c/0x18d
-  [<ffffffffa000012a>] deep01+0x0/0x38 [test_panic]  <--- bad
-  [<ffffffff81104666>] proc_file_write+0x73/0x8d
-  [<ffffffff811000b3>] proc_reg_write+0x8d/0xac
-  [<ffffffff810c7d32>] vfs_write+0xa1/0xc5
-  [<ffffffff810c7e0f>] sys_write+0x45/0x6c
-  [<ffffffff8f02943b>] system_call_fastpath+0x16/0x1b
+c32d977b8157bf67cdf47729ce7dd054a26eb534
+"ALSA: pcm - Call pgprot_noncached() for vmalloc'ed buffers"
 
-after:
- Call Trace:
-  [<ffffffff812bce69>] panic+0x8c/0x18d
-  [<ffffffffa000012a>] panic_write+0x20/0x20 [test_panic]  <--- ok
-  [<ffffffff81115fab>] proc_file_write+0x73/0x8d
-  [<ffffffff81111a5f>] proc_reg_write+0x8d/0xac
-  [<ffffffff810d90ee>] vfs_write+0xa1/0xc5
-  [<ffffffff810d91cb>] sys_write+0x45/0x6c
-  [<ffffffff812c07fb>] system_call_fastpath+0x16/0x1b
+I'm afraid that this is totally bogus :-)
 
-Signed-off-by: Namhyung Kim <namhyung@gmail.com>
-Acked-by: Steven Rostedt <rostedt@goodmis.org>
-Acked-by: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: linux-arch@vger.kernel.org
----
- include/linux/kallsyms.h |    7 +++++++
- kernel/kallsyms.c        |   44 +++++++++++++++++++++++++++++++++++++++++---
- lib/vsprintf.c           |    7 ++++++-
- 3 files changed, 54 insertions(+), 4 deletions(-)
+I don't know on what arch it is safe to have the same memory be mapped
+cachable in the kernel (and accessed via this cached mapping) and
+non-cachable in userspace, but I can confidently say that wherever it
+works it does so by accident.
 
-diff --git a/include/linux/kallsyms.h b/include/linux/kallsyms.h
-index d8e9b3d1c23c..0df513b7a9f8 100644
---- a/include/linux/kallsyms.h
-+++ b/include/linux/kallsyms.h
-@@ -36,6 +36,7 @@ const char *kallsyms_lookup(unsigned long addr,
+In the case of usb-audio, what we observed is that the user application
+was writing samples using an uncached mapping, so directly to memory,
+which does -not- invalidate conflicting cache lines on the way, an the
+kernel would then memcpy those data to the USB buffers using a cached
+mapping (vmalloc) and essentially get stale stuff from the cache instead
+of the real samples.
 
- /* Look up a kernel symbol and return it in a text buffer. */
- extern int sprint_symbol(char *buffer, unsigned long address);
-+extern int sprint_backtrace(char *buffer, unsigned long address);
+Worse, on some processors, it's actually -illegal- to create (and even
+more to -access-) a conflicting mapping of a page of memory, ie, have it
+mapped cached somewhere and uncached somewhere else. It will lockup some
+processors and afaik, some x86 as well.
 
- /* Look up a kernel symbol and print it to the kernel messages. */
- extern void __print_symbol(const char *fmt, unsigned long address);
-@@ -79,6 +80,12 @@ static inline int sprint_symbol(char *buffer, unsigned long addr)
- 	return 0;
- }
+In fact, cache coherent architectures often don't support mapping memory
+uncached -at-all- so something like snd_pcm_lib_mmap_noncached()
+shouldn't exist, or at least be under arch control. There's no case
+where it's "always safe". There will almost always be a cache alias in
+the linear mapping unless special arch specific sauce has been applied.
 
-+static inline int sprint_backtrace(char *buffer, unsigned long addr)
-+{
-+	*buffer = '\0';
-+	return 0;
-+}
-+
- static inline int lookup_symbol_name(unsigned long addr, char *symname)
- {
- 	return -ERANGE;
-diff --git a/kernel/kallsyms.c b/kernel/kallsyms.c
-index 6f6d091b5757..59e879929b17 100644
---- a/kernel/kallsyms.c
-+++ b/kernel/kallsyms.c
-@@ -342,13 +342,15 @@ int lookup_symbol_attrs(unsigned long addr, unsigned long *size,
- }
+Now, there's another problem on top of that, which is that
+snd_pcm_default_mmap() will not work properly the "other way around" on
+powerpc, where the mapping -needs- to be uncached bcs you are running on
+a non cache coherent embedded CPU and trying to mmap DMA memory, but
+that's something that needs fixing inside powerpc by properly defining
+dma_mmap_coherent() & ARCH_HAS_DMA_MMAP_COHERENT (I thought we had added
+it a while back but it's not upstream, patch must have got lost). We
+must also make sure we don't go down that path for vmalloc memory
+though.
 
- /* Look up a kernel symbol and return it in a text buffer. */
--int sprint_symbol(char *buffer, unsigned long address)
-+static int __sprint_symbol(char *buffer, unsigned long address,
-+			   int symbol_offset)
- {
- 	char *modname;
- 	const char *name;
- 	unsigned long offset, size;
- 	int len;
-
-+	address += symbol_offset;
- 	name = kallsyms_lookup(address, &size, &offset, &modname, buffer);
- 	if (!name)
- 		return sprintf(buffer, "0x%lx", address);
-@@ -357,17 +359,53 @@ int sprint_symbol(char *buffer, unsigned long address)
- 		strcpy(buffer, name);
- 	len = strlen(buffer);
- 	buffer += len;
-+	offset -= symbol_offset;
-
- 	if (modname)
--		len += sprintf(buffer, "+%#lx/%#lx [%s]",
--						offset, size, modname);
-+		len += sprintf(buffer, "+%#lx/%#lx [%s]", offset, size, modname);
- 	else
- 		len += sprintf(buffer, "+%#lx/%#lx", offset, size);
-
- 	return len;
- }
-+
-+/**
-+ * sprint_symbol - Look up a kernel symbol and return it in a text buffer
-+ * @buffer: buffer to be stored
-+ * @address: address to lookup
-+ *
-+ * This function looks up a kernel symbol with @address and stores its name,
-+ * offset, size and module name to @buffer if possible. If no symbol was found,
-+ * just saves its @address as is.
-+ *
-+ * This function returns the number of bytes stored in @buffer.
-+ */
-+int sprint_symbol(char *buffer, unsigned long address)
-+{
-+	return __sprint_symbol(buffer, address, 0);
-+}
-+
- EXPORT_SYMBOL_GPL(sprint_symbol);
-
-+/**
-+ * sprint_backtrace - Look up a backtrace symbol and return it in a text buffer
-+ * @buffer: buffer to be stored
-+ * @address: address to lookup
-+ *
-+ * This function is for stack backtrace and does the same thing as
-+ * sprint_symbol() but with modified/decreased @address. If there is a
-+ * tail-call to the function marked "noreturn", gcc optimized out code after
-+ * the call so that the stack-saved return address could point outside of the
-+ * caller. This function ensures that kallsyms will find the original caller
-+ * by decreasing @address.
-+ *
-+ * This function returns the number of bytes stored in @buffer.
-+ */
-+int sprint_backtrace(char *buffer, unsigned long address)
-+{
-+	return __sprint_symbol(buffer, address, -1);
-+}
-+
- /* Look up a kernel symbol and print it to the kernel messages. */
- void __print_symbol(const char *fmt, unsigned long address)
- {
-diff --git a/lib/vsprintf.c b/lib/vsprintf.c
-index d3023df8477f..d9e01fc3168e 100644
---- a/lib/vsprintf.c
-+++ b/lib/vsprintf.c
-@@ -433,7 +433,9 @@ char *symbol_string(char *buf, char *end, void *ptr,
- 	unsigned long value = (unsigned long) ptr;
- #ifdef CONFIG_KALLSYMS
- 	char sym[KSYM_SYMBOL_LEN];
--	if (ext != 'f' && ext != 's')
-+	if (ext == 'B')
-+		sprint_backtrace(sym, value);
-+	else if (ext != 'f' && ext != 's')
- 		sprint_symbol(sym, value);
- 	else
- 		kallsyms_lookup(value, NULL, NULL, NULL, sym);
-@@ -808,6 +810,7 @@ int kptr_restrict = 1;
-  * - 'f' For simple symbolic function names without offset
-  * - 'S' For symbolic direct pointers with offset
-  * - 's' For symbolic direct pointers without offset
-+ * - 'B' For backtraced symbolic direct pointers with offset
-  * - 'R' For decoded struct resource, e.g., [mem 0x0-0x1f 64bit pref]
-  * - 'r' For raw struct resource, e.g., [mem 0x0-0x1f flags 0x201]
-  * - 'M' For a 6-byte MAC address, it prints the address in the
-@@ -867,6 +870,7 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
- 		/* Fallthrough */
- 	case 'S':
- 	case 's':
-+	case 'B':
- 		return symbol_string(buf, end, ptr, spec, *fmt);
- 	case 'R':
- 	case 'r':
-@@ -1134,6 +1138,7 @@ qualifier:
-  * %ps output the name of a text symbol without offset
-  * %pF output the name of a function pointer with its offset
-  * %pf output the name of a function pointer without its offset
-+ * %pB output the name of a backtrace symbol with its offset
-  * %pR output the address range in a struct resource with decoded flags
-  * %pr output the address range in a struct resource with raw flags
-  * %pM output a 6-byte MAC address with colons
---
-1.7.4
+Cheers,
+Ben.
