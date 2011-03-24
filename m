@@ -1,63 +1,69 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: [BUG] pgprot_noncached() is -NOT- safe for mapping vmalloc buffers
- into userspace
-Date: Fri, 25 Mar 2011 09:16:48 +1100
-Message-ID: <1301005008.2402.453.camel@pasglop>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: Link breakage on all architectures which implement their own
+ show_mem
+Date: Thu, 24 Mar 2011 15:21:46 -0700 (PDT)
+Message-ID: <alpine.DEB.2.00.1103241520120.26730@chino.kir.corp.google.com>
+References: <1300898506.15899.24.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48124 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754863Ab1CXWRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 Mar 2011 18:17:08 -0400
+Received: from smtp-out.google.com ([216.239.44.51]:50703 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932915Ab1CXWVy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Mar 2011 18:21:54 -0400
+Received: from hpaq11.eem.corp.google.com (hpaq11.eem.corp.google.com [172.25.149.11])
+	by smtp-out.google.com with ESMTP id p2OMLrvI026851
+	for <linux-arch@vger.kernel.org>; Thu, 24 Mar 2011 15:21:53 -0700
+Received: from pwi3 (pwi3.prod.google.com [10.241.219.3])
+	by hpaq11.eem.corp.google.com with ESMTP id p2OMLo8d028861
+	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Thu, 24 Mar 2011 15:21:51 -0700
+Received: by pwi3 with SMTP id 3so69650pwi.9
+        for <linux-arch@vger.kernel.org>; Thu, 24 Mar 2011 15:21:49 -0700 (PDT)
+In-Reply-To: <1300898506.15899.24.camel@mulgrave.site>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tiwai@suse.de
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-arch@vger.kernel.org, Matthew Evans <matt.evans@au1.ibm.com>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-arch@vger.kernel.org
 
-Hi Takashi !
+On Wed, 23 Mar 2011, James Bottomley wrote:
 
-While working on endian-fixing xHCI with Matt (CC), we discovered the
-source of our problems with usb-audio on a board we were working on.
+> This is the problem a lot of architectures will see:
+> 
+> Specifically this:
+>   LD      vmlinux.o
+> lib/lib.a(show_mem.o): In function `show_mem':
+> (.text.show_mem+0x0): multiple definition of `show_mem'
+> arch/parisc/mm/built-in.o:(.text.show_mem+0x0): first defined here
+> make: *** [vmlinux.o] Error 1
+> 
+> Caused by this patch:
+> 
+> commit ddd588b5dd55f14320379961e47683db4e4c1d90
+> Author: David Rientjes <rientjes@google.com>
+> Date:   Tue Mar 22 16:30:46 2011 -0700
+> 
+>     oom: suppress nodes that are not allowed from meminfo on oom kill
+> 
+> Is the cause.  What it does is introduce a new __show_mem() which is
+> required by files in mm/, so the object containing it: show_mem.o gets
+> pulled in all the time in the link and that gives every architecture
+> that implements their own show_mem() a link failure because of the
+> double definition.  Library linking works at the file level, not at the
+> function level.  To work, you have to put these functions in separate
+> files.
+> 
 
-c32d977b8157bf67cdf47729ce7dd054a26eb534
-"ALSA: pcm - Call pgprot_noncached() for vmalloc'ed buffers"
+Thanks for the report, James.
 
-I'm afraid that this is totally bogus :-)
+This was also reported by Stephen on LKML when he merged the latest Linus 
+tree into linux-next.  Andrew suggested that we remove __show_mem() 
+entirely and simply add its argument to show_mem() in all the 
+architectures.  I have a patch at:
 
-I don't know on what arch it is safe to have the same memory be mapped
-cachable in the kernel (and accessed via this cached mapping) and
-non-cachable in userspace, but I can confidently say that wherever it
-works it does so by accident.
+	http://marc.info/?l=linux-kernel&m=130100511521954
 
-In the case of usb-audio, what we observed is that the user application
-was writing samples using an uncached mapping, so directly to memory,
-which does -not- invalidate conflicting cache lines on the way, an the
-kernel would then memcpy those data to the USB buffers using a cached
-mapping (vmalloc) and essentially get stale stuff from the cache instead
-of the real samples.
+I don't have a parisc cross compiler, so if you could try it out and add 
+your Tested-by that would be great
 
-Worse, on some processors, it's actually -illegal- to create (and even
-more to -access-) a conflicting mapping of a page of memory, ie, have it
-mapped cached somewhere and uncached somewhere else. It will lockup some
-processors and afaik, some x86 as well.
-
-In fact, cache coherent architectures often don't support mapping memory
-uncached -at-all- so something like snd_pcm_lib_mmap_noncached()
-shouldn't exist, or at least be under arch control. There's no case
-where it's "always safe". There will almost always be a cache alias in
-the linear mapping unless special arch specific sauce has been applied.
-
-Now, there's another problem on top of that, which is that
-snd_pcm_default_mmap() will not work properly the "other way around" on
-powerpc, where the mapping -needs- to be uncached bcs you are running on
-a non cache coherent embedded CPU and trying to mmap DMA memory, but
-that's something that needs fixing inside powerpc by properly defining
-dma_mmap_coherent() & ARCH_HAS_DMA_MMAP_COHERENT (I thought we had added
-it a while back but it's not upstream, patch must have got lost). We
-must also make sure we don't go down that path for vmalloc memory
-though.
-
-Cheers,
-Ben.
+Thanks again!
