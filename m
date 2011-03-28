@@ -1,52 +1,32 @@
-From: liqin.chen@sunplusct.com
-Subject: [GIT PULL] score arch fixes for 2.6.39
-Date: Mon, 28 Mar 2011 15:11:39 +0800
-Message-ID: <OFFB188476.85B76899-ON48257861.00264A49-48257861.002784C6@sunplusct.com>
-References: <20110325141528.825456671@linutronix.de>
+From: Chev/Tex <hnxv@cox.net>
+Subject: Your Email Has Won!!!
+Date: Mon, 28 Mar 2011 18:26:32 -0400
+Message-ID: <20110328182632.4DXC4.219075.imail@eastrmwml46>
+Reply-To: orishigun@aol.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mswedge2.sunplus.com ([124.219.29.227]:54039 "EHLO
-	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751852Ab1C1H1Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Mar 2011 03:27:25 -0400
-In-Reply-To: <20110325141528.825456671@linutronix.de>
+Received: from eastrmfepi107.cox.net ([68.230.241.203]:60413 "EHLO
+	eastrmfepi107.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753878Ab1C1WfM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Mar 2011 18:35:12 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-Hi Linus,
+Your email was picked in the on-going Chevron/Texaco Promo held today, 
+28/3/2011 we the promo board are pleased to inform you 
+that the sum of  
+($750,000.00 usd) has been approved in your name. 
+which you are going to be receiving from our payout promotions board. 
 
-Please pull score arch fixes for Linux 2.6.39.
-It's include some fixed for score irq files.
+Kindly Provide Below :
+ 
+1)Complete Names,(2)Complete Address,(3)Gender,
+4)Type of Work,(5) Country of residence (6)Mobile No,(7)Age
+ 
 
-Thanks
---liqin
-
-------
-
-The following changes since commit 
-16c29dafcc86024048f1dbb8349d31cb22c7c55a:
-  Linus Torvalds (1):
-        Merge branch 'syscore' of 
-git://git.kernel.org/.../rafael/suspend-2.6
-
-are available in the git repository at:
-
-  git://gitserver.sunplusct.com/linux-2.6-score.git for-linus
-
-Chen Liqin (1):
-      score: lost a semicolon in asm/irqflags.h
-
-Thomas Gleixner (4):
-      score: Convert irq_chip to new functions
-      score: Select GENERIC_HARDIRQS_NO_DEPRECATED
-      score: Convert to new irq function names
-      score: Use generic show_interrupts()
-
- arch/score/Kconfig                |    2 +
- arch/score/include/asm/irqflags.h |    2 +-
- arch/score/kernel/irq.c           |   53 
-+++++-------------------------------
- 3 files changed, 11 insertions(+), 46 deletions(-)
+ 
+Yours Sincerely,
+Mrs Sandra Garry.
+Promo Announcer.
