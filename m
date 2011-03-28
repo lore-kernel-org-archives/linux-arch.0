@@ -1,41 +1,52 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: Link breakage on all architectures which implement their own
- show_mem
-Date: Fri, 25 Mar 2011 13:02:41 -0700 (PDT)
-Message-ID: <alpine.DEB.2.00.1103251301490.23297@chino.kir.corp.google.com>
-References: <1300898506.15899.24.camel@mulgrave.site> <alpine.DEB.2.00.1103241520120.26730@chino.kir.corp.google.com> <1301062421.4073.3.camel@mulgrave.site>
+From: liqin.chen@sunplusct.com
+Subject: [GIT PULL] score arch fixes for 2.6.39
+Date: Mon, 28 Mar 2011 15:11:39 +0800
+Message-ID: <OFFB188476.85B76899-ON48257861.00264A49-48257861.002784C6@sunplusct.com>
+References: <20110325141528.825456671@linutronix.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="US-ASCII"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:33955 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752809Ab1CYUCt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Mar 2011 16:02:49 -0400
-Received: from wpaz37.hot.corp.google.com (wpaz37.hot.corp.google.com [172.24.198.101])
-	by smtp-out.google.com with ESMTP id p2PK2lvt008706
-	for <linux-arch@vger.kernel.org>; Fri, 25 Mar 2011 13:02:47 -0700
-Received: from pzk32 (pzk32.prod.google.com [10.243.19.160])
-	by wpaz37.hot.corp.google.com with ESMTP id p2PK1sre013020
-	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Fri, 25 Mar 2011 13:02:45 -0700
-Received: by pzk32 with SMTP id 32so292324pzk.14
-        for <linux-arch@vger.kernel.org>; Fri, 25 Mar 2011 13:02:45 -0700 (PDT)
-In-Reply-To: <1301062421.4073.3.camel@mulgrave.site>
+Received: from mswedge2.sunplus.com ([124.219.29.227]:54039 "EHLO
+	mswedge2.sunplus.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751852Ab1C1H1Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Mar 2011 03:27:25 -0400
+In-Reply-To: <20110325141528.825456671@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: linux-arch@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On Fri, 25 Mar 2011, James Bottomley wrote:
+Hi Linus,
 
-> > I don't have a parisc cross compiler, so if you could try it out and add 
-> > your Tested-by that would be great
-> 
-> I'm afraid this hit at exactly the wrong time (we're relocating the
-> parisc dev cluster in cupertino), so all my parisc build systems are
-> currently trekking across country on fedex mules.
-> 
+Please pull score arch fixes for Linux 2.6.39.
+It's include some fixed for score irq files.
 
-Haha, ok.  Linus merged the patch into his tree so you should hear from 
-parisc people if there is additional breakage, which there shouldn't be.  
-Thanks again for the report.
+Thanks
+--liqin
+
+------
+
+The following changes since commit 
+16c29dafcc86024048f1dbb8349d31cb22c7c55a:
+  Linus Torvalds (1):
+        Merge branch 'syscore' of 
+git://git.kernel.org/.../rafael/suspend-2.6
+
+are available in the git repository at:
+
+  git://gitserver.sunplusct.com/linux-2.6-score.git for-linus
+
+Chen Liqin (1):
+      score: lost a semicolon in asm/irqflags.h
+
+Thomas Gleixner (4):
+      score: Convert irq_chip to new functions
+      score: Select GENERIC_HARDIRQS_NO_DEPRECATED
+      score: Convert to new irq function names
+      score: Use generic show_interrupts()
+
+ arch/score/Kconfig                |    2 +
+ arch/score/include/asm/irqflags.h |    2 +-
+ arch/score/kernel/irq.c           |   53 
++++++-------------------------------
+ 3 files changed, 11 insertions(+), 46 deletions(-)
