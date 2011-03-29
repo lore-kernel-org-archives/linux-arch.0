@@ -1,89 +1,67 @@
-From: Madhavi Manchala <madhavi.linux@gmail.com>
-Subject: Re: MACH_TYPE undeclared error
-Date: Tue, 29 Mar 2011 15:08:44 +0530
-Message-ID: <AANLkTik8ZhyPR_eZ8Khbba_Pt8YF-DVqQaeFXKGBHsHu@mail.gmail.com>
-References: <AANLkTimSWBx-FTj1WXpOgFXyH6rLSWFNzayLd_yOj7d_@mail.gmail.com>
-	<20110329065457.GG30938@pengutronix.de>
-	<AANLkTimsNOmK4H8MYMB2jjd+zkT4qcYD1dy+J1fxdd7w@mail.gmail.com>
-	<20110329092733.GA11236@n2100.arm.linux.org.uk>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: Warning with asm-generic/div64.h
+Date: Tue, 29 Mar 2011 19:41:56 +0800
+Message-ID: <018a01cbee06$534730a0$f9d591e0$@mprc.pku.edu.cn>
+References: <007801cbead6$1984b6e0$4c8e24a0$@mprc.pku.edu.cn> <201103251439.53568.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f181.google.com ([209.85.216.181]:60764 "EHLO
-	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751168Ab1C2Jip convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2011 05:38:45 -0400
-Received: by qyg14 with SMTP id 14so2845561qyg.19
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2011 02:38:44 -0700 (PDT)
-In-Reply-To: <20110329092733.GA11236@n2100.arm.linux.org.uk>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:57112 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752750Ab1C2LnK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Mar 2011 07:43:10 -0400
+In-Reply-To: <201103251439.53568.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Len Brown' <len.brown@intel.com>, 'Pavel Machek' <pavel@ucw.cz>, "'Rafael J. Wysocki'" <rjw@sisk.pl>, linux-pm@lists.linux-foundation.org
 
-Dear Russell,
 
-On Tue, Mar 29, 2011 at 2:57 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Tue, Mar 29, 2011 at 02:01:10PM +0530, Madhavi Manchala wrote:
->> Dear Uwe,
->>
->> 2011/3/29 Uwe Kleine-K=F6nig <u.kleine-koenig@pengutronix.de>:
->> > On Tue, Mar 29, 2011 at 12:01:40PM +0530, Madhavi Manchala wrote:
->> >> Dear All,
->> >>
->> >> I have defined a MACHINE_START macro in my board C file as follow=
-s.
->> >>
->> >> MACHINE_START(S3C2510, "S3C2510")
->> >> =A0 =A0 =A0 .init_irq =A0 =A0 =A0 =3D s3c2510_init_irq,
->> >> =A0 =A0 =A0 .timer =A0 =A0 =A0 =A0 =A0=3D &s3c2510_time_init,
->> >> MACHINE_END
->> >>
->> >> When I try to compile this C file, I am seeing the following erro=
-r message.
->> >>
->> >> arch/arm/mach-s3c2510/s3c2510.c:35:1: error: 'MACH_TYPE_S3C2510'
->> >> undeclared here (not in a function)
->> > you need a line defining S3C2510 in arch/arm/tools/mach-types.
->>
->> Yeah. It is there in the arch/arm/tools/mach-types file. I did not a=
-dd
->> to it, but it is automatically generated. The few lines from the
->> arch/arm/tools/mach-types file are as follows.
->>
->> izarus =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0MACH_IZARUS =A0 =A0 =A0 =A0 =A0=
- =A0 IZARUS =A0 =A0 =A0 =A0 =A0573
->> pxa_rts =A0 =A0 =A0 =A0 =A0 =A0 =A0 MACH_RTS =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0RTS =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 574
->> se5100 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0MACH_SE5100 =A0 =A0 =A0 =A0 =A0=
- =A0 SE5100 =A0 =A0 =A0 =A0 =A0575
->> s3c2510 =A0 =A0 =A0 =A0 =A0 =A0 =A0 MACH_S3C2510 =A0 =A0S3C2510 =A0 =
-=A0 =A0 =A0 576
->> csb437tl =A0 =A0 =A0 =A0 =A0 =A0 =A0MACH_CSB437TL =A0 CSB437TL =A0 =A0=
- =A0 =A0 =A0 =A0 =A0 =A0577
->> slauson =A0 =A0 =A0 =A0 =A0 =A0 =A0 MACH_SLAUSON =A0 =A0SLAUSON =A0 =
-=A0 =A0 =A0 578
->> pearlriver =A0 =A0 =A0 =A0 =A0 =A0MACH_PEARLRIVER PEARLRIVER =A0 =A0=
- =A0579
->> tdc_p210 =A0 =A0 =A0 =A0 =A0 =A0 =A0MACH_TDC_P210 =A0 TDC_P210 =A0 =A0=
- =A0 =A0580
->>
->> The machine S3C2510 is there in that file.
->
-> S3C2510 sounds to me like a SoC name not a board name. =A0I delete an=
-ything
-> which sounds like a SoC name as that's not the purpose of the databas=
-e.
-> It's for platforms and boards, not SoCs.
 
-Yeah. The S3C2510 is a SoC. We have a board which is based on this
-SoC. Just, I have given that name as I am new to this architecture
-development environment. I will change the name and assigns an
-appropriate one which suits for my board.
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Friday, March 25, 2011 9:40 PM
+> To: Guan Xuetao
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
+> Subject: Re: Warning with asm-generic/div64.h
+> 
+> On Friday 25 March 2011, Guan Xuetao wrote:
+> > Following warning is generated when using <asm-generic/div64.h>
+> >
+> > kernel/power/hibernate.c: In function 'swsusp_show_speed':
+> > kernel/power/hibernate.c:227: warning: comparison of distinct pointer types lacks a cast
+> >
+> > After expanding the do_div() macro, the problem line is:
+> >
+> >         (void)(((typeof((n)) *)0) == ((uint64_t *)0));
+> >
+> > while the type of n is s64.
+> >
+> > I am puzzled with the usage of the problem line.
+> >
+> > And how to correct it?
+> 
+> The purpose of this line is to generate a warning when the input is the
+> wrong type, as the comment says:
+>  /* The unnecessary pointer compare is there
+>   * to check for type safety (n must be 64bit)
+Yes, it works. And, I think type s64 should be ok also.
 
-Thanks for your information.
+> 
+> The macro doesn't work for signed input or for 32 bit input. I'd suggest
+> fixing the caller to use an unsigned type.
 
-Thanks and Regards,
-Madhavi M.
+Then,
+Cc: Len Brown <len.brown@intel.com> (supporter:SUSPEND TO RAM)
+Cc: Pavel Machek <pavel@ucw.cz> (supporter:SUSPEND TO RAM)
+Cc: "Rafael J. Wysocki" <rjw@sisk.pl> (supporter:SUSPEND TO RAM)
+Cc: linux-pm@lists.linux-foundation.org (open list:SUSPEND TO RAM)
+
+> 
+> 	Arnd
+Thanks, and sorry for replying late.
+
+Guan Xuetao
