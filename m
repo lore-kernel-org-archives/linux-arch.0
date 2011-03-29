@@ -1,35 +1,38 @@
 From: Madhavi Manchala <madhavi.linux@gmail.com>
 Subject: Re: MACH_TYPE undeclared error
-Date: Tue, 29 Mar 2011 15:08:10 +0530
-Message-ID: <AANLkTi=Aha4R_tCdMC8ucp76yh3MD1ORayik7WmgfEiX@mail.gmail.com>
+Date: Tue, 29 Mar 2011 15:08:44 +0530
+Message-ID: <AANLkTik8ZhyPR_eZ8Khbba_Pt8YF-DVqQaeFXKGBHsHu@mail.gmail.com>
 References: <AANLkTimSWBx-FTj1WXpOgFXyH6rLSWFNzayLd_yOj7d_@mail.gmail.com>
 	<20110329065457.GG30938@pengutronix.de>
 	<AANLkTimsNOmK4H8MYMB2jjd+zkT4qcYD1dy+J1fxdd7w@mail.gmail.com>
-	<20110329092421.GJ30938@pengutronix.de>
+	<20110329092733.GA11236@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f181.google.com ([209.85.216.181]:42079 "EHLO
+Received: from mail-qy0-f181.google.com ([209.85.216.181]:60764 "EHLO
 	mail-qy0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751168Ab1C2JiM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2011 05:38:12 -0400
-Received: by qyg14 with SMTP id 14so2845296qyg.19
-        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2011 02:38:11 -0700 (PDT)
-In-Reply-To: <20110329092421.GJ30938@pengutronix.de>
+	with ESMTP id S1751168Ab1C2Jip convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2011 05:38:45 -0400
+Received: by qyg14 with SMTP id 14so2845561qyg.19
+        for <linux-arch@vger.kernel.org>; Tue, 29 Mar 2011 02:38:44 -0700 (PDT)
+In-Reply-To: <20110329092733.GA11236@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Dear Uwe,
+Dear Russell,
 
-2011/3/29 Uwe Kleine-K=F6nig <u.kleine-koenig@pengutronix.de>:
-> Hello,
->
+On Tue, Mar 29, 2011 at 2:57 PM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
 > On Tue, Mar 29, 2011 at 02:01:10PM +0530, Madhavi Manchala wrote:
+>> Dear Uwe,
+>>
 >> 2011/3/29 Uwe Kleine-K=F6nig <u.kleine-koenig@pengutronix.de>:
 >> > On Tue, Mar 29, 2011 at 12:01:40PM +0530, Madhavi Manchala wrote:
+>> >> Dear All,
+>> >>
 >> >> I have defined a MACHINE_START macro in my board C file as follow=
 s.
 >> >>
@@ -68,27 +71,19 @@ dd
  =A0 =A0580
 >>
 >> The machine S3C2510 is there in that file.
-> Do you have
 >
-> =A0 =A0 =A0 =A0#include <asm/mach-types.h>
->
-> in your machine file?
+> S3C2510 sounds to me like a SoC name not a board name. =A0I delete an=
+ything
+> which sounds like a SoC name as that's not the purpose of the databas=
+e.
+> It's for platforms and boards, not SoCs.
 
-It is not included in my machine file, previously. Now I included it
-in my machine file and I am able to compile the file without any
-issues.
+Yeah. The S3C2510 is a SoC. We have a board which is based on this
+SoC. Just, I have given that name as I am new to this architecture
+development environment. I will change the name and assigns an
+appropriate one which suits for my board.
 
-Thanks for your valuable information.
+Thanks for your information.
 
 Thanks and Regards,
 Madhavi M.
-
-> Best regards
-> Uwe
->
-> --
-> Pengutronix e.K. =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =
-| Uwe Kleine-K=F6nig =A0 =A0 =A0 =A0 =A0 =A0|
-> Industrial Linux Solutions =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | http://w=
-ww.pengutronix.de/ =A0|
->
