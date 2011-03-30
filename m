@@ -1,63 +1,36 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: [PATCH] unicore32 ldscript fix: add cacheline parameter to PERCPU() macro
-Date: Wed, 30 Mar 2011 16:52:57 +0800
-Message-ID: <01ed01cbeeb7$de2e1920$9a8a4b60$@mprc.pku.edu.cn>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
+Date: Wed, 30 Mar 2011 14:17:19 +0200
+Message-ID: <201103301417.20027.arnd@arndb.de>
+References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:52758 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932184Ab1C3JlG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2011 05:41:06 -0400
-Content-Language: zh-cn
+Received: from moutng.kundenserver.de ([212.227.17.9]:62775 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932396Ab1C3MRc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2011 08:17:32 -0400
+In-Reply-To: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Tejun Heo <tj@kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>, Paul Mundt <lethal@linux-sh.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
+On Wednesday 30 March 2011, Guan Xuetao wrote:
+> The futex functions in unicore32 are not used and verified,
+> so just replaced by asm-generic version.
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Also, adjust cacheline parameter of RW_DATA_SECTION and EXCEPTION_TABLE
+Note that the a working futex implementation would be really useful
+to get efficient multithreaded applications. On uniprocessor
+machines, this can easily be done by disabling interrupts, like
+you also do for spinlock and atomic.
 
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
----
- arch/unicore32/kernel/vmlinux.lds.S |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+I believe we could actually copy the arch/sh/include/asm/futex-irq.h
+implementation to include/asm-generic and use that whenever CONFIG_SMP
+is disabled. That would also help a lot of other architectures.
 
-diff --git a/arch/unicore32/kernel/vmlinux.lds.S b/arch/unicore32/kernel/vmlinux.lds.S
-index 0b4eb89..9bf7f7a 100644
---- a/arch/unicore32/kernel/vmlinux.lds.S
-+++ b/arch/unicore32/kernel/vmlinux.lds.S
-@@ -14,6 +14,7 @@
- #include <asm/thread_info.h>
- #include <asm/memory.h>
- #include <asm/page.h>
-+#include <asm/cache.h>
- 
- OUTPUT_ARCH(unicore32)
- ENTRY(stext)
-@@ -29,7 +30,7 @@ SECTIONS
- 	HEAD_TEXT_SECTION
- 	INIT_TEXT_SECTION(PAGE_SIZE)
- 	INIT_DATA_SECTION(16)
--	PERCPU(PAGE_SIZE)
-+	PERCPU(L1_CACHE_BYTES, PAGE_SIZE)
- 	__init_end = .;
- 
- 	_stext = .;
-@@ -45,10 +46,10 @@ SECTIONS
- 
- 	_sdata = .;
- 	RO_DATA_SECTION(PAGE_SIZE)
--	RW_DATA_SECTION(32, PAGE_SIZE, THREAD_SIZE)
-+	RW_DATA_SECTION(L1_CACHE_BYTES, PAGE_SIZE, THREAD_SIZE)
- 	_edata = .;
- 
--	EXCEPTION_TABLE(32)
-+	EXCEPTION_TABLE(L1_CACHE_BYTES)
- 	NOTES
- 
- 	BSS_SECTION(0, 0, 0)
--- 
-1.6.2.2
+	Arnd
