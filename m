@@ -1,193 +1,23 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: [PATCH] unicore32 fix: remove arch-specific futex support
-Date: Wed, 30 Mar 2011 16:48:06 +0800
-Message-ID: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] unicore32 ldscript fix: add cacheline parameter to PERCPU() macro
+Date: Wed, 30 Mar 2011 11:31:58 +0200
+Message-ID: <201103301131.59054.arnd@arndb.de>
+References: <01ed01cbeeb7$de2e1920$9a8a4b60$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:37130 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751868Ab1C3IsM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2011 04:48:12 -0400
-Content-Language: zh-cn
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <01ed01cbeeb7$de2e1920$9a8a4b60$@mprc.pku.edu.cn>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Tejun Heo <tj@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The futex functions in unicore32 are not used and verified,
-so just replaced by asm-generic version.
+On Wednesday 30 March 2011, Guan Xuetao wrote:
+> 
+> Also, adjust cacheline parameter of RW_DATA_SECTION and EXCEPTION_TABLE
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
----
- arch/unicore32/Makefile            |    2 +-
- arch/unicore32/include/asm/futex.h |  143 ------------------------------------
- 2 files changed, 1 insertions(+), 144 deletions(-)
- delete mode 100644 arch/unicore32/include/asm/futex.h
-
-diff --git a/arch/unicore32/Makefile b/arch/unicore32/Makefile
-index e08d6d3..76a8bee 100644
---- a/arch/unicore32/Makefile
-+++ b/arch/unicore32/Makefile
-@@ -48,7 +48,7 @@ ASM_GENERIC_HEADERS	+= bitsperlong.h bug.h bugs.h
- ASM_GENERIC_HEADERS	+= cputime.h current.h
- ASM_GENERIC_HEADERS	+= device.h div64.h
- ASM_GENERIC_HEADERS	+= emergency-restart.h errno.h
--ASM_GENERIC_HEADERS	+= fb.h fcntl.h ftrace.h
-+ASM_GENERIC_HEADERS	+= fb.h fcntl.h ftrace.h futex.h
- ASM_GENERIC_HEADERS	+= hardirq.h hw_irq.h
- ASM_GENERIC_HEADERS	+= ioctl.h ioctls.h ipcbuf.h irq_regs.h
- ASM_GENERIC_HEADERS	+= kdebug.h kmap_types.h
-diff --git a/arch/unicore32/include/asm/futex.h b/arch/unicore32/include/asm/futex.h
-deleted file mode 100644
-index 07dea61..0000000
---- a/arch/unicore32/include/asm/futex.h
-+++ /dev/null
-@@ -1,143 +0,0 @@
--/*
-- * linux/arch/unicore32/include/asm/futex.h
-- *
-- * Code specific to PKUnity SoC and UniCore ISA
-- *
-- * Copyright (C) 2001-2010 GUAN Xue-tao
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--
--#ifndef __UNICORE_FUTEX_H__
--#define __UNICORE_FUTEX_H__
--
--#ifdef __KERNEL__
--
--#include <linux/futex.h>
--#include <linux/preempt.h>
--#include <linux/uaccess.h>
--#include <linux/errno.h>
--
--#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg)	\
--	__asm__ __volatile__(					\
--	"1:	ldw.u	%1, [%2]\n"				\
--	"	" insn "\n"					\
--	"2:	stw.u	%0, [%2]\n"				\
--	"	mov	%0, #0\n"				\
--	"3:\n"							\
--	"	.pushsection __ex_table,\"a\"\n"		\
--	"	.align	3\n"					\
--	"	.long	1b, 4f, 2b, 4f\n"			\
--	"	.popsection\n"					\
--	"	.pushsection .fixup,\"ax\"\n"			\
--	"4:	mov	%0, %4\n"				\
--	"	b	3b\n"					\
--	"	.popsection"					\
--	: "=&r" (ret), "=&r" (oldval)				\
--	: "r" (uaddr), "r" (oparg), "Ir" (-EFAULT)		\
--	: "cc", "memory")
--
--static inline int
--futex_atomic_op_inuser(int encoded_op, int __user *uaddr)
--{
--	int op = (encoded_op >> 28) & 7;
--	int cmp = (encoded_op >> 24) & 15;
--	int oparg = (encoded_op << 8) >> 20;
--	int cmparg = (encoded_op << 20) >> 20;
--	int oldval = 0, ret;
--
--	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
--		oparg = 1 << oparg;
--
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
--
--	pagefault_disable();	/* implies preempt_disable() */
--
--	switch (op) {
--	case FUTEX_OP_SET:
--		__futex_atomic_op("mov	%0, %3", ret, oldval, uaddr, oparg);
--		break;
--	case FUTEX_OP_ADD:
--		__futex_atomic_op("add	%0, %1, %3", ret, oldval, uaddr, oparg);
--		break;
--	case FUTEX_OP_OR:
--		__futex_atomic_op("or	%0, %1, %3", ret, oldval, uaddr, oparg);
--		break;
--	case FUTEX_OP_ANDN:
--		__futex_atomic_op("and	%0, %1, %3",
--				ret, oldval, uaddr, ~oparg);
--		break;
--	case FUTEX_OP_XOR:
--		__futex_atomic_op("xor	%0, %1, %3", ret, oldval, uaddr, oparg);
--		break;
--	default:
--		ret = -ENOSYS;
--	}
--
--	pagefault_enable();	/* subsumes preempt_enable() */
--
--	if (!ret) {
--		switch (cmp) {
--		case FUTEX_OP_CMP_EQ:
--			ret = (oldval == cmparg);
--			break;
--		case FUTEX_OP_CMP_NE:
--			ret = (oldval != cmparg);
--			break;
--		case FUTEX_OP_CMP_LT:
--			ret = (oldval <  cmparg);
--			break;
--		case FUTEX_OP_CMP_GE:
--			ret = (oldval >= cmparg);
--			break;
--		case FUTEX_OP_CMP_LE:
--			ret = (oldval <= cmparg);
--			break;
--		case FUTEX_OP_CMP_GT:
--			ret = (oldval >  cmparg);
--			break;
--		default:
--			ret = -ENOSYS;
--		}
--	}
--	return ret;
--}
--
--static inline int
--futex_atomic_cmpxchg_inatomic(int __user *uaddr, int oldval, int newval)
--{
--	int val;
--
--	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
--		return -EFAULT;
--
--	pagefault_disable();	/* implies preempt_disable() */
--
--	__asm__ __volatile__("@futex_atomic_cmpxchg_inatomic\n"
--	"1:	ldw.u	%0, [%3]\n"
--	"	cmpxor.a	%0, %1\n"
--	"	bne	3f\n"
--	"2:	stw.u	%2, [%3]\n"
--	"3:\n"
--	"	.pushsection __ex_table,\"a\"\n"
--	"	.align	3\n"
--	"	.long	1b, 4f, 2b, 4f\n"
--	"	.popsection\n"
--	"	.pushsection .fixup,\"ax\"\n"
--	"4:	mov	%0, %4\n"
--	"	b	3b\n"
--	"	.popsection"
--	: "=&r" (val)
--	: "r" (oldval), "r" (newval), "r" (uaddr), "Ir" (-EFAULT)
--	: "cc", "memory");
--
--	pagefault_enable();	/* subsumes preempt_enable() */
--
--	return val;
--}
--
--#endif /* __KERNEL__ */
--#endif /* __UNICORE_FUTEX_H__ */
--- 
-1.6.2.2
+Acked-by: Arnd Bergmann <arnd@arndb.de>
