@@ -1,34 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:55265 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.8]:54588 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752249Ab1C2L7K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Mar 2011 07:59:10 -0400
+	with ESMTP id S1753566Ab1C3JcI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2011 05:32:08 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Warning with asm-generic/div64.h
-Date: Tue, 29 Mar 2011 13:58:56 +0200
-References: <007801cbead6$1984b6e0$4c8e24a0$@mprc.pku.edu.cn> <201103251439.53568.arnd@arndb.de> <018a01cbee06$534730a0$f9d591e0$@mprc.pku.edu.cn>
-In-Reply-To: <018a01cbee06$534730a0$f9d591e0$@mprc.pku.edu.cn>
+Subject: Re: [PATCH] unicore32 ldscript fix: add cacheline parameter to PERCPU() macro
+Date: Wed, 30 Mar 2011 11:31:58 +0200
+References: <01ed01cbeeb7$de2e1920$9a8a4b60$@mprc.pku.edu.cn>
+In-Reply-To: <01ed01cbeeb7$de2e1920$9a8a4b60$@mprc.pku.edu.cn>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201103291358.56758.arnd@arndb.de>
+Message-ID: <201103301131.59054.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, 'Len Brown' <len.brown@intel.com>, 'Pavel Machek' <pavel@ucw.cz>, "'Rafael J. Wysocki'" <rjw@sisk.pl>, linux-pm@lists.linux-foundation.org
-Message-ID: <20110329115856.JzJlHI18u7lCj71hxOlzqPQucY9Wokd46BHJ7K8cPtQ@z>
+Cc: Tejun Heo <tj@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110330093158.OnjmMT5Jrrbh_av7dQmoXzCYdpa9xHo1x3Zxz8XUWfA@z>
 
-On Tuesday 29 March 2011, Guan Xuetao wrote:
-> > The macro doesn't work for signed input or for 32 bit input. I'd suggest
-> > fixing the caller to use an unsigned type.
+On Wednesday 30 March 2011, Guan Xuetao wrote:
 > 
-> Then,
-> Cc: Len Brown <len.brown@intel.com> (supporter:SUSPEND TO RAM)
-> Cc: Pavel Machek <pavel@ucw.cz> (supporter:SUSPEND TO RAM)
-> Cc: "Rafael J. Wysocki" <rjw@sisk.pl> (supporter:SUSPEND TO RAM)
-> Cc: linux-pm@lists.linux-foundation.org (open list:SUSPEND TO RAM)
+> Also, adjust cacheline parameter of RW_DATA_SECTION and EXCEPTION_TABLE
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Yes, that sounds right.
-
-	Arnd
+Acked-by: Arnd Bergmann <arnd@arndb.de>
