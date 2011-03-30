@@ -1,41 +1,36 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
-Date: Wed, 30 Mar 2011 14:27:13 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1103301421390.22418@localhost6.localdomain6>
-References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn> <201103301417.20027.arnd@arndb.de>
+Date: Wed, 30 Mar 2011 14:40:03 +0200
+Message-ID: <201103301440.03479.arnd@arndb.de>
+References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn> <201103301417.20027.arnd@arndb.de> <alpine.LFD.2.00.1103301421390.22418@localhost6.localdomain6>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:48391 "EHLO linutronix.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755813Ab1C3M1W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2011 08:27:22 -0400
-In-Reply-To: <201103301417.20027.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.171]:52938 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752436Ab1C3Mpw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Mar 2011 08:45:52 -0400
+In-Reply-To: <alpine.LFD.2.00.1103301421390.22418@localhost6.localdomain6>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Thomas Gleixner <tglx@linutronix.de>
 Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Paul Mundt <lethal@linux-sh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 30 Mar 2011, Arnd Bergmann wrote:
-
-> On Wednesday 30 March 2011, Guan Xuetao wrote:
-> > The futex functions in unicore32 are not used and verified,
-> > so just replaced by asm-generic version.
-> > 
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+On Wednesday 30 March 2011, Thomas Gleixner wrote:
+> The problem is that you need cmpxchg in user space as well.
 > 
-> Note that the a working futex implementation would be really useful
-> to get efficient multithreaded applications. On uniprocessor
-> machines, this can easily be done by disabling interrupts, like
-> you also do for spinlock and atomic.
-> 
-> I believe we could actually copy the arch/sh/include/asm/futex-irq.h
-> implementation to include/asm-generic and use that whenever CONFIG_SMP
-> is disabled. That would also help a lot of other architectures.
+> ARM does this with some syscall magic for machines which do not have
+> cmpxchg.
 
-The problem is that you need cmpxchg in user space as well.
+Ah, right. I wonder how sh does it.
 
-ARM does this with some syscall magic for machines which do not have
-cmpxchg.
+I also remember that the original unicore32 ABI had support for a cmpxchg
+system call, but that was removed with the move to the generic syscall
+table.
 
-	tglx
+It is of course possible to add it back using the __NR_arch_specific_syscall
+entry point.
+
+	Arnd
