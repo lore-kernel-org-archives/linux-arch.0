@@ -1,26 +1,36 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
-Date: Wed, 30 Mar 2011 14:50:29 +0200 (CEST)
-Message-ID: <alpine.LFD.2.00.1103301446110.22418@localhost6.localdomain6>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: [PATCH] unicore32 fix: remove arch-specific futex support
+Date: Thu, 31 Mar 2011 18:16:20 +0800
+Message-ID: <004301cbef8c$b0bf0640$123d12c0$@mprc.pku.edu.cn>
 References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn> <201103301417.20027.arnd@arndb.de> <alpine.LFD.2.00.1103301421390.22418@localhost6.localdomain6> <201103301440.03479.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain;
+	charset="US-ASCII"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:38463 "EHLO linutronix.de"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:44388 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752854Ab1C3Mue (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Mar 2011 08:50:34 -0400
+	id S933887Ab1CaKRA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Mar 2011 06:17:00 -0400
 In-Reply-To: <201103301440.03479.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Paul Mundt <lethal@linux-sh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: 'Arnd Bergmann' <arnd@arndb.de>, 'Thomas Gleixner' <tglx@linutronix.de>
+Cc: 'Paul Mundt' <lethal@linux-sh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 30 Mar 2011, Arnd Bergmann wrote:
 
+
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Wednesday, March 30, 2011 8:40 PM
+> To: Thomas Gleixner
+> Cc: Guan Xuetao; Paul Mundt; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
+> Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
+> 
 > On Wednesday 30 March 2011, Thomas Gleixner wrote:
 > > The problem is that you need cmpxchg in user space as well.
-> > 
+> >
 > > ARM does this with some syscall magic for machines which do not have
 > > cmpxchg.
 > 
@@ -32,13 +42,13 @@ On Wed, 30 Mar 2011, Arnd Bergmann wrote:
 > 
 > It is of course possible to add it back using the __NR_arch_specific_syscall
 > entry point.
+> 
+> 	Arnd
 
-Either that or you take a trap. None of them is pretty. 
+For cmpxchg, we have both system call and kuser_cmpxchg supports in old abi
+which are similar to arm.
+The performance of system call version is too poor,  so it could be only used for test.
 
-If the only purpose is futex support, then we can add an extra flag to
-the futex ops and handle it there via asm-generic/futex.h. That would
-avoid an extra syscall in the contended case.
+Thanks & Regards
 
-Thanks,
-
-	tglx
+Guan Xuetao
