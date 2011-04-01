@@ -1,231 +1,62 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 12/20] mm: Extended batches for generic mmu_gather
-Date: Fri, 01 Apr 2011 14:13:10 +0200
-Message-ID: <20110401121725.892956392@chello.nl>
+Subject: [PATCH 17/20] mm: Improve page_lock_anon_vma() comment
+Date: Fri, 01 Apr 2011 14:13:15 +0200
+Message-ID: <20110401121726.132856693@chello.nl>
 References: <20110401121258.211963744@chello.nl>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peter_zijlstra-mm-extended_batches_for_generic_mmu_gather.patch
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fou
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=peter_zijlstra-mm-improve_page_lock_anon_vma_comment.patch
+Sender: owner-linux-mm@kvack.org
+To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-fo
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
 List-Id: linux-arch.vger.kernel.org
 
-Instead of using a single batch (the small on-stack, or an allocated
-page), try and extend the batch every time it runs out and only flush
-once either the extend fails or we're done.
+A slightly more verbose comment to go along with the trickery in
+page_lock_anon_vma().
 
-Requested-by: Nick Piggin <npiggin@suse.de>
+Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
 Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Acked-by: Mel Gorman <mel@csn.ul.ie>
 Acked-by: Hugh Dickins <hughd@google.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 LKML-Reference: <new-submission>
 ---
- include/asm-generic/tlb.h |  129 +++++++++++++++++++++++++++++-----------------
- 1 file changed, 83 insertions(+), 46 deletions(-)
+ mm/rmap.c |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-Index: linux-2.6/include/asm-generic/tlb.h
+Index: linux-2.6/mm/rmap.c
 ===================================================================
---- linux-2.6.orig/include/asm-generic/tlb.h
-+++ linux-2.6/include/asm-generic/tlb.h
-@@ -19,16 +19,6 @@
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -315,8 +315,22 @@ void __init anon_vma_init(void)
+ }
  
--/*
-- * For UP we don't need to worry about TLB flush
-- * and page free order so much..
-- */
--#ifdef CONFIG_SMP
--  #define tlb_fast_mode(tlb) ((tlb)->nr == ~0U)
--#else
--  #define tlb_fast_mode(tlb) 1
--#endif
--
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
  /*
-  * Semi RCU freeing of the page directories.
-@@ -78,6 +68,16 @@ extern void tlb_remove_table(struct mmu_
+- * Getting a lock on a stable anon_vma from a page off the LRU is
+- * tricky: page_lock_anon_vma rely on RCU to guard against the races.
++ * Getting a lock on a stable anon_vma from a page off the LRU is tricky!
++ *
++ * Since there is no serialization what so ever against page_remove_rmap()
++ * the best this function can do is return a locked anon_vma that might
++ * have been relevant to this page.
++ *
++ * The page might have been remapped to a different anon_vma or the anon_vma
++ * returned may already be freed (and even reused).
++ *
++ * All users of this function must be very careful when walking the anon_vma
++ * chain and verify that the page in question is indeed mapped in it
++ * [ something equivalent to page_mapped_in_vma() ].
++ *
++ * Since anon_vma's slab is DESTROY_BY_RCU and we know from page_remove_rmap()
++ * that the anon_vma pointer from page->mapping is valid if there is a
++ * mapcount, we can dereference the anon_vma after observing those.
   */
- #define MMU_GATHER_BUNDLE	8
- 
-+struct mmu_gather_batch {
-+	struct mmu_gather_batch	*next;
-+	unsigned int		nr;
-+	unsigned int		max;
-+	struct page		*pages[0];
-+};
-+
-+#define MAX_GATHER_BATCH	\
-+	((PAGE_SIZE - sizeof(struct mmu_gather_batch)) / sizeof(void *))
-+
- /* struct mmu_gather is an opaque type used by the mm code for passing around
-  * any data needed by arch specific code for tlb_remove_page.
-  */
-@@ -86,22 +86,48 @@ struct mmu_gather {
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	struct mmu_table_batch	*batch;
- #endif
--	unsigned int		nr;	/* set to ~0U means fast mode */
--	unsigned int		max;	/* nr < max */
--	unsigned int		need_flush;/* Really unmapped some ptes? */
--	unsigned int		fullmm; /* non-zero means full mm flush */
--	struct page		**pages;
--	struct page		*local[MMU_GATHER_BUNDLE];
-+	unsigned int		need_flush : 1,	/* Did free PTEs */
-+				fast_mode  : 1; /* No batching   */
-+
-+	unsigned int		fullmm;
-+
-+	struct mmu_gather_batch *active;
-+	struct mmu_gather_batch	local;
-+	struct page		*__pages[MMU_GATHER_BUNDLE];
- };
- 
--static inline void __tlb_alloc_page(struct mmu_gather *tlb)
-+/*
-+ * For UP we don't need to worry about TLB flush
-+ * and page free order so much..
-+ */
-+#ifdef CONFIG_SMP
-+  #define tlb_fast_mode(tlb) (tlb->fast_mode)
-+#else
-+  #define tlb_fast_mode(tlb) 1
-+#endif
-+
-+static inline int tlb_next_batch(struct mmu_gather *tlb)
+ struct anon_vma *page_lock_anon_vma(struct page *page)
  {
--	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
-+	struct mmu_gather_batch *batch;
- 
--	if (addr) {
--		tlb->pages = (void *)addr;
--		tlb->max = PAGE_SIZE / sizeof(struct page *);
-+	batch = tlb->active;
-+	if (batch->next) {
-+		tlb->active = batch->next;
-+		return 1;
- 	}
-+
-+	batch = (void *)__get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
-+	if (!batch)
-+		return 0;
-+
-+	batch->next = NULL;
-+	batch->nr   = 0;
-+	batch->max  = MAX_GATHER_BATCH;
-+
-+	tlb->active->next = batch;
-+	tlb->active = batch;
-+
-+	return 1;
- }
- 
- /* tlb_gather_mmu
-@@ -114,16 +140,13 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
- {
- 	tlb->mm = mm;
- 
--	tlb->max = ARRAY_SIZE(tlb->local);
--	tlb->pages = tlb->local;
--
--	if (num_online_cpus() > 1) {
--		tlb->nr = 0;
--		__tlb_alloc_page(tlb);
--	} else /* Use fast mode if only one CPU is online */
--		tlb->nr = ~0U;
--
--	tlb->fullmm = fullmm;
-+	tlb->fullmm     = fullmm;
-+	tlb->need_flush = 0;
-+	tlb->fast_mode  = (num_possible_cpus() == 1);
-+	tlb->local.next = NULL;
-+	tlb->local.nr   = 0;
-+	tlb->local.max  = ARRAY_SIZE(tlb->__pages);
-+	tlb->active     = &tlb->local;
- 
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb->batch = NULL;
-@@ -133,6 +156,8 @@ tlb_gather_mmu(struct mmu_gather *tlb, s
- static inline void
- tlb_flush_mmu(struct mmu_gather *tlb)
- {
-+	struct mmu_gather_batch *batch;
-+
- 	if (!tlb->need_flush)
- 		return;
- 	tlb->need_flush = 0;
-@@ -140,17 +165,15 @@ tlb_flush_mmu(struct mmu_gather *tlb)
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- 	tlb_table_flush(tlb);
- #endif
--	if (!tlb_fast_mode(tlb)) {
--		free_pages_and_swap_cache(tlb->pages, tlb->nr);
--		tlb->nr = 0;
--		/*
--		 * If we are using the local on-stack array of pages for MMU
--		 * gather, try allocating an off-stack array again as we have
--		 * recently freed pages.
--		 */
--		if (tlb->pages == tlb->local)
--			__tlb_alloc_page(tlb);
-+
-+	if (tlb_fast_mode(tlb))
-+		return;
-+
-+	for (batch = &tlb->local; batch; batch = batch->next) {
-+		free_pages_and_swap_cache(batch->pages, batch->nr);
-+		batch->nr = 0;
- 	}
-+	tlb->active = &tlb->local;
- }
- 
- /* tlb_finish_mmu
-@@ -160,13 +183,18 @@ tlb_flush_mmu(struct mmu_gather *tlb)
- static inline void
- tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
- {
-+	struct mmu_gather_batch *batch, *next;
-+
- 	tlb_flush_mmu(tlb);
- 
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
--	if (tlb->pages != tlb->local)
--		free_pages((unsigned long)tlb->pages, 0);
-+	for (batch = tlb->local.next; batch; batch = next) {
-+		next = batch->next;
-+		free_pages((unsigned long)batch, 0);
-+	}
-+	tlb->local.next = NULL;
- }
- 
- /* __tlb_remove_page
-@@ -177,15 +205,24 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
-  */
- static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- {
-+	struct mmu_gather_batch *batch;
-+
- 	tlb->need_flush = 1;
-+
- 	if (tlb_fast_mode(tlb)) {
- 		free_page_and_swap_cache(page);
- 		return 1; /* avoid calling tlb_flush_mmu() */
- 	}
--	tlb->pages[tlb->nr++] = page;
--	VM_BUG_ON(tlb->nr > tlb->max);
- 
--	return tlb->max - tlb->nr;
-+	batch = tlb->active;
-+	batch->pages[batch->nr++] = page;
-+	VM_BUG_ON(batch->nr > batch->max);
-+	if (batch->nr == batch->max) {
-+		if (!tlb_next_batch(tlb))
-+			return 0;
-+	}
-+
-+	return batch->max - batch->nr;
- }
- 
- /* tlb_remove_page
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
