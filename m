@@ -1,141 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:33722 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755904Ab1DANjI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 09:39:08 -0400
-Message-ID: <20110401121725.560095303@chello.nl>
-Date: Fri, 01 Apr 2011 14:13:03 +0200
+Received: from bombadil.infradead.org ([18.85.46.34]:47105 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755911Ab1DANjM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 09:39:12 -0400
+Message-ID: <20110401121726.132856693@chello.nl>
+Date: Fri, 01 Apr 2011 14:13:15 +0200
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 05/20] arm: mmu_gather rework
+Subject: [PATCH 17/20] mm: Improve page_lock_anon_vma() comment
 References: <20110401121258.211963744@chello.nl>
-Content-Disposition: inline; filename=peter_zijlstra-arm-preemptible_mmu_gather.patch
+Content-Disposition: inline; filename=peter_zijlstra-mm-improve_page_lock_anon_vma_comment.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Russell King <rmk@arm.linux.org.uk>
-Message-ID: <20110401121303.TPbOEVz0RfvGVgOvOjAbqEdnF-53heHH4fD67vmjkSg@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Hugh Dickins <hughd@google.com>
+Message-ID: <20110401121315.9TzKmaHyhxTmrl1UpAbQBfHjzPNF4fOQ21O1O9WIZAI@z>
 
-Fix up the arm mmu_gather code to conform to the new API.
+A slightly more verbose comment to go along with the trickery in
+page_lock_anon_vma().
 
-Cc: Russell King <rmk@arm.linux.org.uk>
+Reviewed-by: KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>
+Reviewed-by: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+Acked-by: Mel Gorman <mel@csn.ul.ie>
+Acked-by: Hugh Dickins <hughd@google.com>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 LKML-Reference: <new-submission>
 ---
- arch/arm/include/asm/tlb.h |   53 +++++++++++++++++++++++++++++++--------------
- 1 file changed, 37 insertions(+), 16 deletions(-)
+ mm/rmap.c |   18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
 
-Index: linux-2.6/arch/arm/include/asm/tlb.h
+Index: linux-2.6/mm/rmap.c
 ===================================================================
---- linux-2.6.orig/arch/arm/include/asm/tlb.h
-+++ linux-2.6/arch/arm/include/asm/tlb.h
-@@ -41,12 +41,12 @@
+--- linux-2.6.orig/mm/rmap.c
++++ linux-2.6/mm/rmap.c
+@@ -315,8 +315,22 @@ void __init anon_vma_init(void)
+ }
+ 
+ /*
+- * Getting a lock on a stable anon_vma from a page off the LRU is
+- * tricky: page_lock_anon_vma rely on RCU to guard against the races.
++ * Getting a lock on a stable anon_vma from a page off the LRU is tricky!
++ *
++ * Since there is no serialization what so ever against page_remove_rmap()
++ * the best this function can do is return a locked anon_vma that might
++ * have been relevant to this page.
++ *
++ * The page might have been remapped to a different anon_vma or the anon_vma
++ * returned may already be freed (and even reused).
++ *
++ * All users of this function must be very careful when walking the anon_vma
++ * chain and verify that the page in question is indeed mapped in it
++ * [ something equivalent to page_mapped_in_vma() ].
++ *
++ * Since anon_vma's slab is DESTROY_BY_RCU and we know from page_remove_rmap()
++ * that the anon_vma pointer from page->mapping is valid if there is a
++ * mapcount, we can dereference the anon_vma after observing those.
   */
- #if defined(CONFIG_SMP) || defined(CONFIG_CPU_32v7)
- #define tlb_fast_mode(tlb)	0
--#define FREE_PTE_NR		500
- #else
- #define tlb_fast_mode(tlb)	1
--#define FREE_PTE_NR		0
- #endif
- 
-+#define MMU_GATHER_BUNDLE	8
-+
- /*
-  * TLB handling.  This allows us to remove pages from the page
-  * tables, and efficiently handle the TLB issues.
-@@ -58,7 +58,9 @@ struct mmu_gather {
- 	unsigned long		range_start;
- 	unsigned long		range_end;
- 	unsigned int		nr;
--	struct page		*pages[FREE_PTE_NR];
-+	unsigned int		max;
-+	struct page		**pages;
-+	struct page		*local[MMU_GATHER_BUNDLE];
- };
- 
- DECLARE_PER_CPU(struct mmu_gather, mmu_gathers);
-@@ -97,26 +99,37 @@ static inline void tlb_add_flush(struct 
- 	}
- }
- 
-+static inline void __tlb_alloc_page(struct mmu_gather *tlb)
-+{
-+	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
-+
-+	if (addr) {
-+		tlb->pages = (void *)addr;
-+		tlb->max = PAGE_SIZE / sizeof(struct page *);
-+	}
-+}
-+
- static inline void tlb_flush_mmu(struct mmu_gather *tlb)
+ struct anon_vma *page_lock_anon_vma(struct page *page)
  {
- 	tlb_flush(tlb);
- 	if (!tlb_fast_mode(tlb)) {
- 		free_pages_and_swap_cache(tlb->pages, tlb->nr);
- 		tlb->nr = 0;
-+		if (tlb->pages == tlb->local)
-+			__tlb_alloc_page(tlb);
- 	}
- }
- 
--static inline struct mmu_gather *
--tlb_gather_mmu(struct mm_struct *mm, unsigned int full_mm_flush)
-+static inline void
-+tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int fullmm)
- {
--	struct mmu_gather *tlb = &get_cpu_var(mmu_gathers);
--
- 	tlb->mm = mm;
--	tlb->fullmm = full_mm_flush;
-+	tlb->fullmm = fullmm;
- 	tlb->vma = NULL;
-+	tlb->max = ARRAY_SIZE(tlb->local);
-+	tlb->pages = tlb->local;
- 	tlb->nr = 0;
--
--	return tlb;
-+	__tlb_alloc_page(tlb);
- }
- 
- static inline void
-@@ -127,7 +140,8 @@ tlb_finish_mmu(struct mmu_gather *tlb, u
- 	/* keep the page table cache within bounds */
- 	check_pgt_cache();
- 
--	put_cpu_var(mmu_gathers);
-+	if (tlb->pages != tlb->local)
-+		free_pages((unsigned long)tlb->pages, 0);
- }
- 
- /*
-@@ -162,15 +176,22 @@ tlb_end_vma(struct mmu_gather *tlb, stru
- 		tlb_flush(tlb);
- }
- 
--static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
-+static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
- {
- 	if (tlb_fast_mode(tlb)) {
- 		free_page_and_swap_cache(page);
--	} else {
--		tlb->pages[tlb->nr++] = page;
--		if (tlb->nr >= FREE_PTE_NR)
--			tlb_flush_mmu(tlb);
-+		return 1; /* avoid calling tlb_flush_mmu */
- 	}
-+
-+	tlb->pages[tlb->nr++] = page;
-+	VM_BUG_ON(tlb->nr > tlb->max);
-+	return tlb->max - tlb->nr;
-+}
-+
-+static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
-+{
-+	if (!__tlb_remove_page(tlb, page))
-+		tlb_flush_mmu(tlb);
- }
- 
- static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
 
 
