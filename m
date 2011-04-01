@@ -1,39 +1,30 @@
-From: "Stephane Johnson" <spcjt02@att.net>
-Subject: Investment Co-operation
-Date: Thu, 31 Mar 2011 20:58:54 +0800
-Message-ID: <USERPC3f37502483c142e5a3e7f63fb3a8e29c@UserPC>
-Reply-To: stephanejohnson24@yahoo.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
+Date: Fri, 1 Apr 2011 11:09:23 +0200
+Message-ID: <201104011109.23966.arnd@arndb.de>
+References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn> <201103301440.03479.arnd@arndb.de> <004301cbef8c$b0bf0640$123d12c0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nm11-vm0.bullet.mail.sp2.yahoo.com ([98.139.91.240]:40366 "HELO
-	nm11-vm0.bullet.mail.sp2.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1757481Ab1CaNee convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Mar 2011 09:34:34 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:63256 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752732Ab1DAJJ2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 05:09:28 -0400
+In-Reply-To: <004301cbef8c$b0bf0640$123d12c0$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: 'Thomas Gleixner' <tglx@linutronix.de>, 'Paul Mundt' <lethal@linux-sh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Mutual aid,
+On Thursday 31 March 2011, Guan Xuetao wrote:
+> For cmpxchg, we have both system call and kuser_cmpxchg supports in old abi
+> which are similar to arm.
+> The performance of system call version is too poor,  so it could be only used for test.
+> 
 
+Let's forget about doing futex support for unicore32 then and use your original
+patch.
 
-
-I write to request your co-operation in my desire to find a foreign partner who will assist me in the relocation and Transfer of US$14,000,000.00 (Fourteen Million United State Dollars) which is presently available for investment purpose. I will like you to state firmly any business that will worth investing in your home country will be welcome by me, after looking at the income rate and also percentage for investing through you.
-
-
-
-Please state terms and state of affairs for me and also laws biding for a foreigner to invest in your country, i shall let you know the entire plan of investment as soon as i receive your positive response.
-
-
-
-Kind Regards, 
-
-
-
-Mr. Stephane Johnson. 
-
-
-
-  
+Acked-by: Arnd Bergmann <arnd@arndb.de>
