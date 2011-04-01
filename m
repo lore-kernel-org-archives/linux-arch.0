@@ -1,30 +1,43 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] unicore32 fix: remove arch-specific futex support
-Date: Fri, 1 Apr 2011 11:09:23 +0200
-Message-ID: <201104011109.23966.arnd@arndb.de>
-References: <01eb01cbeeb7$30390460$90ab0d20$@mprc.pku.edu.cn> <201103301440.03479.arnd@arndb.de> <004301cbef8c$b0bf0640$123d12c0$@mprc.pku.edu.cn>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: Re: [PATCH 02/17] mm: mmu_gather rework
+Date: Fri, 01 Apr 2011 14:07:11 +0200
+Message-ID: <1301659631.4859.565.camel@twins>
+References: <20110217162327.434629380@chello.nl>
+	 <20110217163234.823185666@chello.nl>  <20110310155032.GB32302@csn.ul.ie>
+	 <1300301742.2203.1899.camel@twins>  <4D87109A.1010005@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:63256 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752732Ab1DAJJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 05:09:28 -0400
-In-Reply-To: <004301cbef8c$b0bf0640$123d12c0$@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: 'Thomas Gleixner' <tglx@linutronix.de>, 'Paul Mundt' <lethal@linux-sh.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <4D87109A.1010005@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Avi Kivity <avi@redhat.com>
+Cc: Mel Gorman <mel@csn.ul.ie>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>, Hugh Dickins <hughd@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 31 March 2011, Guan Xuetao wrote:
-> For cmpxchg, we have both system call and kuser_cmpxchg supports in old abi
-> which are similar to arm.
-> The performance of system call version is too poor,  so it could be only used for test.
-> 
+On Mon, 2011-03-21 at 10:47 +0200, Avi Kivity wrote:
+> On 03/16/2011 08:55 PM, Peter Zijlstra wrote:
+> > On Thu, 2011-03-10 at 15:50 +0000, Mel Gorman wrote:
+> >
+> > >  >  +static inline void
+> > >  >  +tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, uns=
+igned int full_mm_flush)
+> > >  >   {
+> > >
+> > >  checkpatch will bitch about line length.
+> >
+> > I did a s/full_mm_flush/fullmm/ which puts the line length at 81. At
+> > which point I'll ignore it ;-)
+>=20
+> How about s/unsigned int/bool/?  IIRC you aren't a "bool was invented=20
+> after 1971, therefore it is evil" type.
 
-Let's forget about doing futex support for unicore32 then and use your original
-patch.
+No, although I do try to avoid it in structures because I'm ever unsure
+of the storage type used. But yes, good suggestion, thanks!
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
