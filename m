@@ -1,45 +1,51 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 02/17] mm: mmu_gather rework
-Date: Fri, 01 Apr 2011 17:07:20 -0700 (PDT)
-Message-ID: <20110401.170720.104061844.davem@davemloft.net>
-References: <4D87109A.1010005@redhat.com>
-	<1301659631.4859.565.camel@twins>
-	<AANLkTimvHdGZptwmmw73C2jsy=HqgreEAxNurT1Hxbv=@mail.gmail.com>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: [GIT PULL] UniCore32 ISA & PKUnity SoC patches for linux-2.6.39-rc1
+Date: Sat, 2 Apr 2011 16:54:13 +0800
+Message-ID: <002701cbf113$8c8db180$a5a91480$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:49972
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752129Ab1DBAH7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 20:07:59 -0400
-In-Reply-To: <AANLkTimvHdGZptwmmw73C2jsy=HqgreEAxNurT1Hxbv=@mail.gmail.com>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:41699 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755142Ab1DBIy3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Apr 2011 04:54:29 -0400
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: a.p.zijlstra@chello.nl, avi@redhat.com, mel@csn.ul.ie, aarcange@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, npiggin@kernel.dk, paulmck@linux.vnet.ibm.com, yanmin_zhang@linux.intel.com, schwidefsky@de.ibm.com, rmk@arm.linux.org.uk, lethal@linux-sh.org, jdike@addtoit.com, tony.luck@intel.com, hughd@google.com
+To: 'Linus Torvalds' <torvalds@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 1 Apr 2011 09:13:51 -0700
+Hi Linus,
+   Could you please pull from:
+     git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git unicore32
+   to add unicore32 isa & pkunity soc patches for linux-2.6.39-rc1.
 
-> What's the difference? Integer assignment makes a hell of a difference. Do this:
-> 
->   long long expression = ...
->   ...
->   bool val = expression;
-> 
-> and depending on implementation it will either just truncate the value
-> to a random number of bits, or actually do a compare with zero.
+Thanks & regards,
 
-But note that, as you indicate, using int's to store boolean values
-have this exact problem.
+Guan Xuetao
 
-And most of the time people are converting an "int used as a boolean
-value" into a "bool".
+Guan Xuetao (4):
+  unicore32 ldscript fix: add cacheline parameter to PERCPU() macro
+  unicore32 fix: remove arch-specific futex support
+  unicore32 rtc driver fix: cleanup irq_set_freq and irq_set_state
+  unicore32 framebuffer fix: get videomemory by __get_free_pages() and
+    make it floatable
 
-At least the "bool" has a chance of giving true boolean semantics in
-the case you describe, whereas the 'int' always has the potential
-truncation issue.
+Huang Weiyi (1):
+  unicore32 core architecture: remove duplicated #include
 
-So, personally, I see it as a net positive to convert int to bool when
-the variable is being used to take on true/false values.
+ arch/unicore32/Makefile               |    2 +-
+ arch/unicore32/include/asm/futex.h    |  143 ---------------------------------
+ arch/unicore32/include/mach/PKUnity.h |   10 ---
+ arch/unicore32/include/mach/memory.h  |    1 -
+ arch/unicore32/kernel/puv3-core.c     |    5 -
+ arch/unicore32/kernel/rtc.c           |    9 --
+ arch/unicore32/kernel/setup.c         |   15 +---
+ arch/unicore32/kernel/traps.c         |    1 -
+ arch/unicore32/kernel/vmlinux.lds.S   |    7 +-
+ arch/unicore32/mm/mmu.c               |   20 -----
+ drivers/video/fb-puv3.c               |   28 ++++---
+ 11 files changed, 24 insertions(+), 217 deletions(-)
+ delete mode 100644 arch/unicore32/include/asm/futex.h
