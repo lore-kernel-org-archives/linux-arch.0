@@ -1,53 +1,45 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH 02/17] mm: mmu_gather rework
-Date: Fri, 1 Apr 2011 09:13:51 -0700
-Message-ID: <AANLkTimvHdGZptwmmw73C2jsy=HqgreEAxNurT1Hxbv=@mail.gmail.com>
-References: <20110217162327.434629380@chello.nl> <20110217163234.823185666@chello.nl>
- <20110310155032.GB32302@csn.ul.ie> <1300301742.2203.1899.camel@twins>
- <4D87109A.1010005@redhat.com> <1301659631.4859.565.camel@twins>
+Date: Fri, 01 Apr 2011 17:07:20 -0700 (PDT)
+Message-ID: <20110401.170720.104061844.davem@davemloft.net>
+References: <4D87109A.1010005@redhat.com>
+	<1301659631.4859.565.camel@twins>
+	<AANLkTimvHdGZptwmmw73C2jsy=HqgreEAxNurT1Hxbv=@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:38906 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757143Ab1DAQOm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 12:14:42 -0400
-In-Reply-To: <1301659631.4859.565.camel@twins>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:49972
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752129Ab1DBAH7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Apr 2011 20:07:59 -0400
+In-Reply-To: <AANLkTimvHdGZptwmmw73C2jsy=HqgreEAxNurT1Hxbv=@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Avi Kivity <avi@redhat.com>, Mel Gorman <mel@csn.ul.ie>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>, Hugh Dickins <hughd@google.com>
+To: torvalds@linux-foundation.org
+Cc: a.p.zijlstra@chello.nl, avi@redhat.com, mel@csn.ul.ie, aarcange@redhat.com, tglx@linutronix.de, riel@redhat.com, mingo@elte.hu, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, benh@kernel.crashing.org, hugh.dickins@tiscali.co.uk, npiggin@kernel.dk, paulmck@linux.vnet.ibm.com, yanmin_zhang@linux.intel.com, schwidefsky@de.ibm.com, rmk@arm.linux.org.uk, lethal@linux-sh.org, jdike@addtoit.com, tony.luck@intel.com, hughd@google.com
 
-On Fri, Apr 1, 2011 at 5:07 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
->
-> No, although I do try to avoid it in structures because I'm ever unsure
-> of the storage type used. But yes, good suggestion, thanks!
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 1 Apr 2011 09:13:51 -0700
 
-I have to admit to not being a huge fan of "bool". You never know what
-it actually is in C, and it's a possible source of major confusion.
+> What's the difference? Integer assignment makes a hell of a difference. Do this:
+> 
+>   long long expression = ...
+>   ...
+>   bool val = expression;
+> 
+> and depending on implementation it will either just truncate the value
+> to a random number of bits, or actually do a compare with zero.
 
-Some environments will make it "int", others "char", and others - like
-the kernel - will make it a C99/C++-like "true boolean" (C99 _Bool).
+But note that, as you indicate, using int's to store boolean values
+have this exact problem.
 
-What's the difference? Integer assignment makes a hell of a difference. Do this:
+And most of the time people are converting an "int used as a boolean
+value" into a "bool".
 
-  long long expression = ...
-  ...
-  bool val = expression;
+At least the "bool" has a chance of giving true boolean semantics in
+the case you describe, whereas the 'int' always has the potential
+truncation issue.
 
-and depending on implementation it will either just truncate the value
-to a random number of bits, or actually do a compare with zero.
-
-And while we use the C99 _Bool type, and thus get those true boolean
-semantics (ie not just be a truncated integer type), I have to say
-that it's still a dangerous thing to do in C because you generally
-cannot rely on it. There's _tons_ of software that just typedefs int
-or char to bool.
-
-So even outside of structures, I'm not necessarily convinced "bool" is
-always such a good thing. But I'm not going to stop people from using
-it (inside the kernel it should be safe), I just want to raise a
-warning and ask people to not use it mindlessly. And avoid the casts -
-even if they are safe in the kernel.
-
-                      Linus
+So, personally, I see it as a net positive to convert int to bool when
+the variable is being used to take on true/false values.
