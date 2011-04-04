@@ -1,50 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:8482 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754583Ab1DDPZq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2011 11:25:46 -0400
-Received: from wpaz5.hot.corp.google.com (wpaz5.hot.corp.google.com [172.24.198.69])
-	by smtp-out.google.com with ESMTP id p34FPfrH005406
-	for <linux-arch@vger.kernel.org>; Mon, 4 Apr 2011 08:25:41 -0700
-Received: from vxi40 (vxi40.prod.google.com [10.241.35.40])
-	by wpaz5.hot.corp.google.com with ESMTP id p34FPesY018670
-	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Mon, 4 Apr 2011 08:25:40 -0700
-Received: by vxi40 with SMTP id 40so4615557vxi.38
-        for <linux-arch@vger.kernel.org>; Mon, 04 Apr 2011 08:25:40 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <1301902664.2549.76.camel@pasglop>
-References: <1301882694.2549.53.camel@pasglop> <1301887630.2549.71.camel@pasglop>
- <1301902664.2549.76.camel@pasglop>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 4 Apr 2011 09:25:20 -0600
-Message-ID: <BANLkTimBD=NfFKGpy0ZTnT9Dcu=dkTHxZg@mail.gmail.com>
+Received: from gate.crashing.org ([63.228.1.57]:34951 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755411Ab1DDVD3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Apr 2011 17:03:29 -0400
 Subject: Re: [RFC/PATCH] of: Match PCI devices to OF nodes generically
-Content-Type: text/plain; charset=ISO-8859-1
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20110404.004856.55863268.davem@davemloft.net>
+References: <1301882694.2549.53.camel@pasglop>
+	 <1301887630.2549.71.camel@pasglop>
+	 <20110404.004856.55863268.davem@davemloft.net>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 05 Apr 2011 07:03:17 +1000
+Message-ID: <1301950997.2549.84.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-arch@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>
-Message-ID: <20110404152520.3Q3gPSBqHSHQlTdKYnnEa1IdLplmtNNDCSkGHM4zji0@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org
+Message-ID: <20110404210317.SgrbvawN3FnJgbw6x8317yNq4G1TgnATuIbL3OyxTyg@z>
 
-On Mon, Apr 4, 2011 at 1:37 AM, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
+On Mon, 2011-04-04 at 00:48 -0700, David Miller wrote:
+> From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Date: Mon, 04 Apr 2011 13:27:10 +1000
+> 
+> > +struct device_node * __weak pcibios_get_phb_of_node(struct pci_bus *bus)
+> > +{
+> > +	/* This should only be called for PHBs */
+> > +	if (WARN_ON(bus->self || bus->parent))
+> > +		return NULL;
+> 
+> This WARN_ON() will always trigger on sparc, because we use the OF
+> device tree object at the "parent" of the PCI bus devices we create
+> for the PCI controller domains.
+> 
+> I'm really surprised you don't link the PCI bus roots into the rest of
+> the global device hierarchy on powerpc.
 
-> powerpc has two different ways of matching PCI devices to their
-> corresponding OF node (if any) for historical reasons. The ppc64 one
-> does a scan looking for matching bus/dev/fn, while the ppc32 one does a
-> scan looking only for matching dev/fn on each level in order to be
-> agnostic to busses being renumbered (which Linux does on some
-> platforms).
->
-> This removes both and instead moves the matching code to the PCI core
-> itself. It's the most logical place to do it: when a pci_dev is created,
-> we know the parent and thus can do a single level scan for the matching
-> device_node (if any).
+But in the above test bus->parent is the "struct pci_bus *" parent, not
+the "struct device *" nor "struct device_node *" parent... That
+shouldn't be linked to anything on a PHB.
 
-Some of this is reminiscent of the ACPI/PCI binding we do on x86/ia64,
-e.g., acpi_get_pci_dev() and the stuff in drivers/acpi/glue.c.  Have
-you looked at that to see if there's any hope of covering both OF and
-ACPI with something more generic?
+To answer your other point, we do link PHBs on some platforms, not
+others. Historical stuff here. Most of our platforms discover PCI
+bridges very early from setup_arch() before we have any struct device
+around. Mostly because that's how we always did and there's some
+subtle/nasty corner cases to deal with if we change that.
 
-Bjorn
+Cheers,
+Ben.
+
