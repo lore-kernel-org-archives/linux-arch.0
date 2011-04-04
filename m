@@ -1,35 +1,36 @@
-From: David Miller <davem@davemloft.net>
+From: Bjorn Helgaas <bhelgaas@google.com>
 Subject: Re: [RFC/PATCH] of: Match PCI devices to OF nodes generically
-Date: Mon, 04 Apr 2011 00:48:56 -0700 (PDT)
-Message-ID: <20110404.004856.55863268.davem@davemloft.net>
-References: <1301882694.2549.53.camel@pasglop>
-	<1301887630.2549.71.camel@pasglop>
+Date: Mon, 4 Apr 2011 09:25:20 -0600
+Message-ID: <BANLkTimBD=NfFKGpy0ZTnT9Dcu=dkTHxZg@mail.gmail.com>
+References: <1301882694.2549.53.camel@pasglop> <1301887630.2549.71.camel@pasglop>
+ <1301902664.2549.76.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:55652
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751890Ab1DDHtf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Apr 2011 03:49:35 -0400
-In-Reply-To: <1301887630.2549.71.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1301902664.2549.76.camel@pasglop>
+Sender: linux-pci-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Mon, 04 Apr 2011 13:27:10 +1000
+On Mon, Apr 4, 2011 at 1:37 AM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
 
-> +struct device_node * __weak pcibios_get_phb_of_node(struct pci_bus *bus)
-> +{
-> +	/* This should only be called for PHBs */
-> +	if (WARN_ON(bus->self || bus->parent))
-> +		return NULL;
+> powerpc has two different ways of matching PCI devices to their
+> corresponding OF node (if any) for historical reasons. The ppc64 one
+> does a scan looking for matching bus/dev/fn, while the ppc32 one does a
+> scan looking only for matching dev/fn on each level in order to be
+> agnostic to busses being renumbered (which Linux does on some
+> platforms).
+>
+> This removes both and instead moves the matching code to the PCI core
+> itself. It's the most logical place to do it: when a pci_dev is created,
+> we know the parent and thus can do a single level scan for the matching
+> device_node (if any).
 
-This WARN_ON() will always trigger on sparc, because we use the OF
-device tree object at the "parent" of the PCI bus devices we create
-for the PCI controller domains.
+Some of this is reminiscent of the ACPI/PCI binding we do on x86/ia64,
+e.g., acpi_get_pci_dev() and the stuff in drivers/acpi/glue.c.  Have
+you looked at that to see if there's any hope of covering both OF and
+ACPI with something more generic?
 
-I'm really surprised you don't link the PCI bus roots into the rest of
-the global device hierarchy on powerpc.
+Bjorn
