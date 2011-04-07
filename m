@@ -1,67 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:43132
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:51825
 	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755867Ab1DGW1n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 18:27:43 -0400
-Date: Thu, 07 Apr 2011 15:27:07 -0700 (PDT)
-Message-ID: <20110407.152707.39195948.davem@davemloft.net>
+	by vger.kernel.org with ESMTP id S1755867Ab1DGWb6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 18:31:58 -0400
+Date: Thu, 07 Apr 2011 15:31:21 -0700 (PDT)
+Message-ID: <20110407.153121.115952367.davem@davemloft.net>
 Subject: Re: [PATCH 1/5] pci/of: Match PCI devices to OF nodes dynamically
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
-References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
-	<1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+In-Reply-To: <20110407.152937.59699180.davem@davemloft.net>
+References: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+	<20110407.152707.39195948.davem@davemloft.net>
+	<20110407.152937.59699180.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: Text/Plain; charset=iso-8859-7
+Content-Transfer-Encoding: base64
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
-Message-ID: <20110407222707.rpxzVwsNfWkSy39O_1p90aWmE2R14yvldvMRxhClKHA@z>
+Message-ID: <20110407223121.kD9u_X4wNdF_gs6jEHIGaeT5qJKcBnvcH1jyH4oFKk0@z>
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu,  7 Apr 2011 13:26:32 +1000
-
-> powerpc has two different ways of matching PCI devices to their
-> corresponding OF node (if any) for historical reasons. The ppc64 one
-> does a scan looking for matching bus/dev/fn, while the ppc32 one does a
-> scan looking only for matching dev/fn on each level in order to be
-> agnostic to busses being renumbered (which Linux does on some
-> platforms).
-> 
-> This removes both and instead moves the matching code to the PCI core
-> itself. It's the most logical place to do it: when a pci_dev is created,
-> we know the parent and thus can do a single level scan for the matching
-> device_node (if any).
-> 
-> The benefit is that all archs now get the matching for free. There's one
-> hook the arch might want to provide to match a PHB bus to its device
-> node. A default weak implementation is provided that looks for the
-> parent device device node, but it's not entirely reliable on powerpc for
-> various reasons so powerpc provides its own.
-> 
-> Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-
-This patch breaks the build on sparc:
-
-> diff --git a/drivers/pci/of.c b/drivers/pci/of.c
-> new file mode 100644
-> index 0000000..c94d37e
-> --- /dev/null
-> +++ b/drivers/pci/of.c
-
-This gets compiled in on all CONFIG_OF platforms, and:
-
-> +void pci_set_of_node(struct pci_dev *dev)
-> +{
-> +	if (!dev->bus->dev.of_node)
-> +		return;
-> +	dev->dev.of_node = of_pci_find_child_device(dev->bus->dev.of_node,
-> +						    dev->devfn);
-> +}
-
-it references of_pci_find_child_device().
-
-However, of_pci_find_child_device() lives in drivers/of/of_pci.c which is not
-built into the tree because you haven't provided the necessary changes to
-drivers/of/Makefile in this patch.
+RnJvbTogRGF2aWQgTWlsbGVyIDxkYXZlbUBkYXZlbWxvZnQubmV0Pg0KRGF0ZTogVGh1LCAwNyBB
+cHIgMjAxMSAxNToyOTozNyAtMDcwMCAoUERUKQ0KDQo+IEZyb206IERhdmlkIE1pbGxlciA8ZGF2
+ZW1AZGF2ZW1sb2Z0Lm5ldD4NCj4gRGF0ZTogVGh1LCAwNyBBcHIgMjAxMSAxNToyNzowNyAtMDcw
+MCAoUERUKQ0KPiANCj4+IEhvd2V2ZXIsIG9mX3BjaV9maW5kX2NoaWxkX2RldmljZSgpIGxpdmVz
+IGluIGRyaXZlcnMvb2Yvb2ZfcGNpLmMgd2hpY2ggaXMgbm90DQo+PiBidWlsdCBpbnRvIHRoZSB0
+cmVlIGJlY2F1c2UgeW91IGhhdmVuJ3QgcHJvdmlkZWQgdGhlIG5lY2Vzc2FyeSBjaGFuZ2VzIHRv
+DQo+PiBkcml2ZXJzL29mL01ha2VmaWxlIGluIHRoaXMgcGF0Y2guDQo+IA0KPiBPaCBJIHNlZSwg
+aXQgZXhpc3RzIGFscmVhZHkgYnV0IGl0J3Mgb25seSBidWlsdCBpbnRvIHRoZSB0cmVlIGZvcg0K
+PiBtaWNyb2JsYXplLCB4ODYsIGFuZCBwcGMuDQo+IA0KPiBUaGVyZSdzIGEgbG90IG9mIHN0dWZm
+IGluIHRoZXJlIHdoaWNoIGlzIHN1cGVyZmx1b3VzIGFuZCB3aWxsIG5ldmVyDQo+IGJlIHVzZWQg
+b24gc3BhcmMuDQo+IA0KPiBFdmVyeXRoaW5nIGluIHRoZXJlIGV4Y2VwdCB0aGUgbmV3IG9mX3Bj
+aV9maW5kX2NoaWxkX2RldmljZSgpIGZ1bmN0aW9uDQo+IHdpbGwgYmUgbmV2ZXIgZXZlciB1c2Vk
+IG9uIHNwYXJjIGFuZCB0aGVyZWZvcmUgZGVhZCBjb2RlLg0KDQpGdXJ0aGVybW9yZSBpdCB3aWxs
+IG5ldmVyIGJ1aWxkIG9uIHNwYXJjIGV2ZW4gaWYgd2Ugd2FudGVkIHRvIGRvIHNvDQp0ZW1wb3Jh
+cmlseSBiZWNhdXNlIGl0IHJlZmVyZW5jZXMgaW50ZXJmYWNlcyBzcGFyYyBkb2Vzbid0IHByb3Zp
+ZGU6DQoNCmRyaXZlcnMvb2Yvb2ZfcGNpLmM6IEluIGZ1bmN0aW9uIKFvZl9pcnFfbWFwX3BjaaI6
+DQpkcml2ZXJzL29mL29mX3BjaS5jOjMyOjM6IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlvbiBv
+ZiBmdW5jdGlvbiChb2ZfaXJxX21hcF9vbmWiIFstV2Vycm9yPWltcGxpY2l0LWZ1bmN0aW9uLWRl
+Y2xhcmF0aW9uXQ0KZHJpdmVycy9vZi9vZl9wY2kuYzo1Njo0OiBlcnJvcjogaW1wbGljaXQgZGVj
+bGFyYXRpb24gb2YgZnVuY3Rpb24goXBjaV9idXNfdG9fT0Zfbm9kZaIgWy1XZXJyb3I9aW1wbGlj
+aXQtZnVuY3Rpb24tZGVjbGFyYXRpb25dDQpkcml2ZXJzL29mL29mX3BjaS5jOjU2OjExOiB3YXJu
+aW5nOiBhc3NpZ25tZW50IG1ha2VzIHBvaW50ZXIgZnJvbSBpbnRlZ2VyIHdpdGhvdXQgYSBjYXN0
+IFtlbmFibGVkIGJ5IGRlZmF1bHRdDQpkcml2ZXJzL29mL29mX3BjaS5jOjkwOjI6IGVycm9yOiBp
+bXBsaWNpdCBkZWNsYXJhdGlvbiBvZiBmdW5jdGlvbiChb2ZfaXJxX21hcF9yYXeiIFstV2Vycm9y
+PWltcGxpY2l0LWZ1bmN0aW9uLWRlY2xhcmF0aW9uXQ0KY2MxOiBzb21lIHdhcm5pbmdzIGJlaW5n
+IHRyZWF0ZWQgYXMgZXJyb3JzDQoNCkkgZG9uJ3QgdGhpbmsgaXQncyBhIGdvb2QgaWRlYSB0byBt
+aXggdGhlIHRoaW5ncyB5b3UncmUgdHJ5aW5nIHRvIGRvDQp3aXRoIGFsbCBvZiB0aGUgZXhpc3Rp
+bmcgc3R1ZmYgaW4gb2ZfcGNpLmMsIHdoeSBub3QgY3JlYXRlIGEgbmV3IGZpbGUNCmZvciB0aGUg
+c3R1ZmYgeW91J3JlIHRyeWluZyB0byBjb25zb2xpZGF0ZT8NCg==
