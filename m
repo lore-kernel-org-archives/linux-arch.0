@@ -1,129 +1,31 @@
-From: David Miller <davem@davemloft.net>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [PATCH 1/5] pci/of: Match PCI devices to OF nodes dynamically
-Date: Thu, 07 Apr 2011 15:52:47 -0700 (PDT)
-Message-ID: <20110407.155247.260074665.davem@davemloft.net>
-References: <20110407.152707.39195948.davem@davemloft.net>
-	<20110407.152937.59699180.davem@davemloft.net>
-	<20110407.153121.115952367.davem@davemloft.net>
+Date: Fri, 08 Apr 2011 09:21:19 +1000
+Message-ID: <1302218479.2458.47.camel@pasglop>
+References: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+	 <20110407.152707.39195948.davem@davemloft.net>
+	 <20110407.152937.59699180.davem@davemloft.net>
+	 <20110407.153121.115952367.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:55851 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751322Ab1DGXVi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Apr 2011 19:21:38 -0400
 In-Reply-To: <20110407.153121.115952367.davem@davemloft.net>
-Sender: linux-pci-owner@vger.kernel.org
-To: benh@kernel.crashing.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
-List-Id: linux-arch.vger.kernel.org
 
-From: David Miller <davem@davemloft.net>
-Date: Thu, 07 Apr 2011 15:31:21 -0700 (PDT)
-
+On Thu, 2011-04-07 at 15:31 -0700, David Miller wrote:
 > I don't think it's a good idea to mix the things you're trying to do
 > with all of the existing stuff in of_pci.c, why not create a new file
-> for the stuff you're trying to consolidate?
+> for the stuff you're trying to consolidate? 
 
-Something like the following could be done to your first patch.
+I can move that new function to pci/of.c then. 
 
-My sparc64 machine boots up properly with this change added to your
-patch series:
-
-diff --git a/drivers/of/Makefile b/drivers/of/Makefile
-index f7861ed..ceb340e 100644
---- a/drivers/of/Makefile
-+++ b/drivers/of/Makefile
-@@ -10,3 +10,4 @@ obj-$(CONFIG_OF_NET)	+= of_net.o
- obj-$(CONFIG_OF_SPI)	+= of_spi.o
- obj-$(CONFIG_OF_MDIO)	+= of_mdio.o
- obj-$(CONFIG_OF_PCI)	+= of_pci.o
-+obj-$(CONFIG_PCI)	+= of_pci_base.o
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 9d179c4..ac1ec54 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -90,39 +90,3 @@ int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
- 	return of_irq_map_raw(ppnode, &lspec_be, 1, laddr, out_irq);
- }
- EXPORT_SYMBOL_GPL(of_irq_map_pci);
--
--
--static inline int __of_pci_pci_compare(struct device_node *node, unsigned int devfn)
--{
--	unsigned int size;
--	const __be32 *reg = of_get_property(node, "reg", &size);
--
--	if (!reg || size < 5 * sizeof(__be32))
--		return 0;
--	return ((be32_to_cpup(&reg[0]) >> 8) & 0xff) == devfn;
--}
--
--struct device_node *of_pci_find_child_device(struct device_node *parent,
--					     unsigned int devfn)
--{
--	struct device_node *node, *node2;
--	
--	for_each_child_of_node(parent, node) {
--		if (__of_pci_pci_compare(node, devfn))
--			return node;
--		/*
--		 * Some OFs create a parent node "multifunc-device" as
--		 * a fake root for all functions of a multi-function
--		 * device we go down them as well.
--		 */
--                if (!strcmp(node->name, "multifunc-device")) {
--			for_each_child_of_node(node, node2) {
--				if (__of_pci_pci_compare(node2, devfn)) {
--					of_node_put(node);
--					return node2;
--				}
--			}
--                }
--	}
--	return NULL;
--}
-diff --git a/drivers/of/of_pci_base.c b/drivers/of/of_pci_base.c
-new file mode 100644
-index 0000000..c5a2d96
---- /dev/null
-+++ b/drivers/of/of_pci_base.c
-@@ -0,0 +1,39 @@
-+#include <linux/kernel.h>
-+#include <linux/of_pci.h>
-+#include <linux/of_irq.h>
-+#include <asm/prom.h>
-+
-+static inline int __of_pci_pci_compare(struct device_node *node, unsigned int devfn)
-+{
-+	unsigned int size;
-+	const __be32 *reg = of_get_property(node, "reg", &size);
-+
-+	if (!reg || size < 5 * sizeof(__be32))
-+		return 0;
-+	return ((be32_to_cpup(&reg[0]) >> 8) & 0xff) == devfn;
-+}
-+
-+struct device_node *of_pci_find_child_device(struct device_node *parent,
-+					     unsigned int devfn)
-+{
-+	struct device_node *node, *node2;
-+	
-+	for_each_child_of_node(parent, node) {
-+		if (__of_pci_pci_compare(node, devfn))
-+			return node;
-+		/*
-+		 * Some OFs create a parent node "multifunc-device" as
-+		 * a fake root for all functions of a multi-function
-+		 * device we go down them as well.
-+		 */
-+                if (!strcmp(node->name, "multifunc-device")) {
-+			for_each_child_of_node(node, node2) {
-+				if (__of_pci_pci_compare(node2, devfn)) {
-+					of_node_put(node);
-+					return node2;
-+				}
-+			}
-+                }
-+	}
-+	return NULL;
-+}
--- 
-1.7.4.3
+Cheers,
+Ben.
