@@ -1,50 +1,54 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCHES] Generalize PCI <-> OF node matching
-Date: Thu, 07 Apr 2011 13:54:07 +0200
-Message-ID: <4D9DA5DF.8020303@monstr.eu>
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: [PATCH] x86/ce4100: add reg property to bridges
+Date: Thu, 7 Apr 2011 14:13:15 +0200
+Message-ID: <20110407121315.GA9204@linutronix.de>
 References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
-Reply-To: monstr@monstr.eu
+ <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-15
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:54913 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755790Ab1DGLyM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 07:54:12 -0400
-In-Reply-To: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+Received: from www.linutronix.de ([62.245.132.108]:37528 "EHLO linutronix.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755832Ab1DGMNQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Apr 2011 08:13:16 -0400
+Content-Disposition: inline
+In-Reply-To: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, tglx@linuxtronix.de, bigeasy@linuxtronix.de
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de
 
-Benjamin Herrenschmidt wrote:
-> This series generalize the PCI <-> OF node matching, moves it to the
-> PCI core and make our archs use it. I also rip out while at it a whole
-> bunch of useless stuff from microblaze PCI code which was copied from
-> ppc32 and is essentially useless there (old workarounds for PowerMac
-> and ancient X servers).
-> 
-> Compile tested on x86_64, microblaze, sparc64 and powerpc.
-> 
-> How do you guys want to proceed with this series ? It will quickly
-> become a pre-req for other things on powerpc, so I can carry it in
-> powerpc in a separate branch that I also pull into powerpc-next or
-> we can have it somewhere on tip...
+without the reg property Ben's new code won't find the PCI & ISA bridge
+and the devices won't get the DT-node attached.
 
-There are several coding style issues.
-Please look at it through checkpatch.pl.
+Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+---
 
-Compilation is fine for Microblaze as you surely saw.
-I am not able to test it on real hw right now but I will ask for remote 
-connection to the board.
+This patch can be applied independently of Ben's series but without it
+we have almost no devices :).
 
-Thanks,
-Michal
+ arch/x86/platform/ce4100/falconfalls.dts |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-
+diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
+index dc701ea..2d6d226 100644
+--- a/arch/x86/platform/ce4100/falconfalls.dts
++++ b/arch/x86/platform/ce4100/falconfalls.dts
+@@ -74,6 +74,7 @@
+ 				compatible = "intel,ce4100-pci", "pci";
+ 				device_type = "pci";
+ 				bus-range = <1 1>;
++				reg = <0x0800 0x0 0x0 0x0 0x0>;
+ 				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
+ 
+ 				interrupt-parent = <&ioapic2>;
+@@ -412,6 +413,7 @@
+ 				#address-cells = <2>;
+ 				#size-cells = <1>;
+ 				compatible = "isa";
++				reg = <0xf800 0x0 0x0 0x0 0x0>;
+ 				ranges = <1 0 0 0 0 0x100>;
+ 
+ 				rtc@70 {
 -- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+1.7.4
