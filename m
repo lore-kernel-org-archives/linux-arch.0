@@ -1,36 +1,60 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCHES] Generalize PCI <-> OF node matching
-Date: Thu, 07 Apr 2011 15:16:36 -0700 (PDT)
-Message-ID: <20110407.151636.183068185.davem@davemloft.net>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH] x86/ce4100: add reg property to bridges
+Date: Fri, 08 Apr 2011 07:52:39 +1000
+Message-ID: <1302213159.2458.43.camel@pasglop>
 References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+	 <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+	 <20110407121315.GA9204@linutronix.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33031
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755537Ab1DGWRN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 18:17:13 -0400
-In-Reply-To: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+Received: from gate.crashing.org ([63.228.1.57]:52154 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754696Ab1DGW00 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Apr 2011 18:26:26 -0400
+In-Reply-To: <20110407121315.GA9204@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, monstr@monstr.eu, tglx@linutronix.de
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu,  7 Apr 2011 13:26:31 +1000
-
-> This series generalize the PCI <-> OF node matching, moves it to the
-> PCI core and make our archs use it. I also rip out while at it a whole
-> bunch of useless stuff from microblaze PCI code which was copied from
-> ppc32 and is essentially useless there (old workarounds for PowerMac
-> and ancient X servers).
+On Thu, 2011-04-07 at 14:13 +0200, Sebastian Andrzej Siewior wrote:
+> without the reg property Ben's new code won't find the PCI & ISA bridge
+> and the devices won't get the DT-node attached.
 > 
-> Compile tested on x86_64, microblaze, sparc64 and powerpc.
+> Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+> ---
+> 
+> This patch can be applied independently of Ben's series but without it
+> we have almost no devices :).
 
-What tree is this against?  None of the microblaze and x86 bits
-apply without rejects against Linus's tree, which is where I'm
-trying to test this.
+Thanks. Are you sending that independently or do you want me to put it
+in my series before the patch that would "break" it ?
 
-I'll trudge through it, but a heads up about what your patches
-are against in the future would be heavily appreciated.
+Cheers,
+Ben.
+
+>  arch/x86/platform/ce4100/falconfalls.dts |    2 ++
+>  1 files changed, 2 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
+> index dc701ea..2d6d226 100644
+> --- a/arch/x86/platform/ce4100/falconfalls.dts
+> +++ b/arch/x86/platform/ce4100/falconfalls.dts
+> @@ -74,6 +74,7 @@
+>  				compatible = "intel,ce4100-pci", "pci";
+>  				device_type = "pci";
+>  				bus-range = <1 1>;
+> +				reg = <0x0800 0x0 0x0 0x0 0x0>;
+>  				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
+>  
+>  				interrupt-parent = <&ioapic2>;
+> @@ -412,6 +413,7 @@
+>  				#address-cells = <2>;
+>  				#size-cells = <1>;
+>  				compatible = "isa";
+> +				reg = <0xf800 0x0 0x0 0x0 0x0>;
+>  				ranges = <1 0 0 0 0 0x100>;
+>  
+>  				rtc@70 {
