@@ -1,103 +1,36 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
-Subject: [PATCH] lib: Consolidate DEBUG_PER_CPU_MAPS
-Date: Thu,  7 Apr 2011 12:20:46 -0700
-Message-ID: <1302204046-2481-1-git-send-email-sboyd@codeaurora.org>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCHES] Generalize PCI <-> OF node matching
+Date: Fri, 08 Apr 2011 07:50:59 +1000
+Message-ID: <1302213059.2458.42.camel@pasglop>
+References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+	 <4D9DA5DF.8020303@monstr.eu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:13691 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756723Ab1DGTUv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 15:20:51 -0400
+Received: from gate.crashing.org ([63.228.1.57]:54976 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751631Ab1DGVvb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Apr 2011 17:51:31 -0400
+In-Reply-To: <4D9DA5DF.8020303@monstr.eu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org
+To: monstr@monstr.eu
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, tglx@linuxtronix.de, bigeasy@linuxtronix.de
 
-DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
-inlcude/linux/cpumask.h and thus it has outgrown its use within x86
-and powerpc alone. Any arch with SMP support may want to get some
-more debugging, so make this option generic.
+On Thu, 2011-04-07 at 13:54 +0200, Michal Simek wrote:
+> There are several coding style issues.
+> Please look at it through checkpatch.pl.
 
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
----
+I tend to generally ignore checkpatch :-) I have my reasons... I'll have
+a quick look see if there's anything really worthwhile in there but in
+general I dislike "absolute" rules such as what checkpatch imposes.
 
-I don't know what tree to send this through, so I'm sending it to
-Andrew. I suppose mm is as good as anything.
+> Compilation is fine for Microblaze as you surely saw.
+> I am not able to test it on real hw right now but I will ask for
+> remote connection to the board.
 
- arch/powerpc/Kconfig.debug |   12 ------------
- arch/x86/Kconfig.debug     |   11 -----------
- lib/Kconfig.debug          |   11 +++++++++++
- 3 files changed, 11 insertions(+), 23 deletions(-)
+Thanks.
 
-diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
-index 2d38a50..12a8d18 100644
---- a/arch/powerpc/Kconfig.debug
-+++ b/arch/powerpc/Kconfig.debug
-@@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
- 
- 	  This option will slow down process creation somewhat.
- 
--config DEBUG_PER_CPU_MAPS
--	bool "Debug access to per_cpu maps"
--	depends on DEBUG_KERNEL
--	depends on SMP
--	default n
--	---help---
--	  Say Y to verify that the per_cpu map being accessed has
--	  been setup.  Adds a fair amount of code to kernel memory
--	  and decreases performance.
--
--	  Say N if unsure.
--
- config HCALL_STATS
- 	bool "Hypervisor call instrumentation"
- 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
-diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
-index 615e188..1bf8839 100644
---- a/arch/x86/Kconfig.debug
-+++ b/arch/x86/Kconfig.debug
-@@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
- 
- 	  This option will slow down process creation somewhat.
- 
--config DEBUG_PER_CPU_MAPS
--	bool "Debug access to per_cpu maps"
--	depends on DEBUG_KERNEL
--	depends on SMP
--	---help---
--	  Say Y to verify that the per_cpu map being accessed has
--	  been setup.  Adds a fair amount of code to kernel memory
--	  and decreases performance.
--
--	  Say N if unsure.
--
- config X86_PTDUMP
- 	bool "Export kernel pagetable layout to userspace via debugfs"
- 	depends on DEBUG_KERNEL
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index c768bcd..c792431 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -993,6 +993,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
- 	  To ensure that generic code follows the above rules, this
- 	  option forces all percpu variables to be defined as weak.
- 
-+config DEBUG_PER_CPU_MAPS
-+	bool "Debug access to per_cpu maps"
-+	depends on DEBUG_KERNEL
-+	depends on SMP
-+	help
-+	  Say Y to verify that the per_cpu map being accessed has
-+	  been set up. This adds a fair amount of code to kernel memory
-+	  and decreases performance.
-+
-+	  Say N if unsure.
-+
- config LKDTM
- 	tristate "Linux Kernel Dump Test Tool Module"
- 	depends on DEBUG_FS
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Cheers,
+Ben.
