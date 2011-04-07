@@ -1,46 +1,26 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 1/5] pci/of: Match PCI devices to OF nodes dynamically
-Date: Thu, 07 Apr 2011 15:31:21 -0700 (PDT)
-Message-ID: <20110407.153121.115952367.davem@davemloft.net>
-References: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
-	<20110407.152707.39195948.davem@davemloft.net>
-	<20110407.152937.59699180.davem@davemloft.net>
+Subject: Re: [PATCHES] Generalize PCI <-> OF node matching
+Date: Thu, 07 Apr 2011 15:31:46 -0700 (PDT)
+Message-ID: <20110407.153146.48488128.davem@davemloft.net>
+References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+	<20110407.151636.183068185.davem@davemloft.net>
+	<1302215455.2458.46.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=iso-8859-7
-Content-Transfer-Encoding: base64
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20110407.152937.59699180.davem@davemloft.net>
+In-Reply-To: <1302215455.2458.46.camel@pasglop>
 Sender: linux-pci-owner@vger.kernel.org
 To: benh@kernel.crashing.org
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
 List-Id: linux-arch.vger.kernel.org
 
-RnJvbTogRGF2aWQgTWlsbGVyIDxkYXZlbUBkYXZlbWxvZnQubmV0Pg0KRGF0ZTogVGh1LCAwNyBB
-cHIgMjAxMSAxNToyOTozNyAtMDcwMCAoUERUKQ0KDQo+IEZyb206IERhdmlkIE1pbGxlciA8ZGF2
-ZW1AZGF2ZW1sb2Z0Lm5ldD4NCj4gRGF0ZTogVGh1LCAwNyBBcHIgMjAxMSAxNToyNzowNyAtMDcw
-MCAoUERUKQ0KPiANCj4+IEhvd2V2ZXIsIG9mX3BjaV9maW5kX2NoaWxkX2RldmljZSgpIGxpdmVz
-IGluIGRyaXZlcnMvb2Yvb2ZfcGNpLmMgd2hpY2ggaXMgbm90DQo+PiBidWlsdCBpbnRvIHRoZSB0
-cmVlIGJlY2F1c2UgeW91IGhhdmVuJ3QgcHJvdmlkZWQgdGhlIG5lY2Vzc2FyeSBjaGFuZ2VzIHRv
-DQo+PiBkcml2ZXJzL29mL01ha2VmaWxlIGluIHRoaXMgcGF0Y2guDQo+IA0KPiBPaCBJIHNlZSwg
-aXQgZXhpc3RzIGFscmVhZHkgYnV0IGl0J3Mgb25seSBidWlsdCBpbnRvIHRoZSB0cmVlIGZvcg0K
-PiBtaWNyb2JsYXplLCB4ODYsIGFuZCBwcGMuDQo+IA0KPiBUaGVyZSdzIGEgbG90IG9mIHN0dWZm
-IGluIHRoZXJlIHdoaWNoIGlzIHN1cGVyZmx1b3VzIGFuZCB3aWxsIG5ldmVyDQo+IGJlIHVzZWQg
-b24gc3BhcmMuDQo+IA0KPiBFdmVyeXRoaW5nIGluIHRoZXJlIGV4Y2VwdCB0aGUgbmV3IG9mX3Bj
-aV9maW5kX2NoaWxkX2RldmljZSgpIGZ1bmN0aW9uDQo+IHdpbGwgYmUgbmV2ZXIgZXZlciB1c2Vk
-IG9uIHNwYXJjIGFuZCB0aGVyZWZvcmUgZGVhZCBjb2RlLg0KDQpGdXJ0aGVybW9yZSBpdCB3aWxs
-IG5ldmVyIGJ1aWxkIG9uIHNwYXJjIGV2ZW4gaWYgd2Ugd2FudGVkIHRvIGRvIHNvDQp0ZW1wb3Jh
-cmlseSBiZWNhdXNlIGl0IHJlZmVyZW5jZXMgaW50ZXJmYWNlcyBzcGFyYyBkb2Vzbid0IHByb3Zp
-ZGU6DQoNCmRyaXZlcnMvb2Yvb2ZfcGNpLmM6IEluIGZ1bmN0aW9uIKFvZl9pcnFfbWFwX3BjaaI6
-DQpkcml2ZXJzL29mL29mX3BjaS5jOjMyOjM6IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlvbiBv
-ZiBmdW5jdGlvbiChb2ZfaXJxX21hcF9vbmWiIFstV2Vycm9yPWltcGxpY2l0LWZ1bmN0aW9uLWRl
-Y2xhcmF0aW9uXQ0KZHJpdmVycy9vZi9vZl9wY2kuYzo1Njo0OiBlcnJvcjogaW1wbGljaXQgZGVj
-bGFyYXRpb24gb2YgZnVuY3Rpb24goXBjaV9idXNfdG9fT0Zfbm9kZaIgWy1XZXJyb3I9aW1wbGlj
-aXQtZnVuY3Rpb24tZGVjbGFyYXRpb25dDQpkcml2ZXJzL29mL29mX3BjaS5jOjU2OjExOiB3YXJu
-aW5nOiBhc3NpZ25tZW50IG1ha2VzIHBvaW50ZXIgZnJvbSBpbnRlZ2VyIHdpdGhvdXQgYSBjYXN0
-IFtlbmFibGVkIGJ5IGRlZmF1bHRdDQpkcml2ZXJzL29mL29mX3BjaS5jOjkwOjI6IGVycm9yOiBp
-bXBsaWNpdCBkZWNsYXJhdGlvbiBvZiBmdW5jdGlvbiChb2ZfaXJxX21hcF9yYXeiIFstV2Vycm9y
-PWltcGxpY2l0LWZ1bmN0aW9uLWRlY2xhcmF0aW9uXQ0KY2MxOiBzb21lIHdhcm5pbmdzIGJlaW5n
-IHRyZWF0ZWQgYXMgZXJyb3JzDQoNCkkgZG9uJ3QgdGhpbmsgaXQncyBhIGdvb2QgaWRlYSB0byBt
-aXggdGhlIHRoaW5ncyB5b3UncmUgdHJ5aW5nIHRvIGRvDQp3aXRoIGFsbCBvZiB0aGUgZXhpc3Rp
-bmcgc3R1ZmYgaW4gb2ZfcGNpLmMsIHdoeSBub3QgY3JlYXRlIGEgbmV3IGZpbGUNCmZvciB0aGUg
-c3R1ZmYgeW91J3JlIHRyeWluZyB0byBjb25zb2xpZGF0ZT8NCg==
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Fri, 08 Apr 2011 08:30:55 +1000
+
+> I'm surprised it would have changed that significantly since then but
+> I'll check & fixup, I can send a new one later today. I'll make sure to
+> specify the "anchor" commit next time.
+
+It's the spelling fixes bomb that went into Linus's tree eariler
+today.
