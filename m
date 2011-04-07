@@ -1,36 +1,36 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCHES] Generalize PCI <-> OF node matching
-Date: Fri, 08 Apr 2011 07:50:59 +1000
-Message-ID: <1302213059.2458.42.camel@pasglop>
+Date: Thu, 07 Apr 2011 15:16:36 -0700 (PDT)
+Message-ID: <20110407.151636.183068185.davem@davemloft.net>
 References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
-	 <4D9DA5DF.8020303@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:54976 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751631Ab1DGVvb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Apr 2011 17:51:31 -0400
-In-Reply-To: <4D9DA5DF.8020303@monstr.eu>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:33031
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755537Ab1DGWRN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 18:17:13 -0400
+In-Reply-To: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, tglx@linuxtronix.de, bigeasy@linuxtronix.de
+To: benh@kernel.crashing.org
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
 
-On Thu, 2011-04-07 at 13:54 +0200, Michal Simek wrote:
-> There are several coding style issues.
-> Please look at it through checkpatch.pl.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Thu,  7 Apr 2011 13:26:31 +1000
 
-I tend to generally ignore checkpatch :-) I have my reasons... I'll have
-a quick look see if there's anything really worthwhile in there but in
-general I dislike "absolute" rules such as what checkpatch imposes.
+> This series generalize the PCI <-> OF node matching, moves it to the
+> PCI core and make our archs use it. I also rip out while at it a whole
+> bunch of useless stuff from microblaze PCI code which was copied from
+> ppc32 and is essentially useless there (old workarounds for PowerMac
+> and ancient X servers).
+> 
+> Compile tested on x86_64, microblaze, sparc64 and powerpc.
 
-> Compilation is fine for Microblaze as you surely saw.
-> I am not able to test it on real hw right now but I will ask for
-> remote connection to the board.
+What tree is this against?  None of the microblaze and x86 bits
+apply without rejects against Linus's tree, which is where I'm
+trying to test this.
 
-Thanks.
-
-Cheers,
-Ben.
+I'll trudge through it, but a heads up about what your patches
+are against in the future would be heavily appreciated.
