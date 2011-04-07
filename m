@@ -1,54 +1,103 @@
-From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Subject: [PATCH] x86/ce4100: add reg property to bridges
-Date: Thu, 7 Apr 2011 14:13:15 +0200
-Message-ID: <20110407121315.GA9204@linutronix.de>
-References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
- <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: [PATCH] lib: Consolidate DEBUG_PER_CPU_MAPS
+Date: Thu,  7 Apr 2011 12:20:46 -0700
+Message-ID: <1302204046-2481-1-git-send-email-sboyd@codeaurora.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:37528 "EHLO linutronix.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755832Ab1DGMNQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 7 Apr 2011 08:13:16 -0400
-Content-Disposition: inline
-In-Reply-To: <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:13691 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756723Ab1DGTUv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 15:20:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org
 
-without the reg property Ben's new code won't find the PCI & ISA bridge
-and the devices won't get the DT-node attached.
+DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
+inlcude/linux/cpumask.h and thus it has outgrown its use within x86
+and powerpc alone. Any arch with SMP support may want to get some
+more debugging, so make this option generic.
 
-Signed-off-by: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
 ---
 
-This patch can be applied independently of Ben's series but without it
-we have almost no devices :).
+I don't know what tree to send this through, so I'm sending it to
+Andrew. I suppose mm is as good as anything.
 
- arch/x86/platform/ce4100/falconfalls.dts |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ arch/powerpc/Kconfig.debug |   12 ------------
+ arch/x86/Kconfig.debug     |   11 -----------
+ lib/Kconfig.debug          |   11 +++++++++++
+ 3 files changed, 11 insertions(+), 23 deletions(-)
 
-diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
-index dc701ea..2d6d226 100644
---- a/arch/x86/platform/ce4100/falconfalls.dts
-+++ b/arch/x86/platform/ce4100/falconfalls.dts
-@@ -74,6 +74,7 @@
- 				compatible = "intel,ce4100-pci", "pci";
- 				device_type = "pci";
- 				bus-range = <1 1>;
-+				reg = <0x0800 0x0 0x0 0x0 0x0>;
- 				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
+diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
+index 2d38a50..12a8d18 100644
+--- a/arch/powerpc/Kconfig.debug
++++ b/arch/powerpc/Kconfig.debug
+@@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
  
- 				interrupt-parent = <&ioapic2>;
-@@ -412,6 +413,7 @@
- 				#address-cells = <2>;
- 				#size-cells = <1>;
- 				compatible = "isa";
-+				reg = <0xf800 0x0 0x0 0x0 0x0>;
- 				ranges = <1 0 0 0 0 0x100>;
+ 	  This option will slow down process creation somewhat.
  
- 				rtc@70 {
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	default n
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config HCALL_STATS
+ 	bool "Hypervisor call instrumentation"
+ 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 615e188..1bf8839 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
+ 
+ 	  This option will slow down process creation somewhat.
+ 
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config X86_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index c768bcd..c792431 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -993,6 +993,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
+ 	  To ensure that generic code follows the above rules, this
+ 	  option forces all percpu variables to be defined as weak.
+ 
++config DEBUG_PER_CPU_MAPS
++	bool "Debug access to per_cpu maps"
++	depends on DEBUG_KERNEL
++	depends on SMP
++	help
++	  Say Y to verify that the per_cpu map being accessed has
++	  been set up. This adds a fair amount of code to kernel memory
++	  and decreases performance.
++
++	  Say N if unsure.
++
+ config LKDTM
+ 	tristate "Linux Kernel Dump Test Tool Module"
+ 	depends on DEBUG_FS
 -- 
-1.7.4
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
