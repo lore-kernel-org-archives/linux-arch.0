@@ -1,40 +1,110 @@
-From: "WEB MAIL SERVICE" <accountaccess14@hotmail.com>
-Subject: Dear Webmail/E-mail user
-Date: Mon, 4 Apr 2011 17:13:23 -0400 (EDT)
-Message-ID: <2343.115.242.246.16.1301951603.squirrel@115.242.246.16>
-Reply-To: alertweb333@hotmail.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: [PATCH 4/5] x86/devicetree: Use generic PCI <-> OF matching
+Date: Thu,  7 Apr 2011 13:26:35 +1000
+Message-ID: <1302146796-26825-5-git-send-email-benh@kernel.crashing.org>
+References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dedicated.stoinet.com ([72.4.160.228]:40039 "EHLO
-	dedicated.stoinet.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751310Ab1DEQZD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Apr 2011 12:25:03 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:38844 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754600Ab1DGD0x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Apr 2011 23:26:53 -0400
+In-Reply-To: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
+Instead of walking the whole PCI tree to update the of_node's for
+PCI busses and devices after the fact, enable the new generic core
+code for doing so by providing the proper device nodes for the
+PCI host bridges
 
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
+ arch/x86/kernel/devicetree.c |   62 +++++++++++++----------------------------
+ 1 files changed, 20 insertions(+), 42 deletions(-)
 
-
-Dear Account Owner.
-
-This mail is to inform all our {Web Mail} users that we will be upgrading
-our site in a couple of days from now. So you as a Subscriber of our site
-you are required send us your Email account details so as to enable us
-know if you are still making use of your mail box if you still do to add
-more space to you. Further be informed that we will be deleting all mail
-account that is not functioning so as to create more space for new user.
-
-you will have to confirm your webmail account details by providing the
-following:
-
-1.NetID:....................................
-2.Password:...................................
-3.Date of Birth:...............................
-
-Failure to do this will immediately render your email address deactivated
-from our database.
-
-Thank you for using our WEB SERVICE !
-FROM THE WEB MAIL SUPPORT TEAM
+diff --git a/arch/x86/kernel/devicetree.c b/arch/x86/kernel/devicetree.c
+index 706a9fb..f6c9d67 100644
+--- a/arch/x86/kernel/devicetree.c
++++ b/arch/x86/kernel/devicetree.c
+@@ -123,6 +123,26 @@ static int __init add_bus_probe(void)
+ module_init(add_bus_probe);
+ 
+ #ifdef CONFIG_PCI
++struct device_node * pcibios_get_phb_of_node(struct pci_bus *bus)
++{
++	struct device_node *np;
++	unsigned int bus_min;
++
++	for_each_node_by_type(np, "pci") {
++		const void *prop;
++		struct pci_bus *bus;
++		unsigned int bus_min;
++		struct device_node *child;
++
++		prop = of_get_property(np, "bus-range", NULL);
++		if (!prop)
++			continue;
++		bus_min = be32_to_cpup(prop);
++		if (bus->number == bus_min)
++			return np;
++	}
++}
++
+ static int x86_of_pci_irq_enable(struct pci_dev *dev)
+ {
+ 	struct of_irq oirq;
+@@ -154,50 +174,8 @@ static void x86_of_pci_irq_disable(struct pci_dev *dev)
+ 
+ void __cpuinit x86_of_pci_init(void)
+ {
+-	struct device_node *np;
+-
+ 	pcibios_enable_irq = x86_of_pci_irq_enable;
+ 	pcibios_disable_irq = x86_of_pci_irq_disable;
+-
+-	for_each_node_by_type(np, "pci") {
+-		const void *prop;
+-		struct pci_bus *bus;
+-		unsigned int bus_min;
+-		struct device_node *child;
+-
+-		prop = of_get_property(np, "bus-range", NULL);
+-		if (!prop)
+-			continue;
+-		bus_min = be32_to_cpup(prop);
+-
+-		bus = pci_find_bus(0, bus_min);
+-		if (!bus) {
+-			printk(KERN_ERR "Can't find a node for bus %s.\n",
+-					np->full_name);
+-			continue;
+-		}
+-
+-		if (bus->self)
+-			bus->self->dev.of_node = np;
+-		else
+-			bus->dev.of_node = np;
+-
+-		for_each_child_of_node(np, child) {
+-			struct pci_dev *dev;
+-			u32 devfn;
+-
+-			prop = of_get_property(child, "reg", NULL);
+-			if (!prop)
+-				continue;
+-
+-			devfn = (be32_to_cpup(prop) >> 8) & 0xff;
+-			dev = pci_get_slot(bus, devfn);
+-			if (!dev)
+-				continue;
+-			dev->dev.of_node = child;
+-			pci_dev_put(dev);
+-		}
+-	}
+ }
+ #endif
+ 
+-- 
+1.7.1
