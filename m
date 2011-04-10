@@ -1,24 +1,29 @@
-From: Irish Unit <info@irish.net>
-Subject: Final Notice!!
-Date: Sun, 10 Apr 2011 14:01:37 +0200
-Message-ID: <69c4ca552b7ffd0c8dff4d4d87736bd1@nerim.net>
-Reply-To: wefp_blair01@9.cn
+From: "GET BACK TO ME IMMEDIATELY" <googleservice@terra.es>
+Subject: GET BACK TO ME IMMEDIATELY
+Date: Sun, 10 Apr 2011 19:24:36 +0000 (UTC)
+Message-ID: <20110410152331.ACDDE29E7EAA@mail.alsa.co.cr>
+Reply-To: <googleservice@terra.es>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain;
+	charset="Windows-1251"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailhost-e0-m0.mangoosta.org ([78.40.49.145]:53453 "EHLO
-	smtp-delay2.nerim.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753336Ab1DJMKH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Apr 2011 08:10:07 -0400
-Received: from maiev.nerim.net (smtp-150-sunday.nerim.net [194.79.134.150])
-	by smtp-delay2.nerim.net (Postfix) with ESMTP id 6D2FF19D2EC0
-	for <linux-arch@vger.kernel.org>; Sun, 10 Apr 2011 13:51:15 +0200 (CEST)
+Received: from logistix.cr ([201.201.66.140]:5288 "EHLO mail.alsa.co.cr"
+	rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754091Ab1DJTY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Apr 2011 15:24:27 -0400
+Date: Fri, 29 Apr 2011 05:51:55 +0200
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+Hello 
 
+I wish to ask for your consent for a partnership project that I would want both of us to execute mutually which is beneficial. However my name is Mr. Rodney Smith. Kindly get back to me to confirm the receipt of this massage so that I will give you full details of the project.
 
--- 
-Irish lottery awarded you(1,350,000,00Pounds)Provide your
-Names,Tel,Country,Occupation
+Send your reply to my private email at rodney_smith@ibibo.com 
+
+I am waiting for your permission.
+
+Warm regards
+Mr. Rodney Smith
+Email:smithrodney@ibibo.com
