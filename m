@@ -1,25 +1,23 @@
-From: TONY KINGS <info@live.com>
-Subject: (no subject)
-Date: Sun, 10 Apr 2011 23:20:17 -0300
-Message-ID: <615933a4135218ba63844c31b7a4b0fa@192.168.0.1>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: [PATCHES v3] pci/of: Generic PCI <-> OF matching
+Date: Mon, 11 Apr 2011 14:12:44 +1000
+Message-ID: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.ivomaq.com.br ([200.170.187.121]:58689 "EHLO
-	firewall.ivomaq.com.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752443Ab1DKCk2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Apr 2011 22:40:28 -0400
+Received: from e23smtp09.au.ibm.com ([202.81.31.142]:41161 "EHLO
+	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750696Ab1DKENC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 00:13:02 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de
 
+Here's a new batch. This time, I'm reasonably confident I build-tested the
+right commit-id's on sparc :-)
 
+To sort out the sparc problem I took a slightly different approach than
+discussed. I made the new code be of_pci.c (which I enabled on sparc)
+and put the old stuff into of_pci_irq.c (which should still be disabled
+there).
 
-
-
-
--- 
-
-Are you in need of getting a loan today.Contact us via mail
-
-at:tonykings_loans@yahoo.com
+I've also consolidated pci_bus_to_OF_node() while at it.
