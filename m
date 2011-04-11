@@ -1,49 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:36022 "EHLO mprc.pku.edu.cn"
+Received: from gate.crashing.org ([63.228.1.57]:42053 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753394Ab1DKHfG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Apr 2011 03:35:06 -0400
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: about __BITS_PER_LONG
-Date: Mon, 11 Apr 2011 15:34:55 +0800
-Message-ID: <003f01cbf81a$f48cfdf0$dda6f9d0$@mprc.pku.edu.cn>
-MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
+	id S1757348Ab1DKJi4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Apr 2011 05:38:56 -0400
+Subject: Re: [PATCH] x86/ce4100: add reg property to bridges
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20110411072340.GA4018@linutronix.de>
+References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+	 <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+	 <20110407121315.GA9204@linutronix.de> <1302213159.2458.43.camel@pasglop>
+	 <20110411072340.GA4018@linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 11 Apr 2011 19:38:41 +1000
+Message-ID: <1302514721.28876.12.camel@pasglop>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110411073455.UXaxdidjMUJu6AK59vrVtv-DO8TC-R15MSpXj2VET8g@z>
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, monstr@monstr.eu, tglx@linutronix.de
+Message-ID: <20110411093841.T7tfN48IzyduzDVQBpyKg5B30DbfWOhcyPu0NwHHTlA@z>
 
-Hi, Arnd:
+On Mon, 2011-04-11 at 09:23 +0200, Sebastian Andrzej Siewior wrote:
+> * Benjamin Herrenschmidt | 2011-04-08 07:52:39 [+1000]:
+> 
+> >Thanks. Are you sending that independently or do you want me to put it
+> >in my series before the patch that would "break" it ?
+> 
+> I would prefer to get it into 39 so I don't have a device tree which
+> does not work on a later kernel version.
 
-  When using asm-generic/bitsperlong.h, I think that __BITS_PER_LONG could be the
-same as BITS_PER_LONG if-not-defined. And this could avoid the duplicated macros
-in almost all architectures.
+I've put merged the patch in my series. That's easier for testing.
 
-Regards.
+Cheers,
+Ben.
 
-Guan Xuetao
-
----
-diff --git a/include/asm-generic/bitsperlong.h b/include/asm-generic/bitsperlong.h
-index 4ae54e0..31d032a 100644
---- a/include/asm-generic/bitsperlong.h
-+++ b/include/asm-generic/bitsperlong.h
-@@ -9,7 +9,11 @@
-  * to decide it, but rather check a compiler provided macro.
-  */
- #ifndef __BITS_PER_LONG
--#define __BITS_PER_LONG 32
-+#   ifdef CONFIG_64BIT
-+#	define __BITS_PER_LONG 64
-+#   else
-+#	define __BITS_PER_LONG 32
-+#   endif /* CONFIG_64BIT */
- #endif
- 
- #ifdef __KERNEL__
 
