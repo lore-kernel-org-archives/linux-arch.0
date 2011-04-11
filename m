@@ -1,125 +1,318 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: [PATCH 4/6] x86/devicetree: Use generic PCI <-> OF matching
-Date: Mon, 11 Apr 2011 14:12:48 +1000
-Message-ID: <1302495170-973-5-git-send-email-benh@kernel.crashing.org>
+Subject: [PATCH 3/6] microblaze/pci: Move the remains of pci_32.c to pci-common.c
+Date: Mon, 11 Apr 2011 14:12:47 +1000
+Message-ID: <1302495170-973-4-git-send-email-benh@kernel.crashing.org>
 References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e23smtp04.au.ibm.com ([202.81.31.146]:40151 "EHLO
+	e23smtp04.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750969Ab1DKENC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 00:13:02 -0400
 In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
 
-Instead of walking the whole PCI tree to update the of_node's for
-PCI busses and devices after the fact, enable the new generic core
-code for doing so by providing the proper device nodes for the
-PCI host bridges
+There's no point in keeping this separate. Even if microblaze grows
+a 64-bit variant, it will probably be able to re-use that code as-is
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/x86/kernel/devicetree.c             |   60 +++++++++---------------------
- arch/x86/platform/ce4100/falconfalls.dts |    2 +
- 2 files changed, 20 insertions(+), 42 deletions(-)
+ arch/microblaze/pci/Makefile     |    2 +-
+ arch/microblaze/pci/pci-common.c |  112 ++++++++++++++++++++++++++++++
+ arch/microblaze/pci/pci_32.c     |  138 --------------------------------------
+ 3 files changed, 113 insertions(+), 139 deletions(-)
+ delete mode 100644 arch/microblaze/pci/pci_32.c
 
-diff --git a/arch/x86/kernel/devicetree.c b/arch/x86/kernel/devicetree.c
-index 706a9fb..3568496 100644
---- a/arch/x86/kernel/devicetree.c
-+++ b/arch/x86/kernel/devicetree.c
-@@ -123,6 +123,24 @@ static int __init add_bus_probe(void)
- module_init(add_bus_probe);
+diff --git a/arch/microblaze/pci/Makefile b/arch/microblaze/pci/Makefile
+index 9889cc2..d1114fb 100644
+--- a/arch/microblaze/pci/Makefile
++++ b/arch/microblaze/pci/Makefile
+@@ -2,5 +2,5 @@
+ # Makefile
+ #
  
- #ifdef CONFIG_PCI
+-obj-$(CONFIG_PCI)		+= pci_32.o pci-common.o indirect_pci.o iomap.o
++obj-$(CONFIG_PCI)		+= pci-common.o indirect_pci.o iomap.o
+ obj-$(CONFIG_PCI_XILINX)	+= xilinx_pci.o
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 5359906..041b1d8 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -50,6 +50,11 @@ unsigned int pci_flags;
+ 
+ static struct dma_map_ops *pci_dma_ops = &dma_direct_ops;
+ 
++unsigned long isa_io_base;
++unsigned long pci_dram_offset;
++static int pci_bus_count;
++
++
+ void set_pci_dma_ops(struct dma_map_ops *dma_ops)
+ {
+ 	pci_dma_ops = dma_ops;
+@@ -1558,6 +1563,112 @@ void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ 		 (unsigned long)hose->io_base_virt - _IO_BASE);
+ }
+ 
 +struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
 +{
-+	struct device_node *np;
++	struct pci_controller *hose = bus->sysdata;
 +
-+	for_each_node_by_type(np, "pci") {
-+		const void *prop;
-+		unsigned int bus_min;
++	return of_node_get(hose->dn);
++}
 +
-+		prop = of_get_property(np, "bus-range", NULL);
-+		if (!prop)
-+			continue;
-+		bus_min = be32_to_cpup(prop);
-+		if (bus->number == bus_min)
-+			return np;
++static void __devinit pcibios_scan_phb(struct pci_controller *hose)
++{
++	struct pci_bus *bus;
++	struct device_node *node = hose->dn;
++	unsigned long io_offset;
++	struct resource *res = &hose->io_resource;
++
++	pr_debug("PCI: Scanning PHB %s\n",
++		 node ? node->full_name : "<NO NAME>");
++
++	/* Create an empty bus for the toplevel */
++	bus = pci_create_bus(hose->parent, hose->first_busno, hose->ops, hose);
++	if (bus == NULL) {
++		printk(KERN_ERR "Failed to create bus for PCI domain %04x\n",
++		       hose->global_number);
++		return;
 +	}
++	bus->secondary = hose->first_busno;
++	hose->bus = bus;
++
++	/* Fixup IO space offset */
++	io_offset = (unsigned long)hose->io_base_virt - isa_io_base;
++	res->start = (res->start + io_offset) & 0xffffffffu;
++	res->end = (res->end + io_offset) & 0xffffffffu;
++
++	/* Wire up PHB bus resources */
++	pcibios_setup_phb_resources(hose);
++
++	/* Scan children */
++	hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
++}
++
++static int __init pcibios_init(void)
++{
++	struct pci_controller *hose, *tmp;
++	int next_busno = 0;
++
++	printk(KERN_INFO "PCI: Probing PCI hardware\n");
++
++	/* Scan all of the recorded PCI controllers.  */
++	list_for_each_entry_safe(hose, tmp, &hose_list, list_node) {
++		hose->last_busno = 0xff;
++		pcibios_scan_phb(hose);
++		printk(KERN_INFO "calling pci_bus_add_devices()\n");
++		pci_bus_add_devices(hose->bus);
++		if (next_busno <= hose->last_busno)
++			next_busno = hose->last_busno + 1;
++	}
++	pci_bus_count = next_busno;
++
++	/* Call common code to handle resource allocation */
++	pcibios_resource_survey();
++
++	return 0;
++}
++
++subsys_initcall(pcibios_init);
++
++static struct pci_controller *pci_bus_to_hose(int bus)
++{
++	struct pci_controller *hose, *tmp;
++
++	list_for_each_entry_safe(hose, tmp, &hose_list, list_node)
++		if (bus >= hose->first_busno && bus <= hose->last_busno)
++			return hose;
 +	return NULL;
 +}
 +
- static int x86_of_pci_irq_enable(struct pci_dev *dev)
++/* Provide information on locations of various I/O regions in physical
++ * memory.  Do this on a per-card basis so that we choose the right
++ * root bridge.
++ * Note that the returned IO or memory base is a physical address
++ */
++
++long sys_pciconfig_iobase(long which, unsigned long bus, unsigned long devfn)
++{
++	struct pci_controller *hose;
++	long result = -EOPNOTSUPP;
++
++	hose = pci_bus_to_hose(bus);
++	if (!hose)
++		return -ENODEV;
++
++	switch (which) {
++	case IOBASE_BRIDGE_NUMBER:
++		return (long)hose->first_busno;
++	case IOBASE_MEMORY:
++		return (long)hose->pci_mem_offset;
++	case IOBASE_IO:
++		return (long)hose->io_base_phys;
++	case IOBASE_ISA_IO:
++		return (long)isa_io_base;
++	case IOBASE_ISA_MEM:
++		return (long)isa_mem_base;
++	}
++
++	return result;
++}
++
+ /*
+  * Null PCI config access functions, for the case when we can't
+  * find a hose.
+@@ -1626,3 +1737,4 @@ int early_find_capability(struct pci_controller *hose, int bus, int devfn,
  {
- 	struct of_irq oirq;
-@@ -154,50 +172,8 @@ static void x86_of_pci_irq_disable(struct pci_dev *dev)
- 
- void __cpuinit x86_of_pci_init(void)
- {
--	struct device_node *np;
--
- 	pcibios_enable_irq = x86_of_pci_irq_enable;
- 	pcibios_disable_irq = x86_of_pci_irq_disable;
--
--	for_each_node_by_type(np, "pci") {
--		const void *prop;
--		struct pci_bus *bus;
--		unsigned int bus_min;
--		struct device_node *child;
--
--		prop = of_get_property(np, "bus-range", NULL);
--		if (!prop)
--			continue;
--		bus_min = be32_to_cpup(prop);
--
--		bus = pci_find_bus(0, bus_min);
--		if (!bus) {
--			printk(KERN_ERR "Can't find a node for bus %s.\n",
--					np->full_name);
--			continue;
--		}
--
--		if (bus->self)
--			bus->self->dev.of_node = np;
--		else
--			bus->dev.of_node = np;
--
--		for_each_child_of_node(np, child) {
--			struct pci_dev *dev;
--			u32 devfn;
--
--			prop = of_get_property(child, "reg", NULL);
--			if (!prop)
--				continue;
--
--			devfn = (be32_to_cpup(prop) >> 8) & 0xff;
--			dev = pci_get_slot(bus, devfn);
--			if (!dev)
--				continue;
--			dev->dev.of_node = child;
--			pci_dev_put(dev);
--		}
--	}
+ 	return pci_bus_find_capability(fake_pci_bus(hose, bus), devfn, cap);
  }
- #endif
- 
-diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
-index dc701ea..2d6d226 100644
---- a/arch/x86/platform/ce4100/falconfalls.dts
-+++ b/arch/x86/platform/ce4100/falconfalls.dts
-@@ -74,6 +74,7 @@
- 				compatible = "intel,ce4100-pci", "pci";
- 				device_type = "pci";
- 				bus-range = <1 1>;
-+				reg = <0x0800 0x0 0x0 0x0 0x0>;
- 				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
- 
- 				interrupt-parent = <&ioapic2>;
-@@ -412,6 +413,7 @@
- 				#address-cells = <2>;
- 				#size-cells = <1>;
- 				compatible = "isa";
-+				reg = <0xf800 0x0 0x0 0x0 0x0>;
- 				ranges = <1 0 0 0 0 0x100>;
- 
- 				rtc@70 {
++
+diff --git a/arch/microblaze/pci/pci_32.c b/arch/microblaze/pci/pci_32.c
+deleted file mode 100644
+index ab3c4d4..0000000
+--- a/arch/microblaze/pci/pci_32.c
++++ /dev/null
+@@ -1,138 +0,0 @@
+-/*
+- * Common pmac/prep/chrp pci routines. -- Cort
+- */
+-
+-#include <linux/kernel.h>
+-#include <linux/pci.h>
+-#include <linux/delay.h>
+-#include <linux/string.h>
+-#include <linux/init.h>
+-#include <linux/capability.h>
+-#include <linux/sched.h>
+-#include <linux/errno.h>
+-#include <linux/bootmem.h>
+-#include <linux/irq.h>
+-#include <linux/list.h>
+-#include <linux/of.h>
+-#include <linux/slab.h>
+-
+-#include <asm/processor.h>
+-#include <asm/io.h>
+-#include <asm/prom.h>
+-#include <asm/sections.h>
+-#include <asm/pci-bridge.h>
+-#include <asm/byteorder.h>
+-#include <asm/uaccess.h>
+-
+-#undef DEBUG
+-
+-unsigned long isa_io_base;
+-unsigned long pci_dram_offset;
+-static int pci_bus_count;
+-
+-struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
+-{
+-	struct pci_controller *hose = bus->sysdata;
+-
+-	return of_node_get(hose->dn);
+-}
+-
+-static void __devinit pcibios_scan_phb(struct pci_controller *hose)
+-{
+-	struct pci_bus *bus;
+-	struct device_node *node = hose->dn;
+-	unsigned long io_offset;
+-	struct resource *res = &hose->io_resource;
+-
+-	pr_debug("PCI: Scanning PHB %s\n",
+-		 node ? node->full_name : "<NO NAME>");
+-
+-	/* Create an empty bus for the toplevel */
+-	bus = pci_create_bus(hose->parent, hose->first_busno, hose->ops, hose);
+-	if (bus == NULL) {
+-		printk(KERN_ERR "Failed to create bus for PCI domain %04x\n",
+-		       hose->global_number);
+-		return;
+-	}
+-	bus->secondary = hose->first_busno;
+-	hose->bus = bus;
+-
+-	/* Fixup IO space offset */
+-	io_offset = (unsigned long)hose->io_base_virt - isa_io_base;
+-	res->start = (res->start + io_offset) & 0xffffffffu;
+-	res->end = (res->end + io_offset) & 0xffffffffu;
+-
+-	/* Wire up PHB bus resources */
+-	pcibios_setup_phb_resources(hose);
+-
+-	/* Scan children */
+-	hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
+-}
+-
+-static int __init pcibios_init(void)
+-{
+-	struct pci_controller *hose, *tmp;
+-	int next_busno = 0;
+-
+-	printk(KERN_INFO "PCI: Probing PCI hardware\n");
+-
+-	/* Scan all of the recorded PCI controllers.  */
+-	list_for_each_entry_safe(hose, tmp, &hose_list, list_node) {
+-		hose->last_busno = 0xff;
+-		pcibios_scan_phb(hose);
+-		printk(KERN_INFO "calling pci_bus_add_devices()\n");
+-		pci_bus_add_devices(hose->bus);
+-		if (next_busno <= hose->last_busno)
+-			next_busno = hose->last_busno + 1;
+-	}
+-	pci_bus_count = next_busno;
+-
+-	/* Call common code to handle resource allocation */
+-	pcibios_resource_survey();
+-
+-	return 0;
+-}
+-
+-subsys_initcall(pcibios_init);
+-
+-static struct pci_controller*
+-pci_bus_to_hose(int bus)
+-{
+-	struct pci_controller *hose, *tmp;
+-
+-	list_for_each_entry_safe(hose, tmp, &hose_list, list_node)
+-		if (bus >= hose->first_busno && bus <= hose->last_busno)
+-			return hose;
+-	return NULL;
+-}
+-
+-/* Provide information on locations of various I/O regions in physical
+- * memory.  Do this on a per-card basis so that we choose the right
+- * root bridge.
+- * Note that the returned IO or memory base is a physical address
+- */
+-
+-long sys_pciconfig_iobase(long which, unsigned long bus, unsigned long devfn)
+-{
+-	struct pci_controller *hose;
+-	long result = -EOPNOTSUPP;
+-
+-	hose = pci_bus_to_hose(bus);
+-	if (!hose)
+-		return -ENODEV;
+-
+-	switch (which) {
+-	case IOBASE_BRIDGE_NUMBER:
+-		return (long)hose->first_busno;
+-	case IOBASE_MEMORY:
+-		return (long)hose->pci_mem_offset;
+-	case IOBASE_IO:
+-		return (long)hose->io_base_phys;
+-	case IOBASE_ISA_IO:
+-		return (long)isa_io_base;
+-	case IOBASE_ISA_MEM:
+-		return (long)isa_mem_base;
+-	}
+-
+-	return result;
+-}
 -- 
 1.7.1
