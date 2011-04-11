@@ -1,37 +1,44 @@
-From: "Rolf Eike Beer" <eike-kernel@sf-tec.de>
-Subject: Re: [PATCH 3/6] microblaze/pci: Move the remains of pci_32.c to
- pci-common.c
-Date: Mon, 11 Apr 2011 15:12:15 -0000
-Message-ID: <da7a8b1fa75c0968a4586a591713d5db.squirrel@webmail.sf-mail.de>
-References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-    <1302495170-973-4-git-send-email-benh@kernel.crashing.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: about __BITS_PER_LONG
+Date: Mon, 11 Apr 2011 17:24:57 +0200
+Message-ID: <201104111724.57607.arnd@arndb.de>
+References: <003f01cbf81a$f48cfdf0$dda6f9d0$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1302495170-973-4-git-send-email-benh@kernel.crashing.org>
-Sender: linux-pci-owner@vger.kernel.org
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:53006 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754476Ab1DKPZJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 11:25:09 -0400
+In-Reply-To: <003f01cbf81a$f48cfdf0$dda6f9d0$@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-> There's no point in keeping this separate. Even if microblaze grows
-> a 64-bit variant, it will probably be able to re-use that code as-is
+On Monday 11 April 2011, Guan Xuetao wrote:
+> --- a/include/asm-generic/bitsperlong.h
+> +++ b/include/asm-generic/bitsperlong.h
+> @@ -9,7 +9,11 @@
+>   * to decide it, but rather check a compiler provided macro.
+>   */
+>  #ifndef __BITS_PER_LONG
+> -#define __BITS_PER_LONG 32
+> +#   ifdef CONFIG_64BIT
+> +#      define __BITS_PER_LONG 64
+> +#   else
+> +#      define __BITS_PER_LONG 32
+> +#   endif /* CONFIG_64BIT */
+>  #endif
+>  
 
-> diff --git a/arch/microblaze/pci/pci-common.c
-> b/arch/microblaze/pci/pci-common.c
-> index 5359906..041b1d8 100644
-> --- a/arch/microblaze/pci/pci-common.c
-> +++ b/arch/microblaze/pci/pci-common.c
-> @@ -50,6 +50,11 @@ unsigned int pci_flags;
->
->  static struct dma_map_ops *pci_dma_ops = &dma_direct_ops;
->
-> +unsigned long isa_io_base;
-> +unsigned long pci_dram_offset;
-> +static int pci_bus_count;
-> +
-> +
+Unfortunately, this does not work, because the __BITS_PER_LONG definition is meant
+for user space. You have to make this depend on a preprocessor macro that
+is provided by the compiler based on the command line switches (e.g. -m64) that
+a use could pass to the compiler.
 
-Extra newline.
+In user space, the CONFIG_* symbols are meaningless.
 
-Eike
+	Arnd
