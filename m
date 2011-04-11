@@ -1,29 +1,25 @@
-From: "GET BACK TO ME IMMEDIATELY" <googleservice@terra.es>
-Subject: GET BACK TO ME IMMEDIATELY
-Date: Sun, 10 Apr 2011 19:24:36 +0000 (UTC)
-Message-ID: <20110410152331.ACDDE29E7EAA@mail.alsa.co.cr>
-Reply-To: <googleservice@terra.es>
+From: TONY KINGS <info@live.com>
+Subject: (no subject)
+Date: Sun, 10 Apr 2011 23:20:17 -0300
+Message-ID: <615933a4135218ba63844c31b7a4b0fa@192.168.0.1>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from logistix.cr ([201.201.66.140]:5288 "EHLO mail.alsa.co.cr"
-	rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754091Ab1DJTY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Apr 2011 15:24:27 -0400
-Date: Fri, 29 Apr 2011 05:51:55 +0200
+Received: from mail.ivomaq.com.br ([200.170.187.121]:58689 "EHLO
+	firewall.ivomaq.com.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752443Ab1DKCk2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Apr 2011 22:40:28 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Hello 
 
-I wish to ask for your consent for a partnership project that I would want both of us to execute mutually which is beneficial. However my name is Mr. Rodney Smith. Kindly get back to me to confirm the receipt of this massage so that I will give you full details of the project.
 
-Send your reply to my private email at rodney_smith@ibibo.com 
 
-I am waiting for your permission.
 
-Warm regards
-Mr. Rodney Smith
-Email:smithrodney@ibibo.com
+
+-- 
+
+Are you in need of getting a loan today.Contact us via mail
+
+at:tonykings_loans@yahoo.com
