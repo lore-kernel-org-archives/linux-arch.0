@@ -1,26 +1,34 @@
-From: Mong Hoi <jmeer@rider.edu>
-Subject: BUSINESS PROPOSAL FOR $24.5 MILLION
-Date: Mon, 11 Apr 2011 02:26:43 -0400 (EDT)
-Message-ID: <1967352938.2603841302503203576.JavaMail.root@tatooine.rider.edu>
-Reply-To: Mong Hoi <mong_h112@w.cn>
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: Re: [PATCH] x86/ce4100: add reg property to bridges
+Date: Mon, 11 Apr 2011 09:23:40 +0200
+Message-ID: <20110411072340.GA4018@linutronix.de>
+References: <1302146796-26825-1-git-send-email-benh@kernel.crashing.org>
+ <1302146796-26825-2-git-send-email-benh@kernel.crashing.org>
+ <20110407121315.GA9204@linutronix.de>
+ <1302213159.2458.43.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-15
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from tatooine.rider.edu ([130.156.129.90]:56309 "EHLO
-	tatooine.rider.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751944Ab1DKGjI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 02:39:08 -0400
+Received: from www.linutronix.de ([62.245.132.108]:54823 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754424Ab1DKHXo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 03:23:44 -0400
+Content-Disposition: inline
+In-Reply-To: <1302213159.2458.43.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, monstr@monstr.eu, tglx@linutronix.de
 
-Good Day,
+* Benjamin Herrenschmidt | 2011-04-08 07:52:39 [+1000]:
 
-I am Mr.Mong Hoi,Director of Operations of the Hang Seng Bank Ltd, Sai Wan Ho Branch, Hong Kong. My purpose of contacting you is because you live in a western world. I have an obscured business proposal for 24.5 million for you. I am here-by seeking your service in helping me recieve this amount of money for both of us to share.
+>Thanks. Are you sending that independently or do you want me to put it
+>in my series before the patch that would "break" it ?
 
-As a bank employee, I can not operate any personal investment till I am retired and with the Anti-corruption Bill passed in Hong Kong,it is risky for a fixed income earner to own any huge amount of money in Hong Kong. It is then advisable to invest in any foreign land secretly and patiently with you.
+I would prefer to get it into 39 so I don't have a device tree which
+does not work on a later kernel version.
 
-If you are interested to share $24.5 million with me you are to send me your NAME... AGE.... COUNTRY... to me now.
+>Cheers,
+>Ben.
 
-Kind Regards
-Mr.Mong Hoi.
+Sebastian
