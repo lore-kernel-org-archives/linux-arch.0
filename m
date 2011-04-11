@@ -1,135 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:50626
-	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756442Ab1DGWxX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Apr 2011 18:53:23 -0400
-Date: Thu, 07 Apr 2011 15:52:47 -0700 (PDT)
-Message-ID: <20110407.155247.260074665.davem@davemloft.net>
-Subject: Re: [PATCH 1/5] pci/of: Match PCI devices to OF nodes dynamically
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20110407.153121.115952367.davem@davemloft.net>
-References: <20110407.152707.39195948.davem@davemloft.net>
-	<20110407.152937.59699180.davem@davemloft.net>
-	<20110407.153121.115952367.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from e23smtp01.au.ibm.com ([202.81.31.143]:57817 "EHLO
+	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750721Ab1DKENC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 00:13:02 -0400
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: [PATCH 4/6] x86/devicetree: Use generic PCI <-> OF matching
+Date: Mon, 11 Apr 2011 14:12:48 +1000
+Message-ID: <1302495170-973-5-git-send-email-benh@kernel.crashing.org>
+In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
+References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, bheglaas@google.com, monstr@monstr.eu, tglx@linuxtronix.de, bigeasy@linuxtronix.de
-Message-ID: <20110407225247.cUAqweEjpDWkjAfr_0VNX3WeTKqUiEGLouQsbRQ_E1k@z>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20110411041248.aFSO-o9rzfumVdUoKmq43UOZTbHQIpddxHsr4xIcjiU@z>
 
-From: David Miller <davem@davemloft.net>
-Date: Thu, 07 Apr 2011 15:31:21 -0700 (PDT)
+Instead of walking the whole PCI tree to update the of_node's for
+PCI busses and devices after the fact, enable the new generic core
+code for doing so by providing the proper device nodes for the
+PCI host bridges
 
-> I don't think it's a good idea to mix the things you're trying to do
-> with all of the existing stuff in of_pci.c, why not create a new file
-> for the stuff you're trying to consolidate?
+Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+---
+ arch/x86/kernel/devicetree.c             |   60 +++++++++---------------------
+ arch/x86/platform/ce4100/falconfalls.dts |    2 +
+ 2 files changed, 20 insertions(+), 42 deletions(-)
 
-Something like the following could be done to your first patch.
-
-My sparc64 machine boots up properly with this change added to your
-patch series:
-
-diff --git a/drivers/of/Makefile b/drivers/of/Makefile
-index f7861ed..ceb340e 100644
---- a/drivers/of/Makefile
-+++ b/drivers/of/Makefile
-@@ -10,3 +10,4 @@ obj-$(CONFIG_OF_NET)	+= of_net.o
- obj-$(CONFIG_OF_SPI)	+= of_spi.o
- obj-$(CONFIG_OF_MDIO)	+= of_mdio.o
- obj-$(CONFIG_OF_PCI)	+= of_pci.o
-+obj-$(CONFIG_PCI)	+= of_pci_base.o
-diff --git a/drivers/of/of_pci.c b/drivers/of/of_pci.c
-index 9d179c4..ac1ec54 100644
---- a/drivers/of/of_pci.c
-+++ b/drivers/of/of_pci.c
-@@ -90,39 +90,3 @@ int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq)
- 	return of_irq_map_raw(ppnode, &lspec_be, 1, laddr, out_irq);
- }
- EXPORT_SYMBOL_GPL(of_irq_map_pci);
--
--
--static inline int __of_pci_pci_compare(struct device_node *node, unsigned int devfn)
--{
--	unsigned int size;
--	const __be32 *reg = of_get_property(node, "reg", &size);
--
--	if (!reg || size < 5 * sizeof(__be32))
--		return 0;
--	return ((be32_to_cpup(&reg[0]) >> 8) & 0xff) == devfn;
--}
--
--struct device_node *of_pci_find_child_device(struct device_node *parent,
--					     unsigned int devfn)
--{
--	struct device_node *node, *node2;
--	
--	for_each_child_of_node(parent, node) {
--		if (__of_pci_pci_compare(node, devfn))
--			return node;
--		/*
--		 * Some OFs create a parent node "multifunc-device" as
--		 * a fake root for all functions of a multi-function
--		 * device we go down them as well.
--		 */
--                if (!strcmp(node->name, "multifunc-device")) {
--			for_each_child_of_node(node, node2) {
--				if (__of_pci_pci_compare(node2, devfn)) {
--					of_node_put(node);
--					return node2;
--				}
--			}
--                }
--	}
--	return NULL;
--}
-diff --git a/drivers/of/of_pci_base.c b/drivers/of/of_pci_base.c
-new file mode 100644
-index 0000000..c5a2d96
---- /dev/null
-+++ b/drivers/of/of_pci_base.c
-@@ -0,0 +1,39 @@
-+#include <linux/kernel.h>
-+#include <linux/of_pci.h>
-+#include <linux/of_irq.h>
-+#include <asm/prom.h>
-+
-+static inline int __of_pci_pci_compare(struct device_node *node, unsigned int devfn)
+diff --git a/arch/x86/kernel/devicetree.c b/arch/x86/kernel/devicetree.c
+index 706a9fb..3568496 100644
+--- a/arch/x86/kernel/devicetree.c
++++ b/arch/x86/kernel/devicetree.c
+@@ -123,6 +123,24 @@ static int __init add_bus_probe(void)
+ module_init(add_bus_probe);
+ 
+ #ifdef CONFIG_PCI
++struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
 +{
-+	unsigned int size;
-+	const __be32 *reg = of_get_property(node, "reg", &size);
++	struct device_node *np;
 +
-+	if (!reg || size < 5 * sizeof(__be32))
-+		return 0;
-+	return ((be32_to_cpup(&reg[0]) >> 8) & 0xff) == devfn;
-+}
++	for_each_node_by_type(np, "pci") {
++		const void *prop;
++		unsigned int bus_min;
 +
-+struct device_node *of_pci_find_child_device(struct device_node *parent,
-+					     unsigned int devfn)
-+{
-+	struct device_node *node, *node2;
-+	
-+	for_each_child_of_node(parent, node) {
-+		if (__of_pci_pci_compare(node, devfn))
-+			return node;
-+		/*
-+		 * Some OFs create a parent node "multifunc-device" as
-+		 * a fake root for all functions of a multi-function
-+		 * device we go down them as well.
-+		 */
-+                if (!strcmp(node->name, "multifunc-device")) {
-+			for_each_child_of_node(node, node2) {
-+				if (__of_pci_pci_compare(node2, devfn)) {
-+					of_node_put(node);
-+					return node2;
-+				}
-+			}
-+                }
++		prop = of_get_property(np, "bus-range", NULL);
++		if (!prop)
++			continue;
++		bus_min = be32_to_cpup(prop);
++		if (bus->number == bus_min)
++			return np;
 +	}
 +	return NULL;
 +}
++
+ static int x86_of_pci_irq_enable(struct pci_dev *dev)
+ {
+ 	struct of_irq oirq;
+@@ -154,50 +172,8 @@ static void x86_of_pci_irq_disable(struct pci_dev *dev)
+ 
+ void __cpuinit x86_of_pci_init(void)
+ {
+-	struct device_node *np;
+-
+ 	pcibios_enable_irq = x86_of_pci_irq_enable;
+ 	pcibios_disable_irq = x86_of_pci_irq_disable;
+-
+-	for_each_node_by_type(np, "pci") {
+-		const void *prop;
+-		struct pci_bus *bus;
+-		unsigned int bus_min;
+-		struct device_node *child;
+-
+-		prop = of_get_property(np, "bus-range", NULL);
+-		if (!prop)
+-			continue;
+-		bus_min = be32_to_cpup(prop);
+-
+-		bus = pci_find_bus(0, bus_min);
+-		if (!bus) {
+-			printk(KERN_ERR "Can't find a node for bus %s.\n",
+-					np->full_name);
+-			continue;
+-		}
+-
+-		if (bus->self)
+-			bus->self->dev.of_node = np;
+-		else
+-			bus->dev.of_node = np;
+-
+-		for_each_child_of_node(np, child) {
+-			struct pci_dev *dev;
+-			u32 devfn;
+-
+-			prop = of_get_property(child, "reg", NULL);
+-			if (!prop)
+-				continue;
+-
+-			devfn = (be32_to_cpup(prop) >> 8) & 0xff;
+-			dev = pci_get_slot(bus, devfn);
+-			if (!dev)
+-				continue;
+-			dev->dev.of_node = child;
+-			pci_dev_put(dev);
+-		}
+-	}
+ }
+ #endif
+ 
+diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
+index dc701ea..2d6d226 100644
+--- a/arch/x86/platform/ce4100/falconfalls.dts
++++ b/arch/x86/platform/ce4100/falconfalls.dts
+@@ -74,6 +74,7 @@
+ 				compatible = "intel,ce4100-pci", "pci";
+ 				device_type = "pci";
+ 				bus-range = <1 1>;
++				reg = <0x0800 0x0 0x0 0x0 0x0>;
+ 				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
+ 
+ 				interrupt-parent = <&ioapic2>;
+@@ -412,6 +413,7 @@
+ 				#address-cells = <2>;
+ 				#size-cells = <1>;
+ 				compatible = "isa";
++				reg = <0xf800 0x0 0x0 0x0 0x0>;
+ 				ranges = <1 0 0 0 0 0x100>;
+ 
+ 				rtc@70 {
 -- 
-1.7.4.3
+1.7.1
 
