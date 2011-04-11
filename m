@@ -1,94 +1,125 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: [PATCH 6/6] pci/of: Consolidate pci_bus_to_OF_node()
-Date: Mon, 11 Apr 2011 14:12:50 +1000
-Message-ID: <1302495170-973-7-git-send-email-benh@kernel.crashing.org>
+Subject: [PATCH 4/6] x86/devicetree: Use generic PCI <-> OF matching
+Date: Mon, 11 Apr 2011 14:12:48 +1000
+Message-ID: <1302495170-973-5-git-send-email-benh@kernel.crashing.org>
 References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:59096 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751029Ab1DKENC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Apr 2011 00:13:02 -0400
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-The generic code always get the device-node in the right place now
-so a single implementation will work for all archs
+Instead of walking the whole PCI tree to update the of_node's for
+PCI busses and devices after the fact, enable the new generic core
+code for doing so by providing the proper device nodes for the
+PCI host bridges
 
 Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/microblaze/include/asm/pci-bridge.h |    5 -----
- arch/powerpc/include/asm/pci-bridge.h    |    5 -----
- arch/x86/include/asm/prom.h              |    6 ------
- include/linux/pci.h                      |    5 +++++
- 4 files changed, 5 insertions(+), 16 deletions(-)
+ arch/x86/kernel/devicetree.c             |   60 +++++++++---------------------
+ arch/x86/platform/ce4100/falconfalls.dts |    2 +
+ 2 files changed, 20 insertions(+), 42 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/pci-bridge.h b/arch/microblaze/include/asm/pci-bridge.h
-index 0d74d03..242be57 100644
---- a/arch/microblaze/include/asm/pci-bridge.h
-+++ b/arch/microblaze/include/asm/pci-bridge.h
-@@ -102,11 +102,6 @@ struct pci_controller {
- };
+diff --git a/arch/x86/kernel/devicetree.c b/arch/x86/kernel/devicetree.c
+index 706a9fb..3568496 100644
+--- a/arch/x86/kernel/devicetree.c
++++ b/arch/x86/kernel/devicetree.c
+@@ -123,6 +123,24 @@ static int __init add_bus_probe(void)
+ module_init(add_bus_probe);
  
  #ifdef CONFIG_PCI
--static inline struct device_node *pci_bus_to_OF_node(struct pci_bus *bus)
--{
--	return bus->dev.of_node;
--}
--
- static inline struct pci_controller *pci_bus_to_host(const struct pci_bus *bus)
- {
- 	return bus->sysdata;
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 578060e..90bd3ed 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -169,11 +169,6 @@ static inline struct pci_controller *pci_bus_to_host(const struct pci_bus *bus)
- 	return bus->sysdata;
- }
- 
--static inline struct device_node *pci_bus_to_OF_node(struct pci_bus *bus)
--{
--	return bus->dev.of_node;
--}
--
- #ifndef CONFIG_PPC64
- 
- extern int pci_device_from_OF_node(struct device_node *node,
-diff --git a/arch/x86/include/asm/prom.h b/arch/x86/include/asm/prom.h
-index dd6066a..df12870 100644
---- a/arch/x86/include/asm/prom.h
-+++ b/arch/x86/include/asm/prom.h
-@@ -30,12 +30,6 @@ extern void add_dtb(u64 data);
- extern void x86_add_irq_domains(void);
- void __cpuinit x86_of_pci_init(void);
- void x86_dtb_init(void);
--
--static inline struct device_node *pci_bus_to_OF_node(struct pci_bus *bus)
--{
--	return pci_device_to_OF_node(bus->self);
--}
--
- #else
- static inline void add_dtb(u64 data) { }
- static inline void x86_add_irq_domains(void) { }
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 73dab8a..532c4e8 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -1559,6 +1559,11 @@ static inline struct device_node *pci_device_to_OF_node(struct pci_dev *pdev)
- 	return pdev ? pdev->dev.of_node : NULL;
- }
- 
-+static inline struct device_node *pci_bus_to_OF_node(struct pci_bus *bus)
++struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
 +{
-+	return bus ? bus->dev.of_node : NULL;
++	struct device_node *np;
++
++	for_each_node_by_type(np, "pci") {
++		const void *prop;
++		unsigned int bus_min;
++
++		prop = of_get_property(np, "bus-range", NULL);
++		if (!prop)
++			continue;
++		bus_min = be32_to_cpup(prop);
++		if (bus->number == bus_min)
++			return np;
++	}
++	return NULL;
 +}
 +
- #else /* CONFIG_OF */
- static inline void pci_set_of_node(struct pci_dev *dev) { }
- static inline void pci_release_of_node(struct pci_dev *dev) { }
+ static int x86_of_pci_irq_enable(struct pci_dev *dev)
+ {
+ 	struct of_irq oirq;
+@@ -154,50 +172,8 @@ static void x86_of_pci_irq_disable(struct pci_dev *dev)
+ 
+ void __cpuinit x86_of_pci_init(void)
+ {
+-	struct device_node *np;
+-
+ 	pcibios_enable_irq = x86_of_pci_irq_enable;
+ 	pcibios_disable_irq = x86_of_pci_irq_disable;
+-
+-	for_each_node_by_type(np, "pci") {
+-		const void *prop;
+-		struct pci_bus *bus;
+-		unsigned int bus_min;
+-		struct device_node *child;
+-
+-		prop = of_get_property(np, "bus-range", NULL);
+-		if (!prop)
+-			continue;
+-		bus_min = be32_to_cpup(prop);
+-
+-		bus = pci_find_bus(0, bus_min);
+-		if (!bus) {
+-			printk(KERN_ERR "Can't find a node for bus %s.\n",
+-					np->full_name);
+-			continue;
+-		}
+-
+-		if (bus->self)
+-			bus->self->dev.of_node = np;
+-		else
+-			bus->dev.of_node = np;
+-
+-		for_each_child_of_node(np, child) {
+-			struct pci_dev *dev;
+-			u32 devfn;
+-
+-			prop = of_get_property(child, "reg", NULL);
+-			if (!prop)
+-				continue;
+-
+-			devfn = (be32_to_cpup(prop) >> 8) & 0xff;
+-			dev = pci_get_slot(bus, devfn);
+-			if (!dev)
+-				continue;
+-			dev->dev.of_node = child;
+-			pci_dev_put(dev);
+-		}
+-	}
+ }
+ #endif
+ 
+diff --git a/arch/x86/platform/ce4100/falconfalls.dts b/arch/x86/platform/ce4100/falconfalls.dts
+index dc701ea..2d6d226 100644
+--- a/arch/x86/platform/ce4100/falconfalls.dts
++++ b/arch/x86/platform/ce4100/falconfalls.dts
+@@ -74,6 +74,7 @@
+ 				compatible = "intel,ce4100-pci", "pci";
+ 				device_type = "pci";
+ 				bus-range = <1 1>;
++				reg = <0x0800 0x0 0x0 0x0 0x0>;
+ 				ranges = <0x2000000 0 0xdffe0000 0x2000000 0 0xdffe0000 0 0x1000>;
+ 
+ 				interrupt-parent = <&ioapic2>;
+@@ -412,6 +413,7 @@
+ 				#address-cells = <2>;
+ 				#size-cells = <1>;
+ 				compatible = "isa";
++				reg = <0xf800 0x0 0x0 0x0 0x0>;
+ 				ranges = <1 0 0 0 0 0x100>;
+ 
+ 				rtc@70 {
 -- 
 1.7.1
