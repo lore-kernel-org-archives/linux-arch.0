@@ -1,47 +1,64 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 3/6] microblaze/pci: Move the remains of pci_32.c to
- pci-common.c
-Date: Tue, 12 Apr 2011 07:25:33 +1000
-Message-ID: <1302557133.28876.13.camel@pasglop>
-References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-	 <1302495170-973-4-git-send-email-benh@kernel.crashing.org>
-	 <da7a8b1fa75c0968a4586a591713d5db.squirrel@webmail.sf-mail.de>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: about __BITS_PER_LONG
+Date: Tue, 12 Apr 2011 09:24:02 +0800
+Message-ID: <004901cbf8b0$4eec1b60$ecc45220$@mprc.pku.edu.cn>
+References: <003f01cbf81a$f48cfdf0$dda6f9d0$@mprc.pku.edu.cn> <201104111724.57607.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain;
+	charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:57110 "EHLO gate.crashing.org"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:58176 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754004Ab1DKV0H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Apr 2011 17:26:07 -0400
-In-Reply-To: <da7a8b1fa75c0968a4586a591713d5db.squirrel@webmail.sf-mail.de>
+	id S1752947Ab1DLBYK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 Apr 2011 21:24:10 -0400
+In-Reply-To: <201104111724.57607.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rolf Eike Beer <eike-kernel@sf-tec.de>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, 2011-04-11 at 15:12 +0000, Rolf Eike Beer wrote:
-> > There's no point in keeping this separate. Even if microblaze grows
-> > a 64-bit variant, it will probably be able to re-use that code as-is
+
+
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Monday, April 11, 2011 11:25 PM
+> To: Guan Xuetao
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
+> Subject: Re: about __BITS_PER_LONG
 > 
-> > diff --git a/arch/microblaze/pci/pci-common.c
-> > b/arch/microblaze/pci/pci-common.c
-> > index 5359906..041b1d8 100644
-> > --- a/arch/microblaze/pci/pci-common.c
-> > +++ b/arch/microblaze/pci/pci-common.c
-> > @@ -50,6 +50,11 @@ unsigned int pci_flags;
+> On Monday 11 April 2011, Guan Xuetao wrote:
+> > --- a/include/asm-generic/bitsperlong.h
+> > +++ b/include/asm-generic/bitsperlong.h
+> > @@ -9,7 +9,11 @@
+> >   * to decide it, but rather check a compiler provided macro.
+> >   */
+> >  #ifndef __BITS_PER_LONG
+> > -#define __BITS_PER_LONG 32
+> > +#   ifdef CONFIG_64BIT
+> > +#      define __BITS_PER_LONG 64
+> > +#   else
+> > +#      define __BITS_PER_LONG 32
+> > +#   endif /* CONFIG_64BIT */
+> >  #endif
 > >
-> >  static struct dma_map_ops *pci_dma_ops = &dma_direct_ops;
-> >
-> > +unsigned long isa_io_base;
-> > +unsigned long pci_dram_offset;
-> > +static int pci_bus_count;
-> > +
-> > +
 > 
-> Extra newline.
+> Unfortunately, this does not work, because the __BITS_PER_LONG definition is meant
+> for user space. You have to make this depend on a preprocessor macro that
+> is provided by the compiler based on the command line switches (e.g. -m64) that
+> a use could pass to the compiler.
+However,  there is no conflict between the definition depending on a preprocessor macro and 
+the definition of asm-generic header.
 
-Can people with no useful content abstain from commenting please.
+> 
+> In user space, the CONFIG_* symbols are meaningless.
+Yes, that's the problem. I have not notice it before.
+So, only one value can be reserved in such circumstances.
 
-Cheers,
-Ben.
+> 
+> 	Arnd
+
+Thanks & Regards.
+
+Guan Xuetao
