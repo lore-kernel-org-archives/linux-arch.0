@@ -1,64 +1,30 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: about __BITS_PER_LONG
-Date: Tue, 12 Apr 2011 09:24:02 +0800
-Message-ID: <004901cbf8b0$4eec1b60$ecc45220$@mprc.pku.edu.cn>
-References: <003f01cbf81a$f48cfdf0$dda6f9d0$@mprc.pku.edu.cn> <201104111724.57607.arnd@arndb.de>
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: Re: [PATCHES v3] pci/of: Generic PCI <-> OF matching
+Date: Tue, 12 Apr 2011 10:53:00 +0200
+Message-ID: <20110412085300.GA25467@linutronix.de>
+References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:58176 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752947Ab1DLBYK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Apr 2011 21:24:10 -0400
-In-Reply-To: <201104111724.57607.arnd@arndb.de>
-Content-Language: zh-cn
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-15
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de
+List-Id: linux-arch.vger.kernel.org
 
+* Benjamin Herrenschmidt | 2011-04-11 14:12:44 [+1000]:
 
+>Here's a new batch. This time, I'm reasonably confident I build-tested the
+>right commit-id's on sparc :-)
+>
+>To sort out the sparc problem I took a slightly different approach than
+>discussed. I made the new code be of_pci.c (which I enabled on sparc)
+>and put the old stuff into of_pci_irq.c (which should still be disabled
+>there).
+>
+>I've also consolidated pci_bus_to_OF_node() while at it.
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Monday, April 11, 2011 11:25 PM
-> To: Guan Xuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org
-> Subject: Re: about __BITS_PER_LONG
-> 
-> On Monday 11 April 2011, Guan Xuetao wrote:
-> > --- a/include/asm-generic/bitsperlong.h
-> > +++ b/include/asm-generic/bitsperlong.h
-> > @@ -9,7 +9,11 @@
-> >   * to decide it, but rather check a compiler provided macro.
-> >   */
-> >  #ifndef __BITS_PER_LONG
-> > -#define __BITS_PER_LONG 32
-> > +#   ifdef CONFIG_64BIT
-> > +#      define __BITS_PER_LONG 64
-> > +#   else
-> > +#      define __BITS_PER_LONG 32
-> > +#   endif /* CONFIG_64BIT */
-> >  #endif
-> >
-> 
-> Unfortunately, this does not work, because the __BITS_PER_LONG definition is meant
-> for user space. You have to make this depend on a preprocessor macro that
-> is provided by the compiler based on the command line switches (e.g. -m64) that
-> a use could pass to the compiler.
-However,  there is no conflict between the definition depending on a preprocessor macro and 
-the definition of asm-generic header.
+This series builds and boots fine on x86.
 
-> 
-> In user space, the CONFIG_* symbols are meaningless.
-Yes, that's the problem. I have not notice it before.
-So, only one value can be reserved in such circumstances.
-
-> 
-> 	Arnd
-
-Thanks & Regards.
-
-Guan Xuetao
+Sebastian
