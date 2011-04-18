@@ -1,35 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:55803 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753944Ab1DLIxD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Apr 2011 04:53:03 -0400
-Date: Tue, 12 Apr 2011 10:53:00 +0200
-From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Subject: Re: [PATCHES v3] pci/of: Generic PCI <-> OF matching
-Message-ID: <20110412085300.GA25467@linutronix.de>
-References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
+Received: from moutng.kundenserver.de ([212.227.126.186]:57976 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753449Ab1DROwE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Apr 2011 10:52:04 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Writable sys_call_table (was: Re: [uClinux-dev] [PATCH] m68k: Merge mmu and non-mmu versions of sys_call_table)
+Date: Mon, 18 Apr 2011 16:49:31 +0200
+References: <BANLkTimbHgmUvisE7+TCkgthejNi_zdojQ@mail.gmail.com>
+In-Reply-To: <BANLkTimbHgmUvisE7+TCkgthejNi_zdojQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Disposition: inline
-In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201104181649.31492.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de
-Message-ID: <20110412085300.YN03nbb746Vdsp4ncN7W8N0M69USeySVA69YPlwlrDo@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andreas Schwab <schwab@linux-m68k.org>, Greg Ungerer <gerg@snapgear.com>, Gavin Lambert <gavinl@compacsort.com>, uClinux development list <uclinux-dev@uclinux.org>, Philippe De Muyter <phdm@macqel.be>, Linux/m68k <linux-m68k@lists.linux-m68k.org>, linux-arch@vger.kernel.org
+Message-ID: <20110418144931.HOhUvTc6QJPWHTNg7v4ZhchRsFe0Pzwq0Zmsr47_1VA@z>
 
-* Benjamin Herrenschmidt | 2011-04-11 14:12:44 [+1000]:
+On Wednesday 13 April 2011, Geert Uytterhoeven wrote:
+> On Thu, Apr 7, 2011 at 10:29, Andreas Schwab <schwab@linux-m68k.org> wrote:
+> > Geert Uytterhoeven <geert@linux-m68k.org> writes:
+> >> Isn't there a reason it was read-write on m68k, like the table may be changed
+> >> at runtime (to install rootkits :-)? Have to check what the other arches do...
+> >
+> > Initially the syscall_table in Linux has always been writable, bb152f53
+> > ("x86/x86_64: mark rodata section read-only: make some datastructures
+> > const") made it read-only on x86.  Apparently nobody bothered to do the
+> > equivalent change on m68k (I don't think anything makes the kernel text
+> > segment write protected anyway).
+> 
+> 11 arches still store it in "data", including the 4 using the new
+> asm-generic/unistd.h
+> framework. 9 use "rodata" and 6 use "text".
+> The constness of C "extern" declarations doesn't necessarily matches the
+> actual sections.
+> 
 
->Here's a new batch. This time, I'm reasonably confident I build-tested the
->right commit-id's on sparc :-)
->
->To sort out the sparc problem I took a slightly different approach than
->discussed. I made the new code be of_pci.c (which I enabled on sparc)
->and put the old stuff into of_pci_irq.c (which should still be disabled
->there).
->
->I've also consolidated pci_bus_to_OF_node() while at it.
+Thanks for pointing this out. Should we apply this patch?
+---
+[PATCH] mark sys_call_table as const
 
-This series builds and boots fine on x86.
+There is no reason to have sys_call_table writable, and putting
+it into the rodata section can make it harder for malicious users
+to overwrite the entry points.
 
-Sebastian
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/arch/score/kernel/sys_call_table.c b/arch/score/kernel/sys_call_table.c
+index 287369b..7be73dc 100644
+--- a/arch/score/kernel/sys_call_table.c
++++ b/arch/score/kernel/sys_call_table.c
+@@ -7,6 +7,6 @@
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] = (call),
+ 
+-void *sys_call_table[__NR_syscalls] = {
++const void *sys_call_table[__NR_syscalls] = {
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
+index e2187d2..3f2ba14 100644
+--- a/arch/tile/kernel/sys.c
++++ b/arch/tile/kernel/sys.c
+@@ -122,7 +122,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *sys_call_table[__NR_syscalls] = {
++const void *sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index dbc213a..d221452 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -166,7 +166,7 @@ long tile_compat_sys_msgrcv(int msqid,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *compat_sys_call_table[__NR_syscalls] = {
++const void *compat_sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/unicore32/kernel/sys.c b/arch/unicore32/kernel/sys.c
+index 3afe60a..7a16c7e 100644
+--- a/arch/unicore32/kernel/sys.c
++++ b/arch/unicore32/kernel/sys.c
+@@ -120,7 +120,7 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+ #define __SYSCALL(nr, call)	[nr] = (call),
+ 
+ /* Note that we don't include <linux/unistd.h> but <asm/unistd.h> */
+-void *sys_call_table[__NR_syscalls] = {
++const void *sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
