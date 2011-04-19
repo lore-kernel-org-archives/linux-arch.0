@@ -1,42 +1,102 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCHES v3] pci/of: Generic PCI <-> OF matching
-Date: Tue, 19 Apr 2011 07:58:20 +0200
-Message-ID: <4DAD247C.5080200@monstr.eu>
-References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Reply-To: monstr@monstr.eu
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: Writable sys_call_table (was: Re: [uClinux-dev] [PATCH] m68k: Merge mmu and non-mmu versions of sys_call_table)
+Date: Tue, 19 Apr 2011 09:48:36 +0200
+Message-ID: <201104190948.36517.arnd@arndb.de>
+References: <BANLkTimbHgmUvisE7+TCkgthejNi_zdojQ@mail.gmail.com> <201104181649.31492.arnd@arndb.de> <m2y637bkep.fsf@igel.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:48069 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751889Ab1DSF7q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Apr 2011 01:59:46 -0400
-In-Reply-To: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, tglx@linutronix.de, bigeasy@linutronix.de
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <m2y637bkep.fsf@igel.home>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@snapgear.com>, Gavin Lambert <gavinl@compacsort.com>, uClinux development list <uclinux-dev@uclinux.org>, Philippe De Muyter <phdm@macqel.be>, Linux/m68k <linux-m68k@lists.linux-m68k.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Benjamin Herrenschmidt wrote:
-> Here's a new batch. This time, I'm reasonably confident I build-tested the
-> right commit-id's on sparc :-)
+On Monday 18 April 2011, Andreas Schwab wrote:
+> >  
+> > -void *sys_call_table[__NR_syscalls] = {
+> > +const void *sys_call_table[__NR_syscalls] = {
 > 
-> To sort out the sparc problem I took a slightly different approach than
-> discussed. I made the new code be of_pci.c (which I enabled on sparc)
-> and put the old stuff into of_pci_irq.c (which should still be disabled
-> there).
-> 
-> I've also consolidated pci_bus_to_OF_node() while at it.
-> 
+> That's not making it read-only.  You need to move the const to the other
+> side of the pointer.
 
-Acked-by: Michal Simek <monstr@monstr.eu>
+D'oh!
 
-Michal
+8<--------
+[PATCH] mark sys_call_table as const
 
+There is no reason to have sys_call_table writable, and putting
+it into the rodata section can make it harder for malicious users
+to overwrite the entry points.
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+diff --git a/arch/score/kernel/sys_call_table.c b/arch/score/kernel/sys_call_table.c
+index 287369b..6d61120 100644
+--- a/arch/score/kernel/sys_call_table.c
++++ b/arch/score/kernel/sys_call_table.c
+@@ -7,6 +7,6 @@
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] = (call),
+ 
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/include/asm/syscalls.h b/arch/tile/include/asm/syscalls.h
+index 3b5507c..c0d6914 100644
+--- a/arch/tile/include/asm/syscalls.h
++++ b/arch/tile/include/asm/syscalls.h
+@@ -25,9 +25,9 @@
+ #include <linux/compat.h>
+ 
+ /* The array of function pointers for syscalls. */
+-extern void *sys_call_table[];
++extern void *const sys_call_table[];
+ #ifdef CONFIG_COMPAT
+-extern void *compat_sys_call_table[];
++extern void *const compat_sys_call_table[];
+ #endif
+ 
+ /*
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index dbc213a..aedf769 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -166,7 +166,7 @@ long tile_compat_sys_msgrcv(int msqid,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *compat_sys_call_table[__NR_syscalls] = {
++void *const compat_sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
+index e2187d2..1fb2480 100644
+--- a/arch/tile/kernel/sys.c
++++ b/arch/tile/kernel/sys.c
+@@ -122,7 +122,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/unicore32/kernel/sys.c b/arch/unicore32/kernel/sys.c
+index 3afe60a..00f3046 100644
+--- a/arch/unicore32/kernel/sys.c
++++ b/arch/unicore32/kernel/sys.c
+@@ -120,7 +120,7 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+ #define __SYSCALL(nr, call)	[nr] = (call),
+ 
+ /* Note that we don't include <linux/unistd.h> but <asm/unistd.h> */
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
