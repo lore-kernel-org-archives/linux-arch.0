@@ -1,43 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.10]:60480 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754659Ab1DRQVI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Apr 2011 12:21:08 -0400
-From: Andreas Schwab <schwab@linux-m68k.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:61208 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752572Ab1DSHtM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Apr 2011 03:49:12 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: Writable sys_call_table (was: Re: [uClinux-dev] [PATCH] m68k: Merge mmu and non-mmu versions of sys_call_table)
-References: <BANLkTimbHgmUvisE7+TCkgthejNi_zdojQ@mail.gmail.com>
-	<201104181649.31492.arnd@arndb.de>
-Date: Mon, 18 Apr 2011 18:21:02 +0200
-In-Reply-To: <201104181649.31492.arnd@arndb.de> (Arnd Bergmann's message of
-	"Mon, 18 Apr 2011 16:49:31 +0200")
-Message-ID: <m2y637bkep.fsf@igel.home>
+Date: Tue, 19 Apr 2011 09:48:36 +0200
+References: <BANLkTimbHgmUvisE7+TCkgthejNi_zdojQ@mail.gmail.com> <201104181649.31492.arnd@arndb.de> <m2y637bkep.fsf@igel.home>
+In-Reply-To: <m2y637bkep.fsf@igel.home>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201104190948.36517.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Andreas Schwab <schwab@linux-m68k.org>
 Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Greg Ungerer <gerg@snapgear.com>, Gavin Lambert <gavinl@compacsort.com>, uClinux development list <uclinux-dev@uclinux.org>, Philippe De Muyter <phdm@macqel.be>, Linux/m68k <linux-m68k@lists.linux-m68k.org>, linux-arch@vger.kernel.org
-Message-ID: <20110418162102.05UeqzaaBX74uZz5U6y-cESnE8znqCaGD4NRugzqzgw@z>
+Message-ID: <20110419074836.IanjGx3EPoNIICGO096hwllP0FxSNvXeZ6GrEWZjzH0@z>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+On Monday 18 April 2011, Andreas Schwab wrote:
+> >  
+> > -void *sys_call_table[__NR_syscalls] = {
+> > +const void *sys_call_table[__NR_syscalls] = {
+> 
+> That's not making it read-only.  You need to move the const to the other
+> side of the pointer.
 
-> diff --git a/arch/score/kernel/sys_call_table.c b/arch/score/kernel/sys_call_table.c
-> index 287369b..7be73dc 100644
-> --- a/arch/score/kernel/sys_call_table.c
-> +++ b/arch/score/kernel/sys_call_table.c
-> @@ -7,6 +7,6 @@
->  #undef __SYSCALL
->  #define __SYSCALL(nr, call) [nr] = (call),
->  
-> -void *sys_call_table[__NR_syscalls] = {
-> +const void *sys_call_table[__NR_syscalls] = {
+D'oh!
 
-That's not making it read-only.  You need to move the const to the other
-side of the pointer.
+8<--------
+[PATCH] mark sys_call_table as const
 
-Andreas.
+There is no reason to have sys_call_table writable, and putting
+it into the rodata section can make it harder for malicious users
+to overwrite the entry points.
 
--- 
-Andreas Schwab, schwab@linux-m68k.org
-GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
-"And now for something completely different."
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+diff --git a/arch/score/kernel/sys_call_table.c b/arch/score/kernel/sys_call_table.c
+index 287369b..6d61120 100644
+--- a/arch/score/kernel/sys_call_table.c
++++ b/arch/score/kernel/sys_call_table.c
+@@ -7,6 +7,6 @@
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] = (call),
+ 
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/include/asm/syscalls.h b/arch/tile/include/asm/syscalls.h
+index 3b5507c..c0d6914 100644
+--- a/arch/tile/include/asm/syscalls.h
++++ b/arch/tile/include/asm/syscalls.h
+@@ -25,9 +25,9 @@
+ #include <linux/compat.h>
+ 
+ /* The array of function pointers for syscalls. */
+-extern void *sys_call_table[];
++extern void *const sys_call_table[];
+ #ifdef CONFIG_COMPAT
+-extern void *compat_sys_call_table[];
++extern void *const compat_sys_call_table[];
+ #endif
+ 
+ /*
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index dbc213a..aedf769 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -166,7 +166,7 @@ long tile_compat_sys_msgrcv(int msqid,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *compat_sys_call_table[__NR_syscalls] = {
++void *const compat_sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
+index e2187d2..1fb2480 100644
+--- a/arch/tile/kernel/sys.c
++++ b/arch/tile/kernel/sys.c
+@@ -122,7 +122,7 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+  * Note that we can't include <linux/unistd.h> here since the header
+  * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
+  */
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
+diff --git a/arch/unicore32/kernel/sys.c b/arch/unicore32/kernel/sys.c
+index 3afe60a..00f3046 100644
+--- a/arch/unicore32/kernel/sys.c
++++ b/arch/unicore32/kernel/sys.c
+@@ -120,7 +120,7 @@ SYSCALL_DEFINE6(mmap2, unsigned long, addr, unsigned long, len,
+ #define __SYSCALL(nr, call)	[nr] = (call),
+ 
+ /* Note that we don't include <linux/unistd.h> but <asm/unistd.h> */
+-void *sys_call_table[__NR_syscalls] = {
++void *const sys_call_table[__NR_syscalls] = {
+ 	[0 ... __NR_syscalls-1] = sys_ni_syscall,
+ #include <asm/unistd.h>
+ };
