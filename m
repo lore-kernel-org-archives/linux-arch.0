@@ -1,57 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:33775 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:38141 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750795Ab1DSUIR (ORCPT
+	by vger.kernel.org with ESMTP id S1752890Ab1DSUIg (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Apr 2011 16:08:17 -0400
-Date: Tue, 19 Apr 2011 13:06:06 -0700
+	Tue, 19 Apr 2011 16:08:36 -0400
+Date: Tue, 19 Apr 2011 13:07:19 -0700
 From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 01/20] mm: mmu_gather rework
-Message-ID: <20110419130606.fb7139b2.akpm@linux-foundation.org>
-In-Reply-To: <20110401121725.360704327@chello.nl>
+Subject: Re: [PATCH 14/20] mm: Remove i_mmap_lock lockbreak
+Message-ID: <20110419130719.86093a27.akpm@linux-foundation.org>
+In-Reply-To: <20110401121725.991633993@chello.nl>
 References: <20110401121258.211963744@chello.nl>
-	<20110401121725.360704327@chello.nl>
+	<20110401121725.991633993@chello.nl>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Tony Luck <tony.luck@intel.com>, Hugh Dickins <hughd@google.com>
-Message-ID: <20110419200606.AWo9kdpnRgVWU5bpwPkYYbsJMoJTuvFQUAabT9zF_HA@z>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+Message-ID: <20110419200719.hvbmRla4Ry03TLWfjJ93K1nEs8yy95QDowEl1_gSCRc@z>
 
-On Fri, 01 Apr 2011 14:12:59 +0200
+On Fri, 01 Apr 2011 14:13:12 +0200
 Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 
-> Remove the first obstackle towards a fully preemptible mmu_gather.
+> Hugh says:
+>  "The only significant loser, I think, would be page reclaim (when
+>   concurrent with truncation): could spin for a long time waiting for
+>   the i_mmap_mutex it expects would soon be dropped? "
 > 
-> The current scheme assumes mmu_gather is always done with preemption
-> disabled and uses per-cpu storage for the page batches. Change this to
-> try and allocate a page for batching and in case of failure, use a
-> small on-stack array to make some progress.
+> Counter points:
+>  - cpu contention makes the spin stop (need_resched())
+>  - zap pages should be freeing pages at a higher rate than reclaim
+>    ever can
 > 
-> Preemptible mmu_gather is desired in general and usable once
-> i_mmap_lock becomes a mutex. Doing it before the mutex conversion
-> saves us from having to rework the code by moving the mmu_gather
-> bits inside the pte_lock.
-> 
-> Also avoid flushing the tlb batches from under the pte lock,
-> this is useful even without the i_mmap_lock conversion as it
-> significantly reduces pte lock hold times.
+> I think the simplification of the truncate code is definately worth it.
 
-There doesn't seem much point in reviewing this closely, as a lot of it
-gets tossed away later in the series..
-
->  		free_pages_and_swap_cache(tlb->pages, tlb->nr);
-
-It seems inappropriate that this code uses
-free_page[s]_and_swap_cache().  It should go direct to put_page() and
-release_pages()?  Please review this code's implicit decision to pass
-"cold==0" into release_pages().
-
-> -static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
-> +static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
-
-I wonder if all the inlining which remains in this code is needed and
-desirable.
-
+Well, we don't need to guess.  These things are testable!
