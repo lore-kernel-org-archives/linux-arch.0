@@ -1,47 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp110.prem.mail.ac4.yahoo.com ([76.13.13.93]:22873 "HELO
-	smtp110.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1753569Ab1DSWEe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Apr 2011 18:04:34 -0400
-Date: Tue, 19 Apr 2011 17:04:31 -0500 (CDT)
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: slub: fix panic with DISCONTIGMEM
-In-Reply-To: <1303249970.11237.30.camel@mulgrave.site>
-Message-ID: <alpine.DEB.2.00.1104191702400.26867@router.home>
-References: <1303248576.11237.23.camel@mulgrave.site>  <alpine.DEB.2.00.1104191633250.23077@router.home> <1303249970.11237.30.camel@mulgrave.site>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:39253 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753858Ab1DTHsp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Apr 2011 03:48:45 -0400
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <1303248576.11237.23.camel@mulgrave.site>
+References: <1303248576.11237.23.camel@mulgrave.site>
+Date: Wed, 20 Apr 2011 09:48:43 +0200
+Message-ID: <BANLkTinyvO78OnKZGW3jB_N6uao0tppnAw@mail.gmail.com>
+Subject: Re: slub: fix panic with DISCONTIGMEM
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, "hugh.dickins@tiscali.co.uk" <hugh.dickins@tiscali.co.uk>, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20110419220431.B615MwFhUc-Ns4aRHr4Gzgusgk6o6Kvm9zUvEvaqyMQ@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, Christoph Lameter <cl@linux.com>, Thorsten Glaser <tg@mirbsd.de>, Michael Schmitz <schmitzmic@googlemail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Message-ID: <20110420074843.XgzW5_ea7rMbpfc_5znNetLDwJ6J1R4EN3DRv1pMuQY@z>
 
-On Tue, 19 Apr 2011, James Bottomley wrote:
+On Tue, Apr 19, 2011 at 23:29, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> Slub makes assumptions about page_to_nid() which are violated by
+> DISCONTIGMEM and !NUMA.  This violation results in a panic because
+> page_to_nid() can be non-zero for pages in the discontiguous ranges and
+> this leads to a null return by get_node().  The assertion by the
+> maintainer is that DISCONTIGMEM should only be allowed when NUMA is also
+> defined.  However, at least six architectures: alpha, ia64, m32r, m68k,
+> mips, parisc violate this.  The panic is a regression against slab, so
+> just mark slub broken in the problem configuration to prevent users
+> reporting these panics.
 
-> On Tue, 2011-04-19 at 16:38 -0500, Christoph Lameter wrote:
-> > On Tue, 19 Apr 2011, James Bottomley wrote:
-> >
-> > > Slub makes assumptions about page_to_nid() which are violated by
-> > > DISCONTIGMEM and !NUMA.  This violation results in a panic because
-> >
-> > Fix this by stating correctly by saying "The kernel makes assumptions in
-> > various subsystems ..."
+How does the problem manifest itself? We're having a problem on m68k, which
+seems to go away when switching from SLUB to SLAB, or when reverting a commit
+in [2] (probably this was never reported upstream).
+
+References:
+[1] http://www.mail-archive.com/linux-m68k@vger.kernel.org/msg02812.html
+[2] http://www.spinics.net/lists/linux-m68k/msg03401.html
+
+> Cc: stable@kernel.org
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
 >
-> Slub is a subset of the kernel, so the original wording is a bit more
-> precise.
+> ---
+>
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 56240e7..a7ad8fb 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -1226,6 +1226,7 @@ config SLAB
+>          per cpu and per node queues.
+>
+>  config SLUB
+> +       depends on BROKEN || NUMA || !DISCONTIGMEM
+>        bool "SLUB (Unqueued Allocator)"
+>        help
+>           SLUB is a slab allocator that minimizes cache line usage
 
-F.e. hugepage support does the same thing. So it not slub specific.
+Gr{oetje,eeting}s,
 
-> Well, we can discuss how to proceed going forwards.  The current fact is
-> that any prior kernel that enables SLUB with DISCONTIGMEM and !NUMA will
-> eventually go boom when the page allocator returns a page not in the
-> first pfn array.  That has to be fixed in -stable.  I don't really think
-> a DISCONTIGMEM re-engineering effort would be the best thing for the
-> -stable series.
+                        Geert
 
-As far as I can tell: It will go boom even with other subsystems. I am
-surprised that we have never seen this before.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
