@@ -1,54 +1,47 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: slub: fix panic with DISCONTIGMEM
-Date: Wed, 20 Apr 2011 08:54:23 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1104200853150.8634@router.home>
-References: <1303248576.11237.23.camel@mulgrave.site> <BANLkTinyvO78OnKZGW3jB_N6uao0tppnAw@mail.gmail.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH v3] mm: make expand_downwards symmetrical to
+ expand_upwards
+Date: Wed, 20 Apr 2011 09:15:37 -0500
+Message-ID: <1303308938.2587.8.camel@mulgrave.site>
+References: <20110420102314.4604.A69D9226@jp.fujitsu.com>
+	 <BANLkTi=mxWwLPEnB+rGg29b06xNUD0XvsA@mail.gmail.com>
+	 <20110420161615.462D.A69D9226@jp.fujitsu.com>
+	 <BANLkTimfpY3gq8oY6bPDajBW7JN6Hp+A0A@mail.gmail.com>
+	 <20110420112020.GA31296@parisc-linux.org>
+	 <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: MULTIPART/MIXED; BOUNDARY="-1463811839-557332752-1303307665=:8634"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp103.prem.mail.ac4.yahoo.com ([76.13.13.42]:22644 "HELO
-	smtp103.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1753649Ab1DTNy3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Apr 2011 09:54:29 -0400
-In-Reply-To: <BANLkTinyvO78OnKZGW3jB_N6uao0tppnAw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org, linux-mm@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Michael Schmitz <schmitzmic@googlemail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pekka Enberg <penberg@kernel.org>
+Cc: Matthew Wilcox <matthew@wil.cx>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Christoph Lameter <cl@linux.com>, Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-parisc@vger.kernel.org, David Rientjes <rientjes@google.com>, Ingo Molnar <mingo@elte.hu>, x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+[added linux-arch to cc since we're going to be affecting them]
+On Wed, 2011-04-20 at 14:28 +0300, Pekka Enberg wrote:
+> Right. My point was simply that since x86 doesn't support DISCONTIGMEM
+> without NUMA, the misunderstanding is likely very wide-spread.
 
----1463811839-557332752-1303307665=:8634
-Content-Type: TEXT/PLAIN; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Why don't we approach the problem in a few separate ways then. 
 
-On Wed, 20 Apr 2011, Geert Uytterhoeven wrote:
+     1. We can look at what imposing NUMA on the DISCONTIGMEM archs
+        would do ... the embedded ones are going to be hardest hit, but
+        if it's not too much extra code, it might be palatable.
+     2. The other is that we can audit mm to look at all the node
+        assumptions in the non-numa case.  My suspicion is that
+        accidentally or otherwise, it mostly works for the normal case,
+        so there might not be much needed to pull it back to working
+        properly for DISCONTIGMEM.
+     3. Finally we could look at deprecating DISCONTIGMEM in favour of
+        SPARSEMEM, but we'd still need to fix -stable for that case.
+        Especially as it will take time to convert all the architectures
 
-> On Tue, Apr 19, 2011 at 23:29, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > Slub makes assumptions about page_to_nid() which are violated by
-> > DISCONTIGMEM and !NUMA. =C2=A0This violation results in a panic because
-> > page_to_nid() can be non-zero for pages in the discontiguous ranges and
-> > this leads to a null return by get_node(). =C2=A0The assertion by the
-> > maintainer is that DISCONTIGMEM should only be allowed when NUMA is als=
-o
-> > defined. =C2=A0However, at least six architectures: alpha, ia64, m32r, =
-m68k,
-> > mips, parisc violate this. =C2=A0The panic is a regression against slab=
-, so
-> > just mark slub broken in the problem configuration to prevent users
-> > reporting these panics.
->
-> How does the problem manifest itself? We're having a problem on m68k, whi=
-ch
-> seems to go away when switching from SLUB to SLAB, or when reverting a co=
-mmit
-> in [2] (probably this was never reported upstream).
+I'm certainly with Matthew: DISCONTIGMEM is supposed to be a lightweight
+framework which allows machines with split physical memory ranges to
+work.  That's a very common case nowadays.  Numa is supposed to be a
+heavyweight framework to preserve node locality for non-uniform memory
+access boxes (which none of the DISCONTIGMEM && !NUMA systems are).
 
-The NULL pointer dereference is typical. If SLUB breaks in this way then
-other things are also not functioning in the core.
-
-Guess you are also using DISCONTIG in !NUMA?
----1463811839-557332752-1303307665=:8634--
+James
