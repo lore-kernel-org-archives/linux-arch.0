@@ -1,139 +1,82 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: + lib-consolidate-debug_per_cpu_maps.patch added to -mm tree
-Date: Wed, 20 Apr 2011 14:21:37 +1000
-Message-ID: <1303273297.2513.23.camel@pasglop>
-References: <201104122148.p3CLmhea004694@imap1.linux-foundation.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: slub: fix panic with DISCONTIGMEM
+Date: Wed, 20 Apr 2011 09:48:43 +0200
+Message-ID: <BANLkTinyvO78OnKZGW3jB_N6uao0tppnAw@mail.gmail.com>
+References: <1303248576.11237.23.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56936 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750797Ab1DTEzC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Apr 2011 00:55:02 -0400
-In-Reply-To: <201104122148.p3CLmhea004694@imap1.linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org
-Cc: mm-commits@vger.kernel.org, sboyd@codeaurora.org, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1303248576.11237.23.camel@mulgrave.site>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, Christoph Lameter <cl@linux.com>, Thorsten Glaser <tg@mirbsd.de>, Michael Schmitz <schmitzmic@googlemail.com>, Linux/m68k <linux-m68k@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2011-04-12 at 14:48 -0700, akpm@linux-foundation.org wrote:
-> The patch titled
->      lib: consolidate DEBUG_PER_CPU_MAPS
-> has been added to the -mm tree.  Its filename is
->      lib-consolidate-debug_per_cpu_maps.patch
-> 
-> Before you just go and hit "reply", please:
->    a) Consider who else should be cc'ed
->    b) Prefer to cc a suitable mailing list as well
->    c) Ideally: find the original patch on the mailing list and do a
->       reply-to-all to that, adding suitable additional cc's
-> 
-> *** Remember to use Documentation/SubmitChecklist when testing your code ***
-> 
-> See http://userweb.kernel.org/~akpm/stuff/added-to-mm.txt to find
-> out what to do about this
-> 
-> The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
-> 
-> ------------------------------------------------------
-> Subject: lib: consolidate DEBUG_PER_CPU_MAPS
-> From: Stephen Boyd <sboyd@codeaurora.org>
-> 
-> DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
-> inlcude/linux/cpumask.h and thus it has outgrown its use within x86 and
-> powerpc alone.  Any arch with SMP support may want to get some more
-> debugging, so make this option generic.
-> 
-> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
-> Cc: <linux-arch@vger.kernel.org>
-> Cc: Ingo Molnar <mingo@elte.hu>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
+On Tue, Apr 19, 2011 at 23:29, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> Slub makes assumptions about page_to_nid() which are violated by
+> DISCONTIGMEM and !NUMA. =C2=A0This violation results in a panic becau=
+se
+> page_to_nid() can be non-zero for pages in the discontiguous ranges a=
+nd
+> this leads to a null return by get_node(). =C2=A0The assertion by the
+> maintainer is that DISCONTIGMEM should only be allowed when NUMA is a=
+lso
+> defined. =C2=A0However, at least six architectures: alpha, ia64, m32r=
+, m68k,
+> mips, parisc violate this. =C2=A0The panic is a regression against sl=
+ab, so
+> just mark slub broken in the problem configuration to prevent users
+> reporting these panics.
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+How does the problem manifest itself? We're having a problem on m68k, w=
+hich
+seems to go away when switching from SLUB to SLAB, or when reverting a =
+commit
+in [2] (probably this was never reported upstream).
 
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+References:
+[1] http://www.mail-archive.com/linux-m68k@vger.kernel.org/msg02812.htm=
+l
+[2] http://www.spinics.net/lists/linux-m68k/msg03401.html
+
+> Cc: stable@kernel.org
+> Signed-off-by: James Bottomley <James.Bottomley@suse.de>
+>
 > ---
-> 
->  arch/powerpc/Kconfig.debug |   12 ------------
->  arch/x86/Kconfig.debug     |   11 -----------
->  lib/Kconfig.debug          |   11 +++++++++++
->  3 files changed, 11 insertions(+), 23 deletions(-)
-> 
-> diff -puN arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/powerpc/Kconfig.debug
-> --- a/arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-> +++ a/arch/powerpc/Kconfig.debug
-> @@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
->  
->  	  This option will slow down process creation somewhat.
->  
-> -config DEBUG_PER_CPU_MAPS
-> -	bool "Debug access to per_cpu maps"
-> -	depends on DEBUG_KERNEL
-> -	depends on SMP
-> -	default n
-> -	---help---
-> -	  Say Y to verify that the per_cpu map being accessed has
-> -	  been setup.  Adds a fair amount of code to kernel memory
-> -	  and decreases performance.
-> -
-> -	  Say N if unsure.
-> -
->  config HCALL_STATS
->  	bool "Hypervisor call instrumentation"
->  	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
-> diff -puN arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/x86/Kconfig.debug
-> --- a/arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-> +++ a/arch/x86/Kconfig.debug
-> @@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
->  
->  	  This option will slow down process creation somewhat.
->  
-> -config DEBUG_PER_CPU_MAPS
-> -	bool "Debug access to per_cpu maps"
-> -	depends on DEBUG_KERNEL
-> -	depends on SMP
-> -	---help---
-> -	  Say Y to verify that the per_cpu map being accessed has
-> -	  been setup.  Adds a fair amount of code to kernel memory
-> -	  and decreases performance.
-> -
-> -	  Say N if unsure.
-> -
->  config X86_PTDUMP
->  	bool "Export kernel pagetable layout to userspace via debugfs"
->  	depends on DEBUG_KERNEL
-> diff -puN lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps lib/Kconfig.debug
-> --- a/lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-> +++ a/lib/Kconfig.debug
-> @@ -968,6 +968,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
->  	  To ensure that generic code follows the above rules, this
->  	  option forces all percpu variables to be defined as weak.
->  
-> +config DEBUG_PER_CPU_MAPS
-> +	bool "Debug access to per_cpu maps"
-> +	depends on DEBUG_KERNEL
-> +	depends on SMP
-> +	help
-> +	  Say Y to verify that the per_cpu map being accessed has
-> +	  been set up. This adds a fair amount of code to kernel memory
-> +	  and decreases performance.
-> +
-> +	  Say N if unsure.
-> +
->  config LKDTM
->  	tristate "Linux Kernel Dump Test Tool Module"
->  	depends on DEBUG_FS
-> _
-> 
-> Patches currently in -mm which might be from sboyd@codeaurora.org are
-> 
-> linux-next.patch
-> msm-timer-migrate-to-timer-based-__delay.patch
-> lib-consolidate-debug_per_cpu_maps.patch
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 56240e7..a7ad8fb 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -1226,6 +1226,7 @@ config SLAB
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0per cpu and per node queues.
+>
+> =C2=A0config SLUB
+> + =C2=A0 =C2=A0 =C2=A0 depends on BROKEN || NUMA || !DISCONTIGMEM
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0bool "SLUB (Unqueued Allocator)"
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0help
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 SLUB is a slab allocator that mini=
+mizes cache line usage
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+--
+To unsubscribe from this list: send the line "unsubscribe linux-parisc"=
+ in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
