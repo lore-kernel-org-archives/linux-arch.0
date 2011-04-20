@@ -1,47 +1,59 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH v3] mm: make expand_downwards symmetrical to
- expand_upwards
-Date: Wed, 20 Apr 2011 09:15:37 -0500
-Message-ID: <1303308938.2587.8.camel@mulgrave.site>
-References: <20110420102314.4604.A69D9226@jp.fujitsu.com>
-	 <BANLkTi=mxWwLPEnB+rGg29b06xNUD0XvsA@mail.gmail.com>
-	 <20110420161615.462D.A69D9226@jp.fujitsu.com>
-	 <BANLkTimfpY3gq8oY6bPDajBW7JN6Hp+A0A@mail.gmail.com>
-	 <20110420112020.GA31296@parisc-linux.org>
-	 <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Pekka Enberg <penberg@kernel.org>
-Cc: Matthew Wilcox <matthew@wil.cx>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Christoph Lameter <cl@linux.com>, Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-parisc@vger.kernel.org, David Rientjes <rientjes@google.com>, Ingo Molnar <mingo@elte.hu>, x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH 1/3] bitops: add ifdef CONFIG_GENERIC_FIND_BIT_LE guard
+Date: Wed, 20 Apr 2011 23:20:50 +0900
+Message-ID: <1303309252-9946-1-git-send-email-akinobu.mita@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:63231 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753671Ab1DTOVG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Apr 2011 10:21:06 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 
-[added linux-arch to cc since we're going to be affecting them]
-On Wed, 2011-04-20 at 14:28 +0300, Pekka Enberg wrote:
-> Right. My point was simply that since x86 doesn't support DISCONTIGMEM
-> without NUMA, the misunderstanding is likely very wide-spread.
+Some architectures have optimized find_*_bit_le() as static inline
+functions but other little-endian bitops are identical to the generic
+version.
 
-Why don't we approach the problem in a few separate ways then. 
+This adds #ifdef CONFIG_GENERIC_FIND_BIT_LE guard for find_*_bit_le()
+in asm-generic/bitops/le.h so that those architectures can use this
+header file.
 
-     1. We can look at what imposing NUMA on the DISCONTIGMEM archs
-        would do ... the embedded ones are going to be hardest hit, but
-        if it's not too much extra code, it might be palatable.
-     2. The other is that we can audit mm to look at all the node
-        assumptions in the non-numa case.  My suspicion is that
-        accidentally or otherwise, it mostly works for the normal case,
-        so there might not be much needed to pull it back to working
-        properly for DISCONTIGMEM.
-     3. Finally we could look at deprecating DISCONTIGMEM in favour of
-        SPARSEMEM, but we'd still need to fix -stable for that case.
-        Especially as it will take time to convert all the architectures
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux390@de.ibm.com
+Cc: linux-s390@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
+---
+ include/asm-generic/bitops/le.h |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
-I'm certainly with Matthew: DISCONTIGMEM is supposed to be a lightweight
-framework which allows machines with split physical memory ranges to
-work.  That's a very common case nowadays.  Numa is supposed to be a
-heavyweight framework to preserve node locality for non-uniform memory
-access boxes (which none of the DISCONTIGMEM && !NUMA systems are).
-
-James
+diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
+index 946a21b..bd2253e 100644
+--- a/include/asm-generic/bitops/le.h
++++ b/include/asm-generic/bitops/le.h
+@@ -30,6 +30,8 @@ static inline unsigned long find_first_zero_bit_le(const void *addr,
+ 
+ #define BITOP_LE_SWIZZLE	((BITS_PER_LONG-1) & ~0x7)
+ 
++#ifdef CONFIG_GENERIC_FIND_BIT_LE
++
+ extern unsigned long find_next_zero_bit_le(const void *addr,
+ 		unsigned long size, unsigned long offset);
+ extern unsigned long find_next_bit_le(const void *addr,
+@@ -38,6 +40,8 @@ extern unsigned long find_next_bit_le(const void *addr,
+ #define find_first_zero_bit_le(addr, size) \
+ 	find_next_zero_bit_le((addr), (size), 0)
+ 
++#endif /* CONFIG_GENERIC_FIND_BIT_LE */
++
+ #else
+ #error "Please fix <asm/byteorder.h>"
+ #endif
+-- 
+1.7.4.4
