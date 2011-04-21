@@ -1,74 +1,38 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: Error in head-common.S file while ARM Linux booting
-Date: Thu, 21 Apr 2011 16:22:48 -0400 (EDT)
-Message-ID: <alpine.LFD.2.00.1104211614140.24613@xanadu.home>
-References: <BANLkTi=rVF1r-3WpF+iBWMSgy46VnoVx=A@mail.gmail.com>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH v3] mm: make expand_downwards symmetrical to
+ expand_upwards
+Date: Thu, 21 Apr 2011 15:19:01 -0700 (PDT)
+Message-ID: <alpine.DEB.2.00.1104211517150.20201@chino.kir.corp.google.com>
+References: <20110420102314.4604.A69D9226@jp.fujitsu.com> <BANLkTi=mxWwLPEnB+rGg29b06xNUD0XvsA@mail.gmail.com> <20110420161615.462D.A69D9226@jp.fujitsu.com> <BANLkTimfpY3gq8oY6bPDajBW7JN6Hp+A0A@mail.gmail.com> <20110420112020.GA31296@parisc-linux.org>
+ <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com> <1303308938.2587.8.camel@mulgrave.site> <alpine.DEB.2.00.1104200943580.9266@router.home> <1303311779.2587.19.camel@mulgrave.site> <alpine.DEB.2.00.1104201018360.9266@router.home>
+ <alpine.DEB.2.00.1104201437180.31768@chino.kir.corp.google.com> <1303401997.4025.8.camel@mulgrave.site>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="Boundary_(ID_F9qtxyWg3KcoC6c5QAzsqA)"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:21089 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751960Ab1DUUWt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Apr 2011 16:22:49 -0400
-Received: from xanadu.home ([66.130.28.92]) by vl-mh-mrz21.ip.videotron.ca
- (Sun Java(tm) System Messaging Server 6.3-8.01 (built Dec 16 2008; 32bit))
- with ESMTP id <0LK0009KTR91R960@vl-mh-mrz21.ip.videotron.ca> for
- linux-arch@vger.kernel.org; Thu, 21 Apr 2011 16:22:14 -0400 (EDT)
-In-reply-to: <BANLkTi=rVF1r-3WpF+iBWMSgy46VnoVx=A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Madhavi Manchala <madhavi.linux@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1303401997.4025.8.camel@mulgrave.site>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, Matthew Wilcox <matthew@wil.cx>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-parisc@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>
+List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+On Thu, 21 Apr 2011, James Bottomley wrote:
 
---Boundary_(ID_F9qtxyWg3KcoC6c5QAzsqA)
-Content-type: TEXT/PLAIN; charset=windows-1252
-Content-transfer-encoding: 8BIT
+> diff --git a/mm/slub.c b/mm/slub.c
+> index 94d2a33..243bd9c 100644
+> --- a/mm/slub.c
+> +++ b/mm/slub.c
+> @@ -235,7 +235,11 @@ int slab_is_available(void)
+>  
+>  static inline struct kmem_cache_node *get_node(struct kmem_cache *s, int node)
+>  {
+> +#ifdef CONFIG_NUMA
+>  	return s->node[node];
+> +#else
+> +	return s->node[0];
+> +#endif
+>  }
+>  
+>  /* Verify that a pointer has an address that is valid within a slab page */
 
-On Thu, 21 Apr 2011, Madhavi Manchala wrote:
-
-> Dear All,
-> 
-> I have developed machine code for my Samsung S3C2510A MCU under Linux
-> kernel 2.6.36. The code exists at arch/arm/mach-s3c2510a. I developed
-> only CPU, UART and Clocks initialization code, especially. For
-> developing the S3C2510A HAL code, I have gone through the existing
-> mach-s3c2410 code.
-> 
-> I build vmlinux image on a Linux box in the ELF format for my Samsung
-> MCU. Then, I am trying to load the build vmlinux image on to my
-> device’s (targets) RAM area using J-link J-TAG and J-LinkGDBServer
-> tool with a gdbinit script file from Cygwin on a Windows XP system.
-> The gdb init script file initializes the CPU system configuration
-> registers, RAM, Flash and UART registers and then loads ELF image.
-> 
-> I am able to put break points in the developed HAL code. However, when
-> I run (continue) from gdb prompt, I did not see any break points in
-> the GDB server tool, but, when I press “Ctrl+C”, I am seeing the
-> following messages.
-> 
-> <gdb> break s3c2510a_init
-> Breakpoint 1 at 0x3000b648: file arch/arm/mach-s3c2510a/s3c2510a.c, line 59.
-> <gdb> c
-> Continuing.
-> 
-> Pressing “control+c”, then the statements are as follows.
-> 
-> Program received signal SIGTRAP, Trace/Breakpoint trap.
-> __error_p () at head-common.S:142
-> 
-> <gdb>bt
-> #0 __error_p () at head-common.S:142
-> 
-> Why am I seeing these errors? Am I missing any CPU configuration, still?
-
-Did you look at the actual code below __error_p in 
-arch/arm/kernel/head-common.S?  The code even shows what could be 
-displayed on your serial port when you have CONFIG_DEBUG_LL enabled.
-
-
-Nicolas
-
---Boundary_(ID_F9qtxyWg3KcoC6c5QAzsqA)--
+Looks like parisc may have been just fine before 7340cc84141d (slub: 
+reduce differences between SMP and NUMA), which was merged into 2.6.37?
