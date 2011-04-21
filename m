@@ -1,56 +1,98 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 14/20] mm: Remove i_mmap_lock lockbreak
-Date: Thu, 21 Apr 2011 15:32:35 +0200
-Message-ID: <1303392755.2035.141.camel@laptop>
-References: <20110401121258.211963744@chello.nl>
-	 <20110401121725.991633993@chello.nl>
-	 <20110419130719.86093a27.akpm@linux-foundation.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH v3] mm: make expand_downwards symmetrical to
+ expand_upwards
+Date: Thu, 21 Apr 2011 11:06:36 -0500
+Message-ID: <1303401997.4025.8.camel@mulgrave.site>
+References: <20110420102314.4604.A69D9226@jp.fujitsu.com>
+	 <BANLkTi=mxWwLPEnB+rGg29b06xNUD0XvsA@mail.gmail.com>
+	 <20110420161615.462D.A69D9226@jp.fujitsu.com>
+	 <BANLkTimfpY3gq8oY6bPDajBW7JN6Hp+A0A@mail.gmail.com>
+	 <20110420112020.GA31296@parisc-linux.org>
+	 <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
+	 <1303308938.2587.8.camel@mulgrave.site>
+	 <alpine.DEB.2.00.1104200943580.9266@router.home>
+	 <1303311779.2587.19.camel@mulgrave.site>
+	 <alpine.DEB.2.00.1104201018360.9266@router.home>
+	 <alpine.DEB.2.00.1104201437180.31768@chino.kir.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([18.85.46.34]:57924 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752973Ab1DUNaA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Apr 2011 09:30:00 -0400
-Received: from canuck.infradead.org ([2001:4978:20e::1])
-	by bombadil.infradead.org with esmtps (Exim 4.72 #1 (Red Hat Linux))
-	id 1QCtxH-0004Oa-Q7
-	for linux-arch@vger.kernel.org; Thu, 21 Apr 2011 13:30:00 +0000
-Received: from j77219.upc-j.chello.nl ([24.132.77.219] helo=dyad.programming.kicks-ass.net)
-	by canuck.infradead.org with esmtpsa (Exim 4.72 #1 (Red Hat Linux))
-	id 1QCtxG-00027k-R6
-	for linux-arch@vger.kernel.org; Thu, 21 Apr 2011 13:29:59 +0000
-In-Reply-To: <20110419130719.86093a27.akpm@linux-foundation.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:54333 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753964Ab1DUQGm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Apr 2011 12:06:42 -0400
+In-Reply-To: <alpine.DEB.2.00.1104201437180.31768@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Avi Kivity <avi@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Yanmin Zhang <yanmin_zhang@linux.intel.com>
+To: David Rientjes <rientjes@google.com>
+Cc: Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, Matthew Wilcox <matthew@wil.cx>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-parisc@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>
 
-On Tue, 2011-04-19 at 13:07 -0700, Andrew Morton wrote:
-> On Fri, 01 Apr 2011 14:13:12 +0200
-> Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+On Wed, 2011-04-20 at 14:42 -0700, David Rientjes wrote:
+> On Wed, 20 Apr 2011, Christoph Lameter wrote:
 > 
-> > Hugh says:
-> >  "The only significant loser, I think, would be page reclaim (when
-> >   concurrent with truncation): could spin for a long time waiting for
-> >   the i_mmap_mutex it expects would soon be dropped? "
+> > There is barely any testing going on at all of this since we have had this
+> > issue for more than 5 years and have not noticed it. The absence of bug
+> > reports therefore proves nothing. Code inspection of the VM shows
+> > that this is an issue that arises in multiple subsystems and that we have
+> > VM_BUG_ONs in the page allocator that should trigger for these situations.
 > > 
-> > Counter points:
-> >  - cpu contention makes the spin stop (need_resched())
-> >  - zap pages should be freeing pages at a higher rate than reclaim
-> >    ever can
+> > Usage of DISCONTIGMEM and !NUMA is not safe and should be flagged as such.
 > > 
-> > I think the simplification of the truncate code is definately worth it.
 > 
-> Well, we don't need to guess.  These things are testable!
+> We don't actually have any bug reports in front of us that show anything 
+> else in the VM other than slub has issues with this configuration, so 
+> marking them as broken is probably premature.  The parisc config that 
+> triggered this debugging enables CONFIG_SLAB by default, so it probably 
+> has gone unnoticed just because nobody other than James has actually tried 
+> it on hppa64.
+> 
+> Let's see if KOSAKI-san's fixes to Kconfig (even though I'd prefer the 
+> simpler and implicit "config NUMA def_bool ARCH_DISCONTIGMEM_ENABLE" over 
+> his config NUMA) and my fix to parisc to set the bit in N_NORMAL_MEMORY 
+> so that CONFIG_SLUB initializes kmem_cache_node correctly works and then 
+> address issues in the core VM as they arise.  Presumably someone has been 
+> running DISCONTIGMEM on hppa64 in the past five years without issues with 
+> defconfig, so the issue here may just be slub.
 
-I suppose you're right, but I'm having a bit of a hard time coming up
-with a sensible (reproducible) test case for the page reclaim part of
-this problem set.
+Actually, we can fix slub.  As far as all my memory hammer tests go, the
+one liner below is the actual fix (it just forces slub get_node() to
+return the zero node always on !NUMA).  That, as far as a code
+inspection goes, seems to make SLUB as good as SLAB ... as long as
+no-one uses hugepages or VM DEBUG, which, I think we've demonstrated, is
+the case for all the current DISCONTIGMEM users.
 
-I'll try running 3 cyclic file scanners sized such that 2 exceed the
-memory footprint of the machine and truncate the 3rd's file after
-warming up.
+I think either the above or just marking slub broken in DISCONTIGMEM & !
+NUMA is sufficient for stable.  The fix is getting urgent, because
+debian (which is what most of our users are running) has made SLUB the
+default allocator, which is why we're now starting to run into these
+panic reports.
 
-That is, unless someone has a saner idea..
+The set memory range fix looks good for a backport too ... at least the
+page cache is now no-longer reluctant to use my upper 1GB ...
+
+I worry a bit more about backporting the selection of NUMA as a -stable
+fix because it's a larger change (and requires changes to all the
+architectures, since NUMA is an arch local Kconfig variable)
+
+James
+
+----
+
+diff --git a/mm/slub.c b/mm/slub.c
+index 94d2a33..243bd9c 100644
+--- a/mm/slub.c
++++ b/mm/slub.c
+@@ -235,7 +235,11 @@ int slab_is_available(void)
+ 
+ static inline struct kmem_cache_node *get_node(struct kmem_cache *s, int node)
+ {
++#ifdef CONFIG_NUMA
+ 	return s->node[node];
++#else
++	return s->node[0];
++#endif
+ }
+ 
+ /* Verify that a pointer has an address that is valid within a slab page */
