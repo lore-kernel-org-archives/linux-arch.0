@@ -1,63 +1,284 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH v3] mm: make expand_downwards symmetrical to
- expand_upwards
-Date: Thu, 21 Apr 2011 17:31:31 -0500
-Message-ID: <1303425091.4025.59.camel@mulgrave.site>
-References: <20110420102314.4604.A69D9226@jp.fujitsu.com>
-	 <BANLkTi=mxWwLPEnB+rGg29b06xNUD0XvsA@mail.gmail.com>
-	 <20110420161615.462D.A69D9226@jp.fujitsu.com>
-	 <BANLkTimfpY3gq8oY6bPDajBW7JN6Hp+A0A@mail.gmail.com>
-	 <20110420112020.GA31296@parisc-linux.org>
-	 <BANLkTim+m-v-4k17HUSOYSbmNFDtJTgD6g@mail.gmail.com>
-	 <1303308938.2587.8.camel@mulgrave.site>
-	 <alpine.DEB.2.00.1104200943580.9266@router.home>
-	 <1303311779.2587.19.camel@mulgrave.site>
-	 <alpine.DEB.2.00.1104201018360.9266@router.home>
-	 <alpine.DEB.2.00.1104201437180.31768@chino.kir.corp.google.com>
-	 <1303401997.4025.8.camel@mulgrave.site>
-	 <alpine.DEB.2.00.1104211517150.20201@chino.kir.corp.google.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH v3] kbuild: asm-generic support
+Date: Fri, 22 Apr 2011 17:53:49 +0200
+Message-ID: <20110422155349.GA9579@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz> <20110113170131.GA28377@merkur.ravnborg.org> <20110114144354.GA23611@sepie.suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <alpine.DEB.2.00.1104211517150.20201@chino.kir.corp.google.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: David Rientjes <rientjes@google.com>
-Cc: Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, Matthew Wilcox <matthew@wil.cx>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hugh Dickins <hughd@google.com>, linux-mm@kvack.org, LKML <linux-kernel@vger.kernel.org>, linux-parisc@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org, Mel Gorman <mel@csn.ul.ie>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20110114144354.GA23611@sepie.suse.cz>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, linux arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-04-21 at 15:19 -0700, David Rientjes wrote:
-> On Thu, 21 Apr 2011, James Bottomley wrote:
-> 
-> > diff --git a/mm/slub.c b/mm/slub.c
-> > index 94d2a33..243bd9c 100644
-> > --- a/mm/slub.c
-> > +++ b/mm/slub.c
-> > @@ -235,7 +235,11 @@ int slab_is_available(void)
-> >  
-> >  static inline struct kmem_cache_node *get_node(struct kmem_cache *s, int node)
-> >  {
-> > +#ifdef CONFIG_NUMA
-> >  	return s->node[node];
-> > +#else
-> > +	return s->node[0];
-> > +#endif
-> >  }
-> >  
-> >  /* Verify that a pointer has an address that is valid within a slab page */
-> 
-> Looks like parisc may have been just fine before 7340cc84141d (slub: 
-> reduce differences between SMP and NUMA), which was merged into 2.6.37?
+From 34d0b72a343dd63c1c1b049e4ba6931f0dbcbc3f Mon Sep 17 00:00:00 2001
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Fri, 22 Apr 2011 14:45:13 +0200
+Subject: [PATCH] kbuild: asm-generic support
 
-That's possible.  I've had no bug reports from the debian 2.6.32 kernel,
-which is the only other one that has SLUB by default.  The m68k guys
-seem to think this is the cause of their problems too.
+There is an increasing amount of header files
+shared between individual architectures in asm-generic.
+To avoid a lot of dummy wrapper files that just
+include the corresponding file in asm-generic provide
+some basic support in kbuild for this.
 
-But the basic fact is that all our testing has been done on SLAB.  It
-wasn't until debian asked us to looks at a 2.6.38 kernel that I
-accidentally picked up SLUB by importing their config into my build
-environment.
+With the following patch an architecture can maintain
+a list of files in the file arch/$(ARCH)/include/asm/Kbuild
 
-James
+To use a generic file just add:
 
+        generic-y += <name-of-header-file.h>
+
+For each file listed kbuild will generate the necessary
+wrapper in arch/$(ARCH)/include/generated/asm.
+
+When installing userspace headers a wrapper is likewise created.
+
+The original inspiration for this came from the unicore32
+patchset - although a different method is used.
+
+The patch includes several improvements from Arnd Bergmann.
+Michael Marek contributed Makefile.asm-generic.
+
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+Cc: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+
+Hi Mikael.
+
+It took me a while to get back to this.
+I used your Makefile.asm-generic almost verbatim.
+
+Only change was that we always need to create the output directory.
+
+	Sam
+
+ .gitignore                         |    1 +
+ Documentation/kbuild/makefiles.txt |   36 ++++++++++++++++++++++++++++++++++++
+ Makefile                           |   15 +++++++++++----
+ scripts/Makefile.asm-generic       |   23 +++++++++++++++++++++++
+ scripts/Makefile.headersinst       |   18 +++++++++++++++---
+ 5 files changed, 86 insertions(+), 7 deletions(-)
+ create mode 100644 scripts/Makefile.asm-generic
+
+diff --git a/.gitignore b/.gitignore
+index 5d56a3f..9dacde0 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -57,6 +57,7 @@ modules.builtin
+ include/config
+ include/linux/version.h
+ include/generated
++arch/*/include/generated
+ 
+ # stgit generated dirs
+ patches-*
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 5d145bb..7f2b8e7 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -40,11 +40,13 @@ This document describes the Linux kernel Makefiles.
+ 	   --- 6.6 Commands useful for building a boot image
+ 	   --- 6.7 Custom kbuild commands
+ 	   --- 6.8 Preprocessing linker scripts
++	   --- 6.9 Generic header files
+ 
+ 	=== 7 Kbuild syntax for exported headers
+ 		--- 7.1 header-y
+ 		--- 7.2 objhdr-y
+ 		--- 7.3 destination-y
++		--- 7.4 generic-y
+ 
+ 	=== 8 Kbuild Variables
+ 	=== 9 Makefile language
+@@ -1209,6 +1211,14 @@ When kbuild executes, the following steps are followed (roughly):
+ 	The kbuild infrastructure for *lds file are used in several
+ 	architecture-specific files.
+ 
++--- 6.9 Generic header files
++
++	The directory include/asm-generic contains the header files
++	that may be shared between individual architectures.
++	The recommended approach how to use a generic header file is
++	to list the file in the Kbuild file.
++	See "7.4 generic-y" for further info on syntax etc.
++
+ === 7 Kbuild syntax for exported headers
+ 
+ The kernel include a set of headers that is exported to userspace.
+@@ -1265,6 +1275,32 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 	In the example above all exported headers in the Kbuild file
+ 	will be located in the directory "include/linux" when exported.
+ 
++	--- 7.4 generic-y
++
++	If an architecture uses a verbatim copy of a header from
++	include/asm-generic then this is listed in the file
++	arch/$(ARCH)/include/asm/Kbuild like this:
++
++		Example:
++			#arch/x86/include/asm/Kbuild
++			generic-y += termios.h
++			generic-y += rtc.h
++
++	During the prepare phase of the build a wrapper include
++	file is generated in the directory:
++
++		arch/$(ARCH)/include/generated/asm
++
++	When a header is exported where the architecture uses
++	the generic header a similar wrapper is generated as part
++	of the set of exported headers in the directory:
++
++		usr/include/asm
++
++	The generated wrapper will in both cases look like the following:
++
++		Example: termios.h
++			#include <asm-generic/termios.h>
+ 
+ === 8 Kbuild Variables
+ 
+diff --git a/Makefile b/Makefile
+index b967b96..30b3852 100644
+--- a/Makefile
++++ b/Makefile
+@@ -349,7 +349,8 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+ 
+ # Use LINUXINCLUDE when you must reference the include/ directory.
+ # Needed to be compatible with the O= option
+-LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
++LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
++                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
+                    $(if $(KBUILD_SRC), -I$(srctree)/include) \
+                    -include include/generated/autoconf.h
+ 
+@@ -416,6 +417,11 @@ ifneq ($(KBUILD_SRC),)
+ 	    $(srctree) $(objtree) $(VERSION) $(PATCHLEVEL)
+ endif
+ 
++# Support for using generic headers in asm-generic
++PHONY += asm-generic
++asm-generic:
++	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic obj=arch/$(SRCARCH)/include/generated/asm
++
+ # To make sure we do not include .config for any of the *config targets
+ # catch them early, and hand them over to scripts/kconfig/Makefile
+ # It is allowed to specify more targets when calling make, including
+@@ -947,7 +953,7 @@ ifneq ($(KBUILD_SRC),)
+ endif
+ 
+ # prepare2 creates a makefile if using a separate output directory
+-prepare2: prepare3 outputmakefile
++prepare2: prepare3 outputmakefile asm-generic
+ 
+ prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
+                    include/config/auto.conf
+@@ -1021,7 +1027,7 @@ hdr-inst := -rR -f $(srctree)/scripts/Makefile.headersinst obj
+ hdr-dst = $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
+ 
+ PHONY += __headers
+-__headers: include/linux/version.h scripts_basic FORCE
++__headers: include/linux/version.h scripts_basic asm-generic FORCE
+ 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ 
+ PHONY += headers_install_all
+@@ -1136,7 +1142,8 @@ CLEAN_FILES +=	vmlinux System.map \
+                 .tmp_kallsyms* .tmp_version .tmp_vmlinux* .tmp_System.map
+ 
+ # Directories & files removed with 'make mrproper'
+-MRPROPER_DIRS  += include/config usr/include include/generated
++MRPROPER_DIRS  += include/config usr/include include/generated          \
++                  arch/*/include/generated
+ MRPROPER_FILES += .config .config.old .version .old_version             \
+                   include/linux/version.h                               \
+ 		  Module.symvers tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+new file mode 100644
+index 0000000..a687cb6
+--- /dev/null
++++ b/scripts/Makefile.asm-generic
+@@ -0,0 +1,23 @@
++# include/asm-generic contains a lot of files that are used
++# verbatim by several architectures.
++#
++# This Makefile reads the file arch/$(SRCARCH)/include/asm/Kbuild
++# and for each file listed in this file with generic-y creates
++# a small wrapper file in $(obj) (arch/$(SRCARCH)/include/generated/asm)
++
++kbuild-file := $(srctree)/arch/$(SRCARCH)/include/asm/Kbuild
++include $(kbuild-file)
++
++include scripts/Kbuild.include
++
++# Create output directory if not already present
++_dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
++
++quiet_cmd_wrap = WRAP    $@
++cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
++
++all: $(patsubst %, $(obj)/%, $(generic-y))
++
++$(obj)/%.h:
++	$(call cmd,wrap)
++
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index f89cb87..7960b19 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -14,6 +14,7 @@ kbuild-file := $(srctree)/$(obj)/Kbuild
+ include $(kbuild-file)
+ 
+ _dst := $(if $(destination-y),$(destination-y),$(_dst))
++_src := $(srctree)/$(obj)
+ 
+ include scripts/Kbuild.include
+ 
+@@ -27,10 +28,16 @@ header-y      := $(filter-out %/, $(header-y))
+ install-file  := $(install)/.install
+ check-file    := $(install)/.check
+ 
++# generic-y list all files an architecture uses from asm-generic
++# Use this to build a list of headers which require a wrapper
++wrapper-files := $(filter $(header-y), $(generic-y))
++
+ # all headers files for this dir
+-all-files     := $(header-y) $(objhdr-y)
+-input-files   := $(addprefix $(srctree)/$(obj)/,$(header-y)) \
++header-y      := $(filter-out $(generic-y), $(header-y))
++all-files     := $(header-y) $(objhdr-y) $(wrapper-files)
++input-files   := $(addprefix $(_src)/,$(header-y)) \
+                  $(addprefix $(objtree)/$(obj)/,$(objhdr-y))
++
+ output-files  := $(addprefix $(install)/, $(all-files))
+ 
+ # Work out what needs to be removed
+@@ -47,8 +54,12 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+       cmd_install = \
+         $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
+         $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
++        for F in $(wrapper-files); do                                   \
++                echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
++        done;                                                           \
+         touch $@
+ 
++
+ quiet_cmd_remove = REMOVE  $(unwanted)
+       cmd_remove = rm -f $(unwanted-file)
+ 
+@@ -69,7 +80,8 @@ __headersinst: $(subdirs) $(install-file)
+ 	@:
+ 
+ targets += $(install-file)
+-$(install-file): scripts/headers_install.pl $(input-files) FORCE
++$(install-file): scripts/headers_install.pl \
++                 $(input-files) FORCE
+ 	$(if $(unwanted),$(call cmd,remove),)
+ 	$(if $(wildcard $(dir $@)),,$(shell mkdir -p $(dir $@)))
+ 	$(call if_changed,install)
+-- 
+1.6.0.6
 
