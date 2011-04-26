@@ -1,53 +1,84 @@
-From: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Subject: Re: [PATCH 1/6] arch: add #define for each of optimized find bitops
-Date: Tue, 26 Apr 2011 14:23:20 +0200
-Message-ID: <1303820600.3125.13.camel@hcegtvedt>
-References: <1303638677-11211-1-git-send-email-akinobu.mita@gmail.com>
-	 <1303638677-11211-2-git-send-email-akinobu.mita@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1303638677-11211-2-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, linux-m68k@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>
-List-Id: linux-arch.vger.kernel.org
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v2 0/6] remove CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}
+Date: Tue, 26 Apr 2011 22:23:37 +0900
+Message-ID: <1303824223-3566-1-git-send-email-akinobu.mita@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:55095 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752848Ab1DZNXu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2011 09:23:50 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 
-On Sun, 2011-04-24 at 18:51 +0900, Akinobu Mita wrote:
-> The style that we normally use in asm-generic is to test the macro itself
-> for existence, so in asm-generic, do:
-> 
-> 	#ifndef find_next_zero_bit_le
-> 	extern unsigned long find_next_zero_bit_le(const void *addr,
-> 		unsigned long size, unsigned long offset);
-> 	#endif
-> 
-> and in the architectures, write
-> 
-> 	static inline unsigned long find_next_zero_bit_le(const void *addr,
-> 		unsigned long size, unsigned long offset)
-> 	#define find_next_zero_bit_le find_next_zero_bit_le
-> 
-> This adds the #define for each of the optimized find bitops in the
-> architectures.
-> 
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: linux390@de.ibm.com
-> Cc: linux-s390@vger.kernel.org
-> Cc: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: Greg Ungerer <gerg@uclinux.org>
+Changelog v2:
+- Add Acked-by: line
+- Rebase to mainline
 
-For the arch/avr32/include/asm/bitops.h changes.
+The style that we normally use in asm-generic is to test the macro itself
+for existence, so in asm-generic, do:
 
-Acked-by: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
+	#ifndef find_next_zero_bit_le
+	extern unsigned long find_next_zero_bit_le(const void *addr,
+		unsigned long size, unsigned long offset);
+	#endif
+
+and in the architectures, write
+
+	static inline unsigned long find_next_zero_bit_le(const void *addr,
+		unsigned long size, unsigned long offset)
+	#define find_next_zero_bit_le find_next_zero_bit_le
+
+But CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT} options are used to
+test for existence of find bitops now.
+
+This patch series switches find bitops to follow the normal style 
+described above.  This change enables arm and s390 to use
+asm-generic/bitops/le.h header file and fixes m68knommu build error
+due to the lack of find_next_bit_le().
+
+Akinobu Mita (6):
+  arch: add #define for each of optimized find bitops
+  bitops: add #ifndef for each of find bitops
+  arch: remove CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}
+  arm: use asm-generic/bitops/le.h
+  s390: use asm-generic/bitops/le.h
+  m68knommu: fix build error due to the lack of find_next_bit_le()
+
+ arch/alpha/Kconfig                |    4 ---
+ arch/arm/include/asm/bitops.h     |   46 ++++++------------------------------
+ arch/avr32/include/asm/bitops.h   |   15 ++++++++++++
+ arch/blackfin/Kconfig             |    3 --
+ arch/cris/Kconfig                 |    4 ---
+ arch/frv/Kconfig                  |    8 ------
+ arch/h8300/Kconfig                |    8 ------
+ arch/ia64/Kconfig                 |    4 ---
+ arch/m32r/Kconfig                 |    8 ------
+ arch/m68k/Kconfig.nommu           |    4 ---
+ arch/m68k/include/asm/bitops_mm.h |    8 ++++++
+ arch/m68k/include/asm/bitops_no.h |    4 +++
+ arch/microblaze/Kconfig           |    6 -----
+ arch/mips/Kconfig                 |    8 ------
+ arch/mn10300/Kconfig              |    3 --
+ arch/parisc/Kconfig               |    8 ------
+ arch/powerpc/Kconfig              |    8 ------
+ arch/s390/include/asm/bitops.h    |   45 ++++++++----------------------------
+ arch/score/Kconfig                |    3 --
+ arch/sh/Kconfig                   |    6 -----
+ arch/sparc/Kconfig                |    8 ------
+ arch/tile/Kconfig                 |    1 -
+ arch/um/Kconfig.x86               |    1 -
+ arch/x86/Kconfig                  |    1 -
+ arch/xtensa/Kconfig               |    6 -----
+ include/asm-generic/bitops/find.h |    4 +++
+ include/asm-generic/bitops/le.h   |    7 +++++
+ include/linux/bitops.h            |    4 +-
+ lib/Kconfig                       |   10 --------
+ lib/Makefile                      |    9 ++-----
+ lib/find_last_bit.c               |    4 +++
+ lib/find_next_bit.c               |   18 +++++++++-----
+ 32 files changed, 77 insertions(+), 199 deletions(-)
 
 -- 
-Hans-Christian Egtvedt
+1.7.4.4
