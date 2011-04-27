@@ -1,40 +1,110 @@
-From: Email Webmaster Help Desk <webmailcontrolunit@cyberservices.com>
-Subject: Urgent Notice From Help Desk
-Date: Tue, 26 Apr 2011 19:48:38 -0700
-Message-ID: <BANLkTik4X_WYzHwgC_uYo60BHjGeLOAizA@mail.gmail.com>
-Reply-To: webmailcontrolunit@cyberservices.com
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v2 4/6] arm: use asm-generic/bitops/le.h
+Date: Wed, 27 Apr 2011 10:19:49 +0100
+Message-ID: <20110427091949.GQ17290@n2100.arm.linux.org.uk>
+References: <1303824223-3566-1-git-send-email-akinobu.mita@gmail.com> <1303824223-3566-5-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:33760 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756339Ab1D0Csi convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Apr 2011 22:48:38 -0400
-Received: by pzk9 with SMTP id 9so757359pzk.19
-        for <linux-arch@vger.kernel.org>; Tue, 26 Apr 2011 19:48:38 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1303824223-3566-5-git-send-email-akinobu.mita@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
---=20
-ADMIN WEBMASTER EMAIL ACCOUNT UPGRADE
+On Tue, Apr 26, 2011 at 10:23:41PM +0900, Akinobu Mita wrote:
+> The previous style change enables to use asm-generic/bitops/le.h
+> on arm.
+> 
+> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
 
-ATTENTION WEB-MAIL USER
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 
-Your E-mail Box has reached its maximum limit of  500MB storage and
-your account will be deactivated if you do not upgrade it now. To
-upgrade your web-mail account, kindly click on the below link and
-follow the instructions to upgrade space for more storage.
-
-CLICK HERE :  http://fietstransportholland.nl/phpformgenerator/use/Acco=
-unt-Upgrade/form1.html
-
-Your account shall remain active after you have successfully confirmed
-your account.
-
-Copyright =A9 2011 # =95 Email Admin Desk =95 ALL RIGHTS RESERVED =95
-
-                             !!! WARNING !!!
-=46ailure to log out will allow others to access your account. Closing
-the browser window does NOT log you out properly.  To log out, please
-click one of the "Log out" icons in the browser window.
+> Cc: linux-arm-kernel@lists.infradead.org
+> ---
+> 
+> No change from previous submission
+> 
+>  arch/arm/include/asm/bitops.h |   43 ++++------------------------------------
+>  1 files changed, 5 insertions(+), 38 deletions(-)
+> 
+> diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
+> index 18a024b..b4892a0 100644
+> --- a/arch/arm/include/asm/bitops.h
+> +++ b/arch/arm/include/asm/bitops.h
+> @@ -203,8 +203,6 @@ extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
+>  #define find_first_bit(p,sz)		_find_first_bit_le(p,sz)
+>  #define find_next_bit(p,sz,off)		_find_next_bit_le(p,sz,off)
+>  
+> -#define WORD_BITOFF_TO_LE(x)		((x))
+> -
+>  #else
+>  /*
+>   * These are the big endian, atomic definitions.
+> @@ -214,8 +212,6 @@ extern int _find_next_bit_be(const unsigned long *p, int size, int offset);
+>  #define find_first_bit(p,sz)		_find_first_bit_be(p,sz)
+>  #define find_next_bit(p,sz,off)		_find_next_bit_be(p,sz,off)
+>  
+> -#define WORD_BITOFF_TO_LE(x)		((x) ^ 0x18)
+> -
+>  #endif
+>  
+>  #if __LINUX_ARM_ARCH__ < 5
+> @@ -287,40 +283,7 @@ static inline int fls(int x)
+>  #include <asm-generic/bitops/hweight.h>
+>  #include <asm-generic/bitops/lock.h>
+>  
+> -static inline void __set_bit_le(int nr, void *addr)
+> -{
+> -	__set_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline void __clear_bit_le(int nr, void *addr)
+> -{
+> -	__clear_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline int __test_and_set_bit_le(int nr, void *addr)
+> -{
+> -	return __test_and_set_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline int test_and_set_bit_le(int nr, void *addr)
+> -{
+> -	return test_and_set_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline int __test_and_clear_bit_le(int nr, void *addr)
+> -{
+> -	return __test_and_clear_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline int test_and_clear_bit_le(int nr, void *addr)
+> -{
+> -	return test_and_clear_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> -
+> -static inline int test_bit_le(int nr, const void *addr)
+> -{
+> -	return test_bit(WORD_BITOFF_TO_LE(nr), addr);
+> -}
+> +#ifdef __ARMEB__
+>  
+>  static inline int find_first_zero_bit_le(const void *p, unsigned size)
+>  {
+> @@ -340,6 +303,10 @@ static inline int find_next_bit_le(const void *p, int size, int offset)
+>  }
+>  #define find_next_bit_le find_next_bit_le
+>  
+> +#endif
+> +
+> +#include <asm-generic/bitops/le.h>
+> +
+>  /*
+>   * Ext2 is defined to use little-endian byte ordering.
+>   */
+> -- 
+> 1.7.4.4
+> 
