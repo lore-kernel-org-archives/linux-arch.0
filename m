@@ -1,84 +1,86 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 7/7] m68knommu: use generic find_next_bit_le()
-Date: Wed, 27 Apr 2011 22:20:11 +0900
-Message-ID: <1303910411-15793-8-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v3 6/7] s390: use asm-generic/bitops/le.h
+Date: Wed, 27 Apr 2011 22:20:10 +0900
+Message-ID: <1303910411-15793-7-git-send-email-akinobu.mita@gmail.com>
 References: <1303910411-15793-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pv0-f174.google.com ([74.125.83.174]:54113 "EHLO
-	mail-pv0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932179Ab1D0NUf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2011 09:20:35 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1303910411-15793-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Greg Ungerer <gerg@uclinux.org>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Russell King <linux@arm.linux.org.uk>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Greg Ungerer <gerg@uclinux.org>
+List-Id: linux-arch.vger.kernel.org
 
-The implementation of find_next_bit_le() on m68knommu is
-identical with the generic implementation of find_next_bit_le().
+The previous style change enables to use asm-generic/bitops/le.h on s390.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Greg Ungerer <gerg@uclinux.org>
 ---
- arch/m68k/include/asm/bitops_no.h |   46 +-----------------------------------
- 1 files changed, 2 insertions(+), 44 deletions(-)
 
-diff --git a/arch/m68k/include/asm/bitops_no.h b/arch/m68k/include/asm/bitops_no.h
-index cd229fb..c4250ae 100644
---- a/arch/m68k/include/asm/bitops_no.h
-+++ b/arch/m68k/include/asm/bitops_no.h
-@@ -337,50 +337,8 @@ found_middle:
- }
- #define find_next_zero_bit_le find_next_zero_bit_le
+Changes from previous submission:
+- Add Acked-by: line
+- No change in the patch itself
+
+ arch/s390/include/asm/bitops.h |   37 ++-----------------------------------
+ 1 files changed, 2 insertions(+), 35 deletions(-)
+
+diff --git a/arch/s390/include/asm/bitops.h b/arch/s390/include/asm/bitops.h
+index 426c974..667c6e9 100644
+--- a/arch/s390/include/asm/bitops.h
++++ b/arch/s390/include/asm/bitops.h
+@@ -746,41 +746,6 @@ static inline int sched_find_first_bit(unsigned long *b)
+  *    23 22 21 20 19 18 17 16 31 30 29 28 27 26 25 24
+  */
  
--static inline unsigned long find_next_bit_le(const void *addr, unsigned
--		long size, unsigned long offset)
+-static inline void __set_bit_le(unsigned long nr, void *addr)
 -{
--	const unsigned long *p = addr;
--	unsigned long result = offset & ~(BITS_PER_LONG - 1);
--	unsigned long tmp;
--
--	if (offset >= size)
--		return size;
--	p += offset / BITS_PER_LONG;
--	size -= result;
--	offset &= (BITS_PER_LONG - 1UL);
--	if (offset) {
--		tmp = __swab32(*(p++));
--		tmp &= (~0UL << offset);
--		if (size < BITS_PER_LONG)
--			goto found_first;
--		if (tmp)
--			goto found_middle;
--		size -= BITS_PER_LONG;
--		result += BITS_PER_LONG;
--	}
--
--	while (size & ~(BITS_PER_LONG - 1)) {
--		tmp = *(p++);
--		if (tmp)
--			goto found_middle_swap;
--		result += BITS_PER_LONG;
--		size -= BITS_PER_LONG;
--	}
--	if (!size)
--		return result;
--	tmp = __swab32(*p);
--found_first:
--	tmp &= (~0UL >> (BITS_PER_LONG - size));
--	if (tmp == 0UL)		/* Are any bits set? */
--		return result + size; /* Nope. */
--found_middle:
--	return result + __ffs(tmp);
--
--found_middle_swap:
--	return result + __ffs(__swab32(tmp));
+-	__set_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
 -}
--#define find_next_bit_le find_next_bit_le
-+extern unsigned long find_next_bit_le(const void *addr,
-+		unsigned long size, unsigned long offset);
+-
+-static inline void __clear_bit_le(unsigned long nr, void *addr)
+-{
+-	__clear_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+-static inline int __test_and_set_bit_le(unsigned long nr, void *addr)
+-{
+-	return __test_and_set_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+-static inline int test_and_set_bit_le(unsigned long nr, void *addr)
+-{
+-	return test_and_set_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+-static inline int __test_and_clear_bit_le(unsigned long nr, void *addr)
+-{
+-	return __test_and_clear_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+-static inline int test_and_clear_bit_le(unsigned long nr, void *addr)
+-{
+-	return test_and_clear_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+-static inline int test_bit_le(unsigned long nr, const void *addr)
+-{
+-	return test_bit(nr ^ (__BITOPS_WORDSIZE - 8), addr);
+-}
+-
+ static inline int find_first_zero_bit_le(void *vaddr, unsigned int size)
+ {
+ 	unsigned long bytes, bits;
+@@ -865,6 +830,8 @@ static inline int find_next_bit_le(void *vaddr, unsigned long size,
+ }
+ #define find_next_bit_le find_next_bit_le
  
- #endif /* __KERNEL__ */
- 
++#include <asm-generic/bitops/le.h>
++
+ #define ext2_set_bit_atomic(lock, nr, addr)	\
+ 	test_and_set_bit_le(nr, addr)
+ #define ext2_clear_bit_atomic(lock, nr, addr)	\
 -- 
 1.7.4.4
