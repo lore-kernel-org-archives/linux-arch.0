@@ -1,67 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:59071 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759891Ab1D0Twp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2011 15:52:45 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v4] kbuild: asm-generic support
-Date: Wed, 27 Apr 2011 21:52:37 +0200
-References: <20110108130302.GA21698@merkur.ravnborg.org> <20110427194225.GA6551@merkur.ravnborg.org> <20110427194647.GA6621@merkur.ravnborg.org>
-In-Reply-To: <20110427194647.GA6621@merkur.ravnborg.org>
+Received: from pqueuea.post.tele.dk ([193.162.153.9]:53572 "EHLO
+	pqueuea.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751950Ab1D0UJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2011 16:09:42 -0400
+Received: from pfepb.post.tele.dk (pfepb.post.tele.dk [195.41.46.236])
+	by pqueuea.post.tele.dk (Postfix) with ESMTP id 01D97DC112
+	for <linux-arch@vger.kernel.org>; Wed, 27 Apr 2011 21:42:44 +0200 (CEST)
+Date: Wed, 27 Apr 2011 21:42:25 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v3] kbuild: asm-generic support
+Message-ID: <20110427194225.GA6551@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz> <20110113170131.GA28377@merkur.ravnborg.org> <20110114144354.GA23611@sepie.suse.cz> <20110422155349.GA9579@merkur.ravnborg.org> <008401cc02e8$415af510$c410df30$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201104272152.37889.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <008401cc02e8$415af510$c410df30$@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>, Remis Lima Baima <remis.developer@googlemail.com>
-Message-ID: <20110427195237.nIP0GFAZv94Ni-ZWkmjf_bskYXojP96k2s-5-Y5lpwU@z>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: 'Michal Marek' <mmarek@suse.cz>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
+Message-ID: <20110427194225.xOefI_yf1awm4Gba_XZjw6kJc_k0kjZNcA6scSo6ZTg@z>
 
-On Wednesday 27 April 2011 21:46:47 Sam Ravnborg wrote:
-> From 8546953f0c87d6b1c37c25df73511780c86ad89d Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Fri, 22 Apr 2011 14:45:13 +0200
-> Subject: [PATCH] kbuild: asm-generic support
+> > @@ -349,7 +349,8 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+> > 
+> >  # Use LINUXINCLUDE when you must reference the include/ directory.
+> >  # Needed to be compatible with the O= option
+> > -LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
+> > +LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
+> > +                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
+> I think $(srctree) is necessary before new include-dir.
 > 
-> There is an increasing amount of header files
-> shared between individual architectures in asm-generic.
-> To avoid a lot of dummy wrapper files that just
-> include the corresponding file in asm-generic provide
-> some basic support in kbuild for this.
-> 
-> With the following patch an architecture can maintain
-> a list of files in the file arch/$(ARCH)/include/asm/Kbuild
-> 
-> To use a generic file just add:
-> 
->         generic-y += <name-of-header-file.h>
-> 
-> For each file listed kbuild will generate the necessary
-> wrapper in arch/$(ARCH)/include/generated/asm.
-> 
-> When installing userspace headers a wrapper is likewise created.
-> 
-> The original inspiration for this came from the unicore32
-> patchset - although a different method is used.
-> 
-> The patch includes several improvements from Arnd Bergmann.
-> Michael Marek contributed Makefile.asm-generic.
-> 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Acked-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-> Tested-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-> Cc: Arnd Bergmann <arnd@arndb.de>
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+The generated files are located in objtree - because they
+are generated. So $(srctree) would be wrong here.
 
-I'm glad to see this finally happen.
+> > +PHONY += asm-generic
+> > +asm-generic:
+> > +	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic obj=arch/$(SRCARCH)/include/generated/asm
+> Too long
+fixed
 
-Maybe you can mention Remis Baima in the changelog as well,
-he did an earlier implementation back in the days when some
-architectures were still using include/asm-${ARCH}, which IIRC
-did not get merged because of the complexity associated with
-that.
+> >  _dst := $(if $(destination-y),$(destination-y),$(_dst))
+> > +_src := $(srctree)/$(obj)
+> _src is only used one time
+fixed
 
-	Arnd
+> > +
+> Additional empty line
+fixed
+
+> > +        done;                                                           \
+> >          touch $@
+> > 
+> > +
+> Additional empty line
+fixed
+
+> >  targets += $(install-file)
+> > -$(install-file): scripts/headers_install.pl $(input-files) FORCE
+> > +$(install-file): scripts/headers_install.pl \
+> > +                 $(input-files) FORCE
+> The same content
+fixed
+
+> I have tested on UniCore32, and it works well.
+I take this as "Acked-by" and "Tested-by".
+
+Thanks for feedback - new version to be posted shortly.
+
+	Sam
