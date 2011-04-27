@@ -1,279 +1,266 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:38046 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932446Ab1D0NUS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2011 09:20:18 -0400
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v3 2/7] arch: add #define for each of optimized find bitops
-Date: Wed, 27 Apr 2011 22:20:06 +0900
-Message-ID: <1303910411-15793-3-git-send-email-akinobu.mita@gmail.com>
-In-Reply-To: <1303910411-15793-1-git-send-email-akinobu.mita@gmail.com>
-References: <1303910411-15793-1-git-send-email-akinobu.mita@gmail.com>
+Received: from pfepa.post.tele.dk ([195.41.46.235]:46559 "EHLO
+	pfepa.post.tele.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753672Ab1D0Tqu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Apr 2011 15:46:50 -0400
+Date: Wed, 27 Apr 2011 21:46:47 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH v4] kbuild: asm-generic support
+Message-ID: <20110427194647.GA6621@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz> <20110113170131.GA28377@merkur.ravnborg.org> <20110114144354.GA23611@sepie.suse.cz> <20110422155349.GA9579@merkur.ravnborg.org> <008401cc02e8$415af510$c410df30$@mprc.pku.edu.cn> <20110427194225.GA6551@merkur.ravnborg.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20110427194225.GA6551@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20110427132006.pERUHELR5LJ4WT-VBnbIvv2Te9iKAao92tNGU7OdNvQ@z>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>, Michal Marek <mmarek@suse.cz>
+Cc: 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
+Message-ID: <20110427194647.n7hcueEZtIj6H03_UDU4wZa6wLj1uTLEayyBjynfJ_0@z>
 
-The style that we normally use in asm-generic is to test the macro itself
-for existence, so in asm-generic, do:
+From 8546953f0c87d6b1c37c25df73511780c86ad89d Mon Sep 17 00:00:00 2001
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Fri, 22 Apr 2011 14:45:13 +0200
+Subject: [PATCH] kbuild: asm-generic support
 
-	#ifndef find_next_zero_bit_le
-	extern unsigned long find_next_zero_bit_le(const void *addr,
-		unsigned long size, unsigned long offset);
-	#endif
+There is an increasing amount of header files
+shared between individual architectures in asm-generic.
+To avoid a lot of dummy wrapper files that just
+include the corresponding file in asm-generic provide
+some basic support in kbuild for this.
 
-and in the architectures, write
+With the following patch an architecture can maintain
+a list of files in the file arch/$(ARCH)/include/asm/Kbuild
 
-	static inline unsigned long find_next_zero_bit_le(const void *addr,
-		unsigned long size, unsigned long offset)
-	#define find_next_zero_bit_le find_next_zero_bit_le
+To use a generic file just add:
 
-This adds the #define for each of the optimized find bitops in the
-architectures.
+        generic-y += <name-of-header-file.h>
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Acked-by: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
-Acked-by: Greg Ungerer <gerg@uclinux.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+For each file listed kbuild will generate the necessary
+wrapper in arch/$(ARCH)/include/generated/asm.
+
+When installing userspace headers a wrapper is likewise created.
+
+The original inspiration for this came from the unicore32
+patchset - although a different method is used.
+
+The patch includes several improvements from Arnd Bergmann.
+Michael Marek contributed Makefile.asm-generic.
+
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+Acked-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Tested-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
 
-Changes from previous submission:
-- Add Acked-by: lines
-- Add #define for find_next_bit_le on m68knommu
+Changes v3 => v4
+Addressed feedback from Guan:
+- drop empty lines
+- fix line-too-long
+- add his Tested-by, Acked-by tags
 
- arch/arm/include/asm/bitops.h     |    3 +++
- arch/avr32/include/asm/bitops.h   |   15 +++++++++++++++
- arch/m68k/include/asm/bitops_mm.h |    8 ++++++++
- arch/m68k/include/asm/bitops_no.h |    2 ++
- arch/s390/include/asm/bitops.h    |    8 ++++++++
- 5 files changed, 36 insertions(+), 0 deletions(-)
+	Sam
 
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index 6b7403f..18a024b 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -326,16 +326,19 @@ static inline int find_first_zero_bit_le(const void *p, unsigned size)
- {
- 	return _find_first_zero_bit_le(p, size);
- }
-+#define find_first_zero_bit_le find_first_zero_bit_le
+
+ .gitignore                         |    1 +
+ Documentation/kbuild/makefiles.txt |   36 ++++++++++++++++++++++++++++++++++++
+ Makefile                           |   16 ++++++++++++----
+ scripts/Makefile.asm-generic       |   23 +++++++++++++++++++++++
+ scripts/Makefile.headersinst       |   10 +++++++++-
+ 5 files changed, 81 insertions(+), 5 deletions(-)
+ create mode 100644 scripts/Makefile.asm-generic
+
+diff --git a/.gitignore b/.gitignore
+index 5d56a3f..9dacde0 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -57,6 +57,7 @@ modules.builtin
+ include/config
+ include/linux/version.h
+ include/generated
++arch/*/include/generated
  
- static inline int find_next_zero_bit_le(const void *p, int size, int offset)
- {
- 	return _find_next_zero_bit_le(p, size, offset);
- }
-+#define find_next_zero_bit_le find_next_zero_bit_le
+ # stgit generated dirs
+ patches-*
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index 5d145bb..7f2b8e7 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -40,11 +40,13 @@ This document describes the Linux kernel Makefiles.
+ 	   --- 6.6 Commands useful for building a boot image
+ 	   --- 6.7 Custom kbuild commands
+ 	   --- 6.8 Preprocessing linker scripts
++	   --- 6.9 Generic header files
  
- static inline int find_next_bit_le(const void *p, int size, int offset)
- {
- 	return _find_next_bit_le(p, size, offset);
- }
-+#define find_next_bit_le find_next_bit_le
+ 	=== 7 Kbuild syntax for exported headers
+ 		--- 7.1 header-y
+ 		--- 7.2 objhdr-y
+ 		--- 7.3 destination-y
++		--- 7.4 generic-y
  
- /*
-  * Ext2 is defined to use little-endian byte ordering.
-diff --git a/arch/avr32/include/asm/bitops.h b/arch/avr32/include/asm/bitops.h
-index 72444d9..b70c19b 100644
---- a/arch/avr32/include/asm/bitops.h
-+++ b/arch/avr32/include/asm/bitops.h
-@@ -270,14 +270,21 @@ static inline int __fls(unsigned long word)
+ 	=== 8 Kbuild Variables
+ 	=== 9 Makefile language
+@@ -1209,6 +1211,14 @@ When kbuild executes, the following steps are followed (roughly):
+ 	The kbuild infrastructure for *lds file are used in several
+ 	architecture-specific files.
  
- unsigned long find_first_zero_bit(const unsigned long *addr,
- 				  unsigned long size);
-+#define find_first_zero_bit find_first_zero_bit
++--- 6.9 Generic header files
 +
- unsigned long find_next_zero_bit(const unsigned long *addr,
- 				 unsigned long size,
- 				 unsigned long offset);
-+#define find_next_zero_bit find_next_zero_bit
++	The directory include/asm-generic contains the header files
++	that may be shared between individual architectures.
++	The recommended approach how to use a generic header file is
++	to list the file in the Kbuild file.
++	See "7.4 generic-y" for further info on syntax etc.
 +
- unsigned long find_first_bit(const unsigned long *addr,
- 			     unsigned long size);
-+#define find_first_bit find_first_bit
+ === 7 Kbuild syntax for exported headers
+ 
+ The kernel include a set of headers that is exported to userspace.
+@@ -1265,6 +1275,32 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 	In the example above all exported headers in the Kbuild file
+ 	will be located in the directory "include/linux" when exported.
+ 
++	--- 7.4 generic-y
 +
- unsigned long find_next_bit(const unsigned long *addr,
- 				 unsigned long size,
- 				 unsigned long offset);
-+#define find_next_bit find_next_bit
- 
- /*
-  * ffs: find first bit set. This is defined the same way as
-@@ -299,6 +306,14 @@ static inline int ffs(unsigned long word)
- #include <asm-generic/bitops/hweight.h>
- #include <asm-generic/bitops/lock.h>
- 
-+extern unsigned long find_next_zero_bit_le(const void *addr,
-+		unsigned long size, unsigned long offset);
-+#define find_next_zero_bit_le find_next_zero_bit_le
++	If an architecture uses a verbatim copy of a header from
++	include/asm-generic then this is listed in the file
++	arch/$(ARCH)/include/asm/Kbuild like this:
 +
-+extern unsigned long find_next_bit_le(const void *addr,
-+		unsigned long size, unsigned long offset);
-+#define find_next_bit_le find_next_bit_le
++		Example:
++			#arch/x86/include/asm/Kbuild
++			generic-y += termios.h
++			generic-y += rtc.h
 +
- #include <asm-generic/bitops/le.h>
- #include <asm-generic/bitops/ext2-atomic.h>
++	During the prepare phase of the build a wrapper include
++	file is generated in the directory:
++
++		arch/$(ARCH)/include/generated/asm
++
++	When a header is exported where the architecture uses
++	the generic header a similar wrapper is generated as part
++	of the set of exported headers in the directory:
++
++		usr/include/asm
++
++	The generated wrapper will in both cases look like the following:
++
++		Example: termios.h
++			#include <asm-generic/termios.h>
  
-diff --git a/arch/m68k/include/asm/bitops_mm.h b/arch/m68k/include/asm/bitops_mm.h
-index 9d69f6e..a938ebe 100644
---- a/arch/m68k/include/asm/bitops_mm.h
-+++ b/arch/m68k/include/asm/bitops_mm.h
-@@ -198,6 +198,7 @@ static inline int find_first_zero_bit(const unsigned long *vaddr,
- out:
- 	return ((long)p - (long)vaddr - 4) * 8 + res;
- }
-+#define find_first_zero_bit find_first_zero_bit
+ === 8 Kbuild Variables
  
- static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
- 				     int offset)
-@@ -223,6 +224,7 @@ static inline int find_next_zero_bit(const unsigned long *vaddr, int size,
- 	res = find_first_zero_bit(p, size - ((long)p - (long)vaddr) * 8);
- 	return offset + res;
- }
-+#define find_next_zero_bit find_next_zero_bit
+diff --git a/Makefile b/Makefile
+index b967b96..9c67453 100644
+--- a/Makefile
++++ b/Makefile
+@@ -349,7 +349,8 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
  
- static inline int find_first_bit(const unsigned long *vaddr, unsigned size)
- {
-@@ -245,6 +247,7 @@ static inline int find_first_bit(const unsigned long *vaddr, unsigned size)
- out:
- 	return ((long)p - (long)vaddr - 4) * 8 + res;
- }
-+#define find_first_bit find_first_bit
+ # Use LINUXINCLUDE when you must reference the include/ directory.
+ # Needed to be compatible with the O= option
+-LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
++LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
++                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
+                    $(if $(KBUILD_SRC), -I$(srctree)/include) \
+                    -include include/generated/autoconf.h
  
- static inline int find_next_bit(const unsigned long *vaddr, int size,
- 				int offset)
-@@ -270,6 +273,7 @@ static inline int find_next_bit(const unsigned long *vaddr, int size,
- 	res = find_first_bit(p, size - ((long)p - (long)vaddr) * 8);
- 	return offset + res;
- }
-+#define find_next_bit find_next_bit
+@@ -416,6 +417,12 @@ ifneq ($(KBUILD_SRC),)
+ 	    $(srctree) $(objtree) $(VERSION) $(PATCHLEVEL)
+ endif
  
- /*
-  * ffz = Find First Zero in word. Undefined if no zero exists,
-@@ -384,6 +388,7 @@ static inline int find_first_zero_bit_le(const void *vaddr, unsigned size)
- 			break;
- 	return (p - addr) * 32 + res;
- }
-+#define find_first_zero_bit_le find_first_zero_bit_le
++# Support for using generic headers in asm-generic
++PHONY += asm-generic
++asm-generic:
++	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
++	            obj=arch/$(SRCARCH)/include/generated/asm
++
+ # To make sure we do not include .config for any of the *config targets
+ # catch them early, and hand them over to scripts/kconfig/Makefile
+ # It is allowed to specify more targets when calling make, including
+@@ -947,7 +954,7 @@ ifneq ($(KBUILD_SRC),)
+ endif
  
- static inline unsigned long find_next_zero_bit_le(const void *addr,
- 		unsigned long size, unsigned long offset)
-@@ -408,6 +413,7 @@ static inline unsigned long find_next_zero_bit_le(const void *addr,
- 	/* No zero yet, search remaining full bytes for a zero */
- 	return offset + find_first_zero_bit_le(p, size - offset);
- }
-+#define find_next_zero_bit_le find_next_zero_bit_le
+ # prepare2 creates a makefile if using a separate output directory
+-prepare2: prepare3 outputmakefile
++prepare2: prepare3 outputmakefile asm-generic
  
- static inline int find_first_bit_le(const void *vaddr, unsigned size)
- {
-@@ -429,6 +435,7 @@ static inline int find_first_bit_le(const void *vaddr, unsigned size)
- 			break;
- 	return (p - addr) * 32 + res;
- }
-+#define find_first_bit_le find_first_bit_le
+ prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
+                    include/config/auto.conf
+@@ -1021,7 +1028,7 @@ hdr-inst := -rR -f $(srctree)/scripts/Makefile.headersinst obj
+ hdr-dst = $(if $(KBUILD_HEADERS), dst=include/asm-$(hdr-arch), dst=include/asm)
  
- static inline unsigned long find_next_bit_le(const void *addr,
- 		unsigned long size, unsigned long offset)
-@@ -453,6 +460,7 @@ static inline unsigned long find_next_bit_le(const void *addr,
- 	/* No set bit yet, search remaining full bytes for a set bit */
- 	return offset + find_first_bit_le(p, size - offset);
- }
-+#define find_next_bit_le find_next_bit_le
+ PHONY += __headers
+-__headers: include/linux/version.h scripts_basic FORCE
++__headers: include/linux/version.h scripts_basic asm-generic FORCE
+ 	$(Q)$(MAKE) $(build)=scripts build_unifdef
  
- /* Bitmap functions for the ext2 filesystem. */
+ PHONY += headers_install_all
+@@ -1136,7 +1143,8 @@ CLEAN_FILES +=	vmlinux System.map \
+                 .tmp_kallsyms* .tmp_version .tmp_vmlinux* .tmp_System.map
  
-diff --git a/arch/m68k/include/asm/bitops_no.h b/arch/m68k/include/asm/bitops_no.h
-index 97d1d0c..cd229fb 100644
---- a/arch/m68k/include/asm/bitops_no.h
-+++ b/arch/m68k/include/asm/bitops_no.h
-@@ -335,6 +335,7 @@ found_first:
- found_middle:
- 	return result + ffz(__swab32(tmp));
- }
-+#define find_next_zero_bit_le find_next_zero_bit_le
+ # Directories & files removed with 'make mrproper'
+-MRPROPER_DIRS  += include/config usr/include include/generated
++MRPROPER_DIRS  += include/config usr/include include/generated          \
++                  arch/*/include/generated
+ MRPROPER_FILES += .config .config.old .version .old_version             \
+                   include/linux/version.h                               \
+ 		  Module.symvers tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+new file mode 100644
+index 0000000..a687cb6
+--- /dev/null
++++ b/scripts/Makefile.asm-generic
+@@ -0,0 +1,23 @@
++# include/asm-generic contains a lot of files that are used
++# verbatim by several architectures.
++#
++# This Makefile reads the file arch/$(SRCARCH)/include/asm/Kbuild
++# and for each file listed in this file with generic-y creates
++# a small wrapper file in $(obj) (arch/$(SRCARCH)/include/generated/asm)
++
++kbuild-file := $(srctree)/arch/$(SRCARCH)/include/asm/Kbuild
++include $(kbuild-file)
++
++include scripts/Kbuild.include
++
++# Create output directory if not already present
++_dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
++
++quiet_cmd_wrap = WRAP    $@
++cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
++
++all: $(patsubst %, $(obj)/%, $(generic-y))
++
++$(obj)/%.h:
++	$(call cmd,wrap)
++
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index f89cb87..a57f5bd 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -27,8 +27,13 @@ header-y      := $(filter-out %/, $(header-y))
+ install-file  := $(install)/.install
+ check-file    := $(install)/.check
  
- static inline unsigned long find_next_bit_le(const void *addr, unsigned
- 		long size, unsigned long offset)
-@@ -379,6 +380,7 @@ found_middle:
- found_middle_swap:
- 	return result + __ffs(__swab32(tmp));
- }
-+#define find_next_bit_le find_next_bit_le
++# generic-y list all files an architecture uses from asm-generic
++# Use this to build a list of headers which require a wrapper
++wrapper-files := $(filter $(header-y), $(generic-y))
++
+ # all headers files for this dir
+-all-files     := $(header-y) $(objhdr-y)
++header-y      := $(filter-out $(generic-y), $(header-y))
++all-files     := $(header-y) $(objhdr-y) $(wrapper-files)
+ input-files   := $(addprefix $(srctree)/$(obj)/,$(header-y)) \
+                  $(addprefix $(objtree)/$(obj)/,$(objhdr-y))
+ output-files  := $(addprefix $(install)/, $(all-files))
+@@ -47,6 +52,9 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+       cmd_install = \
+         $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
+         $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
++        for F in $(wrapper-files); do                                   \
++                echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
++        done;                                                           \
+         touch $@
  
- #endif /* __KERNEL__ */
- 
-diff --git a/arch/s390/include/asm/bitops.h b/arch/s390/include/asm/bitops.h
-index e1c8f3a..426c974 100644
---- a/arch/s390/include/asm/bitops.h
-+++ b/arch/s390/include/asm/bitops.h
-@@ -621,6 +621,7 @@ static inline unsigned long find_first_zero_bit(const unsigned long *addr,
- 	bits = __ffz_word(bytes*8, __load_ulong_be(addr, bytes));
- 	return (bits < size) ? bits : size;
- }
-+#define find_first_zero_bit find_first_zero_bit
- 
- /**
-  * find_first_bit - find the first set bit in a memory region
-@@ -641,6 +642,7 @@ static inline unsigned long find_first_bit(const unsigned long * addr,
- 	bits = __ffs_word(bytes*8, __load_ulong_be(addr, bytes));
- 	return (bits < size) ? bits : size;
- }
-+#define find_first_bit find_first_bit
- 
- /**
-  * find_next_zero_bit - find the first zero bit in a memory region
-@@ -677,6 +679,7 @@ static inline int find_next_zero_bit (const unsigned long * addr,
- 	}
- 	return offset + find_first_zero_bit(p, size);
- }
-+#define find_next_zero_bit find_next_zero_bit
- 
- /**
-  * find_next_bit - find the first set bit in a memory region
-@@ -713,6 +716,7 @@ static inline int find_next_bit (const unsigned long * addr,
- 	}
- 	return offset + find_first_bit(p, size);
- }
-+#define find_next_bit find_next_bit
- 
- /*
-  * Every architecture must define this function. It's the fastest
-@@ -787,6 +791,7 @@ static inline int find_first_zero_bit_le(void *vaddr, unsigned int size)
- 	bits = __ffz_word(bytes*8, __load_ulong_le(vaddr, bytes));
- 	return (bits < size) ? bits : size;
- }
-+#define find_first_zero_bit_le find_first_zero_bit_le
- 
- static inline int find_next_zero_bit_le(void *vaddr, unsigned long size,
- 					  unsigned long offset)
-@@ -816,6 +821,7 @@ static inline int find_next_zero_bit_le(void *vaddr, unsigned long size,
-         }
- 	return offset + find_first_zero_bit_le(p, size);
- }
-+#define find_next_zero_bit_le find_next_zero_bit_le
- 
- static inline unsigned long find_first_bit_le(void *vaddr, unsigned long size)
- {
-@@ -827,6 +833,7 @@ static inline unsigned long find_first_bit_le(void *vaddr, unsigned long size)
- 	bits = __ffs_word(bytes*8, __load_ulong_le(vaddr, bytes));
- 	return (bits < size) ? bits : size;
- }
-+#define find_first_bit_le find_first_bit_le
- 
- static inline int find_next_bit_le(void *vaddr, unsigned long size,
- 				     unsigned long offset)
-@@ -856,6 +863,7 @@ static inline int find_next_bit_le(void *vaddr, unsigned long size,
- 	}
- 	return offset + find_first_bit_le(p, size);
- }
-+#define find_next_bit_le find_next_bit_le
- 
- #define ext2_set_bit_atomic(lock, nr, addr)	\
- 	test_and_set_bit_le(nr, addr)
+ quiet_cmd_remove = REMOVE  $(unwanted)
 -- 
-1.7.4.4
+1.6.0.6
 
