@@ -1,111 +1,63 @@
-From: "Jan Beulich" <JBeulich@novell.com>
-Subject: [PATCH] allow placing exception table in .rodata (and do so on
-	 x86)
-Date: Wed, 27 Apr 2011 16:36:04 +0100
-Message-ID: <4DB85404020000780003E6D7@vpn.id2.novell.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v3] kbuild: asm-generic support
+Date: Wed, 27 Apr 2011 21:42:25 +0200
+Message-ID: <20110427194225.GA6551@merkur.ravnborg.org>
+References: <20110108130302.GA21698@merkur.ravnborg.org> <20110109192707.GA12387@merkur.ravnborg.org> <20110109192907.GA12403@merkur.ravnborg.org> <4D2F24CD.5040101@suse.cz> <20110113170131.GA28377@merkur.ravnborg.org> <20110114144354.GA23611@sepie.suse.cz> <20110422155349.GA9579@merkur.ravnborg.org> <008401cc02e8$415af510$c410df30$@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: mingo@elte.hu, tglx@linutronix.de, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <008401cc02e8$415af510$c410df30$@mprc.pku.edu.cn>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: 'Michal Marek' <mmarek@suse.cz>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
+List-Id: linux-arch.vger.kernel.org
 
-This is since the table is really a set of pointers, i.e. misplaced in
-.text.
+> > @@ -349,7 +349,8 @@ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+> > 
+> >  # Use LINUXINCLUDE when you must reference the include/ directory.
+> >  # Needed to be compatible with the O= option
+> > -LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include -Iinclude \
+> > +LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
+> > +                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
+> I think $(srctree) is necessary before new include-dir.
+> 
 
-Quite likely other architectures would want to follow.
+The generated files are located in objtree - because they
+are generated. So $(srctree) would be wrong here.
 
-Signed-off-by: Jan Beulich <jbeulich@novell.com>
+> > +PHONY += asm-generic
+> > +asm-generic:
+> > +	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic obj=arch/$(SRCARCH)/include/generated/asm
+> Too long
+fixed
 
----
- arch/x86/include/asm/sections.h   |    2 +-
- arch/x86/kernel/vmlinux.lds.S     |    5 +++--
- arch/x86/mm/init_64.c             |    6 +++---
- include/asm-generic/vmlinux.lds.h |    5 +++++
- 4 files changed, 12 insertions(+), 6 deletions(-)
+> >  _dst := $(if $(destination-y),$(destination-y),$(_dst))
+> > +_src := $(srctree)/$(obj)
+> _src is only used one time
+fixed
 
---- 2.6.39-rc5/arch/x86/include/asm/sections.h
-+++ 2.6.39-rc5-extable-in-rodata/arch/x86/include/asm/sections.h
-@@ -5,7 +5,7 @@
- #include <asm/uaccess.h>
- 
- extern char __brk_base[], __brk_limit[];
--extern struct exception_table_entry __stop___ex_table[];
-+extern const char __stop_notes[];
- 
- #if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
- extern char __end_rodata_hpage_align[];
---- 2.6.39-rc5/arch/x86/kernel/vmlinux.lds.S
-+++ 2.6.39-rc5-extable-in-rodata/arch/x86/kernel/vmlinux.lds.S
-@@ -20,6 +20,8 @@
- #define LOAD_OFFSET __START_KERNEL_map
- #endif
- 
-+#define EXCEPTION_TABLE_RO EXCEPTION_TABLE(16)
-+
- #include <asm-generic/vmlinux.lds.h>
- #include <asm/asm-offsets.h>
- #include <asm/thread_info.h>
-@@ -114,8 +116,7 @@ SECTIONS
- 	} :text = 0x9090
- 
- 	NOTES :text :note
--
--	EXCEPTION_TABLE(16) :text = 0x9090
-+	text_continues : {} :text /* switch back to regular text... */
- 
- #if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
---- 2.6.39-rc5/arch/x86/mm/init_64.c
-+++ 2.6.39-rc5-extable-in-rodata/arch/x86/mm/init_64.c
-@@ -741,7 +741,7 @@ int kernel_set_to_readonly;
- void set_kernel_text_rw(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -760,7 +760,7 @@ void set_kernel_text_rw(void)
- void set_kernel_text_ro(void)
- {
- 	unsigned long start = PFN_ALIGN(_text);
--	unsigned long end = PFN_ALIGN(__stop___ex_table);
-+	unsigned long end = PFN_ALIGN(_etext);
- 
- 	if (!kernel_set_to_readonly)
- 		return;
-@@ -780,7 +780,7 @@ void mark_rodata_ro(void)
- 	unsigned long rodata_start =
- 		((unsigned long)__start_rodata + PAGE_SIZE - 1) & PAGE_MASK;
- 	unsigned long end = (unsigned long) &__end_rodata_hpage_align;
--	unsigned long text_end = PAGE_ALIGN((unsigned long) &__stop___ex_table);
-+	unsigned long text_end = PAGE_ALIGN((unsigned long) &__stop_notes);
- 	unsigned long rodata_end = PAGE_ALIGN((unsigned long) &__end_rodata);
- 	unsigned long data_start = (unsigned long) &_sdata;
- 
---- 2.6.39-rc5/include/asm-generic/vmlinux.lds.h
-+++ 2.6.39-rc5-extable-in-rodata/include/asm-generic/vmlinux.lds.h
-@@ -226,6 +226,7 @@
- 		*(.rodata1)						\
- 	}								\
- 									\
-+	EXCEPTION_TABLE_RO						\
- 	BUG_TABLE							\
- 									\
- 	JUMP_TABLE							\
-@@ -459,6 +460,10 @@
- 		VMLINUX_SYMBOL(__stop___ex_table) = .;			\
- 	}
- 
-+#ifndef EXCEPTION_TABLE_RO
-+#define EXCEPTION_TABLE_RO
-+#endif
-+
- /*
-  * Init task
-  */
+> > +
+> Additional empty line
+fixed
+
+> > +        done;                                                           \
+> >          touch $@
+> > 
+> > +
+> Additional empty line
+fixed
+
+> >  targets += $(install-file)
+> > -$(install-file): scripts/headers_install.pl $(input-files) FORCE
+> > +$(install-file): scripts/headers_install.pl \
+> > +                 $(input-files) FORCE
+> The same content
+fixed
+
+> I have tested on UniCore32, and it works well.
+I take this as "Acked-by" and "Tested-by".
+
+Thanks for feedback - new version to be posted shortly.
+
+	Sam
