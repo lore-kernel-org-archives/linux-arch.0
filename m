@@ -1,31 +1,70 @@
-From: Alpha Home Equity Loans <reijo.karvinn@tut.fi>
-Subject: Loan at 2% interest apply now
-Date: Thu, 28 Apr 2011 17:42:26 +0300
-Message-ID: <20110428174226.16631kwkmtbr3gf4@webmail.tut.fi>
-Reply-To: alphlimitedloan@gncn.net
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: [PATCH v5] kbuild: asm-generic support
+Date: Thu, 28 Apr 2011 18:16:57 +0200
+Message-ID: <20110428161657.GA1619@sepie.suse.cz>
+References: <20110108130302.GA21698@merkur.ravnborg.org>
+ <20110427194225.GA6551@merkur.ravnborg.org>
+ <20110427194647.GA6621@merkur.ravnborg.org>
+ <201104272152.37889.arnd@arndb.de>
+ <20110427202949.GA8881@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=ISO-8859-1;
- DelSp="Yes";
- format="flowed"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw1.cc.tut.fi ([130.230.160.15]:54605 "EHLO
-	mail-gw1.cc.tut.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932978Ab1D1O5n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2011 10:57:43 -0400
+Received: from cantor2.suse.de ([195.135.220.15]:49195 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752327Ab1D1QRA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Apr 2011 12:17:00 -0400
 Content-Disposition: inline
+In-Reply-To: <20110427202949.GA8881@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
 
-Dear Sir/Madam,
+On Wed, Apr 27, 2011 at 10:29:49PM +0200, Sam Ravnborg wrote:
+> From 1b46234aa99f235b48dce0068fb5fb56ddf6ddab Mon Sep 17 00:00:00 2001
+> From: Sam Ravnborg <sam@ravnborg.org>
+> Date: Fri, 22 Apr 2011 14:45:13 +0200
+> Subject: [PATCH] kbuild: asm-generic support
+> 
+> There is an increasing amount of header files
+> shared between individual architectures in asm-generic.
+> To avoid a lot of dummy wrapper files that just
+> include the corresponding file in asm-generic provide
+> some basic support in kbuild for this.
+> 
+> With the following patch an architecture can maintain
+> a list of files in the file arch/$(ARCH)/include/asm/Kbuild
+> 
+> To use a generic file just add:
+> 
+>         generic-y += <name-of-header-file.h>
+> 
+> For each file listed kbuild will generate the necessary
+> wrapper in arch/$(ARCH)/include/generated/asm.
+> 
+> When installing userspace headers a wrapper is likewise created.
+> 
+> The original inspiration for this came from the unicore32
+> patchset - although a different method is used.
+> 
+> The patch includes several improvements from Arnd Bergmann.
+> Michael Marek contributed Makefile.asm-generic.
+> 
+> Remis Baima did an intial implementation along to achive
+> the same - see https://patchwork.kernel.org/patch/13352/
+> 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> Acked-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+> Tested-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: Remis Lima Baima <remis.developer@googlemail.com>
+> ---
+> 
+> Changes from v4 => v5
+> - Mentioned Remis in changelog (thanks to Arnd)
+> - Added "Acked-by" from Arnd
 
-               Welcome to Alpha Home Equity Loans, we wish to inform  
-the public within Malaysia and Abroad that is company is offering a 2%  
-interest loan.we are offering loan within the range of $500 to  
-$100,000,000.00 USD from 1 Year to 50 years.
-Email: alphlimitedloan@gncn.net
+Applied to kbuild-2.6.git#kbuild, thanks a lot!
 
-Regards
-Dr.Lee Seng
-Alpha Home Equity Loans
+Michal
