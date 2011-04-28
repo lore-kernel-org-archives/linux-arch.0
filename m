@@ -1,92 +1,31 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] allow placing exception table in .rodata (and do so on x86)
-Date: Thu, 28 Apr 2011 15:44:13 +0200
-Message-ID: <BANLkTinpjyKFMChWh5rVfRbpOsp6kGEXYw@mail.gmail.com>
-References: <4DB85404020000780003E6D7@vpn.id2.novell.com>
-	<20110428104306.GC2431@osiris.boeblingen.de.ibm.com>
-	<4DB96E6A020000780003E9EB@vpn.id2.novell.com>
-	<BANLkTikJN92ogUfxAc+SgzvX1Q8r48ughw@mail.gmail.com>
-	<4DB9748B020000780003EA01@vpn.id2.novell.com>
-	<20110428125302.GD2431@osiris.boeblingen.de.ibm.com>
-	<4DB98854020000780003EA4D@vpn.id2.novell.com>
+From: Alpha Home Equity Loans <reijo.karvinn@tut.fi>
+Subject: Loan at 2% interest apply now
+Date: Thu, 28 Apr 2011 17:42:26 +0300
+Message-ID: <20110428174226.16631kwkmtbr3gf4@webmail.tut.fi>
+Reply-To: alphlimitedloan@gncn.net
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+ charset=ISO-8859-1;
+ DelSp="Yes";
+ format="flowed"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:46615 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759805Ab1D1NoQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2011 09:44:16 -0400
-In-Reply-To: <4DB98854020000780003EA4D@vpn.id2.novell.com>
+Received: from mail-gw1.cc.tut.fi ([130.230.160.15]:54605 "EHLO
+	mail-gw1.cc.tut.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932978Ab1D1O5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Apr 2011 10:57:43 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Beulich <JBeulich@novell.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, mingo@elte.hu, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, hpa@zytor.com
 
-On Thu, Apr 28, 2011 at 15:31, Jan Beulich <JBeulich@novell.com> wrote:
->>>> On 28.04.11 at 14:53, Heiko Carstens <heiko.carstens@de.ibm.com> w=
-rote:
->> On Thu, Apr 28, 2011 at 01:07:07PM +0100, Jan Beulich wrote:
->>> >>> On 28.04.11 at 13:47, Geert Uytterhoeven <geert@linux-m68k.org>=
- wrote:
->>> > On Thu, Apr 28, 2011 at 13:40, Jan Beulich <JBeulich@novell.com> =
-wrote:
->>> >>>>> On 28.04.11 at 12:43, Heiko Carstens <heiko.carstens@de.ibm.c=
-om> wrote:
->>> >>> On Wed, Apr 27, 2011 at 04:36:04PM +0100, Jan Beulich wrote:
->>> >>> That's odd. The kernel actually writes to it (sort_main_extable=
-()), so
->>> >>> it shouldn't be in the ro data section, but the data section.
->>> >>
->>> >> This area does get written, but only at boot time, before read-o=
-nly
->>> >> data gets set to r/o (on x86 at least). With this in mind, it's =
-better
->>> >> to place it in .rodata, as that way run-time protection will be =
-in place
->>> >> (and I think you agree that it was misplaced in .text in any cas=
-e).
->>> >
->>> > Which means it may be in ROM (which is really read-only) on some =
-embedded
->>> > devices, so it cannot be sorted?
->>>
->>> Perhaps - but since sorting is a requirement, people building such
->>> systems must have found a way... Anyway, I don't see where both
->>
->> Yes, we found a way on s390: we put the exception table in the data =
-section.
->>
->>> your and Heiko's comment are heading, since the situation is even
->>> worse without the patch afaics (since .text gets marked read-only
->>> as much as .rodata does, and could equally be placed in ROM).
->>
->> My point is that your default is wrong. If it makes sense to put the=
- extable
->> into the rodata section then an architecture could do so. However ma=
-king the
->> default to put data into the rodata section that is actually written=
- to is
->> the wrong approach.
->> It just asks for breakage.
->
-> The patch doesn't make this the default - it just makes it possible
-> for an architecture to do so.
+Dear Sir/Madam,
 
-"asm-generic" is the default for new architectures.
+               Welcome to Alpha Home Equity Loans, we wish to inform  
+the public within Malaysia and Abroad that is company is offering a 2%  
+interest loan.we are offering loan within the range of $500 to  
+$100,000,000.00 USD from 1 Year to 50 years.
+Email: alphlimitedloan@gncn.net
 
-Gr{oetje,eeting}s,
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+Regards
+Dr.Lee Seng
+Alpha Home Equity Loans
