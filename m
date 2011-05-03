@@ -1,53 +1,24 @@
-From: CUSTOMER SERVICE <info@bmw.co.uk>
-Subject: REFNO.:BMW/75-A080332010
-Date: Thu, 05 May 2011 12:37:27 +0300
-Message-ID: <20110505123727.erqrqksfoooggcc0@webmail.welho.com>
-Reply-To: bmwdpt11@shqiptar.eu
+From: Loveth Jerry <admin@jheccem.com>
+Subject: Hello;
+Date: Tue, 3 May 2011 09:29:56 +0200 (CEST)
+Message-ID: <10580630.8043.1304407796403.JavaMail.root__46347.1200353981$1304634905$gmane$org@mail.jheccem.com>
+Reply-To: loveth2002jerry@hotmail.com
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=ISO-8859-1;
-	DelSp="Yes";
-	format="flowed"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from filtteri5.pp.htv.fi ([213.243.153.188]:36291 "EHLO
-	filtteri5.pp.htv.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752545Ab1EEJhc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 May 2011 05:37:32 -0400
-Content-Disposition: inline
+Received: from [200.87.233.154] ([200.87.233.154]:46594 "EHLO mail.jheccem.com"
+	rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org with ESMTP
+	id S1752667Ab1EEWei (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 May 2011 18:34:38 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
 
-CUSTOMER SERVICE
-REFNO.:BMW/75-A080332010
-Batch: 174/05/ZY369
 
-Dear E-mail Owner,
+Hello, 
 
-You are receiving this message because you are a Winner of (300,000.00 G.B.P)
-from BMW Automobile new year promo Online Lottery game.
+My name is Loveth Niame Jerry . I got your contact email while making some research for reliable foreigner on the Internet (Remember the distance or colour does not matter but our good heart and sincerity matters allot in life ) i will be waiting to hear from you so that i will tell you more about my self and send my picture to you.I wish you all the best for your day.Always stay blessed from my deepest heart. 
 
-A random email balloting system selected your email address amongst a total of
-five (5) winners without the sale of any tickets.
-
-Claim requirements are as follows:
-(1) Your full names
-(2) Contact Address
-(3) Age
-(4) Occupation
-(5) Telephone
-(6) Sex
-(7) Nationality
-
-Contact Mr. Thomas Hillary on (bmwdpt11@shqiptar.eu) Tel:+4470359437491
-
-You will be furnished with details on how to receive your prize as soon as we
-receive your response to this mail. Be sure to check all incoming mail folders
-including your junk folder for subsequent mails from us.
-
-NB: You are to reply directly to this email bmwdpt11@shqiptar.eu because any
-mail sent to any other email address will not be attended to.
-
-Anita Gibbs
-Annoucer For BMW Automobile Promo.
+Yours respectfully, 
+Miss Loveth. 
