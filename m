@@ -1,70 +1,112 @@
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH v5] kbuild: asm-generic support
-Date: Thu, 28 Apr 2011 18:16:57 +0200
-Message-ID: <20110428161657.GA1619@sepie.suse.cz>
-References: <20110108130302.GA21698@merkur.ravnborg.org>
- <20110427194225.GA6551@merkur.ravnborg.org>
- <20110427194647.GA6621@merkur.ravnborg.org>
- <201104272152.37889.arnd@arndb.de>
- <20110427202949.GA8881@merkur.ravnborg.org>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: [PATCH v3 1/7] m68knommu: fix build error due to the lack of
+ find_next_bit_le()
+Date: Tue, 3 May 2011 16:58:23 +1000
+Message-ID: <4DBFA78F.9060001@snapgear.com>
+References: <1303910411-15793-1-git-send-email-akinobu.mita@gmail.com> <1303910411-15793-2-git-send-email-akinobu.mita@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:49195 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752327Ab1D1QRA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Apr 2011 12:17:00 -0400
-Content-Disposition: inline
-In-Reply-To: <20110427202949.GA8881@merkur.ravnborg.org>
+Received: from sncsmrelay2.nai.com ([67.97.80.206]:22999 "EHLO
+	sncsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752042Ab1ECHBf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 May 2011 03:01:35 -0400
+In-Reply-To: <1303910411-15793-2-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Remis Lima Baima <remis.developer@googlemail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, 'lkml' <linux-kernel@vger.kernel.org>, 'linux-kbuild' <linux-kbuild@vger.kernel.org>, 'linux arch' <linux-arch@vger.kernel.org>, 'Guan Xuetao' <guanxuetao@mprc.pku.edu.cn>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, arnd@arndb.de, Greg Ungerer <gerg@uclinux.org>
 
-On Wed, Apr 27, 2011 at 10:29:49PM +0200, Sam Ravnborg wrote:
-> From 1b46234aa99f235b48dce0068fb5fb56ddf6ddab Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Fri, 22 Apr 2011 14:45:13 +0200
-> Subject: [PATCH] kbuild: asm-generic support
-> 
-> There is an increasing amount of header files
-> shared between individual architectures in asm-generic.
-> To avoid a lot of dummy wrapper files that just
-> include the corresponding file in asm-generic provide
-> some basic support in kbuild for this.
-> 
-> With the following patch an architecture can maintain
-> a list of files in the file arch/$(ARCH)/include/asm/Kbuild
-> 
-> To use a generic file just add:
-> 
->         generic-y += <name-of-header-file.h>
-> 
-> For each file listed kbuild will generate the necessary
-> wrapper in arch/$(ARCH)/include/generated/asm.
-> 
-> When installing userspace headers a wrapper is likewise created.
-> 
-> The original inspiration for this came from the unicore32
-> patchset - although a different method is used.
-> 
-> The patch includes several improvements from Arnd Bergmann.
-> Michael Marek contributed Makefile.asm-generic.
-> 
-> Remis Baima did an intial implementation along to achive
-> the same - see https://patchwork.kernel.org/patch/13352/
-> 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> Acked-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-> Tested-by: Guan Xuetao <guanxuetao@mprc.pku.edu.cn>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: Remis Lima Baima <remis.developer@googlemail.com>
+Hi Akinobu,
+
+On 27/04/11 23:20, Akinobu Mita wrote:
+> m68knommu can't build ext4, udf, and ocfs2 due to the lack of
+> find_next_bit_le().
+>
+> This implements find_next_bit_le() on m68knommu by duplicating the
+> generic find_next_bit_le() in lib/find_next_bit.c.
+
+Wouldn't the m68k specific implementation of this in
+arch/m68k/include/asm/bitops_mm.h be better?
+
+(bitops_*.h is still on my list of files to clean up and
+merge for m68k mmu and non-mmu)
+
+Regards
+Greg
+
+
+
+> Signed-off-by: Akinobu Mita<akinobu.mita@gmail.com>
+> Cc: Greg Ungerer<gerg@uclinux.org>
 > ---
-> 
-> Changes from v4 => v5
-> - Mentioned Remis in changelog (thanks to Arnd)
-> - Added "Acked-by" from Arnd
+>
+> This patch should go into 2.6.39
+>
+>   arch/m68k/include/asm/bitops_no.h |   44 +++++++++++++++++++++++++++++++++++++
+>   1 files changed, 44 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/m68k/include/asm/bitops_no.h b/arch/m68k/include/asm/bitops_no.h
+> index 7d3779f..97d1d0c 100644
+> --- a/arch/m68k/include/asm/bitops_no.h
+> +++ b/arch/m68k/include/asm/bitops_no.h
+> @@ -336,6 +336,50 @@ found_middle:
+>   	return result + ffz(__swab32(tmp));
+>   }
+>
+> +static inline unsigned long find_next_bit_le(const void *addr, unsigned
+> +		long size, unsigned long offset)
+> +{
+> +	const unsigned long *p = addr;
+> +	unsigned long result = offset&  ~(BITS_PER_LONG - 1);
+> +	unsigned long tmp;
+> +
+> +	if (offset>= size)
+> +		return size;
+> +	p += offset / BITS_PER_LONG;
+> +	size -= result;
+> +	offset&= (BITS_PER_LONG - 1UL);
+> +	if (offset) {
+> +		tmp = __swab32(*(p++));
+> +		tmp&= (~0UL<<  offset);
+> +		if (size<  BITS_PER_LONG)
+> +			goto found_first;
+> +		if (tmp)
+> +			goto found_middle;
+> +		size -= BITS_PER_LONG;
+> +		result += BITS_PER_LONG;
+> +	}
+> +
+> +	while (size&  ~(BITS_PER_LONG - 1)) {
+> +		tmp = *(p++);
+> +		if (tmp)
+> +			goto found_middle_swap;
+> +		result += BITS_PER_LONG;
+> +		size -= BITS_PER_LONG;
+> +	}
+> +	if (!size)
+> +		return result;
+> +	tmp = __swab32(*p);
+> +found_first:
+> +	tmp&= (~0UL>>  (BITS_PER_LONG - size));
+> +	if (tmp == 0UL)		/* Are any bits set? */
+> +		return result + size; /* Nope. */
+> +found_middle:
+> +	return result + __ffs(tmp);
+> +
+> +found_middle_swap:
+> +	return result + __ffs(__swab32(tmp));
+> +}
+> +
+>   #endif /* __KERNEL__ */
+>
+>   #include<asm-generic/bitops/fls.h>
 
-Applied to kbuild-2.6.git#kbuild, thanks a lot!
 
-Michal
+-- 
+------------------------------------------------------------------------
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
+8 Gardner Close                             FAX:         +61 7 3217 5323
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
