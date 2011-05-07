@@ -1,35 +1,67 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [PATCH] fs: add FD_CLOFORK and O_CLOFORK
-Date: Sat, 07 May 2011 08:29:14 +0200
-Message-ID: <1304749754.2821.712.camel@edumazet-laptop>
-References: <1304743740-3405-1-git-send-email-xiaosuo@gmail.com>
-	 <1304748394.2821.654.camel@edumazet-laptop>
-	 <BANLkTi=tZf1uQig8A-WiXUpSWcuqaqV=fg@mail.gmail.com>
+From: Alex Bligh <alex-rWA27mgs/Jz10XsdtD+oqA@public.gmane.org>
+Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
+Date: Sat, 07 May 2011 07:58:28 +0100
+Message-ID: <3A54AB469A0294933EAC2257@nimrod.local>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+Reply-To: Alex Bligh <alex-rWA27mgs/Jz10XsdtD+oqA@public.gmane.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:32835 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752159Ab1EGG3U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 02:29:20 -0400
-In-Reply-To: <BANLkTi=tZf1uQig8A-WiXUpSWcuqaqV=fg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Changli Gao <xiaosuo@gmail.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <m1tyd7p7tq.fsf-+imSwln9KH6u2/kzUuoCbdi2O/JbrIOy@public.gmane.org>
+Content-Disposition: inline
+List-Unsubscribe: <https://lists.linux-foundation.org/mailman/listinfo/containers>,
+	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linux-foundation.org/pipermail/containers>
+List-Post: <mailto:containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linux-foundation.org/mailman/listinfo/containers>,
+	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Linux Containers <containers-qjLDD68F18O7TbgM5vRIOg@public.gmane.org>, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Le samedi 07 mai 2011 =C3=A0 14:22 +0800, Changli Gao a =C3=A9crit :
 
-> It seems more clear. Thanks.
->=20
-> BTW: I will work on F_CLOSFD after this patch accepted. It is useful
-> to close all the opened file descriptors when programing a daemon.
->=20
 
-I am sure the following idea already was discussed in the past :
+--On 6 May 2011 19:23:29 -0700 "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> 
+wrote:
 
-Embed the close_on_exec / close_on_close bits in the low order bits of
-file pointers.
+> This patchset addresses the user interface limitations by introducing
+> proc files you can open to get file descriptors that keep alive and
+> refer to your a tasks namespaces.  Those file descriptors can be passed
+> to the new setns system call or the NET_NS_FD argument in netlink
+> messages.
 
-Might be interesting to raise it again.
+This is conceptually very interesting. I am one of those people you
+describe with a routing daemon (or more accurately a wrapper around
+existing daemons) that does the unshare() and keeps the network
+alive. It also has a control socket etc.
+
+You say:
+> This addresses three specific problems that can make namespaces hard to
+> work with.
+> - Namespaces require a dedicated process to pin them in memory.
+> - It is not possible to use a namespace unless you are the child
+>   of the original creator.
+> - Namespaces don't have names that userspace can use to talk about
+>   them.
+
+At least for me, the best way to solve the second blob would be to
+be able to unshare to an existing namespace. That way I would be able
+to run a daemon (without modification) in a pre-existing namespace.
+The user interface here would just be an option to 'unshare'. I
+don't think your patch allows this, does it? Right now I'm effectively
+doing that by causing the pid concerned to fork() and do my bidding,
+but that is far from perfect.
+
+As a secondary issue, ever without your patch, it would be really
+useful to be able to read from userspace the current network namespace.
+(i.e. the pid concerned, or 1 if not unshared). I would like to
+simply modify a routing daemon's init script so it doesn't start
+if in the host, e.g. at the top:
+  [ `cat /proc/.../networknamespace` eq 1 ] && exit 0
+
+-- 
+Alex Bligh
