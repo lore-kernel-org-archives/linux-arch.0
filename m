@@ -1,48 +1,63 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
+From: Changli Gao <xiaosuo@gmail.com>
 Subject: Re: [PATCH] fs: add FD_CLOFORK and O_CLOFORK
-Date: Sat, 07 May 2011 07:25:45 +0200
-Message-ID: <1304745945.2821.601.camel@edumazet-laptop>
-References: <1304743740-3405-1-git-send-email-xiaosuo@gmail.com>
+Date: Sat, 7 May 2011 14:22:33 +0800
+Message-ID: <BANLkTi=tZf1uQig8A-WiXUpSWcuqaqV=fg@mail.gmail.com>
+References: <1304743740-3405-1-git-send-email-xiaosuo@gmail.com> <1304748394.2821.654.camel@edumazet-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <1304743740-3405-1-git-send-email-xiaosuo@gmail.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Changli Gao <xiaosuo@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-px0-f173.google.com ([209.85.212.173]:59975 "EHLO
+	mail-px0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752505Ab1EGGWx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 02:22:53 -0400
+In-Reply-To: <1304748394.2821.654.camel@edumazet-laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Eric Dumazet <eric.dumazet@gmail.com>
 Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <matthew@wil.cx>, Arnd Bergmann <arnd@arndb.de>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-Le samedi 07 mai 2011 =C3=A0 12:49 +0800, Changli Gao a =C3=A9crit :
-> If FD_CLOFORK is 1, when a fork occurs, the corresponding file descri=
-ptor
-> will be closed for the child process. IOW, the file descriptor isn't
-> inheritable.
->=20
-> FD_CLOFORK is used as IBM does.
+On Sat, May 7, 2011 at 2:06 PM, Eric Dumazet <eric.dumazet@gmail.com> w=
+rote:
+> Le samedi 07 mai 2011 =E0 12:49 +0800, Changli Gao a =E9crit :
+>
+>>
+>> =A0 =A0 =A0 for (i =3D open_files; i !=3D 0; i--) {
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct file *f =3D *old_fds++;
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (f) {
+>> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 get_file(f);
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (FD_ISSET(open_files - =
+i, new_fdt->close_on_fork)) {
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 FD_CLR(ope=
+n_files - i, new_fdt->open_fds);
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 f =3D NULL=
+;
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 } else {
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 get_file(f=
+);
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 } else {
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 /*
+>
+> You should change the main loop to
+>
+> for (i =3D 0; i < open_files; i++) {
+> =A0 =A0 =A0 =A0struct file *f =3D *old_fds++;
+>
+> =A0 =A0 =A0 =A0if (f && FD_ISSET(i, new_fdt->close_on_fork))
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0f =3D NULL;
+> =A0 =A0 =A0 =A0if (f)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0get_file(f);
+> =A0 =A0 =A0 =A0else
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0FD_CLR(i, new_fdt->open_fds)
+> =A0 =A0 =A0 =A0rcu_assign_pointer(*new_fds++, f);
+> }
 
-Is it part of a standard, and what could be the use for such thing ?
-Why had we wait 2011 to add it in linux ?
+It seems more clear. Thanks.
 
->=20
-> O_CLOFORK is also added to avoid the additional fcntl(2) after open(2=
-).
->=20
-> Signed-off-by: Changli Gao <xiaosuo@gmail.com>
+BTW: I will work on F_CLOSFD after this patch accepted. It is useful
+to close all the opened file descriptors when programing a daemon.
 
-
-Your implementation has some peformance implication.
-
-close_on_exec and close_on_fork bit for a given fd would be on separate
-cache lines. So you add a cost on threaded programs for open()/close()
-
-[ Yes, we apparently clear close_on_exec bit in close()... we could let
-it untouched and make flush_old_files() aware of that ]
-
-
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-fsdevel=
-" in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+--=20
+Regards,
+Changli Gao(xiaosuo@gmail.com)
