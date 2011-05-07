@@ -1,119 +1,313 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:35747 "EHLO
-	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754575Ab1EGCZ5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2011 22:25:57 -0400
-From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 2/7] ns: Introduce the setns syscall
-Date: Fri,  6 May 2011 19:24:56 -0700
-Message-ID: <1304735101-1824-2-git-send-email-ebiederm@xmission.com>
-In-Reply-To: <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
- <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:8391 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752205Ab1EGF5N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 01:57:13 -0400
+From: Stephen Boyd <sboyd@codeaurora.org>
+Subject: [PATCH] lib: Consolidate DEBUG_STACK_USAGE option
+Date: Fri,  6 May 2011 22:57:11 -0700
+Message-ID: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20110507022456.yNxTx-9jOywizy-ohFvxD1L6CI5-q2QKwP7RVp24kIg@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m32r@ml.linux-m32r.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, user-mode-linux-devel@lists.sourceforge.net, x86@kernel.org
+Message-ID: <20110507055711.whTcDfsxLAKQFpaufRL06a9JMbfpXH0NZFJ-S6Gb9jM@z>
 
-With the networking stack today there is demand to handle
-multiple network stacks at a time.  Not in the context
-of containers but in the context of people doing interesting
-things with routing.
+Most arches define CONFIG_DEBUG_STACK_USAGE exactly the same way.
+Move it to lib/Kconfig.debug so each arch doesn't have to define
+it. This obviously makes the option generic, but that's fine
+because the config is already used in generic code.
 
-There is also demand in the context of containers to have
-an efficient way to execute some code in the container itself.
-If nothing else it is very useful ad a debugging technique.
+It's not obvious to me that sysrq-P actually does anything
+different with this option enabled, but I erred on the side of
+caution by keeping the most inclusive wording.
 
-Both problems can be solved by starting some form of login
-daemon in the namespaces people want access to, or you
-can play games by ptracing a process and getting the
-traced process to do things you want it to do. However
-it turns out that a login daemon or a ptrace puppet
-controller are more code, they are more prone to
-failure, and generally they are less efficient than
-simply changing the namespace of a process to a
-specified one.
-
-Pieces of this puzzle can also be solved by instead of
-coming up with a general purpose system call coming up
-with targed system calls perhaps socketat that solve
-a subset of the larger problem.  Overall that appears
-to be more work for less reward.
-
-int setns(int fd, int nstype);
-
-The fd argument is a file descriptor referring to a proc
-file of the namespace you want to switch the process to.
-
-In the setns system call the nstype is 0 or specifies
-an clone flag of the namespace you intend to change
-to prevent changing a namespace unintentionally.
-
-v2: Most of the architecture support added by Daniel Lezcano <dlezcano@fr.ibm.com>
-v3: ported to v2.6.36-rc4 by: Eric W. Biederman <ebiederm@xmission.com>
-v4: Moved wiring up of the system call to another patch
-
-Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: uclinux-dist-devel@blackfin.uclinux.org
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-mips@linux-mips.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: user-mode-linux-devel@lists.sourceforge.net
+Cc: x86@kernel.org
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
 ---
- kernel/nsproxy.c |   37 +++++++++++++++++++++++++++++++++++++
- 1 files changed, 37 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/nsproxy.c b/kernel/nsproxy.c
-index a05d191..96059d8 100644
---- a/kernel/nsproxy.c
-+++ b/kernel/nsproxy.c
-@@ -22,6 +22,9 @@
- #include <linux/pid_namespace.h>
- #include <net/net_namespace.h>
- #include <linux/ipc_namespace.h>
-+#include <linux/proc_fs.h>
-+#include <linux/file.h>
-+#include <linux/syscalls.h>
+This is on top of mmotm's lib-conslidate-debug_per_cpu_maps patch.
+
+ arch/arm/Kconfig.debug       |    7 -------
+ arch/blackfin/Kconfig.debug  |    9 ---------
+ arch/m32r/Kconfig.debug      |    9 ---------
+ arch/mips/Kconfig.debug      |    9 ---------
+ arch/powerpc/Kconfig.debug   |    9 ---------
+ arch/score/Kconfig.debug     |    9 ---------
+ arch/sh/Kconfig.debug        |    9 ---------
+ arch/sparc/Kconfig.debug     |    9 ---------
+ arch/tile/Kconfig.debug      |    9 ---------
+ arch/um/Kconfig.debug        |    9 ---------
+ arch/unicore32/Kconfig.debug |    7 -------
+ arch/x86/Kconfig.debug       |    9 ---------
+ lib/Kconfig.debug            |    9 +++++++++
+ 13 files changed, 9 insertions(+), 104 deletions(-)
+
+diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
+index 03d01d7..81cbe40 100644
+--- a/arch/arm/Kconfig.debug
++++ b/arch/arm/Kconfig.debug
+@@ -63,13 +63,6 @@ config DEBUG_USER
+ 	      8 - SIGSEGV faults
+ 	     16 - SIGBUS faults
  
- static struct kmem_cache *nsproxy_cachep;
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T output.
+-
+ # These options are only for real kernel hackers who want to get their hands dirty.
+ config DEBUG_LL
+ 	bool "Kernel low-level debugging functions"
+diff --git a/arch/blackfin/Kconfig.debug b/arch/blackfin/Kconfig.debug
+index 2641731..19ccfb3 100644
+--- a/arch/blackfin/Kconfig.debug
++++ b/arch/blackfin/Kconfig.debug
+@@ -9,15 +9,6 @@ config DEBUG_STACKOVERFLOW
+ 	  This option will cause messages to be printed if free stack space
+ 	  drops below a certain limit.
  
-@@ -233,6 +236,40 @@ void exit_task_namespaces(struct task_struct *p)
- 	switch_task_namespaces(p, NULL);
- }
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config DEBUG_VERBOSE
+ 	bool "Verbose fault messages"
+ 	default y
+diff --git a/arch/m32r/Kconfig.debug b/arch/m32r/Kconfig.debug
+index 2e1019d..bb1afc1 100644
+--- a/arch/m32r/Kconfig.debug
++++ b/arch/m32r/Kconfig.debug
+@@ -9,15 +9,6 @@ config DEBUG_STACKOVERFLOW
+ 	  This option will cause messages to be printed if free stack space
+ 	  drops below a certain limit.
  
-+SYSCALL_DEFINE2(setns, int, fd, int, nstype)
-+{
-+	const struct proc_ns_operations *ops;
-+	struct task_struct *tsk = current;
-+	struct nsproxy *new_nsproxy;
-+	struct proc_inode *ei;
-+	struct file *file;
-+	int err;
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config DEBUG_PAGEALLOC
+ 	bool "Debug page memory allocations"
+ 	depends on DEBUG_KERNEL && BROKEN
+diff --git a/arch/mips/Kconfig.debug b/arch/mips/Kconfig.debug
+index 5358f90..83ed00a 100644
+--- a/arch/mips/Kconfig.debug
++++ b/arch/mips/Kconfig.debug
+@@ -76,15 +76,6 @@ config DEBUG_STACKOVERFLOW
+ 	  provides another way to check stack overflow happened on kernel mode
+ 	  stack usually caused by nested interruption.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config SMTC_IDLE_HOOK_DEBUG
+ 	bool "Enable additional debug checks before going into CPU idle loop"
+ 	depends on DEBUG_KERNEL && MIPS_MT_SMTC
+diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
+index 12a8d18..f862fc0 100644
+--- a/arch/powerpc/Kconfig.debug
++++ b/arch/powerpc/Kconfig.debug
+@@ -35,15 +35,6 @@ config DEBUG_STACKOVERFLOW
+ 	  This option will cause messages to be printed if free stack space
+ 	  drops below a certain limit.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config HCALL_STATS
+ 	bool "Hypervisor call instrumentation"
+ 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
+diff --git a/arch/score/Kconfig.debug b/arch/score/Kconfig.debug
+index 451ed54..a1f346d 100644
+--- a/arch/score/Kconfig.debug
++++ b/arch/score/Kconfig.debug
+@@ -16,15 +16,6 @@ config CMDLINE
+ 	  other cases you can specify kernel args so that you don't have
+ 	  to set them up in board prom initialization routines.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config RUNTIME_DEBUG
+ 	bool "Enable run-time debugging"
+ 	depends on DEBUG_KERNEL
+diff --git a/arch/sh/Kconfig.debug b/arch/sh/Kconfig.debug
+index 1553d56..c1d5a82 100644
+--- a/arch/sh/Kconfig.debug
++++ b/arch/sh/Kconfig.debug
+@@ -28,15 +28,6 @@ config STACK_DEBUG
+ 	  every function call and will therefore incur a major
+ 	  performance hit. Most users should say N.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config 4KSTACKS
+ 	bool "Use 4Kb for kernel stacks instead of 8Kb"
+ 	depends on DEBUG_KERNEL && (MMU || BROKEN) && !PAGE_SIZE_64KB
+diff --git a/arch/sparc/Kconfig.debug b/arch/sparc/Kconfig.debug
+index d9a795e..6db35fb 100644
+--- a/arch/sparc/Kconfig.debug
++++ b/arch/sparc/Kconfig.debug
+@@ -6,15 +6,6 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config DEBUG_DCFLUSH
+ 	bool "D-cache flush debugging"
+ 	depends on SPARC64 && DEBUG_KERNEL
+diff --git a/arch/tile/Kconfig.debug b/arch/tile/Kconfig.debug
+index 9bc161a..ddbfc33 100644
+--- a/arch/tile/Kconfig.debug
++++ b/arch/tile/Kconfig.debug
+@@ -21,15 +21,6 @@ config DEBUG_STACKOVERFLOW
+ 	  This option will cause messages to be printed if free stack space
+ 	  drops below a certain limit.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config DEBUG_EXTRA_FLAGS
+ 	string "Additional compiler arguments when building with '-g'"
+ 	depends on DEBUG_INFO
+diff --git a/arch/um/Kconfig.debug b/arch/um/Kconfig.debug
+index 8fce5e5..34ac57f 100644
+--- a/arch/um/Kconfig.debug
++++ b/arch/um/Kconfig.debug
+@@ -28,13 +28,4 @@ config GCOV
+ 	  If you're involved in UML kernel development and want to use gcov,
+ 	  say Y.  If you're unsure, say N.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	default N
+-	help
+-	  Track the maximum kernel stack usage - this will look at each
+-	  kernel stack at process exit and log it if it's the deepest
+-	  stack seen so far.
+-
+-	  This option will slow down process creation and destruction somewhat.
+ endmenu
+diff --git a/arch/unicore32/Kconfig.debug b/arch/unicore32/Kconfig.debug
+index 3140151..ae2ec33 100644
+--- a/arch/unicore32/Kconfig.debug
++++ b/arch/unicore32/Kconfig.debug
+@@ -27,13 +27,6 @@ config EARLY_PRINTK
+ 	  with klogd/syslogd or the X server. You should normally N here,
+ 	  unless you want to debug such a crash.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Enable stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T output.
+-
+ # These options are only for real kernel hackers who want to get their hands dirty.
+ config DEBUG_LL
+ 	bool "Kernel low-level debugging functions"
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 1bf8839..c0f8a5c 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -66,15 +66,6 @@ config DEBUG_STACKOVERFLOW
+ 	  This option will cause messages to be printed if free stack space
+ 	  drops below a certain limit.
+ 
+-config DEBUG_STACK_USAGE
+-	bool "Stack utilization instrumentation"
+-	depends on DEBUG_KERNEL
+-	---help---
+-	  Enables the display of the minimum amount of free stack which each
+-	  task has ever had available in the sysrq-T and sysrq-P debug output.
+-
+-	  This option will slow down process creation somewhat.
+-
+ config X86_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index c0872ee..37fae12 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -654,6 +654,15 @@ config STACKTRACE
+ 	bool
+ 	depends on STACKTRACE_SUPPORT
+ 
++config DEBUG_STACK_USAGE
++	bool "Stack utilization instrumentation"
++	depends on DEBUG_KERNEL
++	help
++	  Enables the display of the minimum amount of free stack which each
++	  task has ever had available in the sysrq-T and sysrq-P debug output.
 +
-+	if (!capable(CAP_SYS_ADMIN))
-+		return -EPERM;
++	  This option will slow down process creation somewhat.
 +
-+	file = proc_ns_fget(fd);
-+	if (IS_ERR(file))
-+		return PTR_ERR(file);
-+
-+	err = -EINVAL;
-+	ei = PROC_I(file->f_dentry->d_inode);
-+	ops = ei->ns_ops;
-+	if (nstype && (ops->type != nstype))
-+		goto out;
-+
-+	new_nsproxy = create_new_namespaces(0, tsk, tsk->fs);
-+	err = ops->install(new_nsproxy, ei->ns);
-+	if (err) {
-+		free_nsproxy(new_nsproxy);
-+		goto out;
-+	}
-+	switch_task_namespaces(tsk, new_nsproxy);
-+out:
-+	fput(file);
-+	return err;
-+}
-+
- static int __init nsproxy_cache_init(void)
- {
- 	nsproxy_cachep = KMEM_CACHE(nsproxy, SLAB_PANIC);
+ config DEBUG_KOBJECT
+ 	bool "kobject debugging"
+ 	depends on DEBUG_KERNEL
 -- 
-1.6.5.2.143.g8cc62
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
 
