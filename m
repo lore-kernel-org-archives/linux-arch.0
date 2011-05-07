@@ -1,35 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:52302 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754855Ab1EDR5r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 May 2011 13:57:47 -0400
-Subject: Re: [PATCH] atomic: add *_dec_not_zero
-From: Will Deacon <will.deacon@arm.com>
-In-Reply-To: <1304458235-28473-1-git-send-email-sven@narfation.org>
-References: <1304458235-28473-1-git-send-email-sven@narfation.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 04 May 2011 18:27:36 +0100
-Message-ID: <1304530056.2296.1.camel@craptop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from out02.mta.xmission.com ([166.70.13.232]:35753 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754762Ab1EGCZ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2011 22:25:57 -0400
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Subject: [PATCH 3/7] ns proc: Add support for the network namespace.
+Date: Fri,  6 May 2011 19:24:57 -0700
+Message-ID: <1304735101-1824-3-git-send-email-ebiederm@xmission.com>
+In-Reply-To: <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+ <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sven Eckelmann <sven@narfation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-m68k@vger.kernel.org, linux-am33-list@redhat.com, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20110504172736.HyTDiETThabZZynBDIbrpS3MQMU4HqPEXHI55IwZxkY@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
+Message-ID: <20110507022457.qli9IjnSwZDtdYDVyDIx1VILJD6AlhxBMYyadwk6eeo@z>
 
-On Tue, 2011-05-03 at 22:30 +0100, Sven Eckelmann wrote:
-> Introduce an *_dec_not_zero operation.  Make this a special case of
-> *_add_unless because batman-adv uses atomic_dec_not_zero in different
-> places like re-broadcast queue or aggregation queue management. There
-> are other non-final patches which may also want to use this macro.
-> 
-For the ARM changes:
+Implementing file descriptors for the network namespace
+is simple and straight forward.
 
-Acked-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+---
+ fs/proc/namespaces.c     |    3 +++
+ include/linux/proc_fs.h  |    1 +
+ net/core/net_namespace.c |   31 +++++++++++++++++++++++++++++++
+ 3 files changed, 35 insertions(+), 0 deletions(-)
 
-Cheers,
-
-Will
-
+diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
+index 6ae9f07..dcbd483 100644
+--- a/fs/proc/namespaces.c
++++ b/fs/proc/namespaces.c
+@@ -16,6 +16,9 @@
+ 
+ 
+ static const struct proc_ns_operations *ns_entries[] = {
++#ifdef CONFIG_NET_NS
++	&netns_operations,
++#endif
+ };
+ 
+ static const struct file_operations ns_file_operations = {
+diff --git a/include/linux/proc_fs.h b/include/linux/proc_fs.h
+index a6d2c6d..62126ec 100644
+--- a/include/linux/proc_fs.h
++++ b/include/linux/proc_fs.h
+@@ -265,6 +265,7 @@ struct proc_ns_operations {
+ 	void (*put)(void *ns);
+ 	int (*install)(struct nsproxy *nsproxy, void *ns);
+ };
++extern const struct proc_ns_operations netns_operations;
+ 
+ union proc_op {
+ 	int (*proc_get_link)(struct inode *, struct path *);
+diff --git a/net/core/net_namespace.c b/net/core/net_namespace.c
+index 3f86026..bf7707e 100644
+--- a/net/core/net_namespace.c
++++ b/net/core/net_namespace.c
+@@ -573,3 +573,34 @@ void unregister_pernet_device(struct pernet_operations *ops)
+ 	mutex_unlock(&net_mutex);
+ }
+ EXPORT_SYMBOL_GPL(unregister_pernet_device);
++
++#ifdef CONFIG_NET_NS
++static void *netns_get(struct task_struct *task)
++{
++	struct net *net;
++	rcu_read_lock();
++	net = get_net(task->nsproxy->net_ns);
++	rcu_read_unlock();
++	return net;
++}
++
++static void netns_put(void *ns)
++{
++	put_net(ns);
++}
++
++static int netns_install(struct nsproxy *nsproxy, void *ns)
++{
++	put_net(nsproxy->net_ns);
++	nsproxy->net_ns = get_net(ns);
++	return 0;
++}
++
++const struct proc_ns_operations netns_operations = {
++	.name		= "net",
++	.type		= CLONE_NEWNET,
++	.get		= netns_get,
++	.put		= netns_put,
++	.install	= netns_install,
++};
++#endif
+-- 
+1.6.5.2.143.g8cc62
 
