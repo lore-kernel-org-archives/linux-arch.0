@@ -1,58 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:53436 "EHLO
+Received: from out01.mta.xmission.com ([166.70.13.231]:60569 "EHLO
 	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754777Ab1EGN5T convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 09:57:19 -0400
+	with ESMTP id S1754768Ab1EGOJo convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 10:09:44 -0400
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 2/7] ns: Introduce the setns syscall
+Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
 References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
 	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1304735101-1824-2-git-send-email-ebiederm@xmission.com>
-	<201105071101.10950.remi@remlab.net>
-Date: Sat, 07 May 2011 06:57:06 -0700
-In-Reply-To: <201105071101.10950.remi@remlab.net> (=?utf-8?Q?=22R=C3=A9mi?=
- Denis-Courmont"'s
-	message of "Sat, 7 May 2011 11:01:08 +0300")
-Message-ID: <m1bozepqa5.fsf@fess.ebiederm.org>
+	<1304735101-1824-7-git-send-email-ebiederm@xmission.com>
+	<BANLkTi=G-uViB6=8bQ0dRGbw3Gg8V10CRw@mail.gmail.com>
+Date: Sat, 07 May 2011 07:09:34 -0700
+In-Reply-To: <BANLkTi=G-uViB6=8bQ0dRGbw3Gg8V10CRw@mail.gmail.com> (Geert
+	Uytterhoeven's message of "Sat, 7 May 2011 10:27:17 +0200")
+Message-ID: <m14o56pppd.fsf@fess.ebiederm.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?utf-8?Q?R=C3=A9mi_Denis-Courmont?= <remi@remlab.net>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-Message-ID: <20110507135706.HNBv0wrPc8e3cq6RjumS2kP1kX-P_IPGmVBBOWedjVY@z>
+Message-ID: <20110507140934.JnbHD7Cgq_jlOu_6e5eUiGfANPw3VHucScVD0_A_eqA@z>
 
-"Rémi Denis-Courmont" <remi@remlab.net> writes:
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
 
-> Le samedi 7 mai 2011 05:24:56 Eric W. Biederman, vous avez écrit :
->> Pieces of this puzzle can also be solved by instead of
->> coming up with a general purpose system call coming up
->> with targed system calls perhaps socketat that solve
->> a subset of the larger problem.  Overall that appears
->> to be more work for less reward.
+> On Sat, May 7, 2011 at 04:25, Eric W. Biederman <ebiederm@xmission.com> wrote:
+>>  arch/m68k/include/asm/unistd.h         |    3 ++-
+>>  arch/m68k/kernel/syscalltable.S        |    1 +
 >
-> socketat() is still required for multithreaded namespace-aware userspace, I 
-> believe.
+> As the unified syscalltable for m68k/m68knommu is not yet in mainline
+> (planned for
+> 2.6.40), you should also add it to arch/m68k/kernel/entry_mm.S.
+>
+> Gr{oetje,eeting}s,
 
-The network namespace is a per task property so there are no problems
-with multithreaded network namespace aware userspace applications.  The
-implementation of a userspace socketat will still need to disable signal
-handling around the network namespace switch to be signal safe.  Which
-means that ultimately a kernel version of socketat may be desirable,
-for performance reasons but I know of know correctness reasons to need
-it.
+Like so?
 
-For the time being I have simply removed socketat from what I plan to
-merge because it is not strictly needed, I don't yet have a test case
-for socketat, and I don't have as much time to work on this as I
-would like.
+From c06a03281d944ed36e2da02f5374ec6c650e4988 Mon Sep 17 00:00:00 2001
+From: "Eric W. Biederman" <ebiederm@xmission.com>
+Date: Sat, 7 May 2011 07:00:24 -0700
+Subject: [PATCH] m68knommu: Wire up the setns system call
 
-There is one bug a multi-threaded network namespace aware user space
-application might run into, and that is /proc/net is a symlink to
-/proc/self.  Which means that if you open /proc/net/foo from a task with
-a different network namespace than your the task whose tid equals your
-tgid, the /proc/net will return the wrong file.  Still you can
-avoid even that silliness by opening /proc/<tid>/net.
+It seems I overlooked m68knommu where I wired up this syscall.
 
-Eric
+Reported-by:  Geert Uytterhoeven <geert@linux-m68k.org>
+Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+---
+ arch/m68k/kernel/entry_mm.S |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/m68k/kernel/entry_mm.S b/arch/m68k/kernel/entry_mm.S
+index 1359ee6..e048015 100644
+--- a/arch/m68k/kernel/entry_mm.S
++++ b/arch/m68k/kernel/entry_mm.S
+@@ -754,4 +754,5 @@ sys_call_table:
+ 	.long sys_open_by_handle_at
+ 	.long sys_clock_adjtime
+ 	.long sys_syncfs
++	.long sys_setns
+ 
+-- 
+1.7.5.1.217.g4e3aa
+
