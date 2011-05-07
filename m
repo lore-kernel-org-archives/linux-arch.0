@@ -1,35 +1,47 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
-Date: Sat, 07 May 2011 15:06:15 -0500
-Message-ID: <1304798775.6123.18.camel@mulgrave.site>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	 <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	 <1304735101-1824-7-git-send-email-ebiederm@xmission.com>
+From: Daniel Lezcano <daniel.lezcano@free.fr>
+Subject: Re: [PATCH 1/7] ns: proc files for namespace naming policy.
+Date: Sun, 08 May 2011 00:37:41 +0200
+Message-ID: <4DC5C9B5.8050805@free.fr>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org> <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1304735101-1824-7-git-send-email-ebiederm@xmission.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp6-g21.free.fr ([212.27.42.6]:40839 "EHLO smtp6-g21.free.fr"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756029Ab1EGWh5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 7 May 2011 18:37:57 -0400
+In-Reply-To: <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
 
-On Fri, 2011-05-06 at 19:25 -0700, Eric W. Biederman wrote:
-> v2: Most of the architecture support added by Daniel Lezcano <dlezcano@fr.ibm.com>
-> v3: ported to v2.6.36-rc4 by: Eric W. Biederman <ebiederm@xmission.com>
-> v4: Moved wiring up of the system call to another patch
-> v5: ported to v2.6.39-rc6
-> 
-> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-
-We already have several syscalls queued up for parisc:
-
-http://git.kernel.org/?p=linux/kernel/git/jejb/parisc-2.6.git;a=shortlog;h=refs/heads/misc
-
-So if you could make this patch over them (or over linux-next), that
-would help the merge process.
-
-Thanks,
-
-James
+On 05/07/2011 04:24 AM, Eric W. Biederman wrote:
+> Create files under /proc/<pid>/ns/ to allow controlling the
+> namespaces of a process.
+>
+> This addresses three specific problems that can make namespaces hard to
+> work with.
+> - Namespaces require a dedicated process to pin them in memory.
+> - It is not possible to use a namespace unless you are the child
+>    of the original creator.
+> - Namespaces don't have names that userspace can use to talk about
+>    them.
+>
+> The namespace files under /proc/<pid>/ns/ can be opened and the
+> file descriptor can be used to talk about a specific namespace, and
+> to keep the specified namespace alive.
+>
+> A namespace can be kept alive by either holding the file descriptor
+> open or bind mounting the file someplace else.  aka:
+> mount --bind /proc/self/ns/net /some/filesystem/path
+> mount --bind /proc/self/fd/<N>  /some/filesystem/path
+>
+> This allows namespaces to be named with userspace policy.
+>
+> It requires additional support to make use of these filedescriptors
+> and that will be comming in the following patches.
+>
+> Signed-off-by: Eric W. Biederman<ebiederm@xmission.com>
+Acked-by: Daniel Lezcano <daniel.lezcano@free.fr>
