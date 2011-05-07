@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:34294 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754771Ab1EGCZ5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2011 22:25:57 -0400
+Received: from out02.mta.xmission.com ([166.70.13.232]:35766 "EHLO
+	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754782Ab1EGCZ6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 May 2011 22:25:58 -0400
 From: "Eric W. Biederman" <ebiederm@xmission.com>
-Subject: [PATCH 4/7] ns proc: Add support for the uts namespace
-Date: Fri,  6 May 2011 19:24:58 -0700
-Message-ID: <1304735101-1824-4-git-send-email-ebiederm@xmission.com>
+Subject: [PATCH 6/7] net: Allow setting the network namespace by fd
+Date: Fri,  6 May 2011 19:25:00 -0700
+Message-ID: <1304735101-1824-6-git-send-email-ebiederm@xmission.com>
 In-Reply-To: <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
 References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
  <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
@@ -14,95 +14,134 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>, "Eric W. Biederman" <ebiederm@xmission.com>
-Message-ID: <20110507022458.6YNr3nh79CI1TpVzxORCG4tL8_ykkA6XKgUvnxY54Go@z>
+Message-ID: <20110507022500.aTQ8dNOyFfXryHAB4d_cZrZZpP7xYg5B4ozKlUMMo-0@z>
+
+Take advantage of the new abstraction and allow network devices
+to be placed in any network namespace that we have a fd to talk
+about.
 
 Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
 ---
- fs/proc/namespaces.c    |    3 +++
- include/linux/proc_fs.h |    1 +
- kernel/utsname.c        |   39 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 43 insertions(+), 0 deletions(-)
+ include/linux/if_link.h     |    1 +
+ include/net/net_namespace.h |    1 +
+ net/core/net_namespace.c    |   33 +++++++++++++++++++++++++++++++--
+ net/core/rtnetlink.c        |    5 ++++-
+ 4 files changed, 37 insertions(+), 3 deletions(-)
 
-diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
-index dcbd483..b017181 100644
---- a/fs/proc/namespaces.c
-+++ b/fs/proc/namespaces.c
-@@ -19,6 +19,9 @@ static const struct proc_ns_operations *ns_entries[] = {
+diff --git a/include/linux/if_link.h b/include/linux/if_link.h
+index f4a2e6b..0ee969a 100644
+--- a/include/linux/if_link.h
++++ b/include/linux/if_link.h
+@@ -136,6 +136,7 @@ enum {
+ 	IFLA_PORT_SELF,
+ 	IFLA_AF_SPEC,
+ 	IFLA_GROUP,		/* Group the device belongs to */
++	IFLA_NET_NS_FD,
+ 	__IFLA_MAX
+ };
+ 
+diff --git a/include/net/net_namespace.h b/include/net/net_namespace.h
+index 3ae4919..dcc8f57 100644
+--- a/include/net/net_namespace.h
++++ b/include/net/net_namespace.h
+@@ -119,6 +119,7 @@ static inline struct net *copy_net_ns(unsigned long flags, struct net *net_ns)
+ extern struct list_head net_namespace_list;
+ 
+ extern struct net *get_net_ns_by_pid(pid_t pid);
++extern struct net *get_net_ns_by_fd(int pid);
+ 
  #ifdef CONFIG_NET_NS
- 	&netns_operations,
- #endif
-+#ifdef CONFIG_UTS_NS
-+	&utsns_operations,
-+#endif
- };
- 
- static const struct file_operations ns_file_operations = {
-diff --git a/include/linux/proc_fs.h b/include/linux/proc_fs.h
-index 62126ec..52aa89d 100644
---- a/include/linux/proc_fs.h
-+++ b/include/linux/proc_fs.h
-@@ -266,6 +266,7 @@ struct proc_ns_operations {
- 	int (*install)(struct nsproxy *nsproxy, void *ns);
- };
- extern const struct proc_ns_operations netns_operations;
-+extern const struct proc_ns_operations utsns_operations;
- 
- union proc_op {
- 	int (*proc_get_link)(struct inode *, struct path *);
-diff --git a/kernel/utsname.c b/kernel/utsname.c
-index 4464617..bff131b 100644
---- a/kernel/utsname.c
-+++ b/kernel/utsname.c
-@@ -15,6 +15,7 @@
- #include <linux/err.h>
- #include <linux/slab.h>
- #include <linux/user_namespace.h>
+ extern void __put_net(struct net *net);
+diff --git a/net/core/net_namespace.c b/net/core/net_namespace.c
+index bf7707e..b7403ff 100644
+--- a/net/core/net_namespace.c
++++ b/net/core/net_namespace.c
+@@ -8,6 +8,8 @@
+ #include <linux/idr.h>
+ #include <linux/rculist.h>
+ #include <linux/nsproxy.h>
 +#include <linux/proc_fs.h>
++#include <linux/file.h>
+ #include <net/net_namespace.h>
+ #include <net/netns/generic.h>
  
- static struct uts_namespace *create_uts_ns(void)
- {
-@@ -79,3 +80,41 @@ void free_uts_ns(struct kref *kref)
- 	put_user_ns(ns->user_ns);
- 	kfree(ns);
+@@ -343,6 +345,28 @@ struct net *get_net_ns_by_pid(pid_t pid)
  }
-+
-+static void *utsns_get(struct task_struct *task)
+ EXPORT_SYMBOL_GPL(get_net_ns_by_pid);
+ 
++struct net *get_net_ns_by_fd(int fd)
 +{
-+	struct uts_namespace *ns = NULL;
++	struct proc_inode *ei;
++	struct file *file;
++	struct net *net;
++
++	net = ERR_PTR(-EINVAL);
++	file = proc_ns_fget(fd);
++	if (!file)
++		goto out;
++
++	ei = PROC_I(file->f_dentry->d_inode);
++	if (ei->ns_ops != &netns_operations)
++		goto out;
++
++	net = get_net(ei->ns);
++out:
++	if (file)
++		fput(file);
++	return net;
++}
++
+ static int __init net_ns_init(void)
+ {
+ 	struct net_generic *ng;
+@@ -577,10 +601,15 @@ EXPORT_SYMBOL_GPL(unregister_pernet_device);
+ #ifdef CONFIG_NET_NS
+ static void *netns_get(struct task_struct *task)
+ {
+-	struct net *net;
++	struct net *net = NULL;
 +	struct nsproxy *nsproxy;
 +
-+	rcu_read_lock();
+ 	rcu_read_lock();
+-	net = get_net(task->nsproxy->net_ns);
 +	nsproxy = task_nsproxy(task);
-+	if (nsproxy) {
-+		ns = nsproxy->uts_ns;
-+		get_uts_ns(ns);
-+	}
-+	rcu_read_unlock();
++	if (nsproxy)
++		net = get_net(nsproxy->net_ns);
+ 	rcu_read_unlock();
 +
-+	return ns;
-+}
-+
-+static void utsns_put(void *ns)
-+{
-+	put_uts_ns(ns);
-+}
-+
-+static int utsns_install(struct nsproxy *nsproxy, void *ns)
-+{
-+	get_uts_ns(ns);
-+	put_uts_ns(nsproxy->uts_ns);
-+	nsproxy->uts_ns = ns;
-+	return 0;
-+}
-+
-+const struct proc_ns_operations utsns_operations = {
-+	.name		= "uts",
-+	.type		= CLONE_NEWUTS,
-+	.get		= utsns_get,
-+	.put		= utsns_put,
-+	.install	= utsns_install,
-+};
-+
+ 	return net;
+ }
+ 
+diff --git a/net/core/rtnetlink.c b/net/core/rtnetlink.c
+index d7c4bb4..dca9602 100644
+--- a/net/core/rtnetlink.c
++++ b/net/core/rtnetlink.c
+@@ -1043,6 +1043,7 @@ const struct nla_policy ifla_policy[IFLA_MAX+1] = {
+ 	[IFLA_LINKMODE]		= { .type = NLA_U8 },
+ 	[IFLA_LINKINFO]		= { .type = NLA_NESTED },
+ 	[IFLA_NET_NS_PID]	= { .type = NLA_U32 },
++	[IFLA_NET_NS_FD]	= { .type = NLA_U32 },
+ 	[IFLA_IFALIAS]	        = { .type = NLA_STRING, .len = IFALIASZ-1 },
+ 	[IFLA_VFINFO_LIST]	= {. type = NLA_NESTED },
+ 	[IFLA_VF_PORTS]		= { .type = NLA_NESTED },
+@@ -1091,6 +1092,8 @@ struct net *rtnl_link_get_net(struct net *src_net, struct nlattr *tb[])
+ 	 */
+ 	if (tb[IFLA_NET_NS_PID])
+ 		net = get_net_ns_by_pid(nla_get_u32(tb[IFLA_NET_NS_PID]));
++	else if (tb[IFLA_NET_NS_FD])
++		net = get_net_ns_by_fd(nla_get_u32(tb[IFLA_NET_NS_FD]));
+ 	else
+ 		net = get_net(src_net);
+ 	return net;
+@@ -1221,7 +1224,7 @@ static int do_setlink(struct net_device *dev, struct ifinfomsg *ifm,
+ 	int send_addr_notify = 0;
+ 	int err;
+ 
+-	if (tb[IFLA_NET_NS_PID]) {
++	if (tb[IFLA_NET_NS_PID] || tb[IFLA_NET_NS_FD]) {
+ 		struct net *net = rtnl_link_get_net(dev_net(dev), tb);
+ 		if (IS_ERR(net)) {
+ 			err = PTR_ERR(net);
 -- 
 1.6.5.2.143.g8cc62
 
