@@ -1,83 +1,39 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
-Date: Sat, 7 May 2011 20:22:19 +0200
-Message-ID: <BANLkTimkqOVi0+_azj4UyrQkE8sZL1yCyQ@mail.gmail.com>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1304735101-1824-7-git-send-email-ebiederm@xmission.com>
-	<BANLkTi=G-uViB6=8bQ0dRGbw3Gg8V10CRw@mail.gmail.com>
-	<m14o56pppd.fsf@fess.ebiederm.org>
+From: Nicolas Kaiser <nikai@nikai.net>
+Subject: [PATCH] thp: unbalanced parenthesis
+Date: Sat, 7 May 2011 20:55:49 +0200
+Message-ID: <20110507205549.6bb0f49f@absol.kitzblitz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <m14o56pppd.fsf@fess.ebiederm.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from webhosting01.bon.m2soft.com ([195.38.20.32]:52682 "EHLO
+	webhosting01.bon.m2soft.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755983Ab1EGS5K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 14:57:10 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, May 7, 2011 at 16:09, Eric W. Biederman <ebiederm@xmission.com>=
- wrote:
-> Geert Uytterhoeven <geert@linux-m68k.org> writes:
->
->> On Sat, May 7, 2011 at 04:25, Eric W. Biederman <ebiederm@xmission.c=
-om> wrote:
->>> =C2=A0arch/m68k/include/asm/unistd.h =C2=A0 =C2=A0 =C2=A0 =C2=A0 | =
-=C2=A0 =C2=A03 ++-
->>> =C2=A0arch/m68k/kernel/syscalltable.S =C2=A0 =C2=A0 =C2=A0 =C2=A0| =
-=C2=A0 =C2=A01 +
->>
->> As the unified syscalltable for m68k/m68knommu is not yet in mainlin=
-e
->> (planned for
->> 2.6.40), you should also add it to arch/m68k/kernel/entry_mm.S.
->>
->> Gr{oetje,eeting}s,
->
-> Like so?
->
-> From c06a03281d944ed36e2da02f5374ec6c650e4988 Mon Sep 17 00:00:00 200=
-1
-> From: "Eric W. Biederman" <ebiederm@xmission.com>
-> Date: Sat, 7 May 2011 07:00:24 -0700
-> Subject: [PATCH] m68knommu: Wire up the setns system call
->
-> It seems I overlooked m68knommu where I wired up this syscall.
+Signed-off-by: Nicolas Kaiser <nikai@nikai.net>
+---
+Untested.
 
-You overlooked m68k with MMU. syscalltable.s is used by m68knommu.
+ include/asm-generic/pgtable.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-> Reported-by: =C2=A0Geert Uytterhoeven <geert@linux-m68k.org>
-> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-> ---
-> =C2=A0arch/m68k/kernel/entry_mm.S | =C2=A0 =C2=A01 +
-> =C2=A01 files changed, 1 insertions(+), 0 deletions(-)
->
-> diff --git a/arch/m68k/kernel/entry_mm.S b/arch/m68k/kernel/entry_mm.=
-S
-> index 1359ee6..e048015 100644
-> --- a/arch/m68k/kernel/entry_mm.S
-> +++ b/arch/m68k/kernel/entry_mm.S
-> @@ -754,4 +754,5 @@ sys_call_table:
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0.long sys_open_by_handle_at
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0.long sys_clock_adjtime
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0.long sys_syncfs
-> + =C2=A0 =C2=A0 =C2=A0 .long sys_setns
-
-Yep.
-
-Gr{oetje,eeting}s,
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index b4bfe33..b80daee 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -88,7 +88,7 @@ static inline pmd_t pmdp_get_and_clear(struct mm_struct *mm,
+ 	pmd_t pmd = *pmdp;
+ 	pmd_clear(mm, address, pmdp);
+ 	return pmd;
+-})
++}
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #endif
+ 
+-- 
+1.7.5.rc3
