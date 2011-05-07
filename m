@@ -1,47 +1,43 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
-Date: Sat, 7 May 2011 10:27:17 +0200
-Message-ID: <BANLkTi=G-uViB6=8bQ0dRGbw3Gg8V10CRw@mail.gmail.com>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1304735101-1824-7-git-send-email-ebiederm@xmission.com>
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
+Subject: Re: [PATCH] lib: Consolidate DEBUG_STACK_USAGE option
+Date: Sat, 7 May 2011 11:34:13 +0200
+Message-ID: <BANLkTi=h-151_cMPpii6O+kowvc=0WxKjQ@mail.gmail.com>
+References: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:33720 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752734Ab1EGI1T convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 04:27:19 -0400
-In-Reply-To: <1304735101-1824-7-git-send-email-ebiederm@xmission.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
+Sender: sparclinux-owner@vger.kernel.org
+To: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m32r@ml.linux-m32r.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, user-mode-linux-devel@lists.sourceforge.net, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, May 7, 2011 at 04:25, Eric W. Biederman <ebiederm@xmission.com>=
- wrote:
-> =C2=A0arch/m68k/include/asm/unistd.h =C2=A0 =C2=A0 =C2=A0 =C2=A0 | =C2=
-=A0 =C2=A03 ++-
-> =C2=A0arch/m68k/kernel/syscalltable.S =C2=A0 =C2=A0 =C2=A0 =C2=A0| =C2=
-=A0 =C2=A01 +
+On Sat, May 7, 2011 at 7:57 AM, Stephen Boyd <sboyd@codeaurora.org> wrote:
+> Most arches define CONFIG_DEBUG_STACK_USAGE exactly the same way.
+> Move it to lib/Kconfig.debug so each arch doesn't have to define
+> it. This obviously makes the option generic, but that's fine
+> because the config is already used in generic code.
+>
+> It's not obvious to me that sysrq-P actually does anything
+> different with this option enabled, but I erred on the side of
+> caution by keeping the most inclusive wording.
+>
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: uclinux-dist-devel@blackfin.uclinux.org
+> Cc: linux-m32r@ml.linux-m32r.org
+> Cc: linux-mips@linux-mips.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: user-mode-linux-devel@lists.sourceforge.net
+> Cc: x86@kernel.org
+> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+> ---
 
-As the unified syscalltable for m68k/m68knommu is not yet in mainline
-(planned for
-2.6.40), you should also add it to arch/m68k/kernel/entry_mm.S.
+Acked-by: Richard Weinberger <richard@nod.at>
 
-Gr{oetje,eeting}s,
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+-- 
+Thanks,
+//richard
