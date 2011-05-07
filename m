@@ -1,67 +1,45 @@
-From: Alex Bligh <alex-rWA27mgs/Jz10XsdtD+oqA@public.gmane.org>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
-Date: Sat, 07 May 2011 07:58:28 +0100
-Message-ID: <3A54AB469A0294933EAC2257@nimrod.local>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-Reply-To: Alex Bligh <alex-rWA27mgs/Jz10XsdtD+oqA@public.gmane.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH] lib: Consolidate DEBUG_STACK_USAGE option
+Date: Sat, 07 May 2011 00:58:48 -0700 (PDT)
+Message-ID: <20110507.005848.226775736.davem@davemloft.net>
+References: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <m1tyd7p7tq.fsf-+imSwln9KH6u2/kzUuoCbdi2O/JbrIOy@public.gmane.org>
-Content-Disposition: inline
-List-Unsubscribe: <https://lists.linux-foundation.org/mailman/listinfo/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linux-foundation.org/pipermail/containers>
-List-Post: <mailto:containers-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linux-foundation.org/mailman/listinfo/containers>,
-	<mailto:containers-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: containers-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Linux Containers <containers-qjLDD68F18O7TbgM5vRIOg@public.gmane.org>, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 74-93-104-97-Washington.hfc.comcastbusiness.net ([74.93.104.97]:46142
+	"EHLO sunset.davemloft.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751348Ab1EGH7V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 May 2011 03:59:21 -0400
+In-Reply-To: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: sboyd@codeaurora.org
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m32r@ml.linux-m32r.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, cmetcalf@tilera.com, user-mode-linux-devel@lists.sourceforge.net, x86@kernel.org
 
+From: Stephen Boyd <sboyd@codeaurora.org>
+Date: Fri,  6 May 2011 22:57:11 -0700
 
+> Most arches define CONFIG_DEBUG_STACK_USAGE exactly the same way.
+> Move it to lib/Kconfig.debug so each arch doesn't have to define
+> it. This obviously makes the option generic, but that's fine
+> because the config is already used in generic code.
+> 
+> It's not obvious to me that sysrq-P actually does anything
+> different with this option enabled, but I erred on the side of
+> caution by keeping the most inclusive wording.
+> 
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: uclinux-dist-devel@blackfin.uclinux.org
+> Cc: linux-m32r@ml.linux-m32r.org
+> Cc: linux-mips@linux-mips.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: user-mode-linux-devel@lists.sourceforge.net
+> Cc: x86@kernel.org
+> Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
 
---On 6 May 2011 19:23:29 -0700 "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org> 
-wrote:
-
-> This patchset addresses the user interface limitations by introducing
-> proc files you can open to get file descriptors that keep alive and
-> refer to your a tasks namespaces.  Those file descriptors can be passed
-> to the new setns system call or the NET_NS_FD argument in netlink
-> messages.
-
-This is conceptually very interesting. I am one of those people you
-describe with a routing daemon (or more accurately a wrapper around
-existing daemons) that does the unshare() and keeps the network
-alive. It also has a control socket etc.
-
-You say:
-> This addresses three specific problems that can make namespaces hard to
-> work with.
-> - Namespaces require a dedicated process to pin them in memory.
-> - It is not possible to use a namespace unless you are the child
->   of the original creator.
-> - Namespaces don't have names that userspace can use to talk about
->   them.
-
-At least for me, the best way to solve the second blob would be to
-be able to unshare to an existing namespace. That way I would be able
-to run a daemon (without modification) in a pre-existing namespace.
-The user interface here would just be an option to 'unshare'. I
-don't think your patch allows this, does it? Right now I'm effectively
-doing that by causing the pid concerned to fork() and do my bidding,
-but that is far from perfect.
-
-As a secondary issue, ever without your patch, it would be really
-useful to be able to read from userspace the current network namespace.
-(i.e. the pid concerned, or 1 if not unshared). I would like to
-simply modify a routing daemon's init script so it doesn't start
-if in the host, e.g. at the top:
-  [ `cat /proc/.../networknamespace` eq 1 ] && exit 0
-
--- 
-Alex Bligh
+Acked-by: David S. Miller <davem@davemloft.net>
