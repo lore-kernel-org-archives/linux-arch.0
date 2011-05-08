@@ -1,61 +1,70 @@
-From: Alex Bligh <alex@alex.org.uk>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file
- descriptors
-Date: Sun, 08 May 2011 13:31:01 +0100
-Message-ID: <974CF8842C14240ADB10AD9C@nimrod.local>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
- 	<3A54AB469A0294933EAC2257@nimrod.local> <m1fwoqoapn.fsf@fess.ebiederm.org>
-Reply-To: Alex Bligh <alex@alex.org.uk>
+From: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+Subject: Re: [PATCH] atomic: add *_dec_not_zero
+Date: Mon, 09 May 2011 08:15:39 +1000
+Message-ID: <1304892939.2513.503.camel@pasglop>
+References: <1304458235-28473-1-git-send-email-sven@narfation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <m1fwoqoapn.fsf@fess.ebiederm.org>
-Content-Disposition: inline
-Sender: netdev-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org, Alex Bligh <alex@alex.org.uk>
+Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+In-Reply-To: <1304458235-28473-1-git-send-email-sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
+List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
+List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
+List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
+Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+To: Sven Eckelmann <sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-m68k-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-cris-kernel-VrBV9hrLPhE@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-am33-list-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Eric,
+On Tue, 2011-05-03 at 23:30 +0200, Sven Eckelmann wrote:
+> Introduce an *_dec_not_zero operation.  Make this a special case of
+> *_add_unless because batman-adv uses atomic_dec_not_zero in different
+> places like re-broadcast queue or aggregation queue management. There
+> are other non-final patches which may also want to use this macro.
 
---On 7 May 2011 07:18:44 -0700 "Eric W. Biederman" <ebiederm@xmission.com> 
-wrote:
+For arch/powerpc:
 
-> You are essentially describing my setns system call.
+Acked-by: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
 
-Great - thanks.
+(Sorry for catching up late)
 
->> As a secondary issue, ever without your patch, it would be really
->> useful to be able to read from userspace the current network namespace.
->> (i.e. the pid concerned, or 1 if not unshared). I would like to
->> simply modify a routing daemon's init script so it doesn't start
->> if in the host, e.g. at the top:
->>  [ `cat /proc/.../networknamespace` eq 1 ] && exit 0
->
-> You can read the processes network namespace by opening
-> /proc/<pid>/ns/net.  Unfortunately comparing the network
-> namespaces for identity is another matter.  You will probably
-> be better off simply forcing the routing daemon to start
-> in the desired network namespace in it's initscript.
+Cheers,
+Ben.
 
-It's solely a minor convenience issue. The network namespace is
-unshared by the filing system namespace isn't. So there's an
-/etc/init.d/bird, which I would like to remain there so I
-can call it from the network namespace concerned (which
-doesn't exist at boot time). But I'd also like it not to run
-at boot time. So it would be useful to me if the script could
-check whether it is running in the default namespace and
-refuse to launch if so.
-
-I note the /proc/ file you mention is not present in the main tree at
-the moment.
-
-> For purposes of clarity please have a look at my work in
-> progress patch for iproute2.  This demonstrates how I expect
-> userspace to work in a multi-network namespace world.
-
-Will do
-
--- 
-Alex Bligh
+> diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
+> index b8f152e..906f49a 100644
+> --- a/arch/powerpc/include/asm/atomic.h
+> +++ b/arch/powerpc/include/asm/atomic.h
+> @@ -213,6 +213,7 @@ static __inline__ int atomic_add_unless(atomic_t *v, int a, int u)
+>  }
+>  
+>  #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
+> +#define atomic_dec_not_zero(v) atomic_add_unless((v), -1, 0)
+>  
+>  #define atomic_sub_and_test(a, v)	(atomic_sub_return((a), (v)) == 0)
+>  #define atomic_dec_and_test(v)		(atomic_dec_return((v)) == 0)
+> @@ -469,6 +470,7 @@ static __inline__ int atomic64_add_unless(atomic64_t *v, long a, long u)
+>  }
+>  
+>  #define atomic64_inc_not_zero(v) atomic64_add_unless((v), 1, 0)
+> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
+>  
+>  #else  /* __powerpc64__ */
+>  #include <asm-generic/atomic64.h>
+> diff --git a/arch/powerpc/include/asm/local.h b/arch/powerpc/include/asm/local.h
+> index c2410af..3d4c58a 100644
+> --- a/arch/powerpc/include/asm/local.h
+> +++ b/arch/powerpc/include/asm/local.h
+> @@ -134,6 +134,7 @@ static __inline__ int local_add_unless(local_t *l, long a, long u)
+>  }
+>  
+>  #define local_inc_not_zero(l) local_add_unless((l), 1, 0)
+> +#define local_dec_not_zero(l) local_add_unless((l), -1, 0)
+>  
+>  #define local_sub_and_test(a, l)	(local_sub_return((a), (l)) == 0)
+>  #define local_dec_and_test(l)		(local_dec_return((l)) == 0)
