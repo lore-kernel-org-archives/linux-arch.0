@@ -1,66 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.avalus.com ([89.16.176.221]:55150 "EHLO mail.avalus.com"
+Received: from gate.crashing.org ([63.228.1.57]:52931 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752559Ab1EHMbH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 May 2011 08:31:07 -0400
-Date: Sun, 08 May 2011 13:31:01 +0100
-From: Alex Bligh <alex@alex.org.uk>
-Reply-To: Alex Bligh <alex@alex.org.uk>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file
- descriptors
-Message-ID: <974CF8842C14240ADB10AD9C@nimrod.local>
-In-Reply-To: <m1fwoqoapn.fsf@fess.ebiederm.org>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
- 	<3A54AB469A0294933EAC2257@nimrod.local> <m1fwoqoapn.fsf@fess.ebiederm.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
+	id S1755481Ab1EHXTA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 8 May 2011 19:19:00 -0400
+Subject: Re: [PATCH] atomic: add *_dec_not_zero
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <1304458235-28473-1-git-send-email-sven@narfation.org>
+References: <1304458235-28473-1-git-send-email-sven@narfation.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 09 May 2011 08:15:39 +1000
+Message-ID: <1304892939.2513.503.camel@pasglop>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org, Alex Bligh <alex@alex.org.uk>
-Message-ID: <20110508123101.J81Z0zr6OqiIpvlJAJKUHYbPE4CsyEvYA9goPxYKR0Y@z>
+To: Sven Eckelmann <sven@narfation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-m68k@vger.kernel.org, linux-am33-list@redhat.com, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20110508221539.LA-ABgzrAloJ151NAs71qeh5JM4_Wb7Q32-Qb_4Apf8@z>
 
-Eric,
+On Tue, 2011-05-03 at 23:30 +0200, Sven Eckelmann wrote:
+> Introduce an *_dec_not_zero operation.  Make this a special case of
+> *_add_unless because batman-adv uses atomic_dec_not_zero in different
+> places like re-broadcast queue or aggregation queue management. There
+> are other non-final patches which may also want to use this macro.
 
---On 7 May 2011 07:18:44 -0700 "Eric W. Biederman" <ebiederm@xmission.com> 
-wrote:
+For arch/powerpc:
 
-> You are essentially describing my setns system call.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Great - thanks.
+(Sorry for catching up late)
 
->> As a secondary issue, ever without your patch, it would be really
->> useful to be able to read from userspace the current network namespace.
->> (i.e. the pid concerned, or 1 if not unshared). I would like to
->> simply modify a routing daemon's init script so it doesn't start
->> if in the host, e.g. at the top:
->>  [ `cat /proc/.../networknamespace` eq 1 ] && exit 0
->
-> You can read the processes network namespace by opening
-> /proc/<pid>/ns/net.  Unfortunately comparing the network
-> namespaces for identity is another matter.  You will probably
-> be better off simply forcing the routing daemon to start
-> in the desired network namespace in it's initscript.
+Cheers,
+Ben.
 
-It's solely a minor convenience issue. The network namespace is
-unshared by the filing system namespace isn't. So there's an
-/etc/init.d/bird, which I would like to remain there so I
-can call it from the network namespace concerned (which
-doesn't exist at boot time). But I'd also like it not to run
-at boot time. So it would be useful to me if the script could
-check whether it is running in the default namespace and
-refuse to launch if so.
+> diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
+> index b8f152e..906f49a 100644
+> --- a/arch/powerpc/include/asm/atomic.h
+> +++ b/arch/powerpc/include/asm/atomic.h
+> @@ -213,6 +213,7 @@ static __inline__ int atomic_add_unless(atomic_t *v, int a, int u)
+>  }
+>  
+>  #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
+> +#define atomic_dec_not_zero(v) atomic_add_unless((v), -1, 0)
+>  
+>  #define atomic_sub_and_test(a, v)	(atomic_sub_return((a), (v)) == 0)
+>  #define atomic_dec_and_test(v)		(atomic_dec_return((v)) == 0)
+> @@ -469,6 +470,7 @@ static __inline__ int atomic64_add_unless(atomic64_t *v, long a, long u)
+>  }
+>  
+>  #define atomic64_inc_not_zero(v) atomic64_add_unless((v), 1, 0)
+> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
+>  
+>  #else  /* __powerpc64__ */
+>  #include <asm-generic/atomic64.h>
+> diff --git a/arch/powerpc/include/asm/local.h b/arch/powerpc/include/asm/local.h
+> index c2410af..3d4c58a 100644
+> --- a/arch/powerpc/include/asm/local.h
+> +++ b/arch/powerpc/include/asm/local.h
+> @@ -134,6 +134,7 @@ static __inline__ int local_add_unless(local_t *l, long a, long u)
+>  }
+>  
+>  #define local_inc_not_zero(l) local_add_unless((l), 1, 0)
+> +#define local_dec_not_zero(l) local_add_unless((l), -1, 0)
+>  
+>  #define local_sub_and_test(a, l)	(local_sub_return((a), (l)) == 0)
+>  #define local_dec_and_test(l)		(local_dec_return((l)) == 0)
 
-I note the /proc/ file you mention is not present in the main tree at
-the moment.
 
-> For purposes of clarity please have a look at my work in
-> progress patch for iproute2.  This demonstrates how I expect
-> userspace to work in a multi-network namespace world.
 
-Will do
-
--- 
-Alex Bligh
