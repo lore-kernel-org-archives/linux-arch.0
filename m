@@ -1,28 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp6-g21.free.fr ([212.27.42.6]:42543 "EHLO smtp6-g21.free.fr"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756287Ab1EGWqY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 7 May 2011 18:46:24 -0400
-Message-ID: <4DC5CBB1.8080103@free.fr>
-Date: Sun, 08 May 2011 00:46:09 +0200
-From: Daniel Lezcano <daniel.lezcano@free.fr>
-MIME-Version: 1.0
-Subject: Re: [PATCH 6/7] net: Allow setting the network namespace by fd
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org> <1304735101-1824-1-git-send-email-ebiederm@xmission.com> <1304735101-1824-6-git-send-email-ebiederm@xmission.com>
-In-Reply-To: <1304735101-1824-6-git-send-email-ebiederm@xmission.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:43541 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750709Ab1EHECm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 May 2011 00:02:42 -0400
+Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <m162pm53ye.fsf@fess.ebiederm.org>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+	 <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
+	 <1304735101-1824-7-git-send-email-ebiederm@xmission.com>
+	 <1304798775.6123.18.camel@mulgrave.site> <m162pm53ye.fsf@fess.ebiederm.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Sat, 07 May 2011 23:02:38 -0500
+Message-ID: <1304827358.6123.45.camel@mulgrave.site>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-Message-ID: <20110507224609.-yuVYpRxtoOMXAJOWlMrp6atocY-XTkqtcS0lPV-yac@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
+Message-ID: <20110508040238.kxZ-xgUHtsqTb6b3ZrBrulhEGsgt0nh2iijqt2NlxMw@z>
 
-On 05/07/2011 04:25 AM, Eric W. Biederman wrote:
-> Take advantage of the new abstraction and allow network devices
-> to be placed in any network namespace that we have a fd to talk
-> about.
->
-> Signed-off-by: Eric W. Biederman<ebiederm@xmission.com>
-> ---
-Acked-by: Daniel Lezcano <daniel.lezcano@free.fr>
+On Sat, 2011-05-07 at 19:19 -0700, Eric W. Biederman wrote:
+> James Bottomley <James.Bottomley@HansenPartnership.com> writes:
+> 
+> > On Fri, 2011-05-06 at 19:25 -0700, Eric W. Biederman wrote:
+> >> v2: Most of the architecture support added by Daniel Lezcano <dlezcano@fr.ibm.com>
+> >> v3: ported to v2.6.36-rc4 by: Eric W. Biederman <ebiederm@xmission.com>
+> >> v4: Moved wiring up of the system call to another patch
+> >> v5: ported to v2.6.39-rc6
+> >> 
+> >> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+> >
+> > We already have several syscalls queued up for parisc:
+> >
+> > http://git.kernel.org/?p=linux/kernel/git/jejb/parisc-2.6.git;a=shortlog;h=refs/heads/misc
+> >
+> > So if you could make this patch over them (or over linux-next), that
+> > would help the merge process.
+> 
+> I will take a look. I was rather pleasantly surprised that no other
+> system call conflicts had shown up before now.
+> 
+> This is unfortunately one of those areas where it is almost impossible
+> to avoid conflicts.
+> 
+> Do you know if there is any chance that the parisc tree might get
+> rebased or anything horrible like that?
+
+It shouldn't unless one of the wire ups is wrong and I have to replace
+it, but I think the possibility of that will be minute.
+
+> If not I think I will just pull the hunk of the parisc tree with the syscalls
+> e38f5b745075828ac51b12c8c95c85a7be4a3ec7...2e7bad5f34b5beed47542490c760ed26574e38ba
+> into my tree so I don't have to worry about merge order.
+
+Yes, that should work fine.
+
+James
+
+
