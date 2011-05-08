@@ -1,62 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:43541 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750709Ab1EHECm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 May 2011 00:02:42 -0400
-Subject: Re: [PATCH 7/7] ns: Wire up the setns system call
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <m162pm53ye.fsf@fess.ebiederm.org>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	 <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	 <1304735101-1824-7-git-send-email-ebiederm@xmission.com>
-	 <1304798775.6123.18.camel@mulgrave.site> <m162pm53ye.fsf@fess.ebiederm.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Sat, 07 May 2011 23:02:38 -0500
-Message-ID: <1304827358.6123.45.camel@mulgrave.site>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:49169 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751653Ab1EHJYe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 May 2011 05:24:34 -0400
+Date: Sun, 8 May 2011 10:24:03 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH] atomic: add *_dec_not_zero
+Message-ID: <20110508092403.GB27807@n2100.arm.linux.org.uk>
+References: <1304458235-28473-1-git-send-email-sven@narfation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1304458235-28473-1-git-send-email-sven@narfation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-Message-ID: <20110508040238.kxZ-xgUHtsqTb6b3ZrBrulhEGsgt0nh2iijqt2NlxMw@z>
+To: Sven Eckelmann <sven@narfation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20110508092403.mZH3fxoHzJhFXxl79cAxJ32c3hMjwjgx1sIxE8vz_8E@z>
 
-On Sat, 2011-05-07 at 19:19 -0700, Eric W. Biederman wrote:
-> James Bottomley <James.Bottomley@HansenPartnership.com> writes:
-> 
-> > On Fri, 2011-05-06 at 19:25 -0700, Eric W. Biederman wrote:
-> >> v2: Most of the architecture support added by Daniel Lezcano <dlezcano@fr.ibm.com>
-> >> v3: ported to v2.6.36-rc4 by: Eric W. Biederman <ebiederm@xmission.com>
-> >> v4: Moved wiring up of the system call to another patch
-> >> v5: ported to v2.6.39-rc6
-> >> 
-> >> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
-> >
-> > We already have several syscalls queued up for parisc:
-> >
-> > http://git.kernel.org/?p=linux/kernel/git/jejb/parisc-2.6.git;a=shortlog;h=refs/heads/misc
-> >
-> > So if you could make this patch over them (or over linux-next), that
-> > would help the merge process.
-> 
-> I will take a look. I was rather pleasantly surprised that no other
-> system call conflicts had shown up before now.
-> 
-> This is unfortunately one of those areas where it is almost impossible
-> to avoid conflicts.
-> 
-> Do you know if there is any chance that the parisc tree might get
-> rebased or anything horrible like that?
+On Tue, May 03, 2011 at 11:30:35PM +0200, Sven Eckelmann wrote:
+> Introduce an *_dec_not_zero operation.  Make this a special case of
+> *_add_unless because batman-adv uses atomic_dec_not_zero in different
+> places like re-broadcast queue or aggregation queue management. There
+> are other non-final patches which may also want to use this macro.
+...
+> diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
+> index 7e79503..a005265 100644
+> --- a/arch/arm/include/asm/atomic.h
+> +++ b/arch/arm/include/asm/atomic.h
+> @@ -218,6 +218,7 @@ static inline int atomic_add_unless(atomic_t *v, int a, int u)
+>  	return c != u;
+>  }
+>  #define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
+> +#define atomic_dec_not_zero(v) atomic_add_unless((v), -1, 0)
+>  
+>  #define atomic_inc(v)		atomic_add(1, v)
+>  #define atomic_dec(v)		atomic_sub(1, v)
+> @@ -459,6 +460,7 @@ static inline int atomic64_add_unless(atomic64_t *v, u64 a, u64 u)
+>  #define atomic64_dec_return(v)		atomic64_sub_return(1LL, (v))
+>  #define atomic64_dec_and_test(v)	(atomic64_dec_return((v)) == 0)
+>  #define atomic64_inc_not_zero(v)	atomic64_add_unless((v), 1LL, 0LL)
+> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1LL, 0LL)
+>  
+>  #else /* !CONFIG_GENERIC_ATOMIC64 */
+>  #include <asm-generic/atomic64.h>
 
-It shouldn't unless one of the wire ups is wrong and I have to replace
-it, but I think the possibility of that will be minute.
-
-> If not I think I will just pull the hunk of the parisc tree with the syscalls
-> e38f5b745075828ac51b12c8c95c85a7be4a3ec7...2e7bad5f34b5beed47542490c760ed26574e38ba
-> into my tree so I don't have to worry about merge order.
-
-Yes, that should work fine.
-
-James
-
-
+Do we need atomic_dec_not_zero() et.al. in every arch header - is there no
+generic header which it could be added to?
