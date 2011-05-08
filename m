@@ -1,68 +1,61 @@
-From: Sven Eckelmann <sven@narfation.org>
-Subject: Re: [PATCH] atomic: add *_dec_not_zero
-Date: Sun, 8 May 2011 11:33:48 +0200
-Message-ID: <201105081133.50824.sven@narfation.org>
-References: <1304458235-28473-1-git-send-email-sven@narfation.org> <20110508092403.GB27807@n2100.arm.linux.org.uk>
+From: Alex Bligh <alex@alex.org.uk>
+Subject: Re: [PATCH 0/7] Network namespace manipulation with file
+ descriptors
+Date: Sun, 08 May 2011 13:31:01 +0100
+Message-ID: <974CF8842C14240ADB10AD9C@nimrod.local>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+ 	<3A54AB469A0294933EAC2257@nimrod.local> <m1fwoqoapn.fsf@fess.ebiederm.org>
+Reply-To: Alex Bligh <alex@alex.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart1677856.Ey88dTAy4V";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha512
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20110508092403.GB27807@n2100.arm.linux.org.uk>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <m1fwoqoapn.fsf@fess.ebiederm.org>
+Content-Disposition: inline
+Sender: netdev-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org, Alex Bligh <alex@alex.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
---nextPart1677856.Ey88dTAy4V
-Content-Type: Text/Plain;
-  charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
+Eric,
 
-Russell King - ARM Linux wrote:
-[...]
-> Do we need atomic_dec_not_zero() et.al. in every arch header - is there no
-> generic header which it could be added to?
+--On 7 May 2011 07:18:44 -0700 "Eric W. Biederman" <ebiederm@xmission.com> 
+wrote:
 
-Mike Frysinger already tried to answer it in=20
-<BANLkTimctgbto3dsnJ3d3r7NggS0KF9_Sw@mail.gmail.com>:
-> that's what asm-generic is for.  if the arch isnt using it, it's
-> either because the arch needs to convert to it, or they're using SMP
-> and asm-generic doesnt yet support that for atomic.h.
+> You are essentially describing my setns system call.
+
+Great - thanks.
+
+>> As a secondary issue, ever without your patch, it would be really
+>> useful to be able to read from userspace the current network namespace.
+>> (i.e. the pid concerned, or 1 if not unshared). I would like to
+>> simply modify a routing daemon's init script so it doesn't start
+>> if in the host, e.g. at the top:
+>>  [ `cat /proc/.../networknamespace` eq 1 ] && exit 0
 >
-> for example, the Blackfin port only needed updating for the SMP case.
-> in the non-SMP case, we're getting the def from asm-generic/atomic.h.
-> -mike
+> You can read the processes network namespace by opening
+> /proc/<pid>/ns/net.  Unfortunately comparing the network
+> namespaces for identity is another matter.  You will probably
+> be better off simply forcing the routing daemon to start
+> in the desired network namespace in it's initscript.
 
-=46eel free to change that but I just followed the style used by all other=
-=20
-macros and will not redesign the complete atomic*.h idea.
+It's solely a minor convenience issue. The network namespace is
+unshared by the filing system namespace isn't. So there's an
+/etc/init.d/bird, which I would like to remain there so I
+can call it from the network namespace concerned (which
+doesn't exist at boot time). But I'd also like it not to run
+at boot time. So it would be useful to me if the script could
+check whether it is running in the default namespace and
+refuse to launch if so.
 
-thanks,
-	Sven
+I note the /proc/ file you mention is not present in the main tree at
+the moment.
 
---nextPart1677856.Ey88dTAy4V
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+> For purposes of clarity please have a look at my work in
+> progress patch for iproute2.  This demonstrates how I expect
+> userspace to work in a multi-network namespace world.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+Will do
 
-iQIcBAABCgAGBQJNxmN9AAoJEF2HCgfBJntGmosP/0BjDtvk4ZKsL9hhonb8gZ4t
-/2/hY6jeQ3Mg30Z1v6+PIZDun17qML5ODBcTB72oJs1LujHyEgNKKtfQ9stYgAm3
-79B2UAH5LYVzZzd2j5nMWemGYChUXl5v5N/hOFOp04ImC7DU27fwadcuO+q47vnS
-kKvrnccIFc0qUpnGwZ+1rqHIp9Rs3AQHjvyxaUDIuMs8ZWurYkS+e5SMini7qUpe
-QvsTQVZhyuNtemvZUzrWUcftMVPNXxTHwwV5aALBswX4SPreBJWX33b8j+NIHeFU
-hmwZ7/RzuDCyIzUFmeeXj/f0RCbWv5XkhQmNaCGFBdatgLRd2fnDOXzkuOeUPtBi
-SX2jkxoXSMGwEtl2mzOW8JhvcGrG1+oMw9j/BqdQyaQe0rRnuFg962eRUs1RvibI
-bej/DRfMexoXhlw7EIN9JGoniuMAW88Ws4RB79HuPURy6Ax1cr87ELH/Oj5ZvlOc
-+whWNM9JuDFamC9E4zaenxqf0jd3mlvCAMaljh66J7qECJF9xWd5eJyet7CE7/hp
-kE6iUT6Zf93Na9NImeTTeGK16LW1KqLkP8QyI+HUGO7A5wj/QvubGPBO0deHsp8G
-YkQBcQwZMSft69hsW2Ke1btpJv/ScGxeVuplmMNrlDa1hAqjm+aHo6+xxTS5Mp72
-p5S21fQTeEf4fOJsQubR
-=ICmm
------END PGP SIGNATURE-----
-
---nextPart1677856.Ey88dTAy4V--
+-- 
+Alex Bligh
