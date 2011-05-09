@@ -1,42 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:49040 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756670Ab1EICjF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 May 2011 22:39:05 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:43453 "EHLO
+	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754256Ab1EIUAC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 May 2011 16:00:02 -0400
+From: ebiederm@xmission.com (Eric W. Biederman)
+Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+	<20110509.120408.48494155.davem@davemloft.net>
+Date: Mon, 09 May 2011 12:59:55 -0700
+In-Reply-To: <20110509.120408.48494155.davem@davemloft.net> (David Miller's
+	message of "Mon, 09 May 2011 12:04:08 -0700 (PDT)")
+Message-ID: <m1oc3btzk4.fsf@fess.ebiederm.org>
 MIME-Version: 1.0
-In-Reply-To: <201105081133.50824.sven@narfation.org>
-References: <1304458235-28473-1-git-send-email-sven@narfation.org>
- <20110508092403.GB27807@n2100.arm.linux.org.uk> <201105081133.50824.sven@narfation.org>
-From: Mike Frysinger <vapier.adi@gmail.com>
-Date: Sun, 8 May 2011 22:38:43 -0400
-Message-ID: <BANLkTim+z0mv7oXZHr0YnoxtfnoDZTEr9Q@mail.gmail.com>
-Subject: Re: [PATCH] atomic: add *_dec_not_zero
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sven Eckelmann <sven@narfation.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-cris-kernel@axis.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, x86@kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linuxppc-dev@lists.ozlabs.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20110509023843.wfLIMeEkYcxtlo_moLpLhcU834QEHVApdLzcyQol9qg@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, hadi@cyberus.ca, daniel.lezcano@free.fr, containers@lists.osdl.org, renatowestphal@gmail.com
+Message-ID: <20110509195955.Bbd7b5pfIHEwroRaNIOn6A2b0oT5nDcMZMs2OxLjugo@z>
 
-On Sun, May 8, 2011 at 05:33, Sven Eckelmann wrote:
-> Russell King - ARM Linux wrote:
-> [...]
->> Do we need atomic_dec_not_zero() et.al. in every arch header - is there no
->> generic header which it could be added to?
->
-> Mike Frysinger already tried to answer it in
-> <BANLkTimctgbto3dsnJ3d3r7NggS0KF9_Sw@mail.gmail.com>:
->> that's what asm-generic is for.  if the arch isnt using it, it's
->> either because the arch needs to convert to it, or they're using SMP
->> and asm-generic doesnt yet support that for atomic.h.
->>
->> for example, the Blackfin port only needed updating for the SMP case.
->> in the non-SMP case, we're getting the def from asm-generic/atomic.h.
->
-> Feel free to change that but I just followed the style used by all other
-> macros and will not redesign the complete atomic*.h idea.
+David Miller <davem@davemloft.net> writes:
 
-what you're doing is currently correct.  i think merging SMP support
-into asm-generic for atomic* will take a bit of pondering first.
--mike
+> The networking bits look OK to me:
+>
+> Acked-by: David S. Miller <davem@davemloft.net>
+
+Are you merging sendmmsg through the netdev tree?
+
+The conflicts on syscall syscall numbers are an unfortunate pain.
+
+Eric
+
