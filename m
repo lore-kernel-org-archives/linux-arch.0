@@ -1,88 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate4.uk.ibm.com ([194.196.100.164]:51721 "EHLO
-	mtagate4.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753047Ab1EJILC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 May 2011 04:11:02 -0400
-Received: from d06nrmr1707.portsmouth.uk.ibm.com (d06nrmr1707.portsmouth.uk.ibm.com [9.149.39.225])
-	by mtagate4.uk.ibm.com (8.13.1/8.13.1) with ESMTP id p4A8AvpS013446
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 08:10:57 GMT
-Received: from d06av05.portsmouth.uk.ibm.com (d06av05.portsmouth.uk.ibm.com [9.149.37.229])
-	by d06nrmr1707.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id p4A8AuGs2334966
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 09:10:56 +0100
-Received: from d06av05.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av05.portsmouth.uk.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id p4A8AtfI003113
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 02:10:56 -0600
-Message-ID: <20110510081103.902546467@de.ibm.com>
-Date: Tue, 10 May 2011 10:10:42 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 3/4] ia64 mcount offset calculation
-References: <20110510081039.241831019@de.ibm.com>
-Content-Disposition: inline; filename=302-mcount-adjust-ia64.diff
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:39156 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755149Ab1EJPpq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 May 2011 11:45:46 -0400
+Date: Tue, 10 May 2011 16:44:10 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] lib: Consolidate DEBUG_STACK_USAGE option
+Message-ID: <20110510154410.GD26759@linux-mips.org>
+References: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Russell King <linux@arm.linux.org.uk>, Rabin Vincent <rabin@rab.in>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20110510081042.JhUb5pi-u_vomWuaWvp0cWpwBB-QtEhpohe-peuESlw@z>
+To: Stephen Boyd <sboyd@codeaurora.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m32r@ml.linux-m32r.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, user-mode-linux-devel@lists.sourceforge.net, x86@kernel.org
+Message-ID: <20110510154410.EfdQcgNpFjSFYJ2ccp8IeTCSLS2U5Jxx_7m5eVZnILw@z>
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Fri, May 06, 2011 at 10:57:11PM -0700, Stephen Boyd wrote:
 
-Do the mcount offset adjustment in the recordmcount.pl/recordmcount.[ch]
-at compile time and not in ftrace_call_adjust at run time.
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
-
-
- arch/ia64/include/asm/ftrace.h |    7 +++++--
- scripts/recordmcount.c         |    7 ++++++-
- scripts/recordmcount.pl        |    1 +
- 3 files changed, 12 insertions(+), 3 deletions(-)
-Index: test-2.6/arch/ia64/include/asm/ftrace.h
-===================================================================
---- test-2.6.orig/arch/ia64/include/asm/ftrace.h	2010-01-11 10:58:31.000000000 +0100
-+++ test-2.6/arch/ia64/include/asm/ftrace.h	2011-05-03 09:39:04.929486388 +0200
-@@ -14,8 +14,11 @@
- 
- static inline unsigned long ftrace_call_adjust(unsigned long addr)
- {
--	/* second bundle, insn 2 */
--	return addr - 0x12;
-+	/*
-+	 * addr is the address of the mcount call instruction.
-+	 * recordmcount does the necessary offset calculation.
-+	 */
-+	return addr;
- }
- 
- struct dyn_arch_ftrace {
-Index: test-2.6/scripts/recordmcount.c
-===================================================================
---- test-2.6.orig/scripts/recordmcount.c	2011-05-03 09:39:02.145472579 +0200
-+++ test-2.6/scripts/recordmcount.c	2011-05-03 09:39:04.929486388 +0200
-@@ -307,7 +307,12 @@
- 	case EM_ARM:	 reltype = R_ARM_ABS32;
- 			 altmcount = "__gnu_mcount_nc";
- 			 break;
--	case EM_IA_64:	 reltype = R_IA64_IMM64;   gpfx = '_'; break;
-+	case EM_IA_64:
-+		reltype = R_IA64_IMM64;
-+		/* Adjust relocation to second bundle, insn 2 */
-+		mcount_adjust_32 = -18;
-+		gpfx = '_';
-+		break;
- 	case EM_MIPS:	 /* reltype: e_class    */ gpfx = '_'; break;
- 	case EM_PPC:	 reltype = R_PPC_ADDR32;   gpfx = '_'; break;
- 	case EM_PPC64:	 reltype = R_PPC64_ADDR64; gpfx = '_'; break;
-Index: test-2.6/scripts/recordmcount.pl
-===================================================================
---- test-2.6.orig/scripts/recordmcount.pl	2011-05-03 09:39:02.145472579 +0200
-+++ test-2.6/scripts/recordmcount.pl	2011-05-03 09:39:04.929486388 +0200
-@@ -278,6 +278,7 @@
- 
- } elsif ($arch eq "ia64") {
-     $mcount_regex = "^\\s*([0-9a-fA-F]+):.*\\s_mcount\$";
-+    $mcount_adjust = -18;
-     $type = "data8";
- 
-     if ($is_module eq "0") {
-
+  Ralf
