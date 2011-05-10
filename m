@@ -1,49 +1,30 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 0/4] [RFC] mcount address adjustment
-Date: Tue, 10 May 2011 10:10:39 +0200
-Message-ID: <20110510081039.241831019@de.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate1.uk.ibm.com ([194.196.100.161]:44859 "EHLO
-	mtagate1.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755866Ab1EJILD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 May 2011 04:11:03 -0400
-Received: from d06nrmr1806.portsmouth.uk.ibm.com (d06nrmr1806.portsmouth.uk.ibm.com [9.149.39.193])
-	by mtagate1.uk.ibm.com (8.13.1/8.13.1) with ESMTP id p4A8AtRH020345
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 08:10:55 GMT
-Received: from d06av08.portsmouth.uk.ibm.com (d06av08.portsmouth.uk.ibm.com [9.149.37.249])
-	by d06nrmr1806.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id p4A8Attb2244692
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 09:10:55 +0100
-Received: from d06av08.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av08.portsmouth.uk.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id p4A8AsZX014557
-	for <linux-arch@vger.kernel.org>; Tue, 10 May 2011 09:10:55 +0100
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, H.
+From: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
+Subject: Re: [PATCH] lib: Consolidate DEBUG_STACK_USAGE
+	option
+Date: Tue, 10 May 2011 16:44:10 +0100
+Message-ID: <20110510154410.GD26759@linux-mips.org>
+References: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1304747831-2098-1-git-send-email-sboyd-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
+List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
+List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
+List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
+	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
+Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
+To: Stephen Boyd <sboyd-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-This series of patches aims to simplify the mcount address adjustment for
-ftrace. The frace code wants to know the start address of each function,
-not the address of the relocation against the mcount symbol which have
-been recorded to the __mcount_loc section. The ftrace_call_adjust function
-is used to calculate the start address of the function from the mcount
-relocation at runtime.
+On Fri, May 06, 2011 at 10:57:11PM -0700, Stephen Boyd wrote:
 
-For x86, ia64 and s390 the adjustment is a constant offset. There is no
-need to do the adjustment at runtime, it can be done by recordmcount at
-compile time. Blackfin already does this with the mcount_adjust variable
-in the pearl version of recordmcount. After teaching the C version of
-recordmcount about mcount_adjust x86, ia64 and s390 can be converted to
-a nop ftrace_call_adjust function.
+Acked-by: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
 
-That leaves arm as the last remaining architecture with a non trivial
-ftrace_call_adjust function. There the least significant bit is removed
-from the address with an and operation. The comment says this is done
-for Thumb-2. This implies that for Thumb-1 the offset is 0 and for
-Thumb-2 the offset is -1, correct? If there is a way to distinguish
-the two targets in recordmcount at compile time we could convert arm
-as well. Which would allow us to remove the ftrace_call_adjust function.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+  Ralf
