@@ -1,127 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:41383 "EHLO
-	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754635Ab1EKUdz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 16:33:55 -0400
+Received: from out01.mta.xmission.com ([166.70.13.231]:52848 "EHLO
+	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932566Ab1EKWwl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 18:52:41 -0400
 From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 2/7] ns: Introduce the setns syscall
+Subject: Re: [PATCH 1/7] ns: proc files for namespace naming policy.
 References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
 	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1304735101-1824-2-git-send-email-ebiederm@xmission.com>
-	<1305141681.1236.48.camel@orca.stoopid.dyndns.org>
-Date: Wed, 11 May 2011 13:33:48 -0700
-In-Reply-To: <1305141681.1236.48.camel@orca.stoopid.dyndns.org> (Nathan
-	Lynch's message of "Wed, 11 May 2011 14:21:14 -0500")
-Message-ID: <m1fwolnfir.fsf@fess.ebiederm.org>
+	<1305141667.1236.47.camel@orca.stoopid.dyndns.org>
+Date: Wed, 11 May 2011 15:52:35 -0700
+In-Reply-To: <1305141667.1236.47.camel@orca.stoopid.dyndns.org> (Nathan
+	Lynch's message of "Wed, 11 May 2011 14:20:48 -0500")
+Message-ID: <m1oc38luj0.fsf@fess.ebiederm.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Nathan Lynch <ntl@pobox.com>
-Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
-Message-ID: <20110511203348.50nvYGxXnMh211J2O_SeSmsu2EKayFMsjUjGipweQRw@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
+Message-ID: <20110511225235.JooyafWVpJyV4icINRBdxVM9LTuzGOtPRyf9jq5PPiw@z>
 
 Nathan Lynch <ntl@pobox.com> writes:
 
 > Hi Eric,
 >
+> A few comments on your patch set.
+>
+>
 > On Fri, 2011-05-06 at 19:24 -0700, Eric W. Biederman wrote:
->> With the networking stack today there is demand to handle
->> multiple network stacks at a time.  Not in the context
->> of containers but in the context of people doing interesting
->> things with routing.
->> 
->> There is also demand in the context of containers to have
->> an efficient way to execute some code in the container itself.
->> If nothing else it is very useful ad a debugging technique.
->> 
->> Both problems can be solved by starting some form of login
->> daemon in the namespaces people want access to, or you
->> can play games by ptracing a process and getting the
->> traced process to do things you want it to do. However
->> it turns out that a login daemon or a ptrace puppet
->> controller are more code, they are more prone to
->> failure, and generally they are less efficient than
->> simply changing the namespace of a process to a
->> specified one.
->> 
->> Pieces of this puzzle can also be solved by instead of
->> coming up with a general purpose system call coming up
->> with targed system calls perhaps socketat that solve
->> a subset of the larger problem.  Overall that appears
->> to be more work for less reward.
->> 
->> int setns(int fd, int nstype);
->> 
->> The fd argument is a file descriptor referring to a proc
->> file of the namespace you want to switch the process to.
->> 
->> In the setns system call the nstype is 0 or specifies
->> an clone flag of the namespace you intend to change
->> to prevent changing a namespace unintentionally.
+>> diff --git a/fs/proc/inode.c b/fs/proc/inode.c
+>> index d15aa1b..74b48cf 100644
+>> --- a/fs/proc/inode.c
+>> +++ b/fs/proc/inode.c
+>> @@ -28,6 +28,7 @@ static void proc_evict_inode(struct inode *inode)
+>>  {
+>>  	struct proc_dir_entry *de;
+>>  	struct ctl_table_header *head;
+>> +	const struct proc_ns_operations *ns_ops;
+>>  
+>>  	truncate_inode_pages(&inode->i_data, 0);
+>>  	end_writeback(inode);
+>> @@ -44,6 +45,10 @@ static void proc_evict_inode(struct inode *inode)
+>>  		rcu_assign_pointer(PROC_I(inode)->sysctl, NULL);
+>>  		sysctl_head_put(head);
+>>  	}
+>> +	/* Release any associated namespace */
+>> +	ns_ops = PROC_I(inode)->ns_ops;
+>> +	if (ns_ops && ns_ops->put)
+>> +		ns_ops->put(PROC_I(inode)->ns);
 >
-> I don't understand exactly what the nstype argument buys us - why would
-> correct code ever need to specify a value other than 0?  And reusing the
-> CLONE_NEW* values in this interface is kind of ugly when setns is
-> precisely _not_ creating new namespaces.
-
-No but it is setting a new namespace.  I do agree it is a bit ugly.  But
-the worst case at this point is I introduce a new set of beautiful
-defines with the same values.
-
-> Is there some fundamental reason it couldn't be
+> Is it ever valid for ns_ops->put to be null?  If not, I suggest removing
+> the check.
 >
-> int setns(int fd);
 >
-> or is there a use case I'm missing?
-
-When someone else opens the file descriptor and passes it to us
-and we don't completely trust them.  Or equally when someone
-else does the bind mount into the filesystem namespace and we
-don't completely trust them.
-
-Plus having a flags field is useful in general.
-
->> +SYSCALL_DEFINE2(setns, int, fd, int, nstype)
+>> diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
+>> new file mode 100644
+>> index 0000000..6ae9f07
+>> --- /dev/null
+>> +++ b/fs/proc/namespaces.c
+>
+> ...
+>
+>> +static struct dentry *proc_ns_dir_lookup(struct inode *dir,
+>> +				struct dentry *dentry, struct nameidata *nd)
 >> +{
->> +	const struct proc_ns_operations *ops;
->> +	struct task_struct *tsk = current;
->> +	struct nsproxy *new_nsproxy;
->> +	struct proc_inode *ei;
->> +	struct file *file;
->> +	int err;
+>> +	struct dentry *error;
+>> +	struct task_struct *task = get_proc_task(dir);
+>> +	const struct proc_ns_operations **entry, **last;
+>> +	unsigned int len = dentry->d_name.len;
 >> +
->> +	if (!capable(CAP_SYS_ADMIN))
->> +		return -EPERM;
+>> +	error = ERR_PTR(-ENOENT);
 >> +
->> +	file = proc_ns_fget(fd);
->> +	if (IS_ERR(file))
->> +		return PTR_ERR(file);
+>> +	if (!task)
+>> +		goto out_no_task;
 >> +
->> +	err = -EINVAL;
->> +	ei = PROC_I(file->f_dentry->d_inode);
->> +	ops = ei->ns_ops;
->> +	if (nstype && (ops->type != nstype))
+>> +	error = ERR_PTR(-EPERM);
+>> +	if (!ptrace_may_access(task, PTRACE_MODE_READ))
 >> +		goto out;
 >> +
->> +	new_nsproxy = create_new_namespaces(0, tsk, tsk->fs);
->
-> create_new_namespaces() can fail; shouldn't this be checked?
-
-Yes.  This was pointed out a little earlier and has been fixed
-in my tree.
-
-
->> +	err = ops->install(new_nsproxy, ei->ns);
->> +	if (err) {
->> +		free_nsproxy(new_nsproxy);
->> +		goto out;
+>> +	last = &ns_entries[ARRAY_SIZE(ns_entries) - 1];
+>> +	for (entry = ns_entries; entry <= last; entry++) {
+>> +		if (strlen((*entry)->name) != len)
+>> +			continue;
+>> +		if (!memcmp(dentry->d_name.name, (*entry)->name, len))
+>> +			break;
 >> +	}
->> +	switch_task_namespaces(tsk, new_nsproxy);
->> +out:
->> +	fput(file);
->> +	return err;
->> +}
->> +
+>> +	if (entry > last)
+>> +		goto out;
+>
+> This returns EPERM when it should return ENOENT?
+
+Good catch.
+
+And fixed now.
+
+>>  union proc_op {
+>>  	int (*proc_get_link)(struct inode *, struct path *);
+>>  	int (*proc_read)(struct task_struct *task, char *page);
+>> @@ -268,6 +284,8 @@ struct proc_inode {
+>>  	struct proc_dir_entry *pde;
+>>  	struct ctl_table_header *sysctl;
+>>  	struct ctl_table *sysctl_entry;
+>> +	void *ns;
+>> +	const struct proc_ns_operations *ns_ops;
+>>  	struct inode vfs_inode;
+>>  };
+>
+> Not that I have any better ideas, but it seems a bit undesirable to
+> increase the size of proc_inode for this one purpose.
+
+Of the options I could think of this was the cleanest, and proc_inode
+is just a caching data structure which means that the effect should be
+comparatively minimal.
+
+That said I won't oppose a change at some point to reduce the
+proc_inode, there are a lot of fields that are not used for most proc
+entries.
 
 Eric
+
