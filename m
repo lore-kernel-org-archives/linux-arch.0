@@ -1,111 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.perches.com ([173.55.12.10]:1454 "EHLO mail.perches.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753392Ab1EJXXJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 May 2011 19:23:09 -0400
-Subject: [PATCH] gpio: Convert gpio_is_valid to return bool
-From: Joe Perches <joe@perches.com>
-In-Reply-To: <BANLkTi=zDJLHUa2ogTeEkmdsbkhvGJCsEw@mail.gmail.com>
-References: <1304363786-30376-1-git-send-email-linus.walleij@stericsson.com>
-	 <1304365077.7792.40.camel@Joe-Laptop>
-	 <BANLkTi=XSevO72NqCYOYuketjE8XjeQU+A@mail.gmail.com>
-	 <1305067020.19586.130.camel@Joe-Laptop>
-	 <BANLkTi=zDJLHUa2ogTeEkmdsbkhvGJCsEw@mail.gmail.com>
+Received: from a-pb-sasl-sd.pobox.com ([64.74.157.62]:50007 "EHLO
+	sasl.smtp.pobox.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752631Ab1EKTV1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 15:21:27 -0400
+Subject: Re: [PATCH 2/7] ns: Introduce the setns syscall
+From: Nathan Lynch <ntl@pobox.com>
+Date: Wed, 11 May 2011 14:21:14 -0500
+In-Reply-To: <1304735101-1824-2-git-send-email-ebiederm@xmission.com>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+ <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
+ <1304735101-1824-2-git-send-email-ebiederm@xmission.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 10 May 2011 16:23:07 -0700
-Message-ID: <1305069787.19586.141.camel@Joe-Laptop>
-Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
+Message-ID: <1305141681.1236.48.camel@orca.stoopid.dyndns.org>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110510232307.bhYU0uMFNIQ2hnQ8yHfio8dU-Gjdx49rZO6jUUI601g@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
+Message-ID: <20110511192114.stwWX7jDBIcFik1GLMchRI7ZcJfszgyVGMBwALxPqK4@z>
 
-Make the code a bit more readable.
+Hi Eric,
 
-Instead of casting an int to an unsigned then comparing to
-MAX_NR_GPIOS, add a >= 0 test and let the compiler optimizer
-do the conversion to unsigned.
+On Fri, 2011-05-06 at 19:24 -0700, Eric W. Biederman wrote:
+> With the networking stack today there is demand to handle
+> multiple network stacks at a time.  Not in the context
+> of containers but in the context of people doing interesting
+> things with routing.
+> 
+> There is also demand in the context of containers to have
+> an efficient way to execute some code in the container itself.
+> If nothing else it is very useful ad a debugging technique.
+> 
+> Both problems can be solved by starting some form of login
+> daemon in the namespaces people want access to, or you
+> can play games by ptracing a process and getting the
+> traced process to do things you want it to do. However
+> it turns out that a login daemon or a ptrace puppet
+> controller are more code, they are more prone to
+> failure, and generally they are less efficient than
+> simply changing the namespace of a process to a
+> specified one.
+> 
+> Pieces of this puzzle can also be solved by instead of
+> coming up with a general purpose system call coming up
+> with targed system calls perhaps socketat that solve
+> a subset of the larger problem.  Overall that appears
+> to be more work for less reward.
+> 
+> int setns(int fd, int nstype);
+> 
+> The fd argument is a file descriptor referring to a proc
+> file of the namespace you want to switch the process to.
+> 
+> In the setns system call the nstype is 0 or specifies
+> an clone flag of the namespace you intend to change
+> to prevent changing a namespace unintentionally.
 
-The generated code should be the same.
+I don't understand exactly what the nstype argument buys us - why would
+correct code ever need to specify a value other than 0?  And reusing the
+CLONE_NEW* values in this interface is kind of ugly when setns is
+precisely _not_ creating new namespaces.
 
-Signed-off-by: Joe Perches <joe@perches.com>
+Is there some fundamental reason it couldn't be
 
----
+int setns(int fd);
 
-This came up because of a new pinmux subsystem that used
-a style copied from gpio and a request from Linus Walleij.
+or is there a use case I'm missing?
 
-On Wed, 2011-05-11 at 00:52 +0200, Linus Walleij wrote:
-> 2011/5/11 Joe Perches <joe@perches.com>:
-> > On Wed, 2011-05-11 at 00:18 +0200, Linus Walleij wrote:
-> >> 2011/5/2 Joe Perches <joe@perches.com>:
-> >> > On Mon, 2011-05-02 at 21:16 +0200, Linus Walleij wrote:
-> >> >> From: Linus Walleij <linus.walleij@linaro.org>
-> >> >> diff --git a/drivers/pinmux/core.c b/drivers/pinmux/core.c
-> >> > Trivial comments follow
-> >> >> +static inline int pin_is_valid(int pin)
-> >> >> +{
-> >> >> +     return ((unsigned)pin) < MACH_NR_PINS;
-> >> >> +}
-> >> > Couldn't pin just be declared unsigned or maybe u32?
-> >> No, because like in the GPIO subsystem you *may* want to send in invalid
-> >> pins, and those are identified by negative numbers.
-> > Then I think this is clearer and the compiler
-> > should produce the same code.
-> > static inline bool pin_is_valid(int pin)
-> > {
-> >        return pin >= 0 && pin < MACH_NR_PINS;
-> > }
-> Yes indeed, I'll fix. Can you propose a patch to the same pattern
-> found in include/asm-generic/gpio.h? It would bring equal
-> clarity there I believe. 
-
- include/asm-generic/gpio.h |    6 +++---
- include/linux/gpio.h       |    4 ++--
- 2 files changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-index ce16e70..315ecb7 100644
---- a/include/asm-generic/gpio.h
-+++ b/include/asm-generic/gpio.h
-@@ -35,9 +35,9 @@
-  * platform data and other tables.
-  */
  
--static inline int gpio_is_valid(int number)
-+static inline bool gpio_is_valid(int number)
- {
--	return ((unsigned)number) < ARCH_NR_GPIOS;
-+	return number >= 0 && number < ARCH_NR_GPIOS;
- }
- 
- struct device;
-@@ -216,7 +216,7 @@ extern void gpio_unexport(unsigned gpio);
- 
- #else	/* !CONFIG_GPIOLIB */
- 
--static inline int gpio_is_valid(int number)
-+static inline bool gpio_is_valid(int number)
- {
- 	/* only non-negative numbers are valid */
- 	return number >= 0;
-diff --git a/include/linux/gpio.h b/include/linux/gpio.h
-index fa92e50..0af3bca 100644
---- a/include/linux/gpio.h
-+++ b/include/linux/gpio.h
-@@ -79,9 +79,9 @@ struct gpio_chip;
-  * warning when something is wrongly called.
-  */
- 
--static inline int gpio_is_valid(int number)
-+static inline bool gpio_is_valid(int number)
- {
--	return 0;
-+	return false;
- }
- 
- static inline int gpio_request(unsigned gpio, const char *label)
+> +SYSCALL_DEFINE2(setns, int, fd, int, nstype)
+> +{
+> +	const struct proc_ns_operations *ops;
+> +	struct task_struct *tsk = current;
+> +	struct nsproxy *new_nsproxy;
+> +	struct proc_inode *ei;
+> +	struct file *file;
+> +	int err;
+> +
+> +	if (!capable(CAP_SYS_ADMIN))
+> +		return -EPERM;
+> +
+> +	file = proc_ns_fget(fd);
+> +	if (IS_ERR(file))
+> +		return PTR_ERR(file);
+> +
+> +	err = -EINVAL;
+> +	ei = PROC_I(file->f_dentry->d_inode);
+> +	ops = ei->ns_ops;
+> +	if (nstype && (ops->type != nstype))
+> +		goto out;
+> +
+> +	new_nsproxy = create_new_namespaces(0, tsk, tsk->fs);
+
+create_new_namespaces() can fail; shouldn't this be checked?
+
+
+> +	err = ops->install(new_nsproxy, ei->ns);
+> +	if (err) {
+> +		free_nsproxy(new_nsproxy);
+> +		goto out;
+> +	}
+> +	switch_task_namespaces(tsk, new_nsproxy);
+> +out:
+> +	fput(file);
+> +	return err;
+> +}
+> +
 
 
