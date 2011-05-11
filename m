@@ -1,53 +1,128 @@
-From: Rabin Vincent <rabin@rab.in>
-Subject: Re: [patch 0/4] [RFC] mcount address adjustment
-Date: Wed, 11 May 2011 22:53:55 +0530
-Message-ID: <BANLkTi=6FLtzXwg1yLAkLhP4GA4apSQ46g@mail.gmail.com>
-References: <20110510081039.241831019@de.ibm.com>
+From: Nathan Lynch <ntl@pobox.com>
+Subject: Re: [PATCH 1/7] ns: proc files for namespace naming policy.
+Date: Wed, 11 May 2011 14:20:48 -0500
+Message-ID: <1305141667.1236.47.camel@orca.stoopid.dyndns.org>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+ <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:49048 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751941Ab1EKRYg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 13:24:36 -0400
-Received: by wya21 with SMTP id 21so555330wya.19
-        for <linux-arch@vger.kernel.org>; Wed, 11 May 2011 10:24:35 -0700 (PDT)
-In-Reply-To: <20110510081039.241831019@de.ibm.com>
+Received: from a-pb-sasl-sd.pobox.com ([64.74.157.62]:49595 "EHLO
+	sasl.smtp.pobox.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753476Ab1EKTVQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 15:21:16 -0400
+In-Reply-To: <1304735101-1824-1-git-send-email-ebiederm@xmission.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
 
-On Tue, May 10, 2011 at 13:40, Martin Schwidefsky
-<schwidefsky@de.ibm.com> wrote:
-> That leaves arm as the last remaining architecture with a non trivial
-> ftrace_call_adjust function. There the least significant bit is removed
-> from the address with an and operation. The comment says this is done
-> for Thumb-2. This implies that for Thumb-1 the offset is 0 and for
-> Thumb-2 the offset is -1, correct?
+Hi Eric,
 
-ARM supports building the kernel using either the ARM instruction set or
-the Thumb-2 instruction set.  The kernel cannot be built with the
-"Thumb-1" instruction set (btw usually referred to as just Thumb).
+A few comments on your patch set.
 
-Thumb-2 via recordmcount.pl needs the clearing of the lsb because the
-relocation (R_ARM_ABS32) that gets used for the assembly file
-that recordmcount.pl generates and assembles dictates that the lsb be
-set if the target symbol is Thumb/Thumb-2 function.  mcount_adjust would
-not help here since the ORing is done later, when the relocation is
-applied.
 
-Thumb-2 via recordmcount.c does not need the clearing of the lsb in
-ftrace_call_adjust.
+On Fri, 2011-05-06 at 19:24 -0700, Eric W. Biederman wrote:
+> diff --git a/fs/proc/inode.c b/fs/proc/inode.c
+> index d15aa1b..74b48cf 100644
+> --- a/fs/proc/inode.c
+> +++ b/fs/proc/inode.c
+> @@ -28,6 +28,7 @@ static void proc_evict_inode(struct inode *inode)
+>  {
+>  	struct proc_dir_entry *de;
+>  	struct ctl_table_header *head;
+> +	const struct proc_ns_operations *ns_ops;
+>  
+>  	truncate_inode_pages(&inode->i_data, 0);
+>  	end_writeback(inode);
+> @@ -44,6 +45,10 @@ static void proc_evict_inode(struct inode *inode)
+>  		rcu_assign_pointer(PROC_I(inode)->sysctl, NULL);
+>  		sysctl_head_put(head);
+>  	}
+> +	/* Release any associated namespace */
+> +	ns_ops = PROC_I(inode)->ns_ops;
+> +	if (ns_ops && ns_ops->put)
+> +		ns_ops->put(PROC_I(inode)->ns);
 
-Building with the ARM instruction set also does not need the clearing
-of the lsb.
+Is it ever valid for ns_ops->put to be null?  If not, I suggest removing
+the check.
 
-> Thumb-2 the offset is -1, correct? If there is a way to distinguish
-> the two targets in recordmcount at compile time we could convert arm
-> as well. Which would allow us to remove the ftrace_call_adjust function.
 
-To remove ftrace_call_adjust, we could either deprecate the
-recordmcount.pl usage for ARM (you already have to edit the Kconfig to
-use it) or modify it to generate specific relocations explicitly instead
-of using the assembler data directives.
+> diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
+> new file mode 100644
+> index 0000000..6ae9f07
+> --- /dev/null
+> +++ b/fs/proc/namespaces.c
+
+...
+
+> +static struct dentry *proc_ns_dir_lookup(struct inode *dir,
+> +				struct dentry *dentry, struct nameidata *nd)
+> +{
+> +	struct dentry *error;
+> +	struct task_struct *task = get_proc_task(dir);
+> +	const struct proc_ns_operations **entry, **last;
+> +	unsigned int len = dentry->d_name.len;
+> +
+> +	error = ERR_PTR(-ENOENT);
+> +
+> +	if (!task)
+> +		goto out_no_task;
+> +
+> +	error = ERR_PTR(-EPERM);
+> +	if (!ptrace_may_access(task, PTRACE_MODE_READ))
+> +		goto out;
+> +
+> +	last = &ns_entries[ARRAY_SIZE(ns_entries) - 1];
+> +	for (entry = ns_entries; entry <= last; entry++) {
+> +		if (strlen((*entry)->name) != len)
+> +			continue;
+> +		if (!memcmp(dentry->d_name.name, (*entry)->name, len))
+> +			break;
+> +	}
+> +	if (entry > last)
+> +		goto out;
+
+This returns EPERM when it should return ENOENT?
+
+
+> +
+> +	error = proc_ns_instantiate(dir, dentry, task, *entry);
+> +out:
+> +	put_task_struct(task);
+> +out_no_task:
+> +	return error;
+> +}
+
+...
+
+> --- a/include/linux/proc_fs.h
+> +++ b/include/linux/proc_fs.h
+> @@ -250,6 +257,15 @@ kclist_add(struct kcore_list *new, void *addr, size_t size, int type)
+>  extern void kclist_add(struct kcore_list *, void *, size_t, int type);
+>  #endif
+>  
+> +struct nsproxy;
+> +struct proc_ns_operations {
+> +	const char *name;
+> +	int type;
+> +	void *(*get)(struct task_struct *task);
+> +	void (*put)(void *ns);
+> +	int (*install)(struct nsproxy *nsproxy, void *ns);
+> +};
+> +
+>  union proc_op {
+>  	int (*proc_get_link)(struct inode *, struct path *);
+>  	int (*proc_read)(struct task_struct *task, char *page);
+> @@ -268,6 +284,8 @@ struct proc_inode {
+>  	struct proc_dir_entry *pde;
+>  	struct ctl_table_header *sysctl;
+>  	struct ctl_table *sysctl_entry;
+> +	void *ns;
+> +	const struct proc_ns_operations *ns_ops;
+>  	struct inode vfs_inode;
+>  };
+
+Not that I have any better ideas, but it seems a bit undesirable to
+increase the size of proc_inode for this one purpose.
