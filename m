@@ -1,115 +1,85 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 1/7] ns: proc files for namespace naming policy.
-Date: Wed, 11 May 2011 15:52:35 -0700
-Message-ID: <m1oc38luj0.fsf@fess.ebiederm.org>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1305141667.1236.47.camel@orca.stoopid.dyndns.org>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [patch 0/4] [RFC] mcount address adjustment
+Date: Thu, 12 May 2011 11:24:54 +0200
+Message-ID: <20110512112454.2fa7e6d6@mschwide>
+References: <20110510081039.241831019@de.ibm.com>
+	<BANLkTi=6FLtzXwg1yLAkLhP4GA4apSQ46g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1305141667.1236.47.camel@orca.stoopid.dyndns.org> (Nathan
-	Lynch's message of "Wed, 11 May 2011 14:20:48 -0500")
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nathan Lynch <ntl@pobox.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mtagate3.uk.ibm.com ([194.196.100.163]:51898 "EHLO
+	mtagate3.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755768Ab1ELJZE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 May 2011 05:25:04 -0400
+Received: from d06nrmr1307.portsmouth.uk.ibm.com (d06nrmr1307.portsmouth.uk.ibm.com [9.149.38.129])
+	by mtagate3.uk.ibm.com (8.13.1/8.13.1) with ESMTP id p4C9Ov9J016619
+	for <linux-arch@vger.kernel.org>; Thu, 12 May 2011 09:24:57 GMT
+Received: from d06av01.portsmouth.uk.ibm.com (d06av01.portsmouth.uk.ibm.com [9.149.37.212])
+	by d06nrmr1307.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id p4C9Ov4x2351314
+	for <linux-arch@vger.kernel.org>; Thu, 12 May 2011 10:24:57 +0100
+Received: from d06av01.portsmouth.uk.ibm.com (loopback [127.0.0.1])
+	by d06av01.portsmouth.uk.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id p4C9OtkN012454
+	for <linux-arch@vger.kernel.org>; Thu, 12 May 2011 03:24:57 -0600
+In-Reply-To: <BANLkTi=6FLtzXwg1yLAkLhP4GA4apSQ46g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Rabin Vincent <rabin@rab.in>
+Cc: linux-arch@vger.kernel.org, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>
 
-Nathan Lynch <ntl@pobox.com> writes:
+On Wed, 11 May 2011 22:53:55 +0530
+Rabin Vincent <rabin@rab.in> wrote:
 
-> Hi Eric,
->
-> A few comments on your patch set.
->
->
-> On Fri, 2011-05-06 at 19:24 -0700, Eric W. Biederman wrote:
->> diff --git a/fs/proc/inode.c b/fs/proc/inode.c
->> index d15aa1b..74b48cf 100644
->> --- a/fs/proc/inode.c
->> +++ b/fs/proc/inode.c
->> @@ -28,6 +28,7 @@ static void proc_evict_inode(struct inode *inode)
->>  {
->>  	struct proc_dir_entry *de;
->>  	struct ctl_table_header *head;
->> +	const struct proc_ns_operations *ns_ops;
->>  
->>  	truncate_inode_pages(&inode->i_data, 0);
->>  	end_writeback(inode);
->> @@ -44,6 +45,10 @@ static void proc_evict_inode(struct inode *inode)
->>  		rcu_assign_pointer(PROC_I(inode)->sysctl, NULL);
->>  		sysctl_head_put(head);
->>  	}
->> +	/* Release any associated namespace */
->> +	ns_ops = PROC_I(inode)->ns_ops;
->> +	if (ns_ops && ns_ops->put)
->> +		ns_ops->put(PROC_I(inode)->ns);
->
-> Is it ever valid for ns_ops->put to be null?  If not, I suggest removing
-> the check.
->
->
->> diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
->> new file mode 100644
->> index 0000000..6ae9f07
->> --- /dev/null
->> +++ b/fs/proc/namespaces.c
->
-> ...
->
->> +static struct dentry *proc_ns_dir_lookup(struct inode *dir,
->> +				struct dentry *dentry, struct nameidata *nd)
->> +{
->> +	struct dentry *error;
->> +	struct task_struct *task = get_proc_task(dir);
->> +	const struct proc_ns_operations **entry, **last;
->> +	unsigned int len = dentry->d_name.len;
->> +
->> +	error = ERR_PTR(-ENOENT);
->> +
->> +	if (!task)
->> +		goto out_no_task;
->> +
->> +	error = ERR_PTR(-EPERM);
->> +	if (!ptrace_may_access(task, PTRACE_MODE_READ))
->> +		goto out;
->> +
->> +	last = &ns_entries[ARRAY_SIZE(ns_entries) - 1];
->> +	for (entry = ns_entries; entry <= last; entry++) {
->> +		if (strlen((*entry)->name) != len)
->> +			continue;
->> +		if (!memcmp(dentry->d_name.name, (*entry)->name, len))
->> +			break;
->> +	}
->> +	if (entry > last)
->> +		goto out;
->
-> This returns EPERM when it should return ENOENT?
+> On Tue, May 10, 2011 at 13:40, Martin Schwidefsky
+> <schwidefsky@de.ibm.com> wrote:
+> > That leaves arm as the last remaining architecture with a non trivial
+> > ftrace_call_adjust function. There the least significant bit is removed
+> > from the address with an and operation. The comment says this is done
+> > for Thumb-2. This implies that for Thumb-1 the offset is 0 and for
+> > Thumb-2 the offset is -1, correct?
+> 
+> ARM supports building the kernel using either the ARM instruction set or
+> the Thumb-2 instruction set.  The kernel cannot be built with the
+> "Thumb-1" instruction set (btw usually referred to as just Thumb).
+> 
+> Thumb-2 via recordmcount.pl needs the clearing of the lsb because the
+> relocation (R_ARM_ABS32) that gets used for the assembly file
+> that recordmcount.pl generates and assembles dictates that the lsb be
+> set if the target symbol is Thumb/Thumb-2 function.  mcount_adjust would
+> not help here since the ORing is done later, when the relocation is
+> applied.
 
-Good catch.
+Hmm, from what I can make out the C version of recordmcount uses R_ARM_ABS32
+as well. 
+ 
+> Thumb-2 via recordmcount.c does not need the clearing of the lsb in
+> ftrace_call_adjust.
 
-And fixed now.
+So the clearing of the lsb is only required if the recordmcount.pl script
+is used?
 
->>  union proc_op {
->>  	int (*proc_get_link)(struct inode *, struct path *);
->>  	int (*proc_read)(struct task_struct *task, char *page);
->> @@ -268,6 +284,8 @@ struct proc_inode {
->>  	struct proc_dir_entry *pde;
->>  	struct ctl_table_header *sysctl;
->>  	struct ctl_table *sysctl_entry;
->> +	void *ns;
->> +	const struct proc_ns_operations *ns_ops;
->>  	struct inode vfs_inode;
->>  };
->
-> Not that I have any better ideas, but it seems a bit undesirable to
-> increase the size of proc_inode for this one purpose.
+> Building with the ARM instruction set also does not need the clearing
+> of the lsb.
 
-Of the options I could think of this was the cleanest, and proc_inode
-is just a caching data structure which means that the effect should be
-comparatively minimal.
+Who does the ORing? I can't find anything in recordmount.pl/recordmcount.c
+which looks like doing an OR, does the assembler do that based on the
+symbol type?
 
-That said I won't oppose a change at some point to reduce the
-proc_inode, there are a lot of fields that are not used for most proc
-entries.
+> > Thumb-2 the offset is -1, correct? If there is a way to distinguish
+> > the two targets in recordmcount at compile time we could convert arm
+> > as well. Which would allow us to remove the ftrace_call_adjust function.
+> 
+> To remove ftrace_call_adjust, we could either deprecate the
+> recordmcount.pl usage for ARM (you already have to edit the Kconfig to
+> use it) or modify it to generate specific relocations explicitly instead
+> of using the assembler data directives.
 
-Eric
+Hmm, it would be a desirable property if the C version and the pearl
+version of recordmcount would do the same. Or we could remove the arm
+support from the pearl script, the C version is faster anyway.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
