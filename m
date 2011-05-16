@@ -1,121 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from out01.mta.xmission.com ([166.70.13.231]:52848 "EHLO
-	out01.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932566Ab1EKWwl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 May 2011 18:52:41 -0400
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: [PATCH 1/7] ns: proc files for namespace naming policy.
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	<1304735101-1824-1-git-send-email-ebiederm@xmission.com>
-	<1305141667.1236.47.camel@orca.stoopid.dyndns.org>
-Date: Wed, 11 May 2011 15:52:35 -0700
-In-Reply-To: <1305141667.1236.47.camel@orca.stoopid.dyndns.org> (Nathan
-	Lynch's message of "Wed, 11 May 2011 14:20:48 -0500")
-Message-ID: <m1oc38luj0.fsf@fess.ebiederm.org>
+Received: from mga09.intel.com ([134.134.136.24]:23408 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754449Ab1EPTRR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 May 2011 15:17:17 -0400
+From: "Luck, Tony" <tony.luck@intel.com>
+Date: Mon, 16 May 2011 12:17:15 -0700
+Subject: RE: [patch 3/4] ia64 mcount offset calculation
+Message-ID: <987664A83D2D224EAE907B061CE93D5301CD197F7B@orsmsx505.amr.corp.intel.com>
+References: <20110510081039.241831019@de.ibm.com>
+	 <20110510081103.902546467@de.ibm.com>
+ <1305572301.5456.24.camel@gandalf.stny.rr.com>
+In-Reply-To: <1305572301.5456.24.camel@gandalf.stny.rr.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nathan Lynch <ntl@pobox.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
-Message-ID: <20110511225235.JooyafWVpJyV4icINRBdxVM9LTuzGOtPRyf9jq5PPiw@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20110516191715.wVj23HevCEvp4v3bbVETIMaNszkqGvYOrwLQ2sCojcc@z>
 
-Nathan Lynch <ntl@pobox.com> writes:
+I'm not sure how to test it - but it looks somewhat suspect.
 
-> Hi Eric,
->
-> A few comments on your patch set.
->
->
-> On Fri, 2011-05-06 at 19:24 -0700, Eric W. Biederman wrote:
->> diff --git a/fs/proc/inode.c b/fs/proc/inode.c
->> index d15aa1b..74b48cf 100644
->> --- a/fs/proc/inode.c
->> +++ b/fs/proc/inode.c
->> @@ -28,6 +28,7 @@ static void proc_evict_inode(struct inode *inode)
->>  {
->>  	struct proc_dir_entry *de;
->>  	struct ctl_table_header *head;
->> +	const struct proc_ns_operations *ns_ops;
->>  
->>  	truncate_inode_pages(&inode->i_data, 0);
->>  	end_writeback(inode);
->> @@ -44,6 +45,10 @@ static void proc_evict_inode(struct inode *inode)
->>  		rcu_assign_pointer(PROC_I(inode)->sysctl, NULL);
->>  		sysctl_head_put(head);
->>  	}
->> +	/* Release any associated namespace */
->> +	ns_ops = PROC_I(inode)->ns_ops;
->> +	if (ns_ops && ns_ops->put)
->> +		ns_ops->put(PROC_I(inode)->ns);
->
-> Is it ever valid for ns_ops->put to be null?  If not, I suggest removing
-> the check.
->
->
->> diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
->> new file mode 100644
->> index 0000000..6ae9f07
->> --- /dev/null
->> +++ b/fs/proc/namespaces.c
->
-> ...
->
->> +static struct dentry *proc_ns_dir_lookup(struct inode *dir,
->> +				struct dentry *dentry, struct nameidata *nd)
->> +{
->> +	struct dentry *error;
->> +	struct task_struct *task = get_proc_task(dir);
->> +	const struct proc_ns_operations **entry, **last;
->> +	unsigned int len = dentry->d_name.len;
->> +
->> +	error = ERR_PTR(-ENOENT);
->> +
->> +	if (!task)
->> +		goto out_no_task;
->> +
->> +	error = ERR_PTR(-EPERM);
->> +	if (!ptrace_may_access(task, PTRACE_MODE_READ))
->> +		goto out;
->> +
->> +	last = &ns_entries[ARRAY_SIZE(ns_entries) - 1];
->> +	for (entry = ns_entries; entry <= last; entry++) {
->> +		if (strlen((*entry)->name) != len)
->> +			continue;
->> +		if (!memcmp(dentry->d_name.name, (*entry)->name, len))
->> +			break;
->> +	}
->> +	if (entry > last)
->> +		goto out;
->
-> This returns EPERM when it should return ENOENT?
+The difficulty is in the way that ia64 tools report program addresses within bundles.
 
-Good catch.
+ia64 crams 3 41-bit instructions (and a 5-bit template) into a 16-byte "bundle".
 
-And fixed now.
+Some tools report consecutive addresses like this:
 
->>  union proc_op {
->>  	int (*proc_get_link)(struct inode *, struct path *);
->>  	int (*proc_read)(struct task_struct *task, char *page);
->> @@ -268,6 +284,8 @@ struct proc_inode {
->>  	struct proc_dir_entry *pde;
->>  	struct ctl_table_header *sysctl;
->>  	struct ctl_table *sysctl_entry;
->> +	void *ns;
->> +	const struct proc_ns_operations *ns_ops;
->>  	struct inode vfs_inode;
->>  };
->
-> Not that I have any better ideas, but it seems a bit undesirable to
-> increase the size of proc_inode for this one purpose.
+0x000
+0x001
+0x002
+0x010
+0x011
+0x012
 
-Of the options I could think of this was the cleanest, and proc_inode
-is just a caching data structure which means that the effect should be
-comparatively minimal.
+where the low nibble is the instruction number within the bundle.  Others go
+for:
 
-That said I won't oppose a change at some point to reduce the
-proc_inode, there are a lot of fields that are not used for most proc
-entries.
+0x000
+0x006
+0x00c
+0x010
+0x016
+0x01c
 
-Eric
+with the illusion that instructions take 6-byte, 6bytes, 4-bytes.
 
+This patch does some fast and loose translation from hex (0x12) in the kernel
+to decimal (18) in the user tools ... which doesn't look like it fits with
+either of these conventions.
+
+-Tony
+
+-----Original Message-----
+From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-owner@vger.kernel.org] On Behalf Of Steven Rostedt
+Sent: Monday, May 16, 2011 11:58 AM
+To: Luck, Tony
+Cc: Martin Schwidefsky; linux-arch@vger.kernel.org
+Subject: Re: [patch 3/4] ia64 mcount offset calculation
+
+Tony,
+
+Can you give me an Acked-by for this patch?
+
+Thanks,
+
+-- Steve
+
+
+On Tue, 2011-05-10 at 10:10 +0200, Martin Schwidefsky wrote:
+> plain text document attachment (302-mcount-adjust-ia64.diff)
+> From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> 
+> Do the mcount offset adjustment in the recordmcount.pl/recordmcount.[ch]
+> at compile time and not in ftrace_call_adjust at run time.
+> 
+> Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> ---
+> 
+> 
+>  arch/ia64/include/asm/ftrace.h |    7 +++++--
+>  scripts/recordmcount.c         |    7 ++++++-
+>  scripts/recordmcount.pl        |    1 +
+>  3 files changed, 12 insertions(+), 3 deletions(-)
+> Index: test-2.6/arch/ia64/include/asm/ftrace.h
+> ===================================================================
+> --- test-2.6.orig/arch/ia64/include/asm/ftrace.h	2010-01-11 10:58:31.000000000 +0100
+> +++ test-2.6/arch/ia64/include/asm/ftrace.h	2011-05-03 09:39:04.929486388 +0200
+> @@ -14,8 +14,11 @@
+>  
+>  static inline unsigned long ftrace_call_adjust(unsigned long addr)
+>  {
+> -	/* second bundle, insn 2 */
+> -	return addr - 0x12;
+> +	/*
+> +	 * addr is the address of the mcount call instruction.
+> +	 * recordmcount does the necessary offset calculation.
+> +	 */
+> +	return addr;
+>  }
+>  
+>  struct dyn_arch_ftrace {
+> Index: test-2.6/scripts/recordmcount.c
+> ===================================================================
+> --- test-2.6.orig/scripts/recordmcount.c	2011-05-03 09:39:02.145472579 +0200
+> +++ test-2.6/scripts/recordmcount.c	2011-05-03 09:39:04.929486388 +0200
+> @@ -307,7 +307,12 @@
+>  	case EM_ARM:	 reltype = R_ARM_ABS32;
+>  			 altmcount = "__gnu_mcount_nc";
+>  			 break;
+> -	case EM_IA_64:	 reltype = R_IA64_IMM64;   gpfx = '_'; break;
+> +	case EM_IA_64:
+> +		reltype = R_IA64_IMM64;
+> +		/* Adjust relocation to second bundle, insn 2 */
+> +		mcount_adjust_32 = -18;
+> +		gpfx = '_';
+> +		break;
+>  	case EM_MIPS:	 /* reltype: e_class    */ gpfx = '_'; break;
+>  	case EM_PPC:	 reltype = R_PPC_ADDR32;   gpfx = '_'; break;
+>  	case EM_PPC64:	 reltype = R_PPC64_ADDR64; gpfx = '_'; break;
+> Index: test-2.6/scripts/recordmcount.pl
+> ===================================================================
+> --- test-2.6.orig/scripts/recordmcount.pl	2011-05-03 09:39:02.145472579 +0200
+> +++ test-2.6/scripts/recordmcount.pl	2011-05-03 09:39:04.929486388 +0200
+> @@ -278,6 +278,7 @@
+>  
+>  } elsif ($arch eq "ia64") {
+>      $mcount_regex = "^\\s*([0-9a-fA-F]+):.*\\s_mcount\$";
+> +    $mcount_adjust = -18;
+>      $type = "data8";
+>  
+>      if ($is_module eq "0") {
+
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
