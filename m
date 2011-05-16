@@ -1,22 +1,64 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [patch 3/4] ia64 mcount offset calculation
-Date: Mon, 16 May 2011 14:58:21 -0400
-Message-ID: <1305572301.5456.24.camel@gandalf.stny.rr.com>
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: RE: [patch 3/4] ia64 mcount offset calculation
+Date: Mon, 16 May 2011 12:17:15 -0700
+Message-ID: <987664A83D2D224EAE907B061CE93D5301CD197F7B@orsmsx505.amr.corp.intel.com>
 References: <20110510081039.241831019@de.ibm.com>
 	 <20110510081103.902546467@de.ibm.com>
+ <1305572301.5456.24.camel@gandalf.stny.rr.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.123]:43205 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751204Ab1EPS6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 May 2011 14:58:30 -0400
-In-Reply-To: <20110510081103.902546467@de.ibm.com>
+Received: from mga09.intel.com ([134.134.136.24]:23408 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754449Ab1EPTRR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 May 2011 15:17:17 -0400
+In-Reply-To: <1305572301.5456.24.camel@gandalf.stny.rr.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-arch@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+
+I'm not sure how to test it - but it looks somewhat suspect.
+
+The difficulty is in the way that ia64 tools report program addresses within bundles.
+
+ia64 crams 3 41-bit instructions (and a 5-bit template) into a 16-byte "bundle".
+
+Some tools report consecutive addresses like this:
+
+0x000
+0x001
+0x002
+0x010
+0x011
+0x012
+
+where the low nibble is the instruction number within the bundle.  Others go
+for:
+
+0x000
+0x006
+0x00c
+0x010
+0x016
+0x01c
+
+with the illusion that instructions take 6-byte, 6bytes, 4-bytes.
+
+This patch does some fast and loose translation from hex (0x12) in the kernel
+to decimal (18) in the user tools ... which doesn't look like it fits with
+either of these conventions.
+
+-Tony
+
+-----Original Message-----
+From: linux-arch-owner@vger.kernel.org [mailto:linux-arch-owner@vger.kernel.org] On Behalf Of Steven Rostedt
+Sent: Monday, May 16, 2011 11:58 AM
+To: Luck, Tony
+Cc: Martin Schwidefsky; linux-arch@vger.kernel.org
+Subject: Re: [patch 3/4] ia64 mcount offset calculation
 
 Tony,
 
@@ -90,3 +132,5 @@ On Tue, 2011-05-10 at 10:10 +0200, Martin Schwidefsky wrote:
 >      $type = "data8";
 >  
 >      if ($is_module eq "0") {
+
+
