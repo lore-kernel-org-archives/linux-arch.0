@@ -1,79 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from spaceboyz.net ([87.106.131.203]:34148 "EHLO spaceboyz.net"
+Received: from mail.perches.com ([173.55.12.10]:1724 "EHLO mail.perches.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755837Ab1EQPf6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 May 2011 11:35:58 -0400
-Date: Tue, 17 May 2011 17:35:46 +0200
-From: David Lamparter <equinox@diac24.net>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
-Message-ID: <20110517153546.GB3762520@jupiter.n2.diac24.net>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
- <3A54AB469A0294933EAC2257@nimrod.local>
- <m1fwoqoapn.fsf@fess.ebiederm.org>
- <20110517111148.GA3762520@jupiter.n2.diac24.net>
- <m1mxil9z2p.fsf@fess.ebiederm.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <m1mxil9z2p.fsf@fess.ebiederm.org>
+	id S932296Ab1EQVNx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 May 2011 17:13:53 -0400
+Subject: RFC: Add WARN_RATELIMIT to bug.h (was: Re: [PATCH] sk-filter:
+ Rate-limit WARNing, print dbg info.)
+From: Joe Perches <joe@perches.com>
+In-Reply-To: <4DD2DB9D.6050306@candelatech.com>
+References: <1305657014-32736-1-git-send-email-greearb@candelatech.com>
+	 <1305658349.1722.30.camel@Joe-Laptop>
+	 <20110517.152357.85105240786269960.davem@davemloft.net>
+	 <4DD2CDA9.7000009@candelatech.com> <1305662020.1722.42.camel@Joe-Laptop>
+	 <4DD2DB9D.6050306@candelatech.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 17 May 2011 14:13:52 -0700
+Message-ID: <1305666832.1722.62.camel@Joe-Laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: David Lamparter <equinox@diac24.net>, Alex Bligh <alex@alex.org.uk>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
-Message-ID: <20110517153546.He8jMirMPC0VLa30SOU-y97N6RmLvQl-rpoa88JMbCQ@z>
+To: Ben Greear <greearb@candelatech.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: netdev <netdev@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110517211352.zN6NJKZmPR8ASTtwfHL0NYRWn8fYqJVKBEo_Ti_TGHc@z>
 
-On Tue, May 17, 2011 at 07:33:18AM -0700, Eric W. Biederman wrote:
-> I went the round of keeping a daemon open, saw how much code that
-> takes and how fragile that can be in the corner cases and decided to
-> patch the kernel to make the interfaces better.
+On Tue, 2011-05-17 at 13:33 -0700, Ben Greear wrote:
+> On 05/17/2011 12:53 PM, Joe Perches wrote:
+> > Another option is to add a WARN_RATELIMIT
+> > (there is already a WARN_ON_RATELIMIT) to avoid
+> > missing other messages.
+> > Something like:
+> >   include/asm-generic/bug.h |   16 ++++++++++++++++
+> >   net/core/filter.c         |    4 +++-
+> >   2 files changed, 19 insertions(+), 1 deletions(-)
+> > diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+> > index e5a3f58..12b250c 100644
+> > --- a/include/asm-generic/bug.h
+> > +++ b/include/asm-generic/bug.h
+> > @@ -165,6 +165,22 @@ extern void warn_slowpath_null(const char *file, const int line);
+> >   #define WARN_ON_RATELIMIT(condition, state)			\
+> >   		WARN_ON((condition)&&  __ratelimit(state))
+> >
+> > +#define __WARN_RATELIMIT(condition, state, format...)		\
+> > +({								\
+> > +	int rtn = 0;						\
+> > +	if (unlikely(__ratelimit(state)))			\
+> > +		rtn = WARN(condition, format);			\
+> > +	rtn;							\
+> > +})
+> > +
+> > +#define WARN_RATELIMIT(condition, format...)			\
+> > +({								\
+> > +	static DEFINE_RATELIMIT_STATE(_rs,			\
+> > +				      DEFAULT_RATELIMIT_INTERVAL,	\
+> > +				      DEFAULT_RATELIMIT_BURST);	\
+> > +	__WARN_RATELIMIT(condition,&_rs, format);		\
+> > +})
+> > +
+> >   /*
+> >    * WARN_ON_SMP() is for cases that the warning is either
+> >    * meaningless for !SMP or may even cause failures.
+> > diff --git a/net/core/filter.c b/net/core/filter.c
+> > index 0eb8c44..0e3622f 100644
+> > --- a/net/core/filter.c
+> > +++ b/net/core/filter.c
+> > @@ -350,7 +350,9 @@ load_b:
+> >   			continue;
+> >   		}
+> >   		default:
+> > -			WARN_ON(1);
+> > +			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
+> > +				       fentry->code, fentry->jt,
+> > +				       fentry->jf, fentry->k);
+> >   			return 0;
+> >   		}
+> >   	}
+> >
 
-Yes, it is more fragile. I'm currently using it without setns-patched
-kernels though, so it's all I have.
+> Sounds fine to me.  You want to just send an official
+> patch with all this?
 
-(More or less related, I was able to cause a kernel oops on doing a
-"find /proc" on setns-patched kernels after bind-mounting /proc; I did
-not report it because I'm running grsecurity-patched kernels which tend
-to mess with /proc quite a bit... I'll try to reproduce it with your
-current patches on an otherwise vanilla kernel.)
+I added a some cc's for wider exposure.
+original post: http://www.spinics.net/lists/netdev/msg164521.html
 
-> > I also have patches for OpenVPN and pptpd floating around that make it
-> > possible to 'cross' namespace boundaries, i.e. the VPN servers listen in
-> > one namespace and have their devices in another.
-> 
-> For openvpn I have managed to get away with simply using an up script. 
-> Mostly the script is:
-> 
-> ip netns add $NSNAME || true
-> ip netns exec $NSNAME ip link set lo up
-> ip link set $dev netns $NSNAME
+Let's wait to see if David has anything to say.
 
-Historic annotation: This line used to kernel panic around a year and a
-half back - nowadays tap devices do get the netns move right...
+The biggest negative I see is adding RATELIMIT_STATE
+to asm-generic/bug.h, though it already has a use of
+__ratelimit in WARN_ON_RATELIMIT there.
 
-> ip netns exec $NSNAME ip link set $dev up
-> ip netns exec $NSNAME ifconfig $dev $ifconfig_local netmask $ifconfig_netmask broadcast $ifconfig_broadcast
-> 
-> With a few extra bits for dns options and routes.  If I had an openvpn
-> built with the iproute option I expect I could get away by just wrapping
-> iproute.  Not that I would mind a patched openvpn.
+WARN_ON_RATELIMIT is unused today.
 
-I didn't even try to make amends for DNS, I just put 127.0.0.1 and have
-caches in each of the namespaces. Wrapping iproute2 would work; one of
-the advantages of patching OpenVPN is that the OpenVPN daemon is in the
-same namespace as the tap devices and can do all the configuration as
-usual.
+The only user seems to have been RCU_PREEMPT
+which was deleted in:
 
-For pptp, er, well, reading up on how ppp devices behave if you splice
-them across namespace boundaries would've taken more time than patching
-up the UDP/GRE sockets.
+commit 6b3ef48adf847f7adf11c870e3ffacac150f1564
+Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Date:   Sat Aug 22 13:56:53 2009 -0700
 
-> Personally I think using a vpn in a network namespace seems like a
-> killer feature.
+    rcu: Remove CONFIG_PREEMPT_RCU
 
-Yes, it very much is - it provides very nice and clean solutions to
-problems that up to now were usually hacked around with policy routing &
-co.
+Maybe the old definition should be removed instead.
 
+If there are no comments after a day or two, I'll
+sign and send this as 2 patches with the filter
+one marked as:
 
--David
+Original-patch-by: Ben Greear <greearb@candelatech.com>
+
+cheers, Joe
 
