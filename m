@@ -1,73 +1,58 @@
-From: David Lamparter <equinox@diac24.net>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
-Date: Tue, 17 May 2011 17:35:46 +0200
-Message-ID: <20110517153546.GB3762520@jupiter.n2.diac24.net>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
- <3A54AB469A0294933EAC2257@nimrod.local>
- <m1fwoqoapn.fsf@fess.ebiederm.org>
- <20110517111148.GA3762520@jupiter.n2.diac24.net>
- <m1mxil9z2p.fsf@fess.ebiederm.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <m1mxil9z2p.fsf@fess.ebiederm.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: David Lamparter <equinox@diac24.net>, Alex Bligh <alex@alex.org.uk>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH] fix generic get_user and put_user
+Date: Tue, 17 May 2011 14:35:49 -0400
+Message-ID: <1305657349-2783-1-git-send-email-msalter@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:38299 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756364Ab1EQSfx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 May 2011 14:35:53 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de
+Cc: linux-arch@vger.kernel.org
 
-On Tue, May 17, 2011 at 07:33:18AM -0700, Eric W. Biederman wrote:
-> I went the round of keeping a daemon open, saw how much code that
-> takes and how fragile that can be in the corner cases and decided to
-> patch the kernel to make the interfaces better.
+The generic uaccess.h implements get_user() and put_user() as macros. The
+current version of these do not properly handle pointers passed in with
+post-increment and the like. In the case of put_user(0, ptr++), ptr gets
+incremented twice. Once for the call to access_ok() and once in __put_user().
+This patch creates a local copy of the pointer so that it is safe to use
+post/pre increment/decrement on the pointer arg.
 
-Yes, it is more fragile. I'm currently using it without setns-patched
-kernels though, so it's all I have.
+Signed-off-by: Mark Salter <msalter@redhat.com>
+---
+ include/asm-generic/uaccess.h |   10 ++++++----
+ 1 files changed, 6 insertions(+), 4 deletions(-)
 
-(More or less related, I was able to cause a kernel oops on doing a
-"find /proc" on setns-patched kernels after bind-mounting /proc; I did
-not report it because I'm running grsecurity-patched kernels which tend
-to mess with /proc quite a bit... I'll try to reproduce it with your
-current patches on an otherwise vanilla kernel.)
-
-> > I also have patches for OpenVPN and pptpd floating around that make it
-> > possible to 'cross' namespace boundaries, i.e. the VPN servers listen in
-> > one namespace and have their devices in another.
-> 
-> For openvpn I have managed to get away with simply using an up script. 
-> Mostly the script is:
-> 
-> ip netns add $NSNAME || true
-> ip netns exec $NSNAME ip link set lo up
-> ip link set $dev netns $NSNAME
-
-Historic annotation: This line used to kernel panic around a year and a
-half back - nowadays tap devices do get the netns move right...
-
-> ip netns exec $NSNAME ip link set $dev up
-> ip netns exec $NSNAME ifconfig $dev $ifconfig_local netmask $ifconfig_netmask broadcast $ifconfig_broadcast
-> 
-> With a few extra bits for dns options and routes.  If I had an openvpn
-> built with the iproute option I expect I could get away by just wrapping
-> iproute.  Not that I would mind a patched openvpn.
-
-I didn't even try to make amends for DNS, I just put 127.0.0.1 and have
-caches in each of the namespaces. Wrapping iproute2 would work; one of
-the advantages of patching OpenVPN is that the OpenVPN daemon is in the
-same namespace as the tap devices and can do all the configuration as
-usual.
-
-For pptp, er, well, reading up on how ppp devices behave if you splice
-them across namespace boundaries would've taken more time than patching
-up the UDP/GRE sockets.
-
-> Personally I think using a vpn in a network namespace seems like a
-> killer feature.
-
-Yes, it very much is - it provides very nice and clean solutions to
-problems that up to now were usually hacked around with policy routing &
-co.
-
-
--David
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index 1d0fdf8..5079335 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -162,9 +162,10 @@ static inline __must_check long __copy_to_user(void __user *to,
+ 
+ #define put_user(x, ptr)					\
+ ({								\
++	__typeof__(*(ptr)) *__pu_ptr = (ptr);			\
+ 	might_sleep();						\
+-	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
+-		__put_user(x, ptr) :				\
++	access_ok(VERIFY_WRITE, __pu_ptr, sizeof(*ptr)) ?	\
++		__put_user(x, __pu_ptr) :			\
+ 		-EFAULT;					\
+ })
+ 
+@@ -218,9 +219,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
+ 
+ #define get_user(x, ptr)					\
+ ({								\
++	__typeof__(*(ptr)) *__gu_ptr = (ptr);			\
+ 	might_sleep();						\
+-	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
+-		__get_user(x, ptr) :				\
++	access_ok(VERIFY_READ, __gu_ptr, sizeof(*ptr)) ?	\
++		__get_user(x, __gu_ptr) :			\
+ 		-EFAULT;					\
+ })
+ 
+-- 
+1.6.2.5
