@@ -1,77 +1,98 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH] fix generic get_user and put_user
-Date: Tue, 17 May 2011 17:25:28 -0400
-Message-ID: <1305667528.2239.64.camel@deneb.redhat.com>
-References: <1305657349-2783-1-git-send-email-msalter@redhat.com>
-	 <201105172226.54517.arnd@arndb.de>
+From: David Lamparter <equinox@diac24.net>
+Subject: Identifying network namespaces (was: Network namespace manipulation
+ with file descriptors)
+Date: Wed, 18 May 2011 14:43:07 +0200
+Message-ID: <20110518124307.GD3762520@jupiter.n2.diac24.net>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63241 "EHLO mx1.redhat.com"
+Received: from spaceboyz.net ([87.106.131.203]:42044 "EHLO spaceboyz.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932296Ab1EQVZc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 May 2011 17:25:32 -0400
-In-Reply-To: <201105172226.54517.arnd@arndb.de>
+	id S933083Ab1ERMnT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 May 2011 08:43:19 -0400
+Content-Disposition: inline
+In-Reply-To: <m1tyd7p7tq.fsf@fess.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, linux-fsdevel@vger.kernel.org, jamal <hadi@cyberus.ca>, Daniel Lezcano <daniel.lezcano@free.fr>, Linux Containers <containers@lists.osdl.org>, Renato Westphal <renatowestphal@gmail.com>
 
-On Tue, 2011-05-17 at 22:26 +0200, Arnd Bergmann wrote:
-> On Tuesday 17 May 2011, Mark Salter wrote:
-> > diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-> > index 1d0fdf8..5079335 100644
-> > --- a/include/asm-generic/uaccess.h
-> > +++ b/include/asm-generic/uaccess.h
-> > @@ -162,9 +162,10 @@ static inline __must_check long __copy_to_user(void __user *to,
-> >  
-> >  #define put_user(x, ptr)                                       \
-> >  ({                                                             \
-> > +       __typeof__(*(ptr)) *__pu_ptr = (ptr);                   \
-> >         might_sleep();                                          \
-> > -       access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?            \
-> > -               __put_user(x, ptr) :                            \
-> > +       access_ok(VERIFY_WRITE, __pu_ptr, sizeof(*ptr)) ?       \
-> > +               __put_user(x, __pu_ptr) :                       \
-> >                 -EFAULT;                                        \
-> >  })
-> >  
-> > @@ -218,9 +219,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
-> >  
-> >  #define get_user(x, ptr)                                       \
-> >  ({                                                             \
-> > +       __typeof__(*(ptr)) *__gu_ptr = (ptr);                   \
-> >         might_sleep();                                          \
-> > -       access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?             \
-> > -               __get_user(x, ptr) :                            \
-> > +       access_ok(VERIFY_READ, __gu_ptr, sizeof(*ptr)) ?        \
-> > +               __get_user(x, __gu_ptr) :                       \
-> >                 -EFAULT;                                        \
-> >  })
-> >  
-> 
-> IIRC, this doesn't work for get_user if the pointer is marked const.
-> Do you see a real problem with the current definitions, or are you
-> just trying to improve them genrally?
-> 
+On Fri, May 06, 2011 at 07:23:29PM -0700, Eric W. Biederman wrote:
+> Today there are something things you can use namespaces to implement but
+> the userspace code is unnecessarily complex and fragile because of
+> limitations of the kernel interfaces.
 
-I think you're thinking of doing this:
+(I hope I'm not duplicating stuff here, maybe this is already taken care
+of...)
 
-  __typeof__(*(ptr)) __tmp_x;
+There still is the unresolved issue of identifying and/or equality
+testing network namespaces. The problems I see are the following:
 
-then assigning to __tmp_x wouldn't work if ptr was a pointer to a const
-value.
+Problems
+========
 
-But that does make me think there's a problem with my patch if the ptr
-itself is const. In that case you might see a warning about losing the
-const attribute with the assignment. So maybe those should be:
+-   there is no simple list of the existing namespaces
+ 
+  most importantly, network namespaces can be abused very sneakily to
+  provide trojans or other malicious software with a covert
+  communication channel.
 
- __typeof__(*(ptr)) *const __xx_ptr = (ptr);
+  Just create a macvlan device on the local ethernet, shift it into a
+  new namespace, grab an IP - and the admin of the host will be left
+  dumbfounded with his plain old netstat or ss as to where those weird
+  packets are coming from.
 
-And yes, I am seeing an actual runtime failure due to put_user double
-incrementing a ptr. A grep of the kernel shows a few dozen cases where
-this can bite. Mostly in arch code where arch-specific implentations of
-put_user/get_user are being used, but also in driver and network code.
+  (Granted, this needs root privileges and you can still see everything
+  in /proc/<pid>/net/{tcp,udp,...})
 
---Mark
+-   processes cannot easily be cross referenced with each other
+
+  in the case of user space stuff running astray - like management
+  software crashing, routing daemons screwing up, etc. - it becomes
+  fairly difficult to shut down a network namespace (or even reaquire
+  physical devices that have been reassigned)
+
+-   namespaces cannot adequately be identified to the user
+
+  for debugging, some kernel messages become useless. most prominently,
+  "unregister_netdevice: waiting for lo to become free. Usage count = 123"
+  could certainly use some clarification, *which* lo is meant...
+
+So, considering this set of premises (feedback welcome) I looked for
+some suitable means of identification. I discarded going for any process
+identifiers since Eric's patches allow for network namespaces without
+any process holding a reference, using bind mounts instead.
+
+Solution?
+=========
+
+I do think I found another identifier suitable for both exporting a full 
+list and providing "getid" functionality: the "lo" interface index.
+I am not fully sure on the rules here, but to my understanding the lo
+interface index should be constant for the lifetime of a network
+namespace, and furthermore the interface index namespace is global to
+the kernel.
+
+This can already be used right now:
+- you can identify the init namespace since its lo index is 1
+- you can use netlink (or SIOCGIFINDEX, ew.) to get your own ID
+- as soon as you have the means to attach to a namespace, you
+  automatically also have the means to get its ID
+
+What might need to be added:
+1) a list of lo indices
+2) a way to get a hold of the namespace using its lo index
+3) maybe dmesg output on creation/destruction for the abuse case above
+4) possibly a file in /proc/<pid>/net that just contains the lo index,
+  for ease of use
+
+3) and 4) should be trivial; 1) and 2) could be solved by having a
+directory in /proc (?) that has all the network namespace "files" with
+their lo indices as names.
+
+
+So, ... Opinions?
+
+
+-David
