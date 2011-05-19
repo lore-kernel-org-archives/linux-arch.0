@@ -1,36 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys010aog107.obsmtp.com ([74.125.245.82]:47408 "HELO
-	na3sys010aog107.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1750831Ab1ESEXB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 May 2011 00:23:01 -0400
+Received: from mx0.aculab.com ([213.249.233.131]:37854 "HELO mx0.aculab.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
+	id S1756482Ab1ESIgf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2011 04:36:35 -0400
+Received: from mx0.aculab.com ([127.0.0.1])
+ by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
+ id 13631-09 for <linux-arch@vger.kernel.org>;
+ Thu, 19 May 2011 09:36:24 +0100 (BST)
+Content-class: urn:content-classes:message
 MIME-Version: 1.0
-In-Reply-To: <x86-32-writeq-is-broken@mdm.bga.com>
-References: <20110504115324.GE17855@lsi.com> <1305616571.6008.23.camel@mulgrave.site>
- <B2FD678A64EAAD45B089B123FDFC3ED70157F7BCE5@inbmail01.lsi.com>
- <20110518041551.GL15227@parisc-linux.org> <1305692584.2580.3.camel@mulgrave.site>
- <1305702010.2781.33.camel@pasglop> <mpt2sas-writeq-powerpc64@mdm.bga.com>
- <4565AEA676113A449269C2F3A549520F80B66280@cosmail03.lsi.com> <x86-32-writeq-is-broken@mdm.bga.com>
-From: Roland Dreier <roland@kernel.org>
-Date: Wed, 18 May 2011 21:16:49 -0700
-Message-ID: <BANLkTimDktq8SxOU3HZkPpj=J9pdkzVX-w@mail.gmail.com>
-Subject: Re: [PATCH 1/3] mpt2sas: remove the use of writeq, since writeq is
- not atomic
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Subject: RE: [PATCH 1/3] mpt2sas: remove the use of writeq, since writeq isnot atomic
+Date: Thu, 19 May 2011 09:35:19 +0100
+Message-ID: <AE90C24D6B3A694183C094C60CF0A2F6D8AD41@saturn3.aculab.com>
+In-Reply-To: <1305780360.2576.20.camel@mulgrave.site>
+From: "David Laight" <David.Laight@ACULAB.COM>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Milton Miller <miltonm@bga.com>
-Cc: Hitoshi Mitake <h.mitake@gmail.com>, Sam Ravnborg <sam@ravnborg.org>, Ingo Molnar <mingo@elte.hu>, Ingo Molnar <mingo@redhat.com>, "Desai, Kashyap" <Kashyap.Desai@lsi.com>, "Prakash, Sathya" <Sathya.Prakash@lsi.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux scsi dev <linux-scsi@vger.kernel.org>, "paulus@samba.org" <paulus@samba.org>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, linux pci <linux-pci@vger.kernel.org>, linux kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20110519041649.YXh73hWilI7KmKaV05RV0UiU_g10M-q1ZzmZ1U33R6k@z>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>, Hitoshi Mitake <h.mitake@gmail.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>, "Prakash,Sathya" <Sathya.Prakash@lsi.com>, Roland Dreier <roland@kernel.org>, "Desai, Kashyap" <Kashyap.Desai@lsi.com>, linux scsi dev <linux-scsi@vger.kernel.org>, Matthew Wilcox <matthew@wil.cx>, "Moore, Eric" <Eric.Moore@lsi.com>, linux pci <linux-pci@vger.kernel.org>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, Milton Miller <miltonm@bga.com>, linux kernel <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, paulus@samba.org, Ingo Molnar <mingo@elte.hu>, Sam Ravnborg <sam@ravnborg.org>
+Message-ID: <20110519083519.pRGs5GVsNaYIqQNm0PjaB31Yni3S015A0tltN3Fp78o@z>
 
-On Wed, May 18, 2011 at 11:31 AM, Milton Miller <miltonm@bga.com> wrote:
-> So the real question should be why is x86-32 supplying a broken writeq
-> instead of letting drivers work out what to do it when needed?
+ 
+> The specific mpt2sas problem is that if we write a 64 bit register non
+> atomically, we can't allow any interleaving writes for any other
+region
+> on the chip, otherwise the HW will take the write as complete in the
+64
+> bit register and latch the wrong value.  The only way to achieve that
+> given the semantics of writeq is a global static spinlock.
 
-Sounds a lot like what I was asking a couple of years ago :)
-http://lkml.org/lkml/2009/4/19/164
+That sounds like very specific and slightly dodgy hardware.
+You don't say what the scope of 'region on the chip' is, but
+it looks like you need to disable ALL writes to the memory
+area between the first and second writes of the 64bit value
+and not just those coming from writeq().
+I don't see how this can possibly be done by normal mutexing
+around the writeq() sequence, surely you need to lock the bus
+between the two transfers.
+Even dma writes would be a problem.
 
-But Ingo insisted that non-atomic writeq would be fine:
-http://lkml.org/lkml/2009/4/19/167
+The only way I can think to stop other cpus doing writes
+is to use IPIs for force them into a busy wait loop.
 
- - R.
+All rather reminds me of a PCI slave that got things
+horribly wrong when a read was done while a write was
+still 'posted', or a 2nd master did a cycle did a read
+while a read rerun sequence was still in progress.
+(required a mutex and dummy cycles).
+At least than one wqs confined to one driver.
+
+	David
+
+
