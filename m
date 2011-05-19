@@ -1,71 +1,123 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 1/3] mpt2sas: remove the use of writeq, since writeq is
-	not atomic
-Date: Thu, 19 May 2011 20:15:00 +0200
-Message-ID: <20110519181500.GF6139@elte.hu>
-References: <1305616571.6008.23.camel@mulgrave.site>
-	<B2FD678A64EAAD45B089B123FDFC3ED70157F7BCE5@inbmail01.lsi.com>
-	<20110518041551.GL15227@parisc-linux.org>
-	<1305692584.2580.3.camel@mulgrave.site>
-	<1305702010.2781.33.camel@pasglop>
-	<mpt2sas-writeq-powerpc64@mdm.bga.com>
-	<4565AEA676113A449269C2F3A549520F80B66280@cosmail03.lsi.com>
-	<x86-32-writeq-is-broken@mdm.bga.com>
-	<BANLkTimDktq8SxOU3HZkPpj=J9pdkzVX-w@mail.gmail.com>
-	<1305783242.7481.42.camel@pasglop>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: Software prefetching considered harmful
+Date: Thu, 19 May 2011 12:05:31 -0700
+Message-ID: <BANLkTi=428+KWmDcHoFYs5gO_C9wyhxJnQ@mail.gmail.com>
+References: <BANLkTim5MaJBYSuTnXfmOjgPNVOyZSgQuQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-Content-Disposition: inline
-In-Reply-To: <1305783242.7481.42.camel@pasglop>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: Roland Dreier <roland@kernel.org>, "Prakash,
-	Sathya" <Sathya.Prakash@lsi.com>, linux-arch <linux-arch@vger.kernel.org>, "Desai,
-	Kashyap" <Kashyap.Desai@lsi.com>, linux scsi dev <linux-scsi@vger.kernel.org>, Matthew Wilcox <matthew@wil.cx>, Hitoshi Mitake <h.mitake@gmail.com>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, Milton Miller <miltonm@bga.com>, linux kernel <linux-kernel@vger.kernel.org>, James Bottomley <James.Bottomley@hansenpartnership.com>, Ingo Molnar <mingo@redhat.com>, "paulus@samba.org" <paulus@samba.org>, linux pci <linux-pci@vger.kernel.org>, Sam Ravnborg <sam@ravnborg.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/mixed; boundary=001636416be7a62ff504a3a5b1d0
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:45673 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S933806Ab1ESTG0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 May 2011 15:06:26 -0400
+Received: from mail-ew0-f46.google.com (mail-ew0-f46.google.com [209.85.215.46])
+	(authenticated bits=0)
+	by smtp1.linux-foundation.org (8.14.2/8.13.5/Debian-3ubuntu1.1) with ESMTP id p4JJ5rQP024829
+	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=FAIL)
+	for <linux-arch@vger.kernel.org>; Thu, 19 May 2011 12:05:54 -0700
+Received: by ewy4 with SMTP id 4so948443ewy.19
+        for <linux-arch@vger.kernel.org>; Thu, 19 May 2011 12:05:52 -0700 (PDT)
+In-Reply-To: <BANLkTim5MaJBYSuTnXfmOjgPNVOyZSgQuQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <rmk@arm.linux.org.uk>
 
+--001636416be7a62ff504a3a5b1d0
+Content-Type: text/plain; charset=ISO-8859-1
 
-* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+On Thu, May 19, 2011 at 10:12 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Now, notice that right now I'm *only* talking about removing it for
+> the "hlist" cases (patch attached). I suspect we should do the same
+> thing for all the list helpers.
 
-> On Wed, 2011-05-18 at 21:16 -0700, Roland Dreier wrote:
-> > On Wed, May 18, 2011 at 11:31 AM, Milton Miller <miltonm@bga.com> wrote:
-> > > So the real question should be why is x86-32 supplying a broken writeq
-> > > instead of letting drivers work out what to do it when needed?
-> > 
-> > Sounds a lot like what I was asking a couple of years ago :)
-> > http://lkml.org/lkml/2009/4/19/164
-> > 
-> > But Ingo insisted that non-atomic writeq would be fine:
-> > http://lkml.org/lkml/2009/4/19/167
-> 
-> Yuck... Ingo, I think that was very wrong.
-> 
-> Those are for MMIO, which must almost ALWAYS know precisely what the
-> resulting access size is going to be. It's not even about atomicity
-> between multiple CPUs. I have seen plenty of HW for which a 64-bit
-> access to a register is -not- equivalent to two 32-bit ones. In fact, in
-> some case, you can get the side effects twice ... or none at all.
-> 
-> The only case where you can be lax is when you explicitely know that
-> there is no side effects -and- the HW cope with different access sizes.
-> This is not the general case and drivers need at the very least a way to
-> know what the behaviour will be.
+Actually, it's the "rcu" versions of the hlist helpers that need this
+most, since those are the performance-critical ones and the ones used
+in avc traversal. So the previous patch did nothing.
 
-Ok, that's pretty convincing.
+So here's the actual patch I think I should commit.
 
-Unless hpa or tglx disagrees with reverting this, could any of you send a patch 
-with a proper changelog etc. that applies cleanly to v2.6.39?
+Added davem, benh and rmk explicitly - I think you're on linux-arch,
+but still..  You may have machines that like prefetch more, although I
+think the "pollute the L1 cache" issue means that even if  you don't
+have the NULL pointer microtrap issue you'll still find this actually
+performs better..
 
-Thanks,
+                       Linus
 
-	Ingo
+--001636416be7a62ff504a3a5b1d0
+Content-Type: text/x-patch; charset=US-ASCII; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_gnw2k5o11
+
+IGluY2x1ZGUvbGludXgvbGlzdC5oICAgIHwgICAgOSArKysrLS0tLS0KIGluY2x1ZGUvbGludXgv
+cmN1bGlzdC5oIHwgICAxMCArKysrKy0tLS0tCiAyIGZpbGVzIGNoYW5nZWQsIDkgaW5zZXJ0aW9u
+cygrKSwgMTAgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvaW5jbHVkZS9saW51eC9saXN0Lmgg
+Yi9pbmNsdWRlL2xpbnV4L2xpc3QuaAppbmRleCAzYTU0MjY2YTFlODUuLjlhYzExMTQ4ZTAzNyAx
+MDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9saXN0LmgKKysrIGIvaW5jbHVkZS9saW51eC9saXN0
+LmgKQEAgLTY2NCw4ICs2NjQsNyBAQCBzdGF0aWMgaW5saW5lIHZvaWQgaGxpc3RfbW92ZV9saXN0
+KHN0cnVjdCBobGlzdF9oZWFkICpvbGQsCiAjZGVmaW5lIGhsaXN0X2VudHJ5KHB0ciwgdHlwZSwg
+bWVtYmVyKSBjb250YWluZXJfb2YocHRyLHR5cGUsbWVtYmVyKQogCiAjZGVmaW5lIGhsaXN0X2Zv
+cl9lYWNoKHBvcywgaGVhZCkgXAotCWZvciAocG9zID0gKGhlYWQpLT5maXJzdDsgcG9zICYmICh7
+IHByZWZldGNoKHBvcy0+bmV4dCk7IDE7IH0pOyBcCi0JICAgICBwb3MgPSBwb3MtPm5leHQpCisJ
+Zm9yIChwb3MgPSAoaGVhZCktPmZpcnN0OyBwb3MgOyBwb3MgPSBwb3MtPm5leHQpCiAKICNkZWZp
+bmUgaGxpc3RfZm9yX2VhY2hfc2FmZShwb3MsIG4sIGhlYWQpIFwKIAlmb3IgKHBvcyA9IChoZWFk
+KS0+Zmlyc3Q7IHBvcyAmJiAoeyBuID0gcG9zLT5uZXh0OyAxOyB9KTsgXApAQCAtNjgwLDcgKzY3
+OSw3IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBobGlzdF9tb3ZlX2xpc3Qoc3RydWN0IGhsaXN0X2hl
+YWQgKm9sZCwKICAqLwogI2RlZmluZSBobGlzdF9mb3JfZWFjaF9lbnRyeSh0cG9zLCBwb3MsIGhl
+YWQsIG1lbWJlcikJCQkgXAogCWZvciAocG9zID0gKGhlYWQpLT5maXJzdDsJCQkJCSBcCi0JICAg
+ICBwb3MgJiYgKHsgcHJlZmV0Y2gocG9zLT5uZXh0KTsgMTt9KSAmJgkJCSBcCisJICAgICBwb3Mg
+JiYJCQkJCQkJIFwKIAkJKHsgdHBvcyA9IGhsaXN0X2VudHJ5KHBvcywgdHlwZW9mKCp0cG9zKSwg
+bWVtYmVyKTsgMTt9KTsgXAogCSAgICAgcG9zID0gcG9zLT5uZXh0KQogCkBAIC02OTIsNyArNjkx
+LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIGhsaXN0X21vdmVfbGlzdChzdHJ1Y3QgaGxpc3RfaGVh
+ZCAqb2xkLAogICovCiAjZGVmaW5lIGhsaXN0X2Zvcl9lYWNoX2VudHJ5X2NvbnRpbnVlKHRwb3Ms
+IHBvcywgbWVtYmVyKQkJIFwKIAlmb3IgKHBvcyA9IChwb3MpLT5uZXh0OwkJCQkJCSBcCi0JICAg
+ICBwb3MgJiYgKHsgcHJlZmV0Y2gocG9zLT5uZXh0KTsgMTt9KSAmJgkJCSBcCisJICAgICBwb3Mg
+JiYJCQkJCQkJIFwKIAkJKHsgdHBvcyA9IGhsaXN0X2VudHJ5KHBvcywgdHlwZW9mKCp0cG9zKSwg
+bWVtYmVyKTsgMTt9KTsgXAogCSAgICAgcG9zID0gcG9zLT5uZXh0KQogCkBAIC03MDMsNyArNzAy
+LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIGhsaXN0X21vdmVfbGlzdChzdHJ1Y3QgaGxpc3RfaGVh
+ZCAqb2xkLAogICogQG1lbWJlcjoJdGhlIG5hbWUgb2YgdGhlIGhsaXN0X25vZGUgd2l0aGluIHRo
+ZSBzdHJ1Y3QuCiAgKi8KICNkZWZpbmUgaGxpc3RfZm9yX2VhY2hfZW50cnlfZnJvbSh0cG9zLCBw
+b3MsIG1lbWJlcikJCQkgXAotCWZvciAoOyBwb3MgJiYgKHsgcHJlZmV0Y2gocG9zLT5uZXh0KTsg
+MTt9KSAmJgkJCSBcCisJZm9yICg7IHBvcyAmJgkJCQkJCQkgXAogCQkoeyB0cG9zID0gaGxpc3Rf
+ZW50cnkocG9zLCB0eXBlb2YoKnRwb3MpLCBtZW1iZXIpOyAxO30pOyBcCiAJICAgICBwb3MgPSBw
+b3MtPm5leHQpCiAKZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvcmN1bGlzdC5oIGIvaW5jbHVk
+ZS9saW51eC9yY3VsaXN0LmgKaW5kZXggMmRlYTk0ZmM0NDAyLi45MDBhOTdhNDQ3NjkgMTAwNjQ0
+Ci0tLSBhL2luY2x1ZGUvbGludXgvcmN1bGlzdC5oCisrKyBiL2luY2x1ZGUvbGludXgvcmN1bGlz
+dC5oCkBAIC00MjcsNyArNDI3LDcgQEAgc3RhdGljIGlubGluZSB2b2lkIGhsaXN0X2FkZF9hZnRl
+cl9yY3Uoc3RydWN0IGhsaXN0X25vZGUgKnByZXYsCiAKICNkZWZpbmUgX19obGlzdF9mb3JfZWFj
+aF9yY3UocG9zLCBoZWFkKQkJCQlcCiAJZm9yIChwb3MgPSByY3VfZGVyZWZlcmVuY2UoaGxpc3Rf
+Zmlyc3RfcmN1KGhlYWQpKTsJXAotCSAgICAgcG9zICYmICh7IHByZWZldGNoKHBvcy0+bmV4dCk7
+IDE7IH0pOwkJXAorCSAgICAgcG9zOwkJCQkJCVwKIAkgICAgIHBvcyA9IHJjdV9kZXJlZmVyZW5j
+ZShobGlzdF9uZXh0X3JjdShwb3MpKSkKIAogLyoqCkBAIC00NDMsNyArNDQzLDcgQEAgc3RhdGlj
+IGlubGluZSB2b2lkIGhsaXN0X2FkZF9hZnRlcl9yY3Uoc3RydWN0IGhsaXN0X25vZGUgKnByZXYs
+CiAgKi8KICNkZWZpbmUgaGxpc3RfZm9yX2VhY2hfZW50cnlfcmN1KHRwb3MsIHBvcywgaGVhZCwg
+bWVtYmVyKQkJXAogCWZvciAocG9zID0gcmN1X2RlcmVmZXJlbmNlX3JhdyhobGlzdF9maXJzdF9y
+Y3UoaGVhZCkpOwkJXAotCQlwb3MgJiYgKHsgcHJlZmV0Y2gocG9zLT5uZXh0KTsgMTsgfSkgJiYJ
+CQkgXAorCQlwb3MgJiYJCQkJCQkJIFwKIAkJKHsgdHBvcyA9IGhsaXN0X2VudHJ5KHBvcywgdHlw
+ZW9mKCp0cG9zKSwgbWVtYmVyKTsgMTsgfSk7IFwKIAkJcG9zID0gcmN1X2RlcmVmZXJlbmNlX3Jh
+dyhobGlzdF9uZXh0X3JjdShwb3MpKSkKIApAQCAtNDYwLDcgKzQ2MCw3IEBAIHN0YXRpYyBpbmxp
+bmUgdm9pZCBobGlzdF9hZGRfYWZ0ZXJfcmN1KHN0cnVjdCBobGlzdF9ub2RlICpwcmV2LAogICov
+CiAjZGVmaW5lIGhsaXN0X2Zvcl9lYWNoX2VudHJ5X3JjdV9iaCh0cG9zLCBwb3MsIGhlYWQsIG1l
+bWJlcikJCSBcCiAJZm9yIChwb3MgPSByY3VfZGVyZWZlcmVuY2VfYmgoKGhlYWQpLT5maXJzdCk7
+CQkJIFwKLQkJcG9zICYmICh7IHByZWZldGNoKHBvcy0+bmV4dCk7IDE7IH0pICYmCQkJIFwKKwkJ
+cG9zICYmCQkJCQkJCSBcCiAJCSh7IHRwb3MgPSBobGlzdF9lbnRyeShwb3MsIHR5cGVvZigqdHBv
+cyksIG1lbWJlcik7IDE7IH0pOyBcCiAJCXBvcyA9IHJjdV9kZXJlZmVyZW5jZV9iaChwb3MtPm5l
+eHQpKQogCkBAIC00NzIsNyArNDcyLDcgQEAgc3RhdGljIGlubGluZSB2b2lkIGhsaXN0X2FkZF9h
+ZnRlcl9yY3Uoc3RydWN0IGhsaXN0X25vZGUgKnByZXYsCiAgKi8KICNkZWZpbmUgaGxpc3RfZm9y
+X2VhY2hfZW50cnlfY29udGludWVfcmN1KHRwb3MsIHBvcywgbWVtYmVyKQkJXAogCWZvciAocG9z
+ID0gcmN1X2RlcmVmZXJlbmNlKChwb3MpLT5uZXh0KTsJCQlcCi0JICAgICBwb3MgJiYgKHsgcHJl
+ZmV0Y2gocG9zLT5uZXh0KTsgMTsgfSkgJiYJCQlcCisJICAgICBwb3MgJiYJCQkJCQkJXAogCSAg
+ICAgKHsgdHBvcyA9IGhsaXN0X2VudHJ5KHBvcywgdHlwZW9mKCp0cG9zKSwgbWVtYmVyKTsgMTsg
+fSk7ICBcCiAJICAgICBwb3MgPSByY3VfZGVyZWZlcmVuY2UocG9zLT5uZXh0KSkKIApAQCAtNDg0
+LDcgKzQ4NCw3IEBAIHN0YXRpYyBpbmxpbmUgdm9pZCBobGlzdF9hZGRfYWZ0ZXJfcmN1KHN0cnVj
+dCBobGlzdF9ub2RlICpwcmV2LAogICovCiAjZGVmaW5lIGhsaXN0X2Zvcl9lYWNoX2VudHJ5X2Nv
+bnRpbnVlX3JjdV9iaCh0cG9zLCBwb3MsIG1lbWJlcikJCVwKIAlmb3IgKHBvcyA9IHJjdV9kZXJl
+ZmVyZW5jZV9iaCgocG9zKS0+bmV4dCk7CQkJXAotCSAgICAgcG9zICYmICh7IHByZWZldGNoKHBv
+cy0+bmV4dCk7IDE7IH0pICYmCQkJXAorCSAgICAgcG9zICYmCQkJCQkJCVwKIAkgICAgICh7IHRw
+b3MgPSBobGlzdF9lbnRyeShwb3MsIHR5cGVvZigqdHBvcyksIG1lbWJlcik7IDE7IH0pOyAgXAog
+CSAgICAgcG9zID0gcmN1X2RlcmVmZXJlbmNlX2JoKHBvcy0+bmV4dCkpCiAK
+--001636416be7a62ff504a3a5b1d0--
