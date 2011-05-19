@@ -1,42 +1,56 @@
-From: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
-Subject: Re: [PATCH] lib: Consolidate DEBUG_STACK_USAGE
-	option
-Date: Thu, 19 May 2011 13:32:07 +1000
-Message-ID: <1305775927.7481.31.camel@pasglop>
-References: <1304747831-2098-1-git-send-email-sboyd@codeaurora.org>
+From: Hitoshi Mitake <h.mitake@gmail.com>
+Subject: Re: [PATCH 1/3] mpt2sas: remove the use of writeq, since writeq is
+ not atomic
+Date: Thu, 19 May 2011 13:08:38 +0900
+Message-ID: <BANLkTin4w1QyL1NyTyrZARPWASai45W_4Q@mail.gmail.com>
+References: <20110504115324.GE17855@lsi.com>
+	<1305616571.6008.23.camel@mulgrave.site>
+	<B2FD678A64EAAD45B089B123FDFC3ED70157F7BCE5@inbmail01.lsi.com>
+	<20110518041551.GL15227@parisc-linux.org>
+	<1305692584.2580.3.camel@mulgrave.site>
+	<1305702010.2781.33.camel@pasglop>
+	<mpt2sas-writeq-powerpc64@mdm.bga.com>
+	<4565AEA676113A449269C2F3A549520F80B66280@cosmail03.lsi.com>
+	<x86-32-writeq-is-broken@mdm.bga.com>
+	<4565AEA676113A449269C2F3A549520F80BE7F37@cosmail03.lsi.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <1304747831-2098-1-git-send-email-sboyd-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: Stephen Boyd <sboyd-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:64388 "EHLO
+	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750992Ab1ESEIk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2011 00:08:40 -0400
+In-Reply-To: <4565AEA676113A449269C2F3A549520F80BE7F37@cosmail03.lsi.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Moore, Eric" <Eric.Moore@lsi.com>
+Cc: Milton Miller <miltonm@bga.com>, Sam Ravnborg <sam@ravnborg.org>, Ingo Molnar <mingo@elte.hu>, Ingo Molnar <mingo@redhat.com>, "Desai, Kashyap" <Kashyap.Desai@lsi.com>, "Prakash, Sathya" <Sathya.Prakash@lsi.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux scsi dev <linux-scsi@vger.kernel.org>, "paulus@samba.org" <paulus@samba.org>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, linux pci <linux-pci@vger.kernel.org>, linux kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, 2011-05-06 at 22:57 -0700, Stephen Boyd wrote:
-> Most arches define CONFIG_DEBUG_STACK_USAGE exactly the same way.
-> Move it to lib/Kconfig.debug so each arch doesn't have to define
-> it. This obviously makes the option generic, but that's fine
-> because the config is already used in generic code.
-> 
-> It's not obvious to me that sysrq-P actually does anything
-> different with this option enabled, but I erred on the side of
-> caution by keeping the most inclusive wording.
+On Thu, May 19, 2011 at 04:11, Moore, Eric <Eric.Moore@lsi.com> wrote:
+> On Wednesday, May 18, 2011 12:31 PM Milton Miller wrote:
+>> Ingo I would propose the following commits added in 2.6.29 be reverted.
+>> I think the current concensus is drivers must know if the writeq is
+>> not atomic so they can provide their own locking or other workaround.
+>>
+>
+>
+> Exactly.
+>
 
-Sorry for the delay...
+The original motivation of preparing common readq/writeq is that
+letting each driver
+have their own readq/writeq is bad for maintenance of source code.
 
-For powerpc:
+But if you really dislike them, there might be two solutions:
 
-Acked-by: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>
+1. changing the name of readq/writeq to readq_nonatomic/writeq_nonatomic
+2. adding new C file to somewhere and defining spinlock for them.
+    With spin_lock_irqsave() and spin_unlock_irqrestore() on the spinlock,
+    readq/writeq can be atomic.
 
-Cheers,
-Ben.
+How do you think about them? If you cannot agree with the above two solutions,
+I'll agree with reverting them.
+
+-- 
+Hitoshi Mitake
+h.mitake@gmail.com
