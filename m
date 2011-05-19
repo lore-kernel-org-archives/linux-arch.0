@@ -1,56 +1,30 @@
-From: Hitoshi Mitake <h.mitake@gmail.com>
+From: Roland Dreier <roland@kernel.org>
 Subject: Re: [PATCH 1/3] mpt2sas: remove the use of writeq, since writeq is
  not atomic
-Date: Thu, 19 May 2011 13:08:38 +0900
-Message-ID: <BANLkTin4w1QyL1NyTyrZARPWASai45W_4Q@mail.gmail.com>
-References: <20110504115324.GE17855@lsi.com>
-	<1305616571.6008.23.camel@mulgrave.site>
-	<B2FD678A64EAAD45B089B123FDFC3ED70157F7BCE5@inbmail01.lsi.com>
-	<20110518041551.GL15227@parisc-linux.org>
-	<1305692584.2580.3.camel@mulgrave.site>
-	<1305702010.2781.33.camel@pasglop>
-	<mpt2sas-writeq-powerpc64@mdm.bga.com>
-	<4565AEA676113A449269C2F3A549520F80B66280@cosmail03.lsi.com>
-	<x86-32-writeq-is-broken@mdm.bga.com>
-	<4565AEA676113A449269C2F3A549520F80BE7F37@cosmail03.lsi.com>
+Date: Wed, 18 May 2011 21:16:49 -0700
+Message-ID: <BANLkTimDktq8SxOU3HZkPpj=J9pdkzVX-w@mail.gmail.com>
+References: <20110504115324.GE17855@lsi.com> <1305616571.6008.23.camel@mulgrave.site>
+ <B2FD678A64EAAD45B089B123FDFC3ED70157F7BCE5@inbmail01.lsi.com>
+ <20110518041551.GL15227@parisc-linux.org> <1305692584.2580.3.camel@mulgrave.site>
+ <1305702010.2781.33.camel@pasglop> <mpt2sas-writeq-powerpc64@mdm.bga.com>
+ <4565AEA676113A449269C2F3A549520F80B66280@cosmail03.lsi.com> <x86-32-writeq-is-broken@mdm.bga.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:64388 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750992Ab1ESEIk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 May 2011 00:08:40 -0400
-In-Reply-To: <4565AEA676113A449269C2F3A549520F80BE7F37@cosmail03.lsi.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Moore, Eric" <Eric.Moore@lsi.com>
-Cc: Milton Miller <miltonm@bga.com>, Sam Ravnborg <sam@ravnborg.org>, Ingo Molnar <mingo@elte.hu>, Ingo Molnar <mingo@redhat.com>, "Desai, Kashyap" <Kashyap.Desai@lsi.com>, "Prakash, Sathya" <Sathya.Prakash@lsi.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux scsi dev <linux-scsi@vger.kernel.org>, "paulus@samba.org" <paulus@samba.org>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, linux pci <linux-pci@vger.kernel.org>, linux kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <x86-32-writeq-is-broken@mdm.bga.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Milton Miller <miltonm@bga.com>
+Cc: Hitoshi Mitake <h.mitake@gmail.com>, Sam Ravnborg <sam@ravnborg.org>, Ingo Molnar <mingo@elte.hu>, Ingo Molnar <mingo@redhat.com>, "Desai, Kashyap" <Kashyap.Desai@lsi.com>, "Prakash, Sathya" <Sathya.Prakash@lsi.com>, James Bottomley <James.Bottomley@hansenpartnership.com>, Matthew Wilcox <matthew@wil.cx>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux scsi dev <linux-scsi@vger.kernel.org>, "paulus@samba.org" <paulus@samba.org>, linux powerpc dev <linuxppc-dev@lists.ozlabs.org>, linux pci <linux-pci@vger.kernel.org>, linux kernel <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 19, 2011 at 04:11, Moore, Eric <Eric.Moore@lsi.com> wrote:
-> On Wednesday, May 18, 2011 12:31 PM Milton Miller wrote:
->> Ingo I would propose the following commits added in 2.6.29 be reverted.
->> I think the current concensus is drivers must know if the writeq is
->> not atomic so they can provide their own locking or other workaround.
->>
->
->
-> Exactly.
->
+On Wed, May 18, 2011 at 11:31 AM, Milton Miller <miltonm@bga.com> wrote:
+> So the real question should be why is x86-32 supplying a broken writeq
+> instead of letting drivers work out what to do it when needed?
 
-The original motivation of preparing common readq/writeq is that
-letting each driver
-have their own readq/writeq is bad for maintenance of source code.
+Sounds a lot like what I was asking a couple of years ago :)
+http://lkml.org/lkml/2009/4/19/164
 
-But if you really dislike them, there might be two solutions:
+But Ingo insisted that non-atomic writeq would be fine:
+http://lkml.org/lkml/2009/4/19/167
 
-1. changing the name of readq/writeq to readq_nonatomic/writeq_nonatomic
-2. adding new C file to somewhere and defining spinlock for them.
-    With spin_lock_irqsave() and spin_unlock_irqrestore() on the spinlock,
-    readq/writeq can be atomic.
-
-How do you think about them? If you cannot agree with the above two solutions,
-I'll agree with reverting them.
-
--- 
-Hitoshi Mitake
-h.mitake@gmail.com
+ - R.
