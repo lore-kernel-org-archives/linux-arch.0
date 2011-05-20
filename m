@@ -1,17 +1,17 @@
 From: "PROF.MAURICE IWU" <augustine_osakwe@yahoo.co.in>
 Subject: Equity Business Investment
-Date: Fri, 20 May 2011 18:59:47 +0530 (IST)
-Message-ID: <482178.36383.qm__21049.9533605345$1305898605$gmane$org@web95514.mail.in.yahoo.com>
+Date: Fri, 20 May 2011 19:03:40 +0530 (IST)
+Message-ID: <859896.39517.qm__18692.6422095441$1305898869$gmane$org@web95511.mail.in.yahoo.com>
 Reply-To: profmauriceiwu2221@yahoo.co.jp
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from web95514.mail.in.yahoo.com ([121.101.151.14]:36911 "HELO
-	web95514.mail.in.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S933946Ab1ETNga convert rfc822-to-8bit
+Received: from web95511.mail.in.yahoo.com ([121.101.151.11]:35738 "HELO
+	web95511.mail.in.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S934137Ab1ETNkX convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 May 2011 09:36:30 -0400
+	Fri, 20 May 2011 09:40:23 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
