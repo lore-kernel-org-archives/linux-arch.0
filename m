@@ -1,59 +1,55 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [PATCH] kernel buffer overflow kmalloc_slab() fix
-Date: Fri, 20 May 2011 09:42:48 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1105200941260.5610@router.home>
-References: <james_p_freyensee@linux.intel.com>  <1305834712-27805-2-git-send-email-james_p_freyensee@linux.intel.com>  <alpine.DEB.2.00.1105191550001.12530@router.home> <1305892971.2571.16.camel@mulgrave.site>
- <alpine.DEB.2.00.1105200932340.5610@router.home>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: Software prefetching considered harmful
+Date: Fri, 20 May 2011 17:01:34 +0100
+Message-ID: <BANLkTikKSL8=wngi0ZvuRH4YOqe0FmWh2A@mail.gmail.com>
+References: <BANLkTi=428+KWmDcHoFYs5gO_C9wyhxJnQ@mail.gmail.com>
+	<20110519.153259.1670240855485459381.davem@davemloft.net>
+	<BANLkTi=0N55+mQjE1gq8DHdoQ0GU0A7kLw@mail.gmail.com>
+	<20110519.154700.1253349185128359804.davem@davemloft.net>
+	<20110519233400.GA1954@elte.hu>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp106.prem.mail.ac4.yahoo.com ([76.13.13.45]:41137 "HELO
-	smtp106.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S933322Ab1ETOmw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 May 2011 10:42:52 -0400
-In-Reply-To: <alpine.DEB.2.00.1105200932340.5610@router.home>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:60341 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934464Ab1ETQBf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 May 2011 12:01:35 -0400
+Received: by iwn34 with SMTP id 34so3136085iwn.19
+        for <linux-arch@vger.kernel.org>; Fri, 20 May 2011 09:01:34 -0700 (PDT)
+In-Reply-To: <20110519233400.GA1954@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: james_p_freyensee@linux.intel.com, linux-mm@kvack.org, gregkh@suse.de, hari.k.kanigeri@intel.com, linux-arch@vger.kernel.org, Pekka Enberg <penberg@cs.helsinki.fi>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: David Miller <davem@davemloft.net>, torvalds@linux-foundation.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, rmk@arm.linux.org.uk
 
+On 20 May 2011 00:34, Ingo Molnar <mingo@elte.hu> wrote:
+> * David Miller <davem@davemloft.net> wrote:
+>
+>> So, to reiterate, I think you should kill all the list handling
+>> prefetches off.
+>
+> Agreed.
+>
+>> What we can do is say "for this specific list use, prefetch does
+>> in fact help". =A0And provide an interface for that. =A0I imagine th=
+ere
+>> are things like inode dirty writeback or some dcache stuff that
+>> walks large lists and for which prefetch might be appropriate.
+>
+> I think the best 'interface' for that is to open-code the prefetch()
+> right into the loop. This way it becomes well documented and very
+> visible as well.
 
-Subject: slub: Deal with hyperthetical case of PAGE_SIZE > 2M
+I talked to some of the CPU people in ARM and, while there are a
+variety of ARM implementations, for many of them prefetch(0) would
+result in a TLB miss and go for an expensive page table walk. For
+mostly 1-element lists like hash table look-up it's not worth having
+the prefetch (could make it worse).
 
-kmalloc_index() currently returns -1 if the PAGE_SIZE is larger than 2M
-which seems to cause some concern since the callers do not check for -1.
+Prefetch is indeed useful for traversing longer lists (and probably
+more work inside the loop) but I guess we can code the prefetch()
+explicitly as Dave and Ingo suggested.
 
-Insert a BUG() and add a comment to the -1 explaining that the code
-cannot be reached.
-
-Signed-off-by: Christoph Lameter <cl@linux.com>
-
----
- include/linux/slub_def.h |    6 ++++--
- 1 file changed, 4 insertions(+), 2 deletions(-)
-
-Index: linux-2.6/include/linux/slub_def.h
-===================================================================
---- linux-2.6.orig/include/linux/slub_def.h	2011-05-20 09:37:02.000000000 -0500
-+++ linux-2.6/include/linux/slub_def.h	2011-05-20 09:39:07.000000000 -0500
-@@ -179,7 +179,8 @@ static __always_inline int kmalloc_index
- 	if (size <=   4 * 1024) return 12;
- /*
-  * The following is only needed to support architectures with a larger page
-- * size than 4k.
-+ * size than 4k. We need to support 2 * PAGE_SIZE here. So for a 64k page
-+ * size we would have to go up to 128k.
-  */
- 	if (size <=   8 * 1024) return 13;
- 	if (size <=  16 * 1024) return 14;
-@@ -190,7 +191,8 @@ static __always_inline int kmalloc_index
- 	if (size <= 512 * 1024) return 19;
- 	if (size <= 1024 * 1024) return 20;
- 	if (size <=  2 * 1024 * 1024) return 21;
--	return -1;
-+	BUG();
-+	return -1; /* Will never be reached */
-
- /*
-  * What we really wanted to do and cannot do because of compiler issues is:
+--=20
+Catalin
