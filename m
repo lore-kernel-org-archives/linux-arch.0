@@ -1,42 +1,24 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: Software prefetching considered harmful
-Date: Sat, 21 May 2011 12:42:09 +0200
-Message-ID: <20110521104209.GB26447@elte.hu>
-References: <BANLkTim5MaJBYSuTnXfmOjgPNVOyZSgQuQ@mail.gmail.com>
- <BANLkTi=428+KWmDcHoFYs5gO_C9wyhxJnQ@mail.gmail.com>
- <20110519192842.GA7421@elte.hu>
- <4DD73384.6080407@orcon.net.nz>
- <1305951535.7481.198.camel@pasglop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:36447 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753115Ab1EUKm2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 May 2011 06:42:28 -0400
-Content-Disposition: inline
-In-Reply-To: <1305951535.7481.198.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Cree <mcree@orcon.net.nz>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>
+From: Joe Perches <joe@perches.com>
+Subject: [PATCH 0/2] Add and use WARN_RATELIMIT
+Date: Sat, 21 May 2011 10:48:38 -0700
+Message-ID: <cover.1305999731.git.joe@perches.com>
+References: <1305666832.1722.62.camel@Joe-Laptop>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1305666832.1722.62.camel@Joe-Laptop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ben Greear <greearb@candelatech.com>, linux-arch@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+Generic mechanism to ratelimit WARN uses.
 
-* Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+Joe Perches (2):
+  bug.h: Add WARN_RATELIMIT
+  net: filter: Use WARN_RATELIMIT
 
-> On Sat, 2011-05-21 at 15:37 +1200, Michael Cree wrote:
-> > While this is not a concern to the kernel (it obviously has access to
-> > location 0) 
-> 
-> Not that obvious... dunno how you do your memory map on alpha but on
-> most architectures, 0 is userspace even when you're in the kernel and is
-> typically not mapped.
+ include/asm-generic/bug.h |   16 ++++++++++++++++
+ net/core/filter.c         |    4 +++-
+ 2 files changed, 19 insertions(+), 1 deletions(-)
 
-Correct, it's like that on x86 as well.
-
-Filtering out NULLs in the prefetch primitives or making sure NULL never gets 
-prefetched looks like to be a generally good idea.
-
-Thanks,
-
-	Ingo
+-- 
+1.7.5.rc3.dirty
