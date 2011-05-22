@@ -1,36 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:65486 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750742Ab1EVETI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 May 2011 00:19:08 -0400
+Received: from mail-bw0-f52.google.com ([209.85.214.52]:52263 "EHLO
+	mail-bw0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752453Ab1EVIPZ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 May 2011 04:15:25 -0400
 MIME-Version: 1.0
-In-Reply-To: <20110517153546.GB3762520@jupiter.n2.diac24.net>
-References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
-	<3A54AB469A0294933EAC2257@nimrod.local>
-	<m1fwoqoapn.fsf@fess.ebiederm.org>
-	<20110517111148.GA3762520@jupiter.n2.diac24.net>
-	<m1mxil9z2p.fsf@fess.ebiederm.org>
-	<20110517153546.GB3762520@jupiter.n2.diac24.net>
-Date: Sun, 22 May 2011 01:19:07 -0300
-Message-ID: <BANLkTingC=uR2dh=oo4=K7xDj9D7WjF2YA@mail.gmail.com>
-Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
-From: Renato Westphal <renatowestphal@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Date: Sun, 22 May 2011 10:15:23 +0200
+Message-ID: <BANLkTikf7M_yTFe2fZx63HSDYFjhT_+soA@mail.gmail.com>
+Subject: Adding syscalls (was: Re: [GIT PULL] Namespace file descriptors for 2.6.40)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Lamparter <equinox@diac24.net>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alex Bligh <alex@alex.org.uk>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
-Message-ID: <20110522041907.OpS3mmVF8Pk2-p3GKiNyAKKglHkucxdISWMk-3LyNMg@z>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, netdev@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, linux-arch@vger.kernel.org
+Message-ID: <20110522081523.M36XwKh7R18rNnqiiWCD33laACgGWfGZcvva8FMF8Gk@z>
 
-Eric,
+On Sun, May 22, 2011 at 02:33, Eric W. Biederman <ebiederm@xmission.com> wrote:
+> Linus Torvalds <torvalds@linux-foundation.org> writes:
+>> On Sat, May 21, 2011 at 4:39 PM, Eric W. Biederman
+>> <ebiederm@xmission.com> wrote:
+>>> In a hopeless quest to avoid conflicts when merging a new system call
+>>> and wiring it up I have pulled in bits of net-next and the parisc tree.
+>>> You have already pulled the net-next bits.  The parisc bits in my tree
+>>> are:
+>>
+>> Ok, this just means that I won't pull from you.
+>
+> Sure.  I will try to be a little more patient and resend the pull
+> request after James has sent the pull request for the parisc tree.
+> At which point the only unique changes in my tree will be mine.
+>
+>> It's that simple. We don't do this. Ever.
+>
+> Hah. I seem to remember bits of pulling from non-rebasing trees being ok
+> in well defined contexts.  This seems like one.  Especially when you
+> have checked with the maintainers.
+>
+> Plus all of the parisc bits in addition to being in the linux-next
+> are trivially correct.
+>
+>> Why the hell did you even worry about wiring up parisc system calls?
+>> That's not your job.
+>
+> Because in general it is the job of he who changes something to fix up
+> every possible place.
+>
+> Now maybe I went a little too far in trying to resolve the conflicts,
+> but I did check with the David Miller and James Bottomley and they knew
+> what I was doing.
+>
+> Quite honestly adding system calls is a mess that know one seems to
+> know how to do right.  So I flipped a coin and took a stab at it.
 
-I'm happy to see that these patches have been integrated into the
-mainstream kernel, as you know I'm using them for a while and they are
-a essential part of my MPLS/BGP VPN solution, which I will release to
-the open-source community anytime soon.
+At first, I was delighted to see that somebody took care of adding
+syscalls to the
+non-popular architectures.
 
-It would also be good if the MPLS core get integrated into mainstream,
-but that's another discussion ;)
+At second, I saw the conflicts in e.g. parisc and m68k due to this.
 
--- 
-Renato Westphal
+Hence now I think it's better to leave the wiring up to the
+architecture maintainers, as
+before.
+I'm even thinking to suggest to first let go in the syscall (without
+any wiring up, not
+even on x86), and let all wiring up be handled afterwards. This would
+enforce that
+syscalls numbers are not cast in stone, until they hit mainline.
+
+This does mean that scripts/checksyscalls.sh needs to be changed, as initially
+new syscalls aren't wired up there neither. The implementation of the
+syscalls needs
+to announce somehow that it's there and that it's a syscall.
+
+What do you think?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
