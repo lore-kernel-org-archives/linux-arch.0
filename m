@@ -1,60 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.perches.com ([173.55.12.10]:1824 "EHLO mail.perches.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755412Ab1EURso (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 May 2011 13:48:44 -0400
-From: Joe Perches <joe@perches.com>
-Subject: [PATCH 1/2] bug.h: Add WARN_RATELIMIT
-Date: Sat, 21 May 2011 10:48:39 -0700
-Message-ID: <2dfb6f4e8110e5b09dbf4c8a1502bdf8955bb6ff.1305999731.git.joe@perches.com>
-In-Reply-To: <1305666832.1722.62.camel@Joe-Laptop>
-References: <1305666832.1722.62.camel@Joe-Laptop>
-In-Reply-To: <cover.1305999731.git.joe@perches.com>
-References: <cover.1305999731.git.joe@perches.com>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:65486 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750742Ab1EVETI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 May 2011 00:19:08 -0400
+MIME-Version: 1.0
+In-Reply-To: <20110517153546.GB3762520@jupiter.n2.diac24.net>
+References: <m1tyd7p7tq.fsf@fess.ebiederm.org>
+	<3A54AB469A0294933EAC2257@nimrod.local>
+	<m1fwoqoapn.fsf@fess.ebiederm.org>
+	<20110517111148.GA3762520@jupiter.n2.diac24.net>
+	<m1mxil9z2p.fsf@fess.ebiederm.org>
+	<20110517153546.GB3762520@jupiter.n2.diac24.net>
+Date: Sun, 22 May 2011 01:19:07 -0300
+Message-ID: <BANLkTingC=uR2dh=oo4=K7xDj9D7WjF2YA@mail.gmail.com>
+Subject: Re: [PATCH 0/7] Network namespace manipulation with file descriptors
+From: Renato Westphal <renatowestphal@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ben Greear <greearb@candelatech.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110521174839.eceBrorzN78EA8LRHn7U0CJZpl-jOpUJq-M9eCDelBU@z>
+To: David Lamparter <equinox@diac24.net>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>, Alex Bligh <alex@alex.org.uk>, linux-arch@vger.kernel.org, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Linux Containers <containers@lists.osdl.org>, linux-fsdevel@vger.kernel.org
+Message-ID: <20110522041907.OpS3mmVF8Pk2-p3GKiNyAKKglHkucxdISWMk-3LyNMg@z>
 
-Add a generic mechanism to ratelimit WARN(foo, fmt, ...) messages
-using a hidden per call site static struct ratelimit_state.
+Eric,
 
-Also add an __WARN_RATELIMIT variant to be able to use a specific
-struct ratelimit_state.
+I'm happy to see that these patches have been integrated into the
+mainstream kernel, as you know I'm using them for a while and they are
+a essential part of my MPLS/BGP VPN solution, which I will release to
+the open-source community anytime soon.
 
-Signed-off-by: Joe Perches <joe@perches.com>
----
- include/asm-generic/bug.h |   16 ++++++++++++++++
- 1 files changed, 16 insertions(+), 0 deletions(-)
+It would also be good if the MPLS core get integrated into mainstream,
+but that's another discussion ;)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index e5a3f58..12b250c 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -165,6 +165,22 @@ extern void warn_slowpath_null(const char *file, const int line);
- #define WARN_ON_RATELIMIT(condition, state)			\
- 		WARN_ON((condition) && __ratelimit(state))
- 
-+#define __WARN_RATELIMIT(condition, state, format...)		\
-+({								\
-+	int rtn = 0;						\
-+	if (unlikely(__ratelimit(state)))			\
-+		rtn = WARN(condition, format);			\
-+	rtn;							\
-+})
-+
-+#define WARN_RATELIMIT(condition, format...)			\
-+({								\
-+	static DEFINE_RATELIMIT_STATE(_rs,			\
-+				      DEFAULT_RATELIMIT_INTERVAL,	\
-+				      DEFAULT_RATELIMIT_BURST);	\
-+	__WARN_RATELIMIT(condition, &_rs, format);		\
-+})
-+
- /*
-  * WARN_ON_SMP() is for cases that the warning is either
-  * meaningless for !SMP or may even cause failures.
 -- 
-1.7.5.rc3.dirty
-
+Renato Westphal
