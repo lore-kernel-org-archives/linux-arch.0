@@ -1,39 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42447 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753052Ab1EWUep (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2011 16:34:45 -0400
-MIME-Version: 1.0
-In-Reply-To: <20110523192056.GC23629@elte.hu>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 23 May 2011 13:33:48 -0700
-Message-ID: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:48283 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030316Ab1EWVCm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 May 2011 17:02:42 -0400
+Date: Mon, 23 May 2011 17:02:38 -0400
+From: Steven Rostedt <rostedt@goodmis.org>
 Subject: Re: (Short?) merge window reminder
-Content-Type: text/plain; charset=ISO-8859-1
+Message-ID: <20110523210238.GB10792@home.goodmis.org>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+ <alpine.LFD.2.02.1105232121010.3078@ionos>
+ <20110523132126.3f6ead5f.rdunlap@xenotime.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20110523132126.3f6ead5f.rdunlap@xenotime.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-Message-ID: <20110523203348.9oYnXsF9eWTuRtYANR2lqC5uoYRJoD9XhP27l8Sym54@z>
+To: Randy Dunlap <rdunlap@xenotime.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Greg KH <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20110523210238.WHwKcfPVn5_xbcjDI_iCRM4KZLi8fLTv8USkQhUGQ3c@z>
 
-On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
->
-> I really hope there's also a voice that tells you to wait until .42 before
-> cutting 3.0.0! :-)
+On Mon, May 23, 2011 at 01:21:26PM -0700, Randy Dunlap wrote:
+> 
+> They tell him to avoid the question to which 42 is the answer.
 
-So I'm toying with 3.0 (and in that case, it really would be "3.0",
-not "3.0.0" - the stable team would get the third digit rather than
-the fourth one.
+What 2.6 Linux kernel version was the last before 3.0?
 
-But no, it wouldn't be for 42. Despite THHGTTG, I think "40" is a
-fairly nice round number.
+-- Steve
 
-There's also the timing issue - since we no longer do version numbers
-based on features, but based on time, just saying "we're about to
-start the third decade" works as well as any other excuse.
-
-But we'll see.
-
-                           Linus
