@@ -1,31 +1,35 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: (Short?) merge window reminder
-Date: Mon, 23 May 2011 17:02:38 -0400
-Message-ID: <20110523210238.GB10792@home.goodmis.org>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
- <alpine.LFD.2.02.1105232121010.3078@ionos>
- <20110523132126.3f6ead5f.rdunlap@xenotime.net>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 0/2] Add and use WARN_RATELIMIT
+Date: Mon, 23 May 2011 17:38:06 -0400 (EDT)
+Message-ID: <20110523.173806.1174406351709452162.davem@davemloft.net>
+References: <1305666832.1722.62.camel@Joe-Laptop>
+	<cover.1305999731.git.joe@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20110523132126.3f6ead5f.rdunlap@xenotime.net>
-Sender: owner-linux-mm@kvack.org
-To: Randy Dunlap <rdunlap@xenotime.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Greg KH <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:41682 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754827Ab1EWViS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 May 2011 17:38:18 -0400
+In-Reply-To: <cover.1305999731.git.joe@perches.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: joe@perches.com
+Cc: greearb@candelatech.com, linux-arch@vger.kernel.org, arnd@arndb.de, netdev@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, May 23, 2011 at 01:21:26PM -0700, Randy Dunlap wrote:
+From: Joe Perches <joe@perches.com>
+Date: Sat, 21 May 2011 10:48:38 -0700
+
+> Generic mechanism to ratelimit WARN uses.
 > 
-> They tell him to avoid the question to which 42 is the answer.
+> Joe Perches (2):
+>   bug.h: Add WARN_RATELIMIT
+>   net: filter: Use WARN_RATELIMIT
+> 
+>  include/asm-generic/bug.h |   16 ++++++++++++++++
+>  net/core/filter.c         |    4 +++-
+>  2 files changed, 19 insertions(+), 1 deletions(-)
 
-What 2.6 Linux kernel version was the last before 3.0?
-
--- Steve
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+This looks fine to me, and no objections have been voiced otherwise,
+so applied to net-2.6, thanks!
