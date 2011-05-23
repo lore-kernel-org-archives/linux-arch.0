@@ -1,7 +1,7 @@
-From: Ingo Molnar <mingo@elte.hu>
+From: Greg KH <gregkh@suse.de>
 Subject: Re: (Short?) merge window reminder
-Date: Mon, 23 May 2011 21:20:56 +0200
-Message-ID: <20110523192056.GC23629@elte.hu>
+Date: Mon, 23 May 2011 12:22:56 -0700
+Message-ID: <20110523192256.GA18935@suse.de>
 References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -10,21 +10,21 @@ Content-Disposition: inline
 In-Reply-To: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Mon, May 23, 2011 at 12:13:29PM -0700, Linus Torvalds wrote:
+> PS. The voices in my head also tell me that the numbers are getting
+> too big. I may just call the thing 2.8.0. And I almost guarantee that
+> this PS is going to result in more discussion than the rest, but when
+> the voices tell me to do things, I listen.
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+If you do this, I will buy you a bottle of whatever whiskey you want
+that I can get my hands on in Tokyo next week.
 
-> PS. The voices in my head also tell me that the numbers are getting too big. 
-> I may just call the thing 2.8.0. And I almost guarantee that this PS is going 
-> to result in more discussion than the rest, but when the voices tell me to do 
-> things, I listen.
+{crosses fingers}
 
-I really hope there's also a voice that tells you to wait until .42 before 
-cutting 3.0.0! :-)
-
-	Ingo
+greg k-h
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
