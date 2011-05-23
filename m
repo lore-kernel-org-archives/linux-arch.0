@@ -1,29 +1,38 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: (Short?) merge window reminder
-Date: Mon, 23 May 2011 21:25:25 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1105232121010.3078@ionos>
+Date: Tue, 24 May 2011 00:04:08 +0400
+Message-ID: <1306181049.2442.1.camel@mulgrave.site>
 References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+	 <20110523192256.GA18935@suse.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:34210 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933465Ab1EWTZ3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 May 2011 15:25:29 -0400
-In-Reply-To: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Greg KH <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20110523192256.GA18935@suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Greg KH <gregkh@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 23 May 2011, Linus Torvalds wrote:
-> PS. The voices in my head also tell me that the numbers are getting
-> too big. I may just call the thing 2.8.0. And I almost guarantee that
-> this PS is going to result in more discussion than the rest, but when
-> the voices tell me to do things, I listen.
+On Mon, 2011-05-23 at 12:22 -0700, Greg KH wrote:
+> On Mon, May 23, 2011 at 12:13:29PM -0700, Linus Torvalds wrote:
+> > PS. The voices in my head also tell me that the numbers are getting
+> > too big. I may just call the thing 2.8.0. And I almost guarantee that
+> > this PS is going to result in more discussion than the rest, but when
+> > the voices tell me to do things, I listen.
+> 
+> If you do this, I will buy you a bottle of whatever whiskey you want
+> that I can get my hands on in Tokyo next week.
 
-So the voices tell you to avoid .42 ?
+I can recommend Hanyu Ace of Spades ...  I can even arrange to be on
+hand just to make sure it's as good as it should be ...
 
-Thanks,
+James
 
-	tglx
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
