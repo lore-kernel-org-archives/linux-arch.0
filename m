@@ -1,25 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:47701 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752384Ab1EWHOT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2011 03:14:19 -0400
-Date: Mon, 23 May 2011 16:13:46 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCHv2] atomic: add *_dec_not_zero
-Message-ID: <20110523071345.GL5206@linux-sh.org>
-References: <1304458235-28473-1-git-send-email-sven@narfation.org> <1305748194-23351-1-git-send-email-sven@narfation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1305748194-23351-1-git-send-email-sven@narfation.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:44212 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756560Ab1EWTNy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 May 2011 15:13:54 -0400
+MIME-Version: 1.0
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Mon, 23 May 2011 12:13:29 -0700
+Message-ID: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+Subject: (Short?) merge window reminder
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sven Eckelmann <sven@narfation.org>
-Cc: linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20110523071346.0rwpHoc4VgxDgU-4WU-sVsuKWyQ1uO1J7vskq_AxBGQ@z>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>
+Cc: Greg KH <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20110523191329.G5tRbgLOO8fbleysP-9jFP8YlMl2CYWista-7HYkYY8@z>
 
-On Wed, May 18, 2011 at 09:49:54PM +0200, Sven Eckelmann wrote:
-> This is actually the same patch as before, but I am still waiting for
-> some (N)Acks for ia64, m32r, s390, sh and generic.
-> 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+So I've been busily merging stuff, and just wanted to send out a quick
+reminder that I warned people in the 39 announcement that this might
+be a slightly shorter merge window than usual, so that I can avoid
+having to make the -rc1 release from Japan using my slow laptop (doing
+"allyesconfig" builds on that thing really isn't in the cards, and I
+like to do those to verify things - even if we've already had a few
+cases where arch include differences made it less than effective in
+finding problems).
+
+And judging by the merge window so far, that early close (probably
+Sunday - I'll be on airplanes next Monday) looks rather likely. I
+already seem to have a fairly sizable portion of linux-next in my
+tree, and there haven't been any huge upsets.
+
+So anybody who was planning a last-minute "please pull" - this is a
+heads-up. Don't do it, you might miss the window entirely.
+
+Did I miss any major development mailing lists with stuff pending?
+
+                       Linus
+
+PS. The voices in my head also tell me that the numbers are getting
+too big. I may just call the thing 2.8.0. And I almost guarantee that
+this PS is going to result in more discussion than the rest, but when
+the voices tell me to do things, I listen.
