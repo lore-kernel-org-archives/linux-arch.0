@@ -1,55 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from enyo.dsw2k3.info ([195.71.86.239]:38221 "EHLO enyo.dsw2k3.info"
+Received: from mail.lang.hm ([64.81.33.126]:58155 "EHLO bifrost.lang.hm"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756569Ab1EXSow (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 May 2011 14:44:52 -0400
-Date: Tue, 24 May 2011 20:34:05 +0200
-From: Matthias Schniedermeyer <ms@citd.de>
+	id S932722Ab1EXSzu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 May 2011 14:55:50 -0400
+Date: Tue, 24 May 2011 11:55:27 -0700 (PDT)
+From: david@lang.hm
 Subject: Re: (Short?) merge window reminder
-Message-ID: <20110524183405.GA14493@citd.de>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
- <20110523192056.GC23629@elte.hu>
- <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+In-Reply-To: <20110524183405.GA14493@citd.de>
+Message-ID: <alpine.DEB.2.02.1105241147150.23692@asgard.lang.hm>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110524183405.GA14493@citd.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-Message-ID: <20110524183405.jIZbwf3q9urWYBuUSCU6iedYPnL00HlaA694n9yX4Oo@z>
+To: Matthias Schniedermeyer <ms@citd.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+Message-ID: <20110524185527.KG1Afa1zfwOpxbiuzD_KRFyeLXt6VExmKlHHepfSsZk@z>
 
-On 23.05.2011 13:33, Linus Torvalds wrote:
-> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
-> >
-> > I really hope there's also a voice that tells you to wait until .42 before
-> > cutting 3.0.0! :-)
-> 
-> So I'm toying with 3.0 (and in that case, it really would be "3.0",
-> not "3.0.0" - the stable team would get the third digit rather than
-> the fourth one.
+On Tue, 24 May 2011, Matthias Schniedermeyer wrote:
 
-What about strictly 3 part versions? Just add a .0.
+> On 23.05.2011 13:33, Linus Torvalds wrote:
+>> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
+>>>
+>>> I really hope there's also a voice that tells you to wait until .42 before
+>>> cutting 3.0.0! :-)
+>>
+>> So I'm toying with 3.0 (and in that case, it really would be "3.0",
+>> not "3.0.0" - the stable team would get the third digit rather than
+>> the fourth one.
+>
+> What about strictly 3 part versions? Just add a .0.
+>
+> 3.0.0 - Release Kernel 3.0
+> 3.0.1 - Stable 1
+> 3.0.2 - Stable 2
+> 3.1.0 - Release Kernel 3.1
+> 3.1.1 - Stable 1
+> ...
+>
+> Biggest problem is likely version phobics that get pimples when they see
+> trailing zeros. ;-)
 
-3.0.0 - Release Kernel 3.0
-3.0.1 - Stable 1
-3.0.2 - Stable 2
-3.1.0 - Release Kernel 3.1
-3.1.1 - Stable 1
-...
+since there are always issues discovered with a new kernel is released 
+(which is why the -stable kernels exist), being wary of .0 kernels is not 
+neccessarily a bad thing.
 
-Biggest problem is likely version phobics that get pimples when they see 
-trailing zeros. ;-)
+I still think a date based approach would be the best.
 
+since people are worried about not knowing when a final release will 
+happen, base the date on when the merge window opened or closed (always 
+known at the time of the first -rc kernel)
 
+in the thread on lwn, people pointed out that the latest 2.6.32 kernel 
+would still be a 2009.12.X which doesn't reflect the fact that it was 
+released this month. My suggestion for that is to make the X be the number 
+of months (or years.months if you don't like large month values) between 
+the merge window and the release of the -stable release. This would lead 
+to a small problem when there are multiple -stable releases in a month, 
+but since that doesn't last very long I don't see a real problem with just 
+incramenting the month into the future in those cases.
 
-
-Bis denn
-
--- 
-Real Programmers consider "what you see is what you get" to be just as 
-bad a concept in Text Editors as it is in women. No, the Real Programmer
-wants a "you asked for it, you got it" text editor -- complicated, 
-cryptic, powerful, unforgiving, dangerous.
-
+David Lang
