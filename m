@@ -1,46 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:55783 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755737Ab1EXCLt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2011 22:11:49 -0400
-Date: Tue, 24 May 2011 04:11:39 +0200
-From: Ingo Molnar <mingo@elte.hu>
+Received: from moutng.kundenserver.de ([212.227.17.10]:50177 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753632Ab1EXHzz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 May 2011 03:55:55 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: (Short?) merge window reminder
-Message-ID: <20110524021139.GB19249@elte.hu>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
- <20110523192056.GC23629@elte.hu>
- <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+Date: Tue, 24 May 2011 09:55:42 +0200
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <4DDAEC68.30803@zytor.com> <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
+In-Reply-To: <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201105240955.43229.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-Message-ID: <20110524021139.AdQIuD0pw9dbHJGVnJc8IlcR3rbUkfWtqeFNfCNOnio@z>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Ted Ts'o <tytso@mit.edu>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+Message-ID: <20110524075542.k3vz_5ACbdFQmpTDsZI6R4mAvvrPtspK41t3yQoE02o@z>
 
-
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
-
-> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
-> >
-> > I really hope there's also a voice that tells you to wait until .42 before
-> > cutting 3.0.0! :-)
+On Tuesday 24 May 2011, Linus Torvalds wrote:
+> Another advantage of switching numbering models (ie 3.0 instead of
+> 2.8.x) would be that it would also make the "odd numbers are also
+> numbers" transition much more natural.
 > 
-> So I'm toying with 3.0 (and in that case, it really would be "3.0",
-> not "3.0.0" - the stable team would get the third digit rather than
-> the fourth one.
-> 
-> But no, it wouldn't be for 42. Despite THHGTTG, I think "40" is a
-> fairly nice round number.
+> Because of our historical even/odd model, I wouldn't do a 2.7.x -
+> there's just too much history of 2.1, 2.3, 2.5 being development
+> trees. But if I do 3.0, then I'd be chucking that whole thing out the
+> window, and the next release would be 3.1, 3.2, etc..
 
-Also, in all fairness, we should probably display a certain amount of humility: 
-while Linux has certainly reached milestones such as world domination (as far 
-as large and small computers are concerned), so calling it 3.0 is a fair deal, 
-we probably have to wait for version 42.0 before we can consider the Linux 
-kernel to be the ultimate answer to life, universe and everything.
+I like that. While I don't really care if you call it 2.7, 2.8 or 3.0
+(or 4.0 even, if you want to keep continuity following .38 and .39),
+the current 2.5/2.6 numbering cycle is almost 10 years old and has
+obviously lost all significance.
 
-Thanks,
+The only reason I can see that would make it worthwhile waiting for
+is if the enterprise and embedded people were to decide on a common
+longterm kernel and call that e.g. 2.7.x or 2.8.x while you continue with
+2.9.x or 3.0.x or 3.x. My impression is however that the next longterm
+release is still one or two years away, so probably not worth waiting
+for and hard to estimate in advance.
 
-	Ingo
+> Because all our releases are supposed to be stable releases these
+> days, and if we get rid of one level of numbering, I feel perfectly
+> fine with getting rid of the even/odd history too.
+
+We still have stable and unstable releases, except that you call the
+unstable ones -rcX and they are all nice and short, unlike the infamous
+2.1.xxx series ;-)
+
+IMHO simply changing the names from 2.6.40-rcX to 2.7.X and from
+2.6.40.X to 2.6.8.X etc would be the most straightforward change
+if you want to save the 3.0 release for a special moment.
+
+Enough bike shedding from my side, please just make a decision.
+
+	Arnd
