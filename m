@@ -1,65 +1,41 @@
-From: david@lang.hm
+From: Emil Langrock <emil.langrock@gmx.de>
 Subject: Re: (Short?) merge window reminder
-Date: Tue, 24 May 2011 11:55:27 -0700 (PDT)
-Message-ID: <alpine.DEB.2.02.1105241147150.23692@asgard.lang.hm>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110524183405.GA14493@citd.de>
+Date: Tue, 24 May 2011 21:06:47 +0200
+Message-ID: <201105242106.47657.emil.langrock@gmx.de>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110524183405.GA14493@citd.de>
-Sender: owner-linux-mm@kvack.org
-To: Matthias Schniedermeyer <ms@citd.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout-de.gmx.net ([213.165.64.23]:58333 "HELO
+	mailout-de.gmx.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1753777Ab1EXTGu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 May 2011 15:06:50 -0400
+In-Reply-To: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Greg KH <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, 24 May 2011, Matthias Schniedermeyer wrote:
+Linus Torvalds wrote:
+> PS. The voices in my head also tell me that the numbers are getting
+> too big. I may just call the thing 2.8.0. And I almost guarantee that
+> this PS is going to result in more discussion than the rest, but when
+> the voices tell me to do things, I listen.
 
-> On 23.05.2011 13:33, Linus Torvalds wrote:
->> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
->>>
->>> I really hope there's also a voice that tells you to wait until .42 before
->>> cutting 3.0.0! :-)
->>
->> So I'm toying with 3.0 (and in that case, it really would be "3.0",
->> not "3.0.0" - the stable team would get the third digit rather than
->> the fourth one.
->
-> What about strictly 3 part versions? Just add a .0.
->
-> 3.0.0 - Release Kernel 3.0
-> 3.0.1 - Stable 1
-> 3.0.2 - Stable 2
-> 3.1.0 - Release Kernel 3.1
-> 3.1.1 - Stable 1
-> ...
->
-> Biggest problem is likely version phobics that get pimples when they see
-> trailing zeros. ;-)
+Correct :)
 
-since there are always issues discovered with a new kernel is released 
-(which is why the -stable kernels exist), being wary of .0 kernels is not 
-neccessarily a bad thing.
+I would still prefer the version number change to something like 2011.0 - 
+already proposed at http://kerneltrap.org/Linux/Kernel_Release_Numbering_Redux
 
-I still think a date based approach would be the best.
-
-since people are worried about not knowing when a final release will 
-happen, base the date on when the merge window opened or closed (always 
-known at the time of the first -rc kernel)
-
-in the thread on lwn, people pointed out that the latest 2.6.32 kernel 
-would still be a 2009.12.X which doesn't reflect the fact that it was 
-released this month. My suggestion for that is to make the X be the number 
-of months (or years.months if you don't like large month values) between 
-the merge window and the release of the -stable release. This would lead 
-to a small problem when there are multiple -stable releases in a month, 
-but since that doesn't last very long I don't see a real problem with just 
-incramenting the month into the future in those cases.
-
-David Lang
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I don't think that it is reasonable to say that it is bad because third party 
+scripts would break - they would break anyway (I would bet that many of them 
+don't expect to see 3.x anyway). And changing now to 3.0 and then incrementing 
+the second one everytime for 10 years will also lead to something like 3.56.7. 
+I would also say that defining the release number using the time of the merge 
+window start/end is easy understandable. "2.6.40" would be the third 
+development cycle this year aka v2011.2 or v2011.2.0 when the patchlevel 
+should always be included.
+-- 
+Emil Langrock
