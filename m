@@ -1,30 +1,52 @@
-From: Lisa Milne <lisa@ltmnet.com>
+From: Matthias Schniedermeyer <ms@citd.de>
 Subject: Re: (Short?) merge window reminder
-Date: Wed, 25 May 2011 04:06:27 +1000
-Message-ID: <20110525040627.753980f8.lisa@ltmnet.com>
+Date: Tue, 24 May 2011 20:34:05 +0200
+Message-ID: <20110524183405.GA14493@citd.de>
 References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
-	<20110523192056.GC23629@elte.hu>
-	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+ <20110523192056.GC23629@elte.hu>
+ <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
 In-Reply-To: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
 Sender: owner-linux-mm@kvack.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
+On 23.05.2011 13:33, Linus Torvalds wrote:
+> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
+> >
+> > I really hope there's also a voice that tells you to wait until .42 before
+> > cutting 3.0.0! :-)
+> 
 > So I'm toying with 3.0 (and in that case, it really would be "3.0",
 > not "3.0.0" - the stable team would get the third digit rather than
 > the fourth one.
 
-How about stardates? That'd make a release made now 64860.8
+What about strictly 3 part versions? Just add a .0.
 
-I really should sleep more...
+3.0.0 - Release Kernel 3.0
+3.0.1 - Stable 1
+3.0.2 - Stable 2
+3.1.0 - Release Kernel 3.1
+3.1.1 - Stable 1
+...
+
+Biggest problem is likely version phobics that get pimples when they see 
+trailing zeros. ;-)
+
+
+
+
+Bis denn
 
 -- 
-Lisa Milne <lisa@ltmnet.com>
+Real Programmers consider "what you see is what you get" to be just as 
+bad a concept in Text Editors as it is in women. No, the Real Programmer
+wants a "you asked for it, you got it" text editor -- complicated, 
+cryptic, powerful, unforgiving, dangerous.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
