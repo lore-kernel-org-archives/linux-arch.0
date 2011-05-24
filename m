@@ -1,55 +1,67 @@
-From: Zimny Lech <napohybelskurwysynom2010@gmail.com>
+From: Jan Engelhardt <jengelh@medozas.de>
 Subject: Re: (Short?) merge window reminder
-Date: Tue, 24 May 2011 22:59:12 +0200
-Message-ID: <BANLkTimJ3PgPGRNcQGddmriub53w83BZjQ@mail.gmail.com>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
-	<20110523192056.GC23629@elte.hu>
-	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
-	<20110525040627.753980f8.lisa@ltmnet.com>
+Date: Tue, 24 May 2011 23:05:30 +0200 (CEST)
+Message-ID: <alpine.LNX.2.01.1105242207150.2318@frira.zrqbmnf.qr>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110523231721.GM10009@thunk.org> <4DDAEC68.30803@zytor.com> <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
+ <alpine.LNX.2.01.1105241409280.15351@frira.zrqbmnf.qr> <BANLkTimCXVdVa6KLRG8GJR1gJY=7_5SkOA@mail.gmail.com> <alpine.LNX.2.01.1105241500410.23085@frira.zrqbmnf.qr> <BANLkTinNK+9XijCN0YGXyvLQ8_npPTG2cQ@mail.gmail.com> <20110524154348.27ba649d@lxorguk.ukuu.org.uk>
+ <BANLkTi=Xuk4=Q43QV1pv33K=J2FFZBLLtQ@mail.gmail.com> <4DDBEC91.8020004@zytor.com> <BANLkTimGGukCD_eLfCTXWjbiz=7ucEwj7Q@mail.gmail.com> <BANLkTi=Rky8zGrJ7TSF0MumzQWjpsD7Lcw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20110525040627.753980f8.lisa@ltmnet.com>
-Sender: owner-linux-mm@kvack.org
-To: Lisa Milne <lisa@ltmnet.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from seven.medozas.de ([188.40.89.202]:41549 "EHLO seven.medozas.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753747Ab1EXVFc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 May 2011 17:05:32 -0400
+In-Reply-To: <BANLkTi=Rky8zGrJ7TSF0MumzQWjpsD7Lcw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: eschvoca <eschvoca@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "jonsmirl@gmail.com" <jonsmirl@gmail.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Jacek Luczak <difrost.kernel@gmail.com>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.medozas.de>, Ted Ts'o <tytso@mit.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
 
-Hi,
 
-2011/5/24 Lisa Milne <lisa@ltmnet.com>:
->> So I'm toying with 3.0 (and in that case, it really would be "3.0",
->> not "3.0.0" - the stable team would get the third digit rather than
->> the fourth one.
+On Tuesday 2011-05-24 20:48, eschvoca wrote:
+>On Tue, May 24, 2011 at 1:41 PM, Linus Torvalds wrote:
+>>
+>> It's not about features. It hasn't been about features for forever.
 >
-> How about stardates?
+>Using the date also clearly communicates it is not about features.
 
-This is a wonderful idea! :)
+On the contrary: Whenever a 2.6.x release was set out the door, there
+was at least one new feature in the cycle. Given the endless manpower
+that seems to trail Linux, that seems unlikely to change in the near
+term.
 
-> That'd make a release made now 64860.8
+On "It is not about features" - it is not /just/ about features - it
+is also about fixes, which are equally important, and they also
+warrant a version bump of some sort on their own. Pointing out the
+obvious, the stable serieses.
+
+"Fleeing" to date-based version numbering seems like an excuse
+for making way for releases without any change whatsoever.
+(IOW, if there were features/fixes, a non-date based scheme of
+incremental numbers could indicate them already.)
+
+
+>Me, a nobody end user, would prefer a version number that corresponded
+>to the date.  Something like:
 >
-> I really should sleep more...
->
-> --
-> Lisa Milne <lisa@ltmnet.com>
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" i=
-n
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at =A0http://www.tux.org/lkml/
->
+>%y.%m.<stable patch>
+>%Y.%m.<stable patch>
+
+Except that LINUX_KERNEL_VERSION has only 8 bits for each,
+so 2011 is out of range, which would need to kept in mind.
+And a 2-digit spec.. nah that does not feel very 100-year
+proof. (Just look at struct tm.tm_year for the mess 2-digits
+made technically.)
+
+>Then users would know the significance of the number and when a vendor
+>says they support Linux 11.09 the user will immediately know if they
+>are up to date.
+
+An added issue with that would be that numbers would not increase in
+same-sized steps anymore and leave gaps. (There would probably be no
+11.06 between 11.05 aka 2.6.39 and 11.07-or-so aka 2.6.40)
 
 
-
---=20
-Slawa!
-Zimny Lech z Wawelu
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+My 2=E5=86=86.
