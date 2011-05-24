@@ -1,42 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atl.turmel.org ([74.117.157.138]:37213 "EHLO atl.turmel.org"
+Received: from mx2.mail.elte.hu ([157.181.151.9]:45407 "EHLO mx2.mail.elte.hu"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757695Ab1EXAMz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 May 2011 20:12:55 -0400
-Message-ID: <4DDAF394.7050405@turmel.org>
-Date: Mon, 23 May 2011 19:53:56 -0400
-From: Phil Turmel <philip@turmel.org>
-MIME-Version: 1.0
+	id S1751188Ab1EXCBs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 May 2011 22:01:48 -0400
+Date: Tue, 24 May 2011 04:01:35 +0200
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: (Short?) merge window reminder
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
-In-Reply-To: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Message-ID: <20110524020135.GA19249@elte.hu>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+ <20110523192056.GC23629@elte.hu>
+ <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+ <20110523231721.GM10009@thunk.org>
+ <4DDAEC68.30803@zytor.com>
+ <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-Message-ID: <20110523235356.68UHRCsGQ98zoWeGaX6C9ViLhLOmW3OKyqLpJtXX_lY@z>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Ted Ts'o <tytso@mit.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+Message-ID: <20110524020135.5PbLmfK_eoX6VghAW2TifRh2-jsjZq9ZGZMrlxgLoak@z>
 
-Hi Linus,
 
-On 05/23/2011 04:33 PM, Linus Torvalds wrote:
-> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
->>
->> I really hope there's also a voice that tells you to wait until .42 before
->> cutting 3.0.0! :-)
+* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+
+> Another advantage of switching numbering models (ie 3.0 instead of
+> 2.8.x) would be that it would also make the "odd numbers are also
+> numbers" transition much more natural.
+
+Yeah, it sounds really good to get rid of the (meanwhile) meaningless
+"2.6." prefix from our version code and iterate it in a more
+meaningful way.
+
+I suspect the stable team and distros will enjoy the more meaningful
+third digit as well: it will raise the perceived importance of
+stabilization and packaging work.
+
+Btw., we should probably remove the fourth (patch) level, otherwise
+distros might feel tempted to fill it in with their own patch-stack
+version number, which would result in confusing "3.3.1.5" meaning
+different things on different distros - while 3.3.1-5.rpm style of
+distro kernel package naming denotes the distro patch level more
+clearly.
+
+I don't think the odd/even history will linger too long: in practice
+we'll iterate through 3.1, 3.2, 3.3 and 3.4 rather quickly, in the first
+year, so any residual notion of stable/unstable will be gone within a
+few iterations.
+
+> Because of our historical even/odd model, I wouldn't do a 2.7.x -
+> there's just too much history of 2.1, 2.3, 2.5 being development
+> trees. But if I do 3.0, then I'd be chucking that whole thing out the
+> window, and the next release would be 3.1, 3.2, etc..
 > 
-> So I'm toying with 3.0 (and in that case, it really would be "3.0",
-> not "3.0.0" - the stable team would get the third digit rather than
-> the fourth one.
+> And then in another few years (probably before getting close to 3.40,
+> so I'm not going to make a big deal of 3 = "third decade"), I'd just
+> do 4.0 etc.
 
-A few months ago, I briefly considered suggesting that the demise of the BKL
-would be a suitable milestone for the numbering shakeup.
+Perhaps we could do 4.0 once the last bit of -rt hits upstream? /me ducks
 
-But I am a mere mortal lurker, and I remember past flame-fests this topic
-spawned.  So I chickened out.
+> Because all our releases are supposed to be stable releases these
+> days, and if we get rid of one level of numbering, I feel perfectly
+> fine with getting rid of the even/odd history too.
 
-As a small-scale linux evangelist, I would sure like to skip the explanation
-of the version numbers.
+They are very stable releases as far as i'm concerned - i can pretty
+confidently run and use -rc2 and better kernels on my boxes these days
+and could do so for the past few years.
 
-Phil
+Thanks,
+
+	Ingo
