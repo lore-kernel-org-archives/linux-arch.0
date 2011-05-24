@@ -1,48 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from seven.medozas.de ([188.40.89.202]:42421 "EHLO seven.medozas.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755963Ab1EXMPO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 May 2011 08:15:14 -0400
-Date: Tue, 24 May 2011 14:15:13 +0200 (CEST)
-From: Jan Engelhardt <jengelh@medozas.de>
+Received: from earthlight.etchedpixels.co.uk ([81.2.110.250]:60428 "EHLO
+	www.etchedpixels.co.uk" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S932282Ab1EXOk1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 May 2011 10:40:27 -0400
+Date: Tue, 24 May 2011 15:41:37 +0100
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Subject: Re: (Short?) merge window reminder
-In-Reply-To: <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
-Message-ID: <alpine.LNX.2.01.1105241409280.15351@frira.zrqbmnf.qr>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110523231721.GM10009@thunk.org> <4DDAEC68.30803@zytor.com>
- <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Message-ID: <20110524154137.5ab5e110@lxorguk.ukuu.org.uk>
+In-Reply-To: <20110523231721.GM10009@thunk.org>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+	<20110523192056.GC23629@elte.hu>
+	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+	<20110523231721.GM10009@thunk.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Ted Ts'o <tytso@mit.edu>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "linux-mm <linux-mm"@kvack.medozas.de
-Message-ID: <20110524121513.3zEVwUWWBSsWvRsAeZk-pCkQm8YPuzktA2qWym0lRi8@z>
+To: Ted Ts'o <tytso@mit.edu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Greg KH <gregkh@suse.de>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI <dri-devel@lists.freedesktop.org>, linux-mm <linux-mm@kvack.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20110524144137.4TaPPoMiIxHcQ8_sjNr7asEH7vYzSQcd60v34L1WSOI@z>
 
-On Tuesday 2011-05-24 01:33, Linus Torvalds wrote:
+> If we change from 2.6.X to 3.X, then if we don't change anything else,
+> then successive stable release will cause the LINUX_VERSION_CODE to be
+> incremented.  This isn't necessary bad, but it would be a different
+> from what we have now.
 
->Another advantage of switching numbering models (ie 3.0 instead of
->2.8.x) would be that it would also make the "odd numbers are also
->numbers" transition much more natural.
->
->Because of our historical even/odd model, I wouldn't do a 2.7.x -
->there's just too much history of 2.1, 2.3, 2.5 being development
->trees.
+I think I prefer 3 digits. Otherwise we will have to pass 3.0, 3.1 and
+3.11 all of which numbers still give older sysadmins flashbacks and will
+have them waking screaming in the middle of the night.
 
-.oO(Though once 2.{7 or more, odd} trickle into the distros, it would 
-become pretty much apparent that they are not devel.)
+Also saves breaking all the tools and assumptions people have been used
+to for some many years
 
->And then in another few years (probably before getting close to 3.40,
->so I'm not going to make a big deal of 3 = "third decade"), I'd just
->do 4.0 etc.
-
-While 2.6 has certainly worn out, already thinking of a 4.0 is highly 
-reminiscient of the version number arms race Firefox and ChromeBrowser 
-are doing currently.
-
->Because all our releases are supposed to be stable releases these
->days, and if we get rid of one level of numbering, I feel perfectly
->fine with getting rid of the even/odd history too.
-
-If I remember past-time discussions right, ELF was the contributing 
-factor to bump the major number to 2.0 back then; ever since 2.0, no 
-similarly breakthrough-ing event has occurred.
+Alan
