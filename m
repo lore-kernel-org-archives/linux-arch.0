@@ -1,104 +1,75 @@
-From: akpm@linux-foundation.org
-Subject: [patch 130/141] lib: consolidate DEBUG_PER_CPU_MAPS
-Date: Tue, 24 May 2011 17:13:32 -0700
-Message-ID: <201105250013.p4P0DW8E025213@imap1.linux-foundation.org>
+From: Valdis.Kletnieks@vt.edu
+Subject: Re: (Short?) merge window reminder
+Date: Tue, 24 May 2011 21:13:14 -0400
+Message-ID: <6043.1306285994@localhost>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110523231721.GM10009@thunk.org> <4DDAEC68.30803@zytor.com> <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com> <alpine.LNX.2.01.1105241409280.15351@frira.zrqbmnf.qr>
+            <BANLkTimCXVdVa6KLRG8GJR1gJY=7_5SkOA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ANSI_X3.4-1968
-Content-Transfer-Encoding: 8bit
+Content-Type: multipart/signed; boundary="==_Exmh_1306285994_4707P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:59214 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754753Ab1EYANw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 May 2011 20:13:52 -0400
+Received: from lennier.cc.vt.edu ([198.82.162.213]:35589 "EHLO
+	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753979Ab1EYBOB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 May 2011 21:14:01 -0400
+In-Reply-To: Your message of "Tue, 24 May 2011 14:30:59 +0200."
+             <BANLkTimCXVdVa6KLRG8GJR1gJY=7_5SkOA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, sboyd@codeaurora.org, benh@kernel.crashing.org, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
+To: Jacek Luczak <difrost.kernel@gmail.com>
+Cc: Jan Engelhardt <jengelh@medozas.de>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Ted Ts'o <tytso@mit.edu>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "linux-mm <linux-mm"@kvack.medozas.de
 
-From: Stephen Boyd <sboyd@codeaurora.org>
+--==_Exmh_1306285994_4707P
+Content-Type: text/plain; charset=us-ascii
 
-DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
-inlcude/linux/cpumask.h and thus it has outgrown its use within x86 and
-powerpc alone.  Any arch with SMP support may want to get some more
-debugging, so make this option generic.
+On Tue, 24 May 2011 14:30:59 +0200, Jacek Luczak said:
+> 2011/5/24 Jan Engelhardt <jengelh@medozas.de>:
+> > On Tuesday 2011-05-24 01:33, Linus Torvalds wrote:
+> >
+> >>Another advantage of switching numbering models (ie 3.0 instead of
+> >>2.8.x) would be that it would also make the "odd numbers are also
+> >>numbers" transition much more natural.
+> >>
+> >>Because of our historical even/odd model, I wouldn't do a 2.7.x -
+> >>there's just too much history of 2.1, 2.3, 2.5 being development
+> >>trees.
+> >
+> > .oO(Though once 2.{7 or more, odd} trickle into the distros, it would
+> > become pretty much apparent that they are not devel.)
+> >
+> >>And then in another few years (probably before getting close to 3.40,
+> >>so I'm not going to make a big deal of 3 = "third decade"), I'd just
+> >>do 4.0 etc.
+> >
+> > While 2.6 has certainly worn out, already thinking of a 4.0 is highly
+> > reminiscient of the version number arms race Firefox and ChromeBrowser
+> > are doing currently.
+> >
+> >>Because all our releases are supposed to be stable releases these
+> >>days, and if we get rid of one level of numbering, I feel perfectly
+> >>fine with getting rid of the even/odd history too.
+> >
+> > If I remember past-time discussions right, ELF was the contributing
+> > factor to bump the major number to 2.0 back then; ever since 2.0, no
+> > similarly breakthrough-ing event has occurred.
+> 
+> What then about BKL removal? Nice place to celebrate with version jump
+> and heaving some beers.
 
-Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
+Well, if we're looking at ELF-sized ABI changes, how about 3.0 be the
+release where we re-sync the syscall numbers on all the archs? ;)
 
- arch/powerpc/Kconfig.debug |   12 ------------
- arch/x86/Kconfig.debug     |   11 -----------
- lib/Kconfig.debug          |   11 +++++++++++
- 3 files changed, 11 insertions(+), 23 deletions(-)
+--==_Exmh_1306285994_4707P
+Content-Type: application/pgp-signature
 
-diff -puN arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/powerpc/Kconfig.debug
---- a/arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-+++ a/arch/powerpc/Kconfig.debug
-@@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
- 
- 	  This option will slow down process creation somewhat.
- 
--config DEBUG_PER_CPU_MAPS
--	bool "Debug access to per_cpu maps"
--	depends on DEBUG_KERNEL
--	depends on SMP
--	default n
--	---help---
--	  Say Y to verify that the per_cpu map being accessed has
--	  been setup.  Adds a fair amount of code to kernel memory
--	  and decreases performance.
--
--	  Say N if unsure.
--
- config HCALL_STATS
- 	bool "Hypervisor call instrumentation"
- 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
-diff -puN arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/x86/Kconfig.debug
---- a/arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-+++ a/arch/x86/Kconfig.debug
-@@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
- 
- 	  This option will slow down process creation somewhat.
- 
--config DEBUG_PER_CPU_MAPS
--	bool "Debug access to per_cpu maps"
--	depends on DEBUG_KERNEL
--	depends on SMP
--	---help---
--	  Say Y to verify that the per_cpu map being accessed has
--	  been setup.  Adds a fair amount of code to kernel memory
--	  and decreases performance.
--
--	  Say N if unsure.
--
- config X86_PTDUMP
- 	bool "Export kernel pagetable layout to userspace via debugfs"
- 	depends on DEBUG_KERNEL
-diff -puN lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps lib/Kconfig.debug
---- a/lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
-+++ a/lib/Kconfig.debug
-@@ -983,6 +983,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
- 	  To ensure that generic code follows the above rules, this
- 	  option forces all percpu variables to be defined as weak.
- 
-+config DEBUG_PER_CPU_MAPS
-+	bool "Debug access to per_cpu maps"
-+	depends on DEBUG_KERNEL
-+	depends on SMP
-+	help
-+	  Say Y to verify that the per_cpu map being accessed has
-+	  been set up. This adds a fair amount of code to kernel memory
-+	  and decreases performance.
-+
-+	  Say N if unsure.
-+
- config LKDTM
- 	tristate "Linux Kernel Dump Test Tool Module"
- 	depends on DEBUG_FS
-_
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
+
+iD8DBQFN3FeqcC3lWbTT17ARAv04AJkBCqmgJQk5Su57aDSar4uSGf4s4wCg4k/H
++Qm5XV5rza4hbeoNy0XS7gk=
+=UhnL
+-----END PGP SIGNATURE-----
+
+--==_Exmh_1306285994_4707P--
