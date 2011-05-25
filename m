@@ -1,47 +1,114 @@
-From: Martin Nybo Andersen <tweek@tweek.dk>
-Subject: Re: (Short?) merge window reminder
-Date: Wed, 25 May 2011 17:03:10 +0200 (CEST)
-Message-ID: <alpine.DEB.2.02.1105251654140.32541@odin.tweek.dk>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110525040627.753980f8.lisa@ltmnet.com> <BANLkTimJ3PgPGRNcQGddmriub53w83BZjQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <BANLkTimJ3PgPGRNcQGddmriub53w83BZjQ@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Zimny Lech <napohybelskurwysynom2010@gmail.com>
-Cc: Lisa Milne <lisa@ltmnet.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+From: akpm@linux-foundation.org
+Subject: [merged] lib-consolidate-debug_per_cpu_maps.patch removed from -mm tree
+Date: Wed, 25 May 2011 13:32:13 -0700
+Message-ID: <201105252030.p4PKUaHq014979@imap1.linux-foundation.org>
+Reply-To: linux-kernel@vger.kernel.org
+Return-path: <mm-commits-owner@vger.kernel.org>
+Sender: mm-commits-owner@vger.kernel.org
+To: sboyd@codeaurora.org, benh@kernel.crashing.org, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de, mm-commits@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 24 May 2011, Zimny Lech wrote:
-> Hi,
->
-> 2011/5/24 Lisa Milne <lisa@ltmnet.com>:
->>> So I'm toying with 3.0 (and in that case, it really would be "3.0",
->>> not "3.0.0" - the stable team would get the third digit rather than
->>> the fourth one.
->>
->> How about stardates?
->
-> This is a wonderful idea! :)
 
-I'd rather go for a gardensheduler, which can tell me the optimal color 
-for any given moment *and* do the paint job. If it eventually ends this 
-discussion, it could be renamed "completely fair gardensheduler".
+The patch titled
+     lib: consolidate DEBUG_PER_CPU_MAPS
+has been removed from the -mm tree.  Its filename was
+     lib-consolidate-debug_per_cpu_maps.patch
 
->
->> That'd make a release made now 64860.8
->>
->> I really should sleep more...
+This patch was dropped because it was merged into mainline or a subsystem tree
 
-Or drink less coffee ... ;)
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
 
--- 
-Regards,
-Martin
+------------------------------------------------------
+Subject: lib: consolidate DEBUG_PER_CPU_MAPS
+From: Stephen Boyd <sboyd@codeaurora.org>
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
+inlcude/linux/cpumask.h and thus it has outgrown its use within x86 and
+powerpc alone.  Any arch with SMP support may want to get some more
+debugging, so make this option generic.
+
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ arch/powerpc/Kconfig.debug |   12 ------------
+ arch/x86/Kconfig.debug     |   11 -----------
+ lib/Kconfig.debug          |   11 +++++++++++
+ 3 files changed, 11 insertions(+), 23 deletions(-)
+
+diff -puN arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/powerpc/Kconfig.debug
+--- a/arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/arch/powerpc/Kconfig.debug
+@@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
+ 
+ 	  This option will slow down process creation somewhat.
+ 
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	default n
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config HCALL_STATS
+ 	bool "Hypervisor call instrumentation"
+ 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
+diff -puN arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/x86/Kconfig.debug
+--- a/arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/arch/x86/Kconfig.debug
+@@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
+ 
+ 	  This option will slow down process creation somewhat.
+ 
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config X86_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff -puN lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps lib/Kconfig.debug
+--- a/lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/lib/Kconfig.debug
+@@ -983,6 +983,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
+ 	  To ensure that generic code follows the above rules, this
+ 	  option forces all percpu variables to be defined as weak.
+ 
++config DEBUG_PER_CPU_MAPS
++	bool "Debug access to per_cpu maps"
++	depends on DEBUG_KERNEL
++	depends on SMP
++	help
++	  Say Y to verify that the per_cpu map being accessed has
++	  been set up. This adds a fair amount of code to kernel memory
++	  and decreases performance.
++
++	  Say N if unsure.
++
+ config LKDTM
+ 	tristate "Linux Kernel Dump Test Tool Module"
+ 	depends on DEBUG_FS
+_
+
+Patches currently in -mm which might be from sboyd@codeaurora.org are
+
+origin.patch
+linux-next.patch
+
