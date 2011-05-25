@@ -1,46 +1,75 @@
-From: Jiri Kosina <jkosina@suse.cz>
+From: Boaz Harrosh <bharrosh@panasas.com>
 Subject: Re: (Short?) merge window reminder
-Date: Wed, 25 May 2011 14:52:05 +0200 (CEST)
-Message-ID: <alpine.LRH.2.00.1105251447000.1874@twin.jikos.cz>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <4DDC2236.6010608@mit.edu>
+Date: Wed, 25 May 2011 17:12:47 +0300
+Message-ID: <4DDD0E5F.5080105@panasas.com>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>	<20110523192056.GC23629@elte.hu>	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <BANLkTinbrtzY66p+1NALP8BDfjXLx=Qp-A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <4DDC2236.6010608@mit.edu>
-Sender: owner-linux-mm@kvack.org
-To: Andy Lutomirski <luto@MIT.EDU>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from daytona.panasas.com ([67.152.220.89]:29810 "EHLO
+	daytona.panasas.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756744Ab1EYOMl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 May 2011 10:12:41 -0400
+In-Reply-To: <BANLkTinbrtzY66p+1NALP8BDfjXLx=Qp-A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexey Zaytsev <alexey.zaytsev@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
 
-On Tue, 24 May 2011, Andy Lutomirski wrote:
+On 05/23/2011 11:52 PM, Alexey Zaytsev wrote:
+> On Tue, May 24, 2011 at 00:33, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
+>>>
+>>> I really hope there's also a voice that tells you to wait until .42 before
+>>> cutting 3.0.0! :-)
+>>
+>> So I'm toying with 3.0 (and in that case, it really would be "3.0",
+>> not "3.0.0" - the stable team would get the third digit rather than
+>> the fourth one.
+>>
+>> But no, it wouldn't be for 42. Despite THHGTTG, I think "40" is a
+>> fairly nice round number.
+>>
+>> There's also the timing issue - since we no longer do version numbers
+>> based on features, but based on time, just saying "we're about to
+>> start the third decade" works as well as any other excuse.
+>>
+>> But we'll see.
+> 
+> Maybe, 2011.x, or 11.x, x increasing for every merge window started this year?
+> This would better reflect the steady nature of the releases, but would
+> certainly break a lot of scripts. ;)
 
-> Also, when someone in my lab installs <insert ancient enterprise distro 
-> here> on a box that's running software I wrote that needs to support 
-> modern high-speed peripherals, then I can say "What?  You seriously 
-> expect this stuff to work on Linux 2007?  Let's install a slightly less 
-> stable distro from at least 2010."  This sounds a lot less nerdy than 
-> "What?  You seriously expect this stuff to work on Linux 2.6.27?  Let's 
-> install a slightly less stable distro that uses at least 2.6.36."
+My $0.017 on this. Clearly current process is time based. People have said.
 
-I hate to jump into this excellent example of bike-shedding discussion, 
-but anyway ...
+* Keep Three digit numbers to retain script compatibility
+* Make it clear from the version when it was released.
+* Linus said 3 as for 3rd decade
+* Nice single increment number progression
+* Please make it look like a nice version number sys-admins will feel
+  at home with
 
-Your example doesn't really reflect reality.
+So if you combine all the above:
 
-It's common for older enterprise distributions to gradually incorporate a 
-lot of backported code (and most importantly new hardware support 
-code/drivers) while not upgrading the kernel major version. So yes, you 
-will in reality get 2.6.16 kernel (at least according to uname) with 
-libata with newer service packs of SLES 10, for example (and you could 
-find many of those across distributions).
+D. Y. N
+D - Is the decade since birth (1991 not 1990)
+Y - is the year in the decade so you have 3.1.x, 3.2.x, .. 3.10.x, 4.1.X and so on
+    Nice incremental number.
+N - The Linus release of this Year. So this 3rd one goes up to 4 most probably.
 
--- 
-Jiri Kosina
-SUSE Labs
+Linus always likes, and feels very poetic about the Christmas version release.
+He hates it when once it slipped into the next year. So now he gets to increment
+the second digit as a bonus.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+The 2nd digit gets to start on a *one*, never zero and goes up to *10*, to symbolize
+the 1991 birth. And we never have .zero quality, right?
+
+The first Digit gets incremented on decade from 1991 so on 2011 and not 2010
+
+So here you have it, who said we need to compromise?
+
+Free life
+Boaz
+ 
