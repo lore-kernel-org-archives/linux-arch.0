@@ -1,54 +1,104 @@
-From: "Hans-Peter Jansen" <hpj@urpla.net>
-Subject: Re: (Short?) merge window reminder
-Date: Wed, 25 May 2011 01:00:07 +0200
-Message-ID: <201105250100.08708.hpj@urpla.net>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+From: akpm@linux-foundation.org
+Subject: [patch 130/141] lib: consolidate DEBUG_PER_CPU_MAPS
+Date: Tue, 24 May 2011 17:13:32 -0700
+Message-ID: <201105250013.p4P0DW8E025213@imap1.linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
-Content-Disposition: inline
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>, aufs-users@lists.sourceforge.net
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ANSI_X3.4-1968
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:59214 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754753Ab1EYANw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 May 2011 20:13:52 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, sboyd@codeaurora.org, benh@kernel.crashing.org, hpa@zytor.com, linux-arch@vger.kernel.org, mingo@elte.hu, tglx@linutronix.de
 
-On Monday 23 May 2011, 22:33:48 Linus Torvalds wrote:
-> On Mon, May 23, 2011 at 12:20 PM, Ingo Molnar <mingo@elte.hu> wrote:
-> > I really hope there's also a voice that tells you to wait until .42
-> > before cutting 3.0.0! :-)
->
-> So I'm toying with 3.0 (and in that case, it really would be "3.0",
-> not "3.0.0" - the stable team would get the third digit rather than
-> the fourth one.
->
-> But no, it wouldn't be for 42. Despite THHGTTG, I think "40" is a
-> fairly nice round number.
->
-> There's also the timing issue - since we no longer do version numbers
-> based on features, but based on time, just saying "we're about to
-> start the third decade" works as well as any other excuse.
+From: Stephen Boyd <sboyd@codeaurora.org>
 
-But hey, do you really want to release a Linux 3.0 kernel without 
-serious layered filesystem functionality? 
+DEBUG_PER_CPU_MAPS is used in lib/cpumask.c as well as in
+inlcude/linux/cpumask.h and thus it has outgrown its use within x86 and
+powerpc alone.  Any arch with SMP support may want to get some more
+debugging, so make this option generic.
 
-Shame on you,
-Pete
+Signed-off-by: Stephen Boyd <sboyd@codeaurora.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
 
-PS.: Sorry for being such a pest in this regard, but filesystem layering 
-is one of the most important missing bits to excel out of the box in
- * live distros 
- * diskless computing
- * flash based systems
-Even the linux based commercial PBX solution (mobydick), I bought, ships 
-with it.
-PPS.: Bad timing, I know, but I'm glad, that Al is back to life again..
+ arch/powerpc/Kconfig.debug |   12 ------------
+ arch/x86/Kconfig.debug     |   11 -----------
+ lib/Kconfig.debug          |   11 +++++++++++
+ 3 files changed, 11 insertions(+), 23 deletions(-)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff -puN arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/powerpc/Kconfig.debug
+--- a/arch/powerpc/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/arch/powerpc/Kconfig.debug
+@@ -44,18 +44,6 @@ config DEBUG_STACK_USAGE
+ 
+ 	  This option will slow down process creation somewhat.
+ 
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	default n
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config HCALL_STATS
+ 	bool "Hypervisor call instrumentation"
+ 	depends on PPC_PSERIES && DEBUG_FS && TRACEPOINTS
+diff -puN arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps arch/x86/Kconfig.debug
+--- a/arch/x86/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/arch/x86/Kconfig.debug
+@@ -75,17 +75,6 @@ config DEBUG_STACK_USAGE
+ 
+ 	  This option will slow down process creation somewhat.
+ 
+-config DEBUG_PER_CPU_MAPS
+-	bool "Debug access to per_cpu maps"
+-	depends on DEBUG_KERNEL
+-	depends on SMP
+-	---help---
+-	  Say Y to verify that the per_cpu map being accessed has
+-	  been setup.  Adds a fair amount of code to kernel memory
+-	  and decreases performance.
+-
+-	  Say N if unsure.
+-
+ config X86_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff -puN lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps lib/Kconfig.debug
+--- a/lib/Kconfig.debug~lib-consolidate-debug_per_cpu_maps
++++ a/lib/Kconfig.debug
+@@ -983,6 +983,17 @@ config DEBUG_FORCE_WEAK_PER_CPU
+ 	  To ensure that generic code follows the above rules, this
+ 	  option forces all percpu variables to be defined as weak.
+ 
++config DEBUG_PER_CPU_MAPS
++	bool "Debug access to per_cpu maps"
++	depends on DEBUG_KERNEL
++	depends on SMP
++	help
++	  Say Y to verify that the per_cpu map being accessed has
++	  been set up. This adds a fair amount of code to kernel memory
++	  and decreases performance.
++
++	  Say N if unsure.
++
+ config LKDTM
+ 	tristate "Linux Kernel Dump Test Tool Module"
+ 	depends on DEBUG_FS
+_
