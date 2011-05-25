@@ -1,45 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57530 "EHLO mx2.suse.de"
+Received: from smtp.fullrate.dk ([90.185.1.42]:64569 "EHLO smtp.fullrate.dk"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932207Ab1EYMww (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 May 2011 08:52:52 -0400
-Date: Wed, 25 May 2011 14:52:05 +0200 (CEST)
-From: Jiri Kosina <jkosina@suse.cz>
+	id S1753432Ab1EYPOI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 May 2011 11:14:08 -0400
+Date: Wed, 25 May 2011 17:03:10 +0200 (CEST)
+From: Martin Nybo Andersen <tweek@tweek.dk>
 Subject: Re: (Short?) merge window reminder
-In-Reply-To: <4DDC2236.6010608@mit.edu>
-Message-ID: <alpine.LRH.2.00.1105251447000.1874@twin.jikos.cz>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <4DDC2236.6010608@mit.edu>
+In-Reply-To: <BANLkTimJ3PgPGRNcQGddmriub53w83BZjQ@mail.gmail.com>
+Message-ID: <alpine.DEB.2.02.1105251654140.32541@odin.tweek.dk>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com> <20110523192056.GC23629@elte.hu> <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com> <20110525040627.753980f8.lisa@ltmnet.com> <BANLkTimJ3PgPGRNcQGddmriub53w83BZjQ@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: TEXT/PLAIN; charset=US-ASCII; format=flowed
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@MIT.EDU>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
-Message-ID: <20110525125205.vHjbQ4bKd1x6W5s8DLMoKxX0F8tBAs9HN-rm7lUiFpI@z>
+To: Zimny Lech <napohybelskurwysynom2010@gmail.com>
+Cc: Lisa Milne <lisa@ltmnet.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+Message-ID: <20110525150310.-XPBiUE-dxU2UFllByZj4L6vlxK9WzyWmhSHcWCloXc@z>
 
-On Tue, 24 May 2011, Andy Lutomirski wrote:
+On Tue, 24 May 2011, Zimny Lech wrote:
+> Hi,
+>
+> 2011/5/24 Lisa Milne <lisa@ltmnet.com>:
+>>> So I'm toying with 3.0 (and in that case, it really would be "3.0",
+>>> not "3.0.0" - the stable team would get the third digit rather than
+>>> the fourth one.
+>>
+>> How about stardates?
+>
+> This is a wonderful idea! :)
 
-> Also, when someone in my lab installs <insert ancient enterprise distro 
-> here> on a box that's running software I wrote that needs to support 
-> modern high-speed peripherals, then I can say "What?  You seriously 
-> expect this stuff to work on Linux 2007?  Let's install a slightly less 
-> stable distro from at least 2010."  This sounds a lot less nerdy than 
-> "What?  You seriously expect this stuff to work on Linux 2.6.27?  Let's 
-> install a slightly less stable distro that uses at least 2.6.36."
+I'd rather go for a gardensheduler, which can tell me the optimal color 
+for any given moment *and* do the paint job. If it eventually ends this 
+discussion, it could be renamed "completely fair gardensheduler".
 
-I hate to jump into this excellent example of bike-shedding discussion, 
-but anyway ...
+>
+>> That'd make a release made now 64860.8
+>>
+>> I really should sleep more...
 
-Your example doesn't really reflect reality.
-
-It's common for older enterprise distributions to gradually incorporate a 
-lot of backported code (and most importantly new hardware support 
-code/drivers) while not upgrading the kernel major version. So yes, you 
-will in reality get 2.6.16 kernel (at least according to uname) with 
-libata with newer service packs of SLES 10, for example (and you could 
-find many of those across distributions).
+Or drink less coffee ... ;)
 
 -- 
-Jiri Kosina
-SUSE Labs
-
+Regards,
+Martin
