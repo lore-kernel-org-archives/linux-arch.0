@@ -1,61 +1,143 @@
-From: Boaz Harrosh <bharrosh@panasas.com>
-Subject: Re: (Short?) merge window reminder
-Date: Thu, 26 May 2011 19:38:12 +0300
-Message-ID: <4DDE81F4.8060800@panasas.com>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>	<20110523192056.GC23629@elte.hu>	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>	<BANLkTinbrtzY66p+1NALP8BDfjXLx=Qp-A@mail.gmail.com>	<4DDD0E5F.5080105@panasas.com> <BANLkTi=FAwzW+qR+Cbwmor90pgbgzfuw-g@mail.gmail.com>
+From: Ben Hutchings <bhutchings@solarflare.com>
+Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
+Date: Thu, 26 May 2011 10:56:09 -0700
+Message-ID: <1306432569.17233.123.camel@localhost>
+References: <cover.1306408804.git.gxt@mprc.pku.edu.cn>
+	 <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from daytona.panasas.com ([67.152.220.89]:27899 "EHLO
-	daytona.panasas.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751748Ab1EZQiK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 12:38:10 -0400
-In-Reply-To: <BANLkTi=FAwzW+qR+Cbwmor90pgbgzfuw-g@mail.gmail.com>
+Received: from mail.solarflare.com ([216.237.3.220]:53023 "EHLO
+	exchange.solarflare.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754130Ab1EZR4N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 13:56:13 -0400
+In-Reply-To: <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: Alexey Zaytsev <alexey.zaytsev@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
+To: GuanXuetao <gxt@mprc.pku.edu.cn>
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
 
-On 05/26/2011 01:21 AM, Tony Luck wrote:
-> On Wed, May 25, 2011 at 7:12 AM, Boaz Harrosh <bharrosh@panasas.com> wrote:
->> So if you combine all the above:
->>
->> D. Y. N
->> D - Is the decade since birth (1991 not 1990)
->> Y - is the year in the decade so you have 3.1.x, 3.2.x, .. 3.10.x, 4.1.X and so on
->>    Nice incremental number.
->> N - The Linus release of this Year. So this 3rd one goes up to 4 most probably.
->>
->> Linus always likes, and feels very poetic about the Christmas version release.
->> He hates it when once it slipped into the next year. So now he gets to increment
->> the second digit as a bonus.
->>
->> The 2nd digit gets to start on a *one*, never zero and goes up to *10*, to symbolize
->> the 1991 birth. And we never have .zero quality, right?
->>
->> The first Digit gets incremented on decade from 1991 so on 2011 and not 2010
-> 
-> This is clearly the best suggestion so far - small numbers, somewhat
-> date related (but without stuffing a "2011." on the front).  No ".0"
-> releases, ever.
-> 
-> But best of all it defines now when we will switch to 4.x.y and 5.x.y
-> so we don't have to keep having this discussion whenever someone thinks
-> that the numbers are getting "too big" (well perhaps when we get to the
-> tenth decade or so :-)
-> 
-> So the only thing left to argue is whether the upcoming release should
-> be numbered "3.1.1" as the first release in the first year of the 3rd
-> decade ...  or whether we should count 2.6.37 .. 2.6.39 as the first
-> three releases this year and thus we ought to start with "3.1.4" (so we
-> start with "pi"!).
-> 
+On Thu, 2011-05-26 at 11:36 +0000, GuanXuetao wrote:
+[...]
+> --- /dev/null
+> +++ b/drivers/net/mac-puv3.c
+[...]
+> +/**********************************************************************
+> + *  Simple types
+> + ********************************************************************* */
+> +enum umal_speed {
+> +	umal_speed_none = 0,
+> +	umal_speed_10 = SPEED_10,
+> +	umal_speed_100 = SPEED_100,
+> +	umal_speed_1000 = SPEED_1000,
+> +};
 
-Yes, Yes I like this a lot. I love pi, thanks.
+Just use the numbers directly: 0, 10, 100, 1000.
 
-Boaz
-> Linus: If you go with this, you should let Boaz set the new "NAME"
-> as a prize for such an inspired solution.
-> 
-> -Tony
+[...]
+> +#define ETHER_ADDR_LEN		6
+
+This is already called ETH_ALEN.
+
+[...]
+> +/**********************************************************************
+> + *  DMA Descriptor structure
+> + ********************************************************************* */
+> +struct umaldmadscr {
+> +	dma_addr_t   PacketStartAddr;
+> +	int          PacketSize;
+> +	dma_addr_t   NextDescriptor;
+> +	struct umaldmadscr *NextDescriptor_Virt;
+> +};
+
+Linux naming convention for structure fields is words_with_underscores
+not TitleCase.
+
+[...]
+> +/**********************************************************************
+> + *  UMAL_MII_RESET(bus)
+> + *
+> + *  Reset MII bus.
+> + *
+> + *  Input parameters:
+> + *	   bus     - MDIO bus handle
+> + *
+> + *  Return value:
+> + *	   0 if ok
+> + ********************************************************************* */
+
+Function documentation comments must follow the kernel-doc format.
+
+[...]
+> +static int umaldma_add_rcvbuffer(struct umal_softc *sc, struct umaldma *d,
+> +		struct sk_buff *sb)
+> +{
+[...]
+> +	/*
+> +	 * Allocate a sk_buff if we don't already have one.
+> +	 * If we do have an sk_buff, reset it so that it's empty.
+> +	 *
+> +	 * Note: sk_buffs don't seem to be guaranteed to have any sort
+> +	 * of alignment when they are allocated.  Therefore, allocate enough
+> +	 * extra space to make sure that:
+> +	 *
+> +	 *    1. the data does not start in the middle of a cache line.
+> +	 *    2. The data does not end in the middle of a cache line
+> +	 *    3. The buffer can be aligned such that the IP addresses are
+> +	 *       naturally aligned.
+> +	 *
+> +	 *  Remember, the SOCs MAC writes whole cache lines at a time,
+> +	 *  without reading the old contents first.  So, if the sk_buff's
+> +	 *  data portion starts in the middle of a cache line, the SOC
+> +	 *  DMA will trash the beginning (and ending) portions.
+> +	 */
+> +	if (sb == NULL) {
+> +		sb_new = netdev_alloc_skb(dev, ENET_PACKET_SIZE +
+> +		       SMP_CACHE_BYTES * 2 + NET_IP_ALIGN);
+> +		if (sb_new == NULL) {
+> +			pr_info("%s: sk_buff allocation failed\n",
+> +			       d->umaldma_eth->umal_dev->name);
+> +			return -ENOBUFS;
+
+Surely -ENOMEM.
+
+> +		}
+> +		skb_reserve(sb_new, 2);
+
+This presumably needs to be:
+
+		skb_reserve(sb_new, SMP_CACHE_BYTES + NET_IP_ALIGN);
+
+unless you assume that the skb allocator will always ensure cache line
+alignment (in which case, why use padding of SMP_CACHE_BYTES * 2?).
+
+[...]
+> +static void umaldma_tx_process(struct umal_softc *sc, struct umaldma *d,
+> +		int poll)
+> +{
+> +	struct net_device *dev = sc->umal_dev;
+> +	int curidx;
+> +	int hwidx;
+> +	struct umaldmadscr *dsc;
+> +	struct sk_buff *sb;
+> +	unsigned long flags;
+> +	int packets_handled = 0;
+> +	unsigned int int_status;
+> +
+> +	spin_lock_irqsave(&(sc->umal_lock), flags);
+> +
+> +	if (!netif_device_present(dev))
+> +		return;
+[...]
+
+This returns with the lock held!
+
+(This is not by any means a thorough review.)
+
+Ben.
+
+-- 
+Ben Hutchings, Senior Software Engineer, Solarflare
+Not speaking for my employer; that's the marketing department's job.
+They asked us to note that Solarflare product names are trademarked.
