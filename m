@@ -1,66 +1,61 @@
-From: =?ISO-8859-1?Q?S=E9rgio?= Basto <sergio@serjux.com>
+From: Boaz Harrosh <bharrosh@panasas.com>
 Subject: Re: (Short?) merge window reminder
-Date: Thu, 26 May 2011 17:13:57 +0100
-Message-ID: <1306426437.6981.14.camel@segulix>
-References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
-	 <20110523192056.GC23629@elte.hu>
-	 <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
-	 <20110523231721.GM10009@thunk.org> <4DDAEC68.30803@zytor.com>
-	 <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
-	 <alpine.LNX.2.01.1105241409280.15351@frira.zrqbmnf.qr>
-	 <BANLkTimCXVdVa6KLRG8GJR1gJY=7_5SkOA@mail.gmail.com>
-	 <alpine.LNX.2.01.1105241500410.23085@frira.zrqbmnf.qr>
-	 <BANLkTinNK+9XijCN0YGXyvLQ8_npPTG2cQ@mail.gmail.com>
-	 <20110524154348.27ba649d@lxorguk.ukuu.org.uk>
-	 <BANLkTi=Xuk4=Q43QV1pv33K=J2FFZBLLtQ@mail.gmail.com>
+Date: Thu, 26 May 2011 19:38:12 +0300
+Message-ID: <4DDE81F4.8060800@panasas.com>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>	<20110523192056.GC23629@elte.hu>	<BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>	<BANLkTinbrtzY66p+1NALP8BDfjXLx=Qp-A@mail.gmail.com>	<4DDD0E5F.5080105@panasas.com> <BANLkTi=FAwzW+qR+Cbwmor90pgbgzfuw-g@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <BANLkTi=Xuk4=Q43QV1pv33K=J2FFZBLLtQ@mail.gmail.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: "jonsmirl@gmail.com" <jonsmirl@gmail.com>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.medozas.de>, Ted Ts'o <tytso@mit.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI <dri-devel@lists.freedesktop.org>, Jan Engelhardt <jengelh@medozas.de>, Jacek Luczak <difrost.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from daytona.panasas.com ([67.152.220.89]:27899 "EHLO
+	daytona.panasas.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751748Ab1EZQiK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 12:38:10 -0400
+In-Reply-To: <BANLkTi=FAwzW+qR+Cbwmor90pgbgzfuw-g@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tony Luck <tony.luck@intel.com>
+Cc: Alexey Zaytsev <alexey.zaytsev@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, DRI <dri-devel@lists.freedesktop.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, Greg KH <gregkh@suse.de>
 
-On Tue, 2011-05-24 at 11:07 -0400, jonsmirl@gmail.com wrote:
-> On Tue, May 24, 2011 at 10:43 AM, Alan Cox <alan@lxorguk.ukuu.org.uk>
-> wrote:
-> > Can we drop most of MCA, EISA and ISA bus if we are going to have a
-> big
-> > version change ? A driver spring clean is much overdue and it's all
-> in
-> > git in case someone wishes to sneak out at midnight and bring some
-> crawly
-> > horror back from the dead.
->=20
-> 2.8 could mark the beginning of the great cleanup
->   --- work out the details of what needs to be cleaned and set a goal
->   --- remove old buses/driver, switch to device tree, graphics, 32/64
-> merges, etc
-> 3.0 would mark its completion=20
+On 05/26/2011 01:21 AM, Tony Luck wrote:
+> On Wed, May 25, 2011 at 7:12 AM, Boaz Harrosh <bharrosh@panasas.com> wrote:
+>> So if you combine all the above:
+>>
+>> D. Y. N
+>> D - Is the decade since birth (1991 not 1990)
+>> Y - is the year in the decade so you have 3.1.x, 3.2.x, .. 3.10.x, 4.1.X and so on
+>>    Nice incremental number.
+>> N - The Linus release of this Year. So this 3rd one goes up to 4 most probably.
+>>
+>> Linus always likes, and feels very poetic about the Christmas version release.
+>> He hates it when once it slipped into the next year. So now he gets to increment
+>> the second digit as a bonus.
+>>
+>> The 2nd digit gets to start on a *one*, never zero and goes up to *10*, to symbolize
+>> the 1991 birth. And we never have .zero quality, right?
+>>
+>> The first Digit gets incremented on decade from 1991 so on 2011 and not 2010
+> 
+> This is clearly the best suggestion so far - small numbers, somewhat
+> date related (but without stuffing a "2011." on the front).  No ".0"
+> releases, ever.
+> 
+> But best of all it defines now when we will switch to 4.x.y and 5.x.y
+> so we don't have to keep having this discussion whenever someone thinks
+> that the numbers are getting "too big" (well perhaps when we get to the
+> tenth decade or so :-)
+> 
+> So the only thing left to argue is whether the upcoming release should
+> be numbered "3.1.1" as the first release in the first year of the 3rd
+> decade ...  or whether we should count 2.6.37 .. 2.6.39 as the first
+> three releases this year and thus we ought to start with "3.1.4" (so we
+> start with "pi"!).
+> 
 
-Here it go my opinion,
-Many people ask for beginning of 2.7 kernel series which will end on
-2.8, by old numeration.=20
-Kernel 2.8 will mainly a major clean up, of support of the very old
-hardware, like "math co-processor" at only exist in 386 and before
-Pentium. If some one want put Linux on this very old hardware should us=
-e
-kernel 2.2.
-However a new numeration of kernel is independent of this, and I agree
-with new numeration of kernel on drop a number.=20
-Last but not least, I would like to see marked a hiper stable kernel ,
-which will be used by Debian guys. Debian guys tend to stop in a kernel
-which is not the best one, so let we choose for them what is the stable
-of stables .   =20
+Yes, Yes I like this a lot. I love pi, thanks.
 
-Best regards,=20
---=20
-S=C3=A9rgio M. B.
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-fsdevel=
-" in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Boaz
+> Linus: If you go with this, you should let Boaz set the new "NAME"
+> as a prize for such an inspired solution.
+> 
+> -Tony
