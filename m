@@ -1,54 +1,57 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/6] unicore32 subsystem: 6 patches for 2.6.39
-Date: Thu, 26 May 2011 14:50:01 +0200
-Message-ID: <201105261450.01277.arnd@arndb.de>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [patch] net/core/filter.c: Fix build error
+Date: Thu, 26 May 2011 08:31:06 -0700
+Message-ID: <1306423866.16087.10.camel@Joe-Laptop>
+References: <cover.1305999731.git.joe@perches.com>
+	 <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
+	 <20110526123153.GA16002@elte.hu>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:50751 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750827Ab1EZMuG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 08:50:06 -0400
-In-Reply-To: <cover.1306408804.git.gxt@mprc.pku.edu.cn>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: GuanXuetao <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20110526123153.GA16002@elte.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Ben Greear <greearb@candelatech.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 26 May 2011, GuanXuetao wrote:
-> Two patches for PKUnity v3 SoC drivers:
->         add mac driver, and move rtc driver to appropriate place
-> Two patches for new 2.6.39 updates:
->         using generic-y and modify PERCPU macro
-> Other two patches are small fixes.
-> 
-> ---
-> Guan Xuetao (6):
->   unicore32: move rtc-puv3.c to drivers/rtc directory
->   unicore32: add pkunity-v3 mac/net driver (umal)
->   unicore32: change zImage physical address, though it's PIC codes
->   unicore32: add KBUILD_DEFCONFIG with unicore32_defconfig (old
->     debug_defconfig)
->   unicore32: change PERCPU to PERCPU_SECTION
->   unicore32: using generic-y format for one line asm-generic files
-> 
+On Thu, 2011-05-26 at 14:31 +0200, Ingo Molnar wrote:
+> * Joe Perches <joe@perches.com> wrote:
+> > A mis-configured filter can spam the logs with lots of stack traces.
+> > Rate-limit the warnings and add printout of the bogus filter information.
+> > Original-patch-by: Ben Greear <greearb@candelatech.com>
+> > Signed-off-by: Joe Perches <joe@perches.com>
+> > ---
+> >  net/core/filter.c |    4 +++-
+> >  1 files changed, 3 insertions(+), 1 deletions(-)
+> > 
+> > diff --git a/net/core/filter.c b/net/core/filter.c
+> > index 0eb8c44..0e3622f 100644
+> > --- a/net/core/filter.c
+> > +++ b/net/core/filter.c
+> > @@ -350,7 +350,9 @@ load_b:
+> >  			continue;
+> >  		}
+> >  		default:
+> > -			WARN_ON(1);
+> > +			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
+> > +				       fentry->code, fentry->jt,
+> > +				       fentry->jf, fentry->k);
+> >  			return 0;
+> >  		}
+> This change (now upstream) fails to build in about 20% of all 
+> randconfigs. Fix is below.
 
-The patches look basically ok, but two points to remember:
+We've had problems with ratelimit uses in the past
+as well.
 
-* The merge window is not the time to post patches for review, if you
-  want to collect Acked-by's from other people, do that in the
-  time between the merge windows, then put the patches in your git
-  tree with the Acked-by for linux-next. During the merge window, just
-  send stuff that was already in your tree to Linus.
+There's a logical separation issue with the #includes
+of bug.h, printk.h, ratelimit.h kernel.h and the
+spinlock includes.
 
-  Bug fixes should get sent to Linus at any time, but I think you already
-  did that, all of these were either new features or cleanups.
+My suggestion would be to see about again adding
+#include <linux/ratelimit.h> somehow
+back to kernel.h which commit 3fff4c42bd0a removed
+in 2009 because of the spinlock issues.
 
-* Add a small text explaining why you do something to each patch. The
-  one-line summary that you always have is too short for this and only
-  serves to list what you change, not why.
-
-	Arnd
+Any suggestion on how best to fix it generically?
