@@ -1,36 +1,47 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch] net/core/filter.c: Fix build error
-Date: Thu, 26 May 2011 21:12:56 +0200
-Message-ID: <20110526191256.GA4553@elte.hu>
-References: <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
- <20110526123153.GA16002@elte.hu>
- <1306423866.16087.10.camel@Joe-Laptop>
- <20110526.143843.205897228685761536.davem@davemloft.net>
- <20110526190939.GC3476@elte.hu>
+From: =?utf-8?q?=22Western_Union_Money_Transfer=C2=A9=22=3Cinfo=40western=2Ecom?=@une-pmta02.une.net.co,
+	=?utf-8?q?=3E?=@une-pmta02.une.net.co
+Subject: Pick up Your $5000USD Now!!!
+Date: Thu, 26 May 2011 14:58:59 -0700
+Message-ID: <20110526220016.955741FF01D@une-pmta02.une.net.co>
+Reply-To: w.westernmoneytransfer@yahoo.com.hk
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20110526190939.GC3476@elte.hu>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: joe@perches.com, greearb@candelatech.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, netdev@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.une.net.co ([200.13.249.119]:41645 "EHLO
+	une-pmta02.une.net.co" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755301Ab1EZWG6 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 18:06:58 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <info@western.com>
 
+How are you doing today?
 
-* Ingo Molnar <mingo@elte.hu> wrote:
+I write to inform you that we have already sent you USD5000.00 dollars through Western union as we have been given the mandate to transfer your full benefited sum of $1,800,000.00USD via our office here (Western Union)  by the United nations in conjunction with the Nigeria Government as a compensation.
 
-> So no, i don't think your patch is the real solution. [...]
+I called to give you the information through phone as internet hackers were many but i cannot reach you yesterday even this morning.So,I decided to email you the MTCN and sender name so that can pick up this USD5000.00 to enable us send another USD5000.00 by tomorrow as you knows we will be sending you only USD5000.00 per day.
 
-s/real/complete
+Kindly pick up this information and hurry up to the nearest western union money office that is close to you and pick up this first payment that has been sent to you now and as soon as you are done with the pick up kindly get back to us in order for us to send you another payment by tomorrow,as you know that we shall be sending  you $5000usd par day.
 
-Note, your patch solves a real problem: the ratelimited WARN_ON()s 
-should not be in the generic bug.h header, that's just broken.
+Manager :Mrs.Anita Daniel
+Email: w.westernmoneytransfer@yahoo.com.hk
 
-I just don't think this is the only problem: the other problem was 
-what hid the bug in the first place, the spurious ratelimit.h 
-inclusion via net.h.
+Email me once you picked up this USD5000.00 today.
+Here is the western union information to pick up the USD5000.00,
 
-Thanks,
+Payment Information.
+MTCN :_______________853-435-9544
+Sender's Name:_________Rose Micheal
+Text Question:__________What
+Answer:_______________Blue
+Amount Sent___________$5000.00USD
+Country:_______________Nigeria
 
-	Ingo
+With due respect please get back to us urgently after the pick of the money and 
+if you have any problem you can as well contact us immediately.
+
+Thanks
+Mrs. Anita Daniel.
+western union Office.
