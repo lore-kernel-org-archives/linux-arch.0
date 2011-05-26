@@ -1,57 +1,66 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [patch] net/core/filter.c: Fix build error
-Date: Thu, 26 May 2011 08:31:06 -0700
-Message-ID: <1306423866.16087.10.camel@Joe-Laptop>
-References: <cover.1305999731.git.joe@perches.com>
-	 <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
-	 <20110526123153.GA16002@elte.hu>
+From: =?ISO-8859-1?Q?S=E9rgio?= Basto <sergio@serjux.com>
+Subject: Re: (Short?) merge window reminder
+Date: Thu, 26 May 2011 17:13:57 +0100
+Message-ID: <1306426437.6981.14.camel@segulix>
+References: <BANLkTi=PLuZhx1=rCfOtg=aOTuC1UbuPYg@mail.gmail.com>
+	 <20110523192056.GC23629@elte.hu>
+	 <BANLkTikdgM+kSvaEYuQkgCYJZELnvwfetg@mail.gmail.com>
+	 <20110523231721.GM10009@thunk.org> <4DDAEC68.30803@zytor.com>
+	 <BANLkTikGfVSAMY2a2yiXaNpvBVvF8YdMEA@mail.gmail.com>
+	 <alpine.LNX.2.01.1105241409280.15351@frira.zrqbmnf.qr>
+	 <BANLkTimCXVdVa6KLRG8GJR1gJY=7_5SkOA@mail.gmail.com>
+	 <alpine.LNX.2.01.1105241500410.23085@frira.zrqbmnf.qr>
+	 <BANLkTinNK+9XijCN0YGXyvLQ8_npPTG2cQ@mail.gmail.com>
+	 <20110524154348.27ba649d@lxorguk.ukuu.org.uk>
+	 <BANLkTi=Xuk4=Q43QV1pv33K=J2FFZBLLtQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20110526123153.GA16002@elte.hu>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@elte.hu>
-Cc: Ben Greear <greearb@candelatech.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, netdev@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <BANLkTi=Xuk4=Q43QV1pv33K=J2FFZBLLtQ@mail.gmail.com>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: "jonsmirl@gmail.com" <jonsmirl@gmail.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.medozas.de>, Ted Ts'o <tytso@mit.edu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, DRI <dri-devel@lists.freedesktop.org>, Jan Engelhardt <jengelh@medozas.de>, Jacek Luczak <difrost.kernel@gmail.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-05-26 at 14:31 +0200, Ingo Molnar wrote:
-> * Joe Perches <joe@perches.com> wrote:
-> > A mis-configured filter can spam the logs with lots of stack traces.
-> > Rate-limit the warnings and add printout of the bogus filter information.
-> > Original-patch-by: Ben Greear <greearb@candelatech.com>
-> > Signed-off-by: Joe Perches <joe@perches.com>
-> > ---
-> >  net/core/filter.c |    4 +++-
-> >  1 files changed, 3 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/net/core/filter.c b/net/core/filter.c
-> > index 0eb8c44..0e3622f 100644
-> > --- a/net/core/filter.c
-> > +++ b/net/core/filter.c
-> > @@ -350,7 +350,9 @@ load_b:
-> >  			continue;
-> >  		}
-> >  		default:
-> > -			WARN_ON(1);
-> > +			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
-> > +				       fentry->code, fentry->jt,
-> > +				       fentry->jf, fentry->k);
-> >  			return 0;
-> >  		}
-> This change (now upstream) fails to build in about 20% of all 
-> randconfigs. Fix is below.
+On Tue, 2011-05-24 at 11:07 -0400, jonsmirl@gmail.com wrote:
+> On Tue, May 24, 2011 at 10:43 AM, Alan Cox <alan@lxorguk.ukuu.org.uk>
+> wrote:
+> > Can we drop most of MCA, EISA and ISA bus if we are going to have a
+> big
+> > version change ? A driver spring clean is much overdue and it's all
+> in
+> > git in case someone wishes to sneak out at midnight and bring some
+> crawly
+> > horror back from the dead.
+>=20
+> 2.8 could mark the beginning of the great cleanup
+>   --- work out the details of what needs to be cleaned and set a goal
+>   --- remove old buses/driver, switch to device tree, graphics, 32/64
+> merges, etc
+> 3.0 would mark its completion=20
 
-We've had problems with ratelimit uses in the past
-as well.
+Here it go my opinion,
+Many people ask for beginning of 2.7 kernel series which will end on
+2.8, by old numeration.=20
+Kernel 2.8 will mainly a major clean up, of support of the very old
+hardware, like "math co-processor" at only exist in 386 and before
+Pentium. If some one want put Linux on this very old hardware should us=
+e
+kernel 2.2.
+However a new numeration of kernel is independent of this, and I agree
+with new numeration of kernel on drop a number.=20
+Last but not least, I would like to see marked a hiper stable kernel ,
+which will be used by Debian guys. Debian guys tend to stop in a kernel
+which is not the best one, so let we choose for them what is the stable
+of stables .   =20
 
-There's a logical separation issue with the #includes
-of bug.h, printk.h, ratelimit.h kernel.h and the
-spinlock includes.
+Best regards,=20
+--=20
+S=C3=A9rgio M. B.
 
-My suggestion would be to see about again adding
-#include <linux/ratelimit.h> somehow
-back to kernel.h which commit 3fff4c42bd0a removed
-in 2009 because of the spinlock issues.
-
-Any suggestion on how best to fix it generically?
+--
+To unsubscribe from this list: send the line "unsubscribe linux-fsdevel=
+" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
