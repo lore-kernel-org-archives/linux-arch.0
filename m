@@ -1,36 +1,90 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH 5/6] unicore32: change PERCPU to PERCPU_SECTION
-Date: Thu, 26 May 2011 13:46:47 +0200
-Message-ID: <20110526114647.GH9715@htj.dyndns.org>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn>
- <82f1e7bdd9b81c5d1a807ab82d7037fa63492a7a.1306408804.git.gxt@mprc.pku.edu.cn>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: [patch] net/core/filter.c: Fix build error
+Date: Thu, 26 May 2011 14:31:53 +0200
+Message-ID: <20110526123153.GA16002@elte.hu>
+References: <cover.1305999731.git.joe@perches.com>
+ <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:51366 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754909Ab1EZLqw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 07:46:52 -0400
+Received: from mx3.mail.elte.hu ([157.181.1.138]:56013 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757518Ab1EZMcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 May 2011 08:32:01 -0400
 Content-Disposition: inline
-In-Reply-To: <82f1e7bdd9b81c5d1a807ab82d7037fa63492a7a.1306408804.git.gxt@mprc.pku.edu.cn>
+In-Reply-To: <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: GuanXuetao <gxt@mprc.pku.edu.cn>
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+To: Joe Perches <joe@perches.com>
+Cc: Ben Greear <greearb@candelatech.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Arnd Bergmann <arnd@arndb.de>, netdev@vger.kernel.org
 
-On Thu, May 26, 2011 at 11:36:57AM +0000, GuanXuetao wrote:
-> From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> 
-> see commit from Tejun Heo <0415b00d175e0d8945e6785aad21b5f157976ce0>
->   percpu: Always align percpu output section to PAGE_SIZE
-> 
-> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Yeap, sorry about missing unicore32.
+* Joe Perches <joe@perches.com> wrote:
 
- Acked-by: Tejun Heo <tj@kernel.org>
+> A mis-configured filter can spam the logs with lots of stack traces.
+>=20
+> Rate-limit the warnings and add printout of the bogus filter informat=
+ion.
+>=20
+> Original-patch-by: Ben Greear <greearb@candelatech.com>
+> Signed-off-by: Joe Perches <joe@perches.com>
+> ---
+>  net/core/filter.c |    4 +++-
+>  1 files changed, 3 insertions(+), 1 deletions(-)
+>=20
+> diff --git a/net/core/filter.c b/net/core/filter.c
+> index 0eb8c44..0e3622f 100644
+> --- a/net/core/filter.c
+> +++ b/net/core/filter.c
+> @@ -350,7 +350,9 @@ load_b:
+>  			continue;
+>  		}
+>  		default:
+> -			WARN_ON(1);
+> +			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
+> +				       fentry->code, fentry->jt,
+> +				       fentry->jf, fentry->k);
+>  			return 0;
+>  		}
 
-Thank you.
+This change (now upstream) fails to build in about 20% of all=20
+randconfigs. Fix is below.
 
--- 
-tejun
+Thanks,
+
+	Ingo
+
+--------------------->
+=46rom b658026bc4915d16ff3e0f59b0edda11dbd6b991 Mon Sep 17 00:00:00 200=
+1
+=46rom: Ingo Molnar <mingo@elte.hu>
+Date: Thu, 26 May 2011 14:11:14 +0200
+Subject: [PATCH] net/core/filter.c: Fix build error
+MIME-Version: 1.0
+Content-Type: text/plain; charset=3DUTF-8
+Content-Transfer-Encoding: 8bit
+
+=46ix:
+
+  net/core/filter.c:353:4: error: invalid storage class for function =E2=
+=80=98DEFINE_RATELIMIT_STATE=E2=80=99
+
+Signed-off-by: Ingo Molnar <mingo@elte.hu>
+---
+ net/core/filter.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/net/core/filter.c b/net/core/filter.c
+index 0e3622f..36f975f 100644
+--- a/net/core/filter.c
++++ b/net/core/filter.c
+@@ -38,6 +38,7 @@
+ #include <asm/unaligned.h>
+ #include <linux/filter.h>
+ #include <linux/reciprocal_div.h>
++#include <linux/ratelimit.h>
+=20
+ /* No hurry in this branch */
+ static void *__load_pointer(const struct sk_buff *skb, int k, unsigned=
+ int size)
