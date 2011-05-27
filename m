@@ -1,38 +1,44 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH] gpio: Convert gpio_is_valid to return bool
-Date: Thu, 26 May 2011 21:02:56 -0600
-Message-ID: <20110527030256.GF5032@ponder.secretlab.ca>
-References: <1304363786-30376-1-git-send-email-linus.walleij@stericsson.com>
- <1304365077.7792.40.camel@Joe-Laptop>
- <BANLkTi=XSevO72NqCYOYuketjE8XjeQU+A@mail.gmail.com>
- <1305067020.19586.130.camel@Joe-Laptop>
- <BANLkTi=zDJLHUa2ogTeEkmdsbkhvGJCsEw@mail.gmail.com>
- <1305069787.19586.141.camel@Joe-Laptop>
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+Subject: RE: [PATCH 1/6] unicore32: move rtc-puv3.c to drivers/rtc directory
+Date: Fri, 27 May 2011 11:04:03 +0800
+Message-ID: <005801cc1c1a$bea0fa10$3be2ee30$@mprc.pku.edu.cn>
+References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <b30d22dd12bdba6360749aab88157bb0f2a0303d.1306408804.git.gxt@mprc.pku.edu.cn> <201105261440.14960.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:46150 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753074Ab1E0DC7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 23:02:59 -0400
-Content-Disposition: inline
-In-Reply-To: <1305069787.19586.141.camel@Joe-Laptop>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:59819 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753085Ab1E0DEt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 May 2011 23:04:49 -0400
+In-Reply-To: <201105261440.14960.arnd@arndb.de>
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, 'Alessandro Zummo' <a.zummo@towertech.it>, rtc-linux@googlegroups.com
 
-On Tue, May 10, 2011 at 04:23:07PM -0700, Joe Perches wrote:
-> Make the code a bit more readable.
-> 
-> Instead of casting an int to an unsigned then comparing to
-> MAX_NR_GPIOS, add a >= 0 test and let the compiler optimizer
-> do the conversion to unsigned.
-> 
-> The generated code should be the same.
-> 
-> Signed-off-by: Joe Perches <joe@perches.com>
 
-Applied, thanks.
 
-g.
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Thursday, May 26, 2011 8:40 PM
+> To: GuanXuetao
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; Alessandro Zummo; rtc-linux@googlegroups.com
+> Subject: Re: [PATCH 1/6] unicore32: move rtc-puv3.c to drivers/rtc directory
+> 
+> On Thursday 26 May 2011, GuanXuetao wrote:
+> > From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> >
+> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> But next time you move files, please use the '-M' flag to git diff or
+> git format-patch, to make it easier to review the changes.
+
+'-M' flag is so smart.
+Thanks.
+
+Guan Xuetao
