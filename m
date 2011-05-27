@@ -1,54 +1,167 @@
 From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 6/6] unicore32: using generic-y format for one line asm-generic files
-Date: Fri, 27 May 2011 11:24:03 +0800
-Message-ID: <005a01cc1c1d$88f727b0$9ae57710$@mprc.pku.edu.cn>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <48ec206f634cad2019c92eef7ba1a87566c743fe.1306408804.git.gxt@mprc.pku.edu.cn> <201105261445.01390.arnd@arndb.de>
+Subject: RE: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
+Date: Fri, 27 May 2011 12:27:24 +0800
+Message-ID: <006b01cc1c26$62159ba0$2640d2e0$@mprc.pku.edu.cn>
+References: <cover.1306408804.git.gxt@mprc.pku.edu.cn>	 <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn> <1306432569.17233.123.camel@localhost>
 Mime-Version: 1.0
 Content-Type: text/plain;
-	charset="us-ascii"
+	charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:41845 "EHLO mprc.pku.edu.cn"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:45834 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753627Ab1E0Dl2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 May 2011 23:41:28 -0400
-In-Reply-To: <201105261445.01390.arnd@arndb.de>
+	id S1750777Ab1E0E1p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 May 2011 00:27:45 -0400
+In-Reply-To: <1306432569.17233.123.camel@localhost>
 Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, 'Sam Ravnborg' <sam@ravnborg.org>
+To: 'Ben Hutchings' <bhutchings@solarflare.com>
+Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
 
 
 
 > -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Thursday, May 26, 2011 8:45 PM
+> From: Ben Hutchings [mailto:bhutchings@solarflare.com]
+> Sent: Friday, May 27, 2011 1:56 AM
 > To: GuanXuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; Sam Ravnborg
-> Subject: Re: [PATCH 6/6] unicore32: using generic-y format for one line asm-generic files
+> Cc: arnd@arndb.de; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; netdev@vger.kernel.org
+> Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
 > 
-> On Thursday 26 May 2011, GuanXuetao wrote:
-> > From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> >
-> > see commit from Sam Ravnborg <d8ecc5cd8e227bc318513b5306ae88a474b8886d>
-> >   kbuild: asm-generic support
-> >
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> > ---
-> >  arch/unicore32/Makefile           |   35 ----------------------
-> >  arch/unicore32/include/asm/Kbuild |   59 +++++++++++++++++++++++++++++++++++++
-> >  2 files changed, 59 insertions(+), 35 deletions(-)
+> On Thu, 2011-05-26 at 11:36 +0000, GuanXuetao wrote:
+> [...]
+> > --- /dev/null
+> > +++ b/drivers/net/mac-puv3.c
+> [...]
+> > +/**********************************************************************
+> > + *  Simple types
+> > + ********************************************************************* */
+> > +enum umal_speed {
+> > +	umal_speed_none = 0,
+> > +	umal_speed_10 = SPEED_10,
+> > +	umal_speed_100 = SPEED_100,
+> > +	umal_speed_1000 = SPEED_1000,
+> > +};
 > 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Just use the numbers directly: 0, 10, 100, 1000.
+Applied.
 > 
-> This reminds me that I should do the same for ARM and maybe some others.
+> [...]
+> > +#define ETHER_ADDR_LEN		6
+> 
+> This is already called ETH_ALEN.
+Applied.
+> 
+> [...]
+> > +/**********************************************************************
+> > + *  DMA Descriptor structure
+> > + ********************************************************************* */
+> > +struct umaldmadscr {
+> > +	dma_addr_t   PacketStartAddr;
+> > +	int          PacketSize;
+> > +	dma_addr_t   NextDescriptor;
+> > +	struct umaldmadscr *NextDescriptor_Virt;
+> > +};
+> 
+> Linux naming convention for structure fields is words_with_underscores
+> not TitleCase.
+Ok, thanks.
+> 
+> [...]
+> > +/**********************************************************************
+> > + *  UMAL_MII_RESET(bus)
+> > + *
+> > + *  Reset MII bus.
+> > + *
+> > + *  Input parameters:
+> > + *	   bus     - MDIO bus handle
+> > + *
+> > + *  Return value:
+> > + *	   0 if ok
+> > + ********************************************************************* */
+> 
+> Function documentation comments must follow the kernel-doc format.
+Ok, thanks.
+> 
+> [...]
+> > +static int umaldma_add_rcvbuffer(struct umal_softc *sc, struct umaldma *d,
+> > +		struct sk_buff *sb)
+> > +{
+> [...]
+> > +	/*
+> > +	 * Allocate a sk_buff if we don't already have one.
+> > +	 * If we do have an sk_buff, reset it so that it's empty.
+> > +	 *
+> > +	 * Note: sk_buffs don't seem to be guaranteed to have any sort
+> > +	 * of alignment when they are allocated.  Therefore, allocate enough
+> > +	 * extra space to make sure that:
+> > +	 *
+> > +	 *    1. the data does not start in the middle of a cache line.
+> > +	 *    2. The data does not end in the middle of a cache line
+> > +	 *    3. The buffer can be aligned such that the IP addresses are
+> > +	 *       naturally aligned.
+> > +	 *
+> > +	 *  Remember, the SOCs MAC writes whole cache lines at a time,
+> > +	 *  without reading the old contents first.  So, if the sk_buff's
+> > +	 *  data portion starts in the middle of a cache line, the SOC
+> > +	 *  DMA will trash the beginning (and ending) portions.
+> > +	 */
+> > +	if (sb == NULL) {
+> > +		sb_new = netdev_alloc_skb(dev, ENET_PACKET_SIZE +
+> > +		       SMP_CACHE_BYTES * 2 + NET_IP_ALIGN);
+> > +		if (sb_new == NULL) {
+> > +			pr_info("%s: sk_buff allocation failed\n",
+> > +			       d->umaldma_eth->umal_dev->name);
+> > +			return -ENOBUFS;
+> 
+> Surely -ENOMEM.
+Applied.
+> 
+> > +		}
+> > +		skb_reserve(sb_new, 2);
+> 
+> This presumably needs to be:
+> 
+> 		skb_reserve(sb_new, SMP_CACHE_BYTES + NET_IP_ALIGN);
+> 
+> unless you assume that the skb allocator will always ensure cache line
+> alignment (in which case, why use padding of SMP_CACHE_BYTES * 2?).
+Applied, thanks.
+Each packet address needs to be added by NET_IP_ALIGN.
+And I think that SMP_CACHE_BYTES is also necessary to guarantee correctness
+when invalidate dma cache lines.
+> 
+> [...]
+> > +static void umaldma_tx_process(struct umal_softc *sc, struct umaldma *d,
+> > +		int poll)
+> > +{
+> > +	struct net_device *dev = sc->umal_dev;
+> > +	int curidx;
+> > +	int hwidx;
+> > +	struct umaldmadscr *dsc;
+> > +	struct sk_buff *sb;
+> > +	unsigned long flags;
+> > +	int packets_handled = 0;
+> > +	unsigned int int_status;
+> > +
+> > +	spin_lock_irqsave(&(sc->umal_lock), flags);
+> > +
+> > +	if (!netif_device_present(dev))
+> > +		return;
+> [...]
+> 
+> This returns with the lock held!
+Applied, thanks.
+> 
+> (This is not by any means a thorough review.)
+> 
+> Ben.
+> 
+> --
+> Ben Hutchings, Senior Software Engineer, Solarflare
+> Not speaking for my employer; that's the marketing department's job.
+> They asked us to note that Solarflare product names are trademarked.
+Thanks Ben.
+I will submit next version after correcting the coding-style.
 
-There is a potential problem.
-When I add stat.h with generic-y method, a file is generated in arch/*/include/generated/asm/ dir.
-And then,  a patch for old-abi is applied, which will restore an old stat.h in arch/*/include/asm/ dir.
-Without removing the line in arch/*/include/asm/Kbuild, two files exist in the meantime.
-It works, depending on the order in LINUXINCLUDE, and (perhaps) the handling order in gcc.
-So, a check and warning mechanism should be provided to clear up the confusion.
-
-Guan Xuetao
+Guan Xuetao 
