@@ -1,47 +1,38 @@
-From: =?utf-8?q?=22Western_Union_Money_Transfer=C2=A9=22=3Cinfo=40western=2Ecom?=@une-pmta02.une.net.co,
-	=?utf-8?q?=3E?=@une-pmta02.une.net.co
-Subject: Pick up Your $5000USD Now!!!
-Date: Thu, 26 May 2011 14:58:59 -0700
-Message-ID: <20110526220016.955741FF01D@une-pmta02.une.net.co>
-Reply-To: w.westernmoneytransfer@yahoo.com.hk
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH] gpio: Convert gpio_is_valid to return bool
+Date: Thu, 26 May 2011 21:02:56 -0600
+Message-ID: <20110527030256.GF5032@ponder.secretlab.ca>
+References: <1304363786-30376-1-git-send-email-linus.walleij@stericsson.com>
+ <1304365077.7792.40.camel@Joe-Laptop>
+ <BANLkTi=XSevO72NqCYOYuketjE8XjeQU+A@mail.gmail.com>
+ <1305067020.19586.130.camel@Joe-Laptop>
+ <BANLkTi=zDJLHUa2ogTeEkmdsbkhvGJCsEw@mail.gmail.com>
+ <1305069787.19586.141.camel@Joe-Laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.une.net.co ([200.13.249.119]:41645 "EHLO
-	une-pmta02.une.net.co" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755301Ab1EZWG6 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 18:06:58 -0400
-Content-Description: Mail message body
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:46150 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753074Ab1E0DC7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 May 2011 23:02:59 -0400
+Content-Disposition: inline
+In-Reply-To: <1305069787.19586.141.camel@Joe-Laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <info@western.com>
+To: Joe Perches <joe@perches.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-How are you doing today?
+On Tue, May 10, 2011 at 04:23:07PM -0700, Joe Perches wrote:
+> Make the code a bit more readable.
+> 
+> Instead of casting an int to an unsigned then comparing to
+> MAX_NR_GPIOS, add a >= 0 test and let the compiler optimizer
+> do the conversion to unsigned.
+> 
+> The generated code should be the same.
+> 
+> Signed-off-by: Joe Perches <joe@perches.com>
 
-I write to inform you that we have already sent you USD5000.00 dollars through Western union as we have been given the mandate to transfer your full benefited sum of $1,800,000.00USD via our office here (Western Union)  by the United nations in conjunction with the Nigeria Government as a compensation.
+Applied, thanks.
 
-I called to give you the information through phone as internet hackers were many but i cannot reach you yesterday even this morning.So,I decided to email you the MTCN and sender name so that can pick up this USD5000.00 to enable us send another USD5000.00 by tomorrow as you knows we will be sending you only USD5000.00 per day.
-
-Kindly pick up this information and hurry up to the nearest western union money office that is close to you and pick up this first payment that has been sent to you now and as soon as you are done with the pick up kindly get back to us in order for us to send you another payment by tomorrow,as you know that we shall be sending  you $5000usd par day.
-
-Manager :Mrs.Anita Daniel
-Email: w.westernmoneytransfer@yahoo.com.hk
-
-Email me once you picked up this USD5000.00 today.
-Here is the western union information to pick up the USD5000.00,
-
-Payment Information.
-MTCN :_______________853-435-9544
-Sender's Name:_________Rose Micheal
-Text Question:__________What
-Answer:_______________Blue
-Amount Sent___________$5000.00USD
-Country:_______________Nigeria
-
-With due respect please get back to us urgently after the pick of the money and 
-if you have any problem you can as well contact us immediately.
-
-Thanks
-Mrs. Anita Daniel.
-western union Office.
+g.
