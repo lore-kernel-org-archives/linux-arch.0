@@ -1,41 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:58069 "EHLO mx3.mail.elte.hu"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:41845 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757985Ab1EZTND (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 May 2011 15:13:03 -0400
-Date: Thu, 26 May 2011 21:12:56 +0200
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [patch] net/core/filter.c: Fix build error
-Message-ID: <20110526191256.GA4553@elte.hu>
-References: <efa062542c692c3f7743bf2d97b5987ab989e27e.1305999731.git.joe@perches.com>
- <20110526123153.GA16002@elte.hu>
- <1306423866.16087.10.camel@Joe-Laptop>
- <20110526.143843.205897228685761536.davem@davemloft.net>
- <20110526190939.GC3476@elte.hu>
+	id S1758640Ab1E0DlZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 May 2011 23:41:25 -0400
+From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
+References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn> <201105261443.06896.arnd@arndb.de>
+In-Reply-To: <201105261443.06896.arnd@arndb.de>
+Subject: RE: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
+Date: Fri, 27 May 2011 11:08:57 +0800
+Message-ID: <005901cc1c1b$6b80ce40$42826ac0$@mprc.pku.edu.cn>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20110526190939.GC3476@elte.hu>
+Content-Type: text/plain;
+	charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Content-Language: zh-cn
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: joe@perches.com, greearb@candelatech.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, netdev@vger.kernel.org
-Message-ID: <20110526191256.KM-KRXM_iK9ASDnsaEivMgSo2D46i-RKBgGy1bemDUE@z>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
+Message-ID: <20110527030857.bYyoI3fA8TY1IQoPOUoPTgmeTNjTZPv5n5_zLiU-VHI@z>
 
 
-* Ingo Molnar <mingo@elte.hu> wrote:
 
-> So no, i don't think your patch is the real solution. [...]
+> -----Original Message-----
+> From: Arnd Bergmann [mailto:arnd@arndb.de]
+> Sent: Thursday, May 26, 2011 8:43 PM
+> To: GuanXuetao
+> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; netdev@vger.kernel.org
+> Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
+> 
+> On Thursday 26 May 2011, GuanXuetao wrote:
+> > From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> >
+> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> 
+> No objections to this driver, just remember that network drivers should
+> go through the netdev tree, and if it wasn't in there before the merge
+> window, you missed your chance for this time.
+Yes.
+I hope someone could help me review the network driver.
+Perhaps it's  late for adding this driver during this merge window time.
 
-s/real/complete
+Regards.
+Guan Xuetao
 
-Note, your patch solves a real problem: the ratelimited WARN_ON()s 
-should not be in the generic bug.h header, that's just broken.
-
-I just don't think this is the only problem: the other problem was 
-what hid the bug in the first place, the spurious ratelimit.h 
-inclusion via net.h.
-
-Thanks,
-
-	Ingo
