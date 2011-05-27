@@ -1,167 +1,164 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-Date: Fri, 27 May 2011 12:27:24 +0800
-Message-ID: <006b01cc1c26$62159ba0$2640d2e0$@mprc.pku.edu.cn>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn>	 <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn> <1306432569.17233.123.camel@localhost>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
+Date: Fri, 27 May 2011 11:19:41 +0200
+Message-ID: <201105271119.41323.arnd@arndb.de>
+References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="utf-8"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:45834 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750777Ab1E0E1p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 May 2011 00:27:45 -0400
-In-Reply-To: <1306432569.17233.123.camel@localhost>
-Content-Language: zh-cn
+Received: from moutng.kundenserver.de ([212.227.17.9]:50080 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753209Ab1E0JTx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 May 2011 05:19:53 -0400
+In-Reply-To: <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Ben Hutchings' <bhutchings@solarflare.com>
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
+To: GuanXuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
 
+On Thursday 26 May 2011, GuanXuetao wrote:
+> From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> 
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> ---
+>  MAINTAINERS                            |    1 +
+>  arch/unicore32/configs/debug_defconfig |    2 +-
+>  drivers/net/Kconfig                    |    5 +
+>  drivers/net/Makefile                   |    1 +
+>  drivers/net/mac-puv3.c                 | 1942 ++++++++++++++++++++++++++++++++
+>  5 files changed, 1950 insertions(+), 1 deletions(-)
+>  create mode 100644 drivers/net/mac-puv3.c
 
+I also have a few comments after looking through the driver.
 
-> -----Original Message-----
-> From: Ben Hutchings [mailto:bhutchings@solarflare.com]
-> Sent: Friday, May 27, 2011 1:56 AM
-> To: GuanXuetao
-> Cc: arnd@arndb.de; linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; netdev@vger.kernel.org
-> Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-> 
-> On Thu, 2011-05-26 at 11:36 +0000, GuanXuetao wrote:
-> [...]
-> > --- /dev/null
-> > +++ b/drivers/net/mac-puv3.c
-> [...]
-> > +/**********************************************************************
-> > + *  Simple types
-> > + ********************************************************************* */
-> > +enum umal_speed {
-> > +	umal_speed_none = 0,
-> > +	umal_speed_10 = SPEED_10,
-> > +	umal_speed_100 = SPEED_100,
-> > +	umal_speed_1000 = SPEED_1000,
-> > +};
-> 
-> Just use the numbers directly: 0, 10, 100, 1000.
-Applied.
-> 
-> [...]
-> > +#define ETHER_ADDR_LEN		6
-> 
-> This is already called ETH_ALEN.
-Applied.
-> 
-> [...]
-> > +/**********************************************************************
-> > + *  DMA Descriptor structure
-> > + ********************************************************************* */
-> > +struct umaldmadscr {
-> > +	dma_addr_t   PacketStartAddr;
-> > +	int          PacketSize;
-> > +	dma_addr_t   NextDescriptor;
-> > +	struct umaldmadscr *NextDescriptor_Virt;
-> > +};
-> 
-> Linux naming convention for structure fields is words_with_underscores
-> not TitleCase.
-Ok, thanks.
-> 
-> [...]
-> > +/**********************************************************************
-> > + *  UMAL_MII_RESET(bus)
-> > + *
-> > + *  Reset MII bus.
-> > + *
-> > + *  Input parameters:
-> > + *	   bus     - MDIO bus handle
-> > + *
-> > + *  Return value:
-> > + *	   0 if ok
-> > + ********************************************************************* */
-> 
-> Function documentation comments must follow the kernel-doc format.
-Ok, thanks.
-> 
-> [...]
-> > +static int umaldma_add_rcvbuffer(struct umal_softc *sc, struct umaldma *d,
-> > +		struct sk_buff *sb)
-> > +{
-> [...]
-> > +	/*
-> > +	 * Allocate a sk_buff if we don't already have one.
-> > +	 * If we do have an sk_buff, reset it so that it's empty.
-> > +	 *
-> > +	 * Note: sk_buffs don't seem to be guaranteed to have any sort
-> > +	 * of alignment when they are allocated.  Therefore, allocate enough
-> > +	 * extra space to make sure that:
-> > +	 *
-> > +	 *    1. the data does not start in the middle of a cache line.
-> > +	 *    2. The data does not end in the middle of a cache line
-> > +	 *    3. The buffer can be aligned such that the IP addresses are
-> > +	 *       naturally aligned.
-> > +	 *
-> > +	 *  Remember, the SOCs MAC writes whole cache lines at a time,
-> > +	 *  without reading the old contents first.  So, if the sk_buff's
-> > +	 *  data portion starts in the middle of a cache line, the SOC
-> > +	 *  DMA will trash the beginning (and ending) portions.
-> > +	 */
-> > +	if (sb == NULL) {
-> > +		sb_new = netdev_alloc_skb(dev, ENET_PACKET_SIZE +
-> > +		       SMP_CACHE_BYTES * 2 + NET_IP_ALIGN);
-> > +		if (sb_new == NULL) {
-> > +			pr_info("%s: sk_buff allocation failed\n",
-> > +			       d->umaldma_eth->umal_dev->name);
-> > +			return -ENOBUFS;
-> 
-> Surely -ENOMEM.
-Applied.
-> 
-> > +		}
-> > +		skb_reserve(sb_new, 2);
-> 
-> This presumably needs to be:
-> 
-> 		skb_reserve(sb_new, SMP_CACHE_BYTES + NET_IP_ALIGN);
-> 
-> unless you assume that the skb allocator will always ensure cache line
-> alignment (in which case, why use padding of SMP_CACHE_BYTES * 2?).
-Applied, thanks.
-Each packet address needs to be added by NET_IP_ALIGN.
-And I think that SMP_CACHE_BYTES is also necessary to guarantee correctness
-when invalidate dma cache lines.
-> 
-> [...]
-> > +static void umaldma_tx_process(struct umal_softc *sc, struct umaldma *d,
-> > +		int poll)
-> > +{
-> > +	struct net_device *dev = sc->umal_dev;
-> > +	int curidx;
-> > +	int hwidx;
-> > +	struct umaldmadscr *dsc;
-> > +	struct sk_buff *sb;
-> > +	unsigned long flags;
-> > +	int packets_handled = 0;
-> > +	unsigned int int_status;
-> > +
-> > +	spin_lock_irqsave(&(sc->umal_lock), flags);
-> > +
-> > +	if (!netif_device_present(dev))
-> > +		return;
-> [...]
-> 
-> This returns with the lock held!
-Applied, thanks.
-> 
-> (This is not by any means a thorough review.)
-> 
-> Ben.
-> 
-> --
-> Ben Hutchings, Senior Software Engineer, Solarflare
-> Not speaking for my employer; that's the marketing department's job.
-> They asked us to note that Solarflare product names are trademarked.
-Thanks Ben.
-I will submit next version after correcting the coding-style.
+> +
+> +/**********************************************************************
+> + *  Globals
+> + ********************************************************************* */
 
-Guan Xuetao 
+Regular commenting style would be
+
+/*
+ * Globals
+ */
+
+> +/**********************************************************************
+> + *  Prototypes
+> + ********************************************************************* */
+> +static int umal_mii_reset(struct mii_bus *bus);
+> +static int umal_mii_read(struct mii_bus *bus, int phyaddr, int regidx);
+> +static int umal_mii_write(struct mii_bus *bus, int phyaddr, int regidx,
+> +		u16 val);
+> +static int umal_mii_probe(struct net_device *dev);
+> +
+> +static void umaldma_initctx(struct umaldma *d, struct umal_softc *s,
+> +		int rxtx, int maxdescr);
+> +static void umaldma_uninitctx(struct umaldma *d);
+> +static void umaldma_channel_start(struct umaldma *d, int rxtx);
+> +static void umaldma_channel_stop(struct umaldma *d);
+> +static int umaldma_add_rcvbuffer(struct umal_softc *sc, struct umaldma *d,
+> +		struct sk_buff *m);
+> +static int umaldma_add_txbuffer(struct umaldma *d, struct sk_buff *m);
+> +static void umaldma_emptyring(struct umaldma *d);
+> +static void umaldma_fillring(struct umal_softc *sc, struct umaldma *d);
+> +static int umaldma_rx_process(struct umal_softc *sc, struct umaldma *d,
+> +		int work_to_do, int poll);
+> +static void umaldma_tx_process(struct umal_softc *sc, struct umaldma *d,
+> +		int poll);
+> +
+> +static int umal_initctx(struct umal_softc *s);
+> +static void umal_uninitctx(struct umal_softc *s);
+> +static void umal_channel_start(struct umal_softc *s);
+> +static void umal_channel_stop(struct umal_softc *s);
+> +static enum umal_state umal_set_channel_state(struct umal_softc *,
+> +		enum umal_state);
+> +
+> +static int umal_init(struct platform_device *pldev, long long base);
+> +static int umal_open(struct net_device *dev);
+> +static int umal_close(struct net_device *dev);
+> +static int umal_mii_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
+> +static irqreturn_t umal_intr(int irq, void *dev_instance);
+> +static void umal_clr_intr(struct net_device *dev);
+> +static int umal_start_tx(struct sk_buff *skb, struct net_device *dev);
+> +static void umal_tx_timeout(struct net_device *dev);
+> +static void umal_set_rx_mode(struct net_device *dev);
+> +static void umal_promiscuous_mode(struct umal_softc *sc, int onoff);
+> +static void umal_setmulti(struct umal_softc *sc);
+> +static int umal_set_speed(struct umal_softc *s, enum umal_speed speed);
+> +static int umal_set_duplex(struct umal_softc *s, enum umal_duplex duplex,
+> +		enum umal_fc fc);
+> +static int umal_change_mtu(struct net_device *_dev, int new_mtu);
+> +static void umal_miipoll(struct net_device *dev);
+
+Best avoid all these prototypes. Instead, reorder the functions in the
+driver so you don't need them. That is the order in which reviewers expect
+them.
+
+> +/**********************************************************************
+> + *  UMAL_MII_RESET(bus)
+> + *
+> + *  Reset MII bus.
+> + *
+> + *  Input parameters:
+> + *	   bus     - MDIO bus handle
+> + *
+> + *  Return value:
+> + *	   0 if ok
+> + ********************************************************************* */
+
+For extended function documentation, use the kerneldoc style, e.g.
+
+/**
+ * umal_mii_reset - reset MII bus
+ *
+ * @bus: MDIO bus handle
+ *
+ * Returns 0
+ */
+
+See also Documentation/kernel-doc-nano-HOWTO.txt
+
+> +/**********************************************************************
+> + *  UMALDMA_RX_PROCESS(sc,d,work_to_do,poll)
+> + *
+> + *  Process "completed" receive buffers on the specified DMA channel.
+> + *
+> + *  Input parameters:
+> + *            sc - softc structure
+> + *	       d - DMA channel context
+> + *    work_to_do - no. of packets to process before enabling interrupt
+> + *                 again (for NAPI)
+> + *          poll - 1: using polling (for NAPI)
+> + *
+> + *  Return value:
+> + *	   nothing
+> + ********************************************************************* */
+> +static int umaldma_rx_process(struct umal_softc *sc, struct umaldma *d,
+> +		int work_to_do, int poll)
+
+It seems that you tried to convert the driver to NAPI but did not succeed,
+as this function is only called from the interrupt handler directly.
+
+There is usually a significant performance win from using NAPI, so you
+should better try again. If you had problems doing that, please ask
+on netdev.
+
+> +
+> +#ifdef CONFIG_CMDLINE_FORCE
+> +	eaddr[0] = 0x00;
+> +	eaddr[1] = 0x25;
+> +	eaddr[2] = 0x9b;
+> +	eaddr[3] = 0xff;
+> +	eaddr[4] = 0x00;
+> +	eaddr[5] = 0x00;
+> +#endif
+> +
+> +	for (i = 0; i < 6; i++)
+> +		dev->dev_addr[i] = eaddr[i];
+
+You can use random_ether_addr() to generate a working unique MAC address
+if the hardware does not provide one.
+
+	Arnd
