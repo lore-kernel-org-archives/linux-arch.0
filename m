@@ -1,178 +1,83 @@
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-Subject: RE: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-Date: Sat, 28 May 2011 10:52:02 +0800
-Message-ID: <002a01cc1ce2$39b0daa0$ad128fe0$@mprc.pku.edu.cn>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn> <201105271119.41323.arnd@arndb.de>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: i8253 locking and PC speaker on non-{mips,x86}
+Date: Sat, 28 May 2011 12:21:20 +0100
+Message-ID: <20110528112120.GA9027__32642.1941434548$1306581810$gmane$org@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:52065 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754742Ab1E1CxW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 May 2011 22:53:22 -0400
-In-Reply-To: <201105271119.41323.arnd@arndb.de>
-Content-Language: zh-cn
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:36101 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751358Ab1E1LXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 28 May 2011 07:23:21 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.de>
 
+No longer terribly relevant these days but ...
 
+drivers/input/misc/pcspkr.c:
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Friday, May 27, 2011 5:20 PM
-> To: GuanXuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; netdev@vger.kernel.org
-> Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-> 
-> On Thursday 26 May 2011, GuanXuetao wrote:
-> > From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> >
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> > ---
-> >  MAINTAINERS                            |    1 +
-> >  arch/unicore32/configs/debug_defconfig |    2 +-
-> >  drivers/net/Kconfig                    |    5 +
-> >  drivers/net/Makefile                   |    1 +
-> >  drivers/net/mac-puv3.c                 | 1942 ++++++++++++++++++++++++++++++++
-> >  5 files changed, 1950 insertions(+), 1 deletions(-)
-> >  create mode 100644 drivers/net/mac-puv3.c
-> 
-> I also have a few comments after looking through the driver.
-> 
-> > +
-> > +/**********************************************************************
-> > + *  Globals
-> > + ********************************************************************* */
-> 
-> Regular commenting style would be
-> 
-> /*
->  * Globals
->  */
-> 
-> > +/**********************************************************************
-> > + *  Prototypes
-> > + ********************************************************************* */
-> > +static int umal_mii_reset(struct mii_bus *bus);
-> > +static int umal_mii_read(struct mii_bus *bus, int phyaddr, int regidx);
-> > +static int umal_mii_write(struct mii_bus *bus, int phyaddr, int regidx,
-> > +		u16 val);
-> > +static int umal_mii_probe(struct net_device *dev);
-> > +
-> > +static void umaldma_initctx(struct umaldma *d, struct umal_softc *s,
-> > +		int rxtx, int maxdescr);
-> > +static void umaldma_uninitctx(struct umaldma *d);
-> > +static void umaldma_channel_start(struct umaldma *d, int rxtx);
-> > +static void umaldma_channel_stop(struct umaldma *d);
-> > +static int umaldma_add_rcvbuffer(struct umal_softc *sc, struct umaldma *d,
-> > +		struct sk_buff *m);
-> > +static int umaldma_add_txbuffer(struct umaldma *d, struct sk_buff *m);
-> > +static void umaldma_emptyring(struct umaldma *d);
-> > +static void umaldma_fillring(struct umal_softc *sc, struct umaldma *d);
-> > +static int umaldma_rx_process(struct umal_softc *sc, struct umaldma *d,
-> > +		int work_to_do, int poll);
-> > +static void umaldma_tx_process(struct umal_softc *sc, struct umaldma *d,
-> > +		int poll);
-> > +
-> > +static int umal_initctx(struct umal_softc *s);
-> > +static void umal_uninitctx(struct umal_softc *s);
-> > +static void umal_channel_start(struct umal_softc *s);
-> > +static void umal_channel_stop(struct umal_softc *s);
-> > +static enum umal_state umal_set_channel_state(struct umal_softc *,
-> > +		enum umal_state);
-> > +
-> > +static int umal_init(struct platform_device *pldev, long long base);
-> > +static int umal_open(struct net_device *dev);
-> > +static int umal_close(struct net_device *dev);
-> > +static int umal_mii_ioctl(struct net_device *dev, struct ifreq *rq, int cmd);
-> > +static irqreturn_t umal_intr(int irq, void *dev_instance);
-> > +static void umal_clr_intr(struct net_device *dev);
-> > +static int umal_start_tx(struct sk_buff *skb, struct net_device *dev);
-> > +static void umal_tx_timeout(struct net_device *dev);
-> > +static void umal_set_rx_mode(struct net_device *dev);
-> > +static void umal_promiscuous_mode(struct umal_softc *sc, int onoff);
-> > +static void umal_setmulti(struct umal_softc *sc);
-> > +static int umal_set_speed(struct umal_softc *s, enum umal_speed speed);
-> > +static int umal_set_duplex(struct umal_softc *s, enum umal_duplex duplex,
-> > +		enum umal_fc fc);
-> > +static int umal_change_mtu(struct net_device *_dev, int new_mtu);
-> > +static void umal_miipoll(struct net_device *dev);
-> 
-> Best avoid all these prototypes. Instead, reorder the functions in the
-> driver so you don't need them. That is the order in which reviewers expect
-> them.
-> 
-> > +/**********************************************************************
-> > + *  UMAL_MII_RESET(bus)
-> > + *
-> > + *  Reset MII bus.
-> > + *
-> > + *  Input parameters:
-> > + *	   bus     - MDIO bus handle
-> > + *
-> > + *  Return value:
-> > + *	   0 if ok
-> > + ********************************************************************* */
-> 
-> For extended function documentation, use the kerneldoc style, e.g.
-> 
-> /**
->  * umal_mii_reset - reset MII bus
->  *
->  * @bus: MDIO bus handle
->  *
->  * Returns 0
->  */
-> 
-> See also Documentation/kernel-doc-nano-HOWTO.txt
-> 
-> > +/**********************************************************************
-> > + *  UMALDMA_RX_PROCESS(sc,d,work_to_do,poll)
-> > + *
-> > + *  Process "completed" receive buffers on the specified DMA channel.
-> > + *
-> > + *  Input parameters:
-> > + *            sc - softc structure
-> > + *	       d - DMA channel context
-> > + *    work_to_do - no. of packets to process before enabling interrupt
-> > + *                 again (for NAPI)
-> > + *          poll - 1: using polling (for NAPI)
-> > + *
-> > + *  Return value:
-> > + *	   nothing
-> > + ********************************************************************* */
-> > +static int umaldma_rx_process(struct umal_softc *sc, struct umaldma *d,
-> > +		int work_to_do, int poll)
-> 
-> It seems that you tried to convert the driver to NAPI but did not succeed,
-> as this function is only called from the interrupt handler directly.
-> 
-> There is usually a significant performance win from using NAPI, so you
-> should better try again. If you had problems doing that, please ask
-> on netdev.
-> 
-> > +
-> > +#ifdef CONFIG_CMDLINE_FORCE
-> > +	eaddr[0] = 0x00;
-> > +	eaddr[1] = 0x25;
-> > +	eaddr[2] = 0x9b;
-> > +	eaddr[3] = 0xff;
-> > +	eaddr[4] = 0x00;
-> > +	eaddr[5] = 0x00;
-> > +#endif
-> > +
-> > +	for (i = 0; i < 6; i++)
-> > +		dev->dev_addr[i] = eaddr[i];
-> 
-> You can use random_ether_addr() to generate a working unique MAC address
-> if the hardware does not provide one.
-> 
-> 	Arnd
-Thanks Arnd.
-I will redo this driver.
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+#endif
 
-Guan Xuetao
+sound/drivers/pcsp/pcsp.h:
+
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+
+$ git grep -F pcsp.h sound/drivers/pcsp
+sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
+$ git grep -w i8253_lock sound/drivers/pcsp/
+sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+
+Locks are great, everybody should have their own lock!
+
+$ find . -name 8253pit.h
+./arch/powerpc/include/asm/8253pit.h
+./arch/alpha/include/asm/8253pit.h
+$ cat arch/*/include/asm/8253pit.h
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+$
+
+Eh...
+
+$ git grep -w PCSPKR_PLATFORM 
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
+drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
+init/Kconfig:config PCSPKR_PLATFORM
+sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
+
+So works on MIPS and x86.  Compiles on PowerPC but locking is wrong.  On
+Alpha can't even be selected though it sees otherwise right except the
+locking and even worse for the rest.
+
+  Ralf
