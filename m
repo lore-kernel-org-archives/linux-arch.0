@@ -1,46 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:41845 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758640Ab1E0DlZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 May 2011 23:41:25 -0400
-From: "Guan Xuetao" <gxt@mprc.pku.edu.cn>
-References: <cover.1306408804.git.gxt@mprc.pku.edu.cn> <556924396ee34f4af94a2f03767973f1cec35e22.1306408804.git.gxt@mprc.pku.edu.cn> <201105261443.06896.arnd@arndb.de>
-In-Reply-To: <201105261443.06896.arnd@arndb.de>
-Subject: RE: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-Date: Fri, 27 May 2011 11:08:57 +0800
-Message-ID: <005901cc1c1b$6b80ce40$42826ac0$@mprc.pku.edu.cn>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:36101 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751358Ab1E1LXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 28 May 2011 07:23:21 -0400
+Date: Sat, 28 May 2011 12:21:20 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: i8253 locking and PC speaker on non-{mips,x86}
+Message-ID: <20110528112120.GA9027@linux-mips.org>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Content-Language: zh-cn
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, netdev@vger.kernel.org
-Message-ID: <20110527030857.bYyoI3fA8TY1IQoPOUoPTgmeTNjTZPv5n5_zLiU-VHI@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.de>
 
+No longer terribly relevant these days but ...
 
+drivers/input/misc/pcspkr.c:
 
-> -----Original Message-----
-> From: Arnd Bergmann [mailto:arnd@arndb.de]
-> Sent: Thursday, May 26, 2011 8:43 PM
-> To: GuanXuetao
-> Cc: linux-kernel@vger.kernel.org; linux-arch@vger.kernel.org; greg@kroah.com; netdev@vger.kernel.org
-> Subject: Re: [PATCH 2/6] unicore32: add pkunity-v3 mac/net driver (umal)
-> 
-> On Thursday 26 May 2011, GuanXuetao wrote:
-> > From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> >
-> > Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> 
-> No objections to this driver, just remember that network drivers should
-> go through the netdev tree, and if it wasn't in there before the merge
-> window, you missed your chance for this time.
-Yes.
-I hope someone could help me review the network driver.
-Perhaps it's  late for adding this driver during this merge window time.
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+#endif
 
-Regards.
-Guan Xuetao
+sound/drivers/pcsp/pcsp.h:
 
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+
+$ git grep -F pcsp.h sound/drivers/pcsp
+sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
+$ git grep -w i8253_lock sound/drivers/pcsp/
+sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+
+Locks are great, everybody should have their own lock!
+
+$ find . -name 8253pit.h
+./arch/powerpc/include/asm/8253pit.h
+./arch/alpha/include/asm/8253pit.h
+$ cat arch/*/include/asm/8253pit.h
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+$
+
+Eh...
+
+$ git grep -w PCSPKR_PLATFORM 
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
+drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
+init/Kconfig:config PCSPKR_PLATFORM
+sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
+
+So works on MIPS and x86.  Compiles on PowerPC but locking is wrong.  On
+Alpha can't even be selected though it sees otherwise right except the
+locking and even worse for the rest.
+
+  Ralf
