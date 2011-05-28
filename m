@@ -1,83 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:36101 "EHLO duck.linux-mips.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751358Ab1E1LXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 May 2011 07:23:21 -0400
-Date: Sat, 28 May 2011 12:21:20 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: i8253 locking and PC speaker on non-{mips,x86}
-Message-ID: <20110528112120.GA9027@linux-mips.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:53487 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754659Ab1E1R4T convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 28 May 2011 13:56:19 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+In-Reply-To: <m1lixr4kz8.fsf@fess.ebiederm.org>
+References: <m1lixr4kz8.fsf@fess.ebiederm.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sat, 28 May 2011 10:55:55 -0700
+Message-ID: <BANLkTi=-DHpvAm_9J9y+rOxB25e=4kCjYA@mail.gmail.com>
+Subject: Re: [PATCH] ns: Wire up the setns system call for 2.6.40-rc1 or whatever
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, alsa-devel@alsa-project.org, Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.de>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Daniel Lezcano <dlezcano@fr.ibm.com>
+Message-ID: <20110528175555.7X8Tx4z0daxBjqjNh4XLdwvbixxsTJPXM2gGAKUpL98@z>
 
-No longer terribly relevant these days but ...
+On Fri, May 27, 2011 at 7:28 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+>
+> 32bit and 64bit on x86 are tested and working.  The rest I have looked
+> at closely and I can't find any problems.
 
-drivers/input/misc/pcspkr.c:
+So I really don't think this was even worth it. I applied the patch,
+but I think that you should just have done the architecture you
+tested, and left it to arch maintainers to add it as they will.
 
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-#endif
+That's how we tend to do this, and it works. It also avoids surprises
+when people then invariably end up having clashes due to system calls
+being added. Even in just the 15 hours since you sent the email, I had
+merged more code from ARM, and the patch no longer applied to my tree.
+It's trivial to fix up, so that's not the problem, but the problem is
+with different people adding system calls resulting in re-numbering.
 
-sound/drivers/pcsp/pcsp.h:
+In other words, it's simply better to strive to have *one* entity in
+charge of picking the system call number, rather than do it like this.
+Ergo: leave it to architecture maintainers to minimize the issue of
+system call renumbering.
 
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-
-$ git grep -F pcsp.h sound/drivers/pcsp
-sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
-$ git grep -w i8253_lock sound/drivers/pcsp/
-sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-
-Locks are great, everybody should have their own lock!
-
-$ find . -name 8253pit.h
-./arch/powerpc/include/asm/8253pit.h
-./arch/alpha/include/asm/8253pit.h
-$ cat arch/*/include/asm/8253pit.h
-/*
- * 8253/8254 Programmable Interval Timer
- */
-/*
- * 8253/8254 Programmable Interval Timer
- */
-$
-
-Eh...
-
-$ git grep -w PCSPKR_PLATFORM 
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
-drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
-init/Kconfig:config PCSPKR_PLATFORM
-sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
-
-So works on MIPS and x86.  Compiles on PowerPC but locking is wrong.  On
-Alpha can't even be selected though it sees otherwise right except the
-locking and even worse for the rest.
-
-  Ralf
+                        Linus
