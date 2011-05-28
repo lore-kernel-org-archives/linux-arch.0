@@ -1,22 +1,39 @@
-From: "Tamara" <liphola@zebra.uem.mz>
-Subject: Hello
-Date: Sat, 28 May 2011 19:05:57 +0300
-Message-ID: <20110528125531.M17968@zebra.uem.mz>
-Reply-To: tama151@live.com
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH] ns: Wire up the setns system call for 2.6.40-rc1 or whatever
+Date: Sat, 28 May 2011 10:55:55 -0700
+Message-ID: <BANLkTi=-DHpvAm_9J9y+rOxB25e=4kCjYA@mail.gmail.com>
+References: <m1lixr4kz8.fsf@fess.ebiederm.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=iso-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.inovareganhar.org.mz ([196.3.96.67]:59287 "EHLO
-	zebra.uem.mz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753994Ab1E1Qjm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 May 2011 12:39:42 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <m1lixr4kz8.fsf@fess.ebiederm.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Daniel Lezcano <dlezcano@fr.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-How are you? i am from astana , I just want to be sure if you we receive my
-message. If you receive this message please  Contact me back E-mail: 
-tama151@live.com,
-I want to discuss something about my fund in the bank for payment ,due to my 
-present poor state of heath i want your honest help .
- Regards. Tamara
+On Fri, May 27, 2011 at 7:28 PM, Eric W. Biederman
+<ebiederm@xmission.com> wrote:
+>
+> 32bit and 64bit on x86 are tested and working. =A0The rest I have loo=
+ked
+> at closely and I can't find any problems.
+
+So I really don't think this was even worth it. I applied the patch,
+but I think that you should just have done the architecture you
+tested, and left it to arch maintainers to add it as they will.
+
+That's how we tend to do this, and it works. It also avoids surprises
+when people then invariably end up having clashes due to system calls
+being added. Even in just the 15 hours since you sent the email, I had
+merged more code from ARM, and the patch no longer applied to my tree.
+It's trivial to fix up, so that's not the problem, but the problem is
+with different people adding system calls resulting in re-numbering.
+
+In other words, it's simply better to strive to have *one* entity in
+charge of picking the system call number, rather than do it like this.
+Ergo: leave it to architecture maintainers to minimize the issue of
+system call renumbering.
+
+                        Linus
