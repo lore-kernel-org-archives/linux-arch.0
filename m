@@ -1,35 +1,43 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH/RFC] asm-generic/mutex-dec.h: add SMP support
-Date: Mon, 30 May 2011 09:00:02 +0200
-Message-ID: <201105300900.02884.arnd@arndb.de>
-References: <1306725568-10922-1-git-send-email-vapier@gentoo.org>
+From: Nicolas Kaiser <nikai@nikai.net>
+Subject: Re: [PATCH] thp: unbalanced parenthesis
+Date: Mon, 30 May 2011 13:02:09 +0200
+Message-ID: <20110530130209.7ea4d55d@absol.kitzblitz>
+References: <20110507205549.6bb0f49f@absol.kitzblitz>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:63012 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752096Ab1E3HAR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2011 03:00:17 -0400
-In-Reply-To: <1306725568-10922-1-git-send-email-vapier@gentoo.org>
+Received: from webhosting01.bon.m2soft.com ([195.38.20.32]:34852 "EHLO
+	webhosting01.bon.m2soft.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756431Ab1E3LDY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 May 2011 07:03:24 -0400
+In-Reply-To: <20110507205549.6bb0f49f@absol.kitzblitz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrea Arcangeli <aarcange@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Monday 30 May 2011 05:19:28 Mike Frysinger wrote:
-> To make these guys work on SMP systems, we just need to sprinkle a few
-> barriers around.
-> 
-> Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+Cc'ed Andrea Arcangeli.
+
+* Nicolas Kaiser <nikai@nikai.net>:
+> Signed-off-by: Nicolas Kaiser <nikai@nikai.net>
 > ---
-> note: this is what the Blackfin SMP port is using, but it doesn't seem
-> like other SMP ports are ... so I wonder if we're just trying too hard
-> and these barriers aren't actually necessary ?
-
-On some architectures, atomic instructions are implicit barriers. On
-others, the cmpxchg() macro contains a barrier. I'm not sure if there
-is other code relying on that.
-
-	Arnd
+> Untested.
+> 
+>  include/asm-generic/pgtable.h |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+> index b4bfe33..b80daee 100644
+> --- a/include/asm-generic/pgtable.h
+> +++ b/include/asm-generic/pgtable.h
+> @@ -88,7 +88,7 @@ static inline pmd_t pmdp_get_and_clear(struct mm_struct *mm,
+>  	pmd_t pmd = *pmdp;
+>  	pmd_clear(mm, address, pmdp);
+>  	return pmd;
+> -})
+> +}
+>  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+>  #endif
+>  
