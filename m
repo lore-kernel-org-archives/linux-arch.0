@@ -1,52 +1,43 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH] thp: unbalanced parenthesis
-Date: Mon, 30 May 2011 16:10:28 +0200
-Message-ID: <20110530141028.GG19505@random.random>
-References: <20110507205549.6bb0f49f@absol.kitzblitz>
- <20110530130209.7ea4d55d@absol.kitzblitz>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH] ptrace: unify show_regs() prototype
+Date: Mon, 30 May 2011 21:07:13 +0200
+Message-ID: <20110530190713.GA20616@redhat.com>
+References: <1302759489-10645-1-git-send-email-vapier@gentoo.org> <1306726753-16128-1-git-send-email-vapier@gentoo.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16942 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754667Ab1E3OKg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 May 2011 10:10:36 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20110530130209.7ea4d55d@absol.kitzblitz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Kaiser <nikai@nikai.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+In-Reply-To: <1306726753-16128-1-git-send-email-vapier@gentoo.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mike Frysinger <vapier@gentoo.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 30, 2011 at 01:02:09PM +0200, Nicolas Kaiser wrote:
-> Cc'ed Andrea Arcangeli.
-> 
-> * Nicolas Kaiser <nikai@nikai.net>:
-> > Signed-off-by: Nicolas Kaiser <nikai@nikai.net>
-> > ---
-> > Untested.
-> > 
-> >  include/asm-generic/pgtable.h |    2 +-
-> >  1 files changed, 1 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> > index b4bfe33..b80daee 100644
-> > --- a/include/asm-generic/pgtable.h
-> > +++ b/include/asm-generic/pgtable.h
-> > @@ -88,7 +88,7 @@ static inline pmd_t pmdp_get_and_clear(struct mm_struct *mm,
-> >  	pmd_t pmd = *pmdp;
-> >  	pmd_clear(mm, address, pmdp);
-> >  	return pmd;
-> > -})
-> > +}
-> >  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
-> >  #endif
+On 05/29, Mike Frysinger wrote:
+>
+> Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+> ---
+> andrew: can you pick this up ?  sent a few months ago w/no love.
 
-Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+The patch looks obviously fine, I can put it into ptrace tree.
 
-All archs supporting THP aren't using that function so it isn't
-possible to notice it in any config but it's better to fix it in case
-some arch will use it in the future.
+Cough. Yes it is simple, but perhaps it still needs the changelog?
+Even a single line.
 
-Thanks,
-Andrea
+One nit,
+
+> --- a/include/linux/ptrace.h
+> +++ b/include/linux/ptrace.h
+> @@ -100,6 +100,7 @@
+>  #include <linux/sched.h>		/* For struct task_struct.  */
+>
+>
+> +extern void show_regs(struct pt_regs *);
+
+Not sure ptrace.h is the right place. show_regs() has the callers which
+have nothing to do with ptrace.
+
+Hmm. You know what? show_regs() is already defined in sched.h, probably
+you can simply remove this chunk.
+
+Oleg.
