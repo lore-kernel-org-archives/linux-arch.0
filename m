@@ -1,68 +1,69 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/1] Add new syscall sys_sendmmsg to generic unistd
-Date: Sun, 29 May 2011 23:57:26 +0200
-Message-ID: <201105292357.26883.arnd@arndb.de>
-References: <1306613969-9426-1-git-send-email-jonas.bonn@gmail.com> <201105292027.10350.arnd@arndb.de> <1306704624.3001.1206.camel@localhost>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: [PATCH/RFC] asm-generic/mutex-dec.h: add SMP support
+Date: Sun, 29 May 2011 23:19:28 -0400
+Message-ID: <1306725568-10922-1-git-send-email-vapier@gentoo.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63730 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755859Ab1E2V53 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 May 2011 17:57:29 -0400
-In-Reply-To: <1306704624.3001.1206.camel@localhost>
+Received: from smtp.gentoo.org ([140.211.166.183]:46739 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751389Ab1E3DOa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 29 May 2011 23:14:30 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
 
-On Sunday 29 May 2011 23:30:24 Jonas Bonn wrote:
-> > * remove all __ARCH_WANT_* from asm/unistd.h and use the generic glibc
-> >   implementation.
-> 
-> I tried this earlier but ran into issues with uClibc, which is the only
-> libc port that we currently have.  Is uClibc known to be compatible with
-> the reduced set of syscalls?
-> 
-> A good compromise here may be to submit the patch upstream with the
-> reduced set of syscalls but to maintain a separate tree locally that
-> reenables these for use with our current uClibc port until we can get it
-> straightened out.  It would be good to know, however, what's known to be
-> working for others in this area...
+To make these guys work on SMP systems, we just need to sprinkle a few
+barriers around.
 
-I don't think that there is a port today, but you can maybe Chris Metcalf,
-Guan Xuetao or Linas Vepstas know more about this, as they have all
-worked on the glibc support for the generic syscall interface.
+Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+---
+note: this is what the Blackfin SMP port is using, but it doesn't seem
+like other SMP ports are ... so I wonder if we're just trying too hard
+and these barriers aren't actually necessary ?
 
-Right now, you set these five ones:
+ include/asm-generic/mutex-dec.h |    8 +++++++-
+ 1 files changed, 7 insertions(+), 1 deletions(-)
 
-#define __ARCH_WANT_SYSCALL_NO_AT
-#define __ARCH_WANT_SYSCALL_NO_FLAGS
-#define __ARCH_WANT_SYSCALL_OFF_T
-#define __ARCH_WANT_SYSCALL_DEPRECATED
-#define __ARCH_WANT_IPC_PARSE_VERSION
-
-I suggest that you try to get rid of them in reverse order, the last
-two are the really important ones and should not cause a lot of
-trouble at all. The interface impacted by this have long ago been
-deprecated, so it should basically work without them, except for
-possible bugs in uClibc.
-
-__ARCH_WANT_SYSCALL_OFF_T is about the 32 bit off_t syscalls.
-I don't know if they are supported in uClibc, but I would expect
-that you can lose this if you hardcode uClibc to do 64 bit
-off_t, but it could be a lot of work if it's not that easy.
-
-The other three are for system calls that have been replaced by
-new ones much more recently, so supporting them definitely requires
-writing new libc code. You might be able to reuse the code that
-Chris Metcalf wrote for glibc here.
-
-As an intermediate solution, you can keep a private patch that
-adds the hacks back in, while submitting the clean unistd.h
-version without them for upstream inclusion. Just remember to
-actually do the work for removing them eventually.
-
-	Arnd
+diff --git a/include/asm-generic/mutex-dec.h b/include/asm-generic/mutex-dec.h
+index f104af7..e746c3c 100644
+--- a/include/asm-generic/mutex-dec.h
++++ b/include/asm-generic/mutex-dec.h
+@@ -22,6 +22,8 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		fail_fn(count);
++	else
++		smp_mb();
+ }
+ 
+ /**
+@@ -39,6 +41,7 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
+ {
+ 	if (unlikely(atomic_dec_return(count) < 0))
+ 		return fail_fn(count);
++	smp_mb();
+ 	return 0;
+ }
+ 
+@@ -58,6 +61,7 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
+ static inline void
+ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ {
++	smp_mb();
+ 	if (unlikely(atomic_inc_return(count) <= 0))
+ 		fail_fn(count);
+ }
+@@ -82,8 +86,10 @@ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+ static inline int
+ __mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
+ {
+-	if (likely(atomic_cmpxchg(count, 1, 0) == 1))
++	if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
++		smp_mb();
+ 		return 1;
++	}
+ 	return 0;
+ }
+ 
+-- 
+1.7.5.rc3
