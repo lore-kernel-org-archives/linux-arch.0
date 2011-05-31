@@ -1,36 +1,38 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH] ptrace: unify show_regs() prototype
-Date: Mon, 30 May 2011 18:54:04 -0400
-Message-ID: <BANLkTinhNONdTT=sdTkSsTVLA9F50vkyXg@mail.gmail.com>
-References: <1302759489-10645-1-git-send-email-vapier@gentoo.org>
- <1306726753-16128-1-git-send-email-vapier@gentoo.org> <20110530190713.GA20616@redhat.com>
+From: Leach K Zachariah <root@remotemail.sandhillscenter.org>
+Subject: [ q9c997192wzopg03] : healthcare/business and finance/consumer/professional lists
+Date: Tue, 31 May 2011 18:23:30 -0400
+Message-ID: <8f5c7641-c4ab-4c18-ad96-4b56f87e5ebb@SCDCEX2.sandhillscenter.org>
+Reply-To: <root@remotemail.sandhillscenter.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:47404 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752688Ab1E3WyZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 May 2011 18:54:25 -0400
-In-Reply-To: <20110530190713.GA20616@redhat.com>
+Received: from zixvpm.sandhillscenter.org ([207.4.5.132]:50779 "EHLO
+	zixvpm.sandhillscenter.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932786Ab1EaWng (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 May 2011 18:43:36 -0400
+Received: from zixvpm.sandhillscenter.org (ZixVPM [127.0.0.1])
+	by Outbound.sandhillscenter.org (Proprietary) with ESMTP id D6F35F48E54
+	for <linux-arch@vger.kernel.org>; Tue, 31 May 2011 18:07:30 -0400 (EDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: albert-emphysem@mein-xhtml.de, kristen@pilatescollective.com, linux-arch@vger.kernel.org, creative@cs-tech.com
 
-On Mon, May 30, 2011 at 15:07, Oleg Nesterov wrote:
-> On 05/29, Mike Frysinger wrote:
->> --- a/include/linux/ptrace.h
->> +++ b/include/linux/ptrace.h
->> +extern void show_regs(struct pt_regs *);
->
-> Not sure ptrace.h is the right place. show_regs() has the callers which
-> have nothing to do with ptrace.
+Only for this week we have some of the lowest package deals we've ever offered. 
 
-it needs pt_regs and everyone puts it in their own ptrace.h, so
-linux/ptrace.h was the logical common place for it
+ * HEALTHCARE - 20 complete lists in total being sold for only $395! (some of these lists cost $500 each!)
 
-> Hmm. You know what? show_regs() is already defined in sched.h, probably
-> you can simply remove this chunk.
 
-nice, i hadnt noticed.  i'll send a new version.
--mike
+ * BUSINESS/PROFESSIONALS LISTS - 14 complete lists in total sold for just $295! (10M total emails here)
+
+
+ * CONSUMER LISTS -  3 huge lists totalling 4.4 million emails, all optin complete with IP stamp - $195!
+
+
+
+I will be more than happy to give you a breakdown of all lists in every category and sample excel spreadsheets 
+for every list. Send an email to this address: doug.gisomna@gmx.com
+
+
+Send us an email to takeitoff@gmx.com we will discontinue from the list
+  
