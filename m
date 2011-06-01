@@ -1,97 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:59121 "EHLO duck.linux-mips.net"
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:59160 "EHLO duck.linux-mips.net"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759597Ab1FATrd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2011 15:47:33 -0400
-Message-ID: <20110601180456.801265664@duck.linux-mips.net>
-Date: Wed, 01 Jun 2011 19:04:56 +0100
+	id S1759673Ab1FATrn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2011 15:47:43 -0400
+Message-ID: <20110601180610.913463093@duck.linux-mips.net>
+Date: Wed, 01 Jun 2011 19:05:08 +0100
 From: ralf@linux-mips.org
-Subject: [patch 00/14] Sort out i8253 and PC speaker locking and headers
+Subject: [patch 12/14] i8253: Move remaining content and delete <asm/i8253.h>
+References: <20110601180456.801265664@duck.linux-mips.net>
+Content-Disposition: inline; filename=i8253-sort-remaining-definitions.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org
-Message-ID: <20110601180456.M66HcLfGZRsXJJJoZsiSqIiSB0txqTuOqz11XTza4HI@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org, Russell King <linux@arm.linux.org.uk>, linux-mips@linux-mips.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Message-ID: <20110601180508.Nb2XkrbQPdeCiB-JTOHneePmsomSpHb9CcE0ijUzh1w@z>
 
-No longer terribly relevant these days but still broken and just an eyesore
-mess of neglience just as I've already raised it a few days ago.  Time to
-sort this.
+There is no really good other place but one line for two out of three
+architectures that have a <asm/i8253.h> file doesn't justify this files
+existence.
 
-drivers/input/misc/pcspkr.c:
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: linux-mips@linux-mips.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-#endif
+ arch/arm/include/asm/i8253.h  |    4 ----
+ arch/mips/include/asm/i8253.h |   10 ----------
+ arch/mips/include/asm/time.h  |    5 +++++
+ arch/x86/include/asm/i8253.h  |    6 ------
+ arch/x86/include/asm/time.h   |    1 +
+ include/linux/i8253.h         |    1 -
+ 6 files changed, 6 insertions(+), 21 deletions(-)
 
-sound/drivers/pcsp/pcsp.h:
+Index: linux-i8253/arch/x86/include/asm/i8253.h
+===================================================================
+--- linux-i8253.orig/arch/x86/include/asm/i8253.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef _ASM_X86_I8253_H
+-#define _ASM_X86_I8253_H
+-
+-extern void setup_pit_timer(void);
+-
+-#endif /* _ASM_X86_I8253_H */
+Index: linux-i8253/include/linux/i8253.h
+===================================================================
+--- linux-i8253.orig/include/linux/i8253.h
++++ linux-i8253/include/linux/i8253.h
+@@ -12,7 +12,6 @@
+ #include <linux/param.h>
+ #include <linux/spinlock.h>
+ #include <linux/timex.h>
+-#include <asm/i8253.h>
+ 
+ /* i8253A PIT registers */
+ #define PIT_MODE	0x43
+Index: linux-i8253/arch/x86/include/asm/time.h
+===================================================================
+--- linux-i8253.orig/arch/x86/include/asm/time.h
++++ linux-i8253/arch/x86/include/asm/time.h
+@@ -6,6 +6,7 @@
+ 
+ extern void hpet_time_init(void);
+ extern void time_init(void);
++extern void setup_pit_timer(void);
+ 
+ extern struct clock_event_device *global_clock_event;
+ 
+Index: linux-i8253/arch/mips/include/asm/i8253.h
+===================================================================
+--- linux-i8253.orig/arch/mips/include/asm/i8253.h
++++ /dev/null
+@@ -1,10 +0,0 @@
+-/*
+- *  Machine specific IO port address definition for generic.
+- *  Written by Osamu Tomita <tomita@cinet.co.jp>
+- */
+-#ifndef __ASM_I8253_H
+-#define __ASM_I8253_H
+-
+-extern void setup_pit_timer(void);
+-
+-#endif /* __ASM_I8253_H */
+Index: linux-i8253/arch/arm/include/asm/i8253.h
+===================================================================
+--- linux-i8253.orig/arch/arm/include/asm/i8253.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __ASMARM_I8253_H
+-#define __ASMARM_I8253_H
+-
+-#endif
+Index: linux-i8253/arch/mips/include/asm/time.h
+===================================================================
+--- linux-i8253.orig/arch/mips/include/asm/time.h
++++ linux-i8253/arch/mips/include/asm/time.h
+@@ -36,6 +36,11 @@ extern int rtc_mips_set_mmss(unsigned lo
+ extern void plat_time_init(void);
+ 
+ /*
++ * Initialize i8253 / i8254 PIT clockevent device.
++ */
++extern void setup_pit_timer(void);
++
++/*
+  * mips_hpt_frequency - must be set if you intend to use an R4k-compatible
+  * counter as a timer interrupt source.
+  */
 
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-
-$ git grep -F pcsp.h sound/drivers/pcsp
-sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
-$ git grep -w i8253_lock sound/drivers/pcsp/
-sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-
-Locks are great, everybody should have their own lock!
-
-$ find . -name 8253pit.h
-./arch/powerpc/include/asm/8253pit.h
-./arch/alpha/include/asm/8253pit.h
-$ cat arch/*/include/asm/8253pit.h
-/*
- * 8253/8254 Programmable Interval Timer
- */
-/*
- * 8253/8254 Programmable Interval Timer
- */
-$
-
-Eh...
-
-$ git grep -w PCSPKR_PLATFORM 
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
-drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
-init/Kconfig:config PCSPKR_PLATFORM
-sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
-
-So the status is:
-
- Alpha:		There is no PCSPKR_PLATFORM so while a platform device is
-		being installed no drivers will be built.  I don't know
-		which Alpha platforms or even if all of Alpha should be
-		doing a PCSPKR_PLATFORM so I haven't even tried to sort
-		this.
- ARM:		No PC speaker supported, yeah :)
- PowerPC:	Should compile but the locking is wrong but only the AmigaOne
-   		platforms should be affected.
- MIPS:		Ok.
- x86:		Ok.
- All others:	No PC speaker supported
-
-Also only the plain old IBM PC XT was using a i8253; every later system
-had i8254.  So maybe this is the time for renaming the support code?
-
-  Ralf
 
