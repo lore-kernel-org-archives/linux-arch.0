@@ -1,91 +1,53 @@
 From: ralf@linux-mips.org
-Subject: [patch 00/14] Sort out i8253 and PC speaker locking and headers
-Date: Wed, 01 Jun 2011 19:04:56 +0100
-Message-ID: <20110601180456.801265664@duck.linux-mips.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+Subject: [patch 05/14] i8253: Make x86 use the shared i8253_lock.
+Date: Wed, 01 Jun 2011 19:05:01 +0100
+Message-ID: <20110601180610.371273795@duck.linux-mips.net>
+References: <20110601180456.801265664@duck.linux-mips.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:59138 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1759635Ab1FATrg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2011 15:47:36 -0400
+Content-Disposition: inline; filename=i8253-move-x86-to-shared-lock.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 
-No longer terribly relevant these days but still broken and just an eyesore
-mess of neglience just as I've already raised it a few days ago.  Time to
-sort this.
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+To: linux-kernel@vger.kernel.org
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
 
-drivers/input/misc/pcspkr.c:
+ arch/x86/Kconfig        |    1 +
+ arch/x86/kernel/i8253.c |    3 ---
+ 2 files changed, 1 insertion(+), 3 deletions(-)
 
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-#endif
-
-sound/drivers/pcsp/pcsp.h:
-
-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
-/* Use the global PIT lock ! */
-#include <asm/i8253.h>
-#else
-#include <asm/8253pit.h>
-static DEFINE_RAW_SPINLOCK(i8253_lock);
-
-$ git grep -F pcsp.h sound/drivers/pcsp
-sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
-sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
-$ git grep -w i8253_lock sound/drivers/pcsp/
-sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
-sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
-sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
-
-Locks are great, everybody should have their own lock!
-
-$ find . -name 8253pit.h
-./arch/powerpc/include/asm/8253pit.h
-./arch/alpha/include/asm/8253pit.h
-$ cat arch/*/include/asm/8253pit.h
-/*
- * 8253/8254 Programmable Interval Timer
- */
-/*
- * 8253/8254 Programmable Interval Timer
- */
-$
-
-Eh...
-
-$ git grep -w PCSPKR_PLATFORM 
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/mips/Kconfig:      select PCSPKR_PLATFORM
-arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
-drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
-init/Kconfig:config PCSPKR_PLATFORM
-sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
-
-So the status is:
-
- Alpha:		There is no PCSPKR_PLATFORM so while a platform device is
-		being installed no drivers will be built.  I don't know
-		which Alpha platforms or even if all of Alpha should be
-		doing a PCSPKR_PLATFORM so I haven't even tried to sort
-		this.
- ARM:		No PC speaker supported, yeah :)
- PowerPC:	Should compile but the locking is wrong but only the AmigaOne
-   		platforms should be affected.
- MIPS:		Ok.
- x86:		Ok.
- All others:	No PC speaker supported
-
-Also only the plain old IBM PC XT was using a i8253; every later system
-had i8254.  So maybe this is the time for renaming the support code?
-
-  Ralf
+Index: linux-mips/arch/x86/Kconfig
+===================================================================
+--- linux-mips.orig/arch/x86/Kconfig
++++ linux-mips/arch/x86/Kconfig
+@@ -67,6 +67,7 @@ config X86
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select GENERIC_IRQ_SHOW
++	select I8253_LOCK
+ 	select IRQ_FORCED_THREADING
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_BPF_JIT if (X86_64 && NET)
+Index: linux-mips/arch/x86/kernel/i8253.c
+===================================================================
+--- linux-mips.orig/arch/x86/kernel/i8253.c
++++ linux-mips/arch/x86/kernel/i8253.c
+@@ -16,9 +16,6 @@
+ #include <asm/hpet.h>
+ #include <asm/smp.h>
+ 
+-DEFINE_RAW_SPINLOCK(i8253_lock);
+-EXPORT_SYMBOL(i8253_lock);
+-
+ /*
+  * HPET replaces the PIT, when enabled. So we need to know, which of
+  * the two timers is used
