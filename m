@@ -1,49 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:23752 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757839Ab1E3TIn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 May 2011 15:08:43 -0400
-Date: Mon, 30 May 2011 21:07:13 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH] ptrace: unify show_regs() prototype
-Message-ID: <20110530190713.GA20616@redhat.com>
-References: <1302759489-10645-1-git-send-email-vapier@gentoo.org> <1306726753-16128-1-git-send-email-vapier@gentoo.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1306726753-16128-1-git-send-email-vapier@gentoo.org>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:59174 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1759660Ab1FATrs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2011 15:47:48 -0400
+Message-ID: <20110601180610.684557757@duck.linux-mips.net>
+Date: Wed, 01 Jun 2011 19:05:05 +0100
+From: ralf@linux-mips.org
+Subject: [patch 09/14] i8253: Alpha, PowerPC: Remove unused <asm/8253pit.h> header.
+References: <20110601180456.801265664@duck.linux-mips.net>
+Content-Disposition: inline; filename=i8253-remove-unused-8253pit.h-files.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Roland McGrath <roland@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110530190713.jmoNL3buNfAc9PxjO8Xpi08KHzAt4HyJV0gmIsziFhs@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20110601180505.EGoj6PtNszQaKJ913tnF9KYF6xzLwe6vUUH38KtfzOo@z>
 
-On 05/29, Mike Frysinger wrote:
->
-> Signed-off-by: Mike Frysinger <vapier@gentoo.org>
-> ---
-> andrew: can you pick this up ?  sent a few months ago w/no love.
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+To: linux-kernel@vger.kernel.org
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 
-The patch looks obviously fine, I can put it into ptrace tree.
+ arch/alpha/include/asm/8253pit.h   |    3 ---
+ arch/powerpc/include/asm/8253pit.h |    3 ---
+ 2 files changed, 6 deletions(-)
 
-Cough. Yes it is simple, but perhaps it still needs the changelog?
-Even a single line.
+Index: linux-mips/arch/alpha/include/asm/8253pit.h
+===================================================================
+--- linux-mips.orig/arch/alpha/include/asm/8253pit.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-/*
+- * 8253/8254 Programmable Interval Timer
+- */
+Index: linux-mips/arch/powerpc/include/asm/8253pit.h
+===================================================================
+--- linux-mips.orig/arch/powerpc/include/asm/8253pit.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-/*
+- * 8253/8254 Programmable Interval Timer
+- */
 
-One nit,
-
-> --- a/include/linux/ptrace.h
-> +++ b/include/linux/ptrace.h
-> @@ -100,6 +100,7 @@
->  #include <linux/sched.h>		/* For struct task_struct.  */
->
->
-> +extern void show_regs(struct pt_regs *);
-
-Not sure ptrace.h is the right place. show_regs() has the callers which
-have nothing to do with ptrace.
-
-Hmm. You know what? show_regs() is already defined in sched.h, probably
-you can simply remove this chunk.
-
-Oleg.
 
