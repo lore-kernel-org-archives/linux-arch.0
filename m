@@ -1,139 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:59185 "EHLO duck.linux-mips.net"
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:59121 "EHLO duck.linux-mips.net"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759746Ab1FATsK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2011 15:48:10 -0400
-Message-ID: <20110601180610.984881988@duck.linux-mips.net>
-Date: Wed, 01 Jun 2011 19:05:09 +0100
+	id S1759597Ab1FATrd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2011 15:47:33 -0400
+Message-ID: <20110601180456.801265664@duck.linux-mips.net>
+Date: Wed, 01 Jun 2011 19:04:56 +0100
 From: ralf@linux-mips.org
-Subject: [patch 13/14] PCSPKR: Cleanup Kconfig dependencies
-References: <20110601180456.801265664@duck.linux-mips.net>
-Content-Disposition: inline; filename=i8253-use-aux-symbol-for-pcspkr-config.patch
+Subject: [patch 00/14] Sort out i8253 and PC speaker locking and headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20110601180509.utO_rUkpb8SqtWEk0038-kE5aq02nuEN7r4zNJy9SZ0@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org
+Message-ID: <20110601180456.M66HcLfGZRsXJJJoZsiSqIiSB0txqTuOqz11XTza4HI@z>
 
-Lenghty lists of the kind "depends on ARCH1 || ARCH2 ... || ARCH123" are
-usually either wrong or too coarse grained.  Or plain an ugly sin.
+No longer terribly relevant these days but still broken and just an eyesore
+mess of neglience just as I've already raised it a few days ago.  Time to
+sort this.
 
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-To: linux-kernel@vger.kernel.org
-Cc: Richard Henderson <rth@twiddle.net>
-Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linuxppc-dev@lists.ozlabs.org
+drivers/input/misc/pcspkr.c:
 
- arch/alpha/Kconfig                     |    1 +
- arch/mips/Kconfig                      |    1 +
- arch/powerpc/platforms/chrp/Kconfig    |    1 +
- arch/powerpc/platforms/prep/Kconfig    |    1 +
- arch/powerpc/platforms/pseries/Kconfig |    1 +
- arch/x86/Kconfig                       |    1 +
- init/Kconfig                           |    5 ++++-
- 7 files changed, 10 insertions(+), 1 deletion(-)
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+#endif
 
-Index: linux-mips/arch/alpha/Kconfig
-===================================================================
---- linux-mips.orig/arch/alpha/Kconfig
-+++ linux-mips/arch/alpha/Kconfig
-@@ -6,6 +6,7 @@ config ALPHA
- 	select HAVE_OPROFILE
- 	select HAVE_SYSCALL_WRAPPERS
- 	select HAVE_IRQ_WORK
-+	select HAVE_PCSPKR_PLATFORM
- 	select HAVE_PERF_EVENTS
- 	select HAVE_DMA_ATTRS
- 	select HAVE_GENERIC_HARDIRQS
-Index: linux-mips/arch/mips/Kconfig
-===================================================================
---- linux-mips.orig/arch/mips/Kconfig
-+++ linux-mips/arch/mips/Kconfig
-@@ -5,6 +5,7 @@ config MIPS
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
- 	select HAVE_IRQ_WORK
-+	select HAVE_PCSPKR_PLATFORM
- 	select HAVE_PERF_EVENTS
- 	select PERF_USE_VMALLOC
- 	select HAVE_ARCH_KGDB
-Index: linux-mips/arch/powerpc/platforms/chrp/Kconfig
-===================================================================
---- linux-mips.orig/arch/powerpc/platforms/chrp/Kconfig
-+++ linux-mips/arch/powerpc/platforms/chrp/Kconfig
-@@ -1,6 +1,7 @@
- config PPC_CHRP
- 	bool "Common Hardware Reference Platform (CHRP) based machines"
- 	depends on 6xx
-+	select HAVE_PCSPKR_PLATFORM
- 	select MPIC
- 	select PPC_I8259
- 	select PPC_INDIRECT_PCI
-Index: linux-mips/arch/powerpc/platforms/prep/Kconfig
-===================================================================
---- linux-mips.orig/arch/powerpc/platforms/prep/Kconfig
-+++ linux-mips/arch/powerpc/platforms/prep/Kconfig
-@@ -1,6 +1,7 @@
- config PPC_PREP
- 	bool "PowerPC Reference Platform (PReP) based machines"
- 	depends on 6xx && BROKEN
-+	select HAVE_PCSPKR_PLATFORM
- 	select MPIC
- 	select PPC_I8259
- 	select PPC_INDIRECT_PCI
-Index: linux-mips/arch/powerpc/platforms/pseries/Kconfig
-===================================================================
---- linux-mips.orig/arch/powerpc/platforms/pseries/Kconfig
-+++ linux-mips/arch/powerpc/platforms/pseries/Kconfig
-@@ -1,6 +1,7 @@
- config PPC_PSERIES
- 	depends on PPC64 && PPC_BOOK3S
- 	bool "IBM pSeries & new (POWER5-based) iSeries"
-+	select HAVE_PCSPKR_PLATFORM
- 	select MPIC
- 	select PCI_MSI
- 	select PPC_XICS
-Index: linux-mips/arch/x86/Kconfig
-===================================================================
---- linux-mips.orig/arch/x86/Kconfig
-+++ linux-mips/arch/x86/Kconfig
-@@ -20,6 +20,7 @@ config X86
- 	select HAVE_UNSTABLE_SCHED_CLOCK
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
-+	select HAVE_PCSPKR_PLATFORM
- 	select HAVE_PERF_EVENTS
- 	select HAVE_IRQ_WORK
- 	select HAVE_IOREMAP_PROT
-Index: linux-mips/init/Kconfig
-===================================================================
---- linux-mips.orig/init/Kconfig
-+++ linux-mips/init/Kconfig
-@@ -1001,12 +1001,15 @@ config ELF_CORE
- 
- config PCSPKR_PLATFORM
- 	bool "Enable PC-Speaker support" if EXPERT
--	depends on ALPHA || X86 || MIPS || PPC_PREP || PPC_CHRP || PPC_PSERIES
-+	depends on HAVE_PCSPKR_PLATFORM
- 	default y
- 	help
-           This option allows to disable the internal PC-Speaker
-           support, saving some memory.
- 
-+config HAVE_PCSPKR_PLATFORM
-+	bool
-+
- config BASE_FULL
- 	default y
- 	bool "Enable full-sized data structures for core" if EXPERT
+sound/drivers/pcsp/pcsp.h:
 
+#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+/* Use the global PIT lock ! */
+#include <asm/i8253.h>
+#else
+#include <asm/8253pit.h>
+static DEFINE_RAW_SPINLOCK(i8253_lock);
+
+$ git grep -F pcsp.h sound/drivers/pcsp
+sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
+sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
+$ git grep -w i8253_lock sound/drivers/pcsp/
+sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_input.c:        raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock, flags
+sound/drivers/pcsp/pcsp_lib.c:          raw_spin_unlock_irqrestore(&i8253_lock, 
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+
+Locks are great, everybody should have their own lock!
+
+$ find . -name 8253pit.h
+./arch/powerpc/include/asm/8253pit.h
+./arch/alpha/include/asm/8253pit.h
+$ cat arch/*/include/asm/8253pit.h
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+/*
+ * 8253/8254 Programmable Interval Timer
+ */
+$
+
+Eh...
+
+$ git grep -w PCSPKR_PLATFORM 
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/mips/Kconfig:      select PCSPKR_PLATFORM
+arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
+drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
+init/Kconfig:config PCSPKR_PLATFORM
+sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 && HIGH_RES_TIMERS
+
+So the status is:
+
+ Alpha:		There is no PCSPKR_PLATFORM so while a platform device is
+		being installed no drivers will be built.  I don't know
+		which Alpha platforms or even if all of Alpha should be
+		doing a PCSPKR_PLATFORM so I haven't even tried to sort
+		this.
+ ARM:		No PC speaker supported, yeah :)
+ PowerPC:	Should compile but the locking is wrong but only the AmigaOne
+   		platforms should be affected.
+ MIPS:		Ok.
+ x86:		Ok.
+ All others:	No PC speaker supported
+
+Also only the plain old IBM PC XT was using a i8253; every later system
+had i8254.  So maybe this is the time for renaming the support code?
+
+  Ralf
 
