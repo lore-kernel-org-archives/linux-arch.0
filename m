@@ -1,53 +1,127 @@
 From: ralf@linux-mips.org
-Subject: [patch 05/14] i8253: Make x86 use the shared i8253_lock.
-Date: Wed, 01 Jun 2011 19:05:01 +0100
-Message-ID: <20110601180610.371273795@duck.linux-mips.net>
+Subject: [patch 02/14] i8253: Unify all kernel declarations of i8253_lock in <linux/i8253.h>.
+Date: Wed, 01 Jun 2011 19:04:58 +0100
+Message-ID: <20110601180610.134151920@duck.linux-mips.net>
 References: <20110601180456.801265664@duck.linux-mips.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:59138 "EHLO duck.linux-mips.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759635Ab1FATrg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2011 15:47:36 -0400
-Content-Disposition: inline; filename=i8253-move-x86-to-shared-lock.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=i8253-move-common-declarations-to-new-header.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 To: linux-kernel@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-mips@linux-mips.org
 
- arch/x86/Kconfig        |    1 +
- arch/x86/kernel/i8253.c |    3 ---
- 2 files changed, 1 insertion(+), 3 deletions(-)
+ arch/arm/include/asm/i8253.h  |    9 ---------
+ arch/mips/include/asm/i8253.h |   12 ------------
+ arch/x86/include/asm/i8253.h  |   10 ----------
+ include/linux/i8253.h         |   14 ++++++++++++++
+ 4 files changed, 14 insertions(+), 31 deletions(-)
 
-Index: linux-mips/arch/x86/Kconfig
+Index: linux-mips/include/linux/i8253.h
 ===================================================================
---- linux-mips.orig/arch/x86/Kconfig
-+++ linux-mips/arch/x86/Kconfig
-@@ -67,6 +67,7 @@ config X86
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_IRQ_SHOW
-+	select I8253_LOCK
- 	select IRQ_FORCED_THREADING
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_BPF_JIT if (X86_64 && NET)
-Index: linux-mips/arch/x86/kernel/i8253.c
-===================================================================
---- linux-mips.orig/arch/x86/kernel/i8253.c
-+++ linux-mips/arch/x86/kernel/i8253.c
-@@ -16,9 +16,6 @@
- #include <asm/hpet.h>
- #include <asm/smp.h>
+--- linux-mips.orig/include/linux/i8253.h
++++ linux-mips/include/linux/i8253.h
+@@ -2,10 +2,24 @@
+  * This file is subject to the terms and conditions of the GNU General Public
+  * License.  See the file "COPYING" in the main directory of this archive
+  * for more details.
++ *
++ *  Machine specific IO port address definition for generic.
++ *  Written by Osamu Tomita <tomita@cinet.co.jp>
+  */
+ #ifndef __LINUX_I8253_H
+ #define __LINUX_I8253_H
  
--DEFINE_RAW_SPINLOCK(i8253_lock);
--EXPORT_SYMBOL(i8253_lock);
++#include <linux/spinlock.h>
+ #include <asm/i8253.h>
+ 
++/* i8253A PIT registers */
++#define PIT_MODE	0x43
++#define PIT_CH0		0x40
++#define PIT_CH2		0x42
++
++#define inb_pit         inb_p
++#define outb_pit        outb_p
++
++extern raw_spinlock_t i8253_lock;
++
+ #endif /* __LINUX_I8253_H */
+Index: linux-mips/arch/arm/include/asm/i8253.h
+===================================================================
+--- linux-mips.orig/arch/arm/include/asm/i8253.h
++++ linux-mips/arch/arm/include/asm/i8253.h
+@@ -1,15 +1,6 @@
+ #ifndef __ASMARM_I8253_H
+ #define __ASMARM_I8253_H
+ 
+-/* i8253A PIT registers */
+-#define PIT_MODE	0x43
+-#define PIT_CH0		0x40
 -
- /*
-  * HPET replaces the PIT, when enabled. So we need to know, which of
-  * the two timers is used
+ #define PIT_LATCH	((PIT_TICK_RATE + HZ / 2) / HZ)
+ 
+-extern raw_spinlock_t i8253_lock;
+-
+-#define outb_pit	outb_p
+-#define inb_pit		inb_p
+-
+ #endif
+Index: linux-mips/arch/mips/include/asm/i8253.h
+===================================================================
+--- linux-mips.orig/arch/mips/include/asm/i8253.h
++++ linux-mips/arch/mips/include/asm/i8253.h
+@@ -5,20 +5,8 @@
+ #ifndef __ASM_I8253_H
+ #define __ASM_I8253_H
+ 
+-#include <linux/spinlock.h>
+-
+-/* i8253A PIT registers */
+-#define PIT_MODE		0x43
+-#define PIT_CH0			0x40
+-#define PIT_CH2			0x42
+-
+ #define PIT_LATCH		LATCH
+ 
+-extern raw_spinlock_t i8253_lock;
+-
+ extern void setup_pit_timer(void);
+ 
+-#define inb_pit inb_p
+-#define outb_pit outb_p
+-
+ #endif /* __ASM_I8253_H */
+Index: linux-mips/arch/x86/include/asm/i8253.h
+===================================================================
+--- linux-mips.orig/arch/x86/include/asm/i8253.h
++++ linux-mips/arch/x86/include/asm/i8253.h
+@@ -1,20 +1,10 @@
+ #ifndef _ASM_X86_I8253_H
+ #define _ASM_X86_I8253_H
+ 
+-/* i8253A PIT registers */
+-#define PIT_MODE		0x43
+-#define PIT_CH0			0x40
+-#define PIT_CH2			0x42
+-
+ #define PIT_LATCH	LATCH
+ 
+-extern raw_spinlock_t i8253_lock;
+-
+ extern struct clock_event_device *global_clock_event;
+ 
+ extern void setup_pit_timer(void);
+ 
+-#define inb_pit		inb_p
+-#define outb_pit	outb_p
+-
+ #endif /* _ASM_X86_I8253_H */
