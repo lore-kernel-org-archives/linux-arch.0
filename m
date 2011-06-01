@@ -1,67 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:59128 "EHLO duck.linux-mips.net"
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:59103 "EHLO duck.linux-mips.net"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1759626Ab1FATre (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 1 Jun 2011 15:47:34 -0400
-Message-ID: <20110601180611.061710714@duck.linux-mips.net>
-Date: Wed, 01 Jun 2011 19:05:10 +0100
+	id S1759613Ab1FATra (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jun 2011 15:47:30 -0400
+Message-ID: <20110601180610.453577265@duck.linux-mips.net>
+Date: Wed, 01 Jun 2011 19:05:02 +0100
 From: ralf@linux-mips.org
-Subject: [patch 14/14] PCSPKR: MIPS: Make config dependencies finer grained.
+Subject: [patch 06/14] i8253: Make pcspkr input driver use the shared i8253_lock.
 References: <20110601180456.801265664@duck.linux-mips.net>
-Content-Disposition: inline; filename=i8253-make-mips-pcspkr-config-finer-grained.patch
+Content-Disposition: inline; filename=i8253-move-pcspkr.c-to-shared-lock.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Message-ID: <20110601180510.YGvVBueJM2L4sfiPJWfysFKrTLJrgEPSra8N5Ap-J2c@z>
-
-Only the Siemens-Nixdorf RM series workstations and the Jazz family
-workstations have PC speakers built in; Malta can connect one via the
-infamous AMR connector with an AMR sound card or a little creativity.
-So we don't want to offer the PC speaker driver on all MIPS systems.
+Cc: Dmitry Torokhov <dmitry.torokhov@gmail.com>, linux-input@vger.kernel.org
+Message-ID: <20110601180502.-ibZ3TR63jUeXD-KZSUi5Lx3ON0VNIHkVPnQHqg1jRk@z>
 
 Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-mips@linux-mips.org
+Cc: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Cc: linux-input@vger.kernel.org
 
- arch/mips/Kconfig |    4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ drivers/input/misc/pcspkr.c |    9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-Index: linux-mips/arch/mips/Kconfig
+Index: linux-mips/drivers/input/misc/pcspkr.c
 ===================================================================
---- linux-mips.orig/arch/mips/Kconfig
-+++ linux-mips/arch/mips/Kconfig
-@@ -5,7 +5,6 @@ config MIPS
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
- 	select HAVE_IRQ_WORK
--	select HAVE_PCSPKR_PLATFORM
- 	select HAVE_PERF_EVENTS
- 	select PERF_USE_VMALLOC
- 	select HAVE_ARCH_KGDB
-@@ -186,6 +185,7 @@ config MACH_JAZZ
- 	select CSRC_R4K
- 	select DEFAULT_SGI_PARTITION if CPU_BIG_ENDIAN
- 	select GENERIC_ISA_DMA
-+	select HAVE_PCSPKR_PLATFORM
- 	select IRQ_CPU
- 	select I8253
- 	select I8259
-@@ -267,6 +267,7 @@ config MIPS_MALTA
- 	select CSRC_R4K
- 	select DMA_NONCOHERENT
- 	select GENERIC_ISA_DMA
-+	select HAVE_PCSPKR_PLATFORM
- 	select IRQ_CPU
- 	select IRQ_GIC
- 	select HW_HAS_PCI
-@@ -641,6 +642,7 @@ config SNI_RM
- 	select DEFAULT_SGI_PARTITION if CPU_BIG_ENDIAN
- 	select DMA_NONCOHERENT
- 	select GENERIC_ISA_DMA
-+	select HAVE_PCSPKR_PLATFORM
- 	select HW_HAS_EISA
- 	select HW_HAS_PCI
- 	select IRQ_CPU
+--- linux-mips.orig/drivers/input/misc/pcspkr.c
++++ linux-mips/drivers/input/misc/pcspkr.c
+@@ -14,6 +14,7 @@
+ 
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/i8253.h>
+ #include <linux/init.h>
+ #include <linux/input.h>
+ #include <linux/platform_device.h>
+@@ -25,14 +26,6 @@ MODULE_DESCRIPTION("PC Speaker beeper dr
+ MODULE_LICENSE("GPL");
+ MODULE_ALIAS("platform:pcspkr");
+ 
+-#if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+-/* Use the global PIT lock ! */
+-#include <linux/i8253.h>
+-#else
+-#include <asm/8253pit.h>
+-static DEFINE_RAW_SPINLOCK(i8253_lock);
+-#endif
+-
+ static int pcspkr_event(struct input_dev *dev, unsigned int type, unsigned int code, int value)
+ {
+ 	unsigned int count = 0;
 
 
