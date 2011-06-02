@@ -1,25 +1,111 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic/unistd.h: support sendmmsg syscall
-Date: Thu, 2 Jun 2011 20:30:21 +0200
-Message-ID: <201106022030.21446.arnd@arndb.de>
-References: <201106021826.p52IQQSG032352@farm-0012.internal.tilera.com>
+From: "Gerhard Pircher" <gerhard_pircher@gmx.net>
+Subject: Re: [patch 00/14] Sort out i8253 and PC speaker locking and headers
+Date: Thu, 02 Jun 2011 21:11:19 +0200
+Message-ID: <20110602191119.302850@gmx.net>
+References: <20110601180456.801265664@duck.linux-mips.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:61798 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752603Ab1FBSa1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2011 14:30:27 -0400
-In-Reply-To: <201106021826.p52IQQSG032352@farm-0012.internal.tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20110601180456.801265664@duck.linux-mips.net>
+Sender: linux-alpha-owner@vger.kernel.org
+To: ralf@linux-mips.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 02 June 2011 20:21:45 Chris Metcalf wrote:
+
+-------- Original-Nachricht --------
+> Datum: Wed, 01 Jun 2011 19:04:56 +0100
+> Von: ralf@linux-mips.org
+> An: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org
+> Betreff: [patch 00/14] Sort out i8253 and PC speaker locking and headers
+
+> No longer terribly relevant these days but still broken and just an
+> eyesore mess of neglience just as I've already raised it a few days 
+> ago.  Time to sort this.
 > 
-> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+> drivers/input/misc/pcspkr.c:
+> 
+> #if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+> /* Use the global PIT lock ! */
+> #include <asm/i8253.h>
+> #else
+> #include <asm/8253pit.h>
+> static DEFINE_RAW_SPINLOCK(i8253_lock);
+> #endif
+> 
+> sound/drivers/pcsp/pcsp.h:
+> 
+> #if defined(CONFIG_MIPS) || defined(CONFIG_X86)
+> /* Use the global PIT lock ! */
+> #include <asm/i8253.h>
+> #else
+> #include <asm/8253pit.h>
+> static DEFINE_RAW_SPINLOCK(i8253_lock);
+> 
+> $ git grep -F pcsp.h sound/drivers/pcsp
+> sound/drivers/pcsp/pcsp.c:#include "pcsp.h"
+> sound/drivers/pcsp/pcsp_input.c:#include "pcsp.h"
+> sound/drivers/pcsp/pcsp_lib.c:#include "pcsp.h"
+> sound/drivers/pcsp/pcsp_mixer.c:#include "pcsp.h"
+> $ git grep -w i8253_lock sound/drivers/pcsp/
+> sound/drivers/pcsp/pcsp.h:static DEFINE_RAW_SPINLOCK(i8253_lock);
+> sound/drivers/pcsp/pcsp_input.c:        raw_spin_lock_irqsave(&i8253_lock,
+> flags
+> sound/drivers/pcsp/pcsp_input.c:       
+> raw_spin_unlock_irqrestore(&i8253_lock, 
+> sound/drivers/pcsp/pcsp_lib.c:          raw_spin_lock_irqsave(&i8253_lock,
+> flags
+> sound/drivers/pcsp/pcsp_lib.c:         
+> raw_spin_unlock_irqrestore(&i8253_lock, 
+> sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+> sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+> sound/drivers/pcsp/pcsp_lib.c:  raw_spin_lock(&i8253_lock);
+> sound/drivers/pcsp/pcsp_lib.c:  raw_spin_unlock(&i8253_lock);
+> 
+> Locks are great, everybody should have their own lock!
+> 
+> $ find . -name 8253pit.h
+> ./arch/powerpc/include/asm/8253pit.h
+> ./arch/alpha/include/asm/8253pit.h
+> $ cat arch/*/include/asm/8253pit.h
+> /*
+>  * 8253/8254 Programmable Interval Timer
+>  */
+> /*
+>  * 8253/8254 Programmable Interval Timer
+>  */
+> $
+> 
+> Eh...
+> 
+> $ git grep -w PCSPKR_PLATFORM 
+> arch/mips/Kconfig:      select PCSPKR_PLATFORM
+> arch/mips/Kconfig:      select PCSPKR_PLATFORM
+> arch/mips/Kconfig:      select PCSPKR_PLATFORM
+> arch/powerpc/platforms/amigaone/Kconfig:        select PCSPKR_PLATFORM
+> drivers/input/misc/Kconfig:     depends on PCSPKR_PLATFORM
+> init/Kconfig:config PCSPKR_PLATFORM
+> sound/drivers/Kconfig:  depends on PCSPKR_PLATFORM && X86 &&
+> HIGH_RES_TIMERS
+> 
+> So the status is:
+> 
+>  Alpha:	There is no PCSPKR_PLATFORM so while a platform device is
+> 		being installed no drivers will be built.  I don't know
+> 		which Alpha platforms or even if all of Alpha should be
+> 		doing a PCSPKR_PLATFORM so I haven't even tried to sort
+> 		this.
+>  ARM:		No PC speaker supported, yeah :)
+>  PowerPC:	Should compile but the locking is wrong but only the 
+>    		AmigaOne platforms should be affected.
+The Kconfig dependencies cleanup patch for CHRP, PSERIES, etc. should
+also apply to the AmigaOne. Can you resend it with a fix for the
+AmigaOne, or should I send a patch?
+I'll check next week, if the PC speaker is still working on my AmigaOne.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Thanks,
+Gerhard
+
+-- 
+Empfehlen Sie GMX DSL Ihren Freunden und Bekannten und wir
+belohnen Sie mit bis zu 50,- Euro! https://freundschaftswerbung.gmx.de
