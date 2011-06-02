@@ -1,40 +1,35 @@
-From: Sergei Shtylyov <sshtylyov@mvista.com>
-Subject: Re: [patch 12/14] i8253: Move remaining content and delete <asm/i8253.h>
-Date: Thu, 02 Jun 2011 15:29:31 +0400
-Message-ID: <4DE7741B.7040507@mvista.com>
-References: <20110601180456.801265664@duck.linux-mips.net> <20110601180610.913463093@duck.linux-mips.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:33814 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753392Ab1FBLa3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jun 2011 07:30:29 -0400
-In-Reply-To: <20110601180610.913463093@duck.linux-mips.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: [PATCH] asm-generic/unistd.h: support sendmmsg syscall
+Date: Thu, 2 Jun 2011 14:21:45 -0400
+Message-ID: <201106021826.p52IQQSG032352@farm-0012.internal.tilera.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello.
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+I'll ask Linus to pull this for 3.0.
 
-On 01-06-2011 22:05, ralf@linux-mips.org wrote:
+ include/asm-generic/unistd.h |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-> There is no really good other place but one line for two out of three
-> architectures that have a <asm/i8253.h> file doesn't justify this files
-> existence.
-
-    I couldn't parse that. :-)
-
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-> To: linux-kernel@vger.kernel.org
-> Cc: linux-arm-kernel@lists.infradead.org
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: linux-mips@linux-mips.org
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-
-WBR, Sergei
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index ae90e0f..4f76959 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -683,9 +683,11 @@ __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
+ __SYSCALL(__NR_syncfs, sys_syncfs)
+ #define __NR_setns 268
+ __SYSCALL(__NR_setns, sys_setns)
++#define __NR_sendmmsg 269
++__SC_COMP(__NR_sendmmsg, sys_sendmmsg, compat_sys_sendmmsg)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 269
++#define __NR_syscalls 270
+ 
+ /*
+  * All syscalls below here should go away really,
+-- 
+1.6.5.2
