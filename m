@@ -1,28 +1,20 @@
-From: "Z. Jianguo" <zhancg06@yahoo.com.hk>
-Subject: Good Day!
-Date: Fri, 03 Jun 2011 22:39:13 +0300
-Message-ID: <20110603223913.u6t1nqf0944k4so8@webmail3.abo.fi>
-Reply-To: zhang3@livemail.tw
+From: Western Union Transfer <mondenii@primatv.ro>
+Subject: PICK UP UR FIRST USD5000.00
+Date: Sat, 4 Jun 2011 02:30:27 +0300 (EEST)
+Message-ID: <23217902.190281307143827989.JavaMail.root@mail>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=ISO-8859-1;
-	DelSp="Yes";
-	format="flowed"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.abo.fi ([130.232.213.77]:57081 "EHLO smtp2.abo.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753444Ab1FCWCI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jun 2011 18:02:08 -0400
-Content-Disposition: inline
+Received: from mail.sbsbroadcasting.ro ([89.149.50.130]:60209 "EHLO
+	mail.primatv.ro" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755177Ab1FCXk2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jun 2011 19:40:28 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-My name is Z. Jianguo, I have a transaction of $21,830,000.00 to bring to your
-attention, if interested for more details, do kindly respond back to me
-(zjianguo42@yahoo.com.hk) for further explanation on the said transaction.
 
-I would appreciate your kind response.
 
-Sincerely,
-Z. Jianguo
+-- 
+I write to inform you that we have transferred USD$100,000 dollars.<br>we would have called to give you the MTCN on phone but we have lost your call number.<br>we decided to email you the MTCN and sender name so that you can pick starting cashing your money of USD5000.00 daily instalment with the same MTCN and sender's name which will be valid for 20 days until you cash the full $100,000.00usd. <br><br><br>Sender's Fist name: Perry<br>Sender's Last Name: Poston<br>MTCN: 0341153617<br>Question: Who Is Great<br>Answer: God<br>Amount: $5000.00USD<br>Total Amount To be cashed:$100,000usd<br><br>With due respect please get back to us urgently after picking ur first USD5000.00 to anable us direct you for another!!!<br><br><br>Thanks<br>Best Regards<br>Mr Phoenix Andersson.<br>Western Union Trans
+ fer<br>NIGERIA OFFICE,F.C.T,Abuja<br>Email: moneyofficew@yahoo.com.hk<br>Tel:+2348134736503
