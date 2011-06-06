@@ -1,35 +1,79 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2] asm-generic: add another generic ext2 atomic bitops
-Date: Mon, 6 Jun 2011 15:29:57 +0200
-Message-ID: <201106061529.57417.arnd@arndb.de>
-References: <1307201251-16805-1-git-send-email-akinobu.mita@gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH/RFC] asm-generic/mutex-dec.h: add SMP support
+Date: Mon, 6 Jun 2011 14:23:01 -0700
+Message-ID: <20110606142301.c0a570da.akpm@linux-foundation.org>
+References: <1306725568-10922-1-git-send-email-vapier@gentoo.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:55933 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756365Ab1FFNag (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jun 2011 09:30:36 -0400
-In-Reply-To: <1307201251-16805-1-git-send-email-akinobu.mita@gmail.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:33659 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752608Ab1FFVXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jun 2011 17:23:47 -0400
+In-Reply-To: <1306725568-10922-1-git-send-email-vapier@gentoo.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, Andreas Dilger <adilger@dilger.ca>, linux-arch@vger.kernel.org
+To: Mike Frysinger <vapier@gentoo.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, Nick Piggin <npiggin@kernel.dk>
 
-On Saturday 04 June 2011, Akinobu Mita wrote:
-> The majority of architectures implement ext2 atomic bitops as
-> test_and_{set,clear}_bit() without spinlock.
+On Sun, 29 May 2011 23:19:28 -0400
+Mike Frysinger <vapier@gentoo.org> wrote:
+
+> To make these guys work on SMP systems, we just need to sprinkle a few
+> barriers around.
 > 
-> This adds this type of generic implementation in ext2-atomic-setbit.h
-> and use it wherever possible.
+> Signed-off-by: Mike Frysinger <vapier@gentoo.org>
+> ---
+> note: this is what the Blackfin SMP port is using, but it doesn't seem
+> like other SMP ports are ... so I wonder if we're just trying too hard
+> and these barriers aren't actually necessary ?
 > 
-> Suggested-by: Andreas Dilger <adilger@dilger.ca>
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: linux-arch@vger.kernel.org
+>  include/asm-generic/mutex-dec.h |    8 +++++++-
+>  1 files changed, 7 insertions(+), 1 deletions(-)
+> 
+> diff --git a/include/asm-generic/mutex-dec.h b/include/asm-generic/mutex-dec.h
+> index f104af7..e746c3c 100644
+> --- a/include/asm-generic/mutex-dec.h
+> +++ b/include/asm-generic/mutex-dec.h
+> @@ -22,6 +22,8 @@ __mutex_fastpath_lock(atomic_t *count, void (*fail_fn)(atomic_t *))
+>  {
+>  	if (unlikely(atomic_dec_return(count) < 0))
+>  		fail_fn(count);
+> +	else
+> +		smp_mb();
+>  }
+>  
+>  /**
+> @@ -39,6 +41,7 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
+>  {
+>  	if (unlikely(atomic_dec_return(count) < 0))
+>  		return fail_fn(count);
+> +	smp_mb();
+>  	return 0;
+>  }
+>  
+> @@ -58,6 +61,7 @@ __mutex_fastpath_lock_retval(atomic_t *count, int (*fail_fn)(atomic_t *))
+>  static inline void
+>  __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+>  {
+> +	smp_mb();
+>  	if (unlikely(atomic_inc_return(count) <= 0))
+>  		fail_fn(count);
+>  }
+> @@ -82,8 +86,10 @@ __mutex_fastpath_unlock(atomic_t *count, void (*fail_fn)(atomic_t *))
+>  static inline int
+>  __mutex_fastpath_trylock(atomic_t *count, int (*fail_fn)(atomic_t *))
+>  {
+> -	if (likely(atomic_cmpxchg(count, 1, 0) == 1))
+> +	if (likely(atomic_cmpxchg(count, 1, 0) == 1)) {
+> +		smp_mb();
+>  		return 1;
+> +	}
+>  	return 0;
+>  }
 
-Looks good,
+This patch basically reverts Nick's a8ddac7e53e89cb ("mutex: speed up
+generic mutex implementations").  What's up with that?
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+I could try to review this patch but I'm pathetic with barriers.  Help.
