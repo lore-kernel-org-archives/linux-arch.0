@@ -1,48 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:36146 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757599Ab1FGViF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Jun 2011 17:38:05 -0400
-Subject: Re: [PATCHES v3] pci/of: Generic PCI <-> OF matching
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20110607090559.149f611b@jbarnes-desktop>
-References: <1302495170-973-1-git-send-email-benh@kernel.crashing.org>
-	 <1307426323.2874.157.camel@pasglop>
-	 <20110607090559.149f611b@jbarnes-desktop>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 08 Jun 2011 07:37:43 +1000
-Message-ID: <1307482663.2874.171.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-vw0-f46.google.com ([209.85.212.46]:53008 "EHLO
+	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753952Ab1FHTTI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jun 2011 15:19:08 -0400
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH] Add debugging boundary check to pfn_to_page
+Date: Wed,  8 Jun 2011 15:18:54 -0400
+Message-ID: <1307560734-3915-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, davem@davemloft.net, bheglaas@google.com, monstr@monstr.eu, tglx@linutronix.de, bigeasy@linutronix.de, linux-pci@vger.kernel.org
-Message-ID: <20110607213743.MJLWn9ztINtRR3N0nURg1vd8kCtPdNkghyGs6lhPdrc@z>
+To: arnd@arndb.de
+Cc: akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org, Eric B Munson <emunson@mgebm.net>
+Message-ID: <20110608191854.LkUZ20NLiTWKN3nBGbk2CHDGDy3Z3V3KJL156ZHl7Jw@z>
 
+Bugzilla 36192 showed a problem where pages were being accessed outside of
+a node boundary.  It would be helpful in diagnosing this kind of problem to
+have pfn_to_page complain when a page is accessed outside of the node boundary.
+This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
+that will complain when pages are accessed outside of the node boundary.
 
-> > No significant changes (other than a rebase) nor new feedback since last
-> > time, I've also added a few acks I got. But not worth spamming the list
-> > with a re-post.
-> > 
-> > I'd like this to go into -next now so it can hit the next merge window,
-> > unless somebody objects.
-> > 
-> > I've put the series in a branch "of-pci" of my powerpc.git repo at:
-> > 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/benh/powerpc.git of-pci
-> > 
-> > Please let me know if you're ok (and maybe give me Ack's) and I'll ask
-> > Stephen to add it to next.
-> 
-> Yeah, the generic bits look good to me, you can add my
->   Acked-by: Jesse Barnes <jbarnes@virtuousgeek.org>
+Signed-of-by: Eric B Munson <emunson@mgebm.net>
+---
+ include/asm-generic/memory_model.h |   19 +++++++++++++++----
+ lib/Kconfig.debug                  |   10 ++++++++++
+ 2 files changed, 25 insertions(+), 4 deletions(-)
 
-Great. Will do. I'll ask Stephen to that that in -next then and will ask
-Linus to pull directly at the next merge window, separately from
-powerpc.git (tho I might actually end up pulling that tree into
-powerpc.git too as I might end up with stuff that depends on it).
-
-Cheers,
-Ben.
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index fb2d63f..a0f1d19 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -62,11 +62,22 @@
+ 	(unsigned long)(__pg - __section_mem_map_addr(__nr_to_section(__sec)));	\
+ })
+ 
+-#define __pfn_to_page(pfn)				\
+-({	unsigned long __pfn = (pfn);			\
+-	struct mem_section *__sec = __pfn_to_section(__pfn);	\
+-	__section_mem_map_addr(__sec) + __pfn;		\
++#ifdef CONFIG_DEBUG_MEMORY_MODEL
++#define __pfn_to_page(pfn)						\
++({	unsigned long __pfn = (pfn);					\
++	struct mem_section *__sec = __pfn_to_section(__pfn);		\
++	struct page *__page = __section_mem_map_addr(__sec) + __pfn;	\
++	WARN_ON(__page->flags == 0);					\
++	__page;								\
+ })
++#else
++#define __pfn_to_page(pfn)						\
++({	unsigned long __pfn = (pfn);					\
++	struct mem_section *__sec = __pfn_to_section(__pfn);		\
++	__section_mem_map_addr(__sec) + __pfn;	\
++})
++#endif /* CONFIG_DEBUG_MEMORY_MODEL */
++
+ #endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
+ 
+ #define page_to_pfn __page_to_pfn
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index dd373c8..d932cbf 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -777,6 +777,16 @@ config DEBUG_MEMORY_INIT
+ 
+ 	  If unsure, say Y
+ 
++config DEBUG_MEMORY_MODEL
++	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
++	depends on SPARSEMEM || DISCONTIGMEM
++	help
++	  Enable this to check that page accesses are done within node
++	  boundaries.  The check will warn each time a page is requested
++	  outside node boundaries.
++
++	  If unsure, say N
++
+ config DEBUG_LIST
+ 	bool "Debug linked list manipulation"
+ 	depends on DEBUG_KERNEL
+-- 
+1.7.4.1
 
