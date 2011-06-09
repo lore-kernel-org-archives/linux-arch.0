@@ -1,105 +1,114 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH] unicore32: fix build error for find bitops
-Date: Thu, 9 Jun 2011 23:05:10 +0900
-Message-ID: <BANLkTimWYjzxhQBH2A76D590KBfjKbguTA@mail.gmail.com>
-References: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
-	<BANLkTikNC8uh-X_0iJZH3tYd_kf46W1Rwg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=bcaec5486102f6d4a404a547f088
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH] asm/types.h: All architectures use int-ll64.h in kernelspace
+Date: Thu,  9 Jun 2011 21:06:44 +0200
+Message-ID: <1307646404-13911-1-git-send-email-geert@linux-m68k.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vx0-f174.google.com ([209.85.220.174]:65327 "EHLO
-	mail-vx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751540Ab1FIOFM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2011 10:05:12 -0400
-In-Reply-To: <BANLkTikNC8uh-X_0iJZH3tYd_kf46W1Rwg@mail.gmail.com>
+Received: from juliette.telenet-ops.be ([195.130.137.74]:60201 "EHLO
+	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754409Ab1FITGw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jun 2011 15:06:52 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: GuanXuetao <gxt@mprc.pku.edu.cn>
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+To: linux-arch@vger.kernel.org, Randy Dunlap <rdunlap@xenotime.net>
+Cc: linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
 
---bcaec5486102f6d4a404a547f088
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+Now all 64-bit architectures have been converted to int-ll64.h, we can
+deprecate int-l64.h in kernelspace:
+  - Add a check to prevent new architectures from using int-l64.h in
+    kernelspace,
+  - Update documentation, as the casts to (unsigned) long long are no longer
+    needed.
 
-2011/6/9 Akinobu Mita <akinobu.mita@gmail.com>:
-> 2011/6/9 GuanXuetao <gxt@mprc.pku.edu.cn>:
->> From: Guan Xuetao <gxt@mprc.pku.edu.cn>
->>
->> Remove the __uc32_ prefix in find bitops functions.
->> see commit <19de85ef574c3a2182e3ccad9581805052f14946>
->> =A0bitops: add #ifndef for each of find bitops
->>
->> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
->> Cc: Akinobu Mita <akinobu.mita@gmail.com>
->> ---
->> =A0arch/unicore32/include/asm/bitops.h | =A0 =A06 ------
->> =A0arch/unicore32/kernel/ksyms.c =A0 =A0 =A0 | =A0 =A04 ++--
->> =A0arch/unicore32/lib/findbit.S =A0 =A0 =A0 =A0| =A0 14 ++++++++------
->> =A03 files changed, 10 insertions(+), 14 deletions(-)
->>
->> diff --git a/arch/unicore32/include/asm/bitops.h b/arch/unicore32/includ=
-e/asm/bitops.h
->> index 1628a63..a9653f0 100644
->> --- a/arch/unicore32/include/asm/bitops.h
->> +++ b/arch/unicore32/include/asm/bitops.h
->> @@ -13,12 +13,6 @@
->> =A0#ifndef __UNICORE_BITOPS_H__
->> =A0#define __UNICORE_BITOPS_H__
->>
->> -#define find_next_bit =A0 =A0 =A0 =A0 =A0__uc32_find_next_bit
->> -#define find_next_zero_bit =A0 =A0 __uc32_find_next_zero_bit
->> -
->> -#define find_first_bit =A0 =A0 =A0 =A0 __uc32_find_first_bit
->> -#define find_first_zero_bit =A0 =A0__uc32_find_first_zero_bit
->> -
->
-> Is this patch really fix the build error?
->
-> If these find_*_bit macros are removed, vmlinux will have multiple
-> definisions of find_*_bit. Because lib/find_next_bit.c is built
-> unconditionally after the commit 63e424c84429903c92a0f1e9654c31ccaf6694d0
-> ("arch: remove CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}".
+For backwards compatibility, alpha, ia64, mips, and powerpc still use
+int-l64.h in userspace.
 
-The attached patch hopefully fix the build error but it is untested
-because I can't find crosstool for unicore32. So could you apply
-this patch on top of your patch and check whether it fixes?
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ Documentation/printk-formats.txt |    4 ++--
+ include/asm-generic/int-l64.h    |   38 +-------------------------------------
+ include/asm-generic/types.h      |    3 +--
+ 3 files changed, 4 insertions(+), 41 deletions(-)
 
---bcaec5486102f6d4a404a547f088
-Content-Type: text/x-diff; charset=US-ASCII;
-	name="0001-unicore32-fix-build-error-for-find-bitops.patch"
-Content-Disposition: attachment;
-	filename="0001-unicore32-fix-build-error-for-find-bitops.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_gops5jlc0
-
-RnJvbSAxMzMzMzFlOTMxNDM4OGU3ODYxOWVkNzdjYzYyZjZhZDA0MjMzMjk5IE1vbiBTZXAgMTcg
-MDA6MDA6MDAgMjAwMQpGcm9tOiBBa2lub2J1IE1pdGEgPGFraW5vYnUubWl0YUBnbWFpbC5jb20+
-CkRhdGU6IFRodSwgOSBKdW4gMjAxMSAyMjoyODozNyArMDkwMApTdWJqZWN0OiBbUEFUQ0hdIHVu
-aWNvcmUzMjogZml4IGJ1aWxkIGVycm9yIGZvciBmaW5kIGJpdG9wcwoKU2lnbmVkLW9mZi1ieTog
-QWtpbm9idSBNaXRhIDxha2lub2J1Lm1pdGFAZ21haWwuY29tPgotLS0KIGFyY2gvdW5pY29yZTMy
-L2luY2x1ZGUvYXNtL2JpdG9wcy5oIHwgICAxNyArKysrKysrKysrKysrKysrKwogMSBmaWxlcyBj
-aGFuZ2VkLCAxNyBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2Fy
-Y2gvdW5pY29yZTMyL2luY2x1ZGUvYXNtL2JpdG9wcy5oIGIvYXJjaC91bmljb3JlMzIvaW5jbHVk
-ZS9hc20vYml0b3BzLmgKaW5kZXggYTk2NTNmMC4uZmI4YTI5YyAxMDA2NDQKLS0tIGEvYXJjaC91
-bmljb3JlMzIvaW5jbHVkZS9hc20vYml0b3BzLmgKKysrIGIvYXJjaC91bmljb3JlMzIvaW5jbHVk
-ZS9hc20vYml0b3BzLmgKQEAgLTE3LDYgKzE3LDcgQEAKICNkZWZpbmUgX0FTTV9HRU5FUklDX0JJ
-VE9QU19fX0ZMU19IXwogI2RlZmluZSBfQVNNX0dFTkVSSUNfQklUT1BTX0ZGU19IXwogI2RlZmlu
-ZSBfQVNNX0dFTkVSSUNfQklUT1BTX19fRkZTX0hfCisjZGVmaW5lIF9BU01fR0VORVJJQ19CSVRP
-UFNfRklORF9IXwogLyoKICAqIE9uIFVOSUNPUkUsIHRob3NlIGZ1bmN0aW9ucyBjYW4gYmUgaW1w
-bGVtZW50ZWQgYXJvdW5kCiAgKiB0aGUgY250bHogaW5zdHJ1Y3Rpb24gZm9yIG11Y2ggYmV0dGVy
-IGNvZGUgZWZmaWNpZW5jeS4KQEAgLTM2LDYgKzM3LDIyIEBAIHN0YXRpYyBpbmxpbmUgaW50IGZs
-cyhpbnQgeCkKICNkZWZpbmUgZmZzKHgpICh7IHVuc2lnbmVkIGxvbmcgX190ID0gKHgpOyBmbHMo
-X190ICYgLV9fdCk7IH0pCiAjZGVmaW5lIF9fZmZzKHgpIChmZnMoeCkgLSAxKQogCitleHRlcm4g
-dW5zaWduZWQgbG9uZyBmaW5kX25leHRfYml0KGNvbnN0IHVuc2lnbmVkIGxvbmcgKmFkZHIsIHVu
-c2lnbmVkIGxvbmcKKwkJc2l6ZSwgdW5zaWduZWQgbG9uZyBvZmZzZXQpOworI2RlZmluZSBmaW5k
-X25leHRfYml0IGZpbmRfbmV4dF9iaXQKKworZXh0ZXJuIHVuc2lnbmVkIGxvbmcgZmluZF9uZXh0
-X3plcm9fYml0KGNvbnN0IHVuc2lnbmVkIGxvbmcgKmFkZHIsIHVuc2lnbmVkCisJCWxvbmcgc2l6
-ZSwgdW5zaWduZWQgbG9uZyBvZmZzZXQpOworI2RlZmluZSBmaW5kX25leHRfemVyb19iaXQgZmlu
-ZF9uZXh0X3plcm9fYml0CisKK2V4dGVybiB1bnNpZ25lZCBsb25nIGZpbmRfZmlyc3RfYml0KGNv
-bnN0IHVuc2lnbmVkIGxvbmcgKmFkZHIsCisJCQkJICAgIHVuc2lnbmVkIGxvbmcgc2l6ZSk7Cisj
-ZGVmaW5lIGZpbmRfZmlyc3RfYml0IGZpbmRfZmlyc3RfYml0CisKK2V4dGVybiB1bnNpZ25lZCBs
-b25nIGZpbmRfZmlyc3RfemVyb19iaXQoY29uc3QgdW5zaWduZWQgbG9uZyAqYWRkciwKKwkJCQkJ
-IHVuc2lnbmVkIGxvbmcgc2l6ZSk7CisjZGVmaW5lIGZpbmRfZmlyc3RfemVyb19iaXQgZmluZF9m
-aXJzdF96ZXJvX2JpdAorCiAjaW5jbHVkZSA8YXNtLWdlbmVyaWMvYml0b3BzLmg+CiAKICNlbmRp
-ZiAvKiBfX1VOSUNPUkVfQklUT1BTX0hfXyAqLwotLSAKMS43LjQuNAoK
---bcaec5486102f6d4a404a547f088--
+diff --git a/Documentation/printk-formats.txt b/Documentation/printk-formats.txt
+index 1b5a5dd..b9b8926 100644
+--- a/Documentation/printk-formats.txt
++++ b/Documentation/printk-formats.txt
+@@ -13,11 +13,11 @@ Raw pointer value SHOULD be printed with %p.
+ 
+ u64 SHOULD be printed with %llu/%llx, (unsigned long long):
+ 
+-	printk("%llu", (unsigned long long)u64_var);
++	printk("%llu", u64_var);
+ 
+ s64 SHOULD be printed with %lld/%llx, (long long):
+ 
+-	printk("%lld", (long long)s64_var);
++	printk("%lld", s64_var);
+ 
+ If <type> is dependent on a config option for its size (e.g., sector_t,
+ blkcnt_t, phys_addr_t, resource_size_t) or is architecture-dependent
+diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
+index 1ca3efc..f07a500 100644
+--- a/include/asm-generic/int-l64.h
++++ b/include/asm-generic/int-l64.h
+@@ -31,43 +31,7 @@ typedef unsigned long __u64;
+ #endif /* __ASSEMBLY__ */
+ 
+ #ifdef __KERNEL__
+-
+-#ifndef __ASSEMBLY__
+-
+-typedef signed char s8;
+-typedef unsigned char u8;
+-
+-typedef signed short s16;
+-typedef unsigned short u16;
+-
+-typedef signed int s32;
+-typedef unsigned int u32;
+-
+-typedef signed long s64;
+-typedef unsigned long u64;
+-
+-#define S8_C(x)  x
+-#define U8_C(x)  x ## U
+-#define S16_C(x) x
+-#define U16_C(x) x ## U
+-#define S32_C(x) x
+-#define U32_C(x) x ## U
+-#define S64_C(x) x ## L
+-#define U64_C(x) x ## UL
+-
+-#else /* __ASSEMBLY__ */
+-
+-#define S8_C(x)  x
+-#define U8_C(x)  x
+-#define S16_C(x) x
+-#define U16_C(x) x
+-#define S32_C(x) x
+-#define U32_C(x) x
+-#define S64_C(x) x
+-#define U64_C(x) x
+-
+-#endif /* __ASSEMBLY__ */
+-
++#error Please use <asm-generic/int-ll64.h> in kernelspace
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _ASM_GENERIC_INT_L64_H */
+diff --git a/include/asm-generic/types.h b/include/asm-generic/types.h
+index 7a0f69e..a9672ef 100644
+--- a/include/asm-generic/types.h
++++ b/include/asm-generic/types.h
+@@ -1,8 +1,7 @@
+ #ifndef _ASM_GENERIC_TYPES_H
+ #define _ASM_GENERIC_TYPES_H
+ /*
+- * int-ll64 is used practically everywhere now,
+- * so use it as a reasonable default.
++ * int-ll64 is used everywhere now.
+  */
+ #include <asm-generic/int-ll64.h>
+ 
+-- 
+1.7.0.4
