@@ -1,46 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:58154 "EHLO gate.crashing.org"
+Received: from hera.kernel.org ([140.211.167.34]:33000 "EHLO hera.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751214Ab1FIF1F (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jun 2011 01:27:05 -0400
-Subject: Re: [patch 13/14] PCSPKR: Cleanup Kconfig dependencies
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-In-Reply-To: <20110601180610.984881988@duck.linux-mips.net>
-References: <20110601180456.801265664@duck.linux-mips.net>
-	 <20110601180610.984881988@duck.linux-mips.net>
-Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 09 Jun 2011 15:09:32 +1000
-Message-ID: <1307596172.2874.268.camel@pasglop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1757222Ab1FILJo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jun 2011 07:09:44 -0400
+From: GuanXuetao <gxt@mprc.pku.edu.cn>
+Subject: [PATCH] unicore32: fix build error for find bitops
+Date: Thu,  9 Jun 2011 11:09:12 +0000
+Message-ID: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Paul Mackerras <paulus@samba.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20110609050932.HVV9niTGO5KlW6d3ncZQMIXKFuNCJciHFiNTuw2hCB8@z>
+To: arnd@arndb.de
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, Akinobu Mita <akinobu.mita@gmail.com>
+Message-ID: <20110609110912.LLDQD6VEs_Tqsq8SbcUT6tasfTmz1g9A_01tGIoA_H8@z>
 
-On Wed, 2011-06-01 at 19:05 +0100, ralf@linux-mips.org wrote:
-> plain text document attachment
-> (i8253-use-aux-symbol-for-pcspkr-config.patch)
-> Lenghty lists of the kind "depends on ARCH1 || ARCH2 ... || ARCH123" are
-> usually either wrong or too coarse grained.  Or plain an ugly sin.
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Remove the __uc32_ prefix in find bitops functions.
+see commit <19de85ef574c3a2182e3ccad9581805052f14946>
+  bitops: add #ifndef for each of find bitops
+
+Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 ---
+ arch/unicore32/include/asm/bitops.h |    6 ------
+ arch/unicore32/kernel/ksyms.c       |    4 ++--
+ arch/unicore32/lib/findbit.S        |   14 ++++++++------
+ 3 files changed, 10 insertions(+), 14 deletions(-)
 
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-> To: linux-kernel@vger.kernel.org
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Matt Turner <mattst88@gmail.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-
+diff --git a/arch/unicore32/include/asm/bitops.h b/arch/unicore32/include/asm/bitops.h
+index 1628a63..a9653f0 100644
+--- a/arch/unicore32/include/asm/bitops.h
++++ b/arch/unicore32/include/asm/bitops.h
+@@ -13,12 +13,6 @@
+ #ifndef __UNICORE_BITOPS_H__
+ #define __UNICORE_BITOPS_H__
+ 
+-#define find_next_bit		__uc32_find_next_bit
+-#define find_next_zero_bit	__uc32_find_next_zero_bit
+-
+-#define find_first_bit		__uc32_find_first_bit
+-#define find_first_zero_bit	__uc32_find_first_zero_bit
+-
+ #define _ASM_GENERIC_BITOPS_FLS_H_
+ #define _ASM_GENERIC_BITOPS___FLS_H_
+ #define _ASM_GENERIC_BITOPS_FFS_H_
+diff --git a/arch/unicore32/kernel/ksyms.c b/arch/unicore32/kernel/ksyms.c
+index a897080..d98bd81 100644
+--- a/arch/unicore32/kernel/ksyms.c
++++ b/arch/unicore32/kernel/ksyms.c
+@@ -24,8 +24,8 @@
+ 
+ #include "ksyms.h"
+ 
+-EXPORT_SYMBOL(__uc32_find_next_zero_bit);
+-EXPORT_SYMBOL(__uc32_find_next_bit);
++EXPORT_SYMBOL(find_next_zero_bit);
++EXPORT_SYMBOL(find_next_bit);
+ 
+ EXPORT_SYMBOL(__backtrace);
+ 
+diff --git a/arch/unicore32/lib/findbit.S b/arch/unicore32/lib/findbit.S
+index c360ce9..c777462 100644
+--- a/arch/unicore32/lib/findbit.S
++++ b/arch/unicore32/lib/findbit.S
+@@ -17,7 +17,7 @@
+  * Purpose  : Find a 'zero' bit
+  * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
+  */
+-__uc32_find_first_zero_bit:
++ENTRY(find_first_zero_bit)
+ 		cxor.a	r1, #0
+ 		beq	3f
+ 		mov	r2, #0
+@@ -29,13 +29,14 @@ __uc32_find_first_zero_bit:
+ 		bub	1b
+ 3:		mov	r0, r1			@ no free bits
+ 		mov	pc, lr
++ENDPROC(find_first_zero_bit)
+ 
+ /*
+  * Purpose  : Find next 'zero' bit
+  * Prototype: int find_next_zero_bit
+  *		(void *addr, unsigned int maxbit, int offset)
+  */
+-ENTRY(__uc32_find_next_zero_bit)
++ENTRY(find_next_zero_bit)
+ 		cxor.a	r1, #0
+ 		beq	3b
+ 		and.a	ip, r2, #7
+@@ -47,14 +48,14 @@ ENTRY(__uc32_find_next_zero_bit)
+ 		or	r2, r2, #7		@ if zero, then no bits here
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+-ENDPROC(__uc32_find_next_zero_bit)
++ENDPROC(find_next_zero_bit)
+ 
+ /*
+  * Purpose  : Find a 'one' bit
+  * Prototype: int find_first_bit
+  *		(const unsigned long *addr, unsigned int maxbit);
+  */
+-__uc32_find_first_bit:
++ENTRY(find_first_bit)
+ 		cxor.a	r1, #0
+ 		beq	3f
+ 		mov	r2, #0
+@@ -66,13 +67,14 @@ __uc32_find_first_bit:
+ 		bub	1b
+ 3:		mov	r0, r1			@ no free bits
+ 		mov	pc, lr
++ENDPROC(find_first_bit)
+ 
+ /*
+  * Purpose  : Find next 'one' bit
+  * Prototype: int find_next_zero_bit
+  *		(void *addr, unsigned int maxbit, int offset)
+  */
+-ENTRY(__uc32_find_next_bit)
++ENTRY(find_next_bit)
+ 		cxor.a	r1, #0
+ 		beq	3b
+ 		and.a	ip, r2, #7
+@@ -83,7 +85,7 @@ ENTRY(__uc32_find_next_bit)
+ 		or	r2, r2, #7		@ if zero, then no bits here
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+-ENDPROC(__uc32_find_next_bit)
++ENDPROC(find_next_bit)
+ 
+ /*
+  * One or more bits in the LSB of r3 are assumed to be set.
+-- 
+1.7.5.4
 
