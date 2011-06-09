@@ -1,50 +1,129 @@
 From: GuanXuetao <gxt@mprc.pku.edu.cn>
-Subject: [GIT PULL] unicore32 patches for linux-2.6
-Date: Thu,  9 Jun 2011 10:48:13 +0000
-Message-ID: <cover.1307614950.git.gxt@mprc.pku.edu.cn>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:41376 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753515Ab1FIKtP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jun 2011 06:49:15 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: GuanXuetao <gxt@mprc.pku.edu.cn>, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+Subject: [PATCH] unicore32: fix build error for find bitops
+Date: Thu,  9 Jun 2011 11:09:12 +0000
+Message-ID: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, Akinobu Mita <akinobu.mita@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Linus,
-Please pull the patches of unicore32 subsystem for linux-2.6 from:
-  git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git unicore32
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Five patches are included after last review, and mac driver is excluded.
+Remove the __uc32_ prefix in find bitops functions.
+see commit <19de85ef574c3a2182e3ccad9581805052f14946>
+  bitops: add #ifndef for each of find bitops
 
-Thanks
-
-Guan Xuetao
-
+Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 ---
-Guan Xuetao (5):
-  unicore32: move rtc-puv3.c to drivers/rtc directory
-  unicore32: change zImage physical address, though it's PIC codes
-  unicore32: add KBUILD_DEFCONFIG with unicore32_defconfig (old
-    debug_defconfig)
-  unicore32: change PERCPU to PERCPU_SECTION
-  unicore32: using generic-y format for one line asm-generic files
+ arch/unicore32/include/asm/bitops.h |    6 ------
+ arch/unicore32/kernel/ksyms.c       |    4 ++--
+ arch/unicore32/lib/findbit.S        |   14 ++++++++------
+ 3 files changed, 10 insertions(+), 14 deletions(-)
 
- MAINTAINERS                                        |    1 +
- arch/unicore32/Kconfig                             |    4 -
- arch/unicore32/Makefile                            |   38 +------------
- arch/unicore32/boot/compressed/Makefile            |    2 +-
- .../{debug_defconfig => unicore32_defconfig}       |    8 +-
- arch/unicore32/include/asm/Kbuild                  |   59 ++++++++++++++++++++
- arch/unicore32/kernel/Makefile                     |    1 -
- arch/unicore32/kernel/vmlinux.lds.S                |    2 +-
- drivers/rtc/Kconfig                                |    9 +++
- drivers/rtc/Makefile                               |    1 +
- .../kernel/rtc.c => drivers/rtc/rtc-puv3.c         |   14 +----
- 11 files changed, 79 insertions(+), 60 deletions(-)
- rename arch/unicore32/configs/{debug_defconfig => unicore32_defconfig} (97%)
- rename arch/unicore32/kernel/rtc.c => drivers/rtc/rtc-puv3.c (98%)
-
+diff --git a/arch/unicore32/include/asm/bitops.h b/arch/unicore32/include/asm/bitops.h
+index 1628a63..a9653f0 100644
+--- a/arch/unicore32/include/asm/bitops.h
++++ b/arch/unicore32/include/asm/bitops.h
+@@ -13,12 +13,6 @@
+ #ifndef __UNICORE_BITOPS_H__
+ #define __UNICORE_BITOPS_H__
+ 
+-#define find_next_bit		__uc32_find_next_bit
+-#define find_next_zero_bit	__uc32_find_next_zero_bit
+-
+-#define find_first_bit		__uc32_find_first_bit
+-#define find_first_zero_bit	__uc32_find_first_zero_bit
+-
+ #define _ASM_GENERIC_BITOPS_FLS_H_
+ #define _ASM_GENERIC_BITOPS___FLS_H_
+ #define _ASM_GENERIC_BITOPS_FFS_H_
+diff --git a/arch/unicore32/kernel/ksyms.c b/arch/unicore32/kernel/ksyms.c
+index a897080..d98bd81 100644
+--- a/arch/unicore32/kernel/ksyms.c
++++ b/arch/unicore32/kernel/ksyms.c
+@@ -24,8 +24,8 @@
+ 
+ #include "ksyms.h"
+ 
+-EXPORT_SYMBOL(__uc32_find_next_zero_bit);
+-EXPORT_SYMBOL(__uc32_find_next_bit);
++EXPORT_SYMBOL(find_next_zero_bit);
++EXPORT_SYMBOL(find_next_bit);
+ 
+ EXPORT_SYMBOL(__backtrace);
+ 
+diff --git a/arch/unicore32/lib/findbit.S b/arch/unicore32/lib/findbit.S
+index c360ce9..c777462 100644
+--- a/arch/unicore32/lib/findbit.S
++++ b/arch/unicore32/lib/findbit.S
+@@ -17,7 +17,7 @@
+  * Purpose  : Find a 'zero' bit
+  * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
+  */
+-__uc32_find_first_zero_bit:
++ENTRY(find_first_zero_bit)
+ 		cxor.a	r1, #0
+ 		beq	3f
+ 		mov	r2, #0
+@@ -29,13 +29,14 @@ __uc32_find_first_zero_bit:
+ 		bub	1b
+ 3:		mov	r0, r1			@ no free bits
+ 		mov	pc, lr
++ENDPROC(find_first_zero_bit)
+ 
+ /*
+  * Purpose  : Find next 'zero' bit
+  * Prototype: int find_next_zero_bit
+  *		(void *addr, unsigned int maxbit, int offset)
+  */
+-ENTRY(__uc32_find_next_zero_bit)
++ENTRY(find_next_zero_bit)
+ 		cxor.a	r1, #0
+ 		beq	3b
+ 		and.a	ip, r2, #7
+@@ -47,14 +48,14 @@ ENTRY(__uc32_find_next_zero_bit)
+ 		or	r2, r2, #7		@ if zero, then no bits here
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+-ENDPROC(__uc32_find_next_zero_bit)
++ENDPROC(find_next_zero_bit)
+ 
+ /*
+  * Purpose  : Find a 'one' bit
+  * Prototype: int find_first_bit
+  *		(const unsigned long *addr, unsigned int maxbit);
+  */
+-__uc32_find_first_bit:
++ENTRY(find_first_bit)
+ 		cxor.a	r1, #0
+ 		beq	3f
+ 		mov	r2, #0
+@@ -66,13 +67,14 @@ __uc32_find_first_bit:
+ 		bub	1b
+ 3:		mov	r0, r1			@ no free bits
+ 		mov	pc, lr
++ENDPROC(find_first_bit)
+ 
+ /*
+  * Purpose  : Find next 'one' bit
+  * Prototype: int find_next_zero_bit
+  *		(void *addr, unsigned int maxbit, int offset)
+  */
+-ENTRY(__uc32_find_next_bit)
++ENTRY(find_next_bit)
+ 		cxor.a	r1, #0
+ 		beq	3b
+ 		and.a	ip, r2, #7
+@@ -83,7 +85,7 @@ ENTRY(__uc32_find_next_bit)
+ 		or	r2, r2, #7		@ if zero, then no bits here
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+-ENDPROC(__uc32_find_next_bit)
++ENDPROC(find_next_bit)
+ 
+ /*
+  * One or more bits in the LSB of r3 are assumed to be set.
 -- 
 1.7.5.4
