@@ -1,110 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e7.ny.us.ibm.com ([32.97.182.137]:49671 "EHLO e7.ny.us.ibm.com"
+Received: from gate.crashing.org ([63.228.1.57]:35780 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751181Ab1FHT4i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jun 2011 15:56:38 -0400
-Date: Wed, 8 Jun 2011 12:56:35 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH] Add debugging boundary check to pfn_to_page
-Message-ID: <20110608195635.GI2324@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <1307560734-3915-1-git-send-email-emunson@mgebm.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1307560734-3915-1-git-send-email-emunson@mgebm.net>
+	id S1750819Ab1FIFIW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jun 2011 01:08:22 -0400
+Subject: Re: [patch 09/14] i8253: Alpha, PowerPC: Remove unused
+ <asm/8253pit.h> header.
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <20110601180610.684557757@duck.linux-mips.net>
+References: <20110601180456.801265664@duck.linux-mips.net>
+	 <20110601180610.684557757@duck.linux-mips.net>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 09 Jun 2011 15:07:33 +1000
+Message-ID: <1307596053.2874.267.camel@pasglop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: arnd@arndb.de, akpm@linux-foundation.org, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org
-Message-ID: <20110608195635.okk_IaudH8YGHf7XkEpo07kVCiOv7nJN1nJMzDcsAkA@z>
+To: ralf@linux-mips.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linux-alpha@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20110609050733.rPAqyiehwzdWsgPAiwxiXn7s5pHBwIbHo5Pg_fQKaV4@z>
 
-On Wed, Jun 08, 2011 at 03:18:54PM -0400, Eric B Munson wrote:
-> Bugzilla 36192 showed a problem where pages were being accessed outside of
-> a node boundary.  It would be helpful in diagnosing this kind of problem to
-> have pfn_to_page complain when a page is accessed outside of the node boundary.
-> This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
-> that will complain when pages are accessed outside of the node boundary.
+On Wed, 2011-06-01 at 19:05 +0100, ralf@linux-mips.org wrote:
+> plain text document attachment
+> (i8253-remove-unused-8253pit.h-files.patch)
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+> To: linux-kernel@vger.kernel.org
+> Cc: Richard Henderson <rth@twiddle.net>
+> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+> Cc: Matt Turner <mattst88@gmail.com>
+> Cc: linux-alpha@vger.kernel.org
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: linuxppc-dev@lists.ozlabs.org
 > 
-> Signed-of-by: Eric B Munson <emunson@mgebm.net>
-> ---
->  include/asm-generic/memory_model.h |   19 +++++++++++++++----
->  lib/Kconfig.debug                  |   10 ++++++++++
->  2 files changed, 25 insertions(+), 4 deletions(-)
-> 
-> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
-> index fb2d63f..a0f1d19 100644
-> --- a/include/asm-generic/memory_model.h
-> +++ b/include/asm-generic/memory_model.h
-> @@ -62,11 +62,22 @@
->  	(unsigned long)(__pg - __section_mem_map_addr(__nr_to_section(__sec)));	\
->  })
-> 
-> -#define __pfn_to_page(pfn)				\
-> -({	unsigned long __pfn = (pfn);			\
-> -	struct mem_section *__sec = __pfn_to_section(__pfn);	\
-> -	__section_mem_map_addr(__sec) + __pfn;		\
-> +#ifdef CONFIG_DEBUG_MEMORY_MODEL
-> +#define __pfn_to_page(pfn)						\
-> +({	unsigned long __pfn = (pfn);					\
-> +	struct mem_section *__sec = __pfn_to_section(__pfn);		\
-> +	struct page *__page = __section_mem_map_addr(__sec) + __pfn;	\
-> +	WARN_ON(__page->flags == 0);					\
-> +	__page;								\
->  })
-> +#else
-> +#define __pfn_to_page(pfn)						\
-> +({	unsigned long __pfn = (pfn);					\
-> +	struct mem_section *__sec = __pfn_to_section(__pfn);		\
-> +	__section_mem_map_addr(__sec) + __pfn;	\
-> +})
-> +#endif /* CONFIG_DEBUG_MEMORY_MODEL */
-> +
+>  arch/alpha/include/asm/8253pit.h   |    3 ---
+>  arch/powerpc/include/asm/8253pit.h |    3 ---
+>  2 files changed, 6 deletions(-)
 
-The following variant would avoid the duplicate code, FWIW.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-#define __pfn_to_page_nodebug(pfn)					\
-({	unsigned long __pfn = (pfn);					\
-	struct mem_section *__sec = __pfn_to_section(__pfn);		\
-	__section_mem_map_addr(__sec) + __pfn;				\
-})
-#ifdef CONFIG_DEBUG_MEMORY_MODEL
-#define __pfn_to_page(pfn)						\
-({									\
-	struct page *__page = __pfn_to_page_nodebug(pfn);		\
-	WARN_ON(__page->flags == 0);					\
-	__page;								\
-})
-#else
-#define __pfn_to_page(pfn) __pfn_to_page_nodebug(pfn)
-#endif /* CONFIG_DEBUG_MEMORY_MODEL */
+Thanks !
 
-							Thanx, Paul
+Ben.
 
->  #endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
+> Index: linux-mips/arch/alpha/include/asm/8253pit.h
+> ===================================================================
+> --- linux-mips.orig/arch/alpha/include/asm/8253pit.h
+> +++ /dev/null
+> @@ -1,3 +0,0 @@
+> -/*
+> - * 8253/8254 Programmable Interval Timer
+> - */
+> Index: linux-mips/arch/powerpc/include/asm/8253pit.h
+> ===================================================================
+> --- linux-mips.orig/arch/powerpc/include/asm/8253pit.h
+> +++ /dev/null
+> @@ -1,3 +0,0 @@
+> -/*
+> - * 8253/8254 Programmable Interval Timer
+> - */
 > 
->  #define page_to_pfn __page_to_pfn
-> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-> index dd373c8..d932cbf 100644
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -777,6 +777,16 @@ config DEBUG_MEMORY_INIT
-> 
->  	  If unsure, say Y
-> 
-> +config DEBUG_MEMORY_MODEL
-> +	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
-> +	depends on SPARSEMEM || DISCONTIGMEM
-> +	help
-> +	  Enable this to check that page accesses are done within node
-> +	  boundaries.  The check will warn each time a page is requested
-> +	  outside node boundaries.
-> +
-> +	  If unsure, say N
-> +
->  config DEBUG_LIST
->  	bool "Debug linked list manipulation"
->  	depends on DEBUG_KERNEL
-> -- 
-> 1.7.4.1
-> 
+
+
