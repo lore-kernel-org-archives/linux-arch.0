@@ -1,48 +1,50 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [patch 13/14] PCSPKR: Cleanup Kconfig dependencies
-Date: Thu, 09 Jun 2011 15:09:32 +1000
-Message-ID: <1307596172.2874.268.camel@pasglop>
-References: <20110601180456.801265664@duck.linux-mips.net>
-	<20110601180610.984881988@duck.linux-mips.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20110601180610.984881988@duck.linux-mips.net>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
-	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: ralf@linux-mips.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-alpha@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Paul Mackerras <paulus@samba.org>, "H. Peter
-	Anvin" <hpa@zytor.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, linuxppc-dev@lists.ozlabs.org, Thomas Gleixner <tglx@linutronix.de>, Richard Henderson <rth@twiddle.net>
-List-Id: linux-arch.vger.kernel.org
+From: GuanXuetao <gxt@mprc.pku.edu.cn>
+Subject: [GIT PULL] unicore32 patches for linux-2.6
+Date: Thu,  9 Jun 2011 10:48:13 +0000
+Message-ID: <cover.1307614950.git.gxt@mprc.pku.edu.cn>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hera.kernel.org ([140.211.167.34]:41376 "EHLO hera.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753515Ab1FIKtP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jun 2011 06:49:15 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: GuanXuetao <gxt@mprc.pku.edu.cn>, arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
 
-On Wed, 2011-06-01 at 19:05 +0100, ralf@linux-mips.org wrote:
-> plain text document attachment
-> (i8253-use-aux-symbol-for-pcspkr-config.patch)
-> Lenghty lists of the kind "depends on ARCH1 || ARCH2 ... || ARCH123" are
-> usually either wrong or too coarse grained.  Or plain an ugly sin.
+Hi Linus,
+Please pull the patches of unicore32 subsystem for linux-2.6 from:
+  git://git.kernel.org/pub/scm/linux/kernel/git/epip/linux-2.6-unicore32.git unicore32
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Five patches are included after last review, and mac driver is excluded.
+
+Thanks
+
+Guan Xuetao
+
 ---
+Guan Xuetao (5):
+  unicore32: move rtc-puv3.c to drivers/rtc directory
+  unicore32: change zImage physical address, though it's PIC codes
+  unicore32: add KBUILD_DEFCONFIG with unicore32_defconfig (old
+    debug_defconfig)
+  unicore32: change PERCPU to PERCPU_SECTION
+  unicore32: using generic-y format for one line asm-generic files
 
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-> To: linux-kernel@vger.kernel.org
-> Cc: Richard Henderson <rth@twiddle.net>
-> Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
-> Cc: Matt Turner <mattst88@gmail.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: x86@kernel.org
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linuxppc-dev@lists.ozlabs.org
+ MAINTAINERS                                        |    1 +
+ arch/unicore32/Kconfig                             |    4 -
+ arch/unicore32/Makefile                            |   38 +------------
+ arch/unicore32/boot/compressed/Makefile            |    2 +-
+ .../{debug_defconfig => unicore32_defconfig}       |    8 +-
+ arch/unicore32/include/asm/Kbuild                  |   59 ++++++++++++++++++++
+ arch/unicore32/kernel/Makefile                     |    1 -
+ arch/unicore32/kernel/vmlinux.lds.S                |    2 +-
+ drivers/rtc/Kconfig                                |    9 +++
+ drivers/rtc/Makefile                               |    1 +
+ .../kernel/rtc.c => drivers/rtc/rtc-puv3.c         |   14 +----
+ 11 files changed, 79 insertions(+), 60 deletions(-)
+ rename arch/unicore32/configs/{debug_defconfig => unicore32_defconfig} (97%)
+ rename arch/unicore32/kernel/rtc.c => drivers/rtc/rtc-puv3.c (98%)
+
+-- 
+1.7.5.4
