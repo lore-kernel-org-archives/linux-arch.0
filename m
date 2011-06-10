@@ -1,135 +1,132 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hera.kernel.org ([140.211.167.34]:33000 "EHLO hera.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757222Ab1FILJo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jun 2011 07:09:44 -0400
-From: GuanXuetao <gxt@mprc.pku.edu.cn>
-Subject: [PATCH] unicore32: fix build error for find bitops
-Date: Thu,  9 Jun 2011 11:09:12 +0000
-Message-ID: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
+Received: from oproxy5-pub.bluehost.com ([67.222.38.55]:59316 "HELO
+	oproxy5-pub.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1757969Ab1FJS2k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jun 2011 14:28:40 -0400
+Date: Fri, 10 Jun 2011 11:21:58 -0700
+From: Randy Dunlap <rdunlap@xenotime.net>
+Subject: Re: [PATCH] asm/types.h: All architectures use int-ll64.h in
+ kernelspace
+Message-ID: <20110610112158.00bcf219.rdunlap@xenotime.net>
+In-Reply-To: <1307646404-13911-1-git-send-email-geert@linux-m68k.org>
+References: <1307646404-13911-1-git-send-email-geert@linux-m68k.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com, Akinobu Mita <akinobu.mita@gmail.com>
-Message-ID: <20110609110912.LLDQD6VEs_Tqsq8SbcUT6tasfTmz1g9A_01tGIoA_H8@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org
+Message-ID: <20110610182158.DKMAaWGmh6Q6-4OXzXpWO3_d68IszNt2PFWNVjQxz5Q@z>
 
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+On Thu,  9 Jun 2011 21:06:44 +0200 Geert Uytterhoeven wrote:
 
-Remove the __uc32_ prefix in find bitops functions.
-see commit <19de85ef574c3a2182e3ccad9581805052f14946>
-  bitops: add #ifndef for each of find bitops
+> Now all 64-bit architectures have been converted to int-ll64.h, we can
+> deprecate int-l64.h in kernelspace:
+>   - Add a check to prevent new architectures from using int-l64.h in
+>     kernelspace,
+>   - Update documentation, as the casts to (unsigned) long long are no longer
+>     needed.
 
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
+For the documentation parts:
+Acked-by: Randy Dunlap <rdunlap@xenotime.net>
+
+but I'm not sure who should merge it...
+
+> For backwards compatibility, alpha, ia64, mips, and powerpc still use
+> int-l64.h in userspace.
+> 
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+>  Documentation/printk-formats.txt |    4 ++--
+>  include/asm-generic/int-l64.h    |   38 +-------------------------------------
+>  include/asm-generic/types.h      |    3 +--
+>  3 files changed, 4 insertions(+), 41 deletions(-)
+> 
+> diff --git a/Documentation/printk-formats.txt b/Documentation/printk-formats.txt
+> index 1b5a5dd..b9b8926 100644
+> --- a/Documentation/printk-formats.txt
+> +++ b/Documentation/printk-formats.txt
+> @@ -13,11 +13,11 @@ Raw pointer value SHOULD be printed with %p.
+>  
+>  u64 SHOULD be printed with %llu/%llx, (unsigned long long):
+>  
+> -	printk("%llu", (unsigned long long)u64_var);
+> +	printk("%llu", u64_var);
+>  
+>  s64 SHOULD be printed with %lld/%llx, (long long):
+>  
+> -	printk("%lld", (long long)s64_var);
+> +	printk("%lld", s64_var);
+>  
+>  If <type> is dependent on a config option for its size (e.g., sector_t,
+>  blkcnt_t, phys_addr_t, resource_size_t) or is architecture-dependent
+> diff --git a/include/asm-generic/int-l64.h b/include/asm-generic/int-l64.h
+> index 1ca3efc..f07a500 100644
+> --- a/include/asm-generic/int-l64.h
+> +++ b/include/asm-generic/int-l64.h
+> @@ -31,43 +31,7 @@ typedef unsigned long __u64;
+>  #endif /* __ASSEMBLY__ */
+>  
+>  #ifdef __KERNEL__
+> -
+> -#ifndef __ASSEMBLY__
+> -
+> -typedef signed char s8;
+> -typedef unsigned char u8;
+> -
+> -typedef signed short s16;
+> -typedef unsigned short u16;
+> -
+> -typedef signed int s32;
+> -typedef unsigned int u32;
+> -
+> -typedef signed long s64;
+> -typedef unsigned long u64;
+> -
+> -#define S8_C(x)  x
+> -#define U8_C(x)  x ## U
+> -#define S16_C(x) x
+> -#define U16_C(x) x ## U
+> -#define S32_C(x) x
+> -#define U32_C(x) x ## U
+> -#define S64_C(x) x ## L
+> -#define U64_C(x) x ## UL
+> -
+> -#else /* __ASSEMBLY__ */
+> -
+> -#define S8_C(x)  x
+> -#define U8_C(x)  x
+> -#define S16_C(x) x
+> -#define U16_C(x) x
+> -#define S32_C(x) x
+> -#define U32_C(x) x
+> -#define S64_C(x) x
+> -#define U64_C(x) x
+> -
+> -#endif /* __ASSEMBLY__ */
+> -
+> +#error Please use <asm-generic/int-ll64.h> in kernelspace
+>  #endif /* __KERNEL__ */
+>  
+>  #endif /* _ASM_GENERIC_INT_L64_H */
+> diff --git a/include/asm-generic/types.h b/include/asm-generic/types.h
+> index 7a0f69e..a9672ef 100644
+> --- a/include/asm-generic/types.h
+> +++ b/include/asm-generic/types.h
+> @@ -1,8 +1,7 @@
+>  #ifndef _ASM_GENERIC_TYPES_H
+>  #define _ASM_GENERIC_TYPES_H
+>  /*
+> - * int-ll64 is used practically everywhere now,
+> - * so use it as a reasonable default.
+> + * int-ll64 is used everywhere now.
+>   */
+>  #include <asm-generic/int-ll64.h>
+>  
+> -- 
+
+
 ---
- arch/unicore32/include/asm/bitops.h |    6 ------
- arch/unicore32/kernel/ksyms.c       |    4 ++--
- arch/unicore32/lib/findbit.S        |   14 ++++++++------
- 3 files changed, 10 insertions(+), 14 deletions(-)
-
-diff --git a/arch/unicore32/include/asm/bitops.h b/arch/unicore32/include/asm/bitops.h
-index 1628a63..a9653f0 100644
---- a/arch/unicore32/include/asm/bitops.h
-+++ b/arch/unicore32/include/asm/bitops.h
-@@ -13,12 +13,6 @@
- #ifndef __UNICORE_BITOPS_H__
- #define __UNICORE_BITOPS_H__
- 
--#define find_next_bit		__uc32_find_next_bit
--#define find_next_zero_bit	__uc32_find_next_zero_bit
--
--#define find_first_bit		__uc32_find_first_bit
--#define find_first_zero_bit	__uc32_find_first_zero_bit
--
- #define _ASM_GENERIC_BITOPS_FLS_H_
- #define _ASM_GENERIC_BITOPS___FLS_H_
- #define _ASM_GENERIC_BITOPS_FFS_H_
-diff --git a/arch/unicore32/kernel/ksyms.c b/arch/unicore32/kernel/ksyms.c
-index a897080..d98bd81 100644
---- a/arch/unicore32/kernel/ksyms.c
-+++ b/arch/unicore32/kernel/ksyms.c
-@@ -24,8 +24,8 @@
- 
- #include "ksyms.h"
- 
--EXPORT_SYMBOL(__uc32_find_next_zero_bit);
--EXPORT_SYMBOL(__uc32_find_next_bit);
-+EXPORT_SYMBOL(find_next_zero_bit);
-+EXPORT_SYMBOL(find_next_bit);
- 
- EXPORT_SYMBOL(__backtrace);
- 
-diff --git a/arch/unicore32/lib/findbit.S b/arch/unicore32/lib/findbit.S
-index c360ce9..c777462 100644
---- a/arch/unicore32/lib/findbit.S
-+++ b/arch/unicore32/lib/findbit.S
-@@ -17,7 +17,7 @@
-  * Purpose  : Find a 'zero' bit
-  * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
-  */
--__uc32_find_first_zero_bit:
-+ENTRY(find_first_zero_bit)
- 		cxor.a	r1, #0
- 		beq	3f
- 		mov	r2, #0
-@@ -29,13 +29,14 @@ __uc32_find_first_zero_bit:
- 		bub	1b
- 3:		mov	r0, r1			@ no free bits
- 		mov	pc, lr
-+ENDPROC(find_first_zero_bit)
- 
- /*
-  * Purpose  : Find next 'zero' bit
-  * Prototype: int find_next_zero_bit
-  *		(void *addr, unsigned int maxbit, int offset)
-  */
--ENTRY(__uc32_find_next_zero_bit)
-+ENTRY(find_next_zero_bit)
- 		cxor.a	r1, #0
- 		beq	3b
- 		and.a	ip, r2, #7
-@@ -47,14 +48,14 @@ ENTRY(__uc32_find_next_zero_bit)
- 		or	r2, r2, #7		@ if zero, then no bits here
- 		add	r2, r2, #1		@ align bit pointer
- 		b	2b			@ loop for next bit
--ENDPROC(__uc32_find_next_zero_bit)
-+ENDPROC(find_next_zero_bit)
- 
- /*
-  * Purpose  : Find a 'one' bit
-  * Prototype: int find_first_bit
-  *		(const unsigned long *addr, unsigned int maxbit);
-  */
--__uc32_find_first_bit:
-+ENTRY(find_first_bit)
- 		cxor.a	r1, #0
- 		beq	3f
- 		mov	r2, #0
-@@ -66,13 +67,14 @@ __uc32_find_first_bit:
- 		bub	1b
- 3:		mov	r0, r1			@ no free bits
- 		mov	pc, lr
-+ENDPROC(find_first_bit)
- 
- /*
-  * Purpose  : Find next 'one' bit
-  * Prototype: int find_next_zero_bit
-  *		(void *addr, unsigned int maxbit, int offset)
-  */
--ENTRY(__uc32_find_next_bit)
-+ENTRY(find_next_bit)
- 		cxor.a	r1, #0
- 		beq	3b
- 		and.a	ip, r2, #7
-@@ -83,7 +85,7 @@ ENTRY(__uc32_find_next_bit)
- 		or	r2, r2, #7		@ if zero, then no bits here
- 		add	r2, r2, #1		@ align bit pointer
- 		b	2b			@ loop for next bit
--ENDPROC(__uc32_find_next_bit)
-+ENDPROC(find_next_bit)
- 
- /*
-  * One or more bits in the LSB of r3 are assumed to be set.
--- 
-1.7.5.4
-
+~Randy
+*** Remember to use Documentation/SubmitChecklist when testing your code ***
