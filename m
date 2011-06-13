@@ -1,59 +1,109 @@
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: Re: [PATCH] unicore32: fix build error for find bitops
-Date: Mon, 13 Jun 2011 20:32:15 +0900
-Message-ID: <BANLkTinA699+vMt6SKEGmiZGsWp7UUD42Q@mail.gmail.com>
-References: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
-	<BANLkTikNC8uh-X_0iJZH3tYd_kf46W1Rwg@mail.gmail.com>
-	<BANLkTimWYjzxhQBH2A76D590KBfjKbguTA@mail.gmail.com>
-	<1307675815.1537.9.camel@epip-laptop>
-	<BANLkTi=aVFisCuS-W-4iNSmDVCtKOWD5_w@mail.gmail.com>
-	<1307955422.1878.3.camel@epip-laptop>
-	<BANLkTim7znORJyhM2D9r7+p0CiYc+RL97Q@mail.gmail.com>
-	<1307960558.1878.21.camel@epip-laptop>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH V2] Add debugging boundary check to pfn_to_page
+Date: Mon, 13 Jun 2011 09:56:39 -0400
+Message-ID: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f46.google.com ([209.85.212.46]:34132 "EHLO
-	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751951Ab1FMLcQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2011 07:32:16 -0400
-In-Reply-To: <1307960558.1878.21.camel@epip-laptop>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:45828 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753258Ab1FMN4r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jun 2011 09:56:47 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: gxt@mprc.pku.edu.cn
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
+To: arnd@arndb.de
+Cc: akpm@linux-foundation.org, paulmck@linux.vnet.ibm.com, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org, dave@linux.vnet.ibm.com, Eric B Munson <emunson@mgebm.net>
 
-2011/6/13 Guan Xuetao <gxt@mprc.pku.edu.cn>:
-> On Mon, 2011-06-13 at 18:33 +0900, Akinobu Mita wrote:
->> 2011/6/13 Guan Xuetao <gxt@mprc.pku.edu.cn>:
->> > Thanks, please review following patch:
->>
->> Looks good to me.
-> Could I add your acked-by information on this patch?
+Bugzilla 36192 showed a problem where pages were being accessed outside of
+a node boundary.  It would be helpful in diagnosing this kind of problem to
+have pfn_to_page complain when a page is accessed outside of the node boundary.
+This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
+that will complain when pages are accessed outside of the node boundary.
 
-Of course, yes.
+Signed-of-by: Eric B Munson <emunson@mgebm.net>
+---
+Changes from V1:
+ minimize code duplication with a macro that will do the checking when
+configured
 
->> > diff --git a/arch/unicore32/kernel/ksyms.c
->> > b/arch/unicore32/kernel/ksyms.c
->> > index a897080..d98bd81 100644
->> > --- a/arch/unicore32/kernel/ksyms.c
->> > +++ b/arch/unicore32/kernel/ksyms.c
->> > @@ -24,8 +24,8 @@
->> >
->> > =A0#include "ksyms.h"
->> >
->> > -EXPORT_SYMBOL(__uc32_find_next_zero_bit);
->> > -EXPORT_SYMBOL(__uc32_find_next_bit);
->> > +EXPORT_SYMBOL(find_next_zero_bit);
->> > +EXPORT_SYMBOL(find_next_bit);
->>
->> I'm wondering why there are no EXPORT_SYMBOL for find_first_bit
->> and find_first_zero_bit.
-> IMO, only functions that are needed by modules should be exported.
-> When building modules under unicore32 & pkunity-soc, we only need
-> find_next_bit and find_next_zero_bit exported at present, and if new
-> functions are required, I am going to add them in the same time.
-> In fact, I think, the 'arch-generic' ksyms.c is a better idea.
+ include/asm-generic/memory_model.h |   25 ++++++++++++++++++++-----
+ lib/Kconfig.debug                  |    9 +++++++++
+ 2 files changed, 29 insertions(+), 5 deletions(-)
 
-OK, I see.
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index fb2d63f..7aa83ce 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -22,6 +22,16 @@
+ 
+ #endif /* CONFIG_DISCONTIGMEM */
+ 
++#ifdef CONFIG_MEMORY_MODEL
++/*
++ * The flags for a page will only be zero if this page is being accessed
++ * outside of node boundaries.
++ */
++#define check_page(__page) WARN_ON(__page->flags == 0)
++#else
++#define check_page(__page) do{}while(0)
++#endif /* CONFIG_MEMORY_MODEL */
++
+ /*
+  * supports 3 memory models.
+  */
+@@ -35,7 +45,9 @@
+ #define __pfn_to_page(pfn)			\
+ ({	unsigned long __pfn = (pfn);		\
+ 	unsigned long __nid = arch_pfn_to_nid(__pfn);  \
+-	NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);\
++	struct page * __pg = NODE_DATA(__nid)->node_mem_map + arch_local_page_offset(__pfn, __nid);\
++	check_page(__pg);			\
++	__pg;					\
+ })
+ 
+ #define __page_to_pfn(pg)						\
+@@ -52,6 +64,7 @@
+ #define __page_to_pfn(page)	(unsigned long)((page) - vmemmap)
+ 
+ #elif defined(CONFIG_SPARSEMEM)
++
+ /*
+  * Note: section's mem_map is encorded to reflect its start_pfn.
+  * section[i].section_mem_map == mem_map's address - start_pfn;
+@@ -62,10 +75,12 @@
+ 	(unsigned long)(__pg - __section_mem_map_addr(__nr_to_section(__sec)));	\
+ })
+ 
+-#define __pfn_to_page(pfn)				\
+-({	unsigned long __pfn = (pfn);			\
+-	struct mem_section *__sec = __pfn_to_section(__pfn);	\
+-	__section_mem_map_addr(__sec) + __pfn;		\
++#define __pfn_to_page(pfn)						\
++({	unsigned long __pfn = (pfn);					\
++	struct mem_section *__sec = __pfn_to_section(__pfn);		\
++	struct page *__pg = __section_mem_map_addr(__sec) + __pfn;	\
++	check_page(__pg);						\
++	__pg;								\
+ })
+ #endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
+ 
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index dd373c8..7870907 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -777,6 +777,15 @@ config DEBUG_MEMORY_INIT
+ 
+ 	  If unsure, say Y
+ 
++config DEBUG_MEMORY_MODEL
++	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
++	help
++	  Enable this to check that page accesses are done within node
++	  boundaries.  The check will warn each time a page is requested
++	  outside node boundaries.
++
++	  If unsure, say N
++
+ config DEBUG_LIST
+ 	bool "Debug linked list manipulation"
+ 	depends on DEBUG_KERNEL
+-- 
+1.7.4.1
