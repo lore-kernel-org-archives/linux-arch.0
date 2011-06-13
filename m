@@ -1,224 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:42033 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755092Ab1FMI5U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jun 2011 04:57:20 -0400
-Subject: Re: [PATCH] unicore32: fix build error for find bitops
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Reply-To: gxt@mprc.pku.edu.cn
-In-Reply-To: <BANLkTi=aVFisCuS-W-4iNSmDVCtKOWD5_w@mail.gmail.com>
-References: <1307617752-23426-1-git-send-email-gxt@mprc.pku.edu.cn>
-	 <BANLkTikNC8uh-X_0iJZH3tYd_kf46W1Rwg@mail.gmail.com>
-	 <BANLkTimWYjzxhQBH2A76D590KBfjKbguTA@mail.gmail.com>
-	 <1307675815.1537.9.camel@epip-laptop>
-	 <BANLkTi=aVFisCuS-W-4iNSmDVCtKOWD5_w@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 13 Jun 2011 16:57:02 +0800
-Message-ID: <1307955422.1878.3.camel@epip-laptop>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:36278 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752665Ab1FMVCn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jun 2011 17:02:43 -0400
+Date: Mon, 13 Jun 2011 14:02:10 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH V2] Add debugging boundary check to pfn_to_page
+Message-ID: <20110613140210.e5863730.akpm@linux-foundation.org>
+In-Reply-To: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
+References: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: arnd@arndb.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, greg@kroah.com
-Message-ID: <20110613085702.lqOlWG3hFCvkBgt_O9O-BzAIwm3wN-DsapwcTJiEC9Y@z>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: arnd@arndb.de, paulmck@linux.vnet.ibm.com, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org, dave@linux.vnet.ibm.com
+Message-ID: <20110613210210.ncwye-SyK3BmSXAbYCpMsq9sB1IN0IU5IyU9kSxwDR0@z>
 
-On Fri, 2011-06-10 at 13:22 +0900, Akinobu Mita wrote:
-> 2011/6/10 Guan Xuetao <gxt@mprc.pku.edu.cn>:
-> > On Thu, 2011-06-09 at 23:05 +0900, Akinobu Mita wrote:
-> >> 2011/6/9 Akinobu Mita <akinobu.mita@gmail.com>:
-> >> > 2011/6/9 GuanXuetao <gxt@mprc.pku.edu.cn>:
-> >> >> From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> >> >>
-> >> >> Remove the __uc32_ prefix in find bitops functions.
-> >> >> see commit <19de85ef574c3a2182e3ccad9581805052f14946>
-> >> >>  bitops: add #ifndef for each of find bitops
-> >> >>
-> >> >> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-> >> >> Cc: Akinobu Mita <akinobu.mita@gmail.com>
-> >> >> ---
-> >> >>  arch/unicore32/include/asm/bitops.h |    6 ------
-> >> >>  arch/unicore32/kernel/ksyms.c       |    4 ++--
-> >> >>  arch/unicore32/lib/findbit.S        |   14 ++++++++------
-> >> >>  3 files changed, 10 insertions(+), 14 deletions(-)
-> >> >>
-> >> >> diff --git a/arch/unicore32/include/asm/bitops.h b/arch/unicore32/include/asm/bitops.h
-> >> >> index 1628a63..a9653f0 100644
-> >> >> --- a/arch/unicore32/include/asm/bitops.h
-> >> >> +++ b/arch/unicore32/include/asm/bitops.h
-> >> >> @@ -13,12 +13,6 @@
-> >> >>  #ifndef __UNICORE_BITOPS_H__
-> >> >>  #define __UNICORE_BITOPS_H__
-> >> >>
-> >> >> -#define find_next_bit          __uc32_find_next_bit
-> >> >> -#define find_next_zero_bit     __uc32_find_next_zero_bit
-> >> >> -
-> >> >> -#define find_first_bit         __uc32_find_first_bit
-> >> >> -#define find_first_zero_bit    __uc32_find_first_zero_bit
-> >> >> -
-> >> >
-> >> > Is this patch really fix the build error?
-> >> >
-> >> > If these find_*_bit macros are removed, vmlinux will have multiple
-> >> > definisions of find_*_bit. Because lib/find_next_bit.c is built
-> >> > unconditionally after the commit 63e424c84429903c92a0f1e9654c31ccaf6694d0
-> >> > ("arch: remove CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}".
-> >>
-> >> The attached patch hopefully fix the build error but it is untested
-> >> because I can't find crosstool for unicore32. So could you apply
-> >> this patch on top of your patch and check whether it fixes?
-> >
-> > Thanks Akinobu.
-> > I want to avoid the duplication of the 'extern' function definitions in
-> > asm-generic header and arch-specific header.
+On Mon, 13 Jun 2011 09:56:39 -0400
+Eric B Munson <emunson@mgebm.net> wrote:
+
+> Bugzilla 36192 showed a problem where pages were being accessed outside of
+> a node boundary.  It would be helpful in diagnosing this kind of problem to
+> have pfn_to_page complain when a page is accessed outside of the node boundary.
+> This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
+> that will complain when pages are accessed outside of the node boundary.
 > 
-> OK then adding the following four lines after asm-generic/bitops.h
-> inclusion should fix the problem.
+> Signed-of-by: Eric B Munson <emunson@mgebm.net>
+> ---
+> Changes from V1:
+>  minimize code duplication with a macro that will do the checking when
+> configured
 > 
-> #define find_next_bit find_next_bit
-> #define find_next_zero_bit find_next_zero_bit
-> #define find_first_bit find_first_bit
-> #define find_first_zero_bit find_first_zero_bit
+>  include/asm-generic/memory_model.h |   25 ++++++++++++++++++++-----
+>  lib/Kconfig.debug                  |    9 +++++++++
+>  2 files changed, 29 insertions(+), 5 deletions(-)
+> 
+> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+> index fb2d63f..7aa83ce 100644
+> --- a/include/asm-generic/memory_model.h
+> +++ b/include/asm-generic/memory_model.h
+> @@ -22,6 +22,16 @@
+>  
+>  #endif /* CONFIG_DISCONTIGMEM */
+>  
+> +#ifdef CONFIG_MEMORY_MODEL
 
-Thanks, please review following patch:
-From 660882536a3c7c77e0f8d817dabcbbecab20367d Mon Sep 17 00:00:00 2001
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Date: Mon, 13 Jun 2011 11:44:49 +0800
-Subject: [PATCH] unicore32: fix build error for find bitops
+This should have been CONFIG_DEBUG_MEMORY_MODEL.  Better testing, please!
 
-Remove the __uc32_ prefix in find bitops functions.
-Move find_* macros behind asm-generic/bitops.h inclusion.
-see commit <19de85ef574c3a2182e3ccad9581805052f14946>
-  bitops: add #ifndef for each of find bitops
-also see commit <63e424c84429903c92a0f1e9654c31ccaf6694d0>
-  arch: remove CONFIG_GENERIC_FIND_{NEXT_BIT,BIT_LE,LAST_BIT}
+> +/*
+> + * The flags for a page will only be zero if this page is being accessed
+> + * outside of node boundaries.
 
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>
----
- arch/unicore32/include/asm/bitops.h |   12 ++++++------
- arch/unicore32/kernel/ksyms.c       |    4 ++--
- arch/unicore32/lib/findbit.S        |   14 ++++++++------
- 3 files changed, 16 insertions(+), 14 deletions(-)
+mm..  Can this comment be improved?  If some poor sucker gets this
+warning then he will end up looking at this comment wondering what he
+needs to do to fix the bug.  Does this comment provide him with as much
+help as we possibly can?
 
-diff --git a/arch/unicore32/include/asm/bitops.h
-b/arch/unicore32/include/asm/bitops.h
-index 1628a63..401f597 100644
---- a/arch/unicore32/include/asm/bitops.h
-+++ b/arch/unicore32/include/asm/bitops.h
-@@ -13,12 +13,6 @@
- #ifndef __UNICORE_BITOPS_H__
- #define __UNICORE_BITOPS_H__
- 
--#define find_next_bit		__uc32_find_next_bit
--#define find_next_zero_bit	__uc32_find_next_zero_bit
--
--#define find_first_bit		__uc32_find_first_bit
--#define find_first_zero_bit	__uc32_find_first_zero_bit
--
- #define _ASM_GENERIC_BITOPS_FLS_H_
- #define _ASM_GENERIC_BITOPS___FLS_H_
- #define _ASM_GENERIC_BITOPS_FFS_H_
-@@ -44,4 +38,10 @@ static inline int fls(int x)
- 
- #include <asm-generic/bitops.h>
- 
-+/* following definitions: to avoid using codes in lib/find_*.c */
-+#define find_next_bit		find_next_bit
-+#define find_next_zero_bit	find_next_zero_bit
-+#define find_first_bit		find_first_bit
-+#define find_first_zero_bit	find_first_zero_bit
-+
- #endif /* __UNICORE_BITOPS_H__ */
-diff --git a/arch/unicore32/kernel/ksyms.c
-b/arch/unicore32/kernel/ksyms.c
-index a897080..d98bd81 100644
---- a/arch/unicore32/kernel/ksyms.c
-+++ b/arch/unicore32/kernel/ksyms.c
-@@ -24,8 +24,8 @@
- 
- #include "ksyms.h"
- 
--EXPORT_SYMBOL(__uc32_find_next_zero_bit);
--EXPORT_SYMBOL(__uc32_find_next_bit);
-+EXPORT_SYMBOL(find_next_zero_bit);
-+EXPORT_SYMBOL(find_next_bit);
- 
- EXPORT_SYMBOL(__backtrace);
- 
-diff --git a/arch/unicore32/lib/findbit.S b/arch/unicore32/lib/findbit.S
-index c360ce9..c777462 100644
---- a/arch/unicore32/lib/findbit.S
-+++ b/arch/unicore32/lib/findbit.S
-@@ -17,7 +17,7 @@
-  * Purpose  : Find a 'zero' bit
-  * Prototype: int find_first_zero_bit(void *addr, unsigned int maxbit);
-  */
--__uc32_find_first_zero_bit:
-+ENTRY(find_first_zero_bit)
- 		cxor.a	r1, #0
- 		beq	3f
- 		mov	r2, #0
-@@ -29,13 +29,14 @@ __uc32_find_first_zero_bit:
- 		bub	1b
- 3:		mov	r0, r1			@ no free bits
- 		mov	pc, lr
-+ENDPROC(find_first_zero_bit)
- 
- /*
-  * Purpose  : Find next 'zero' bit
-  * Prototype: int find_next_zero_bit
-  *		(void *addr, unsigned int maxbit, int offset)
-  */
--ENTRY(__uc32_find_next_zero_bit)
-+ENTRY(find_next_zero_bit)
- 		cxor.a	r1, #0
- 		beq	3b
- 		and.a	ip, r2, #7
-@@ -47,14 +48,14 @@ ENTRY(__uc32_find_next_zero_bit)
- 		or	r2, r2, #7		@ if zero, then no bits here
- 		add	r2, r2, #1		@ align bit pointer
- 		b	2b			@ loop for next bit
--ENDPROC(__uc32_find_next_zero_bit)
-+ENDPROC(find_next_zero_bit)
- 
- /*
-  * Purpose  : Find a 'one' bit
-  * Prototype: int find_first_bit
-  *		(const unsigned long *addr, unsigned int maxbit);
-  */
--__uc32_find_first_bit:
-+ENTRY(find_first_bit)
- 		cxor.a	r1, #0
- 		beq	3f
- 		mov	r2, #0
-@@ -66,13 +67,14 @@ __uc32_find_first_bit:
- 		bub	1b
- 3:		mov	r0, r1			@ no free bits
- 		mov	pc, lr
-+ENDPROC(find_first_bit)
- 
- /*
-  * Purpose  : Find next 'one' bit
-  * Prototype: int find_next_zero_bit
-  *		(void *addr, unsigned int maxbit, int offset)
-  */
--ENTRY(__uc32_find_next_bit)
-+ENTRY(find_next_bit)
- 		cxor.a	r1, #0
- 		beq	3b
- 		and.a	ip, r2, #7
-@@ -83,7 +85,7 @@ ENTRY(__uc32_find_next_bit)
- 		or	r2, r2, #7		@ if zero, then no bits here
- 		add	r2, r2, #1		@ align bit pointer
- 		b	2b			@ loop for next bit
--ENDPROC(__uc32_find_next_bit)
-+ENDPROC(find_next_bit)
- 
- /*
-  * One or more bits in the LSB of r3 are assumed to be set.
--- 
-1.6.2.2
+> + */
+> +#define check_page(__page) WARN_ON(__page->flags == 0)
 
+__page should be parenthesized.  Or, better, check_page() should be
+implemented in C if possible.
 
+"check_page" is a rather vague-sounding name.  Something more specific
+would be better.  Check *what*?
 
+> +#else
+> +#define check_page(__page) do{}while(0)
+
+Please use checkpatch.  Always.
+
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -777,6 +777,15 @@ config DEBUG_MEMORY_INIT
+>  
+>  	  If unsure, say Y
+>  
+> +config DEBUG_MEMORY_MODEL
+> +	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
+> +	help
+> +	  Enable this to check that page accesses are done within node
+> +	  boundaries.  The check will warn each time a page is requested
+> +	  outside node boundaries.
+> +
+> +	  If unsure, say N
+> +
+
+Spose, so, if you think it's useful.  Mabybe this should depend on
+CONFIG_DEBUG_VM, dunno.
+
+Please consider updating Documentation/SubmitChecklist, section 12.
