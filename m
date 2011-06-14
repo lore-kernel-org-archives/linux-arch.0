@@ -1,96 +1,71 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V2] Add debugging boundary check to pfn_to_page
-Date: Mon, 13 Jun 2011 14:02:10 -0700
-Message-ID: <20110613140210.e5863730.akpm@linux-foundation.org>
-References: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
-Sender: owner-linux-mm@kvack.org
-To: Eric B Munson <emunson@mgebm.net>
-Cc: arnd@arndb.de, paulmck@linux.vnet.ibm.com, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org, dave@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+From: pullip.cho@samsung.com
+Subject: [PATCH] dma-mapping: Undefine dma_map_single(), etc if CONFIG_HAVE_DMA_ATTRS is defined
+Date: Tue, 14 Jun 2011 13:33:09 +0900
+Message-ID: <1308025989-877-1-git-send-email-pullip.cho@samsung.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ganesha.gnumonks.org ([213.95.27.120]:34731 "EHLO
+	ganesha.gnumonks.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750972Ab1FNE7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jun 2011 00:59:39 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: kgene.kim@samsung.com, arnd@arndb.de, fujita.tomonori@lab.ntt.co.jp, rmk@arm.linux.org.uk, joerg.roedel@amd.com, KyongHo Cho <pullip.cho@samsung.com>
 
-On Mon, 13 Jun 2011 09:56:39 -0400
-Eric B Munson <emunson@mgebm.net> wrote:
+From: KyongHo Cho <pullip.cho@samsung.com>
 
-> Bugzilla 36192 showed a problem where pages were being accessed outside of
-> a node boundary.  It would be helpful in diagnosing this kind of problem to
-> have pfn_to_page complain when a page is accessed outside of the node boundary.
-> This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
-> that will complain when pages are accessed outside of the node boundary.
-> 
-> Signed-of-by: Eric B Munson <emunson@mgebm.net>
-> ---
-> Changes from V1:
->  minimize code duplication with a macro that will do the checking when
-> configured
-> 
->  include/asm-generic/memory_model.h |   25 ++++++++++++++++++++-----
->  lib/Kconfig.debug                  |    9 +++++++++
->  2 files changed, 29 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
-> index fb2d63f..7aa83ce 100644
-> --- a/include/asm-generic/memory_model.h
-> +++ b/include/asm-generic/memory_model.h
-> @@ -22,6 +22,16 @@
->  
->  #endif /* CONFIG_DISCONTIGMEM */
->  
-> +#ifdef CONFIG_MEMORY_MODEL
+If <asm/dma-mapping.h> includes <asm-generic/dma-mapping-common.h>,
+dma_map_single() become defined recursively when CONFIG_HAVE_DMA_ATTRS
+is not defined.
+Since dma_map_*_attrs() are defined in <linux/dma-mapping.h>, those
+in <asm-generic/dma-mapping-common.h> must be not defined
+if CONFIG_HAVE_DMA_ATTRS is not defined.
 
-This should have been CONFIG_DEBUG_MEMORY_MODEL.  Better testing, please!
+Signed-off-by: KyongHo Cho <pullip.cho@samsung.com>
+CC: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+CC: Joerg Roedel <joerg.roedel@amd.com>
+CC Arnd Bergmann <arnd@arndb.de>
 
-> +/*
-> + * The flags for a page will only be zero if this page is being accessed
-> + * outside of node boundaries.
+Change-Id: Ib99ee2b355dbe679263ce2e4e27d6219148c8338
+---
+ include/asm-generic/dma-mapping-common.h |   13 ++++++++-----
+ 1 files changed, 8 insertions(+), 5 deletions(-)
 
-mm..  Can this comment be improved?  If some poor sucker gets this
-warning then he will end up looking at this comment wondering what he
-needs to do to fix the bug.  Does this comment provide him with as much
-help as we possibly can?
-
-> + */
-> +#define check_page(__page) WARN_ON(__page->flags == 0)
-
-__page should be parenthesized.  Or, better, check_page() should be
-implemented in C if possible.
-
-"check_page" is a rather vague-sounding name.  Something more specific
-would be better.  Check *what*?
-
-> +#else
-> +#define check_page(__page) do{}while(0)
-
-Please use checkpatch.  Always.
-
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -777,6 +777,15 @@ config DEBUG_MEMORY_INIT
->  
->  	  If unsure, say Y
->  
-> +config DEBUG_MEMORY_MODEL
-> +	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
-> +	help
-> +	  Enable this to check that page accesses are done within node
-> +	  boundaries.  The check will warn each time a page is requested
-> +	  outside node boundaries.
-> +
-> +	  If unsure, say N
-> +
-
-Spose, so, if you think it's useful.  Mabybe this should depend on
-CONFIG_DEBUG_VM, dunno.
-
-Please consider updating Documentation/SubmitChecklist, section 12.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 0c80bb3..b9a2040 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -6,6 +6,7 @@
+ #include <linux/dma-debug.h>
+ #include <linux/dma-attrs.h>
+ 
++#ifdef CONFIG_HAVE_DMA_ATTRS
+ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+ 					      size_t size,
+ 					      enum dma_data_direction dir,
+@@ -67,6 +68,13 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ 		ops->unmap_sg(dev, sg, nents, dir, attrs);
+ }
+ 
++#define dma_map_single(d, a, s, r) dma_map_single_attrs(d, a, s, r, NULL)
++#define dma_unmap_single(d, a, s, r) dma_unmap_single_attrs(d, a, s, r, NULL)
++#define dma_map_sg(d, s, n, r) dma_map_sg_attrs(d, s, n, r, NULL)
++#define dma_unmap_sg(d, s, n, r) dma_unmap_sg_attrs(d, s, n, r, NULL)
++
++#endif /* CONFIG_HAVE_DMA_ATTRS */
++
+ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+ 				      size_t offset, size_t size,
+ 				      enum dma_data_direction dir)
+@@ -160,9 +168,4 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 
+ }
+ 
+-#define dma_map_single(d, a, s, r) dma_map_single_attrs(d, a, s, r, NULL)
+-#define dma_unmap_single(d, a, s, r) dma_unmap_single_attrs(d, a, s, r, NULL)
+-#define dma_map_sg(d, s, n, r) dma_map_sg_attrs(d, s, n, r, NULL)
+-#define dma_unmap_sg(d, s, n, r) dma_unmap_sg_attrs(d, s, n, r, NULL)
+-
+ #endif
+-- 
+1.7.1
