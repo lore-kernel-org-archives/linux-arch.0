@@ -1,95 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:36278 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752665Ab1FMVCn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jun 2011 17:02:43 -0400
-Date: Mon, 13 Jun 2011 14:02:10 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V2] Add debugging boundary check to pfn_to_page
-Message-ID: <20110613140210.e5863730.akpm@linux-foundation.org>
-In-Reply-To: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
-References: <1307973399-7784-1-git-send-email-emunson@mgebm.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:50903 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751592Ab1FOMFb convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2011 08:05:31 -0400
+MIME-Version: 1.0
+In-Reply-To: <20110610160548.529797c7.sfr@canb.auug.org.au>
+References: <20110609172745.dfd3a298.sfr@canb.auug.org.au>
+	<20110609184127.GA2760@kroah.com>
+	<20110609192243.GA3980@kroah.com>
+	<20110610160548.529797c7.sfr@canb.auug.org.au>
+Date: Wed, 15 Jun 2011 14:05:29 +0200
+Message-ID: <BANLkTim5dYNmTMJo-Wa3LYCTi4vxPGMNeQ@mail.gmail.com>
+Subject: Re: linux-next: build failure after merge of the final tree (staging related)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: arnd@arndb.de, paulmck@linux.vnet.ibm.com, mingo@elte.hu, randy.dunlap@oracle.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, mgorman@suse.de, linux-mm@kvack.org, dave@linux.vnet.ibm.com
-Message-ID: <20110613210210.ncwye-SyK3BmSXAbYCpMsq9sB1IN0IU5IyU9kSxwDR0@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Greg KH <greg@kroah.com>, brudley@broadcom.com, henryp@broadcom.com, rvossen@broadcom.com, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Linus <torvalds@linux-foundation.org>, sparclinux@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20110615120529.MKGhQAJLcR8pn1cedUykPssMK-R7ZjnQgDm3aA1HB5E@z>
 
-On Mon, 13 Jun 2011 09:56:39 -0400
-Eric B Munson <emunson@mgebm.net> wrote:
+On Fri, Jun 10, 2011 at 08:05, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> On Thu, 9 Jun 2011 12:22:43 -0700 Greg KH <greg@kroah.com> wrote:
+>> On Thu, Jun 09, 2011 at 11:41:27AM -0700, Greg KH wrote:
+>> > > Also in several other files in drivers/staging/brcm80211/
+>> > >
+>> > > Also:
+>> > >
+>> > > drivers/staging/comedi/drivers.c: In function 'comedi_buf_alloc':
+>> > > drivers/staging/comedi/drivers.c:505:37: error: 'PAGE_KERNEL_NOCACHE' undeclared (first use in this function)
 
-> Bugzilla 36192 showed a problem where pages were being accessed outside of
-> a node boundary.  It would be helpful in diagnosing this kind of problem to
-> have pfn_to_page complain when a page is accessed outside of the node boundary.
-> This patch adds a new debug config option which adds a WARN_ON in pfn_to_page
-> that will complain when pages are accessed outside of the node boundary.
-> 
-> Signed-of-by: Eric B Munson <emunson@mgebm.net>
-> ---
-> Changes from V1:
->  minimize code duplication with a macro that will do the checking when
-> configured
-> 
->  include/asm-generic/memory_model.h |   25 ++++++++++++++++++++-----
->  lib/Kconfig.debug                  |    9 +++++++++
->  2 files changed, 29 insertions(+), 5 deletions(-)
-> 
-> diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
-> index fb2d63f..7aa83ce 100644
-> --- a/include/asm-generic/memory_model.h
-> +++ b/include/asm-generic/memory_model.h
-> @@ -22,6 +22,16 @@
->  
->  #endif /* CONFIG_DISCONTIGMEM */
->  
-> +#ifdef CONFIG_MEMORY_MODEL
+I have my doubts
 
-This should have been CONFIG_DEBUG_MEMORY_MODEL.  Better testing, please!
+#ifdef PAGE_KERNEL_NOCACHE
+                            vmap(pages, n_pages, VM_MAP, PAGE_KERNEL_NOCACHE);
+#else
+                            vmap(pages, n_pages, VM_MAP, PAGE_KERNEL);
+#endif
 
-> +/*
-> + * The flags for a page will only be zero if this page is being accessed
-> + * outside of node boundaries.
+is the right "fix" for this...
 
-mm..  Can this comment be improved?  If some poor sucker gets this
-warning then he will end up looking at this comment wondering what he
-needs to do to fix the bug.  Does this comment provide him with as much
-help as we possibly can?
+BTW, PAGE_KERNEL_NOCACHE is defined on frv, m32r, mn10300, sh, and x86 only.
 
-> + */
-> +#define check_page(__page) WARN_ON(__page->flags == 0)
+Strangely, both sparc and tile have
 
-__page should be parenthesized.  Or, better, check_page() should be
-implemented in C if possible.
+/*
+ * Some hardware wants to get fixmapped without caching.
+ */
+#define set_fixmap_nocache(idx, phys) \
+                __set_fixmap(idx, phys, PAGE_KERNEL_NOCACHE)
 
-"check_page" is a rather vague-sounding name.  Something more specific
-would be better.  Check *what*?
+in their <asm/fixmap.h>, without having PAGE_KERNEL_NOCACHE...
 
-> +#else
-> +#define check_page(__page) do{}while(0)
+Gr{oetje,eeting}s,
 
-Please use checkpatch.  Always.
+                        Geert
 
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -777,6 +777,15 @@ config DEBUG_MEMORY_INIT
->  
->  	  If unsure, say Y
->  
-> +config DEBUG_MEMORY_MODEL
-> +	bool "Debug memory model" if SPARSEMEM || DISCONTIGMEM
-> +	help
-> +	  Enable this to check that page accesses are done within node
-> +	  boundaries.  The check will warn each time a page is requested
-> +	  outside node boundaries.
-> +
-> +	  If unsure, say N
-> +
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-Spose, so, if you think it's useful.  Mabybe this should depend on
-CONFIG_DEBUG_VM, dunno.
-
-Please consider updating Documentation/SubmitChecklist, section 12.
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
