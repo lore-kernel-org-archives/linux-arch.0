@@ -1,70 +1,42 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: linux-next: build failure after merge of the final tree (staging related)
-Date: Wed, 15 Jun 2011 14:05:29 +0200
-Message-ID: <BANLkTim5dYNmTMJo-Wa3LYCTi4vxPGMNeQ@mail.gmail.com>
-References: <20110609172745.dfd3a298.sfr@canb.auug.org.au>
-	<20110609184127.GA2760@kroah.com>
-	<20110609192243.GA3980@kroah.com>
-	<20110610160548.529797c7.sfr@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-next-owner@vger.kernel.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: [PATCH] arch/tile: remove useless set_fixmap_nocache() macro
+Date: Wed, 15 Jun 2011 10:35:38 -0400
+Message-ID: <201106151442.p5FEg4ir010298@farm-0002.internal.tilera.com>
+References: <20110609172745.dfd3a298.sfr@canb.auug.org.au><20110609184127.GA2760@kroah.com><20110609192243.GA3980@kroah.com><20110610160548.529797c7.sfr@canb.auug.org.au>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 206.83.70.73.ptr.us.xo.net ([206.83.70.73]:5154 "EHLO
+	king.tilera.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755411Ab1FOOmI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2011 10:42:08 -0400
 In-Reply-To: <20110610160548.529797c7.sfr@canb.auug.org.au>
-Sender: linux-next-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Greg KH <greg@kroah.com>, brudley@broadcom.com, henryp@broadcom.com, rvossen@broadcom.com, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Linus <torvalds@linux-foundation.org>, sparclinux@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Greg KH <greg@kroah.com>, brudley@broadcom.com, henryp@broadcom.com, rvossen@broadcom.co
 
-On Fri, Jun 10, 2011 at 08:05, Stephen Rothwell <sfr@canb.auug.org.au> =
-wrote:
-> On Thu, 9 Jun 2011 12:22:43 -0700 Greg KH <greg@kroah.com> wrote:
->> On Thu, Jun 09, 2011 at 11:41:27AM -0700, Greg KH wrote:
->> > > Also in several other files in drivers/staging/brcm80211/
->> > >
->> > > Also:
->> > >
->> > > drivers/staging/comedi/drivers.c: In function 'comedi_buf_alloc'=
-:
->> > > drivers/staging/comedi/drivers.c:505:37: error: 'PAGE_KERNEL_NOC=
-ACHE' undeclared (first use in this function)
+TILE doesn't support PAGE_KERNEL_NOCACHE so the macro isn't useful;
+it's a copy-and-paste from the first version of this header in 2007.
 
-I have my doubts
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+ arch/tile/include/asm/fixmap.h |    6 ------
+ 1 files changed, 0 insertions(+), 6 deletions(-)
 
-#ifdef PAGE_KERNEL_NOCACHE
-                            vmap(pages, n_pages, VM_MAP, PAGE_KERNEL_NO=
-CACHE);
-#else
-                            vmap(pages, n_pages, VM_MAP, PAGE_KERNEL);
-#endif
-
-is the right "fix" for this...
-
-BTW, PAGE_KERNEL_NOCACHE is defined on frv, m32r, mn10300, sh, and x86 =
-only.
-
-Strangely, both sparc and tile have
-
-/*
- * Some hardware wants to get fixmapped without caching.
- */
-#define set_fixmap_nocache(idx, phys) \
-                __set_fixmap(idx, phys, PAGE_KERNEL_NOCACHE)
-
-in their <asm/fixmap.h>, without having PAGE_KERNEL_NOCACHE...
-
-Gr{oetje,eeting}s,
-
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+diff --git a/arch/tile/include/asm/fixmap.h b/arch/tile/include/asm/fixmap.h
+index 51537ff..c66f793 100644
+--- a/arch/tile/include/asm/fixmap.h
++++ b/arch/tile/include/asm/fixmap.h
+@@ -75,12 +75,6 @@ extern void __set_fixmap(enum fixed_addresses idx,
+ 
+ #define set_fixmap(idx, phys) \
+ 		__set_fixmap(idx, phys, PAGE_KERNEL)
+-/*
+- * Some hardware wants to get fixmapped without caching.
+- */
+-#define set_fixmap_nocache(idx, phys) \
+-		__set_fixmap(idx, phys, PAGE_KERNEL_NOCACHE)
+-
+ #define clear_fixmap(idx) \
+ 		__set_fixmap(idx, 0, __pgprot(0))
+ 
+-- 
+1.6.5.2
