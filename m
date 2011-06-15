@@ -1,42 +1,47 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] arch/tile: remove useless set_fixmap_nocache() macro
-Date: Wed, 15 Jun 2011 10:35:38 -0400
-Message-ID: <201106151442.p5FEg4ir010298@farm-0002.internal.tilera.com>
-References: <20110609172745.dfd3a298.sfr@canb.auug.org.au><20110609184127.GA2760@kroah.com><20110609192243.GA3980@kroah.com><20110610160548.529797c7.sfr@canb.auug.org.au>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 206.83.70.73.ptr.us.xo.net ([206.83.70.73]:5154 "EHLO
-	king.tilera.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755411Ab1FOOmI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jun 2011 10:42:08 -0400
-In-Reply-To: <20110610160548.529797c7.sfr@canb.auug.org.au>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Greg KH <greg@kroah.com>, brudley@broadcom.com, henryp@broadcom.com, rvossen@broadcom.co
+From: Guenter Roeck <guenter.roeck@ericsson.com>
+Subject: Re: [RFC,PATCH] Cleanup PC parallel port Kconfig
+Date: Wed, 15 Jun 2011 07:36:34 -0700
+Message-ID: <20110615143634.GA12757@ericsson.com>
+References: <20110614190850.GA13526@linux-mips.org>
+	<4DF7C3CA.9050902@zytor.com>
+	<20110614223404.GA30057@linux-mips.org>
+	<4DF8329C.7000904@zytor.com>
+	<20110615083437.GA32624@linux-mips.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20110615083437.GA32624@linux-mips.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-m68k@vger.kernel.org" <linux-m68k@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Chen Liqin <liqin.chen@sunplusct.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, "sparclinux@vger.kernel.org" <sparclinux@vger.kernel.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Lennox Wu <lennox.wu@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Russell King <linux@arm.linux.org.uk>, Yoshinori Sato <ysato@users.sourceforge.jp>, Helge Deller <deller@gmx.de>, "x86@kernel.org" <x86@kernel.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Geert Uytterhoeven <geert@linux-m68>
+List-Id: linux-arch.vger.kernel.org
 
-TILE doesn't support PAGE_KERNEL_NOCACHE so the macro isn't useful;
-it's a copy-and-paste from the first version of this header in 2007.
+On Wed, Jun 15, 2011 at 04:34:37AM -0400, Ralf Baechle wrote:
+> On Tue, Jun 14, 2011 at 09:18:36PM -0700, H. Peter Anvin wrote:
+> 
+> > On 06/14/2011 03:34 PM, Ralf Baechle wrote:
+> > > 
+> > > There is no point in offering to build something that couldn't possibly be
+> > > used.  It just makes the kernel harder to configure and inflates the test
+> > > matrix for no good reason.
+> > > 
+> > 
+> > I see... that's why a bunch of devices that only exist on ARM and MIPS
+> > SoCs are offered on x86 platforms?
+> 
+> Well, if you notice one of those, yell.  Or send patches.  Most of those
+> have been fixed.
+> 
+I think he was being sarcastic, and wanted to say that it should be that way.
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
- arch/tile/include/asm/fixmap.h |    6 ------
- 1 files changed, 0 insertions(+), 6 deletions(-)
-
-diff --git a/arch/tile/include/asm/fixmap.h b/arch/tile/include/asm/fixmap.h
-index 51537ff..c66f793 100644
---- a/arch/tile/include/asm/fixmap.h
-+++ b/arch/tile/include/asm/fixmap.h
-@@ -75,12 +75,6 @@ extern void __set_fixmap(enum fixed_addresses idx,
- 
- #define set_fixmap(idx, phys) \
- 		__set_fixmap(idx, phys, PAGE_KERNEL)
--/*
-- * Some hardware wants to get fixmapped without caching.
-- */
--#define set_fixmap_nocache(idx, phys) \
--		__set_fixmap(idx, phys, PAGE_KERNEL_NOCACHE)
--
- #define clear_fixmap(idx) \
- 		__set_fixmap(idx, 0, __pgprot(0))
- 
--- 
-1.6.5.2
+Guenter
