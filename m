@@ -1,29 +1,28 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 2/8] ARM: dma-mapping: implement dma_map_single on top of
- dma_map_page
-Date: Mon, 20 Jun 2011 17:15:43 +0200
-Message-ID: <000101cc2f5c$ec21da40$c4658ec0$%szyprowski@samsung.com>
+Subject: RE: [PATCH 4/8] ARM: dma-mapping: implement dma sg methods on top of
+ generic dma ops
+Date: Mon, 20 Jun 2011 17:23:22 +0200
+Message-ID: <000801cc2f5d$fdd720a0$f98561e0$%szyprowski@samsung.com>
 References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <1308556213-24970-3-git-send-email-m.szyprowski@samsung.com>
- <20110620143911.GD26089@n2100.arm.linux.org.uk>
+ <1308556213-24970-5-git-send-email-m.szyprowski@samsung.com>
+ <20110620144012.GE26089@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:26461 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751953Ab1FTPPt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 11:15:49 -0400
-Received: from spt2.w1.samsung.com (mailout1.w1.samsung.com [210.118.77.11])
- by mailout1.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LN3009DVH2BCE@mailout1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Mon, 20 Jun 2011 16:15:47 +0100 (BST)
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:42280 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752166Ab1FTPX1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 11:23:27 -0400
+Received: from eu_spt1 ([210.118.77.14]) by mailout4.w1.samsung.com
+ (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
+ with ESMTP id <0LN3007J1HF2IJ60@mailout4.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Mon, 20 Jun 2011 16:23:26 +0100 (BST)
 Received: from linux.samsung.com ([106.116.38.10])
- by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LN300COQH2AOA@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Mon, 20 Jun 2011 16:15:46 +0100 (BST)
-In-reply-to: <20110620143911.GD26089@n2100.arm.linux.org.uk>
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LN3002RUHF17F@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Mon, 20 Jun 2011 16:23:25 +0100 (BST)
+In-reply-to: <20110620144012.GE26089@n2100.arm.linux.org.uk>
 Content-language: pl
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -32,30 +31,29 @@ Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-
 
 Hello,
 
-On Monday, June 20, 2011 4:39 PM Russell King - ARM Linux wrote:
+On Monday, June 20, 2011 4:40 PM Russell King - ARM Linux wrote:
 
-> On Mon, Jun 20, 2011 at 09:50:07AM +0200, Marek Szyprowski wrote:
-> > This patch consolidates dma_map_single and dma_map_page calls. This is
-> > required to let dma-mapping framework on ARM architecture use common,
-> > generic dma-mapping helpers.
+> On Mon, Jun 20, 2011 at 09:50:09AM +0200, Marek Szyprowski wrote:
+> > This patch converts all dma_sg methods to be generic (independent of the
+> > current DMA mapping implementation for ARM architecture). All dma sg
+> > operations are now implemented on top of respective
+> > dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
 > 
-> This breaks DMA API debugging, which requires that dma_map_page and
-> dma_unmap_page are paired separately from dma_map_single and
-> dma_unmap_single().
+> No.  We really don't want to do this.
 
-Ok, right. This can be fixed by creating appropriate static inline functions
-in dma-mapping.h and moving dma_debug_* calls there. These function will be
-later removed by using dma_map_ops and include/asm-generic/dma-mapping-common.h
-inlines, which do all the dma_debug_* calls correctly anyway. 
+I assume you want to keep the current design for performance reasons?
 
-> This also breaks dmabounce when used with a highmem-enabled system -
-> dmabounce refuses the dma_map_page() API but allows the dma_map_single()
-> API.
+It's really not a problem for me. I can change my patches to keep 
+arm_dma_*_sg_* functions and create some stubs for dmabounce version.
 
-I really not sure how this change will break dma bounce code. 
+> If we want to move the dsb() out of the mapping functions (which I
+> have a patch for) to avoid doing a dsb() on each and every sg segment,
+> then we must not use the generic stuff.
 
-Does it mean that it is allowed to call dma_map_single() on kmapped HIGH_MEM 
-page?
+Ok, specialized (optimized) version of dma_*_sg_* operations are definitely
+better. The current version just calls respective dma_single_* operations in
+a loop, so in my patches I decided to create some generic version just to
+simplify the code. 
 
 Best regards
 -- 
