@@ -1,30 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54307 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752248Ab1FTMrX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2011 08:47:23 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20110619235147.GQ11521@ZenIV.linux.org.uk>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:41776 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754215Ab1FTNSU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 09:18:20 -0400
+Date: Mon, 20 Jun 2011 14:18:18 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] get_write_access()/deny_write_access() without
+ inode->i_lock
+Message-ID: <20110620131818.GR11521@ZenIV.linux.org.uk>
 References: <20110619235147.GQ11521@ZenIV.linux.org.uk>
-Subject: Re: [RFC] get_write_access()/deny_write_access() without inode->i_lock
-Date: Mon, 20 Jun 2011 13:47:17 +0100
-Message-ID: <21839.1308574037@redhat.com>
+ <21839.1308574037@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <21839.1308574037@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20110620124717.qZ32K0hL1gw-2HWSA1bMC4egpZna5JLg4tn1Zngphnk@z>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20110620131818.oG_dP4ZjfbJx1A4skncXSzZkIa4uETjO6Dx2yg57Kaw@z>
 
-Al Viro <viro@ZenIV.linux.org.uk> wrote:
+On Mon, Jun 20, 2011 at 01:47:17PM +0100, David Howells wrote:
+> Al Viro <viro@ZenIV.linux.org.uk> wrote:
+> 
+> > +	for (v = atomic_read(&inode->i_writecount); v >= 0; v = v1) {
+> > +		v1 = atomic_cmpxchg(&inode->i_writecount, v, v + 1);
+> > +		if (likely(v1 == v))
+> > +			return 0;
+> > +	}
+> 
+> You don't need to reissue the atomic_read().  atomic_cmpxchg() returns the
+> current value of the memory location.  Just set v to v1 before going round the
+> loop again.
 
-> +	for (v = atomic_read(&inode->i_writecount); v >= 0; v = v1) {
-> +		v1 = atomic_cmpxchg(&inode->i_writecount, v, v + 1);
-> +		if (likely(v1 == v))
-> +			return 0;
-> +	}
-
-You don't need to reissue the atomic_read().  atomic_cmpxchg() returns the
-current value of the memory location.  Just set v to v1 before going round the
-loop again.
-
-David
+That's precisely what that loop is doing...
