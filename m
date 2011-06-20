@@ -1,136 +1,79 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC] get_write_access()/deny_write_access() without inode->i_lock
-Date: Mon, 20 Jun 2011 00:51:47 +0100
-Message-ID: <20110619235147.GQ11521@ZenIV.linux.org.uk>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH 7/8] common: dma-mapping: change alloc/free_coherent method to
+ more generic alloc/free_attrs
+Date: Mon, 20 Jun 2011 09:50:12 +0200
+Message-ID: <1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:53712 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755090Ab1FSXvu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Jun 2011 19:51:50 -0400
-Content-Disposition: inline
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:41112 "EHLO
+	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753531Ab1FTHug (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 03:50:36 -0400
+Received: from spt2.w1.samsung.com (mailout1.w1.samsung.com [210.118.77.11])
+ by mailout1.w1.samsung.com
+ (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
+ with ESMTP id <0LN2009F9WGACE@mailout1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Mon, 20 Jun 2011 08:50:34 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LN2005SKWG9O3@spt2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Mon, 20 Jun 2011 08:50:34 +0100 (BST)
+In-reply-to: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
 
-	I'm seriously tempted to throw away i_lock uses in
-{get,deny}_write_access(), as in the patch below.  The question is, how
-badly will it suck on various architectures?  I'd expect it to be not
-worse than the current version, but...
-	BTW, I wonder if we need barriers in {put,allow}_write_access (in
-either version).
+Introduce new alloc/free/mmap methods that take attributes argument.
+alloc/free_coherent can be implemented on top of the new alloc/free
+calls with NULL attributes. dma_alloc_non_coherent can be implemented
+using DMA_ATTR_NONCOHERENT attribute, dma_alloc_writecombine can also
+use separate DMA_ATTR_WRITECOMBINE attribute. This way the drivers will
+get more generic, platform independent way of allocating dma memory
+buffers with specific parameters.
 
-	Related question: would it make sense to turn that into
-atomic_inc_unless_negative/atomic_dec_unless_positive?  I don't
-remember any code doing that kind of stuff - no idea if there are
-any potential users for that.
+One more attribute can be usefull: DMA_ATTR_NOKERNELVADDR. Buffers with
+such attribute will not have valid kernel virtual address. They might be
+usefull for drivers that only exports the DMA buffers to userspace (like
+for example V4L2 or ALSA).
 
-diff --git a/fs/namei.c b/fs/namei.c
-index 26bef77..7dffe2e 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -341,52 +341,6 @@ ok:
- 	return security_inode_exec_permission(inode, flags);
- }
+mmap method is introduced to let the drivers create a user space mapping
+for a DMA buffer in generic, architecture independent way.
+
+TODO: update all dma_map_ops clients for all architectures
+
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
+---
+ include/linux/dma-mapping.h |   13 +++++++++----
+ 1 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index ba8319a..08a6fa8 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -16,10 +16,15 @@ enum dma_data_direction {
+ };
  
--/*
-- * get_write_access() gets write permission for a file.
-- * put_write_access() releases this write permission.
-- * This is used for regular files.
-- * We cannot support write (and maybe mmap read-write shared) accesses and
-- * MAP_DENYWRITE mmappings simultaneously. The i_writecount field of an inode
-- * can have the following values:
-- * 0: no writers, no VM_DENYWRITE mappings
-- * < 0: (-i_writecount) vm_area_structs with VM_DENYWRITE set exist
-- * > 0: (i_writecount) users are writing to the file.
-- *
-- * Normally we operate on that counter with atomic_{inc,dec} and it's safe
-- * except for the cases where we don't hold i_writecount yet. Then we need to
-- * use {get,deny}_write_access() - these functions check the sign and refuse
-- * to do the change if sign is wrong. Exclusion between them is provided by
-- * the inode->i_lock spinlock.
-- */
--
--int get_write_access(struct inode * inode)
--{
--	spin_lock(&inode->i_lock);
--	if (atomic_read(&inode->i_writecount) < 0) {
--		spin_unlock(&inode->i_lock);
--		return -ETXTBSY;
--	}
--	atomic_inc(&inode->i_writecount);
--	spin_unlock(&inode->i_lock);
--
--	return 0;
--}
--
--int deny_write_access(struct file * file)
--{
--	struct inode *inode = file->f_path.dentry->d_inode;
--
--	spin_lock(&inode->i_lock);
--	if (atomic_read(&inode->i_writecount) > 0) {
--		spin_unlock(&inode->i_lock);
--		return -ETXTBSY;
--	}
--	atomic_dec(&inode->i_writecount);
--	spin_unlock(&inode->i_lock);
--
--	return 0;
--}
--
- /**
-  * path_get - get a reference to a path
-  * @path: path to get the reference to
-diff --git a/include/linux/fs.h b/include/linux/fs.h
-index 7302e44..ab89aa3 100644
---- a/include/linux/fs.h
-+++ b/include/linux/fs.h
-@@ -2194,8 +2194,43 @@ static inline bool execute_ok(struct inode *inode)
- 	return (inode->i_mode & S_IXUGO) || S_ISDIR(inode->i_mode);
- }
- 
--extern int get_write_access(struct inode *);
--extern int deny_write_access(struct file *);
-+/*
-+ * get_write_access() gets write permission for a file.
-+ * put_write_access() releases this write permission.
-+ * This is used for regular files.
-+ * We cannot support write (and maybe mmap read-write shared) accesses and
-+ * MAP_DENYWRITE mmappings simultaneously. The i_writecount field of an inode
-+ * can have the following values:
-+ * 0: no writers, no VM_DENYWRITE mappings
-+ * < 0: (-i_writecount) vm_area_structs with VM_DENYWRITE set exist
-+ * > 0: (i_writecount) users are writing to the file.
-+ *
-+ * Normally we operate on that counter with atomic_{inc,dec} and it's safe
-+ * except for the cases where we don't hold i_writecount yet. Then we need to
-+ * use {get,deny}_write_access() - these functions check the sign and refuse
-+ * to do the change if sign is wrong.
-+ */
-+static inline int get_write_access(struct inode *inode)
-+{
-+	int v, v1;
-+	for (v = atomic_read(&inode->i_writecount); v >= 0; v = v1) {
-+		v1 = atomic_cmpxchg(&inode->i_writecount, v, v + 1);
-+		if (likely(v1 == v))
-+			return 0;
-+	}
-+	return -ETXTBSY;
-+}
-+static inline int deny_write_access(struct file *file)
-+{
-+	struct inode *inode = file->f_path.dentry->d_inode;
-+	int v, v1;
-+	for (v = atomic_read(&inode->i_writecount); v <= 0; v = v1) {
-+		v1 = atomic_cmpxchg(&inode->i_writecount, v, v + 1);
-+		if (likely(v1 == v))
-+			return 0;
-+	}
-+	return -ETXTBSY;
-+}
- static inline void put_write_access(struct inode * inode)
- {
- 	atomic_dec(&inode->i_writecount);
+ struct dma_map_ops {
+-	void* (*alloc_coherent)(struct device *dev, size_t size,
+-				dma_addr_t *dma_handle, gfp_t gfp);
+-	void (*free_coherent)(struct device *dev, size_t size,
+-			      void *vaddr, dma_addr_t dma_handle);
++	void* (*alloc)(struct device *dev, size_t size,
++				dma_addr_t *dma_handle, gfp_t gfp,
++				struct dma_attrs *attrs);
++	void (*free)(struct device *dev, size_t size,
++			      void *vaddr, dma_addr_t dma_handle,
++			      struct dma_attrs *attrs);
++	int (*mmap)(struct device *, struct vm_area_struct *,
++			  void *, dma_addr_t, size_t, struct dma_attrs *attrs);
++
+ 	dma_addr_t (*map_page)(struct device *dev, struct page *page,
+ 			       unsigned long offset, size_t size,
+ 			       enum dma_data_direction dir,
+-- 
+1.7.1.569.g6f426
