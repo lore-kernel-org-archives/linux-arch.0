@@ -1,31 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47964 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753909Ab1FTNVL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2011 09:21:11 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <21839.1308574037@redhat.com>
-References: <21839.1308574037@redhat.com> <20110619235147.GQ11521@ZenIV.linux.org.uk>
-Subject: Re: [RFC] get_write_access()/deny_write_access() without inode->i_lock
-Date: Mon, 20 Jun 2011 14:20:34 +0100
-Message-ID: <22606.1308576034@redhat.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:59920 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755009Ab1FTOjd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 10:39:33 -0400
+Date: Mon, 20 Jun 2011 15:39:11 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 2/8] ARM: dma-mapping: implement dma_map_single on top
+	of dma_map_page
+Message-ID: <20110620143911.GD26089@n2100.arm.linux.org.uk>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <1308556213-24970-3-git-send-email-m.szyprowski@samsung.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1308556213-24970-3-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: dhowells@redhat.com, Al Viro <viro@ZenIV.linux.org.uk>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20110620132034._TJ9zwwSoqUFAuiCpbb2Aqrv3VbRAoRUY5hivCmOQE8@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>
+Message-ID: <20110620143911.FKR_9OpI_R8DXmYrji71_7AIAsMJSlrtx69_3oAQmqI@z>
 
-David Howells <dhowells@redhat.com> wrote:
+On Mon, Jun 20, 2011 at 09:50:07AM +0200, Marek Szyprowski wrote:
+> This patch consolidates dma_map_single and dma_map_page calls. This is
+> required to let dma-mapping framework on ARM architecture use common,
+> generic dma-mapping helpers.
 
-> > +	for (v = atomic_read(&inode->i_writecount); v >= 0; v = v1) {
-> > +		v1 = atomic_cmpxchg(&inode->i_writecount, v, v + 1);
-> > +		if (likely(v1 == v))
-> > +			return 0;
-> > +	}
-> 
-> You don't need to reissue the atomic_read().  atomic_cmpxchg() returns the
-> current value of the memory location.  Just set v to v1 before going round the
-> loop again.
+This breaks DMA API debugging, which requires that dma_map_page and
+dma_unmap_page are paired separately from dma_map_single and
+dma_unmap_single().
 
-Ah...  Never mind - you did that anyway.
-
-David
+This also breaks dmabounce when used with a highmem-enabled system -
+dmabounce refuses the dma_map_page() API but allows the dma_map_single()
+API.
