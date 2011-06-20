@@ -1,51 +1,73 @@
-From: NamJae Jeon <linkinjeon@gmail.com>
-Subject: WARNING:'hweight_long' include/linux/bitops.h compile warning problem.
-Date: Mon, 20 Jun 2011 17:08:21 +0900
-Message-ID: <BANLkTimuqNey8jUHkLS-MkmBWf8Tcu9=Cg@mail.gmail.com>
+From: "Michal Nazarewicz" <mina86@mina86.com>
+Subject: Re: [PATCH 1/8] ARM: dma-mapping: remove offset parameter to prepare
+ for generic dma_ops
+Date: Mon, 20 Jun 2011 10:35:36 +0200
+Message-ID: <op.vxc8tmru3l0zgt@mnazarewicz-glaptop>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+ <1308556213-24970-2-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f174.google.com ([209.85.215.174]:42998 "EHLO
-	mail-ey0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751189Ab1FTIIX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 04:08:23 -0400
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:57081 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750844Ab1FTIfm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 04:35:42 -0400
+Received: by gxk21 with SMTP id 21so215557gxk.19
+        for <linux-arch@vger.kernel.org>; Mon, 20 Jun 2011 01:35:41 -0700 (PDT)
+In-Reply-To: <1308556213-24970-2-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
 
-Hello. Arnd
+On Mon, 20 Jun 2011 09:50:06 +0200, Marek Szyprowski  
+<m.szyprowski@samsung.com> wrote:
+> +static inline void dma_sync_single_for_cpu(struct device *dev,
 
-I found compile warning while compiling module when using -Wsign-compare option.
+I wouldn't really put inline here or in the function below.
 
-include/linux/bitops.h: In function 'hweight_long':
-include/linux/bitops.h:49: warning: signed and unsigned type in
-conditional expression
+> +		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+> +{
+> +	BUG_ON(!valid_dma_direction(dir));
+> +
+> +	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
+> +
+> +	if (!dmabounce_sync_for_cpu(dev, handle, size, dir))
+> +		return;
+> +
+> +	__dma_single_dev_to_cpu(dma_to_virt(dev, handle), size, dir);
 
-I found the reason of this problem that the default return value of
-the below macro is signed.
+I know it is just copy'n'paste but how about:
 
-#define __const_hweight8(w)        \
-     ( (!!((w) & (1ULL << 0))) +       \
-       (!!((w) & (1ULL << 1))) +       \
-       (!!((w) & (1ULL << 2))) +       \
-       (!!((w) & (1ULL << 3))) +       \
-       (!!((w) & (1ULL << 4))) +       \
-       (!!((w) & (1ULL << 5))) +       \
-       (!!((w) & (1ULL << 6))) +       \
-       (!!((w) & (1ULL << 7))) )
+	if (dmabounce_sync_for_cpu(dev, handle, size, dir))
+		__dma_single_dev_to_cpu(dma_to_virt(dev, handle), size, dir);
 
-So, I try to add (unsigned long) in __const_hweight8 like this.
+> +}
+> +
+> +static inline void dma_sync_single_for_device(struct device *dev,
+> +		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+> +{
+> +	BUG_ON(!valid_dma_direction(dir));
+> +
+> +	debug_dma_sync_single_for_device(dev, handle, size, dir);
+> +
+> +	if (!dmabounce_sync_for_device(dev, handle, size, dir))
+> +		return;
+> +
+> +	__dma_single_cpu_to_dev(dma_to_virt(dev, handle), size, dir);
 
-#define __const_hweight8(w)     (unsigned long )        \
-     ( (!!((w) & (1ULL << 0))) +       \
-       (!!((w) & (1ULL << 1))) +       \
-       (!!((w) & (1ULL << 2))) +       \
-       (!!((w) & (1ULL << 3))) +       \
-       (!!((w) & (1ULL << 4))) +       \
-       (!!((w) & (1ULL << 5))) +       \
-       (!!((w) & (1ULL << 6))) +       \
-       (!!((w) & (1ULL << 7))) )
+Same as above.
 
-so, I can't see compile warning after fixing it, Would you plz check this ?
+> +}
+> +
+>  /**
+>   * dma_sync_single_range_for_cpu
+>   * @dev: valid struct device pointer, or NULL for ISA and EISA-like  
+> devices
 
-Thanks.
+-- 
+Best regards,                                         _     _
+.o. | Liege of Serenely Enlightened Majesty of      o' \,=./ `o
+..o | Computer Science,  Michal "mina86" Nazarewicz    (o o)
+ooo +-----<email/xmpp: mnazarewicz@google.com>-----ooO--(_)--Ooo--
