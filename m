@@ -1,70 +1,32 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [RFC] get_write_access()/deny_write_access() without
  inode->i_lock
-Date: Mon, 20 Jun 2011 17:42:11 +0100
-Message-ID: <20110620164211.GV11521@ZenIV.linux.org.uk>
+Date: Mon, 20 Jun 2011 18:03:05 +0100
+Message-ID: <20110620170305.GW11521@ZenIV.linux.org.uk>
 References: <20110619235147.GQ11521@ZenIV.linux.org.uk>
  <BANLkTimdPT2dbTToTHGVzJr=f3xPKT9tZw@mail.gmail.com>
  <20110620161352.GT11521@ZenIV.linux.org.uk>
  <BANLkTikUi9M1Mx4L54vJOP0SK0P3yAz=uQ@mail.gmail.com>
+ <20110620164211.GV11521@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:46437 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751088Ab1FTRDH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 13:03:07 -0400
 Content-Disposition: inline
-In-Reply-To: <BANLkTikUi9M1Mx4L54vJOP0SK0P3yAz=uQ@mail.gmail.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
+In-Reply-To: <20110620164211.GV11521@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jun 20, 2011 at 09:22:32AM -0700, Linus Torvalds wrote:
-> On Mon, Jun 20, 2011 at 9:13 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > Er... ?The current mainline does atomic_read() followed by atomic_inc(),
-> > so we get the same thing (plus the spin_lock()/spin_unlock()), don't we?
-> 
-> Yes. Unless the spinlock is in the same cacheline. No reason not to
-> fix that, though.
-> 
-> Of course, if the "ETXTBUSY" case is the common case (which I doubt),
-> then not doing the write at all would be the optimal case. But I doubt
-> that case is even worth really worrying about ;)
+On Mon, Jun 20, 2011 at 05:42:11PM +0100, Al Viro wrote:
 
-It isn't, unless your box is spinning in attempts to do something like
-opening /bin/sh for write.  In which case you've got worse problems ;-)
-> 
-> > For get_write_access() it's probably the right assumption for everything but
-> > /dev/tty*; for deny_write_access() it's not - a lot of binaries are run by
-> > more than one process...
-> 
-> Note the fact that EVEN IF WE GUESS INCORRECTLY, performance is likely
-> better by guessing rather than reading, unless you know the thing is
-> already in the local CPU cache.
-> 
-> Doing the loop twice instead of once is still *much* faster than an
-> extra cache transaction that goes to the bus (or L3 or whatever).
-> 
-> > FWIW, I wonder what will the things look like on ll/sc architectures;
-> 
-> There are no ll/sc architectures worth worrying about, so I don't
-> think that's the primary concern.  That said, I don't disagree with
-> creating a "atomic_inc_unless_negative()" helper.
+> BTW, atomic_add_unless/atomic_inc_not_zero is done as read/cmpxchg on
+> everything I've checked, including alpha and sparc.  I suspect that
+> it's seriously suboptimal there...
 
-OK...  Let me see if I got it right:
-static inline int atomic_inc_unless_negative(atomic_t *p)
-{
-	int v, v1;
-	for (v = 0; v >= 0; v = v1) {
-		v1 = atomic_cmpxchg(p, v, v + 1);
-		if (v == v1)
-			return 1;
-	}
-	return 0;
-}
-with get_write_access(inode) becoming
-	return atomic_inc_unless_negative(&inode->i_writecount) ? 0 : -ETXTBUSY;
-and similar for atomic_dec_unless_positive()/deny_write_access()?
-
-BTW, atomic_add_unless/atomic_inc_not_zero is done as read/cmpxchg on
-everything I've checked, including alpha and sparc.  I suspect that
-it's seriously suboptimal there...
+Actually, on sparc it's probably fine.  alpha, OTOH, probably ought to switch
+to something similar to what ppc is doing...
