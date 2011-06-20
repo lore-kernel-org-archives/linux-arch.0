@@ -1,15 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:44800 "EHLO
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:43334 "EHLO
 	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751356Ab1FTP4a convert rfc822-to-8bit
+	by vger.kernel.org with ESMTP id S1750980Ab1FTQXO convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jun 2011 11:56:30 -0400
+	Mon, 20 Jun 2011 12:23:14 -0400
 MIME-Version: 1.0
-In-Reply-To: <20110619235147.GQ11521@ZenIV.linux.org.uk>
-References: <20110619235147.GQ11521@ZenIV.linux.org.uk>
+In-Reply-To: <20110620161352.GT11521@ZenIV.linux.org.uk>
+References: <20110619235147.GQ11521@ZenIV.linux.org.uk> <BANLkTimdPT2dbTToTHGVzJr=f3xPKT9tZw@mail.gmail.com>
+ <20110620161352.GT11521@ZenIV.linux.org.uk>
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 20 Jun 2011 08:55:38 -0700
-Message-ID: <BANLkTimdPT2dbTToTHGVzJr=f3xPKT9tZw@mail.gmail.com>
+Date: Mon, 20 Jun 2011 09:22:32 -0700
+Message-ID: <BANLkTikUi9M1Mx4L54vJOP0SK0P3yAz=uQ@mail.gmail.com>
 Subject: Re: [RFC] get_write_access()/deny_write_access() without inode->i_lock
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
@@ -17,33 +18,35 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@zeniv.linux.org.uk>
 Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110620155538.cJiIzoRXRNmO6zWa605FcugXGJrg61AGBc04M4-URvQ@z>
+Message-ID: <20110620162232.ybPSUIqNBEJfkAXrWbg7VpbSs6w8VDySZyzbSCM5CvQ@z>
 
-On Sun, Jun 19, 2011 at 4:51 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->        I'm seriously tempted to throw away i_lock uses in
-> {get,deny}_write_access(), as in the patch below.  The question is, how
-> badly will it suck on various architectures?  I'd expect it to be not
-> worse than the current version, but...
+On Mon, Jun 20, 2011 at 9:13 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> Er...  The current mainline does atomic_read() followed by atomic_inc(),
+> so we get the same thing (plus the spin_lock()/spin_unlock()), don't we?
 
-It might be worse, because doing a read-before-write can turn a single
-cache operation ("get for write") into multiple cache operations ("get
-for read" followed by "make exclusive").
+Yes. Unless the spinlock is in the same cacheline. No reason not to
+fix that, though.
 
-We had that exact issue with some other users of the "read + cmpxchg" model.
+Of course, if the "ETXTBUSY" case is the common case (which I doubt),
+then not doing the write at all would be the optimal case. But I doubt
+that case is even worth really worrying about ;)
 
-The way we fixed it before was to simply omit the read, and turn that
-into a "guess".
+> For get_write_access() it's probably the right assumption for everything but
+> /dev/tty*; for deny_write_access() it's not - a lot of binaries are run by
+> more than one process...
 
-In other words, I'd suggest you get rid of the "atomic_read()"
-entirely, and just assume that the write counter was zero to begin
-with. Even if that is a wrong assumption (and it probably isn't all
-that wrong), it can actually be more efficient to essentiall go
-through the loop twice: the first time yoou use the cmpxchg as just an
-odd way to do a read. It basically bcomes a read-with-write-intent,
-and solves the cacheline issue.
+Note the fact that EVEN IF WE GUESS INCORRECTLY, performance is likely
+better by guessing rather than reading, unless you know the thing is
+already in the local CPU cache.
 
-At that point, it's likely faster in pretty much all cases except for
-UP (where the spinlocks just go away, and "cmpxchg" is slower than
-normal code).
+Doing the loop twice instead of once is still *much* faster than an
+extra cache transaction that goes to the bus (or L3 or whatever).
 
-                  Linus
+> FWIW, I wonder what will the things look like on ll/sc architectures;
+
+There are no ll/sc architectures worth worrying about, so I don't
+think that's the primary concern.  That said, I don't disagree with
+creating a "atomic_inc_unless_negative()" helper.
+
+                     Linus
