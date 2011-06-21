@@ -1,107 +1,88 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 7/8] common: dma-mapping: change alloc/free_coherent method
- to more generic alloc/free_attrs
-Date: Tue, 21 Jun 2011 13:23:35 +0200
-Message-ID: <002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCH 3/8] ARM: dma-mapping: use
+ asm-generic/dma-mapping-common.h
+Date: Tue, 21 Jun 2011 13:47:03 +0200
+Message-ID: <002501cc3008$f000d600$d0028200$%szyprowski@samsung.com>
 References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
- <BANLkTikFdrOuXsLCfvyA_V+p7S_fd72dyQ@mail.gmail.com>
+ <1308556213-24970-4-git-send-email-m.szyprowski@samsung.com>
+ <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-2
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:36219 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753402Ab1FULXp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 07:23:45 -0400
-Received: from spt2.w1.samsung.com (mailout2.w1.samsung.com [210.118.77.12])
- by mailout2.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LN500LLR0ZKHV@mailout2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:23:44 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LN500F7P0ZI4V@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:23:43 +0100 (BST)
-In-reply-to: <BANLkTikFdrOuXsLCfvyA_V+p7S_fd72dyQ@mail.gmail.com>
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-reply-to: <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
 Content-language: pl
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: 'KyongHo Cho' <pullip.cho@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, 'Arnd Bergmann' <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
 Hello,
 
-On Monday, June 20, 2011 4:46 PM KyongHo Cho wrote:
+On Monday, June 20, 2011 4:33 PM KyongHo Cho wrote:
 
 > On Mon, Jun 20, 2011 at 4:50 PM, Marek Szyprowski
 > <m.szyprowski@samsung.com> wrote:
->=20
-> > =A0struct dma_map_ops {
-> > - =A0 =A0 =A0 void* (*alloc_coherent)(struct device *dev, size_t si=
-ze,
-> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 dma_a=
-ddr_t *dma_handle, gfp_t gfp);
-> > - =A0 =A0 =A0 void (*free_coherent)(struct device *dev, size_t size=
-,
-> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 void *vad=
-dr, dma_addr_t dma_handle);
-> > + =A0 =A0 =A0 void* (*alloc)(struct device *dev, size_t size,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 dma_a=
-ddr_t *dma_handle, gfp_t gfp,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struc=
-t dma_attrs *attrs);
-> > + =A0 =A0 =A0 void (*free)(struct device *dev, size_t size,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 void *vad=
-dr, dma_addr_t dma_handle,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct dm=
-a_attrs *attrs);
-> > + =A0 =A0 =A0 int (*mmap)(struct device *, struct vm_area_struct *,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 void *, dma_addr_=
-t, size_t, struct dma_attrs
-> *attrs);
+> > +static inline void set_dma_ops(struct device *dev, struct =
+dma_map_ops
+> *ops)
+> > +{
+> > + =A0 =A0 =A0 dev->archdata.dma_ops =3D ops;
+> > +}
 > > +
-> > =A0 =A0 =A0 =A0dma_addr_t (*map_page)(struct device *dev, struct pa=
-ge *page,
-> > =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 unsigne=
-d long offset, size_t size,
-> > =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 enum dm=
-a_data_direction dir,
 >=20
-> I still don't agree with your idea that change alloc_coherent() with
-> alloc().
+> Who calls set_dma_ops()?
+> In the mach. initialization part?
 
-> As I said before, we actually do not need dma_alloc_writecombine() an=
-ymore
-> because it is not different from dma_alloc_coherent() in ARM.
+Yes, some board, machine or device bus initialization code is supposed =
+to
+call this function. Just 'git grep dma_set_ops' and you will see. In my
+patch series one of the clients of set_dma_ops function is dmabounce=20
+framework (it is called in dmabounce_register_dev() function).
 
-You already got a reply that dropping dma_alloc_writecombine() is no
-go on ARM.
+> What if a device driver does not want to use arch's dma_map_ops
+> when machine init procedure set a dma_map_ops?
 
-> Most of other architectures do not have dma_alloc_writecombine().
+Could you elaborate on this case? The whole point of dma-mapping =
+framework
+is to hide the implementation of DMA mapping operation from the driver.=20
+The driver should never fiddle with dma map ops directly.
 
-That's not a problem. Once we agree on dma_alloc_attrs(), the drivers
-can be changed to use DMA_ATTR_WRITE_COMBINE attribute. If the platform
-doesn't support the attribute, it is just ignored. That's the whole
-point of the attributes extension. Once a driver is converted to=20
-dma_alloc_attrs(), it can be used without any changes either on platfor=
-ms
-that supports some specific attributes or the one that doesn't implemen=
-t
-support for any of them.
+> Even though, may arch defiens their dma_map_ops in archdata of device
+> structure,
+> I think it is not a good idea that is device structure contains a
+> pointer to dma_map_ops
+> that may not be common to all devices in a board.
 
-> If you want dma_alloc_coherent() to allocate user virtual address,
-> I believe that it is also available with mmap() you introduced.
+It is up to the board/bus startup code to set dma ops correctly.
 
-Allocation is a separate operation from mapping to userspace. Mmap
-operation should just map the buffer (represented by a cookie of type
-dma_addr_t) to user address space.
+> I also think that it is better to attach and to detach dma_map_ops
+> dynamically.
 
-Note that some drivers (like framebuffer drivers for example) also
-needs to have both types of mapping - one for user space and one for
-kernel virtual space.
+What's the point of such operations? Why do you want to change dma
+mapping methods in runtime?
+
+> Moreover, a mapping is not permanent in our Exynos platform
+> because a System MMU may be turned off while runtime.
+
+This is theoretically possible. The System MMU (Samsung IOMMU
+controller) driver can change dma_map_ops back to NULL on remove moving
+back the client device to generic ARM dma mapping implementation.
+
+> DMA API must come with IOMMU API to initialize IOMMU in runtime.
+
+I don't understand what's the problem here.=20
 
 Best regards
 --=20
 Marek Szyprowski
 Samsung Poland R&D Center
+
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
