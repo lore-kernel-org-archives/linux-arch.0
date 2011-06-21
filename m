@@ -1,33 +1,37 @@
-From: "STELLA SAMUEL DOE" <stellasamdoe@yahoo.com>
-Subject: MY DEAREST LOVE
-Date: Tue, 21 Jun 2011 11:03:47 -0700
-Message-ID: <7bdfa6e25bdd1eed140a7cb0c02b3954.squirrel@webmail.illusional-x.net>
-Reply-To: stellasamdoe@yahoo.com
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH net-next] net: remove mm.h inclusion from netdevice.h
+Date: Tue, 21 Jun 2011 16:25:07 -0700 (PDT)
+Message-ID: <20110621.162507.453473443486815179.davem@davemloft.net>
+References: <20110616210134.GA18026@p183.telecom.by>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hapkido.dreamhost.com ([66.33.216.122]:48960 "EHLO
-	hapkido.dreamhost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752280Ab1FUSDx convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 14:03:53 -0400
-Received: from homiemail-a21.g.dreamhost.com (caiajhbdccac.dreamhost.com [208.97.132.202])
-	by hapkido.dreamhost.com (Postfix) with ESMTP id 67FAF178536
-	for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2011 11:03:48 -0700 (PDT)
+Received: from shards.monkeyblade.net ([198.137.202.13]:47700 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756909Ab1FUXZY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 19:25:24 -0400
+In-Reply-To: <20110616210134.GA18026@p183.telecom.by>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: adobriyan@gmail.com
+Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
 
+From: Alexey Dobriyan <adobriyan@gmail.com>
+Date: Fri, 17 Jun 2011 00:01:34 +0300
 
+> Remove linux/mm.h inclusion from netdevice.h -- it's unused (I've checked manually).
+> 
+> To prevent mm.h inclusion via other channels also extract "enum dma_data_direction"
+> definition into separate header. This tiny piece is what gluing netdevice.h with mm.h
+> via "netdevice.h => dmaengine.h => dma-mapping.h => scatterlist.h => mm.h".
+> Removal of mm.h from scatterlist.h was tried and was found not feasible
+> on most archs, so the link was cutoff earlier.
+> 
+> Hope people are OK with tiny include file.
+> 
+> Note, that mm_types.h is still dragged in, but it is a separate story.
+> 
+> Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
 
-
- Hello My Dear.
-
-My name is Stella i was searching online and see your email contact  and
-said let me drop you this note and am Looking for good, honest and
-truthful,relationship also i will like to know more about you,Please i
-want you to reply me back through my email address (
-stellasamdoe@yahoo.com ) so i can give you my pictures and tell you more
-about me,:
-Waiting to hear from you again,
-Yours Stella
-Reply me back at:  stellasamdoe@yahoo.com
+I've applied this, thanks.
