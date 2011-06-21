@@ -1,75 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:53612 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753281Ab1FTQmN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Jun 2011 12:42:13 -0400
-Date: Mon, 20 Jun 2011 17:42:11 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] get_write_access()/deny_write_access() without
- inode->i_lock
-Message-ID: <20110620164211.GV11521@ZenIV.linux.org.uk>
-References: <20110619235147.GQ11521@ZenIV.linux.org.uk>
- <BANLkTimdPT2dbTToTHGVzJr=f3xPKT9tZw@mail.gmail.com>
- <20110620161352.GT11521@ZenIV.linux.org.uk>
- <BANLkTikUi9M1Mx4L54vJOP0SK0P3yAz=uQ@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <BANLkTikUi9M1Mx4L54vJOP0SK0P3yAz=uQ@mail.gmail.com>
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:45526 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752558Ab1FULrN convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 07:47:13 -0400
+MIME-version: 1.0
+Content-type: text/plain; charset=iso-8859-2
+Received: from eu_spt1 ([210.118.77.13]) by mailout3.w1.samsung.com
+ (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
+ with ESMTP id <0LN500A9322N8U60@mailout3.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:47:11 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LN5000ES22MRG@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:47:10 +0100 (BST)
+Date: Tue, 21 Jun 2011 13:47:03 +0200
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCH 3/8] ARM: dma-mapping: use
+ asm-generic/dma-mapping-common.h
+In-reply-to: <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
+Message-ID: <002501cc3008$f000d600$d0028200$%szyprowski@samsung.com>
+Content-language: pl
+Content-transfer-encoding: 8BIT
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+ <1308556213-24970-4-git-send-email-m.szyprowski@samsung.com>
+ <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110620164211.t1o_24Z0BasXjGSOz0lAO2X6N2lNFYZz1nmTaT5db58@z>
+To: 'KyongHo Cho' <pullip.cho@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, 'Arnd Bergmann' <arnd@arndb.de>
+Message-ID: <20110621114703.sZv3g6IUBDI5etnSyRxVXKYmmov4ci76W0fJDYnGRco@z>
 
-On Mon, Jun 20, 2011 at 09:22:32AM -0700, Linus Torvalds wrote:
-> On Mon, Jun 20, 2011 at 9:13 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > Er... ?The current mainline does atomic_read() followed by atomic_inc(),
-> > so we get the same thing (plus the spin_lock()/spin_unlock()), don't we?
-> 
-> Yes. Unless the spinlock is in the same cacheline. No reason not to
-> fix that, though.
-> 
-> Of course, if the "ETXTBUSY" case is the common case (which I doubt),
-> then not doing the write at all would be the optimal case. But I doubt
-> that case is even worth really worrying about ;)
+Hello,
 
-It isn't, unless your box is spinning in attempts to do something like
-opening /bin/sh for write.  In which case you've got worse problems ;-)
-> 
-> > For get_write_access() it's probably the right assumption for everything but
-> > /dev/tty*; for deny_write_access() it's not - a lot of binaries are run by
-> > more than one process...
-> 
-> Note the fact that EVEN IF WE GUESS INCORRECTLY, performance is likely
-> better by guessing rather than reading, unless you know the thing is
-> already in the local CPU cache.
-> 
-> Doing the loop twice instead of once is still *much* faster than an
-> extra cache transaction that goes to the bus (or L3 or whatever).
-> 
-> > FWIW, I wonder what will the things look like on ll/sc architectures;
-> 
-> There are no ll/sc architectures worth worrying about, so I don't
-> think that's the primary concern.  That said, I don't disagree with
-> creating a "atomic_inc_unless_negative()" helper.
+On Monday, June 20, 2011 4:33 PM KyongHo Cho wrote:
 
-OK...  Let me see if I got it right:
-static inline int atomic_inc_unless_negative(atomic_t *p)
-{
-	int v, v1;
-	for (v = 0; v >= 0; v = v1) {
-		v1 = atomic_cmpxchg(p, v, v + 1);
-		if (v == v1)
-			return 1;
-	}
-	return 0;
-}
-with get_write_access(inode) becoming
-	return atomic_inc_unless_negative(&inode->i_writecount) ? 0 : -ETXTBUSY;
-and similar for atomic_dec_unless_positive()/deny_write_access()?
+> On Mon, Jun 20, 2011 at 4:50 PM, Marek Szyprowski
+> <m.szyprowski@samsung.com> wrote:
+> > +static inline void set_dma_ops(struct device *dev, struct dma_map_ops
+> *ops)
+> > +{
+> > +       dev->archdata.dma_ops = ops;
+> > +}
+> > +
+> 
+> Who calls set_dma_ops()?
+> In the mach. initialization part?
 
-BTW, atomic_add_unless/atomic_inc_not_zero is done as read/cmpxchg on
-everything I've checked, including alpha and sparc.  I suspect that
-it's seriously suboptimal there...
+Yes, some board, machine or device bus initialization code is supposed to
+call this function. Just 'git grep dma_set_ops' and you will see. In my
+patch series one of the clients of set_dma_ops function is dmabounce 
+framework (it is called in dmabounce_register_dev() function).
+
+> What if a device driver does not want to use arch's dma_map_ops
+> when machine init procedure set a dma_map_ops?
+
+Could you elaborate on this case? The whole point of dma-mapping framework
+is to hide the implementation of DMA mapping operation from the driver. 
+The driver should never fiddle with dma map ops directly.
+
+> Even though, may arch defiens their dma_map_ops in archdata of device
+> structure,
+> I think it is not a good idea that is device structure contains a
+> pointer to dma_map_ops
+> that may not be common to all devices in a board.
+
+It is up to the board/bus startup code to set dma ops correctly.
+
+> I also think that it is better to attach and to detach dma_map_ops
+> dynamically.
+
+What's the point of such operations? Why do you want to change dma
+mapping methods in runtime?
+
+> Moreover, a mapping is not permanent in our Exynos platform
+> because a System MMU may be turned off while runtime.
+
+This is theoretically possible. The System MMU (Samsung IOMMU
+controller) driver can change dma_map_ops back to NULL on remove moving
+back the client device to generic ARM dma mapping implementation.
+
+> DMA API must come with IOMMU API to initialize IOMMU in runtime.
+
+I don't understand what's the problem here. 
+
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+
