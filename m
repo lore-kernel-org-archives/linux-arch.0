@@ -1,37 +1,58 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH net-next] net: remove mm.h inclusion from netdevice.h
-Date: Tue, 21 Jun 2011 16:25:07 -0700 (PDT)
-Message-ID: <20110621.162507.453473443486815179.davem@davemloft.net>
-References: <20110616210134.GA18026@p183.telecom.by>
+From: KyongHo Cho <pullip.cho@samsung.com>
+Subject: Re: [Linaro-mm-sig] [PATCH 7/8] common: dma-mapping: change
+ alloc/free_coherent method to more generic alloc/free_attrs
+Date: Wed, 22 Jun 2011 09:00:54 +0900
+Message-ID: <BANLkTinDN-FF5=8uj9pP58Ny0-LUMtjh=g@mail.gmail.com>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+	<1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
+	<BANLkTikFdrOuXsLCfvyA_V+p7S_fd72dyQ@mail.gmail.com>
+	<002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:47700 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756909Ab1FUXZY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 19:25:24 -0400
-In-Reply-To: <20110616210134.GA18026@p183.telecom.by>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:39912 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757407Ab1FVAAy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 20:00:54 -0400
+Received: by gxk21 with SMTP id 21so123413gxk.19
+        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2011 17:00:54 -0700 (PDT)
+In-Reply-To: <002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: adobriyan@gmail.com
-Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, fujita.tomonori@lab.ntt.co.jp, linux-arch@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arch@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, Kyungmin Park <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
 
-From: Alexey Dobriyan <adobriyan@gmail.com>
-Date: Fri, 17 Jun 2011 00:01:34 +0300
+2011/6/21 Marek Szyprowski <m.szyprowski@samsung.com>:
+>
+> You already got a reply that dropping dma_alloc_writecombine() is no
+> go on ARM.
+>
+Yes.
 
-> Remove linux/mm.h inclusion from netdevice.h -- it's unused (I've checked manually).
-> 
-> To prevent mm.h inclusion via other channels also extract "enum dma_data_direction"
-> definition into separate header. This tiny piece is what gluing netdevice.h with mm.h
-> via "netdevice.h => dmaengine.h => dma-mapping.h => scatterlist.h => mm.h".
-> Removal of mm.h from scatterlist.h was tried and was found not feasible
-> on most archs, so the link was cutoff earlier.
-> 
-> Hope people are OK with tiny include file.
-> 
-> Note, that mm_types.h is still dragged in, but it is a separate story.
-> 
-> Signed-off-by: Alexey Dobriyan <adobriyan@gmail.com>
+> That's not a problem. Once we agree on dma_alloc_attrs(), the drivers
+> can be changed to use DMA_ATTR_WRITE_COMBINE attribute. If the platform
+> doesn't support the attribute, it is just ignored. That's the whole
+> point of the attributes extension. Once a driver is converted to
+> dma_alloc_attrs(), it can be used without any changes either on platforms
+> that supports some specific attributes or the one that doesn't implement
+> support for any of them.
+>
+I just worried that removing an existing construct is not a simple job.
+You introduced 3 attributes: DMA_ATTR_WRITE_COMBINE, ***COHERENT and
+***NO_KERNEL_VADDR
 
-I've applied this, thanks.
+I replied earlier, I also indicated that write combining option for
+dma_alloc_*() is required.
+But it does not mean dma_map_ops must support that.
+I think dma_alloc_writecombine() can be implemented regardless of dma_map_ops.
+
+> Allocation is a separate operation from mapping to userspace. Mmap
+> operation should just map the buffer (represented by a cookie of type
+> dma_addr_t) to user address space.
+>
+> Note that some drivers (like framebuffer drivers for example) also
+> needs to have both types of mapping - one for user space and one for
+> kernel virtual space.
+
+I meant that I think DMA_ATTR_NOKERNELVADDR is not required because
+you also introduced mmap callback.
