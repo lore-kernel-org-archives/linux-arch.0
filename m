@@ -1,87 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout3.w1.samsung.com ([210.118.77.13]:45526 "EHLO
-	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752558Ab1FULrN convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 07:47:13 -0400
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:13419 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750806Ab1FVG7h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 02:59:37 -0400
 MIME-version: 1.0
-Content-type: text/plain; charset=iso-8859-2
-Received: from eu_spt1 ([210.118.77.13]) by mailout3.w1.samsung.com
+Content-transfer-encoding: 7BIT
+Content-type: text/plain; charset=us-ascii
+Received: from spt2.w1.samsung.com ([210.118.77.14]) by mailout4.w1.samsung.com
  (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
- with ESMTP id <0LN500A9322N8U60@mailout3.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:47:11 +0100 (BST)
+ with ESMTP id <0LN600HM3JFB4G50@mailout4.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 22 Jun 2011 07:59:35 +0100 (BST)
 Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LN5000ES22MRG@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 21 Jun 2011 12:47:10 +0100 (BST)
-Date: Tue, 21 Jun 2011 13:47:03 +0200
+ by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LN60025HJFAJ4@spt2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 22 Jun 2011 07:59:35 +0100 (BST)
+Date: Wed, 22 Jun 2011 08:59:24 +0200
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [Linaro-mm-sig] [PATCH 3/8] ARM: dma-mapping: use
- asm-generic/dma-mapping-common.h
-In-reply-to: <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
-Message-ID: <002501cc3008$f000d600$d0028200$%szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
+In-reply-to: <4E017539.30505@gmail.com>
+Message-ID: <001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>
 Content-language: pl
-Content-transfer-encoding: 8BIT
 References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <1308556213-24970-4-git-send-email-m.szyprowski@samsung.com>
- <BANLkTimHE2jzQAav465WaG3iWVeHPyNRNQ@mail.gmail.com>
+ <4E017539.30505@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'KyongHo Cho' <pullip.cho@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, 'Arnd Bergmann' <arnd@arndb.de>
-Message-ID: <20110621114703.sZv3g6IUBDI5etnSyRxVXKYmmov4ci76W0fJDYnGRco@z>
+To: 'Subash Patel' <subashrp@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, 'Arnd Bergmann' <arnd@arndb.de>, Marek Szyprowski <m.szyprowski@samsung.com>
+Message-ID: <20110622065924.rRC9vNhTyd5sEYL7QWWPJm4hVOlzQtuWPKbekmlDxrI@z>
 
 Hello,
 
-On Monday, June 20, 2011 4:33 PM KyongHo Cho wrote:
+On Wednesday, June 22, 2011 6:53 AM Subash Patel wrote:
 
-> On Mon, Jun 20, 2011 at 4:50 PM, Marek Szyprowski
-> <m.szyprowski@samsung.com> wrote:
-> > +static inline void set_dma_ops(struct device *dev, struct dma_map_ops
-> *ops)
-> > +{
-> > +       dev->archdata.dma_ops = ops;
-> > +}
-> > +
+> On 06/20/2011 01:20 PM, Marek Szyprowski wrote:
+> > Hello,
+> >
+> > This patch series is a continuation of my works on implementing generic
+> > IOMMU support in DMA mapping framework for ARM architecture. Now I
+> > focused on the DMA mapping framework itself. It turned out that adding
+> > support for common dma_map_ops structure was not that hard as I initally
+> > thought. After some modification most of the code fits really well to
+> > the generic dma_map_ops methods.
+> >
+> > The only change required to dma_map_ops is a new alloc function. During
+> > the discussion on Linaro Memory Management meeting in Budapest we got
+> > the idea that we can have only one alloc/free/mmap function with
+> > additional attributes argument. This way all different kinds of
+> > architecture specific buffer mappings can be hidden behind the
+> > attributes without the need of creating several versions of dma_alloc_
+> > function. I also noticed that the dma_alloc_noncoherent() function can
+> > be also implemented this way with DMA_ATTRIB_NON_COHERENT attribute.
+> > Systems that just defines dma_alloc_noncoherent as dma_alloc_coherent
+> > will just ignore such attribute.
+> >
+> > Another good use case for alloc methods with attributes is the
+> > possibility to allocate buffer without a valid kernel mapping. There are
+> > a number of drivers (mainly V4L2 and ALSA) that only exports the DMA
+> > buffers to user space. Such drivers don't touch the buffer data at all.
+> > For such buffers we can avoid the creation of a mapping in kernel
+> > virtual address space, saving precious vmalloc area. Such buffers might
+> > be allocated once a new attribute DMA_ATTRIB_NO_KERNEL_MAPPING.
 > 
-> Who calls set_dma_ops()?
-> In the mach. initialization part?
+> Are you trying to say here, that the buffer would be allocated in the
+> user space, and we just use it to map it to the device in DMA+IOMMU
+> framework?
 
-Yes, some board, machine or device bus initialization code is supposed to
-call this function. Just 'git grep dma_set_ops' and you will see. In my
-patch series one of the clients of set_dma_ops function is dmabounce 
-framework (it is called in dmabounce_register_dev() function).
+Nope. I proposed an extension which would allow you to allocate a buffer
+without creating the kernel mapping for it. Right now dma_alloc_coherent()
+performs 3 operations:
+1. allocates memory for the buffer
+2. creates coherent kernel mapping for the buffer
+3. translates physical buffer address to DMA address that can be used by
+the hardware.
 
-> What if a device driver does not want to use arch's dma_map_ops
-> when machine init procedure set a dma_map_ops?
+dma_mmap_coherent makes additional mapping for the buffer in user process
+virtual address space.
 
-Could you elaborate on this case? The whole point of dma-mapping framework
-is to hide the implementation of DMA mapping operation from the driver. 
-The driver should never fiddle with dma map ops directly.
-
-> Even though, may arch defiens their dma_map_ops in archdata of device
-> structure,
-> I think it is not a good idea that is device structure contains a
-> pointer to dma_map_ops
-> that may not be common to all devices in a board.
-
-It is up to the board/bus startup code to set dma ops correctly.
-
-> I also think that it is better to attach and to detach dma_map_ops
-> dynamically.
-
-What's the point of such operations? Why do you want to change dma
-mapping methods in runtime?
-
-> Moreover, a mapping is not permanent in our Exynos platform
-> because a System MMU may be turned off while runtime.
-
-This is theoretically possible. The System MMU (Samsung IOMMU
-controller) driver can change dma_map_ops back to NULL on remove moving
-back the client device to generic ARM dma mapping implementation.
-
-> DMA API must come with IOMMU API to initialize IOMMU in runtime.
-
-I don't understand what's the problem here. 
+I want make the step 2 in dma_alloc_coherent() optional to save virtual
+address space: it is really limited resource. I really want to avoid 
+wasting it for mapping 128MiB buffers just to create full-HD processing
+hardware pipeline, where no drivers will use kernel mapping at all.
 
 Best regards
 -- 
