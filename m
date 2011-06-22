@@ -1,58 +1,72 @@
-From: KyongHo Cho <pullip.cho@samsung.com>
-Subject: Re: [Linaro-mm-sig] [PATCH 7/8] common: dma-mapping: change
- alloc/free_coherent method to more generic alloc/free_attrs
-Date: Wed, 22 Jun 2011 09:00:54 +0900
-Message-ID: <BANLkTinDN-FF5=8uj9pP58Ny0-LUMtjh=g@mail.gmail.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
-	<1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
-	<BANLkTikFdrOuXsLCfvyA_V+p7S_fd72dyQ@mail.gmail.com>
-	<002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
+From: David Miller <davem@davemloft.net>
+Subject: mm: Fix page_end_pfn() implementations.
+Date: Tue, 21 Jun 2011 21:11:41 -0700 (PDT)
+Message-ID: <20110621.211141.964267743068211890.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:39912 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757407Ab1FVAAy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jun 2011 20:00:54 -0400
-Received: by gxk21 with SMTP id 21so123413gxk.19
-        for <linux-arch@vger.kernel.org>; Tue, 21 Jun 2011 17:00:54 -0700 (PDT)
-In-Reply-To: <002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
+Received: from shards.monkeyblade.net ([198.137.202.13]:38110 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750696Ab1FVELt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 00:11:49 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arch@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, Kyungmin Park <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
+To: linux-kernel@vger.kernel.org
+Cc: torvalds@linux-foundation.org, linux-arch@vger.kernel.org, kamezawa.hiroyu@jp.fujitsu.com
 
-2011/6/21 Marek Szyprowski <m.szyprowski@samsung.com>:
->
-> You already got a reply that dropping dma_alloc_writecombine() is no
-> go on ARM.
->
-Yes.
 
-> That's not a problem. Once we agree on dma_alloc_attrs(), the drivers
-> can be changed to use DMA_ATTR_WRITE_COMBINE attribute. If the platform
-> doesn't support the attribute, it is just ignored. That's the whole
-> point of the attributes extension. Once a driver is converted to
-> dma_alloc_attrs(), it can be used without any changes either on platforms
-> that supports some specific attributes or the one that doesn't implement
-> support for any of them.
->
-I just worried that removing an existing construct is not a simple job.
-You introduced 3 attributes: DMA_ATTR_WRITE_COMBINE, ***COHERENT and
-***NO_KERNEL_VADDR
+Commit 37573e8c718277103f61f03741bdc5606d31b07e ("memcg: fix
+init_page_cgroup nid with sparsemem") broke the build on sparc64
+because this is the first time the page_end_pfn() interface has
+actually been used in a long time, and sparc64's definition
+referes to ->node_end_pfn which doesn't even exist.
 
-I replied earlier, I also indicated that write combining option for
-dma_alloc_*() is required.
-But it does not mean dma_map_ops must support that.
-I think dma_alloc_writecombine() can be implemented regardless of dma_map_ops.
+While fixing this I noticed powerpc had the same problem, and
+m32r's version had an off-by-one error.
 
-> Allocation is a separate operation from mapping to userspace. Mmap
-> operation should just map the buffer (represented by a cookie of type
-> dma_addr_t) to user address space.
->
-> Note that some drivers (like framebuffer drivers for example) also
-> needs to have both types of mapping - one for user space and one for
-> kernel virtual space.
+These are all fixed here.
 
-I meant that I think DMA_ATTR_NOKERNELVADDR is not required because
-you also introduced mmap callback.
+Signed-off-by: David S. Miller <davem@davemloft.net>
+
+diff --git a/arch/m32r/include/asm/mmzone.h b/arch/m32r/include/asm/mmzone.h
+index 9f3b5ac..31238e0 100644
+--- a/arch/m32r/include/asm/mmzone.h
++++ b/arch/m32r/include/asm/mmzone.h
+@@ -18,7 +18,7 @@ extern struct pglist_data *node_data[];
+ #define node_end_pfn(nid)						\
+ ({									\
+ 	pg_data_t *__pgdat = NODE_DATA(nid);				\
+-	__pgdat->node_start_pfn + __pgdat->node_spanned_pages - 1;	\
++	__pgdat->node_start_pfn + __pgdat->node_spanned_pages;		\
+ })
+ 
+ #define pmd_page(pmd)		(pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT))
+diff --git a/arch/powerpc/include/asm/mmzone.h b/arch/powerpc/include/asm/mmzone.h
+index fd3fd58..86bf6ac 100644
+--- a/arch/powerpc/include/asm/mmzone.h
++++ b/arch/powerpc/include/asm/mmzone.h
+@@ -43,7 +43,8 @@ u64 memory_hotplug_max(void);
+  */
+ 
+ #define node_start_pfn(nid)	(NODE_DATA(nid)->node_start_pfn)
+-#define node_end_pfn(nid)	(NODE_DATA(nid)->node_end_pfn)
++#define node_end_pfn(nid)       (NODE_DATA(nid)->node_start_pfn +	\
++				 NODE_DATA(nid)->node_spanned_pages)
+ 
+ #else
+ #define memory_hotplug_max() memblock_end_of_DRAM()
+diff --git a/arch/sparc/include/asm/mmzone.h b/arch/sparc/include/asm/mmzone.h
+index e8c6487..a321b04 100644
+--- a/arch/sparc/include/asm/mmzone.h
++++ b/arch/sparc/include/asm/mmzone.h
+@@ -9,7 +9,8 @@ extern struct pglist_data *node_data[];
+ 
+ #define NODE_DATA(nid)		(node_data[nid])
+ #define node_start_pfn(nid)	(NODE_DATA(nid)->node_start_pfn)
+-#define node_end_pfn(nid)	(NODE_DATA(nid)->node_end_pfn)
++#define node_end_pfn(nid)       (NODE_DATA(nid)->node_start_pfn +	\
++				 NODE_DATA(nid)->node_spanned_pages)
+ 
+ extern int numa_cpu_lookup_table[];
+ extern cpumask_t numa_cpumask_lookup_table[];
