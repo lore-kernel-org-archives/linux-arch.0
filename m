@@ -1,113 +1,264 @@
-From: Jordan Crouse <jcrouse@codeaurora.org>
-Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework	redesign
-Date: Wed, 22 Jun 2011 10:00:31 -0600
-Message-ID: <4E02119F.4000901@codeaurora.org>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>	<4E017539.30505@gmail.com>	<001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>	<4E01AD7B.3070806@gmail.com> <002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:38210 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932210Ab1FVQAl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 12:00:41 -0400
-In-Reply-To: <002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: 'Subash Patel' <subashrp@gmail.com>, linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH 1/1] Add default implementations for moduleloader hooks
+Date: Wed, 22 Jun 2011 21:08:58 +0200
+Message-ID: <1308769738-29549-1-git-send-email-jonas@southpole.se>
+References: <201106221626.12023.arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201106221626.12023.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Valdis.Kletnieks@vt.edu, arnd@arndb.de, Jonas Bonn <jonas@southpole.se>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/22/2011 03:27 AM, Marek Szyprowski wrote:
-> Hello,
->
-> On Wednesday, June 22, 2011 10:53 AM Subash Patel wrote:
->
->> On 06/22/2011 12:29 PM, Marek Szyprowski wrote:
->>> Hello,
->>>
->>> On Wednesday, June 22, 2011 6:53 AM Subash Patel wrote:
->>>
->>>> On 06/20/2011 01:20 PM, Marek Szyprowski wrote:
->>>>> Hello,
->>>>>
->>>>> This patch series is a continuation of my works on implementing generic
->>>>> IOMMU support in DMA mapping framework for ARM architecture. Now I
->>>>> focused on the DMA mapping framework itself. It turned out that adding
->>>>> support for common dma_map_ops structure was not that hard as I
->> initally
->>>>> thought. After some modification most of the code fits really well to
->>>>> the generic dma_map_ops methods.
->>>>>
->>>>> The only change required to dma_map_ops is a new alloc function. During
->>>>> the discussion on Linaro Memory Management meeting in Budapest we got
->>>>> the idea that we can have only one alloc/free/mmap function with
->>>>> additional attributes argument. This way all different kinds of
->>>>> architecture specific buffer mappings can be hidden behind the
->>>>> attributes without the need of creating several versions of dma_alloc_
->>>>> function. I also noticed that the dma_alloc_noncoherent() function can
->>>>> be also implemented this way with DMA_ATTRIB_NON_COHERENT attribute.
->>>>> Systems that just defines dma_alloc_noncoherent as dma_alloc_coherent
->>>>> will just ignore such attribute.
->>>>>
->>>>> Another good use case for alloc methods with attributes is the
->>>>> possibility to allocate buffer without a valid kernel mapping. There
->> are
->>>>> a number of drivers (mainly V4L2 and ALSA) that only exports the DMA
->>>>> buffers to user space. Such drivers don't touch the buffer data at all.
->>>>> For such buffers we can avoid the creation of a mapping in kernel
->>>>> virtual address space, saving precious vmalloc area. Such buffers might
->>>>> be allocated once a new attribute DMA_ATTRIB_NO_KERNEL_MAPPING.
->>>>
->>>> Are you trying to say here, that the buffer would be allocated in the
->>>> user space, and we just use it to map it to the device in DMA+IOMMU
->>>> framework?
->>>
->>> Nope. I proposed an extension which would allow you to allocate a buffer
->>> without creating the kernel mapping for it. Right now
->> dma_alloc_coherent()
->>> performs 3 operations:
->>> 1. allocates memory for the buffer
->>> 2. creates coherent kernel mapping for the buffer
->>> 3. translates physical buffer address to DMA address that can be used by
->>> the hardware.
->>>
->>> dma_mmap_coherent makes additional mapping for the buffer in user process
->>> virtual address space.
->>>
->>> I want make the step 2 in dma_alloc_coherent() optional to save virtual
->>> address space: it is really limited resource. I really want to avoid
->>> wasting it for mapping 128MiB buffers just to create full-HD processing
->>> hardware pipeline, where no drivers will use kernel mapping at all.
->>>
->>
->> I think by (2) above, you are referring to
->> __dma_alloc_remap()->arm_vmregion_alloc() to allocate the kernel virtual
->> address for the drivers use. That makes sense now.
->
-> Well, this is particular implementation which is used on ARM. Other
-> architectures might implement it differently, that's why I used generic
-> description and didn't point to any particular function.
->
->> I have a query in similar lines, but related to user virtual address
->> space. Is it feasible to extend these DMA interfaces(and IOMMU), to map
->> a user allocated buffer into the hardware?
->
-> This can be done with the current API, although it may not look so
-> straightforward. You just need to create a scatter list of user pages
-> (these can be gathered with get_user_pages function) and use dma_map_sg()
-> function. If the dma-mapping support iommu, it can map all these pages
-> into a single contiguous buffer on device (DMA) address space.
->
-> Some additional 'magic' might be required to get access to pages that are
-> mapped with pure PFN (VM_PFNMAP flag), but imho it still can be done.
->
-> I will try to implement this feature in videobuf2-dma-config allocator
-> together with the next version of my patches for dma-mapping&iommu.
 
-With luck DMA_ATTRIB_NO_KERNEL_MAPPING should remove any lingering arguments
-for trying to map user pages. Given that our ultimate goal here is buffer
-sharing, user allocated pages have limited value and appeal. If anything, I
-vote that this be a far lower priority compared to the rest of the win you
-have here.
+This patch puts in place generic implementations for the moduleloader
+hooks that can be used by architectures that don't need to do anything
+fancy for module loading.
 
-Jordan
+As an example, the OpenRISC architecture is modified to use these
+generic hooks.
+
+This patch is just for comment for now... will need to add the necessary
+definitions to the other architectures if this deemed ok.
+
+Verified for OpenRISC... no sign-off for now.
+---
+
+Hi Arnd,
+
+Threw this together to check if this is what you had in mind... seems pretty
+good to me.  Will have to do the cleanups in the other architectures, but
+thought I'd post this in response to your suggestion first.  What do you think?
+
+/Jonas
+
+ arch/openrisc/include/asm/module.h |   31 +++++++++++++++++
+ arch/openrisc/kernel/module.c      |   62 ++---------------------------------
+ kernel/module.c                    |   63 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 98 insertions(+), 58 deletions(-)
+ create mode 100644 arch/openrisc/include/asm/module.h
+
+diff --git a/arch/openrisc/include/asm/module.h b/arch/openrisc/include/asm/module.h
+new file mode 100644
+index 0000000..c550bed
+--- /dev/null
++++ b/arch/openrisc/include/asm/module.h
+@@ -0,0 +1,31 @@
++/*
++ * OpenRISC Linux
++ *
++ * Linux architectural port borrowing liberally from similar works of
++ * others.  All original copyrights apply as per the original source
++ * declaration.
++ *
++ * OpenRISC implementation:
++ * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#ifndef __ASM_OPENRISC_MODULE_H__
++#define __ASM_OPENRISC_MODULE_H__
++
++/*
++ * include/linux/moduleloader.h provides a set of architecture specific hooks
++ * for the module loader.  There are trivial default implementations for
++ * all of these hooks, but we need to set up some definitions for those hooks
++ * that we need to override.
++ */
++
++#define apply_relocate_add apply_relocate_add
++
++#include <asm-generic/module.h>
++
++#endif
+diff --git a/arch/openrisc/kernel/module.c b/arch/openrisc/kernel/module.c
+index 952b129..6a35c86 100644
+--- a/arch/openrisc/kernel/module.c
++++ b/arch/openrisc/kernel/module.c
+@@ -16,49 +16,16 @@
+ 
+ #include <linux/moduleloader.h>
+ #include <linux/elf.h>
+-#include <linux/vmalloc.h>
+-#include <linux/fs.h>
+-#include <linux/string.h>
+-#include <linux/kernel.h>
+-
+-void *module_alloc(unsigned long size)
+-{
+-	pr_debug("module_alloc size: %lu\n", size);
+-
+-	if (size == 0)
+-		return NULL;
+-
+-	return vmalloc(size);
+-}
+-
+-
+-/* Free memory returned from module_alloc */
+-void module_free(struct module *mod, void *module_region)
+-{
+-	vfree(module_region);
+-	/* FIXME: If module_region == mod->init_region, trim exception
+-           table entries. */
+-}
+-
+-/* We don't need anything special. */
+-int module_frob_arch_sections(Elf_Ehdr *hdr,
+-			      Elf_Shdr *sechdrs,
+-			      char *secstrings,
+-			      struct module *mod)
+-{
+-	return 0;
+-}
+ 
+ int apply_relocate_add(Elf32_Shdr *sechdrs,
+-		       const char *strtab,
+-		       unsigned int symindex,
+-		       unsigned int relsec,
+-		       struct module *me)
++                       const char *strtab,
++                       unsigned int symindex,
++                       unsigned int relsec,
++                       struct module *me)
+ {
+ 	unsigned int i;
+ 	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
+ 	Elf32_Sym *sym;
+-//	Elf32_Addr relocation;
+ 	uint32_t *location;
+ 	uint32_t value;
+ 
+@@ -103,24 +70,3 @@ int apply_relocate_add(Elf32_Shdr *sechdrs,
+ 
+ 	return 0;
+ }
+-
+-int apply_relocate(Elf32_Shdr *sechdrs,
+-		   const char *strtab,
+-		   unsigned int symindex,
+-		   unsigned int relsec,
+-		   struct module *me)
+-{
+-	pr_err("module %s: REL relocation unsupported\n", me->name);
+-	return -ENOEXEC;
+-}
+-
+-int module_finalize(const Elf_Ehdr *hdr,
+-		    const Elf_Shdr *sechdrs,
+-		    struct module *me)
+-{
+-	return 0;
+-}
+-
+-void module_arch_cleanup(struct module *mod)
+-{
+-}
+diff --git a/kernel/module.c b/kernel/module.c
+index 795bdc7..ecb5538 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -1697,6 +1697,19 @@ static void unset_module_core_ro_nx(struct module *mod) { }
+ static void unset_module_init_ro_nx(struct module *mod) { }
+ #endif
+ 
++#ifndef module_free
++void module_free(struct module *mod, void *module_region)
++{
++	vfree(module_region);
++}
++#endif
++
++#ifndef module_arch_cleanup
++void module_arch_cleanup(struct module *mod)
++{
++}
++#endif
++
+ /* Free a module, remove from lists, etc. */
+ static void free_module(struct module *mod)
+ {
+@@ -1851,6 +1864,30 @@ static int simplify_symbols(struct module *mod, const struct load_info *info)
+ 	return ret;
+ }
+ 
++#ifndef apply_relocate
++int apply_relocate(Elf32_Shdr *sechdrs,
++                   const char *strtab,
++                   unsigned int symindex,
++                   unsigned int relsec,
++                   struct module *me)
++{
++	pr_err("module %s: REL relocation unsupported\n", me->name);
++	return -ENOEXEC;
++}
++#endif
++
++#ifndef apply_relocate_add
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++                   const char *strtab,
++                   unsigned int symindex,
++                   unsigned int relsec,
++                   struct module *me)
++{
++	pr_err("module %s: RELA relocation unsupported\n", me->name);
++	return -ENOEXEC;
++}
++#endif
++
+ static int apply_relocations(struct module *mod, const struct load_info *info)
+ {
+ 	unsigned int i;
+@@ -2235,6 +2272,13 @@ static void dynamic_debug_remove(struct _ddebug *debug)
+ 		ddebug_remove_module(debug->modname);
+ }
+ 
++#ifndef module_alloc
++void *module_alloc(unsigned long size)
++{
++	return size == 0 ? NULL : vmalloc(size);
++}
++#endif
++
+ static void *module_alloc_update_bounds(unsigned long size)
+ {
+ 	void *ret = module_alloc(size);
+@@ -2645,6 +2689,16 @@ static void flush_module_icache(const struct module *mod)
+ 	set_fs(old_fs);
+ }
+ 
++#ifndef module_frob_arch_sections
++int module_frob_arch_sections(Elf_Ehdr *hdr,
++                              Elf_Shdr *sechdrs,
++                              char *secstrings,
++                              struct module *mod)
++{
++	return 0;
++}
++#endif
++
+ static struct module *layout_and_allocate(struct load_info *info)
+ {
+ 	/* Module within temporary copy. */
+@@ -2716,6 +2770,15 @@ static void module_deallocate(struct module *mod, struct load_info *info)
+ 	module_free(mod, mod->module_core);
+ }
+ 
++#ifndef module_finalize
++int module_finalize(const Elf_Ehdr *hdr,
++                    const Elf_Shdr *sechdrs,
++                    struct module *me)
++{
++	return 0;
++}
++#endif
++
+ static int post_relocation(struct module *mod, const struct load_info *info)
+ {
+ 	/* Sort exception table now relocations are done. */
+-- 
+1.7.4.1
