@@ -1,153 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:65372 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756985Ab1FVLmn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 07:42:43 -0400
+Received: from moutng.kundenserver.de ([212.227.126.171]:54579 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755582Ab1FVO0P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 10:26:15 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 14/19] OpenRISC: Module support
+Date: Wed, 22 Jun 2011 16:26:11 +0200
+References: <1308483825-6023-1-git-send-email-jonas@southpole.se> <1308483825-6023-15-git-send-email-jonas@southpole.se> <31626.1308686616@turing-police.cc.vt.edu>
+In-Reply-To: <31626.1308686616@turing-police.cc.vt.edu>
 MIME-Version: 1.0
-Date: Wed, 22 Jun 2011 20:42:41 +0900
-Message-ID: <BANLkTinTy6Dg0bwRANJjQsp8XEasqYc5vA@mail.gmail.com>
-Subject: [PATCH] include : compile warning by __const_hweight8
-From: NamJae Jeon <linkinjeon@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201106221626.12023.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110622114241.LozpKJbI5RiP1RvZpXrsuGT707aPq9ODdqsQDRrxsF0@z>
+To: Valdis.Kletnieks@vt.edu
+Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110622142611.NjmfHl_U0ZZF_q3A8QwZ578kNNFFp3uFGqHyg-OnoOI@z>
 
-Hello, Arnd.
+On Tuesday 21 June 2011, Valdis.Kletnieks@vt.edu wrote:
+> On Sun, 19 Jun 2011 13:43:40 +0200, Jonas Bonn said:
 
-I make a patch again. Would you check this patch ?
+> > diff --git a/arch/openrisc/kernel/module.c b/arch/openrisc/kernel/module.c
+> > new file mode 100644
+> > index 0000000..952b129
+> > --- /dev/null
+> > +++ b/arch/openrisc/kernel/module.c
+> > @@ -0,0 +1,126 @@
+> > +/*
+> > + * OpenRISC module.c
+> 
+> Lose the filenames in the headers - you do this in multiple files.
 
-Thanks.
+Good point.
+ 
+> Also, do you even *need* a module.c? There isn't much in here, will the main
+> kernel/module.c do the work needed?  Or did you end up with one because the
+> arch you cloned had one?
 
-From 28589ea9aabb080020ab3c79adcecad5d7315f39 Mon Sep 17 00:00:00 2001
-From: Namjae Jeon <linkinjeon@gmail.com>
-Date: Tue, 21 Jun 2011 14:39:03 +0900
-Subject: [PATCH] include : compile warning by __const_hweight8
+Right now you need a module.c in each architecture defining all these
+functions. However, I think it would be cool if we didn't need this
+all of them. In case of openrisc, the architecture should only have
+to define a apply_relocate_add() function.
 
- compilation warning is caused by __const_hweight8 when using
-hweight_long with -Wsign-compare option.
- you can see warning message like the following.
+Jonas, could you add a default implementation for each of the functions
+for include/linux/moduleloader.h, so that you only have to provide the
+one function?
 
- include/linux/bitops.h: In function 'hweight_long':
- include/linux/bitops.h:49: warning: signed and unsigned type in
-conditional expression
+I think that an easy way to do that would be to add to kernel/module.c
+code like:
 
- The reason is that the default return value of this macro is signed.
-So, need type casting to remove warning.
+#ifndef module_alloc
+void *module_alloc(unsigned long size)
+{
+	return vmalloc(size);
+}
+#endif
 
-Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
----
- include/asm-generic/bitops/const_hweight.h |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Then each architecture that needs a special version can do
+#define module_alloc(size) module_alloc(size)
+in their respective asm/module.h
 
-diff --git a/include/asm-generic/bitops/const_hweight.h
-b/include/asm-generic/bitops/const_hweight.h
-index fa2a50b..d91b1aa 100644
---- a/include/asm-generic/bitops/const_hweight.h
-+++ b/include/asm-generic/bitops/const_hweight.h
-@@ -4,7 +4,7 @@
- /*
-  * Compile time versions of __arch_hweightN()
-  */
--#define __const_hweight8(w)            \
-+#define __const_hweight8(w) (unsigned long)    \
-       (        (!!((w) & (1ULL << 0))) +       \
-        (!!((w) & (1ULL << 1))) +       \
-        (!!((w) & (1ULL << 2))) +       \
---
-1.7.4-rc2
-
----------------------------------------------------------------------------------------------------------------------------
-
-2011/6/21 NamJae Jeon <linkinjeon@gmail.com>:
-> Hello Arnd.
->
-> I attached patch for this warning issue.
->
-> If there is a problem of patch, plz reply ....
->
-> Thanks.
->
->
-> --------------------------------------------------------------------------------------------------------------------------------------
->
-> From 28589ea9aabb080020ab3c79adcecad5d7315f39 Mon Sep 17 00:00:00 2001
-> From: Namjae Jeon <linkinjeon@gmail.com>
-> Date: Tue, 21 Jun 2011 14:39:03 +0900
-> Subject: [PATCH] compilation warning is caused when using hweight_long
-> with -Wsign-compare option.
->  Warning message is '
->  include/linux/bitops.h: In function 'hweight_long':
->  include/linux/bitops.h:49: warning: signed and unsigned type in
-> conditional expression
->  The reason is that the default return value of this macro is signed.
-> So, need type casting to remove warning.
->
-> Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
-> ---
->  include/asm-generic/bitops/const_hweight.h |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
->
-> diff --git a/include/asm-generic/bitops/const_hweight.h
-> b/include/asm-generic/bitops/const_hweight.h
-> index fa2a50b..d91b1aa 100644
-> --- a/include/asm-generic/bitops/const_hweight.h
-> +++ b/include/asm-generic/bitops/const_hweight.h
-> @@ -4,7 +4,7 @@
->  /*
->  * Compile time versions of __arch_hweightN()
->  */
-> -#define __const_hweight8(w)            \
-> +#define __const_hweight8(w) (unsigned long)    \
->       (        (!!((w) & (1ULL << 0))) +       \
->        (!!((w) & (1ULL << 1))) +       \
->        (!!((w) & (1ULL << 2))) +       \
-> --
-> 1.7.4-rc2
->
->
->
-> --------------------------------------------------------------------------------------------------------------------------------------
-> 2011/6/20 Arnd Bergmann <arnd@arndb.de>:
->> On Monday 20 June 2011, NamJae Jeon wrote:
->>> I found compile warning while compiling module when using -Wsign-compare option.
->>>
->>> include/linux/bitops.h: In function 'hweight_long':
->>> include/linux/bitops.h:49: warning: signed and unsigned type in
->>> conditional expression
->>>
->>> I found the reason of this problem that the default return value of
->>> the below macro is signed.
->>>
->>> #define __const_hweight8(w)        \
->>>       ( (!!((w) & (1ULL << 0))) +       \
->>>         (!!((w) & (1ULL << 1))) +       \
->>>         (!!((w) & (1ULL << 2))) +       \
->>>         (!!((w) & (1ULL << 3))) +       \
->>>         (!!((w) & (1ULL << 4))) +       \
->>>         (!!((w) & (1ULL << 5))) +       \
->>>         (!!((w) & (1ULL << 6))) +       \
->>>         (!!((w) & (1ULL << 7))) )
->>>
->>> So, I try to add (unsigned long) in __const_hweight8 like this.
->>>
->>> #define __const_hweight8(w)     (unsigned long )        \
->>>       ( (!!((w) & (1ULL << 0))) +       \
->>>         (!!((w) & (1ULL << 1))) +       \
->>>         (!!((w) & (1ULL << 2))) +       \
->>>         (!!((w) & (1ULL << 3))) +       \
->>>         (!!((w) & (1ULL << 4))) +       \
->>>         (!!((w) & (1ULL << 5))) +       \
->>>         (!!((w) & (1ULL << 6))) +       \
->>>         (!!((w) & (1ULL << 7))) )
->>>
->>> so, I can't see compile warning after fixing it, Would you plz check this ?
->>
->> Yes, this looks correct to me. Could you send the change as a proper patch
->> with your Signed-off-by:?
->>
->>        Arnd
->>
->
+	Arnd
