@@ -1,121 +1,159 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
-Date: Wed, 22 Jun 2011 11:27:55 +0200
-Message-ID: <002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <4E017539.30505@gmail.com>
- <001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>
- <4E01AD7B.3070806@gmail.com>
+From: NamJae Jeon <linkinjeon@gmail.com>
+Subject: [PATCH] include : compile warning by __const_hweight8
+Date: Wed, 22 Jun 2011 20:42:41 +0900
+Message-ID: <BANLkTinTy6Dg0bwRANJjQsp8XEasqYc5vA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:30543 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753584Ab1FVJ2F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jun 2011 05:28:05 -0400
-Received: from eu_spt1 ([210.118.77.14]) by mailout4.w1.samsung.com
- (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
- with ESMTP id <0LN6000LGQAQI170@mailout4.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 22 Jun 2011 10:28:02 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LN600BINQAPSQ@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 22 Jun 2011 10:28:01 +0100 (BST)
-In-reply-to: <4E01AD7B.3070806@gmail.com>
-Content-language: pl
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Subash Patel' <subashrp@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, 'Arnd Bergmann' <arnd@arndb.de>, Marek Szyprowski <m.szyprowski@samsung.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Hello, Arnd.
 
-On Wednesday, June 22, 2011 10:53 AM Subash Patel wrote:
+I make a patch again. Would you check this patch ?
 
-> On 06/22/2011 12:29 PM, Marek Szyprowski wrote:
-> > Hello,
-> >
-> > On Wednesday, June 22, 2011 6:53 AM Subash Patel wrote:
-> >
-> >> On 06/20/2011 01:20 PM, Marek Szyprowski wrote:
-> >>> Hello,
-> >>>
-> >>> This patch series is a continuation of my works on implementing generic
-> >>> IOMMU support in DMA mapping framework for ARM architecture. Now I
-> >>> focused on the DMA mapping framework itself. It turned out that adding
-> >>> support for common dma_map_ops structure was not that hard as I
-> initally
-> >>> thought. After some modification most of the code fits really well to
-> >>> the generic dma_map_ops methods.
-> >>>
-> >>> The only change required to dma_map_ops is a new alloc function. During
-> >>> the discussion on Linaro Memory Management meeting in Budapest we got
-> >>> the idea that we can have only one alloc/free/mmap function with
-> >>> additional attributes argument. This way all different kinds of
-> >>> architecture specific buffer mappings can be hidden behind the
-> >>> attributes without the need of creating several versions of dma_alloc_
-> >>> function. I also noticed that the dma_alloc_noncoherent() function can
-> >>> be also implemented this way with DMA_ATTRIB_NON_COHERENT attribute.
-> >>> Systems that just defines dma_alloc_noncoherent as dma_alloc_coherent
-> >>> will just ignore such attribute.
-> >>>
-> >>> Another good use case for alloc methods with attributes is the
-> >>> possibility to allocate buffer without a valid kernel mapping. There
-> are
-> >>> a number of drivers (mainly V4L2 and ALSA) that only exports the DMA
-> >>> buffers to user space. Such drivers don't touch the buffer data at all.
-> >>> For such buffers we can avoid the creation of a mapping in kernel
-> >>> virtual address space, saving precious vmalloc area. Such buffers might
-> >>> be allocated once a new attribute DMA_ATTRIB_NO_KERNEL_MAPPING.
-> >>
-> >> Are you trying to say here, that the buffer would be allocated in the
-> >> user space, and we just use it to map it to the device in DMA+IOMMU
-> >> framework?
-> >
-> > Nope. I proposed an extension which would allow you to allocate a buffer
-> > without creating the kernel mapping for it. Right now
-> dma_alloc_coherent()
-> > performs 3 operations:
-> > 1. allocates memory for the buffer
-> > 2. creates coherent kernel mapping for the buffer
-> > 3. translates physical buffer address to DMA address that can be used by
-> > the hardware.
-> >
-> > dma_mmap_coherent makes additional mapping for the buffer in user process
-> > virtual address space.
-> >
-> > I want make the step 2 in dma_alloc_coherent() optional to save virtual
-> > address space: it is really limited resource. I really want to avoid
-> > wasting it for mapping 128MiB buffers just to create full-HD processing
-> > hardware pipeline, where no drivers will use kernel mapping at all.
-> >
-> 
-> I think by (2) above, you are referring to
-> __dma_alloc_remap()->arm_vmregion_alloc() to allocate the kernel virtual
-> address for the drivers use. That makes sense now.
+Thanks.
 
-Well, this is particular implementation which is used on ARM. Other 
-architectures might implement it differently, that's why I used generic 
-description and didn't point to any particular function.
+=46rom 28589ea9aabb080020ab3c79adcecad5d7315f39 Mon Sep 17 00:00:00 200=
+1
+=46rom: Namjae Jeon <linkinjeon@gmail.com>
+Date: Tue, 21 Jun 2011 14:39:03 +0900
+Subject: [PATCH] include : compile warning by __const_hweight8
 
-> I have a query in similar lines, but related to user virtual address
-> space. Is it feasible to extend these DMA interfaces(and IOMMU), to map
-> a user allocated buffer into the hardware?
+ compilation warning is caused by __const_hweight8 when using
+hweight_long with -Wsign-compare option.
+ you can see warning message like the following.
 
-This can be done with the current API, although it may not look so 
-straightforward. You just need to create a scatter list of user pages
-(these can be gathered with get_user_pages function) and use dma_map_sg()
-function. If the dma-mapping support iommu, it can map all these pages
-into a single contiguous buffer on device (DMA) address space.
+ include/linux/bitops.h: In function 'hweight_long':
+ include/linux/bitops.h:49: warning: signed and unsigned type in
+conditional expression
 
-Some additional 'magic' might be required to get access to pages that are
-mapped with pure PFN (VM_PFNMAP flag), but imho it still can be done.
+ The reason is that the default return value of this macro is signed.
+So, need type casting to remove warning.
 
-I will try to implement this feature in videobuf2-dma-config allocator
-together with the next version of my patches for dma-mapping&iommu.
+Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
+---
+ include/asm-generic/bitops/const_hweight.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+diff --git a/include/asm-generic/bitops/const_hweight.h
+b/include/asm-generic/bitops/const_hweight.h
+index fa2a50b..d91b1aa 100644
+--- a/include/asm-generic/bitops/const_hweight.h
++++ b/include/asm-generic/bitops/const_hweight.h
+@@ -4,7 +4,7 @@
+ /*
+  * Compile time versions of __arch_hweightN()
+  */
+-#define __const_hweight8(w)            \
++#define __const_hweight8(w) (unsigned long)    \
+       (        (!!((w) & (1ULL << 0))) +       \
+        (!!((w) & (1ULL << 1))) +       \
+        (!!((w) & (1ULL << 2))) +       \
+--
+1.7.4-rc2
+
+-----------------------------------------------------------------------=
+----------------------------------------------------
+
+2011/6/21 NamJae Jeon <linkinjeon@gmail.com>:
+> Hello Arnd.
+>
+> I attached patch for this warning issue.
+>
+> If there is a problem of patch, plz reply ....
+>
+> Thanks.
+>
+>
+> ---------------------------------------------------------------------=
+-----------------------------------------------------------------
+>
+> From 28589ea9aabb080020ab3c79adcecad5d7315f39 Mon Sep 17 00:00:00 200=
+1
+> From: Namjae Jeon <linkinjeon@gmail.com>
+> Date: Tue, 21 Jun 2011 14:39:03 +0900
+> Subject: [PATCH] compilation warning is caused when using hweight_lon=
+g
+> with -Wsign-compare option.
+> =A0Warning message is '
+> =A0include/linux/bitops.h: In function 'hweight_long':
+> =A0include/linux/bitops.h:49: warning: signed and unsigned type in
+> conditional expression
+> =A0The reason is that the default return value of this macro is signe=
+d.
+> So, need type casting to remove warning.
+>
+> Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
+> ---
+> =A0include/asm-generic/bitops/const_hweight.h | =A0 =A02 +-
+> =A01 files changed, 1 insertions(+), 1 deletions(-)
+>
+> diff --git a/include/asm-generic/bitops/const_hweight.h
+> b/include/asm-generic/bitops/const_hweight.h
+> index fa2a50b..d91b1aa 100644
+> --- a/include/asm-generic/bitops/const_hweight.h
+> +++ b/include/asm-generic/bitops/const_hweight.h
+> @@ -4,7 +4,7 @@
+> =A0/*
+> =A0* Compile time versions of __arch_hweightN()
+> =A0*/
+> -#define __const_hweight8(w) =A0 =A0 =A0 =A0 =A0 =A0\
+> +#define __const_hweight8(w) (unsigned long) =A0 =A0\
+> =A0 =A0 =A0 ( =A0 =A0 =A0 =A0(!!((w) & (1ULL << 0))) + =A0 =A0 =A0 \
+> =A0 =A0 =A0 =A0(!!((w) & (1ULL << 1))) + =A0 =A0 =A0 \
+> =A0 =A0 =A0 =A0(!!((w) & (1ULL << 2))) + =A0 =A0 =A0 \
+> --
+> 1.7.4-rc2
+>
+>
+>
+> ---------------------------------------------------------------------=
+-----------------------------------------------------------------
+> 2011/6/20 Arnd Bergmann <arnd@arndb.de>:
+>> On Monday 20 June 2011, NamJae Jeon wrote:
+>>> I found compile warning while compiling module when using -Wsign-co=
+mpare option.
+>>>
+>>> include/linux/bitops.h: In function 'hweight_long':
+>>> include/linux/bitops.h:49: warning: signed and unsigned type in
+>>> conditional expression
+>>>
+>>> I found the reason of this problem that the default return value of
+>>> the below macro is signed.
+>>>
+>>> #define __const_hweight8(w) =A0 =A0 =A0 =A0\
+>>> =A0 =A0 =A0 ( (!!((w) & (1ULL << 0))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 1))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 2))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 3))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 4))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 5))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 6))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 7))) )
+>>>
+>>> So, I try to add (unsigned long) in __const_hweight8 like this.
+>>>
+>>> #define __const_hweight8(w) =A0 =A0 (unsigned long ) =A0 =A0 =A0 =A0=
+\
+>>> =A0 =A0 =A0 ( (!!((w) & (1ULL << 0))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 1))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 2))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 3))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 4))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 5))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 6))) + =A0 =A0 =A0 \
+>>> =A0 =A0 =A0 =A0 (!!((w) & (1ULL << 7))) )
+>>>
+>>> so, I can't see compile warning after fixing it, Would you plz chec=
+k this ?
+>>
+>> Yes, this looks correct to me. Could you send the change as a proper=
+ patch
+>> with your Signed-off-by:?
+>>
+>> =A0 =A0 =A0 =A0Arnd
+>>
+>
