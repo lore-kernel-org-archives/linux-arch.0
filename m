@@ -1,53 +1,68 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
-	PAGE_KERNEL_NOCACHE
-Date: Thu, 23 Jun 2011 16:05:57 +0100
-Message-ID: <20110623150557.GA9258@linux-mips.org>
-References: <20110623114536.GA14011@linux-mips.org> <4E032940.5010205@ge.com>
-	<20110623120234.GA22524@linux-mips.org>
-	<8B77EED3-D197-4AB9-9594-278DB7002D6D@kernel.crashing.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing PAGE_KERNEL_NOCACHE
+Date: Thu, 23 Jun 2011 18:01:47 +0200
+Message-ID: <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
+References: <20110623114536.GA14011@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <devel-bounces@linuxdriverproject.org>
-Content-Disposition: inline
-In-Reply-To: <8B77EED3-D197-4AB9-9594-278DB7002D6D@kernel.crashing.org>
-List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/devel>,
-	<mailto:devel-request@linuxdriverproject.org?subject=unsubscribe>
-List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/devel>
-List-Post: <mailto:devel@linuxdriverproject.org>
-List-Help: <mailto:devel-request@linuxdriverproject.org?subject=help>
-List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/devel>,
-	<mailto:devel-request@linuxdriverproject.org?subject=subscribe>
-Sender: devel-bounces@linuxdriverproject.org
-Errors-To: devel-bounces@linuxdriverproject.org
-To: Kumar Gala <galak@kernel.crashing.org>
-Cc: devel@driverdev.osuosl.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-ia64@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Martyn Welch <martyn.welch@ge.com>, Fenghua Yu <fenghua.yu@intel.com>, "linuxppc-dev@lists.ozlabs.org Tony Luck" <tony.luck@intel.com>, linux-am33-list@redhat.com, Paul Mackerras <paulus@samba.org>, linux-m32r-ja@ml.linux-m32r.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20110623114536.GA14011@linux-mips.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 23, 2011 at 07:10:29AM -0500, Kumar Gala wrote:
+On Thu, Jun 23, 2011 at 13:45, Ralf Baechle <ralf@linux-mips.org> wrote=
+:
+> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi dr=
+iver turns
+> into tragedy:
+>
+> =C2=A0CC [M] =C2=A0drivers/staging/comedi/drivers.o
+> drivers/staging/comedi/drivers.c: In function =E2=80=98comedi_buf_all=
+oc=E2=80=99:
+> drivers/staging/comedi/drivers.c:505:41: error: =E2=80=98PAGE_KERNEL_=
+NOCACHE=E2=80=99 undeclared (first use in this function)
+> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identi=
+fier is rep orted only once for each function it appears in
+> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
+>
+> Restrict the driver to only those architectures that define PAGE_KERN=
+EL_NOCACHE.
+>
+> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as S=
+GI IP27
+> are even uable to offer uncached operation - at least in the way an u=
+nwitting
+> driver might assume. =C2=A0I haven't looked in details how the driver=
+ is using
+> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style=
+ using
+> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vma=
+p_range
+> APIs in conjunction with the DMA API is a practical alternative.
+>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-> > (Adding the PPC folks to cc.)
-> > 
-> > A "git grep -w PAGE_KERNEL_NOCACHE arch/powerpc/" doesn't find anything so
-> > I don't think the driver will build there.  I don't have a PPC toolchain
-> > to verify that.
-> 
-> I can verify it fails on PPC as well:
-> 
-> drivers/staging/comedi/drivers.c: In function 'comedi_buf_alloc':
-> drivers/staging/comedi/drivers.c:505:37: error: 'PAGE_KERNEL_NOCACHE' undeclared (first use in this function)
-> drivers/staging/comedi/drivers.c:505:37: note: each undeclared identifier is reported only once for each function it appears in
-> 
-> However, we do have a #define for PAGE_KERNEL_NC.
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Do you think this driver in it's current stage is so valuable that some
-ifdefery to get it to work on PPC is the way to go?
+If only to get m68k/allmodconfig going again (hmm, there's another
+staging driver
+preventing a green light).
 
-IA-64 has PAGE_KERNEL_UC, so basically the same question for IA-64, too.
+Gr{oetje,eeting}s,
 
-But preferably the driver should be sorted out properly and until the v1
-of my patch which disables it on all architectures that don't provide a
-PAGE_KERNEL_NOCACHE definition will do just fine.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
 
-  Ralf
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
