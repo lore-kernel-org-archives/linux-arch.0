@@ -1,50 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:36282 "EHLO duck.linux-mips.net"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1758983Ab1FWPHA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Jun 2011 11:07:00 -0400
-Date: Thu, 23 Jun 2011 16:05:57 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
- PAGE_KERNEL_NOCACHE
-Message-ID: <20110623150557.GA9258@linux-mips.org>
-References: <20110623114536.GA14011@linux-mips.org>
- <4E032940.5010205@ge.com>
- <20110623120234.GA22524@linux-mips.org>
- <8B77EED3-D197-4AB9-9594-278DB7002D6D@kernel.crashing.org>
+Received: from mail-iw0-f174.google.com ([209.85.214.174]:40562 "EHLO
+	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759395Ab1FWQBs convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2011 12:01:48 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <8B77EED3-D197-4AB9-9594-278DB7002D6D@kernel.crashing.org>
+In-Reply-To: <20110623114536.GA14011@linux-mips.org>
+References: <20110623114536.GA14011@linux-mips.org>
+Date: Thu, 23 Jun 2011 18:01:47 +0200
+Message-ID: <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
+Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing PAGE_KERNEL_NOCACHE
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kumar Gala <galak@kernel.crashing.org>
-Cc: Martyn Welch <martyn.welch@ge.com>, Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "linuxppc-dev@lists.ozlabs.org Tony Luck" <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20110623150557.VX-WmOIH0GmXlIO2Fbgm3PjQky9_xH0mb_eR9uR2PLo@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110623160147.P7lL3mg_DiVQgspSweQ4sfsfrvHW6FiVNZK4xzmzaCY@z>
 
-On Thu, Jun 23, 2011 at 07:10:29AM -0500, Kumar Gala wrote:
+On Thu, Jun 23, 2011 at 13:45, Ralf Baechle <ralf@linux-mips.org> wrote:
+> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi driver turns
+> into tragedy:
+>
+>  CC [M]  drivers/staging/comedi/drivers.o
+> drivers/staging/comedi/drivers.c: In function ‘comedi_buf_alloc’:
+> drivers/staging/comedi/drivers.c:505:41: error: ‘PAGE_KERNEL_NOCACHE’ undeclared (first use in this function)
+> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identifier is rep orted only once for each function it appears in
+> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
+>
+> Restrict the driver to only those architectures that define PAGE_KERNEL_NOCACHE.
+>
+> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as SGI IP27
+> are even uable to offer uncached operation - at least in the way an unwitting
+> driver might assume.  I haven't looked in details how the driver is using
+> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style using
+> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vmap_range
+> APIs in conjunction with the DMA API is a practical alternative.
+>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-> > (Adding the PPC folks to cc.)
-> > 
-> > A "git grep -w PAGE_KERNEL_NOCACHE arch/powerpc/" doesn't find anything so
-> > I don't think the driver will build there.  I don't have a PPC toolchain
-> > to verify that.
-> 
-> I can verify it fails on PPC as well:
-> 
-> drivers/staging/comedi/drivers.c: In function 'comedi_buf_alloc':
-> drivers/staging/comedi/drivers.c:505:37: error: 'PAGE_KERNEL_NOCACHE' undeclared (first use in this function)
-> drivers/staging/comedi/drivers.c:505:37: note: each undeclared identifier is reported only once for each function it appears in
-> 
-> However, we do have a #define for PAGE_KERNEL_NC.
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Do you think this driver in it's current stage is so valuable that some
-ifdefery to get it to work on PPC is the way to go?
+If only to get m68k/allmodconfig going again (hmm, there's another
+staging driver
+preventing a green light).
 
-IA-64 has PAGE_KERNEL_UC, so basically the same question for IA-64, too.
+Gr{oetje,eeting}s,
 
-But preferably the driver should be sorted out properly and until the v1
-of my patch which disables it on all architectures that don't provide a
-PAGE_KERNEL_NOCACHE definition will do just fine.
+                        Geert
 
-  Ralf
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
