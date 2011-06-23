@@ -1,80 +1,43 @@
-From: "Michael K. Edwards" <m.k.edwards@gmail.com>
-Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
-Date: Thu, 23 Jun 2011 09:24:53 -0700
-Message-ID: <BANLkTikzTwNvaaUSk26qzONemogBAGuBRg@mail.gmail.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
-	<4E017539.30505@gmail.com>
-	<001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>
-	<4E01AD7B.3070806@gmail.com>
-	<002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-	<4E02119F.4000901@codeaurora.org>
-	<4E033AFF.4020603@gmail.com>
-Reply-To: M.K.Edwards@gmail.com
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
+	PAGE_KERNEL_NOCACHE
+Date: Thu, 23 Jun 2011 17:31:06 +0100
+Message-ID: <20110623163105.GC16892@linux-mips.org>
+References: <20110623114536.GA14011@linux-mips.org>
+	<BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:47336 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758347Ab1FWQYy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2011 12:24:54 -0400
-Received: by ywe9 with SMTP id 9so776777ywe.19
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2011 09:24:54 -0700 (PDT)
-In-Reply-To: <4E033AFF.4020603@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Subash Patel <subashrp@gmail.com>
-Cc: Jordan Crouse <jcrouse@codeaurora.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <devel-bounces@linuxdriverproject.org>
+Content-Disposition: inline
+In-Reply-To: <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
+List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/devel>,
+	<mailto:devel-request@linuxdriverproject.org?subject=unsubscribe>
+List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/devel>
+List-Post: <mailto:devel@linuxdriverproject.org>
+List-Help: <mailto:devel-request@linuxdriverproject.org?subject=help>
+List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/devel>,
+	<mailto:devel-request@linuxdriverproject.org?subject=subscribe>
+Sender: devel-bounces@linuxdriverproject.org
+Errors-To: devel-bounces@linuxdriverproject.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: devel@driverdev.osuosl.org, linux-m32r-ja@ml.linux-m32r.org, linux-m32r@ml.linux-m32r.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, linux-kbuild@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-am33-list@redhat.com, Michal Marek <mmarek@suse.cz>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 23, 2011 at 6:09 AM, Subash Patel <subashrp@gmail.com> wrote:
+On Thu, Jun 23, 2011 at 06:01:47PM +0200, Geert Uytterhoeven wrote:
 
-> We have some rare cases, where requirements like above are also there. So we
-> require to have flexibility to map user allocated buffers to devices as
-> well.
+> If only to get m68k/allmodconfig going again (hmm, there's another
+> staging driver
+> preventing a green light).
 
-Not so rare, I think.  When using the OpenGL back end, Qt routinely
-allocates buffers to hold image assets (e. g., decompressed JPEGs and
-the glyph cache) and then uses them as textures.  Which, if there's a
-GPU that doesn't participate in the cache coherency protocol, is a
-problem.  (One which we can reliably trigger on our embedded
-platform.)
+I ran into this doing an allyesconfig.  Allyesconfig has one disadvantage,
+for choice it will only select the first or default option which means
+that option gets exercised well and all the other options not at all.  On
+MIPS that'd be IP22, 32-bit, R4x00, big endian, 4K pages, no multithreading,
+250Hz.  Make randconfig disables lots of things so often misses the
+opportunity to trigger some issues.
 
-The best workaround we have been able to come up with is for Qt's
-allocator API, which already has a "flags" parameter, to grow an
-"allocate for use as texture" flag, which makes the allocation come
-from a separate pool backed by a write-combining uncacheable mapping.
-Then we can grovel our way through the highest-frequency use cases,
-restructuring the code that writes these assets to use the approved
-write-combining tricks.
+I'd really want an "make allrandconfig" which enables as many options as
+possible but picks a random one from choice statements, something like that.
 
-In the very near future, some of these assets are likely to come from
-other hardware blocks, such as a hardware JPEG decoder (Subash's use
-case), a V4L2 capture device, or a OpenMAX H.264 decoder.  Those may
-add orthogonal allocation requirements, such as page alignment or
-allocation from tightly coupled memory.  The only entity that knows
-what buffers might be passed where is the userland application (or
-potentially a userland media framework, like StageFright or
-GStreamer).
-
-So the solution that I'd like to see is for none of these drivers to
-do their own allocation of buffers that aren't for strictly internal
-use.  Instead, the userland application should ask each component for
-a "buffer attributes" structure, and merge the attributes of the
-components that may touch a given buffer in order to get the
-allocation attributes for that buffer (or for the hugepage from which
-it will carve out many like it).
-
-The userland would ask the kernel to do the appropriate allocation --
-ideally by passing in the merged allocation attributes and getting
-back a file descriptor, which can be passed around to other processes
-(over local domain sockets) and mmap'ed.  The buffers themselves would
-have to be registered with each driver that uses them; i. e., the
-driver's buffer allocation API is replaced with a buffer registration
-API.  If the driver doesn't like the attributes of the mapping from
-which the buffer was allocated, the registration fails.
-
-I will try to get around to producing some code that does this soon,
-at least for the Qt/GPU texture asset allocation/registration use
-case.
-
-Cheers,
-- Michael
+  Ralf
