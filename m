@@ -1,39 +1,55 @@
-From: "Ntai Jerry" <abdulhadi@paiwastoon.com.af>
-Subject: (unknown)
-Date: Wed, 22 Jun 2011 00:21:10 +0200 (CEST)
-Message-ID: <33005.200.97.8.95.1308694870.squirrel__810.513288206671$1308796789$gmane$org@webmail.paiwastoon.com.af>
-Reply-To: j.ntai1100@gmail.com
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: [PATCH] STAGING: Comedi: Build only on arches providing
+	PAGE_KERNEL_NOCACHE
+Date: Thu, 23 Jun 2011 12:45:37 +0100
+Message-ID: <20110623114536.GA14011@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain;charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from h04-v06-mailtest.paiwastoon.net ([78.47.173.110]:44434 "EHLO
-	h04-v06-mailtest.paiwastoon.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758427Ab1FWCjc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jun 2011 22:39:32 -0400
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <devel-bounces@linuxdriverproject.org>
+Content-Disposition: inline
+List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/devel>,
+	<mailto:devel-request@linuxdriverproject.org?subject=unsubscribe>
+List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/devel>
+List-Post: <mailto:devel@linuxdriverproject.org>
+List-Help: <mailto:devel-request@linuxdriverproject.org?subject=help>
+List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/devel>,
+	<mailto:devel-request@linuxdriverproject.org?subject=subscribe>
+Sender: devel-bounces@linuxdriverproject.org
+Errors-To: devel-bounces@linuxdriverproject.org
+To: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux
+Cc: linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-My name is Mr. Jerry Ntai; I am the Head of Operations in Mevas Bank, Hong
-Kong. I have a business proposal in the tune of US$25.2m to be transferred
-to an offshore account with your assistance if willing. After the
-successful transfer, we shall share in ratio of 30% for you and 70% for
-me. Should you be interested, please respond to my letter immediately, so
-we can commence all arrangements and I will give you more information on
-the project and how we would handle it.
-
-You can contact me on my private email: ( j.ntai1100@gmail.com  ) and
-send me the following information for documentation purpose:
-
-
-(1) Full name:
-(2) Private phone number:
-(3) Current residential address:
-(4) Occupation:
-(5) Age and Sex
-
-I look forward to hearing from you.
-
-Kind Regards.
+T24gYXJjaGl0ZWN0dXJlcyB0aGF0IGRvbid0IGRlZmluZSBQQUdFX0tFUk5FTF9OT0NBQ0hFLCB0
+aGUgQ29tZWRpIGRyaXZlciB0dXJucwppbnRvIHRyYWdlZHk6CgogIENDIFtNXSAgZHJpdmVycy9z
+dGFnaW5nL2NvbWVkaS9kcml2ZXJzLm8KZHJpdmVycy9zdGFnaW5nL2NvbWVkaS9kcml2ZXJzLmM6
+IEluIGZ1bmN0aW9uIOKAmGNvbWVkaV9idWZfYWxsb2PigJk6CmRyaXZlcnMvc3RhZ2luZy9jb21l
+ZGkvZHJpdmVycy5jOjUwNTo0MTogZXJyb3I6IOKAmFBBR0VfS0VSTkVMX05PQ0FDSEXigJkgdW5k
+ZWNsYXJlZCAoZmlyc3QgdXNlIGluIHRoaXMgZnVuY3Rpb24pCmRyaXZlcnMvc3RhZ2luZy9jb21l
+ZGkvZHJpdmVycy5jOjUwNTo0MTogbm90ZTogZWFjaCB1bmRlY2xhcmVkIGlkZW50aWZpZXIgaXMg
+cmVwIG9ydGVkIG9ubHkgb25jZSBmb3IgZWFjaCBmdW5jdGlvbiBpdCBhcHBlYXJzIGluCm1ha2Vb
+M106ICoqKiBbZHJpdmVycy9zdGFnaW5nL2NvbWVkaS9kcml2ZXJzLm9dIEVycm9yIDEKClJlc3Ry
+aWN0IHRoZSBkcml2ZXIgdG8gb25seSB0aG9zZSBhcmNoaXRlY3R1cmVzIHRoYXQgZGVmaW5lIFBB
+R0VfS0VSTkVMX05PQ0FDSEUuCgpQQUdFX0tFUk5FTF9OT0NBQ0hFIGlzIGEga2x1ZGdlIC0gc29t
+ZSBzeXN0ZW0gYXJjaGl0ZWN0dXJlcyBzdWNoIGFzIFNHSSBJUDI3CmFyZSBldmVuIHVhYmxlIHRv
+IG9mZmVyIHVuY2FjaGVkIG9wZXJhdGlvbiAtIGF0IGxlYXN0IGluIHRoZSB3YXkgYW4gdW53aXR0
+aW5nCmRyaXZlciBtaWdodCBhc3N1bWUuICBJIGhhdmVuJ3QgbG9va2VkIGluIGRldGFpbHMgaG93
+IHRoZSBkcml2ZXIgaXMgdXNpbmcKdGhlIGFyZWEgdm1hcGVkIHdpdGggUEFHRV9LRVJORUxfTk9D
+QUNIRSBidXQgbWF5YmUgZG9pbmcgaXQgWEZTLXN0eWxlIHVzaW5nCmNhY2hlZCBtZW1vcnkgYW5k
+IHRoZSBmbHVzaF9rZXJuZWxfdm1hcF9yYW5nZSAvIGludmFsaWRhdGVfa2VybmVsX3ZtYXBfcmFu
+Z2UKQVBJcyBpbiBjb25qdW5jdGlvbiB3aXRoIHRoZSBETUEgQVBJIGlzIGEgcHJhY3RpY2FsIGFs
+dGVybmF0aXZlLgoKU2lnbmVkLW9mZi1ieTogUmFsZiBCYWVjaGxlIDxyYWxmQGxpbnV4LW1pcHMu
+b3JnPgoKIGRyaXZlcnMvc3RhZ2luZy9jb21lZGkvS2NvbmZpZyB8ICAgIDEgKwogMSBmaWxlcyBj
+aGFuZ2VkLCAxIGluc2VydGlvbnMoKyksIDAgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvZHJp
+dmVycy9zdGFnaW5nL2NvbWVkaS9LY29uZmlnIGIvZHJpdmVycy9zdGFnaW5nL2NvbWVkaS9LY29u
+ZmlnCmluZGV4IDE1MDJkODAuLmJjY2RjMTIgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvc3RhZ2luZy9j
+b21lZGkvS2NvbmZpZworKysgYi9kcml2ZXJzL3N0YWdpbmcvY29tZWRpL0tjb25maWcKQEAgLTIs
+NiArMiw3IEBAIGNvbmZpZyBDT01FREkKIAl0cmlzdGF0ZSAiRGF0YSBhY3F1aXNpdGlvbiBzdXBw
+b3J0IChjb21lZGkpIgogCWRlZmF1bHQgTgogCWRlcGVuZHMgb24gbQorCWRlcGVuZHMgb24gQlJP
+S0VOIHx8IEZSViB8fCBNMzJSIHx8IE1OMTAzMDAgfHwgU1VQRVJIIHx8IFRJTEUgfHwgWDg2CiAJ
+LS0taGVscC0tLQogCSAgRW5hYmxlIHN1cHBvcnQgYSB3aWRlIHJhbmdlIG9mIGRhdGEgYWNxdWlz
+aXRpb24gZGV2aWNlcwogCSAgZm9yIExpbnV4LgpfX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fXwpkZXZlbCBtYWlsaW5nIGxpc3QKZGV2ZWxAbGludXhkcml2ZXJw
+cm9qZWN0Lm9yZwpodHRwOi8vZHJpdmVyZGV2LmxpbnV4ZHJpdmVycHJvamVjdC5vcmcvbWFpbG1h
+bi9saXN0aW5mby9kZXZlbAo=
