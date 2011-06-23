@@ -1,57 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:40562 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759395Ab1FWQBs convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2011 12:01:48 -0400
-MIME-Version: 1.0
-In-Reply-To: <20110623114536.GA14011@linux-mips.org>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:57981 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1758347Ab1FWQbx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Jun 2011 12:31:53 -0400
+Date: Thu, 23 Jun 2011 17:31:06 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
+ PAGE_KERNEL_NOCACHE
+Message-ID: <20110623163105.GC16892@linux-mips.org>
 References: <20110623114536.GA14011@linux-mips.org>
-Date: Thu, 23 Jun 2011 18:01:47 +0200
-Message-ID: <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
-Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing PAGE_KERNEL_NOCACHE
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+ <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <BANLkTimR98qo5fjMRf-kZahcA=hE-E3+Hg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110623160147.P7lL3mg_DiVQgspSweQ4sfsfrvHW6FiVNZK4xzmzaCY@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
+Message-ID: <20110623163106.y3NSloYc0N8JvvQUa3Y6GuCokz_thpoB0Voy4CcJ7So@z>
 
-On Thu, Jun 23, 2011 at 13:45, Ralf Baechle <ralf@linux-mips.org> wrote:
-> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi driver turns
-> into tragedy:
->
->  CC [M]  drivers/staging/comedi/drivers.o
-> drivers/staging/comedi/drivers.c: In function ‘comedi_buf_alloc’:
-> drivers/staging/comedi/drivers.c:505:41: error: ‘PAGE_KERNEL_NOCACHE’ undeclared (first use in this function)
-> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identifier is rep orted only once for each function it appears in
-> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
->
-> Restrict the driver to only those architectures that define PAGE_KERNEL_NOCACHE.
->
-> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as SGI IP27
-> are even uable to offer uncached operation - at least in the way an unwitting
-> driver might assume.  I haven't looked in details how the driver is using
-> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style using
-> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vmap_range
-> APIs in conjunction with the DMA API is a practical alternative.
->
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+On Thu, Jun 23, 2011 at 06:01:47PM +0200, Geert Uytterhoeven wrote:
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> If only to get m68k/allmodconfig going again (hmm, there's another
+> staging driver
+> preventing a green light).
 
-If only to get m68k/allmodconfig going again (hmm, there's another
-staging driver
-preventing a green light).
+I ran into this doing an allyesconfig.  Allyesconfig has one disadvantage,
+for choice it will only select the first or default option which means
+that option gets exercised well and all the other options not at all.  On
+MIPS that'd be IP22, 32-bit, R4x00, big endian, 4K pages, no multithreading,
+250Hz.  Make randconfig disables lots of things so often misses the
+opportunity to trigger some issues.
 
-Gr{oetje,eeting}s,
+I'd really want an "make allrandconfig" which enables as many options as
+possible but picks a random one from choice statements, something like that.
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+  Ralf
