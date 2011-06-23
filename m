@@ -1,15 +1,15 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Kumar Gala <galak@kernel.crashing.org>
 Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
 	PAGE_KERNEL_NOCACHE
-Date: Thu, 23 Jun 2011 13:02:35 +0100
-Message-ID: <20110623120234.GA22524@linux-mips.org>
+Date: Thu, 23 Jun 2011 07:10:29 -0500
+Message-ID: <8B77EED3-D197-4AB9-9594-278DB7002D6D@kernel.crashing.org>
 References: <20110623114536.GA14011@linux-mips.org> <4E032940.5010205@ge.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+	<20110623120234.GA22524@linux-mips.org>
+Mime-Version: 1.0 (Apple Message framework v1084)
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <devel-bounces@linuxdriverproject.org>
-Content-Disposition: inline
-In-Reply-To: <4E032940.5010205@ge.com>
+In-Reply-To: <20110623120234.GA22524@linux-mips.org>
 List-Unsubscribe: <http://driverdev.linuxdriverproject.org/mailman/options/devel>,
 	<mailto:devel-request@linuxdriverproject.org?subject=unsubscribe>
 List-Archive: <http://driverdev.linuxdriverproject.org/pipermail/devel>
@@ -19,47 +19,87 @@ List-Subscribe: <http://driverdev.linuxdriverproject.org/mailman/listinfo/devel>
 	<mailto:devel-request@linuxdriverproject.org?subject=subscribe>
 Sender: devel-bounces@linuxdriverproject.org
 Errors-To: devel-bounces@linuxdriverproject.org
-To: Martyn Welch <martyn.welch@ge.com>
-Cc: devel@driverdev.osuosl.org, linux-m32r-ja@ml.linux-m32r.org, linux-m32r@ml.linux-m32r.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, David Howells <dhowells@redhat.com>, linux-am33-list@redhat.com, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: devel@driverdev.osuosl.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-kernel@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Martyn Welch <martyn.welch@ge.com>, linux-am33-list@redhat.com, Paul Mackerras <paulus@samba.org>, linux-m32r-ja@ml.linux-m32r.org, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@redhat.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gVGh1LCBKdW4gMjMsIDIwMTEgYXQgMTI6NTM6MzZQTSArMDEwMCwgTWFydHluIFdlbGNoIHdy
-b3RlOgoKPiBPbiAyMy8wNi8xMSAxMjo0NSwgUmFsZiBCYWVjaGxlIHdyb3RlOgo+ID4gT24gYXJj
-aGl0ZWN0dXJlcyB0aGF0IGRvbid0IGRlZmluZSBQQUdFX0tFUk5FTF9OT0NBQ0hFLCB0aGUgQ29t
-ZWRpIGRyaXZlciB0dXJucwo+ID4gaW50byB0cmFnZWR5Ogo+ID4gCj4gPiAgIENDIFtNXSAgZHJp
-dmVycy9zdGFnaW5nL2NvbWVkaS9kcml2ZXJzLm8KPiA+IGRyaXZlcnMvc3RhZ2luZy9jb21lZGkv
-ZHJpdmVycy5jOiBJbiBmdW5jdGlvbiDigJhjb21lZGlfYnVmX2FsbG9j4oCZOgo+ID4gZHJpdmVy
-cy9zdGFnaW5nL2NvbWVkaS9kcml2ZXJzLmM6NTA1OjQxOiBlcnJvcjog4oCYUEFHRV9LRVJORUxf
-Tk9DQUNIReKAmSB1bmRlY2xhcmVkIChmaXJzdCB1c2UgaW4gdGhpcyBmdW5jdGlvbikKPiA+IGRy
-aXZlcnMvc3RhZ2luZy9jb21lZGkvZHJpdmVycy5jOjUwNTo0MTogbm90ZTogZWFjaCB1bmRlY2xh
-cmVkIGlkZW50aWZpZXIgaXMgcmVwIG9ydGVkIG9ubHkgb25jZSBmb3IgZWFjaCBmdW5jdGlvbiBp
-dCBhcHBlYXJzIGluCj4gPiBtYWtlWzNdOiAqKiogW2RyaXZlcnMvc3RhZ2luZy9jb21lZGkvZHJp
-dmVycy5vXSBFcnJvciAxCj4gPiAKPiA+IFJlc3RyaWN0IHRoZSBkcml2ZXIgdG8gb25seSB0aG9z
-ZSBhcmNoaXRlY3R1cmVzIHRoYXQgZGVmaW5lIFBBR0VfS0VSTkVMX05PQ0FDSEUuCj4gPiAKPiA+
-IFBBR0VfS0VSTkVMX05PQ0FDSEUgaXMgYSBrbHVkZ2UgLSBzb21lIHN5c3RlbSBhcmNoaXRlY3R1
-cmVzIHN1Y2ggYXMgU0dJIElQMjcKPiA+IGFyZSBldmVuIHVhYmxlIHRvIG9mZmVyIHVuY2FjaGVk
-IG9wZXJhdGlvbiAtIGF0IGxlYXN0IGluIHRoZSB3YXkgYW4gdW53aXR0aW5nCj4gPiBkcml2ZXIg
-bWlnaHQgYXNzdW1lLiAgSSBoYXZlbid0IGxvb2tlZCBpbiBkZXRhaWxzIGhvdyB0aGUgZHJpdmVy
-IGlzIHVzaW5nCj4gPiB0aGUgYXJlYSB2bWFwZWQgd2l0aCBQQUdFX0tFUk5FTF9OT0NBQ0hFIGJ1
-dCBtYXliZSBkb2luZyBpdCBYRlMtc3R5bGUgdXNpbmcKPiA+IGNhY2hlZCBtZW1vcnkgYW5kIHRo
-ZSBmbHVzaF9rZXJuZWxfdm1hcF9yYW5nZSAvIGludmFsaWRhdGVfa2VybmVsX3ZtYXBfcmFuZ2UK
-PiA+IEFQSXMgaW4gY29uanVuY3Rpb24gd2l0aCB0aGUgRE1BIEFQSSBpcyBhIHByYWN0aWNhbCBh
-bHRlcm5hdGl2ZS4KPiA+IAo+ID4gU2lnbmVkLW9mZi1ieTogUmFsZiBCYWVjaGxlIDxyYWxmQGxp
-bnV4LW1pcHMub3JnPgo+ID4gCj4gPiAgZHJpdmVycy9zdGFnaW5nL2NvbWVkaS9LY29uZmlnIHwg
-ICAgMSArCj4gPiAgMSBmaWxlcyBjaGFuZ2VkLCAxIGluc2VydGlvbnMoKyksIDAgZGVsZXRpb25z
-KC0pCj4gPiAKPiA+IGRpZmYgLS1naXQgYS9kcml2ZXJzL3N0YWdpbmcvY29tZWRpL0tjb25maWcg
-Yi9kcml2ZXJzL3N0YWdpbmcvY29tZWRpL0tjb25maWcKPiA+IGluZGV4IDE1MDJkODAuLmJjY2Rj
-MTIgMTAwNjQ0Cj4gPiAtLS0gYS9kcml2ZXJzL3N0YWdpbmcvY29tZWRpL0tjb25maWcKPiA+ICsr
-KyBiL2RyaXZlcnMvc3RhZ2luZy9jb21lZGkvS2NvbmZpZwo+ID4gQEAgLTIsNiArMiw3IEBAIGNv
-bmZpZyBDT01FREkKPiA+ICAJdHJpc3RhdGUgIkRhdGEgYWNxdWlzaXRpb24gc3VwcG9ydCAoY29t
-ZWRpKSIKPiA+ICAJZGVmYXVsdCBOCj4gPiAgCWRlcGVuZHMgb24gbQo+ID4gKwlkZXBlbmRzIG9u
-IEJST0tFTiB8fCBGUlYgfHwgTTMyUiB8fCBNTjEwMzAwIHx8IFNVUEVSSCB8fCBUSUxFIHx8IFg4
-Ngo+IAo+IEknbSBzdXJlIEkgZ290IGNvbWVkaSB0byBjb21waWxlIG9uIGEgMzItYml0IFBQQyBi
-b2FyZCBub3QgdGhhdCBsb25nIGFnby4gSGFzCj4gc29tZXRoaW5nIGNoYW5nZWQsIG9yIGlzIHRo
-aXMganVzdCBub3QgYW4gZXhoYXVzdGl2ZSBsaXN0PwoKKEFkZGluZyB0aGUgUFBDIGZvbGtzIHRv
-IGNjLikKCkEgImdpdCBncmVwIC13IFBBR0VfS0VSTkVMX05PQ0FDSEUgYXJjaC9wb3dlcnBjLyIg
-ZG9lc24ndCBmaW5kIGFueXRoaW5nIHNvCkkgZG9uJ3QgdGhpbmsgdGhlIGRyaXZlciB3aWxsIGJ1
-aWxkIHRoZXJlLiAgSSBkb24ndCBoYXZlIGEgUFBDIHRvb2xjaGFpbgp0byB2ZXJpZnkgdGhhdC4K
-CiAgUmFsZgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpk
-ZXZlbCBtYWlsaW5nIGxpc3QKZGV2ZWxAbGludXhkcml2ZXJwcm9qZWN0Lm9yZwpodHRwOi8vZHJp
-dmVyZGV2LmxpbnV4ZHJpdmVycHJvamVjdC5vcmcvbWFpbG1hbi9saXN0aW5mby9kZXZlbAo=
+
+On Jun 23, 2011, at 7:02 AM, Ralf Baechle wrote:
+
+> On Thu, Jun 23, 2011 at 12:53:36PM +0100, Martyn Welch wrote:
+> =
+
+>> On 23/06/11 12:45, Ralf Baechle wrote:
+>>> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi driv=
+er turns
+>>> into tragedy:
+>>> =
+
+>>>  CC [M]  drivers/staging/comedi/drivers.o
+>>> drivers/staging/comedi/drivers.c: In function =91comedi_buf_alloc=92:
+>>> drivers/staging/comedi/drivers.c:505:41: error: =91PAGE_KERNEL_NOCACHE=
+=92 undeclared (first use in this function)
+>>> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identifi=
+er is rep orted only once for each function it appears in
+>>> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
+>>> =
+
+>>> Restrict the driver to only those architectures that define PAGE_KERNEL=
+_NOCACHE.
+>>> =
+
+>>> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as SGI=
+ IP27
+>>> are even uable to offer uncached operation - at least in the way an unw=
+itting
+>>> driver might assume.  I haven't looked in details how the driver is usi=
+ng
+>>> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style u=
+sing
+>>> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vmap_=
+range
+>>> APIs in conjunction with the DMA API is a practical alternative.
+>>> =
+
+>>> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+>>> =
+
+>>> drivers/staging/comedi/Kconfig |    1 +
+>>> 1 files changed, 1 insertions(+), 0 deletions(-)
+>>> =
+
+>>> diff --git a/drivers/staging/comedi/Kconfig b/drivers/staging/comedi/Kc=
+onfig
+>>> index 1502d80..bccdc12 100644
+>>> --- a/drivers/staging/comedi/Kconfig
+>>> +++ b/drivers/staging/comedi/Kconfig
+>>> @@ -2,6 +2,7 @@ config COMEDI
+>>> 	tristate "Data acquisition support (comedi)"
+>>> 	default N
+>>> 	depends on m
+>>> +	depends on BROKEN || FRV || M32R || MN10300 || SUPERH || TILE || X86
+>> =
+
+>> I'm sure I got comedi to compile on a 32-bit PPC board not that long ago=
+. Has
+>> something changed, or is this just not an exhaustive list?
+> =
+
+> (Adding the PPC folks to cc.)
+> =
+
+> A "git grep -w PAGE_KERNEL_NOCACHE arch/powerpc/" doesn't find anything so
+> I don't think the driver will build there.  I don't have a PPC toolchain
+> to verify that.
+
+I can verify it fails on PPC as well:
+
+drivers/staging/comedi/drivers.c: In function 'comedi_buf_alloc':
+drivers/staging/comedi/drivers.c:505:37: error: 'PAGE_KERNEL_NOCACHE' undec=
+lared (first use in this function)
+drivers/staging/comedi/drivers.c:505:37: note: each undeclared identifier i=
+s reported only once for each function it appears in
+
+However, we do have a #define for PAGE_KERNEL_NC.
+
+- k
