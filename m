@@ -1,54 +1,83 @@
-From: "Michael K. Edwards" <m.k.edwards@gmail.com>
-Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
-Date: Thu, 23 Jun 2011 15:09:55 -0700
-Message-ID: <BANLkTimi2FAmcb7ZWnjRqb-Cb8acXWsCTw@mail.gmail.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
-	<4E017539.30505@gmail.com>
-	<001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>
-	<4E01AD7B.3070806@gmail.com>
-	<002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-	<4E02119F.4000901@codeaurora.org>
-	<4E033AFF.4020603@gmail.com>
-	<BANLkTikzTwNvaaUSk26qzONemogBAGuBRg@mail.gmail.com>
-Reply-To: M.K.Edwards@gmail.com
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
+ PAGE_KERNEL_NOCACHE
+Date: Fri, 24 Jun 2011 09:55:42 +1000
+Message-ID: <20110624095542.e05698b4.sfr@canb.auug.org.au>
+References: <20110623114536.GA14011@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:61010 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760019Ab1FWWJ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jun 2011 18:09:56 -0400
-Received: by gxk21 with SMTP id 21so949821gxk.19
-        for <linux-arch@vger.kernel.org>; Thu, 23 Jun 2011 15:09:55 -0700 (PDT)
-In-Reply-To: <BANLkTikzTwNvaaUSk26qzONemogBAGuBRg@mail.gmail.com>
+Received: from chilli.pcug.org.au ([203.10.76.44]:42532 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932752Ab1FWXz7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Jun 2011 19:55:59 -0400
+In-Reply-To: <20110623114536.GA14011@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Morton <jonathan.morton@movial.com>
-Cc: Subash Patel <subashrp@gmail.com>, Jordan Crouse <jcrouse@codeaurora.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org
 
-Jonathan -
+--Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I'm inviting you to this conversation (and to linaro-mm-sig, if you'd
-care to participate!), because I'd really like your commentary on what
-it takes to make write-combining fully effective on various ARMv7
-implementations.
+Hi Ralf,
 
-The current threads:
-  http://lists.linaro.org/pipermail/linaro-mm-sig/2011-June/000334.html
-  http://lists.linaro.org/pipermail/linaro-mm-sig/2011-June/000263.html
+On Thu, 23 Jun 2011 12:45:37 +0100 Ralf Baechle <ralf@linux-mips.org> wrote:
+>
+> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi driver=
+ turns
+> into tragedy:
+>=20
+>   CC [M]  drivers/staging/comedi/drivers.o
+> drivers/staging/comedi/drivers.c: In function =E2=80=98comedi_buf_alloc=
+=E2=80=99:
+> drivers/staging/comedi/drivers.c:505:41: error: =E2=80=98PAGE_KERNEL_NOCA=
+CHE=E2=80=99 undeclared (first use in this function)
+> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identifier=
+ is rep orted only once for each function it appears in
+> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
+>=20
+> Restrict the driver to only those architectures that define PAGE_KERNEL_N=
+OCACHE.
+>=20
+> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as SGI I=
+P27
+> are even uable to offer uncached operation - at least in the way an unwit=
+ting
+> driver might assume.  I haven't looked in details how the driver is using
+> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style usi=
+ng
+> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vmap_ra=
+nge
+> APIs in conjunction with the DMA API is a practical alternative.
+>=20
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
-Archive link for a related discussion:
-  http://lists.linaro.org/pipermail/linaro-mm-sig/2011-April/000003.html
+Since Greg is on vacation, I will add this patch to my fixes tree in
+linux-next until a better fix comes along (if there is one).
 
-Getting full write-combining performance on Intel architectures
-involves a somewhat delicate dance:
-  http://software.intel.com/en-us/articles/copying-accelerated-video-decode-frame-buffers/
-
-And I expect something similar to be necessary in order to avoid the
-read-modify-write penalty for write-combining buffers on ARMv7.  (NEON
-store-multiple operations can fill an entire 64-byte entry in the
-victim buffer in one opcode; I don't know whether this is enough to
-stop the L3 memory system from reading the data before clobbering it.)
-
+--=20
 Cheers,
-- Michael
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQEcBAEBAgAGBQJOA9J+AAoJEDMEi1NhKgbsFfkH/iXyBLKfo00uV5ym/QNH51Eb
+Xt8PeJ6xp1AevCgm94ei9jpIodgeyH7YVo1dJhyD6dI7Z8hPC6mTkcMytnM/ou5F
++rAajf1T+qWBSJvft+1U1LZu4bae9zl054lkEnMx8Vwj5lhWALuI+NI92F8wNUwV
+M1aO1fyyOHiIDwNJZEn0iJ3XxCnwdm1MFNiujlqacapfoBSjpClBSS/S+RJLT7Wr
+SkmuMnI/6/RbknFR6gpyn3GnzjeTslUVUYBgS42rV9chaEWotT+spgpvpmYdyMEq
+rhucb+lutMAKr/kLpqONBoJS98zOCFH3PputZU13oB3TYGi8Iv9eeklFpqG9048=
+=OrXa
+-----END PGP SIGNATURE-----
+
+--Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS--
