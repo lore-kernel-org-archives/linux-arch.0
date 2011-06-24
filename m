@@ -1,83 +1,91 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] STAGING: Comedi: Build only on arches providing
- PAGE_KERNEL_NOCACHE
-Date: Fri, 24 Jun 2011 09:55:42 +1000
-Message-ID: <20110624095542.e05698b4.sfr@canb.auug.org.au>
-References: <20110623114536.GA14011@linux-mips.org>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCH 7/8] common: dma-mapping: change
+ alloc/free_coherent method to more generic alloc/free_attrs
+Date: Fri, 24 Jun 2011 09:20:27 +0200
+Message-ID: <000001cc323f$3114d8c0$933e8a40$%szyprowski@samsung.com>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+ <1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
+ <BANLkTikFdrOuXsLCfvyA_V+p7S_fd72dyQ@mail.gmail.com>
+ <002401cc3005$a941c010$fbc54030$%szyprowski@samsung.com>
+ <BANLkTinDN-FF5=8uj9pP58Ny0-LUMtjh=g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS"
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:42532 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932752Ab1FWXz7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Jun 2011 19:55:59 -0400
-In-Reply-To: <20110623114536.GA14011@linux-mips.org>
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:17485 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752497Ab1FXHUx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2011 03:20:53 -0400
+Received: from eu_spt1 (mailout2.w1.samsung.com [210.118.77.12])
+ by mailout2.w1.samsung.com
+ (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
+ with ESMTP id <0LNA008X49QRGD@mailout2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Fri, 24 Jun 2011 08:20:51 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LNA00J0A9QPKX@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Fri, 24 Jun 2011 08:20:50 +0100 (BST)
+In-reply-to: <BANLkTinDN-FF5=8uj9pP58Ny0-LUMtjh=g@mail.gmail.com>
+Content-language: pl
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Greg Kroah-Hartman <gregkh@suse.de>, devel@driverdev.osuosl.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org, linux-am33-list@redhat.com, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, linux-arch@vger.kernel.org
+To: 'KyongHo Cho' <pullip.cho@samsung.com>
+Cc: linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org, Marek Szyprowski <m.szyprowski@samsung.com>
 
---Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hello,
 
-Hi Ralf,
+On Wednesday, June 22, 2011 2:01 AM KyongHo Cho wrote:
 
-On Thu, 23 Jun 2011 12:45:37 +0100 Ralf Baechle <ralf@linux-mips.org> wrote:
->
-> On architectures that don't define PAGE_KERNEL_NOCACHE, the Comedi driver=
- turns
-> into tragedy:
->=20
->   CC [M]  drivers/staging/comedi/drivers.o
-> drivers/staging/comedi/drivers.c: In function =E2=80=98comedi_buf_alloc=
-=E2=80=99:
-> drivers/staging/comedi/drivers.c:505:41: error: =E2=80=98PAGE_KERNEL_NOCA=
-CHE=E2=80=99 undeclared (first use in this function)
-> drivers/staging/comedi/drivers.c:505:41: note: each undeclared identifier=
- is rep orted only once for each function it appears in
-> make[3]: *** [drivers/staging/comedi/drivers.o] Error 1
->=20
-> Restrict the driver to only those architectures that define PAGE_KERNEL_N=
-OCACHE.
->=20
-> PAGE_KERNEL_NOCACHE is a kludge - some system architectures such as SGI I=
-P27
-> are even uable to offer uncached operation - at least in the way an unwit=
-ting
-> driver might assume.  I haven't looked in details how the driver is using
-> the area vmaped with PAGE_KERNEL_NOCACHE but maybe doing it XFS-style usi=
-ng
-> cached memory and the flush_kernel_vmap_range / invalidate_kernel_vmap_ra=
-nge
-> APIs in conjunction with the DMA API is a practical alternative.
->=20
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+> 2011/6/21 Marek Szyprowski <m.szyprowski@samsung.com>:
+> >
+> > You already got a reply that dropping dma_alloc_writecombine() is no
+> > go on ARM.
+> >
+> Yes.
+> 
+> > That's not a problem. Once we agree on dma_alloc_attrs(), the drivers
+> > can be changed to use DMA_ATTR_WRITE_COMBINE attribute. If the platform
+> > doesn't support the attribute, it is just ignored. That's the whole
+> > point of the attributes extension. Once a driver is converted to
+> > dma_alloc_attrs(), it can be used without any changes either on platforms
+> > that supports some specific attributes or the one that doesn't implement
+> > support for any of them.
+> >
+> I just worried that removing an existing construct is not a simple job.
+> You introduced 3 attributes: DMA_ATTR_WRITE_COMBINE, ***COHERENT and
+> ***NO_KERNEL_VADDR
 
-Since Greg is on vacation, I will add this patch to my fixes tree in
-linux-next until a better fix comes along (if there is one).
+COHERENT is the default behavior when no attribute is provided. I also
+don't want to remove existing calls to dma_alloc_coherent() and 
+dma_alloc_writecombine() from the drivers. This can be done later, once
+dma_alloc_attrs() API will stabilize.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+> I replied earlier, I also indicated that write combining option for
+> dma_alloc_*() is required.
+> But it does not mean dma_map_ops must support that.
+> I think dma_alloc_writecombine() can be implemented regardless of
+> dma_map_ops.
 
---Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS
-Content-Type: application/pgp-signature
+The discussion about the need of dma_alloc_attrs() has been performed on
+Memory Management Summit at Linaro Meeting in Budapest. It simplifies the
+API and provides full backward compatibility for existing drivers.
+ 
+> > Allocation is a separate operation from mapping to userspace. Mmap
+> > operation should just map the buffer (represented by a cookie of type
+> > dma_addr_t) to user address space.
+> >
+> > Note that some drivers (like framebuffer drivers for example) also
+> > needs to have both types of mapping - one for user space and one for
+> > kernel virtual space.
+> 
+> I meant that I think DMA_ATTR_NOKERNELVADDR is not required because
+> you also introduced mmap callback.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+I've already said that mmap callback is not related to the fact that the
+buffer has been allocated with or without respective kernel virtual space
+mapping. I really don't get what do you mean here.
 
-iQEcBAEBAgAGBQJOA9J+AAoJEDMEi1NhKgbsFfkH/iXyBLKfo00uV5ym/QNH51Eb
-Xt8PeJ6xp1AevCgm94ei9jpIodgeyH7YVo1dJhyD6dI7Z8hPC6mTkcMytnM/ou5F
-+rAajf1T+qWBSJvft+1U1LZu4bae9zl054lkEnMx8Vwj5lhWALuI+NI92F8wNUwV
-M1aO1fyyOHiIDwNJZEn0iJ3XxCnwdm1MFNiujlqacapfoBSjpClBSS/S+RJLT7Wr
-SkmuMnI/6/RbknFR6gpyn3GnzjeTslUVUYBgS42rV9chaEWotT+spgpvpmYdyMEq
-rhucb+lutMAKr/kLpqONBoJS98zOCFH3PputZU13oB3TYGi8Iv9eeklFpqG9048=
-=OrXa
------END PGP SIGNATURE-----
-
---Signature=_Fri__24_Jun_2011_09_55_42_+1000_t.eUmnEAvhaT_nyS--
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
