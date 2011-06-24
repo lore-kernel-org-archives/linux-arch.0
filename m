@@ -1,31 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:56929 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759785Ab1FXPxw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2011 11:53:52 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 7/8] common: dma-mapping: change alloc/free_coherent method to more generic alloc/free_attrs
-Date: Fri, 24 Jun 2011 17:53:49 +0200
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
-In-Reply-To: <1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
+Received: from ozlabs.org ([203.10.76.45]:59931 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750809Ab1FYFBi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 25 Jun 2011 01:01:38 -0400
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH 14/19] OpenRISC: Module support
+In-Reply-To: <201106241205.32037.arnd@arndb.de>
+References: <1308483825-6023-1-git-send-email-jonas@southpole.se> <201106221626.12023.arnd@arndb.de> <1308905525.6699.23.camel@localhost> <201106241205.32037.arnd@arndb.de>
+Date: Fri, 24 Jun 2011 20:36:31 +0930
+Message-ID: <874o3f8p54.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201106241753.49654.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20110624155349.GnvvfhNuf-Cze5gGzioJ2AUQcBWZ-UMfQqr3zmCbasw@z>
+To: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>
+Cc: Valdis.Kletnieks@vt.edu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110624110631.OydWbfWiaPROvXREVzrPTTN5elh14Y9RXpKVT02xPbY@z>
 
-On Monday 20 June 2011, Marek Szyprowski wrote:
-> mmap method is introduced to let the drivers create a user space mapping
-> for a DMA buffer in generic, architecture independent way.
+On Fri, 24 Jun 2011 12:05:31 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 24 June 2011, Jonas Bonn wrote:
+> > I noticed that kernel/module.c already has this:
+> > 
+> > unsigned int __weak arch_mod_section_prepend(struct module *mod,
+> >                                              unsigned int section)
+> > 
+> >
+> > Is using a __weak attribute on the default (generic) implementations a
+> > better approach?
+> 
+> I normally don't like using __weak, because it more easily confuses
+> readers about which version is actually used.
 
-One more thing: please split out the mmap change into a separate patch.
-I sense that there might be some objections to that, and it's better
-to let people know about it early on than having them complain
-later when that has already been merged.
+I share your reluctance with __weak, but as fewer people want to touch
+multiple archs it is becoming the norm.
 
-	Arnd
+Would happily accept patches...
+
+Thanks,
+Rusty.
