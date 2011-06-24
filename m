@@ -1,65 +1,34 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH 14/19] OpenRISC: Module support
-Date: Fri, 24 Jun 2011 10:52:05 +0200
-Message-ID: <1308905525.6699.23.camel@localhost>
-References: <1308483825-6023-1-git-send-email-jonas@southpole.se>
-	 <1308483825-6023-15-git-send-email-jonas@southpole.se>
-	 <31626.1308686616@turing-police.cc.vt.edu>
-	 <201106221626.12023.arnd@arndb.de>
+From: Joerg Roedel <joro@8bytes.org>
+Subject: Re: [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
+Date: Fri, 24 Jun 2011 11:18:07 +0200
+Message-ID: <20110624091807.GC29299@8bytes.org>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-tYR13ReIKy8XYceQKK8i"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201106221626.12023.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Valdis.Kletnieks@vt.edu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 8bytes.org ([88.198.83.132]:36327 "EHLO 8bytes.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751563Ab1FXJSI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jun 2011 05:18:08 -0400
+Content-Disposition: inline
+In-Reply-To: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>
 
+Hi Marek,
 
+On Mon, Jun 20, 2011 at 09:50:05AM +0200, Marek Szyprowski wrote:
+> This patch series is a continuation of my works on implementing generic
+> IOMMU support in DMA mapping framework for ARM architecture. Now I
+> focused on the DMA mapping framework itself. It turned out that adding
+> support for common dma_map_ops structure was not that hard as I initally
+> thought. After some modification most of the code fits really well to
+> the generic dma_map_ops methods.
 
---=-tYR13ReIKy8XYceQKK8i
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+I appreciate your progress on this generic dma_ops implementation. But
+for now it looks very ARM specific. Do you have plans to extend it to
+non-ARM iommu-api implementations too?
 
-On Wed, 2011-06-22 at 16:26 +0200, Arnd Bergmann wrote:
-> I think that an easy way to do that would be to add to kernel/module.c
-> code like:
->=20
-> #ifndef module_alloc
-> void *module_alloc(unsigned long size)
-> {
-> 	return vmalloc(size);
-> }
-> #endif
->=20
-
-I noticed that kernel/module.c already has this:
-
-unsigned int __weak arch_mod_section_prepend(struct module *mod,
-                                             unsigned int section)
-
-
-Is using a __weak attribute on the default (generic) implementations a
-better approach?
-
-> Then each architecture that needs a special version can do
-> #define module_alloc(size) module_alloc(size)
-> in their respective asm/module.h
-
-With the __weak variant this wouldn't be necessary...
-
-/Jonas
-
---=-tYR13ReIKy8XYceQKK8i
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iEYEABECAAYFAk4EUDMACgkQ70gcjN2673PFLQCfSF4nv2BBwE2wyyBgMXVrV+Gb
-N6cAoKEEbFTKSjRyCDrvXHejJaKEcFqv
-=pAlF
------END PGP SIGNATURE-----
-
---=-tYR13ReIKy8XYceQKK8i--
+	Joerg
