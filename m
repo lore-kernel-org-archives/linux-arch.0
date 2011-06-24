@@ -1,59 +1,52 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
-Date: Fri, 24 Jun 2011 16:26:12 +0200
-Message-ID: <001801cc327a$ab4b75f0$01e261d0$%szyprowski@samsung.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <20110624091807.GC29299@8bytes.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping
+ =?iso-8859-1?q?framework=09redesign?=
+Date: Fri, 24 Jun 2011 17:20:15 +0200
+Message-ID: <201106241720.15385.arnd@arndb.de>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com> <4E02119F.4000901@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:37629 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753859Ab1FXO01 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2011 10:26:27 -0400
-Received: from eu_spt1 ([210.118.77.14]) by mailout4.w1.samsung.com
- (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
- with ESMTP id <0LNA00LGVTG12M40@mailout4.w1.samsung.com> for
- linux-arch@vger.kernel.org; Fri, 24 Jun 2011 15:26:25 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LNA003NXTG0RW@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Fri, 24 Jun 2011 15:26:25 +0100 (BST)
-In-reply-to: <20110624091807.GC29299@8bytes.org>
-Content-language: pl
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Joerg Roedel' <joro@8bytes.org>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, Marek Szyprowski <m.szyprowski@samsung.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <4E02119F.4000901@codeaurora.org>
+Sender: owner-linux-mm@kvack.org
+To: Jordan Crouse <jcrouse@codeaurora.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, 'Subash Patel' <subashrp@gmail.com>, linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
-
-On Friday, June 24, 2011 11:18 AM Joerg Roedel wrote:
-
-> On Mon, Jun 20, 2011 at 09:50:05AM +0200, Marek Szyprowski wrote:
-> > This patch series is a continuation of my works on implementing generic
-> > IOMMU support in DMA mapping framework for ARM architecture. Now I
-> > focused on the DMA mapping framework itself. It turned out that adding
-> > support for common dma_map_ops structure was not that hard as I initally
-> > thought. After some modification most of the code fits really well to
-> > the generic dma_map_ops methods.
+On Wednesday 22 June 2011, Jordan Crouse wrote:
+> >> I have a query in similar lines, but related to user virtual address
+> >> space. Is it feasible to extend these DMA interfaces(and IOMMU), to map
+> >> a user allocated buffer into the hardware?
+> >
+> > This can be done with the current API, although it may not look so
+> > straightforward. You just need to create a scatter list of user pages
+> > (these can be gathered with get_user_pages function) and use dma_map_sg()
+> > function. If the dma-mapping support iommu, it can map all these pages
+> > into a single contiguous buffer on device (DMA) address space.
+> >
+> > Some additional 'magic' might be required to get access to pages that are
+> > mapped with pure PFN (VM_PFNMAP flag), but imho it still can be done.
+> >
+> > I will try to implement this feature in videobuf2-dma-config allocator
+> > together with the next version of my patches for dma-mapping&iommu.
 > 
-> I appreciate your progress on this generic dma_ops implementation. But
-> for now it looks very ARM specific. Do you have plans to extend it to
-> non-ARM iommu-api implementations too?
+> With luck DMA_ATTRIB_NO_KERNEL_MAPPING should remove any lingering arguments
+> for trying to map user pages. Given that our ultimate goal here is buffer
+> sharing, user allocated pages have limited value and appeal. If anything, I
+> vote that this be a far lower priority compared to the rest of the win you
+> have here.
 
-These works are just a first step to create an environment for real iommu 
-& dma-mapping integration. It is much easier to work on IOMMU integration
-once the dma-mapping operations can be easily changed for particular devices.
-dma_map_ops gives such flexibility. It is also a de-facto standard interface
-for other architectures so it was really desired to work on iommu
-implementation on top of dma_map_ops.
+I agree. Mapping user-allocated buffers is extremely hard to get right
+when there are extra constraints. If it doesn't work already for some driver,
+I wouldn't put too much effort into making it work for more special cases.
 
-Of course my patches will be ARM-centric, but I hope to isolate ARM-specific
-from generic parts, which can be easily reused on other platforms. 
+	Arnd
 
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
