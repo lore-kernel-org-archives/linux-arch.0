@@ -1,71 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:56227 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752753Ab1FXIwI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2011 04:52:08 -0400
-Subject: Re: [PATCH 14/19] OpenRISC: Module support
-From: Jonas Bonn <jonas@southpole.se>
-In-Reply-To: <201106221626.12023.arnd@arndb.de>
-References: <1308483825-6023-1-git-send-email-jonas@southpole.se>
-	 <1308483825-6023-15-git-send-email-jonas@southpole.se>
-	 <31626.1308686616@turing-police.cc.vt.edu>
-	 <201106221626.12023.arnd@arndb.de>
-Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature"; boundary="=-tYR13ReIKy8XYceQKK8i"
-Date: Fri, 24 Jun 2011 10:52:05 +0200
-Message-ID: <1308905525.6699.23.camel@localhost>
-Mime-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.17.8]:55176 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757734Ab1FXPUq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jun 2011 11:20:46 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping
+ =?iso-8859-1?q?framework=09redesign?=
+Date: Fri, 24 Jun 2011 17:20:15 +0200
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com> <4E02119F.4000901@codeaurora.org>
+In-Reply-To: <4E02119F.4000901@codeaurora.org>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201106241720.15385.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Valdis.Kletnieks@vt.edu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110624085205.rtfJ8bx1IB2UsQOq51zdW0YkL-w6H5LywI27gaQ8cKM@z>
+To: Jordan Crouse <jcrouse@codeaurora.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, 'Subash Patel' <subashrp@gmail.com>, linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20110624152015.3J_3mmDIiLMp_rQKRrJm78CAFg3ar3lqwA6_b-iQl-4@z>
 
+On Wednesday 22 June 2011, Jordan Crouse wrote:
+> >> I have a query in similar lines, but related to user virtual address
+> >> space. Is it feasible to extend these DMA interfaces(and IOMMU), to map
+> >> a user allocated buffer into the hardware?
+> >
+> > This can be done with the current API, although it may not look so
+> > straightforward. You just need to create a scatter list of user pages
+> > (these can be gathered with get_user_pages function) and use dma_map_sg()
+> > function. If the dma-mapping support iommu, it can map all these pages
+> > into a single contiguous buffer on device (DMA) address space.
+> >
+> > Some additional 'magic' might be required to get access to pages that are
+> > mapped with pure PFN (VM_PFNMAP flag), but imho it still can be done.
+> >
+> > I will try to implement this feature in videobuf2-dma-config allocator
+> > together with the next version of my patches for dma-mapping&iommu.
+> 
+> With luck DMA_ATTRIB_NO_KERNEL_MAPPING should remove any lingering arguments
+> for trying to map user pages. Given that our ultimate goal here is buffer
+> sharing, user allocated pages have limited value and appeal. If anything, I
+> vote that this be a far lower priority compared to the rest of the win you
+> have here.
 
+I agree. Mapping user-allocated buffers is extremely hard to get right
+when there are extra constraints. If it doesn't work already for some driver,
+I wouldn't put too much effort into making it work for more special cases.
 
---=-tYR13ReIKy8XYceQKK8i
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-
-On Wed, 2011-06-22 at 16:26 +0200, Arnd Bergmann wrote:
-> I think that an easy way to do that would be to add to kernel/module.c
-> code like:
->=20
-> #ifndef module_alloc
-> void *module_alloc(unsigned long size)
-> {
-> 	return vmalloc(size);
-> }
-> #endif
->=20
-
-I noticed that kernel/module.c already has this:
-
-unsigned int __weak arch_mod_section_prepend(struct module *mod,
-                                             unsigned int section)
-
-
-Is using a __weak attribute on the default (generic) implementations a
-better approach?
-
-> Then each architecture that needs a special version can do
-> #define module_alloc(size) module_alloc(size)
-> in their respective asm/module.h
-
-With the __weak variant this wouldn't be necessary...
-
-/Jonas
-
---=-tYR13ReIKy8XYceQKK8i
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iEYEABECAAYFAk4EUDMACgkQ70gcjN2673PFLQCfSF4nv2BBwE2wyyBgMXVrV+Gb
-N6cAoKEEbFTKSjRyCDrvXHejJaKEcFqv
-=pAlF
------END PGP SIGNATURE-----
-
---=-tYR13ReIKy8XYceQKK8i--
-
+	Arnd
