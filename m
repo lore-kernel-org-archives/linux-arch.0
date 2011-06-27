@@ -1,95 +1,53 @@
-From: Jonathan Morton <jonathan.morton@movial.com>
-Subject: Re: [Linaro-mm-sig] [PATCH/RFC 0/8] ARM: DMA-mapping framework redesign
-Date: Sun, 26 Jun 2011 03:06:30 +0300
-Message-ID: <BANLkTi=uNVLOy4oTTBpr8niRMX+m6wgWBg@mail.gmail.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
-	<4E017539.30505@gmail.com>
-	<001d01cc30a9$ebe5e460$c3b1ad20$%szyprowski@samsung.com>
-	<4E01AD7B.3070806@gmail.com>
-	<002701cc30be$ab296cc0$017c4640$%szyprowski@samsung.com>
-	<4E02119F.4000901@codeaurora.org>
-	<4E033AFF.4020603@gmail.com>
-	<BANLkTikzTwNvaaUSk26qzONemogBAGuBRg@mail.gmail.com>
-	<BANLkTimi2FAmcb7ZWnjRqb-Cb8acXWsCTw@mail.gmail.com>
-	<BANLkTinUCZrd-JuMc3TkaF4f1VBmOu9nxQ@mail.gmail.com>
-	<BANLkTi=y6PGMdHq0uT9QJ7aej3nU6cKW2g@mail.gmail.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH] modules: add default loader hook implementations
+Date: Mon, 27 Jun 2011 18:37:53 +0930
+Message-ID: <87hb7b7ic6.fsf@rustcorp.com.au>
+References: <1308987512-6583-1-git-send-email-jonas@southpole.se> <20110625100449.GA19097@elte.hu> <1308998367.6699.30.camel@localhost> <201106251508.50129.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys009aog113.obsmtp.com ([74.125.149.209]:42027 "EHLO
-	na3sys009aog113.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752075Ab1FZAGc convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 25 Jun 2011 20:06:32 -0400
-Received: by pve37 with SMTP id 37so3166549pve.21
-        for <linux-arch@vger.kernel.org>; Sat, 25 Jun 2011 17:06:30 -0700 (PDT)
-In-Reply-To: <BANLkTi=y6PGMdHq0uT9QJ7aej3nU6cKW2g@mail.gmail.com>
+Received: from ozlabs.org ([203.10.76.45]:46222 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757442Ab1F0JJ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Jun 2011 05:09:57 -0400
+In-Reply-To: <201106251508.50129.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: M.K.Edwards@gmail.com
-Cc: Subash Patel <subashrp@gmail.com>, Jordan Crouse <jcrouse@codeaurora.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, linaro-mm-sig@lists.linaro.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org
+To: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>
+Cc: Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, monstr@monstr.eu, cmetcalf@tilera.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On 25 June 2011 12:55, Michael K. Edwards <m.k.edwards@gmail.com> wrote=
-:
-> With regard to the use of NEON for data moves, I have appended a
-> snippet of a conversation from the BeagleBoard list that veered off
-> into a related direction. =A0(My response is lightly edited, since I
-> made some stupid errors in the original.) =A0While this is somewhat
-> off-topic from Marek's patch set, I think it's relevant to the
-> question of whether "user-allocated" buffers are an important design
-> consideration for his otherwise DMA-centric API. =A0(And more to the
-> point, buffers allocated suitably for one or more on-chip devices, an=
-d
-> also mapped as uncacheable to userland.)
+On Sat, 25 Jun 2011 15:08:49 +0200, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Saturday 25 June 2011, Jonas Bonn wrote:
+> > On Sat, 2011-06-25 at 12:04 +0200, Ingo Molnar wrote:
+> > > Also, and more importantly, don't we generally do such things via 
+> > > __weak aliases, because the result looks cleaner and needs no changes 
+> > > for architectures beyond the removal of the generic functions? We 
+> > > have excluded broken toolchains that miscompile/mislink __weak IIRC 
+> > > so __weak ought to work.
+> > 
+> > When we discussed this briefly yesterday, both Rusty and Arnd showed a
+> > preference for not using __weak aliases... I'll leave it to them to
+> > comment further.
+> > 
+> > The alternative patch that just provides __weak implementations for
+> > these hooks is much less invasive than the patch I sent, effectively
+> > touching only kernel/module.c
+> > 
+> > Let me know which is preferable.
+> 
+> I don't care much either way, you would get my Ack for both solutions.
+> The __weak approach would definitely make a simpler patch, and the
+> patch you sent adds extra complexity because of the
+> asm_generic_moduleloader_hooks macro you used to avoid having to
+> change all other architectures.
 
-As far as userspace is concerned, dealing with the memory hierarchy's
-quirks is already pretty much a black art, and that's *before* you
-start presenting it with uncached buffers.  The best rule of thumb
-userspace can follow is to keep things in cache if they can, and use
-the biggest memory-move instructions (and prefetching if available) if
-they can't.  Everything else they have to rely on the hardware to
-optimise for them.  Indeed, when working in C, you barely even get
-*that* level of control (optimised copy routines have been known to
-use double simply because it is reliably 64 bits that can be loaded
-and stored efficiently), and most other languages are worse.
+I think you misread me.  If all else is equal, I dislike weak functions.
+But AFAICT the two standard mechanisms are #ifdef HAVE_ARCH and __weak.
+Inventing a third one is not going to be a win.
 
-Small wonder that userspace code that knows it has to work with
-uncached buffers sometimes - such as Pixman - relies heavily on
-handwritten SIMD assembler.
+And given where we are, __weak seems the easier path than HAVE_ARCH.
+A followup patch to toss out the now-unneeded empty arch functions would
+be nice, too.
 
-Video decoders are a particularly fun case, because the correct
-solution is actually to DMA the output buffer to the GPU (or, better,
-to map one onto the other so that zero-copy semantics result) so that
-the CPU doesn't have to touch it.  But then you have to find a common
-format that both VPU and GPU support, and you have to have a free DMA
-channel and a way to use it.  Frankly though, this is a solution from
-the 20th century (remember MPEG2 decoders sitting beside the SVGA
-card?).
-
-We *have* had to occasionally deal with hardware where no such common
-format could be found, although often this has been due to inadequate
-documentation or driver support (a familiar refrain).  In one case I
-wrote a NEON NV12-to-RGB32 conversion routine which read directly from
-the video buffer and wrote directly into a texture buffer, both of
-which were of course uncached.  This halved the CPU consumption of the
-video playback applet, but prefixing it with a routine which copied
-the video buffer into cached memory (using 32-byte VLD1 instead of
-16-byte versions) halved it again.  Profiling showed that the vast
-majority of the time was spent in the prefix copy loop.  No doubt if
-further savings had been required, I'd have tried using VLDM in the
-copy loop.  (There weren't enough registers to widen the load stage of
-the conversion routine itself.)
-
-The takeaway from this is that if your code has to read from uncached
-memory at all, that will undoubtedly dominate it's performance.  A
-read-modify-write cycle is at least as bad (because the memory has to
-go through at least one CAS latency and a write-to-read turnaround
-before the next read can be serviced).  A pure write is, however, no
-problem.
-
-On cached memory, the L2 cache of most modern (even ARM) CPUs has an
-auto-prefetcher which will help out with sequential transfers.  This
-should get somewhere reasonably close to optimal performance.
-
- - Jonathan Morton
+Thanks,
+Rusty.
