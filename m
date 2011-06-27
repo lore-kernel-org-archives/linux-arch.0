@@ -1,114 +1,80 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 3/8] ARM: dma-mapping: use asm-generic/dma-mapping-common.h
-Date: Mon, 27 Jun 2011 14:18:02 +0200
-Message-ID: <000601cc34c4$430f91f0$c92eb5d0$%szyprowski@samsung.com>
+Subject: RE: [PATCH 7/8] common: dma-mapping: change alloc/free_coherent method
+	to more generic alloc/free_attrs
+Date: Mon, 27 Jun 2011 14:23:40 +0200
+Message-ID: <000701cc34c5$0c50b800$24f22800$%szyprowski@samsung.com>
 References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <1308556213-24970-4-git-send-email-m.szyprowski@samsung.com>
- <201106241736.43576.arnd@arndb.de>
+	<1308556213-24970-8-git-send-email-m.szyprowski@samsung.com>
+	<201106241751.35655.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <201106241736.43576.arnd@arndb.de>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-reply-to: <201106241751.35655.arnd@arndb.de>
 Content-language: pl
-Sender: owner-linux-mm@kvack.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+	<mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: 'Arnd Bergmann' <arnd@arndb.de>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 Hello,
 
-On Friday, June 24, 2011 5:37 PM Arnd Bergmann wrote:
+On Friday, June 24, 2011 5:52 PM Arnd Bergmann wrote:
 
 > On Monday 20 June 2011, Marek Szyprowski wrote:
-> > This patch modifies dma-mapping implementation on ARM architecture to
-> > use common dma_map_ops structure and asm-generic/dma-mapping-common.h
-> > helpers.
+> > Introduce new alloc/free/mmap methods that take attributes argument.
+> > alloc/free_coherent can be implemented on top of the new alloc/free
+> > calls with NULL attributes. dma_alloc_non_coherent can be implemented
+> > using DMA_ATTR_NONCOHERENT attribute, dma_alloc_writecombine can also
+> > use separate DMA_ATTR_WRITECOMBINE attribute. This way the drivers will
+> > get more generic, platform independent way of allocating dma memory
+> > buffers with specific parameters.
+> >
+> > One more attribute can be usefull: DMA_ATTR_NOKERNELVADDR. Buffers with
+> > such attribute will not have valid kernel virtual address. They might be
+> > usefull for drivers that only exports the DMA buffers to userspace (like
+> > for example V4L2 or ALSA).
+> >
+> > mmap method is introduced to let the drivers create a user space mapping
+> > for a DMA buffer in generic, architecture independent way.
+> >
+> > TODO: update all dma_map_ops clients for all architectures
 > >
 > > Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
 > > Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
 > 
-> This is a good idea in general, but I have a few concerns about details:
-> 
-> First of all, should we only allow using dma_map_ops on ARM, or do we
-> also want to support a case where these are all inlined as before?
+> Yes, I think that is good, but the change needs to be done atomically
+> across all architectures.
 
-I really wonder if it is possible to have a clean implementation of 
-dma_map_ops based and linear inlined dma-mapping framework together.
-Theoretically it should be possible, but it will end with a lot of
-#ifdef hackery which is really hard to follow and understand for 
-anyone but the authors.
+Yes, I'm aware of this and I will include such changes in the next version
+of my patches.
 
-> I suppose for the majority of the cases, the overhead of the indirect
-> function call is near-zero, compared to the overhead of the cache
-> management operation, so it would only make a difference for coherent
-> systems without an IOMMU. Do we care about micro-optimizing those?
+> This should be easy enough as I believe
+> all other architectures that use dma_map_ops don't even require
+> dma_alloc_noncoherent but just define it to dma_alloc_coherent
+> because they have only coherent memory in regular device drivers.
 
-Even in coherent case, the overhead caused by additional function call
-should have really negligible impact on drivers performance.
+Right, this should be quite simple. I will also add DMA_ATTR_NON_COHERENT
+attribute for implementing dma_alloc_noncoherent() call.
 
- > > diff --git a/arch/arm/include/asm/dma-mapping.h
-> b/arch/arm/include/asm/dma-mapping.h
-> > index 799669d..f4e4968 100644
-> > --- a/arch/arm/include/asm/dma-mapping.h
-> > +++ b/arch/arm/include/asm/dma-mapping.h
-> > @@ -10,6 +10,27 @@
-> >  #include <asm-generic/dma-coherent.h>
-> >  #include <asm/memory.h>
-> >
-> > +extern struct dma_map_ops dma_ops;
-> > +
-> > +static inline struct dma_map_ops *get_dma_ops(struct device *dev)
-> > +{
-> > +	if (dev->archdata.dma_ops)
-> > +		return dev->archdata.dma_ops;
-> > +	return &dma_ops;
-> > +}
-> 
-> I would not name the global structure just 'dma_ops', the identifier could
-> too easily conflict with a local variable in some driver. How about
-> arm_dma_ops or linear_dma_ops instead?
+> On a related note, do you plan to make the CMA work use this
+> transparently, or do you want to have a DMA_ATTR_LARGE or
+> DMA_ATTR_CONTIGUOUS for CMA?
 
-I'm fine with both of them. Even arm_linear_dma_ops make some sense.
-
-> >  /*
-> >   * The scatter list versions of the above methods.
-> >   */
-> > -extern int dma_map_sg(struct device *, struct scatterlist *, int,
-> > -		enum dma_data_direction);
-> > -extern void dma_unmap_sg(struct device *, struct scatterlist *, int,
-> > +extern int arm_dma_map_sg(struct device *, struct scatterlist *, int,
-> > +		enum dma_data_direction, struct dma_attrs *attrs);
-> > +extern void arm_dma_unmap_sg(struct device *, struct scatterlist *, int,
-> > +		enum dma_data_direction, struct dma_attrs *attrs);
-> > +extern void arm_dma_sync_sg_for_cpu(struct device *, struct scatterlist
-> *, int,
-> >  		enum dma_data_direction);
-> > -extern void dma_sync_sg_for_cpu(struct device *, struct scatterlist *,
-> int,
-> > +extern void arm_dma_sync_sg_for_device(struct device *, struct
-> scatterlist *, int,
-> >  		enum dma_data_direction);
-> > -extern void dma_sync_sg_for_device(struct device *, struct scatterlist *,
-> int,
-> > -		enum dma_data_direction);
-> > -
-> 
-> You should not need to make these symbols visible in the header file any
-> more unless they are used outside of the main file later.
-
-They are used by the dma bounce code once converted to dma_map_ops framework.
+IMHO it will be better to hide the CMA from the drivers. Memory allocated
+from CMA doesn't really differ from the one allocated by dma_alloc_coherent()
+(which internally use alloc_pages()), so I really see no reason for adding
+additional attribute for it.
 
 Best regards
 -- 
 Marek Szyprowski
 Samsung Poland R&D Center
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
