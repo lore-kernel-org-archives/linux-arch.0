@@ -1,90 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:50636 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.9]:52879 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752478Ab1F0OyA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jun 2011 10:54:00 -0400
+	with ESMTP id S1756988Ab1F1KpZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2011 06:45:25 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/8] ARM: dma-mapping: implement dma_map_single on top of dma_map_page
-Date: Mon, 27 Jun 2011 16:53:44 +0200
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <201106241724.21113.arnd@arndb.de> <000a01cc34d6$9e4576e0$dad064a0$%szyprowski@samsung.com>
-In-Reply-To: <000a01cc34d6$9e4576e0$dad064a0$%szyprowski@samsung.com>
+Subject: Re: [PATCH] modules: add default loader hook implementations
+Date: Tue, 28 Jun 2011 12:45:19 +0200
+References: <1308987512-6583-1-git-send-email-jonas@southpole.se> <201106271305.44746.arnd@arndb.de> <87mxh2lpey.fsf@rustcorp.com.au>
+In-Reply-To: <87mxh2lpey.fsf@rustcorp.com.au>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201106271653.44892.arnd@arndb.de>
+Message-ID: <201106281245.19457.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>
-Message-ID: <20110627145344.RfcJjyk-768opzld7zkjX8qRCaktcS4PtbtpyOzyiQ8@z>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonas Bonn <jonas@southpole.se>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, monstr@monstr.eu, cmetcalf@tilera.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20110628104519.-aHjz_gUdwUALunK7TeHdDH4mQ2WCdyu0vmfsnIfOKA@z>
 
-On Monday 27 June 2011, Marek Szyprowski wrote:
-> On Friday, June 24, 2011 5:24 PM Arnd Bergmann wrote:
-> 
-> > On Monday 20 June 2011, Marek Szyprowski wrote:
-> > > > This also breaks dmabounce when used with a highmem-enabled system -
-> > > > dmabounce refuses the dma_map_page() API but allows the
-> > dma_map_single()
-> > > > API.
-> > >
-> > > I really not sure how this change will break dma bounce code.
-> > >
-> > > Does it mean that it is allowed to call dma_map_single() on kmapped
-> > > HIGH_MEM page?
-> > 
-> > dma_map_single on a kmapped page already doesn't work, the argument needs
-> > to be inside of the linear mapping in order for virt_to_page to work.
-> 
-> Then I got really confused.
-> 
-> Documentation/DMA-mapping.txt says that dma_map_single() can be used only
-> with kernel linear mapping, while dma_map_page() can be also called on 
-> HIGHMEM pages.
+On Tuesday 28 June 2011, Rusty Russell wrote:
+> To avoid more bikeshedding, smallest patch wins.  That's __weak, right?
 
-Right, this is true in general.
-
-> Now, lets go to arch/arm/common/dmabounce.c code:
-> 
-> dma_addr_t __dma_map_page(struct device *dev, struct page *page,
->                 unsigned long offset, size_t size, enum dma_data_direction dir)
-> {
->         dev_dbg(dev, "%s(page=%p,off=%#lx,size=%zx,dir=%x)\n",
->                 __func__, page, offset, size, dir);
-> 
->         BUG_ON(!valid_dma_direction(dir));
-> 
->         if (PageHighMem(page)) {
->                 dev_err(dev, "DMA buffer bouncing of HIGHMEM pages "
->                              "is not supported\n");
->                 return ~0;
->         }
-> 
->         return map_single(dev, page_address(page) + offset, size, dir);
-> }
-> EXPORT_SYMBOL(__dma_map_page);
->
-> Am I right that there is something mixed here? I really don't get why there is
-> high mem check in dma_map_page implementation. dma_map_single doesn't perform
-> such check and works with kmapped highmem pages...
->
-> Russell also pointed that my patch broke dma bounch with high mem enabled.
-
-The version of __dma_map_page that you cited is the one used with dmabounce
-enabled, when CONFIG_DMABOUNCE is disabled, the following version is used:
-
-static inline dma_addr_t __dma_map_page(struct device *dev, struct page *page,
-             unsigned long offset, size_t size, enum dma_data_direction dir)
-{
-        __dma_page_cpu_to_dev(page, offset, size, dir);
-        return pfn_to_dma(dev, page_to_pfn(page)) + offset;
-}
-
-This does not have the check, because the kernel does not need to touch
-the kernel mapping in that case.
-
-If you pass a kmapped page into dma_map_single, it should also not
-work because of the BUG_ON in ___dma_single_cpu_to_dev -- it warns
-you that you would end up flushing the cache for the wrong page (if any).
+Sounds fine to me. Jonas, can you send that patch?
 
 	Arnd
