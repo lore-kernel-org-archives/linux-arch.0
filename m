@@ -1,35 +1,49 @@
-From: Systems Administrator <marenawati@waterselangor.gov.my>
-Subject: Final Notification.
-Date: Thu, 30 Jun 2011 01:12:58 +0800 (MYT)
-Message-ID: <5283051.364.1309367578962.JavaMail.root@mail.waterselangor.gov.my>
-Reply-To: Systems Administrator <system-admin@gala.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH] asm-generic: Raise default NR_IRQS when using sparse IRQs
+Date: Wed, 29 Jun 2011 14:20:26 -0700
+Message-ID: <1309382426-30614-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 111.218.in-addr.arpa.static.tm.net.my ([218.111.239.5]:38177
-	"EHLO mail.waterselangor.gov.my" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751518Ab1F2RTl (ORCPT
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:59504 "EHLO
+	opensource2.wolfsonmicro.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753439Ab1F3FdA (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Jun 2011 13:19:41 -0400
+	Thu, 30 Jun 2011 01:33:00 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
 
-Dear account user,
+Rather than have each platform using sparse IRQs pick a suitably large
+NR_IRQS for use with sparse IRQs make the default high when they are
+enabled.  We pick 64k as there is still a bitmap of IRQs that is
+allocated statically, and as we all know 64k should be enough for
+anyone.
+
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+---
+ include/asm-generic/irq.h |    6 +++++-
+ 1 files changed, 5 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-generic/irq.h b/include/asm-generic/irq.h
+index b90ec0b..0d95650 100644
+--- a/include/asm-generic/irq.h
++++ b/include/asm-generic/irq.h
+@@ -4,11 +4,15 @@
+ /*
+  * NR_IRQS is the upper bound of how many interrupts can be handled
+  * in the platform. It is used to size the static irq_map array,
+- * so don't make it too big.
++ * so don't make it too big unless we're using sparse IRQs.
+  */
+ #ifndef NR_IRQS
++#ifdef CONFIG_SPARSE_IRQ
++#define NR_IRQS 0xffff
++#else
+ #define NR_IRQS 64
+ #endif
++#endif
  
- 
-we are currently upgrading our database and email servers to reduce spam and junk emails, we are therefore deleting all unused account to create spaces for new accounts.
- 
- 
-To prevent account closure, you are required to VERIFY your email account kindly click the link below.
- 
- 
-https://spreadsheets.google.com/spreadsheet/viewform?formkey=dE1PX1l4d19JOG1XWEZUd0hsSnhfdUE6MQ
- 
- 
-Warning!!! All Web mail. Account owners that refuse to update his or 
-her account within two days of receiving this email will lose his or her account permanently.
- 
- 
-Thank you for using Web mail.
-AGB? upc Web mail GmbH 2011
+ static inline int irq_canonicalize(int irq)
+ {
+-- 
+1.7.5.4
