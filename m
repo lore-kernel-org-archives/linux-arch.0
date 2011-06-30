@@ -1,35 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:54237 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758718Ab1F1QvE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jun 2011 12:51:04 -0400
-Subject: Re: [PATCH] modules: add default loader hook implementations
-From: Jonas Bonn <jonas@southpole.se>
-In-Reply-To: <201106281245.19457.arnd@arndb.de>
-References: <1308987512-6583-1-git-send-email-jonas@southpole.se>
-	 <201106271305.44746.arnd@arndb.de> <87mxh2lpey.fsf@rustcorp.com.au>
-	 <201106281245.19457.arnd@arndb.de>
-Content-Type: text/plain; charset="UTF-8"
-Date: Tue, 28 Jun 2011 18:50:59 +0200
-Message-ID: <1309279859.19420.3.camel@localhost>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:49761 "EHLO duck.linux-mips.net"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751596Ab1F3JSY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jun 2011 05:18:24 -0400
+Date: Thu, 30 Jun 2011 10:17:54 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: SB16 build error.
+Message-ID: <20110630091754.GA12119@linux-mips.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Geert Uytterhoeven <geert@linux-m68k.org>, Ingo Molnar <mingo@elte.hu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, monstr@monstr.eu, cmetcalf@tilera.com, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20110628165059.vfxuzglmvbs1AKmkWGKGi-aopQaNxezHn9B6Id-U5bo@z>
+To: Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.de>
+Cc: alsa-devel@alsa-project.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, florian@linux-mips.org, Florian Fainelli <florian@openwrt.org>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20110630091754.vjlfCZpl9c42NaCMfszFlOHRC2PNy5dEHSKc04KZNII@z>
 
+Found on a MIPS build but certain other architectures will have the same
+issue:
 
-On Tue, 2011-06-28 at 12:45 +0200, Arnd Bergmann wrote:
-> On Tuesday 28 June 2011, Rusty Russell wrote:
-> > To avoid more bikeshedding, smallest patch wins.  That's __weak, right?
-> 
-> Sounds fine to me. Jonas, can you send that patch?
-> 
+  CC      sound/isa/sb/sb16_csp.o
+sound/isa/sb/sb16_csp.c: In function ‘snd_sb_csp_ioctl’:
+sound/isa/sb/sb16_csp.c:228: error: case label does not reduce to an integer constant
+make[1]: *** [sound/isa/sb/sb16_csp.o] Error 1
+make: *** [sound/isa/sb/sb16_csp.o] Error 2
 
-Yes, for sure... just as soon as I get a spare moment, which will be in
-a day or two.
+This error message is caused by the _IOC_TYPECHECK() error check triggering
+due to excessive ioctl size on Alpha, PowerPC, MIPS and SPARC which define
+_IOC_SIZEBITS as 13.  On all other architectures define it as 14 so struct
+snd_sb_csp_microcode with it's little over 12kB will just about fit into
+the 16kB limit.
 
-/Jonas
-
+  Ralf
