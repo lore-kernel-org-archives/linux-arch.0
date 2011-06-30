@@ -1,35 +1,33 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] asm-generic: Raise default NR_IRQS when using sparse IRQs
-Date: Thu, 30 Jun 2011 08:13:21 -0700
-Message-ID: <20110630151319.GA3249@opensource.wolfsonmicro.com>
-References: <1309382426-30614-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <alpine.LFD.2.02.1106300926350.2917@ionos>
+From: "PROF.MAURICE IWU" <iwumaurice900@sify.com>
+Subject: Equity Business Investment
+Date: Thu, 30 Jun 2011 17:44:46 +0200
+Message-ID: <EXCHANGE03YW8BYXifW0000054a__48627.8187636801$1309448713$gmane$org@exchange03.2besource.com>
+Reply-To: <profmauriceiwu2221@yahoo.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+	charset="Windows-1251"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:36049 "EHLO
-	opensource2.wolfsonmicro.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751609Ab1F3PN0 (ORCPT
+Received: from exchange.2besource.com ([203.126.216.22]:14307 "EHLO
+	exchange03.2besource.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750988Ab1F3Poy (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jun 2011 11:13:26 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.02.1106300926350.2917@ionos>
+	Thu, 30 Jun 2011 11:44:54 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Jun 30, 2011 at 09:27:20AM +0200, Thomas Gleixner wrote:
-> On Wed, 29 Jun 2011, Mark Brown wrote:
+Equity Business Investment
+From Prof. Maurice Iwu 
 
-> > Rather than have each platform using sparse IRQs pick a suitably large
-> > NR_IRQS for use with sparse IRQs make the default high when they are
-> > enabled.  We pick 64k as there is still a bitmap of IRQs that is
-> > allocated statically, and as we all know 64k should be enough for
-> > anyone.
+Dear Friend,
 
-> The sparse bitmap is overallocated to NR_IRQS + 8k anyway, so that's
-> rather pointless.
+I am Prof. Maurice M. Iwu, Former Chairman Independent Electoral Commission 
+(INEC).Currently, I am on compulsory terminal leave presently in UK , 
+leading up to my final retirement from public service.
 
-Hrm, OK.  In that case why are platforms faffing around trying to size
-NR_IRQs in the first place?
+I am seeking your partnership in a mutual benefit project involving 
+investing into your company and secondly on properties and to be precise Estate Development or any other profitable venture of your great idea for our mutual benefit of Equity Market Investment.,
+
+Sincerely,
+Prof. Maurice M.Iwu.
+{INEC.}
