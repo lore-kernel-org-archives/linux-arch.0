@@ -1,64 +1,37 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH] asm-generic: Raise default NR_IRQS when using sparse
- IRQs
-Date: Thu, 30 Jun 2011 09:27:20 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1106300926350.2917@ionos>
-References: <1309382426-30614-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: SB16 build error.
+Date: Thu, 30 Jun 2011 10:17:54 +0100
+Message-ID: <20110630091754.GA12119@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:48368 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752674Ab1F3H1X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jun 2011 03:27:23 -0400
-In-Reply-To: <1309382426-30614-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <alsa-devel-bounces@alsa-project.org>
+Content-Disposition: inline
+List-Unsubscribe: <http://mailman.alsa-project.org/mailman/listinfo/alsa-devel>,
+	<mailto:alsa-devel-request@alsa-project.org?subject=unsubscribe>
+List-Archive: <http://mailman.alsa-project.org/pipermail/alsa-devel>
+List-Post: <mailto:alsa-devel@alsa-project.org>
+List-Help: <mailto:alsa-devel-request@alsa-project.org?subject=help>
+List-Subscribe: <http://mailman.alsa-project.org/mailman/listinfo/alsa-devel>,
+	<mailto:alsa-devel-request@alsa-project.org?subject=subscribe>
+Sender: alsa-devel-bounces@alsa-project.org
+Errors-To: alsa-devel-bounces@alsa-project.org
+To: Jaroslav Kysela <perex@perex.cz>, Takashi Iwai <tiwai@suse.de>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, alsa-devel@alsa-project.org, florian@linux-mips.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, sparclinux@vger.kernel.org, Paul Mackerras <paulus@samba.org>, Matt Turner <mattst88@gmail.com>, Florian Fainelli <florian@openwrt.org>, Richard Henderson <rth@twiddle.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 29 Jun 2011, Mark Brown wrote:
-
-> Rather than have each platform using sparse IRQs pick a suitably large
-> NR_IRQS for use with sparse IRQs make the default high when they are
-> enabled.  We pick 64k as there is still a bitmap of IRQs that is
-> allocated statically, and as we all know 64k should be enough for
-> anyone.
-
-The sparse bitmap is overallocated to NR_IRQS + 8k anyway, so that's
-rather pointless.
- 
-> Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
-> ---
->  include/asm-generic/irq.h |    6 +++++-
->  1 files changed, 5 insertions(+), 1 deletions(-)
-> 
-> diff --git a/include/asm-generic/irq.h b/include/asm-generic/irq.h
-> index b90ec0b..0d95650 100644
-> --- a/include/asm-generic/irq.h
-> +++ b/include/asm-generic/irq.h
-> @@ -4,11 +4,15 @@
->  /*
->   * NR_IRQS is the upper bound of how many interrupts can be handled
->   * in the platform. It is used to size the static irq_map array,
-> - * so don't make it too big.
-> + * so don't make it too big unless we're using sparse IRQs.
->   */
->  #ifndef NR_IRQS
-> +#ifdef CONFIG_SPARSE_IRQ
-> +#define NR_IRQS 0xffff
-> +#else
->  #define NR_IRQS 64
->  #endif
-> +#endif
->  
->  static inline int irq_canonicalize(int irq)
->  {
-> -- 
-> 1.7.5.4
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+Rm91bmQgb24gYSBNSVBTIGJ1aWxkIGJ1dCBjZXJ0YWluIG90aGVyIGFyY2hpdGVjdHVyZXMgd2ls
+bCBoYXZlIHRoZSBzYW1lCmlzc3VlOgoKICBDQyAgICAgIHNvdW5kL2lzYS9zYi9zYjE2X2NzcC5v
+CnNvdW5kL2lzYS9zYi9zYjE2X2NzcC5jOiBJbiBmdW5jdGlvbiDigJhzbmRfc2JfY3NwX2lvY3Rs
+4oCZOgpzb3VuZC9pc2Evc2Ivc2IxNl9jc3AuYzoyMjg6IGVycm9yOiBjYXNlIGxhYmVsIGRvZXMg
+bm90IHJlZHVjZSB0byBhbiBpbnRlZ2VyIGNvbnN0YW50Cm1ha2VbMV06ICoqKiBbc291bmQvaXNh
+L3NiL3NiMTZfY3NwLm9dIEVycm9yIDEKbWFrZTogKioqIFtzb3VuZC9pc2Evc2Ivc2IxNl9jc3Au
+b10gRXJyb3IgMgoKVGhpcyBlcnJvciBtZXNzYWdlIGlzIGNhdXNlZCBieSB0aGUgX0lPQ19UWVBF
+Q0hFQ0soKSBlcnJvciBjaGVjayB0cmlnZ2VyaW5nCmR1ZSB0byBleGNlc3NpdmUgaW9jdGwgc2l6
+ZSBvbiBBbHBoYSwgUG93ZXJQQywgTUlQUyBhbmQgU1BBUkMgd2hpY2ggZGVmaW5lCl9JT0NfU0la
+RUJJVFMgYXMgMTMuICBPbiBhbGwgb3RoZXIgYXJjaGl0ZWN0dXJlcyBkZWZpbmUgaXQgYXMgMTQg
+c28gc3RydWN0CnNuZF9zYl9jc3BfbWljcm9jb2RlIHdpdGggaXQncyBsaXR0bGUgb3ZlciAxMmtC
+IHdpbGwganVzdCBhYm91dCBmaXQgaW50bwp0aGUgMTZrQiBsaW1pdC4KCiAgUmFsZgpfX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpBbHNhLWRldmVsIG1haWxp
+bmcgbGlzdApBbHNhLWRldmVsQGFsc2EtcHJvamVjdC5vcmcKaHR0cDovL21haWxtYW4uYWxzYS1w
+cm9qZWN0Lm9yZy9tYWlsbWFuL2xpc3RpbmZvL2Fsc2EtZGV2ZWwK
