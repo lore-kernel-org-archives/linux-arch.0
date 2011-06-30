@@ -1,54 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:52788 "EHLO linux-mips.org"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751159Ab1F3Mnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jun 2011 08:43:53 -0400
-Date: Thu, 30 Jun 2011 13:43:33 +0100
-From: Ralf Baechle <ralf@linux-mips.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:52346 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750799Ab1F3Myf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jun 2011 08:54:35 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: SB16 build error.
-Message-ID: <20110630124333.GA9727@linux-mips.org>
-References: <20110630091754.GA12119@linux-mips.org>
- <s5h8vsjy68z.wl%tiwai@suse.de>
- <20110630105254.GA25732@linux-mips.org>
- <s5h39iry3xp.wl%tiwai@suse.de>
- <s5hy60jwocc.wl%tiwai@suse.de>
- <20110630123212.GA6690@linux-mips.org>
- <s5hoc1fwl37.wl%tiwai@suse.de>
+Date: Thu, 30 Jun 2011 14:54:16 +0200
+References: <20110630091754.GA12119@linux-mips.org> <s5hy60jwocc.wl%tiwai@suse.de> <20110630123212.GA6690@linux-mips.org>
+In-Reply-To: <20110630123212.GA6690@linux-mips.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <s5hoc1fwl37.wl%tiwai@suse.de>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201106301454.16530.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takashi Iwai <tiwai@suse.de>
-Cc: Jaroslav Kysela <perex@perex.cz>, alsa-devel@alsa-project.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, florian@linux-mips.org, Florian Fainelli <florian@openwrt.org>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20110630124333._RQkRjO6V_bY9B6Q8sgzLCKtvL9Yd4JrbOqzHX_wdJ4@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Takashi Iwai <tiwai@suse.de>, Jaroslav Kysela <perex@perex.cz>, alsa-devel@alsa-project.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, florian@linux-mips.org, Florian Fainelli <florian@openwrt.org>, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20110630125416.I7vr2k55y8KKuOG9AE3i_HfOwxo0YNtC9rioWF3zvS8@z>
 
-On Thu, Jun 30, 2011 at 02:38:20PM +0200, Takashi Iwai wrote:
+On Thursday 30 June 2011, Ralf Baechle wrote:
+> #define SNDRV_SB_CSP_IOCTL_LOAD_CODE                            \
+>         _IOC(_IOC_WRITE,'H', 0x11, sizeof(struct snd_sb_csp_microcode))
+> 
+> error checking can be bypassed and all will be fine as long as the
+> resulting value doesn't result in in a a duplicate case value - which it
+> doesn't, at least not in my testing.
+> 
+> Should work but isn't nice.
 
-> > In userland an empty definition will be used for _IOC_TYPECHECK so there
-> > won't be an error.  So userland already is already using the existing
-> > value for SNDRV_SB_CSP_IOCTL_LOAD_CODE ...
-> 
-> Right.  It has an invalid direction (3), but apps won't care such
-> details anyway.
-> 
-> > With a crude hack like
-> > 
-> > #define SNDRV_SB_CSP_IOCTL_LOAD_CODE				\
-> > 	_IOC(_IOC_WRITE,'H', 0x11, sizeof(struct snd_sb_csp_microcode))
-> > 
-> > error checking can be bypassed and all will be fine as long as the
-> > resulting value doesn't result in in a a duplicate case value - which it
-> > doesn't, at least not in my testing.
-> > 
-> > Should work but isn't nice.
-> 
-> Indeed.  But which is uglier is hard to answer :)
-> 
-> If you are fine with the hacked ioctl number above, I can put it
-> with some comments.  This won't break anything, at least.
+Right. It's probably the best we can do. I think we added a few similar
+definitions when we originally introduce _IOC_TYPECHECK. The idea was
+never to break existing code, but rather to avoid merging new drivers that
+use inconsistent ioctl command numbers.
 
-Go ahead then and yes, this really deserves a comment.
-
-  Ralf
+	Arnd
