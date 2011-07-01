@@ -1,51 +1,30 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 2/2] modules: make arch's use default loader hooks
-Date: Fri, 1 Jul 2011 09:00:13 +0200
-Message-ID: <BANLkTi=j+3eovYhcjoniFrCL_vAC0BQCdw@mail.gmail.com>
-References: <201106281245.19457.arnd@arndb.de>
-	<1309461732-2875-1-git-send-email-jonas@southpole.se>
-	<1309461732-2875-2-git-send-email-jonas@southpole.se>
+From: Paul Walmsley <paul@pwsan.com>
+Subject: Moving DT data out of the kernel?
+Date: Fri, 1 Jul 2011 05:55:41 -0600 (MDT)
+Message-ID: <alpine.DEB.2.00.1107010534260.27025@utopia.booyaka.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iw0-f174.google.com ([209.85.214.174]:39276 "EHLO
-	mail-iw0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755080Ab1GAHAO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jul 2011 03:00:14 -0400
-In-Reply-To: <1309461732-2875-2-git-send-email-jonas@southpole.se>
+Received: from utopia.booyaka.com ([72.9.107.138]:32873 "EHLO
+	utopia.booyaka.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754919Ab1GALzl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jul 2011 07:55:41 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: rusty@rustcorp.com.au, arnd@ardnb.de, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, monstr@monstr.eu, cmetcalf@tilera.com, torvalds@linux-foundation.org, akpm@linux-foundation.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Nicolas Pitre <nicolas.pitre@linaro.org>, Kevin Hilman <khilman@ti.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, Grant Likely <grant.likely@secretlab.ca>
 
-On Thu, Jun 30, 2011 at 21:22, Jonas Bonn <jonas@southpole.se> wrote:
-> This patch removes all the module loader hook implementations in the
-> architecture specific code where the functionality is the same as tha=
-t
-> now provided by the recently added default hooks.
->
-> Signed-off-by: Jonas Bonn <jonas@southpole.se>
 
-> =C2=A0arch/m68k/kernel/module_mm.c =C2=A0 =C2=A0| =C2=A0 27 ---------=
---------
-> =C2=A0arch/m68k/kernel/module_no.c =C2=A0 =C2=A0| =C2=A0 34 ---------=
-------------
+Hello Linus,
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Recently we've been discussing Device Tree and other forms of kernel 
+static data.  Some of us were curious to know if you eventually planned to 
+remove files like the ones in arch/powerpc/boot/dts/ from the mainline 
+kernel source tree, or keep them in.
 
-Gr{oetje,eeting}s,
+Do you have any preferences or plans here?
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
+regards,
 
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+- Paul
