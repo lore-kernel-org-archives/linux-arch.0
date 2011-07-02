@@ -1,80 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:44908 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750994Ab1GBPxj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 11:53:39 -0400
-From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 1/2] asm-generic: add MMU variants of io.h functions
-Date: Sat,  2 Jul 2011 17:53:25 +0200
-Message-ID: <1309622006-28343-1-git-send-email-jonas@southpole.se>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:61365 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751309Ab1GBRE0 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 13:04:26 -0400
+MIME-Version: 1.0
+In-Reply-To: <1309625250.24186.1224.camel@localhost>
+References: <1309622006-28343-1-git-send-email-jonas@southpole.se>
+ <CAMjpGUfZwZu-ZCJj2cmq1w6B71-gQ8G27FpYdhseyq3hoZRL+Q@mail.gmail.com> <1309625250.24186.1224.camel@localhost>
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Sat, 2 Jul 2011 13:04:05 -0400
+Message-ID: <CAMjpGUeMqVzcAWKpAojZVbj9ywH+4HmW4Hx-8D1WQmTqPSNqQA@mail.gmail.com>
+Subject: Re: [PATCH 1/2] asm-generic: add MMU variants of io.h functions
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, vapier@gentoo.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
-Message-ID: <20110702155325.Vwmu6N8NMl_qOZYj1HAQN3UOAq4qkqAEburaXwbPWjA@z>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
+Message-ID: <20110702170405.kfI_9HPTBUyK-2RmcBhJqhGgElc2a9lNtYEiBUY_Kvw@z>
 
+On Sat, Jul 2, 2011 at 12:47, Jonas Bonn wrote:
+> On Sat, 2011-07-02 at 12:38 -0400, Mike Frysinger wrote:
+>> On Sat, Jul 2, 2011 at 11:53, Jonas Bonn wrote:
+>> > +#ifdef CONFIG_MMU
+>> > +#define xlate_dev_mem_ptr(p)   __va(p)
+>> > +#else
+>> >  #define xlate_dev_mem_ptr(p)   ((void *) (p))
+>> > +#endif
+>>
+>> i wonder if we could do:
+>> #ifndef __va
+>> #define __va(p) ((void *)(p))
+>> #endif
+>> #define xlate_dev_mem_ptr(p)   __va(p)
+>> -mike
+>
+> This seems to introduce an artificial definition of a "virtual" address
+> for systems without an MMU, which strikes me as a bit odd.  If this is
+> what people prefer, that's fine... I think I prefer the former variant,
+> though.
 
-Some of the implementations, in particular the ioremap variants, in
-asm-generic/io.h are for systems with an MMU.  In order to be able to
-use the generic header file for systems with an MMU, this patch wraps
-these implementations in checks for CONFIG_MMU.
+this isnt a problem.  we do this sort of thing in many places since
+people develop under MMU and use the API that exists there.
 
-Tested on OpenRISC.
-
-Signed-off-by: Jonas Bonn <jonas@southpole.se>
-Cc: vapier@gentoo.org
-Cc: liqin.chen@sunplusct.com
-Cc: gxt@mprc.pku.edu.cn
----
-
-I'm not totally certain that this doesn't have implications for the
-other architectures, in particular Score which seems to have an MMU yet
-uses these ioremap functions anyway...  Comments on this would be
-appreciated.
-
-Thanks,
-Jonas
-
- include/asm-generic/io.h |   10 ++++++++++
- 1 files changed, 10 insertions(+), 0 deletions(-)
-
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index e0ffa3d..50f4f43 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -307,7 +307,11 @@ static inline void *phys_to_virt(unsigned long address)
- 
- /*
-  * Change "struct page" to physical address.
-+ *
-+ * This implementation is for the no-MMU case only... if you have an MMU
-+ * you'll need to provide your own definitions.
-  */
-+#ifndef CONFIG_MMU
- static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
- {
- 	return (void __iomem*) (unsigned long)offset;
-@@ -326,6 +330,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
- static inline void iounmap(void *addr)
- {
- }
-+#endif /* CONFIG_MMU */
- 
- #ifndef CONFIG_GENERIC_IOMAP
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
-@@ -342,7 +347,12 @@ extern void ioport_unmap(void __iomem *p);
- #endif /* CONFIG_GENERIC_IOMAP */
- 
- #define xlate_dev_kmem_ptr(p)	p
-+
-+#ifdef CONFIG_MMU
-+#define xlate_dev_mem_ptr(p)	__va(p)
-+#else
- #define xlate_dev_mem_ptr(p)	((void *) (p))
-+#endif
- 
- #ifndef virt_to_bus
- static inline unsigned long virt_to_bus(volatile void *address)
--- 
-1.7.4.1
-
+however, i see that we already have __va() in asm-generic/page.h.  so
+you can assume __va() exists.  so just change the existing definition
+to:
+#define xlate_dev_mem_ptr(p)   __va(p)
+-mike
