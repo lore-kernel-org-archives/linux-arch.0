@@ -1,40 +1,210 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:45882 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:45872 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755920Ab1GBVQQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 17:16:16 -0400
+	with ESMTP id S1754455Ab1GBVQM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 17:16:12 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH v2 08/19] OpenRISC: Timekeeping
-Date: Sat,  2 Jul 2011 23:15:41 +0200
-Message-ID: <1309641352-18714-9-git-send-email-jonas@southpole.se>
+Subject: [PATCH v2 02/19] OpenRISC: Device tree
+Date: Sat,  2 Jul 2011 23:15:35 +0200
+Message-ID: <1309641352-18714-3-git-send-email-jonas@southpole.se>
 In-Reply-To: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, tglx@linutronix.de
-Message-ID: <20110702211541.kK1smJ5FNrqj9IHo-5ZdkjqVvbM9ZFUZYc9xa6AZ2ms@z>
+Cc: Jonas Bonn <jonas@southpole.se>, devicetree-discuss@lists.ozlabs.org
+Message-ID: <20110702211535.gL_Csfwoys_2-EDYwiHCr8UEPN_kMdyLVsVqacOpxIE@z>
 
 
-Implements support for the OpenRISC timer which is a 28 bit cycle counter
-that can be read out of a special purpose register.  This counter is
-used as a both a clock event and clocksource device.
+The OpenRISC architecture uses the device tree infrastructure for the
+platform description.  This is currently limited to having a device tree
+built into the kernel, but work is underway within the OpenRISC project
+to define how this device tree blob should be passed into the kernel from
+an external resource.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
-Cc: tglx@linutronix.de
+Cc: devicetree-discuss@lists.ozlabs.org
 ---
- arch/openrisc/include/asm/timex.h |   36 ++++++++
- arch/openrisc/kernel/time.c       |  181 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 217 insertions(+), 0 deletions(-)
- create mode 100644 arch/openrisc/include/asm/timex.h
- create mode 100644 arch/openrisc/kernel/time.c
+ arch/openrisc/boot/dts/atlys.dts   |   78 +++++++++++++++++++++++++
+ arch/openrisc/boot/dts/or1ksim.dts |   73 ++++++++++++++++++++++++
+ arch/openrisc/include/asm/prom.h   |   92 ++++++++++++++++++++++++++++++
+ arch/openrisc/kernel/prom.c        |  109 ++++++++++++++++++++++++++++++++++++
+ arch/openrisc/kernel/setup.c       |    3 +-
+ 5 files changed, 353 insertions(+), 2 deletions(-)
+ create mode 100644 arch/openrisc/boot/dts/atlys.dts
+ create mode 100644 arch/openrisc/boot/dts/or1ksim.dts
+ create mode 100644 arch/openrisc/include/asm/prom.h
+ create mode 100644 arch/openrisc/kernel/prom.c
 
-diff --git a/arch/openrisc/include/asm/timex.h b/arch/openrisc/include/asm/timex.h
+diff --git a/arch/openrisc/boot/dts/atlys.dts b/arch/openrisc/boot/dts/atlys.dts
 new file mode 100644
-index 0000000..9935cad
+index 0000000..cd028b9
 --- /dev/null
-+++ b/arch/openrisc/include/asm/timex.h
-@@ -0,0 +1,36 @@
++++ b/arch/openrisc/boot/dts/atlys.dts
+@@ -0,0 +1,78 @@
++/dts-v1/;
++/ {
++	compatible = "digilent,atlys";
++	#size-cells = <1>;
++	#address-cells = <1>;
++
++	chosen {
++		bootargs = "console=tty0 console=uart,mmio,0x90000000,115200 debug video=ocfb:640x480-16@60";
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x8000000>;
++	};
++
++	cpus {
++		cpu@0 {
++			compatible = "opencores,openrisc-1200";
++			clock-frequency = <50000000>;
++		};
++	};
++
++	/* The "soc" node */
++
++	soc {
++		/* Every node with children must specify address-cells and
++		   size-cells; they are not inherited */
++		#address-cells = <1>;
++		#size-cells = <1>;
++		device_type = "soc";
++
++		/* This is also a 1:1 mapping but limits size of mappable
++		   region to 0x40000000 */
++		ranges = <0x80000000 0x80000000 0x40000000>;
++
++		/* An alternative is to specify an empty ranges here to
++		   indicates 1:1 mapping of SOC addresses (device addresses)
++		   to CPU addresses */
++		/*ranges;*/
++
++		/* This SOC has only a single, implicit PIC, so define it
++		   early and put the interrupt-parent property in the 'soc'
++		   node so that it's inherited by all the children using
++		   interrupts.
++		*/
++		interrupt-parent = <&pic>;
++
++		/* Devices with interrupts need a 'parent', so we need to
++		   define a controller */
++		pic: pic@0 {
++			compatible = "opencores,or1k-pic";
++			#interrupt-cells = <1>;
++			interrupt-controller;
++		};
++
++		serial0: serial@90000000 {
++			/* FIXME: device_type is still needed here...
++			   should remove requirement from of_serial driver */
++			device_type = "serial";
++			compatible = "opencores,uart", "ns16550a";
++			reg = <0x90000000 0x100>;
++			interrupts = <2>;
++			clock-frequency = <50000000>;
++		};
++
++		enet0: ethoc@92000000 {
++			compatible = "opencores,ethoc", "ethoc";
++			reg = <0x92000000 0x53>;
++			interrupts = <4>;
++			local-mac-address = [02 de ad be ef 02];
++		};
++
++		fb0: ocfb@97000000 {
++			compatible = "opencores,ocfb", "ocfb";
++			reg = <0x97000000 0x1000>;
++		};
++	};
++};
+diff --git a/arch/openrisc/boot/dts/or1ksim.dts b/arch/openrisc/boot/dts/or1ksim.dts
+new file mode 100644
+index 0000000..6a025ea
+--- /dev/null
++++ b/arch/openrisc/boot/dts/or1ksim.dts
+@@ -0,0 +1,73 @@
++/dts-v1/;
++/ {
++	compatible = "opencores,or1ksim";
++	#size-cells = <1>;
++	#address-cells = <1>;
++
++	chosen {
++		bootargs = "console=uart,mmio,0x90000000,115200 debug";
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x2000000>;
++	};
++
++	cpus {
++		cpu@0 {
++			compatible = "opencores,openrisc-1200";
++			clock-frequency = <20000000>;
++		};
++	};
++
++	/* The "soc" node */
++
++	soc {
++		/* Every node with children must specify address-cells and
++		   size-cells; they are not inherited */
++		#address-cells = <1>;
++		#size-cells = <1>;
++		device_type = "soc";
++
++		/* This is also a 1:1 mapping but limits size of mappable
++		   region to 0x40000000 */
++		ranges = <0x80000000 0x80000000 0x40000000>;
++
++		/* An alternative is to specify an empty ranges here to
++		   indicates 1:1 mapping of SOC addresses (device addresses)
++		   to CPU addresses */
++		/*ranges;*/
++
++		/* This SOC has only a single, implicit PIC, so define it
++		   early and put the interrupt-parent property in the 'soc'
++		   node so that it's inherited by all the children using
++		   interrupts.
++		*/
++		interrupt-parent = <&pic>;
++
++		/* Devices with interrupts need a 'parent', so we need to
++		   define a controller */
++		pic: pic@0 {
++			compatible = "opencores,or1k-pic";
++			#interrupt-cells = <1>;
++			interrupt-controller;
++		};
++
++		serial0: serial@90000000 {
++			/* FIXME: device_type is still needed here...
++			   should remove requirement from of_serial driver */
++			device_type = "serial";
++			compatible = "opencores,uart", "ns16550a";
++			reg = <0x90000000 0x100>;
++			interrupts = <2>;
++			clock-frequency = <20000000>;
++		};
++
++		enet0: ethoc@92000000 {
++			compatible = "opencores,ethoc", "ethoc";
++			reg = <0x92000000 0x53>;
++			interrupts = <4>;
++			local-mac-address = [02 de ad be ef 02];
++		};
++	};
++};
+diff --git a/arch/openrisc/include/asm/prom.h b/arch/openrisc/include/asm/prom.h
+new file mode 100644
+index 0000000..3818902
+--- /dev/null
++++ b/arch/openrisc/include/asm/prom.h
+@@ -0,0 +1,92 @@
 +/*
 + * OpenRISC Linux
 + *
@@ -44,6 +214,7 @@ index 0000000..9935cad
 + *
 + * OpenRISC implementation:
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
++ * et al.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License as published by
@@ -51,34 +222,89 @@ index 0000000..9935cad
 + * (at your option) any later version.
 + */
 +
-+#ifndef __ASM_OPENRISC_TIMEX_H
-+#define __ASM_OPENRISC_TIMEX_H
++#include <linux/of.h>	/* linux/of.h gets to determine #include ordering */
 +
-+#define get_cycles get_cycles
++#ifndef _ASM_OPENRISC_PROM_H
++#define _ASM_OPENRISC_PROM_H
++#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
 +
-+#include <asm-generic/timex.h>
-+#include <asm/spr.h>
-+#include <asm/spr_defs.h>
++#include <linux/types.h>
++#include <asm/irq.h>
++#include <asm/atomic.h>
++#include <linux/of_irq.h>
++#include <linux/of_fdt.h>
++#include <linux/of_address.h>
++#include <linux/proc_fs.h>
++#include <linux/platform_device.h>
++#define HAVE_ARCH_DEVTREE_FIXUPS
 +
-+static inline cycles_t get_cycles(void)
++/* Other Prototypes */
++extern int early_uartlite_console(void);
++
++#ifdef CONFIG_PCI
++/*
++ * PCI <-> OF matching functions
++ * (XXX should these be here?)
++ */
++struct pci_bus;
++struct pci_dev;
++extern int pci_device_from_OF_node(struct device_node *node,
++					u8 *bus, u8 *devfn);
++extern struct device_node *pci_busdev_to_OF_node(struct pci_bus *bus,
++							int devfn);
++extern struct device_node *pci_device_to_OF_node(struct pci_dev *dev);
++extern void pci_create_OF_bus_map(void);
++#endif
++
++/* Parse the ibm,dma-window property of an OF node into the busno, phys and
++ * size parameters.
++ */
++void of_parse_dma_window(struct device_node *dn, const void *dma_window_prop,
++		unsigned long *busno, unsigned long *phys, unsigned long *size);
++
++extern void kdump_move_device_tree(void);
++
++/* CPU OF node matching */
++struct device_node *of_get_cpu_node(int cpu, unsigned int *thread);
++
++/* Get the MAC address */
++extern const void *of_get_mac_address(struct device_node *np);
++
++/**
++ * of_irq_map_pci - Resolve the interrupt for a PCI device
++ * @pdev:	the device whose interrupt is to be resolved
++ * @out_irq:	structure of_irq filled by this function
++ *
++ * This function resolves the PCI interrupt for a given PCI device. If a
++ * device-node exists for a given pci_dev, it will use normal OF tree
++ * walking. If not, it will implement standard swizzling and walk up the
++ * PCI tree until an device-node is found, at which point it will finish
++ * resolving using the OF tree walking.
++ */
++struct pci_dev;
++extern int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq);
++
++/* This routine is here to provide compatibility with how powerpc
++ * handles IRQ mapping for OF device nodes.  We precompute and permanently
++ * register them in the platform_device objects, whereas powerpc computes them
++ * on request.
++ */
++static inline void irq_dispose_mapping(unsigned int virq)
 +{
-+	return mfspr(SPR_TTCR);
 +}
 +
-+/* This isn't really used any more */
-+#define CLOCK_TICK_RATE 1000
-+
-+#define ARCH_HAS_READ_CURRENT_TIMER
-+
-+#endif
-diff --git a/arch/openrisc/kernel/time.c b/arch/openrisc/kernel/time.c
++#endif /* __ASSEMBLY__ */
++#endif /* __KERNEL__ */
++#endif /* _ASM_OPENRISC_PROM_H */
+diff --git a/arch/openrisc/kernel/prom.c b/arch/openrisc/kernel/prom.c
 new file mode 100644
-index 0000000..bd946ef
+index 0000000..2bb5a8c
 --- /dev/null
-+++ b/arch/openrisc/kernel/time.c
-@@ -0,0 +1,181 @@
++++ b/arch/openrisc/kernel/prom.c
+@@ -0,0 +1,109 @@
 +/*
-+ * OpenRISC time.c
++ * OpenRISC prom.c
 + *
 + * Linux architectural port borrowing liberally from similar works of
 + * others.  All original copyrights apply as per the original source
@@ -91,173 +317,115 @@ index 0000000..bd946ef
 + *      modify it under the terms of the GNU General Public License
 + *      as published by the Free Software Foundation; either version
 + *      2 of the License, or (at your option) any later version.
++ *
++ * Architecture specific procedures for creating, accessing and
++ * interpreting the device tree.
++ *
 + */
 +
++#include <stdarg.h>
 +#include <linux/kernel.h>
-+#include <linux/time.h>
-+#include <linux/timex.h>
-+#include <linux/interrupt.h>
-+#include <linux/ftrace.h>
-+
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
++#include <linux/string.h>
++#include <linux/init.h>
++#include <linux/threads.h>
++#include <linux/spinlock.h>
++#include <linux/types.h>
++#include <linux/pci.h>
++#include <linux/stringify.h>
++#include <linux/delay.h>
++#include <linux/initrd.h>
++#include <linux/bitops.h>
++#include <linux/module.h>
++#include <linux/kexec.h>
++#include <linux/debugfs.h>
 +#include <linux/irq.h>
++#include <linux/memblock.h>
++#include <linux/of_fdt.h>
++
++#include <asm/prom.h>
++#include <asm/page.h>
++#include <asm/processor.h>
++#include <asm/irq.h>
 +#include <linux/io.h>
++#include <asm/system.h>
++#include <asm/mmu.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
 +
-+#include <asm/cpuinfo.h>
++extern char cmd_line[COMMAND_LINE_SIZE];
 +
-+static int openrisc_timer_set_next_event(unsigned long delta,
-+					 struct clock_event_device *dev)
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 +{
-+	u32 c;
++	size &= PAGE_MASK;
++	memblock_add(base, size);
++}
 +
-+	/* Read 32-bit counter value, add delta, mask off the low 28 bits.
-+	 * We're guaranteed delta won't be bigger than 28 bits because the
-+	 * generic timekeeping code ensures that for us.
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return __va(memblock_alloc(size, align));
++}
++
++void __init early_init_devtree(void *params)
++{
++	u8 *alloc;
++
++	/* Setup flat device-tree pointer */
++	initial_boot_params = params;
++
++
++	/* Retrieve various informations from the /chosen node of the
++	 * device-tree, including the platform type, initrd location and
++	 * size, TCE reserve, and more ...
 +	 */
-+	c = mfspr(SPR_TTCR);
-+	c += delta;
-+	c &= SPR_TTMR_TP;
++	of_scan_flat_dt(early_init_dt_scan_chosen, cmd_line);
 +
-+	/* Set counter and enable interrupt.
-+	 * Keep timer in continuous mode always.
++	/* Scan memory nodes and rebuild MEMBLOCKs */
++	memblock_init();
++	of_scan_flat_dt(early_init_dt_scan_root, NULL);
++	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
++
++	/* Save command line for /proc/cmdline and then parse parameters */
++	strlcpy(boot_command_line, cmd_line, COMMAND_LINE_SIZE);
++//	parse_early_param();
++
++	memblock_analyze();
++
++	/* We must copy the flattend device tree from init memory to regular
++	 * memory because the device tree references the strings in it
++	 * directly.
 +	 */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR | SPR_TTMR_IE | c);
 +
-+	return 0;
++	alloc = __va(memblock_alloc(initial_boot_params->totalsize, PAGE_SIZE));
++
++	memcpy(alloc, initial_boot_params, initial_boot_params->totalsize);
++
++	initial_boot_params = (void *) alloc;
 +}
 +
-+static void openrisc_timer_set_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *evt)
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++		unsigned long end)
 +{
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		pr_debug(KERN_INFO "%s: periodic\n", __func__);
-+		BUG();
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		pr_debug(KERN_INFO "%s: oneshot\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_UNUSED:
-+		pr_debug(KERN_INFO "%s: unused\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		pr_debug(KERN_INFO "%s: shutdown\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_RESUME:
-+		pr_debug(KERN_INFO "%s: resume\n", __func__);
-+		break;
-+	}
++	initrd_start = (unsigned long)__va(start);
++	initrd_end = (unsigned long)__va(end);
++	initrd_below_start_ok = 1;
 +}
-+
-+/* This is the clock event device based on the OR1K tick timer.
-+ * As the timer is being used as a continuous clock-source (required for HR
-+ * timers) we cannot enable the PERIODIC feature.  The tick timer can run using
-+ * one-shot events, so no problem.
-+ */
-+
-+static struct clock_event_device clockevent_openrisc_timer = {
-+	.name = "openrisc_timer_clockevent",
-+	.features = CLOCK_EVT_FEAT_ONESHOT,
-+	.rating = 300,
-+	.set_next_event = openrisc_timer_set_next_event,
-+	.set_mode = openrisc_timer_set_mode,
-+};
-+
-+static inline void timer_ack(void)
-+{
-+	/* Clear the IP bit and disable further interrupts */
-+	/* This can be done very simply... we just need to keep the timer
-+	   running, so just maintain the CR bits while clearing the rest
-+	   of the register
-+	 */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR);
-+}
-+
-+/*
-+ * The timer interrupt is mostly handled in generic code nowadays... this
-+ * function just acknowledges the interrupt and fires the event handler that
-+ * has been set on the clockevent device by the generic time management code.
-+ *
-+ * This function needs to be called by the timer exception handler and that's
-+ * all the exception handler needs to do.
-+ */
-+
-+irqreturn_t __irq_entry timer_interrupt(struct pt_regs *regs)
-+{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
-+	struct clock_event_device *evt = &clockevent_openrisc_timer;
-+
-+	timer_ack();
-+
-+	/*
-+	 * update_process_times() expects us to have called irq_enter().
-+	 */
-+	irq_enter();
-+	evt->event_handler(evt);
-+	irq_exit();
-+
-+	set_irq_regs(old_regs);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static __init void openrisc_clockevent_init(void)
-+{
-+	clockevents_calc_mult_shift(&clockevent_openrisc_timer,
-+				    cpuinfo.clock_frequency, 4);
-+
-+	/* We only have 28 bits */
-+	clockevent_openrisc_timer.max_delta_ns =
-+	    clockevent_delta2ns((u32) 0x0fffffff, &clockevent_openrisc_timer);
-+	clockevent_openrisc_timer.min_delta_ns =
-+	    clockevent_delta2ns(1, &clockevent_openrisc_timer);
-+	clockevent_openrisc_timer.cpumask = cpumask_of(0);
-+	clockevents_register_device(&clockevent_openrisc_timer);
-+}
-+
-+/**
-+ * Clocksource: Based on OpenRISC timer/counter
-+ *
-+ * This sets up the OpenRISC Tick Timer as a clock source.  The tick timer
-+ * is 32 bits wide and runs at the CPU clock frequency.
-+ */
-+
-+static cycle_t openrisc_timer_read(struct clocksource *cs)
-+{
-+	return (cycle_t) mfspr(SPR_TTCR);
-+}
-+
-+static struct clocksource openrisc_timer = {
-+	.name = "openrisc_timer",
-+	.rating = 200,
-+	.read = openrisc_timer_read,
-+	.mask = CLOCKSOURCE_MASK(32),
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+};
-+
-+static int __init openrisc_timer_init(void)
-+{
-+	if (clocksource_register_hz(&openrisc_timer, cpuinfo.clock_frequency))
-+		panic("failed to register clocksource");
-+
-+	/* Enable the incrementer: 'continuous' mode with interrupt disabled */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR);
-+
-+	return 0;
-+}
-+
-+void __init time_init(void)
-+{
-+	u32 upr;
-+
-+	upr = mfspr(SPR_UPR);
-+	if (!(upr & SPR_UPR_TTP))
-+		panic("Linux not supported on devices without tick timer");
-+
-+	openrisc_timer_init();
-+	openrisc_clockevent_init();
-+}
++#endif
+diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
+index 49342e9..6ce6583 100644
+--- a/arch/openrisc/kernel/setup.c
++++ b/arch/openrisc/kernel/setup.c
+@@ -173,8 +173,7 @@ void __init setup_cpuinfo(void)
+ 	unsigned long iccfgr,dccfgr;
+ 	unsigned long cache_set_size, cache_ways;;
+ 
+-	cpu = (struct device_node *) of_find_compatible_node(NULL,
+-	                                NULL, "opencores,openrisc-1200");
++	cpu = of_find_compatible_node(NULL, NULL, "opencores,openrisc-1200");
+ 	if (!cpu) {
+ 		panic("No compatible CPU found in device tree...\n");
+ 	}
 -- 
 1.7.4.1
 
