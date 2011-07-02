@@ -1,156 +1,782 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: OpenRISC Architecture: Patch set version 2
-Date: Sat,  2 Jul 2011 23:15:33 +0200
-Message-ID: <1309641352-18714-1-git-send-email-jonas@southpole.se>
+Subject: [PATCH v2 06/19] OpenRISC: PTrace
+Date: Sat,  2 Jul 2011 23:15:39 +0200
+Message-ID: <1309641352-18714-7-git-send-email-jonas@southpole.se>
+References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:45870 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:45878 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754087Ab1GBVQL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 17:16:11 -0400
+	with ESMTP id S1755857Ab1GBVQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 17:16:14 -0400
+In-Reply-To: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
 
 
-This is version 2 of the OpenRISC architecture patch set.  Changes
-since version 1 include:
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ arch/openrisc/include/asm/ptrace.h |  124 ++++++++
+ arch/openrisc/kernel/ptrace.c      |  574 ++++++++++++++++++++++++++++++++++++
+ arch/openrisc/kernel/ptrace.h      |   37 +++
+ 3 files changed, 735 insertions(+), 0 deletions(-)
+ create mode 100644 arch/openrisc/include/asm/ptrace.h
+ create mode 100644 arch/openrisc/kernel/ptrace.c
+ create mode 100644 arch/openrisc/kernel/ptrace.h
 
-- general cleanups, removing unused code and variables, taking care of
-  compiler warnings, etc.
-- cleanups for all the errors spotted by checkpatch.pl
-- changes in response to the feedback received for version 1 of the patch set
-- simplification of the fixmap code
-- simplification of the DMA code
-- calculate loops_per_jiffy from cpu frequency passed in via devicetree
-- rework io.h to use more generic code
-- rework the delay code, making it more generic
-
-- also, the module code has been reworked, making it more generic; this is
-  not included in this patch as the generic parts are still pending review
-
-Since version 1:
-54 files changed, 793 insertions(+), 1900 deletions(-)
-
-Once again, all this code can be found in the 'for-upstream' branch at:
-
-git://openrisc.net/jonas/linux
-
-Note, that there are three patches at the base of the branch that make
-some changes to generic kernel code that are necessary for the OpenRISC
-patches to work.  Those patches aren't included in this post as they have
-already been posted for review earlier.
-
-In this series:
-
-[PATCH v2 01/19] OpenRISC: Boot code
-[PATCH v2 02/19] OpenRISC: Device tree
-[PATCH v2 03/19] OpenRISC: Memory management
-[PATCH v2 04/19] OpenRISC: Signal handling
-[PATCH v2 05/19] OpenRISC: Build infrastructure
-[PATCH v2 06/19] OpenRISC: PTrace
-[PATCH v2 07/19] OpenRISC: DMA
-[PATCH v2 08/19] OpenRISC: Timekeeping
-[PATCH v2 09/19] OpenRISC: IRQ
-[PATCH v2 10/19] OpenRISC: System calls
-[PATCH v2 11/19] OpenRISC: Idle/Power management
-[PATCH v2 12/19] OpenRISC: Scheduling/Process management
-[PATCH v2 13/19] OpenRISC: GPIO
-[PATCH v2 14/19] OpenRISC: Module support
-[PATCH v2 15/19] OpenRISC: Traps
-[PATCH v2 16/19] OpenRISC: Headers
-[PATCH v2 17/19] OpenRISC: Library routines
-[PATCH v2 18/19] OpenRISC: Miscellaneous
-[PATCH v2 19/19] OpenRISC: Add MAINTAINERS entry
-
-Looking forward to further feedback!
-
-/Jonas
-
-Diffstat for entire series:
-
- MAINTAINERS                              |    8 +
- arch/openrisc/Kconfig                    |  207 ++++
- arch/openrisc/Makefile                   |   66 ++
- arch/openrisc/README.openrisc            |  102 ++
- arch/openrisc/TODO.openrisc              |   18 +
- arch/openrisc/boot/Makefile              |   15 +
- arch/openrisc/boot/dts/atlys.dts         |   78 ++
- arch/openrisc/boot/dts/or1ksim.dts       |   73 ++
- arch/openrisc/configs/or1ksim_defconfig  |   67 ++
- arch/openrisc/include/asm/Kbuild         |   64 ++
- arch/openrisc/include/asm/asm-offsets.h  |    1 +
- arch/openrisc/include/asm/bitops.h       |   59 ++
- arch/openrisc/include/asm/bitops/__ffs.h |   33 +
- arch/openrisc/include/asm/bitops/__fls.h |   33 +
- arch/openrisc/include/asm/bitops/ffs.h   |   32 +
- arch/openrisc/include/asm/bitops/fls.h   |   33 +
- arch/openrisc/include/asm/byteorder.h    |    1 +
- arch/openrisc/include/asm/cache.h        |   29 +
- arch/openrisc/include/asm/cpuinfo.h      |   34 +
- arch/openrisc/include/asm/delay.h        |   24 +
- arch/openrisc/include/asm/dma-mapping.h  |   62 ++
- arch/openrisc/include/asm/elf.h          |  109 ++
- arch/openrisc/include/asm/fixmap.h       |   88 ++
- arch/openrisc/include/asm/gpio.h         |   65 ++
- arch/openrisc/include/asm/io.h           |   51 +
- arch/openrisc/include/asm/irq.h          |   27 +
- arch/openrisc/include/asm/irqflags.h     |   29 +
- arch/openrisc/include/asm/linkage.h      |   25 +
- arch/openrisc/include/asm/memblock.h     |   24 +
- arch/openrisc/include/asm/mmu.h          |   26 +
- arch/openrisc/include/asm/mmu_context.h  |   43 +
- arch/openrisc/include/asm/mutex.h        |   27 +
- arch/openrisc/include/asm/page.h         |  112 +++
- arch/openrisc/include/asm/param.h        |   26 +
- arch/openrisc/include/asm/pgalloc.h      |  142 +++
- arch/openrisc/include/asm/pgtable.h      |  449 +++++++++
- arch/openrisc/include/asm/processor.h    |  112 +++
- arch/openrisc/include/asm/prom.h         |   92 ++
- arch/openrisc/include/asm/ptrace.h       |  124 +++
- arch/openrisc/include/asm/serial.h       |   36 +
- arch/openrisc/include/asm/sigcontext.h   |   38 +
- arch/openrisc/include/asm/spinlock.h     |   24 +
- arch/openrisc/include/asm/spr.h          |   42 +
- arch/openrisc/include/asm/spr_defs.h     |  604 +++++++++++
- arch/openrisc/include/asm/syscall.h      |   77 ++
- arch/openrisc/include/asm/syscalls.h     |   27 +
- arch/openrisc/include/asm/system.h       |   35 +
- arch/openrisc/include/asm/thread_info.h  |  149 +++
- arch/openrisc/include/asm/timex.h        |   36 +
- arch/openrisc/include/asm/tlb.h          |   34 +
- arch/openrisc/include/asm/tlbflush.h     |   72 ++
- arch/openrisc/include/asm/uaccess.h      |  385 +++++++
- arch/openrisc/include/asm/unaligned.h    |   51 +
- arch/openrisc/include/asm/unistd.h       |   29 +
- arch/openrisc/kernel/Makefile            |   14 +
- arch/openrisc/kernel/asm-offsets.c       |   70 ++
- arch/openrisc/kernel/dma.c               |   86 ++
- arch/openrisc/kernel/entry.S             | 1134 +++++++++++++++++++++
- arch/openrisc/kernel/head.S              | 1607 ++++++++++++++++++++++++++++++
- arch/openrisc/kernel/idle.c              |   77 ++
- arch/openrisc/kernel/init_task.c         |   41 +
- arch/openrisc/kernel/irq.c               |  172 ++++
- arch/openrisc/kernel/module.c            |  126 +++
- arch/openrisc/kernel/or32_ksyms.c        |   46 +
- arch/openrisc/kernel/process.c           |  305 ++++++
- arch/openrisc/kernel/prom.c              |  109 ++
- arch/openrisc/kernel/ptrace.c            |  574 +++++++++++
- arch/openrisc/kernel/ptrace.h            |   37 +
- arch/openrisc/kernel/setup.c             |  386 +++++++
- arch/openrisc/kernel/signal.c            |  404 ++++++++
- arch/openrisc/kernel/sys_call_table.c    |   28 +
- arch/openrisc/kernel/sys_or32.c          |   83 ++
- arch/openrisc/kernel/time.c              |  181 ++++
- arch/openrisc/kernel/traps.c             |  367 +++++++
- arch/openrisc/kernel/vmlinux.h           |   12 +
- arch/openrisc/kernel/vmlinux.lds.S       |  115 +++
- arch/openrisc/lib/Makefile               |    5 +
- arch/openrisc/lib/delay.c                |   60 ++
- arch/openrisc/lib/string.S               |  204 ++++
- arch/openrisc/mm/Makefile                |    5 +
- arch/openrisc/mm/fault.c                 |  338 +++++++
- arch/openrisc/mm/init.c                  |  283 ++++++
- arch/openrisc/mm/ioremap.c               |  113 +++
- arch/openrisc/mm/tlb.c                   |  191 ++++
- arch/openrisc/or1ksim.cfg                |  888 +++++++++++++++++
- 85 files changed, 12310 insertions(+), 0 deletions(-)
+diff --git a/arch/openrisc/include/asm/ptrace.h b/arch/openrisc/include/asm/ptrace.h
+new file mode 100644
+index 0000000..d3f620e
+--- /dev/null
++++ b/arch/openrisc/include/asm/ptrace.h
+@@ -0,0 +1,124 @@
++/*
++ * OpenRISC Linux
++ *
++ * Linux architectural port borrowing liberally from similar works of
++ * others.  All original copyrights apply as per the original source
++ * declaration.
++ *
++ * OpenRISC implementation:
++ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
++ * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
++ * et al.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#ifndef __ASM_OPENRISC_PTRACE_H
++#define __ASM_OPENRISC_PTRACE_H
++
++#include <asm/spr_defs.h>
++/*
++ * This struct defines the way the registers are stored on the
++ * kernel stack during a system call or other kernel entry.
++ *
++ * this should only contain volatile regs
++ * since we can keep non-volatile in the thread_struct
++ * should set this up when only volatiles are saved
++ * by intr code.
++ *
++ * Since this is going on the stack, *CARE MUST BE TAKEN* to insure
++ * that the overall structure is a multiple of 16 bytes in length.
++ *
++ * Note that the offsets of the fields in this struct correspond with
++ * the values below.
++ */
++
++/*
++ * These are 'magic' values for PTRACE_PEEKUSR that return info about where a
++ * process is located in memory.
++ */
++#define PT_TEXT_ADDR            0x10000
++#define PT_DATA_ADDR            0x10004
++#define PT_TEXT_END_ADDR        0x10008
++
++#ifndef __ASSEMBLY__
++
++struct pt_regs {
++	union {
++		struct {
++			/* Named registers */
++			long  sr;	/* Stored in place of r0 */
++			long  sp;	/* r1 */
++		};
++		struct {
++			/* Old style */
++			long offset[2];
++			long gprs[30];
++		};
++		struct {
++			/* New style */
++			long gpr[32];
++		};
++	};
++	long  pc;
++	long  orig_gpr11;  /* Used for restarting system calls */
++	long  syscallno;  /* Syscall no. (used by strace) */
++};
++#endif /* __ASSEMBLY__ */
++
++#ifdef __KERNEL__
++#define STACK_FRAME_OVERHEAD  128  /* size of minimum stack frame */
++//#define STACK_FRAME_OVERHEAD  0  /* size of minimum stack frame */
++
++#define instruction_pointer(regs)	((regs)->pc)
++#define user_mode(regs)			(((regs)->sr & SPR_SR_SM) == 0)
++#define user_stack_pointer(regs)	((unsigned long)(regs)->sp)
++#define profile_pc(regs)		instruction_pointer(regs)
++
++#define arch_has_single_step()  (1)
++
++#endif /* __KERNEL__ */
++
++/*
++ * Offsets used by 'ptrace' system call interface.
++ */
++#define PT_SR         0
++#define PT_SP         4
++#define PT_GPR2       8
++#define PT_GPR3       12
++#define PT_GPR4       16
++#define PT_GPR5       20
++#define PT_GPR6       24
++#define PT_GPR7       28
++#define PT_GPR8       32
++#define PT_GPR9       36
++#define PT_GPR10      40
++#define PT_GPR11      44
++#define PT_GPR12      48
++#define PT_GPR13      52
++#define PT_GPR14      56
++#define PT_GPR15      60
++#define PT_GPR16      64
++#define PT_GPR17      68
++#define PT_GPR18      72
++#define PT_GPR19      76
++#define PT_GPR20      80
++#define PT_GPR21      84
++#define PT_GPR22      88
++#define PT_GPR23      92
++#define PT_GPR24      96
++#define PT_GPR25      100
++#define PT_GPR26      104
++#define PT_GPR27      108
++#define PT_GPR28      112
++#define PT_GPR29      116
++#define PT_GPR30      120
++#define PT_GPR31      124
++#define PT_PC	      128
++#define PT_ORIG_GPR11 132
++#define PT_SYSCALLNO  136
++
++#endif /* __ASM_OPENRISC_PTRACE_H */
+diff --git a/arch/openrisc/kernel/ptrace.c b/arch/openrisc/kernel/ptrace.c
+new file mode 100644
+index 0000000..a167a1e
+--- /dev/null
++++ b/arch/openrisc/kernel/ptrace.c
+@@ -0,0 +1,574 @@
++/*
++ * OpenRISC ptrace.c
++ *
++ * Linux architectural port borrowing liberally from similar works of
++ * others.  All original copyrights apply as per the original source
++ * declaration.
++ *
++ * Modifications for the OpenRISC architecture:
++ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
++ * Copyright (C) 2005 Gyorgy Jeney <nog@bsemi.com>
++ * Copyright (C) 2010 Julius Baxter <julius.baxter@orsoc.se>
++ * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
++ *
++ *      This program is free software; you can redistribute it and/or
++ *      modify it under the terms of the GNU General Public License
++ *      as published by the Free Software Foundation; either version
++ *      2 of the License, or (at your option) any later version.
++ */
++
++#include <stddef.h>
++#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/string.h>
++
++#include <linux/mm.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/audit.h>
++#include <linux/regset.h>
++#include <linux/tracehook.h>
++#include <linux/elf.h>
++
++#include <asm/thread_info.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/system.h>
++
++#include "ptrace.h"
++
++/*
++ * retrieve the contents of OpenRISC userspace general registers
++ */
++static int genregs_get(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       void *kbuf, void __user * ubuf)
++{
++	const struct pt_regs *regs = task_pt_regs(target);
++	int ret;
++
++#if 0
++	/* r0 */
++	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++				       0, offsetof(struct pt_regs, regs));
++#endif
++
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs, 0, sizeof(*regs));
++
++/* put PPC here */
++
++#if 0
++	/* fill out rest of elf_gregset_t structure with zeroes */
++	if (!ret)
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					       sizeof(struct pt_regs), -1);
++#endif
++
++	return ret;
++}
++
++/*
++ * update the contents of the OpenRISC userspace general registers
++ */
++static int genregs_set(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       const void *kbuf, const void __user * ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	int ret;
++
++	/* PC */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs, 0, offsetof(struct pt_regs, sr));
++
++	/* skip SR */
++	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
++					offsetof(struct pt_regs, sr),
++					offsetof(struct pt_regs, sp));
++
++	/* SP, r2 - r31 */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs,
++				 offsetof(struct pt_regs, sp),
++				 sizeof(struct pt_regs));
++
++#if 0
++	/* read out the rest of the elf_gregset_t structure */
++	if (!ret)
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
++						sizeof(struct pt_regs), -1);
++#endif
++
++	return ret;
++}
++
++/*
++ * Define the register sets available on OpenRISC under Linux
++ */
++enum openrisc_regset {
++	REGSET_GENERAL,
++};
++
++static const struct user_regset openrisc_regsets[] = {
++	[REGSET_GENERAL] = {
++			    .core_note_type = NT_PRSTATUS,
++			    .n = ELF_NGREG,
++			    .size = sizeof(long),
++			    .align = sizeof(long),
++			    .get = genregs_get,
++			    .set = genregs_set,
++			    },
++};
++
++static const struct user_regset_view user_openrisc_native_view = {
++	.name = "OpenRISC",
++	.e_machine = EM_OPENRISC,
++	.regsets = openrisc_regsets,
++	.n = ARRAY_SIZE(openrisc_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_openrisc_native_view;
++}
++
++void user_enable_single_step(struct task_struct *child)
++{
++	set_tsk_thread_flag(child, TIF_SINGLESTEP);
++}
++
++void user_disable_single_step(struct task_struct *child)
++{
++	clear_tsk_thread_flag(child, TIF_SINGLESTEP);
++}
++
++/*
++ * does not yet catch signals sent when the child dies.
++ * in exit.c or in signal.c.
++ */
++
++#define OPC_MASK 0x3f
++#define OPC_SHIFT 26
++#define OPC_J    0x00
++#define OPC_JAL  0x01
++#define OPC_BNF  0x03
++#define OPC_BF   0x04
++#define OPC_SYSC 0x08
++#define OPC_JR   0x11
++#define OPC_JALR 0x12
++
++#define JUMP_IMM_MASK 0x03ffffff
++#define JUMP_IMM_SIGN 0x02000000
++
++/* Trap instruction on bit 15 of SR, fixed one, unconditional */
++#define OR1K_TRAP 0x2100000f
++
++/* Macro to extract branch offset with sign extension of immediate. */
++#define BRANCH_OFFSET(insn) ((insn & JUMP_IMM_SIGN) ?			\
++			     ((insn & JUMP_IMM_MASK) << 2) | 0xf0000000 : \
++			     ((insn & JUMP_IMM_MASK) << 2))
++
++/* Get address of next instruction we can insert a breakpoint on */
++/* pc passed to function is address of instruction we've now just trapped on.
++   It is yet/next to be executed. We determine next instruction after PC to
++   place a l.trap on. If we should take a branch, we must remember this.
++*/
++static unsigned long
++get_next_address(struct task_struct *tsk, unsigned long pc, unsigned long insn)
++{
++	struct pt_regs *regs;
++	struct debug_info *dbg;
++	char opc;
++	unsigned long npc;
++	unsigned long rB;
++
++	dbg = &current_thread_info()->debug;
++
++	regs = task_pt_regs(tsk);
++	/* Extract opcode from instruction */
++	opc = (insn >> OPC_SHIFT) & OPC_MASK;
++
++	pr_debug(KERN_INFO
++		 "ptrace get_next_address: pc 0x%.8lx insn. 0x%.8lx opc. 0x%.2x\n",
++		 pc, insn, opc);
++
++	/*
++	   Will always proceed to next instruction if this function was called
++	   ie. we know we're not in a delay slot - the function calling this
++	   checks dbg->branch_taken.
++	 */
++	npc = pc + 4;
++
++	/* Check if we're to record a branch */
++	switch (opc) {
++	case OPC_BNF:
++		/* Check flag - we're branching if !flag */
++		if (!(((regs)->sr) & SPR_SR_F)) {
++			dbg->bp.branch = 1;
++			dbg->bp.branch_target = pc + BRANCH_OFFSET(insn);
++		}
++		break;
++	case OPC_BF:
++		/* Check flag - we're branching if flag */
++		if (((regs)->sr) & SPR_SR_F) {
++			dbg->bp.branch = 1;
++			dbg->bp.branch_target = pc + BRANCH_OFFSET(insn);
++		}
++		break;
++	case OPC_J:
++	case OPC_JAL:
++		/* PC-relative branch target encoded in instruction. Extract
++		   and add it. */
++		dbg->bp.branch = 1;
++		dbg->bp.branch_target = pc + BRANCH_OFFSET(insn);
++		break;
++	case OPC_JR:
++	case OPC_JALR:
++		/* Register number holding branch target is encoded in rB slot
++		   of instruction. Extract it. */
++		rB = (insn >> 11) & 0x1f;
++		pr_debug(KERN_INFO
++			 "ptrace get_next_address: jump reg from r%ld=0x%08lx\n",
++			 rB,
++			 /* *((unsigned long*)((char*)regs + (rB<<2) + 4)) */
++			 regs->gprs[rB - 2]);
++		if (rB < 2)
++			pr_debug(KERN_WARNING
++				 "ptrace get_next_address(): Warning, JR with GPR < 2");
++		dbg->bp.branch = 1;
++		dbg->bp.branch_target =
++		    /* *((unsigned long*)((char*)regs + (rB<<2) + 4)) */
++		    regs->gprs[rB - 2];
++		break;
++#if 0
++	case OPC_SYSC:
++		/* Not sure we want to do this */
++		/* Remember - l.sys has no delay slot. */
++		npc = 0x900;
++		break;
++#endif
++	default:
++		break;
++	}
++
++	/* If setting a branch target, remember where branch was */
++	if (dbg->bp.branch)
++		dbg->bp.branch_insn_address = pc;
++
++	if (dbg->bp.branch)
++		pr_debug(KERN_INFO
++			 "ptrace get_next_address: branch detected to 0x%.8lx\n",
++			 dbg->bp.branch_target);
++	pr_debug(KERN_INFO "ptrace get_next_address: returning 0x%.8lx\n", npc);
++
++	return npc;
++}
++
++static inline int
++read_instr(struct task_struct *tsk, unsigned long addr, u32 * res)
++{
++	int ret;
++	u32 val;
++	ret = access_process_vm(tsk, addr & ~3, &val, sizeof(val), 0);
++	ret = ret == sizeof(val) ? 0 : -EIO;
++	*res = val;
++	return ret;
++}
++
++static int
++swap_insn(struct task_struct *tsk, unsigned long addr,
++	  void *old_insn, void *new_insn, int size)
++{
++	int ret;
++
++	ret = access_process_vm(tsk, addr, old_insn, size, 0);
++	if (ret == size)
++		ret = access_process_vm(tsk, addr, new_insn, size, 1);
++	return ret;
++}
++
++static void
++add_breakpoint(struct task_struct *tsk, struct debug_info *dbg,
++	       unsigned long addr)
++{
++	u32 new_insn = OR1K_TRAP;
++	int res;
++
++	res = swap_insn(tsk, addr, &dbg->bp.insn, &new_insn, 4);
++
++	pr_debug(KERN_INFO
++		 "ptrace add_breakpoint: addr 0x%.8lx insn 0x%.8lx %d\n\n",
++		 addr, dbg->bp.insn, res);
++
++	if (res == 4) {
++		dbg->bp.address = addr;
++		dbg->bp.set = 1;
++	}
++}
++
++/*
++ * Clear the breakpoint in the user program.
++ */
++static void clear_breakpoint(struct task_struct *tsk, struct debug_entry *bp)
++{
++	u32 old_insn;
++	int ret;
++	struct pt_regs *regs;
++	unsigned long pc;
++
++	unsigned long addr = bp->address;
++
++	regs = task_pt_regs(tsk);
++	pc = instruction_pointer(regs);	/* This is NPC */
++
++	/* Either at the breakpoint, or in delay slot (pc will be at address of
++	 * branch instruction - OR1K exception handlers do that, for now.
++	 * Perhaps FIXME
++	 */
++	if ((pc == addr) || ((bp->branch_insn_address == pc) && bp->branch))
++		ret = swap_insn(tsk, addr & ~3, &old_insn, &bp->insn, 4);
++	else {
++		/* Trapped for some other reason. */
++		pr_debug(KERN_INFO
++			 "ptrace clear_breakpoint: not correct, pc 0x%.8lx bp 0x%.8lx\n",
++			 pc, addr);
++		pr_debug(KERN_INFO
++			 "ptrace clear_breakpoint: 0x%.8lx 0x%.8lx %ld\n",
++			 bp->branch_insn_address, bp->branch_target,
++			 bp->branch);
++		return;
++	}
++
++	pr_debug(KERN_INFO
++		 "ptrace clear_breakpoint: addr 0x%.8lx insn 0x%.8lx %d\n",
++		 addr, bp->insn, ret);
++
++	if (ret != 4 || old_insn != OR1K_TRAP)
++		pr_debug(KERN_ERR
++			 "%s:%d: corrupted breakpoint at 0x%08lx (0x%08x)\n",
++			 tsk->comm, task_pid_nr(tsk), addr, old_insn);
++
++	bp->set = 0;
++}
++
++void ptrace_set_bpt(struct task_struct *tsk)
++{
++	struct pt_regs *regs;
++	unsigned long pc;
++	u32 insn;
++	int res;
++
++	regs = task_pt_regs(tsk);
++	pc = instruction_pointer(regs);	/* This is NPC */
++
++	res = read_instr(tsk, pc, &insn);
++	if (!res) {
++		struct debug_info *dbg = &current_thread_info()->debug;
++		unsigned long npc;
++
++		/* First check if breakpoint is still set, if so, probably
++		   just let us run until we hit it.
++		   This can occur because perhaps we caused an exception before
++		   a jump or in a delay slot, and the OR1K exception handlers
++		   will rewind us to the branch before the delay slot or jump
++		   target.
++		   This way we skip everything that goes on during an exception
++		   and can hopefully just track the program's execution.
++		 */
++		if (dbg->bp.set)
++			return;
++
++		/* Are we in delay slot of branch we should take? */
++		if (dbg->bp.branch == 1) {
++			/* Branch target is already determined. Set l.trap. */
++			npc = dbg->bp.branch_target;
++
++			/* Reset NPC to branch instruction - should be one
++			 * before this one.
++			 */
++			instruction_pointer(regs) = dbg->bp.branch_insn_address;
++
++			/* Now mark this as no longer needing to be taken */
++			dbg->bp.branch = 0;
++		} else {
++			npc = get_next_address(tsk, pc, insn);
++		}
++
++		add_breakpoint(tsk, dbg, npc);
++	}
++}
++
++/*
++ * Ensure no single-step breakpoint is pending.  Returns non-zero
++ * value if child was being single-stepped.
++ */
++void ptrace_cancel_bpt(struct task_struct *tsk)
++{
++	clear_breakpoint(tsk,
++			 (struct debug_entry *)&current_thread_info()->debug);
++}
++
++/*
++ * Called by kernel/ptrace.c when detaching..
++ *
++ * Make sure the single step bit is not set.
++ */
++void ptrace_disable(struct task_struct *child)
++{
++	pr_debug(KERN_WARNING "ptrace_disable(): TODO\n");
++
++	user_disable_single_step(child);
++	clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
++}
++
++/*
++ * Read the word at offset "off" into the "struct user".  We
++ * actually access the pt_regs stored on the kernel stack.
++ */
++static int ptrace_read_user(struct task_struct *tsk, unsigned long off,
++			    unsigned long __user *ret)
++{
++	struct pt_regs *regs;
++	unsigned long tmp;
++
++	/*    if (off & 3 || off >= sizeof(struct user))
++	   return -EIO; */
++
++	regs = task_pt_regs(tsk);
++
++	tmp = 0;
++	if (off == PT_TEXT_ADDR)
++		tmp = tsk->mm->start_code;
++	else if (off == PT_DATA_ADDR)
++		tmp = tsk->mm->start_data;
++	else if (off == PT_TEXT_END_ADDR)
++		tmp = tsk->mm->end_code;
++	else if (off < sizeof(struct pt_regs))
++		tmp = *((unsigned long *)((char *)regs + off));
++
++	return put_user(tmp, ret);
++}
++
++/*
++ * Write the word at offset "off" into "struct user".  We
++ * actually access the pt_regs stored on the kernel stack.
++ */
++static int ptrace_write_user(struct task_struct *tsk, unsigned long off,
++			     unsigned long val)
++{
++	struct pt_regs *regs;
++
++	/*if (off & 3 || off >= sizeof(struct user))
++	   return -EIO; */
++
++	if (off >= sizeof(struct pt_regs))
++		return 0;
++
++	regs = task_pt_regs(tsk);
++
++	if (off != offsetof(struct pt_regs, sr)) {
++		*((unsigned long *)((char *)regs + off)) = val;
++	} else {
++		/* Prevent any process from setting the SR flags and
++		 * thus elevating privileges
++		 */
++	}
++
++	return 0;
++}
++
++long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
++		 unsigned long data)
++{
++	int ret;
++	unsigned long __user *datap = (unsigned long __user *)data;
++
++	switch (request) {
++		/* read the word at location addr in the USER area. */
++	case PTRACE_PEEKUSR:
++		ret = ptrace_read_user(child, addr, datap);
++		break;
++	case PTRACE_POKEUSR:
++		ret = ptrace_write_user(child, addr, data);
++		break;
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	single_step_set(current);
++
++	return ret;
++}
++
++/* notification of system call entry/exit
++ * - triggered by current->work.syscall_trace
++ */
++asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
++{
++	long ret = 0;
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
++	    tracehook_report_syscall_entry(regs))
++		/*
++		 * Tracing decided this syscall should not happen.
++		 * We'll return a bogus call number to get an ENOSYS
++		 * error, but leave the original number in <something>.
++		 */
++		ret = -1L;
++
++/*	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_enter(regs, regs->syscallno);
++*/
++
++	/* Are these regs right??? */
++	if (unlikely(current->audit_context))
++		audit_syscall_entry(audit_arch(), regs->syscallno,
++				    regs->gpr[3], regs->gpr[4],
++				    regs->gpr[5], regs->gpr[6]);
++
++	return ret ? : regs->syscallno;
++
++#if 0
++/*FIXME : audit the rest of this */
++
++	/*
++	 * this isn't the same as continuing with a signal, but it will do
++	 * for normal use.  strace only continues with a signal if the
++	 * stopping signal is not SIGTRAP.  -brl
++	 */
++	if (current->exit_code) {
++		send_sig(current->exit_code, current, 1);
++		current->exit_code = 0;
++	}
++out:
++	/*FIXME: audit_arch isn't even defined for openrisc */
++	/*FIXME:  What's with the register numbers here... makes no sense */
++	if (unlikely(current->audit_context) && !entryexit)
++		audit_syscall_entry(audit_arch(), regs->regs[2],
++				    regs->regs[4], regs->regs[5],
++				    regs->regs[6], regs->regs[7]);
++	/*RGD*/
++#endif
++}
++
++asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
++{
++	int step;
++
++	if (unlikely(current->audit_context))
++		audit_syscall_exit(AUDITSC_RESULT(regs->gpr[11]),
++				   regs->gpr[11]);
++
++/*	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_exit(regs, regs->gprs[9]);
++*/
++
++	step = test_thread_flag(TIF_SINGLESTEP);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
++}
+diff --git a/arch/openrisc/kernel/ptrace.h b/arch/openrisc/kernel/ptrace.h
+new file mode 100644
+index 0000000..157d6ea
+--- /dev/null
++++ b/arch/openrisc/kernel/ptrace.h
+@@ -0,0 +1,37 @@
++/*
++ *  linux/arch/openrisc/kernel/ptrace.h
++ *
++ *  Copyright (C) 2000-2003 Russell King
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/ptrace.h>
++
++extern void ptrace_cancel_bpt(struct task_struct *);
++extern void ptrace_set_bpt(struct task_struct *);
++extern void ptrace_break(struct task_struct *, struct pt_regs *);
++
++/*
++ * Send SIGTRAP if we're single-stepping
++ */
++static inline void single_step_trap(struct task_struct *task)
++{
++	if (test_tsk_thread_flag (task, TIF_SINGLESTEP)){
++		ptrace_cancel_bpt(task);
++		send_sig(SIGTRAP, task, 1);
++	}
++}
++
++static inline void single_step_clear(struct task_struct *task)
++{
++	if (test_tsk_thread_flag(task, TIF_SINGLESTEP))
++		ptrace_cancel_bpt(task);
++}
++
++static inline void single_step_set(struct task_struct *task)
++{
++	if (test_tsk_thread_flag(task, TIF_SINGLESTEP))
++		ptrace_set_bpt(task);
++}
+-- 
+1.7.4.1
