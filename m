@@ -1,32 +1,67 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH 1/2] asm-generic: adapt delay.h to common implementation
-Date: Sat, 02 Jul 2011 19:11:15 +0200
-Message-ID: <1309626675.24186.1268.camel@localhost>
-References: <1309600754-21217-1-git-send-email-jonas@southpole.se>
-	 <201107021321.10786.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201107021321.10786.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hans-christian.egtvedt@atmel.com, lethal@linux-sh.org
-List-Id: linux-arch.vger.kernel.org
+Subject: [PATCH v2 1/1] asm-generic: add MMU variants of io.h functions
+Date: Sat,  2 Jul 2011 19:36:08 +0200
+Message-ID: <1309628168-3413-1-git-send-email-jonas@southpole.se>
+References: <CAMjpGUeMqVzcAWKpAojZVbj9ywH+4HmW4Hx-8D1WQmTqPSNqQA@mail.gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.southpole.se ([193.12.106.18]:48466 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751095Ab1GBRg3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 13:36:29 -0400
+In-Reply-To: <CAMjpGUeMqVzcAWKpAojZVbj9ywH+4HmW4Hx-8D1WQmTqPSNqQA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>, vapier@gentoo.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
 
 
-On Sat, 2011-07-02 at 13:21 +0200, Arnd Bergmann wrote:
-> Very nice. Do you want to keep that in your own tree for your convenience,
-> and merge it along with your architecture, or do you prefer me to
-> take them into the asm-generic tree?
+Some of the implementations, in particular the ioremap variants, in
+asm-generic/io.h are for systems without an MMU.  In order to be able to
+use the generic header file for systems with an MMU, this patch wraps
+these implementations in checks for CONFIG_MMU.
 
-I can hang on to them for now.  If the architecture isn't ready for 3.1,
-we can move them to your tree then.
+Tested on OpenRISC.
 
-> 
-> If you want to add them to your tree, please add my
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+Cc: vapier@gentoo.org
+Cc: liqin.chen@sunplusct.com
+Cc: gxt@mprc.pku.edu.cn
+---
+ include/asm-generic/io.h |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-Done.  Thanks,
-Jonas
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e0ffa3d..a1caf2d 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -307,7 +307,11 @@ static inline void *phys_to_virt(unsigned long address)
+ 
+ /*
+  * Change "struct page" to physical address.
++ *
++ * This implementation is for the no-MMU case only... if you have an MMU
++ * you'll need to provide your own definitions.
+  */
++#ifndef CONFIG_MMU
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
+ 	return (void __iomem*) (unsigned long)offset;
+@@ -326,6 +330,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ static inline void iounmap(void *addr)
+ {
+ }
++#endif /* CONFIG_MMU */
+ 
+ #ifndef CONFIG_GENERIC_IOMAP
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+@@ -342,7 +347,7 @@ extern void ioport_unmap(void __iomem *p);
+ #endif /* CONFIG_GENERIC_IOMAP */
+ 
+ #define xlate_dev_kmem_ptr(p)	p
+-#define xlate_dev_mem_ptr(p)	((void *) (p))
++#define xlate_dev_mem_ptr(p)	__va(p)
+ 
+ #ifndef virt_to_bus
+ static inline unsigned long virt_to_bus(volatile void *address)
+-- 
+1.7.4.1
