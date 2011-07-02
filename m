@@ -1,772 +1,2879 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 00/35] UAPI header file split
-Date: Sat, 02 Jul 2011 12:07:26 +0100
-Message-ID: <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 01/35] UAPI: Convert #include "..." to #include <path/...> in
+ kernel system headers
+Date: Sat, 02 Jul 2011 12:07:37 +0100
+Message-ID: <20110702110736.21948.27191.stgit@warthog.procyon.org.uk>
+References: <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10223 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:43540 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751006Ab1GBLHb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Jul 2011 07:07:31 -0400
-Received: from int-mx01.intmail.prod.int.phx2.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p62B7Vk8018481
+	id S1751006Ab1GBLHm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Jul 2011 07:07:42 -0400
+Received: from int-mx12.intmail.prod.int.phx2.redhat.com (int-mx12.intmail.prod.int.phx2.redhat.com [10.5.11.25])
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p62B7fRo024773
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Sat, 2 Jul 2011 07:07:31 -0400
+	for <linux-arch@vger.kernel.org>; Sat, 2 Jul 2011 07:07:42 -0400
+In-Reply-To: <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com
 
+Convert #include "..." to #include <path/...> in kernel system headers as the
+"..."  causes problems for #include_next.
 
-Here's my first installment of patches to clean up the kernel header files and
-sort out the recursion problems.  The planned steps are:
+Observations:
 
- (1) Split the Userspace API (UAPI) out of the kernel headers into its own
-     header directories.
+ (1) There are quite a lot of #includes of things like "linux/fs.h" which
+     should really use <...>.  These are changed within include/ dirs.
 
- (2) Move stuff out of the Kernel API (KAPI) headers that can be contained in
-     individual directories as it is referenced by a single file or directory
-     of files.
+ (2) Some referenced header files are missing for no obvious reason - pm2fb.h
+     and via_drmclient.h for example.
 
- (3) Make coherent what can be found in commmon arch headers and disintegrate
-     asm/system.h.
+ (3) The DRM video driving code uses -Iinclude/drm when it should probably
+     just preface its header file names with drm/ in #include.  These are
+     changed within include/drm/.
 
- (4) Split some headers into definitions containers and inline function
-     containers to clean up recursion problems.  The main culprit is very
-     likely to be linux/sched.h, I think.
+ (4) Under arch/cris/include/ there are some directories (arch-v10 and
+     arch-v32) that should perhaps be renamed to arch/cris/arch-vXX/include.
 
- (5) I'd like to split some headers (e.g. linux/security.h) to reduce the
-     conditional recompilation burden.  linux/security.h could have, for
-     instance, struct security_operations split out into a header file private
-     to the stuff in the security/ directory as the wrappers of its function
-     pointers are now out of lined in security/security.c.
+     Similarly, under arch/sh/, arch/sh/include/mach-X/ should perhaps be
+     arch/sh/boards/mach-X/include/.
 
- (6) Replace the traditional anti-reinclusion guards on header files with
-     three-state anti-recursion guards that abort compilation if recursive
-     inclusion is encountered.
+     However, I've left these alone as they aren't really a problem.
 
- (7) Provide a script to go through and rejig the #includes of each source file
-     to have just the ones that are actually required.
+The following script was used:
 
- (8) Provide a make target that tests all the KAPI and UAPI headers by simply
-     passing them one at a time to the compiler and attempting to compile them.
+#!/usr/bin/perl -w
 
-==
+use File::Find;
 
-The patches actually posted here are the manual preparation for the UAPI split
-in step (1) above.  I haven't posted the patches that do the actual splitting
-by email as the largest of them is in excess of 120,000 lines.  However, the
-patches are available through GIT:
+my @sys_header_dirs = (
+    "include"
+    );
 
-	http://git.infradead.org/users/dhowells/linux-headers.git
+#
+# Find all the system header directories under arch
+#
+opendir DIR, "arch" or die;
+push @sys_header_dirs,
+    map { "arch/$_/include"; }
+sort grep { -d "arch/$_/include"; }
+grep { $_ !~ /^[.]/ }
+readdir DIR;
+closedir DIR;
 
-All the development is on the uapi-split branch.  The patches posted here are
-from the base of that branch up to the uapi-prep tag; the automated split
-follows thereafter to the uapi-post-split tag.
+#
+# Find all the header files
+#
+%headers = ();
+sub find_header()
+{
+    $headers{$File::Find::name} = 1 if ($_ =~ /[.]h$/);
+}
 
-The main aims of the split are:
+find(\&find_header, @sys_header_dirs);
 
- (1) To simplify the kernel headers by separating the UAPI from the KAPI.
+#print join("\n", sort keys %headers), "\n";
 
- (2) You should be able to simply copy the UAPI directories to userspace with
-     no processing, and they should just work.  Unfortunately, it's not quite
-     that simple as some of the UAPI headers behave differently depending on
-     whether __KERNEL__ is defined or not.
+foreach my $hdr (sort grep { $_ !~ m@arch/um/@} keys %headers) {
+    my $dir = $hdr;
+    $dir =~ m@(^.*/)@, $dir = $1;
 
- (3) To eliminate the need for __KERNEL__.  After the split, __KERNEL__ can
-     certainly by unifdef'd from the residual kernel headers - but this isn't
-     quite true of the UAPI headers.
+    open FD, '<', $hdr or die "open $hdr: $!\n";
+    my @lines = <FD>;
+    close FD or die;
 
-The main restrictions on how I've done the split are:
+    my $printed_name = 0;
+    my $alter_header = 0;
 
- (1) The GIT history must be maintained in both sides of a split header file.
+    for (my $l = 0; $l <= $#lines; $l++) {
+	my $line = $lines[$l];
 
- (2) I don't want to have to alter every #include directive in the kernel
-     sources.
+	if ($line =~ /^(#\s*include\s+)["]([^"]+)["](.*[\n])/) {
+	    #print $1, '@', $2, '@', $3;
 
- (3) "make allyesconfig" should work after.  This is tricky to test as it
-     doesn't necessarily work before.
+	    if (!$printed_name) {
+		#print "[[[ $hdr [\e[36m$dir\e[m] ]]]\n";
+		$printed_name = 1;
+	    }
 
-With this in mind, the way things work is that #include_next is used for the
-KAPI header to refer to the UAPI header.  This means that the two headers
-effectively have the same name, and if the KAPI header reduces to just a
-#include_next, then it can be eliminated entirely and the UAPI header used
-directly.
+	    my $pre = $1;
+	    my $name = $2;
+	    my $post = $3;
 
-I've created one patch for each include directory that gets exported.  I'd
-prefer to use a single patch per file to make GIT's life easier and more sure,
-but that would mean a stack of >1100 patches.  I think the most important thing
-is to keep the arch header splits separated by arch.
+	    my $inc = undef;
+	    my $base = "??";
+	    my $path = "??";
+	    my $realpath = "??";
+	    my $do_existence_check = 1;
 
-The UAPI headers are mapped from KAPI headers like so:
+	    if ($name eq "platform/acenv.h") {
+		# ACPI includes this relative to the current dir
+		$inc = $dir . $name;
+	    } elsif ($name =~ m@^[a-z].*/@) {
+		# We found something like "linux/foo.h" so just accept as is
+		$base = "";
+		$realpath = $path = $name;
+		$do_existence_check = 0;
+		goto no_disassemble;
+	    } elsif ($name =~ m@^../@) {
+		# We found something like "../foo.h" so we jam the dir on the
+		# front and then remove "dir/.." pairs
+		$inc = $dir . $name;
+		while ($inc =~ m@[^/]*/[.][.]/@) {
+		    $inc =~ s@[^/]*/[.][.]/@@;
+		}
+	    } elsif ($name !~ m@/@) {
+		# We found something like "foo.h" so we again stick the dir on
+		# the front and then cut off the "include/" prefix.
+		if ($name =~ m@^drm_@) {
+		    # Unless it's a DRM header - the drm stuff adds
+		    # -Iinclude/drm to the build flags rather than use
+		    # <drm/foo.h> for some reason
+		    $inc = "include/drm/$name";
+		} else {
+		    $inc = $dir . $name;
+		}
+	    } else {
+		die "Don't handle \"$name\"\n";
+	    }
 
-	include/x/y/z.h -> uapi/x/y/z.h
-	arch/foo/include/x/y/z.h -> arch/foo/uapi/x/y/z.h
+	    $inc =~ m@(.*include/)(.*/[^/]*)@, $base = $1, $path = $2;
+
+	    $realpath = $path;
+	    if ($dir =~ m@^arch/cris/@ && $path =~ m@^arch-v[0-9]+/(arch/.*)@) {
+		$realpath = $1;
+	    } elsif ($dir =~ m@^arch/sh/@ && $path =~ m@^mach-[^/]+/(mach/.*)@) {
+		$realpath = $1;
+	    }
+
+	  no_disassemble:
+	    print $hdr, ": ", $name, " -> \e[36m", $base, "\e[m", $path;
+
+	    if ($do_existence_check && ! -f $inc) {
+		if (($hdr eq "arch/powerpc/include/asm/bootx.h" && $name eq "linux_type_defs.h") ||
+		    ($hdr eq "include/acpi/platform/acenv.h" && $name =~ /ac[a-z]*[0-9]*[.]h/) ||
+		    ($hdr eq "include/linux/jbd.h" && $name eq "jfs_compat.h") ||
+		    ($hdr eq "include/linux/jbd2.h" && $name eq "jfs_compat.h") ||
+		    ($hdr eq "include/video/cvisionppc.h" && $name eq "pm2fb.h") ||
+		    ($hdr eq "include/drm/via_drm.h" && $name eq "via_drmclient.h")
+		    ) {
+		    print " \e[33mnot present\e[m\n";
+		} else {
+		    print " \e[31mnot found\e[m\n";
+		    die;
+		}
+	    } else {
+		$lines[$l] = $pre . "<" . $realpath . ">" . $post;
+		$alter_header = 1;
+		print "\n";
+	    }
+	}
+    }
+
+    if ($alter_header) {
+	my $temp = $hdr . ".syshdr";
+	open FD, '>', $temp or die "create $temp: $!\n";
+	print FD @lines or die "write $temp: $!\n";
+	close FD or die "close $temp: $!\n";
+	rename $temp, $hdr or die "move $temp -> $hdr: $!\n";
+    }
+}
+
+exit 0;
 
 
-I've tested it for x86_64 and MIPS and attempted it for MN10300 (but that runs
-into other problems).  Other arches will need fixing up as necessary.
-
-There are some issues:
-
- (*) There is a minor problem with using #include_next - the preceding #include
-     must be done with <path> not "path" or else #include_next will find the
-     KAPI header again rather than the UAPI header.  A couple of my patches
-     address places where someone has added an extra -I flag rather than using
-     <...>.
-
- (*) I'm not sure I have all the kernel scripts and Makefiles altered correctly
-     - someone who knows the Kbuild magic should check things over.  However,
-     headers do install correctly, so I think I've got things mostly right.
-
- (*) Documentation/vm/page-types.c directly refers to the magic.h file it wants
-     to include using a path with '..' in it.  This is broken from the patch
-     that alters the path until the header is split.
-
- (*) Is uapi/ the right name for the UAPI directories?  If not, it shouldn't be
-     too hard to change as most of it is scripted.  It can't be put in usr/
-     until the UAPI headers don't need any processing, and besides, the arch
-     UAPI headers can't be put under there anyway without collision.
-
-David
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
-David Howells (35):
-      UAPI: Fix the page-types query program in the docs
-      UAPI: Make UAPI headers install to usr/include/
-      UAPI: Move linux/version.h
-      UAPI: Set up uapi/asm/Kbuild.asm
-      UAPI: Plumb the UAPI Kbuilds into the user header handling system
-      UAPI: Set up UAPI Kbuild files
-      UAPI: Fix arch/mips/include/asm/Kbuild to have separate header-y lines
-      UAPI: Fix x86_64 system call count and generation
-      UAPI: Fix linux/ncp.h
-      UAPI: Guard linux/sound.h
-      UAPI: Guard linux/isdn_divertif.h
-      UAPI: Fix linux/coda.h
-      UAPI: Fix u_quad_t ordering problem in linux/coda.h
-      UAPI: Fix SNDRV_*_ENDIAN ordering problem
-      UAPI: sound/sound_core.c should include linux/fs.h
-      UAPI: Fix drmP.h to use #include <...> when referring to system header files
-      UAPI: Fix linux/auto_fs.h inclusion order
-      UAPI: Fix up linux/netfilter/xt_policy.h
-      UAPI: Fix linux/input.h inclusion order
-      UAPI: Fix linux/netfilter.h inclusion order
-      UAPI: Fix E820_X_MAX ordering problem
-      UAPI: Fix sigset_t ordering problem
-      UAPI: elf_read_implies_exec() is a kernel-only feature - so hide from userspace
-      UAPI: Fix definition of HZ in asm-generic/param.h
-      UAPI: Remove the inclusion of linux/types.h from x86's asm/page.h
-      UAPI: Split trivial #if defined(__KERNEL__) && X conditionals
-      UAPI: Fix nested __KERNEL__ guards in video/edid.h
-      UAPI: Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h
-      UAPI: Make linux/patchkey.h easier to parse
-      UAPI: ac_etime in linux/acct.h must keep its __KERNEL__ guards
-      UAPI: Fix AHZ multiple inclusion when __KERNEL__ is removed
-      UAPI: Differentiate userspace build and kernelspace build include path sets
-      UAPI: Add uapi/ include directory to build
-      UAPI: Audit drivers/gpu/ for #include "..." referring to system headers
-      UAPI: Convert #include "..." to #include <path/...> in kernel system headers
 
+ arch/arm/include/asm/localtimer.h                |    2 +
+ arch/arm/include/asm/page.h                      |    2 +
+ arch/arm/include/asm/pgtable.h                   |    2 +
+ arch/arm/include/asm/vfpmacros.h                 |    2 +
+ arch/cris/include/arch-v10/arch/sv_addr_ag.h     |    2 +
+ arch/cris/include/arch-v10/arch/svinto.h         |    2 +
+ arch/cris/include/arch-v32/arch/dma.h            |    2 +
+ arch/cris/include/arch-v32/arch/hwregs/dma.h     |    2 +
+ arch/m68k/include/asm/bitops.h                   |    4 +-
+ arch/m68k/include/asm/cacheflush.h               |    4 +-
+ arch/m68k/include/asm/delay.h                    |    4 +-
+ arch/m68k/include/asm/entry.h                    |    4 +-
+ arch/m68k/include/asm/hardirq.h                  |    4 +-
+ arch/m68k/include/asm/io.h                       |    4 +-
+ arch/m68k/include/asm/m68360.h                   |    8 ++---
+ arch/m68k/include/asm/m68360_enet.h              |    2 +
+ arch/m68k/include/asm/page.h                     |    4 +-
+ arch/m68k/include/asm/pgtable.h                  |    4 +-
+ arch/m68k/include/asm/q40_master.h               |    2 +
+ arch/m68k/include/asm/system.h                   |    4 +-
+ arch/m68k/include/asm/uaccess.h                  |    4 +-
+ arch/microblaze/include/asm/mmu_context.h        |    2 +
+ arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h  |    2 +
+ arch/mips/include/asm/mach-pnx833x/gpio.h        |    2 +
+ arch/mips/include/asm/octeon/cvmx-asm.h          |    2 +
+ arch/mips/include/asm/octeon/cvmx-spinlock.h     |    2 +
+ arch/mips/include/asm/octeon/cvmx.h              |   36 +++++++++++-----------
+ arch/mips/include/asm/octeon/octeon-model.h      |    2 +
+ arch/mips/include/asm/octeon/octeon.h            |    2 +
+ arch/mips/include/asm/sibyte/bcm1480_int.h       |    2 +
+ arch/mips/include/asm/sibyte/bcm1480_l2c.h       |    2 +
+ arch/mips/include/asm/sibyte/bcm1480_mc.h        |    2 +
+ arch/mips/include/asm/sibyte/bcm1480_regs.h      |    4 +-
+ arch/mips/include/asm/sibyte/bcm1480_scd.h       |    4 +-
+ arch/mips/include/asm/sibyte/sb1250_dma.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_genbus.h     |    2 +
+ arch/mips/include/asm/sibyte/sb1250_int.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_l2c.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_ldt.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_mac.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_mc.h         |    2 +
+ arch/mips/include/asm/sibyte/sb1250_regs.h       |    2 +
+ arch/mips/include/asm/sibyte/sb1250_scd.h        |    2 +
+ arch/mips/include/asm/sibyte/sb1250_smbus.h      |    2 +
+ arch/mips/include/asm/sibyte/sb1250_syncser.h    |    2 +
+ arch/mips/include/asm/sibyte/sb1250_uart.h       |    2 +
+ arch/powerpc/include/asm/ps3.h                   |    2 +
+ arch/powerpc/include/asm/ucc_fast.h              |    2 +
+ arch/powerpc/include/asm/ucc_slow.h              |    2 +
+ arch/sh/include/asm/checksum.h                   |    2 +
+ arch/sh/include/asm/mmu_context.h                |    4 +-
+ arch/sh/include/asm/posix_types.h                |    8 ++---
+ arch/sh/include/asm/processor.h                  |    4 +-
+ arch/sh/include/asm/ptrace.h                     |    4 +-
+ arch/sh/include/asm/string.h                     |    4 +-
+ arch/sh/include/asm/syscall.h                    |    4 +-
+ arch/sh/include/asm/syscalls.h                   |    4 +-
+ arch/sh/include/asm/system.h                     |    4 +-
+ arch/sh/include/asm/tlb.h                        |    2 +
+ arch/sh/include/asm/uaccess.h                    |    4 +-
+ arch/sh/include/asm/unistd.h                     |    8 ++---
+ arch/sh/include/mach-ecovec24/mach/romimage.h    |    2 +
+ arch/sh/include/mach-kfr2r09/mach/romimage.h     |    2 +
+ arch/unicore32/include/mach/PKUnity.h            |   36 +++++++++++-----------
+ arch/unicore32/include/mach/hardware.h           |    2 +
+ arch/unicore32/include/mach/uncompress.h         |    4 +-
+ arch/x86/include/asm/atomic.h                    |    4 +-
+ arch/x86/include/asm/checksum.h                  |    4 +-
+ arch/x86/include/asm/cmpxchg.h                   |    4 +-
+ arch/x86/include/asm/mmzone.h                    |    4 +-
+ arch/x86/include/asm/mutex.h                     |    4 +-
+ arch/x86/include/asm/numa.h                      |    4 +-
+ arch/x86/include/asm/pci.h                       |    2 +
+ arch/x86/include/asm/pgtable.h                   |    4 +-
+ arch/x86/include/asm/pgtable_types.h             |    4 +-
+ arch/x86/include/asm/posix_types.h               |    8 ++---
+ arch/x86/include/asm/seccomp.h                   |    4 +-
+ arch/x86/include/asm/string.h                    |    4 +-
+ arch/x86/include/asm/suspend.h                   |    4 +-
+ arch/x86/include/asm/uaccess.h                   |    4 +-
+ arch/x86/include/asm/unistd.h                    |    8 ++---
+ arch/x86/include/asm/user.h                      |    4 +-
+ arch/x86/include/asm/xen/interface.h             |    4 +-
+ arch/x86/include/asm/xor.h                       |    4 +-
+ include/acpi/acpi.h                              |   18 ++++++-----
+ include/acpi/acpiosxf.h                          |    4 +-
+ include/acpi/acpixf.h                            |    4 +-
+ include/acpi/platform/acenv.h                    |    2 +
+ include/acpi/platform/aclinux.h                  |    2 +
+ include/drm/drm.h                                |    2 +
+ include/drm/drmP.h                               |   16 +++++-----
+ include/drm/drm_buffer.h                         |    2 +
+ include/drm/drm_encoder_slave.h                  |    4 +-
+ include/drm/drm_memory.h                         |    2 +
+ include/drm/drm_sarea.h                          |    2 +
+ include/drm/drm_sman.h                           |    4 +-
+ include/drm/i915_drm.h                           |    2 +
+ include/drm/mga_drm.h                            |    2 +
+ include/drm/radeon_drm.h                         |    2 +
+ include/drm/ttm/ttm_bo_api.h                     |    2 +
+ include/drm/ttm/ttm_bo_driver.h                  |   16 +++++-----
+ include/drm/ttm/ttm_execbuf_util.h               |    2 +
+ include/drm/ttm/ttm_lock.h                       |    2 +
+ include/drm/ttm/ttm_object.h                     |    2 +
+ include/drm/ttm/ttm_page_alloc.h                 |    4 +-
+ include/drm/via_drm.h                            |    2 +
+ include/linux/ceph/ceph_fs.h                     |    4 +-
+ include/linux/ceph/debugfs.h                     |    4 +-
+ include/linux/ceph/decode.h                      |    2 +
+ include/linux/ceph/libceph.h                     |   14 ++++-----
+ include/linux/ceph/mdsmap.h                      |    2 +
+ include/linux/ceph/messenger.h                   |    4 +-
+ include/linux/ceph/mon_client.h                  |    2 +
+ include/linux/ceph/msgpool.h                     |    2 +
+ include/linux/ceph/osd_client.h                  |    6 ++--
+ include/linux/ceph/osdmap.h                      |    4 +-
+ include/linux/ceph/rados.h                       |    2 +
+ include/linux/ceph/types.h                       |    6 ++--
+ include/linux/crush/mapper.h                     |    2 +
+ include/linux/drbd_tag_magic.h                   |   10 +++---
+ include/linux/netfilter/nf_conntrack_h323_asn1.h |    2 +
+ include/scsi/osd_attributes.h                    |    2 +
+ include/scsi/osd_initiator.h                     |    4 +-
+ include/scsi/osd_sec.h                           |    4 +-
+ include/sound/ac97_codec.h                       |    6 ++--
+ include/sound/ad1816a.h                          |    6 ++--
+ include/sound/ak4531_codec.h                     |    4 +-
+ include/sound/cs46xx.h                           |   10 +++---
+ include/sound/cs46xx_dsp_spos.h                  |    4 +-
+ include/sound/cs46xx_dsp_task_types.h            |    2 +
+ include/sound/emu10k1_synth.h                    |    4 +-
+ include/sound/emu8000.h                          |    4 +-
+ include/sound/emux_legacy.h                      |    2 +
+ include/sound/emux_synth.h                       |   14 ++++-----
+ include/sound/es1688.h                           |    4 +-
+ include/sound/gus.h                              |   10 +++---
+ include/sound/mpu401.h                           |    2 +
+ include/sound/pcm.h                              |    2 +
+ include/sound/rawmidi.h                          |    2 +
+ include/sound/sb.h                               |    4 +-
+ include/sound/sb16_csp.h                         |    4 +-
+ include/sound/seq_kernel.h                       |    2 +
+ include/sound/seq_midi_emul.h                    |    2 +
+ include/sound/seq_midi_event.h                   |    2 +
+ include/sound/seq_oss.h                          |    4 +-
+ include/sound/seq_virmidi.h                      |    4 +-
+ include/sound/snd_wavefront.h                    |    8 ++---
+ include/sound/soundfont.h                        |    4 +-
+ include/sound/tea6330t.h                         |    2 +
+ include/sound/trident.h                          |    8 ++---
+ include/sound/wss.h                              |    8 ++---
+ include/sound/ymfpci.h                           |    8 ++---
+ include/trace/events/compaction.h                |    2 +
+ include/trace/events/kmem.h                      |    2 +
+ include/trace/events/vmscan.h                    |    2 +
+ include/xen/interface/callback.h                 |    2 +
+ include/xen/interface/hvm/params.h               |    2 +
+ include/xen/interface/io/blkif.h                 |    4 +-
+ include/xen/interface/io/netif.h                 |    4 +-
+ include/xen/interface/sched.h                    |    2 +
+ include/xen/interface/version.h                  |    2 +
+ 161 files changed, 335 insertions(+), 335 deletions(-)
 
- Documentation/vm/page-types.c                    |    2 
- Makefile                                         |   33 
- arch/alpha/uapi/asm/Kbuild                       |    2 
- arch/arm/include/asm/hwcap.h                     |    4 
- arch/arm/include/asm/localtimer.h                |    2 
- arch/arm/include/asm/page.h                      |    2 
- arch/arm/include/asm/pgtable.h                   |    2 
- arch/arm/include/asm/swab.h                      |    7 
- arch/arm/include/asm/unistd.h                    |    4 
- arch/arm/include/asm/vfpmacros.h                 |    2 
- arch/arm/uapi/asm/Kbuild                         |    2 
- arch/avr32/uapi/asm/Kbuild                       |    2 
- arch/blackfin/uapi/asm/Kbuild                    |    2 
- arch/cris/include/arch-v10/arch/sv_addr_ag.h     |    2 
- arch/cris/include/arch-v10/arch/svinto.h         |    2 
- arch/cris/include/arch-v32/arch/dma.h            |    2 
- arch/cris/include/arch-v32/arch/hwregs/dma.h     |    2 
- arch/cris/uapi/arch-v10/arch/Kbuild              |    0 
- arch/cris/uapi/arch-v10/arch/sv_addr.agh         | 7306 ++++++++++++++++++++++
- arch/cris/uapi/arch-v32/arch/Kbuild              |    0 
- arch/cris/uapi/asm/Kbuild                        |    4 
- arch/frv/uapi/asm/Kbuild                         |    2 
- arch/h8300/uapi/asm/Kbuild                       |    2 
- arch/ia64/include/asm/intrinsics.h               |   21 
- arch/ia64/uapi/asm/Kbuild                        |    2 
- arch/m32r/uapi/asm/Kbuild                        |    2 
- arch/m68k/include/asm/bitops.h                   |    4 
- arch/m68k/include/asm/cacheflush.h               |    4 
- arch/m68k/include/asm/delay.h                    |    4 
- arch/m68k/include/asm/entry.h                    |    4 
- arch/m68k/include/asm/hardirq.h                  |    4 
- arch/m68k/include/asm/io.h                       |    4 
- arch/m68k/include/asm/m68360.h                   |    8 
- arch/m68k/include/asm/m68360_enet.h              |    2 
- arch/m68k/include/asm/page.h                     |    4 
- arch/m68k/include/asm/pgtable.h                  |    4 
- arch/m68k/include/asm/q40_master.h               |    2 
- arch/m68k/include/asm/system.h                   |    4 
- arch/m68k/include/asm/uaccess.h                  |    4 
- arch/m68k/uapi/asm/Kbuild                        |    2 
- arch/microblaze/include/asm/mmu_context.h        |    2 
- arch/microblaze/uapi/asm/Kbuild                  |    2 
- arch/mips/include/asm/Kbuild                     |    4 
- arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h  |    2 
- arch/mips/include/asm/mach-pnx833x/gpio.h        |    2 
- arch/mips/include/asm/octeon/cvmx-asm.h          |    2 
- arch/mips/include/asm/octeon/cvmx-spinlock.h     |    2 
- arch/mips/include/asm/octeon/cvmx.h              |   36 
- arch/mips/include/asm/octeon/octeon-model.h      |    2 
- arch/mips/include/asm/octeon/octeon.h            |    2 
- arch/mips/include/asm/sibyte/bcm1480_int.h       |    2 
- arch/mips/include/asm/sibyte/bcm1480_l2c.h       |    2 
- arch/mips/include/asm/sibyte/bcm1480_mc.h        |    2 
- arch/mips/include/asm/sibyte/bcm1480_regs.h      |    4 
- arch/mips/include/asm/sibyte/bcm1480_scd.h       |    4 
- arch/mips/include/asm/sibyte/sb1250_dma.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_genbus.h     |    2 
- arch/mips/include/asm/sibyte/sb1250_int.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_l2c.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_ldt.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_mac.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_mc.h         |    2 
- arch/mips/include/asm/sibyte/sb1250_regs.h       |    2 
- arch/mips/include/asm/sibyte/sb1250_scd.h        |    2 
- arch/mips/include/asm/sibyte/sb1250_smbus.h      |    2 
- arch/mips/include/asm/sibyte/sb1250_syncser.h    |    2 
- arch/mips/include/asm/sibyte/sb1250_uart.h       |    2 
- arch/mips/include/asm/types.h                    |   10 
- arch/mips/uapi/asm/Kbuild                        |    2 
- arch/mn10300/uapi/asm/Kbuild                     |    2 
- arch/parisc/uapi/asm/Kbuild                      |    2 
- arch/powerpc/include/asm/ps3.h                   |    2 
- arch/powerpc/include/asm/ucc_fast.h              |    2 
- arch/powerpc/include/asm/ucc_slow.h              |    2 
- arch/powerpc/uapi/asm/Kbuild                     |    2 
- arch/s390/include/asm/mman.h                     |    4 
- arch/s390/uapi/asm/Kbuild                        |    2 
- arch/score/uapi/asm/Kbuild                       |    2 
- arch/sh/include/asm/checksum.h                   |    2 
- arch/sh/include/asm/mmu_context.h                |    4 
- arch/sh/include/asm/posix_types.h                |    8 
- arch/sh/include/asm/processor.h                  |    4 
- arch/sh/include/asm/ptrace.h                     |    4 
- arch/sh/include/asm/string.h                     |    4 
- arch/sh/include/asm/syscall.h                    |    4 
- arch/sh/include/asm/syscalls.h                   |    4 
- arch/sh/include/asm/system.h                     |    4 
- arch/sh/include/asm/tlb.h                        |    2 
- arch/sh/include/asm/uaccess.h                    |    4 
- arch/sh/include/asm/unistd.h                     |    8 
- arch/sh/include/mach-ecovec24/mach/romimage.h    |    2 
- arch/sh/include/mach-kfr2r09/mach/romimage.h     |    2 
- arch/sh/uapi/asm/Kbuild                          |    2 
- arch/sparc/uapi/asm/Kbuild                       |    4 
- arch/tile/include/asm/signal.h                   |    4 
- arch/tile/uapi/asm/Kbuild                        |    2 
- arch/unicore32/include/mach/PKUnity.h            |   36 
- arch/unicore32/include/mach/hardware.h           |    2 
- arch/unicore32/include/mach/uncompress.h         |    4 
- arch/unicore32/uapi/asm/Kbuild                   |    2 
- arch/x86/boot/Makefile                           |    4 
- arch/x86/boot/mkcpustr.c                         |    2 
- arch/x86/include/asm/atomic.h                    |    4 
- arch/x86/include/asm/checksum.h                  |    4 
- arch/x86/include/asm/cmpxchg.h                   |    4 
- arch/x86/include/asm/cpufeature.h                |    2 
- arch/x86/include/asm/e820.h                      |    2 
- arch/x86/include/asm/mmzone.h                    |    4 
- arch/x86/include/asm/mutex.h                     |    4 
- arch/x86/include/asm/numa.h                      |    4 
- arch/x86/include/asm/page.h                      |    2 
- arch/x86/include/asm/page_types.h                |    3 
- arch/x86/include/asm/pci.h                       |    2 
- arch/x86/include/asm/pgtable.h                   |    4 
- arch/x86/include/asm/pgtable_types.h             |    4 
- arch/x86/include/asm/posix_types.h               |    8 
- arch/x86/include/asm/seccomp.h                   |    4 
- arch/x86/include/asm/signal.h                    |    2 
- arch/x86/include/asm/string.h                    |    4 
- arch/x86/include/asm/suspend.h                   |    4 
- arch/x86/include/asm/uaccess.h                   |    4 
- arch/x86/include/asm/unistd.h                    |    8 
- arch/x86/include/asm/user.h                      |    4 
- arch/x86/include/asm/xen/interface.h             |    4 
- arch/x86/include/asm/xor.h                       |    4 
- arch/x86/kernel/asm-offsets_64.c                 |    1 
- arch/x86/kernel/cpu/mkcapflags.pl                |    5 
- arch/x86/kernel/syscall_64.c                     |    2 
- arch/x86/uapi/asm/Kbuild                         |    2 
- arch/xtensa/uapi/asm/Kbuild                      |    2 
- drivers/gpu/drm/ati_pcigart.c                    |    2 
- drivers/gpu/drm/drm_agpsupport.c                 |    2 
- drivers/gpu/drm/drm_auth.c                       |    2 
- drivers/gpu/drm/drm_buffer.c                     |    2 
- drivers/gpu/drm/drm_bufs.c                       |    2 
- drivers/gpu/drm/drm_cache.c                      |    2 
- drivers/gpu/drm/drm_context.c                    |    2 
- drivers/gpu/drm/drm_crtc.c                       |    8 
- drivers/gpu/drm/drm_crtc_helper.c                |    8 
- drivers/gpu/drm/drm_debugfs.c                    |    2 
- drivers/gpu/drm/drm_dma.c                        |    2 
- drivers/gpu/drm/drm_dp_i2c_helper.c              |    4 
- drivers/gpu/drm/drm_drv.c                        |    4 
- drivers/gpu/drm/drm_edid.c                       |    4 
- drivers/gpu/drm/drm_edid_modes.h                 |    4 
- drivers/gpu/drm/drm_encoder_slave.c              |    2 
- drivers/gpu/drm/drm_fb_helper.c                  |    8 
- drivers/gpu/drm/drm_fops.c                       |    2 
- drivers/gpu/drm/drm_gem.c                        |    2 
- drivers/gpu/drm/drm_global.c                     |    2 
- drivers/gpu/drm/drm_hashtab.c                    |    4 
- drivers/gpu/drm/drm_info.c                       |    2 
- drivers/gpu/drm/drm_ioc32.c                      |    4 
- drivers/gpu/drm/drm_ioctl.c                      |    6 
- drivers/gpu/drm/drm_irq.c                        |    2 
- drivers/gpu/drm/drm_lock.c                       |    2 
- drivers/gpu/drm/drm_memory.c                     |    2 
- drivers/gpu/drm/drm_mm.c                         |    4 
- drivers/gpu/drm/drm_modes.c                      |    6 
- drivers/gpu/drm/drm_pci.c                        |    2 
- drivers/gpu/drm/drm_platform.c                   |    2 
- drivers/gpu/drm/drm_proc.c                       |    2 
- drivers/gpu/drm/drm_scatter.c                    |    2 
- drivers/gpu/drm/drm_sman.c                       |    2 
- drivers/gpu/drm/drm_stub.c                       |    4 
- drivers/gpu/drm/drm_sysfs.c                      |    6 
- drivers/gpu/drm/drm_trace_points.c               |    2 
- drivers/gpu/drm/drm_usb.c                        |    2 
- drivers/gpu/drm/drm_vm.c                         |    2 
- drivers/gpu/drm/i2c/ch7006_priv.h                |    8 
- drivers/gpu/drm/i2c/sil164_drv.c                 |    8 
- drivers/gpu/drm/i810/i810_dma.c                  |    6 
- drivers/gpu/drm/i810/i810_drv.c                  |    8 
- drivers/gpu/drm/i915/dvo.h                       |    6 
- drivers/gpu/drm/i915/i915_debugfs.c              |    6 
- drivers/gpu/drm/i915/i915_dma.c                  |   10 
- drivers/gpu/drm/i915/i915_drv.c                  |    8 
- drivers/gpu/drm/i915/i915_gem.c                  |    6 
- drivers/gpu/drm/i915/i915_gem_debug.c            |    6 
- drivers/gpu/drm/i915/i915_gem_evict.c            |    6 
- drivers/gpu/drm/i915/i915_gem_execbuffer.c       |    6 
- drivers/gpu/drm/i915/i915_gem_gtt.c              |    6 
- drivers/gpu/drm/i915/i915_gem_tiling.c           |   10 
- drivers/gpu/drm/i915/i915_ioc32.c                |    6 
- drivers/gpu/drm/i915/i915_irq.c                  |    6 
- drivers/gpu/drm/i915/i915_mem.c                  |    6 
- drivers/gpu/drm/i915/i915_suspend.c              |    6 
- drivers/gpu/drm/i915/intel_acpi.c                |    2 
- drivers/gpu/drm/i915/intel_bios.c                |    6 
- drivers/gpu/drm/i915/intel_bios.h                |    2 
- drivers/gpu/drm/i915/intel_crt.c                 |   12 
- drivers/gpu/drm/i915/intel_display.c             |    8 
- drivers/gpu/drm/i915/intel_dp.c                  |   12 
- drivers/gpu/drm/i915/intel_drv.h                 |    6 
- drivers/gpu/drm/i915/intel_dvo.c                 |    8 
- drivers/gpu/drm/i915/intel_fb.c                  |   10 
- drivers/gpu/drm/i915/intel_hdmi.c                |   10 
- drivers/gpu/drm/i915/intel_i2c.c                 |    6 
- drivers/gpu/drm/i915/intel_lvds.c                |   10 
- drivers/gpu/drm/i915/intel_modes.c               |    2 
- drivers/gpu/drm/i915/intel_opregion.c            |    4 
- drivers/gpu/drm/i915/intel_overlay.c             |    6 
- drivers/gpu/drm/i915/intel_ringbuffer.c          |    6 
- drivers/gpu/drm/i915/intel_sdvo.c                |   10 
- drivers/gpu/drm/i915/intel_tv.c                  |   10 
- drivers/gpu/drm/mga/mga_dma.c                    |    8 
- drivers/gpu/drm/mga/mga_drv.c                    |    8 
- drivers/gpu/drm/mga/mga_ioc32.c                  |    6 
- drivers/gpu/drm/mga/mga_irq.c                    |    6 
- drivers/gpu/drm/mga/mga_state.c                  |    6 
- drivers/gpu/drm/mga/mga_warp.c                   |    6 
- drivers/gpu/drm/nouveau/nouveau_acpi.c           |   10 
- drivers/gpu/drm/nouveau/nouveau_backlight.c      |    4 
- drivers/gpu/drm/nouveau/nouveau_bios.c           |    2 
- drivers/gpu/drm/nouveau/nouveau_bo.c             |    4 
- drivers/gpu/drm/nouveau/nouveau_calc.c           |    2 
- drivers/gpu/drm/nouveau/nouveau_channel.c        |    6 
- drivers/gpu/drm/nouveau/nouveau_connector.c      |    6 
- drivers/gpu/drm/nouveau/nouveau_connector.h      |    2 
- drivers/gpu/drm/nouveau/nouveau_debugfs.c        |    2 
- drivers/gpu/drm/nouveau/nouveau_display.c        |    4 
- drivers/gpu/drm/nouveau/nouveau_dma.c            |    4 
- drivers/gpu/drm/nouveau/nouveau_dp.c             |    2 
- drivers/gpu/drm/nouveau/nouveau_drv.c            |    8 
- drivers/gpu/drm/nouveau/nouveau_drv.h            |   12 
- drivers/gpu/drm/nouveau/nouveau_encoder.h        |    2 
- drivers/gpu/drm/nouveau/nouveau_fbcon.c          |   12 
- drivers/gpu/drm/nouveau/nouveau_fbcon.h          |    2 
- drivers/gpu/drm/nouveau/nouveau_fence.c          |    4 
- drivers/gpu/drm/nouveau/nouveau_gem.c            |    6 
- drivers/gpu/drm/nouveau/nouveau_hw.c             |    2 
- drivers/gpu/drm/nouveau/nouveau_hw.h             |    2 
- drivers/gpu/drm/nouveau/nouveau_i2c.c            |    2 
- drivers/gpu/drm/nouveau/nouveau_i2c.h            |    2 
- drivers/gpu/drm/nouveau/nouveau_ioc32.c          |    4 
- drivers/gpu/drm/nouveau/nouveau_irq.c            |    6 
- drivers/gpu/drm/nouveau/nouveau_mem.c            |    6 
- drivers/gpu/drm/nouveau/nouveau_mm.c             |    2 
- drivers/gpu/drm/nouveau/nouveau_notifier.c       |    4 
- drivers/gpu/drm/nouveau/nouveau_object.c         |    6 
- drivers/gpu/drm/nouveau/nouveau_perf.c           |    2 
- drivers/gpu/drm/nouveau/nouveau_pm.c             |    2 
- drivers/gpu/drm/nouveau/nouveau_ramht.c          |    2 
- drivers/gpu/drm/nouveau/nouveau_sgdma.c          |    2 
- drivers/gpu/drm/nouveau/nouveau_state.c          |   10 
- drivers/gpu/drm/nouveau/nouveau_temp.c           |    2 
- drivers/gpu/drm/nouveau/nouveau_ttm.c            |    2 
- drivers/gpu/drm/nouveau/nouveau_vm.c             |    2 
- drivers/gpu/drm/nouveau/nouveau_vm.h             |    2 
- drivers/gpu/drm/nouveau/nouveau_volt.c           |    2 
- drivers/gpu/drm/nouveau/nv04_crtc.c              |    4 
- drivers/gpu/drm/nouveau/nv04_cursor.c            |    4 
- drivers/gpu/drm/nouveau/nv04_dac.c               |    4 
- drivers/gpu/drm/nouveau/nv04_dfp.c               |    6 
- drivers/gpu/drm/nouveau/nv04_display.c           |    6 
- drivers/gpu/drm/nouveau/nv04_fb.c                |    6 
- drivers/gpu/drm/nouveau/nv04_fbcon.c             |    2 
- drivers/gpu/drm/nouveau/nv04_fifo.c              |    4 
- drivers/gpu/drm/nouveau/nv04_graph.c             |    6 
- drivers/gpu/drm/nouveau/nv04_instmem.c           |    4 
- drivers/gpu/drm/nouveau/nv04_mc.c                |    6 
- drivers/gpu/drm/nouveau/nv04_pm.c                |    2 
- drivers/gpu/drm/nouveau/nv04_timer.c             |    6 
- drivers/gpu/drm/nouveau/nv04_tv.c                |    6 
- drivers/gpu/drm/nouveau/nv10_fb.c                |    6 
- drivers/gpu/drm/nouveau/nv10_fifo.c              |    4 
- drivers/gpu/drm/nouveau/nv10_gpio.c              |    2 
- drivers/gpu/drm/nouveau/nv10_graph.c             |    6 
- drivers/gpu/drm/nouveau/nv17_tv.c                |    4 
- drivers/gpu/drm/nouveau/nv17_tv_modes.c          |    4 
- drivers/gpu/drm/nouveau/nv20_graph.c             |    6 
- drivers/gpu/drm/nouveau/nv30_fb.c                |    6 
- drivers/gpu/drm/nouveau/nv40_fb.c                |    6 
- drivers/gpu/drm/nouveau/nv40_fifo.c              |    4 
- drivers/gpu/drm/nouveau/nv40_graph.c             |    4 
- drivers/gpu/drm/nouveau/nv40_grctx.c             |    2 
- drivers/gpu/drm/nouveau/nv40_mc.c                |    6 
- drivers/gpu/drm/nouveau/nv40_mpeg.c              |    2 
- drivers/gpu/drm/nouveau/nv50_calc.c              |    2 
- drivers/gpu/drm/nouveau/nv50_crtc.c              |    6 
- drivers/gpu/drm/nouveau/nv50_cursor.c            |    4 
- drivers/gpu/drm/nouveau/nv50_dac.c               |    4 
- drivers/gpu/drm/nouveau/nv50_display.c           |    2 
- drivers/gpu/drm/nouveau/nv50_display.h           |    4 
- drivers/gpu/drm/nouveau/nv50_evo.c               |    2 
- drivers/gpu/drm/nouveau/nv50_fb.c                |    6 
- drivers/gpu/drm/nouveau/nv50_fbcon.c             |    2 
- drivers/gpu/drm/nouveau/nv50_fifo.c              |    4 
- drivers/gpu/drm/nouveau/nv50_gpio.c              |    2 
- drivers/gpu/drm/nouveau/nv50_graph.c             |    4 
- drivers/gpu/drm/nouveau/nv50_grctx.c             |    2 
- drivers/gpu/drm/nouveau/nv50_instmem.c           |    4 
- drivers/gpu/drm/nouveau/nv50_mc.c                |    4 
- drivers/gpu/drm/nouveau/nv50_mpeg.c              |    2 
- drivers/gpu/drm/nouveau/nv50_pm.c                |    2 
- drivers/gpu/drm/nouveau/nv50_sor.c               |    4 
- drivers/gpu/drm/nouveau/nv50_vm.c                |    2 
- drivers/gpu/drm/nouveau/nv50_vram.c              |    2 
- drivers/gpu/drm/nouveau/nv84_crypt.c             |    2 
- drivers/gpu/drm/nouveau/nva3_copy.c              |    2 
- drivers/gpu/drm/nouveau/nva3_pm.c                |    2 
- drivers/gpu/drm/nouveau/nvc0_copy.c              |    2 
- drivers/gpu/drm/nouveau/nvc0_fb.c                |    2 
- drivers/gpu/drm/nouveau/nvc0_fbcon.c             |    2 
- drivers/gpu/drm/nouveau/nvc0_fifo.c              |    2 
- drivers/gpu/drm/nouveau/nvc0_graph.c             |    2 
- drivers/gpu/drm/nouveau/nvc0_grctx.c             |    2 
- drivers/gpu/drm/nouveau/nvc0_instmem.c           |    2 
- drivers/gpu/drm/nouveau/nvc0_vm.c                |    2 
- drivers/gpu/drm/nouveau/nvc0_vram.c              |    2 
- drivers/gpu/drm/r128/r128_cce.c                  |    6 
- drivers/gpu/drm/r128/r128_drv.c                  |    8 
- drivers/gpu/drm/r128/r128_ioc32.c                |    6 
- drivers/gpu/drm/r128/r128_irq.c                  |    6 
- drivers/gpu/drm/r128/r128_state.c                |    6 
- drivers/gpu/drm/radeon/atom.h                    |    2 
- drivers/gpu/drm/radeon/atombios_dp.c             |    6 
- drivers/gpu/drm/radeon/evergreen.c               |    4 
- drivers/gpu/drm/radeon/evergreen_blit_kms.c      |    6 
- drivers/gpu/drm/radeon/evergreen_cs.c            |    2 
- drivers/gpu/drm/radeon/ni.c                      |    4 
- drivers/gpu/drm/radeon/r100.c                    |    6 
- drivers/gpu/drm/radeon/r200.c                    |    6 
- drivers/gpu/drm/radeon/r300.c                    |    2 
- drivers/gpu/drm/radeon/r300_cmdbuf.c             |    8 
- drivers/gpu/drm/radeon/r420.c                    |    2 
- drivers/gpu/drm/radeon/r520.c                    |    2 
- drivers/gpu/drm/radeon/r600.c                    |    4 
- drivers/gpu/drm/radeon/r600_audio.c              |    2 
- drivers/gpu/drm/radeon/r600_blit.c               |    6 
- drivers/gpu/drm/radeon/r600_blit_kms.c           |    6 
- drivers/gpu/drm/radeon/r600_cp.c                 |    6 
- drivers/gpu/drm/radeon/r600_cs.c                 |    2 
- drivers/gpu/drm/radeon/r600_hdmi.c               |    4 
- drivers/gpu/drm/radeon/radeon_acpi.c             |    8 
- drivers/gpu/drm/radeon/radeon_agp.c              |    6 
- drivers/gpu/drm/radeon/radeon_atombios.c         |    4 
- drivers/gpu/drm/radeon/radeon_bios.c             |    2 
- drivers/gpu/drm/radeon/radeon_clocks.c           |    4 
- drivers/gpu/drm/radeon/radeon_combios.c          |    4 
- drivers/gpu/drm/radeon/radeon_connectors.c       |   10 
- drivers/gpu/drm/radeon/radeon_cp.c               |    8 
- drivers/gpu/drm/radeon/radeon_cs.c               |    4 
- drivers/gpu/drm/radeon/radeon_cursor.c           |    4 
- drivers/gpu/drm/radeon/radeon_display.c          |    8 
- drivers/gpu/drm/radeon/radeon_drv.c              |    8 
- drivers/gpu/drm/radeon/radeon_encoders.c         |    6 
- drivers/gpu/drm/radeon/radeon_fb.c               |   12 
- drivers/gpu/drm/radeon/radeon_fence.c            |    4 
- drivers/gpu/drm/radeon/radeon_gart.c             |    4 
- drivers/gpu/drm/radeon/radeon_gem.c              |    6 
- drivers/gpu/drm/radeon/radeon_i2c.c              |    4 
- drivers/gpu/drm/radeon/radeon_ioc32.c            |    6 
- drivers/gpu/drm/radeon/radeon_irq.c              |    6 
- drivers/gpu/drm/radeon/radeon_irq_kms.c          |    6 
- drivers/gpu/drm/radeon/radeon_kms.c              |    6 
- drivers/gpu/drm/radeon/radeon_legacy_encoders.c  |    6 
- drivers/gpu/drm/radeon/radeon_legacy_tv.c        |    4 
- drivers/gpu/drm/radeon/radeon_mem.c              |    6 
- drivers/gpu/drm/radeon/radeon_object.c           |    2 
- drivers/gpu/drm/radeon/radeon_pm.c               |    2 
- drivers/gpu/drm/radeon/radeon_ring.c             |    4 
- drivers/gpu/drm/radeon/radeon_state.c            |   10 
- drivers/gpu/drm/radeon/radeon_trace_points.c     |    2 
- drivers/gpu/drm/radeon/rs600.c                   |    2 
- drivers/gpu/drm/radeon/rs690.c                   |    2 
- drivers/gpu/drm/radeon/rv515.c                   |    2 
- drivers/gpu/drm/radeon/rv770.c                   |    4 
- drivers/gpu/drm/savage/savage_bci.c              |    4 
- drivers/gpu/drm/savage/savage_drv.c              |    6 
- drivers/gpu/drm/savage/savage_state.c            |    4 
- drivers/gpu/drm/sis/sis_drv.c                    |    6 
- drivers/gpu/drm/sis/sis_drv.h                    |    2 
- drivers/gpu/drm/sis/sis_mm.c                     |    4 
- drivers/gpu/drm/tdfx/tdfx_drv.c                  |    4 
- drivers/gpu/drm/ttm/ttm_agp_backend.c            |    6 
- drivers/gpu/drm/ttm/ttm_bo.c                     |    6 
- drivers/gpu/drm/ttm/ttm_bo_manager.c             |    8 
- drivers/gpu/drm/ttm/ttm_bo_util.c                |    4 
- drivers/gpu/drm/ttm/ttm_execbuf_util.c           |    6 
- drivers/gpu/drm/ttm/ttm_lock.c                   |    4 
- drivers/gpu/drm/ttm/ttm_memory.c                 |    6 
- drivers/gpu/drm/ttm/ttm_module.c                 |    4 
- drivers/gpu/drm/ttm/ttm_object.c                 |    4 
- drivers/gpu/drm/ttm/ttm_page_alloc.c             |    4 
- drivers/gpu/drm/ttm/ttm_tt.c                     |   12 
- drivers/gpu/drm/via/via_dma.c                    |    6 
- drivers/gpu/drm/via/via_dmablit.c                |    4 
- drivers/gpu/drm/via/via_drv.c                    |    6 
- drivers/gpu/drm/via/via_drv.h                    |    2 
- drivers/gpu/drm/via/via_irq.c                    |    6 
- drivers/gpu/drm/via/via_map.c                    |    4 
- drivers/gpu/drm/via/via_mm.c                     |    6 
- drivers/gpu/drm/via/via_verifier.c               |    6 
- drivers/gpu/drm/via/via_video.c                  |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_buffer.c           |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_drv.c              |   10 
- drivers/gpu/drm/vmwgfx/vmwgfx_drv.h              |   18 
- drivers/gpu/drm/vmwgfx/vmwgfx_execbuf.c          |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_fb.c               |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_fifo.c             |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_gmr.c              |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_gmrid_manager.c    |    6 
- drivers/gpu/drm/vmwgfx/vmwgfx_ioctl.c            |    2 
- drivers/gpu/drm/vmwgfx/vmwgfx_irq.c              |    2 
- drivers/gpu/drm/vmwgfx/vmwgfx_kms.h              |    2 
- drivers/gpu/drm/vmwgfx/vmwgfx_overlay.c          |    4 
- drivers/gpu/drm/vmwgfx/vmwgfx_resource.c         |    8 
- drivers/gpu/drm/vmwgfx/vmwgfx_ttm_glue.c         |    2 
- include/acpi/acpi.h                              |   18 
- include/acpi/acpiosxf.h                          |    4 
- include/acpi/acpixf.h                            |    4 
- include/acpi/platform/acenv.h                    |    2 
- include/acpi/platform/aclinux.h                  |    2 
- include/asm-generic/Kbuild.asm                   |   85 
- include/asm-generic/param.h                      |   13 
- include/drm/drm.h                                |    2 
- include/drm/drmP.h                               |   18 
- include/drm/drm_buffer.h                         |    2 
- include/drm/drm_encoder_slave.h                  |    4 
- include/drm/drm_memory.h                         |    2 
- include/drm/drm_sarea.h                          |    2 
- include/drm/drm_sman.h                           |    4 
- include/drm/i915_drm.h                           |    2 
- include/drm/mga_drm.h                            |    2 
- include/drm/radeon_drm.h                         |    2 
- include/drm/ttm/ttm_bo_api.h                     |    2 
- include/drm/ttm/ttm_bo_driver.h                  |   16 
- include/drm/ttm/ttm_execbuf_util.h               |    2 
- include/drm/ttm/ttm_lock.h                       |    2 
- include/drm/ttm/ttm_object.h                     |    2 
- include/drm/ttm/ttm_page_alloc.h                 |    4 
- include/drm/via_drm.h                            |    2 
- include/linux/Kbuild                             |    1 
- include/linux/acct.h                             |    5 
- include/linux/auto_fs.h                          |    2 
- include/linux/ceph/ceph_fs.h                     |    4 
- include/linux/ceph/debugfs.h                     |    4 
- include/linux/ceph/decode.h                      |    2 
- include/linux/ceph/libceph.h                     |   14 
- include/linux/ceph/mdsmap.h                      |    2 
- include/linux/ceph/messenger.h                   |    4 
- include/linux/ceph/mon_client.h                  |    2 
- include/linux/ceph/msgpool.h                     |    2 
- include/linux/ceph/osd_client.h                  |    6 
- include/linux/ceph/osdmap.h                      |    4 
- include/linux/ceph/rados.h                       |    2 
- include/linux/ceph/types.h                       |    6 
- include/linux/coda.h                             |    3 
- include/linux/crush/mapper.h                     |    2 
- include/linux/drbd_tag_magic.h                   |   10 
- include/linux/elf.h                              |   18 
- include/linux/input.h                            |    2 
- include/linux/isdn_divertif.h                    |    4 
- include/linux/mroute6.h                          |    4 
- include/linux/ncp.h                              |    2 
- include/linux/netfilter.h                        |    2 
- include/linux/netfilter/nf_conntrack_h323_asn1.h |    2 
- include/linux/netfilter/xt_policy.h              |    2 
- include/linux/patchkey.h                         |    4 
- include/linux/sound.h                            |    4 
- include/linux/soundcard.h                        |    4 
- include/scsi/osd_attributes.h                    |    2 
- include/scsi/osd_initiator.h                     |    4 
- include/scsi/osd_sec.h                           |    4 
- include/sound/ac97_codec.h                       |    6 
- include/sound/ad1816a.h                          |    6 
- include/sound/ak4531_codec.h                     |    4 
- include/sound/asound.h                           |    1 
- include/sound/cs46xx.h                           |   10 
- include/sound/cs46xx_dsp_spos.h                  |    4 
- include/sound/cs46xx_dsp_task_types.h            |    2 
- include/sound/emu10k1_synth.h                    |    4 
- include/sound/emu8000.h                          |    4 
- include/sound/emux_legacy.h                      |    2 
- include/sound/emux_synth.h                       |   14 
- include/sound/es1688.h                           |    4 
- include/sound/gus.h                              |   10 
- include/sound/mpu401.h                           |    2 
- include/sound/pcm.h                              |    2 
- include/sound/rawmidi.h                          |    2 
- include/sound/sb.h                               |    4 
- include/sound/sb16_csp.h                         |    4 
- include/sound/seq_kernel.h                       |    2 
- include/sound/seq_midi_emul.h                    |    2 
- include/sound/seq_midi_event.h                   |    2 
- include/sound/seq_oss.h                          |    4 
- include/sound/seq_virmidi.h                      |    4 
- include/sound/snd_wavefront.h                    |    8 
- include/sound/soundfont.h                        |    4 
- include/sound/tea6330t.h                         |    2 
- include/sound/trident.h                          |    8 
- include/sound/wss.h                              |    8 
- include/sound/ymfpci.h                           |    8 
- include/trace/events/compaction.h                |    2 
- include/trace/events/kmem.h                      |    2 
- include/trace/events/vmscan.h                    |    2 
- include/video/edid.h                             |    6 
- include/xen/interface/callback.h                 |    2 
- include/xen/interface/hvm/params.h               |    2 
- include/xen/interface/io/blkif.h                 |    4 
- include/xen/interface/io/netif.h                 |    4 
- include/xen/interface/sched.h                    |    2 
- include/xen/interface/version.h                  |    2 
- sound/sound_core.c                               |    1 
- uapi/Kbuild                                      |   13 
- uapi/asm-generic/Kbuild                          |    0 
- uapi/asm-generic/Kbuild.asm                      |   44 
- uapi/drm/Kbuild                                  |    0 
- uapi/linux/Kbuild                                |   17 
- uapi/linux/byteorder/Kbuild                      |    0 
- uapi/linux/caif/Kbuild                           |    0 
- uapi/linux/can/Kbuild                            |    0 
- uapi/linux/dvb/Kbuild                            |    0 
- uapi/linux/hdlc/Kbuild                           |    0 
- uapi/linux/isdn/Kbuild                           |    0 
- uapi/linux/mmc/Kbuild                            |    0 
- uapi/linux/netfilter/Kbuild                      |    1 
- uapi/linux/netfilter/ipset/Kbuild                |    0 
- uapi/linux/netfilter_arp/Kbuild                  |    0 
- uapi/linux/netfilter_bridge/Kbuild               |    0 
- uapi/linux/netfilter_ipv4/Kbuild                 |    0 
- uapi/linux/netfilter_ipv6/Kbuild                 |    0 
- uapi/linux/nfsd/Kbuild                           |    0 
- uapi/linux/raid/Kbuild                           |    0 
- uapi/linux/spi/Kbuild                            |    0 
- uapi/linux/sunrpc/Kbuild                         |    0 
- uapi/linux/tc_act/Kbuild                         |    0 
- uapi/linux/tc_ematch/Kbuild                      |    0 
- uapi/linux/usb/Kbuild                            |    0 
- uapi/linux/version.h                             |    2 
- uapi/linux/wimax/Kbuild                          |    0 
- uapi/mtd/Kbuild                                  |    0 
- uapi/rdma/Kbuild                                 |    0 
- uapi/scsi/Kbuild                                 |    1 
- uapi/scsi/fc/Kbuild                              |    0 
- uapi/sound/Kbuild                                |    0 
- uapi/video/Kbuild                                |    0 
- uapi/xen/Kbuild                                  |    0 
- 539 files changed, 8599 insertions(+), 1080 deletions(-)
- create mode 100644 arch/alpha/uapi/asm/Kbuild
- create mode 100644 arch/arm/uapi/asm/Kbuild
- create mode 100644 arch/avr32/uapi/asm/Kbuild
- create mode 100644 arch/blackfin/uapi/asm/Kbuild
- create mode 100644 arch/cris/uapi/arch-v10/arch/Kbuild
- create mode 100644 arch/cris/uapi/arch-v10/arch/sv_addr.agh
- create mode 100644 arch/cris/uapi/arch-v32/arch/Kbuild
- create mode 100644 arch/cris/uapi/asm/Kbuild
- create mode 100644 arch/frv/uapi/asm/Kbuild
- create mode 100644 arch/h8300/uapi/asm/Kbuild
- create mode 100644 arch/ia64/uapi/asm/Kbuild
- create mode 100644 arch/m32r/uapi/asm/Kbuild
- create mode 100644 arch/m68k/uapi/asm/Kbuild
- create mode 100644 arch/microblaze/uapi/asm/Kbuild
- create mode 100644 arch/mips/uapi/asm/Kbuild
- create mode 100644 arch/mn10300/uapi/asm/Kbuild
- create mode 100644 arch/parisc/uapi/asm/Kbuild
- create mode 100644 arch/powerpc/uapi/asm/Kbuild
- create mode 100644 arch/s390/uapi/asm/Kbuild
- create mode 100644 arch/score/uapi/asm/Kbuild
- create mode 100644 arch/sh/uapi/asm/Kbuild
- create mode 100644 arch/sparc/uapi/asm/Kbuild
- create mode 100644 arch/tile/uapi/asm/Kbuild
- create mode 100644 arch/unicore32/uapi/asm/Kbuild
- create mode 100644 arch/x86/uapi/asm/Kbuild
- create mode 100644 arch/xtensa/uapi/asm/Kbuild
- create mode 100644 uapi/Kbuild
- create mode 100644 uapi/asm-generic/Kbuild
- create mode 100644 uapi/asm-generic/Kbuild.asm
- create mode 100644 uapi/drm/Kbuild
- create mode 100644 uapi/linux/Kbuild
- create mode 100644 uapi/linux/byteorder/Kbuild
- create mode 100644 uapi/linux/caif/Kbuild
- create mode 100644 uapi/linux/can/Kbuild
- create mode 100644 uapi/linux/dvb/Kbuild
- create mode 100644 uapi/linux/hdlc/Kbuild
- create mode 100644 uapi/linux/isdn/Kbuild
- create mode 100644 uapi/linux/mmc/Kbuild
- create mode 100644 uapi/linux/netfilter/Kbuild
- create mode 100644 uapi/linux/netfilter/ipset/Kbuild
- create mode 100644 uapi/linux/netfilter_arp/Kbuild
- create mode 100644 uapi/linux/netfilter_bridge/Kbuild
- create mode 100644 uapi/linux/netfilter_ipv4/Kbuild
- create mode 100644 uapi/linux/netfilter_ipv6/Kbuild
- create mode 100644 uapi/linux/nfsd/Kbuild
- create mode 100644 uapi/linux/raid/Kbuild
- create mode 100644 uapi/linux/spi/Kbuild
- create mode 100644 uapi/linux/sunrpc/Kbuild
- create mode 100644 uapi/linux/tc_act/Kbuild
- create mode 100644 uapi/linux/tc_ematch/Kbuild
- create mode 100644 uapi/linux/usb/Kbuild
- create mode 100644 uapi/linux/version.h
- create mode 100644 uapi/linux/wimax/Kbuild
- create mode 100644 uapi/mtd/Kbuild
- create mode 100644 uapi/rdma/Kbuild
- create mode 100644 uapi/scsi/Kbuild
- create mode 100644 uapi/scsi/fc/Kbuild
- create mode 100644 uapi/sound/Kbuild
- create mode 100644 uapi/video/Kbuild
- create mode 100644 uapi/xen/Kbuild
+diff --git a/arch/arm/include/asm/localtimer.h b/arch/arm/include/asm/localtimer.h
+index 080d74f..8c67ead 100644
+--- a/arch/arm/include/asm/localtimer.h
++++ b/arch/arm/include/asm/localtimer.h
+@@ -27,7 +27,7 @@ asmlinkage void do_local_timer(struct pt_regs *);
+ 
+ #ifdef CONFIG_HAVE_ARM_TWD
+ 
+-#include "smp_twd.h"
++#include <asm/smp_twd.h>
+ 
+ #define local_timer_ack()	twd_timer_ack()
+ 
+diff --git a/arch/arm/include/asm/page.h b/arch/arm/include/asm/page.h
+index ac75d08..f9629a7 100644
+--- a/arch/arm/include/asm/page.h
++++ b/arch/arm/include/asm/page.h
+@@ -19,7 +19,7 @@
+ 
+ #ifndef CONFIG_MMU
+ 
+-#include "page-nommu.h"
++#include <asm/page-nommu.h>
+ 
+ #else
+ 
+diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.h
+index 5750704..0f64e0c 100644
+--- a/arch/arm/include/asm/pgtable.h
++++ b/arch/arm/include/asm/pgtable.h
+@@ -16,7 +16,7 @@
+ 
+ #ifndef CONFIG_MMU
+ 
+-#include "pgtable-nommu.h"
++#include <asm/pgtable-nommu.h>
+ 
+ #else
+ 
+diff --git a/arch/arm/include/asm/vfpmacros.h b/arch/arm/include/asm/vfpmacros.h
+index 3d5fc41..a7aadbd 100644
+--- a/arch/arm/include/asm/vfpmacros.h
++++ b/arch/arm/include/asm/vfpmacros.h
+@@ -5,7 +5,7 @@
+  */
+ #include <asm/hwcap.h>
+ 
+-#include "vfp.h"
++#include <asm/vfp.h>
+ 
+ @ Macros to allow building with old toolkits (with no VFP support)
+ 	.macro	VFPFMRX, rd, sysreg, cond
+diff --git a/arch/cris/include/arch-v10/arch/sv_addr_ag.h b/arch/cris/include/arch-v10/arch/sv_addr_ag.h
+index e4a6b68..5517f04 100644
+--- a/arch/cris/include/arch-v10/arch/sv_addr_ag.h
++++ b/arch/cris/include/arch-v10/arch/sv_addr_ag.h
+@@ -114,7 +114,7 @@
+ 
+ /*------------------------------------------------------------*/
+ 
+-#include "sv_addr.agh"
++#include <arch/sv_addr.agh>
+ 
+ #if __test_sv_addr__
+ /* IO_MASK( R_BUS_CONFIG , CE ) */
+diff --git a/arch/cris/include/arch-v10/arch/svinto.h b/arch/cris/include/arch-v10/arch/svinto.h
+index 0881a1a..da5c152 100644
+--- a/arch/cris/include/arch-v10/arch/svinto.h
++++ b/arch/cris/include/arch-v10/arch/svinto.h
+@@ -1,7 +1,7 @@
+ #ifndef _ASM_CRIS_SVINTO_H
+ #define _ASM_CRIS_SVINTO_H
+ 
+-#include "sv_addr_ag.h"
++#include <arch/sv_addr_ag.h>
+ 
+ extern unsigned int genconfig_shadow; /* defined and set in head.S */
+ 
+diff --git a/arch/cris/include/arch-v32/arch/dma.h b/arch/cris/include/arch-v32/arch/dma.h
+index 6190615..6f92f4f 100644
+--- a/arch/cris/include/arch-v32/arch/dma.h
++++ b/arch/cris/include/arch-v32/arch/dma.h
+@@ -1 +1 @@
+-#include "mach/dma.h"
++#include <mach/dma.h>
+diff --git a/arch/cris/include/arch-v32/arch/hwregs/dma.h b/arch/cris/include/arch-v32/arch/hwregs/dma.h
+index 3ce322b..52bf679 100644
+--- a/arch/cris/include/arch-v32/arch/hwregs/dma.h
++++ b/arch/cris/include/arch-v32/arch/hwregs/dma.h
+@@ -7,7 +7,7 @@
+ #define dma_h
+ 
+ /* registers */ /* Really needed, since both are listed in sw.list? */
+-#include "dma_defs.h"
++#include <arch/hwregs/dma_defs.h>
+ 
+ 
+ /* descriptors */
+diff --git a/arch/m68k/include/asm/bitops.h b/arch/m68k/include/asm/bitops.h
+index ce163ab..2d13854 100644
+--- a/arch/m68k/include/asm/bitops.h
++++ b/arch/m68k/include/asm/bitops.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "bitops_no.h"
++#include <asm/bitops_no.h>
+ #else
+-#include "bitops_mm.h"
++#include <asm/bitops_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/cacheflush.h b/arch/m68k/include/asm/cacheflush.h
+index a70d731..4fc7382 100644
+--- a/arch/m68k/include/asm/cacheflush.h
++++ b/arch/m68k/include/asm/cacheflush.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "cacheflush_no.h"
++#include <asm/cacheflush_no.h>
+ #else
+-#include "cacheflush_mm.h"
++#include <asm/cacheflush_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/delay.h b/arch/m68k/include/asm/delay.h
+index d2598e3..5bab01b 100644
+--- a/arch/m68k/include/asm/delay.h
++++ b/arch/m68k/include/asm/delay.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "delay_no.h"
++#include <asm/delay_no.h>
+ #else
+-#include "delay_mm.h"
++#include <asm/delay_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/entry.h b/arch/m68k/include/asm/entry.h
+index 876eec6..7308daf 100644
+--- a/arch/m68k/include/asm/entry.h
++++ b/arch/m68k/include/asm/entry.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "entry_no.h"
++#include <asm/entry_no.h>
+ #else
+-#include "entry_mm.h"
++#include <asm/entry_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/hardirq.h b/arch/m68k/include/asm/hardirq.h
+index 56d0d5d..b9605bc 100644
+--- a/arch/m68k/include/asm/hardirq.h
++++ b/arch/m68k/include/asm/hardirq.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "hardirq_no.h"
++#include <asm/hardirq_no.h>
+ #else
+-#include "hardirq_mm.h"
++#include <asm/hardirq_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/io.h b/arch/m68k/include/asm/io.h
+index c7210ba..c70cc91 100644
+--- a/arch/m68k/include/asm/io.h
++++ b/arch/m68k/include/asm/io.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "io_no.h"
++#include <asm/io_no.h>
+ #else
+-#include "io_mm.h"
++#include <asm/io_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/m68360.h b/arch/m68k/include/asm/m68360.h
+index eb7d39e..4664180 100644
+--- a/arch/m68k/include/asm/m68360.h
++++ b/arch/m68k/include/asm/m68360.h
+@@ -1,7 +1,7 @@
+-#include "m68360_regs.h"
+-#include "m68360_pram.h"
+-#include "m68360_quicc.h"
+-#include "m68360_enet.h"
++#include <asm/m68360_regs.h>
++#include <asm/m68360_pram.h>
++#include <asm/m68360_quicc.h>
++#include <asm/m68360_enet.h>
+ 
+ #ifdef CONFIG_M68360
+ 
+diff --git a/arch/m68k/include/asm/m68360_enet.h b/arch/m68k/include/asm/m68360_enet.h
+index c36f4d0..4d04037 100644
+--- a/arch/m68k/include/asm/m68360_enet.h
++++ b/arch/m68k/include/asm/m68360_enet.h
+@@ -10,7 +10,7 @@
+ #ifndef __ETHER_H
+ #define __ETHER_H
+ 
+-#include "quicc_simple.h"
++#include <asm/quicc_simple.h>
+ 
+ /*
+  * transmit BD's
+diff --git a/arch/m68k/include/asm/page.h b/arch/m68k/include/asm/page.h
+index dfebb7c..095d829 100644
+--- a/arch/m68k/include/asm/page.h
++++ b/arch/m68k/include/asm/page.h
+@@ -39,9 +39,9 @@ typedef struct page *pgtable_t;
+ #endif /* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_MMU
+-#include "page_mm.h"
++#include <asm/page_mm.h>
+ #else
+-#include "page_no.h"
++#include <asm/page_no.h>
+ #endif
+ 
+ #include <asm-generic/getorder.h>
+diff --git a/arch/m68k/include/asm/pgtable.h b/arch/m68k/include/asm/pgtable.h
+index ee6759e..a3d733b 100644
+--- a/arch/m68k/include/asm/pgtable.h
++++ b/arch/m68k/include/asm/pgtable.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "pgtable_no.h"
++#include <asm/pgtable_no.h>
+ #else
+-#include "pgtable_mm.h"
++#include <asm/pgtable_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/q40_master.h b/arch/m68k/include/asm/q40_master.h
+index 3907a09..fc5b362 100644
+--- a/arch/m68k/include/asm/q40_master.h
++++ b/arch/m68k/include/asm/q40_master.h
+@@ -60,7 +60,7 @@
+ #define Q40_RTC_WRITE  128
+ 
+ /* define some Q40 specific ints */
+-#include "q40ints.h"
++#include <asm/q40ints.h>
+ 
+ /* misc defs */
+ #define DAC_LEFT  ((unsigned char *)0xff008000)
+diff --git a/arch/m68k/include/asm/system.h b/arch/m68k/include/asm/system.h
+index ccea925..f99dcd2 100644
+--- a/arch/m68k/include/asm/system.h
++++ b/arch/m68k/include/asm/system.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "system_no.h"
++#include <asm/system_no.h>
+ #else
+-#include "system_mm.h"
++#include <asm/system_mm.h>
+ #endif
+diff --git a/arch/m68k/include/asm/uaccess.h b/arch/m68k/include/asm/uaccess.h
+index 38f92db..639c731 100644
+--- a/arch/m68k/include/asm/uaccess.h
++++ b/arch/m68k/include/asm/uaccess.h
+@@ -1,5 +1,5 @@
+ #ifdef __uClinux__
+-#include "uaccess_no.h"
++#include <asm/uaccess_no.h>
+ #else
+-#include "uaccess_mm.h"
++#include <asm/uaccess_mm.h>
+ #endif
+diff --git a/arch/microblaze/include/asm/mmu_context.h b/arch/microblaze/include/asm/mmu_context.h
+index 24eab16..0ccd8c4 100644
+--- a/arch/microblaze/include/asm/mmu_context.h
++++ b/arch/microblaze/include/asm/mmu_context.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_MMU
+-# include "mmu_context_mm.h"
++# include <asm/mmu_context_mm.h>
+ #else
+ # include <asm-generic/mmu_context.h>
+ #endif
+diff --git a/arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h b/arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h
+index 91180fa..1e08044 100644
+--- a/arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h
++++ b/arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h
+@@ -1,7 +1,7 @@
+ #ifndef BCM63XX_IO_H_
+ #define BCM63XX_IO_H_
+ 
+-#include "bcm63xx_cpu.h"
++#include <asm/mach-bcm63xx/bcm63xx_cpu.h>
+ 
+ /*
+  * Physical memory map, RAM is mapped at 0x0.
+diff --git a/arch/mips/include/asm/mach-pnx833x/gpio.h b/arch/mips/include/asm/mach-pnx833x/gpio.h
+index ed3a88d..f192acf 100644
+--- a/arch/mips/include/asm/mach-pnx833x/gpio.h
++++ b/arch/mips/include/asm/mach-pnx833x/gpio.h
+@@ -30,7 +30,7 @@
+    - including locking between different uses
+ */
+ 
+-#include "pnx833x.h"
++#include <asm/mach-pnx833x/pnx833x.h>
+ 
+ #define SET_REG_BIT(reg, bit)		do { (reg |= (1 << (bit))); } while (0)
+ #define CLEAR_REG_BIT(reg, bit)		do { (reg &= ~(1 << (bit))); } while (0)
+diff --git a/arch/mips/include/asm/octeon/cvmx-asm.h b/arch/mips/include/asm/octeon/cvmx-asm.h
+index 5de5de9..31eacc2 100644
+--- a/arch/mips/include/asm/octeon/cvmx-asm.h
++++ b/arch/mips/include/asm/octeon/cvmx-asm.h
+@@ -32,7 +32,7 @@
+ #ifndef __CVMX_ASM_H__
+ #define __CVMX_ASM_H__
+ 
+-#include "octeon-model.h"
++#include <asm/octeon/octeon-model.h>
+ 
+ /* other useful stuff */
+ #define CVMX_SYNC asm volatile ("sync" : : : "memory")
+diff --git a/arch/mips/include/asm/octeon/cvmx-spinlock.h b/arch/mips/include/asm/octeon/cvmx-spinlock.h
+index 2fbf087..a672abb 100644
+--- a/arch/mips/include/asm/octeon/cvmx-spinlock.h
++++ b/arch/mips/include/asm/octeon/cvmx-spinlock.h
+@@ -35,7 +35,7 @@
+ #ifndef __CVMX_SPINLOCK_H__
+ #define __CVMX_SPINLOCK_H__
+ 
+-#include "cvmx-asm.h"
++#include <asm/octeon/cvmx-asm.h>
+ 
+ /* Spinlocks for Octeon */
+ 
+diff --git a/arch/mips/include/asm/octeon/cvmx.h b/arch/mips/include/asm/octeon/cvmx.h
+index 7e12867..3a143a6 100644
+--- a/arch/mips/include/asm/octeon/cvmx.h
++++ b/arch/mips/include/asm/octeon/cvmx.h
+@@ -31,24 +31,24 @@
+ #include <linux/kernel.h>
+ #include <linux/string.h>
+ 
+-#include "cvmx-asm.h"
+-#include "cvmx-packet.h"
+-#include "cvmx-sysinfo.h"
+-
+-#include "cvmx-ciu-defs.h"
+-#include "cvmx-gpio-defs.h"
+-#include "cvmx-iob-defs.h"
+-#include "cvmx-ipd-defs.h"
+-#include "cvmx-l2c-defs.h"
+-#include "cvmx-l2d-defs.h"
+-#include "cvmx-l2t-defs.h"
+-#include "cvmx-led-defs.h"
+-#include "cvmx-mio-defs.h"
+-#include "cvmx-pow-defs.h"
+-
+-#include "cvmx-bootinfo.h"
+-#include "cvmx-bootmem.h"
+-#include "cvmx-l2c.h"
++#include <asm/octeon/cvmx-asm.h>
++#include <asm/octeon/cvmx-packet.h>
++#include <asm/octeon/cvmx-sysinfo.h>
++
++#include <asm/octeon/cvmx-ciu-defs.h>
++#include <asm/octeon/cvmx-gpio-defs.h>
++#include <asm/octeon/cvmx-iob-defs.h>
++#include <asm/octeon/cvmx-ipd-defs.h>
++#include <asm/octeon/cvmx-l2c-defs.h>
++#include <asm/octeon/cvmx-l2d-defs.h>
++#include <asm/octeon/cvmx-l2t-defs.h>
++#include <asm/octeon/cvmx-led-defs.h>
++#include <asm/octeon/cvmx-mio-defs.h>
++#include <asm/octeon/cvmx-pow-defs.h>
++
++#include <asm/octeon/cvmx-bootinfo.h>
++#include <asm/octeon/cvmx-bootmem.h>
++#include <asm/octeon/cvmx-l2c.h>
+ 
+ #ifndef CVMX_ENABLE_DEBUG_PRINTS
+ #define CVMX_ENABLE_DEBUG_PRINTS 1
+diff --git a/arch/mips/include/asm/octeon/octeon-model.h b/arch/mips/include/asm/octeon/octeon-model.h
+index 700f88e..40b81ce 100644
+--- a/arch/mips/include/asm/octeon/octeon-model.h
++++ b/arch/mips/include/asm/octeon/octeon-model.h
+@@ -336,6 +336,6 @@ static inline int __octeon_is_model_runtime__(uint32_t model)
+ const char *octeon_model_get_string(uint32_t chip_id);
+ const char *octeon_model_get_string_buffer(uint32_t chip_id, char *buffer);
+ 
+-#include "octeon-feature.h"
++#include <asm/octeon/octeon-feature.h>
+ 
+ #endif /* __OCTEON_MODEL_H__ */
+diff --git a/arch/mips/include/asm/octeon/octeon.h b/arch/mips/include/asm/octeon/octeon.h
+index f72f768..e314b35 100644
+--- a/arch/mips/include/asm/octeon/octeon.h
++++ b/arch/mips/include/asm/octeon/octeon.h
+@@ -8,7 +8,7 @@
+ #ifndef __ASM_OCTEON_OCTEON_H
+ #define __ASM_OCTEON_OCTEON_H
+ 
+-#include "cvmx.h"
++#include <asm/octeon/cvmx.h>
+ 
+ extern uint64_t octeon_bootmem_alloc_range_phys(uint64_t size,
+ 						uint64_t alignment,
+diff --git a/arch/mips/include/asm/sibyte/bcm1480_int.h b/arch/mips/include/asm/sibyte/bcm1480_int.h
+index 6109557..fffb224 100644
+--- a/arch/mips/include/asm/sibyte/bcm1480_int.h
++++ b/arch/mips/include/asm/sibyte/bcm1480_int.h
+@@ -34,7 +34,7 @@
+ #ifndef _BCM1480_INT_H
+ #define _BCM1480_INT_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  Interrupt Mapper Constants
+diff --git a/arch/mips/include/asm/sibyte/bcm1480_l2c.h b/arch/mips/include/asm/sibyte/bcm1480_l2c.h
+index fd75817..725d38c 100644
+--- a/arch/mips/include/asm/sibyte/bcm1480_l2c.h
++++ b/arch/mips/include/asm/sibyte/bcm1480_l2c.h
+@@ -33,7 +33,7 @@
+ #ifndef _BCM1480_L2C_H
+ #define _BCM1480_L2C_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Format of level 2 cache management address (Table 55)
+diff --git a/arch/mips/include/asm/sibyte/bcm1480_mc.h b/arch/mips/include/asm/sibyte/bcm1480_mc.h
+index f26a41a..4307a75 100644
+--- a/arch/mips/include/asm/sibyte/bcm1480_mc.h
++++ b/arch/mips/include/asm/sibyte/bcm1480_mc.h
+@@ -33,7 +33,7 @@
+ #ifndef _BCM1480_MC_H
+ #define _BCM1480_MC_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Memory Channel Configuration Register (Table 81)
+diff --git a/arch/mips/include/asm/sibyte/bcm1480_regs.h b/arch/mips/include/asm/sibyte/bcm1480_regs.h
+index b4077bb..84d168d 100644
+--- a/arch/mips/include/asm/sibyte/bcm1480_regs.h
++++ b/arch/mips/include/asm/sibyte/bcm1480_regs.h
+@@ -32,14 +32,14 @@
+ #ifndef _BCM1480_REGS_H
+ #define _BCM1480_REGS_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  Pull in the BCM1250's registers since a great deal of the 1480's
+     *  functions are the same as the BCM1250.
+     ********************************************************************* */
+ 
+-#include "sb1250_regs.h"
++#include <asm/sibyte/sb1250_regs.h>
+ 
+ 
+ /*  *********************************************************************
+diff --git a/arch/mips/include/asm/sibyte/bcm1480_scd.h b/arch/mips/include/asm/sibyte/bcm1480_scd.h
+index 25ef24c..2af3706 100644
+--- a/arch/mips/include/asm/sibyte/bcm1480_scd.h
++++ b/arch/mips/include/asm/sibyte/bcm1480_scd.h
+@@ -32,13 +32,13 @@
+ #ifndef _BCM1480_SCD_H
+ #define _BCM1480_SCD_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  Pull in the BCM1250's SCD since lots of stuff is the same.
+     ********************************************************************* */
+ 
+-#include "sb1250_scd.h"
++#include <asm/sibyte/sb1250_scd.h>
+ 
+ /*  *********************************************************************
+     *  Some general notes:
+diff --git a/arch/mips/include/asm/sibyte/sb1250_dma.h b/arch/mips/include/asm/sibyte/sb1250_dma.h
+index bad5617..6c44dfb 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_dma.h
++++ b/arch/mips/include/asm/sibyte/sb1250_dma.h
+@@ -36,7 +36,7 @@
+ #define _SB1250_DMA_H
+ 
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  DMA Registers
+diff --git a/arch/mips/include/asm/sibyte/sb1250_genbus.h b/arch/mips/include/asm/sibyte/sb1250_genbus.h
+index 94e9c7c..a96ded1 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_genbus.h
++++ b/arch/mips/include/asm/sibyte/sb1250_genbus.h
+@@ -34,7 +34,7 @@
+ #ifndef _SB1250_GENBUS_H
+ #define _SB1250_GENBUS_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Generic Bus Region Configuration Registers (Table 11-4)
+diff --git a/arch/mips/include/asm/sibyte/sb1250_int.h b/arch/mips/include/asm/sibyte/sb1250_int.h
+index f2850b4..dbea73d 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_int.h
++++ b/arch/mips/include/asm/sibyte/sb1250_int.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_INT_H
+ #define _SB1250_INT_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  Interrupt Mapper Constants
+diff --git a/arch/mips/include/asm/sibyte/sb1250_l2c.h b/arch/mips/include/asm/sibyte/sb1250_l2c.h
+index 6554dcf..b61a749 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_l2c.h
++++ b/arch/mips/include/asm/sibyte/sb1250_l2c.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_L2C_H
+ #define _SB1250_L2C_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Level 2 Cache Tag register (Table 5-3)
+diff --git a/arch/mips/include/asm/sibyte/sb1250_ldt.h b/arch/mips/include/asm/sibyte/sb1250_ldt.h
+index 1e76cf1..bf7f320 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_ldt.h
++++ b/arch/mips/include/asm/sibyte/sb1250_ldt.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_LDT_H
+ #define _SB1250_LDT_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ #define K_LDT_VENDOR_SIBYTE	0x166D
+ #define K_LDT_DEVICE_SB1250	0x0002
+diff --git a/arch/mips/include/asm/sibyte/sb1250_mac.h b/arch/mips/include/asm/sibyte/sb1250_mac.h
+index 77f7872..cfc4d78 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_mac.h
++++ b/arch/mips/include/asm/sibyte/sb1250_mac.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_MAC_H
+ #define _SB1250_MAC_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  Ethernet MAC Registers
+diff --git a/arch/mips/include/asm/sibyte/sb1250_mc.h b/arch/mips/include/asm/sibyte/sb1250_mc.h
+index 1eb1b5a..15048dc 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_mc.h
++++ b/arch/mips/include/asm/sibyte/sb1250_mc.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_MC_H
+ #define _SB1250_MC_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Memory Channel Config Register (table 6-14)
+diff --git a/arch/mips/include/asm/sibyte/sb1250_regs.h b/arch/mips/include/asm/sibyte/sb1250_regs.h
+index 8f53ec8..29b9f0b 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_regs.h
++++ b/arch/mips/include/asm/sibyte/sb1250_regs.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_REGS_H
+ #define _SB1250_REGS_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ 
+ /*  *********************************************************************
+diff --git a/arch/mips/include/asm/sibyte/sb1250_scd.h b/arch/mips/include/asm/sibyte/sb1250_scd.h
+index e49c3e8..615e165 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_scd.h
++++ b/arch/mips/include/asm/sibyte/sb1250_scd.h
+@@ -32,7 +32,7 @@
+ #ifndef _SB1250_SCD_H
+ #define _SB1250_SCD_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*  *********************************************************************
+     *  System control/debug registers
+diff --git a/arch/mips/include/asm/sibyte/sb1250_smbus.h b/arch/mips/include/asm/sibyte/sb1250_smbus.h
+index 0476992..128d6b7 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_smbus.h
++++ b/arch/mips/include/asm/sibyte/sb1250_smbus.h
+@@ -34,7 +34,7 @@
+ #ifndef _SB1250_SMBUS_H
+ #define _SB1250_SMBUS_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * SMBus Clock Frequency Register (Table 14-2)
+diff --git a/arch/mips/include/asm/sibyte/sb1250_syncser.h b/arch/mips/include/asm/sibyte/sb1250_syncser.h
+index d4b8558..274e917 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_syncser.h
++++ b/arch/mips/include/asm/sibyte/sb1250_syncser.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_SYNCSER_H
+ #define _SB1250_SYNCSER_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /*
+  * Serial Mode Configuration Register
+diff --git a/arch/mips/include/asm/sibyte/sb1250_uart.h b/arch/mips/include/asm/sibyte/sb1250_uart.h
+index d835bf2..bb99eca 100644
+--- a/arch/mips/include/asm/sibyte/sb1250_uart.h
++++ b/arch/mips/include/asm/sibyte/sb1250_uart.h
+@@ -33,7 +33,7 @@
+ #ifndef _SB1250_UART_H
+ #define _SB1250_UART_H
+ 
+-#include "sb1250_defs.h"
++#include <asm/sibyte/sb1250_defs.h>
+ 
+ /* **********************************************************************
+    * DUART Registers
+diff --git a/arch/powerpc/include/asm/ps3.h b/arch/powerpc/include/asm/ps3.h
+index 7f065e1..0e15db4 100644
+--- a/arch/powerpc/include/asm/ps3.h
++++ b/arch/powerpc/include/asm/ps3.h
+@@ -24,7 +24,7 @@
+ #include <linux/init.h>
+ #include <linux/types.h>
+ #include <linux/device.h>
+-#include "cell-pmu.h"
++#include <asm/cell-pmu.h>
+ 
+ union ps3_firmware_version {
+ 	u64 raw;
+diff --git a/arch/powerpc/include/asm/ucc_fast.h b/arch/powerpc/include/asm/ucc_fast.h
+index 839aab8..4644c84 100644
+--- a/arch/powerpc/include/asm/ucc_fast.h
++++ b/arch/powerpc/include/asm/ucc_fast.h
+@@ -19,7 +19,7 @@
+ #include <asm/immap_qe.h>
+ #include <asm/qe.h>
+ 
+-#include "ucc.h"
++#include <asm/ucc.h>
+ 
+ /* Receive BD's status */
+ #define R_E	0x80000000	/* buffer empty */
+diff --git a/arch/powerpc/include/asm/ucc_slow.h b/arch/powerpc/include/asm/ucc_slow.h
+index 0980e6a..cf131ff 100644
+--- a/arch/powerpc/include/asm/ucc_slow.h
++++ b/arch/powerpc/include/asm/ucc_slow.h
+@@ -20,7 +20,7 @@
+ #include <asm/immap_qe.h>
+ #include <asm/qe.h>
+ 
+-#include "ucc.h"
++#include <asm/ucc.h>
+ 
+ /* transmit BD's status */
+ #define T_R	0x80000000	/* ready bit */
+diff --git a/arch/sh/include/asm/checksum.h b/arch/sh/include/asm/checksum.h
+index fc26d1f..34ae262 100644
+--- a/arch/sh/include/asm/checksum.h
++++ b/arch/sh/include/asm/checksum.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_SUPERH32
+-# include "checksum_32.h"
++# include <asm/checksum_32.h>
+ #else
+ # include <asm-generic/checksum.h>
+ #endif
+diff --git a/arch/sh/include/asm/mmu_context.h b/arch/sh/include/asm/mmu_context.h
+index 384c747..21c5088 100644
+--- a/arch/sh/include/asm/mmu_context.h
++++ b/arch/sh/include/asm/mmu_context.h
+@@ -46,9 +46,9 @@
+ #define MMU_VPN_MASK	0xfffff000
+ 
+ #if defined(CONFIG_SUPERH32)
+-#include "mmu_context_32.h"
++#include <asm/mmu_context_32.h>
+ #else
+-#include "mmu_context_64.h"
++#include <asm/mmu_context_64.h>
+ #endif
+ 
+ /*
+diff --git a/arch/sh/include/asm/posix_types.h b/arch/sh/include/asm/posix_types.h
+index 4eeb723..f08449b 100644
+--- a/arch/sh/include/asm/posix_types.h
++++ b/arch/sh/include/asm/posix_types.h
+@@ -1,13 +1,13 @@
+ #ifdef __KERNEL__
+ # ifdef CONFIG_SUPERH32
+-#  include "posix_types_32.h"
++#  include <asm/posix_types_32.h>
+ # else
+-#  include "posix_types_64.h"
++#  include <asm/posix_types_64.h>
+ # endif
+ #else
+ # ifdef __SH5__
+-#  include "posix_types_64.h"
++#  include <asm/posix_types_64.h>
+ # else
+-#  include "posix_types_32.h"
++#  include <asm/posix_types_32.h>
+ # endif
+ #endif /* __KERNEL__ */
+diff --git a/arch/sh/include/asm/processor.h b/arch/sh/include/asm/processor.h
+index 9c7bdfc..9dc9475 100644
+--- a/arch/sh/include/asm/processor.h
++++ b/arch/sh/include/asm/processor.h
+@@ -164,9 +164,9 @@ int vsyscall_init(void);
+ #endif /* __ASSEMBLY__ */
+ 
+ #ifdef CONFIG_SUPERH32
+-# include "processor_32.h"
++# include <asm/processor_32.h>
+ #else
+-# include "processor_64.h"
++# include <asm/processor_64.h>
+ #endif
+ 
+ #endif /* __ASM_SH_PROCESSOR_H */
+diff --git a/arch/sh/include/asm/ptrace.h b/arch/sh/include/asm/ptrace.h
+index 88bd6be..3ba25f3 100644
+--- a/arch/sh/include/asm/ptrace.h
++++ b/arch/sh/include/asm/ptrace.h
+@@ -25,9 +25,9 @@
+ #define PT_TEXT_LEN		252
+ 
+ #if defined(__SH5__) || defined(CONFIG_CPU_SH5)
+-#include "ptrace_64.h"
++#include <asm/ptrace_64.h>
+ #else
+-#include "ptrace_32.h"
++#include <asm/ptrace_32.h>
+ #endif
+ 
+ #ifdef __KERNEL__
+diff --git a/arch/sh/include/asm/string.h b/arch/sh/include/asm/string.h
+index 8c1ea21d..114011f 100644
+--- a/arch/sh/include/asm/string.h
++++ b/arch/sh/include/asm/string.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_SUPERH32
+-# include "string_32.h"
++# include <asm/string_32.h>
+ #else
+-# include "string_64.h"
++# include <asm/string_64.h>
+ #endif
+diff --git a/arch/sh/include/asm/syscall.h b/arch/sh/include/asm/syscall.h
+index aa7777b..847128d 100644
+--- a/arch/sh/include/asm/syscall.h
++++ b/arch/sh/include/asm/syscall.h
+@@ -4,9 +4,9 @@
+ extern const unsigned long sys_call_table[];
+ 
+ #ifdef CONFIG_SUPERH32
+-# include "syscall_32.h"
++# include <asm/syscall_32.h>
+ #else
+-# include "syscall_64.h"
++# include <asm/syscall_64.h>
+ #endif
+ 
+ #endif /* __ASM_SH_SYSCALL_H */
+diff --git a/arch/sh/include/asm/syscalls.h b/arch/sh/include/asm/syscalls.h
+index 507725a..3dbfef0 100644
+--- a/arch/sh/include/asm/syscalls.h
++++ b/arch/sh/include/asm/syscalls.h
+@@ -11,9 +11,9 @@ asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
+ 			  unsigned long fd, unsigned long pgoff);
+ 
+ #ifdef CONFIG_SUPERH32
+-# include "syscalls_32.h"
++# include <asm/syscalls_32.h>
+ #else
+-# include "syscalls_64.h"
++# include <asm/syscalls_64.h>
+ #endif
+ 
+ #endif /* __KERNEL__ */
+diff --git a/arch/sh/include/asm/system.h b/arch/sh/include/asm/system.h
+index 10c8b18..507d082 100644
+--- a/arch/sh/include/asm/system.h
++++ b/arch/sh/include/asm/system.h
+@@ -176,9 +176,9 @@ struct mem_access {
+ };
+ 
+ #ifdef CONFIG_SUPERH32
+-# include "system_32.h"
++# include <asm/system_32.h>
+ #else
+-# include "system_64.h"
++# include <asm/system_64.h>
+ #endif
+ 
+ #endif
+diff --git a/arch/sh/include/asm/tlb.h b/arch/sh/include/asm/tlb.h
+index ec88bfc..e61d43d 100644
+--- a/arch/sh/include/asm/tlb.h
++++ b/arch/sh/include/asm/tlb.h
+@@ -2,7 +2,7 @@
+ #define __ASM_SH_TLB_H
+ 
+ #ifdef CONFIG_SUPERH64
+-# include "tlb_64.h"
++# include <asm/tlb_64.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/arch/sh/include/asm/uaccess.h b/arch/sh/include/asm/uaccess.h
+index 075848f..ee4cf16 100644
+--- a/arch/sh/include/asm/uaccess.h
++++ b/arch/sh/include/asm/uaccess.h
+@@ -95,9 +95,9 @@ struct __large_struct { unsigned long buf[100]; };
+ })
+ 
+ #ifdef CONFIG_SUPERH32
+-# include "uaccess_32.h"
++# include <asm/uaccess_32.h>
+ #else
+-# include "uaccess_64.h"
++# include <asm/uaccess_64.h>
+ #endif
+ 
+ /* Generic arbitrary sized copy.  */
+diff --git a/arch/sh/include/asm/unistd.h b/arch/sh/include/asm/unistd.h
+index 65be656..5e845e8 100644
+--- a/arch/sh/include/asm/unistd.h
++++ b/arch/sh/include/asm/unistd.h
+@@ -1,13 +1,13 @@
+ #ifdef __KERNEL__
+ # ifdef CONFIG_SUPERH32
+-#  include "unistd_32.h"
++#  include <asm/unistd_32.h>
+ # else
+-#  include "unistd_64.h"
++#  include <asm/unistd_64.h>
+ # endif
+ #else
+ # ifdef __SH5__
+-#  include "unistd_64.h"
++#  include <asm/unistd_64.h>
+ # else
+-#  include "unistd_32.h"
++#  include <asm/unistd_32.h>
+ # endif
+ #endif
+diff --git a/arch/sh/include/mach-ecovec24/mach/romimage.h b/arch/sh/include/mach-ecovec24/mach/romimage.h
+index d63ef51..60f3e8a 100644
+--- a/arch/sh/include/mach-ecovec24/mach/romimage.h
++++ b/arch/sh/include/mach-ecovec24/mach/romimage.h
+@@ -6,7 +6,7 @@
+  */
+ 
+ #include <asm/romimage-macros.h>
+-#include "partner-jet-setup.txt"
++#include <mach/partner-jet-setup.txt>
+ 
+ 	/* execute icbi after enabling cache */
+ 	mov.l	1f, r0
+diff --git a/arch/sh/include/mach-kfr2r09/mach/romimage.h b/arch/sh/include/mach-kfr2r09/mach/romimage.h
+index 7a88316..1afae21 100644
+--- a/arch/sh/include/mach-kfr2r09/mach/romimage.h
++++ b/arch/sh/include/mach-kfr2r09/mach/romimage.h
+@@ -6,7 +6,7 @@
+  */
+ 
+ #include <asm/romimage-macros.h>
+-#include "partner-jet-setup.txt"
++#include <mach/partner-jet-setup.txt>
+ 
+ 	/* execute icbi after enabling cache */
+ 	mov.l	1f, r0
+diff --git a/arch/unicore32/include/mach/PKUnity.h b/arch/unicore32/include/mach/PKUnity.h
+index 8040d57..46705af 100644
+--- a/arch/unicore32/include/mach/PKUnity.h
++++ b/arch/unicore32/include/mach/PKUnity.h
+@@ -15,7 +15,7 @@
+ #error You must include hardware.h not PKUnity.h
+ #endif
+ 
+-#include "bitfield.h"
++#include <mach/bitfield.h>
+ 
+ /*
+  * Memory Definitions
+@@ -32,7 +32,7 @@
+  * 0x98000000 - 0x9FFFFFFF 128MB  PCI PCI-AHB MEM-mapping
+  */
+ #define PKUNITY_PCI_BASE		io_p2v(0x80000000) /* 0x80000000 - 0xBFFFFFFF 1GB */
+-#include "regs-pci.h"
++#include <mach/regs-pci.h>
+ 
+ #define PKUNITY_PCICFG_BASE		(PKUNITY_PCI_BASE + 0x0)
+ #define PKUNITY_PCIBRI_BASE		(PKUNITY_PCI_BASE + 0x00010000)
+@@ -50,18 +50,18 @@
+ #define PKUNITY_ARBITER_BASE		(PKUNITY_AHB_BASE + 0x000000) /* AHB-2 */
+ #define PKUNITY_DDR2CTRL_BASE		(PKUNITY_AHB_BASE + 0x100000) /* AHB-3 */
+ #define PKUNITY_DMAC_BASE		(PKUNITY_AHB_BASE + 0x200000) /* AHB-4 */
+-#include "regs-dmac.h"
++#include <mach/regs-dmac.h>
+ #define PKUNITY_UMAL_BASE		(PKUNITY_AHB_BASE + 0x300000) /* AHB-5 */
+-#include "regs-umal.h"
++#include <mach/regs-umal.h>
+ #define PKUNITY_USB_BASE		(PKUNITY_AHB_BASE + 0x400000) /* AHB-6 */
+ #define PKUNITY_SATA_BASE		(PKUNITY_AHB_BASE + 0x500000) /* AHB-7 */
+ #define PKUNITY_SMC_BASE		(PKUNITY_AHB_BASE + 0x600000) /* AHB-8 */
+ /* AHB-9 is for APB bridge */
+ #define PKUNITY_MME_BASE		(PKUNITY_AHB_BASE + 0x700000) /* AHB-10 */
+ #define PKUNITY_UNIGFX_BASE		(PKUNITY_AHB_BASE + 0x800000) /* AHB-11 */
+-#include "regs-unigfx.h"
++#include <mach/regs-unigfx.h>
+ #define PKUNITY_NAND_BASE		(PKUNITY_AHB_BASE + 0x900000) /* AHB-12 */
+-#include "regs-nand.h"
++#include <mach/regs-nand.h>
+ #define PKUNITY_H264D_BASE		(PKUNITY_AHB_BASE + 0xA00000) /* AHB-13 */
+ #define PKUNITY_H264E_BASE		(PKUNITY_AHB_BASE + 0xB00000) /* AHB-14 */
+ 
+@@ -72,27 +72,27 @@
+ 
+ #define PKUNITY_UART0_BASE		(PKUNITY_APB_BASE + 0x000000) /* APB-0 */
+ #define PKUNITY_UART1_BASE		(PKUNITY_APB_BASE + 0x100000) /* APB-1 */
+-#include "regs-uart.h"
++#include <mach/regs-uart.h>
+ #define PKUNITY_I2C_BASE		(PKUNITY_APB_BASE + 0x200000) /* APB-2 */
+-#include "regs-i2c.h"
++#include <mach/regs-i2c.h>
+ #define PKUNITY_SPI_BASE		(PKUNITY_APB_BASE + 0x300000) /* APB-3 */
+-#include "regs-spi.h"
++#include <mach/regs-spi.h>
+ #define PKUNITY_AC97_BASE		(PKUNITY_APB_BASE + 0x400000) /* APB-4 */
+-#include "regs-ac97.h"
++#include <mach/regs-ac97.h>
+ #define PKUNITY_GPIO_BASE		(PKUNITY_APB_BASE + 0x500000) /* APB-5 */
+-#include "regs-gpio.h"
++#include <mach/regs-gpio.h>
+ #define PKUNITY_INTC_BASE		(PKUNITY_APB_BASE + 0x600000) /* APB-6 */
+-#include "regs-intc.h"
++#include <mach/regs-intc.h>
+ #define PKUNITY_RTC_BASE		(PKUNITY_APB_BASE + 0x700000) /* APB-7 */
+-#include "regs-rtc.h"
++#include <mach/regs-rtc.h>
+ #define PKUNITY_OST_BASE		(PKUNITY_APB_BASE + 0x800000) /* APB-8 */
+-#include "regs-ost.h"
++#include <mach/regs-ost.h>
+ #define PKUNITY_RESETC_BASE		(PKUNITY_APB_BASE + 0x900000) /* APB-9 */
+-#include "regs-resetc.h"
++#include <mach/regs-resetc.h>
+ #define PKUNITY_PM_BASE			(PKUNITY_APB_BASE + 0xA00000) /* APB-10 */
+-#include "regs-pm.h"
++#include <mach/regs-pm.h>
+ #define PKUNITY_PS2_BASE		(PKUNITY_APB_BASE + 0xB00000) /* APB-11 */
+-#include "regs-ps2.h"
++#include <mach/regs-ps2.h>
+ #define PKUNITY_SDC_BASE		(PKUNITY_APB_BASE + 0xC00000) /* APB-12 */
+-#include "regs-sdc.h"
++#include <mach/regs-sdc.h>
+ 
+diff --git a/arch/unicore32/include/mach/hardware.h b/arch/unicore32/include/mach/hardware.h
+index 930bea6..9e20b5d 100644
+--- a/arch/unicore32/include/mach/hardware.h
++++ b/arch/unicore32/include/mach/hardware.h
+@@ -15,7 +15,7 @@
+ #ifndef __MACH_PUV3_HARDWARE_H__
+ #define __MACH_PUV3_HARDWARE_H__
+ 
+-#include "PKUnity.h"
++#include <mach/PKUnity.h>
+ 
+ #ifndef __ASSEMBLY__
+ #define io_p2v(x)	(void __iomem *)((x) - PKUNITY_MMIO_BASE)
+diff --git a/arch/unicore32/include/mach/uncompress.h b/arch/unicore32/include/mach/uncompress.h
+index 142d3e7..9be67c9 100644
+--- a/arch/unicore32/include/mach/uncompress.h
++++ b/arch/unicore32/include/mach/uncompress.h
+@@ -13,8 +13,8 @@
+ #ifndef __MACH_PUV3_UNCOMPRESS_H__
+ #define __MACH_PUV3_UNCOMPRESS_H__
+ 
+-#include "hardware.h"
+-#include "ocd.h"
++#include <mach/hardware.h>
++#include <mach/ocd.h>
+ 
+ extern char input_data[];
+ extern char input_data_end[];
+diff --git a/arch/x86/include/asm/atomic.h b/arch/x86/include/asm/atomic.h
+index 952a826..cfe5df8 100644
+--- a/arch/x86/include/asm/atomic.h
++++ b/arch/x86/include/asm/atomic.h
+@@ -314,9 +314,9 @@ static inline void atomic_or_long(unsigned long *v1, unsigned long v2)
+ #define smp_mb__after_atomic_inc()	barrier()
+ 
+ #ifdef CONFIG_X86_32
+-# include "atomic64_32.h"
++# include <asm/atomic64_32.h>
+ #else
+-# include "atomic64_64.h"
++# include <asm/atomic64_64.h>
+ #endif
+ 
+ #include <asm-generic/atomic-long.h>
+diff --git a/arch/x86/include/asm/checksum.h b/arch/x86/include/asm/checksum.h
+index 848850f..5f5bb0f 100644
+--- a/arch/x86/include/asm/checksum.h
++++ b/arch/x86/include/asm/checksum.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "checksum_32.h"
++# include <asm/checksum_32.h>
+ #else
+-# include "checksum_64.h"
++# include <asm/checksum_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/cmpxchg.h b/arch/x86/include/asm/cmpxchg.h
+index a460fa0..ed14064 100644
+--- a/arch/x86/include/asm/cmpxchg.h
++++ b/arch/x86/include/asm/cmpxchg.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "cmpxchg_32.h"
++# include <asm/cmpxchg_32.h>
+ #else
+-# include "cmpxchg_64.h"
++# include <asm/cmpxchg_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/mmzone.h b/arch/x86/include/asm/mmzone.h
+index 64217ea..d497bc4 100644
+--- a/arch/x86/include/asm/mmzone.h
++++ b/arch/x86/include/asm/mmzone.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "mmzone_32.h"
++# include <asm/mmzone_32.h>
+ #else
+-# include "mmzone_64.h"
++# include <asm/mmzone_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/mutex.h b/arch/x86/include/asm/mutex.h
+index a731b9c..7d3a482 100644
+--- a/arch/x86/include/asm/mutex.h
++++ b/arch/x86/include/asm/mutex.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "mutex_32.h"
++# include <asm/mutex_32.h>
+ #else
+-# include "mutex_64.h"
++# include <asm/mutex_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/numa.h b/arch/x86/include/asm/numa.h
+index bfacd2c..49119fc 100644
+--- a/arch/x86/include/asm/numa.h
++++ b/arch/x86/include/asm/numa.h
+@@ -53,9 +53,9 @@ static inline int numa_cpu_node(int cpu)
+ #endif	/* CONFIG_NUMA */
+ 
+ #ifdef CONFIG_X86_32
+-# include "numa_32.h"
++# include <asm/numa_32.h>
+ #else
+-# include "numa_64.h"
++# include <asm/numa_64.h>
+ #endif
+ 
+ #ifdef CONFIG_NUMA
+diff --git a/arch/x86/include/asm/pci.h b/arch/x86/include/asm/pci.h
+index d498943..65de77d 100644
+--- a/arch/x86/include/asm/pci.h
++++ b/arch/x86/include/asm/pci.h
+@@ -132,7 +132,7 @@ void default_teardown_msi_irqs(struct pci_dev *dev);
+ #endif  /* __KERNEL__ */
+ 
+ #ifdef CONFIG_X86_64
+-#include "pci_64.h"
++#include <asm/pci_64.h>
+ #endif
+ 
+ /* implement the pci_ DMA API in terms of the generic device dma_ one */
+diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
+index 18601c8..fe8576b 100644
+--- a/arch/x86/include/asm/pgtable.h
++++ b/arch/x86/include/asm/pgtable.h
+@@ -384,9 +384,9 @@ pte_t *populate_extra_pte(unsigned long vaddr);
+ #endif	/* __ASSEMBLY__ */
+ 
+ #ifdef CONFIG_X86_32
+-# include "pgtable_32.h"
++# include <asm/pgtable_32.h>
+ #else
+-# include "pgtable_64.h"
++# include <asm/pgtable_64.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index d56187c..602a028 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -172,9 +172,9 @@
+ #endif
+ 
+ #ifdef CONFIG_X86_32
+-# include "pgtable_32_types.h"
++# include <asm/pgtable_32_types.h>
+ #else
+-# include "pgtable_64_types.h"
++# include <asm/pgtable_64_types.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/arch/x86/include/asm/posix_types.h b/arch/x86/include/asm/posix_types.h
+index bb7133d..8ddf6f5 100644
+--- a/arch/x86/include/asm/posix_types.h
++++ b/arch/x86/include/asm/posix_types.h
+@@ -1,13 +1,13 @@
+ #ifdef __KERNEL__
+ # ifdef CONFIG_X86_32
+-#  include "posix_types_32.h"
++#  include <asm/posix_types_32.h>
+ # else
+-#  include "posix_types_64.h"
++#  include <asm/posix_types_64.h>
+ # endif
+ #else
+ # ifdef __i386__
+-#  include "posix_types_32.h"
++#  include <asm/posix_types_32.h>
+ # else
+-#  include "posix_types_64.h"
++#  include <asm/posix_types_64.h>
+ # endif
+ #endif
+diff --git a/arch/x86/include/asm/seccomp.h b/arch/x86/include/asm/seccomp.h
+index c62e58a..0f3d7f0 100644
+--- a/arch/x86/include/asm/seccomp.h
++++ b/arch/x86/include/asm/seccomp.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "seccomp_32.h"
++# include <asm/seccomp_32.h>
+ #else
+-# include "seccomp_64.h"
++# include <asm/seccomp_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/string.h b/arch/x86/include/asm/string.h
+index 6dfd6d9..09224d7 100644
+--- a/arch/x86/include/asm/string.h
++++ b/arch/x86/include/asm/string.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "string_32.h"
++# include <asm/string_32.h>
+ #else
+-# include "string_64.h"
++# include <asm/string_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/suspend.h b/arch/x86/include/asm/suspend.h
+index 9bd521f..2fab6c2 100644
+--- a/arch/x86/include/asm/suspend.h
++++ b/arch/x86/include/asm/suspend.h
+@@ -1,5 +1,5 @@
+ #ifdef CONFIG_X86_32
+-# include "suspend_32.h"
++# include <asm/suspend_32.h>
+ #else
+-# include "suspend_64.h"
++# include <asm/suspend_64.h>
+ #endif
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index 99ddd14..f7d304d 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -567,9 +567,9 @@ extern struct movsl_mask {
+ #define ARCH_HAS_NOCACHE_UACCESS 1
+ 
+ #ifdef CONFIG_X86_32
+-# include "uaccess_32.h"
++# include <asm/uaccess_32.h>
+ #else
+-# include "uaccess_64.h"
++# include <asm/uaccess_64.h>
+ #endif
+ 
+ #endif /* _ASM_X86_UACCESS_H */
+diff --git a/arch/x86/include/asm/unistd.h b/arch/x86/include/asm/unistd.h
+index 2a58ed3..762be46 100644
+--- a/arch/x86/include/asm/unistd.h
++++ b/arch/x86/include/asm/unistd.h
+@@ -1,13 +1,13 @@
+ #ifdef __KERNEL__
+ # ifdef CONFIG_X86_32
+-#  include "unistd_32.h"
++#  include <asm/unistd_32.h>
+ # else
+-#  include "unistd_64.h"
++#  include <asm/unistd_64.h>
+ # endif
+ #else
+ # ifdef __i386__
+-#  include "unistd_32.h"
++#  include <asm/unistd_32.h>
+ # else
+-#  include "unistd_64.h"
++#  include <asm/unistd_64.h>
+ # endif
+ #endif
+diff --git a/arch/x86/include/asm/user.h b/arch/x86/include/asm/user.h
+index 24532c7..ccab4af 100644
+--- a/arch/x86/include/asm/user.h
++++ b/arch/x86/include/asm/user.h
+@@ -2,9 +2,9 @@
+ #define _ASM_X86_USER_H
+ 
+ #ifdef CONFIG_X86_32
+-# include "user_32.h"
++# include <asm/user_32.h>
+ #else
+-# include "user_64.h"
++# include <asm/user_64.h>
+ #endif
+ 
+ #include <asm/types.h>
+diff --git a/arch/x86/include/asm/xen/interface.h b/arch/x86/include/asm/xen/interface.h
+index 5d4922a..b85afb6 100644
+--- a/arch/x86/include/asm/xen/interface.h
++++ b/arch/x86/include/asm/xen/interface.h
+@@ -114,9 +114,9 @@ struct arch_shared_info {
+ #endif	/* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_X86_32
+-#include "interface_32.h"
++#include <asm/xen/interface_32.h>
+ #else
+-#include "interface_64.h"
++#include <asm/xen/interface_64.h>
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+diff --git a/arch/x86/include/asm/xor.h b/arch/x86/include/asm/xor.h
+index 7fcf6f3..f8fde90 100644
+--- a/arch/x86/include/asm/xor.h
++++ b/arch/x86/include/asm/xor.h
+@@ -3,8 +3,8 @@
+ # include <asm-generic/xor.h>
+ #else
+ #ifdef CONFIG_X86_32
+-# include "xor_32.h"
++# include <asm/xor_32.h>
+ #else
+-# include "xor_64.h"
++# include <asm/xor_64.h>
+ #endif
+ #endif
+diff --git a/include/acpi/acpi.h b/include/acpi/acpi.h
+index de39915..b187b49 100644
+--- a/include/acpi/acpi.h
++++ b/include/acpi/acpi.h
+@@ -53,14 +53,14 @@
+  *
+  * Note: The order of these include files is important.
+  */
+-#include "platform/acenv.h"	/* Environment-specific items */
+-#include "acnames.h"		/* Common ACPI names and strings */
+-#include "actypes.h"		/* ACPICA data types and structures */
+-#include "acexcep.h"		/* ACPICA exceptions */
+-#include "actbl.h"		/* ACPI table definitions */
+-#include "acoutput.h"		/* Error output and Debug macros */
+-#include "acrestyp.h"		/* Resource Descriptor structs */
+-#include "acpiosxf.h"		/* OSL interfaces (ACPICA-to-OS) */
+-#include "acpixf.h"		/* ACPI core subsystem external interfaces */
++#include <acpi/platform/acenv.h>	/* Environment-specific items */
++#include <acpi/acnames.h>		/* Common ACPI names and strings */
++#include <acpi/actypes.h>		/* ACPICA data types and structures */
++#include <acpi/acexcep.h>		/* ACPICA exceptions */
++#include <acpi/actbl.h>		/* ACPI table definitions */
++#include <acpi/acoutput.h>		/* Error output and Debug macros */
++#include <acpi/acrestyp.h>		/* Resource Descriptor structs */
++#include <acpi/acpiosxf.h>		/* OSL interfaces (ACPICA-to-OS) */
++#include <acpi/acpixf.h>		/* ACPI core subsystem external interfaces */
+ 
+ #endif				/* __ACPI_H__ */
+diff --git a/include/acpi/acpiosxf.h b/include/acpi/acpiosxf.h
+index a756bc8..aa7c3d6 100644
+--- a/include/acpi/acpiosxf.h
++++ b/include/acpi/acpiosxf.h
+@@ -47,8 +47,8 @@
+ #ifndef __ACPIOSXF_H__
+ #define __ACPIOSXF_H__
+ 
+-#include "platform/acenv.h"
+-#include "actypes.h"
++#include <acpi/platform/acenv.h>
++#include <acpi/actypes.h>
+ 
+ /* Types for acpi_os_execute */
+ 
+diff --git a/include/acpi/acpixf.h b/include/acpi/acpixf.h
+index 2ed0a84..dae6451 100644
+--- a/include/acpi/acpixf.h
++++ b/include/acpi/acpixf.h
+@@ -49,8 +49,8 @@
+ 
+ #define ACPI_CA_VERSION                 0x20110413
+ 
+-#include "actypes.h"
+-#include "actbl.h"
++#include <acpi/actypes.h>
++#include <acpi/actbl.h>
+ 
+ extern u8 acpi_gbl_permanent_mmap;
+ 
+diff --git a/include/acpi/platform/acenv.h b/include/acpi/platform/acenv.h
+index 5af3ed5..f6cb696 100644
+--- a/include/acpi/platform/acenv.h
++++ b/include/acpi/platform/acenv.h
+@@ -138,7 +138,7 @@
+ /*! [Begin] no source code translation */
+ 
+ #if defined(_LINUX) || defined(__linux__)
+-#include "aclinux.h"
++#include <acpi/platform/aclinux.h>
+ 
+ #elif defined(_AED_EFI)
+ #include "acefi.h"
+diff --git a/include/acpi/platform/aclinux.h b/include/acpi/platform/aclinux.h
+index 5d2a5e9..ab69a6c 100644
+--- a/include/acpi/platform/aclinux.h
++++ b/include/acpi/platform/aclinux.h
+@@ -108,7 +108,7 @@
+ 
+ /* Linux uses GCC */
+ 
+-#include "acgcc.h"
++#include <acpi/platform/acgcc.h>
+ 
+ 
+ #ifdef __KERNEL__
+diff --git a/include/drm/drm.h b/include/drm/drm.h
+index 4be33b4..cc23e0f 100644
+--- a/include/drm/drm.h
++++ b/include/drm/drm.h
+@@ -617,7 +617,7 @@ struct drm_get_cap {
+ 	__u64 value;
+ };
+ 
+-#include "drm_mode.h"
++#include <drm/drm_mode.h>
+ 
+ #define DRM_IOCTL_BASE			'd'
+ #define DRM_IO(nr)			_IO(DRM_IOCTL_BASE,nr)
+diff --git a/include/drm/drmP.h b/include/drm/drmP.h
+index 738b3a5..00c02fc 100644
+--- a/include/drm/drmP.h
++++ b/include/drm/drmP.h
+@@ -73,7 +73,7 @@
+ #include <linux/workqueue.h>
+ #include <linux/poll.h>
+ #include <asm/pgalloc.h>
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ #include <linux/idr.h>
+ 
+@@ -83,9 +83,9 @@
+ struct drm_file;
+ struct drm_device;
+ 
+-#include "drm_os_linux.h"
+-#include "drm_hashtab.h"
+-#include "drm_mm.h"
++#include <drm/drm_os_linux.h>
++#include <drm/drm_hashtab.h>
++#include <drm/drm_mm.h>
+ 
+ #define DRM_UT_CORE 		0x01
+ #define DRM_UT_DRIVER		0x02
+@@ -653,7 +653,7 @@ struct drm_gem_object {
+ 	void *driver_private;
+ };
+ 
+-#include "drm_crtc.h"
++#include <drm/drm_crtc.h>
+ 
+ /* per-master structure */
+ struct drm_master {
+@@ -1258,7 +1258,7 @@ extern void drm_vm_close_locked(struct vm_area_struct *vma);
+ extern unsigned int drm_poll(struct file *filp, struct poll_table_struct *wait);
+ 
+ 				/* Memory management support (drm_memory.h) */
+-#include "drm_memory.h"
++#include <drm/drm_memory.h>
+ extern void drm_mem_init(void);
+ extern int drm_mem_info(char *buf, char **start, off_t offset,
+ 			int request, int *eof, void *data);
+@@ -1544,7 +1544,7 @@ void drm_gem_vm_open(struct vm_area_struct *vma);
+ void drm_gem_vm_close(struct vm_area_struct *vma);
+ int drm_gem_mmap(struct file *filp, struct vm_area_struct *vma);
+ 
+-#include "drm_global.h"
++#include <drm/drm_global.h>
+ 
+ static inline void
+ drm_gem_object_reference(struct drm_gem_object *obj)
+@@ -1650,7 +1650,7 @@ static __inline__ void drm_core_dropmap(struct drm_local_map *map)
+ {
+ }
+ 
+-#include "drm_mem_util.h"
++#include <drm/drm_mem_util.h>
+ 
+ extern int drm_fill_in_dev(struct drm_device *dev,
+ 			   const struct pci_device_id *ent,
+diff --git a/include/drm/drm_buffer.h b/include/drm/drm_buffer.h
+index 322dbff..c80d3a3 100644
+--- a/include/drm/drm_buffer.h
++++ b/include/drm/drm_buffer.h
+@@ -35,7 +35,7 @@
+ #ifndef _DRM_BUFFER_H_
+ #define _DRM_BUFFER_H_
+ 
+-#include "drmP.h"
++#include <drm/drmP.h>
+ 
+ struct drm_buffer {
+ 	int iterator;
+diff --git a/include/drm/drm_encoder_slave.h b/include/drm/drm_encoder_slave.h
+index 2f65633..a8d8053 100644
+--- a/include/drm/drm_encoder_slave.h
++++ b/include/drm/drm_encoder_slave.h
+@@ -27,8 +27,8 @@
+ #ifndef __DRM_ENCODER_SLAVE_H__
+ #define __DRM_ENCODER_SLAVE_H__
+ 
+-#include "drmP.h"
+-#include "drm_crtc.h"
++#include <drm/drmP.h>
++#include <drm/drm_crtc.h>
+ 
+ /**
+  * struct drm_encoder_slave_funcs - Entry points exposed by a slave encoder driver
+diff --git a/include/drm/drm_memory.h b/include/drm/drm_memory.h
+index 15af9b3..4baf57a 100644
+--- a/include/drm/drm_memory.h
++++ b/include/drm/drm_memory.h
+@@ -35,7 +35,7 @@
+ 
+ #include <linux/highmem.h>
+ #include <linux/vmalloc.h>
+-#include "drmP.h"
++#include <drm/drmP.h>
+ 
+ /**
+  * Cut down version of drm_memory_debug.h, which used to be called
+diff --git a/include/drm/drm_sarea.h b/include/drm/drm_sarea.h
+index ee5389d..d3aedc9 100644
+--- a/include/drm/drm_sarea.h
++++ b/include/drm/drm_sarea.h
+@@ -32,7 +32,7 @@
+ #ifndef _DRM_SAREA_H_
+ #define _DRM_SAREA_H_
+ 
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ /* SAREA area needs to be at least a page */
+ #if defined(__alpha__)
+diff --git a/include/drm/drm_sman.h b/include/drm/drm_sman.h
+index 08ecf83..d333112 100644
+--- a/include/drm/drm_sman.h
++++ b/include/drm/drm_sman.h
+@@ -39,8 +39,8 @@
+ #ifndef DRM_SMAN_H
+ #define DRM_SMAN_H
+ 
+-#include "drmP.h"
+-#include "drm_hashtab.h"
++#include <drm/drmP.h>
++#include <drm/drm_hashtab.h>
+ 
+ /*
+  * A class that is an abstration of a simple memory allocator.
+diff --git a/include/drm/i915_drm.h b/include/drm/i915_drm.h
+index c4d6dbf..e458c1f 100644
+--- a/include/drm/i915_drm.h
++++ b/include/drm/i915_drm.h
+@@ -27,7 +27,7 @@
+ #ifndef _I915_DRM_H_
+ #define _I915_DRM_H_
+ 
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ /* Please note that modifications to all structs defined here are
+  * subject to backwards-compatibility constraints.
+diff --git a/include/drm/mga_drm.h b/include/drm/mga_drm.h
+index fca8170..2375bfd 100644
+--- a/include/drm/mga_drm.h
++++ b/include/drm/mga_drm.h
+@@ -35,7 +35,7 @@
+ #ifndef __MGA_DRM_H__
+ #define __MGA_DRM_H__
+ 
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ /* WARNING: If you change any of these defines, make sure to change the
+  * defines in the Xserver file (mga_sarea.h)
+diff --git a/include/drm/radeon_drm.h b/include/drm/radeon_drm.h
+index 787f7b6..a86005a 100644
+--- a/include/drm/radeon_drm.h
++++ b/include/drm/radeon_drm.h
+@@ -33,7 +33,7 @@
+ #ifndef __RADEON_DRM_H__
+ #define __RADEON_DRM_H__
+ 
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ /* WARNING: If you change any of these defines, make sure to change the
+  * defines in the X server file (radeon_sarea.h)
+diff --git a/include/drm/ttm/ttm_bo_api.h b/include/drm/ttm/ttm_bo_api.h
+index 62a0e4c..40d3139 100644
+--- a/include/drm/ttm/ttm_bo_api.h
++++ b/include/drm/ttm/ttm_bo_api.h
+@@ -31,7 +31,7 @@
+ #ifndef _TTM_BO_API_H_
+ #define _TTM_BO_API_H_
+ 
+-#include "drm_hashtab.h"
++#include <drm/drm_hashtab.h>
+ #include <linux/kref.h>
+ #include <linux/list.h>
+ #include <linux/wait.h>
+diff --git a/include/drm/ttm/ttm_bo_driver.h b/include/drm/ttm/ttm_bo_driver.h
+index 09af2d7..859a1ef 100644
+--- a/include/drm/ttm/ttm_bo_driver.h
++++ b/include/drm/ttm/ttm_bo_driver.h
+@@ -30,14 +30,14 @@
+ #ifndef _TTM_BO_DRIVER_H_
+ #define _TTM_BO_DRIVER_H_
+ 
+-#include "ttm/ttm_bo_api.h"
+-#include "ttm/ttm_memory.h"
+-#include "ttm/ttm_module.h"
+-#include "drm_mm.h"
+-#include "drm_global.h"
+-#include "linux/workqueue.h"
+-#include "linux/fs.h"
+-#include "linux/spinlock.h"
++#include <ttm/ttm_bo_api.h>
++#include <ttm/ttm_memory.h>
++#include <ttm/ttm_module.h>
++#include <drm/drm_mm.h>
++#include <drm/drm_global.h>
++#include <linux/workqueue.h>
++#include <linux/fs.h>
++#include <linux/spinlock.h>
+ 
+ struct ttm_backend;
+ 
+diff --git a/include/drm/ttm/ttm_execbuf_util.h b/include/drm/ttm/ttm_execbuf_util.h
+index 26cc7f9..1926cae 100644
+--- a/include/drm/ttm/ttm_execbuf_util.h
++++ b/include/drm/ttm/ttm_execbuf_util.h
+@@ -31,7 +31,7 @@
+ #ifndef _TTM_EXECBUF_UTIL_H_
+ #define _TTM_EXECBUF_UTIL_H_
+ 
+-#include "ttm/ttm_bo_api.h"
++#include <ttm/ttm_bo_api.h>
+ #include <linux/list.h>
+ 
+ /**
+diff --git a/include/drm/ttm/ttm_lock.h b/include/drm/ttm/ttm_lock.h
+index 81ba0b0..9866968 100644
+--- a/include/drm/ttm/ttm_lock.h
++++ b/include/drm/ttm/ttm_lock.h
+@@ -49,7 +49,7 @@
+ #ifndef _TTM_LOCK_H_
+ #define _TTM_LOCK_H_
+ 
+-#include "ttm/ttm_object.h"
++#include <ttm/ttm_object.h>
+ #include <linux/wait.h>
+ #include <asm/atomic.h>
+ 
+diff --git a/include/drm/ttm/ttm_object.h b/include/drm/ttm/ttm_object.h
+index 0d9db09..0d82477 100644
+--- a/include/drm/ttm/ttm_object.h
++++ b/include/drm/ttm/ttm_object.h
+@@ -38,7 +38,7 @@
+ #define _TTM_OBJECT_H_
+ 
+ #include <linux/list.h>
+-#include "drm_hashtab.h"
++#include <drm/drm_hashtab.h>
+ #include <linux/kref.h>
+ #include <ttm/ttm_memory.h>
+ 
+diff --git a/include/drm/ttm/ttm_page_alloc.h b/include/drm/ttm/ttm_page_alloc.h
+index 8062890..7879722 100644
+--- a/include/drm/ttm/ttm_page_alloc.h
++++ b/include/drm/ttm/ttm_page_alloc.h
+@@ -26,8 +26,8 @@
+ #ifndef TTM_PAGE_ALLOC
+ #define TTM_PAGE_ALLOC
+ 
+-#include "ttm_bo_driver.h"
+-#include "ttm_memory.h"
++#include <drm/ttm/ttm_bo_driver.h>
++#include <drm/ttm/ttm_memory.h>
+ 
+ /**
+  * Get count number of pages from pool to pages list.
+diff --git a/include/drm/via_drm.h b/include/drm/via_drm.h
+index fd11a5b..45bc80c 100644
+--- a/include/drm/via_drm.h
++++ b/include/drm/via_drm.h
+@@ -24,7 +24,7 @@
+ #ifndef _VIA_DRM_H_
+ #define _VIA_DRM_H_
+ 
+-#include "drm.h"
++#include <drm/drm.h>
+ 
+ /* WARNING: These defines must be the same as what the Xserver uses.
+  * if you change them, you must change the defines in the Xserver.
+diff --git a/include/linux/ceph/ceph_fs.h b/include/linux/ceph/ceph_fs.h
+index b8c6069..b8d618a 100644
+--- a/include/linux/ceph/ceph_fs.h
++++ b/include/linux/ceph/ceph_fs.h
+@@ -12,8 +12,8 @@
+ #ifndef CEPH_FS_H
+ #define CEPH_FS_H
+ 
+-#include "msgr.h"
+-#include "rados.h"
++#include <linux/ceph/msgr.h>
++#include <linux/ceph/rados.h>
+ 
+ /*
+  * subprotocol versions.  when specific messages types or high-level
+diff --git a/include/linux/ceph/debugfs.h b/include/linux/ceph/debugfs.h
+index 2a79702..1df086d 100644
+--- a/include/linux/ceph/debugfs.h
++++ b/include/linux/ceph/debugfs.h
+@@ -1,8 +1,8 @@
+ #ifndef _FS_CEPH_DEBUGFS_H
+ #define _FS_CEPH_DEBUGFS_H
+ 
+-#include "ceph_debug.h"
+-#include "types.h"
++#include <linux/ceph/ceph_debug.h>
++#include <linux/ceph/types.h>
+ 
+ #define CEPH_DEFINE_SHOW_FUNC(name)					\
+ static int name##_open(struct inode *inode, struct file *file)		\
+diff --git a/include/linux/ceph/decode.h b/include/linux/ceph/decode.h
+index c5b6939..930441d 100644
+--- a/include/linux/ceph/decode.h
++++ b/include/linux/ceph/decode.h
+@@ -4,7 +4,7 @@
+ #include <asm/unaligned.h>
+ #include <linux/time.h>
+ 
+-#include "types.h"
++#include <linux/ceph/types.h>
+ 
+ /*
+  * in all cases,
+diff --git a/include/linux/ceph/libceph.h b/include/linux/ceph/libceph.h
+index 6365f04..54e054c 100644
+--- a/include/linux/ceph/libceph.h
++++ b/include/linux/ceph/libceph.h
+@@ -1,7 +1,7 @@
+ #ifndef _FS_CEPH_LIBCEPH_H
+ #define _FS_CEPH_LIBCEPH_H
+ 
+-#include "ceph_debug.h"
++#include <linux/ceph/ceph_debug.h>
+ 
+ #include <asm/unaligned.h>
+ #include <linux/backing-dev.h>
+@@ -14,12 +14,12 @@
+ #include <linux/writeback.h>
+ #include <linux/slab.h>
+ 
+-#include "types.h"
+-#include "messenger.h"
+-#include "msgpool.h"
+-#include "mon_client.h"
+-#include "osd_client.h"
+-#include "ceph_fs.h"
++#include <linux/ceph/types.h>
++#include <linux/ceph/messenger.h>
++#include <linux/ceph/msgpool.h>
++#include <linux/ceph/mon_client.h>
++#include <linux/ceph/osd_client.h>
++#include <linux/ceph/ceph_fs.h>
+ 
+ /*
+  * Supported features
+diff --git a/include/linux/ceph/mdsmap.h b/include/linux/ceph/mdsmap.h
+index 4c5cb08..3abff9e 100644
+--- a/include/linux/ceph/mdsmap.h
++++ b/include/linux/ceph/mdsmap.h
+@@ -1,7 +1,7 @@
+ #ifndef _FS_CEPH_MDSMAP_H
+ #define _FS_CEPH_MDSMAP_H
+ 
+-#include "types.h"
++#include <linux/ceph/types.h>
+ 
+ /*
+  * mds map - describe servers in the mds cluster.
+diff --git a/include/linux/ceph/messenger.h b/include/linux/ceph/messenger.h
+index 31d91a6..50a785c 100644
+--- a/include/linux/ceph/messenger.h
++++ b/include/linux/ceph/messenger.h
+@@ -9,8 +9,8 @@
+ #include <linux/version.h>
+ #include <linux/workqueue.h>
+ 
+-#include "types.h"
+-#include "buffer.h"
++#include <linux/ceph/types.h>
++#include <linux/ceph/buffer.h>
+ 
+ struct ceph_msg;
+ struct ceph_connection;
+diff --git a/include/linux/ceph/mon_client.h b/include/linux/ceph/mon_client.h
+index 545f859..6b80e63 100644
+--- a/include/linux/ceph/mon_client.h
++++ b/include/linux/ceph/mon_client.h
+@@ -5,7 +5,7 @@
+ #include <linux/kref.h>
+ #include <linux/rbtree.h>
+ 
+-#include "messenger.h"
++#include <linux/ceph/messenger.h>
+ 
+ struct ceph_client;
+ struct ceph_mount_args;
+diff --git a/include/linux/ceph/msgpool.h b/include/linux/ceph/msgpool.h
+index a362605..0d92733 100644
+--- a/include/linux/ceph/msgpool.h
++++ b/include/linux/ceph/msgpool.h
+@@ -2,7 +2,7 @@
+ #define _FS_CEPH_MSGPOOL
+ 
+ #include <linux/mempool.h>
+-#include "messenger.h"
++#include <linux/ceph/messenger.h>
+ 
+ /*
+  * we use memory pools for preallocating messages we may receive, to
+diff --git a/include/linux/ceph/osd_client.h b/include/linux/ceph/osd_client.h
+index f88eacb..caaf03a 100644
+--- a/include/linux/ceph/osd_client.h
++++ b/include/linux/ceph/osd_client.h
+@@ -6,9 +6,9 @@
+ #include <linux/mempool.h>
+ #include <linux/rbtree.h>
+ 
+-#include "types.h"
+-#include "osdmap.h"
+-#include "messenger.h"
++#include <linux/ceph/types.h>
++#include <linux/ceph/osdmap.h>
++#include <linux/ceph/messenger.h>
+ 
+ struct ceph_msg;
+ struct ceph_snap_context;
+diff --git a/include/linux/ceph/osdmap.h b/include/linux/ceph/osdmap.h
+index ba4c205..4ae6e27 100644
+--- a/include/linux/ceph/osdmap.h
++++ b/include/linux/ceph/osdmap.h
+@@ -2,8 +2,8 @@
+ #define _FS_CEPH_OSDMAP_H
+ 
+ #include <linux/rbtree.h>
+-#include "types.h"
+-#include "ceph_fs.h"
++#include <linux/ceph/types.h>
++#include <linux/ceph/ceph_fs.h>
+ #include <linux/crush/crush.h>
+ 
+ /*
+diff --git a/include/linux/ceph/rados.h b/include/linux/ceph/rados.h
+index 0a99099..de91fbd 100644
+--- a/include/linux/ceph/rados.h
++++ b/include/linux/ceph/rados.h
+@@ -6,7 +6,7 @@
+  * (Reliable Autonomic Distributed Object Store).
+  */
+ 
+-#include "msgr.h"
++#include <linux/ceph/msgr.h>
+ 
+ /*
+  * osdmap encoding versions
+diff --git a/include/linux/ceph/types.h b/include/linux/ceph/types.h
+index 28b35a0..d3ff1cf 100644
+--- a/include/linux/ceph/types.h
++++ b/include/linux/ceph/types.h
+@@ -7,9 +7,9 @@
+ #include <linux/fcntl.h>
+ #include <linux/string.h>
+ 
+-#include "ceph_fs.h"
+-#include "ceph_frag.h"
+-#include "ceph_hash.h"
++#include <linux/ceph/ceph_fs.h>
++#include <linux/ceph/ceph_frag.h>
++#include <linux/ceph/ceph_hash.h>
+ 
+ /*
+  * Identify inodes by both their ino AND snapshot id (a u64).
+diff --git a/include/linux/crush/mapper.h b/include/linux/crush/mapper.h
+index c46b99c..bfe81a5 100644
+--- a/include/linux/crush/mapper.h
++++ b/include/linux/crush/mapper.h
+@@ -8,7 +8,7 @@
+  * LGPL2
+  */
+ 
+-#include "crush.h"
++#include <linux/crush/crush.h>
+ 
+ extern int crush_find_rule(struct crush_map *map, int pool, int type, int size);
+ extern int crush_do_rule(struct crush_map *map,
+diff --git a/include/linux/drbd_tag_magic.h b/include/linux/drbd_tag_magic.h
+index 0695431..82de1f9 100644
+--- a/include/linux/drbd_tag_magic.h
++++ b/include/linux/drbd_tag_magic.h
+@@ -12,7 +12,7 @@ enum packet_types {
+ #define NL_INT64(pn, pr, member)
+ #define NL_BIT(pn, pr, member)
+ #define NL_STRING(pn, pr, member, len)
+-#include "drbd_nl.h"
++#include <linux/drbd_nl.h>
+ 	P_nl_after_last_packet,
+ };
+ 
+@@ -28,7 +28,7 @@ enum packet_types {
+ #define NL_STRING(pn, pr, member, len)	\
+ 	unsigned char member[len]; int member ## _len; \
+ 	int tag_and_len ## member;
+-#include "linux/drbd_nl.h"
++#include <linux/drbd_nl.h>
+ 
+ /* declare tag-list-sizes */
+ static const int tag_list_sizes[] = {
+@@ -37,7 +37,7 @@ static const int tag_list_sizes[] = {
+ #define NL_INT64(pn, pr, member)        + 4 + 8
+ #define NL_BIT(pn, pr, member)          + 4 + 1
+ #define NL_STRING(pn, pr, member, len)  + 4 + (len)
+-#include "drbd_nl.h"
++#include <linux/drbd_nl.h>
+ };
+ 
+ /* The two highest bits are used for the tag type */
+@@ -62,7 +62,7 @@ enum drbd_tags {
+ #define NL_INT64(pn, pr, member)       T_ ## member = pn | TT_INT64   | pr ,
+ #define NL_BIT(pn, pr, member)         T_ ## member = pn | TT_BIT     | pr ,
+ #define NL_STRING(pn, pr, member, len) T_ ## member = pn | TT_STRING  | pr ,
+-#include "drbd_nl.h"
++#include <linux/drbd_nl.h>
+ };
+ 
+ struct tag {
+@@ -78,7 +78,7 @@ static const struct tag tag_descriptions[] = {
+ #define NL_INT64(pn, pr, member)       [ pn ] = { #member, TT_INT64   | pr, sizeof(__u64) },
+ #define NL_BIT(pn, pr, member)         [ pn ] = { #member, TT_BIT     | pr, sizeof(int)   },
+ #define NL_STRING(pn, pr, member, len) [ pn ] = { #member, TT_STRING  | pr, (len)         },
+-#include "drbd_nl.h"
++#include <linux/drbd_nl.h>
+ };
+ 
+ #endif
+diff --git a/include/linux/netfilter/nf_conntrack_h323_asn1.h b/include/linux/netfilter/nf_conntrack_h323_asn1.h
+index 8dab596..3176a27 100644
+--- a/include/linux/netfilter/nf_conntrack_h323_asn1.h
++++ b/include/linux/netfilter/nf_conntrack_h323_asn1.h
+@@ -40,7 +40,7 @@
+ /*****************************************************************************
+  * H.323 Types
+  ****************************************************************************/
+-#include "nf_conntrack_h323_types.h"
++#include <linux/netfilter/nf_conntrack_h323_types.h>
+ 
+ typedef struct {
+ 	enum {
+diff --git a/include/scsi/osd_attributes.h b/include/scsi/osd_attributes.h
+index 56e920a..303ba11 100644
+--- a/include/scsi/osd_attributes.h
++++ b/include/scsi/osd_attributes.h
+@@ -1,7 +1,7 @@
+ #ifndef __OSD_ATTRIBUTES_H__
+ #define __OSD_ATTRIBUTES_H__
+ 
+-#include "osd_protocol.h"
++#include <scsi/osd_protocol.h>
+ 
+ /*
+  * Contains types and constants that define attribute pages and attribute
+diff --git a/include/scsi/osd_initiator.h b/include/scsi/osd_initiator.h
+index 0a50799..8463233 100644
+--- a/include/scsi/osd_initiator.h
++++ b/include/scsi/osd_initiator.h
+@@ -14,8 +14,8 @@
+ #ifndef __OSD_INITIATOR_H__
+ #define __OSD_INITIATOR_H__
+ 
+-#include "osd_protocol.h"
+-#include "osd_types.h"
++#include <scsi/osd_protocol.h>
++#include <scsi/osd_types.h>
+ 
+ #include <linux/blkdev.h>
+ #include <scsi/scsi_device.h>
+diff --git a/include/scsi/osd_sec.h b/include/scsi/osd_sec.h
+index 4c09fee..f96151c 100644
+--- a/include/scsi/osd_sec.h
++++ b/include/scsi/osd_sec.h
+@@ -14,8 +14,8 @@
+ #ifndef __OSD_SEC_H__
+ #define __OSD_SEC_H__
+ 
+-#include "osd_protocol.h"
+-#include "osd_types.h"
++#include <scsi/osd_protocol.h>
++#include <scsi/osd_types.h>
+ 
+ /*
+  * Contains types and constants of osd capabilities and security
+diff --git a/include/sound/ac97_codec.h b/include/sound/ac97_codec.h
+index 02cbb50..fdeb8dc 100644
+--- a/include/sound/ac97_codec.h
++++ b/include/sound/ac97_codec.h
+@@ -28,9 +28,9 @@
+ #include <linux/bitops.h>
+ #include <linux/device.h>
+ #include <linux/workqueue.h>
+-#include "pcm.h"
+-#include "control.h"
+-#include "info.h"
++#include <sound/pcm.h>
++#include <sound/control.h>
++#include <sound/info.h>
+ 
+ /* maximum number of devices on the AC97 bus */
+ #define	AC97_BUS_MAX_DEVICES	4
+diff --git a/include/sound/ad1816a.h b/include/sound/ad1816a.h
+index d010858..a7d8dc7 100644
+--- a/include/sound/ad1816a.h
++++ b/include/sound/ad1816a.h
+@@ -20,9 +20,9 @@
+     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ */
+ 
+-#include "control.h"
+-#include "pcm.h"
+-#include "timer.h"
++#include <sound/control.h>
++#include <sound/pcm.h>
++#include <sound/timer.h>
+ 
+ #define AD1816A_REG(r)			(chip->port + r)
+ 
+diff --git a/include/sound/ak4531_codec.h b/include/sound/ak4531_codec.h
+index 575296c..85ea86e 100644
+--- a/include/sound/ak4531_codec.h
++++ b/include/sound/ak4531_codec.h
+@@ -25,8 +25,8 @@
+  *
+  */
+ 
+-#include "info.h"
+-#include "control.h"
++#include <sound/info.h>
++#include <sound/control.h>
+ 
+ /*
+  *  ASAHI KASEI - AK4531 codec
+diff --git a/include/sound/cs46xx.h b/include/sound/cs46xx.h
+index e3005a6..bc246a1 100644
+--- a/include/sound/cs46xx.h
++++ b/include/sound/cs46xx.h
+@@ -23,11 +23,11 @@
+  *
+  */
+ 
+-#include "pcm.h"
+-#include "pcm-indirect.h"
+-#include "rawmidi.h"
+-#include "ac97_codec.h"
+-#include "cs46xx_dsp_spos.h"
++#include <sound/pcm.h>
++#include <sound/pcm-indirect.h>
++#include <sound/rawmidi.h>
++#include <sound/ac97_codec.h>
++#include <sound/cs46xx_dsp_spos.h>
+ 
+ /*
+  *  Direct registers
+diff --git a/include/sound/cs46xx_dsp_spos.h b/include/sound/cs46xx_dsp_spos.h
+index 8008c59..b4ed2b4 100644
+--- a/include/sound/cs46xx_dsp_spos.h
++++ b/include/sound/cs46xx_dsp_spos.h
+@@ -22,8 +22,8 @@
+ #ifndef __CS46XX_DSP_SPOS_H__
+ #define __CS46XX_DSP_SPOS_H__
+ 
+-#include "cs46xx_dsp_scb_types.h"
+-#include "cs46xx_dsp_task_types.h"
++#include <sound/cs46xx_dsp_scb_types.h>
++#include <sound/cs46xx_dsp_task_types.h>
+ 
+ #define SYMBOL_CONSTANT  0x0
+ #define SYMBOL_SAMPLE    0x1
+diff --git a/include/sound/cs46xx_dsp_task_types.h b/include/sound/cs46xx_dsp_task_types.h
+index 5cf920b..27df60e 100644
+--- a/include/sound/cs46xx_dsp_task_types.h
++++ b/include/sound/cs46xx_dsp_task_types.h
+@@ -27,7 +27,7 @@
+ #ifndef __CS46XX_DSP_TASK_TYPES_H__
+ #define __CS46XX_DSP_TASK_TYPES_H__
+ 
+-#include "cs46xx_dsp_scb_types.h"
++#include <sound/cs46xx_dsp_scb_types.h>
+ 
+ /*********************************************************************************************
+ Example hierarchy of stream control blocks in the SP
+diff --git a/include/sound/emu10k1_synth.h b/include/sound/emu10k1_synth.h
+index 6ef61c4..9f211e9 100644
+--- a/include/sound/emu10k1_synth.h
++++ b/include/sound/emu10k1_synth.h
+@@ -20,8 +20,8 @@
+  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "emu10k1.h"
+-#include "emux_synth.h"
++#include <sound/emu10k1.h>
++#include <sound/emux_synth.h>
+ 
+ /* sequencer device id */
+ #define SNDRV_SEQ_DEV_ID_EMU10K1_SYNTH	"emu10k1-synth"
+diff --git a/include/sound/emu8000.h b/include/sound/emu8000.h
+index c8f66bd..c321302 100644
+--- a/include/sound/emu8000.h
++++ b/include/sound/emu8000.h
+@@ -21,8 +21,8 @@
+  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "emux_synth.h"
+-#include "seq_kernel.h"
++#include <sound/emux_synth.h>
++#include <sound/seq_kernel.h>
+ 
+ /*
+  * Hardware parameters.
+diff --git a/include/sound/emux_legacy.h b/include/sound/emux_legacy.h
+index 6fe3da2..baf43fc 100644
+--- a/include/sound/emux_legacy.h
++++ b/include/sound/emux_legacy.h
+@@ -22,7 +22,7 @@
+  *
+  */
+ 
+-#include "seq_oss_legacy.h"
++#include <sound/seq_oss_legacy.h>
+ 
+ /*
+  * awe hardware controls
+diff --git a/include/sound/emux_synth.h b/include/sound/emux_synth.h
+index d8cb51b..fb81f37 100644
+--- a/include/sound/emux_synth.h
++++ b/include/sound/emux_synth.h
+@@ -21,15 +21,15 @@
+  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "seq_kernel.h"
+-#include "seq_device.h"
+-#include "soundfont.h"
+-#include "seq_midi_emul.h"
++#include <sound/seq_kernel.h>
++#include <sound/seq_device.h>
++#include <sound/soundfont.h>
++#include <sound/seq_midi_emul.h>
+ #ifdef CONFIG_SND_SEQUENCER_OSS
+-#include "seq_oss.h"
++#include <sound/seq_oss.h>
+ #endif
+-#include "emux_legacy.h"
+-#include "seq_virmidi.h"
++#include <sound/emux_legacy.h>
++#include <sound/seq_virmidi.h>
+ 
+ /*
+  * compile flags
+diff --git a/include/sound/es1688.h b/include/sound/es1688.h
+index 3ec7ecb..7bd4243 100644
+--- a/include/sound/es1688.h
++++ b/include/sound/es1688.h
+@@ -22,8 +22,8 @@
+  *
+  */
+ 
+-#include "control.h"
+-#include "pcm.h"
++#include <sound/control.h>
++#include <sound/pcm.h>
+ #include <linux/interrupt.h>
+ 
+ #define ES1688_HW_AUTO		0x0000
+diff --git a/include/sound/gus.h b/include/sound/gus.h
+index 841bb8d..42905d8 100644
+--- a/include/sound/gus.h
++++ b/include/sound/gus.h
+@@ -22,11 +22,11 @@
+  *
+  */
+ 
+-#include "pcm.h"
+-#include "rawmidi.h"
+-#include "timer.h"
+-#include "seq_midi_emul.h"
+-#include "seq_device.h"
++#include <sound/pcm.h>
++#include <sound/rawmidi.h>
++#include <sound/timer.h>
++#include <sound/seq_midi_emul.h>
++#include <sound/seq_device.h>
+ #include <asm/io.h>
+ 
+ /* IO ports */
+diff --git a/include/sound/mpu401.h b/include/sound/mpu401.h
+index 1f1d53f..a85ce16 100644
+--- a/include/sound/mpu401.h
++++ b/include/sound/mpu401.h
+@@ -22,7 +22,7 @@
+  *
+  */
+ 
+-#include "rawmidi.h"
++#include <sound/rawmidi.h>
+ #include <linux/interrupt.h>
+ 
+ #define MPU401_HW_MPU401		1	/* native MPU401 */
+diff --git a/include/sound/pcm.h b/include/sound/pcm.h
+index e1bad11..720402c 100644
+--- a/include/sound/pcm.h
++++ b/include/sound/pcm.h
+@@ -35,7 +35,7 @@
+ #define snd_pcm_chip(pcm) ((pcm)->private_data)
+ 
+ #if defined(CONFIG_SND_PCM_OSS) || defined(CONFIG_SND_PCM_OSS_MODULE)
+-#include "pcm_oss.h"
++#include <sound/pcm_oss.h>
+ #endif
+ 
+ /*
+diff --git a/include/sound/rawmidi.h b/include/sound/rawmidi.h
+index 2480e7d..956fa35 100644
+--- a/include/sound/rawmidi.h
++++ b/include/sound/rawmidi.h
+@@ -29,7 +29,7 @@
+ #include <linux/mutex.h>
+ 
+ #if defined(CONFIG_SND_SEQUENCER) || defined(CONFIG_SND_SEQUENCER_MODULE)
+-#include "seq_device.h"
++#include <sound/seq_device.h>
+ #endif
+ 
+ /*
+diff --git a/include/sound/sb.h b/include/sound/sb.h
+index 9535354..ba39603 100644
+--- a/include/sound/sb.h
++++ b/include/sound/sb.h
+@@ -22,8 +22,8 @@
+  *
+  */
+ 
+-#include "pcm.h"
+-#include "rawmidi.h"
++#include <sound/pcm.h>
++#include <sound/rawmidi.h>
+ #include <linux/interrupt.h>
+ #include <asm/io.h>
+ 
+diff --git a/include/sound/sb16_csp.h b/include/sound/sb16_csp.h
+index 736eac7..66bdfe6 100644
+--- a/include/sound/sb16_csp.h
++++ b/include/sound/sb16_csp.h
+@@ -112,8 +112,8 @@ struct snd_sb_csp_info {
+ #define SNDRV_SB_CSP_IOCTL_RESTART	_IO('H', 0x16)
+ 
+ #ifdef __KERNEL__
+-#include "sb.h"
+-#include "hwdep.h"
++#include <sound/sb.h>
++#include <sound/hwdep.h>
+ #include <linux/firmware.h>
+ 
+ struct snd_sb_csp;
+diff --git a/include/sound/seq_kernel.h b/include/sound/seq_kernel.h
+index 3d9afb6..34fb34c 100644
+--- a/include/sound/seq_kernel.h
++++ b/include/sound/seq_kernel.h
+@@ -22,7 +22,7 @@
+  *
+  */
+ #include <linux/time.h>
+-#include "asequencer.h"
++#include <sound/asequencer.h>
+ 
+ typedef struct snd_seq_real_time snd_seq_real_time_t;
+ typedef union snd_seq_timestamp snd_seq_timestamp_t;
+diff --git a/include/sound/seq_midi_emul.h b/include/sound/seq_midi_emul.h
+index d6c4615..8139d8c 100644
+--- a/include/sound/seq_midi_emul.h
++++ b/include/sound/seq_midi_emul.h
+@@ -22,7 +22,7 @@
+  *
+  */
+ 
+-#include "seq_kernel.h"
++#include <sound/seq_kernel.h>
+ 
+ /*
+  * This structure is used to keep track of the current state on each
+diff --git a/include/sound/seq_midi_event.h b/include/sound/seq_midi_event.h
+index 5efab8b..e40f43e 100644
+--- a/include/sound/seq_midi_event.h
++++ b/include/sound/seq_midi_event.h
+@@ -22,7 +22,7 @@
+  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "asequencer.h"
++#include <sound/asequencer.h>
+ 
+ #define MAX_MIDI_EVENT_BUF	256
+ 
+diff --git a/include/sound/seq_oss.h b/include/sound/seq_oss.h
+index 9b060bb..d0b27ec 100644
+--- a/include/sound/seq_oss.h
++++ b/include/sound/seq_oss.h
+@@ -21,8 +21,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "asequencer.h"
+-#include "seq_kernel.h"
++#include <sound/asequencer.h>
++#include <sound/seq_kernel.h>
+ 
+ /*
+  * argument structure for synthesizer operations
+diff --git a/include/sound/seq_virmidi.h b/include/sound/seq_virmidi.h
+index d888433..a03acd0 100644
+--- a/include/sound/seq_virmidi.h
++++ b/include/sound/seq_virmidi.h
+@@ -22,8 +22,8 @@
+  *
+  */
+ 
+-#include "rawmidi.h"
+-#include "seq_midi_event.h"
++#include <sound/rawmidi.h>
++#include <sound/seq_midi_event.h>
+ 
+ /*
+  * device file instance:
+diff --git a/include/sound/snd_wavefront.h b/include/sound/snd_wavefront.h
+index fa149ca..35e94b3 100644
+--- a/include/sound/snd_wavefront.h
++++ b/include/sound/snd_wavefront.h
+@@ -1,10 +1,10 @@
+ #ifndef __SOUND_SND_WAVEFRONT_H__
+ #define __SOUND_SND_WAVEFRONT_H__
+ 
+-#include "mpu401.h"
+-#include "hwdep.h"
+-#include "rawmidi.h"
+-#include "wavefront.h"  /* generic OSS/ALSA/user-level wavefront header */
++#include <sound/mpu401.h>
++#include <sound/hwdep.h>
++#include <sound/rawmidi.h>
++#include <sound/wavefront.h>  /* generic OSS/ALSA/user-level wavefront header */
+ 
+ /* MIDI interface */
+ 
+diff --git a/include/sound/soundfont.h b/include/sound/soundfont.h
+index f95d99b..337ff47 100644
+--- a/include/sound/soundfont.h
++++ b/include/sound/soundfont.h
+@@ -22,8 +22,8 @@
+  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+  */
+ 
+-#include "sfnt_info.h"
+-#include "util_mem.h"
++#include <sound/sfnt_info.h>
++#include <sound/util_mem.h>
+ 
+ #define SF_MAX_INSTRUMENTS	128	/* maximum instrument number */
+ #define SF_MAX_PRESETS  256	/* drums are mapped from 128 to 256 */
+diff --git a/include/sound/tea6330t.h b/include/sound/tea6330t.h
+index 51b282b..e6beec2 100644
+--- a/include/sound/tea6330t.h
++++ b/include/sound/tea6330t.h
+@@ -22,7 +22,7 @@
+  *
+  */
+ 
+-#include "i2c.h"		/* generic i2c support */
++#include <sound/i2c.h>		/* generic i2c support */
+ 
+ int snd_tea6330t_detect(struct snd_i2c_bus *bus, int equalizer);
+ int snd_tea6330t_update_mixer(struct snd_card *card, struct snd_i2c_bus *bus,
+diff --git a/include/sound/trident.h b/include/sound/trident.h
+index 9f191a0..9b3b03e 100644
+--- a/include/sound/trident.h
++++ b/include/sound/trident.h
+@@ -23,10 +23,10 @@
+  *
+  */
+ 
+-#include "pcm.h"
+-#include "mpu401.h"
+-#include "ac97_codec.h"
+-#include "util_mem.h"
++#include <sound/pcm.h>
++#include <sound/mpu401.h>
++#include <sound/ac97_codec.h>
++#include <sound/util_mem.h>
+ 
+ #define TRIDENT_DEVICE_ID_DX		((PCI_VENDOR_ID_TRIDENT<<16)|PCI_DEVICE_ID_TRIDENT_4DWAVE_DX)
+ #define TRIDENT_DEVICE_ID_NX		((PCI_VENDOR_ID_TRIDENT<<16)|PCI_DEVICE_ID_TRIDENT_4DWAVE_NX)
+diff --git a/include/sound/wss.h b/include/sound/wss.h
+index fd01f22..0c7f034 100644
+--- a/include/sound/wss.h
++++ b/include/sound/wss.h
+@@ -22,11 +22,11 @@
+  *
+  */
+ 
+-#include "control.h"
+-#include "pcm.h"
+-#include "timer.h"
++#include <sound/control.h>
++#include <sound/pcm.h>
++#include <sound/timer.h>
+ 
+-#include "cs4231-regs.h"
++#include <sound/cs4231-regs.h>
+ 
+ /* defines for codec.mode */
+ 
+diff --git a/include/sound/ymfpci.h b/include/sound/ymfpci.h
+index 444cd6b..5db53b6 100644
+--- a/include/sound/ymfpci.h
++++ b/include/sound/ymfpci.h
+@@ -22,10 +22,10 @@
+  *
+  */
+ 
+-#include "pcm.h"
+-#include "rawmidi.h"
+-#include "ac97_codec.h"
+-#include "timer.h"
++#include <sound/pcm.h>
++#include <sound/rawmidi.h>
++#include <sound/ac97_codec.h>
++#include <sound/timer.h>
+ #include <linux/gameport.h>
+ 
+ /*
+diff --git a/include/trace/events/compaction.h b/include/trace/events/compaction.h
+index 388bcdd..fde1b3e 100644
+--- a/include/trace/events/compaction.h
++++ b/include/trace/events/compaction.h
+@@ -6,7 +6,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/tracepoint.h>
+-#include "gfpflags.h"
++#include <trace/events/gfpflags.h>
+ 
+ DECLARE_EVENT_CLASS(mm_compaction_isolate_template,
+ 
+diff --git a/include/trace/events/kmem.h b/include/trace/events/kmem.h
+index a9c87ad..f0e1523 100644
+--- a/include/trace/events/kmem.h
++++ b/include/trace/events/kmem.h
+@@ -6,7 +6,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/tracepoint.h>
+-#include "gfpflags.h"
++#include <trace/events/gfpflags.h>
+ 
+ DECLARE_EVENT_CLASS(kmem_alloc,
+ 
+diff --git a/include/trace/events/vmscan.h b/include/trace/events/vmscan.h
+index b2c33bd..4d50427 100644
+--- a/include/trace/events/vmscan.h
++++ b/include/trace/events/vmscan.h
+@@ -8,7 +8,7 @@
+ #include <linux/tracepoint.h>
+ #include <linux/mm.h>
+ #include <linux/memcontrol.h>
+-#include "gfpflags.h"
++#include <trace/events/gfpflags.h>
+ 
+ #define RECLAIM_WB_ANON		0x0001u
+ #define RECLAIM_WB_FILE		0x0002u
+diff --git a/include/xen/interface/callback.h b/include/xen/interface/callback.h
+index 2ae3cd2..8c5fa0e 100644
+--- a/include/xen/interface/callback.h
++++ b/include/xen/interface/callback.h
+@@ -27,7 +27,7 @@
+ #ifndef __XEN_PUBLIC_CALLBACK_H__
+ #define __XEN_PUBLIC_CALLBACK_H__
+ 
+-#include "xen.h"
++#include <xen/interface/xen.h>
+ 
+ /*
+  * Prototype for this hypercall is:
+diff --git a/include/xen/interface/hvm/params.h b/include/xen/interface/hvm/params.h
+index 1888d8c..f5bc22b 100644
+--- a/include/xen/interface/hvm/params.h
++++ b/include/xen/interface/hvm/params.h
+@@ -21,7 +21,7 @@
+ #ifndef __XEN_PUBLIC_HVM_PARAMS_H__
+ #define __XEN_PUBLIC_HVM_PARAMS_H__
+ 
+-#include "hvm_op.h"
++#include <xen/interface/hvm/hvm_op.h>
+ 
+ /*
+  * Parameter space for HVMOP_{set,get}_param.
+diff --git a/include/xen/interface/io/blkif.h b/include/xen/interface/io/blkif.h
+index 3d5d6db..2165651 100644
+--- a/include/xen/interface/io/blkif.h
++++ b/include/xen/interface/io/blkif.h
+@@ -9,8 +9,8 @@
+ #ifndef __XEN_PUBLIC_IO_BLKIF_H__
+ #define __XEN_PUBLIC_IO_BLKIF_H__
+ 
+-#include "ring.h"
+-#include "../grant_table.h"
++#include <xen/interface/io/ring.h>
++#include <xen/interface/grant_table.h>
+ 
+ /*
+  * Front->back notifications: When enqueuing a new request, sending a
+diff --git a/include/xen/interface/io/netif.h b/include/xen/interface/io/netif.h
+index cb94668..9dfc120 100644
+--- a/include/xen/interface/io/netif.h
++++ b/include/xen/interface/io/netif.h
+@@ -9,8 +9,8 @@
+ #ifndef __XEN_PUBLIC_IO_NETIF_H__
+ #define __XEN_PUBLIC_IO_NETIF_H__
+ 
+-#include "ring.h"
+-#include "../grant_table.h"
++#include <xen/interface/io/ring.h>
++#include <xen/interface/grant_table.h>
+ 
+ /*
+  * Notifications after enqueuing any type of message should be conditional on
+diff --git a/include/xen/interface/sched.h b/include/xen/interface/sched.h
+index dd55dac..9ce0839 100644
+--- a/include/xen/interface/sched.h
++++ b/include/xen/interface/sched.h
+@@ -9,7 +9,7 @@
+ #ifndef __XEN_PUBLIC_SCHED_H__
+ #define __XEN_PUBLIC_SCHED_H__
+ 
+-#include "event_channel.h"
++#include <xen/interface/event_channel.h>
+ 
+ /*
+  * The prototype for this hypercall is:
+diff --git a/include/xen/interface/version.h b/include/xen/interface/version.h
+index e8b6519..ff372a5 100644
+--- a/include/xen/interface/version.h
++++ b/include/xen/interface/version.h
+@@ -55,7 +55,7 @@ struct xen_feature_info {
+ };
+ 
+ /* Declares the features reported by XENVER_get_features. */
+-#include "features.h"
++#include <xen/interface/features.h>
+ 
+ /* arg == NULL; returns host memory page size. */
+ #define XENVER_pagesize 7
