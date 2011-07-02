@@ -1,102 +1,37 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 2/2] iomap: make IOPORT/PCI mapping functions conditional
-Date: Sat,  2 Jul 2011 17:53:26 +0200
-Message-ID: <1309622006-28343-2-git-send-email-jonas@southpole.se>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [PATCH 1/2] asm-generic: add MMU variants of io.h functions
+Date: Sat, 2 Jul 2011 12:38:48 -0400
+Message-ID: <CAMjpGUfZwZu-ZCJj2cmq1w6B71-gQ8G27FpYdhseyq3hoZRL+Q@mail.gmail.com>
 References: <1309622006-28343-1-git-send-email-jonas@southpole.se>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:44911 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751152Ab1GBPxj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 11:53:39 -0400
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:60348 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751881Ab1GBQjJ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 12:39:09 -0400
 In-Reply-To: <1309622006-28343-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
 
+On Sat, Jul 2, 2011 at 11:53, Jonas Bonn wrote:
+> Some of the implementations, in particular the ioremap variants, in
+> asm-generic/io.h are for systems with an MMU.
 
-Use the CONFIG_HAS_IOPORT and CONFIG_PCI options to decide whether or
-not functions for mapping these areas are provided.
+do you mean "without an MMU" ?
 
-Signed-off-by: Jonas Bonn <jonas@southpole.se>
----
- include/asm-generic/io.h    |    2 ++
- include/asm-generic/iomap.h |    4 ++++
- lib/iomap.c                 |    4 ++++
- 3 files changed, 10 insertions(+), 0 deletions(-)
+> +#ifdef CONFIG_MMU
+> +#define xlate_dev_mem_ptr(p) =C2=A0 __va(p)
+> +#else
+> =C2=A0#define xlate_dev_mem_ptr(p) =C2=A0 ((void *) (p))
+> +#endif
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 50f4f43..49969c2 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -332,6 +332,7 @@ static inline void iounmap(void *addr)
- }
- #endif /* CONFIG_MMU */
- 
-+#ifdef CONFIG_HAS_IOPORT
- #ifndef CONFIG_GENERIC_IOMAP
- static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
-@@ -345,6 +346,7 @@ static inline void ioport_unmap(void __iomem *p)
- extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
- extern void ioport_unmap(void __iomem *p);
- #endif /* CONFIG_GENERIC_IOMAP */
-+#endif /* CONFIG_HAS_IOPORT */
- 
- #define xlate_dev_kmem_ptr(p)	p
- 
-diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
-index 76b0cc5..c74ef2c 100644
---- a/include/asm-generic/iomap.h
-+++ b/include/asm-generic/iomap.h
-@@ -56,17 +56,21 @@ extern void iowrite8_rep(void __iomem *port, const void *buf, unsigned long coun
- extern void iowrite16_rep(void __iomem *port, const void *buf, unsigned long count);
- extern void iowrite32_rep(void __iomem *port, const void *buf, unsigned long count);
- 
-+#ifdef CONFIG_HAS_IOPORT
- /* Create a virtual mapping cookie for an IO port range */
- extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
- extern void ioport_unmap(void __iomem *);
-+#endif
- 
- #ifndef ARCH_HAS_IOREMAP_WC
- #define ioremap_wc ioremap_nocache
- #endif
- 
-+#ifdef CONFIG_PCI
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
- extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
- extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
-+#endif
- 
- #endif
-diff --git a/lib/iomap.c b/lib/iomap.c
-index d322293..5dbcb4b 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -224,6 +224,7 @@ EXPORT_SYMBOL(iowrite8_rep);
- EXPORT_SYMBOL(iowrite16_rep);
- EXPORT_SYMBOL(iowrite32_rep);
- 
-+#ifdef CONFIG_HAS_IOPORT
- /* Create a virtual mapping cookie for an IO port range */
- void __iomem *ioport_map(unsigned long port, unsigned int nr)
- {
-@@ -238,7 +239,9 @@ void ioport_unmap(void __iomem *addr)
- }
- EXPORT_SYMBOL(ioport_map);
- EXPORT_SYMBOL(ioport_unmap);
-+#endif /* CONFIG_HAS_IOPORT */
- 
-+#ifdef CONFIG_PCI
- /**
-  * pci_iomap - create a virtual mapping cookie for a PCI BAR
-  * @dev: PCI device that owns the BAR
-@@ -280,3 +283,4 @@ void pci_iounmap(struct pci_dev *dev, void __iomem * addr)
- }
- EXPORT_SYMBOL(pci_iomap);
- EXPORT_SYMBOL(pci_iounmap);
-+#endif /* CONFIG_PCI */
--- 
-1.7.4.1
+i wonder if we could do:
+#ifndef __va
+#define __va(p) ((void *)(p))
+#endif
+#define xlate_dev_mem_ptr(p)   __va(p)
+-mike
