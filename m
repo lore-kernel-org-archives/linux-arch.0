@@ -1,37 +1,50 @@
-From: Mike Frysinger <vapier@gentoo.org>
+From: Jonas Bonn <jonas@southpole.se>
 Subject: Re: [PATCH 1/2] asm-generic: add MMU variants of io.h functions
-Date: Sat, 2 Jul 2011 12:38:48 -0400
-Message-ID: <CAMjpGUfZwZu-ZCJj2cmq1w6B71-gQ8G27FpYdhseyq3hoZRL+Q@mail.gmail.com>
+Date: Sat, 02 Jul 2011 18:47:30 +0200
+Message-ID: <1309625250.24186.1224.camel@localhost>
 References: <1309622006-28343-1-git-send-email-jonas@southpole.se>
+	 <CAMjpGUfZwZu-ZCJj2cmq1w6B71-gQ8G27FpYdhseyq3hoZRL+Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:60348 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751881Ab1GBQjJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 12:39:09 -0400
-In-Reply-To: <1309622006-28343-1-git-send-email-jonas@southpole.se>
+Received: from mail.southpole.se ([193.12.106.18]:41139 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752308Ab1GBQrk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 12:47:40 -0400
+In-Reply-To: <CAMjpGUfZwZu-ZCJj2cmq1w6B71-gQ8G27FpYdhseyq3hoZRL+Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
+To: Mike Frysinger <vapier@gentoo.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
 
-On Sat, Jul 2, 2011 at 11:53, Jonas Bonn wrote:
-> Some of the implementations, in particular the ioremap variants, in
-> asm-generic/io.h are for systems with an MMU.
 
-do you mean "without an MMU" ?
+On Sat, 2011-07-02 at 12:38 -0400, Mike Frysinger wrote:
+> On Sat, Jul 2, 2011 at 11:53, Jonas Bonn wrote:
+> > Some of the implementations, in particular the ioremap variants, in
+> > asm-generic/io.h are for systems with an MMU.
+> 
+> do you mean "without an MMU" ?
 
-> +#ifdef CONFIG_MMU
-> +#define xlate_dev_mem_ptr(p) =C2=A0 __va(p)
-> +#else
-> =C2=A0#define xlate_dev_mem_ptr(p) =C2=A0 ((void *) (p))
-> +#endif
+Yes, of course... that's supposed to be _without_ an MMU.
 
-i wonder if we could do:
-#ifndef __va
-#define __va(p) ((void *)(p))
-#endif
-#define xlate_dev_mem_ptr(p)   __va(p)
--mike
+> 
+> > +#ifdef CONFIG_MMU
+> > +#define xlate_dev_mem_ptr(p)   __va(p)
+> > +#else
+> >  #define xlate_dev_mem_ptr(p)   ((void *) (p))
+> > +#endif
+> 
+> i wonder if we could do:
+> #ifndef __va
+> #define __va(p) ((void *)(p))
+> #endif
+> #define xlate_dev_mem_ptr(p)   __va(p)
+> -mike
+
+This seems to introduce an artificial definition of a "virtual" address
+for systems without an MMU, which strikes me as a bit odd.  If this is
+what people prefer, that's fine... I think I prefer the former variant,
+though.
+
+/Jonas
