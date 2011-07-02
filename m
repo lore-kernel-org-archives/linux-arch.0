@@ -1,35 +1,37 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH v2 08/19] OpenRISC: Timekeeping
-Date: Sat,  2 Jul 2011 23:15:41 +0200
-Message-ID: <1309641352-18714-9-git-send-email-jonas@southpole.se>
+Subject: [PATCH v2 07/19] OpenRISC: DMA
+Date: Sat,  2 Jul 2011 23:15:40 +0200
+Message-ID: <1309641352-18714-8-git-send-email-jonas@southpole.se>
 References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.southpole.se ([193.12.106.18]:45881 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754087Ab1GBVQQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 17:16:16 -0400
 In-Reply-To: <1309641352-18714-1-git-send-email-jonas@southpole.se>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
 
 
-Implements support for the OpenRISC timer which is a 28 bit cycle counter
-that can be read out of a special purpose register.  This counter is
-used as a both a clock event and clocksource device.
+Simple DMA implementation.  Allows for allocation of coherent memory
+(simply uncached) for DMA operations.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
-Cc: tglx@linutronix.de
 ---
- arch/openrisc/include/asm/timex.h |   36 ++++++++
- arch/openrisc/kernel/time.c       |  181 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 217 insertions(+), 0 deletions(-)
- create mode 100644 arch/openrisc/include/asm/timex.h
- create mode 100644 arch/openrisc/kernel/time.c
+ arch/openrisc/include/asm/dma-mapping.h |   62 ++++++++++++++++++++++
+ arch/openrisc/kernel/dma.c              |   86 +++++++++++++++++++++++++++++++
+ 2 files changed, 148 insertions(+), 0 deletions(-)
+ create mode 100644 arch/openrisc/include/asm/dma-mapping.h
+ create mode 100644 arch/openrisc/kernel/dma.c
 
-diff --git a/arch/openrisc/include/asm/timex.h b/arch/openrisc/include/asm/timex.h
+diff --git a/arch/openrisc/include/asm/dma-mapping.h b/arch/openrisc/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..9935cad
+index 0000000..3d68ed8
 --- /dev/null
-+++ b/arch/openrisc/include/asm/timex.h
-@@ -0,0 +1,36 @@
++++ b/arch/openrisc/include/asm/dma-mapping.h
+@@ -0,0 +1,62 @@
 +/*
 + * OpenRISC Linux
 + *
@@ -46,212 +48,143 @@ index 0000000..9935cad
 + * (at your option) any later version.
 + */
 +
-+#ifndef __ASM_OPENRISC_TIMEX_H
-+#define __ASM_OPENRISC_TIMEX_H
++#ifndef __ASM_OPENRISC_DMA_MAPPING_H
++#define __ASM_OPENRISC_DMA_MAPPING_H
 +
-+#define get_cycles get_cycles
++/*
++ * See Documentation/PCI/PCI-DMA-mapping.txt and
++ * Documentation/DMA-API.txt for documentation.
++ */
 +
-+#include <asm-generic/timex.h>
-+#include <asm/spr.h>
-+#include <asm/spr_defs.h>
++#include <linux/dma-debug.h>
++#include <asm-generic/dma-coherent.h>
 +
-+static inline cycles_t get_cycles(void)
++#define DMA_ERROR_CODE		(~(dma_addr_t)0x0)
++
++int dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
++
++int dma_supported(struct device *dev, u64 mask);
++
++int dma_set_mask(struct device *dev, u64 mask);
++
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
++
++void *or1k_dma_alloc_coherent(struct device *dev, size_t size,
++			      dma_addr_t *dma_handle, gfp_t flag);
++void or1k_dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++			    dma_addr_t dma_handle);
++
++static inline void *dma_alloc_coherent(struct device *dev, size_t size,
++					dma_addr_t *dma_handle, gfp_t flag)
 +{
-+	return mfspr(SPR_TTCR);
++	void *memory;
++
++	memory = or1k_dma_alloc_coherent(dev, size, dma_handle, flag);
++
++	debug_dma_alloc_coherent(dev, size, *dma_handle, memory);
++	return memory;
 +}
 +
-+/* This isn't really used any more */
-+#define CLOCK_TICK_RATE 1000
++static inline void dma_free_coherent(struct device *dev, size_t size,
++				     void *cpu_addr, dma_addr_t dma_handle)
++{
++	debug_dma_free_coherent(dev, size, cpu_addr, dma_handle);
++	or1k_dma_free_coherent(dev, size, cpu_addr, dma_handle);
++}
 +
-+#define ARCH_HAS_READ_CURRENT_TIMER
-+
-+#endif
-diff --git a/arch/openrisc/kernel/time.c b/arch/openrisc/kernel/time.c
++#endif	/* __ASM_OPENRISC_DMA_MAPPING_H */
+diff --git a/arch/openrisc/kernel/dma.c b/arch/openrisc/kernel/dma.c
 new file mode 100644
-index 0000000..bd946ef
+index 0000000..e038732a
 --- /dev/null
-+++ b/arch/openrisc/kernel/time.c
-@@ -0,0 +1,181 @@
++++ b/arch/openrisc/kernel/dma.c
+@@ -0,0 +1,86 @@
 +/*
-+ * OpenRISC time.c
++ * OpenRISC Linux
 + *
 + * Linux architectural port borrowing liberally from similar works of
 + * others.  All original copyrights apply as per the original source
 + * declaration.
 + *
 + * Modifications for the OpenRISC architecture:
++ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
 + *
 + *      This program is free software; you can redistribute it and/or
 + *      modify it under the terms of the GNU General Public License
 + *      as published by the Free Software Foundation; either version
 + *      2 of the License, or (at your option) any later version.
++ *
++ * DMA mapping callbacks...
++ * As alloc_coherent is the only DMA callback being used currently, that's
++ * the only thing implemented properly.  The rest need looking into...
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/time.h>
-+#include <linux/timex.h>
-+#include <linux/interrupt.h>
-+#include <linux/ftrace.h>
-+
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/irq.h>
++#include <linux/device.h>
++#include <linux/dma-mapping.h>
++#include <linux/gfp.h>
++#include <linux/dma-debug.h>
 +#include <linux/io.h>
-+
-+#include <asm/cpuinfo.h>
-+
-+static int openrisc_timer_set_next_event(unsigned long delta,
-+					 struct clock_event_device *dev)
-+{
-+	u32 c;
-+
-+	/* Read 32-bit counter value, add delta, mask off the low 28 bits.
-+	 * We're guaranteed delta won't be bigger than 28 bits because the
-+	 * generic timekeeping code ensures that for us.
-+	 */
-+	c = mfspr(SPR_TTCR);
-+	c += delta;
-+	c &= SPR_TTMR_TP;
-+
-+	/* Set counter and enable interrupt.
-+	 * Keep timer in continuous mode always.
-+	 */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR | SPR_TTMR_IE | c);
-+
-+	return 0;
-+}
-+
-+static void openrisc_timer_set_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *evt)
-+{
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		pr_debug(KERN_INFO "%s: periodic\n", __func__);
-+		BUG();
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		pr_debug(KERN_INFO "%s: oneshot\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_UNUSED:
-+		pr_debug(KERN_INFO "%s: unused\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		pr_debug(KERN_INFO "%s: shutdown\n", __func__);
-+		break;
-+	case CLOCK_EVT_MODE_RESUME:
-+		pr_debug(KERN_INFO "%s: resume\n", __func__);
-+		break;
-+	}
-+}
-+
-+/* This is the clock event device based on the OR1K tick timer.
-+ * As the timer is being used as a continuous clock-source (required for HR
-+ * timers) we cannot enable the PERIODIC feature.  The tick timer can run using
-+ * one-shot events, so no problem.
-+ */
-+
-+static struct clock_event_device clockevent_openrisc_timer = {
-+	.name = "openrisc_timer_clockevent",
-+	.features = CLOCK_EVT_FEAT_ONESHOT,
-+	.rating = 300,
-+	.set_next_event = openrisc_timer_set_next_event,
-+	.set_mode = openrisc_timer_set_mode,
-+};
-+
-+static inline void timer_ack(void)
-+{
-+	/* Clear the IP bit and disable further interrupts */
-+	/* This can be done very simply... we just need to keep the timer
-+	   running, so just maintain the CR bits while clearing the rest
-+	   of the register
-+	 */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR);
-+}
++#include <linux/vmalloc.h>
 +
 +/*
-+ * The timer interrupt is mostly handled in generic code nowadays... this
-+ * function just acknowledges the interrupt and fires the event handler that
-+ * has been set on the clockevent device by the generic time management code.
-+ *
-+ * This function needs to be called by the timer exception handler and that's
-+ * all the exception handler needs to do.
++ * Alloc "coherent" memory, which for OpenRISC means simply uncached.
 + */
-+
-+irqreturn_t __irq_entry timer_interrupt(struct pt_regs *regs)
++void *or1k_dma_alloc_coherent(struct device *dev, size_t size,
++			      dma_addr_t *dma_handle, gfp_t flag)
 +{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
-+	struct clock_event_device *evt = &clockevent_openrisc_timer;
++	int order;
++	unsigned long page, va;
++	pgprot_t prot;
++	struct vm_struct *area;
 +
-+	timer_ack();
++	/* Only allocate page size areas. */
++	size = PAGE_ALIGN(size);
++	order = get_order(size);
 +
-+	/*
-+	 * update_process_times() expects us to have called irq_enter().
-+	 */
-+	irq_enter();
-+	evt->event_handler(evt);
-+	irq_exit();
++	page = __get_free_pages(flag, order);
++	if (!page)
++		return NULL;
 +
-+	set_irq_regs(old_regs);
++	/* Allocate some common virtual space to map the new pages. */
++	area = get_vm_area(size, VM_ALLOC);
++	if (area == NULL) {
++		free_pages(page, order);
++		return NULL;
++	}
++	va = (unsigned long)area->addr;
 +
-+	return IRQ_HANDLED;
++	/* This gives us the real physical address of the first page. */
++	*dma_handle = __pa(page);
++
++	prot = PAGE_KERNEL_NOCACHE;
++
++	/* This isn't so much ioremap as just simply 'remap' */
++	if (ioremap_page_range(va, va + size, *dma_handle, prot)) {
++		vfree(area->addr);
++		return NULL;
++	}
++
++	return (void *)va;
 +}
 +
-+static __init void openrisc_clockevent_init(void)
++void or1k_dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++			    dma_addr_t dma_handle)
 +{
-+	clockevents_calc_mult_shift(&clockevent_openrisc_timer,
-+				    cpuinfo.clock_frequency, 4);
-+
-+	/* We only have 28 bits */
-+	clockevent_openrisc_timer.max_delta_ns =
-+	    clockevent_delta2ns((u32) 0x0fffffff, &clockevent_openrisc_timer);
-+	clockevent_openrisc_timer.min_delta_ns =
-+	    clockevent_delta2ns(1, &clockevent_openrisc_timer);
-+	clockevent_openrisc_timer.cpumask = cpumask_of(0);
-+	clockevents_register_device(&clockevent_openrisc_timer);
++	vfree(vaddr);
 +}
 +
-+/**
-+ * Clocksource: Based on OpenRISC timer/counter
-+ *
-+ * This sets up the OpenRISC Tick Timer as a clock source.  The tick timer
-+ * is 32 bits wide and runs at the CPU clock frequency.
-+ */
++/* Number of entries preallocated for DMA-API debugging */
++#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
 +
-+static cycle_t openrisc_timer_read(struct clocksource *cs)
++static int __init dma_init(void)
 +{
-+	return (cycle_t) mfspr(SPR_TTCR);
-+}
-+
-+static struct clocksource openrisc_timer = {
-+	.name = "openrisc_timer",
-+	.rating = 200,
-+	.read = openrisc_timer_read,
-+	.mask = CLOCKSOURCE_MASK(32),
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+};
-+
-+static int __init openrisc_timer_init(void)
-+{
-+	if (clocksource_register_hz(&openrisc_timer, cpuinfo.clock_frequency))
-+		panic("failed to register clocksource");
-+
-+	/* Enable the incrementer: 'continuous' mode with interrupt disabled */
-+	mtspr(SPR_TTMR, SPR_TTMR_CR);
++	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
 +
 +	return 0;
 +}
 +
-+void __init time_init(void)
-+{
-+	u32 upr;
-+
-+	upr = mfspr(SPR_UPR);
-+	if (!(upr & SPR_UPR_TTP))
-+		panic("Linux not supported on devices without tick timer");
-+
-+	openrisc_timer_init();
-+	openrisc_clockevent_init();
-+}
++fs_initcall(dma_init);
 -- 
 1.7.4.1
