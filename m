@@ -1,172 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:53330 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:44908 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753865Ab1GBJ7U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 05:59:20 -0400
+	with ESMTP id S1750994Ab1GBPxj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 11:53:39 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 2/2] asm-generic: move archictures to common delay.h
-Date: Sat,  2 Jul 2011 11:59:14 +0200
-Message-ID: <1309600754-21217-2-git-send-email-jonas@southpole.se>
-In-Reply-To: <1309600754-21217-1-git-send-email-jonas@southpole.se>
-References: <1309600754-21217-1-git-send-email-jonas@southpole.se>
+Subject: [PATCH 1/2] asm-generic: add MMU variants of io.h functions
+Date: Sat,  2 Jul 2011 17:53:25 +0200
+Message-ID: <1309622006-28343-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: hans-christian.egtvedt@atmel.com, lethal@linux-sh.org, Jonas Bonn <jonas@southpole.se>
-Message-ID: <20110702095914.P0ldFxG9gU0kqo_aO5URe6qBxZ0jEtPL1WwPWxi9dms@z>
+Cc: Jonas Bonn <jonas@southpole.se>, vapier@gentoo.org, liqin.chen@sunplusct.com, gxt@mprc.pku.edu.cn
+Message-ID: <20110702155325.Vwmu6N8NMl_qOZYj1HAQN3UOAq4qkqAEburaXwbPWjA@z>
 
 
-This patch moves the in-tree architectures that were using the 'generic'
-delay.h over to using the header file in asm-generic.
+Some of the implementations, in particular the ioremap variants, in
+asm-generic/io.h are for systems with an MMU.  In order to be able to
+use the generic header file for systems with an MMU, this patch wraps
+these implementations in checks for CONFIG_MMU.
 
-This is not done using the generic-y mechanism as none of these arch's
-have started using that mechanism yet.  This is a trivial change to make
-later when the arch begins using generic-y.
-
-Note the subtle change to the avr32 and SH architectures where the argument
-to __const_udelay was previously using the rounded down constant value
-instead of the rounded up value.
+Tested on OpenRISC.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
+Cc: vapier@gentoo.org
+Cc: liqin.chen@sunplusct.com
+Cc: gxt@mprc.pku.edu.cn
 ---
- arch/avr32/include/asm/delay.h |   27 +--------------------------
- arch/m32r/include/asm/delay.h  |   27 +--------------------------
- arch/sh/include/asm/delay.h    |   27 +--------------------------
- arch/x86/include/asm/delay.h   |   25 +------------------------
- 4 files changed, 4 insertions(+), 102 deletions(-)
 
-diff --git a/arch/avr32/include/asm/delay.h b/arch/avr32/include/asm/delay.h
-index a0ed9a9..9670e12 100644
---- a/arch/avr32/include/asm/delay.h
-+++ b/arch/avr32/include/asm/delay.h
-@@ -1,26 +1 @@
--#ifndef __ASM_AVR32_DELAY_H
--#define __ASM_AVR32_DELAY_H
--
--/*
-- * Copyright (C) 1993 Linus Torvalds
-- *
-- * Delay routines calling functions in arch/avr32/lib/delay.c
-- */
--
--extern void __bad_udelay(void);
--extern void __bad_ndelay(void);
--
--extern void __udelay(unsigned long usecs);
--extern void __ndelay(unsigned long nsecs);
--extern void __const_udelay(unsigned long xloops);
--extern void __delay(unsigned long loops);
--
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c6ul)) : \
--	__udelay(n))
--
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
--
--#endif /* __ASM_AVR32_DELAY_H */
-+#include <asm-generic/delay.h>
-diff --git a/arch/m32r/include/asm/delay.h b/arch/m32r/include/asm/delay.h
-index 9dd9e99..9670e12 100644
---- a/arch/m32r/include/asm/delay.h
-+++ b/arch/m32r/include/asm/delay.h
-@@ -1,26 +1 @@
--#ifndef _ASM_M32R_DELAY_H
--#define _ASM_M32R_DELAY_H
--
--/*
-- * Copyright (C) 1993 Linus Torvalds
-- *
-- * Delay routines calling functions in arch/m32r/lib/delay.c
-- */
--
--extern void __bad_udelay(void);
--extern void __bad_ndelay(void);
--
--extern void __udelay(unsigned long usecs);
--extern void __ndelay(unsigned long nsecs);
--extern void __const_udelay(unsigned long xloops);
--extern void __delay(unsigned long loops);
--
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
--	__udelay(n))
--
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
--
--#endif /* _ASM_M32R_DELAY_H */
-+#include <asm-generic/delay.h>
-diff --git a/arch/sh/include/asm/delay.h b/arch/sh/include/asm/delay.h
-index 4b16bf9..9670e12 100644
---- a/arch/sh/include/asm/delay.h
-+++ b/arch/sh/include/asm/delay.h
-@@ -1,26 +1 @@
--#ifndef __ASM_SH_DELAY_H
--#define __ASM_SH_DELAY_H
--
--/*
-- * Copyright (C) 1993 Linus Torvalds
-- *
-- * Delay routines calling functions in arch/sh/lib/delay.c
-- */
--
--extern void __bad_udelay(void);
--extern void __bad_ndelay(void);
--
--extern void __udelay(unsigned long usecs);
--extern void __ndelay(unsigned long nsecs);
--extern void __const_udelay(unsigned long xloops);
--extern void __delay(unsigned long loops);
--
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c6ul)) : \
--	__udelay(n))
--
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
--
--#endif /* __ASM_SH_DELAY_H */
-+#include <asm-generic/delay.h>
-diff --git a/arch/x86/include/asm/delay.h b/arch/x86/include/asm/delay.h
-index 409a649..9b3b4f2 100644
---- a/arch/x86/include/asm/delay.h
-+++ b/arch/x86/include/asm/delay.h
-@@ -1,30 +1,7 @@
- #ifndef _ASM_X86_DELAY_H
- #define _ASM_X86_DELAY_H
+I'm not totally certain that this doesn't have implications for the
+other architectures, in particular Score which seems to have an MMU yet
+uses these ioremap functions anyway...  Comments on this would be
+appreciated.
+
+Thanks,
+Jonas
+
+ include/asm-generic/io.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index e0ffa3d..50f4f43 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -307,7 +307,11 @@ static inline void *phys_to_virt(unsigned long address)
  
--/*
-- * Copyright (C) 1993 Linus Torvalds
-- *
-- * Delay routines calling functions in arch/x86/lib/delay.c
-- */
--
--/* Undefined functions to get compile-time errors */
--extern void __bad_udelay(void);
--extern void __bad_ndelay(void);
--
--extern void __udelay(unsigned long usecs);
--extern void __ndelay(unsigned long nsecs);
--extern void __const_udelay(unsigned long xloops);
--extern void __delay(unsigned long loops);
--
--/* 0x10c7 is 2**32 / 1000000 (rounded up) */
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
--	__udelay(n))
--
--/* 0x5 is 2**32 / 1000000000 (rounded up) */
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
-+#include <asm-generic/delay.h>
+ /*
+  * Change "struct page" to physical address.
++ *
++ * This implementation is for the no-MMU case only... if you have an MMU
++ * you'll need to provide your own definitions.
+  */
++#ifndef CONFIG_MMU
+ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
+ 	return (void __iomem*) (unsigned long)offset;
+@@ -326,6 +330,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ static inline void iounmap(void *addr)
+ {
+ }
++#endif /* CONFIG_MMU */
  
- void use_tsc_delay(void);
+ #ifndef CONFIG_GENERIC_IOMAP
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+@@ -342,7 +347,12 @@ extern void ioport_unmap(void __iomem *p);
+ #endif /* CONFIG_GENERIC_IOMAP */
  
+ #define xlate_dev_kmem_ptr(p)	p
++
++#ifdef CONFIG_MMU
++#define xlate_dev_mem_ptr(p)	__va(p)
++#else
+ #define xlate_dev_mem_ptr(p)	((void *) (p))
++#endif
+ 
+ #ifndef virt_to_bus
+ static inline unsigned long virt_to_bus(volatile void *address)
 -- 
 1.7.4.1
 
