@@ -1,30 +1,205 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH v2 04/19] OpenRISC: Signal handling
-Date: Sat,  2 Jul 2011 23:15:37 +0200
-Message-ID: <1309641352-18714-5-git-send-email-jonas@southpole.se>
+Subject: [PATCH v2 02/19] OpenRISC: Device tree
+Date: Sat,  2 Jul 2011 23:15:35 +0200
+Message-ID: <1309641352-18714-3-git-send-email-jonas@southpole.se>
 References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1309641352-18714-1-git-send-email-jonas@southpole.se>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Jonas Bonn <jonas@southpole.se>, devicetree-discuss@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
 
-Signed-off-by: Jonas Bonn <jonas@southpole.se>
----
- arch/openrisc/include/asm/sigcontext.h |   38 +++
- arch/openrisc/kernel/signal.c          |  404 ++++++++++++++++++++++++++++++++
- 2 files changed, 442 insertions(+), 0 deletions(-)
- create mode 100644 arch/openrisc/include/asm/sigcontext.h
- create mode 100644 arch/openrisc/kernel/signal.c
+The OpenRISC architecture uses the device tree infrastructure for the
+platform description.  This is currently limited to having a device tree
+built into the kernel, but work is underway within the OpenRISC project
+to define how this device tree blob should be passed into the kernel from
+an external resource.
 
-diff --git a/arch/openrisc/include/asm/sigcontext.h b/arch/openrisc/include/asm/sigcontext.h
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+Cc: devicetree-discuss@lists.ozlabs.org
+---
+ arch/openrisc/boot/dts/atlys.dts   |   78 +++++++++++++++++++++++++
+ arch/openrisc/boot/dts/or1ksim.dts |   73 ++++++++++++++++++++++++
+ arch/openrisc/include/asm/prom.h   |   92 ++++++++++++++++++++++++++++++
+ arch/openrisc/kernel/prom.c        |  109 ++++++++++++++++++++++++++++++++++++
+ arch/openrisc/kernel/setup.c       |    3 +-
+ 5 files changed, 353 insertions(+), 2 deletions(-)
+ create mode 100644 arch/openrisc/boot/dts/atlys.dts
+ create mode 100644 arch/openrisc/boot/dts/or1ksim.dts
+ create mode 100644 arch/openrisc/include/asm/prom.h
+ create mode 100644 arch/openrisc/kernel/prom.c
+
+diff --git a/arch/openrisc/boot/dts/atlys.dts b/arch/openrisc/boot/dts/atlys.dts
 new file mode 100644
-index 0000000..54a5c50
+index 0000000..cd028b9
 --- /dev/null
-+++ b/arch/openrisc/include/asm/sigcontext.h
-@@ -0,0 +1,38 @@
++++ b/arch/openrisc/boot/dts/atlys.dts
+@@ -0,0 +1,78 @@
++/dts-v1/;
++/ {
++	compatible = "digilent,atlys";
++	#size-cells = <1>;
++	#address-cells = <1>;
++
++	chosen {
++		bootargs = "console=tty0 console=uart,mmio,0x90000000,115200 debug video=ocfb:640x480-16@60";
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x8000000>;
++	};
++
++	cpus {
++		cpu@0 {
++			compatible = "opencores,openrisc-1200";
++			clock-frequency = <50000000>;
++		};
++	};
++
++	/* The "soc" node */
++
++	soc {
++		/* Every node with children must specify address-cells and
++		   size-cells; they are not inherited */
++		#address-cells = <1>;
++		#size-cells = <1>;
++		device_type = "soc";
++
++		/* This is also a 1:1 mapping but limits size of mappable
++		   region to 0x40000000 */
++		ranges = <0x80000000 0x80000000 0x40000000>;
++
++		/* An alternative is to specify an empty ranges here to
++		   indicates 1:1 mapping of SOC addresses (device addresses)
++		   to CPU addresses */
++		/*ranges;*/
++
++		/* This SOC has only a single, implicit PIC, so define it
++		   early and put the interrupt-parent property in the 'soc'
++		   node so that it's inherited by all the children using
++		   interrupts.
++		*/
++		interrupt-parent = <&pic>;
++
++		/* Devices with interrupts need a 'parent', so we need to
++		   define a controller */
++		pic: pic@0 {
++			compatible = "opencores,or1k-pic";
++			#interrupt-cells = <1>;
++			interrupt-controller;
++		};
++
++		serial0: serial@90000000 {
++			/* FIXME: device_type is still needed here...
++			   should remove requirement from of_serial driver */
++			device_type = "serial";
++			compatible = "opencores,uart", "ns16550a";
++			reg = <0x90000000 0x100>;
++			interrupts = <2>;
++			clock-frequency = <50000000>;
++		};
++
++		enet0: ethoc@92000000 {
++			compatible = "opencores,ethoc", "ethoc";
++			reg = <0x92000000 0x53>;
++			interrupts = <4>;
++			local-mac-address = [02 de ad be ef 02];
++		};
++
++		fb0: ocfb@97000000 {
++			compatible = "opencores,ocfb", "ocfb";
++			reg = <0x97000000 0x1000>;
++		};
++	};
++};
+diff --git a/arch/openrisc/boot/dts/or1ksim.dts b/arch/openrisc/boot/dts/or1ksim.dts
+new file mode 100644
+index 0000000..6a025ea
+--- /dev/null
++++ b/arch/openrisc/boot/dts/or1ksim.dts
+@@ -0,0 +1,73 @@
++/dts-v1/;
++/ {
++	compatible = "opencores,or1ksim";
++	#size-cells = <1>;
++	#address-cells = <1>;
++
++	chosen {
++		bootargs = "console=uart,mmio,0x90000000,115200 debug";
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x00000000 0x2000000>;
++	};
++
++	cpus {
++		cpu@0 {
++			compatible = "opencores,openrisc-1200";
++			clock-frequency = <20000000>;
++		};
++	};
++
++	/* The "soc" node */
++
++	soc {
++		/* Every node with children must specify address-cells and
++		   size-cells; they are not inherited */
++		#address-cells = <1>;
++		#size-cells = <1>;
++		device_type = "soc";
++
++		/* This is also a 1:1 mapping but limits size of mappable
++		   region to 0x40000000 */
++		ranges = <0x80000000 0x80000000 0x40000000>;
++
++		/* An alternative is to specify an empty ranges here to
++		   indicates 1:1 mapping of SOC addresses (device addresses)
++		   to CPU addresses */
++		/*ranges;*/
++
++		/* This SOC has only a single, implicit PIC, so define it
++		   early and put the interrupt-parent property in the 'soc'
++		   node so that it's inherited by all the children using
++		   interrupts.
++		*/
++		interrupt-parent = <&pic>;
++
++		/* Devices with interrupts need a 'parent', so we need to
++		   define a controller */
++		pic: pic@0 {
++			compatible = "opencores,or1k-pic";
++			#interrupt-cells = <1>;
++			interrupt-controller;
++		};
++
++		serial0: serial@90000000 {
++			/* FIXME: device_type is still needed here...
++			   should remove requirement from of_serial driver */
++			device_type = "serial";
++			compatible = "opencores,uart", "ns16550a";
++			reg = <0x90000000 0x100>;
++			interrupts = <2>;
++			clock-frequency = <20000000>;
++		};
++
++		enet0: ethoc@92000000 {
++			compatible = "opencores,ethoc", "ethoc";
++			reg = <0x92000000 0x53>;
++			interrupts = <4>;
++			local-mac-address = [02 de ad be ef 02];
++		};
++	};
++};
+diff --git a/arch/openrisc/include/asm/prom.h b/arch/openrisc/include/asm/prom.h
+new file mode 100644
+index 0000000..3818902
+--- /dev/null
++++ b/arch/openrisc/include/asm/prom.h
+@@ -0,0 +1,92 @@
 +/*
 + * OpenRISC Linux
 + *
@@ -33,7 +208,6 @@ index 0000000..54a5c50
 + * declaration.
 + *
 + * OpenRISC implementation:
-+ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
 + * et al.
 + *
@@ -43,435 +217,209 @@ index 0000000..54a5c50
 + * (at your option) any later version.
 + */
 +
-+#ifndef __ASM_OPENRISC_SIGCONTEXT_H
-+#define __ASM_OPENRISC_SIGCONTEXT_H
++#include <linux/of.h>	/* linux/of.h gets to determine #include ordering */
 +
-+#include <asm/ptrace.h>
++#ifndef _ASM_OPENRISC_PROM_H
++#define _ASM_OPENRISC_PROM_H
++#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
 +
-+/* This struct is saved by setup_frame in signal.c, to keep the current
-+   context while a signal handler is executed. It's restored by sys_sigreturn.
++#include <linux/types.h>
++#include <asm/irq.h>
++#include <asm/atomic.h>
++#include <linux/of_irq.h>
++#include <linux/of_fdt.h>
++#include <linux/of_address.h>
++#include <linux/proc_fs.h>
++#include <linux/platform_device.h>
++#define HAVE_ARCH_DEVTREE_FIXUPS
 +
-+   To keep things simple, we use pt_regs here even though normally you just
-+   specify the list of regs to save. Then we can use copy_from_user on the
-+   entire regs instead of a bunch of get_user's as well...
-+*/
++/* Other Prototypes */
++extern int early_uartlite_console(void);
 +
-+struct sigcontext {
-+	struct pt_regs regs;  /* needs to be first */
-+	unsigned long oldmask;
-+	unsigned long usp;    /* usp before stacking this gunk on it */
-+};
-+
-+#endif /* __ASM_OPENRISC_SIGCONTEXT_H */
-diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
-new file mode 100644
-index 0000000..9d1b839
---- /dev/null
-+++ b/arch/openrisc/kernel/signal.c
-@@ -0,0 +1,404 @@
++#ifdef CONFIG_PCI
 +/*
-+ * OpenRISC signal.c
++ * PCI <-> OF matching functions
++ * (XXX should these be here?)
++ */
++struct pci_bus;
++struct pci_dev;
++extern int pci_device_from_OF_node(struct device_node *node,
++					u8 *bus, u8 *devfn);
++extern struct device_node *pci_busdev_to_OF_node(struct pci_bus *bus,
++							int devfn);
++extern struct device_node *pci_device_to_OF_node(struct pci_dev *dev);
++extern void pci_create_OF_bus_map(void);
++#endif
++
++/* Parse the ibm,dma-window property of an OF node into the busno, phys and
++ * size parameters.
++ */
++void of_parse_dma_window(struct device_node *dn, const void *dma_window_prop,
++		unsigned long *busno, unsigned long *phys, unsigned long *size);
++
++extern void kdump_move_device_tree(void);
++
++/* CPU OF node matching */
++struct device_node *of_get_cpu_node(int cpu, unsigned int *thread);
++
++/* Get the MAC address */
++extern const void *of_get_mac_address(struct device_node *np);
++
++/**
++ * of_irq_map_pci - Resolve the interrupt for a PCI device
++ * @pdev:	the device whose interrupt is to be resolved
++ * @out_irq:	structure of_irq filled by this function
++ *
++ * This function resolves the PCI interrupt for a given PCI device. If a
++ * device-node exists for a given pci_dev, it will use normal OF tree
++ * walking. If not, it will implement standard swizzling and walk up the
++ * PCI tree until an device-node is found, at which point it will finish
++ * resolving using the OF tree walking.
++ */
++struct pci_dev;
++extern int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq);
++
++/* This routine is here to provide compatibility with how powerpc
++ * handles IRQ mapping for OF device nodes.  We precompute and permanently
++ * register them in the platform_device objects, whereas powerpc computes them
++ * on request.
++ */
++static inline void irq_dispose_mapping(unsigned int virq)
++{
++}
++
++#endif /* __ASSEMBLY__ */
++#endif /* __KERNEL__ */
++#endif /* _ASM_OPENRISC_PROM_H */
+diff --git a/arch/openrisc/kernel/prom.c b/arch/openrisc/kernel/prom.c
+new file mode 100644
+index 0000000..2bb5a8c
+--- /dev/null
++++ b/arch/openrisc/kernel/prom.c
+@@ -0,0 +1,109 @@
++/*
++ * OpenRISC prom.c
 + *
 + * Linux architectural port borrowing liberally from similar works of
 + * others.  All original copyrights apply as per the original source
 + * declaration.
 + *
 + * Modifications for the OpenRISC architecture:
-+ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
 + *
 + *      This program is free software; you can redistribute it and/or
 + *      modify it under the terms of the GNU General Public License
 + *      as published by the Free Software Foundation; either version
 + *      2 of the License, or (at your option) any later version.
++ *
++ * Architecture specific procedures for creating, accessing and
++ * interpreting the device tree.
++ *
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
++#include <stdarg.h>
 +#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/tracehook.h>
++#include <linux/string.h>
++#include <linux/init.h>
++#include <linux/threads.h>
++#include <linux/spinlock.h>
++#include <linux/types.h>
++#include <linux/pci.h>
++#include <linux/stringify.h>
++#include <linux/delay.h>
++#include <linux/initrd.h>
++#include <linux/bitops.h>
++#include <linux/module.h>
++#include <linux/kexec.h>
++#include <linux/debugfs.h>
++#include <linux/irq.h>
++#include <linux/memblock.h>
++#include <linux/of_fdt.h>
 +
++#include <asm/prom.h>
++#include <asm/page.h>
 +#include <asm/processor.h>
-+#include <asm/ucontext.h>
-+#include <asm/uaccess.h>
++#include <asm/irq.h>
++#include <linux/io.h>
++#include <asm/system.h>
++#include <asm/mmu.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
 +
-+#include "ptrace.h"
++extern char cmd_line[COMMAND_LINE_SIZE];
 +
-+#define DEBUG_SIG 0
-+
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-+
-+asmlinkage long
-+_sys_sigaltstack(const stack_t *uss, stack_t *uoss, struct pt_regs *regs)
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 +{
-+	return do_sigaltstack(uss, uoss, regs->sp);
++	size &= PAGE_MASK;
++	memblock_add(base, size);
 +}
 +
-+struct rt_sigframe {
-+	struct siginfo *pinfo;
-+	void *puc;
-+	struct siginfo info;
-+	struct ucontext uc;
-+	unsigned char retcode[16];	/* trampoline code */
-+};
-+
-+static int restore_sigcontext(struct pt_regs *regs, struct sigcontext *sc)
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 +{
-+	unsigned int err = 0;
-+	unsigned long old_usp;
++	return __va(memblock_alloc(size, align));
++}
 +
-+	/* Alwys make any pending restarted system call return -EINTR */
-+	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++void __init early_init_devtree(void *params)
++{
++	u8 *alloc;
 +
-+	/* restore the regs from &sc->regs (same as sc, since regs is first)
-+	 * (sc is already checked for VERIFY_READ since the sigframe was
-+	 *  checked in sys_sigreturn previously)
++	/* Setup flat device-tree pointer */
++	initial_boot_params = params;
++
++
++	/* Retrieve various informations from the /chosen node of the
++	 * device-tree, including the platform type, initrd location and
++	 * size, TCE reserve, and more ...
++	 */
++	of_scan_flat_dt(early_init_dt_scan_chosen, cmd_line);
++
++	/* Scan memory nodes and rebuild MEMBLOCKs */
++	memblock_init();
++	of_scan_flat_dt(early_init_dt_scan_root, NULL);
++	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
++
++	/* Save command line for /proc/cmdline and then parse parameters */
++	strlcpy(boot_command_line, cmd_line, COMMAND_LINE_SIZE);
++//	parse_early_param();
++
++	memblock_analyze();
++
++	/* We must copy the flattend device tree from init memory to regular
++	 * memory because the device tree references the strings in it
++	 * directly.
 +	 */
 +
-+	if (__copy_from_user(regs, sc, sizeof(struct pt_regs)))
-+		goto badframe;
++	alloc = __va(memblock_alloc(initial_boot_params->totalsize, PAGE_SIZE));
 +
-+	/* make sure the SM-bit is cleared so user-mode cannot fool us */
-+	regs->sr &= ~SPR_SR_SM;
++	memcpy(alloc, initial_boot_params, initial_boot_params->totalsize);
 +
-+	/* restore the old USP as it was before we stacked the sc etc.
-+	 * (we cannot just pop the sigcontext since we aligned the sp and
-+	 *  stuff after pushing it)
-+	 */
-+
-+	err |= __get_user(old_usp, &sc->usp);
-+
-+	regs->sp = old_usp;
-+
-+	/* TODO: the other ports use regs->orig_XX to disable syscall checks
-+	 * after this completes, but we don't use that mechanism. maybe we can
-+	 * use it now ?
-+	 */
-+
-+	return err;
-+
-+badframe:
-+	return 1;
++	initial_boot_params = (void *) alloc;
 +}
 +
-+asmlinkage long _sys_rt_sigreturn(struct pt_regs *regs)
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++		unsigned long end)
 +{
-+	struct rt_sigframe *frame = (struct rt_sigframe __user *)regs->sp;
-+	sigset_t set;
-+	stack_t st;
-+
-+	/*
-+	 * Since we stacked the signal on a dword boundary,
-+	 * then frame should be dword aligned here.  If it's
-+	 * not, then the user is trying to mess with us.
-+	 */
-+	if (((long)frame) & 3)
-+		goto badframe;
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, ~_BLOCKABLE);
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
-+		goto badframe;
-+
-+	if (__copy_from_user(&st, &frame->uc.uc_stack, sizeof(st)))
-+		goto badframe;
-+	/* It is more difficult to avoid calling this function than to
-+	   call it and ignore errors.  */
-+	do_sigaltstack(&st, NULL, regs->sp);
-+
-+	single_step_trap(current);
-+
-+	return regs->gpr[11];
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
++	initrd_start = (unsigned long)__va(start);
++	initrd_end = (unsigned long)__va(end);
++	initrd_below_start_ok = 1;
 +}
-+
-+/*
-+ * Set up a signal frame.
-+ */
-+
-+static int setup_sigcontext(struct sigcontext *sc, struct pt_regs *regs,
-+			    unsigned long mask)
-+{
-+	int err = 0;
-+	unsigned long usp = regs->sp;
-+
-+	/* copy the regs. they are first in sc so we can use sc directly */
-+
-+	err |= __copy_to_user(sc, regs, sizeof(struct pt_regs));
-+
-+	/* then some other stuff */
-+
-+	err |= __put_user(mask, &sc->oldmask);
-+
-+	err |= __put_user(usp, &sc->usp);
-+
-+	return err;
-+}
-+
-+static inline unsigned long align_sigframe(unsigned long sp)
-+{
-+	return sp & ~3UL;
-+}
-+
-+/*
-+ * Work out where the signal frame should go.  It's either on the user stack
-+ * or the alternate stack.
-+ */
-+
-+static inline void __user *get_sigframe(struct k_sigaction *ka,
-+					struct pt_regs *regs, size_t frame_size)
-+{
-+	unsigned long sp = regs->sp;
-+	int onsigstack = on_sig_stack(sp);
-+
-+	/* redzone */
-+	sp -= STACK_FRAME_OVERHEAD;
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && !onsigstack) {
-+		if (current->sas_ss_size)
-+			sp = current->sas_ss_sp + current->sas_ss_size;
-+	}
-+
-+	sp = align_sigframe(sp - frame_size);
-+
-+	/*
-+	 * If we are on the alternate signal stack and would overflow it, don't.
-+	 * Return an always-bogus address instead so we will die with SIGSEGV.
-+	 */
-+	if (onsigstack && !likely(on_sig_stack(sp)))
-+		return (void __user *)-1L;
-+
-+	return (void __user *)sp;
-+}
-+
-+/* grab and setup a signal frame.
-+ *
-+ * basically we stack a lot of state info, and arrange for the
-+ * user-mode program to return to the kernel using either a
-+ * trampoline which performs the syscall sigreturn, or a provided
-+ * user-mode trampoline.
-+ */
-+static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
-+			   sigset_t *set, struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	unsigned long return_ip;
-+	int err = 0;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		goto give_sigsegv;
-+
-+	err |= __put_user(&frame->info, &frame->pinfo);
-+	err |= __put_user(&frame->uc, &frame->puc);
-+
-+	if (ka->sa.sa_flags & SA_SIGINFO)
-+		err |= copy_siginfo_to_user(&frame->info, info);
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Clear all the bits of the ucontext we don't use.  */
-+	err |= __clear_user(&frame->uc, offsetof(struct ucontext, uc_mcontext));
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(NULL, &frame->uc.uc_link);
-+	err |= __put_user((void *)current->sas_ss_sp,
-+			  &frame->uc.uc_stack.ss_sp);
-+	err |= __put_user(sas_ss_flags(regs->sp), &frame->uc.uc_stack.ss_flags);
-+	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-+	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
-+
-+	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* trampoline - the desired return ip is the retcode itself */
-+	return_ip = (unsigned long)&frame->retcode;
-+	/* This is l.ori r11,r0,__NR_sigreturn, l.sys 1 */
-+	err |= __put_user(0xa960, (short *)(frame->retcode + 0));
-+	err |= __put_user(__NR_rt_sigreturn, (short *)(frame->retcode + 2));
-+	err |= __put_user(0x20000001, (unsigned long *)(frame->retcode + 4));
-+	err |= __put_user(0x15000000, (unsigned long *)(frame->retcode + 8));
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* TODO what is the current->exec_domain stuff and invmap ? */
-+
-+	/* Set up registers for signal handler */
-+	regs->pc = (unsigned long)ka->sa.sa_handler; /* what we enter NOW */
-+	regs->gpr[9] = (unsigned long)return_ip;     /* what we enter LATER */
-+	regs->gpr[3] = (unsigned long)sig;           /* arg 1: signo */
-+	regs->gpr[4] = (unsigned long)&frame->info;  /* arg 2: (siginfo_t*) */
-+	regs->gpr[5] = (unsigned long)&frame->uc;    /* arg 3: ucontext */
-+
-+	/* actually move the usp to reflect the stacked frame */
-+	regs->sp = (unsigned long)frame;
-+
-+	return;
-+
-+give_sigsegv:
-+	if (sig == SIGSEGV)
-+		ka->sa.sa_handler = SIG_DFL;
-+	force_sig(SIGSEGV, current);
-+}
-+
-+static inline void
-+handle_signal(unsigned long sig,
-+	      siginfo_t *info, struct k_sigaction *ka,
-+	      sigset_t *oldset, struct pt_regs *regs)
-+{
-+	setup_rt_frame(sig, ka, info, oldset, regs);
-+
-+	if (ka->sa.sa_flags & SA_ONESHOT)
-+		ka->sa.sa_handler = SIG_DFL;
-+
-+	spin_lock_irq(&current->sighand->siglock);
-+	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-+	if (!(ka->sa.sa_flags & SA_NODEFER))
-+		sigaddset(&current->blocked, sig);
-+	recalc_sigpending();
-+
-+	spin_unlock_irq(&current->sighand->siglock);
-+}
-+
-+/*
-+ * Note that 'init' is a special process: it doesn't get signals it doesn't
-+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
-+ * mistake.
-+ *
-+ * Also note that the regs structure given here as an argument, is the latest
-+ * pushed pt_regs. It may or may not be the same as the first pushed registers
-+ * when the initial usermode->kernelmode transition took place. Therefore
-+ * we can use user_mode(regs) to see if we came directly from kernel or user
-+ * mode below.
-+ */
-+
-+void do_signal(struct pt_regs *regs)
-+{
-+	siginfo_t info;
-+	int signr;
-+	struct k_sigaction ka;
-+
-+	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
-+	 */
-+	if (!user_mode(regs))
-+		return;
-+
-+	single_step_clear(current);
-+
-+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+
-+	/* If we are coming out of a syscall then we need
-+	 * to check if the syscall was interrupted and wants to be
-+	 * restarted after handling the signal.  If so, the original
-+	 * syscall number is put back into r11 and the PC rewound to
-+	 * point at the l.sys instruction that resulted in the
-+	 * original syscall.  Syscall results other than the four
-+	 * below mean that the syscall executed to completion and no
-+	 * restart is necessary.
-+	 */
-+	if (regs->syscallno) {
-+		int restart = 0;
-+
-+		switch (regs->gpr[11]) {
-+		case -ERESTART_RESTARTBLOCK:
-+		case -ERESTARTNOHAND:
-+			/* Restart if there is no signal handler */
-+			restart = (signr <= 0);
-+			break;
-+		case -ERESTARTSYS:
-+			/* Restart if there no signal handler or
-+			 * SA_RESTART flag is set */
-+			restart = (signr <= 0 || (ka.sa.sa_flags & SA_RESTART));
-+			break;
-+		case -ERESTARTNOINTR:
-+			/* Always restart */
-+			restart = 1;
-+			break;
-+		}
-+
-+		if (restart) {
-+			if (regs->gpr[11] == -ERESTART_RESTARTBLOCK)
-+				regs->gpr[11] = __NR_restart_syscall;
-+			else
-+				regs->gpr[11] = regs->orig_gpr11;
-+			regs->pc -= 4;
-+		} else {
-+			regs->gpr[11] = -EINTR;
-+		}
-+	}
-+
-+	if (signr <= 0) {
-+		/* no signal to deliver so we just put the saved sigmask
-+		 * back */
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+			clear_thread_flag(TIF_RESTORE_SIGMASK);
-+			sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+		}
-+
-+	} else {		/* signr > 0 */
-+		sigset_t *oldset;
-+
-+		if (current_thread_info()->flags & _TIF_RESTORE_SIGMASK)
-+			oldset = &current->saved_sigmask;
-+		else
-+			oldset = &current->blocked;
-+
-+		/* Whee!  Actually deliver the signal.  */
-+		handle_signal(signr, &info, &ka, oldset, regs);
-+		/* a signal was successfully delivered; the saved
-+		 * sigmask will have been stored in the signal frame,
-+		 * and will be restored by sigreturn, so we can simply
-+		 * clear the TIF_RESTORE_SIGMASK flag */
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+			clear_thread_flag(TIF_RESTORE_SIGMASK);
-+
-+		tracehook_signal_handler(signr, &info, &ka, regs,
-+					 test_thread_flag(TIF_SINGLESTEP));
-+	}
-+
-+	single_step_set(current);
-+
-+	return;
-+}
-+
-+asmlinkage void do_notify_resume(struct pt_regs *regs)
-+{
-+	if (current_thread_info()->flags & _TIF_SIGPENDING)
-+		do_signal(regs);
-+
-+	if (current_thread_info()->flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
-+		if (current->replacement_session_keyring)
-+			key_replace_session_keyring();
-+	}
-+}
++#endif
+diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
+index 49342e9..6ce6583 100644
+--- a/arch/openrisc/kernel/setup.c
++++ b/arch/openrisc/kernel/setup.c
+@@ -173,8 +173,7 @@ void __init setup_cpuinfo(void)
+ 	unsigned long iccfgr,dccfgr;
+ 	unsigned long cache_set_size, cache_ways;;
+ 
+-	cpu = (struct device_node *) of_find_compatible_node(NULL,
+-	                                NULL, "opencores,openrisc-1200");
++	cpu = of_find_compatible_node(NULL, NULL, "opencores,openrisc-1200");
+ 	if (!cpu) {
+ 		panic("No compatible CPU found in device tree...\n");
+ 	}
 -- 
 1.7.4.1
