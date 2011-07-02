@@ -1,220 +1,63 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/35] UAPI: Split trivial #if defined(__KERNEL__) && X
- conditionals
-Date: Sat, 02 Jul 2011 12:09:00 +0100
-Message-ID: <20110702110900.21948.40951.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 11/35] UAPI: Remove the inclusion of linux/types.h from x86's
+ asm/page.h
+Date: Sat, 02 Jul 2011 12:09:09 +0100
+Message-ID: <20110702110909.21948.34996.stgit@warthog.procyon.org.uk>
 References: <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:3105 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:15436 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753201Ab1GBLJE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 2 Jul 2011 07:09:04 -0400
-Received: from int-mx12.intmail.prod.int.phx2.redhat.com (int-mx12.intmail.prod.int.phx2.redhat.com [10.5.11.25])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p62B9499018655
+	id S1753201Ab1GBLJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 2 Jul 2011 07:09:13 -0400
+Received: from int-mx01.intmail.prod.int.phx2.redhat.com (int-mx01.intmail.prod.int.phx2.redhat.com [10.5.11.11])
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p62B9D5l016028
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Sat, 2 Jul 2011 07:09:04 -0400
+	for <linux-arch@vger.kernel.org>; Sat, 2 Jul 2011 07:09:13 -0400
 In-Reply-To: <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com
 
-Split trivial #if defined(__KERNEL__) && X conditionals to make automated
-disintegration easier.
+Remove the inclusion of linux/types.h from x86's asm/page.h as it's included
+via asm/page_types.h.  Make asm/page_types.h's inclusion dependent on not being
+in assembly.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/arm/include/asm/hwcap.h       |    4 +++-
- arch/arm/include/asm/swab.h        |    7 +++++--
- arch/arm/include/asm/unistd.h      |    4 +++-
- arch/ia64/include/asm/intrinsics.h |   21 +++++++++++++--------
- arch/mips/include/asm/types.h      |   10 +++++++---
- arch/s390/include/asm/mman.h       |    4 +++-
- arch/tile/include/asm/signal.h     |    4 +++-
- include/linux/mroute6.h            |    4 +++-
- 8 files changed, 40 insertions(+), 18 deletions(-)
+ arch/x86/include/asm/page.h       |    2 --
+ arch/x86/include/asm/page_types.h |    3 +++
+ 2 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/include/asm/hwcap.h b/arch/arm/include/asm/hwcap.h
-index c1062c3..aedc859 100644
---- a/arch/arm/include/asm/hwcap.h
-+++ b/arch/arm/include/asm/hwcap.h
-@@ -21,7 +21,8 @@
- #define HWCAP_VFPv3D16	16384
- #define HWCAP_TLS	32768
+diff --git a/arch/x86/include/asm/page.h b/arch/x86/include/asm/page.h
+index 8ca8283..d4ee8d8 100644
+--- a/arch/x86/include/asm/page.h
++++ b/arch/x86/include/asm/page.h
+@@ -1,8 +1,6 @@
+ #ifndef _ASM_X86_PAGE_H
+ #define _ASM_X86_PAGE_H
  
--#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+#if defined(__KERNEL__)
-+#if !defined(__ASSEMBLY__)
- /*
-  * This yields a mask that user programs can use to figure out what
-  * instruction set this cpu supports.
-@@ -29,5 +30,6 @@
- #define ELF_HWCAP	(elf_hwcap)
- extern unsigned int elf_hwcap;
- #endif
-+#endif
- 
- #endif
-diff --git a/arch/arm/include/asm/swab.h b/arch/arm/include/asm/swab.h
-index 9997ad2..e82adf6 100644
---- a/arch/arm/include/asm/swab.h
-+++ b/arch/arm/include/asm/swab.h
-@@ -22,7 +22,8 @@
- #  define __SWAB_64_THRU_32__
- #endif
- 
--#if defined(__KERNEL__) && __LINUX_ARM_ARCH__ >= 6
-+#if defined(__KERNEL__)
-+#if __LINUX_ARM_ARCH__ >= 6
- 
- static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
- {
-@@ -38,8 +39,10 @@ static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- }
- #define __arch_swab32 __arch_swab32
- 
--#else
-+#endif
-+#endif
- 
-+#if !defined(__KERNEL__) || __LINUX_ARM_ARCH__ < 6
- static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
- {
- 	__u32 t;
-diff --git a/arch/arm/include/asm/unistd.h b/arch/arm/include/asm/unistd.h
-index 2c04ed5..59d0f02 100644
---- a/arch/arm/include/asm/unistd.h
-+++ b/arch/arm/include/asm/unistd.h
-@@ -425,7 +425,8 @@
- /*
-  * The following syscalls are obsolete and no longer available for EABI.
-  */
--#if defined(__ARM_EABI__) && !defined(__KERNEL__)
-+#if !defined(__KERNEL__)
-+#if defined(__ARM_EABI__)
- #undef __NR_time
- #undef __NR_umount
- #undef __NR_stime
-@@ -439,6 +440,7 @@
- #undef __NR_syscall
- #undef __NR_ipc
- #endif
-+#endif
- 
+-#include <linux/types.h>
+-
  #ifdef __KERNEL__
  
-diff --git a/arch/ia64/include/asm/intrinsics.h b/arch/ia64/include/asm/intrinsics.h
-index 111ed52..e4076b5 100644
---- a/arch/ia64/include/asm/intrinsics.h
-+++ b/arch/ia64/include/asm/intrinsics.h
-@@ -201,16 +201,21 @@ extern long ia64_cmpxchg_called_with_bad_pointer (void);
- #endif
+ #include <asm/page_types.h>
+diff --git a/arch/x86/include/asm/page_types.h b/arch/x86/include/asm/page_types.h
+index bce688d..eeff662 100644
+--- a/arch/x86/include/asm/page_types.h
++++ b/arch/x86/include/asm/page_types.h
+@@ -2,7 +2,10 @@
+ #define _ASM_X86_PAGE_DEFS_H
  
- #ifndef __ASSEMBLY__
--#if defined(CONFIG_PARAVIRT) && defined(__KERNEL__)
--#ifdef ASM_SUPPORTED
--# define IA64_INTRINSIC_API(name)	paravirt_ ## name
--#else
--# define IA64_INTRINSIC_API(name)	pv_cpu_ops.name
--#endif
--#define IA64_INTRINSIC_MACRO(name)	paravirt_ ## name
--#else
+ #include <linux/const.h>
 +
- #define IA64_INTRINSIC_API(name)	ia64_native_ ## name
- #define IA64_INTRINSIC_MACRO(name)	ia64_native_ ## name
-+
-+#if defined(__KERNEL__)
-+#if defined(CONFIG_PARAVIRT)
-+# undef IA64_INTRINSIC_API
-+# undef IA64_INTRINSIC_MACRO
-+# ifdef ASM_SUPPORTED
-+#  define IA64_INTRINSIC_API(name)	paravirt_ ## name
-+# else
-+#  define IA64_INTRINSIC_API(name)	pv_cpu_ops.name
-+# endif
-+#define IA64_INTRINSIC_MACRO(name)	paravirt_ ## name
-+#endif
- #endif
- 
- /************************************************/
-diff --git a/arch/mips/include/asm/types.h b/arch/mips/include/asm/types.h
-index 533812b..9b96461 100644
---- a/arch/mips/include/asm/types.h
-+++ b/arch/mips/include/asm/types.h
-@@ -15,10 +15,14 @@
-  * We don't use int-l64.h for the kernel anymore but still use it for
-  * userspace to avoid code changes.
-  */
--#if (_MIPS_SZLONG == 64) && !defined(__KERNEL__)
--# include <asm-generic/int-l64.h>
--#else
-+#ifdef __KERNEL__
- # include <asm-generic/int-ll64.h>
-+#else
-+# if _MIPS_SZLONG == 64
-+#  include <asm-generic/int-l64.h>
-+# else
-+#  include <asm-generic/int-ll64.h>
-+# endif
- #endif
- 
- #ifndef __ASSEMBLY__
-diff --git a/arch/s390/include/asm/mman.h b/arch/s390/include/asm/mman.h
-index 4e9c8ae..d49760e 100644
---- a/arch/s390/include/asm/mman.h
-+++ b/arch/s390/include/asm/mman.h
-@@ -11,9 +11,11 @@
- 
- #include <asm-generic/mman.h>
- 
--#if defined(__KERNEL__) && !defined(__ASSEMBLY__) && defined(CONFIG_64BIT)
-+#if defined(__KERNEL__)
-+#if !defined(__ASSEMBLY__) && defined(CONFIG_64BIT)
- int s390_mmap_check(unsigned long addr, unsigned long len);
- #define arch_mmap_check(addr,len,flags)	s390_mmap_check(addr,len)
- #endif
++#ifndef __ASSEMBLY__
+ #include <linux/types.h>
 +#endif
  
- #endif /* __S390_MMAN_H__ */
-diff --git a/arch/tile/include/asm/signal.h b/arch/tile/include/asm/signal.h
-index 1e1e616..1e5e49a 100644
---- a/arch/tile/include/asm/signal.h
-+++ b/arch/tile/include/asm/signal.h
-@@ -23,7 +23,8 @@
- 
- #include <asm-generic/signal.h>
- 
--#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+#if defined(__KERNEL__)
-+#if !defined(__ASSEMBLY__)
- struct pt_regs;
- int restore_sigcontext(struct pt_regs *, struct sigcontext __user *);
- int setup_sigcontext(struct sigcontext __user *, struct pt_regs *);
-@@ -33,5 +34,6 @@ void signal_fault(const char *type, struct pt_regs *,
- void trace_unhandled_signal(const char *type, struct pt_regs *regs,
- 			    unsigned long address, int signo);
- #endif
-+#endif
- 
- #endif /* _ASM_TILE_SIGNAL_H */
-diff --git a/include/linux/mroute6.h b/include/linux/mroute6.h
-index a3759cb..6d8c725 100644
---- a/include/linux/mroute6.h
-+++ b/include/linux/mroute6.h
-@@ -43,9 +43,11 @@ typedef unsigned short mifi_t;
- typedef	__u32		if_mask;
- #define NIFBITS (sizeof(if_mask) * 8)        /* bits per mask */
- 
--#if !defined(__KERNEL__) && !defined(DIV_ROUND_UP)
-+#if !defined(__KERNEL__)
-+#if !defined(DIV_ROUND_UP)
- #define	DIV_ROUND_UP(x,y)	(((x) + ((y) - 1)) / (y))
- #endif
-+#endif
- 
- typedef struct if_set {
- 	if_mask ifs_bits[DIV_ROUND_UP(IF_SETSIZE, NIFBITS)];
+ /* PAGE_SHIFT determines the page size */
+ #define PAGE_SHIFT	12
