@@ -1,52 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Build regressions/improvements in v3.0-rc5
-Date: Sat, 2 Jul 2011 10:38:32 +0200
-Message-ID: <201107021038.33066.arnd@arndb.de>
-References: <alpine.DEB.2.00.1106291011400.10665@ayla.of.borg> <201107020005.02075.arnd@arndb.de> <CAMjpGUcrZpqDwi8r+BmyDV29-FcU9miJLv-dHGjUYY_GLYLU8A@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH 1/2] asm-generic: adapt delay.h to common implementation
+Date: Sat,  2 Jul 2011 11:59:13 +0200
+Message-ID: <1309600754-21217-1-git-send-email-jonas@southpole.se>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:62607 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750941Ab1GBIjD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 04:39:03 -0400
-In-Reply-To: <CAMjpGUcrZpqDwi8r+BmyDV29-FcU9miJLv-dHGjUYY_GLYLU8A@mail.gmail.com>
+Received: from mail.southpole.se ([193.12.106.18]:53325 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753660Ab1GBJ7T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jul 2011 05:59:19 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux Kernel Development <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: hans-christian.egtvedt@atmel.com, lethal@linux-sh.org, Jonas Bonn <jonas@southpole.se>
 
-On Saturday 02 July 2011 01:15:16 Mike Frysinger wrote:
-> 
-> On Fri, Jul 1, 2011 at 18:05, Arnd Bergmann wrote:
-> > --- a/kernel/resource.c
-> > +++ b/kernel/resource.c
-> > @@ -21,7 +21,7 @@
-> >  #include <linux/pfn.h>
-> >  #include <asm/io.h>
-> >
-> > -
-> > +#ifdef IO_SPACE_LIMIT
-> >  struct resource ioport_resource = {
-> >        .name   = "PCI IO",
-> >        .start  = 0,
-> > @@ -29,6 +29,7 @@ struct resource ioport_resource = {
-> >        .flags  = IORESOURCE_IO,
-> >  };
-> >  EXPORT_SYMBOL(ioport_resource);
-> > +#endif
-> 
-> hmm, asm-generic/io.h unconditionally sets this to 0xffff.  should
-> that depend on CONFIG_HAS_IOPORT ?
 
-Yes, that's probably another small change we should do. Right now,
-building without HAS_IOPORT is broken in little ways all over the
-place, so I expect there will be more of these once we look in all
-the places. Regarding asm-generic/io.h, we probably want to
-conditionally disable large parts of it.
+Several architectures are using a common delay.h implementation that
+appears to have originated with the x86 architecture.  This common
+implementation is a bit fuller than the current asm-generic version
+and has some compile-time checks that should be interesting for all
+architectures.
 
-Thanks,
+This patch takes the common delay.h version and replaces the rather
+trivial asm-generic version with it.  As no architecture was actually
+using asm-generic/delay.h, this change is rather innocuous; it will,
+however, allow us to switch at least four architectures over to using
+the asm-generic version.
 
-	Arnd
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ include/asm-generic/delay.h |   16 +++++++++++++++-
+ 1 files changed, 15 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-generic/delay.h b/include/asm-generic/delay.h
+index 4586fec..6511b99 100644
+--- a/include/asm-generic/delay.h
++++ b/include/asm-generic/delay.h
+@@ -1,9 +1,23 @@
+ #ifndef __ASM_GENERIC_DELAY_H
+ #define __ASM_GENERIC_DELAY_H
+ 
++/* Undefined functions to get compile-time errors */
++extern void __bad_udelay(void);
++extern void __bad_ndelay(void);
++
+ extern void __udelay(unsigned long usecs);
++extern void __ndelay(unsigned long nsecs);
++extern void __const_udelay(unsigned long xloops);
+ extern void __delay(unsigned long loops);
+ 
+-#define udelay(n) __udelay(n)
++/* 0x10c7 is 2**32 / 1000000 (rounded up) */
++#define udelay(n) (__builtin_constant_p(n) ? \
++	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
++	__udelay(n))
++
++/* 0x5 is 2**32 / 1000000000 (rounded up) */
++#define ndelay(n) (__builtin_constant_p(n) ? \
++	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
++	__ndelay(n))
+ 
+ #endif /* __ASM_GENERIC_DELAY_H */
+-- 
+1.7.4.1
