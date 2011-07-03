@@ -1,77 +1,35 @@
-From: Vasiliy Kulikov <segoon@openwall.com>
+From: Joe Perches <joe@perches.com>
 Subject: Re: [kernel-hardening] Re: [RFC v1] implement SL*B and stack
  usercopy runtime checks
-Date: Sun, 3 Jul 2011 23:24:42 +0400
-Message-ID: <20110703192442.GA9504@albatros>
+Date: Sun, 03 Jul 2011 12:37:55 -0700
+Message-ID: <1309721875.18925.30.camel@Joe-Laptop>
 References: <20110703111028.GA2862@albatros>
- <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
- <20110703185709.GA7414@albatros>
- <CA+55aFwuvk7xifqCX=E3DtV=JCJEzyODcF4o6xLL0U1N_P-Rbg@mail.gmail.com>
+	 <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
+	 <20110703185709.GA7414@albatros>
+	 <CA+55aFwuvk7xifqCX=E3DtV=JCJEzyODcF4o6xLL0U1N_P-Rbg@mail.gmail.com>
+	 <20110703192442.GA9504@albatros>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:46561 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755964Ab1GCTYr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jul 2011 15:24:47 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwuvk7xifqCX=E3DtV=JCJEzyODcF4o6xLL0U1N_P-Rbg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20110703192442.GA9504@albatros>
+Sender: owner-linux-mm@kvack.org
+To: Vasiliy Kulikov <segoon@openwall.com>
+Cc: kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 03, 2011 at 12:10 -0700, Linus Torvalds wrote:
-> On Sun, Jul 3, 2011 at 11:57 AM, Vasiliy Kulikov <segoon@openwall.com> wrote:
-> >> If you seriously clean it up (that at a minimum includes things like
-> >> making it configurable using some pretty helper function that just
-> >> compiles away for all the normal cases,
-> >
-> > Hm, it is not as simple as it looks at the first glance - even if the
-> > object size is known at the compile time (__compiletime_object_size), it
-> > might be a field of a structure, which crosses the slab object
-> > boundaries because of an overflow.
-> 
-> No, I was more talking about having something like
-> 
->   #ifdef CONFIG_EXPENSIVE_CHECK_USERCOPY
->   extern int check_user_copy(const void *kptr, unsigned long size);
->   #else
->   static inline int check_user_copy(const void *kptr, unsigned long size)
->   { return 0; }
->   #endif
+On Sun, 2011-07-03 at 23:24 +0400, Vasiliy Kulikov wrote:
+> Btw, if the perfomance will be acceptable, what do you think about
+> logging/reacting on the spotted overflows?
 
-Sure, will do.  This is what I mean by kernel_access_ok() as it is a
-weak equivalent of access_ok(), check_user_copy() is a bit confusing
-name IMO.
+If you do, it might be useful to track the found location(s)
+and only emit the overflow log entry once as found.
 
+Maybe use __builtin_return_address(depth) for tracking.
 
-> so that the actual user-copy routines end up being clean and not have
-> #ifdefs in them or any implementation details like what you check
-> (stack, slab, page cache - whatever)
-> 
-> If you can also make it automatically not generate any code for cases
-> that are somehow obviously safe, then that's an added bonus.
-
-OK, then let's stop on "checks for overflows" and remove the check if
-__compiletime_object_size() says something or length is constant.  It
-should remove most of the checks in fast pathes.
-
-
-> But my concern is that performance is a real issue, and the strict
-> user-copy checking sounds like mostly a "let's enable this for testing
-> kernels when chasing some particular issue" feature, the way
-> DEBUG_PAGEALLOC is.
-
-I will measure the perfomance penalty tomorrow.
-
-
-Btw, if the perfomance will be acceptable, what do you think about
-logging/reacting on the spotted overflows?
-
-
-Thanks,
-
--- 
-Vasiliy Kulikov
-http://www.openwall.com - bringing security into open computing environments
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
