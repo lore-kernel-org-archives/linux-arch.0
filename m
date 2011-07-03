@@ -1,67 +1,56 @@
-From: Vasiliy Kulikov <segoon@openwall.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC v1] implement SL*B and stack usercopy runtime checks
-Date: Sun, 3 Jul 2011 22:57:09 +0400
-Message-ID: <20110703185709.GA7414@albatros>
-References: <20110703111028.GA2862@albatros>
- <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
+Date: Sun, 3 Jul 2011 12:10:29 -0700
+Message-ID: <CA+55aFwuvk7xifqCX=E3DtV=JCJEzyODcF4o6xLL0U1N_P-Rbg@mail.gmail.com>
+References: <20110703111028.GA2862@albatros> <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
+ <20110703185709.GA7414@albatros>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:38684 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755869Ab1GCTL2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jul 2011 15:11:28 -0400
+In-Reply-To: <20110703185709.GA7414@albatros>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vasiliy Kulikov <segoon@openwall.com>
 Cc: kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 03, 2011 at 11:27 -0700, Linus Torvalds wrote:
-> That patch is entirely insane. No way in hell will that ever get merged.
+On Sun, Jul 3, 2011 at 11:57 AM, Vasiliy Kulikov <segoon@openwall.com> wrote:
+>> If you seriously clean it up (that at a minimum includes things like
+>> making it configurable using some pretty helper function that just
+>> compiles away for all the normal cases,
+>
+> Hm, it is not as simple as it looks at the first glance - even if the
+> object size is known at the compile time (__compiletime_object_size), it
+> might be a field of a structure, which crosses the slab object
+> boundaries because of an overflow.
 
-Sure, this is just an RFC :)  I didn't think about proposing it as a
-patch as is, I tried to just show how/what checks it introduces.
+No, I was more talking about having something like
 
+  #ifdef CONFIG_EXPENSIVE_CHECK_USERCOPY
+  extern int check_user_copy(const void *kptr, unsigned long size);
+  #else
+  static inline int check_user_copy(const void *kptr, unsigned long size)
+  { return 0; }
+  #endif
 
-> copy_to/from_user() is some of the most performance-critical code, and
-> runs a *lot*, often for fairly small structures (ie 'fstat()' etc).
-> 
-> Adding random ad-hoc tests to it is entirely inappropriate. Doing so
-> unconditionally is insane.
+so that the actual user-copy routines end up being clean and not have
+#ifdefs in them or any implementation details like what you check
+(stack, slab, page cache - whatever)
 
-That's why I've asked whether it makes sense to guard it with
-CONFIG_XXX, defaults to =n.  Some distributions might think it makes
-sense to enable it sacrificing some speed.
+If you can also make it automatically not generate any code for cases
+that are somehow obviously safe, then that's an added bonus.
 
-Will do.
+But my concern is that performance is a real issue, and the strict
+user-copy checking sounds like mostly a "let's enable this for testing
+kernels when chasing some particular issue" feature, the way
+DEBUG_PAGEALLOC is. And at the same time, code cleanliness and
+maintainability is a big deal, so the usercopy code itself should have
+minimal impact and look nice regardless (which is why I strongly
+object to that kind of "(!slab_access_ok(to, n) ||
+!stack_access_ok(to, n))" crud - the internal details of what you
+check are *totally* irrelevant to the usercopy code.
 
-
-> If you seriously clean it up (that at a minimum includes things like
-> making it configurable using some pretty helper function that just
-> compiles away for all the normal cases,
-
-Hm, it is not as simple as it looks at the first glance - even if the
-object size is known at the compile time (__compiletime_object_size), it
-might be a field of a structure, which crosses the slab object
-boundaries because of an overflow.
-
-However, if interpret constants fed to copy_*_user() as equivalent to
-{get,put}_user() (== worry about size argument overflow only), then it
-might be useful here.
-
-
->    if (!slab_access_ok(to, n) || !stack_access_ok(to, n))
-
-OK :)
-
-
-Thanks!
-
--- 
-Vasiliy Kulikov
-http://www.openwall.com - bringing security into open computing environments
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+                           Linus
