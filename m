@@ -1,34 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.perches.com ([173.55.12.10]:3505 "EHLO mail.perches.com"
+Received: from gate.crashing.org ([63.228.1.57]:46709 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752697Ab1GCTh6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Jul 2011 15:37:58 -0400
-Subject: Re: [kernel-hardening] Re: [RFC v1] implement SL*B and stack
- usercopy runtime checks
-From: Joe Perches <joe@perches.com>
-In-Reply-To: <20110703192442.GA9504@albatros>
-References: <20110703111028.GA2862@albatros>
-	 <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
-	 <20110703185709.GA7414@albatros>
-	 <CA+55aFwuvk7xifqCX=E3DtV=JCJEzyODcF4o6xLL0U1N_P-Rbg@mail.gmail.com>
-	 <20110703192442.GA9504@albatros>
+	id S1751627Ab1GCVj5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 3 Jul 2011 17:39:57 -0400
+Subject: Re: [PATCH v2 02/19] OpenRISC: Device tree
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+In-Reply-To: <CACxGe6tFX=EQjaL-4EjSXquY5eh+bca29=d=cE5-YAVCUVRCvA@mail.gmail.com>
+References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
+	 <1309641352-18714-3-git-send-email-jonas@southpole.se>
+	 <CACxGe6tFX=EQjaL-4EjSXquY5eh+bca29=d=cE5-YAVCUVRCvA@mail.gmail.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Sun, 03 Jul 2011 12:37:55 -0700
-Message-ID: <1309721875.18925.30.camel@Joe-Laptop>
+Date: Mon, 04 Jul 2011 07:39:38 +1000
+Message-ID: <1309729178.14501.264.camel@pasglop>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vasiliy Kulikov <segoon@openwall.com>
-Cc: kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20110703193755.LpZEVIgyD-4md9rojSNzSsw3C5jTjrXSNSR--ikXNYo@z>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
+Message-ID: <20110703213938.Wss5-Qq9VTUAoniWQgdDQsqgGwt7pSZ9dFesti0Jov4@z>
 
-On Sun, 2011-07-03 at 23:24 +0400, Vasiliy Kulikov wrote:
-> Btw, if the perfomance will be acceptable, what do you think about
-> logging/reacting on the spotted overflows?
+On Sun, 2011-07-03 at 14:51 -0600, Grant Likely wrote:
+> > +
+> > +#ifdef CONFIG_PCI
+> > +/*
+> > + * PCI <-> OF matching functions
+> > + * (XXX should these be here?)
+> > + */
+> > +struct pci_bus;
+> > +struct pci_dev;
+> > +extern int pci_device_from_OF_node(struct device_node *node,
+> > +                                       u8 *bus, u8 *devfn);
+> > +extern struct device_node *pci_busdev_to_OF_node(struct pci_bus
+> *bus,
+> > +                                                       int devfn);
+> > +extern struct device_node *pci_device_to_OF_node(struct pci_dev
+> *dev);
+> > +extern void pci_create_OF_bus_map(void);
+> > +#endif
 
-If you do, it might be useful to track the found location(s)
-and only emit the overflow log entry once as found.
+Don't copy these from powermac or microblaze. the OF_bus_map is
+something that should not spread :-)
 
-Maybe use __builtin_return_address(depth) for tracking.
+You get all you need of the above from generic code with my patches to
+PCI <-> OF matching, which should be in linux-next and are going to be
+merged in the next merge window.
+
+Cheers,
+Ben.
+
 
