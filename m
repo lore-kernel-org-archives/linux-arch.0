@@ -1,70 +1,78 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 1/8] ARM: dma-mapping: remove offset parameter to
-	prepare for generic dma_ops
-Date: Sun, 3 Jul 2011 16:28:26 +0100
-Message-ID: <20110703152826.GL21898@n2100.arm.linux.org.uk>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com> <1308556213-24970-2-git-send-email-m.szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1308556213-24970-2-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>
-List-Id: linux-arch.vger.kernel.org
+From: Segher Boessenkool <segher@kernel.crashing.org>
+Subject: Re: [PATCH v2 02/19] OpenRISC: Device tree
+Date: Sun, 3 Jul 2011 20:07:45 +0200
+Message-ID: <61570CA6-9450-4B9C-A472-FE62A5B23B49@kernel.crashing.org>
+References: <1309641352-18714-1-git-send-email-jonas@southpole.se> <1309641352-18714-3-git-send-email-jonas@southpole.se>
+Mime-Version: 1.0 (Apple Message framework v753.1)
+Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:38861 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752135Ab1GCSEK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 3 Jul 2011 14:04:10 -0400
+In-Reply-To: <1309641352-18714-3-git-send-email-jonas@southpole.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
 
-On Mon, Jun 20, 2011 at 09:50:06AM +0200, Marek Szyprowski wrote:
-> This patch removes the need for offset parameter in dma bounce
-> functions. This is required to let dma-mapping framework on ARM
-> architecture use common, generic dma-mapping helpers.
+> The OpenRISC architecture uses the device tree infrastructure for the
+> platform description.
 
-I really don't like this.  Really as in hate.  Why?  I've said in the past
-that the whole idea of getting rid of the sub-range functions is idiotic.
+Hurray, world domination is one step closer ;-)
 
-If you have to deal with cache coherence, what you _really_ want is an
-API which tells you the size of the original buffer and the section of
-that buffer which you want to handle - because the edges of the buffer
-need special handling.
+> +	memory {
+> +		device_type = "memory";
+> +		reg = <0x00000000 0x8000000>;
+> +	};
 
-Lets say that you have a buffer which is 256 bytes long, misaligned to
-half a cache line.  Let's first look at the sequence for whole-buffer:
+Might want to write this as 0x08000000 (easier to read).
 
-1. You map it for DMA from the device.  This means you writeback the
-   first and last cache lines to perserve any data shared in the
-   overlapping cache line.  The remainder you can just invalidate.
+> +	cpus {
+> +		cpu@0 {
 
-2. You want to access the buffer, so you use the sync_for_cpu function.
-   If your CPU doesn't do any speculative prefetching, then you don't
-   need to do anything.  If you do, you have to invalidate the buffer,
-   but you must preserve the overlapping cache lines which again must
-   be written back.
+Any node with a textual unit address (@0) needs to have a "reg" property
+with the same address (and then the parent node, "cpus", should have
+#address-cells and #size-cells defined, probably to 1 and 0 resp. in  
+this
+case).
 
-3. You transfer ownership back to the device using sync_for_device.
-   As you may have caused cache lines to be read in, again you need to
-   invalidate, and the overlapping cache lines must be written back.
+You can just name the node "cpu" here.
 
-Now, if you ask for a sub-section of the buffer to be sync'd, you can
-actually eliminate those writebacks which are potentially troublesome,
-and which could corrupt neighbouring data.
+> +		pic: pic@0 {
+> +			compatible = "opencores,or1k-pic";
+> +			#interrupt-cells = <1>;
+> +			interrupt-controller;
+> +		};
 
-If you get rid of the sub-buffer functions and start using the whole
-buffer functions for that purpose, you no longer know whether the
-partial cache lines are part of the buffer or not, so you have to write
-those back every time too.
+Same thing here.  Although, does your interrupt controller have any  
+registers?
+You should describe them then.
 
-So far, we haven't had any reports of corruption of this type (maybe
-folk using the sync functions are rare on ARM - thankfully) but getting
-rid of the range sync functions means that solving this becomes a lot
-more difficult because we've lost the information to make the decision.
+> +
+> +		serial0: serial@90000000 {
+> +			/* FIXME: device_type is still needed here...
+> +			   should remove requirement from of_serial driver */
+> +			device_type = "serial";
+> +			compatible = "opencores,uart", "ns16550a";
 
-So I've always believed - and continue to do so - that those who want
-to get rid of the range sync functions are misguided and are storing up
-problems for the future.
+Opencores has and always will have only one UART implementation?  You  
+should
+make the "compatible" name more specific ("opencores,uart-16550a"  
+perhaps).
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> +		enet0: ethoc@92000000 {
+> +			compatible = "opencores,ethoc", "ethoc";
+
+Probably shouldn't have the "ethoc" there, way too generic a name.
+
+> +			reg = <0x92000000 0x53>;
+
+0x53?  Usually you write the size of the register block that is decoded,
+not just the size of the defined registers; so it would be 0x100 or  
+something
+like that.
+
+
+Segher
