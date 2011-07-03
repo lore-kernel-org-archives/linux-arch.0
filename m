@@ -1,78 +1,46 @@
-From: Segher Boessenkool <segher@kernel.crashing.org>
-Subject: Re: [PATCH v2 02/19] OpenRISC: Device tree
-Date: Sun, 3 Jul 2011 20:07:45 +0200
-Message-ID: <61570CA6-9450-4B9C-A472-FE62A5B23B49@kernel.crashing.org>
-References: <1309641352-18714-1-git-send-email-jonas@southpole.se> <1309641352-18714-3-git-send-email-jonas@southpole.se>
-Mime-Version: 1.0 (Apple Message framework v753.1)
-Content-Type: text/plain; charset=US-ASCII; delsp=yes; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38861 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752135Ab1GCSEK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 3 Jul 2011 14:04:10 -0400
-In-Reply-To: <1309641352-18714-3-git-send-email-jonas@southpole.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [RFC v1] implement SL*B and stack usercopy runtime checks
+Date: Sun, 3 Jul 2011 11:27:47 -0700
+Message-ID: <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
+References: <20110703111028.GA2862@albatros>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20110703111028.GA2862@albatros>
+Sender: owner-linux-mm@kvack.org
+To: Vasiliy Kulikov <segoon@openwall.com>
+Cc: kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-> The OpenRISC architecture uses the device tree infrastructure for the
-> platform description.
+That patch is entirely insane. No way in hell will that ever get merged.
 
-Hurray, world domination is one step closer ;-)
+copy_to/from_user() is some of the most performance-critical code, and
+runs a *lot*, often for fairly small structures (ie 'fstat()' etc).
 
-> +	memory {
-> +		device_type = "memory";
-> +		reg = <0x00000000 0x8000000>;
-> +	};
+Adding random ad-hoc tests to it is entirely inappropriate. Doing so
+unconditionally is insane.
 
-Might want to write this as 0x08000000 (easier to read).
+So NAK, NAK, NAK.
 
-> +	cpus {
-> +		cpu@0 {
+If you seriously clean it up (that at a minimum includes things like
+making it configurable using some pretty helper function that just
+compiles away for all the normal cases, and not writing out
 
-Any node with a textual unit address (@0) needs to have a "reg" property
-with the same address (and then the parent node, "cpus", should have
-#address-cells and #size-cells defined, probably to 1 and 0 resp. in  
-this
-case).
+   if (!slab_access_ok(to, n) || !stack_access_ok(to, n))
 
-You can just name the node "cpu" here.
+multiple times, for chrissake) it _might_ be acceptable.
 
-> +		pic: pic@0 {
-> +			compatible = "opencores,or1k-pic";
-> +			#interrupt-cells = <1>;
-> +			interrupt-controller;
-> +		};
+But in its current form it's just total crap. It's exactly the kind of
+"crazy security people who don't care about anything BUT security"
+crap that I refuse to see.
 
-Same thing here.  Although, does your interrupt controller have any  
-registers?
-You should describe them then.
+Some balance and sanity.
 
-> +
-> +		serial0: serial@90000000 {
-> +			/* FIXME: device_type is still needed here...
-> +			   should remove requirement from of_serial driver */
-> +			device_type = "serial";
-> +			compatible = "opencores,uart", "ns16550a";
+                      Linus
 
-Opencores has and always will have only one UART implementation?  You  
-should
-make the "compatible" name more specific ("opencores,uart-16550a"  
-perhaps).
-
-> +		enet0: ethoc@92000000 {
-> +			compatible = "opencores,ethoc", "ethoc";
-
-Probably shouldn't have the "ethoc" there, way too generic a name.
-
-> +			reg = <0x92000000 0x53>;
-
-0x53?  Usually you write the size of the register block that is decoded,
-not just the size of the defined registers; so it would be 0x100 or  
-something
-like that.
-
-
-Segher
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
