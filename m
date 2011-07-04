@@ -1,135 +1,52 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH v2 02/19] OpenRISC: Device tree
-Date: Mon, 04 Jul 2011 06:58:28 +0200
-Message-ID: <1309755508.16393.18.camel@localhost>
-References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
-	 <1309641352-18714-3-git-send-email-jonas@southpole.se>
-	 <CACxGe6tFX=EQjaL-4EjSXquY5eh+bca29=d=cE5-YAVCUVRCvA@mail.gmail.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH 1/2] modules: add default loader hook implementations
+Date: Mon, 04 Jul 2011 14:04:37 +0930
+Message-ID: <87oc1aslya.fsf@rustcorp.com.au>
+References: <201106281245.19457.arnd@arndb.de> <1309461732-2875-1-git-send-email-jonas@southpole.se> <BANLkTim3k+eRZHnpWLVHe0Q9SoU9w4zm=A@mail.gmail.com> <1309496433.24186.25.camel@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACxGe6tFX=EQjaL-4EjSXquY5eh+bca29=d=cE5-YAVCUVRCvA@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([203.10.76.45]:58247 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751939Ab1GDFeL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Jul 2011 01:34:11 -0400
+In-Reply-To: <1309496433.24186.25.camel@localhost>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jonas Bonn <jonas@southpole.se>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: arnd@arndb.de, geert@linux-m68k.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, monstr@monstr.eu, cmetcalf@tilera.com, akpm@linux-foundation.org
 
-
-On Sun, 2011-07-03 at 14:51 -0600, Grant Likely wrote:
-> On Sat, Jul 2, 2011 at 3:15 PM, Jonas Bonn <jonas@southpole.se> wrote:
-> Does it really make sense to have an SoC node for this board?  I
-> assume this is for a soft CPU system on a Diligent FPGA board.  It is
-> best if the device tree structure matches the actual bus layout of the
-> chip and/or FPGA design.  If the devices are directly on the CPU bus,
-> then it is better to do without an soc node entirely and just put
-> everything at the root.
-
-Not sure I quite understand the distinction here.  Yes, it's a soft CPU,
-but conceptually it has an internal bus (Wishbone) comparable to the
-Avalon bus that the peripherals sit on.  I'd say it's an SoC; but I need
-to ask: what constitutes a valid use of the "soc" node?
-
-> > diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
-> > index 49342e9..6ce6583 100644
-> > --- a/arch/openrisc/kernel/setup.c
-> > +++ b/arch/openrisc/kernel/setup.c
-> > @@ -173,8 +173,7 @@ void __init setup_cpuinfo(void)
-> >        unsigned long iccfgr,dccfgr;
-> >        unsigned long cache_set_size, cache_ways;;
-> >
-> > -       cpu = (struct device_node *) of_find_compatible_node(NULL,
-> > -                                       NULL, "opencores,openrisc-1200");
-> > +       cpu = of_find_compatible_node(NULL, NULL, "opencores,openrisc-1200");
+On Fri, 01 Jul 2011 07:00:33 +0200, Jonas Bonn <jonas@southpole.se> wrote:
 > 
-> This looks odd.  Is it a stale hunk from a previous patch version?
+> On Thu, 2011-06-30 at 13:02 -0700, Linus Torvalds wrote:
+> > On Thu, Jun 30, 2011 at 12:22 PM, Jonas Bonn <jonas@southpole.se> wrote:
+> > >
+> > > The module loader code allows architectures to hook into the code by
+> > > providing a small number of entry points that each arch must implement.
+> > > This patch provides __weakly linked generic implementations of these
+> > > entry points for architectures that don't need to do anything special.
+> > 
+> > Hmm. I know we used to have problems with gcc versions (or maybe
+> > binutils) that had bugs wrt "weak" functions being declared in the
+> > same compilation unit they were used. They would either inline the
+> > weak function, or bind it early, and never let the linker see the
+> > weak/strong functions and do the right thing.
+> > 
+> > I just don't remember if we disallowed those gcc/binutils versions and
+> > check for it, or whether we decided that __weak function smust be
+> > defined in a compilation unit separate from the user.
+> > 
+> > Because you now added all the weak functions to the same file
+> > (module.c) that actually uses them.
 > 
+> There was precedent for this.  The function arch_mod_section_prepend was
+> already defined as __weak in kernel/module.c.
+> 
+> And just looking around the kernel tree, there are lots of other files
+> that have their weak variants in the same file as the functions that
+> rely on them.  'git grep __weak' turns up a whole slew of them.
 
-Hmmm... no, it's a hunk that should have been in patch 01/19 of the
-series.  That said, there's a bit of devicetree code in that patch too.
-Can I just say, "please have a look there, too", or do I need to pull
-those bits out into the devicetree patch?
+OK, I've applied these.
 
-I've pasted in just the relevant parts from patch 01/19 below for ease
-of review.
-
-/Jonas
-
-From arch/openrisc/kernel/setup.c:
-
-+static inline unsigned int fcpu(struct device_node *cpu, char *n)
-+{
-+        const int *val;
-+        return (val = of_get_property(cpu, n, NULL)) ? *val : 0;
-+}
-+
-+void __init setup_cpuinfo(void)
-+{
-+       struct device_node *cpu = NULL;
-+       unsigned long iccfgr,dccfgr;
-+       unsigned long cache_set_size, cache_ways;;
-+
-+       cpu = (struct device_node *) of_find_compatible_node(NULL,
-+                                       NULL,
-"opencores,openrisc-1200");
-+       if (!cpu) {
-+               panic("No compatible CPU found in device tree...\n");
-+       }
-+
-+       iccfgr = mfspr(SPR_ICCFGR);
-+       cache_ways = 1 << (iccfgr & SPR_ICCFGR_NCW);
-+       cache_set_size = 1 << ((iccfgr & SPR_ICCFGR_NCS) >> 3);
-+       cpuinfo.icache_block_size = 16 << ((iccfgr & SPR_ICCFGR_CBS) >>
-7);
-+       cpuinfo.icache_size = cache_set_size * cache_ways *
-cpuinfo.icache_block_size;
-+
-+       dccfgr = mfspr(SPR_DCCFGR);
-+       cache_ways = 1 << (dccfgr & SPR_DCCFGR_NCW);
-+       cache_set_size = 1 << ((dccfgr & SPR_DCCFGR_NCS) >> 3);
-+       cpuinfo.dcache_block_size = 16 << ((dccfgr & SPR_DCCFGR_CBS) >>
-7);
-+       cpuinfo.dcache_size = cache_set_size * cache_ways *
-cpuinfo.dcache_block_size;
-+
-+       cpuinfo.clock_frequency =  fcpu(cpu, "clock-frequency");
-+
-+       of_node_put(cpu);
-+
-+       print_cpuinfo();
-+}
-+
-+/**
-+ * or32_early_setup
-+ *
-+ * Handles the pointer to the device tree that this kernel is to use
-+ * for establishing the available platform devices.
-+ *
-+ * For now, this is limited to using the built-in device tree.  In the
-future,
-+ * it is intended that this function will take a pointer to the device
-tree
-+ * that is potentially built-in, but potentially also passed in by the
-+ * bootloader, or discovered by some equally clever means...
-+ */
-+
-+void __init or32_early_setup(void) {
-+
-+       early_init_devtree((void *) __dtb_start);
-+
-+       printk(KERN_INFO "Compiled-in FDT at 0x%08x\n",
-+              (unsigned int) __dtb_start);
-+}
-+
-+const struct of_device_id openrisc_bus_ids[] = {
-+        { .type = "soc", },
-+        { .compatible = "soc", },
-+        {},
-+};
-+
-+static int __init openrisc_device_probe(void)
-+{
-+        of_platform_bus_probe(NULL, openrisc_bus_ids, NULL);
-+        return 0;
-+}
-+device_initcall(openrisc_device_probe);
+Thanks,
+Rusty.
