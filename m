@@ -1,50 +1,47 @@
-From: Hans-Christian Egtvedt <hans-christian.egtvedt@atmel.com>
-Subject: Re: [PATCH 2/2] asm-generic: move archictures to common delay.h
-Date: Mon, 04 Jul 2011 16:18:08 +0200
-Message-ID: <1309789088.4373.26.camel@hcegtvedt.norway.atmel.com>
-References: <1309600754-21217-1-git-send-email-jonas@southpole.se>
-	 <1309600754-21217-2-git-send-email-jonas@southpole.se>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH 2/2] modules: make arch's use default loader hooks
+Date: Tue, 05 Jul 2011 13:25:05 +0200
+Message-ID: <4E12F491.4070906@monstr.eu>
+References: <201106281245.19457.arnd@arndb.de> <1309461732-2875-1-git-send-email-jonas@southpole.se> <1309461732-2875-2-git-send-email-jonas@southpole.se>
+Reply-To: monstr@monstr.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from newsmtp5.atmel.com ([204.2.163.5]:30930 "EHLO
-	sjogate2.atmel.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752981Ab1GDOSi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jul 2011 10:18:38 -0400
-In-Reply-To: <1309600754-21217-2-git-send-email-jonas@southpole.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1309461732-2875-2-git-send-email-jonas@southpole.se>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, lethal@linux-sh.org
+Cc: rusty@rustcorp.com.au, arnd@ardnb.de, geert@linux-m68k.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, cmetcalf@tilera.com, torvalds@linux-foundation.org, akpm@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2011-07-02 at 11:59 +0200, Jonas Bonn wrote:
-
-Hello Jonas,
-
-Please use the latest email address from MAINTAINERS, I will only have
-access to my Atmel account for one more week.
-
-> This patch moves the in-tree architectures that were using the 'generic'
-> delay.h over to using the header file in asm-generic.
+Jonas Bonn wrote:
+> This patch removes all the module loader hook implementations in the
+> architecture specific code where the functionality is the same as that
+> now provided by the recently added default hooks.
 > 
-> This is not done using the generic-y mechanism as none of these arch's
-> have started using that mechanism yet.  This is a trivial change to make
-> later when the arch begins using generic-y.
-> 
-> Note the subtle change to the avr32 and SH architectures where the argument
-> to __const_udelay was previously using the rounded down constant value
-> instead of the rounded up value.
-
-My guess is that the AVR32 implementation is copied from x86, hence the
-Copyright to Linus. Thanks for cleaning up.
-
 > Signed-off-by: Jonas Bonn <jonas@southpole.se>
->
+> ---
+>  arch/alpha/kernel/module.c      |   34 ---------------------
+>  arch/arm/kernel/module.c        |   29 +------------------
+>  arch/avr32/kernel/module.c      |   20 -------------
+>  arch/blackfin/kernel/module.c   |   21 -------------
+>  arch/cris/kernel/module.c       |   43 ++-------------------------
+>  arch/frv/kernel/module.c        |   57 ++----------------------------------
+>  arch/h8300/kernel/module.c      |   45 ----------------------------
+>  arch/ia64/kernel/module.c       |   16 ----------
+>  arch/m32r/kernel/module.c       |   38 ------------------------
+>  arch/m68k/kernel/module_mm.c    |   27 -----------------
+>  arch/m68k/kernel/module_no.c    |   34 ---------------------
+>  arch/microblaze/kernel/module.c |   35 ----------------------
 
-Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+I tested it on Microblaze.
 
-<snipp>
+Tested-by: Michal Simek <monstr@monstr.eu>
+
+Michal
 
 -- 
-Hans-Christian Egtvedt
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
