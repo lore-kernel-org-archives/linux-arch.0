@@ -1,52 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f52.google.com ([209.85.161.52]:53484 "EHLO
-	mail-fx0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932165Ab1GELZJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jul 2011 07:25:09 -0400
-Message-ID: <4E12F491.4070906@monstr.eu>
-Date: Tue, 05 Jul 2011 13:25:05 +0200
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-MIME-Version: 1.0
-Subject: Re: [PATCH 2/2] modules: make arch's use default loader hooks
-References: <201106281245.19457.arnd@arndb.de> <1309461732-2875-1-git-send-email-jonas@southpole.se> <1309461732-2875-2-git-send-email-jonas@southpole.se>
-In-Reply-To: <1309461732-2875-2-git-send-email-jonas@southpole.se>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from mail.southpole.se ([193.12.106.18]:50920 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755023Ab1GEQFL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jul 2011 12:05:11 -0400
+Subject: Re: [PATCH v2 06/19] OpenRISC: PTrace
+From: Jonas Bonn <jonas@southpole.se>
+In-Reply-To: <201107051742.29359.arnd@arndb.de>
+References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
+	 <1309641352-18714-7-git-send-email-jonas@southpole.se>
+	 <201107051742.29359.arnd@arndb.de>
+Content-Type: text/plain; charset="UTF-8"
+Date: Tue, 05 Jul 2011 18:05:07 +0200
+Message-ID: <1309881907.3393.15.camel@jerome>
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: rusty@rustcorp.com.au, arnd@ardnb.de, geert@linux-m68k.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, cmetcalf@tilera.com, torvalds@linux-foundation.org, akpm@linux-foundation.org
-Message-ID: <20110705112505.V3_Sl3hkwlLcxUSsZohUI4SeqK_ZSXTE05Km47HI6fI@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110705160507.7gvcEN9jIa0seFdKRGd5nL9R2BnXx2k1fwvhI5tT50o@z>
 
-Jonas Bonn wrote:
-> This patch removes all the module loader hook implementations in the
-> architecture specific code where the functionality is the same as that
-> now provided by the recently added default hooks.
+
+On Tue, 2011-07-05 at 17:42 +0200, Arnd Bergmann wrote:
+> On Saturday 02 July 2011, Jonas Bonn wrote:
+> > Signed-off-by: Jonas Bonn <jonas@southpole.se>
+> > ---
+> >  arch/openrisc/include/asm/ptrace.h |  124 ++++++++
+> >  arch/openrisc/kernel/ptrace.c      |  574 ++++++++++++++++++++++++++++++++++++
+> >  arch/openrisc/kernel/ptrace.h      |   37 +++
+> >  3 files changed, 735 insertions(+), 0 deletions(-)
+> >  create mode 100644 arch/openrisc/include/asm/ptrace.h
+> >  create mode 100644 arch/openrisc/kernel/ptrace.c
+> >  create mode 100644 arch/openrisc/kernel/ptrace.h
 > 
-> Signed-off-by: Jonas Bonn <jonas@southpole.se>
-> ---
->  arch/alpha/kernel/module.c      |   34 ---------------------
->  arch/arm/kernel/module.c        |   29 +------------------
->  arch/avr32/kernel/module.c      |   20 -------------
->  arch/blackfin/kernel/module.c   |   21 -------------
->  arch/cris/kernel/module.c       |   43 ++-------------------------
->  arch/frv/kernel/module.c        |   57 ++----------------------------------
->  arch/h8300/kernel/module.c      |   45 ----------------------------
->  arch/ia64/kernel/module.c       |   16 ----------
->  arch/m32r/kernel/module.c       |   38 ------------------------
->  arch/m68k/kernel/module_mm.c    |   27 -----------------
->  arch/m68k/kernel/module_no.c    |   34 ---------------------
->  arch/microblaze/kernel/module.c |   35 ----------------------
+> This patch still contains a bunch of commented out code that wants to be
+> cleaned up. I think you have done that in most other patches that needed
+> the same cleanup.
+> 
+> 	Arnd
 
-I tested it on Microblaze.
+I've been looking a bit at the ptrace stuff the last couple of days.
+One question that occurred to me was:  is it mandatory to export the
+"struct pt_regs" info in ptrace.h to userspace?
 
-Tested-by: Michal Simek <monstr@monstr.eu>
+I'm not sure I like the layout of our struct pt_regs.  It would be
+better to lay out the registers in a way that mirrors the order that
+they are saved during exception/syscall entry in order to make better
+use of the cache.
 
-Michal
+Since the registers can be exported via a regset to userspace anyway
+(which doesn't necessarily need to look like pt_regs), I don't see that
+userspace really needs how we lay out the registers on the stack.  By
+not exporting pt_regs, I am free to change the layout... if it's
+exported, it becomes ABI.
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+Comments?
+
+/Jonas
+
