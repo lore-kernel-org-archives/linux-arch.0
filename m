@@ -1,47 +1,78 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: [PATCH 2/2] modules: make arch's use default loader hooks
-Date: Tue, 05 Jul 2011 13:25:05 +0200
-Message-ID: <4E12F491.4070906@monstr.eu>
-References: <201106281245.19457.arnd@arndb.de> <1309461732-2875-1-git-send-email-jonas@southpole.se> <1309461732-2875-2-git-send-email-jonas@southpole.se>
-Reply-To: monstr@monstr.eu
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 07/19] OpenRISC: DMA
+Date: Tue, 5 Jul 2011 17:37:29 +0200
+Message-ID: <201107051737.30120.arnd@arndb.de>
+References: <1309641352-18714-1-git-send-email-jonas@southpole.se> <1309641352-18714-8-git-send-email-jonas@southpole.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1309461732-2875-2-git-send-email-jonas@southpole.se>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.186]:63306 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755389Ab1GEPhf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jul 2011 11:37:35 -0400
+In-Reply-To: <1309641352-18714-8-git-send-email-jonas@southpole.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Jonas Bonn <jonas@southpole.se>
-Cc: rusty@rustcorp.com.au, arnd@ardnb.de, geert@linux-m68k.org, mingo@elte.hu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, cmetcalf@tilera.com, torvalds@linux-foundation.org, akpm@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Jonas Bonn wrote:
-> This patch removes all the module loader hook implementations in the
-> architecture specific code where the functionality is the same as that
-> now provided by the recently added default hooks.
-> 
-> Signed-off-by: Jonas Bonn <jonas@southpole.se>
-> ---
->  arch/alpha/kernel/module.c      |   34 ---------------------
->  arch/arm/kernel/module.c        |   29 +------------------
->  arch/avr32/kernel/module.c      |   20 -------------
->  arch/blackfin/kernel/module.c   |   21 -------------
->  arch/cris/kernel/module.c       |   43 ++-------------------------
->  arch/frv/kernel/module.c        |   57 ++----------------------------------
->  arch/h8300/kernel/module.c      |   45 ----------------------------
->  arch/ia64/kernel/module.c       |   16 ----------
->  arch/m32r/kernel/module.c       |   38 ------------------------
->  arch/m68k/kernel/module_mm.c    |   27 -----------------
->  arch/m68k/kernel/module_no.c    |   34 ---------------------
->  arch/microblaze/kernel/module.c |   35 ----------------------
+On Saturday 02 July 2011, Jonas Bonn wrote:
+> +void *or1k_dma_alloc_coherent(struct device *dev, size_t size,
+> +                             dma_addr_t *dma_handle, gfp_t flag)
+> +{
+> +       int order;
+> +       unsigned long page, va;
+> +       pgprot_t prot;
+> +       struct vm_struct *area;
+> +
+> +       /* Only allocate page size areas. */
+> +       size = PAGE_ALIGN(size);
+> +       order = get_order(size);
+> +
+> +       page = __get_free_pages(flag, order);
+> +       if (!page)
+> +               return NULL;
+> +
+> +       /* Allocate some common virtual space to map the new pages. */
+> +       area = get_vm_area(size, VM_ALLOC);
+> +       if (area == NULL) {
+> +               free_pages(page, order);
+> +               return NULL;
+> +       }
+> +       va = (unsigned long)area->addr;
+> +
+> +       /* This gives us the real physical address of the first page. */
+> +       *dma_handle = __pa(page);
+> +
+> +       prot = PAGE_KERNEL_NOCACHE;
+> +
+> +       /* This isn't so much ioremap as just simply 'remap' */
+> +       if (ioremap_page_range(va, va + size, *dma_handle, prot)) {
+> +               vfree(area->addr);
+> +               return NULL;
+> +       }
+> +
+> +       return (void *)va;
+> +}
 
-I tested it on Microblaze.
+This will result in having conflicting mappings, one with and another
+without caching, which a lot of CPU architectures don't like. Are you
+sure that you can handle this with or1k?
 
-Tested-by: Michal Simek <monstr@monstr.eu>
+I think at the very least you will need to flush the cache for
+the linear mapping, to avoid writing back dirty cache lines over
+the DMA buffer.
 
-Michal
+You can save a little memory by using alloc_pages_exact instead of
+get_free_pages, which always gives you a power-of-two size.
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+Also, isn't get_vm_area+ioremap_page_range the same as ioremap
+on or1k?
+
+In the case that ioremap_page_ranges fails, I think you have a
+memory leak, or worse, because areas is not backed by the pages at that
+moment.
+
+	Arnd
