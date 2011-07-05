@@ -1,57 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: OpenRISC Architecture: Patch set version 2
-Date: Tue, 5 Jul 2011 17:56:33 +0200
-Message-ID: <201107051756.33424.arnd@arndb.de>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH v2 06/19] OpenRISC: PTrace
+Date: Tue, 05 Jul 2011 18:05:07 +0200
+Message-ID: <1309881907.3393.15.camel@jerome>
 References: <1309641352-18714-1-git-send-email-jonas@southpole.se>
+	 <1309641352-18714-7-git-send-email-jonas@southpole.se>
+	 <201107051742.29359.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:57943 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751968Ab1GEP4i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jul 2011 11:56:38 -0400
-In-Reply-To: <1309641352-18714-1-git-send-email-jonas@southpole.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201107051742.29359.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Saturday 02 July 2011, Jonas Bonn wrote:
-> This is version 2 of the OpenRISC architecture patch set.  Changes
-> since version 1 include:
+
+On Tue, 2011-07-05 at 17:42 +0200, Arnd Bergmann wrote:
+> On Saturday 02 July 2011, Jonas Bonn wrote:
+> > Signed-off-by: Jonas Bonn <jonas@southpole.se>
+> > ---
+> >  arch/openrisc/include/asm/ptrace.h |  124 ++++++++
+> >  arch/openrisc/kernel/ptrace.c      |  574 ++++++++++++++++++++++++++++++++++++
+> >  arch/openrisc/kernel/ptrace.h      |   37 +++
+> >  3 files changed, 735 insertions(+), 0 deletions(-)
+> >  create mode 100644 arch/openrisc/include/asm/ptrace.h
+> >  create mode 100644 arch/openrisc/kernel/ptrace.c
+> >  create mode 100644 arch/openrisc/kernel/ptrace.h
 > 
-> - general cleanups, removing unused code and variables, taking care of
->   compiler warnings, etc.
-> - cleanups for all the errors spotted by checkpatch.pl
-> - changes in response to the feedback received for version 1 of the patch set
-> - simplification of the fixmap code
-> - simplification of the DMA code
-> - calculate loops_per_jiffy from cpu frequency passed in via devicetree
-> - rework io.h to use more generic code
-> - rework the delay code, making it more generic
+> This patch still contains a bunch of commented out code that wants to be
+> cleaned up. I think you have done that in most other patches that needed
+> the same cleanup.
 > 
-> - also, the module code has been reworked, making it more generic; this is
->   not included in this patch as the generic parts are still pending review
+> 	Arnd
 
-I think this is basically ready for inclusion in 3.1. There are a few details
-that you can still improve, but I see no reason to hold up the merge into
-mainline. After you have addressed the comments that are still outstanding
-at this time, please add "Reviewed-by: Arnd Bergmann <arnd@arndb.de>"
-to all the patches.
+I've been looking a bit at the ptrace stuff the last couple of days.
+One question that occurred to me was:  is it mandatory to export the
+"struct pt_regs" info in ptrace.h to userspace?
 
-The most important part to work out are the device tree bindings, as discussed
-for patch 2. Once you have a version of that patch that everyone is happy
-with, please post the entire series including the patches that address common
-code once more.
+I'm not sure I like the layout of our struct pt_regs.  It would be
+better to lay out the registers in a way that mirrors the order that
+they are saved during exception/syscall entry in order to make better
+use of the cache.
 
-> Once again, all this code can be found in the 'for-upstream' branch at:
-> 
-> git://openrisc.net/jonas/linux
+Since the registers can be exported via a regset to userspace anyway
+(which doesn't necessarily need to look like pt_regs), I don't see that
+userspace really needs how we lay out the registers on the stack.  By
+not exporting pt_regs, I am free to change the layout... if it's
+exported, it becomes ABI.
 
-IMO it would be best if Stephen added that branch to linux-next right
-away, so we get some test exposure on your common code changes before
-the merge window.
+Comments?
 
-	Arnd
+/Jonas
