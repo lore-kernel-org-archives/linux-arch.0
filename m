@@ -1,97 +1,36 @@
-From: Jonathan Hawthorne <j.hawthorne@f5.com>
-Subject: Re: [kernel-hardening] Re: [RFC v1] implement SL*B and stack
- usercopy runtime checks
-Date: Wed, 6 Jul 2011 03:39:45 +0000
-Message-ID: <CA39234A.70E01%j.hawthorne@f5.com>
-References: <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
-Content-Language: en-US
-Content-ID: <1E2B9FF4591BA846A472B5844CF127E2@F5.com>
-Sender: owner-linux-mm@kvack.org
-To: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Vasiliy Kulikov <segoon@openwall.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H.
- Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 00/35] UAPI header file split
+Date: Wed, 06 Jul 2011 12:04:46 +0100
+Message-ID: <28657.1309950286@redhat.com>
+References: <20110705134621.927b76e4.rdunlap@xenotime.net> <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60426 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752337Ab1GFLEu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Jul 2011 07:04:50 -0400
+In-Reply-To: <20110705134621.927b76e4.rdunlap@xenotime.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Randy Dunlap <rdunlap@xenotime.net>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
 
+Randy Dunlap <rdunlap@xenotime.net> wrote:
 
-Linus is correct to push back on system call auditing in the general case.
- There should be a trust boundary that contains where we optimize speed at
-the cost of security.  Small pockets of trust will best compromise between
-speed and security.
+> I didn't see patch 02/35 nor patch 30/35.
+> Were they too large to be posted?
 
-In the case of FreeBSD or Solaris, these can be smaller than a single
-machine; in fact they may scale from a single process, a process group, to
-a physical machine.  Scripted environments can go smaller, giving as
-little as a 64KB environment.
+Well, too large to go through the linux-arch list.  They are both script
+produced:
 
-Between those pockets of trust, isolated (preferably air-gap) auditors are
-a must have.  Auditors from independent vendors are ideal; these minimize
-herd failure.
+[PATCH 02/35] UAPI: Audit drivers/gpu/ for #include "..." referring to system headers
+[PATCH 30/35] UAPI: Set up UAPI Kbuild files
 
-Network auditors are a clear first foundation, but after they do the heavy
-lifting at the transaction boundary, statistical auditors between
-subsystems would be strategically valuable at a minimal incident cost.
-These systems can integrate well with self-balancing health monitors.
+The first is >4800 lines and the second is >7800 lines.
 
-But in the tight loops, performance should be king.  If the trust fails to
-that point, well, trust can always fail somewhere.  The granularity of the
-trust bubbles makes a best effort to contain exploitation or failure in
-compromise for throughput and latency.
+They are in GIT:
 
-Systems like MAC (Manditory Access Control) are a good compromise in UNIX
-systems.  These audit cross-process communication on an access-list basis
-and often benefit from a control plane that merges pattern-plus-remedy
-rule sets into a single inspection dictionary and exception handler.
+http://git.infradead.org/users/dhowells/linux-headers.git/commit/c748988cf4f4fe34f609e122f4af5e1274b9b8af
 
-Imagine a coloring system.  Each piece of data is marked with a color.
-When two colors of data are used together, the result is tainted by both
-colors.  Rules exist that limit the colors that may be mixed on a
-case-by-case basis using scenario-oriented configuration scripts.
+http://git.infradead.org/users/dhowells/linux-headers.git/commit/57685bc646eb0da571faf7b8f50bd5acd22a229f
 
-__
-Jonathan Hawthorne | Software Architect
-t: +1.206.272.6624 | e: j.hawthorne@f5.com
-
-
-
-
-
-
-On 7/3/11 11:27 AM, "Linus Torvalds" <torvalds@linux-foundation.org> wrote:
-
->That patch is entirely insane. No way in hell will that ever get merged.
->
->copy_to/from_user() is some of the most performance-critical code, and
->runs a *lot*, often for fairly small structures (ie 'fstat()' etc).
->
->Adding random ad-hoc tests to it is entirely inappropriate. Doing so
->unconditionally is insane.
->
->So NAK, NAK, NAK.
->
->If you seriously clean it up (that at a minimum includes things like
->making it configurable using some pretty helper function that just
->compiles away for all the normal cases, and not writing out
->
->   if (!slab_access_ok(to, n) || !stack_access_ok(to, n))
->
->multiple times, for chrissake) it _might_ be acceptable.
->
->But in its current form it's just total crap. It's exactly the kind of
->"crazy security people who don't care about anything BUT security"
->crap that I refuse to see.
->
->Some balance and sanity.
->
->                      Linus
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+David
