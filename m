@@ -1,36 +1,54 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 00/35] UAPI header file split
-Date: Wed, 06 Jul 2011 12:04:46 +0100
-Message-ID: <28657.1309950286@redhat.com>
-References: <20110705134621.927b76e4.rdunlap@xenotime.net> <20110702110716.21948.74214.stgit@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60426 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752337Ab1GFLEu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Jul 2011 07:04:50 -0400
-In-Reply-To: <20110705134621.927b76e4.rdunlap@xenotime.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@xenotime.net>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org
+From: Lennert Buytenhek <buytenh@wantstofly.org>
+Subject: Re: [PATCH 3/8] ARM: dma-mapping: use
+ asm-generic/dma-mapping-common.h
+Date: Thu, 7 Jul 2011 14:09:18 +0200
+Message-ID: <20110707120918.GF7810@wantstofly.org>
+References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
+ <201106241736.43576.arnd@arndb.de>
+ <000601cc34c4$430f91f0$c92eb5d0$%szyprowski@samsung.com>
+ <201106271519.43581.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <201106271519.43581.arnd@arndb.de>
+Sender: owner-linux-mm@kvack.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-Randy Dunlap <rdunlap@xenotime.net> wrote:
+On Mon, Jun 27, 2011 at 03:19:43PM +0200, Arnd Bergmann wrote:
 
-> I didn't see patch 02/35 nor patch 30/35.
-> Were they too large to be posted?
+> > > I suppose for the majority of the cases, the overhead of the indirect
+> > > function call is near-zero, compared to the overhead of the cache
+> > > management operation, so it would only make a difference for coherent
+> > > systems without an IOMMU. Do we care about micro-optimizing those?
 
-Well, too large to go through the linux-arch list.  They are both script
-produced:
+FWIW, when I was hacking on ARM access point routing performance some
+time ago, turning the L1/L2 cache maintenance operations into inline
+functions (inlined into the ethernet driver) gave me a significant and
+measurable performance boost.
 
-[PATCH 02/35] UAPI: Audit drivers/gpu/ for #include "..." referring to system headers
-[PATCH 30/35] UAPI: Set up UAPI Kbuild files
+Such things can remain product-specific hacks, though.
 
-The first is >4800 lines and the second is >7800 lines.
 
-They are in GIT:
+> > Even in coherent case, the overhead caused by additional function call
+> > should have really negligible impact on drivers performance.
+> 
+> What about object code size? I guess since ixp23xx is the only platform
+> that announces itself as coherent, we probably don't need to worry about
+> it too much either. Lennert?
 
-http://git.infradead.org/users/dhowells/linux-headers.git/commit/c748988cf4f4fe34f609e122f4af5e1274b9b8af
+I don't think so.  ixp23xx isn't a very popular platform anymore either,
+having been discontinued some time ago.
 
-http://git.infradead.org/users/dhowells/linux-headers.git/commit/57685bc646eb0da571faf7b8f50bd5acd22a229f
 
-David
+thanks,
+Lennert
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
