@@ -1,66 +1,42 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH [ver #2] 01/39] UAPI: Add script to convert #include "..." to
- #include <path/...> in sys headers
-Date: Fri, 08 Jul 2011 15:22:58 +0100
-Message-ID: <20110708142257.31344.45988.stgit@warthog.procyon.org.uk>
+Subject: [PATCH [ver #2] 03/39] UAPI: Add script to audit drivers/gpu/ for
+ #including system headers with "..."
+Date: Fri, 08 Jul 2011 15:23:17 +0100
+Message-ID: <20110708142317.31344.62300.stgit@warthog.procyon.org.uk>
 References: <20110708142244.31344.24941.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:62600 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49428 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750959Ab1GHOXm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jul 2011 10:23:42 -0400
+	id S1750959Ab1GHOX4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jul 2011 10:23:56 -0400
 In-Reply-To: <20110708142244.31344.24941.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: rdunlap@xenotime.net, hpa@kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, ralf@linux-mips.org
 
-Add a script to convert #include "..." to #include <path/...> in kernel system
-headers.
-
-Observations:
-
- (1) There are quite a lot of #includes of things like "linux/fs.h" which
-     should really use <...>.  These are changed within include/ dirs.
-
- (2) Some referenced header files are missing for no obvious reason - pm2fb.h
-     and via_drmclient.h for example.
-
- (3) The DRM video driving code uses -Iinclude/drm when it should probably
-     just preface its header file names with drm/ in #include.  These are
-     changed within include/drm/.
-
- (4) Under arch/cris/include/ there are some directories (arch-v10 and
-     arch-v32) that should perhaps be renamed to arch/cris/arch-vXX/include.
-
-     Similarly, under arch/sh/, arch/sh/include/mach-X/ should perhaps be
-     arch/sh/boards/mach-X/include/.
-
-     However, I've left these alone as they aren't really a problem.
+Add a script to audit drivers/gpu/ for #include "..." referring to system
+headers and change them to <...>.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- scripts/uapi-disintegration/system-headers.pl |  167 +++++++++++++++++++++++++
- 1 files changed, 167 insertions(+), 0 deletions(-)
- create mode 100755 scripts/uapi-disintegration/system-headers.pl
+ scripts/uapi-disintegration/drm-headers.pl |  105 ++++++++++++++++++++++++++++
+ 1 files changed, 105 insertions(+), 0 deletions(-)
+ create mode 100755 scripts/uapi-disintegration/drm-headers.pl
 
-diff --git a/scripts/uapi-disintegration/system-headers.pl b/scripts/uapi-disintegration/system-headers.pl
+diff --git a/scripts/uapi-disintegration/drm-headers.pl b/scripts/uapi-disintegration/drm-headers.pl
 new file mode 100755
-index 0000000..e494c01
+index 0000000..09ba790
 --- /dev/null
-+++ b/scripts/uapi-disintegration/system-headers.pl
-@@ -0,0 +1,167 @@
++++ b/scripts/uapi-disintegration/drm-headers.pl
+@@ -0,0 +1,105 @@
 +#!/usr/bin/perl -w
 +
 +use File::Find;
-+
-+my @sys_header_dirs = (
-+    "include"
-+    );
 +
 +#
 +# Changes must be committed first
@@ -70,7 +46,7 @@ index 0000000..e494c01
 +#
 +# Delete the old patch under StGIT
 +#
-+system("stg delete uapi-convert-include-quote-to-angle.diff");
++system("stg delete uapi-convert-drivers_gpu-includes.diff");
 +
 +#
 +# Set up the patch under StGIT
@@ -80,138 +56,80 @@ index 0000000..e494c01
 +       "\n" .
 +       "Convert #include \"...\" to #include <path/...> in kernel system headers.\n" .
 +       "\n" .
-+       "scripts/uapi-disintegrate/system-headers.pl was used\n" .
++       "scripts/uapi-disintegrate/drm-headers.pl was used\n" .
 +       "\n" .
 +       "Signed-off-by: David Howells <dhowells\@redhat.com>\n" .
-+       "' uapi-convert-include-quote-to-angle.diff"
++       "' uapi-convert-drivers_gpu-includes.diff"
 +    ) == 0 or die;
 +
 +#
-+# Find all the system header directories under arch
++# Find all the .c and .h files under drivers/gpu/
 +#
-+opendir DIR, "arch" or die;
-+push @sys_header_dirs,
-+    map { "arch/$_/include"; }
-+sort grep { -d "arch/$_/include"; }
-+grep { $_ !~ /^[.]/ }
-+readdir DIR;
-+closedir DIR;
-+
-+#
-+# Find all the header files
-+#
-+%headers = ();
-+sub find_header()
++%files = ();
++sub find_file()
 +{
-+    $headers{$File::Find::name} = 1 if ($_ =~ /[.]h$/);
++    $files{$File::Find::name} = 1 if ($_ =~ /[.][ch]$/);
 +}
 +
-+find(\&find_header, @sys_header_dirs);
++find(\&find_file, "drivers/gpu");
 +
-+#print join("\n", sort keys %headers), "\n";
++#print join("\n", sort keys %files), "\n";
 +
-+foreach my $hdr (sort grep { $_ !~ m@arch/um/@} keys %headers) {
-+    my $dir = $hdr;
++foreach my $file (sort keys %files) {
++    my $dir = $file;
 +    $dir =~ m@(^.*/)@, $dir = $1;
 +
-+    open FD, '<', $hdr or die "open $hdr: $!\n";
++    open FD, '<', $file or die "open $file: $!\n";
 +    my @lines = <FD>;
 +    close FD or die;
 +
 +    my $printed_name = 0;
-+    my $alter_header = 0;
++    my $alter_file = 0;
 +
 +    for (my $l = 0; $l <= $#lines; $l++) {
 +	my $line = $lines[$l];
 +
 +	if ($line =~ /^(#\s*include\s+)["]([^"]+)["](.*[\n])/) {
-+	    #print $1, '@', $2, '@', $3;
-+
-+	    if (!$printed_name) {
-+		#print "[[[ $hdr [\e[36m$dir\e[m] ]]]\n";
-+		$printed_name = 1;
-+	    }
-+
 +	    my $pre = $1;
 +	    my $name = $2;
 +	    my $post = $3;
 +
-+	    my $inc = undef;
-+	    my $base = "??";
++	    # If the included file really is in this directory, then "..." is
++	    # correct.
++	    next if (-f $dir.$2);
++
++	    if (!$printed_name) {
++		print "[[[ \e[36m$file\e[m ]]]\n";
++		$printed_name = 1;
++	    }
++
 +	    my $path = "??";
-+	    my $realpath = "??";
-+	    my $do_existence_check = 1;
 +
-+	    if ($name eq "platform/acenv.h") {
-+		# ACPI includes this relative to the current dir
-+		$inc = $dir . $name;
-+	    } elsif ($name =~ m@^[a-z].*/@) {
-+		# We found something like "linux/foo.h" so just accept as is
-+		$base = "";
-+		$realpath = $path = $name;
-+		$do_existence_check = 0;
-+		goto no_disassemble;
-+	    } elsif ($name =~ m@^[.][.]/@) {
-+		# We found something like "../foo.h" so we jam the dir on the
-+		# front and then remove "dir/.." pairs
-+		$inc = $dir . $name;
-+		while ($inc =~ m@[^/]*/[.][.]/@) {
-+		    $inc =~ s@[^/]*/[.][.]/@@;
-+		}
-+	    } elsif ($name !~ m@/@) {
-+		# We found something like "foo.h" so we again stick the dir on
-+		# the front and then cut off the "include/" prefix.
-+		if ($name =~ m@^drm_@) {
-+		    # Unless it's a DRM header - the drm stuff adds
-+		    # -Iinclude/drm to the build flags rather than use
-+		    # <drm/foo.h> for some reason
-+		    $inc = "include/drm/$name";
-+		} else {
-+		    $inc = $dir . $name;
-+		}
++	    if ($name =~ m@[.][.]@) {
++		die;
 +	    } else {
-+		die "Don't handle \"$name\"\n";
-+	    }
-+
-+	    $inc =~ m@(.*include/)(.*/[^/]*)@, $base = $1, $path = $2;
-+
-+	    $realpath = $path;
-+	    if ($dir =~ m@^arch/cris/@ && $path =~ m@^arch-v[0-9]+/(arch/.*)@) {
-+		$realpath = $1;
-+	    } elsif ($dir =~ m@^arch/sh/@ && $path =~ m@^mach-[^/]+/(mach/.*)@) {
-+		$realpath = $1;
-+	    }
-+
-+	  no_disassemble:
-+	    print $hdr, ": ", $name, " -> \e[36m", $base, "\e[m", $path;
-+
-+	    if ($do_existence_check && ! -f $inc) {
-+		if (($hdr eq "arch/powerpc/include/asm/bootx.h" && $name eq "linux_type_defs.h") ||
-+		    ($hdr eq "include/acpi/platform/acenv.h" && $name =~ /ac[a-z]*[0-9]*[.]h/) ||
-+		    ($hdr eq "include/linux/jbd.h" && $name eq "jfs_compat.h") ||
-+		    ($hdr eq "include/linux/jbd2.h" && $name eq "jfs_compat.h") ||
-+		    ($hdr eq "include/video/cvisionppc.h" && $name eq "pm2fb.h") ||
-+		    ($hdr eq "include/drm/via_drm.h" && $name eq "via_drmclient.h")
-+		    ) {
-+		    print " \e[33mnot present\e[m\n";
++		# Look in the system include paths for it
++		if (-f "include/$name") {
++		    $path = $name;
++		} elsif (-f "include/drm/$name") {
++		    $path = "drm/$name";
 +		} else {
-+		    print " \e[31mnot found\e[m\n";
 +		    die;
 +		}
-+	    } else {
-+		$lines[$l] = $pre . "<" . $realpath . ">" . $post;
-+		$alter_header = 1;
-+		print "\n";
 +	    }
++
++	    print $file, ": ", $name, " -> ", $path, "\n";
++	    $lines[$l] = $pre . "<" . $path . ">" . $post;
++	    $alter_file = 1;
 +	}
 +    }
 +
-+    if ($alter_header) {
-+	my $temp = $hdr . ".syshdr";
++    if ($alter_file) {
++	my $temp = $file . ".drminc";
 +	open FD, '>', $temp or die "create $temp: $!\n";
 +	print FD @lines or die "write $temp: $!\n";
 +	close FD or die "close $temp: $!\n";
-+	rename $temp, $hdr or die "move $temp -> $hdr: $!\n";
++	rename $temp, $file or die "move $temp -> $file: $!\n";
 +    }
 +}
 +
