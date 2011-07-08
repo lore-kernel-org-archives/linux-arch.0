@@ -1,58 +1,77 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH [ver #2] 14/39] UAPI: Fix definition of HZ in
- asm-generic/param.h
-Date: Fri, 08 Jul 2011 15:25:14 +0100
-Message-ID: <20110708142514.31344.60037.stgit@warthog.procyon.org.uk>
+Subject: [PATCH [ver #2] 15/39] UAPI: elf_read_implies_exec() is a kernel-only
+ feature - so hide from userspace
+Date: Fri, 08 Jul 2011 15:25:24 +0100
+Message-ID: <20110708142524.31344.83608.stgit@warthog.procyon.org.uk>
 References: <20110708142244.31344.24941.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47108 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:36262 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751900Ab1GHO0B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jul 2011 10:26:01 -0400
+	id S1751900Ab1GHO0H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jul 2011 10:26:07 -0400
 In-Reply-To: <20110708142244.31344.24941.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: rdunlap@xenotime.net, hpa@kernel.org, matthew@wil.cx, linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, ralf@linux-mips.org
 
-Fix definition of HZ in asm-generic/param.h so that the user-specific one is
-#undef'd before the kernel-specific one is defined.
+elf_read_implies_exec() is a kernel-only feature as the second parameter is a
+constant that isn't exported to userspace.  Not only that, but the
+arch-specific overrides are not exported either.
+
+So hide the macro from userspace.
+
+Similarly, struct file should not be predeclared in userspace.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/param.h |   13 +++++++------
- 1 files changed, 7 insertions(+), 6 deletions(-)
+ include/linux/elf.h |   18 +++++++++---------
+ 1 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/include/asm-generic/param.h b/include/asm-generic/param.h
-index cdf8251..835632a 100644
---- a/include/asm-generic/param.h
-+++ b/include/asm-generic/param.h
-@@ -1,12 +1,6 @@
- #ifndef __ASM_GENERIC_PARAM_H
- #define __ASM_GENERIC_PARAM_H
+diff --git a/include/linux/elf.h b/include/linux/elf.h
+index 110821c..411d7b8 100644
+--- a/include/linux/elf.h
++++ b/include/linux/elf.h
+@@ -7,15 +7,6 @@
+ #include <asm/elf.h>
+ #endif
  
--#ifdef __KERNEL__
--# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
--# define USER_HZ	100		/* some user interfaces are */
--# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
+-struct file;
+-
+-#ifndef elf_read_implies_exec
+-  /* Executables for which elf_read_implies_exec() returns TRUE will
+-     have the READ_IMPLIES_EXEC personality flag set automatically.
+-     Override in asm/elf.h as needed.  */
+-# define elf_read_implies_exec(ex, have_pt_gnu_stack)	0
 -#endif
 -
- #ifndef HZ
- #define HZ 100
- #endif
-@@ -21,4 +15,11 @@
+ /* 32-bit ELF base types. */
+ typedef __u32	Elf32_Addr;
+ typedef __u16	Elf32_Half;
+@@ -413,6 +404,13 @@ typedef struct elf64_note {
+ } Elf64_Nhdr;
  
- #define MAXHOSTNAMELEN	64	/* max length of hostname */
- 
-+#ifdef __KERNEL__
-+# undef HZ
-+# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
-+# define USER_HZ	100		/* some user interfaces are */
-+# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
+ #ifdef __KERNEL__
++#ifndef elf_read_implies_exec
++  /* Executables for which elf_read_implies_exec() returns TRUE will
++     have the READ_IMPLIES_EXEC personality flag set automatically.
++     Override in asm/elf.h as needed.  */
++# define elf_read_implies_exec(ex, have_pt_gnu_stack)	0
 +#endif
 +
- #endif /* __ASM_GENERIC_PARAM_H */
+ #if ELF_CLASS == ELFCLASS32
+ 
+ extern Elf32_Dyn _DYNAMIC [];
+@@ -436,6 +434,8 @@ extern Elf64_Dyn _DYNAMIC [];
+ #endif
+ 
+ /* Optional callbacks to write extra ELF notes. */
++struct file;
++
+ #ifndef ARCH_HAVE_EXTRA_ELF_NOTES
+ static inline int elf_coredump_extra_notes_size(void) { return 0; }
+ static inline int elf_coredump_extra_notes_write(struct file *file,
