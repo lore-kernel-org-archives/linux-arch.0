@@ -1,117 +1,111 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCHSET x86/mm] memblock, x86: Allow node info in memblock and remove x86 specific memblock code
-Date: Tue, 12 Jul 2011 11:15:53 +0200
-Message-ID: <1310462166-31469-1-git-send-email-tj@kernel.org>
+Subject: [PATCH 05/13] x86: Use __memblock_alloc_base() in early_reserve_e820()
+Date: Tue, 12 Jul 2011 11:15:58 +0200
+Message-ID: <1310462166-31469-6-git-send-email-tj@kernel.org>
+References: <1310462166-31469-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:61601 "EHLO
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:47219 "EHLO
 	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751140Ab1GLJQM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2011 05:16:12 -0400
+	with ESMTP id S1752110Ab1GLJQS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2011 05:16:18 -0400
+In-Reply-To: <1310462166-31469-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Tejun Heo <tj@kernel.org>
 
-Hello,
+early_reserve_e820() implements its own ad-hoc early allocator using
+memblock_x86_find_in_range_size().  Use __memblock_alloc_base()
+instead and remove the unnecessary @startt parameter (it's top-down
+allocation anyway).
 
-There are multiple ways to represent memory configuration during boot.
-Even with the latest incarnation - nobootmem, the configuration isn't
-centralized or easy to use.  NUMA information lives in
-early_node_map[] while memory config and alloc/reservation live in
-memblock.  This leads to ugly code pieces which try to combine the two
-separate information sources both in generic and arch specfic parts.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+---
+ arch/x86/include/asm/e820.h |    2 +-
+ arch/x86/kernel/e820.c      |   30 ++++++------------------------
+ arch/x86/kernel/mpparse.c   |    6 ++----
+ 3 files changed, 9 insertions(+), 29 deletions(-)
 
-This patchset extends memblock such that it can also host node
-information and allows an arch to do away with early_node_map[] and
-use memblock as the sole early memory config / allocation mechanism.
-
-For short term, this adds yet another config option -
-HAVE_MEMBLOCK_NODE_MAP in this area.  Longer term goal is removing
-early_node_map[] completely and convert everyone over to memblock.  As
-early_node_map[] usage is limited only to NUMA archs, this should be
-easiser than bootmem allocator conversion.  In the end, memblock will
-be the only early mem mechanism.
-
-Note that this patchset still leaves good amount of code which can be
-removed / cleaned up in not too distant future.  For example, memblock
-non-NUMA alloc code can simply be degenerate case of NUMA aware alloc,
-which can also be implemented in simpler and more efficient way with
-reverse free area iterator.
-
-This patchset first extends memblock so that it can contain node
-information and then replaces x86 specific memblock code with the
-generic one.
-
- 0001-memblock-Remove-memblock_memory_can_coalesce.patch
- 0002-memblock-Reimplement-memblock_add_region.patch
- 0003-memblock-Add-optional-region-nid.patch
- 0004-x86-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0005-x86-Use-__memblock_alloc_base-in-early_reserve_e820.patch
- 0006-memblock-Implement-for_each_free_mem_range.patch
- 0007-x86-Replace-memblock_x86_find_in_range_size-with-for.patch
- 0008-memblock-x86-Make-free_all_memory_core_early-explici.patch
- 0009-memblock-x86-Replace-__get_free_all_memory_range-wit.patch
- 0010-memblock-x86-Reimplement-memblock_find_dma_reserve-u.patch
- 0011-x86-Use-absent_pages_in_range-instead-of-memblock_x8.patch
- 0012-memblock-x86-Make-ARCH_DISCARD_MEMBLOCK-a-config-opt.patch
- 0013-memblock-x86-Replace-memblock_x86_reserve-free_range.patch
-
-0001-0004 implement HAVE_MEMBLOCK_NODE_MAP and use it in x86.
-
-0005-0013 adds generic memblock free area iterator and gradually
-replaces x86 specific memblock mechanism with generic one.
-
-This patchset is on top of
-
-  x86/urgent (5da0ef9a85 "x86: Disable AMD_NUMA for 32bit for now")
-+ pfn->nid granularity check patches [1]
-+ "memblock, x86: Misc cleanups" patchset [2]
-+ "memblock, x86: Implement for_each_mem_pfn_range() and use it to improve memblock allocator" patchset [3]
-
-and available in the following git branch.
-
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-memblock
-
-Diffstat follows.
-
- arch/x86/Kconfig                |    2
- arch/x86/include/asm/e820.h     |    2
- arch/x86/include/asm/memblock.h |   22 --
- arch/x86/kernel/aperture_64.c   |    2
- arch/x86/kernel/check.c         |   34 +--
- arch/x86/kernel/e820.c          |   55 ++---
- arch/x86/kernel/head.c          |    2
- arch/x86/kernel/head32.c        |    5
- arch/x86/kernel/head64.c        |    5
- arch/x86/kernel/mpparse.c       |   12 -
- arch/x86/kernel/setup.c         |   17 -
- arch/x86/kernel/trampoline.c    |    2
- arch/x86/mm/Makefile            |    2
- arch/x86/mm/init.c              |    6
- arch/x86/mm/init_32.c           |   28 +-
- arch/x86/mm/memblock.c          |  318 ----------------------------
- arch/x86/mm/memtest.c           |   33 +--
- arch/x86/mm/numa.c              |   24 +-
- arch/x86/mm/numa_32.c           |    6
- arch/x86/mm/numa_64.c           |    2
- arch/x86/mm/numa_emulation.c    |   34 +--
- arch/x86/platform/efi/efi.c     |    6
- arch/x86/xen/mmu.c              |   12 -
- arch/x86/xen/setup.c            |    7
- include/linux/bootmem.h         |    2
- include/linux/memblock.h        |   54 ++++
- include/linux/mm.h              |    2
- mm/Kconfig                      |    6
- mm/memblock.c                   |  440 ++++++++++++++++++++++++++++------------
- mm/nobootmem.c                  |   40 ++-
- mm/page_alloc.c                 |   47 ++--
- 31 files changed, 554 insertions(+), 675 deletions(-)
-
-Thanks.
-
---
-tejun
-
-[1] http://thread.gmane.org/gmane.linux.kernel/1166521
-[2] http://thread.gmane.org/gmane.linux.kernel.cross-arch/10338
-[3] http://thread.gmane.org/gmane.linux.kernel.cross-arch/10345
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 908b969..3778256 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -117,7 +117,7 @@ static inline void early_memtest(unsigned long start, unsigned long end)
+ 
+ extern unsigned long e820_end_of_ram_pfn(void);
+ extern unsigned long e820_end_of_low_ram_pfn(void);
+-extern u64 early_reserve_e820(u64 startt, u64 sizet, u64 align);
++extern u64 early_reserve_e820(u64 sizet, u64 align);
+ 
+ void memblock_x86_fill(void);
+ void memblock_find_dma_reserve(void);
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 0f9ff58..b99d940 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -737,35 +737,17 @@ core_initcall(e820_mark_nvs_memory);
+ /*
+  * pre allocated 4k and reserved it in memblock and e820_saved
+  */
+-u64 __init early_reserve_e820(u64 startt, u64 sizet, u64 align)
++u64 __init early_reserve_e820(u64 size, u64 align)
+ {
+-	u64 size = 0;
+ 	u64 addr;
+-	u64 start;
+ 
+-	for (start = startt; ; start += size) {
+-		start = memblock_x86_find_in_range_size(start, &size, align);
+-		if (!start)
+-			return 0;
+-		if (size >= sizet)
+-			break;
++	addr = __memblock_alloc_base(size, align, MEMBLOCK_ALLOC_ACCESSIBLE);
++	if (addr) {
++		e820_update_range_saved(addr, size, E820_RAM, E820_RESERVED);
++		printk(KERN_INFO "update e820_saved for early_reserve_e820\n");
++		update_e820_saved();
+ 	}
+ 
+-#ifdef CONFIG_X86_32
+-	if (start >= MAXMEM)
+-		return 0;
+-	if (start + size > MAXMEM)
+-		size = MAXMEM - start;
+-#endif
+-
+-	addr = round_down(start + size - sizet, align);
+-	if (addr < start)
+-		return 0;
+-	memblock_x86_reserve_range(addr, addr + sizet, "new next");
+-	e820_update_range_saved(addr, sizet, E820_RAM, E820_RESERVED);
+-	printk(KERN_INFO "update e820_saved for early_reserve_e820\n");
+-	update_e820_saved();
+-
+ 	return addr;
+ }
+ 
+diff --git a/arch/x86/kernel/mpparse.c b/arch/x86/kernel/mpparse.c
+index 9103b89..8faeaa0 100644
+--- a/arch/x86/kernel/mpparse.c
++++ b/arch/x86/kernel/mpparse.c
+@@ -836,10 +836,8 @@ early_param("alloc_mptable", parse_alloc_mptable_opt);
+ 
+ void __init early_reserve_e820_mpc_new(void)
+ {
+-	if (enable_update_mptable && alloc_mptable) {
+-		u64 startt = 0;
+-		mpc_new_phys = early_reserve_e820(startt, mpc_new_length, 4);
+-	}
++	if (enable_update_mptable && alloc_mptable)
++		mpc_new_phys = early_reserve_e820(mpc_new_length, 4);
+ }
+ 
+ static int __init update_mp_table(void)
+-- 
+1.7.6
