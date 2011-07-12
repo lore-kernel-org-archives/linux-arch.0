@@ -1,28 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-bw0-f46.google.com ([209.85.214.46]:47219 "EHLO
 	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752326Ab1GLJQY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2011 05:16:24 -0400
+	with ESMTP id S1752340Ab1GLJQ0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2011 05:16:26 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 09/13] memblock, x86: Replace __get_free_all_memory_range() with for_each_free_mem_range()
-Date: Tue, 12 Jul 2011 11:16:02 +0200
-Message-ID: <1310462166-31469-10-git-send-email-tj@kernel.org>
+Subject: [PATCH 11/13] x86: Use absent_pages_in_range() instead of memblock_x86_hole_size()
+Date: Tue, 12 Jul 2011 11:16:04 +0200
+Message-ID: <1310462166-31469-12-git-send-email-tj@kernel.org>
 In-Reply-To: <1310462166-31469-1-git-send-email-tj@kernel.org>
 References: <1310462166-31469-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Tejun Heo <tj@kernel.org>
-Message-ID: <20110712091602.56WqJtolmD3-FQk7fM0IEaDs0Z8_6X02JgopgwsL6S8@z>
+Message-ID: <20110712091604.aSwrasHfFxlzbL-gSF3ORDeYkzbmtt1C63Ck3cIH2qk@z>
 
-__get_free_all_memory_range() walks memblock, calculates free memory
-areas and fills in the specified range.  It can be easily replaced
-with for_each_free_mem_range().
+memblock_x86_hole_size() calculates the total size of holes in a given
+range according to memblock and is used by numa emulation code and
+numa_meminfo_cover_memory().
 
-Convert free_low_memory_core_early() and
-add_highpages_with_active_regions() to for_each_free_mem_range().
-This leaves __get_free_all_memory_range() without any user.  Kill it
-and related functions.
+Since conversion to MEMBLOCK_NODE_MAP, absent_pages_in_range() also
+uses memblock and gives the same result.  This patch replaces
+memblock_x86_hole_size() uses with absent_pages_in_range().  After the
+conversion the x86 function doesn't have any user left and is killed.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
@@ -31,177 +31,195 @@ Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Ingo Molnar <mingo@redhat.com>
 Cc: "H. Peter Anvin" <hpa@zytor.com>
 ---
- arch/x86/include/asm/memblock.h |    3 --
- arch/x86/mm/init_32.c           |   28 +++++++-----------
- arch/x86/mm/memblock.c          |   59 ---------------------------------------
- mm/nobootmem.c                  |   28 ++++++++++--------
- 4 files changed, 27 insertions(+), 91 deletions(-)
+ arch/x86/include/asm/memblock.h |    2 -
+ arch/x86/mm/memblock.c          |   52 ---------------------------------------
+ arch/x86/mm/numa.c              |    4 +-
+ arch/x86/mm/numa_emulation.c    |   30 +++++++++++++---------
+ 4 files changed, 20 insertions(+), 68 deletions(-)
 
 diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 6c72eca..bc9e44b 100644
+index a0cc7d6..17a882e 100644
 --- a/arch/x86/include/asm/memblock.h
 +++ b/arch/x86/include/asm/memblock.h
-@@ -5,9 +5,6 @@
- 
+@@ -6,6 +6,4 @@
  void memblock_x86_reserve_range(u64 start, u64 end, char *name);
  void memblock_x86_free_range(u64 start, u64 end);
--struct range;
--int __get_free_all_memory_range(struct range **range, int nodeid,
--			 unsigned long start_pfn, unsigned long end_pfn);
  
- u64 memblock_x86_hole_size(u64 start, u64 end);
- u64 memblock_x86_free_memory_in_range(u64 addr, u64 limit);
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index 29f7c6d..a631a57 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -427,23 +427,17 @@ static void __init add_one_highpage_init(struct page *page)
- void __init add_highpages_with_active_regions(int nid,
- 			 unsigned long start_pfn, unsigned long end_pfn)
- {
--	struct range *range;
--	int nr_range;
--	int i;
+-u64 memblock_x86_hole_size(u64 start, u64 end);
 -
--	nr_range = __get_free_all_memory_range(&range, nid, start_pfn, end_pfn);
--
--	for (i = 0; i < nr_range; i++) {
--		struct page *page;
--		int node_pfn;
--
--		for (node_pfn = range[i].start; node_pfn < range[i].end;
--		     node_pfn++) {
--			if (!pfn_valid(node_pfn))
--				continue;
--			page = pfn_to_page(node_pfn);
--			add_one_highpage_init(page);
--		}
-+	phys_addr_t start, end;
-+	u64 i;
-+
-+	for_each_free_mem_range(i, nid, &start, &end, NULL) {
-+		unsigned long pfn = clamp_t(unsigned long, PFN_UP(start),
-+					    start_pfn, end_pfn);
-+		unsigned long e_pfn = clamp_t(unsigned long, PFN_DOWN(end),
-+					      start_pfn, end_pfn);
-+		for ( ; pfn < e_pfn; pfn++)
-+			if (pfn_valid(pfn))
-+				add_one_highpage_init(pfn_to_page(pfn));
- 	}
- }
- #else
+ #endif
 diff --git a/arch/x86/mm/memblock.c b/arch/x86/mm/memblock.c
-index 0e8442a..4107c1a 100644
+index a9d0972..7325c5d 100644
 --- a/arch/x86/mm/memblock.c
 +++ b/arch/x86/mm/memblock.c
-@@ -30,65 +30,6 @@ static __init struct range *find_range_array(int count)
- 	return range;
- }
+@@ -32,55 +32,3 @@ void __init memblock_x86_free_range(u64 start, u64 end)
  
--static void __init memblock_x86_subtract_reserved(struct range *range, int az)
+ 	memblock_free(start, end - start);
+ }
+-
+-/*
+- * Finds an active region in the address range from start_pfn to last_pfn and
+- * returns its range in ei_startpfn and ei_endpfn for the memblock entry.
+- */
+-static int __init memblock_x86_find_active_region(const struct memblock_region *ei,
+-				  unsigned long start_pfn,
+-				  unsigned long last_pfn,
+-				  unsigned long *ei_startpfn,
+-				  unsigned long *ei_endpfn)
 -{
--	u64 final_start, final_end;
+-	u64 align = PAGE_SIZE;
+-
+-	*ei_startpfn = round_up(ei->base, align) >> PAGE_SHIFT;
+-	*ei_endpfn = round_down(ei->base + ei->size, align) >> PAGE_SHIFT;
+-
+-	/* Skip map entries smaller than a page */
+-	if (*ei_startpfn >= *ei_endpfn)
+-		return 0;
+-
+-	/* Skip if map is outside the node */
+-	if (*ei_endpfn <= start_pfn || *ei_startpfn >= last_pfn)
+-		return 0;
+-
+-	/* Check for overlaps */
+-	if (*ei_startpfn < start_pfn)
+-		*ei_startpfn = start_pfn;
+-	if (*ei_endpfn > last_pfn)
+-		*ei_endpfn = last_pfn;
+-
+-	return 1;
+-}
+-
+-/*
+- * Find the hole size (in bytes) in the memory range.
+- * @start: starting address of the memory range to scan
+- * @end: ending address of the memory range to scan
+- */
+-u64 __init memblock_x86_hole_size(u64 start, u64 end)
+-{
+-	unsigned long start_pfn = start >> PAGE_SHIFT;
+-	unsigned long last_pfn = end >> PAGE_SHIFT;
+-	unsigned long ei_startpfn, ei_endpfn, ram = 0;
 -	struct memblock_region *r;
 -
--	/* Take out region array itself at first*/
--	memblock_free_reserved_regions();
+-	for_each_memblock(memory, r)
+-		if (memblock_x86_find_active_region(r, start_pfn, last_pfn,
+-					   &ei_startpfn, &ei_endpfn))
+-			ram += ei_endpfn - ei_startpfn;
 -
--	memblock_dbg("Subtract (%ld early reservations)\n", memblock.reserved.cnt);
--
--	for_each_memblock(reserved, r) {
--		memblock_dbg("  [%010llx-%010llx]\n", (u64)r->base, (u64)r->base + r->size - 1);
--		final_start = PFN_DOWN(r->base);
--		final_end = PFN_UP(r->base + r->size);
--		if (final_start >= final_end)
--			continue;
--		subtract_range(range, az, final_start, final_end);
--	}
--
--	/* Put region array back ? */
--	memblock_reserve_reserved_regions();
+-	return end - start - ((u64)ram << PAGE_SHIFT);
 -}
--
--static int __init count_early_node_map(int nodeid)
--{
--	int i, cnt = 0;
--
--	for_each_mem_pfn_range(i, nodeid, NULL, NULL, NULL)
--		cnt++;
--	return cnt;
--}
--
--int __init __get_free_all_memory_range(struct range **rangep, int nodeid,
--			 unsigned long start_pfn, unsigned long end_pfn)
--{
--	int count;
--	struct range *range;
--	int nr_range;
--
--	count = (memblock.reserved.cnt + count_early_node_map(nodeid)) * 2;
--
--	range = find_range_array(count);
--	nr_range = 0;
--
--	/*
--	 * Use early_node_map[] and memblock.reserved.region to get range array
--	 * at first
--	 */
--	nr_range = add_from_early_node_map(range, count, nr_range, nodeid);
--	subtract_range(range, count, 0, start_pfn);
--	subtract_range(range, count, end_pfn, -1ULL);
--
--	memblock_x86_subtract_reserved(range, count);
--	nr_range = clean_sort_range(range, count);
--
--	*rangep = range;
--	return nr_range;
--}
--
- static u64 __init __memblock_x86_memory_in_range(u64 addr, u64 limit, bool get_free)
- {
- 	int i, count;
-diff --git a/mm/nobootmem.c b/mm/nobootmem.c
-index 2037a8a..7075bc0 100644
---- a/mm/nobootmem.c
-+++ b/mm/nobootmem.c
-@@ -108,21 +108,25 @@ static void __init __free_pages_memory(unsigned long start, unsigned long end)
- 
- unsigned long __init free_low_memory_core_early(int nodeid)
- {
--	int i;
--	u64 start, end;
- 	unsigned long count = 0;
--	struct range *range = NULL;
--	int nr_range;
--
--	nr_range = __get_free_all_memory_range(&range, nodeid, 0, max_low_pfn);
--
--	for (i = 0; i < nr_range; i++) {
--		start = range[i].start;
--		end = range[i].end;
--		count += end - start;
--		__free_pages_memory(start, end);
-+	phys_addr_t start, end;
-+	u64 i;
-+
-+	/* free reserved array temporarily so that it's treated as free area */
-+	memblock_free_reserved_regions();
-+
-+	for_each_free_mem_range(i, MAX_NUMNODES, &start, &end, NULL) {
-+		unsigned long start_pfn = PFN_UP(start);
-+		unsigned long end_pfn = min_t(unsigned long,
-+					      PFN_DOWN(end), max_low_pfn);
-+		if (start_pfn < end_pfn) {
-+			__free_pages_memory(start_pfn, end_pfn);
-+			count += end_pfn - start_pfn;
-+		}
+diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
+index f4a40bd..88e5627 100644
+--- a/arch/x86/mm/numa.c
++++ b/arch/x86/mm/numa.c
+@@ -475,8 +475,8 @@ static bool __init numa_meminfo_cover_memory(const struct numa_meminfo *mi)
+ 			numaram = 0;
  	}
  
-+	/* put region array back? */
-+	memblock_reserve_reserved_regions();
- 	return count;
+-	e820ram = max_pfn - (memblock_x86_hole_size(0,
+-					PFN_PHYS(max_pfn)) >> PAGE_SHIFT);
++	e820ram = max_pfn - absent_pages_in_range(0, max_pfn);
++
+ 	/* We seem to lose 3 pages somewhere. Allow 1M of slack. */
+ 	if ((s64)(e820ram - numaram) >= (1 << (20 - PAGE_SHIFT))) {
+ 		printk(KERN_ERR "NUMA: nodes only cover %LuMB of your %LuMB e820 RAM. Not used.\n",
+diff --git a/arch/x86/mm/numa_emulation.c b/arch/x86/mm/numa_emulation.c
+index e3d471c..971fe70 100644
+--- a/arch/x86/mm/numa_emulation.c
++++ b/arch/x86/mm/numa_emulation.c
+@@ -28,6 +28,16 @@ static int __init emu_find_memblk_by_nid(int nid, const struct numa_meminfo *mi)
+ 	return -ENOENT;
  }
  
++static u64 mem_hole_size(u64 start, u64 end)
++{
++	unsigned long start_pfn = PFN_UP(start);
++	unsigned long end_pfn = PFN_DOWN(end);
++
++	if (start_pfn < end_pfn)
++		return PFN_PHYS(absent_pages_in_range(start_pfn, end_pfn));
++	return 0;
++}
++
+ /*
+  * Sets up nid to range from @start to @end.  The return value is -errno if
+  * something went wrong, 0 otherwise.
+@@ -89,7 +99,7 @@ static int __init split_nodes_interleave(struct numa_meminfo *ei,
+ 	 * Calculate target node size.  x86_32 freaks on __udivdi3() so do
+ 	 * the division in ulong number of pages and convert back.
+ 	 */
+-	size = max_addr - addr - memblock_x86_hole_size(addr, max_addr);
++	size = max_addr - addr - mem_hole_size(addr, max_addr);
+ 	size = PFN_PHYS((unsigned long)(size >> PAGE_SHIFT) / nr_nodes);
+ 
+ 	/*
+@@ -135,8 +145,7 @@ static int __init split_nodes_interleave(struct numa_meminfo *ei,
+ 			 * Continue to add memory to this fake node if its
+ 			 * non-reserved memory is less than the per-node size.
+ 			 */
+-			while (end - start -
+-			       memblock_x86_hole_size(start, end) < size) {
++			while (end - start - mem_hole_size(start, end) < size) {
+ 				end += FAKE_NODE_MIN_SIZE;
+ 				if (end > limit) {
+ 					end = limit;
+@@ -150,7 +159,7 @@ static int __init split_nodes_interleave(struct numa_meminfo *ei,
+ 			 * this one must extend to the boundary.
+ 			 */
+ 			if (end < dma32_end && dma32_end - end -
+-			    memblock_x86_hole_size(end, dma32_end) < FAKE_NODE_MIN_SIZE)
++			    mem_hole_size(end, dma32_end) < FAKE_NODE_MIN_SIZE)
+ 				end = dma32_end;
+ 
+ 			/*
+@@ -158,8 +167,7 @@ static int __init split_nodes_interleave(struct numa_meminfo *ei,
+ 			 * next node, this one must extend to the end of the
+ 			 * physical node.
+ 			 */
+-			if (limit - end -
+-			    memblock_x86_hole_size(end, limit) < size)
++			if (limit - end - mem_hole_size(end, limit) < size)
+ 				end = limit;
+ 
+ 			ret = emu_setup_memblk(ei, pi, nid++ % nr_nodes,
+@@ -180,7 +188,7 @@ static u64 __init find_end_of_node(u64 start, u64 max_addr, u64 size)
+ {
+ 	u64 end = start + size;
+ 
+-	while (end - start - memblock_x86_hole_size(start, end) < size) {
++	while (end - start - mem_hole_size(start, end) < size) {
+ 		end += FAKE_NODE_MIN_SIZE;
+ 		if (end > max_addr) {
+ 			end = max_addr;
+@@ -211,8 +219,7 @@ static int __init split_nodes_size_interleave(struct numa_meminfo *ei,
+ 	 * creates a uniform distribution of node sizes across the entire
+ 	 * machine (but not necessarily over physical nodes).
+ 	 */
+-	min_size = (max_addr - addr - memblock_x86_hole_size(addr, max_addr)) /
+-						MAX_NUMNODES;
++	min_size = (max_addr - addr - mem_hole_size(addr, max_addr)) / MAX_NUMNODES;
+ 	min_size = max(min_size, FAKE_NODE_MIN_SIZE);
+ 	if ((min_size & FAKE_NODE_MIN_HASH_MASK) < min_size)
+ 		min_size = (min_size + FAKE_NODE_MIN_SIZE) &
+@@ -252,7 +259,7 @@ static int __init split_nodes_size_interleave(struct numa_meminfo *ei,
+ 			 * this one must extend to the boundary.
+ 			 */
+ 			if (end < dma32_end && dma32_end - end -
+-			    memblock_x86_hole_size(end, dma32_end) < FAKE_NODE_MIN_SIZE)
++			    mem_hole_size(end, dma32_end) < FAKE_NODE_MIN_SIZE)
+ 				end = dma32_end;
+ 
+ 			/*
+@@ -260,8 +267,7 @@ static int __init split_nodes_size_interleave(struct numa_meminfo *ei,
+ 			 * next node, this one must extend to the end of the
+ 			 * physical node.
+ 			 */
+-			if (limit - end -
+-			    memblock_x86_hole_size(end, limit) < size)
++			if (limit - end - mem_hole_size(end, limit) < size)
+ 				end = limit;
+ 
+ 			ret = emu_setup_memblk(ei, pi, nid++ % MAX_NUMNODES,
 -- 
 1.7.6
 
