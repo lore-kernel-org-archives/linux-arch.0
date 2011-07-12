@@ -1,16 +1,16 @@
 From: "Systems Administrator" <sshiv@iitk.ac.in>
 Subject: (unknown)
-Date: Tue, 12 Jul 2011 19:54:52 +0530
-Message-ID: <1a1a4b7f8502820cc412a05022f5ef4f.squirrel@webmail.iitk.ac.in>
+Date: Tue, 12 Jul 2011 20:10:44 +0530
+Message-ID: <c616b57df57c663a8b9fa6d6292981b3.squirrel@webmail.iitk.ac.in>
 Reply-To: system-admin@gala.net
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail4.iitk.ac.in ([202.3.77.189]:37404 "EHLO mail4.iitk.ac.in"
+Received: from mail4.iitk.ac.in ([202.3.77.189]:57673 "EHLO mail4.iitk.ac.in"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751345Ab1GLPRc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 Jul 2011 11:17:32 -0400
+	id S1753679Ab1GLPVx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jul 2011 11:21:53 -0400
 Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
