@@ -1,60 +1,45 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCHSET x86/mm] memblock, x86: Misc cleanups
-Date: Tue, 12 Jul 2011 09:58:04 +0200
-Message-ID: <1310457490-3356-1-git-send-email-tj@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:53085 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751111Ab1GLH6W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jul 2011 03:58:22 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 2/6] bootmem: Fix __free_pages_bootmem() to use @order properly
+Date: Tue, 12 Jul 2011 09:58:06 +0200
+Message-ID: <1310457490-3356-3-git-send-email-tj@kernel.org>
+References: <1310457490-3356-1-git-send-email-tj@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1310457490-3356-1-git-send-email-tj@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, Tejun Heo <tj@kernel.org>, David Howells <dhowells@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+a226f6c899 (FRV: Clean up bootmem allocator's page freeing algorithm)
+separated out __free_pages_bootmem() from free_all_bootmem_core().
+__free_pages_bootmem() takes @order argument but it assumes @order is
+either 0 or ilog2(BITS_PER_LONG).  Note that all the current users
+match that assumption and this doesn't cause actual problems.
 
-This patchset contains the following six cleanup patches in generic
-and x86 memblock code paths.  All the changes in this function are
-more or less trivial.  This prepares for further memblock updates.
+Fix it by using 1 << order instead of BITS_PER_LONG.
 
- 0001-x86-Fix-memblock_x86_check_reserved_size-use-in-efi_.patch
- 0002-bootmem-Fix-__free_pages_bootmem-to-use-order-proper.patch
- 0003-memblock-Use-MEMBLOCK_ALLOC_ACCESSIBLE-instead-of-AN.patch
- 0004-memblock-Use-round_up-down-instead-of-memblock_align.patch
- 0005-memblock-Kill-MEMBLOCK_ERROR.patch
- 0006-memblock-Replace-memblock_find_base-with-memblock_fi.patch
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Cc: David Howells <dhowells@redhat.com>
+---
+ mm/page_alloc.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-This patchset is on top of
-
-  x86/urgent (5da0ef9a85 "x86: Disable AMD_NUMA for 32bit for now")
-+ pfn->nid granularity check patches [1]
-
-and available in the following git branch.
-
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-prep
-
-diffstat follows.
-
- arch/x86/kernel/aperture_64.c |    2 -
- arch/x86/kernel/check.c       |    2 -
- arch/x86/kernel/e820.c        |    2 -
- arch/x86/kernel/setup.c       |    4 +-
- arch/x86/kernel/trampoline.c  |    2 -
- arch/x86/mm/init.c            |    2 -
- arch/x86/mm/memblock.c        |    6 ++--
- arch/x86/mm/numa.c            |    6 ++--
- arch/x86/mm/numa_32.c         |    4 +-
- arch/x86/mm/numa_emulation.c  |    2 -
- arch/x86/platform/efi/efi.c   |    3 --
- include/linux/memblock.h      |    7 ++--
- kernel/printk.c               |    2 -
- mm/memblock.c                 |   63 +++++++++++++++---------------------------
- mm/nobootmem.c                |    2 -
- mm/page_alloc.c               |    8 ++---
- 16 files changed, 49 insertions(+), 68 deletions(-)
-
---
-tejun
-
-[1] http://thread.gmane.org/gmane.linux.kernel/1166521
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 9119faa..b6da6ed 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -705,10 +705,10 @@ void __meminit __free_pages_bootmem(struct page *page, unsigned int order)
+ 		int loop;
+ 
+ 		prefetchw(page);
+-		for (loop = 0; loop < BITS_PER_LONG; loop++) {
++		for (loop = 0; loop < (1 << order); loop++) {
+ 			struct page *p = &page[loop];
+ 
+-			if (loop + 1 < BITS_PER_LONG)
++			if (loop + 1 < (1 << order))
+ 				prefetchw(p + 1);
+ 			__ClearPageReserved(p);
+ 			set_page_count(p, 0);
+-- 
+1.7.6
