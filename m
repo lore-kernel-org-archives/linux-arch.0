@@ -1,47 +1,57 @@
 From: Tejun Heo <tj@kernel.org>
 Subject: Re: [PATCHSET x86/mm] memblock, x86: Allow node info in memblock and
  remove x86 specific memblock code
-Date: Wed, 13 Jul 2011 11:11:30 +0200
-Message-ID: <20110713091130.GD2872@htj.dyndns.org>
+Date: Wed, 13 Jul 2011 11:16:13 +0200
+Message-ID: <20110713091613.GE2872@htj.dyndns.org>
 References: <1310462166-31469-1-git-send-email-tj@kernel.org>
  <CAE9FiQUfHB=EtzDBhPr2ntn__0AC0NcCdi0e7NiwmKb0bZmBbg@mail.gmail.com>
+ <4E1D0F33.7020708@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:38489 "EHLO
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:52787 "EHLO
 	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965050Ab1GMJLf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2011 05:11:35 -0400
+	with ESMTP id S965124Ab1GMJQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jul 2011 05:16:17 -0400
 Content-Disposition: inline
-In-Reply-To: <CAE9FiQUfHB=EtzDBhPr2ntn__0AC0NcCdi0e7NiwmKb0bZmBbg@mail.gmail.com>
+In-Reply-To: <4E1D0F33.7020708@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Yinghai Lu <yinghai@kernel.org>, mingo@redhat.com, tglx@linutronix.de, benh@kernel.crashing.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-Hello, Yinghai.
+Hello,
 
-On Tue, Jul 12, 2011 at 04:26:57PM -0700, Yinghai Lu wrote:
-> On Tue, Jul 12, 2011 at 2:15 AM, Tejun Heo <tj@kernel.org> wrote:
-> > 0005-0013 adds generic memblock free area iterator and gradually
-> > replaces x86 specific memblock mechanism with generic one.
+On Tue, Jul 12, 2011 at 08:21:23PM -0700, H. Peter Anvin wrote:
+> On 07/12/2011 04:26 PM, Yinghai Lu wrote:
+> > 
+> > that is great, merge early_node_map into memblock array.
+> > 
+> > looks it comes with some mismatch section warning...
+> > 
 > 
-> that is great, merge early_node_map into memblock array.
+> I'm also confused about the baseline of the patchset...
 
-Yeah and with proper top down allocator and iterator, we should be
-able to add back the early per-node allocaiton thing.
+The whole thing is on top of x86/urgent for the commit which disabled
+AMD NUMA on 32bit, so it's like the following.
 
-> looks it comes with some mismatch section warning...
-> 
-> WARNING: vmlinux.o(.text+0x120ba5): Section mismatch in reference from
-> the function memblock_set_node() to the variable .init.data:memblock
-> The function memblock_set_node() references
-> the variable __initdata memblock.
-> This is often because memblock_set_node lacks a __initdata
-> annotation or the annotation of memblock is wrong.
+  x86/urgent (5da0ef9a8 "x86: Disable AMD_NUMA for 32bit for now")
 
-Oh, the __memblock_init thing.  Can you please attach .config you
-used?
++ Two patches for pfn->nid mapping granularity check (applied now)
+
+    http://thread.gmane.org/gmane.linux.kernel/1166521
+
++ memblock, x86: Misc cleanups
+
+    http://thread.gmane.org/gmane.linux.kernel.cross-arch/10338
+
++ memblock, x86: Implement for_each_mem_pfn_range() and use it to improve memblock allocator
+
+    http://thread.gmane.org/gmane.linux.kernel.cross-arch/10345
+
++ memblock, x86: Allow node info in memblock and remove x86 specific memblock code
+
+    http://thread.gmane.org/gmane.linux.kernel.cross-arch/10354
 
 Thanks.
 
