@@ -1,37 +1,52 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCHSET x86/mm] memblock, x86: Allow node info in memblock and
- remove x86 specific memblock code
-Date: Thu, 14 Jul 2011 11:49:29 +0200
-Message-ID: <20110714094929.GI3455@htj.dyndns.org>
-References: <1310462166-31469-1-git-send-email-tj@kernel.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 13/13] memblock, x86: Replace memblock_x86_reserve/free_range()
+ with generic ones
+Date: Thu, 14 Jul 2011 13:10:20 -0700
+Message-ID: <4E1F4D2C.3000507@zytor.com>
+References: <1310462166-31469-1-git-send-email-tj@kernel.org> <1310462166-31469-14-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:55506 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754020Ab1GNJte (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2011 05:49:34 -0400
-Content-Disposition: inline
-In-Reply-To: <1310462166-31469-1-git-send-email-tj@kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:52031 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753065Ab1GNUKe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Jul 2011 16:10:34 -0400
+In-Reply-To: <1310462166-31469-14-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+To: Tejun Heo <tj@kernel.org>
+Cc: mingo@redhat.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-Hello,
+On 07/12/2011 02:16 AM, Tejun Heo wrote:
+> --- a/mm/memblock.c
+> +++ b/mm/memblock.c
+> @@ -449,6 +449,9 @@ long __init_memblock memblock_remove(phys_addr_t base, phys_addr_t size)
+>  
+>  long __init_memblock memblock_free(phys_addr_t base, phys_addr_t size)
+>  {
+> +	memblock_dbg("   memblock_free: [%#016llx-%#016llx] %pF\n",
+> +		     base, base + size, (void *)_RET_IP_);
+> +
+>  	return __memblock_remove(&memblock.reserved, base, size);
+>  }
+>  
+> @@ -456,6 +459,8 @@ long __init_memblock memblock_reserve(phys_addr_t base, phys_addr_t size)
+>  {
+>  	struct memblock_type *_rgn = &memblock.reserved;
+>  
+> +	memblock_dbg("memblock_reserve: [%#016llx-%#016llx] %pF\n",
+> +		     base, base + size, (void *)_RET_IP_);
+>  	BUG_ON(0 == size);
+>  
+>  	return memblock_add_region(_rgn, base, size);
 
-I just posted one extra patch and several updated patches.  All the
-updates were minor so I didn't want to resend the whole thing (yet).
-It would probably be easiest to check the updated git branches.
+This assumes phys_addr_t == unsigned long long, which is just plain
+wrong.  I will fix it up, but please take more care with that in the
+future.  This triggers a warning when building for i386 non-PAE, which
+is a good thing because it is a real error.
 
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-iter
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-memblock
+Also, don't we usually display resources as an *inclusive* range,
+meaning that the last one should be base + size - 1?
 
-git.korg is still synching.  The first one should be
-8168136c0d47b53b7964385990710516c1199124 and the second
-fb514c91dd44d9d88f29b20dddeeb8882bd89066.
-
-Thank you.
-
--- 
-tejun
+	-hpa
