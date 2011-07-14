@@ -1,114 +1,37 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH UPDATED 12/13] memblock, x86: Make ARCH_DISCARD_MEMBLOCK a
- config option
-Date: Thu, 14 Jul 2011 11:46:03 +0200
-Message-ID: <20110714094603.GH3455@htj.dyndns.org>
+Subject: Re: [PATCHSET x86/mm] memblock, x86: Allow node info in memblock and
+ remove x86 specific memblock code
+Date: Thu, 14 Jul 2011 11:49:29 +0200
+Message-ID: <20110714094929.GI3455@htj.dyndns.org>
 References: <1310462166-31469-1-git-send-email-tj@kernel.org>
- <1310462166-31469-13-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:60698 "EHLO
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:55506 "EHLO
 	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754079Ab1GNJqI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2011 05:46:08 -0400
+	with ESMTP id S1754020Ab1GNJte (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jul 2011 05:49:34 -0400
 Content-Disposition: inline
-In-Reply-To: <1310462166-31469-13-git-send-email-tj@kernel.org>
+In-Reply-To: <1310462166-31469-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
 
-From 6839454ae63f1eb21e515c10229ca95c22955fec Mon Sep 17 00:00:00 2001
-From: Tejun Heo <tj@kernel.org>
-Date: Thu, 14 Jul 2011 11:22:17 +0200
+Hello,
 
-Make ARCH_DISCARD_MEMBLOCK a config option so that it can be handled
-together with other MEMBLOCK options.
+I just posted one extra patch and several updated patches.  All the
+updates were minor so I didn't want to resend the whole thing (yet).
+It would probably be easiest to check the updated git branches.
 
-Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
----
-Nothing really changed.  Just patch context update to resolve conflict
-from updates earlier in the series.
+ git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-iter
+ git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git review-x86-mm-memblock
 
-Thanks.
+git.korg is still synching.  The first one should be
+8168136c0d47b53b7964385990710516c1199124 and the second
+fb514c91dd44d9d88f29b20dddeeb8882bd89066.
 
- arch/x86/Kconfig                |    1 +
- arch/x86/include/asm/memblock.h |    2 --
- include/linux/memblock.h        |    2 +-
- mm/Kconfig                      |    3 +++
- mm/memblock.c                   |    2 +-
- 5 files changed, 6 insertions(+), 4 deletions(-)
+Thank you.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 97f0894..28116d4 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -26,6 +26,7 @@ config X86
- 	select HAVE_KPROBES
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
-+	select ARCH_DISCARD_MEMBLOCK
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select ARCH_WANT_FRAME_POINTERS
- 	select HAVE_DMA_ATTRS
-diff --git a/arch/x86/include/asm/memblock.h b/arch/x86/include/asm/memblock.h
-index 17a882e..bc56670 100644
---- a/arch/x86/include/asm/memblock.h
-+++ b/arch/x86/include/asm/memblock.h
-@@ -1,8 +1,6 @@
- #ifndef _X86_MEMBLOCK_H
- #define _X86_MEMBLOCK_H
- 
--#define ARCH_DISCARD_MEMBLOCK
--
- void memblock_x86_reserve_range(u64 start, u64 end, char *name);
- void memblock_x86_free_range(u64 start, u64 end);
- 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 31def58..2491355 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -197,7 +197,7 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
- 	     region++)
- 
- 
--#ifdef ARCH_DISCARD_MEMBLOCK
-+#ifdef CONFIG_ARCH_DISCARD_MEMBLOCK
- #define __init_memblock __meminit
- #define __initdata_memblock __meminitdata
- #else
-diff --git a/mm/Kconfig b/mm/Kconfig
-index 30a5d47..7c56971 100644
---- a/mm/Kconfig
-+++ b/mm/Kconfig
-@@ -134,6 +134,9 @@ config HAVE_MEMBLOCK
- config HAVE_MEMBLOCK_NODE_MAP
- 	boolean
- 
-+config ARCH_DISCARD_MEMBLOCK
-+	boolean
-+
- # eventually, we can have this option just 'select SPARSEMEM'
- config MEMORY_HOTPLUG
- 	bool "Allow for memory hot-add"
-diff --git a/mm/memblock.c b/mm/memblock.c
-index c4a8750..ebc6119 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -959,7 +959,7 @@ static int __init early_memblock(char *p)
- }
- early_param("memblock", early_memblock);
- 
--#if defined(CONFIG_DEBUG_FS) && !defined(ARCH_DISCARD_MEMBLOCK)
-+#if defined(CONFIG_DEBUG_FS) && !defined(CONFIG_ARCH_DISCARD_MEMBLOCK)
- 
- static int memblock_debug_show(struct seq_file *m, void *private)
- {
 -- 
-1.7.6
+tejun
