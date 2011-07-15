@@ -1,49 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:37742 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932225Ab1GNUjA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 Jul 2011 16:39:00 -0400
-Message-ID: <4E1F53D9.2000606@zytor.com>
-Date: Thu, 14 Jul 2011 13:38:49 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:43900 "EHLO
+	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932310Ab1GOFpT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 Jul 2011 01:45:19 -0400
+Date: Fri, 15 Jul 2011 07:45:12 +0200
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH 2.5/13] memblock: Use __meminit[data] instead of
+ __init[data]
+Message-ID: <20110715054512.GK3455@htj.dyndns.org>
+References: <1310462166-31469-1-git-send-email-tj@kernel.org>
+ <20110714094203.GE3455@htj.dyndns.org>
+ <CAE9FiQU92k-GAy3DVB4HYpn6D6_u=4T7t9_8FOGh8BLDEAKD=Q@mail.gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 13/13] memblock, x86: Replace memblock_x86_reserve/free_range()
- with generic ones
-References: <1310462166-31469-1-git-send-email-tj@kernel.org>	<1310462166-31469-14-git-send-email-tj@kernel.org>	<4E1F4D2C.3000507@zytor.com>	<CAOS58YPhFWEYgB7moPoTj+BKBn6WMHCi5FqZ5eYp+m4bbEN_7A@mail.gmail.com>	<4E1F5040.50004@zytor.com> <CAOS58YM38mwmLcErARLc2+7wBrBa5Je3VOM5L28z63L6+ysqpQ@mail.gmail.com>
-In-Reply-To: <CAOS58YM38mwmLcErARLc2+7wBrBa5Je3VOM5L28z63L6+ysqpQ@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAE9FiQU92k-GAy3DVB4HYpn6D6_u=4T7t9_8FOGh8BLDEAKD=Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: mingo@redhat.com, tglx@linutronix.de, benh@kernel.crashing.org, yinghai@kernel.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
-Message-ID: <20110714203849.8dvDSTSIra-3dvreE2CRF48neFUbM4kiwrcCmTRZYGc@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+Message-ID: <20110715054512.RtcHDuP7Wq4L-dQp2NZVTpgCG-YMGIl39h1q_RYllxk@z>
 
-On 07/14/2011 01:32 PM, Tejun Heo wrote:
-> Hello,
-> 
-> On Thu, Jul 14, 2011 at 10:23 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 07/14/2011 01:20 PM, Tejun Heo wrote:
->> Sorry I don't follow.  We display resources as [...] ranges, and in
->> particular when there are those kinds of brackets they tend to be
->> inclusive ranges.
->>
->> For the internal representation, of course, [ ) ranges or (base, length)
->> are the only sensible options.
-> 
-> [ ) ranges: e820, init_memory_mapping, NUMA nodes, Zone PFN ranges, PM
-> nosave memory
-> 
-> [ ] ranges: MTRR, NODE_DATA, early_node_map, [mm]io ranges
-> 
-> Hmm... I was only looking at the early boot messages which didn't
-> include the io ranges.  It ultimately is a cosmetic issue so my
-> opinions aren't very strong but I think we can leave [mm]io ranges
-> alone and converge the rest into [ ) ranges sans the brackets?
-> 
+Hello,
 
-Agreed it's a cosmetic issue... this discussion has already been had,
-though, and the consensus is to move the kernel to the standardized
-resource format.
+On Thu, Jul 14, 2011 at 02:00:51PM -0700, Yinghai Lu wrote:
+> >  #ifdef ARCH_DISCARD_MEMBLOCK
+> > -#define __init_memblock __init
+> > -#define __initdata_memblock __initdata
+> > +#define __init_memblock __meminit
+> > +#define __initdata_memblock __meminitdata
+> >  #else
+> >  #define __init_memblock
+> >  #define __initdata_memblock
+> 
+> that is not good. It will keep memblock.reserved related data and
+> functions after boot.
+> and those data/func are not used after slab is ready.
 
-	-hpa
+Yeah, if MEMORY_HOTPLUG is enabled.  It isn't too big area to begin
+with and early_node_map[] and related code removal should offset it.
+The problem is that refining different __init tags here is a bit
+complex thanks to DISCARD_MEMBLOCK.  We end up having to deal with the
+combination of DISCARD_MEMBLOCK and MEMORY_HOTPLUG.  I was hoping that
+once we get memblock usage more consistent across different archs, we
+could do away with DISCARD_MEMBLOCK.
+
+Thank you.
+
+-- 
+tejun
