@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:34891 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:34885 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756080Ab1GQPJk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jul 2011 11:09:40 -0400
+	with ESMTP id S1755804Ab1GQPJb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jul 2011 11:09:31 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH v3 17/19] OpenRISC: Library routines
-Date: Sun, 17 Jul 2011 17:08:27 +0200
-Message-ID: <2a5388282bf90f95bc8a619e75f5a92172247209.1310913472.git.jonas@southpole.se>
+Subject: [PATCH v3 02/19] OpenRISC: Device tree
+Date: Sun, 17 Jul 2011 17:08:12 +0200
+Message-ID: <9d4c1c7ae28f027add68250cf804eaffad748f8c.1310913472.git.jonas@southpole.se>
 In-Reply-To: <cover.1310913472.git.jonas@southpole.se>
 References: <cover.1310913472.git.jonas@southpole.se>
 In-Reply-To: <cover.1310913472.git.jonas@southpole.se>
@@ -14,25 +14,93 @@ References: <cover.1310913472.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>
-Message-ID: <20110717150827.Yvrhp504IPNLfNdNCRhnk9ppzL_UWUquan-iYvd1bBo@z>
+Cc: Jonas Bonn <jonas@southpole.se>, devicetree-discuss@lists.ozlabs.org
+Message-ID: <20110717150812.u3_7g2YrgfHxhRasvqHg7ZrHE9B6lKAT30A6zeDj7L4@z>
 
+
+The OpenRISC architecture uses the device tree infrastructure for the
+platform description.  This is currently limited to having a device tree
+built into the kernel, but work is underway within the OpenRISC project
+to define how this device tree blob should be passed into the kernel from
+an external resource.
+
+Patch contains a single example DTS file to go with the defconfig for
+or1ksim.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
+Cc: devicetree-discuss@lists.ozlabs.org
 Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/openrisc/lib/delay.c  |   60 +++++++++++++
- arch/openrisc/lib/string.S |  204 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 264 insertions(+), 0 deletions(-)
- create mode 100644 arch/openrisc/lib/delay.c
- create mode 100644 arch/openrisc/lib/string.S
+ arch/openrisc/boot/dts/or1ksim.dts |   50 +++++++++++++++++
+ arch/openrisc/include/asm/prom.h   |   77 +++++++++++++++++++++++++
+ arch/openrisc/kernel/prom.c        |  108 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 235 insertions(+), 0 deletions(-)
+ create mode 100644 arch/openrisc/boot/dts/or1ksim.dts
+ create mode 100644 arch/openrisc/include/asm/prom.h
+ create mode 100644 arch/openrisc/kernel/prom.c
 
-diff --git a/arch/openrisc/lib/delay.c b/arch/openrisc/lib/delay.c
+diff --git a/arch/openrisc/boot/dts/or1ksim.dts b/arch/openrisc/boot/dts/or1ksim.dts
 new file mode 100644
-index 0000000..01d9740
+index 0000000..5d4f902
 --- /dev/null
-+++ b/arch/openrisc/lib/delay.c
-@@ -0,0 +1,60 @@
++++ b/arch/openrisc/boot/dts/or1ksim.dts
+@@ -0,0 +1,50 @@
++/dts-v1/;
++/ {
++	compatible = "opencores,or1ksim";
++	#address-cells = <1>;
++	#size-cells = <1>;
++	interrupt-parent = <&pic>;
++
++	chosen {
++		bootargs = "console=uart,mmio,0x90000000,115200";
++	};
++
++	memory@0 {
++		device_type = "memory";
++		reg = <0x00000000 0x02000000>;
++	};
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++		cpu@0 {
++			compatible = "opencores,or1200-rtlsvn481";
++			reg = <0>;
++			clock-frequency = <20000000>;
++		};
++	};
++
++	/*
++	 * OR1K PIC is built into CPU and accessed via special purpose
++	 * registers.  It is not addressable and, hence, has no 'reg'
++	 * property.
++	 */
++	pic: pic {
++		compatible = "opencores,or1k-pic";
++		#interrupt-cells = <1>;
++		interrupt-controller;
++	};
++
++	serial0: serial@90000000 {
++		compatible = "opencores,uart16550-rtlsvn105", "ns16550a";
++		reg = <0x90000000 0x100>;
++		interrupts = <2>;
++		clock-frequency = <20000000>;
++	};
++
++	enet0: ethoc@92000000 {
++		compatible = "opencores,ethmac-rtlsvn338";
++		reg = <0x92000000 0x100>;
++		interrupts = <4>;
++	};
++};
+diff --git a/arch/openrisc/include/asm/prom.h b/arch/openrisc/include/asm/prom.h
+new file mode 100644
+index 0000000..e1f3fe2
+--- /dev/null
++++ b/arch/openrisc/include/asm/prom.h
+@@ -0,0 +1,77 @@
 +/*
 + * OpenRISC Linux
 + *
@@ -40,269 +108,190 @@ index 0000000..01d9740
 + * others.  All original copyrights apply as per the original source
 + * declaration.
 + *
-+ * Modifications for the OpenRISC architecture:
++ * OpenRISC implementation:
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
++ * et al.
 + *
-+ *      This program is free software; you can redistribute it and/or
-+ *      modify it under the terms of the GNU General Public License
-+ *      version 2 as published by the Free Software Foundation
-+ *
-+ * Precise Delay Loops
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <asm/delay.h>
-+#include <asm/timex.h>
-+#include <asm/processor.h>
++#include <linux/of.h>	/* linux/of.h gets to determine #include ordering */
 +
-+int __devinit read_current_timer(unsigned long *timer_value)
++#ifndef _ASM_OPENRISC_PROM_H
++#define _ASM_OPENRISC_PROM_H
++#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
++
++#include <linux/types.h>
++#include <asm/irq.h>
++#include <linux/atomic.h>
++#include <linux/of_irq.h>
++#include <linux/of_fdt.h>
++#include <linux/of_address.h>
++#include <linux/proc_fs.h>
++#include <linux/platform_device.h>
++#define HAVE_ARCH_DEVTREE_FIXUPS
++
++/* Other Prototypes */
++extern int early_uartlite_console(void);
++
++/* Parse the ibm,dma-window property of an OF node into the busno, phys and
++ * size parameters.
++ */
++void of_parse_dma_window(struct device_node *dn, const void *dma_window_prop,
++		unsigned long *busno, unsigned long *phys, unsigned long *size);
++
++extern void kdump_move_device_tree(void);
++
++/* CPU OF node matching */
++struct device_node *of_get_cpu_node(int cpu, unsigned int *thread);
++
++/* Get the MAC address */
++extern const void *of_get_mac_address(struct device_node *np);
++
++/**
++ * of_irq_map_pci - Resolve the interrupt for a PCI device
++ * @pdev:	the device whose interrupt is to be resolved
++ * @out_irq:	structure of_irq filled by this function
++ *
++ * This function resolves the PCI interrupt for a given PCI device. If a
++ * device-node exists for a given pci_dev, it will use normal OF tree
++ * walking. If not, it will implement standard swizzling and walk up the
++ * PCI tree until an device-node is found, at which point it will finish
++ * resolving using the OF tree walking.
++ */
++struct pci_dev;
++extern int of_irq_map_pci(struct pci_dev *pdev, struct of_irq *out_irq);
++
++/* This routine is here to provide compatibility with how powerpc
++ * handles IRQ mapping for OF device nodes.  We precompute and permanently
++ * register them in the platform_device objects, whereas powerpc computes them
++ * on request.
++ */
++static inline void irq_dispose_mapping(unsigned int virq)
 +{
-+	*timer_value = mfspr(SPR_TTCR);
-+	return 0;
 +}
 +
-+void __delay(unsigned long cycles)
-+{
-+	cycles_t target = get_cycles() + cycles;
-+
-+	while (get_cycles() < target)
-+		cpu_relax();
-+}
-+EXPORT_SYMBOL(__delay);
-+
-+inline void __const_udelay(unsigned long xloops)
-+{
-+	unsigned long long loops;
-+
-+	loops = xloops * loops_per_jiffy * HZ;
-+
-+	__delay(loops >> 32);
-+}
-+EXPORT_SYMBOL(__const_udelay);
-+
-+void __udelay(unsigned long usecs)
-+{
-+	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__udelay);
-+
-+void __ndelay(unsigned long nsecs)
-+{
-+	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
-+}
-+EXPORT_SYMBOL(__ndelay);
-diff --git a/arch/openrisc/lib/string.S b/arch/openrisc/lib/string.S
++#endif /* __ASSEMBLY__ */
++#endif /* __KERNEL__ */
++#endif /* _ASM_OPENRISC_PROM_H */
+diff --git a/arch/openrisc/kernel/prom.c b/arch/openrisc/kernel/prom.c
 new file mode 100644
-index 0000000..465f04b
+index 0000000..1bb58ba
 --- /dev/null
-+++ b/arch/openrisc/lib/string.S
-@@ -0,0 +1,204 @@
++++ b/arch/openrisc/kernel/prom.c
+@@ -0,0 +1,108 @@
 +/*
-+ * OpenRISC string.S
++ * OpenRISC prom.c
 + *
 + * Linux architectural port borrowing liberally from similar works of
 + * others.  All original copyrights apply as per the original source
 + * declaration.
 + *
 + * Modifications for the OpenRISC architecture:
-+ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
 + *
 + *      This program is free software; you can redistribute it and/or
 + *      modify it under the terms of the GNU General Public License
 + *      as published by the Free Software Foundation; either version
 + *      2 of the License, or (at your option) any later version.
++ *
++ * Architecture specific procedures for creating, accessing and
++ * interpreting the device tree.
++ *
 + */
 +
-+#include <linux/linkage.h>
-+#include <asm/errno.h>
++#include <stdarg.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/init.h>
++#include <linux/threads.h>
++#include <linux/spinlock.h>
++#include <linux/types.h>
++#include <linux/pci.h>
++#include <linux/stringify.h>
++#include <linux/delay.h>
++#include <linux/initrd.h>
++#include <linux/bitops.h>
++#include <linux/module.h>
++#include <linux/kexec.h>
++#include <linux/debugfs.h>
++#include <linux/irq.h>
++#include <linux/memblock.h>
++#include <linux/of_fdt.h>
 +
-+	/*
-+	 * this can be optimized by doing gcc inline assemlby with
-+	 * proper constraints (no need to save args registers...)
-+	 *
++#include <asm/prom.h>
++#include <asm/page.h>
++#include <asm/processor.h>
++#include <asm/irq.h>
++#include <linux/io.h>
++#include <asm/system.h>
++#include <asm/mmu.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
++
++extern char cmd_line[COMMAND_LINE_SIZE];
++
++void __init early_init_dt_add_memory_arch(u64 base, u64 size)
++{
++	size &= PAGE_MASK;
++	memblock_add(base, size);
++}
++
++void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
++{
++	return __va(memblock_alloc(size, align));
++}
++
++void __init early_init_devtree(void *params)
++{
++	void *alloc;
++
++	/* Setup flat device-tree pointer */
++	initial_boot_params = params;
++
++
++	/* Retrieve various informations from the /chosen node of the
++	 * device-tree, including the platform type, initrd location and
++	 * size, TCE reserve, and more ...
++	 */
++	of_scan_flat_dt(early_init_dt_scan_chosen, cmd_line);
++
++	/* Scan memory nodes and rebuild MEMBLOCKs */
++	memblock_init();
++	of_scan_flat_dt(early_init_dt_scan_root, NULL);
++	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
++
++	/* Save command line for /proc/cmdline and then parse parameters */
++	strlcpy(boot_command_line, cmd_line, COMMAND_LINE_SIZE);
++
++	memblock_analyze();
++
++	/* We must copy the flattend device tree from init memory to regular
++	 * memory because the device tree references the strings in it
++	 * directly.
 +	 */
 +
++	alloc = __va(memblock_alloc(initial_boot_params->totalsize, PAGE_SIZE));
 +
-+/*
-+ *
-+ * int __copy_tofrom_user(void *to, const void *from, unsigned long size);
-+ *
-+ * NOTE: it returns number of bytes NOT copied !!!
-+ *
-+ */
-+	.global	__copy_tofrom_user
-+__copy_tofrom_user:
-+	l.addi  r1,r1,-12
-+	l.sw    0(r1),r6
-+	l.sw    4(r1),r4
-+	l.sw    8(r1),r3
++	memcpy(alloc, initial_boot_params, initial_boot_params->totalsize);
 +
-+	l.addi  r11,r5,0
-+2:  	l.sfeq  r11,r0
-+	l.bf    1f
-+	l.addi  r11,r11,-1
-+8:    	l.lbz   r6,0(r4)
-+9:    	l.sb    0(r3),r6
-+	l.addi  r3,r3,1
-+	l.j     2b
-+	l.addi  r4,r4,1
-+1:
-+	l.addi  r11,r11,1               // r11 holds the return value
++	initial_boot_params = alloc;
++}
 +
-+	l.lwz   r6,0(r1)
-+	l.lwz   r4,4(r1)
-+	l.lwz   r3,8(r1)
-+	l.jr    r9
-+	l.addi  r1,r1,12
-+
-+	.section .fixup, "ax"
-+99:
-+		l.j     1b
-+		l.nop
-+	.previous
-+
-+	.section __ex_table, "a"
-+		.long 8b, 99b		// read fault
-+		.long 9b, 99b		// write fault
-+	.previous
-+
-+/*
-+ * unsigned long clear_user(void *addr, unsigned long size) ;
-+ *
-+ * NOTE: it returns number of bytes NOT cleared !!!
-+ */
-+	.global	__clear_user
-+__clear_user:
-+	l.addi  r1,r1,-8
-+	l.sw    0(r1),r4
-+	l.sw    4(r1),r3
-+
-+2:	l.sfeq	r4,r0
-+	l.bf	1f
-+	l.addi	r4,r4,-1
-+9:	l.sb	0(r3),r0
-+	l.j	2b
-+	l.addi  r3,r3,1
-+
-+1:
-+	l.addi  r11,r4,1
-+
-+	l.lwz	r4,0(r1)
-+	l.lwz	r3,4(r1)
-+	l.jr	r9
-+	l.addi	r1,r1,8
-+
-+	.section .fixup, "ax"
-+99:
-+		l.j     1b
-+		l.nop
-+	.previous
-+
-+	.section __ex_table, "a"
-+		.long 9b, 99b		// write fault
-+	.previous
-+
-+/*
-+ * long strncpy_from_user(char *dst, const char *src, long count)
-+ *
-+ *
-+ */
-+	.global	__strncpy_from_user
-+__strncpy_from_user:
-+	l.addi  r1,r1,-16
-+	l.sw    0(r1),r6
-+	l.sw    4(r1),r5
-+	l.sw    8(r1),r4
-+	l.sw    12(r1),r3
-+
-+	l.addi  r11,r5,0
-+2:  	l.sfeq  r5,r0
-+	l.bf    1f
-+	l.addi  r5,r5,-1
-+8:    	l.lbz   r6,0(r4)
-+	l.sfeq  r6,r0
-+	l.bf    1f
-+9:    	l.sb    0(r3),r6
-+	l.addi  r3,r3,1
-+	l.j     2b
-+	l.addi  r4,r4,1
-+1:
-+	l.lwz   r6,0(r1)
-+	l.addi  r5,r5,1
-+	l.sub   r11,r11,r5              // r11 holds the return value
-+
-+	l.lwz   r6,0(r1)
-+	l.lwz   r5,4(r1)
-+	l.lwz   r4,8(r1)
-+	l.lwz   r3,12(r1)
-+	l.jr    r9
-+	l.addi  r1,r1,16
-+
-+	.section .fixup, "ax"
-+99:
-+		l.movhi r11,hi(-EFAULT)
-+		l.ori   r11,r11,lo(-EFAULT)
-+
-+		l.lwz   r6,0(r1)
-+		l.lwz   r5,4(r1)
-+		l.lwz   r4,8(r1)
-+		l.lwz   r3,12(r1)
-+		l.jr	r9
-+		l.addi  r1,r1,16
-+	.previous
-+
-+	.section __ex_table, "a"
-+		.long 8b, 99b		// read fault
-+	.previous
-+
-+/*
-+ * extern int __strnlen_user(const char *str, long len, unsigned long top);
-+ *
-+ *
-+ * RTRN: - length of a string including NUL termination character
-+ *       - on page fault 0
-+ */
-+
-+	.global __strnlen_user
-+__strnlen_user:
-+	l.addi  r1,r1,-8
-+	l.sw    0(r1),r6
-+	l.sw    4(r1),r3
-+
-+	l.addi  r11,r0,0
-+2:  	l.sfeq  r11,r4
-+	l.bf    1f
-+	l.addi  r11,r11,1
-+8:    	l.lbz   r6,0(r3)
-+	l.sfeq  r6,r0
-+	l.bf    1f
-+	l.sfgeu r3,r5                  // are we over the top ?
-+	l.bf    99f
-+	l.j     2b
-+	l.addi  r3,r3,1
-+
-+1:
-+	l.lwz   r6,0(r1)
-+	l.lwz	r3,4(r1)
-+	l.jr    r9
-+	l.addi  r1,r1,8
-+
-+	.section .fixup, "ax"
-+99:
-+		l.addi  r11,r0,0
-+
-+		l.lwz   r6,0(r1)
-+		l.lwz	r3,4(r1)
-+		l.jr	r9
-+		l.addi  r1,r1,8
-+	.previous
-+
-+	.section __ex_table, "a"
-+		.long 8b, 99b		// read fault
-+	.previous
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++		unsigned long end)
++{
++	initrd_start = (unsigned long)__va(start);
++	initrd_end = (unsigned long)__va(end);
++	initrd_below_start_ok = 1;
++}
++#endif
 -- 
 1.7.4.1
 
