@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:34891 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:34889 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756027Ab1GQPJd (ORCPT
+	with ESMTP id S1755933Ab1GQPJd (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Sun, 17 Jul 2011 11:09:33 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH v3 06/19] OpenRISC: PTrace
-Date: Sun, 17 Jul 2011 17:08:16 +0200
-Message-ID: <13d338b955ae0f6b9ee1eda6aede2ee2be33c446.1310913472.git.jonas@southpole.se>
+Subject: [PATCH v3 05/19] OpenRISC: Build infrastructure
+Date: Sun, 17 Jul 2011 17:08:15 +0200
+Message-ID: <009f716051e6c5ac8071d1f1eaa4f677ff386f3b.1310913472.git.jonas@southpole.se>
 In-Reply-To: <cover.1310913472.git.jonas@southpole.se>
 References: <cover.1310913472.git.jonas@southpole.se>
 In-Reply-To: <cover.1310913472.git.jonas@southpole.se>
@@ -15,171 +15,507 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Jonas Bonn <jonas@southpole.se>
-Message-ID: <20110717150816.dLLnl4SrZI1-HAkbywvPzyA9K2sOZA3Kmz6Bw5LcCdc@z>
+Message-ID: <20110717150815.r-iT9Up50kbAwFRe0A2Cig3-qKo1oZKesde_MyS52tg@z>
 
-
-This patch implements minimal PTrace support.  The pt_regs structure is
-not exported to userspace for OpenRISC; rather, the GETREGSET mechanism
-is intended to be used and the registers, as such, exported in the core
-dump format which is ABI stable.  This is in line with what is intended
-for new architectures as of 2.6.34 and has the advantage of permitting
-the layout of the registers on the kernel stack (as per pt_regs) to be
-freely modified.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 Reviewed-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/openrisc/include/asm/ptrace.h |  131 ++++++++++++++++++++++
- arch/openrisc/kernel/ptrace.c      |  211 ++++++++++++++++++++++++++++++++++++
- 2 files changed, 342 insertions(+), 0 deletions(-)
- create mode 100644 arch/openrisc/include/asm/ptrace.h
- create mode 100644 arch/openrisc/kernel/ptrace.c
+ arch/openrisc/Kconfig                   |  207 +++++++++++++++++++++++++++++++
+ arch/openrisc/Makefile                  |   66 ++++++++++
+ arch/openrisc/boot/Makefile             |   15 +++
+ arch/openrisc/configs/or1ksim_defconfig |   65 ++++++++++
+ arch/openrisc/include/asm/Kbuild        |   64 ++++++++++
+ arch/openrisc/kernel/Makefile           |   14 ++
+ arch/openrisc/kernel/vmlinux.lds.S      |  115 +++++++++++++++++
+ arch/openrisc/lib/Makefile              |    5 +
+ arch/openrisc/mm/Makefile               |    5 +
+ 9 files changed, 556 insertions(+), 0 deletions(-)
+ create mode 100644 arch/openrisc/Kconfig
+ create mode 100644 arch/openrisc/Makefile
+ create mode 100644 arch/openrisc/boot/Makefile
+ create mode 100644 arch/openrisc/configs/or1ksim_defconfig
+ create mode 100644 arch/openrisc/include/asm/Kbuild
+ create mode 100644 arch/openrisc/kernel/Makefile
+ create mode 100644 arch/openrisc/kernel/vmlinux.lds.S
+ create mode 100644 arch/openrisc/lib/Makefile
+ create mode 100644 arch/openrisc/mm/Makefile
 
-diff --git a/arch/openrisc/include/asm/ptrace.h b/arch/openrisc/include/asm/ptrace.h
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
 new file mode 100644
-index 0000000..054537c
+index 0000000..4558baf
 --- /dev/null
-+++ b/arch/openrisc/include/asm/ptrace.h
-@@ -0,0 +1,131 @@
-+/*
-+ * OpenRISC Linux
-+ *
-+ * Linux architectural port borrowing liberally from similar works of
-+ * others.  All original copyrights apply as per the original source
-+ * declaration.
-+ *
-+ * OpenRISC implementation:
-+ * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
-+ * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
-+ * et al.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ */
++++ b/arch/openrisc/Kconfig
+@@ -0,0 +1,207 @@
++#
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/config-language.txt.
++#
 +
-+#ifndef __ASM_OPENRISC_PTRACE_H
-+#define __ASM_OPENRISC_PTRACE_H
++config OPENRISC
++	def_bool y
++	select OF
++	select OF_EARLY_FLATTREE
++	select HAVE_MEMBLOCK
++	select ARCH_WANT_OPTIONAL_GPIOLIB
++        select HAVE_ARCH_TRACEHOOK
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_IRQ_CHIP
++	select GENERIC_IRQ_PROBE
++	select GENERIC_IRQ_SHOW
++	select GENERIC_IOMAP
 +
-+#include <asm/spr_defs.h>
++config MMU
++	def_bool y
 +
-+#ifndef __ASSEMBLY__
-+/*
-+ * This is the layout of the regset returned by the GETREGSET ptrace call
-+ */
-+struct user_regs_struct {
-+	/* GPR R0-R31... */
-+	unsigned long gpr[32];
-+	unsigned long pc;
-+	unsigned long sr;
-+	unsigned long pad1;
-+	unsigned long pad2;
-+};
-+#endif
++config WISHBONE_BUS_BIG_ENDIAN
++	def_bool y
 +
-+#ifdef __KERNEL__
++config SYMBOL_PREFIX
++        string
++        default ""
 +
-+/*
-+ * Make kernel PTrace/register structures opaque to userspace... userspace can
-+ * access thread state via the regset mechanism.  This allows us a bit of
-+ * flexibility in how we order the registers on the stack, permitting some
-+ * optimizations like packing call-clobbered registers together so that
-+ * they share a cacheline (not done yet, though... future optimization).
-+ */
++config HAVE_DMA_ATTRS
++	def_bool y
 +
-+#ifndef __ASSEMBLY__
-+/*
-+ * This struct describes how the registers are laid out on the kernel stack
-+ * during a syscall or other kernel entry.
-+ *
-+ * This structure should always be cacheline aligned on the stack.
-+ * FIXME: I don't think that's the case right now.  The alignment is
-+ * taken care of elsewhere... head.S, process.c, etc.
-+ */
++config UID16
++	def_bool y
 +
-+struct pt_regs {
-+	union {
-+		struct {
-+			/* Named registers */
-+			long  sr;	/* Stored in place of r0 */
-+			long  sp;	/* r1 */
-+		};
-+		struct {
-+			/* Old style */
-+			long offset[2];
-+			long gprs[30];
-+		};
-+		struct {
-+			/* New style */
-+			long gpr[32];
-+		};
-+	};
-+	long  pc;
-+	long  orig_gpr11;	/* For restarting system calls */
-+	long  syscallno;	/* Syscall number (used by strace) */
-+	long dummy;		/* Cheap alignment fix */
-+};
-+#endif /* __ASSEMBLY__ */
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+/* TODO: Rename this to REDZONE because that's what it is */
-+#define STACK_FRAME_OVERHEAD  128  /* size of minimum stack frame */
++config RWSEM_XCHGADD_ALGORITHM
++	def_bool n
 +
-+#define instruction_pointer(regs)	((regs)->pc)
-+#define user_mode(regs)			(((regs)->sr & SPR_SR_SM) == 0)
-+#define user_stack_pointer(regs)	((unsigned long)(regs)->sp)
-+#define profile_pc(regs)		instruction_pointer(regs)
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+/*
-+ * Offsets used by 'ptrace' system call interface.
-+ */
-+#define PT_SR         0
-+#define PT_SP         4
-+#define PT_GPR2       8
-+#define PT_GPR3       12
-+#define PT_GPR4       16
-+#define PT_GPR5       20
-+#define PT_GPR6       24
-+#define PT_GPR7       28
-+#define PT_GPR8       32
-+#define PT_GPR9       36
-+#define PT_GPR10      40
-+#define PT_GPR11      44
-+#define PT_GPR12      48
-+#define PT_GPR13      52
-+#define PT_GPR14      56
-+#define PT_GPR15      60
-+#define PT_GPR16      64
-+#define PT_GPR17      68
-+#define PT_GPR18      72
-+#define PT_GPR19      76
-+#define PT_GPR20      80
-+#define PT_GPR21      84
-+#define PT_GPR22      88
-+#define PT_GPR23      92
-+#define PT_GPR24      96
-+#define PT_GPR25      100
-+#define PT_GPR26      104
-+#define PT_GPR27      108
-+#define PT_GPR28      112
-+#define PT_GPR29      116
-+#define PT_GPR30      120
-+#define PT_GPR31      124
-+#define PT_PC	      128
-+#define PT_ORIG_GPR11 132
-+#define PT_SYSCALLNO  136
++config GENERIC_IOMAP
++	def_bool y
 +
-+#endif /* __KERNEL__ */
++config NO_IOPORT
++	def_bool y
 +
-+#endif /* __ASM_OPENRISC_PTRACE_H */
-diff --git a/arch/openrisc/kernel/ptrace.c b/arch/openrisc/kernel/ptrace.c
++config GENERIC_GPIO
++	def_bool y
++
++config GENERIC_CLOCKEVENTS
++	def_bool y
++
++config TRACE_IRQFLAGS_SUPPORT
++        def_bool y
++
++# For now, use generic checksum functions
++#These can be reimplemented in assembly later if so inclined
++config GENERIC_CSUM
++        def_bool y
++
++config GENERIC_FIND_NEXT_BIT
++	def_bool y
++
++source "init/Kconfig"
++
++
++menu "Processor type and features"
++
++choice
++	prompt "Subarchitecture"
++	default OR1K_1200
++
++config OR1K_1200
++	bool "OR1200"
++	help
++	  Generic OpenRISC 1200 architecture
++
++endchoice
++
++config OPENRISC_BUILTIN_DTB
++        string "Builtin DTB"
++        default ""
++
++menu "Class II Instructions"
++
++config OPENRISC_HAVE_INST_FF1
++	bool "Have instruction l.ff1"
++	default y
++	help
++	  Select this if your implementation has the Class II instruction l.ff1
++
++config OPENRISC_HAVE_INST_FL1
++	bool "Have instruction l.fl1"
++	default y
++	help
++	  Select this if your implementation has the Class II instruction l.fl1
++
++config OPENRISC_HAVE_INST_MUL
++	bool "Have instruction l.mul for hardware multiply"
++	default y
++	help
++	  Select this if your implementation has a hardware multiply instruction
++
++config OPENRISC_HAVE_INST_DIV
++	bool "Have instruction l.div for hardware divide"
++	default y
++	help
++	  Select this if your implementation has a hardware divide instruction
++endmenu
++
++
++source "kernel/time/Kconfig"
++source kernel/Kconfig.hz
++source kernel/Kconfig.preempt
++source "mm/Kconfig"
++
++config OPENRISC_NO_SPR_SR_DSX
++	bool "use SPR_SR_DSX software emulation" if OR1K_1200
++	default y
++	help
++	  SPR_SR_DSX bit is status register bit indicating whether
++	  the last exception has happened in delay slot.
++
++	  OpenRISC architecture makes it optional to have it implemented
++	  in hardware and the OR1200 does not have it.
++
++	  Say N here if you know that your OpenRISC processor has
++	  SPR_SR_DSX bit implemented. Say Y if you are unsure.
++
++config CMDLINE
++        string "Default kernel command string"
++        default ""
++        help
++          On some architectures there is currently no way for the boot loader
++          to pass arguments to the kernel. For these architectures, you should
++          supply some command-line options at build time by entering them
++          here.
++
++menu "Debugging options"
++
++config DEBUG_STACKOVERFLOW
++	bool "Check for kernel stack overflow"
++	default y
++	help
++	  Make extra checks for space avaliable on stack in some
++          critical functions. This will cause kernel to run a bit slower,
++	  but will catch most of kernel stack overruns and exit gracefuly.
++
++	  Say Y if you are unsure.
++
++config JUMP_UPON_UNHANDLED_EXCEPTION
++	bool "Try to die gracefully"
++	default y
++	help
++	  Now this puts kernel into infinite loop after first oops. Till
++	  your kernel crashes this doesn't have any influence.
++
++	  Say Y if you are unsure.
++
++config OPENRISC_EXCEPTION_DEBUG
++	bool "Print processor state at each exception"
++	default n
++	help
++	  This option will make your kernel unusable for all but kernel
++	  debugging.
++
++	  Say N if you are unsure.
++
++config OPENRISC_ESR_EXCEPTION_BUG_CHECK
++	bool "Check for possible ESR exception bug"
++	default n
++	help
++	  This option enables some checks that might expose some problems
++          in kernel.
++
++	  Say N if you are unsure.
++
++endmenu
++
++endmenu
++
++menu "Executable file formats"
++
++source "fs/Kconfig.binfmt"
++
++endmenu
++
++source "net/Kconfig"
++
++source "drivers/Kconfig"
++
++source "fs/Kconfig"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
++
++menu "Kernel hacking"
++
++source "lib/Kconfig.debug"
++
++endmenu
+diff --git a/arch/openrisc/Makefile b/arch/openrisc/Makefile
 new file mode 100644
-index 0000000..656b94b
+index 0000000..9881c45
 --- /dev/null
-+++ b/arch/openrisc/kernel/ptrace.c
-@@ -0,0 +1,211 @@
++++ b/arch/openrisc/Makefile
+@@ -0,0 +1,66 @@
++# BK Id: %F% %I% %G% %U% %#%
++#
++# This file is included by the global makefile so that you can add your own
++# architecture-specific flags and dependencies. Remember to do have actions
++# for "archclean" and "archdep" for cleaning up and making dependencies for
++# this architecture
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
++# Copyright (C) 1994 by Linus Torvalds
++
++# Changes for or32 by Matjaz Breskvar
++# Based on:
++# arch/i386/Makefile
++
++KBUILD_DEFCONFIG := or1ksim_defconfig
++
++LDFLAGS         :=
++OBJCOPYFLAGS    := -O binary -R .note -R .comment -S
++LDFLAGS_vmlinux :=
++LIBGCC 		 = $(shell $(CC) $(CFLAGS) -print-file-name=libgcc.a)
++
++#KBUILD_CFLAGS		+= -pipe -g -mredzone=0
++KBUILD_CFLAGS		+= -pipe -ffixed-r10
++#KBUILD_CFLAGS		+= -fsigned-char -pipe -ffixed-r10 \
++#		   -ffixed-r16 -ffixed-r17 -ffixed-r18 -ffixed-r19 \
++#		   -ffixed-r20 -ffixed-r21 -ffixed-r22 -ffixed-r23 \
++#		   -ffixed-r24 -ffixed-r25 -ffixed-r26 -ffixed-r27 \
++#		   -ffixed-r28 -ffixed-r29 -ffixed-r30 -ffixed-r31 \
++#                   -Wno-uninitialized
++
++#KBUILD_CFLAGS += $(call cc-option,-mredzone=128)
++#KBUILD_CFLAGS += -mredzone=0
++
++ifeq ($(CONFIG_OPENRISC_HAVE_INST_MUL),y)
++	KBUILD_CFLAGS += $(call cc-option,-mhard-mul)
++else
++	KBUILD_CFLAGS += $(call cc-option,-msoft-mul)
++endif
++
++ifeq ($(CONFIG_OPENRISC_HAVE_INST_DIV),y)
++	KBUILD_CFLAGS += $(call cc-option,-mhard-div)
++else
++	KBUILD_CFLAGS += $(call cc-option,-msoft-div)
++endif
++
++
++
++head-y 		:= arch/openrisc/kernel/head.o arch/openrisc/kernel/init_task.o
++
++
++core-y		+= arch/openrisc/lib/ \
++		   arch/openrisc/kernel/ \
++		   arch/openrisc/mm/
++libs-y		+= $(LIBGCC)
++
++ifneq '$(CONFIG_OPENRISC_BUILTIN_DTB)' '""'
++BUILTIN_DTB := y
++else
++BUILTIN_DTB := n
++endif
++core-$(BUILTIN_DTB) += arch/openrisc/boot/
++
++all: vmlinux
+diff --git a/arch/openrisc/boot/Makefile b/arch/openrisc/boot/Makefile
+new file mode 100644
+index 0000000..98ca185
+--- /dev/null
++++ b/arch/openrisc/boot/Makefile
+@@ -0,0 +1,15 @@
++
++
++ifneq '$(CONFIG_OPENRISC_BUILTIN_DTB)' '""'
++BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_OPENRISC_BUILTIN_DTB)).dtb.o
++else
++BUILTIN_DTB :=
++endif
++obj-y += $(BUILTIN_DTB)
++
++clean-files := *.dtb.S
++
++#DTC_FLAGS ?= -p 1024
++
++$(obj)/%.dtb: $(src)/dts/%.dts
++	$(call cmd,dtc)
+diff --git a/arch/openrisc/configs/or1ksim_defconfig b/arch/openrisc/configs/or1ksim_defconfig
+new file mode 100644
+index 0000000..ea172bd
+--- /dev/null
++++ b/arch/openrisc/configs/or1ksim_defconfig
+@@ -0,0 +1,65 @@
++CONFIG_CROSS_COMPILE="or32-linux-"
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_BLK_DEV_INITRD=y
++# CONFIG_RD_GZIP is not set
++CONFIG_EXPERT=y
++# CONFIG_SYSCTL_SYSCALL is not set
++# CONFIG_KALLSYMS is not set
++# CONFIG_EPOLL is not set
++# CONFIG_TIMERFD is not set
++# CONFIG_EVENTFD is not set
++# CONFIG_AIO is not set
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_SLOB=y
++CONFIG_MODULES=y
++# CONFIG_BLOCK is not set
++CONFIG_OPENRISC_BUILTIN_DTB="or1ksim"
++CONFIG_NO_HZ=y
++CONFIG_HZ_100=y
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_LRO is not set
++# CONFIG_INET_DIAG is not set
++CONFIG_TCP_CONG_ADVANCED=y
++# CONFIG_TCP_CONG_BIC is not set
++# CONFIG_TCP_CONG_CUBIC is not set
++# CONFIG_TCP_CONG_WESTWOOD is not set
++# CONFIG_TCP_CONG_HTCP is not set
++# CONFIG_IPV6 is not set
++# CONFIG_WIRELESS is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_FW_LOADER is not set
++CONFIG_PROC_DEVICETREE=y
++CONFIG_NETDEVICES=y
++CONFIG_MICREL_PHY=y
++CONFIG_NET_ETHERNET=y
++CONFIG_ETHOC=y
++# CONFIG_NETDEV_1000 is not set
++# CONFIG_NETDEV_10000 is not set
++# CONFIG_WLAN is not set
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_8250=y
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_OF_PLATFORM=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_MFD_SUPPORT is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_DNOTIFY is not set
++CONFIG_TMPFS=y
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+new file mode 100644
+index 0000000..11162e6
+--- /dev/null
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -0,0 +1,64 @@
++include include/asm-generic/Kbuild.asm
++
++header-y += spr_defs.h
++
++generic-y += atomic.h
++generic-y += auxvec.h
++generic-y += bitsperlong.h
++generic-y += bug.h
++generic-y += bugs.h
++generic-y += cacheflush.h
++generic-y += checksum.h
++generic-y += cmpxchg.h
++generic-y += cmpxchg-local.h
++generic-y += cpumask.h
++generic-y += cputime.h
++generic-y += current.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += fb.h
++generic-y += fcntl.h
++generic-y += ftrace.h
++generic-y += futex.h
++generic-y += hardirq.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += irq_regs.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += local.h
++generic-y += mman.h
++generic-y += module.h
++generic-y += msgbuf.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += rmap.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += segment.h
++generic-y += sembuf.h
++generic-y += setup.h
++generic-y += shmbuf.h
++generic-y += shmparam.h
++generic-y += siginfo.h
++generic-y += signal.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += statfs.h
++generic-y += stat.h
++generic-y += string.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += topology.h
++generic-y += types.h
++generic-y += ucontext.h
++generic-y += user.h
+diff --git a/arch/openrisc/kernel/Makefile b/arch/openrisc/kernel/Makefile
+new file mode 100644
+index 0000000..9a4c270
+--- /dev/null
++++ b/arch/openrisc/kernel/Makefile
+@@ -0,0 +1,14 @@
++#
++# Makefile for the linux kernel.
++#
++
++extra-y	:= head.o vmlinux.lds init_task.o
++
++obj-y	:= setup.o idle.o or32_ksyms.o process.o dma.o \
++	   traps.o time.o irq.o entry.o ptrace.o signal.o sys_or32.o \
++	   sys_call_table.o
++
++obj-$(CONFIG_MODULES)		+= module.o
++obj-$(CONFIG_OF)		+= prom.o
++
++clean:
+diff --git a/arch/openrisc/kernel/vmlinux.lds.S b/arch/openrisc/kernel/vmlinux.lds.S
+new file mode 100644
+index 0000000..2d69a85
+--- /dev/null
++++ b/arch/openrisc/kernel/vmlinux.lds.S
+@@ -0,0 +1,115 @@
 +/*
-+ * OpenRISC ptrace.c
++ * OpenRISC vmlinux.lds.S
 + *
 + * Linux architectural port borrowing liberally from similar works of
 + * others.  All original copyrights apply as per the original source
@@ -187,208 +523,134 @@ index 0000000..656b94b
 + *
 + * Modifications for the OpenRISC architecture:
 + * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
-+ * Copyright (C) 2005 Gyorgy Jeney <nog@bsemi.com>
 + * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
 + *
 + *      This program is free software; you can redistribute it and/or
 + *      modify it under the terms of the GNU General Public License
 + *      as published by the Free Software Foundation; either version
 + *      2 of the License, or (at your option) any later version.
++ *
++ * ld script for OpenRISC architecture
 + */
 +
-+#include <stddef.h>
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/string.h>
++/* TODO
++ *		- clean up __offset & stuff
++ *		- change all 8192 aligment to PAGE !!!
++ *		- recheck if all aligments are really needed
++ */
 +
-+#include <linux/mm.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/audit.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
-+#include <linux/elf.h>
++#  define LOAD_OFFSET  PAGE_OFFSET
++#  define LOAD_BASE    PAGE_OFFSET
 +
-+#include <asm/thread_info.h>
-+#include <asm/segment.h>
 +#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/system.h>
++#include <asm/cache.h>
++#include <asm-generic/vmlinux.lds.h>
 +
-+/*
-+ * Copy the thread state to a regset that can be interpreted by userspace.
-+ *
-+ * It doesn't matter what our internal pt_regs structure looks like.  The
-+ * important thing is that we export a consistent view of the thread state
-+ * to userspace.  As such, we need to make sure that the regset remains
-+ * ABI compatible as defined by the struct user_regs_struct:
-+ *
-+ * (Each item is a 32-bit word)
-+ * r0 = 0 (exported for clarity)
-+ * 31 GPRS r1-r31
-+ * PC (Program counter)
-+ * SR (Supervision register)
-+ */
-+static int genregs_get(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       void *kbuf, void __user * ubuf)
++OUTPUT_FORMAT("elf32-or32", "elf32-or32", "elf32-or32")
++jiffies = jiffies_64 + 4;
++
++SECTIONS
 +{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	int ret;
++        /* Read-only sections, merged into text segment: */
++        . = LOAD_BASE ;
 +
-+	/* r0 */
-+	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf, 0, 4);
++	/* _s_kernel_ro must be page aligned */
++	. = ALIGN(PAGE_SIZE);
++	_s_kernel_ro = .;
 +
-+	if (!ret)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  regs->gpr+1, 4, 4*32);
-+	if (!ret)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->pc, 4*32, 4*33);
-+	if (!ret)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  &regs->sr, 4*33, 4*34);
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					       4*34, -1);
-+
-+	return ret;
-+}
-+
-+/*
-+ * Set the thread state from a regset passed in via ptrace
-+ */
-+static int genregs_set(struct task_struct *target,
-+		       const struct user_regset *regset,
-+		       unsigned int pos, unsigned int count,
-+		       const void *kbuf, const void __user * ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	int ret;
-+
-+	/* ignore r0 */
-+	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, 0, 4);
-+	/* r1 - r31 */
-+	if (!ret)
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+					 regs->gpr+1, 4, 4*32);
-+	/* PC */
-+	if (!ret)
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->pc, 4*32, 4*33);
-+	/*
-+	 * Skip SR and padding... userspace isn't allowed to changes bits in
-+	 * the Supervision register
++        .text                   : AT(ADDR(.text) - LOAD_OFFSET)
++	{
++          _stext = .;
++	  TEXT_TEXT
++	  SCHED_TEXT
++	  LOCK_TEXT
++	  KPROBES_TEXT
++	  IRQENTRY_TEXT
++	  *(.fixup)
++	  *(.text.__*)
++	  _etext = .;
++	}
++	/* TODO: Check if fixup and text.__* are really necessary
++	 * fixup is definitely necessary
 +	 */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+						4*33, -1);
 +
-+	return ret;
-+}
++	_sdata = .;
 +
-+/*
-+ * Define the register sets available on OpenRISC under Linux
-+ */
-+enum or1k_regset {
-+	REGSET_GENERAL,
-+};
++	/* Page alignment required for RO_DATA_SECTION */
++	RO_DATA_SECTION(PAGE_SIZE)
++	_e_kernel_ro = .;
 +
-+static const struct user_regset or1k_regsets[] = {
-+	[REGSET_GENERAL] = {
-+			    .core_note_type = NT_PRSTATUS,
-+			    .n = ELF_NGREG,
-+			    .size = sizeof(long),
-+			    .align = sizeof(long),
-+			    .get = genregs_get,
-+			    .set = genregs_set,
-+			    },
-+};
++	/* Whatever comes after _e_kernel_ro had better be page-aligend, too */
 +
-+static const struct user_regset_view user_or1k_native_view = {
-+	.name = "or1k",
-+	.e_machine = EM_OPENRISC,
-+	.regsets = or1k_regsets,
-+	.n = ARRAY_SIZE(or1k_regsets),
-+};
++	/* 32 here is cacheline size... recheck this */
++	RW_DATA_SECTION(32, PAGE_SIZE, PAGE_SIZE)
 +
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_or1k_native_view;
-+}
++        _edata  =  .;
 +
-+/*
-+ * does not yet catch signals sent when the child dies.
-+ * in exit.c or in signal.c.
-+ */
++	EXCEPTION_TABLE(4)
++	NOTES
 +
++	/* Init code and data */
++	. = ALIGN(PAGE_SIZE);
++	__init_begin = .;
 +
-+/*
-+ * Called by kernel/ptrace.c when detaching..
-+ *
-+ * Make sure the single step bit is not set.
-+ */
-+void ptrace_disable(struct task_struct *child)
-+{
-+	pr_debug("ptrace_disable(): TODO\n");
++	HEAD_TEXT_SECTION
 +
-+	user_disable_single_step(child);
-+	clear_tsk_thread_flag(child, TIF_SYSCALL_TRACE);
-+}
++	/* Page aligned */
++	INIT_TEXT_SECTION(PAGE_SIZE)
 +
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret;
++	/* Align __setup_start on 16 byte boundary */
++	INIT_DATA_SECTION(16)
 +
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
++	PERCPU_SECTION(L1_CACHE_BYTES)
++
++        __init_end = .;
++
++	. = ALIGN(PAGE_SIZE);
++	.initrd			: AT(ADDR(.initrd) - LOAD_OFFSET)
++	{
++		__initrd_start = .;
++		*(.initrd)
++		__initrd_end = .;
++		FILL (0);
++                . = ALIGN (PAGE_SIZE);
 +	}
 +
-+	return ret;
++        __vmlinux_end = .;            /* last address of the physical file */
++
++	BSS_SECTION(0, 0, 0x20)
++
++        _end = .;
++
++	/* Throw in the debugging sections */
++	STABS_DEBUG
++	DWARF_DEBUG
++
++        /* Sections to be discarded -- must be last */
++	DISCARDS
 +}
+diff --git a/arch/openrisc/lib/Makefile b/arch/openrisc/lib/Makefile
+new file mode 100644
+index 0000000..966f65d
+--- /dev/null
++++ b/arch/openrisc/lib/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for or32 specific library files..
++#
 +
-+/*
-+ * Notification of system call entry/exit
-+ * - triggered by current->work.syscall_trace
-+ */
-+asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
-+{
-+	long ret = 0;
++obj-y  = string.o delay.o
+diff --git a/arch/openrisc/mm/Makefile b/arch/openrisc/mm/Makefile
+new file mode 100644
+index 0000000..324ba26
+--- /dev/null
++++ b/arch/openrisc/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for the linux openrisc-specific parts of the memory manager.
++#
 +
-+	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
-+	    tracehook_report_syscall_entry(regs))
-+		/*
-+		 * Tracing decided this syscall should not happen.
-+		 * We'll return a bogus call number to get an ENOSYS
-+		 * error, but leave the original number in <something>.
-+		 */
-+		ret = -1L;
-+
-+	/* Are these regs right??? */
-+	if (unlikely(current->audit_context))
-+		audit_syscall_entry(audit_arch(), regs->syscallno,
-+				    regs->gpr[3], regs->gpr[4],
-+				    regs->gpr[5], regs->gpr[6]);
-+
-+	return ret ? : regs->syscallno;
-+}
-+
-+asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step;
-+
-+	if (unlikely(current->audit_context))
-+		audit_syscall_exit(AUDITSC_RESULT(regs->gpr[11]),
-+				   regs->gpr[11]);
-+
-+	step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
-+}
++obj-y	:= fault.o tlb.o init.o ioremap.o
 -- 
 1.7.4.1
 
