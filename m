@@ -1,139 +1,107 @@
-From: Vasiliy Kulikov <segoon@openwall.com>
-Subject: Re: [kernel-hardening] Re: [RFC v2] implement SL*B and stack
- usercopy runtime checks
-Date: Mon, 18 Jul 2011 23:33:38 +0400
-Message-ID: <20110718193337.GB4489@albatros>
-References: <20110703111028.GA2862@albatros>
- <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
- <20110718183951.GA3748@albatros>
- <20110718115237.14d96c03.akpm@linux-foundation.org>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [RFC v2] implement SL*B and stack usercopy runtime checks
+Date: Mon, 18 Jul 2011 16:18:05 -0500 (CDT)
+Message-ID: <alpine.DEB.2.00.1107181610350.31576@router.home>
+References: <20110703111028.GA2862@albatros> <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com> <20110718183951.GA3748@albatros>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:52492 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755012Ab1GRTdo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2011 15:33:44 -0400
-Content-Disposition: inline
-In-Reply-To: <20110718115237.14d96c03.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20110718183951.GA3748@albatros>
+Sender: owner-linux-mm@kvack.org
+To: Vasiliy Kulikov <segoon@openwall.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 18, 2011 at 11:52 -0700, Andrew Morton wrote:
-> On Mon, 18 Jul 2011 22:39:51 +0400
-> Vasiliy Kulikov <segoon@openwall.com> wrote:
-> 
-> >   */
-> >  #define access_ok(type, addr, size) (likely(__range_not_ok(addr, size) == 0))
-> >  
-> > +#if defined(CONFIG_FRAME_POINTER)
-> 
-> #ifdef is conventional in this case
+On Mon, 18 Jul 2011, Vasiliy Kulikov wrote:
 
-OK.
+> --- a/mm/slab.c
+> +++ b/mm/slab.c
+> @@ -3844,6 +3844,40 @@ unsigned int kmem_cache_size(struct kmem_cache *cachep)
+>  EXPORT_SYMBOL(kmem_cache_size);
+>
+>  /*
+> + * Returns false if and only if [ptr; ptr+len) touches the slab,
+> + * but breaks objects boundaries.  It doesn't check whether the
+> + * accessed object is actually allocated.
+> + */
+> +bool slab_access_ok(const void *ptr, unsigned long len)
+> +{
+> +	struct page *page;
+> +	struct kmem_cache *cachep = NULL;
 
-> > +/*
-> > + * MUST be always_inline to correctly count stack frame numbers.
-> > + *
-> > + * low ----------------------------------------------> high
-> > + * [saved bp][saved ip][args][local vars][saved bp][saved ip]
-> > + *		       ^----------------^
-> > + *		  allow copies only within here
-> > +*/
-> > +#undef arch_check_object_on_stack_frame
-> > +inline static __attribute__((always_inline))
-> 
-> static inline __always_inline
+Why = NULL?
 
-OK.
+> +	struct slab *slabp;
+> +	unsigned int objnr;
+> +	unsigned long offset;
+> +
+> +	if (!len)
+> +		return true;
+> +	if (!virt_addr_valid(ptr))
+> +		return true;
+> +	page = virt_to_head_page(ptr);
+> +	if (!PageSlab(page))
+> +		return true;
+> +
+> +	cachep = page_get_cache(page);
+> +	slabp = page_get_slab(page);
+> +	objnr = obj_to_index(cachep, slabp, (void *)ptr);
+> +	BUG_ON(objnr >= cachep->num);
+> +	offset = (const char *)ptr - obj_offset(cachep) -
+> +	    (const char *)index_to_obj(cachep, slabp, objnr);
+> +	if (offset <= obj_size(cachep) && len <= obj_size(cachep) - offset)
+> +		return true;
+> +
+> +	return false;
+> +}
+> +EXPORT_SYMBOL(slab_access_ok);
+> +
+> +/*
+>   * This initializes kmem_list3 or resizes various caches for all nodes.
+>   */
+>  static int alloc_kmemlist(struct kmem_cache *cachep, gfp_t gfp)
 
-> > +bool arch_check_object_on_stack_frame(const void *stack,
-> > +	     const void *stackend, const void *obj, unsigned long len)
-> > +{
-> > +	const void *frame = NULL;
-> > +	const void *oldframe;
-> > +
-> > +	/*
-> > +	 * Get the kernel_access_ok() caller frame.
-> > +	 * __builtin_frame_address(0) returns kernel_access_ok() frame
-> > +	 * as arch_ and stack_ are inline and kernel_ is noinline.
-> > +	 */
-> > +	oldframe = __builtin_frame_address(0);
-> > +	if (oldframe)
-> > +		frame = __builtin_frame_address(1);
-> > +
-> > +	while (stack <= frame && frame < stackend) {
-> > +		/*
-> > +		 * If obj + len extends past the last frame, this
-> > +		 * check won't pass and the next frame will be 0,
-> > +		 * causing us to bail out and correctly report
-> > +		 * the copy as invalid.
-> > +		 */
-> > +		if (obj + len <= frame) {
-> > +			/* EBP + EIP */
-> > +			int protected_regs_size = 2*sizeof(void *);
-> 
-> size_t?
+> --- a/mm/slub.c
+> +++ b/mm/slub.c
+> @@ -2623,6 +2623,34 @@ unsigned int kmem_cache_size(struct kmem_cache *s)
+>  }
+>  EXPORT_SYMBOL(kmem_cache_size);
+>
+> +/*
+> + * Returns false if and only if [ptr; ptr+len) touches the slab,
+> + * but breaks objects boundaries.  It doesn't check whether the
+> + * accessed object is actually allocated.
+> + */
+> +bool slab_access_ok(const void *ptr, unsigned long len)
+> +{
+> +	struct page *page;
+> +	struct kmem_cache *s = NULL;
 
-Yes, it looks better here.
+No need to assign NULL.
 
-> > +static inline unsigned long __must_check copy_from_user_uncheched(void *to,
-> 
-> typo
+> +	unsigned long offset;
+> +
+> +	if (len == 0)
+> +		return true;
+> +	if (!virt_addr_valid(ptr))
+> +		return true;
+> +	page = virt_to_head_page(ptr);
+> +	if (!PageSlab(page))
+> +		return true;
+> +
+> +	s = page->slab;
+> +	offset = ((const char *)ptr - (const char *)page_address(page)) % s->size;
 
-Oops, sure.
-
-> > diff --git a/arch/x86/include/asm/uaccess_64.h b/arch/x86/include/asm/uaccess_64.h
-> > index 1c66d30..10c5a0a 100644
-> > --- a/arch/x86/include/asm/uaccess_64.h
-> > +++ b/arch/x86/include/asm/uaccess_64.h
-> > @@ -50,8 +50,10 @@ static inline unsigned long __must_check copy_from_user(void *to,
-> >  	int sz = __compiletime_object_size(to);
-> 
-> size_t? (ssize_t?)
-
-It doesn't touch my patch, however, ssize_t seems reasonable here.
-
-> >  	might_fault();
-> > -	if (likely(sz == -1 || sz >= n))
-> > -		n = _copy_from_user(to, from, n);
-> > +	if (likely(sz == -1 || sz >= n)) {
-> > +		if (kernel_access_ok(to, n))
-> > +			n = _copy_from_user(to, from, n);
-> > +	}
-> >  #ifdef CONFIG_DEBUG_VM
-> >  	else
-> >  		WARN(1, "Buffer overflow detected!\n");
-> >
-> > ...
-> >
-> > --- a/mm/maccess.c
-> > +++ b/mm/maccess.c
-> > @@ -3,8 +3,11 @@
-> >   */
-> >  #include <linux/module.h>
-> >  #include <linux/mm.h>
-> > +#include <linux/sched.h>
-> >  #include <linux/uaccess.h>
-> >  
-> > +extern bool slab_access_ok(const void *ptr, unsigned long len);
-> 
-> no externs in .c - use a header
-
-I thought it would make less noise.  OK, will do.
-
-> > +noinline bool __kernel_access_ok(const void *ptr, unsigned long len)
-> 
-> noinline seems unneeded
-
-It is needed here because arch_check_object_on_stack_frame() needs the
-precise number of frames it should skip.
+Are the casts necessary? Both are pointers to void *
 
 
-Thank you!
+> +	if (offset <= s->objsize && len <= s->objsize - offset)
 
--- 
-Vasiliy Kulikov
-http://www.openwall.com - bringing security into open computing environments
+If offset == s->objsize then we access the first byte after the object.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
