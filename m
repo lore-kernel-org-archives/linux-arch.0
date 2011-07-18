@@ -1,109 +1,77 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 1/1] asm-generic: delay.h fix udelay and ndelay for 8 bit args
-Date: Mon, 18 Jul 2011 16:05:37 +0200
-Message-ID: <1310997937-26771-1-git-send-email-jonas@southpole.se>
-References: <1310986975.21015.13.camel@needafix>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: current_thread_info() vs task_thread_info(current)
+Date: Mon, 18 Jul 2011 07:37:31 -0700
+Message-ID: <20110718143731.GA2312@linux.vnet.ibm.com>
+References: <1310988183.13765.56.camel@twins>
+ <1310990097.25044.307.camel@pasglop>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:33378 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751298Ab1GROGG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jul 2011 10:06:06 -0400
-In-Reply-To: <1310986975.21015.13.camel@needafix>
+Received: from e8.ny.us.ibm.com ([32.97.182.138]:35206 "EHLO e8.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753361Ab1GROhl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Jul 2011 10:37:41 -0400
+Content-Disposition: inline
+In-Reply-To: <1310990097.25044.307.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: sfr@canb.auug.org.au
-Cc: linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Jonas Bonn <jonas@southpole.se>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
+On Mon, Jul 18, 2011 at 09:54:57PM +1000, Benjamin Herrenschmidt wrote:
+> On Mon, 2011-07-18 at 13:23 +0200, Peter Zijlstra wrote:
+> 
+> > So how are we going to solve this? Naively I'd think that
+> > current_thread_info() is short for task_thread_info(current), and thus
+> > the platforms for where this isn't true are broken.
+> > 
+> > I mean, what use is the thread_info not of a thread?
+> > 
+> > Comments?
+> 
+> Thomas just hit a bug in the platform code of said platform (powerpc
+> heh ?) :-)
+> 
+> We do it right for hard IRQs and for some reason never did it right for
+> softirqs.
+> 
+> The code is like this for the former:
+> 
+> static inline void handle_one_irq(unsigned int irq)
+> {
+> 
+>         .../...
+> 
+> 	call_handle_irq(irq, desc, irqtp, desc->handle_irq);
+> 	current->thread.ksp_limit = saved_sp_limit;
+> 	irqtp->task = NULL;
+> 
+> 	/* Set any flag that may have been set on the
+> 	 * alternate stack
+> 	 */
+> 	if (irqtp->flags)
+> 		set_bits(irqtp->flags, &curtp->flags);
+> }
+> 
+> So what we need, I suppose is to add those two last line to
+> do_softirq_onstack() as well.
 
-From: Andrew Morton <akpm@linux-foundation.org>
+Hmmm...  Would this explain preempt_count() inexplicably increasing by
+three across a spin_unlock_irqrestore()?  I ran into this situation when
+testing on Power over the weekend.
 
-With a non-constant 8-bit argument, a call to udelay() generates a warning:
+							Thanx, Paul
 
-drivers/gpu/drm/radeon/atom.c: In function 'atom_op_delay':
-drivers/gpu/drm/radeon/atom.c:654: warning: comparison is always false due to limited range of data type
-
-The code looks like it works OK with an 8-bit arg, and the calling code is
-doing nothing wrong, so udelay() needs fixing.
-
-Fixing it was rather tricky.  Simply typecasting `n' in the comparison with
-20000 didn't change anything.  Hence the divide-by-20000 trick.
-
-Using a do{}while loop didn't work because udelay() is used in ?: statements,
-hence the ({...}) construct.
-
-While I was there I replaced the brain-bending ?:?:?: mess with nice if/else
-code.
-
-Probably other architectures are generating the same warning and can use a
-similar change.
-
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Jonas Bonn <jonas@southpole.se>
----
-
-Here's a patch that should resolve the merge conflict.  This applies
-Andrew's changes on top of the new asm-generic/delay.h instead of the x86
-arch-specific one.  I've tested this for OpenRISC and the changed macros
-don't cause any problems there.
-
-Let me know if this is OK and I'll throw it into the OpenRISC tree together
-with the other delay.h modifications.
-
-Thanks,
-Jonas
-
- include/asm-generic/delay.h |   33 +++++++++++++++++++++++++++------
- 1 files changed, 27 insertions(+), 6 deletions(-)
-
-diff --git a/include/asm-generic/delay.h b/include/asm-generic/delay.h
-index 6511b99..0f79054 100644
---- a/include/asm-generic/delay.h
-+++ b/include/asm-generic/delay.h
-@@ -10,14 +10,35 @@ extern void __ndelay(unsigned long nsecs);
- extern void __const_udelay(unsigned long xloops);
- extern void __delay(unsigned long loops);
- 
-+/*
-+ * The weird n/20000 thing suppresses a "comparison is always false due to
-+ * limited range of data type" warning with non-const 8-bit arguments.
-+ */
-+
- /* 0x10c7 is 2**32 / 1000000 (rounded up) */
--#define udelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
--	__udelay(n))
-+#define udelay(n)							\
-+	({								\
-+		if (__builtin_constant_p(n)) {				\
-+			if ((n) / 20000 >= 1)				\
-+				 __bad_udelay();			\
-+			else						\
-+				__const_udelay((n) * 0x10c7ul);		\
-+		} else {						\
-+			__udelay(n);					\
-+		}							\
-+	})
- 
- /* 0x5 is 2**32 / 1000000000 (rounded up) */
--#define ndelay(n) (__builtin_constant_p(n) ? \
--	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
--	__ndelay(n))
-+#define ndelay(n)							\
-+	({								\
-+		if (__builtin_constant_p(n)) {				\
-+			if ((n) / 20000 >= 1)				\
-+				__bad_ndelay();				\
-+			else						\
-+				__const_udelay((n) * 5ul);		\
-+		} else {						\
-+			__ndelay(n);					\
-+		}							\
-+	})
- 
- #endif /* __ASM_GENERIC_DELAY_H */
--- 
-1.7.4.1
+> Now indeed i386 needs a similar treatment on both hard and soft
+> irqs (along with getting rid of that stupid duplication of
+> call_on_stack in there, I don't think it's worth making the code
+> horrible like that to save one clobber and PeterZ reckons we can
+> probably avoid it using always_inline anyways).
+> 
+> I'll let you guys sort i386 out tho, I'll look at fixing ppc tomorrow :-)
+> 
+> Cheers,
+> Ben.
+> 
+> 
