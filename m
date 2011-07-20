@@ -1,36 +1,37 @@
-From: Vasiliy Kulikov <segoon@openwall.com>
-Subject: Re: [kernel-hardening] Re: [RFC v2] implement SL*B and stack
- usercopy runtime checks
-Date: Tue, 19 Jul 2011 11:40:43 +0400
-Message-ID: <20110719074043.GA3942@albatros>
-References: <20110703111028.GA2862@albatros>
- <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
- <20110718183951.GA3748@albatros>
- <20110718115237.14d96c03.akpm@linux-foundation.org>
+From: BBC <ydctfgv@cox.net>
+Subject: AWARD WINNER
+Date: Wed, 20 Jul 2011 12:46:39 -0400
+Message-ID: <20110720124639.FPIF5.223514.imail@eastrmwml28>
+Reply-To: dfkb2011@qatar.io
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:53499 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752175Ab1GSHku (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jul 2011 03:40:50 -0400
-Content-Disposition: inline
-In-Reply-To: <20110718115237.14d96c03.akpm@linux-foundation.org>
+Received: from eastrmfepo101.cox.net ([68.230.241.213]:43996 "EHLO
+	eastrmfepo101.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751437Ab1GTQ5J (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2011 12:57:09 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Mon, Jul 18, 2011 at 11:52 -0700, Andrew Morton wrote:
-> > +noinline bool __kernel_access_ok(const void *ptr, unsigned long len)
-> 
-> noinline seems unneeded
+Attention,
 
-Ah, understood what you mean.  It is .c, and users are in other .c, so
-it is indeed redundant.
 
-Thanks!
+Your email account has won you 1, 000, 000 pounds from the BBC LOTTERY. Email addresses were pulled together from a 
 
--- 
-Vasiliy Kulikov
-http://www.openwall.com - bringing security into open computing environments
+wide range of Worldwide Email Users and Internet Subscribers information.
+ 
+The National Lottery Saturday Night Draws presented by Kate Edmondson. Includes Lotto and Thunderball draws, 10.35pm 
+
+on BBC One. See our website to confirm your winning numbers http://www.bbc.co.uk/lottery/ the draw no. 1624 brought out 
+
+your e-mail address from a Data Base of Internet Email Users and qualified you a lucky winner of the stated winning amount.
+
+You are required contact Mr Williams Morris your Claim Agent in United Kingdom via e-mail ( pwm2011@hotmail.co.uk ) 
+
+providing the below stated information for the processing of your claims.
+
+1. Full Names: 2. Address...3. Country/State:....4. Mobile No:.....
+5. Sex:....6. Age:...7. Occupation:....8. Email:....
+ 
+James Scanner
