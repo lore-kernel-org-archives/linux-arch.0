@@ -1,127 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f171.google.com ([209.85.215.171]:63959 "EHLO
-	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752045Ab1GSGxa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jul 2011 02:53:30 -0400
-Date: Tue, 19 Jul 2011 10:53:22 +0400
-From: Vasiliy Kulikov <segoon@openwall.com>
-Subject: Re: [RFC v2] implement SL*B and stack usercopy runtime checks
-Message-ID: <20110719065322.GA3228@albatros>
-References: <20110703111028.GA2862@albatros>
- <CA+55aFzXEoTyK0Sm-y=6xGmLMWzQiSQ7ELJ2-WL_PrP3r44MSg@mail.gmail.com>
- <20110718183951.GA3748@albatros>
- <alpine.DEB.2.00.1107181610350.31576@router.home>
+Received: from terminus.zytor.com ([198.137.202.10]:60466 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752991Ab1GUU0l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jul 2011 16:26:41 -0400
+Message-ID: <4E288AA6.7090804@zytor.com>
+Date: Thu, 21 Jul 2011 13:23:02 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1107181610350.31576@router.home>
+Subject: Re: [tip:x86/vdso] clocksource: Replace vread with generic arch data
+References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu> <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
+In-Reply-To: <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20110719065322.83jsvGHeD70WVDDzJib8aJikaaxg6p0-N99yA9kvlJU@z>
+To: mingo@redhat.com, hpa@zytor.com, linux-kernel@vger.kernel.org, luto@mit.edu, johnstul@us.ibm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, hpa@linux.intel.com, clemens@ladisch.de
+Cc: linux-tip-commits@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Message-ID: <20110721202302.EcRPr7zepZAUhHcjD52EzK1DxYiJHoOJm7w8KvUCmNc@z>
 
-On Mon, Jul 18, 2011 at 16:18 -0500, Christoph Lameter wrote:
-> On Mon, 18 Jul 2011, Vasiliy Kulikov wrote:
+On 07/14/2011 09:24 PM, tip-bot for Andy Lutomirski wrote:
 > 
-> > --- a/mm/slab.c
-> > +++ b/mm/slab.c
-> > @@ -3844,6 +3844,40 @@ unsigned int kmem_cache_size(struct kmem_cache *cachep)
-> >  EXPORT_SYMBOL(kmem_cache_size);
-> >
-> >  /*
-> > + * Returns false if and only if [ptr; ptr+len) touches the slab,
-> > + * but breaks objects boundaries.  It doesn't check whether the
-> > + * accessed object is actually allocated.
-> > + */
-> > +bool slab_access_ok(const void *ptr, unsigned long len)
-> > +{
-> > +	struct page *page;
-> > +	struct kmem_cache *cachep = NULL;
-> 
-> Why = NULL?
+> diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/asm/clocksource.h
+> new file mode 100644
+> index 0000000..a5df33f
+> --- /dev/null
+> +++ b/arch/x86/include/asm/clocksource.h
+> @@ -0,0 +1,16 @@
+> +/* x86-specific clocksource additions */
+> +
+> +#ifndef _ASM_X86_CLOCKSOURCE_H
+> +#define _ASM_X86_CLOCKSOURCE_H
+> +
+> +#ifdef CONFIG_X86_64
+> +
+> +#define __ARCH_HAS_CLOCKSOURCE_DATA
+> +
+> +struct arch_clocksource_data {
+> +	cycle_t (*vread)(void);
+> +};
+> +
+> +#endif /* CONFIG_X86_64 */
+> +
+> +#endif /* _ASM_X86_CLOCKSOURCE_H */
+> --- /dev/null
+> +++ b/include/asm-generic/clocksource.h
+> @@ -0,0 +1,4 @@
+> +/*
+> + * Architectures should override this file to add private userspace
+> + * clock magic if needed.
+> + */
+> diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
+> index d4646b4..0fb83c2 100644
+> --- a/include/linux/clocksource.h
+> +++ b/include/linux/clocksource.h
+> @@ -22,6 +22,8 @@
+>  typedef u64 cycle_t;
+>  struct clocksource;
+>  
+> +#include <asm/clocksource.h>
+> +
+>  /**
 
-Indeed, redundant.
+Hi Andy,
 
-> > +	struct slab *slabp;
-> > +	unsigned int objnr;
-> > +	unsigned long offset;
-> > +
-> > +	if (!len)
-> > +		return true;
-> > +	if (!virt_addr_valid(ptr))
-> > +		return true;
-> > +	page = virt_to_head_page(ptr);
-> > +	if (!PageSlab(page))
-> > +		return true;
-> > +
-> > +	cachep = page_get_cache(page);
-> > +	slabp = page_get_slab(page);
-> > +	objnr = obj_to_index(cachep, slabp, (void *)ptr);
-> > +	BUG_ON(objnr >= cachep->num);
-> > +	offset = (const char *)ptr - obj_offset(cachep) -
-> > +	    (const char *)index_to_obj(cachep, slabp, objnr);
-> > +	if (offset <= obj_size(cachep) && len <= obj_size(cachep) - offset)
-> > +		return true;
-> > +
-> > +	return false;
-> > +}
-> > +EXPORT_SYMBOL(slab_access_ok);
-> > +
-> > +/*
-> >   * This initializes kmem_list3 or resizes various caches for all nodes.
-> >   */
-> >  static int alloc_kmemlist(struct kmem_cache *cachep, gfp_t gfp)
-> 
-> > --- a/mm/slub.c
-> > +++ b/mm/slub.c
-> > @@ -2623,6 +2623,34 @@ unsigned int kmem_cache_size(struct kmem_cache *s)
-> >  }
-> >  EXPORT_SYMBOL(kmem_cache_size);
-> >
-> > +/*
-> > + * Returns false if and only if [ptr; ptr+len) touches the slab,
-> > + * but breaks objects boundaries.  It doesn't check whether the
-> > + * accessed object is actually allocated.
-> > + */
-> > +bool slab_access_ok(const void *ptr, unsigned long len)
-> > +{
-> > +	struct page *page;
-> > +	struct kmem_cache *s = NULL;
-> 
-> No need to assign NULL.
+I should have spotted this sooner... Ingo pointed out to me that this
+breaks building on any non-x86 architecture.
 
-Ditto.
+asm-generic doesn't work quite the way you think it does, here; it's a
+library for architectures to include from, not something that gets
+included on all architectures by default.
 
-> > +	unsigned long offset;
-> > +
-> > +	if (len == 0)
-> > +		return true;
-> > +	if (!virt_addr_valid(ptr))
-> > +		return true;
-> > +	page = virt_to_head_page(ptr);
-> > +	if (!PageSlab(page))
-> > +		return true;
-> > +
-> > +	s = page->slab;
-> > +	offset = ((const char *)ptr - (const char *)page_address(page)) % s->size;
-> 
-> Are the casts necessary? Both are pointers to void *
+To make a file from asm-generic appear in asm/ it needs to at least
+appear in a generic-y statement in a Makefile; however, that is kind of
+pointless in the case of an empty file.
 
-Is it normal kernel style to use void* pointer arithmetic?
+One could argue that it would be nice if we had such a fallback
+director, of if asm-generic was such a fallback directory, but currently
+it is not.
 
-> > +	if (offset <= s->objsize && len <= s->objsize - offset)
-> 
-> If offset == s->objsize then we access the first byte after the object.
+The easiest way to deal with this is probably to make
+ARCH_HAS_CLOCKSOURCE_DATA here a Kconfig option (autoselected for
+x86-64); the only other would be to add this as generic-y stubs for
+every single architecture.
 
-Well, then objsize - offset == 0 and len can be 0 only to pass the right
-part of && check.  But (len == 0) case is already handled above.
+Cc: Arnd Bergmann who is the asm-generic maintainer for a
+recommendation, and linux-arch.
 
-But yes, for better readability it should be "<".
-
-
-Thank you,
+	-hpa
 
 -- 
-Vasiliy Kulikov
-http://www.openwall.com - bringing security into open computing environments
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
+
