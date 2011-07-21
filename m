@@ -1,101 +1,38 @@
-From: Andrew Lutomirski <luto@mit.edu>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [tip:x86/vdso] clocksource: Replace vread with generic arch data
-Date: Thu, 21 Jul 2011 16:49:07 -0400
-Message-ID: <CAObL_7HyKSwm9a_7nfdk5E0Noy5zqD=dyaanvxY_iX5XcP1d4Q@mail.gmail.com>
-References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu>
- <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org> <4E288AA6.7090804@zytor.com>
+Date: Thu, 21 Jul 2011 13:59:54 -0700
+Message-ID: <4E28934A.6040200@zytor.com>
+References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu> <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org> <4E288AA6.7090804@zytor.com> <CAObL_7HyKSwm9a_7nfdk5E0Noy5zqD=dyaanvxY_iX5XcP1d4Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f42.google.com ([209.85.210.42]:60167 "EHLO
-	mail-pz0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750769Ab1GUUtt convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jul 2011 16:49:49 -0400
-In-Reply-To: <4E288AA6.7090804@zytor.com>
+Received: from terminus.zytor.com ([198.137.202.10]:48683 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753790Ab1GUVGc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jul 2011 17:06:32 -0400
+In-Reply-To: <CAObL_7HyKSwm9a_7nfdk5E0Noy5zqD=dyaanvxY_iX5XcP1d4Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
+To: Andrew Lutomirski <luto@mit.edu>
 Cc: mingo@redhat.com, linux-kernel@vger.kernel.org, johnstul@us.ibm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, hpa@linux.intel.com, clemens@ladisch.de, linux-tip-commits@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
 
-On Thu, Jul 21, 2011 at 4:23 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 07/14/2011 09:24 PM, tip-bot for Andy Lutomirski wrote:
->>
->> diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/a=
-sm/clocksource.h
->> new file mode 100644
->> index 0000000..a5df33f
->> --- /dev/null
->> +++ b/arch/x86/include/asm/clocksource.h
->> @@ -0,0 +1,16 @@
->> +/* x86-specific clocksource additions */
->> +
->> +#ifndef _ASM_X86_CLOCKSOURCE_H
->> +#define _ASM_X86_CLOCKSOURCE_H
->> +
->> +#ifdef CONFIG_X86_64
->> +
->> +#define __ARCH_HAS_CLOCKSOURCE_DATA
->> +
->> +struct arch_clocksource_data {
->> + =A0 =A0 cycle_t (*vread)(void);
->> +};
->> +
->> +#endif /* CONFIG_X86_64 */
->> +
->> +#endif /* _ASM_X86_CLOCKSOURCE_H */
->> --- /dev/null
->> +++ b/include/asm-generic/clocksource.h
->> @@ -0,0 +1,4 @@
->> +/*
->> + * Architectures should override this file to add private userspace
->> + * clock magic if needed.
->> + */
->> diff --git a/include/linux/clocksource.h b/include/linux/clocksource=
-=2Eh
->> index d4646b4..0fb83c2 100644
->> --- a/include/linux/clocksource.h
->> +++ b/include/linux/clocksource.h
->> @@ -22,6 +22,8 @@
->> =A0typedef u64 cycle_t;
->> =A0struct clocksource;
->>
->> +#include <asm/clocksource.h>
->> +
->> =A0/**
->
-> Hi Andy,
->
-> I should have spotted this sooner... Ingo pointed out to me that this
-> breaks building on any non-x86 architecture.
->
-> asm-generic doesn't work quite the way you think it does, here; it's =
-a
-> library for architectures to include from, not something that gets
-> included on all architectures by default.
+On 07/21/2011 01:49 PM, Andrew Lutomirski wrote:
+> 
+> Whoops.  If only cross-compiler toolchains were easy to build...
+> 
 
-Whoops.  If only cross-compiler toolchains were easy to build...
+http://www.kernel.org/pub/tools/crosstool/
 
-[...]
+> 
+> If I don't hear any better suggestions, I'll implement that tomorrow.
+> Do you want an incremental patch or a replacement?
+> 
 
->
-> The easiest way to deal with this is probably to make
-> ARCH_HAS_CLOCKSOURCE_DATA here a Kconfig option (autoselected for
-> x86-64); the only other would be to add this as generic-y stubs for
-> every single architecture.
->
-> Cc: Arnd Bergmann who is the asm-generic maintainer for a
-> recommendation, and linux-arch.
+Already did, given the timing.
 
-ARCH_HAS_CLOCKSOURCE_DATA seems reasonable.  It's a little ugly
-because it needs:
+	-hpa
 
-#ifdef CONFIG_ARCH_HAS_CLOCKSOURCE_DATA
-#include <asm/clocksource.h>
-#endif
-
-
-If I don't hear any better suggestions, I'll implement that tomorrow.
-Do you want an incremental patch or a replacement?
-
---Andy
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
