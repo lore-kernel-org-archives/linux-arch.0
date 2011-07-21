@@ -1,94 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60466 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752991Ab1GUU0l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jul 2011 16:26:41 -0400
-Message-ID: <4E288AA6.7090804@zytor.com>
-Date: Thu, 21 Jul 2011 13:23:02 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: [tip:x86/vdso] clocksource: Replace vread with generic arch data
-References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu> <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
-In-Reply-To: <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:54963 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751562Ab1GUVza (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jul 2011 17:55:30 -0400
+Date: Thu, 21 Jul 2011 14:54:33 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: Cross Memory Attach v3
+Message-ID: <20110721145433.a77818b2.akpm@linux-foundation.org>
+In-Reply-To: <20110719003537.16b189ae@lilo>
+References: <20110719003537.16b189ae@lilo>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@redhat.com, hpa@zytor.com, linux-kernel@vger.kernel.org, luto@mit.edu, johnstul@us.ibm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, hpa@linux.intel.com, clemens@ladisch.de
-Cc: linux-tip-commits@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
-Message-ID: <20110721202302.EcRPr7zepZAUhHcjD52EzK1DxYiJHoOJm7w8KvUCmNc@z>
+To: Christopher Yeoh <cyeoh@au1.ibm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-man@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110721215433.Geov8duUkp7WUL-WNl7OtCEyML8GFfHKaCxmroDcW_A@z>
 
-On 07/14/2011 09:24 PM, tip-bot for Andy Lutomirski wrote:
+On Tue, 19 Jul 2011 00:35:37 +0930
+Christopher Yeoh <cyeoh@au1.ibm.com> wrote:
+
+> Hi Andrew,
 > 
-> diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/asm/clocksource.h
-> new file mode 100644
-> index 0000000..a5df33f
-> --- /dev/null
-> +++ b/arch/x86/include/asm/clocksource.h
-> @@ -0,0 +1,16 @@
-> +/* x86-specific clocksource additions */
-> +
-> +#ifndef _ASM_X86_CLOCKSOURCE_H
-> +#define _ASM_X86_CLOCKSOURCE_H
-> +
-> +#ifdef CONFIG_X86_64
-> +
-> +#define __ARCH_HAS_CLOCKSOURCE_DATA
-> +
-> +struct arch_clocksource_data {
-> +	cycle_t (*vread)(void);
-> +};
-> +
-> +#endif /* CONFIG_X86_64 */
-> +
-> +#endif /* _ASM_X86_CLOCKSOURCE_H */
-> --- /dev/null
-> +++ b/include/asm-generic/clocksource.h
-> @@ -0,0 +1,4 @@
-> +/*
-> + * Architectures should override this file to add private userspace
-> + * clock magic if needed.
-> + */
-> diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
-> index d4646b4..0fb83c2 100644
-> --- a/include/linux/clocksource.h
-> +++ b/include/linux/clocksource.h
-> @@ -22,6 +22,8 @@
->  typedef u64 cycle_t;
->  struct clocksource;
->  
-> +#include <asm/clocksource.h>
-> +
->  /**
+> Resending with CC's as you requested. Have added information about a man
+> page and what is required for arches other than x86 and powerpc which
+> have already been done.
+> 
+> Just as a reminder of what has happened so far, repeating some content
+> from previous emails about it:
+> 
+> The basic idea behind cross memory attach is to allow MPI programs doing
+> intra-node communication to do a single copy of the message rather than
+> a double copy of the message via shared memory.
+> 
+> The following patch attempts to achieve this by allowing a
+> destination process, given an address and size from a source process, to
+> copy memory directly from the source process into its own address space
+> via a system call. There is also a symmetrical ability to copy from 
+> the current process's address space into a destination process's
+> address space.
+>
+> ...
+>
+>  arch/powerpc/include/asm/systbl.h  |    2 
+>  arch/powerpc/include/asm/unistd.h  |    4 
+>  arch/x86/include/asm/unistd_32.h   |    4 
+>  arch/x86/kernel/syscall_table_32.S |    2 
+>  fs/aio.c                           |    4 
+>  fs/compat.c                        |    7 
+>  fs/read_write.c                    |    8 
+>  include/linux/compat.h             |    3 
+>  include/linux/fs.h                 |    7 
+>  include/linux/syscalls.h           |   13 +
+>  mm/Makefile                        |    3 
+>  mm/process_vm_access.c             |  446 +++++++++++++++++++++++++++++++++++++
+>  security/keys/compat.c             |    2 
+>  security/keys/keyctl.c             |    2 
+>  14 files changed, 490 insertions(+), 17 deletions(-)
 
-Hi Andy,
-
-I should have spotted this sooner... Ingo pointed out to me that this
-breaks building on any non-x86 architecture.
-
-asm-generic doesn't work quite the way you think it does, here; it's a
-library for architectures to include from, not something that gets
-included on all architectures by default.
-
-To make a file from asm-generic appear in asm/ it needs to at least
-appear in a generic-y statement in a Makefile; however, that is kind of
-pointless in the case of an empty file.
-
-One could argue that it would be nice if we had such a fallback
-director, of if asm-generic was such a fallback directory, but currently
-it is not.
-
-The easiest way to deal with this is probably to make
-ARCH_HAS_CLOCKSOURCE_DATA here a Kconfig option (autoselected for
-x86-64); the only other would be to add this as generic-y stubs for
-every single architecture.
-
-Cc: Arnd Bergmann who is the asm-generic maintainer for a
-recommendation, and linux-arch.
-
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
-
+Confused.  Why no arch/x86/include/asm/unistd_64.h wire-up?
