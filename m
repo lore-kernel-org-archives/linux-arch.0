@@ -1,36 +1,61 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [tip:x86/vdso] clocksource: Replace vread with generic arch data
-Date: Thu, 21 Jul 2011 14:42:32 -0700
-Message-ID: <4E289D48.1060207@zytor.com>
-References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu> <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org> <4E288AA6.7090804@zytor.com> <CAObL_7HyKSwm9a_7nfdk5E0Noy5zqD=dyaanvxY_iX5XcP1d4Q@mail.gmail.com> <4E28934A.6040200@zytor.com> <CAObL_7Gpf8Ux=unueB5y41p=O2dHPjZ_eVW+g6Es8N6TH4nLXg@mail.gmail.com> <4E289939.2080004@zytor.com> <CAObL_7EEh+fO23OkpN=zTM5KrHy8FisfPjXkJ7K7k74YsE503w@mail.gmail.com>
+From: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: Cross Memory Attach v3
+Date: Thu, 21 Jul 2011 14:54:33 -0700
+Message-ID: <20110721145433.a77818b2.akpm@linux-foundation.org>
+References: <20110719003537.16b189ae@lilo>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:54565 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753227Ab1GUVm7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jul 2011 17:42:59 -0400
-In-Reply-To: <CAObL_7EEh+fO23OkpN=zTM5KrHy8FisfPjXkJ7K7k74YsE503w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Lutomirski <luto@mit.edu>
-Cc: mingo@redhat.com, linux-kernel@vger.kernel.org, johnstul@us.ibm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, hpa@linux.intel.com, clemens@ladisch.de, linux-tip-commits@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Return-path: <linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20110719003537.16b189ae@lilo>
+Sender: linux-man-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Christopher Yeoh <cyeoh-8fk3Idey6ehBDgjK7y7TUQ@public.gmane.org>
+Cc: linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-man-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On 07/21/2011 02:36 PM, Andrew Lutomirski wrote:
->>
->> What do you mean, "matching fix"?  The fix I posted should work on x86
->> and ia64.
->>
+On Tue, 19 Jul 2011 00:35:37 +0930
+Christopher Yeoh <cyeoh-8fk3Idey6ehBDgjK7y7TUQ@public.gmane.org> wrote:
+
+> Hi Andrew,
 > 
-> *sigh* I read it wrong.  Never mind.
+> Resending with CC's as you requested. Have added information about a man
+> page and what is required for arches other than x86 and powerpc which
+> have already been done.
 > 
+> Just as a reminder of what has happened so far, repeating some content
+> from previous emails about it:
+> 
+> The basic idea behind cross memory attach is to allow MPI programs doing
+> intra-node communication to do a single copy of the message rather than
+> a double copy of the message via shared memory.
+> 
+> The following patch attempts to achieve this by allowing a
+> destination process, given an address and size from a source process, to
+> copy memory directly from the source process into its own address space
+> via a system call. There is also a symmetrical ability to copy from 
+> the current process's address space into a destination process's
+> address space.
+>
+> ...
+>
+>  arch/powerpc/include/asm/systbl.h  |    2 
+>  arch/powerpc/include/asm/unistd.h  |    4 
+>  arch/x86/include/asm/unistd_32.h   |    4 
+>  arch/x86/kernel/syscall_table_32.S |    2 
+>  fs/aio.c                           |    4 
+>  fs/compat.c                        |    7 
+>  fs/read_write.c                    |    8 
+>  include/linux/compat.h             |    3 
+>  include/linux/fs.h                 |    7 
+>  include/linux/syscalls.h           |   13 +
+>  mm/Makefile                        |    3 
+>  mm/process_vm_access.c             |  446 +++++++++++++++++++++++++++++++++++++
+>  security/keys/compat.c             |    2 
+>  security/keys/keyctl.c             |    2 
+>  14 files changed, 490 insertions(+), 17 deletions(-)
 
-That's ok, better to say something and be wrong than to not say
-something and be right...
-
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+Confused.  Why no arch/x86/include/asm/unistd_64.h wire-up?
+--
+To unsubscribe from this list: send the line "unsubscribe linux-man" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
