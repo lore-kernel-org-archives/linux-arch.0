@@ -1,37 +1,92 @@
-From: BBC <ydctfgv@cox.net>
-Subject: AWARD WINNER
-Date: Wed, 20 Jul 2011 12:46:39 -0400
-Message-ID: <20110720124639.FPIF5.223514.imail@eastrmwml28>
-Reply-To: dfkb2011@qatar.io
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [tip:x86/vdso] clocksource: Replace vread with generic arch data
+Date: Thu, 21 Jul 2011 13:23:02 -0700
+Message-ID: <4E288AA6.7090804@zytor.com>
+References: <3ae5ec76a168eaaae63f08a2a1060b91aa0b7759.1310563276.git.luto@mit.edu> <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eastrmfepo101.cox.net ([68.230.241.213]:43996 "EHLO
-	eastrmfepo101.cox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751437Ab1GTQ5J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jul 2011 12:57:09 -0400
+Received: from terminus.zytor.com ([198.137.202.10]:60466 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752991Ab1GUU0l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 Jul 2011 16:26:41 -0400
+In-Reply-To: <tip-433bd805e5fd2c731b3a9025b034f066272d336e@git.kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: mingo@redhat.com, hpa@zytor.com, linux-kernel@vger.kernel.org, luto@mit.edu, johnstul@us.ibm.com, tony.luck@intel.com, fenghua.yu@intel.com, tglx@linutronix.de, hpa@linux.intel.com
+Cc: linux-tip-commits@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux Arch Mailing List <linux-arch@vger.kernel.org>
 
-Attention,
+On 07/14/2011 09:24 PM, tip-bot for Andy Lutomirski wrote:
+> 
+> diff --git a/arch/x86/include/asm/clocksource.h b/arch/x86/include/asm/clocksource.h
+> new file mode 100644
+> index 0000000..a5df33f
+> --- /dev/null
+> +++ b/arch/x86/include/asm/clocksource.h
+> @@ -0,0 +1,16 @@
+> +/* x86-specific clocksource additions */
+> +
+> +#ifndef _ASM_X86_CLOCKSOURCE_H
+> +#define _ASM_X86_CLOCKSOURCE_H
+> +
+> +#ifdef CONFIG_X86_64
+> +
+> +#define __ARCH_HAS_CLOCKSOURCE_DATA
+> +
+> +struct arch_clocksource_data {
+> +	cycle_t (*vread)(void);
+> +};
+> +
+> +#endif /* CONFIG_X86_64 */
+> +
+> +#endif /* _ASM_X86_CLOCKSOURCE_H */
+> --- /dev/null
+> +++ b/include/asm-generic/clocksource.h
+> @@ -0,0 +1,4 @@
+> +/*
+> + * Architectures should override this file to add private userspace
+> + * clock magic if needed.
+> + */
+> diff --git a/include/linux/clocksource.h b/include/linux/clocksource.h
+> index d4646b4..0fb83c2 100644
+> --- a/include/linux/clocksource.h
+> +++ b/include/linux/clocksource.h
+> @@ -22,6 +22,8 @@
+>  typedef u64 cycle_t;
+>  struct clocksource;
+>  
+> +#include <asm/clocksource.h>
+> +
+>  /**
 
+Hi Andy,
 
-Your email account has won you 1, 000, 000 pounds from the BBC LOTTERY. Email addresses were pulled together from a 
+I should have spotted this sooner... Ingo pointed out to me that this
+breaks building on any non-x86 architecture.
 
-wide range of Worldwide Email Users and Internet Subscribers information.
- 
-The National Lottery Saturday Night Draws presented by Kate Edmondson. Includes Lotto and Thunderball draws, 10.35pm 
+asm-generic doesn't work quite the way you think it does, here; it's a
+library for architectures to include from, not something that gets
+included on all architectures by default.
 
-on BBC One. See our website to confirm your winning numbers http://www.bbc.co.uk/lottery/ the draw no. 1624 brought out 
+To make a file from asm-generic appear in asm/ it needs to at least
+appear in a generic-y statement in a Makefile; however, that is kind of
+pointless in the case of an empty file.
 
-your e-mail address from a Data Base of Internet Email Users and qualified you a lucky winner of the stated winning amount.
+One could argue that it would be nice if we had such a fallback
+director, of if asm-generic was such a fallback directory, but currently
+it is not.
 
-You are required contact Mr Williams Morris your Claim Agent in United Kingdom via e-mail ( pwm2011@hotmail.co.uk ) 
+The easiest way to deal with this is probably to make
+ARCH_HAS_CLOCKSOURCE_DATA here a Kconfig option (autoselected for
+x86-64); the only other would be to add this as generic-y stubs for
+every single architecture.
 
-providing the below stated information for the processing of your claims.
+Cc: Arnd Bergmann who is the asm-generic maintainer for a
+recommendation, and linux-arch.
 
-1. Full Names: 2. Address...3. Country/State:....4. Mobile No:.....
-5. Sex:....6. Age:...7. Occupation:....8. Email:....
- 
-James Scanner
+	-hpa
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
