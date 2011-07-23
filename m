@@ -1,34 +1,53 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] OpenRISC architecture
-Date: Sat, 23 Jul 2011 14:17:00 -0700
-Message-ID: <CA+55aFwy-oWnJ1Mp_7m-Myrfm_W3cysacirRhjXohxzQyTgK8Q@mail.gmail.com>
-References: <1311408223.3499.13.camel@localhost>
+From: "WESTERN UNION OFFICE" <info@western.com>
+Subject: pick up the $5000.00USD
+Date: Sun, 24 Jul 2011 04:16:34 +0800
+Message-ID: <20110723201643.M12251__12885.7579351918$1311457119$gmane$org@western.com>
+Reply-To: western-uniontransfer@helixnet.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+	charset=big5
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp1.linux-foundation.org ([140.211.169.13]:42938 "EHLO
-	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751374Ab1GWVRW convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 Jul 2011 17:17:22 -0400
-In-Reply-To: <1311408223.3499.13.camel@localhost>
+Received: from mail.richfieldgroup.hk ([219.76.192.210]:46402 "EHLO
+	mailserver.richfieldgroup.hk" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751374Ab1GWVic (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 Jul 2011 17:38:32 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>, Rusty Russell <rusty@rustcorp.com.au>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, Jul 23, 2011 at 1:03 AM, Jonas Bonn <jonas@southpole.se> wrote:
->
-> NOTE: =A0This pull depends on a patch "modules: add default loader ho=
-ok
-> implementations" in Rusty's tree... without that, the OpenRISC arch w=
-ill
-> not build. =A0Note also that there are a couple of patches that touch
-> asm-generic bits at the base of the branch, including a patch from
-> Andrew that was moved to this branch to avoid a merge conflict.
 
-So I don't want to pull this if it doesn't build. Rusty, what's the
-status of your module tree?
+How are you today?
 
-                    Linus
+
+I write to inform you that we have already sent you $5,000.00USD
+through Western union as we have been given the mandate to transfer
+your full compensation payment of  $1.800,000.00USD via western union
+by this government.
+
+I called to give you the information through phone as internet hackers
+were many but i cannot reach you yesterday even this morning,So I
+decided to email you the (MTCN) and sender name so that you can pick
+up this $5,000.00USD to enable us send another $5,000.00USD by
+tomorrow as you knows we will be sending you only $5,000.00USD per
+day.Please pick up this information and run to any western union
+(OUTLET) in your country and pick up this $5,000.00USD and send us an
+email back,so that we can send another $5,000.00USD by tomorrow.
+
+Manager: Mr Frank Amos
+email me on:western-uniontransfer@helixnet.cn
+call us on: +234-7031908911
+once you picked up this $5000.00USD today.
+
+Here is the western union information to pick up the $5000.00USD,
+
+MTCN :___________MTCN 9500834460
+first name: ______Appoline
+Second Name: ______Ouedraoge
+Text Question: ___________When
+Answer: ___________________2Hours ago
+Amount:______________________ $5,000.00 United State Dollars
+
+I am waiting for your E-mail once you pick up $5000.00USD,
+
+Thanks
+Mr Frank Amos.
