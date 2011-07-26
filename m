@@ -1,95 +1,172 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f171.google.com ([209.85.215.171]:54562 "EHLO
+Received: from mail-ey0-f171.google.com ([209.85.215.171]:56152 "EHLO
 	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753697Ab1GZPgM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:12 -0400
+	with ESMTP id S1753569Ab1GZPfx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:35:53 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Tue, 26 Jul 2011 17:35:30 +0200
-Message-ID: <1311694534-5161-20-git-send-email-tj@kernel.org>
+Subject: [PATCH 07/23] memblock: Separate out memblock_isolate_range() from memblock_set_node()
+Date: Tue, 26 Jul 2011 17:35:18 +0200
+Message-Id: <1311694534-5161-8-git-send-email-tj@kernel.org>
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, linux-mips@linux-mips.org
-Message-ID: <20110726153530.09hiJvzMdlkfZ_b3zWuV0ylo1s5Dz12zkpLfhxt_SMo@z>
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>
 
-mips used early_node_map[] just to prime free_area_init_nodes().  Now
-memblock can be used for the same purpose and early_node_map[] is
-scheduled to be dropped.  Use memblock instead.
+memblock_set_node() operates in three steps - break regions crossing
+boundaries, set nid and merge back regions.  This patch separates the
+first part into a separate function - memblock_isolate_range(), which
+breaks regions crossing range boundaries and returns range index range
+for regions properly contained in the specified memory range.
+
+This doesn't introduce any behavior change and will be used to further
+unify region handling.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
 ---
-Only compile tested.  Thanks.
+ mm/memblock.c |  117 ++++++++++++++++++++++++++++++++++++++-------------------
+ 1 files changed, 78 insertions(+), 39 deletions(-)
 
- arch/mips/Kconfig                |    3 +++
- arch/mips/kernel/setup.c         |    3 ++-
- arch/mips/sgi-ip27/ip27-memory.c |    5 +++--
- 3 files changed, 8 insertions(+), 3 deletions(-)
-
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 653da62..368b2ec 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -24,6 +24,9 @@ config MIPS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_ARCH_JUMP_LABEL
-+	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
-+	select ARCH_DISCARD_MEMBLOCK
- 
- menu "Machine selection"
- 
-diff --git a/arch/mips/kernel/setup.c b/arch/mips/kernel/setup.c
-index 8ad1d56..c25bce4 100644
---- a/arch/mips/kernel/setup.c
-+++ b/arch/mips/kernel/setup.c
-@@ -14,6 +14,7 @@
- #include <linux/ioport.h>
- #include <linux/module.h>
- #include <linux/screen_info.h>
-+#include <linux/memblock.h>
- #include <linux/bootmem.h>
- #include <linux/initrd.h>
- #include <linux/root_dev.h>
-@@ -352,7 +353,7 @@ static void __init bootmem_init(void)
- 			continue;
- #endif
- 
--		add_active_range(0, start, end);
-+		memblock_add_node(PFN_PHYS(start), PFN_PHYS(end - start), 0);
- 	}
- 
- 	/*
-diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
-index bc12971..b105eca 100644
---- a/arch/mips/sgi-ip27/ip27-memory.c
-+++ b/arch/mips/sgi-ip27/ip27-memory.c
-@@ -12,6 +12,7 @@
-  */
- #include <linux/init.h>
- #include <linux/kernel.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/mmzone.h>
- #include <linux/module.h>
-@@ -381,8 +382,8 @@ static void __init szmem(void)
- 				continue;
- 			}
- 			num_physpages += slot_psize;
--			add_active_range(node, slot_getbasepfn(node, slot),
--					 slot_getbasepfn(node, slot) + slot_psize);
-+			memblock_add_node(PFN_PHYS(slot_getbasepfn(node, slot)),
-+					  PFN_PHYS(slot_psize), node);
- 		}
- 	}
+diff --git a/mm/memblock.c b/mm/memblock.c
+index aac713c..a64d469 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -400,6 +400,77 @@ int __init_memblock memblock_add(phys_addr_t base, phys_addr_t size)
+ 	return memblock_add_region(&memblock.memory, base, size);
  }
+ 
++#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
++/**
++ * memblock_isolate_range - isolate given range into disjoint memblocks
++ * @type: memblock type to isolate range for
++ * @base: base of range to isolate
++ * @size: size of range to isolate
++ * @start_rgn: out parameter for the start of isolated region
++ * @end_rgn: out parameter for the end of isolated region
++ *
++ * Walk @type and ensure that regions don't cross the boundaries defined by
++ * [@base,@base+@size).  Crossing regions are split at the boundaries,
++ * which may create at most two more regions.  The index of the first
++ * region inside the range is returned in *@start_rgn and end in *@end_rgn.
++ *
++ * RETURNS:
++ * 0 on success, -errno on failure.
++ */
++static int __init_memblock memblock_isolate_range(struct memblock_type *type,
++					phys_addr_t base, phys_addr_t size,
++					int *start_rgn, int *end_rgn)
++{
++	phys_addr_t end = base + size;
++	int i;
++
++	*start_rgn = *end_rgn = 0;
++
++	/* we'll create at most two more regions */
++	while (type->cnt + 2 > type->max)
++		if (memblock_double_array(type) < 0)
++			return -ENOMEM;
++
++	for (i = 0; i < type->cnt; i++) {
++		struct memblock_region *rgn = &type->regions[i];
++		phys_addr_t rbase = rgn->base;
++		phys_addr_t rend = rbase + rgn->size;
++
++		if (rbase >= end)
++			break;
++		if (rend <= base)
++			continue;
++
++		if (rbase < base) {
++			/*
++			 * @rgn intersects from below.  Split and continue
++			 * to process the next region - the new top half.
++			 */
++			rgn->base = base;
++			rgn->size = rend - rgn->base;
++			memblock_insert_region(type, i, rbase, base - rbase,
++					       rgn->nid);
++		} else if (rend > end) {
++			/*
++			 * @rgn intersects from above.  Split and redo the
++			 * current region - the new bottom half.
++			 */
++			rgn->base = end;
++			rgn->size = rend - rgn->base;
++			memblock_insert_region(type, i--, rbase, end - rbase,
++					       rgn->nid);
++		} else {
++			/* @rgn is fully contained, record it */
++			if (!*end_rgn)
++				*start_rgn = i;
++			*end_rgn = i + 1;
++		}
++	}
++
++	return 0;
++}
++#endif
++
+ static int __init_memblock __memblock_remove(struct memblock_type *type,
+ 					     phys_addr_t base, phys_addr_t size)
+ {
+@@ -603,47 +674,15 @@ int __init_memblock memblock_set_node(phys_addr_t base, phys_addr_t size,
+ 				      int nid)
+ {
+ 	struct memblock_type *type = &memblock.memory;
+-	phys_addr_t end = base + size;
+-	int i;
++	int start_rgn, end_rgn;
++	int i, ret;
+ 
+-	/* we'll create at most two more regions */
+-	while (type->cnt + 2 > type->max)
+-		if (memblock_double_array(type) < 0)
+-			return -ENOMEM;
++	ret = memblock_isolate_range(type, base, size, &start_rgn, &end_rgn);
++	if (ret)
++		return ret;
+ 
+-	for (i = 0; i < type->cnt; i++) {
+-		struct memblock_region *rgn = &type->regions[i];
+-		phys_addr_t rbase = rgn->base;
+-		phys_addr_t rend = rbase + rgn->size;
+-
+-		if (rbase >= end)
+-			break;
+-		if (rend <= base)
+-			continue;
+-
+-		if (rbase < base) {
+-			/*
+-			 * @rgn intersects from below.  Split and continue
+-			 * to process the next region - the new top half.
+-			 */
+-			rgn->base = base;
+-			rgn->size = rend - rgn->base;
+-			memblock_insert_region(type, i, rbase, base - rbase,
+-					       rgn->nid);
+-		} else if (rend > end) {
+-			/*
+-			 * @rgn intersects from above.  Split and redo the
+-			 * current region - the new bottom half.
+-			 */
+-			rgn->base = end;
+-			rgn->size = rend - rgn->base;
+-			memblock_insert_region(type, i--, rbase, end - rbase,
+-					       rgn->nid);
+-		} else {
+-			/* @rgn is fully contained, set ->nid */
+-			rgn->nid = nid;
+-		}
+-	}
++	for (i = start_rgn; i < end_rgn; i++)
++		type->regions[i].nid = nid;
+ 
+ 	memblock_merge_regions(type);
+ 	return 0;
 -- 
 1.7.6
 
