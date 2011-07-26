@@ -1,118 +1,71 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 11/23] powerpc: Cleanup memblock usage
-Date: Tue, 26 Jul 2011 17:35:22 +0200
-Message-ID: <1311694534-5161-12-git-send-email-tj@kernel.org>
+Subject: [PATCH 20/23] s390: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Tue, 26 Jul 2011 17:35:31 +0200
+Message-ID: <1311694534-5161-21-git-send-email-tj__14111.7077241235$1311694714$gmane$org@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:58903 "EHLO
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:52428 "EHLO
 	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753623Ab1GZPgA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:00 -0400
+	with ESMTP id S1753718Ab1GZPgN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:13 -0400
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@dave
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
 
-* early_init_devtree(): Total memory size is aligned to PAGE_SIZE;
-  however, alignment isn't enforced if memory_limit is explicitly
-  specified.  Simplify the logic and always apply PAGE_SIZE alignment.
-
-* MMU_init(): memblock regions is truncated by directly modifying
-  memblock.memory.cnt.  This is incomplete (reserved array is not
-  truncated) and unnecessarily low level hindering further memblock
-  improvments.  Use memblock_enforce_memory_limit() instead.
-
-* wii_memory_fixups(): Unnecessarily low level direct manipulation of
-  memblock regions.  The same result can be achieved using properly
-  abstracted operations.  Reimplement using memblock API.
+s390 used early_node_map[] just to prime free_area_init_nodes().  Now
+memblock can be used for the same purpose and early_node_map[] is
+scheduled to be dropped.  Use memblock instead.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-s390@vger.kernel.org
 ---
- arch/powerpc/kernel/prom.c               |   17 ++++++-----------
- arch/powerpc/mm/init_32.c                |    2 +-
- arch/powerpc/platforms/embedded6xx/wii.c |   22 +++++++++-------------
- 3 files changed, 16 insertions(+), 25 deletions(-)
+Only compile tested.
 
-diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
-index 83633b9..16a632f 100644
---- a/arch/powerpc/kernel/prom.c
-+++ b/arch/powerpc/kernel/prom.c
-@@ -736,17 +736,12 @@ void __init early_init_devtree(void *params)
- 	early_reserve_mem();
- 	phyp_dump_reserve_mem();
- 
--	limit = memory_limit;
--	if (! limit) {
--		phys_addr_t memsize;
--
--		/* Ensure that total memory size is page-aligned, because
--		 * otherwise mark_bootmem() gets upset. */
--		memblock_analyze();
--		memsize = memblock_phys_mem_size();
--		if ((memsize & PAGE_MASK) != memsize)
--			limit = memsize & PAGE_MASK;
--	}
-+	/*
-+	 * Ensure that total memory size is page-aligned, because otherwise
-+	 * mark_bootmem() gets upset.
-+	 */
-+	memblock_analyze();
-+	limit = ALIGN(memory_limit ?: memblock_phys_mem_size(), PAGE_SIZE);
- 	memblock_enforce_memory_limit(limit);
- 
- 	memblock_analyze();
-diff --git a/arch/powerpc/mm/init_32.c b/arch/powerpc/mm/init_32.c
-index 5de0f25..d6c2607 100644
---- a/arch/powerpc/mm/init_32.c
-+++ b/arch/powerpc/mm/init_32.c
-@@ -125,7 +125,7 @@ void __init MMU_init(void)
- 
- 	if (memblock.memory.cnt > 1) {
- #ifndef CONFIG_WII
--		memblock.memory.cnt = 1;
-+		memblock_enforce_memory_limit(memblock.memory.regions[0].size);
- 		memblock_analyze();
- 		printk(KERN_WARNING "Only using first contiguous memory region");
- #else
-diff --git a/arch/powerpc/platforms/embedded6xx/wii.c b/arch/powerpc/platforms/embedded6xx/wii.c
-index 1b5dc1a..1cbe9d3 100644
---- a/arch/powerpc/platforms/embedded6xx/wii.c
-+++ b/arch/powerpc/platforms/embedded6xx/wii.c
-@@ -79,23 +79,19 @@ void __init wii_memory_fixups(void)
- 	BUG_ON(memblock.memory.cnt != 2);
- 	BUG_ON(!page_aligned(p[0].base) || !page_aligned(p[1].base));
- 
--	p[0].size = _ALIGN_DOWN(p[0].size, PAGE_SIZE);
--	p[1].size = _ALIGN_DOWN(p[1].size, PAGE_SIZE);
-+	/* trim unaligned tail */
-+	memblock_remove(ALIGN(p[1].base + p[1].size, PAGE_SIZE),
-+			(phys_addr_t)ULLONG_MAX);
- 
--	wii_hole_start = p[0].base + p[0].size;
-+	/* determine hole, add & reserve them */
-+	wii_hole_start = ALIGN(p[0].base + p[0].size, PAGE_SIZE);
- 	wii_hole_size = p[1].base - wii_hole_start;
--
--	pr_info("MEM1: <%08llx %08llx>\n", p[0].base, p[0].size);
--	pr_info("HOLE: <%08lx %08lx>\n", wii_hole_start, wii_hole_size);
--	pr_info("MEM2: <%08llx %08llx>\n", p[1].base, p[1].size);
--
--	p[0].size += wii_hole_size + p[1].size;
--
--	memblock.memory.cnt = 1;
-+	memblock_add(wii_hole_start, wii_hole_size);
-+	memblock_reserve(wii_hole_start, wii_hole_size);
- 	memblock_analyze();
- 
--	/* reserve the hole */
--	memblock_reserve(wii_hole_start, wii_hole_size);
-+	BUG_ON(memblock.memory.cnt != 1);
-+	__memblock_dump_all();
- 
- 	/* allow ioremapping the address space in the hole */
- 	__allow_ioremap_reserved = 1;
+ arch/s390/Kconfig        |    3 +++
+ arch/s390/kernel/setup.c |    4 +++-
+ 2 files changed, 6 insertions(+), 1 deletions(-)
+
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index c03fef7..e0c3929 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -90,6 +90,9 @@ config S390
+ 	select HAVE_ARCH_MUTEX_CPU_RELAX
+ 	select HAVE_ARCH_JUMP_LABEL if !MARCH_G5
+ 	select HAVE_RCU_TABLE_FREE if SMP
++	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
++	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_INLINE_SPIN_TRYLOCK
+ 	select ARCH_INLINE_SPIN_TRYLOCK_BH
+ 	select ARCH_INLINE_SPIN_LOCK
+diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
+index 0c35dee..5b4e48a 100644
+--- a/arch/s390/kernel/setup.c
++++ b/arch/s390/kernel/setup.c
+@@ -21,6 +21,7 @@
+ #include <linux/module.h>
+ #include <linux/sched.h>
+ #include <linux/kernel.h>
++#include <linux/memblock.h>
+ #include <linux/mm.h>
+ #include <linux/stddef.h>
+ #include <linux/unistd.h>
+@@ -596,7 +597,8 @@ setup_memory(void)
+ 		end_chunk = min(end_chunk, end_pfn);
+ 		if (start_chunk >= end_chunk)
+ 			continue;
+-		add_active_range(0, start_chunk, end_chunk);
++		memblock_add_node(PFN_PHYS(start_chunk),
++				  PFN_PHYS(end_chunk - start_chunk), 0);
+ 		pfn = max(start_chunk, start_pfn);
+ 		for (; pfn < end_chunk; pfn++)
+ 			page_set_storage_key(PFN_PHYS(pfn),
 -- 
 1.7.6
