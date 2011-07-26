@@ -1,76 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f171.google.com ([209.85.215.171]:56152 "EHLO
+Received: from mail-ey0-f171.google.com ([209.85.215.171]:60404 "EHLO
 	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753684Ab1GZPgJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:09 -0400
+	with ESMTP id S1753690Ab1GZPgL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:11 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 17/23] SuperH: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Tue, 26 Jul 2011 17:35:28 +0200
-Message-ID: <1311694534-5161-18-git-send-email-tj@kernel.org>
+Subject: [PATCH 18/23] ia64: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Tue, 26 Jul 2011 17:35:29 +0200
+Message-Id: <1311694534-5161-19-git-send-email-tj@kernel.org>
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, linux-sh@vger.kernel.org
-Message-ID: <20110726153528.SyzRPjdy7ib3Mu9pg5OUFDdHSRY9LpyItLStqZ5qFSg@z>
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
 
-sh doesn't access early_node_map[] directly and enabling
-HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
-with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
-enough.
+ia64 used early_node_map[] just to prime free_area_init_nodes().  Now
+memblock can be used for the same purpose and early_node_map[] is
+scheduled to be dropped.  Use memblock instead.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
-Cc: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-sh@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 ---
-Paul, memblock now can carry node information itself without relying
-on early_node_map[], which makes operations which make use of both
-information much saner and generally makes NUMA memory init simpler.
-For more details, please read the following thread.
+Only compile tested (both contig and discontig).
 
- http://thread.gmane.org/gmane.linux.kernel.cross-arch/10354
+ arch/ia64/Kconfig     |    3 +++
+ arch/ia64/mm/contig.c |    3 ++-
+ arch/ia64/mm/init.c   |    4 ++--
+ 3 files changed, 7 insertions(+), 3 deletions(-)
 
-I couldn't get the cross-compiler from korg to build configuration
-with CPU w/ NUMA support but given the trivial nature of the change, I
-don't think it would cause build failures on different configs, but
-this definitely needs testing on actual NUMA configuration.
-
-The patches implementing HAVE_MEMBLOCK_NODE_MAP is currently in
-tip:x86/memblock branch on which this patch is based on.
-
-Thanks.
-
- arch/sh/Kconfig        |    1 +
- arch/sh/kernel/setup.c |    3 ++-
- 2 files changed, 3 insertions(+), 1 deletions(-)
-
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index bbdeb48..8c10d85 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -4,6 +4,7 @@ config SUPERH
- 	select CLKDEV_LOOKUP
- 	select HAVE_IDE if HAS_IOPORT
- 	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_OPROFILE
- 	select HAVE_GENERIC_DMA_COHERENT
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 38280ef..e8b9cd7 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -23,6 +23,9 @@ config IA64
  	select HAVE_ARCH_TRACEHOOK
-diff --git a/arch/sh/kernel/setup.c b/arch/sh/kernel/setup.c
-index 58bff45..e3942ca 100644
---- a/arch/sh/kernel/setup.c
-+++ b/arch/sh/kernel/setup.c
-@@ -227,7 +227,8 @@ void __init __add_active_range(unsigned int nid, unsigned long start_pfn,
- 	pmb_bolt_mapping((unsigned long)__va(start), start, end - start,
- 			 PAGE_KERNEL);
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
++	select ARCH_DISCARD_MEMBLOCK
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_PENDING_IRQ if SMP
+ 	select IRQ_PER_CPU
+diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
+index f114a3b..1516d1d 100644
+--- a/arch/ia64/mm/contig.c
++++ b/arch/ia64/mm/contig.c
+@@ -16,6 +16,7 @@
+  */
+ #include <linux/bootmem.h>
+ #include <linux/efi.h>
++#include <linux/memblock.h>
+ #include <linux/mm.h>
+ #include <linux/nmi.h>
+ #include <linux/swap.h>
+@@ -348,7 +349,7 @@ paging_init (void)
+ 		printk("Virtual mem_map starts at 0x%p\n", mem_map);
+ 	}
+ #else /* !CONFIG_VIRTUAL_MEM_MAP */
+-	add_active_range(0, 0, max_low_pfn);
++	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
+ 	free_area_init_nodes(max_zone_pfns);
+ #endif /* !CONFIG_VIRTUAL_MEM_MAP */
+ 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
+diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
+index 00cb0e2..13df239d 100644
+--- a/arch/ia64/mm/init.c
++++ b/arch/ia64/mm/init.c
+@@ -10,6 +10,7 @@
+ #include <linux/bootmem.h>
+ #include <linux/efi.h>
+ #include <linux/elf.h>
++#include <linux/memblock.h>
+ #include <linux/mm.h>
+ #include <linux/mmzone.h>
+ #include <linux/module.h>
+@@ -557,8 +558,7 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
+ #endif
  
--	add_active_range(nid, start_pfn, end_pfn);
-+	memblock_set_node(PFN_PHYS(start_pfn),
-+			  PFN_PHYS(end_pfn - start_pfn), nid);
+ 	if (start < end)
+-		add_active_range(nid, __pa(start) >> PAGE_SHIFT,
+-			__pa(end) >> PAGE_SHIFT);
++		memblock_add_node(__pa(start), end - start, nid);
+ 	return 0;
  }
  
- void __init __weak plat_early_device_setup(void)
 -- 
 1.7.6
 
