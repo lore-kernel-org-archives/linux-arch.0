@@ -1,114 +1,135 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 1/8] ARM: dma-mapping: remove offset parameter to prepare
- for generic dma_ops
-Date: Tue, 26 Jul 2011 14:56:38 +0200
-Message-ID: <00c401cc4b93$75bae4c0$6130ae40$%szyprowski@samsung.com>
-References: <1308556213-24970-1-git-send-email-m.szyprowski@samsung.com>
- <1308556213-24970-2-git-send-email-m.szyprowski@samsung.com>
- <20110703152826.GL21898@n2100.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[]
+Date: Tue, 26 Jul 2011 17:35:11 +0200
+Message-ID: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:54526 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751406Ab1GZM4q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 08:56:46 -0400
-Received: from eu_spt1 (mailout1.w1.samsung.com [210.118.77.11])
- by mailout1.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LOX00HR9YMKDQ@mailout1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 26 Jul 2011 13:56:44 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LOX00FSIYMJFX@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 26 Jul 2011 13:56:44 +0100 (BST)
-In-reply-to: <20110703152826.GL21898@n2100.arm.linux.org.uk>
-Content-language: pl
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:57408 "EHLO
+	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753309Ab1GZPfm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:35:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Russell King - ARM Linux' <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, Marek Szyprowski <m.szyprowski@samsung.com>
+To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@dave
+Cc: mingo@redhat.com
 
 Hello,
 
-On Sunday, July 03, 2011 5:28 PM Russell King wrote:
+This patchset builds on the previous "memblock, x86: Allow node info
+in memblock and remove x86 specific memblock code" patchset, which now
+is in tip:x86/memblock.  This patchset updates memblock so that it's
+easier to use, converts all archs which use early_node_map[] to use
+memblock instead, and kills early_node_map[].
 
-> On Mon, Jun 20, 2011 at 09:50:06AM +0200, Marek Szyprowski wrote:
-> > This patch removes the need for offset parameter in dma bounce
-> > functions. This is required to let dma-mapping framework on ARM
-> > architecture use common, generic dma-mapping helpers.
-> 
-> I really don't like this.  Really as in hate.  Why?  I've said in the past
-> that the whole idea of getting rid of the sub-range functions is idiotic.
-> 
-> If you have to deal with cache coherence, what you _really_ want is an
-> API which tells you the size of the original buffer and the section of
-> that buffer which you want to handle - because the edges of the buffer
-> need special handling.
-> 
-> Lets say that you have a buffer which is 256 bytes long, misaligned to
-> half a cache line.  Let's first look at the sequence for whole-buffer:
-> 
-> 1. You map it for DMA from the device.  This means you writeback the
->    first and last cache lines to perserve any data shared in the
->    overlapping cache line.  The remainder you can just invalidate.
-> 
-> 2. You want to access the buffer, so you use the sync_for_cpu function.
->    If your CPU doesn't do any speculative prefetching, then you don't
->    need to do anything.  If you do, you have to invalidate the buffer,
->    but you must preserve the overlapping cache lines which again must
->    be written back.
-> 
-> 3. You transfer ownership back to the device using sync_for_device.
->    As you may have caused cache lines to be read in, again you need to
->    invalidate, and the overlapping cache lines must be written back.
-> 
-> Now, if you ask for a sub-section of the buffer to be sync'd, you can
-> actually eliminate those writebacks which are potentially troublesome,
-> and which could corrupt neighbouring data.
-> 
-> If you get rid of the sub-buffer functions and start using the whole
-> buffer functions for that purpose, you no longer know whether the
-> partial cache lines are part of the buffer or not, so you have to write
-> those back every time too.
-> 
-> So far, we haven't had any reports of corruption of this type (maybe
-> folk using the sync functions are rare on ARM - thankfully) but getting
-> rid of the range sync functions means that solving this becomes a lot
-> more difficult because we've lost the information to make the decision.
+Bootmem allocator is still looming there but this ensures a unified
+way forward where memblock is the universal early memory management
+mechanism.  This cleans up the entanglement between memblock and
+early_node_map[] in the backend but API visible to archs is still a
+bit confusing and can use some cleanup and documentation once things
+settle down a bit.
 
-Well, right now I haven't heard anyone who wants to remove 
-dma_sync_single_range_for_{cpu,device}. All this is about internal
-implementation and dma_map_ops which uses the simplified calls, not
-exposed to the drivers or any public API. 
+x86, powerpc and sparc are boot tested in several different
+configurations.  On x86 allmod/noconfigs are compile tested.  On all
+other archs except for score, defconfig + some variations are compile
+tested.
 
-I also see no reason why we loose the information. All drivers are still
-required to call dma_map_{single,page} to aquire dma address first. This
-way DMA mapping subsystem perfectly knows that the range from returned 
-dma_addr to dma_addr+size has been used for dma operations. All calls to
-dma_sync_single_* operations takes dma_addr as one of the arguments, so
-there is no problem to check which dma range this particular sync 
-operation fits.
+This does touch a lot of archs but except for x86 and powerpc the
+changes are mostly trivial and as bulk of the changes involve updates
+to generic memblock code, it would be great if these can be routed
+through single tree (tip:x86/memblock).
 
-In my patch I have shown that it is perfectly possible to use the common
-dma_map_ops structure on ARM and unify dma mapping implementation a bit
-with other architectures.
+David, Ben, Paul, patches 0015-0017 are identical sans some offsets to
+the previously posted versions.
 
-IMHO this is the right way. There is a need for custom dma mapping 
-implementations (mainly related to taking the advantage of iommu controllers
-available on newer SoCs). I would really like to avoid another set of ifdefs
-or sequences of "if (iommu_supported())" all over the dma-mapping code. Even
-now all this code is hard to understand in the first read (due to coherent/
-non-coherent sub-architectures and dmabounce code mixed in).
+ 0001-memblock-Make-memblock_overlaps_region-static.patch
+ 0002-memblock-Make-memblock_-add-remove-free-reserve-retu.patch
+ 0003-memblock-Use-memblock_reserve-in-memblock-internal-f.patch
+ 0004-memblock-Add-__memblock_dump_all.patch
+ 0005-memblock-Kill-sentinel-entries-at-the-end-of-static-.patch
+ 0006-memblock-Kill-memblock_init.patch
+ 0007-memblock-Separate-out-memblock_isolate_range-from-me.patch
+ 0008-memblock-Reimplement-__memblock_remove-using-membloc.patch
+ 0009-memblock-Make-memblock-functions-handle-overflowing-.patch
+ 0010-memblock-Reimplement-memblock_enforce_memory_limit-u.patch
+ 0011-powerpc-Cleanup-memblock-usage.patch
+ 0012-memblock-Track-total-size-of-regions-automatically.patch
+ 0013-memblock-s-memblock_analyze-memblock_allow_resize-an.patch
+ 0014-memblock-Implement-memblock_add_node.patch
+ 0015-powerpc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0016-sparc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0017-SuperH-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0018-ia64-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0019-mips-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0020-s390-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0021-score-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0022-memblock-Kill-early_node_map.patch
+ 0023-memblock-Reimplement-memblock-allocation-using-rever.patch
 
-> So I've always believed - and continue to do so - that those who want
-> to get rid of the range sync functions are misguided and are storing up
-> problems for the future.
+0001-0014 clean up and improve generic memblock code (powerpc update
+is to allow updates to generic code) so that it's easier for archs.
+e.g. memblock_init/analyze() are no longer necessary.
 
-I never said that I want to remove these operations from drivers API.
+0015-0017 convert archs which were using memblock + early_node_map[]
+to use MEMBLOCK_HAVE_NODE_MAP.
 
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+0018-0021 convert archs which were using only early_node_map[] to
+MEMBLOCK_HAVE_NODE_MAP.
+
+0022 kills now unused early_node_map[].
+
+0023 reimplements memblock allocator in sane way, which is possible
+with early_node_map[] gone.
+
+This patchset is available in the following git branch.
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock
+
+And diffstat follows.
+
+ arch/arm/mm/init.c                       |    3
+ arch/ia64/Kconfig                        |    6
+ arch/ia64/mm/contig.c                    |    3
+ arch/ia64/mm/init.c                      |    4
+ arch/microblaze/kernel/prom.c            |    3
+ arch/mips/Kconfig                        |    6
+ arch/mips/kernel/setup.c                 |    3
+ arch/mips/sgi-ip27/ip27-memory.c         |    5
+ arch/powerpc/Kconfig                     |    4
+ arch/powerpc/kernel/machine_kexec.c      |    3
+ arch/powerpc/kernel/prom.c               |   20 -
+ arch/powerpc/mm/init_32.c                |    4
+ arch/powerpc/mm/mem.c                    |    2
+ arch/powerpc/mm/numa.c                   |   10
+ arch/powerpc/mm/tlb_nohash.c             |    1
+ arch/powerpc/platforms/embedded6xx/wii.c |   23 -
+ arch/powerpc/platforms/ps3/mm.c          |    1
+ arch/s390/Kconfig                        |    6
+ arch/s390/kernel/setup.c                 |    4
+ arch/score/Kconfig                       |   12
+ arch/score/kernel/setup.c                |    4
+ arch/sh/Kconfig                          |    1
+ arch/sh/kernel/machine_kexec.c           |    3
+ arch/sh/kernel/setup.c                   |    3
+ arch/sh/mm/Kconfig                       |    3
+ arch/sh/mm/init.c                        |    3
+ arch/sparc/Kconfig                       |    2
+ arch/sparc/mm/init_64.c                  |   28 -
+ arch/unicore32/mm/init.c                 |    3
+ arch/x86/Kconfig                         |    3
+ arch/x86/kernel/e820.c                   |    3
+ arch/x86/kernel/head32.c                 |    2
+ arch/x86/kernel/head64.c                 |    2
+ arch/x86/xen/enlighten.c                 |    2
+ drivers/pci/intel-iommu.c                |    1
+ include/linux/memblock.h                 |  114 +++--
+ include/linux/mm.h                       |   50 --
+ include/linux/mmzone.h                   |    8
+ mm/memblock.c                            |  606 ++++++++++++++-----------------
+ mm/page_alloc.c                          |  259 -------------
+ 40 files changed, 450 insertions(+), 773 deletions(-)
+
+Thanks.
+
+--
+tejun
+
+[1] https://lkml.org/lkml/2011/7/12/95
