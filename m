@@ -1,93 +1,78 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 18/23] ia64: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Tue, 26 Jul 2011 17:35:29 +0200
-Message-ID: <1311694534-5161-19-git-send-email-tj__42335.2672988132$1311694750$gmane$org@kernel.org>
+Subject: [PATCH 21/23] score: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Tue, 26 Jul 2011 17:35:32 +0200
+Message-ID: <1311694534-5161-22-git-send-email-tj__21565.4920823456$1311694781$gmane$org@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f171.google.com ([209.85.215.171]:60404 "EHLO
-	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753690Ab1GZPgL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:11 -0400
+Received: from mail-ew0-f46.google.com ([209.85.215.46]:57408 "EHLO
+	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753724Ab1GZPgO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:14 -0400
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@dave
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, Lennox Wu <lennox.wu@gmail.com>
 
-ia64 used early_node_map[] just to prime free_area_init_nodes().  Now
+score used early_node_map[] just to prime free_area_init_nodes().  Now
 memblock can be used for the same purpose and early_node_map[] is
 scheduled to be dropped.  Use memblock instead.
+
+While at it, replace 7 space indentations w/ tabs.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 ---
-Only compile tested (both contig and discontig).
+Sorry, not even compile tested.  Couldn't find working cross compiler.
 
- arch/ia64/Kconfig     |    3 +++
- arch/ia64/mm/contig.c |    3 ++-
- arch/ia64/mm/init.c   |    4 ++--
- 3 files changed, 7 insertions(+), 3 deletions(-)
+ arch/score/Kconfig        |    9 ++++++---
+ arch/score/kernel/setup.c |    4 +++-
+ 2 files changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 38280ef..e8b9cd7 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -23,6 +23,9 @@ config IA64
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DMA_API_DEBUG
- 	select HAVE_GENERIC_HARDIRQS
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index 288add8..bbd0f91 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -1,9 +1,12 @@
+ menu "Machine selection"
+ 
+ config SCORE
+-       def_bool y
+-       select HAVE_GENERIC_HARDIRQS
+-       select GENERIC_IRQ_SHOW
++	def_bool y
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_IRQ_SHOW
 +	select HAVE_MEMBLOCK
 +	select HAVE_MEMBLOCK_NODE_MAP
 +	select ARCH_DISCARD_MEMBLOCK
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
- 	select IRQ_PER_CPU
-diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
-index f114a3b..1516d1d 100644
---- a/arch/ia64/mm/contig.c
-+++ b/arch/ia64/mm/contig.c
-@@ -16,6 +16,7 @@
-  */
+ 
+ choice
+ 	prompt "System type"
+diff --git a/arch/score/kernel/setup.c b/arch/score/kernel/setup.c
+index 6f898c0..b48459a 100644
+--- a/arch/score/kernel/setup.c
++++ b/arch/score/kernel/setup.c
+@@ -26,6 +26,7 @@
  #include <linux/bootmem.h>
- #include <linux/efi.h>
+ #include <linux/initrd.h>
+ #include <linux/ioport.h>
 +#include <linux/memblock.h>
  #include <linux/mm.h>
- #include <linux/nmi.h>
- #include <linux/swap.h>
-@@ -348,7 +349,7 @@ paging_init (void)
- 		printk("Virtual mem_map starts at 0x%p\n", mem_map);
- 	}
- #else /* !CONFIG_VIRTUAL_MEM_MAP */
--	add_active_range(0, 0, max_low_pfn);
-+	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
- 	free_area_init_nodes(max_zone_pfns);
- #endif /* !CONFIG_VIRTUAL_MEM_MAP */
- 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index 00cb0e2..13df239d 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -10,6 +10,7 @@
- #include <linux/bootmem.h>
- #include <linux/efi.h>
- #include <linux/elf.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/mmzone.h>
- #include <linux/module.h>
-@@ -557,8 +558,7 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
- #endif
+ #include <linux/seq_file.h>
+ #include <linux/screen_info.h>
+@@ -54,7 +55,8 @@ static void __init bootmem_init(void)
+ 	/* Initialize the boot-time allocator with low memory only. */
+ 	bootmap_size = init_bootmem_node(NODE_DATA(0), start_pfn,
+ 					 min_low_pfn, max_low_pfn);
+-	add_active_range(0, min_low_pfn, max_low_pfn);
++	memblock_add_node(PFN_PHYS(min_low_pfn),
++			  PFN_PHYS(max_low_pfn - min_low_pfn), 0);
  
- 	if (start < end)
--		add_active_range(nid, __pa(start) >> PAGE_SHIFT,
--			__pa(end) >> PAGE_SHIFT);
-+		memblock_add_node(__pa(start), end - start, nid);
- 	return 0;
- }
- 
+ 	free_bootmem(PFN_PHYS(start_pfn),
+ 		     (max_low_pfn - start_pfn) << PAGE_SHIFT);
 -- 
 1.7.6
