@@ -1,94 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ey0-f171.google.com ([209.85.215.171]:60404 "EHLO
+Received: from mail-ey0-f171.google.com ([209.85.215.171]:54562 "EHLO
 	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753690Ab1GZPgL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:11 -0400
+	with ESMTP id S1753667Ab1GZPgG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:06 -0400
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 18/23] ia64: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Tue, 26 Jul 2011 17:35:29 +0200
-Message-Id: <1311694534-5161-19-git-send-email-tj@kernel.org>
+Subject: [PATCH 15/23] powerpc: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Tue, 26 Jul 2011 17:35:26 +0200
+Message-ID: <1311694534-5161-16-git-send-email-tj@kernel.org>
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>
+Message-ID: <20110726153526.FuAqSmZnsckcA0--geYqUG_M2IWvmxh04a9qYEaaW5g@z>
 
-ia64 used early_node_map[] just to prime free_area_init_nodes().  Now
-memblock can be used for the same purpose and early_node_map[] is
-scheduled to be dropped.  Use memblock instead.
+powerpc doesn't access early_node_map[] directly and enabling
+HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
+with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
+enough.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
 ---
-Only compile tested (both contig and discontig).
+ arch/powerpc/Kconfig   |    1 +
+ arch/powerpc/mm/mem.c  |    2 +-
+ arch/powerpc/mm/numa.c |   10 ++++------
+ 3 files changed, 6 insertions(+), 7 deletions(-)
 
- arch/ia64/Kconfig     |    3 +++
- arch/ia64/mm/contig.c |    3 ++-
- arch/ia64/mm/init.c   |    4 ++--
- 3 files changed, 7 insertions(+), 3 deletions(-)
-
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 38280ef..e8b9cd7 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -23,6 +23,9 @@ config IA64
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 2729c66..900f54f 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -117,6 +117,7 @@ config PPC
+ 	select HAVE_KRETPROBES
  	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DMA_API_DEBUG
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK
 +	select HAVE_MEMBLOCK_NODE_MAP
-+	select ARCH_DISCARD_MEMBLOCK
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_PENDING_IRQ if SMP
- 	select IRQ_PER_CPU
-diff --git a/arch/ia64/mm/contig.c b/arch/ia64/mm/contig.c
-index f114a3b..1516d1d 100644
---- a/arch/ia64/mm/contig.c
-+++ b/arch/ia64/mm/contig.c
-@@ -16,6 +16,7 @@
-  */
- #include <linux/bootmem.h>
- #include <linux/efi.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/nmi.h>
- #include <linux/swap.h>
-@@ -348,7 +349,7 @@ paging_init (void)
- 		printk("Virtual mem_map starts at 0x%p\n", mem_map);
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_DMA_API_DEBUG
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 29d4dde..3ec2192 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -197,7 +197,7 @@ void __init do_init_bootmem(void)
+ 		unsigned long start_pfn, end_pfn;
+ 		start_pfn = memblock_region_memory_base_pfn(reg);
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+-		add_active_range(0, start_pfn, end_pfn);
++		memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
  	}
- #else /* !CONFIG_VIRTUAL_MEM_MAP */
--	add_active_range(0, 0, max_low_pfn);
-+	memblock_add_node(0, PFN_PHYS(max_low_pfn), 0);
- 	free_area_init_nodes(max_zone_pfns);
- #endif /* !CONFIG_VIRTUAL_MEM_MAP */
- 	zero_page_memmap_ptr = virt_to_page(ia64_imva(empty_zero_page));
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index 00cb0e2..13df239d 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -10,6 +10,7 @@
- #include <linux/bootmem.h>
- #include <linux/efi.h>
- #include <linux/elf.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/mmzone.h>
- #include <linux/module.h>
-@@ -557,8 +558,7 @@ int __init register_active_ranges(u64 start, u64 len, int nid)
- #endif
  
- 	if (start < end)
--		add_active_range(nid, __pa(start) >> PAGE_SHIFT,
--			__pa(end) >> PAGE_SHIFT);
-+		memblock_add_node(__pa(start), end - start, nid);
- 	return 0;
+ 	/* Add all physical memory to the bootmem map, mark each area
+diff --git a/arch/powerpc/mm/numa.c b/arch/powerpc/mm/numa.c
+index 6f06ea5..4978286 100644
+--- a/arch/powerpc/mm/numa.c
++++ b/arch/powerpc/mm/numa.c
+@@ -680,9 +680,7 @@ static void __init parse_drconf_memory(struct device_node *memory)
+ 			node_set_online(nid);
+ 			sz = numa_enforce_memory_limit(base, size);
+ 			if (sz)
+-				add_active_range(nid, base >> PAGE_SHIFT,
+-						 (base >> PAGE_SHIFT)
+-						 + (sz >> PAGE_SHIFT));
++				memblock_set_node(base, sz, nid);
+ 		} while (--ranges);
+ 	}
  }
+@@ -772,8 +770,7 @@ new_range:
+ 				continue;
+ 		}
  
+-		add_active_range(nid, start >> PAGE_SHIFT,
+-				(start >> PAGE_SHIFT) + (size >> PAGE_SHIFT));
++		memblock_set_node(start, size, nid);
+ 
+ 		if (--ranges)
+ 			goto new_range;
+@@ -808,7 +805,8 @@ static void __init setup_nonnuma(void)
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+ 
+ 		fake_numa_create_new_node(end_pfn, &nid);
+-		add_active_range(nid, start_pfn, end_pfn);
++		memblock_set_node(PFN_PHYS(start_pfn),
++				  PFN_PHYS(end_pfn - start_pfn), nid);
+ 		node_set_online(nid);
+ 	}
+ }
 -- 
 1.7.6
 
