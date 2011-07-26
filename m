@@ -1,93 +1,85 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Tue, 26 Jul 2011 17:35:30 +0200
-Message-ID: <1311694534-5161-20-git-send-email-tj@kernel.org>
+Subject: [PATCH 09/23] memblock: Make memblock functions handle overflowing range @size
+Date: Tue, 26 Jul 2011 17:35:20 +0200
+Message-ID: <1311694534-5161-10-git-send-email-tj@kernel.org>
 References: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-ey0-f171.google.com ([209.85.215.171]:54562 "EHLO
 	mail-ey0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753697Ab1GZPgM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:36:12 -0400
+	with ESMTP id S1753611Ab1GZPf6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jul 2011 11:35:58 -0400
 In-Reply-To: <1311694534-5161-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@dave
-Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>, linux-mips@linux-mips.org
+Cc: mingo@redhat.com, Tejun Heo <tj@kernel.org>
 
-mips used early_node_map[] just to prime free_area_init_nodes().  Now
-memblock can be used for the same purpose and early_node_map[] is
-scheduled to be dropped.  Use memblock instead.
+Allow memblock users to specify range where @base + @size overflows
+and automatically cap it at maximum.  This makes the interface more
+robust and specifying till-the-end-of-memory easier.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
 ---
-Only compile tested.  Thanks.
+ mm/memblock.c |   15 ++++++++++++---
+ 1 files changed, 12 insertions(+), 3 deletions(-)
 
- arch/mips/Kconfig                |    3 +++
- arch/mips/kernel/setup.c         |    3 ++-
- arch/mips/sgi-ip27/ip27-memory.c |    5 +++--
- 3 files changed, 8 insertions(+), 3 deletions(-)
-
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 653da62..368b2ec 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -24,6 +24,9 @@ config MIPS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select HAVE_ARCH_JUMP_LABEL
-+	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
-+	select ARCH_DISCARD_MEMBLOCK
- 
- menu "Machine selection"
- 
-diff --git a/arch/mips/kernel/setup.c b/arch/mips/kernel/setup.c
-index 8ad1d56..c25bce4 100644
---- a/arch/mips/kernel/setup.c
-+++ b/arch/mips/kernel/setup.c
-@@ -14,6 +14,7 @@
- #include <linux/ioport.h>
- #include <linux/module.h>
- #include <linux/screen_info.h>
-+#include <linux/memblock.h>
- #include <linux/bootmem.h>
- #include <linux/initrd.h>
- #include <linux/root_dev.h>
-@@ -352,7 +353,7 @@ static void __init bootmem_init(void)
- 			continue;
- #endif
- 
--		add_active_range(0, start, end);
-+		memblock_add_node(PFN_PHYS(start), PFN_PHYS(end - start), 0);
- 	}
- 
- 	/*
-diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
-index bc12971..b105eca 100644
---- a/arch/mips/sgi-ip27/ip27-memory.c
-+++ b/arch/mips/sgi-ip27/ip27-memory.c
-@@ -12,6 +12,7 @@
-  */
- #include <linux/init.h>
- #include <linux/kernel.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/mmzone.h>
- #include <linux/module.h>
-@@ -381,8 +382,8 @@ static void __init szmem(void)
- 				continue;
- 			}
- 			num_physpages += slot_psize;
--			add_active_range(node, slot_getbasepfn(node, slot),
--					 slot_getbasepfn(node, slot) + slot_psize);
-+			memblock_add_node(PFN_PHYS(slot_getbasepfn(node, slot)),
-+					  PFN_PHYS(slot_psize), node);
- 		}
- 	}
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 8b38cd9..53d214a 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -49,6 +49,12 @@ static inline const char *memblock_type_name(struct memblock_type *type)
+ 		return "unknown";
  }
+ 
++/* adjust *@size so that (@base + *@size) doesn't overflow, return new size */
++static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
++{
++	return *size = min(*size, (phys_addr_t)ULLONG_MAX - base);
++}
++
+ /*
+  * Address comparison utilities
+  */
+@@ -328,7 +334,8 @@ static int __init_memblock memblock_add_region(struct memblock_type *type,
+ 					       phys_addr_t base, phys_addr_t size)
+ {
+ 	bool insert = false;
+-	phys_addr_t obase = base, end = base + size;
++	phys_addr_t obase = base;
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 	int i, nr_new;
+ 
+ 	/* special case for empty array */
+@@ -420,7 +427,7 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 					phys_addr_t base, phys_addr_t size,
+ 					int *start_rgn, int *end_rgn)
+ {
+-	phys_addr_t end = base + size;
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 	int i;
+ 
+ 	*start_rgn = *end_rgn = 0;
+@@ -862,16 +869,18 @@ int __init_memblock memblock_is_memory(phys_addr_t addr)
+ int __init_memblock memblock_is_region_memory(phys_addr_t base, phys_addr_t size)
+ {
+ 	int idx = memblock_search(&memblock.memory, base);
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 
+ 	if (idx == -1)
+ 		return 0;
+ 	return memblock.memory.regions[idx].base <= base &&
+ 		(memblock.memory.regions[idx].base +
+-		 memblock.memory.regions[idx].size) >= (base + size);
++		 memblock.memory.regions[idx].size) >= end;
+ }
+ 
+ int __init_memblock memblock_is_region_reserved(phys_addr_t base, phys_addr_t size)
+ {
++	memblock_cap_size(base, &size);
+ 	return memblock_overlaps_region(&memblock.reserved, base, size) >= 0;
+ }
+ 
 -- 
 1.7.6
