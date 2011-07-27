@@ -1,51 +1,51 @@
-From: "WESTERN UNION OFFICE" <info@western.net>
-Subject: PICK UP MTCN 9500834460
-Date: Wed, 27 Jul 2011 16:25:48 +0800
-Message-ID: <20110727082556.M49319@western.net>
-Reply-To: western-money73@hotmail.com
+From: Neil Horman <nhorman@tuxdriver.com>
+Subject: Re: [PATCHv4 10/11] drop_monitor: Use *_dec_not_zero instead of
+ *_add_unless
+Date: Wed, 27 Jul 2011 06:59:07 -0400
+Message-ID: <20110727105907.GA19001@hmsreliant.think-freely.org>
+References: <1311760070-21532-1-git-send-email-sven@narfation.org>
+ <1311760070-21532-10-git-send-email-sven@narfation.org>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=iso-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from imsantv23.netvigator.com ([210.87.247.11]:49184 "EHLO
-	imsantv23.netvigator.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752867Ab1G0Kik (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2011 06:38:40 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <netdev-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1311760070-21532-10-git-send-email-sven@narfation.org>
+Sender: netdev-owner@vger.kernel.org
+To: Sven Eckelmann <sven@narfation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-How are you today?
+On Wed, Jul 27, 2011 at 11:47:49AM +0200, Sven Eckelmann wrote:
+> atomic_dec_not_zero is defined for each architecture through
+> <linux/atomic.h> to provide the functionality of
+> atomic_add_unless(x, -1, 0).
+> 
+> Signed-off-by: Sven Eckelmann <sven@narfation.org>
+> Cc: Neil Horman <nhorman@tuxdriver.com>
+> Cc: netdev@vger.kernel.org
+> ---
+>  net/core/drop_monitor.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
+> 
+> diff --git a/net/core/drop_monitor.c b/net/core/drop_monitor.c
+> index 7f36b38..ef4a05d 100644
+> --- a/net/core/drop_monitor.c
+> +++ b/net/core/drop_monitor.c
+> @@ -137,7 +137,7 @@ static void trace_drop_common(struct sk_buff *skb, void *location)
+>  	struct per_cpu_dm_data *data = &__get_cpu_var(dm_cpu_data);
+>  
+>  
+> -	if (!atomic_add_unless(&data->dm_hit_count, -1, 0)) {
+> +	if (!atomic_dec_not_zero(&data->dm_hit_count)) {
+>  		/*
+>  		 * we're already at zero, discard this hit
+>  		 */
+> -- 
+> 1.7.5.4
+> 
+> 
+Wheres the patch that creates the per arch definition of this function?  I see
+the other posts in this series went to lkml, but the archives don't have the
+first in the series anywhere, which ostensibly adds the definition.  
+Neil
 
-
-I write to inform you that we have already sent you $5,000.00USD
-through Western union as we have been given the mandate to transfer
-your full compensation payment of  $1.800,000.00USD via western union
-by this government.
-
-I called to give you the information through phone as internet hackers
-were many but i cannot reach you yesterday even this morning,So I
-decided to email you the (MTCN) and sender name so that you can pick
-up this $5,000.00USD to enable us send another $5,000.00USD by
-tomorrow as you knows we will be sending you only $5,000.00USD per
-day.Please pick up this information and run to any western union
-(OUTLET) in your country and pick up this $5,000.00USD and send us an
-email back,so that we can send another $5,000.00USD by tomorrow.
-
-Manager: Mr Frank Amos
-email me on:western-money73@hotmail.com
-call us on: +234-7031908911
-once you picked up this $5000.00USD today.
-
-Here is the western union information to pick up the $5000.00USD,
-
-MTCN :___________  MTCN 9500834460
-first name: ________Appoline
-Second Name: ____Ouedraoge
-Text Question: ____When
-Answer: ____________2Hours ago
-Amount:__________ $5,000.00 United State Dollars
-
-I am waiting for your E-mail once you pick up $5000.00USD,
-
-Thanks
-Mr Frank Amos.
