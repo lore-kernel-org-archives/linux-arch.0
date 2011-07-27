@@ -1,133 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oproxy9.bluehost.com ([69.89.24.6]:47202 "HELO
-	oproxy9.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1750937Ab1G0Ez4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2011 00:55:56 -0400
-Date: Tue, 26 Jul 2011 21:55:54 -0700
-From: Randy Dunlap <rdunlap@xenotime.net>
-Subject: Re: [PATCH] Cross Memory Attach v4
-Message-ID: <20110726215554.f87b403e.rdunlap@xenotime.net>
-In-Reply-To: <20110727125342.5637308d@lilo>
-References: <20110727125342.5637308d@lilo>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from narfation.org ([79.140.41.39]:43168 "EHLO v3-1039.vlinux.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753527Ab1G0Jzw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jul 2011 05:55:52 -0400
+From: Sven Eckelmann <sven@narfation.org>
+Subject: [PATCHv4 08/11] xfs: Use *_dec_not_zero instead of *_add_unless
+Date: Wed, 27 Jul 2011 11:47:47 +0200
+Message-ID: <1311760070-21532-8-git-send-email-sven@narfation.org>
+In-Reply-To: <1311760070-21532-1-git-send-email-sven@narfation.org>
+References: <1311760070-21532-1-git-send-email-sven@narfation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christopher Yeoh <cyeoh@au1.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-man@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110727045554.HvblARS4WqPEqcksjKFGVMqWU4yoeD1fhtv6ph7FXqQ@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Sven Eckelmann <sven@narfation.org>, Alex Elder <aelder@sgi.com>, xfs-masters@oss.sgi.com, xfs@oss.sgi.com
+Message-ID: <20110727094747.b-zDCgZ_2DqFW5B77yErw6tdcfr1B_0iNeRJpgHSFoU@z>
 
-On Wed, 27 Jul 2011 12:53:42 +0930 Christopher Yeoh wrote:
+atomic_dec_not_zero is defined for each architecture through
+<linux/atomic.h> to provide the functionality of
+atomic_add_unless(x, -1, 0).
 
-> Hi Andrew,
-> 
-> Here's an updated version of the Cross Memory Attach patch. Changes
-> since the v3:
-> 
-> - Adds x86_64 specific wire up
-> - Changes behaviour so process_vm_readv and process_vm_writev return
->   the number of bytes successfully read or written even if an error
->   occurs
-> - Adds more kernel doc interface comments 
-> - rename of some internal functions (process_vm_rw_check_iovecs, 
->   process_vm_rw) so they make more sense. 
-> 
-> Still need to do benchmarking to see if the optimisation for small
-> copies using a local on-stack array in process_vm_rw_core is worth it. 
-
-It's nice to include a diffstat so that people can get a quick patch
-summary and see what files are touched.
-
-> diffstat  -w 70 -p 1 cma-v4.patch 
- arch/powerpc/include/asm/systbl.h  |    2 
- arch/powerpc/include/asm/unistd.h  |    4 
- arch/x86/ia32/ia32entry.S          |    2 
- arch/x86/include/asm/unistd_32.h   |    4 
- arch/x86/include/asm/unistd_64.h   |    4 
- arch/x86/kernel/syscall_table_32.S |    2 
- fs/aio.c                           |    4 
- fs/compat.c                        |    7 
- fs/read_write.c                    |    8 
- include/linux/compat.h             |    3 
- include/linux/fs.h                 |    7 
- include/linux/syscalls.h           |   13 
- kernel/sys_ni.c                    |    4 
- mm/Makefile                        |    3 
- mm/process_vm_access.c             |  482 +++++++++++++++++++++++++++
- security/keys/compat.c             |    2 
- security/keys/keyctl.c             |    2 
- 17 files changed, 536 insertions(+), 17 deletions(-)
-
-
-> diff --git a/mm/process_vm_access.c b/mm/process_vm_access.c
-> new file mode 100644
-> index 0000000..a0e3cfb
-> --- /dev/null
-> +++ b/mm/process_vm_access.c
-> @@ -0,0 +1,482 @@
-> +/*
-> + *  linux/mm/process_vm_access.c
-> + *
-> + *  Copyright (C) 2010-2011 Christopher Yeoh <cyeoh@au1.ibm.com>, IBM Corp.
-
-Any license for this file?  maybe GPL?
-
-> + */
-> +
-> +#include <linux/mm.h>
-> +#include <linux/uio.h>
-> +#include <linux/sched.h>
-> +#include <linux/highmem.h>
-> +#include <linux/ptrace.h>
-> +#include <linux/slab.h>
-> +#include <linux/syscalls.h>
-> +
-> +#ifdef CONFIG_COMPAT
-> +#include <linux/compat.h>
-> +#endif
-> +
-> +/*
-
-Any problem with using
-/**
-so that these are proper kernel-doc notation?
-(for all [4] functions here that have such notation)
-
-
-> + * process_vm_rw_pages - read/write pages from task specified
-> + * @task: task to read/write from
-> + * @mm: mm for task
-> + * @process_pages: struct pages area that can store at least
-> + *  nr_pages_to_copy struct page pointers
-> + * @pa: address of page in task to start copying from/to
-> + * @start_offset: offset in page to start copying from/to
-> + * @len: number of bytes to copy
-> + * @lvec: iovec array specifying where to copy to/from
-> + * @lvec_cnt: number of elements in iovec array
-> + * @lvec_current: index in iovec array we are up to
-> + * @lvec_offset: offset in bytes from current iovec iov_base we are up to
-> + * @vm_write: 0 means copy from, 1 means copy to
-> + * @nr_pages_to_copy: number of pages to copy
-> + * @bytes_copied: returns number of bytes successfully copied
-> + * Returns 0 on success, error code otherwise
-> + */
-> +static int process_vm_rw_pages(struct task_struct *task,
-> +			       struct mm_struct *mm,
-> +			       struct page **process_pages,
-> +			       unsigned long pa,
-> +			       unsigned long start_offset,
-> +			       unsigned long len,
-> +			       const struct iovec *lvec,
-> +			       unsigned long lvec_cnt,
-> +			       unsigned long *lvec_current,
-> +			       size_t *lvec_offset,
-> +			       int vm_write,
-> +			       unsigned int nr_pages_to_copy,
-> +			       ssize_t *bytes_copied)
-> +{
-
-
+Signed-off-by: Sven Eckelmann <sven@narfation.org>
+Cc: Alex Elder <aelder@sgi.com>
+Cc: xfs-masters@oss.sgi.com
+Cc: xfs@oss.sgi.com
 ---
-~Randy
-*** Remember to use Documentation/SubmitChecklist when testing your code ***
+ fs/xfs/linux-2.6/xfs_buf.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/fs/xfs/linux-2.6/xfs_buf.c b/fs/xfs/linux-2.6/xfs_buf.c
+index b2b4119..a68d9bf 100644
+--- a/fs/xfs/linux-2.6/xfs_buf.c
++++ b/fs/xfs/linux-2.6/xfs_buf.c
+@@ -1429,7 +1429,7 @@ xfs_buftarg_shrink(
+ 		 * zero. If the value is already zero, we need to reclaim the
+ 		 * buffer, otherwise it gets another trip through the LRU.
+ 		 */
+-		if (!atomic_add_unless(&bp->b_lru_ref, -1, 0)) {
++		if (!atomic_dec_not_zero(&bp->b_lru_ref)) {
+ 			list_move_tail(&bp->b_lru, &btp->bt_lru);
+ 			continue;
+ 		}
+-- 
+1.7.5.4
+
