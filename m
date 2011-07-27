@@ -1,44 +1,50 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH 13/13] memblock, x86: Replace
- memblock_x86_reserve/free_range() with generic ones
-Date: Wed, 27 Jul 2011 10:07:56 +0200
-Message-ID: <20110727080756.GV2622@htj.dyndns.org>
-References: <1310462166-31469-1-git-send-email-tj@kernel.org>
- <1310462166-31469-14-git-send-email-tj@kernel.org>
- <CAE9FiQU3+ceB+uDY6q2WyBvaTsJr-v9sRF7DDr_omNMf49o3Kg@mail.gmail.com>
- <CAOS58YOYOMNmLTn=MLdObwfUPLb-xOr1Xw7aLoEWcDb8esAX4A@mail.gmail.com>
- <CAE9FiQX5F2H_SaPTO0CxP9sAzmg0JSchonf1KXONOjkrB0rP+g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f52.google.com ([209.85.161.52]:34639 "EHLO
-	mail-fx0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751615Ab1G0IIB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jul 2011 04:08:01 -0400
-Content-Disposition: inline
-In-Reply-To: <CAE9FiQX5F2H_SaPTO0CxP9sAzmg0JSchonf1KXONOjkrB0rP+g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yhlu.kernel@gmail.com>
-Cc: mingo@redhat.com, hpa@zytor.com, tglx@linutronix.de, benh@kernel.crashing.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org
+From: Sven Eckelmann <sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
+Subject: [PATCHv4 02/11] batman-adv: Remove private define of
+	atomic_dec_not_zero
+Date: Wed, 27 Jul 2011 11:47:41 +0200
+Message-ID: <1311760070-21532-2-git-send-email-sven@narfation.org>
+References: <1311760070-21532-1-git-send-email-sven@narfation.org>
+Reply-To: The list for a Better Approach To Mobile Ad-hoc Networking
+	<b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
+Return-path: <b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
+In-Reply-To: <1311760070-21532-1-git-send-email-sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
+List-Unsubscribe: <https://lists.open-mesh.org/mm/options/b.a.t.m.a.n>,
+	<mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.open-mesh.org/pipermail/b.a.t.m.a.n>
+List-Post: <mailto:b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
+List-Help: <mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.open-mesh.org/mm/listinfo/b.a.t.m.a.n>,
+	<mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=subscribe>
+Sender: b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
+Errors-To: b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
+To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Simon Wunderlich <siwu-MaAgPAbsBIVS8oHt8HbXEIQuADTiUCJX@public.gmane.org>, Marek Lindner <lindner_marek-LWAfsSFWpa4@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello, Yinghai.
+atomic_dec_not_zero is defined through <linux/atomic.h> for all
+architectures and batman-adv doesn't need an extra define which may
+collide with the global one.
 
-On Tue, Jul 26, 2011 at 05:59:13PM -0700, Yinghai Lu wrote:
-> yes, with bootmem wrap stage, the print out are all the same.
-> 
-> will have
-> __alloc_memory_core_early+0x63
-> everywhere.
-> 
-> add name print out for comparing, name could give some hint.
+Signed-off-by: Sven Eckelmann <sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
+Cc: Marek Lindner <lindner_marek-LWAfsSFWpa4@public.gmane.org>
+Cc: Simon Wunderlich <siwu-MaAgPAbsBIVS8oHt8HbXEIQuADTiUCJX@public.gmane.org>
+Cc: b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
+---
+ net/batman-adv/main.h |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-The better solution would be making __alloc_memory_core_early() pass
-in its caller and print it out.  I don't think requiring pretty name
-just for debugging is a good or scalable idea.  There's no reason to
-bother API users with it.
-
-Thanks.
-
+diff --git a/net/batman-adv/main.h b/net/batman-adv/main.h
+index a6df61a..d986f34 100644
+--- a/net/batman-adv/main.h
++++ b/net/batman-adv/main.h
+@@ -201,8 +201,6 @@ static inline int compare_eth(const void *data1, const void *data2)
+ }
+ 
+ 
+-#define atomic_dec_not_zero(v)	atomic_add_unless((v), -1, 0)
+-
+ /* Returns the smallest signed integer in two's complement with the sizeof x */
+ #define smallest_signed_int(x) (1u << (7u + 8u * (sizeof(x) - 1u)))
+ 
 -- 
-tejun
+1.7.5.4
