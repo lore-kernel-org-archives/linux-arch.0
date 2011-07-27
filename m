@@ -1,92 +1,76 @@
-From: Sven Eckelmann <sven@narfation.org>
-Subject: Re: Re: [PATCHv4 10/11] drop_monitor: Use *_dec_not_zero instead of *_add_unless
-Date: Wed, 27 Jul 2011 13:52:50 +0200
-Message-ID: <2127465.xrCKehbL3A@sven-laptop.home.narfation.org>
-References: <1311760070-21532-1-git-send-email-sven@narfation.org> <1311760070-21532-10-git-send-email-sven@narfation.org> <20110727105907.GA19001@hmsreliant.think-freely.org>
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [PATCHv4 09/11] memcg: Use *_dec_not_zero instead of *_add_unless
+Date: Wed, 27 Jul 2011 13:58:15 +0200
+Message-ID: <20110727115815.GC4024@tiehlicka.suse.cz>
+References: <1311760070-21532-1-git-send-email-sven@narfation.org>
+ <1311760070-21532-9-git-send-email-sven@narfation.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="nextPart3686055.hEzUH6zKZp"; micalg="pgp-sha512"; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from narfation.org ([79.140.41.39]:48791 "EHLO v3-1039.vlinux.de"
+Received: from cantor2.suse.de ([195.135.220.15]:40265 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751160Ab1G0Lw4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Jul 2011 07:52:56 -0400
-In-Reply-To: <20110727105907.GA19001@hmsreliant.think-freely.org>
+	id S1750861Ab1G0L6V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jul 2011 07:58:21 -0400
+Content-Disposition: inline
+In-Reply-To: <1311760070-21532-9-git-send-email-sven@narfation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Neil Horman <nhorman@tuxdriver.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org
+To: Sven Eckelmann <sven@narfation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Balbir Singh <balbir@linux.vnet.ibm.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, linux-mm@kvack.org
 
+On Wed 27-07-11 11:47:48, Sven Eckelmann wrote:
+> atomic_dec_not_zero is defined for each architecture through
+> <linux/atomic.h> to provide the functionality of
+> atomic_add_unless(x, -1, 0).
 
---nextPart3686055.hEzUH6zKZp
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+yes, I like it because atomic_dec_* is more consistent (at least from
+the code reading) with atomic_inc used by mem_cgroup_mark_under_oom
+which.
 
-On Wednesday 27 July 2011 06:59:07 Neil Horman wrote:
-> On Wed, Jul 27, 2011 at 11:47:49AM +0200, Sven Eckelmann wrote:
-> > atomic_dec_not_zero is defined for each architecture through
-> > <linux/atomic.h> to provide the functionality of
-> > atomic_add_unless(x, -1, 0).
-> > 
-> > Signed-off-by: Sven Eckelmann <sven@narfation.org>
-> > Cc: Neil Horman <nhorman@tuxdriver.com>
-> > Cc: netdev@vger.kernel.org
-> > ---
-> > 
-> >  net/core/drop_monitor.c |    2 +-
-> >  1 files changed, 1 insertions(+), 1 deletions(-)
-> > 
-> > diff --git a/net/core/drop_monitor.c b/net/core/drop_monitor.c
-> > index 7f36b38..ef4a05d 100644
-> > --- a/net/core/drop_monitor.c
-> > +++ b/net/core/drop_monitor.c
-> > @@ -137,7 +137,7 @@ static void trace_drop_common(struct sk_buff *skb,
-> > void *location)
-> > 
-> >  	struct per_cpu_dm_data *data = &__get_cpu_var(dm_cpu_data);
-> > 
-> > -	if (!atomic_add_unless(&data->dm_hit_count, -1, 0)) {
-> > +	if (!atomic_dec_not_zero(&data->dm_hit_count)) {
-> > 
-> >  		/*
-> >  		
-> >  		 * we're already at zero, discard this hit
-> >  		 */
 > 
-> Wheres the patch that creates the per arch definition of this function?  I
-> see the other posts in this series went to lkml, but the archives don't
-> have the first in the series anywhere, which ostensibly adds the
-> definition. Neil
+> Signed-off-by: Sven Eckelmann <sven@narfation.org>
+> Cc: Balbir Singh <balbir@linux.vnet.ibm.com>
+> Cc: Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>
+> Cc: KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>
+> Cc: linux-mm@kvack.org
 
-Most architectures don't use a per architecture definition anymore, but a 
-cross-architecture the definition in include/linux/atomic.h.
+Acked-by: Michal Hocko <mhocko@suse.cz>
 
-The 01/11 can be found in different archives under the message id 
-1311760070-21532-1-git-send-email-sven@narfation.org ... for example gmane: 
-http://article.gmane.org/gmane.linux.ports.arm.kernel/126704
+> ---
+>  mm/memcontrol.c |    4 ++--
+>  1 files changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/mm/memcontrol.c b/mm/memcontrol.c
+> index 5f84d23..00a7580 100644
+> --- a/mm/memcontrol.c
+> +++ b/mm/memcontrol.c
+> @@ -1909,10 +1909,10 @@ static void mem_cgroup_unmark_under_oom(struct mem_cgroup *mem)
+>  	/*
+>  	 * When a new child is created while the hierarchy is under oom,
+>  	 * mem_cgroup_oom_lock() may not be called. We have to use
+> -	 * atomic_add_unless() here.
+> +	 * atomic_dec_not_zero() here.
+>  	 */
+>  	for_each_mem_cgroup_tree(iter, mem)
+> -		atomic_add_unless(&iter->under_oom, -1, 0);
+> +		atomic_dec_not_zero(&iter->under_oom);
+>  }
+>  
+>  static DEFINE_SPINLOCK(memcg_oom_lock);
+> -- 
+> 1.7.5.4
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
 
-Kind regards,
-	Sven
---nextPart3686055.hEzUH6zKZp
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part.
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAABCgAGBQJOL/wSAAoJEF2HCgfBJntGNz8P/2wDmBhHkECns7OOuBVqlMOz
-r66gEhnNLTnztYkxL0GQ8/qH2OfsKDwfKF1i7tXkie0yqAhAxUtjMJUahxmX786G
-Ek2nanC8Qbt5EmTrwx/bpzxLDM0UrOaLu1OcxA0AjT8qu/hJlzwicgr4fEElaanM
-oL6VE0fTD2fk/7CYNEBC9omh4Om3pHWulj4pirEjR3pYqQ2/2mUO5RZ3blCNbts/
-MOMrcrRC/p9ZFP/VanETM8xXcjD1nRDeKnliuYC+S0ZYB0ns6apPXBpflXdw2+4A
-CVvfUcGk5ao0DaiggW6yaWxgshDSyT6gmy5fhXc/MKLvq6GswQKDBHjQZCO54fDM
-upV+2gIZa0ehPdDxjQbSvmwY50U50jK9eDp22H/s6WOO+30RMVRrPKpAjhs310lL
-Eql8hKRQP8/6xL27B9lbpIQvkUGNmFi1Uh/gS+kctOl6GUKONzmN40mHSyfS1+nf
-mSUs3+eBmNz1arazwTwzCVC4SibXdC7WV6CwfNXQkceAvkLfOedV6J+wLmDgTE+0
-mcdiIv7D3lnLdDOoyftlFkMOL0+hwAsg0MIhVaWE1BEL3zS4VoEyqI2ass7Vyw7U
-7tR89XaaQKL4+na/NjO4BPulO4DZEVzFh6orxLMaUAbZpZ77+yG90TO4dtSuu3rv
-ohcG9P/NR3n/KRZvxk1I
-=cQPZ
------END PGP SIGNATURE-----
-
---nextPart3686055.hEzUH6zKZp--
+-- 
+Michal Hocko
+SUSE Labs
+SUSE LINUX s.r.o.
+Lihovarska 1060/12
+190 00 Praha 9    
+Czech Republic
