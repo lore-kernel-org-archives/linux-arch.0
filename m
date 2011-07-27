@@ -1,44 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from narfation.org ([79.140.41.39]:43169 "EHLO v3-1039.vlinux.de"
+Received: from narfation.org ([79.140.41.39]:43164 "EHLO v3-1039.vlinux.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754186Ab1G0Jzw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 27 Jul 2011 05:55:52 -0400
+	id S1754030Ab1G0Jzt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jul 2011 05:55:49 -0400
 From: Sven Eckelmann <sven@narfation.org>
-Subject: [PATCHv4 05/11] omap3isp: Use *_dec_not_zero instead of *_add_unless
-Date: Wed, 27 Jul 2011 11:47:44 +0200
-Message-ID: <1311760070-21532-5-git-send-email-sven@narfation.org>
+Subject: [PATCHv4 03/11] fault_inject: Remove private define of atomic_dec_not_zero
+Date: Wed, 27 Jul 2011 11:47:42 +0200
+Message-ID: <1311760070-21532-3-git-send-email-sven@narfation.org>
 In-Reply-To: <1311760070-21532-1-git-send-email-sven@narfation.org>
 References: <1311760070-21532-1-git-send-email-sven@narfation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Sven Eckelmann <sven@narfation.org>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, linux-media@vger.kernel.org
-Message-ID: <20110727094744.RpfMHeK5CM6Qnwmzw9a_iIzuscRNvBd-5skrjgphPHM@z>
+Cc: linux-kernel@vger.kernel.org, Sven Eckelmann <sven@narfation.org>, Akinobu Mita <akinobu.mita@gmail.com>
+Message-ID: <20110727094742.I29iJdtw05EH8k3hMdUi5_gNM2Hv-niRMPKM-2q2ilE@z>
 
-atomic_dec_not_zero is defined for each architecture through
-<linux/atomic.h> to provide the functionality of
-atomic_add_unless(x, -1, 0).
+atomic_dec_not_zero is defined through <linux/atomic.h> for all
+architectures and fault_inject doesn't need an extra define which may
+collide with the global one.
 
 Signed-off-by: Sven Eckelmann <sven@narfation.org>
-Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Cc: linux-media@vger.kernel.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>
 ---
- drivers/media/video/omap3isp/ispstat.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ lib/fault-inject.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/media/video/omap3isp/ispstat.c b/drivers/media/video/omap3isp/ispstat.c
-index b44cb68..81b1ec9 100644
---- a/drivers/media/video/omap3isp/ispstat.c
-+++ b/drivers/media/video/omap3isp/ispstat.c
-@@ -652,7 +652,7 @@ static int isp_stat_buf_process(struct ispstat *stat, int buf_state)
- {
- 	int ret = STAT_NO_BUF;
+diff --git a/lib/fault-inject.c b/lib/fault-inject.c
+index 2577b12..8ce98c6 100644
+--- a/lib/fault-inject.c
++++ b/lib/fault-inject.c
+@@ -45,8 +45,6 @@ static void fail_dump(struct fault_attr *attr)
+ 		dump_stack();
+ }
  
--	if (!atomic_add_unless(&stat->buf_err, -1, 0) &&
-+	if (!atomic_dec_not_zero(&stat->buf_err) &&
- 	    buf_state == STAT_BUF_DONE && stat->state == ISPSTAT_ENABLED) {
- 		ret = isp_stat_buf_queue(stat);
- 		isp_stat_buf_next(stat);
+-#define atomic_dec_not_zero(v)		atomic_add_unless((v), -1, 0)
+-
+ static bool fail_task(struct fault_attr *attr, struct task_struct *task)
+ {
+ 	return !in_interrupt() && task->make_it_fail;
 -- 
 1.7.5.4
 
