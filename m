@@ -1,40 +1,47 @@
 From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 06/11] linux/stop_machine.h: fix implicit use of smp.h for smp_processor_id
-Date: Thu, 28 Jul 2011 01:16:13 -0400
-Message-ID: <1311830178-30314-7-git-send-email-paul.gortmaker@windriver.com>
+Subject: [PATCH 02/11] sysdev.h: dont include <linux/module.h> for no reason
+Date: Thu, 28 Jul 2011 01:16:09 -0400
+Message-ID: <1311830178-30314-3-git-send-email-paul.gortmaker@windriver.com>
 References: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.windriver.com ([147.11.1.11]:51305 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754599Ab1G1FQg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jul 2011 01:16:36 -0400
 In-Reply-To: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: mingo@elte.hu, torvalds@linux-foundation.org
 Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-This will show up on MIPS when we fix all the implicit header presences
-that are because of module.h being everywhere.
+The <linux/module.h> pretty much brings in the kitchen sink along
+with it, so it should be avoided wherever reasonably possible in
+terms of being included from other commonly used <linux/something.h>
+files, as it results in a measureable increase on compile times.
 
-In file included from kernel/trace/ftrace.c:16:
-include/linux/stop_machine.h: In function 'stop_one_cpu':
-include/linux/stop_machine.h:50: error: implicit declaration of function 'smp_processor_id'
-include/linux/stop_machine.h: In function 'stop_cpus':
-include/linux/stop_machine.h:80: error: implicit declaration of function 'raw_smp_processor_id'
+There doesn't appear to be any module specifics in this file.
+The obvious people who were relying on the presence of
+the vast amount of stuff module.h sucked in have been fixed.
+
+If other files are implicitly relying on it, then lets see who
+they are and fix them too.
 
 Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 ---
- include/linux/stop_machine.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ include/linux/sysdev.h |    1 -
+ 1 files changed, 0 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/stop_machine.h b/include/linux/stop_machine.h
-index 2d04ea9..c170edc 100644
---- a/include/linux/stop_machine.h
-+++ b/include/linux/stop_machine.h
-@@ -3,6 +3,7 @@
+diff --git a/include/linux/sysdev.h b/include/linux/sysdev.h
+index d35e783..20f63d3 100644
+--- a/include/linux/sysdev.h
++++ b/include/linux/sysdev.h
+@@ -22,7 +22,6 @@
+ #define _SYSDEV_H_
  
- #include <linux/cpu.h>
- #include <linux/cpumask.h>
-+#include <linux/smp.h>
- #include <linux/list.h>
- #include <asm/system.h>
+ #include <linux/kobject.h>
+-#include <linux/module.h>
+ #include <linux/pm.h>
+ 
  
 -- 
 1.7.6
