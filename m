@@ -1,48 +1,67 @@
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage
-Date: Thu, 28 Jul 2011 21:18:24 +0200
-Message-ID: <20110728191824.GB17308@elte.hu>
-References: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
- <CA+55aFwtyfzaFABHKD+OMWsojGov0JLmnrZimhVaOcrer=tJjQ@mail.gmail.com>
- <20110728152753.GA19409@windriver.com>
+From: "Rafael J. Wysocki" <rjw@sisk.pl>
+Subject: Re: [PATCHv4 04/11] PM: Use *_dec_not_zero instead of
+	*_add_unless
+Date: Thu, 28 Jul 2011 23:43:54 +0200
+Message-ID: <201107282343.54519.rjw@sisk.pl>
+References: <1311760070-21532-1-git-send-email-sven@narfation.org>
+	<201107272150.37962.rjw@sisk.pl> <20110727203604.GA8468@elf.ucw.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.mail.elte.hu ([157.181.1.138]:58415 "EHLO mx3.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754799Ab1G1TTK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jul 2011 15:19:10 -0400
-Content-Disposition: inline
-In-Reply-To: <20110728152753.GA19409@windriver.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-pm-bounces@lists.linux-foundation.org>
+In-Reply-To: <20110727203604.GA8468@elf.ucw.cz>
+List-Unsubscribe: <https://lists.linux-foundation.org/mailman/listinfo/linux-pm>,
+	<mailto:linux-pm-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linux-foundation.org/pipermail/linux-pm>
+List-Post: <mailto:linux-pm@lists.linux-foundation.org>
+List-Help: <mailto:linux-pm-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linux-foundation.org/mailman/listinfo/linux-pm>,
+	<mailto:linux-pm-request@lists.linux-foundation.org?subject=subscribe>
+Sender: linux-pm-bounces@lists.linux-foundation.org
+Errors-To: linux-pm-bounces@lists.linux-foundation.org
+To: Pavel Machek <pavel@ucw.cz>
+Cc: linux-arch@vger.kernel.org, Len Brown <len.brown@intel.com>, linux-pm@lists.linux-foundation.org, linux-kernel@vger.kernel.org, Sven Eckelmann <sven@narfation.org>
+List-Id: linux-arch.vger.kernel.org
 
-
-* Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-
-> >  - how much does this actually improve compile times (for a 
-> > "normal" build or a "allmodconfig" one)?
+On Wednesday, July 27, 2011, Pavel Machek wrote:
+> Hi!
 > 
-> Let me run some "real world" use cases and get back to you in a 
-> couple of hours with that.  But Ingo's testing on a much earlier 
-> snapshot was showing roughly a couple percent.  ( 
-> https://lkml.org/lkml/2011/5/28/60 )
+> > > atomic_dec_not_zero is defined for each architecture through
+> > > <linux/atomic.h> to provide the functionality of
+> > > atomic_add_unless(x, -1, 0).
+> > > 
+> > > Signed-off-by: Sven Eckelmann <sven@narfation.org>
+> > > Cc: Len Brown <len.brown@intel.com>
+> > > Cc: Pavel Machek <pavel@ucw.cz>
+> > > Cc: Rafael J. Wysocki <rjw@sisk.pl>
+> > > Cc: linux-pm@lists.linux-foundation.org
+> > 
+> > Acked-by: Rafael J. Wysocki <rjw@sisk.pl>
+> > 
+> > > ---
+> > >  drivers/base/power/runtime.c |    4 ++--
+> > >  include/linux/pm_runtime.h   |    2 +-
+> > >  kernel/power/hibernate.c     |    4 ++--
+> > >  kernel/power/user.c          |    2 +-
+> > >  4 files changed, 6 insertions(+), 6 deletions(-)
+> > > 
+> > > diff --git a/drivers/base/power/runtime.c b/drivers/base/power/runtime.c
+> > > index 8dc247c..bda10d9 100644
+> > > --- a/drivers/base/power/runtime.c
+> > > +++ b/drivers/base/power/runtime.c
+> > > @@ -401,7 +401,7 @@ static int rpm_suspend(struct device *dev, int rpmflags)
+> > >  
+> > >  		if (dev->parent) {
+> > >  			parent = dev->parent;
+> > > -			atomic_add_unless(&parent->power.child_count, -1, 0);
+> > > +  atomic_dec_not_zero(&parent->power.child_count);
+> 
+> I'd like to understand... Why not atomic_dec in the first place? Count
+> should be exact, anyway, or we run into problems, right?
 
-I found that it's pretty hard to measure these things accurately and 
-reliably, kernel build times are very noisy.
-
-Note that you can use my numbers to estimate expected savings: just 
-build before/after .i files in a common directory like kernel/*.c and 
-measure their combined size. The size decrease of the preprocessor 
-output scales almost linearly with runtime.
-
-You could standardize on that kind of metric "these patches decrease 
-preprocessor output by 0.5%" - those translate almost 1:1 into 
-compile time speedups, and you don't really have to re-measure 
-compile times every time you come up with such patches.
+Well, we'll also run into trouble if the count becomes negative.  We might
+throw a WARN_ON() there if the old value weren't as expected, but that
+would be a separate patch.
 
 Thanks,
-
-	Ingo
+Rafael
