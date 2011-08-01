@@ -1,63 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ogre.sisk.pl ([217.79.144.158]:60338 "EHLO ogre.sisk.pl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753836Ab1G1WDL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jul 2011 18:03:11 -0400
-From: "Rafael J. Wysocki" <rjw@sisk.pl>
-Subject: Re: [PATCHv4 04/11] PM: Use *_dec_not_zero instead of *_add_unless
-Date: Thu, 28 Jul 2011 23:43:54 +0200
-References: <1311760070-21532-1-git-send-email-sven@narfation.org> <201107272150.37962.rjw@sisk.pl> <20110727203604.GA8468@elf.ucw.cz>
-In-Reply-To: <20110727203604.GA8468@elf.ucw.cz>
+Received: from perceval.ideasonboard.com ([95.142.166.194]:33595 "EHLO
+	perceval.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751565Ab1HALJ6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Aug 2011 07:09:58 -0400
+From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Subject: Re: [PATCHv4 05/11] omap3isp: Use *_dec_not_zero instead of *_add_unless
+Date: Mon, 1 Aug 2011 13:10:02 +0200
+References: <1311760070-21532-1-git-send-email-sven@narfation.org> <201107311700.43515.laurent.pinchart@ideasonboard.com> <1518031.UNu44UiQdf@sven-laptop.home.narfation.org>
+In-Reply-To: <1518031.UNu44UiQdf@sven-laptop.home.narfation.org>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
-  charset="iso-8859-1"
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201107282343.54519.rjw@sisk.pl>
+Message-ID: <201108011310.02626.laurent.pinchart@ideasonboard.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pavel Machek <pavel@ucw.cz>
-Cc: Sven Eckelmann <sven@narfation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Len Brown <len.brown@intel.com>, linux-pm@lists.linux-foundation.org
-Message-ID: <20110728214354.y6NNUjPQBRzCrKLPWHvkwoxSYiT94SV_PAimfHLsh30@z>
+To: Sven Eckelmann <sven@narfation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org
+Message-ID: <20110801111002.eX1ylDS5qSiz6G8dJbBBOGqxfPPc8Fj-KfOyS0qP7oE@z>
 
-On Wednesday, July 27, 2011, Pavel Machek wrote:
-> Hi!
-> 
+Hi Sven,
+
+On Monday 01 August 2011 12:07:15 Sven Eckelmann wrote:
+> On Sunday 31 July 2011 17:00:43 Laurent Pinchart wrote:
+> > On Wednesday 27 July 2011 11:47:44 Sven Eckelmann wrote:
 > > > atomic_dec_not_zero is defined for each architecture through
 > > > <linux/atomic.h> to provide the functionality of
 > > > atomic_add_unless(x, -1, 0).
 > > > 
 > > > Signed-off-by: Sven Eckelmann <sven@narfation.org>
-> > > Cc: Len Brown <len.brown@intel.com>
-> > > Cc: Pavel Machek <pavel@ucw.cz>
-> > > Cc: Rafael J. Wysocki <rjw@sisk.pl>
-> > > Cc: linux-pm@lists.linux-foundation.org
+> > > Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 > > 
-> > Acked-by: Rafael J. Wysocki <rjw@sisk.pl>
+> > Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 > > 
-> > > ---
-> > >  drivers/base/power/runtime.c |    4 ++--
-> > >  include/linux/pm_runtime.h   |    2 +-
-> > >  kernel/power/hibernate.c     |    4 ++--
-> > >  kernel/power/user.c          |    2 +-
-> > >  4 files changed, 6 insertions(+), 6 deletions(-)
-> > > 
-> > > diff --git a/drivers/base/power/runtime.c b/drivers/base/power/runtime.c
-> > > index 8dc247c..bda10d9 100644
-> > > --- a/drivers/base/power/runtime.c
-> > > +++ b/drivers/base/power/runtime.c
-> > > @@ -401,7 +401,7 @@ static int rpm_suspend(struct device *dev, int rpmflags)
-> > >  
-> > >  		if (dev->parent) {
-> > >  			parent = dev->parent;
-> > > -			atomic_add_unless(&parent->power.child_count, -1, 0);
-> > > +  atomic_dec_not_zero(&parent->power.child_count);
+> > I'll queue this to my tree for v3.2. Please let me know if you would
+> > rather push the patch through another tree.
 > 
-> I'd like to understand... Why not atomic_dec in the first place? Count
-> should be exact, anyway, or we run into problems, right?
+> The problem is that until now no one from linux-arch has applied the patch
+> 01/11 in his tree (which is needed before this patch can be applied) and
+> you tree have to be based on the "yet to be chosen linux-arch tree".
+> Otherwise your tree will just break and not be acceptable for a pull
+> request.
+> 
+> Maybe it is easier when one person applies 01-11 after 02-11 was Acked-by
+> the responsible maintainers.
+> 
+> 02 is more or less automatically Acked-by us :)
+> 04, 09 and 10 are also Acked.
+> ... and the rest is waiting for actions.
 
-Well, we'll also run into trouble if the count becomes negative.  We might
-throw a WARN_ON() there if the old value weren't as expected, but that
-would be a separate patch.
+OK. I'm fine with 05/11 being pushed through any tree with my ack. Please let 
+me know if/when you want me to apply it to my tree.
 
-Thanks,
-Rafael
+-- 
+Regards,
+
+Laurent Pinchart
