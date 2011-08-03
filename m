@@ -1,58 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from perceval.ideasonboard.com ([95.142.166.194]:33595 "EHLO
-	perceval.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751565Ab1HALJ6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Aug 2011 07:09:58 -0400
-From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCHv4 05/11] omap3isp: Use *_dec_not_zero instead of *_add_unless
-Date: Mon, 1 Aug 2011 13:10:02 +0200
-References: <1311760070-21532-1-git-send-email-sven@narfation.org> <201107311700.43515.laurent.pinchart@ideasonboard.com> <1518031.UNu44UiQdf@sven-laptop.home.narfation.org>
-In-Reply-To: <1518031.UNu44UiQdf@sven-laptop.home.narfation.org>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:35602 "EHLO linux-mips.org"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751398Ab1HCQ0U (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 3 Aug 2011 12:26:20 -0400
+Date: Wed, 3 Aug 2011 17:17:45 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
+Message-ID: <20110803161745.GA13266@linux-mips.org>
+References: <1311694534-5161-1-git-send-email-tj@kernel.org>
+ <1311694534-5161-20-git-send-email-tj@kernel.org>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201108011310.02626.laurent.pinchart@ideasonboard.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1311694534-5161-20-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sven Eckelmann <sven@narfation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org
-Message-ID: <20110801111002.eX1ylDS5qSiz6G8dJbBBOGqxfPPc8Fj-KfOyS0qP7oE@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, linux-mips@linux-mips.org
+Message-ID: <20110803161745.ktTu5JHX96tFDJ9S1rxPjvlWI_N3-zu5fXwUCRpirGs@z>
 
-Hi Sven,
+On Tue, Jul 26, 2011 at 05:35:30PM +0200, Tejun Heo wrote:
 
-On Monday 01 August 2011 12:07:15 Sven Eckelmann wrote:
-> On Sunday 31 July 2011 17:00:43 Laurent Pinchart wrote:
-> > On Wednesday 27 July 2011 11:47:44 Sven Eckelmann wrote:
-> > > atomic_dec_not_zero is defined for each architecture through
-> > > <linux/atomic.h> to provide the functionality of
-> > > atomic_add_unless(x, -1, 0).
-> > > 
-> > > Signed-off-by: Sven Eckelmann <sven@narfation.org>
-> > > Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-> > 
-> > Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-> > 
-> > I'll queue this to my tree for v3.2. Please let me know if you would
-> > rather push the patch through another tree.
+> mips used early_node_map[] just to prime free_area_init_nodes().  Now
+> memblock can be used for the same purpose and early_node_map[] is
+> scheduled to be dropped.  Use memblock instead.
 > 
-> The problem is that until now no one from linux-arch has applied the patch
-> 01/11 in his tree (which is needed before this patch can be applied) and
-> you tree have to be based on the "yet to be chosen linux-arch tree".
-> Otherwise your tree will just break and not be acceptable for a pull
-> request.
+> Signed-off-by: Tejun Heo <tj@kernel.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Yinghai Lu <yinghai@kernel.org>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: linux-mips@linux-mips.org
+> ---
+> Only compile tested.  Thanks.
 > 
-> Maybe it is easier when one person applies 01-11 after 02-11 was Acked-by
-> the responsible maintainers.
+>  arch/mips/Kconfig                |    3 +++
+>  arch/mips/kernel/setup.c         |    3 ++-
+>  arch/mips/sgi-ip27/ip27-memory.c |    5 +++--
+>  3 files changed, 8 insertions(+), 3 deletions(-)
 > 
-> 02 is more or less automatically Acked-by us :)
-> 04, 09 and 10 are also Acked.
-> ... and the rest is waiting for actions.
+> diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+> index 653da62..368b2ec 100644
+> --- a/arch/mips/Kconfig
+> +++ b/arch/mips/Kconfig
+> @@ -24,6 +24,9 @@ config MIPS
+>  	select GENERIC_IRQ_PROBE
+>  	select GENERIC_IRQ_SHOW
+>  	select HAVE_ARCH_JUMP_LABEL
+> +	select HAVE_MEMBLOCK
 
-OK. I'm fine with 05/11 being pushed through any tree with my ack. Please let 
-me know if/when you want me to apply it to my tree.
+This means <linux/memblock.h> will include <asm/memblock.h> which does
+not exist for MIPS.  Did you accidentally not post this new file?
 
--- 
-Regards,
-
-Laurent Pinchart
+  Ralf
