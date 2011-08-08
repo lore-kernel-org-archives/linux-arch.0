@@ -1,20 +1,20 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 17/24] C6X: ptrace support
-Date: Mon,  8 Aug 2011 17:44:32 -0400
-Message-ID: <1312839879-13592-18-git-send-email-msalter@redhat.com>
+Subject: [PATCH 15/24] C6X: cache control
+Date: Mon,  8 Aug 2011 17:44:30 -0400
+Message-ID: <1312839879-13592-16-git-send-email-msalter@redhat.com>
 References: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:62857 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:47693 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751725Ab1HHVox (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Aug 2011 17:44:53 -0400
+	id S1752485Ab1HHVov (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Aug 2011 17:44:51 -0400
 Received: from int-mx09.intmail.prod.int.phx2.redhat.com (int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiqLF006494
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78LipHf027235
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:52 -0400
+	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:51 -0400
 Received: from deneb.redhat.com (ovpn-113-62.phx2.redhat.com [10.3.113.62])
-	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78Liina010873
-	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:52 -0400
+	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinY010873
+	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:51 -0400
 In-Reply-To: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -22,450 +22,615 @@ To: linux-arch@vger.kernel.org
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/ptrace.h |  181 ++++++++++++++++++++++++++++++
- arch/c6x/kernel/ptrace.c      |  246 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 427 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/ptrace.h
- create mode 100644 arch/c6x/kernel/ptrace.c
+ arch/c6x/include/asm/cache.h      |   84 +++++++
+ arch/c6x/include/asm/cacheflush.h |   65 ++++++
+ arch/c6x/platforms/cache.c        |  435 +++++++++++++++++++++++++++++++++++++
+ 3 files changed, 584 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/cache.h
+ create mode 100644 arch/c6x/include/asm/cacheflush.h
+ create mode 100644 arch/c6x/platforms/cache.c
 
-diff --git a/arch/c6x/include/asm/ptrace.h b/arch/c6x/include/asm/ptrace.h
+diff --git a/arch/c6x/include/asm/cache.h b/arch/c6x/include/asm/cache.h
 new file mode 100644
-index 0000000..347f2ed
+index 0000000..f263ba2
 --- /dev/null
-+++ b/arch/c6x/include/asm/ptrace.h
-@@ -0,0 +1,181 @@
-+/*
-+ *  Copyright (C) 2004, 2006, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  Updated for 2.6.34: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_PTRACE_H
-+#define _ASM_C6X_PTRACE_H
-+
-+#if defined(__TMS320C6XPLUS__) || defined(_TMS320C6400_PLUS)
-+#define BKPT_OPCODE	   0x56454314	    /* illegal opcode */
-+#else
-+#define BKPT_OPCODE	   0x0000a122	    /* BNOP .S2 0,5 */
-+#endif
-+
-+#ifdef _BIG_ENDIAN
-+#define PT_LO(odd, even)  odd
-+#define PT_HI(odd, even)  even
-+#else
-+#define PT_LO(odd, even)  even
-+#define PT_HI(odd, even)  odd
-+#endif
-+
-+#define PT_A4_ORG  PT_LO(1, 0)
-+#define PT_TSR	   PT_HI(1, 0)
-+#define PT_ILC	   PT_LO(3, 2)
-+#define PT_RILC    PT_HI(3, 2)
-+#define PT_CSR	   PT_LO(5, 4)
-+#define PT_PC	   PT_HI(5, 4)
-+#define PT_B16	   PT_LO(7, 6)
-+#define PT_B17	   PT_HI(7, 6)
-+#define PT_B18	   PT_LO(9, 8)
-+#define PT_B19	   PT_HI(9, 8)
-+#define PT_B20	   PT_LO(11, 10)
-+#define PT_B21	   PT_HI(11, 10)
-+#define PT_B22	   PT_LO(13, 12)
-+#define PT_B23	   PT_HI(13, 12)
-+#define PT_B24	   PT_LO(15, 14)
-+#define PT_B25	   PT_HI(15, 14)
-+#define PT_B26	   PT_LO(17, 16)
-+#define PT_B27	   PT_HI(17, 16)
-+#define PT_B28	   PT_LO(19, 18)
-+#define PT_B29	   PT_HI(19, 18)
-+#define PT_B30	   PT_LO(21, 20)
-+#define PT_B31	   PT_HI(21, 20)
-+#define PT_B0	   PT_LO(23, 22)
-+#define PT_B1	   PT_HI(23, 22)
-+#define PT_B2	   PT_LO(25, 24)
-+#define PT_B3	   PT_HI(25, 24)
-+#define PT_B4	   PT_LO(27, 26)
-+#define PT_B5	   PT_HI(27, 26)
-+#define PT_B6	   PT_LO(29, 28)
-+#define PT_B7	   PT_HI(29, 28)
-+#define PT_B8	   PT_LO(31, 30)
-+#define PT_B9	   PT_HI(31, 30)
-+#define PT_B10	   PT_LO(33, 32)
-+#define PT_B11	   PT_HI(33, 32)
-+#define PT_B12	   PT_LO(35, 34)
-+#define PT_B13	   PT_HI(35, 34)
-+#define PT_A16	   PT_LO(37, 36)
-+#define PT_A17	   PT_HI(37, 36)
-+#define PT_A18	   PT_LO(39, 38)
-+#define PT_A19	   PT_HI(39, 38)
-+#define PT_A20	   PT_LO(41, 40)
-+#define PT_A21	   PT_HI(41, 40)
-+#define PT_A22	   PT_LO(43, 42)
-+#define PT_A23	   PT_HI(43, 42)
-+#define PT_A24	   PT_LO(45, 44)
-+#define PT_A25	   PT_HI(45, 44)
-+#define PT_A26	   PT_LO(47, 46)
-+#define PT_A27	   PT_HI(47, 46)
-+#define PT_A28	   PT_LO(49, 48)
-+#define PT_A29	   PT_HI(49, 48)
-+#define PT_A30	   PT_LO(51, 50)
-+#define PT_A31	   PT_HI(51, 50)
-+#define PT_A0	   PT_LO(53, 52)
-+#define PT_A1	   PT_HI(53, 52)
-+#define PT_A2	   PT_LO(55, 54)
-+#define PT_A3	   PT_HI(55, 54)
-+#define PT_A4	   PT_LO(57, 56)
-+#define PT_A5	   PT_HI(57, 56)
-+#define PT_A6	   PT_LO(59, 58)
-+#define PT_A7	   PT_HI(59, 58)
-+#define PT_A8	   PT_LO(61, 60)
-+#define PT_A9	   PT_HI(61, 60)
-+#define PT_A10	   PT_LO(63, 62)
-+#define PT_A11	   PT_HI(63, 62)
-+#define PT_A12	   PT_LO(65, 64)
-+#define PT_A13	   PT_HI(65, 64)
-+#define PT_A14	   PT_LO(67, 66)
-+#define PT_A15	   PT_HI(67, 66)
-+#define PT_B14	   PT_LO(69, 68)
-+#define PT_B15	   PT_HI(69, 68)
-+
-+#define NR_PTREGS  70
-+
-+#define PT_DP	   PT_B14  /* Data Segment Pointer (B14) */
-+#define PT_SP	   PT_B15  /* Stack Pointer (B15)  */
-+
-+#ifndef __ASSEMBLY__
-+
-+#ifdef _BIG_ENDIAN
-+#define REG_PAIR(odd, even) unsigned long odd; unsigned long even
-+#else
-+#define REG_PAIR(odd, even) unsigned long even; unsigned long odd
-+#endif
-+
-+/*
-+ * this struct defines the way the registers are stored on the
-+ * stack during a system call. fields defined with REG_PAIR
-+ * are saved and restored using double-word memory operations
-+ * which means the word ordering of the pair depends on endianess.
-+ */
-+struct pt_regs {
-+	REG_PAIR(tsr, orig_a4);
-+	REG_PAIR(rilc, ilc);
-+	REG_PAIR(pc, csr);
-+
-+	REG_PAIR(b17, b16);
-+	REG_PAIR(b19, b18);
-+	REG_PAIR(b21, b20);
-+	REG_PAIR(b23, b22);
-+	REG_PAIR(b25, b24);
-+	REG_PAIR(b27, b26);
-+	REG_PAIR(b29, b28);
-+	REG_PAIR(b31, b30);
-+
-+	REG_PAIR(b1, b0);
-+	REG_PAIR(b3, b2);
-+	REG_PAIR(b5, b4);
-+	REG_PAIR(b7, b6);
-+	REG_PAIR(b9, b8);
-+	REG_PAIR(b11, b10);
-+	REG_PAIR(b13, b12);
-+
-+	REG_PAIR(a17, a16);
-+	REG_PAIR(a19, a18);
-+	REG_PAIR(a21, a20);
-+	REG_PAIR(a23, a22);
-+	REG_PAIR(a25, a24);
-+	REG_PAIR(a27, a26);
-+	REG_PAIR(a29, a28);
-+	REG_PAIR(a31, a30);
-+
-+	REG_PAIR(a1, a0);
-+	REG_PAIR(a3, a2);
-+	REG_PAIR(a5, a4);
-+	REG_PAIR(a7, a6);
-+	REG_PAIR(a9, a8);
-+	REG_PAIR(a11, a10);
-+	REG_PAIR(a13, a12);
-+
-+	REG_PAIR(a15, a14);
-+	REG_PAIR(sp, dp);
-+};
-+
-+#define PTRACE_GETREGS		  12
-+#define PTRACE_SETREGS		  13
-+#define PTRACE_GETFPREGS	  14
-+#define PTRACE_SETFPREGS	  15
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/linkage.h>
-+
-+#define user_mode(regs)	((((regs)->tsr) & 0x40) != 0)
-+
-+#define instruction_pointer(regs) ((regs)->pc)
-+#define profile_pc(regs) instruction_pointer(regs)
-+extern void show_regs(struct pt_regs *);
-+
-+extern asmlinkage unsigned long syscall_trace_entry(struct pt_regs *regs);
-+extern asmlinkage void syscall_trace_exit(struct pt_regs *regs);
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASSEMBLY__ */
-+#endif /* _ASM_C6X_PTRACE_H */
-diff --git a/arch/c6x/kernel/ptrace.c b/arch/c6x/kernel/ptrace.c
-new file mode 100644
-index 0000000..0fffa72
---- /dev/null
-+++ b/arch/c6x/kernel/ptrace.c
-@@ -0,0 +1,246 @@
++++ b/arch/c6x/include/asm/cache.h
+@@ -0,0 +1,84 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2004, 2006, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Copyright (C) 2005, 2006, 2009, 2010 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  Updated for 2.6.34: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#include <linux/ptrace.h>
-+#include <linux/tracehook.h>
-+#include <linux/regset.h>
-+#include <linux/elf.h>
++#ifndef _ASM_C6X_CACHE_H
++#define _ASM_C6X_CACHE_H
 +
-+#include <asm/cacheflush.h>
-+
-+#define PT_REG_SIZE	  (sizeof(struct pt_regs))
++#include <linux/irqflags.h>
 +
 +/*
-+ * Called by kernel/ptrace.c when detaching.
++ * Cache line size
 + */
-+void ptrace_disable(struct task_struct *child)
++#define L1D_CACHE_BYTES   64
++#define L1P_CACHE_BYTES   32
++#define L2_CACHE_BYTES	  128
++
++/*
++ * L2 used as cache
++ */
++#define L2MODE_SIZE	  L2MODE_256K_CACHE
++
++/*
++ * Physical memory granularity for MAR registers
++ */
++#define IMCR_MAR_SIZE	  0x01000000
++
++/*
++ * Current C6x architecture does not support hw cache coherency
++ */
++#define arch_is_coherent()    0
++
++/*
++ * For practical reasons the L1_CACHE_BYTES defines should not be smaller than
++ * the L2 line size
++ */
++#define L1_CACHE_BYTES        L2_CACHE_BYTES
++
++#define L2_CACHE_ALIGN_LOW(x) \
++	(((x) & ~(L2_CACHE_BYTES - 1)))
++#define L2_CACHE_ALIGN_UP(x) \
++	(((x) + (L2_CACHE_BYTES - 1)) & ~(L2_CACHE_BYTES - 1))
++#define L2_CACHE_ALIGN_CNT(x) \
++	(((x) + (sizeof(int) - 1)) & ~(sizeof(int) - 1))
++
++#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
++#define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
++
++/*
++ * Align a physical address to MAR regions
++ */
++#define CACHE_REGION_START(v) \
++	(((u32) (v)) & ~(IMCR_MAR_SIZE - 1))
++#define CACHE_REGION_END(v) \
++	(((u32) (v) + (IMCR_MAR_SIZE - 1)) & ~(IMCR_MAR_SIZE - 1))
++
++extern void __init c6x_cache_init(void);
++
++extern void enable_caching(unsigned long start, unsigned long end);
++extern void disable_caching(unsigned long start, unsigned long end);
++
++extern void L1P_cache_block_invalidate(unsigned int start, unsigned int end);
++extern void L1D_cache_block_invalidate(unsigned int start, unsigned int end);
++extern void L1D_cache_block_writeback_invalidate(unsigned int start,
++						 unsigned int end);
++extern void L1D_cache_block_writeback(unsigned int start, unsigned int end);
++extern void L2_cache_block_invalidate(unsigned int start, unsigned int end);
++extern void L2_cache_block_writeback(unsigned int start, unsigned int end);
++extern void L2_cache_block_writeback_invalidate(unsigned int start,
++						unsigned int end);
++extern void L2_cache_block_invalidate_nowait(unsigned int start,
++					     unsigned int end);
++extern void L2_cache_block_writeback_nowait(unsigned int start,
++					    unsigned int end);
++
++extern void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
++						       unsigned int end);
++
++#endif /* _ASM_C6X_CACHE_H */
+diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
+new file mode 100644
+index 0000000..df5db90
+--- /dev/null
++++ b/arch/c6x/include/asm/cacheflush.h
+@@ -0,0 +1,65 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_CACHEFLUSH_H
++#define _ASM_C6X_CACHEFLUSH_H
++
++#include <linux/spinlock.h>
++
++#include <asm/setup.h>
++#include <asm/cache.h>
++#include <asm/mman.h>
++#include <asm/page.h>
++#include <asm/string.h>
++
++/*
++ * virtually-indexed cache management (our cache is physically indexed)
++ */
++#define flush_cache_all()			do {} while (0)
++#define flush_cache_mm(mm)			do {} while (0)
++#define flush_cache_dup_mm(mm)			do {} while (0)
++#define flush_cache_range(mm, start, end)	do {} while (0)
++#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
++#define flush_cache_vmap(start, end)		do {} while (0)
++#define flush_cache_vunmap(start, end)		do {} while (0)
++#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
++#define flush_dcache_page(page)			do {} while (0)
++#define flush_dcache_mmap_lock(mapping)		do {} while (0)
++#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
++
++/*
++ * physically-indexed cache management
++ */
++#define flush_icache_range(s, e)				  \
++do {								  \
++		L1D_cache_block_writeback((s), (e));		  \
++		L1P_cache_block_invalidate((s), (e));		  \
++} while (0)
++
++#define flush_icache_page(vma, page)					  \
++do {								  \
++	if ((vma)->vm_flags & PROT_EXEC)				  \
++		L1D_cache_block_writeback_invalidate(page_address(page),  \
++			(unsigned long) page_address(page) + PAGE_SIZE)); \
++		L1P_cache_block_invalidate(page_address(page),		  \
++			(unsigned long) page_address(page) + PAGE_SIZE)); \
++} while (0)
++
++
++#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
++do {						     \
++	memcpy(dst, src, len);			     \
++	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
++} while (0)
++
++#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
++	memcpy(dst, src, len)
++
++#endif /* _ASM_C6X_CACHEFLUSH_H */
+diff --git a/arch/c6x/platforms/cache.c b/arch/c6x/platforms/cache.c
+new file mode 100644
+index 0000000..7a5550d
+--- /dev/null
++++ b/arch/c6x/platforms/cache.c
+@@ -0,0 +1,435 @@
++/*
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#include <linux/io.h>
++
++#include <asm/cache.h>
++#include <asm/machdep.h>
++#include <asm/soc.h>
++
++#define IMCR_BASE	  0x01840000
++
++/*
++ * Internal Memory Control Registers for caches
++ */
++#define IMCR_CCFG	  0x0000
++#define IMCR_L1PCFG	  0x0020
++#define IMCR_L1PCC	  0x0024
++#define IMCR_L1DCFG	  0x0040
++#define IMCR_L1DCC	  0x0044
++#define IMCR_L2ALLOC0	  0x2000
++#define IMCR_L2ALLOC1	  0x2004
++#define IMCR_L2ALLOC2	  0x2008
++#define IMCR_L2ALLOC3	  0x200c
++#define IMCR_L2WBAR	  0x4000
++#define IMCR_L2WWC	  0x4004
++#define IMCR_L2WIBAR	  0x4010
++#define IMCR_L2WIWC	  0x4014
++#define IMCR_L2IBAR	  0x4018
++#define IMCR_L2IWC	  0x401c
++#define IMCR_L1PIBAR	  0x4020
++#define IMCR_L1PIWC	  0x4024
++#define IMCR_L1DWIBAR	  0x4030
++#define IMCR_L1DWIWC	  0x4034
++#define IMCR_L1DWBAR	  0x4040
++#define IMCR_L1DWWC	  0x4044
++#define IMCR_L1DIBAR	  0x4048
++#define IMCR_L1DIWC	  0x404c
++#define IMCR_L2WB	  0x5000
++#define IMCR_L2WBINV	  0x5004
++#define IMCR_L2INV	  0x5008
++#define IMCR_L1PINV	  0x5028
++#define IMCR_L1DWB	  0x5040
++#define IMCR_L1DWBINV	  0x5044
++#define IMCR_L1DINV	  0x5048
++#define IMCR_MAR_BASE	  0x8000
++#define IMCR_MAR96_111	  0x8180
++#define IMCR_MAR128_191   0x8200
++#define IMCR_MAR224_239   0x8380
++#define IMCR_L2MPFAR	  0xa000
++#define IMCR_L2MPFSR	  0xa004
++#define IMCR_L2MPFCR	  0xa008
++#define IMCR_L2MPLK0	  0xa100
++#define IMCR_L2MPLK1	  0xa104
++#define IMCR_L2MPLK2	  0xa108
++#define IMCR_L2MPLK3	  0xa10c
++#define IMCR_L2MPLKCMD	  0xa110
++#define IMCR_L2MPLKSTAT   0xa114
++#define IMCR_L2MPPA_BASE  0xa200
++#define IMCR_L1PMPFAR	  0xa400
++#define IMCR_L1PMPFSR	  0xa404
++#define IMCR_L1PMPFCR	  0xa408
++#define IMCR_L1PMPLK0	  0xa500
++#define IMCR_L1PMPLK1	  0xa504
++#define IMCR_L1PMPLK2	  0xa508
++#define IMCR_L1PMPLK3	  0xa50c
++#define IMCR_L1PMPLKCMD   0xa510
++#define IMCR_L1PMPLKSTAT  0xa514
++#define IMCR_L1PMPPA_BASE 0xa600
++#define IMCR_L1DMPFAR	  0xac00
++#define IMCR_L1DMPFSR	  0xac04
++#define IMCR_L1DMPFCR	  0xac08
++#define IMCR_L1DMPLK0	  0xad00
++#define IMCR_L1DMPLK1	  0xad04
++#define IMCR_L1DMPLK2	  0xad08
++#define IMCR_L1DMPLK3	  0xad0c
++#define IMCR_L1DMPLKCMD   0xad10
++#define IMCR_L1DMPLKSTAT  0xad14
++#define IMCR_L1DMPPA_BASE 0xae00
++#define IMCR_L2PDWAKE0	  0xc040
++#define IMCR_L2PDWAKE1	  0xc044
++#define IMCR_L2PDSLEEP0   0xc050
++#define IMCR_L2PDSLEEP1   0xc054
++#define IMCR_L2PDSTAT0	  0xc060
++#define IMCR_L2PDSTAT1	  0xc064
++
++/*
++ * CCFG register values and bits
++ */
++#define L2MODE_0K_CACHE   0x0
++#define L2MODE_32K_CACHE  0x1
++#define L2MODE_64K_CACHE  0x2
++#define L2MODE_128K_CACHE 0x3
++#define L2MODE_256K_CACHE 0x7
++
++#define L2PRIO_URGENT     0x0
++#define L2PRIO_HIGH       0x1
++#define L2PRIO_MEDIUM     0x2
++#define L2PRIO_LOW        0x3
++
++#define CCFG_ID           0x100   /* Invalidate L1P bit */
++#define CCFG_IP           0x200   /* Invalidate L1D bit */
++
++static void * __iomem cache_base;
++
++/*
++ * L1 & L2 caches generic functions
++ */
++#define imcr_get(reg) soc_readl(cache_base + (reg))
++#define imcr_set(reg, value) \
++do {								\
++	soc_writel((value), cache_base + (reg));		\
++	soc_readl(cache_base + (reg));				\
++} while (0)
++
++static void cache_block_operation_wait(unsigned int wc_reg)
 +{
-+	/* nothing to do */
++	/* Wait for completion */
++	while (imcr_get(wc_reg))
++		;
 +}
 +
 +/*
-+ * Get a register number from live pt_regs for the specified task.
++ * Generic function to perform a block cache operation as
++ * invalidate or writeback/invalidate
 + */
-+static inline long get_reg(struct task_struct *task, int regno)
++static void cache_block_operation(unsigned int *start,
++				  unsigned int *end,
++				  unsigned int bar_reg,
++				  unsigned int wc_reg)
 +{
-+	long *addr = (long *)task_pt_regs(task);
++	unsigned long flags;
++	unsigned int wcnt =
++		(L2_CACHE_ALIGN_CNT((unsigned int) end)
++		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
++	unsigned int wc = 0;
 +
-+	if (regno == PT_TSR || regno == PT_CSR)
-+		return 0;
-+
-+	return addr[regno];
-+}
-+
-+/*
-+ * Write contents of register REGNO in task TASK.
-+ */
-+static inline int put_reg(struct task_struct *task,
-+			  int regno,
-+			  unsigned long data)
-+{
-+	unsigned long *addr = (unsigned long *)task_pt_regs(task);
-+
-+	if (regno != PT_TSR && regno != PT_CSR)
-+		addr[regno] = data;
-+
-+	return 0;
-+}
-+
-+/*
-+ * Read the word at offset "off" into the user area.  We
-+ * actually access the pt_regs stored on the kernel stack.
-+ */
-+static int ptrace_read_user(struct task_struct *tsk, unsigned long off,
-+			    unsigned long __user *ret)
-+{
-+	unsigned long tmp;
-+	unsigned long index = off/sizeof(unsigned long);
-+
-+	if (off & 3)
-+		return -EIO;
-+
-+	tmp = 0;
-+
-+	if (off < PT_REG_SIZE)
-+		tmp = get_reg(tsk, index);
-+	else
-+		return -EIO;
-+
-+	return put_user(tmp, ret);
-+}
-+
-+/* regset get/set implementations */
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				   regs,
-+				   0, sizeof(*regs));
-+}
-+
-+static int gpr_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	struct pt_regs *regs = task_pt_regs(target);
-+
-+	/* Don't copyin TSR or CSR */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs,
-+				 0, PT_TSR * sizeof(long));
-+	if (ret)
-+		return ret;
-+
-+	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					PT_TSR * sizeof(long),
-+					(PT_TSR + 1) * sizeof(long));
-+	if (ret)
-+		return ret;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs,
-+				 (PT_TSR + 1) * sizeof(long),
-+				 PT_CSR * sizeof(long));
-+	if (ret)
-+		return ret;
-+
-+	ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					PT_CSR * sizeof(long),
-+					(PT_CSR + 1) * sizeof(long));
-+	if (ret)
-+		return ret;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs,
-+				 (PT_CSR + 1) * sizeof(long), -1);
-+	return ret;
-+}
-+
-+enum c6x_regset {
-+	REGSET_GPR,
-+};
-+
-+static const struct user_regset c6x_regsets[] = {
-+	[REGSET_GPR] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = ELF_NGREG,
-+		.size = sizeof(u32),
-+		.align = sizeof(u32),
-+		.get = gpr_get,
-+		.set = gpr_set
-+	},
-+};
-+
-+static const struct user_regset_view user_c6x_native_view = {
-+	.name		= "tic6x",
-+	.e_machine	= EM_TI_C6000,
-+	.regsets	= c6x_regsets,
-+	.n		= ARRAY_SIZE(c6x_regsets),
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_c6x_native_view;
-+}
-+
-+/*
-+ * Perform ptrace request
-+ */
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
-+{
-+	unsigned long __user *datap = (unsigned long __user *) data;
-+	int ret = 0;
-+
-+	switch (request) {
-+	case PTRACE_PEEKUSR:
-+		ret = ptrace_read_user(child, addr,
-+				       (unsigned long __user *) data);
-+		break;
++	for (; wcnt; wcnt -= wc, start += wc) {
++loop:
++		local_irq_save(flags);
 +
 +		/*
-+		 * write the word at location addr in the user registers.
++		 * If another cache operation is occuring
 +		 */
-+	case PTRACE_POKEUSR:
-+		ret = -EIO;
-+		if (addr & 3 || addr < 0 || addr >= PT_REG_SIZE)
-+			break;
++		if (unlikely(imcr_get(wc_reg))) {
++			local_irq_restore(flags);
 +
-+		ret = put_reg(child, (int)addr >> 2, data);
-+		break;
++			/* Wait for previous operation completion */
++			cache_block_operation_wait(wc_reg);
 +
-+		/*
-+		 * write the word at location addr.
-+		 */
-+	case PTRACE_POKETEXT:
-+		ret = generic_ptrace_pokedata(child, addr, data);
-+		if (ret == 0 && request == PTRACE_POKETEXT)
-+			flush_icache_range(addr, addr + 4);
-+		break;
++			/* Try again */
++			goto loop;
++		}
 +
-+		/*
-+		 * get all gp regs from the child.
-+		 */
-+	case PTRACE_GETREGS:
-+		return copy_regset_to_user(child, &user_c6x_native_view,
-+					   REGSET_GPR,
-+					   0, NR_PTREGS * sizeof(long),
-+					   datap);
++		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
 +
-+		/*
-+		 * set all gp regs in the child.
-+		 */
-+	case PTRACE_SETREGS:
-+		return copy_regset_from_user(child, &user_c6x_native_view,
-+					     REGSET_GPR,
-+					     0, NR_PTREGS * sizeof(long),
-+					     datap);
++		if (wcnt > 0xffff)
++			wc = 0xffff;
++		else
++			wc = wcnt;
 +
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
++		/* Set word count value in the WC register */
++		imcr_set(wc_reg, wc & 0xffff);
++
++		local_irq_restore(flags);
++
++		/* Wait for completion */
++		cache_block_operation_wait(wc_reg);
 +	}
++}
 +
-+	return ret;
++static void cache_block_operation_nowait(unsigned int *start,
++					 unsigned int *end,
++					 unsigned int bar_reg,
++					 unsigned int wc_reg)
++{
++	unsigned long flags;
++	unsigned int wcnt =
++		(L2_CACHE_ALIGN_CNT((unsigned int) end)
++		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
++	unsigned int wc = 0;
++
++	for (; wcnt; wcnt -= wc, start += wc) {
++
++		local_irq_save(flags);
++
++		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
++
++		if (wcnt > 0xffff)
++			wc = 0xffff;
++		else
++			wc = wcnt;
++
++		/* Set word count value in the WC register */
++		imcr_set(wc_reg, wc & 0xffff);
++
++		local_irq_restore(flags);
++
++		/* Don't wait for completion on last cache operation */
++		if (wcnt > 0xffff)
++			cache_block_operation_wait(wc_reg);
++	}
 +}
 +
 +/*
-+ * handle tracing of system call entry
-+ * - return the revised system call number or ULONG_MAX to cause ENOSYS
++ * L1 caches management
 + */
-+asmlinkage unsigned long syscall_trace_entry(struct pt_regs *regs)
-+{
-+	if (tracehook_report_syscall_entry(regs))
-+		/* tracing decided this syscall should not happen, so
-+		 * We'll return a bogus call number to get an ENOSYS
-+		 * error, but leave the original number in
-+		 * regs->orig_a4
-+		 */
-+		return ULONG_MAX;
 +
-+	return regs->b0;
++/*
++ * Disable L1 caches
++ */
++void L1_cache_off(void)
++{
++	unsigned int dummy;
++
++	imcr_set(IMCR_L1PCFG, 0);
++	dummy = imcr_get(IMCR_L1PCFG);
++
++	imcr_set(IMCR_L1DCFG, 0);
++	dummy = imcr_get(IMCR_L1DCFG);
 +}
 +
 +/*
-+ * handle tracing of system call exit
++ * Enable L1 caches
 + */
-+asmlinkage void syscall_trace_exit(struct pt_regs *regs)
++void L1_cache_on(void)
 +{
-+	tracehook_report_syscall_exit(regs, 0);
++	unsigned int dummy;
++
++	imcr_set(IMCR_L1PCFG, 7);
++	dummy = imcr_get(IMCR_L1PCFG);
++
++	imcr_set(IMCR_L1DCFG, 7);
++	dummy = imcr_get(IMCR_L1DCFG);
++}
++
++/*
++ *  L1P global-invalidate all
++ */
++void L1P_cache_global_invalidate(void)
++{
++	unsigned int set = 1;
++	imcr_set(IMCR_L1PINV, set);
++	while (imcr_get(IMCR_L1PINV) & 1)
++		;
++}
++
++/*
++ *  L1D global-invalidate all
++ *
++ * Warning: this operation causes all updated data in L1D to
++ * be discarded rather than written back to the lower levels of
++ * memory
++ */
++void L1D_cache_global_invalidate(void)
++{
++	unsigned int set = 1;
++	imcr_set(IMCR_L1DINV, set);
++	while (imcr_get(IMCR_L1DINV) & 1)
++		;
++}
++
++void L1D_cache_global_writeback(void)
++{
++	unsigned int set = 1;
++	imcr_set(IMCR_L1DWB, set);
++	while (imcr_get(IMCR_L1DWB) & 1)
++		;
++}
++
++void L1D_cache_global_writeback_invalidate(void)
++{
++	unsigned int set = 1;
++	imcr_set(IMCR_L1DWBINV, set);
++	while (imcr_get(IMCR_L1DWBINV) & 1)
++		;
++}
++
++/*
++ * L2 caches management
++ */
++
++/*
++ * Set L2 operation mode
++ */
++void L2_cache_set_mode(unsigned int mode)
++{
++	unsigned int ccfg = imcr_get(IMCR_CCFG);
++
++	/* Clear and set the L2MODE bits in CCFG */
++	ccfg &= ~7;
++	ccfg |= (mode & 7);
++	imcr_set(IMCR_CCFG, ccfg);
++	ccfg = imcr_get(IMCR_CCFG);
++}
++
++/*
++ *  L2 global-writeback and global-invalidate all
++ */
++void L2_cache_global_writeback_invalidate(void)
++{
++	imcr_set(IMCR_L2WBINV, 1);
++	while (imcr_get(IMCR_L2WBINV))
++		;
++}
++
++/*
++ *  L2 global-writeback all
++ */
++void L2_cache_global_writeback(void)
++{
++	imcr_set(IMCR_L2WB, 1);
++	while (imcr_get(IMCR_L2WB))
++		;
++}
++
++/*
++ * Cacheability controls
++ */
++void enable_caching(unsigned long start, unsigned long end)
++{
++	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
++	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
++
++	for (; mar <= mar_e; mar += 4)
++		imcr_set(mar, imcr_get(mar) | 1);
++}
++
++void disable_caching(unsigned long start, unsigned long end)
++{
++	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
++	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
++
++	for (; mar <= mar_e; mar += 4)
++		imcr_set(mar, imcr_get(mar) & ~1);
++}
++
++
++/*
++ *  L1 block operations
++ */
++void L1P_cache_block_invalidate(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L1PIBAR, IMCR_L1PIWC);
++}
++
++void L1D_cache_block_invalidate(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L1DIBAR, IMCR_L1DIWC);
++}
++
++void L1D_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L1DWIBAR, IMCR_L1DWIWC);
++}
++
++void L1D_cache_block_writeback(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L1DWBAR, IMCR_L1DWWC);
++}
++
++/*
++ *  L2 block operations
++ */
++void L2_cache_block_invalidate(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L2IBAR, IMCR_L2IWC);
++}
++
++void L2_cache_block_writeback(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L2WBAR, IMCR_L2WWC);
++}
++
++void L2_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
++{
++	cache_block_operation((unsigned int *) start,
++			      (unsigned int *) end,
++			      IMCR_L2WIBAR, IMCR_L2WIWC);
++}
++
++void L2_cache_block_invalidate_nowait(unsigned int start, unsigned int end)
++{
++	cache_block_operation_nowait((unsigned int *) start,
++				     (unsigned int *) end,
++				     IMCR_L2IBAR, IMCR_L2IWC);
++}
++
++void L2_cache_block_writeback_nowait(unsigned int start, unsigned int end)
++{
++	cache_block_operation_nowait((unsigned int *) start,
++				     (unsigned int *) end,
++				     IMCR_L2WBAR, IMCR_L2WWC);
++}
++
++void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
++						unsigned int end)
++{
++	cache_block_operation_nowait((unsigned int *) start,
++				     (unsigned int *) end,
++				     IMCR_L2WIBAR, IMCR_L2WIWC);
++}
++
++
++/*
++ * L1 and L2 caches configuration
++ */
++void __init c6x_cache_init(void)
++{
++	cache_base = ioremap(IMCR_BASE, 0x10000);
++	if (!cache_base)
++		return;
++
++	/* Set L2 caches on the the whole L2 SRAM memory */
++	L2_cache_set_mode(L2MODE_SIZE);
++
++	/* Enable L1 */
++	L1_cache_on();
 +}
 -- 
 1.7.6
