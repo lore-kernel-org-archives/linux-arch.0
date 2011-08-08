@@ -1,20 +1,20 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 07/24] C6X: memory management
-Date: Mon,  8 Aug 2011 17:44:22 -0400
-Message-ID: <1312839879-13592-8-git-send-email-msalter@redhat.com>
+Subject: [PATCH 04/24] C6X: build infrastructure
+Date: Mon,  8 Aug 2011 17:44:19 -0400
+Message-ID: <1312839879-13592-5-git-send-email-msalter@redhat.com>
 References: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16422 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:65223 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751917Ab1HHVos (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Aug 2011 17:44:48 -0400
+	id S1751080Ab1HHVor (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Aug 2011 17:44:47 -0400
 Received: from int-mx09.intmail.prod.int.phx2.redhat.com (int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78LimLl027212
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78Lil1k009805
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:48 -0400
+	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:47 -0400
 Received: from deneb.redhat.com (ovpn-113-62.phx2.redhat.com [10.3.113.62])
-	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinQ010873
-	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:48 -0400
+	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinN010873
+	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:46 -0400
 In-Reply-To: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -22,803 +22,873 @@ To: linux-arch@vger.kernel.org
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/dma-mapping.h |  301 +++++++++++++++++++++++++++++++++
- arch/c6x/include/asm/dma.h         |   23 +++
- arch/c6x/mm/dma-coherent.c         |  328 ++++++++++++++++++++++++++++++++++++
- arch/c6x/mm/init.c                 |  112 ++++++++++++
- 4 files changed, 764 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/dma-mapping.h
- create mode 100644 arch/c6x/include/asm/dma.h
- create mode 100644 arch/c6x/mm/dma-coherent.c
- create mode 100644 arch/c6x/mm/init.c
+ arch/c6x/Kconfig                    |  180 +++++++++++++++++++++++++++++++++++
+ arch/c6x/Kconfig.debug              |   14 +++
+ arch/c6x/Makefile                   |   56 +++++++++++
+ arch/c6x/boot/Makefile              |   22 ++++
+ arch/c6x/configs/dsk6455_defconfig  |   39 ++++++++
+ arch/c6x/configs/evmc6457_defconfig |   40 ++++++++
+ arch/c6x/configs/evmc6472_defconfig |   41 ++++++++
+ arch/c6x/configs/evmc6474_defconfig |   41 ++++++++
+ arch/c6x/include/asm/Kbuild         |   54 +++++++++++
+ arch/c6x/kernel/Makefile            |   12 +++
+ arch/c6x/kernel/vmlinux.lds.S       |  165 ++++++++++++++++++++++++++++++++
+ arch/c6x/lib/Makefile               |    8 ++
+ arch/c6x/mm/Makefile                |   10 ++
+ arch/c6x/platforms/Kconfig          |   45 +++++++++
+ arch/c6x/platforms/Makefile         |   19 ++++
+ 15 files changed, 746 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/Kconfig
+ create mode 100644 arch/c6x/Kconfig.debug
+ create mode 100644 arch/c6x/Makefile
+ create mode 100644 arch/c6x/boot/Makefile
+ create mode 100644 arch/c6x/configs/dsk6455_defconfig
+ create mode 100644 arch/c6x/configs/evmc6457_defconfig
+ create mode 100644 arch/c6x/configs/evmc6472_defconfig
+ create mode 100644 arch/c6x/configs/evmc6474_defconfig
+ create mode 100644 arch/c6x/include/asm/Kbuild
+ create mode 100644 arch/c6x/kernel/Makefile
+ create mode 100644 arch/c6x/kernel/vmlinux.lds.S
+ create mode 100644 arch/c6x/lib/Makefile
+ create mode 100644 arch/c6x/mm/Makefile
+ create mode 100644 arch/c6x/platforms/Kconfig
+ create mode 100644 arch/c6x/platforms/Makefile
 
-diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/dma-mapping.h
+diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
 new file mode 100644
-index 0000000..7821785
+index 0000000..9205d5c
 --- /dev/null
-+++ b/arch/c6x/include/asm/dma-mapping.h
-@@ -0,0 +1,301 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ *
-+ */
-+#ifndef _ASM_C6X_DMA_MAPPING_H
-+#define _ASM_C6X_DMA_MAPPING_H
++++ b/arch/c6x/Kconfig
+@@ -0,0 +1,180 @@
++#
++# For a description of the syntax of this configuration file,
++# see Documentation/kbuild/kconfig-language.txt.
++#
 +
-+#ifdef __KERNEL__
++config TMS320C6X
++	def_bool y
++	select CLKDEV_LOOKUP
++	select HAVE_MEMBLOCK
++	select HAVE_SPARSE_IRQ
++	select GENERIC_IRQ_SHOW
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_HARDIRQS_NO__DO_IRQ
++	select GENERIC_HARDIRQS_NO__DO_IRQ
++	select GENERIC_HARDIRQS_NO_DEPRECATED
++	select GENERIC_FIND_FIRST_BIT
++	select GENERIC_FIND_NEXT_BIT
++	select GENERIC_FIND_LAST_BIT
++	select GENERIC_FIND_BIT_LE
++	select OF
++	select OF_EARLY_FLATTREE
 +
-+#include <linux/mm.h>
-+#include <linux/mm_types.h>
-+#include <linux/scatterlist.h>
++config MMU
++	def_bool n
 +
-+#include <asm/io.h>
-+#include <asm/types.h>
-+#include <asm-generic/dma-coherent.h>
++config ZONE_DMA
++	def_bool y
 +
-+#define dma_supported(d, m)	    (1)
++config FPU
++	def_bool n
 +
-+#define __pfn_to_bus(pfn)	   ((pfn) << PAGE_SHIFT)
-+#define __bus_to_pfn(paddr)	   ((paddr) >> PAGE_SHIFT)
-+#define __bus_to_phys(x)	   (x)
-+#define __phys_to_bus(x)	   (x)
-+#define __bus_to_virt(b)	   phys_to_virt(__bus_to_phys(b))
-+#define __virt_to_bus(v)	   __phys_to_bus(virt_to_phys(v))
++config HIGHMEM
++	def_bool n
 +
-+/*
-+ * page_to_dma/dma_to_virt/virt_to_dma are architecture private functions
-+ * used internally by the DMA-mapping API to provide DMA addresses. They
-+ * must not be used by drivers.
-+ */
-+static inline dma_addr_t page_to_dma(struct device *dev, struct page *page)
-+{
-+	return (dma_addr_t)__pfn_to_bus(page_to_pfn(page));
-+}
++config NUMA
++	def_bool n
 +
-+static inline struct page *dma_to_page(struct device *dev, dma_addr_t addr)
-+{
-+	return pfn_to_page(__bus_to_pfn(addr));
-+}
++config RWSEM_GENERIC_SPINLOCK
++	def_bool y
 +
-+static inline void *dma_to_virt(struct device *dev, dma_addr_t addr)
-+{
-+	return (void *)__bus_to_virt(addr);
-+}
++config RWSEM_XCHGADD_ALGORITHM
++	def_bool n
 +
-+static inline dma_addr_t virt_to_dma(struct device *dev, void *addr)
-+{
-+	return (dma_addr_t)__virt_to_bus(addr);
-+}
++config GENERIC_CALIBRATE_DELAY
++	def_bool y
 +
-+static inline int dma_map_sg(struct device *dev, struct scatterlist *sglist,
-+			     int nents, enum dma_data_direction direction)
-+{
-+	struct scatterlist *sg;
-+	int i;
++config GENERIC_FIND_NEXT_BIT
++	def_bool y
 +
-+	BUG_ON(direction == DMA_NONE);
++config GENERIC_HWEIGHT
++	def_bool y
 +
-+	for_each_sg(sglist, sg, nents, i) {
-+		BUG_ON(!sg_page(sg));
++config GENERIC_CLOCKEVENTS
++	def_bool y
 +
-+		sg->dma_address = sg_phys(sg);
-+	}
++config GENERIC_CLOCKEVENTS_BROADCAST
++	bool
 +
-+	return nents;
-+}
++config GENERIC_BUG
++	def_bool y
 +
-+static inline void dma_unmap_sg(struct device *dev, struct scatterlist *sg,
-+				int nhwentries,
-+				enum dma_data_direction direction)
-+{
-+	BUG_ON(direction == DMA_NONE);
-+}
++config COMMON_CLKDEV
++	def_bool y
 +
-+extern int __dma_is_coherent(struct device *dev, dma_addr_t handle);
++config BIG_KERNEL
++	bool "Build a big kernel"
++	help
++	  The C6X function call instruction has a limited range of +/- 2MiB.
++	  This is sufficient for most kernels, but some kernel configurations
++	  with lots of compiled-in functionality may require a larger range
++	  for function calls. Use this option to have the compiler generate
++	  function calls with 32-bit range. This will make the kernel both
++	  larger and slower.
 +
-+static inline int dma_is_consistent(struct device *dev, dma_addr_t handle)
-+{
-+	if (arch_is_coherent() || __dma_is_coherent(dev, handle))
-+		return 1;
-+	else
-+		return 0;
-+}
++	  If unsure, say N.
 +
-+/*
-+ * DMA errors are defined by all-bits-set in the DMA address.
-+ */
-+static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-+{
-+	return dma_addr == ~0;
-+}
++config NR_IRQS
++	int "Number of virtual interrupt numbers"
++	range 32 32768
++	default "256"
++	help
++	  This defines the number of virtual interrupt numbers the kernel
++	  can manage. Virtual interrupt numbers are what you see in
++	  /proc/interrupts. If you configure your system to have too few,
++	  drivers will fail to load or worse - handle with care.
 +
-+/**
-+ * dma_alloc_coherent - allocate consistent memory for DMA
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @size: required memory size
-+ * @handle: bus-specific DMA address
-+ *
-+ * Allocate some uncached, unbuffered memory for a device for
-+ * performing DMA.  This function allocates pages, and will
-+ * return the CPU-viewed address, and sets @handle to be the
-+ * device-viewed address.
-+ */
-+extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
++source "init/Kconfig"
 +
-+/**
-+ * dma_free_coherent - free memory allocated by dma_alloc_coherent
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @size: size of memory originally requested in dma_alloc_coherent
-+ * @cpu_addr: CPU-view address returned from dma_alloc_coherent
-+ * @handle: device-view address returned from dma_alloc_coherent
-+ *
-+ * Free (and unmap) a DMA buffer previously allocated by
-+ * dma_alloc_coherent().
-+ *
-+ * References to memory and mappings associated with cpu_addr/handle
-+ * during and after this call executing are illegal.
-+ */
-+extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
++# Use the generic interrupt handling code in kernel/irq/
 +
-+#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent((d), (s), (h), (f))
-+#define dma_free_noncoherent(d, s, v, h)  dma_free_coherent((d), (s), (v), (h))
++source "kernel/Kconfig.freezer"
 +
-+extern void __dma_single_cpu_to_dev(const void *kaddr, size_t size,
-+				    enum dma_data_direction dir);
++config CMDLINE_BOOL
++	bool "Default bootloader kernel arguments"
 +
-+extern void __dma_single_dev_to_cpu(const void *kaddr, size_t size,
-+				    enum dma_data_direction dir);
++config CMDLINE
++	string "Kernel command line"
++	depends on CMDLINE_BOOL
++	default "console=ttyS0,57600"
++	help
++	  On some architectures there is currently no way for the boot loader
++	  to pass arguments to the kernel. For these architectures, you should
++	  supply some command-line options at build time by entering them
++	  here.
 +
-+extern void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
-+				  size_t size, enum dma_data_direction dir);
++config CMDLINE_FORCE
++	bool "Force default kernel command string"
++	depends on CMDLINE_BOOL
++	default n
++	help
++	  Set this to have arguments from the default kernel command string
++	  override those passed by the boot loader.
 +
-+extern void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
-+				  size_t size, enum dma_data_direction dir);
++config CPU_BIG_ENDIAN
++	bool "Build big-endian kernel"
++	default n
++	help
++	  Say Y if you plan on running a kernel in big-endian mode.
++	  Note that your board must be properly built and your board
++	  port must properly enable any big-endian related features
++	  of your chipset/board/processor.
 +
-+/**
-+ * dma_map_single - map a single buffer for streaming DMA
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @cpu_addr: CPU direct mapped address of buffer
-+ * @size: size of buffer to map
-+ * @dir: DMA transfer direction
-+ *
-+ * Ensure that any data held in the cache is appropriately discarded
-+ * or written back.
-+ *
-+ * The device owns this memory once this call has completed.  The CPU
-+ * can regain ownership by calling dma_unmap_single() or
-+ * dma_sync_single_for_cpu().
-+ */
-+static inline dma_addr_t dma_map_single(struct device *dev, void *cpu_addr,
-+		size_t size, enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
++config FORCE_MAX_ZONEORDER
++	int
++	default "13"
 +
-+	__dma_single_cpu_to_dev(cpu_addr, size, dir);
++menu "Processor type and features"
 +
-+	return virt_to_dma(dev, cpu_addr);
-+}
++config TMS320C64XPLUS
++	bool "TMS320C64X+"
 +
-+/**
-+ * dma_map_page - map a portion of a page for streaming DMA
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @page: page that buffer resides in
-+ * @offset: offset into page for start of buffer
-+ * @size: size of buffer to map
-+ * @dir: DMA transfer direction
-+ *
-+ * Ensure that any data held in the cache is appropriately discarded
-+ * or written back.
-+ *
-+ * The device owns this memory once this call has completed.  The CPU
-+ * can regain ownership by calling dma_unmap_page().
-+ */
-+static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
-+	     unsigned long offset, size_t size, enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
++source "arch/c6x/platforms/Kconfig"
 +
-+	__dma_page_cpu_to_dev(page, offset, size, dir);
++config TMS320C6X_CACHES_ON
++	bool "L2 cache support"
++	default y
 +
-+	return page_to_dma(dev, page) + offset;
-+}
++config KERNEL_RAM_BASE_ADDRESS
++	hex "Virtual address of memory base"
++	default 0xe0000000 if SOC_TMS320C6455
++	default 0xe0000000 if SOC_TMS320C6457
++	default 0xe0000000 if SOC_TMS320C6472
++	default 0x80000000
 +
-+/**
-+ * dma_unmap_single - unmap a single buffer previously mapped
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @handle: DMA address of buffer
-+ * @size: size of buffer (same as passed to dma_map_single)
-+ * @dir: DMA transfer direction (same as passed to dma_map_single)
-+ *
-+ * Unmap a single streaming mode DMA translation.  The handle and size
-+ * must match what was provided in the previous dma_map_single() call.
-+ * All other usages are undefined.
-+ *
-+ * After this call, reads by the CPU to the buffer are guaranteed to see
-+ * whatever the device wrote there.
-+ */
-+static inline void
-+dma_unmap_single(struct device *dev, dma_addr_t handle,
-+		 size_t size, enum dma_data_direction dir)
-+{
-+	__dma_single_dev_to_cpu(dma_to_virt(dev, handle), size, dir);
-+}
++source "mm/Kconfig"
 +
-+/**
-+ * dma_unmap_page - unmap a buffer previously mapped through dma_map_page()
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @handle: DMA address of buffer
-+ * @size: size of buffer (same as passed to dma_map_page)
-+ * @dir: DMA transfer direction (same as passed to dma_map_page)
-+ *
-+ * Unmap a page streaming mode DMA translation.  The handle and size
-+ * must match what was provided in the previous dma_map_page() call.
-+ * All other usages are undefined.
-+ *
-+ * After this call, reads by the CPU to the buffer are guaranteed to see
-+ * whatever the device wrote there.
-+ */
-+static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
-+		size_t size, enum dma_data_direction dir)
-+{
-+	__dma_page_dev_to_cpu(dma_to_page(dev, handle), handle & ~PAGE_MASK,
-+		size, dir);
-+}
++source "kernel/Kconfig.preempt"
 +
-+/**
-+ * dma_sync_single_range_for_cpu
-+ * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-+ * @handle: DMA address of buffer
-+ * @offset: offset of region to start sync
-+ * @size: size of region to sync
-+ * @dir: DMA transfer direction (same as passed to dma_map_single)
-+ *
-+ * Make physical memory consistent for a single streaming mode DMA
-+ * translation after a transfer.
-+ *
-+ * If you perform a dma_map_single() but wish to interrogate the
-+ * buffer using the cpu, yet do not wish to teardown the PCI dma
-+ * mapping, you must call this function before doing so.  At the
-+ * next point you give the PCI dma address back to the card, you
-+ * must first the perform a dma_sync_for_device, and then the
-+ * device again owns the buffer.
-+ */
-+static inline void dma_sync_single_range_for_cpu(struct device *dev,
-+		dma_addr_t handle, unsigned long offset, size_t size,
-+		enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
++source "kernel/Kconfig.hz"
++source "kernel/time/Kconfig"
 +
-+	__dma_single_dev_to_cpu(dma_to_virt(dev, handle) + offset, size, dir);
-+}
++endmenu
 +
-+static inline void dma_sync_single_range_for_device(struct device *dev,
-+		dma_addr_t handle, unsigned long offset, size_t size,
-+		enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
++menu "Bus options (PCI, PCMCIA, EISA, MCA, ISA)"
 +
-+	__dma_single_cpu_to_dev(dma_to_virt(dev, handle) + offset, size, dir);
-+}
++config PCI
++	bool "PCI support"
++	help
++	  Support for PCI bus.
++endmenu
 +
-+static inline void dma_sync_single_for_cpu(struct device *dev,
-+		dma_addr_t handle, size_t size, enum dma_data_direction dir)
-+{
-+	dma_sync_single_range_for_cpu(dev, handle, 0, size, dir);
-+}
++menu "Executable file formats"
 +
-+static inline void dma_sync_single_for_device(struct device *dev,
-+		dma_addr_t handle, size_t size, enum dma_data_direction dir)
-+{
-+	dma_sync_single_range_for_device(dev, handle, 0, size, dir);
-+}
++source "fs/Kconfig.binfmt"
 +
-+static inline void
-+dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nents,
-+		    enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
-+}
++endmenu
 +
-+static inline void
-+dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nents,
-+		    enum dma_data_direction dir)
-+{
-+	BUG_ON(!valid_dma_direction(dir));
-+}
++source "net/Kconfig"
 +
-+extern int coherent_mem_init(void);
-+extern unsigned long dma_memory_start;
-+extern unsigned long dma_memory_size;
++source "drivers/Kconfig"
 +
-+#endif /* __KERNEL__ */
-+#endif	/* _ASM_C6X_DMA_MAPPING_H */
-diff --git a/arch/c6x/include/asm/dma.h b/arch/c6x/include/asm/dma.h
++source "fs/Kconfig"
++
++source "security/Kconfig"
++
++source "crypto/Kconfig"
++
++source "lib/Kconfig"
++
++source "arch/c6x/Kconfig.debug"
+diff --git a/arch/c6x/Kconfig.debug b/arch/c6x/Kconfig.debug
 new file mode 100644
-index 0000000..2ac46c3
+index 0000000..2a07d84
 --- /dev/null
-+++ b/arch/c6x/include/asm/dma.h
-@@ -0,0 +1,23 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_DMA_H
-+#define _ASM_C6X_DMA_H
++++ b/arch/c6x/Kconfig.debug
+@@ -0,0 +1,14 @@
++menu "Kernel hacking"
 +
-+#define MAX_DMA_ADDRESS  0xFFFFFFFF
-+#define MAX_DMA_CHANNELS 64
++source "lib/Kconfig.debug"
 +
-+/* Reserve a DMA channel */
-+extern int request_dma(unsigned int dmanr, const char *device_id);
++config ACCESS_CHECK
++	bool "Check the user pointer address"
++	default y
++	help
++	  Usually the pointer transfer from user space is checked to see if its
++	  address is in the kernel space.
 +
-+/* Release it again */
-+extern void free_dma(unsigned int dmanr);
++	  Say N here to disable that check to improve the performance.
 +
-+#endif /* _ASM_C6X_DMA_H */
-diff --git a/arch/c6x/mm/dma-coherent.c b/arch/c6x/mm/dma-coherent.c
++endmenu
+diff --git a/arch/c6x/Makefile b/arch/c6x/Makefile
 new file mode 100644
-index 0000000..244a3bc
+index 0000000..00fd050
 --- /dev/null
-+++ b/arch/c6x/mm/dma-coherent.c
-@@ -0,0 +1,328 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ *
-+ *  DMA uncached mapping support.
-+ *
-+ *  Using code pulled from ARM
-+ *  Copyright (C) 2000-2004 Russell King
-+ *
-+ */
-+#include <linux/slab.h>
-+#include <linux/interrupt.h>
-+#include <linux/dma-mapping.h>
++++ b/arch/c6x/Makefile
+@@ -0,0 +1,56 @@
++#
++# linux/arch/c6x/Makefile
++#
++# This file is subject to the terms and conditions of the GNU General Public
++# License.  See the file "COPYING" in the main directory of this archive
++# for more details.
++#
 +
-+#include <asm-generic/dma-coherent.h>
++cflags-y := -D__linux__ -D__TMS320C6X__
 +
-+/*
-+ * DMA coherent memory management, can be redefined using the memdma=
-+ * kernel command line
-+ */
++cflags-$(CONFIG_TMS320C64XPLUS) += -D__TMS320C6XPLUS__ -march=c64x+
 +
-+/* none by default */
-+unsigned long dma_memory_start;
-+unsigned long dma_memory_size;
++cflags-y += -mno-dsbt -msdata=none
 +
-+static u32    dma_page_heap;
-+static u32    dma_page_top;
++cflags-$(CONFIG_BIG_KERNEL) += -mlong-calls
 +
-+static DEFINE_SPINLOCK(dma_mem_lock);
++CFLAGS_MODULE   += -mlong-calls -mno-dsbt -msdata=none
 +
-+/*
-+ * Return a DMA coherent and contiguous memory chunk from the DMA memory
-+ */
-+static inline u32 __dma_alloc_coherent(size_t size, gfp_t gfp)
-+{
-+	u32 paddr;
++KBUILD_CFLAGS   += $(cflags-y)
++KBUILD_AFLAGS   += $(cflags-y)
 +
-+	if ((dma_page_heap + size) > dma_page_top)
-+		return -1;
++ifdef CONFIG_CPU_BIG_ENDIAN
++KBUILD_CFLAGS   += -mbig-endian
++KBUILD_AFLAGS	+= -mbig-endian
++LINKFLAGS	+= -mbig-endian
++KBUILD_LDFLAGS	+= -mbig-endian
++LDFLAGS	+= -EB
++endif
 +
-+	paddr	       = dma_page_heap;
-+	dma_page_heap += size;
++head-y		:= arch/c6x/kernel/head.o
++core-y		+= arch/c6x/kernel/ arch/c6x/mm/ arch/c6x/platforms/
++libs-y		+= arch/c6x/lib/
 +
-+	return paddr;
-+}
++# Default to vmlinux.bin, override when needed
++all: vmlinux.bin
 +
-+/*
-+ * Return a standard contigous memory chunk
-+ */
-+static inline u32 __dma_alloc_coherent_stdmem(size_t size, gfp_t gfp)
-+{
-+	void *virt;
++boot := arch/$(ARCH)/boot
 +
-+	virt = kmalloc(size, gfp);
-+	if (!virt)
-+		return -1;
++# With make 3.82 we cannot mix normal and wildcard targets
++BOOT_TARGETS1 = vmlinux.bin
++BOOT_TARGETS2 = dtbImage.%
 +
-+	return virt_to_phys(virt);
-+}
++$(BOOT_TARGETS1): vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(patsubst %,$(boot)/%,$@)
++$(BOOT_TARGETS2): vmlinux
++	$(Q)$(MAKE) $(build)=$(boot) $(patsubst %,$(boot)/%,$@)
 +
-+/*
-+ * Allocate DMA-coherent memory space and return both the kernel remapped
-+ * virtual and bus address for that space.
-+ *
-+ * Note that this does *not* zero the allocated area!
-+ */
-+void *dma_alloc_coherent(struct device *dev, size_t size,
-+			 dma_addr_t *handle, gfp_t gfp)
-+{
-+	u32 paddr;
-+	void __iomem *virt;
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
 +
-+	if (in_interrupt())
-+		BUG();
-+
-+	/* Round up to a page */
-+	size = PAGE_ALIGN(size);
-+
-+	spin_lock_irq(&dma_mem_lock);
-+
-+	/* Check if we have a DMA memory */
-+	if (dma_page_heap)
-+		paddr = __dma_alloc_coherent(size, gfp);
-+	else
-+		/* Otherwise do an allocation using standard allocator */
-+		paddr = __dma_alloc_coherent_stdmem(size, gfp);
-+
-+	spin_unlock_irq(&dma_mem_lock);
-+
-+	if (paddr == -1)
-+		return NULL;
-+
-+	if (handle)
-+		*handle = __phys_to_bus(paddr);
-+
-+	/*
-+	 * In a near future we can expect having a partial MMU with
-+	 * chaching attributes
-+	 */
-+	virt = ioremap_nocache(paddr, size);
-+	if (!virt)
-+		return NULL;
-+
-+	/*
-+	 * We need to ensure that there are no cachelines in use, or
-+	 * worse dirty in this area.
-+	 */
-+	L2_cache_block_invalidate(paddr, paddr + size);
-+
-+	return (void *) virt;
-+}
-+EXPORT_SYMBOL(dma_alloc_coherent);
-+
-+/*
-+ * Free a DMA coherent and contiguous memory chunk from the DMA memory
-+ */
-+static inline void __dma_free_coherent(size_t size, dma_addr_t dma_handle)
-+{
-+	/* Do nothing (we do not have real memory alloctor here) */
-+}
-+
-+/*
-+ * Free a standard contigous memory chunk
-+ */
-+static inline void __dma_free_coherent_stdmem(size_t size,
-+					      dma_addr_t dma_handle)
-+{
-+	void *virt = bus_to_virt(dma_handle);
-+
-+	kfree(virt);
-+}
-+
-+/*
-+ * Free a page as defined by the above mapping.
-+ * Must not be called with IRQs disabled.
-+ */
-+void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
-+		       dma_addr_t dma_handle)
-+{
-+	if (in_interrupt())
-+		BUG();
-+
-+	/* Check if we have a DMA memory */
-+	if (dma_page_heap)
-+		__dma_free_coherent(size, dma_handle);
-+	else
-+		/* Otherwise use standard allocator */
-+		__dma_free_coherent_stdmem(size, dma_handle);
-+
-+	iounmap(vaddr);
-+}
-+EXPORT_SYMBOL(dma_free_coherent);
-+
-+int __dma_is_coherent(struct device *dev, dma_addr_t handle)
-+{
-+	u32 paddr;
-+
-+	/* If we do not have DMA memory */
-+	if (!dma_page_heap)
-+		return 0;
-+
-+	paddr = __bus_to_phys(handle);
-+
-+	/*
-+	 * If the address is in the DMA memory range, the memory
-+	 * is coherent.
-+	 */
-+	if ((paddr >= dma_memory_start) &&
-+	    (paddr < dma_page_top))
-+		return 1;
-+
-+	return 0;
-+}
-+EXPORT_SYMBOL(__dma_is_coherent);
-+
-+/*
-+ * Make an area consistent for devices.
-+ * Note: Drivers should NOT use this function directly, as it will break
-+ * platforms with CONFIG_DMABOUNCE.
-+ * Use the driver DMA support - see dma-mapping.h (dma_sync_*)
-+ */
-+void __dma_single_cpu_to_dev(const void *kaddr, size_t size,
-+			     enum dma_data_direction dir)
-+{
-+	unsigned long paddr;
-+
-+	BUG_ON(!virt_addr_valid(kaddr) || !virt_addr_valid(kaddr + size - 1));
-+
-+	paddr = __pa(kaddr);
-+	switch (dir) {
-+	case DMA_FROM_DEVICE:
-+		L2_cache_block_invalidate(paddr, paddr + size);
-+		break;
-+	case DMA_TO_DEVICE:
-+		L2_cache_block_writeback(paddr, paddr + size);
-+		break;
-+	case DMA_BIDIRECTIONAL:
-+		L2_cache_block_writeback_invalidate(paddr, paddr + size);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+EXPORT_SYMBOL(__dma_single_cpu_to_dev);
-+
-+void __dma_single_dev_to_cpu(const void *kaddr, size_t size,
-+			     enum dma_data_direction dir)
-+{
-+	BUG_ON(!virt_addr_valid(kaddr) || !virt_addr_valid(kaddr + size - 1));
-+
-+	/* don't bother invalidating if DMA to device */
-+	if (dir != DMA_TO_DEVICE) {
-+		unsigned long paddr = __pa(kaddr);
-+		L2_cache_block_invalidate(paddr, paddr + size);
-+	}
-+}
-+EXPORT_SYMBOL(__dma_single_dev_to_cpu);
-+
-+void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
-+			   size_t size, enum dma_data_direction dir)
-+{
-+	unsigned long paddr;
-+
-+	paddr = page_to_phys(page) + off;
-+	switch (dir) {
-+	case DMA_FROM_DEVICE:
-+		L2_cache_block_invalidate(paddr, paddr + size);
-+		break;
-+	case DMA_TO_DEVICE:
-+		L2_cache_block_writeback(paddr, paddr + size);
-+		break;
-+	case DMA_BIDIRECTIONAL:
-+		L2_cache_block_writeback_invalidate(paddr, paddr + size);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+EXPORT_SYMBOL(__dma_page_cpu_to_dev);
-+
-+void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
-+			   size_t size, enum dma_data_direction dir)
-+{
-+	unsigned long paddr = page_to_phys(page) + off;
-+
-+	/* don't bother invalidating if DMA to device */
-+	if (dir != DMA_TO_DEVICE)
-+		L2_cache_block_invalidate(paddr, paddr + size);
-+}
-+EXPORT_SYMBOL(__dma_page_dev_to_cpu);
-+
-+/*
-+ * Initialise the coherent memory and its allocator
-+ */
-+int coherent_mem_init(void)
-+{
-+	/*
-+	 * Define the (DMA) coherent memory
-+	 */
-+	if (dma_memory_size != 0) {
-+
-+		/* Round it to the (upper) MAR granularity  */
-+		dma_memory_size = CACHE_REGION_END(dma_memory_size);
-+
-+		if (!dma_memory_start) {
-+			/*
-+			 * Take the coherent memory from the end of the physical
-+			 * memory and round it to the lower MAR. We may waste
-+			 * some cacheable memory if memory_end is not aligned
-+			 * on a MAR region.
-+			 */
-+			dma_memory_start =
-+				CACHE_REGION_START(memory_end -
-+						   dma_memory_size);
-+
-+			/* Then remove the coherent memory from the paged one */
-+			memory_end = dma_memory_start;
-+
-+
-+		} else {
-+			/* Align it on MAR */
-+			dma_memory_start = CACHE_REGION_START(dma_memory_start);
-+
-+			/*
-+			 * Check if the defined coherent memory is within the
-+			 * paged memory. If so remove the corresponding memory
-+			 */
-+			if (dma_memory_start < memory_end &&
-+			    dma_memory_start > memory_start)
-+				memory_end = dma_memory_start;
-+		}
-+
-+		printk(KERN_INFO
-+		       "Coherent memory (DMA) region start=0x%lx size=0x%lx\n",
-+		       dma_memory_start,
-+		       dma_memory_size);
-+
-+		/*
-+		 * We need to ensure that there are no cachelines in use, or
-+		 * worse dirty in this area.
-+		 */
-+		L2_cache_block_writeback(dma_memory_start,
-+					 dma_memory_start + dma_memory_size
-+					 - 1);
-+
-+		/* Make this memory coherent (so non-cacheable) */
-+		disable_caching(dma_memory_start,
-+				dma_memory_start + dma_memory_size - 1);
-+
-+		printk(KERN_INFO "disabling caching for 0x%lx to 0x%lx\n",
-+		       dma_memory_start,
-+		       dma_memory_start + dma_memory_size - 1);
-+
-+		/* The allocator starts here */
-+		dma_page_heap = dma_memory_start;
-+
-+		/* And finish here */
-+		dma_page_top = PAGE_ALIGN(dma_memory_start + dma_memory_size);
-+	}
-+
-+	return 0;
-+}
-diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
++define archhelp
++  @echo '  *_defconfig     - Select default config from arch/$(ARCH)/configs'
++  @echo '  vmlinux.bin     - Binary kernel image (arch/$(ARCH)/boot/vmlinux.bin)'
++  @echo '  dtbImage.<dt>   - ELF image with $(arch)/boot/dts/<dt>.dts linked in'
++  @echo '                  - stripped elf with fdt blob'
++endef
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/Makefile
 new file mode 100644
-index 0000000..6b4d396
+index 0000000..0ea47f6
 --- /dev/null
-+++ b/arch/c6x/mm/init.c
-@@ -0,0 +1,112 @@
++++ b/arch/c6x/boot/Makefile
+@@ -0,0 +1,22 @@
++#
++# Makefile for bootable kernel images
++#
++
++all: $(obj)/vmlinux.bin
++
++hostprogs-y := install-dtb
++
++$(obj)/vmlinux.bin: vmlinux
++	$(OBJCOPY) -O binary $< $@
++
++
++$(obj)/dtbImage.%: vmlinux $(obj)/install-dtb $(obj)/%.dtb
++	cp vmlinux $@
++	$(obj)/install-dtb $(obj)/$*.dtb $@
++
++clean-files := $(obj)/*.dtb
++
++DTC_FLAGS ?= -p 1024
++
++$(obj)/%.dtb: $(src)/dts/%.dts FORCE
++	$(call cmd,dtc)
+diff --git a/arch/c6x/configs/dsk6455_defconfig b/arch/c6x/configs/dsk6455_defconfig
+new file mode 100644
+index 0000000..2113395
+--- /dev/null
++++ b/arch/c6x/configs/dsk6455_defconfig
+@@ -0,0 +1,39 @@
++CONFIG_EXPERIMENTAL=y
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_SPARSE_IRQ=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_USER_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_EXPERT=y
++# CONFIG_FUTEX is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_MODULES=y
++CONFIG_MODULE_FORCE_LOAD=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_MODULE_FORCE_UNLOAD=y
++CONFIG_CMDLINE_BOOL=y
++CONFIG_CMDLINE=""
++CONFIG_NO_HZ=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_COUNT=2
++CONFIG_BLK_DEV_RAM_SIZE=17000
++CONFIG_MISC_DEVICES=y
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_CRC16=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_BUGVERBOSE is not set
+diff --git a/arch/c6x/configs/evmc6457_defconfig b/arch/c6x/configs/evmc6457_defconfig
+new file mode 100644
+index 0000000..d2eff63
+--- /dev/null
++++ b/arch/c6x/configs/evmc6457_defconfig
+@@ -0,0 +1,40 @@
++CONFIG_EXPERIMENTAL=y
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_SPARSE_IRQ=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_USER_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_EXPERT=y
++# CONFIG_FUTEX is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_MODULES=y
++CONFIG_MODULE_FORCE_LOAD=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_MODULE_FORCE_UNLOAD=y
++CONFIG_CMDLINE_BOOL=y
++CONFIG_CMDLINE=""
++CONFIG_BOARD_EVM6457=y
++CONFIG_NO_HZ=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_COUNT=2
++CONFIG_BLK_DEV_RAM_SIZE=17000
++CONFIG_MISC_DEVICES=y
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_CRC16=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_BUGVERBOSE is not set
+diff --git a/arch/c6x/configs/evmc6472_defconfig b/arch/c6x/configs/evmc6472_defconfig
+new file mode 100644
+index 0000000..aa81c58
+--- /dev/null
++++ b/arch/c6x/configs/evmc6472_defconfig
+@@ -0,0 +1,41 @@
++CONFIG_EXPERIMENTAL=y
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_SPARSE_IRQ=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_USER_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_EXPERT=y
++# CONFIG_FUTEX is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_MODULES=y
++CONFIG_MODULE_FORCE_LOAD=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_MODULE_FORCE_UNLOAD=y
++CONFIG_CMDLINE_BOOL=y
++CONFIG_CMDLINE=""
++# CONFIG_CMDLINE_FORCE is not set
++CONFIG_BOARD_EVM6472=y
++CONFIG_NO_HZ=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_COUNT=2
++CONFIG_BLK_DEV_RAM_SIZE=17000
++CONFIG_MISC_DEVICES=y
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_CRC16=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_BUGVERBOSE is not set
+diff --git a/arch/c6x/configs/evmc6474_defconfig b/arch/c6x/configs/evmc6474_defconfig
+new file mode 100644
+index 0000000..ceee6fc
+--- /dev/null
++++ b/arch/c6x/configs/evmc6474_defconfig
+@@ -0,0 +1,41 @@
++CONFIG_EXPERIMENTAL=y
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_SPARSE_IRQ=y
++CONFIG_LOG_BUF_SHIFT=14
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_USER_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++CONFIG_EXPERT=y
++# CONFIG_FUTEX is not set
++# CONFIG_SLUB_DEBUG is not set
++CONFIG_MODULES=y
++CONFIG_MODULE_FORCE_LOAD=y
++CONFIG_MODULE_UNLOAD=y
++CONFIG_MODULE_FORCE_UNLOAD=y
++CONFIG_CMDLINE_BOOL=y
++CONFIG_CMDLINE=""
++# CONFIG_CMDLINE_FORCE is not set
++CONFIG_BOARD_EVM6474=y
++CONFIG_NO_HZ=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_RAM=y
++CONFIG_BLK_DEV_RAM_COUNT=2
++CONFIG_BLK_DEV_RAM_SIZE=17000
++CONFIG_MISC_DEVICES=y
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_CRC16=y
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_BUGVERBOSE is not set
+diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
+new file mode 100644
+index 0000000..b2d4a05
+--- /dev/null
++++ b/arch/c6x/include/asm/Kbuild
+@@ -0,0 +1,54 @@
++include include/asm-generic/Kbuild.asm
++
++generic-y += atomic.h
++generic-y += auxvec.h
++generic-y += bitsperlong.h
++generic-y += bug.h
++generic-y += bugs.h
++generic-y += cputime.h
++generic-y += current.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += fb.h
++generic-y += fcntl.h
++generic-y += futex.h
++generic-y += hw_irq.h
++generic-y += io.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += irq_regs.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += local.h
++generic-y += mman.h
++generic-y += mmu_context.h
++generic-y += msgbuf.h
++generic-y += param.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += pgalloc.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += segment.h
++generic-y += sembuf.h
++generic-y += shmbuf.h
++generic-y += shmparam.h
++generic-y += siginfo.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += stat.h
++generic-y += statfs.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += tlbflush.h
++generic-y += topology.h
++generic-y += types.h
++generic-y += ucontext.h
++generic-y += user.h
++generic-y += vga.h
+diff --git a/arch/c6x/kernel/Makefile b/arch/c6x/kernel/Makefile
+new file mode 100644
+index 0000000..794ac08
+--- /dev/null
++++ b/arch/c6x/kernel/Makefile
+@@ -0,0 +1,12 @@
++#
++# Makefile for arch/c6x/kernel/
++#
++
++extra-y	 := head.o vmlinux.lds
++
++obj-y 	 := process.o traps.o irq.o signal.o ptrace.o \
++	    setup.o sys_c6x.o time.o devicetree.o \
++            switch_to.o entry.o vectors.o c6x_ksyms.o\
++	    soc.o
++
++obj-$(CONFIG_MODULES)		+= module.o
+diff --git a/arch/c6x/kernel/vmlinux.lds.S b/arch/c6x/kernel/vmlinux.lds.S
+new file mode 100644
+index 0000000..6c5686d
+--- /dev/null
++++ b/arch/c6x/kernel/vmlinux.lds.S
+@@ -0,0 +1,165 @@
 +/*
-+ *  Port on Texas Instruments TMS320C6x architecture
++ * ld script for the c6x kernel
 + *
-+ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
++ *  Copyright (C) 2010, 2011 Texas Instruments Incorporated
++ *  Mark Salter <msalter@redhat.com>
 + */
-+#include <linux/mm.h>
-+#include <linux/swap.h>
-+#include <linux/bootmem.h>
-+#ifdef CONFIG_BLK_DEV_RAM
-+#include <linux/blkdev.h>
-+#endif
-+#include <linux/initrd.h>
++#define __VMLINUX_LDS__
++#include <asm-generic/vmlinux.lds.h>
++#include <asm/thread_info.h>
++#include <asm/page.h>
 +
-+#include <asm/sections.h>
++ENTRY(_c_int00)
 +
-+/*
-+ * ZERO_PAGE is a special page that is used for zero-initialized
-+ * data and COW.
-+ */
-+unsigned long empty_zero_page;
-+EXPORT_SYMBOL(empty_zero_page);
-+
-+/*
-+ * paging_init() continues the virtual memory environment setup which
-+ * was begun by the code in arch/head.S.
-+ * The parameters are pointers to where to stick the starting and ending
-+ * addresses  of available kernel virtual memory.
-+ */
-+void __init paging_init(void)
-+{
-+	struct pglist_data *pgdat = NODE_DATA(0);
-+	unsigned long zones_size[MAX_NR_ZONES] = {0, };
-+
-+	empty_zero_page      = (unsigned long) alloc_bootmem_pages(PAGE_SIZE);
-+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
-+
-+	/*
-+	 * Set up user data space
-+	 */
-+	set_fs(KERNEL_DS);
-+
-+	/*
-+	 * Define zones
-+	 */
-+	zones_size[ZONE_NORMAL] = (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
-+	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =
-+		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
-+
-+	free_area_init(zones_size);
-+}
-+
-+void __init mem_init(void)
-+{
-+	int codek, datak;
-+	unsigned long tmp;
-+	unsigned long len = memory_end - memory_start;
-+
-+	high_memory = (void *)(memory_end & PAGE_MASK);
-+
-+	/* this will put all memory onto the freelists */
-+	totalram_pages = free_all_bootmem();
-+
-+	codek = (_etext - _stext) >> 10;
-+	datak = (_end - _sdata) >> 10;
-+
-+	tmp = nr_free_pages() << PAGE_SHIFT;
-+	printk(KERN_INFO "Memory: %luk/%luk RAM (%dk kernel code, %dk data)\n",
-+	       tmp >> 10, len >> 10, codek, datak);
-+}
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void __init free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	int pages = 0;
-+	for (; start < end; start += PAGE_SIZE) {
-+		ClearPageReserved(virt_to_page(start));
-+		init_page_count(virt_to_page(start));
-+		free_page(start);
-+		totalram_pages++;
-+		pages++;
-+	}
-+	printk(KERN_INFO "Freeing initrd memory: %luk freed\n",
-+	       (pages * PAGE_SIZE) >> 10);
-+}
++#if defined(CONFIG_CPU_BIG_ENDIAN)
++jiffies = jiffies_64 + 4;
++#else
++jiffies = jiffies_64;
 +#endif
 +
-+void __init free_initmem(void)
++#define	READONLY_SEGMENT_START	\
++	. = PAGE_OFFSET;
++#define	READWRITE_SEGMENT_START	\
++	. = ALIGN(128);		\
++	_data_lma = .;
++
++SECTIONS
 +{
-+	unsigned long addr;
++	/*
++	 * Start kernel read only segment
++	 */
++	READONLY_SEGMENT_START
++
++	.vectors :
++	{
++		VMLINUX_SYMBOL(_vectors_start) = .;
++		*(.vectors)
++		. = ALIGN(0x400);
++		VMLINUX_SYMBOL(_vectors_end) = .;
++	}
++
++	. = ALIGN(0x1000);
++	.cmdline : { *(.cmdline) }
 +
 +	/*
-+	 * The following code should be cool even if these sections
-+	 * are not page aligned.
++	 * This section contains data which may be shared with other
++	 * cores. It needs to be a fixed offset from PAGE_OFFSET
++	 * regardless of kernel configuration.
 +	 */
-+	addr = PAGE_ALIGN((unsigned long)(__init_begin));
++	.virtio_ipc_dev : { *(.virtio_ipc_dev) }
 +
-+	/* next to check that the page we free is not a partial page */
-+	for (; addr + PAGE_SIZE < (unsigned long)(__init_end);
-+	     addr += PAGE_SIZE) {
-+		ClearPageReserved(virt_to_page(addr));
-+		init_page_count(virt_to_page(addr));
-+		free_page(addr);
-+		totalram_pages++;
++	. = ALIGN(PAGE_SIZE);
++	.init :
++	{
++		VMLINUX_SYMBOL(_stext) = .;
++		VMLINUX_SYMBOL(_sinittext) = .;
++		HEAD_TEXT
++		INIT_TEXT
++		VMLINUX_SYMBOL(_einittext) = .;
 +	}
-+	printk(KERN_INFO "Freeing unused kernel memory: %dK freed\n",
-+	       (int) ((addr - PAGE_ALIGN((long) &__init_begin)) >> 10));
++
++	VMLINUX_SYMBOL(__init_begin) = VMLINUX_SYMBOL(_stext);
++	INIT_DATA_SECTION(16)
++
++	PERCPU_SECTION(128)
++
++	. = ALIGN(8);
++	.machine.desc : AT(ADDR(.machine.desc) - LOAD_OFFSET) {
++		__machine_desc_start = . ;
++		*(.machine.desc)
++		__machine_desc_end = . ;
++	}
++
++	. = ALIGN(PAGE_SIZE);
++	VMLINUX_SYMBOL(__init_end) = .;
++
++	.text :
++	{
++		VMLINUX_SYMBOL(_text) = .;
++		TEXT_TEXT
++		SCHED_TEXT
++		LOCK_TEXT
++		IRQENTRY_TEXT
++		KPROBES_TEXT
++		*(.fixup)
++		*(.gnu.warning)
++	}
++
++	EXCEPTION_TABLE(16)
++	NOTES
++
++	RO_DATA_SECTION(PAGE_SIZE)
++	.const :
++	{
++		*(.const .const.* .gnu.linkonce.r.*)
++		*(.switch)
++	}
++
++	. = ALIGN (8) ;
++	__fdt_blob : AT(ADDR(__fdt_blob) - LOAD_OFFSET) {
++		_fdt_start = . ;	/* place for fdt blob */
++		*(__fdt_blob) ;		/* Any link-placed DTB */
++		BYTE(0);		/* section always has contents */
++	        . = _fdt_start + 0x4000;	/* Pad up to 16kbyte */
++		_fdt_end = . ;
++	}
++
++	VMLINUX_SYMBOL(_etext) = .;
++
++	/*
++	 * Start kernel read-write segment.
++	 */
++	READWRITE_SEGMENT_START
++	VMLINUX_SYMBOL(_sdata) = .;
++
++	.fardata : AT(ADDR(.fardata) - LOAD_OFFSET)
++	{
++		INIT_TASK_DATA(THREAD_SIZE)
++		NOSAVE_DATA
++		PAGE_ALIGNED_DATA(PAGE_SIZE)
++		CACHELINE_ALIGNED_DATA(128)
++		READ_MOSTLY_DATA(128)
++		DATA_DATA
++		CONSTRUCTORS
++		*(.data1)
++		*(.fardata .fardata.*)
++		*(.data.debug_bpt)
++	}
++
++	.neardata ALIGN(8) : AT(ADDR(.neardata) - LOAD_OFFSET)
++	{
++		*(.neardata2 .neardata2.* .gnu.linkonce.s2.*)
++		*(.neardata .neardata.* .gnu.linkonce.s.*)
++		. = ALIGN(8);
++	}
++
++	VMLINUX_SYMBOL(_edata) = .;
++
++	VMLINUX_SYMBOL(__bss_start) = .;
++	SBSS(8)
++	BSS(8)
++	.far :
++	{
++		. = ALIGN(8);
++		*(.dynfar)
++		*(.far .far.* .gnu.linkonce.b.*)
++		. = ALIGN(8);
++	}
++	VMLINUX_SYMBOL(__bss_stop) = .;
++	VMLINUX_SYMBOL(__bss_stop) = .;
++
++	VMLINUX_SYMBOL(_end) = .;
++
++	STABS_DEBUG
++
++	DWARF_DEBUG
++
++	/DISCARD/ : {
++		  EXIT_TEXT
++		  EXIT_DATA
++		  EXIT_CALL
++		  *(.discard)
++		  *(.discard.*)
++		  *(.interp)
++	}
 +}
+diff --git a/arch/c6x/lib/Makefile b/arch/c6x/lib/Makefile
+new file mode 100644
+index 0000000..c240add
+--- /dev/null
++++ b/arch/c6x/lib/Makefile
+@@ -0,0 +1,8 @@
++#
++# Makefile for arch/c6x/lib/
++#
++
++lib-y  := divu.o divi.o pop_rts.o push_rts.o remi.o remu.o strasgi.o llshru.o \
++	  llshr.o llshl.o negll.o mpyll.o divull.o divremi.o divremu.o
++
++lib-$(CONFIG_TMS320C64XPLUS) += csum_64plus.o memcpy_64plus.o strasgi_64plus.o
+diff --git a/arch/c6x/mm/Makefile b/arch/c6x/mm/Makefile
+new file mode 100644
+index 0000000..75bf2af
+--- /dev/null
++++ b/arch/c6x/mm/Makefile
+@@ -0,0 +1,10 @@
++#
++# Makefile for the linux c6x-specific parts of the memory manager.
++#
++# Note! Dependencies are done automagically by 'make dep', which also
++# removes any old dependencies. DON'T put your own dependencies here
++# unless it's something special (ie not a .c file).
++#
++# Note 2! The CFLAGS definition is now in the main makefile...
++
++obj-y	 := init.o dma-coherent.o
+diff --git a/arch/c6x/platforms/Kconfig b/arch/c6x/platforms/Kconfig
+new file mode 100644
+index 0000000..a6ae90a
+--- /dev/null
++++ b/arch/c6x/platforms/Kconfig
+@@ -0,0 +1,45 @@
++
++config SOC_TMS320C6455
++	bool "TMS320C6455"
++	default n
++	select TMS320C64XPLUS
++
++config SOC_TMS320C6457
++	bool "TMS320C6457"
++	default n
++	select TMS320C64XPLUS
++
++config SOC_TMS320C6472
++	bool "TMS320C6472"
++	default n
++	select TMS320C64XPLUS
++
++config SOC_TMS320C6474
++	bool "TMS320C6474"
++	default n
++	select TMS320C64XPLUS
++
++comment "Board Selection"
++choice
++	prompt "Board"
++	help
++	  This option specifies the specific board for which the kernel will be
++	  compiled.
++
++config BOARD_DSK6455
++	bool "DSK6455"
++	select SOC_TMS320C6455
++
++config BOARD_EVM6457
++	bool "EVM6472"
++	select SOC_TMS320C6457
++
++config BOARD_EVM6472
++	bool "EVM6472"
++	select SOC_TMS320C6472
++
++config BOARD_EVM6474
++	bool "EVM6474"
++	select SOC_TMS320C6474
++
++endchoice
+diff --git a/arch/c6x/platforms/Makefile b/arch/c6x/platforms/Makefile
+new file mode 100644
+index 0000000..8703570
+--- /dev/null
++++ b/arch/c6x/platforms/Makefile
+@@ -0,0 +1,19 @@
++#
++# Makefile for arch/c6x/platforms
++#
++# Copyright 2010, 2011 Texas Instruments Incorporated
++#
++
++obj-y = cache.o megamod-pic.o pll.o plldata.o timer64.o
++
++# SoC objects
++obj-$(CONFIG_SOC_TMS320C6455)	+= soc-6455.o emif.o
++obj-$(CONFIG_SOC_TMS320C6457)	+= soc-6457.o emif.o psc.o
++obj-$(CONFIG_SOC_TMS320C6472)	+= soc-6472.o psc.o
++obj-$(CONFIG_SOC_TMS320C6474)	+= soc-6474.o psc.o
++
++# Board objects
++obj-$(CONFIG_BOARD_DSK6455)  += board-dsk6455.o
++obj-$(CONFIG_BOARD_EVM6457)  += board-evm6457.o
++obj-$(CONFIG_BOARD_EVM6472)  += board-evm6472.o
++obj-$(CONFIG_BOARD_EVM6474)  += board-evm6474.o
 -- 
 1.7.6
