@@ -1,124 +1,112 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
-Subject: Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage
-Date: Sun, 7 Aug 2011 22:42:36 -0400
-Message-ID: <CAMjpGUcOagn-o_mETLDr-=pa-3sxq_iDjF=A8OGhdJg5+9ewpA@mail.gmail.com>
-References: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
- <CA+55aFwtyfzaFABHKD+OMWsojGov0JLmnrZimhVaOcrer=tJjQ@mail.gmail.com> <20110802183019.GB8393@windriver.com>
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCH UPDATED 16/23] sparc: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Mon, 8 Aug 2011 14:30:39 +0200
+Message-ID: <20110808123039.GL23937@htj.dyndns.org>
+References: <1311694534-5161-1-git-send-email-tj@kernel.org>
+ <1311694534-5161-17-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:51713 "EHLO
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:38529 "EHLO
 	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752694Ab1HHCm5 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Aug 2011 22:42:57 -0400
-In-Reply-To: <20110802183019.GB8393@windriver.com>
+	with ESMTP id S1752500Ab1HHMao (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Aug 2011 08:30:44 -0400
+Content-Disposition: inline
+In-Reply-To: <1311694534-5161-17-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, mingo@elte.hu, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au
+To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@dave
+Cc: mingo@redhat.com, sparclinux@vger.kernel.org
 
-On Tue, Aug 2, 2011 at 14:30, Paul Gortmaker wrote:
-> [Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage] On 2=
-8/07/2011 (Thu 06:19) Linus Torvalds wrote:
->> On Wed, Jul 27, 2011 at 10:16 PM, Paul Gortmaker wrote:
->> > For all 160 commits, the branch "module.h-split", available here:
->> >
->> > =C2=A0 =C2=A0 =C2=A0 =C2=A0git://git.kernel.org/pub/scm/linux/kern=
-el/git/paulg/linux.git
->> >
->> > has the complete content. =C2=A0I've put the header changes after =
-all the
->> > patches from the top 5 categories, so that people bisecting non re=
-lated
->> > issues at a later date don't get hit with a commit zone with build=
- failures.
->>
->> Ok, sounds good. Two questions:
->>
->> =C2=A0- how much testing (randconfig? different architectures?) has =
-this gotten?
->>
->> =C2=A0- how much does this actually improve compile times (for a "no=
-rmal"
->> build or a "allmodconfig" one)?
->>
->> It certainly sounds like the RightThing(tm) to do, but I'd like to
->> know that there is real actual improvements to build times and that
->> the pain won't be too bad...
->
-> Now that it has done time in linux-next, let me address the testing
-> and (hopefully lack of) pain part.
+sparc doesn't access early_node_map[] directly and enabling
+HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
+with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
+enough.
 
-Blackfin is broken because of this.  a simple grep of the tree
-probably could pick this up.  maybe something like:
-grep EXPORT_SYMBOL * -rIl | xargs grep -L linux/export.h
+-v2: Use select in Kconfig instead as suggested by Sam Ravnborg.
 
-from my logs, i see at least:
-arch/blackfin/kernel/dma-mapping.c:103: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/kernel/dma-mapping.c:111: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/kernel/dma-mapping.c:121: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/kernel/dma-mapping.c:136: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/kernel/dma-mapping.c:148: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/kernel/sys_bfin.c:50: warning: type defaults to 'int' in
-declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf518/boards/ezbrd.c:825: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf527/boards/ad7160eval.c:852: warning: type
-defaults to 'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf527/boards/ezbrd.c:876: warning: type defaults to
-'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf527/boards/ezkit.c:1317: warning: type defaults
-to 'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf527/boards/tll6527m.c:938: warning: type defaults
-to 'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mach-bf537/boards/dnp5370.c:396: warning: type defaults
-to 'int' in declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mm/init.c:22: warning: type defaults to 'int' in
-declaration of 'EXPORT_SYMBOL'
-arch/blackfin/mm/init.c:32: warning: type defaults to 'int' in
-declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:1002: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:107: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:1089: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:124: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:271: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:293: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:353: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:373: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:451: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:515: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:591: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:599: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:610: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:621: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:775: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:786: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:797: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:90: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
-sound/soc/blackfin/bf5xx-sport.c:968: warning: type defaults to 'int'
-in declaration of 'EXPORT_SYMBOL'
--mike
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Acked-by: "David S. Miller" <davem@davemloft.net>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+Cc: sparclinux@vger.kernel.org
+---
+Acked-by added and select used in Kconfig instead.
+
+Thanks.
+
+ arch/sparc/Kconfig      |    1 +
+ arch/sparc/mm/init_64.c |   24 ++++--------------------
+ 2 files changed, 5 insertions(+), 20 deletions(-)
+
+Index: work/arch/sparc/Kconfig
+===================================================================
+--- work.orig/arch/sparc/Kconfig
++++ work/arch/sparc/Kconfig
+@@ -42,6 +42,7 @@ config SPARC64
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+ 	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_SYSCALL_WRAPPERS
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+Index: work/arch/sparc/mm/init_64.c
+===================================================================
+--- work.orig/arch/sparc/mm/init_64.c
++++ work/arch/sparc/mm/init_64.c
+@@ -811,7 +811,7 @@ static u64 memblock_nid_range(u64 start,
+ #endif
+ 
+ /* This must be invoked after performing all of the necessary
+- * add_active_range() calls for 'nid'.  We need to be able to get
++ * memblock_set_node() calls for 'nid'.  We need to be able to get
+  * correct data from get_pfn_range_for_nid().
+  */
+ static void __init allocate_node_data(int nid)
+@@ -982,14 +982,11 @@ static void __init add_node_ranges(void)
+ 
+ 			this_end = memblock_nid_range(start, end, &nid);
+ 
+-			numadbg("Adding active range nid[%d] "
++			numadbg("Setting memblock NUMA node nid[%d] "
+ 				"start[%lx] end[%lx]\n",
+ 				nid, start, this_end);
+ 
+-			add_active_range(nid,
+-					 start >> PAGE_SHIFT,
+-					 this_end >> PAGE_SHIFT);
+-
++			memblock_set_node(start, this_end - start, nid);
+ 			start = this_end;
+ 		}
+ 	}
+@@ -1277,7 +1274,6 @@ static void __init bootmem_init_nonnuma(
+ {
+ 	unsigned long top_of_ram = memblock_end_of_DRAM();
+ 	unsigned long total_ram = memblock_phys_mem_size();
+-	struct memblock_region *reg;
+ 
+ 	numadbg("bootmem_init_nonnuma()\n");
+ 
+@@ -1287,20 +1283,8 @@ static void __init bootmem_init_nonnuma(
+ 	       (top_of_ram - total_ram) >> 20);
+ 
+ 	init_node_masks_nonnuma();
+-
+-	for_each_memblock(memory, reg) {
+-		unsigned long start_pfn, end_pfn;
+-
+-		if (!reg->size)
+-			continue;
+-
+-		start_pfn = memblock_region_memory_base_pfn(reg);
+-		end_pfn = memblock_region_memory_end_pfn(reg);
+-		add_active_range(0, start_pfn, end_pfn);
+-	}
+-
++	memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
+ 	allocate_node_data(0);
+-
+ 	node_set_online(0);
+ }
+ 
