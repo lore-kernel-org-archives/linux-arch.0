@@ -1,19 +1,19 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 15/24] C6X: cache control
-Date: Mon,  8 Aug 2011 17:44:30 -0400
-Message-ID: <1312839879-13592-16-git-send-email-msalter@redhat.com>
+Subject: [PATCH 16/24] C6X: module support
+Date: Mon,  8 Aug 2011 17:44:31 -0400
+Message-ID: <1312839879-13592-17-git-send-email-msalter@redhat.com>
 References: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47693 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:10047 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752485Ab1HHVov (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Aug 2011 17:44:51 -0400
+	id S1752554Ab1HHVow (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Aug 2011 17:44:52 -0400
 Received: from int-mx09.intmail.prod.int.phx2.redhat.com (int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78LipHf027235
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78Lipwm027239
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
 	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:51 -0400
 Received: from deneb.redhat.com (ovpn-113-62.phx2.redhat.com [10.3.113.62])
-	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinY010873
+	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinZ010873
 	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:51 -0400
 In-Reply-To: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -22,615 +22,374 @@ To: linux-arch@vger.kernel.org
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/cache.h      |   84 +++++++
- arch/c6x/include/asm/cacheflush.h |   65 ++++++
- arch/c6x/platforms/cache.c        |  435 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 584 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/cache.h
- create mode 100644 arch/c6x/include/asm/cacheflush.h
- create mode 100644 arch/c6x/platforms/cache.c
+ arch/c6x/include/asm/module.h |   33 ++++++
+ arch/c6x/kernel/c6x_ksyms.c   |   72 ++++++++++++
+ arch/c6x/kernel/module.c      |  238 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 343 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/module.h
+ create mode 100644 arch/c6x/kernel/c6x_ksyms.c
+ create mode 100644 arch/c6x/kernel/module.c
 
-diff --git a/arch/c6x/include/asm/cache.h b/arch/c6x/include/asm/cache.h
+diff --git a/arch/c6x/include/asm/module.h b/arch/c6x/include/asm/module.h
 new file mode 100644
-index 0000000..f263ba2
+index 0000000..a453f97
 --- /dev/null
-+++ b/arch/c6x/include/asm/cache.h
-@@ -0,0 +1,84 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2005, 2006, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_CACHE_H
-+#define _ASM_C6X_CACHE_H
-+
-+#include <linux/irqflags.h>
-+
-+/*
-+ * Cache line size
-+ */
-+#define L1D_CACHE_BYTES   64
-+#define L1P_CACHE_BYTES   32
-+#define L2_CACHE_BYTES	  128
-+
-+/*
-+ * L2 used as cache
-+ */
-+#define L2MODE_SIZE	  L2MODE_256K_CACHE
-+
-+/*
-+ * Physical memory granularity for MAR registers
-+ */
-+#define IMCR_MAR_SIZE	  0x01000000
-+
-+/*
-+ * Current C6x architecture does not support hw cache coherency
-+ */
-+#define arch_is_coherent()    0
-+
-+/*
-+ * For practical reasons the L1_CACHE_BYTES defines should not be smaller than
-+ * the L2 line size
-+ */
-+#define L1_CACHE_BYTES        L2_CACHE_BYTES
-+
-+#define L2_CACHE_ALIGN_LOW(x) \
-+	(((x) & ~(L2_CACHE_BYTES - 1)))
-+#define L2_CACHE_ALIGN_UP(x) \
-+	(((x) + (L2_CACHE_BYTES - 1)) & ~(L2_CACHE_BYTES - 1))
-+#define L2_CACHE_ALIGN_CNT(x) \
-+	(((x) + (sizeof(int) - 1)) & ~(sizeof(int) - 1))
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
-+
-+/*
-+ * Align a physical address to MAR regions
-+ */
-+#define CACHE_REGION_START(v) \
-+	(((u32) (v)) & ~(IMCR_MAR_SIZE - 1))
-+#define CACHE_REGION_END(v) \
-+	(((u32) (v) + (IMCR_MAR_SIZE - 1)) & ~(IMCR_MAR_SIZE - 1))
-+
-+extern void __init c6x_cache_init(void);
-+
-+extern void enable_caching(unsigned long start, unsigned long end);
-+extern void disable_caching(unsigned long start, unsigned long end);
-+
-+extern void L1P_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_writeback_invalidate(unsigned int start,
-+						 unsigned int end);
-+extern void L1D_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback_invalidate(unsigned int start,
-+						unsigned int end);
-+extern void L2_cache_block_invalidate_nowait(unsigned int start,
-+					     unsigned int end);
-+extern void L2_cache_block_writeback_nowait(unsigned int start,
-+					    unsigned int end);
-+
-+extern void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						       unsigned int end);
-+
-+#endif /* _ASM_C6X_CACHE_H */
-diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
-new file mode 100644
-index 0000000..df5db90
---- /dev/null
-+++ b/arch/c6x/include/asm/cacheflush.h
-@@ -0,0 +1,65 @@
++++ b/arch/c6x/include/asm/module.h
+@@ -0,0 +1,33 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
 + *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_CACHEFLUSH_H
-+#define _ASM_C6X_CACHEFLUSH_H
-+
-+#include <linux/spinlock.h>
-+
-+#include <asm/setup.h>
-+#include <asm/cache.h>
-+#include <asm/mman.h>
-+#include <asm/page.h>
-+#include <asm/string.h>
-+
-+/*
-+ * virtually-indexed cache management (our cache is physically indexed)
-+ */
-+#define flush_cache_all()			do {} while (0)
-+#define flush_cache_mm(mm)			do {} while (0)
-+#define flush_cache_dup_mm(mm)			do {} while (0)
-+#define flush_cache_range(mm, start, end)	do {} while (0)
-+#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
-+#define flush_cache_vmap(start, end)		do {} while (0)
-+#define flush_cache_vunmap(start, end)		do {} while (0)
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-+#define flush_dcache_page(page)			do {} while (0)
-+#define flush_dcache_mmap_lock(mapping)		do {} while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
-+
-+/*
-+ * physically-indexed cache management
-+ */
-+#define flush_icache_range(s, e)				  \
-+do {								  \
-+		L1D_cache_block_writeback((s), (e));		  \
-+		L1P_cache_block_invalidate((s), (e));		  \
-+} while (0)
-+
-+#define flush_icache_page(vma, page)					  \
-+do {								  \
-+	if ((vma)->vm_flags & PROT_EXEC)				  \
-+		L1D_cache_block_writeback_invalidate(page_address(page),  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+		L1P_cache_block_invalidate(page_address(page),		  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+} while (0)
-+
-+
-+#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-+do {						     \
-+	memcpy(dst, src, len);			     \
-+	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
-+} while (0)
-+
-+#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-+	memcpy(dst, src, len)
-+
-+#endif /* _ASM_C6X_CACHEFLUSH_H */
-diff --git a/arch/c6x/platforms/cache.c b/arch/c6x/platforms/cache.c
-new file mode 100644
-index 0000000..7a5550d
---- /dev/null
-+++ b/arch/c6x/platforms/cache.c
-@@ -0,0 +1,435 @@
-+/*
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
++ *  Updated for 2.6.34 by: Mark Salter (msalter@redhat.com)
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_MODULE_H
++#define _ASM_C6X_MODULE_H
++
++#define Elf_Shdr	Elf32_Shdr
++#define Elf_Sym		Elf32_Sym
++#define Elf_Ehdr	Elf32_Ehdr
++#define Elf_Addr	Elf32_Addr
++#define Elf_Word	Elf32_Word
++
++/*
++ * This file contains the C6x architecture specific module code.
++ */
++struct mod_arch_specific {
++};
++
++struct loaded_sections {
++	unsigned int new_vaddr;
++	unsigned int loaded;
++};
++
++#endif /* _ASM_C6X_MODULE_H */
+diff --git a/arch/c6x/kernel/c6x_ksyms.c b/arch/c6x/kernel/c6x_ksyms.c
+new file mode 100644
+index 0000000..b6b00bb
+--- /dev/null
++++ b/arch/c6x/kernel/c6x_ksyms.c
+@@ -0,0 +1,72 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ */
++#include <linux/module.h>
++#include <asm/checksum.h>
 +#include <linux/io.h>
 +
-+#include <asm/cache.h>
-+#include <asm/machdep.h>
-+#include <asm/soc.h>
-+
-+#define IMCR_BASE	  0x01840000
-+
 +/*
-+ * Internal Memory Control Registers for caches
++ * libgcc functions - used internally by the compiler...
 + */
-+#define IMCR_CCFG	  0x0000
-+#define IMCR_L1PCFG	  0x0020
-+#define IMCR_L1PCC	  0x0024
-+#define IMCR_L1DCFG	  0x0040
-+#define IMCR_L1DCC	  0x0044
-+#define IMCR_L2ALLOC0	  0x2000
-+#define IMCR_L2ALLOC1	  0x2004
-+#define IMCR_L2ALLOC2	  0x2008
-+#define IMCR_L2ALLOC3	  0x200c
-+#define IMCR_L2WBAR	  0x4000
-+#define IMCR_L2WWC	  0x4004
-+#define IMCR_L2WIBAR	  0x4010
-+#define IMCR_L2WIWC	  0x4014
-+#define IMCR_L2IBAR	  0x4018
-+#define IMCR_L2IWC	  0x401c
-+#define IMCR_L1PIBAR	  0x4020
-+#define IMCR_L1PIWC	  0x4024
-+#define IMCR_L1DWIBAR	  0x4030
-+#define IMCR_L1DWIWC	  0x4034
-+#define IMCR_L1DWBAR	  0x4040
-+#define IMCR_L1DWWC	  0x4044
-+#define IMCR_L1DIBAR	  0x4048
-+#define IMCR_L1DIWC	  0x404c
-+#define IMCR_L2WB	  0x5000
-+#define IMCR_L2WBINV	  0x5004
-+#define IMCR_L2INV	  0x5008
-+#define IMCR_L1PINV	  0x5028
-+#define IMCR_L1DWB	  0x5040
-+#define IMCR_L1DWBINV	  0x5044
-+#define IMCR_L1DINV	  0x5048
-+#define IMCR_MAR_BASE	  0x8000
-+#define IMCR_MAR96_111	  0x8180
-+#define IMCR_MAR128_191   0x8200
-+#define IMCR_MAR224_239   0x8380
-+#define IMCR_L2MPFAR	  0xa000
-+#define IMCR_L2MPFSR	  0xa004
-+#define IMCR_L2MPFCR	  0xa008
-+#define IMCR_L2MPLK0	  0xa100
-+#define IMCR_L2MPLK1	  0xa104
-+#define IMCR_L2MPLK2	  0xa108
-+#define IMCR_L2MPLK3	  0xa10c
-+#define IMCR_L2MPLKCMD	  0xa110
-+#define IMCR_L2MPLKSTAT   0xa114
-+#define IMCR_L2MPPA_BASE  0xa200
-+#define IMCR_L1PMPFAR	  0xa400
-+#define IMCR_L1PMPFSR	  0xa404
-+#define IMCR_L1PMPFCR	  0xa408
-+#define IMCR_L1PMPLK0	  0xa500
-+#define IMCR_L1PMPLK1	  0xa504
-+#define IMCR_L1PMPLK2	  0xa508
-+#define IMCR_L1PMPLK3	  0xa50c
-+#define IMCR_L1PMPLKCMD   0xa510
-+#define IMCR_L1PMPLKSTAT  0xa514
-+#define IMCR_L1PMPPA_BASE 0xa600
-+#define IMCR_L1DMPFAR	  0xac00
-+#define IMCR_L1DMPFSR	  0xac04
-+#define IMCR_L1DMPFCR	  0xac08
-+#define IMCR_L1DMPLK0	  0xad00
-+#define IMCR_L1DMPLK1	  0xad04
-+#define IMCR_L1DMPLK2	  0xad08
-+#define IMCR_L1DMPLK3	  0xad0c
-+#define IMCR_L1DMPLKCMD   0xad10
-+#define IMCR_L1DMPLKSTAT  0xad14
-+#define IMCR_L1DMPPA_BASE 0xae00
-+#define IMCR_L2PDWAKE0	  0xc040
-+#define IMCR_L2PDWAKE1	  0xc044
-+#define IMCR_L2PDSLEEP0   0xc050
-+#define IMCR_L2PDSLEEP1   0xc054
-+#define IMCR_L2PDSTAT0	  0xc060
-+#define IMCR_L2PDSTAT1	  0xc064
++extern int __c6xabi_divi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_divi);
 +
++extern unsigned __c6xabi_divu(unsigned	dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_divu);
++
++extern int __c6xabi_remi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_remi);
++
++extern unsigned __c6xabi_remu(unsigned	dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_remu);
++
++extern int __c6xabi_divremi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_divremi);
++
++extern unsigned __c6xabi_divremu(unsigned  dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_divremu);
++
++extern unsigned long long __c6xabi_mpyll(unsigned long long src1,
++					 unsigned long long src2);
++EXPORT_SYMBOL(__c6xabi_mpyll);
++
++extern unsigned long long __c6xabi_divull(unsigned long long n,
++					  unsigned long long d);
++EXPORT_SYMBOL(__c6xabi_divull);
++
++extern long long __c6xabi_negll(long long src);
++EXPORT_SYMBOL(__c6xabi_negll);
++
++extern unsigned long long __c6xabi_llshl(unsigned long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshl);
++
++extern long long __c6xabi_llshr(long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshr);
++
++extern unsigned long long __c6xabi_llshru(unsigned long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshru);
++
++extern void __c6xabi_strasgi(int *dst, const int *src, unsigned cnt);
++EXPORT_SYMBOL(__c6xabi_strasgi);
++
++extern void __c6xabi_push_rts(void);
++EXPORT_SYMBOL(__c6xabi_push_rts);
++
++extern void __c6xabi_pop_rts(void);
++EXPORT_SYMBOL(__c6xabi_pop_rts);
++
++extern void __c6xabi_strasgi_64plus(int *dst, const int *src, unsigned cnt);
++EXPORT_SYMBOL(__c6xabi_strasgi_64plus);
++
++/* lib functions */
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(csum_partial);
++EXPORT_SYMBOL(ip_fast_csum);
+diff --git a/arch/c6x/kernel/module.c b/arch/c6x/kernel/module.c
+new file mode 100644
+index 0000000..5fcba9f
+--- /dev/null
++++ b/arch/c6x/kernel/module.c
+@@ -0,0 +1,238 @@
 +/*
-+ * CCFG register values and bits
-+ */
-+#define L2MODE_0K_CACHE   0x0
-+#define L2MODE_32K_CACHE  0x1
-+#define L2MODE_64K_CACHE  0x2
-+#define L2MODE_128K_CACHE 0x3
-+#define L2MODE_256K_CACHE 0x7
-+
-+#define L2PRIO_URGENT     0x0
-+#define L2PRIO_HIGH       0x1
-+#define L2PRIO_MEDIUM     0x2
-+#define L2PRIO_LOW        0x3
-+
-+#define CCFG_ID           0x100   /* Invalidate L1P bit */
-+#define CCFG_IP           0x200   /* Invalidate L1D bit */
-+
-+static void * __iomem cache_base;
-+
-+/*
-+ * L1 & L2 caches generic functions
-+ */
-+#define imcr_get(reg) soc_readl(cache_base + (reg))
-+#define imcr_set(reg, value) \
-+do {								\
-+	soc_writel((value), cache_base + (reg));		\
-+	soc_readl(cache_base + (reg));				\
-+} while (0)
-+
-+static void cache_block_operation_wait(unsigned int wc_reg)
-+{
-+	/* Wait for completion */
-+	while (imcr_get(wc_reg))
-+		;
-+}
-+
-+/*
-+ * Generic function to perform a block cache operation as
-+ * invalidate or writeback/invalidate
-+ */
-+static void cache_block_operation(unsigned int *start,
-+				  unsigned int *end,
-+				  unsigned int bar_reg,
-+				  unsigned int wc_reg)
-+{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
-+
-+	for (; wcnt; wcnt -= wc, start += wc) {
-+loop:
-+		local_irq_save(flags);
-+
-+		/*
-+		 * If another cache operation is occuring
-+		 */
-+		if (unlikely(imcr_get(wc_reg))) {
-+			local_irq_restore(flags);
-+
-+			/* Wait for previous operation completion */
-+			cache_block_operation_wait(wc_reg);
-+
-+			/* Try again */
-+			goto loop;
-+		}
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		local_irq_restore(flags);
-+
-+		/* Wait for completion */
-+		cache_block_operation_wait(wc_reg);
-+	}
-+}
-+
-+static void cache_block_operation_nowait(unsigned int *start,
-+					 unsigned int *end,
-+					 unsigned int bar_reg,
-+					 unsigned int wc_reg)
-+{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
-+
-+	for (; wcnt; wcnt -= wc, start += wc) {
-+
-+		local_irq_save(flags);
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		local_irq_restore(flags);
-+
-+		/* Don't wait for completion on last cache operation */
-+		if (wcnt > 0xffff)
-+			cache_block_operation_wait(wc_reg);
-+	}
-+}
-+
-+/*
-+ * L1 caches management
-+ */
-+
-+/*
-+ * Disable L1 caches
-+ */
-+void L1_cache_off(void)
-+{
-+	unsigned int dummy;
-+
-+	imcr_set(IMCR_L1PCFG, 0);
-+	dummy = imcr_get(IMCR_L1PCFG);
-+
-+	imcr_set(IMCR_L1DCFG, 0);
-+	dummy = imcr_get(IMCR_L1DCFG);
-+}
-+
-+/*
-+ * Enable L1 caches
-+ */
-+void L1_cache_on(void)
-+{
-+	unsigned int dummy;
-+
-+	imcr_set(IMCR_L1PCFG, 7);
-+	dummy = imcr_get(IMCR_L1PCFG);
-+
-+	imcr_set(IMCR_L1DCFG, 7);
-+	dummy = imcr_get(IMCR_L1DCFG);
-+}
-+
-+/*
-+ *  L1P global-invalidate all
-+ */
-+void L1P_cache_global_invalidate(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1PINV, set);
-+	while (imcr_get(IMCR_L1PINV) & 1)
-+		;
-+}
-+
-+/*
-+ *  L1D global-invalidate all
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ * Warning: this operation causes all updated data in L1D to
-+ * be discarded rather than written back to the lower levels of
-+ * memory
++ *  Copyright (C) 2005, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Thomas Charleux (thomas.charleux@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
 + */
-+void L1D_cache_global_invalidate(void)
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/kernel.h>
++
++#ifdef DEBUG
++#define DBG(fmt...) pr_debug(fmt)
++#else
++#define DBG(fmt...)
++#endif
++
++void *module_alloc(unsigned long size)
 +{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DINV, set);
-+	while (imcr_get(IMCR_L1DINV) & 1)
-+		;
++	if (size == 0)
++		return NULL;
++	return vmalloc_exec(size);
 +}
 +
-+void L1D_cache_global_writeback(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWB, set);
-+	while (imcr_get(IMCR_L1DWB) & 1)
-+		;
-+}
 +
-+void L1D_cache_global_writeback_invalidate(void)
++/* Free memory returned from module_alloc */
++void module_free(struct module *mod, void *module_region)
 +{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWBINV, set);
-+	while (imcr_get(IMCR_L1DWBINV) & 1)
-+		;
++	vfree(module_region);
 +}
 +
 +/*
-+ * L2 caches management
++ * finish loading the module
 + */
-+
-+/*
-+ * Set L2 operation mode
-+ */
-+void L2_cache_set_mode(unsigned int mode)
++int module_finalize(const Elf_Ehdr *hdr,
++		    const Elf_Shdr *sechdrs,
++		    struct module *me)
 +{
-+	unsigned int ccfg = imcr_get(IMCR_CCFG);
-+
-+	/* Clear and set the L2MODE bits in CCFG */
-+	ccfg &= ~7;
-+	ccfg |= (mode & 7);
-+	imcr_set(IMCR_CCFG, ccfg);
-+	ccfg = imcr_get(IMCR_CCFG);
++	return 0;
 +}
 +
 +/*
-+ *  L2 global-writeback and global-invalidate all
++ * finish clearing the module
 + */
-+void L2_cache_global_writeback_invalidate(void)
++void module_arch_cleanup(struct module *mod)
 +{
-+	imcr_set(IMCR_L2WBINV, 1);
-+	while (imcr_get(IMCR_L2WBINV))
-+		;
++	module_bug_cleanup(mod);
++}
++
++
++/* We don't need anything special. */
++int module_frob_arch_sections(Elf_Ehdr *hdr,
++			      Elf_Shdr *sechdrs,
++			      char *secstrings,
++			      struct module *mod)
++{
++	return 0;
++}
++
++static inline int fixup_pcr(u32 *ip, Elf32_Addr dest, u32 maskbits, int shift)
++{
++	u32 opcode;
++	long ep = (long)ip & ~31;
++	long delta = ((long)dest - ep) >> 2;
++	long mask = (1 << maskbits) - 1;
++
++	if ((delta >> (maskbits - 1)) == 0 ||
++	    (delta >> (maskbits - 1)) == -1) {
++		opcode = *ip;
++		opcode &= ~(mask << shift);
++		opcode |= ((delta & mask) << shift);
++		*ip = opcode;
++
++		DBG("REL PCR_S%d[%p] dest[0p] opcode[%08x]\n",
++		    maskbits, ip, (void *)dest, opcode);
++
++		return 0;
++	}
++	pr_err("PCR_S%d reloc %p -> %p out of range!\n",
++	       maskbits, ip, (void *)dest);
++
++	return -1;
 +}
 +
 +/*
-+ *  L2 global-writeback all
++ * apply a REL relocation
 + */
-+void L2_cache_global_writeback(void)
++int apply_relocate(Elf32_Shdr *sechdrs,
++		   const char *strtab,
++		   unsigned int symindex,
++		   unsigned int relsec,
++		   struct module *me)
 +{
-+	imcr_set(IMCR_L2WB, 1);
-+	while (imcr_get(IMCR_L2WB))
-+		;
++	Elf32_Rel *rel = (void *) sechdrs[relsec].sh_addr;
++	Elf_Sym *sym;
++	u32 *location;
++	unsigned int i;
++	Elf32_Addr v;
++	Elf_Addr offset = 0;
++
++	DBG("Applying relocate section %u to %u with offset[0x%x]\n", relsec,
++	    sechdrs[relsec].sh_info, offset);
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset - offset;
++
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
++
++		/* this is the adjustment to be made */
++		v = sym->st_value;
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_C6000_ABS32:
++			DBG("REL ABS32: [%p] = 0x%x\n", location, v);
++			*location = v;
++			break;
++		case R_C6000_ABS16:
++			DBG("REL ABS16: [%p] = 0x%x\n", location, v);
++			*(u16 *)location = v;
++			break;
++		case R_C6000_ABS8:
++			DBG("REL ABS8: [%p] = 0x%x\n", location, v);
++			*(u8 *)location = v;
++			break;
++		case R_C6000_PCR_S21:
++			if (fixup_pcr(location, v, 21, 7))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S12:
++			if (fixup_pcr(location, v, 12, 16))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S10:
++			if (fixup_pcr(location, v, 10, 13))
++				return -ENOEXEC;
++			break;
++		default:
++			pr_err("module %s: Unknown REL relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++
++	return 0;
 +}
 +
 +/*
-+ * Cacheability controls
++ * apply a RELA relocation
 + */
-+void enable_caching(unsigned long start, unsigned long end)
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,
++		       unsigned int relsec,
++		       struct module *me)
 +{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
++	Elf32_Rela *rel = (void *) sechdrs[relsec].sh_addr;
++	Elf_Sym *sym;
++	u32 *location, opcode;
++	unsigned int i;
++	Elf32_Addr v;
++	Elf_Addr offset = 0;
 +
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) | 1);
-+}
++	DBG("Applying relocate section %u to %u with offset 0x%x\n", relsec,
++	    sechdrs[relsec].sh_info, offset);
 +
-+void disable_caching(unsigned long start, unsigned long end)
-+{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset - offset;
 +
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) & ~1);
-+}
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
 +
++		/* this is the adjustment to be made */
++		v = sym->st_value + rel[i].r_addend;
 +
-+/*
-+ *  L1 block operations
-+ */
-+void L1P_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1PIBAR, IMCR_L1PIWC);
-+}
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_C6000_ABS32:
++			DBG("RELA ABS32: [%p] = 0x%x\n", location, v);
++			*location = v;
++			break;
++		case R_C6000_ABS16:
++			DBG("RELA ABS16: [%p] = 0x%x\n", location, v);
++			*(u16 *)location = v;
++			break;
++		case R_C6000_ABS8:
++			DBG("RELA ABS8: [%p] = 0x%x\n", location, v);
++			*(u8 *)location = v;
++			break;
++		case R_C6000_ABS_L16:
++			opcode = *location;
++			opcode &= ~0x7fff80;
++			opcode |= ((v & 0xffff) << 7);
++			DBG("RELA ABS_L16[%p] v[0x%x] opcode[0x%x]\n",
++			    location, v, opcode);
++			*location = opcode;
++			break;
++		case R_C6000_ABS_H16:
++			opcode = *location;
++			opcode &= ~0x7fff80;
++			opcode |= ((v >> 9) & 0x7fff80);
++			DBG("RELA ABS_H16[%p] v[0x%x] opcode[0x%x]\n",
++			    location, v, opcode);
++			*location = opcode;
++			break;
++		case R_C6000_PCR_S21:
++			if (fixup_pcr(location, v, 21, 7))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S12:
++			if (fixup_pcr(location, v, 12, 16))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S10:
++			if (fixup_pcr(location, v, 10, 13))
++				return -ENOEXEC;
++			break;
++		default:
++			pr_err("module %s: Unknown RELA relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
 +
-+void L1D_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DIBAR, IMCR_L1DIWC);
-+}
-+
-+void L1D_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWIBAR, IMCR_L1DWIWC);
-+}
-+
-+void L1D_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWBAR, IMCR_L1DWWC);
-+}
-+
-+/*
-+ *  L2 block operations
-+ */
-+void L2_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+void L2_cache_block_invalidate_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+
-+/*
-+ * L1 and L2 caches configuration
-+ */
-+void __init c6x_cache_init(void)
-+{
-+	cache_base = ioremap(IMCR_BASE, 0x10000);
-+	if (!cache_base)
-+		return;
-+
-+	/* Set L2 caches on the the whole L2 SRAM memory */
-+	L2_cache_set_mode(L2MODE_SIZE);
-+
-+	/* Enable L1 */
-+	L1_cache_on();
++	return 0;
 +}
 -- 
 1.7.6
