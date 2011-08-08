@@ -1,41 +1,63 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 03/24] add ELF machine define for TI C6X DSPs
-Date: Mon,  8 Aug 2011 17:44:18 -0400
-Message-ID: <1312839879-13592-4-git-send-email-msalter@redhat.com>
+Subject: [PATCH 02/24] fixed generic page.h for non-zero PAGE_OFFSET
+Date: Mon,  8 Aug 2011 17:44:17 -0400
+Message-ID: <1312839879-13592-3-git-send-email-msalter@redhat.com>
 References: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37380 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:52599 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751310Ab1HHVoq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1751080Ab1HHVoq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Mon, 8 Aug 2011 17:44:46 -0400
 Received: from int-mx09.intmail.prod.int.phx2.redhat.com (int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78Liklo009799
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p78Lik5p006454
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
 	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:46 -0400
 Received: from deneb.redhat.com (ovpn-113-62.phx2.redhat.com [10.3.113.62])
-	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinM010873
-	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:46 -0400
+	by int-mx09.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with ESMTP id p78LiinL010873
+	for <linux-arch@vger.kernel.org>; Mon, 8 Aug 2011 17:44:45 -0400
 In-Reply-To: <1312839879-13592-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 
+asm-generic/page.h had several problems when used with a non-zero PAGE_OFFSET.
+This patch adds a default ARCH_PFN_OFFSET and fixes the __va, __pa, and
+pfn_valid macros to work with non-zero PAGE_OFFSETs.
+
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- include/linux/elf-em.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ include/asm-generic/page.h |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/elf-em.h b/include/linux/elf-em.h
-index 18bea78..8e2b7ba 100644
---- a/include/linux/elf-em.h
-+++ b/include/linux/elf-em.h
-@@ -33,6 +33,7 @@
- #define EM_H8_300	46	/* Renesas H8/300,300H,H8S */
- #define EM_MN10300	89	/* Panasonic/MEI MN10300, AM33 */
- #define EM_BLACKFIN     106     /* ADI Blackfin Processor */
-+#define EM_TI_C6000	140	/* TI C6X DSPs */
- #define EM_FRV		0x5441	/* Fujitsu FR-V */
- #define EM_AVR32	0x18ad	/* Atmel AVR32 */
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 75fec18..f376db2 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -71,10 +71,14 @@ extern unsigned long memory_end;
+ #define PAGE_OFFSET		(0)
+ #endif
  
++#ifndef ARCH_PFN_OFFSET
++#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
++#endif
++
+ #ifndef __ASSEMBLY__
+ 
+-#define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
+-#define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
++#define __va(x) ((void *)((unsigned long) (x)))
++#define __pa(x) ((unsigned long) (x))
+ 
+ #define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
+ #define pfn_to_virt(pfn)	__va((pfn) << PAGE_SHIFT)
+@@ -86,7 +90,7 @@ extern unsigned long memory_end;
+ #define page_to_phys(page)      ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
+ #endif
+ 
+-#define pfn_valid(pfn)		((pfn) < max_mapnr)
++#define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
+ 
+ #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+ 				((void *)(kaddr) < (void *)memory_end))
 -- 
 1.7.6
