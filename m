@@ -1,51 +1,32 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 17/24] C6X: ptrace support
-Date: Tue, 9 Aug 2011 18:58:47 +0200
-Message-ID: <201108091858.47880.arnd@arndb.de>
-References: <1312839879-13592-1-git-send-email-msalter@redhat.com> <1312839879-13592-18-git-send-email-msalter@redhat.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 15/24] C6X: cache control
+Date: Tue, 09 Aug 2011 18:03:16 +0100
+Message-ID: <12886.1312909396@redhat.com>
+References: <201108091853.54655.arnd@arndb.de> <1312839879-13592-1-git-send-email-msalter@redhat.com> <1312839879-13592-16-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:59142 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753011Ab1HIQ6w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2011 12:58:52 -0400
-In-Reply-To: <1312839879-13592-18-git-send-email-msalter@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:35315 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754011Ab1HIRDX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Aug 2011 13:03:23 -0400
+In-Reply-To: <201108091853.54655.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: dhowells@redhat.com, Mark Salter <msalter@redhat.com>, linux-arch@vger.kernel.org
 
-On Monday 08 August 2011, Mark Salter wrote:
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-> + * Perform ptrace request
-> + */
-> +long arch_ptrace(struct task_struct *child, long request,
-> +		 unsigned long addr, unsigned long data)
-> +{
-> +	unsigned long __user *datap = (unsigned long __user *) data;
-> +	int ret = 0;
-> +
-> +	switch (request) {
-> +	case PTRACE_PEEKUSR:
-> +		ret = ptrace_read_user(child, addr,
-> +				       (unsigned long __user *) data);
-> +		break;
-> +
-> +		/*
-> +		 * write the word at location addr in the user registers.
-> +		 */
-> +	case PTRACE_POKEUSR:
-> +		ret = -EIO;
-> +		if (addr & 3 || addr < 0 || addr >= PT_REG_SIZE)
-> +			break;
-> +
-> +		ret = put_reg(child, (int)addr >> 2, data);
-> +		break;
+> > +#define IMCR_BASE	  0x01840000
+> 
+> Please don't hardcode MMIO regions like this. You should have the base
+> address in the device tree and use of_iomap() like you do in some other
+> cases.  If you need this really early, you might need to
 
-I believe you no longer need to provide PTRACE_PEEKUSR/PTRACE_POKEUSR
-when you have regset support for all your GPRs.
+What about for memory-mapped CPU registers that you might need to access in
+head.S?
 
-	Arnd
+MN10300, for example, has a bunch of these - such the atomic operation
+parameter and control registers.  Getting some of these through the device
+tree adds potentially quite a lot of overhead.
+
+David
