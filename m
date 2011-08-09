@@ -1,18 +1,18 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 16/24] C6X: module support
-Date: Tue, 9 Aug 2011 18:56:33 +0200
-Message-ID: <201108091856.33829.arnd@arndb.de>
-References: <1312839879-13592-1-git-send-email-msalter@redhat.com> <1312839879-13592-17-git-send-email-msalter@redhat.com>
+Subject: Re: [PATCH 17/24] C6X: ptrace support
+Date: Tue, 9 Aug 2011 18:58:47 +0200
+Message-ID: <201108091858.47880.arnd@arndb.de>
+References: <1312839879-13592-1-git-send-email-msalter@redhat.com> <1312839879-13592-18-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:62694 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.187]:59142 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753011Ab1HIQ4i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2011 12:56:38 -0400
-In-Reply-To: <1312839879-13592-17-git-send-email-msalter@redhat.com>
+	with ESMTP id S1753011Ab1HIQ6w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Aug 2011 12:58:52 -0400
+In-Reply-To: <1312839879-13592-18-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Salter <msalter@redhat.com>
@@ -20,57 +20,32 @@ Cc: linux-arch@vger.kernel.org
 
 On Monday 08 August 2011, Mark Salter wrote:
 
-> +extern unsigned long long __c6xabi_divull(unsigned long long n,
-> +					  unsigned long long d);
-> +EXPORT_SYMBOL(__c6xabi_divull);
-
-A full 64 bit division is very expensive. We have the div64() macro
-in the kernel to avoid that. It would be a useful optimization to
-provide a working div64 and remove the __c6xabi_divull export.
-
-> +void *module_alloc(unsigned long size)
-> +{
-> +	if (size == 0)
-> +		return NULL;
-> +	return vmalloc_exec(size);
-> +}
-> +
-> +
-> +/* Free memory returned from module_alloc */
-> +void module_free(struct module *mod, void *module_region)
-> +{
-> +	vfree(module_region);
-> +}
-> +
-> +/*
-> + * finish loading the module
+> + * Perform ptrace request
 > + */
-> +int module_finalize(const Elf_Ehdr *hdr,
-> +		    const Elf_Shdr *sechdrs,
-> +		    struct module *me)
+> +long arch_ptrace(struct task_struct *child, long request,
+> +		 unsigned long addr, unsigned long data)
 > +{
-> +	return 0;
-> +}
+> +	unsigned long __user *datap = (unsigned long __user *) data;
+> +	int ret = 0;
 > +
-> +/*
-> + * finish clearing the module
-> + */
-> +void module_arch_cleanup(struct module *mod)
-> +{
-> +	module_bug_cleanup(mod);
-> +}
+> +	switch (request) {
+> +	case PTRACE_PEEKUSR:
+> +		ret = ptrace_read_user(child, addr,
+> +				       (unsigned long __user *) data);
+> +		break;
 > +
+> +		/*
+> +		 * write the word at location addr in the user registers.
+> +		 */
+> +	case PTRACE_POKEUSR:
+> +		ret = -EIO;
+> +		if (addr & 3 || addr < 0 || addr >= PT_REG_SIZE)
+> +			break;
 > +
-> +/* We don't need anything special. */
-> +int module_frob_arch_sections(Elf_Ehdr *hdr,
-> +			      Elf_Shdr *sechdrs,
-> +			      char *secstrings,
-> +			      struct module *mod)
-> +{
-> +	return 0;
-> +}
+> +		ret = put_reg(child, (int)addr >> 2, data);
+> +		break;
 
-After openrisc was merged, you no longer need to provide these functions,
-they are the default anyway.
+I believe you no longer need to provide PTRACE_PEEKUSR/PTRACE_POKEUSR
+when you have regset support for all your GPRs.
 
 	Arnd
