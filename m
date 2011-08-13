@@ -1,53 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:36674 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755826Ab1HKNLW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Aug 2011 09:11:22 -0400
-Message-ID: <4E43D4AD.6080702@windriver.com>
-Date: Thu, 11 Aug 2011 09:10:05 -0400
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Received: from moutng.kundenserver.de ([212.227.126.171]:64680 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751066Ab1HMV0c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Aug 2011 17:26:32 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH resend] asm/types.h: All architectures use int-ll64.h in kernelspace
+Date: Sat, 13 Aug 2011 23:25:59 +0200
+Message-ID: <1665974.2LGtkbyJmJ@wuerfel>
+In-Reply-To: <alpine.DEB.2.00.1108132152050.18053@ayla.of.borg>
+References: <alpine.DEB.2.00.1108132152050.18053@ayla.of.borg>
 MIME-Version: 1.0
-Subject: Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage
-References: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com> <CA+55aFwtyfzaFABHKD+OMWsojGov0JLmnrZimhVaOcrer=tJjQ@mail.gmail.com> <20110802183019.GB8393@windriver.com> <CAMjpGUcOagn-o_mETLDr-=pa-3sxq_iDjF=A8OGhdJg5+9ewpA@mail.gmail.com> <4E42D769.8030704@windriver.com> <CAMjpGUcTMwYs99Nu02u+Sbg99RuJvRDpjvY6ChDLUEASf1wUrA@mail.gmail.com>
-In-Reply-To: <CAMjpGUcTMwYs99Nu02u+Sbg99RuJvRDpjvY6ChDLUEASf1wUrA@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier.adi@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, mingo@elte.hu, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, sfr@canb.auug.org.au
-Message-ID: <20110811131005.Ytkld9Gfk1PYopYWubydodasZmu99UsHxFw81VPz32g@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
+Message-ID: <20110813212559.YGQkEQwu4U-vL7JdGLgFBCInSApJHHAGWJ3gogNehqI@z>
 
-On 11-08-11 12:34 AM, Mike Frysinger wrote:
-> On Wed, Aug 10, 2011 at 15:09, Paul Gortmaker wrote:
->> On 11-08-07 10:42 PM, Mike Frysinger wrote:
->>
->> [...]
->>
->>> Blackfin is broken because of this.  a simple grep of the tree
->>
->> I've run all the in-tree blackfin configs, so it is all good.
+On Saturday 13 August 2011 21:53:43 Geert Uytterhoeven wrote:
+> Now all 64-bit architectures have been converted to int-ll64.h, we can
+> deprecate int-l64.h in kernelspace:
+>   - Add a check to prevent new architectures from using int-l64.h in
+>     kernelspace,
+>   - Update documentation, as the casts to (unsigned) long long are no longer
+>     needed.
 > 
-> so you made a change and it's all good <now> ?
-
-Correct.
-
+> For backwards compatibility, alpha, ia64, mips, and powerpc still use
+> int-l64.h in userspace.
 > 
->> Have you thought about getting at least one blackfin defconfig in
->> the linux-next build coverage?  Gives you a better chance of
->> having people see when they've broken it.
-> 
-> all of the blackfin defconfigs get tested nightly in linux-next by an
-> ADI build machine.  i just didnt have a chance to review the logs as i
-> was traveling.
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> For the documentation parts:
+> Acked-by: Randy Dunlap <rdunlap@xenotime.net>
 
-That is good, but as you've noted, it isn't something that anyone
-else can see when they are combing the normal linux-next build
-results below looking to see if they broke anything.
+I believe that Al Viro is working on a patch to unify all umode_t definitions
+so that it becomes unsigned short everywhere. Once that is done,
+asm-generic/int-ll64.h can become asm-generic/types.h and all architectures
+can use that.
 
-http://kisskb.ellerman.id.au/kisskb/branch/9/
-
-Thanks,
-Paul.
-
-> -mike
+	Arnd
