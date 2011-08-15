@@ -1,21 +1,22 @@
-From: Favour love <favour2b@itimes.com>
-Subject: HELLO
-Date: Mon, 15 Aug 2011 18:08:50 +0530 (IST)
-Message-ID: <1088421422.1482171313411930440.JavaMail.root@ims1.itimes.com>
-Reply-To: Favour baby <favourbaby2b@yahoo.com>
+From: Royal Loan Company (ALC) <info@mail.com>
+Subject: Apply for loan today at 3% interest rate
+Date: Mon, 15 Aug 2011 13:12:02 +0000 (UTC)
+Message-ID: <20110815110332.80D9C59EA6C__17582.6101367877$1313413922$gmane$org@mail.najdschools.edu.sa>
+Reply-To: royalloancoplc@w.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bmc05.indiatimes.com ([223.165.31.109]:38542 "HELO
-	bmc05.indiatimes.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1753149Ab1HOMiW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Aug 2011 08:38:22 -0400
+Received: from mail.najdschools.edu.sa ([212.119.79.83]:32948 "EHLO
+	mail.najdschools.edu.sa" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753007Ab1HONLx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Aug 2011 09:11:53 -0400
+Content-Description: Mail message body
+Date: Tue, 16 Aug 2011 12:07:00 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <info@mail.com>
 
-hello dear,
-How are you? I hope you are fine, my name is miss Favour, I saw your profile today when i was browsing looking for a new friend, that is why i write this mail to you, I will like to know more about you if you don't mind, reply me soon so that i will send you my picture and we be good friends,
-Accept my regards,
-Hope to hear from you soon,
-Favour
+We are financial builders and gives out no credit check loans to all
+ranging from personal,commercial,business,venture,start up,consolidation,
+refinance and all form of loans with amounts ranging from $3,500 to $50,000,000.00 with a fixed and very low interest rate of 3% on an annual basis.Apply for loan today at 3% interest rate.send application if intrested to royalloancoplc@w.cn
