@@ -1,122 +1,32 @@
-From: Greg Thelen <gthelen@google.com>
-Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-Date: Thu, 18 Aug 2011 17:00:30 -0700
-Message-ID: <CAHH2K0b_jNHfAnSpDqBMKh4NbZCu8JrEcfjb+rputWKXgv5FLA@mail.gmail.com>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com> <20110818144025.8e122a67.akpm@linux-foundation.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[]
+Date: Thu, 18 Aug 2011 14:13:07 -0700
+Message-ID: <a319bfd7-a358-4894-9de0-211bc939e2ae@email.android.com>
+References: <1311694534-5161-1-git-send-email-tj@kernel.org> <20110818120026.GB20085@htj.dyndns.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:19119 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751685Ab1HSAAy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Aug 2011 20:00:54 -0400
-Received: from wpaz13.hot.corp.google.com (wpaz13.hot.corp.google.com [172.24.198.77])
-	by smtp-out.google.com with ESMTP id p7J00puh000831
-	for <linux-arch@vger.kernel.org>; Thu, 18 Aug 2011 17:00:52 -0700
-Received: from qwj8 (qwj8.prod.google.com [10.241.195.72])
-	by wpaz13.hot.corp.google.com with ESMTP id p7J00dt1006395
-	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Thu, 18 Aug 2011 17:00:50 -0700
-Received: by qwj8 with SMTP id 8so2150629qwj.4
-        for <linux-arch@vger.kernel.org>; Thu, 18 Aug 2011 17:00:50 -0700 (PDT)
-In-Reply-To: <20110818144025.8e122a67.akpm@linux-foundation.org>
+Received: from terminus.zytor.com ([198.137.202.10]:32802 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752193Ab1HSALF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 18 Aug 2011 20:11:05 -0400
+In-Reply-To: <20110818120026.GB20085@htj.dyndns.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org, Valdis.Kletnieks@vt.edu, jweiner@redhat.com
+To: Tejun Heo <tj@kernel.org>, benh@kernel.crashing.org, yinghai@kernel.org, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.or
+Cc: mingo@redhat.com
 
-On Thu, Aug 18, 2011 at 2:40 PM, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> (cc linux-arch)
->
-> On Wed, 17 Aug 2011 23:50:53 -0700
-> Greg Thelen <gthelen@google.com> wrote:
->
->> Both mem_cgroup_charge_statistics() and mem_cgroup_move_account() we=
-re
->> unnecessarily disabling preemption when adjusting per-cpu counters:
->> =A0 =A0 preempt_disable()
->> =A0 =A0 __this_cpu_xxx()
->> =A0 =A0 __this_cpu_yyy()
->> =A0 =A0 preempt_enable()
->>
->> This change does not disable preemption and thus CPU switch is possi=
-ble
->> within these routines. =A0This does not cause a problem because the =
-total
->> of all cpu counters is summed when reporting stats. =A0Now both
->> mem_cgroup_charge_statistics() and mem_cgroup_move_account() look li=
-ke:
->> =A0 =A0 this_cpu_xxx()
->> =A0 =A0 this_cpu_yyy()
->>
->> ...
->>
->> --- a/mm/memcontrol.c
->> +++ b/mm/memcontrol.c
->> @@ -664,24 +664,20 @@ static unsigned long mem_cgroup_read_events(st=
-ruct mem_cgroup *mem,
->> =A0static void mem_cgroup_charge_statistics(struct mem_cgroup *mem,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =
-=A0 =A0 =A0bool file, int nr_pages)
->> =A0{
->> - =A0 =A0 preempt_disable();
->> -
->> =A0 =A0 =A0 if (file)
->> - =A0 =A0 =A0 =A0 =A0 =A0 __this_cpu_add(mem->stat->count[MEM_CGROUP=
-_STAT_CACHE], nr_pages);
->> + =A0 =A0 =A0 =A0 =A0 =A0 this_cpu_add(mem->stat->count[MEM_CGROUP_S=
-TAT_CACHE], nr_pages);
->> =A0 =A0 =A0 else
->> - =A0 =A0 =A0 =A0 =A0 =A0 __this_cpu_add(mem->stat->count[MEM_CGROUP=
-_STAT_RSS], nr_pages);
->> + =A0 =A0 =A0 =A0 =A0 =A0 this_cpu_add(mem->stat->count[MEM_CGROUP_S=
-TAT_RSS], nr_pages);
->>
->> =A0 =A0 =A0 /* pagein of a big page is an event. So, ignore page siz=
-e */
->> =A0 =A0 =A0 if (nr_pages > 0)
->> - =A0 =A0 =A0 =A0 =A0 =A0 __this_cpu_inc(mem->stat->events[MEM_CGROU=
-P_EVENTS_PGPGIN]);
->> + =A0 =A0 =A0 =A0 =A0 =A0 this_cpu_inc(mem->stat->events[MEM_CGROUP_=
-EVENTS_PGPGIN]);
->> =A0 =A0 =A0 else {
->> - =A0 =A0 =A0 =A0 =A0 =A0 __this_cpu_inc(mem->stat->events[MEM_CGROU=
-P_EVENTS_PGPGOUT]);
->> + =A0 =A0 =A0 =A0 =A0 =A0 this_cpu_inc(mem->stat->events[MEM_CGROUP_=
-EVENTS_PGPGOUT]);
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 nr_pages =3D -nr_pages; /* for event */
->> =A0 =A0 =A0 }
->>
->> - =A0 =A0 __this_cpu_add(mem->stat->events[MEM_CGROUP_EVENTS_COUNT],=
- nr_pages);
->> -
->> - =A0 =A0 preempt_enable();
->> + =A0 =A0 this_cpu_add(mem->stat->events[MEM_CGROUP_EVENTS_COUNT], n=
-r_pages);
->> =A0}
->
-> On non-x86 architectures this_cpu_add() internally does
-> preempt_disable() and preempt_enable(). =A0So the patch is a small
-> optimisation for x86 and a larger deoptimisation for non-x86.
->
-> I think I'll apply it, as the call frequency is low (correct?) and th=
-e
-> problem will correct itself as other architectures implement their
-> atomic this_cpu_foo() operations.
+Tejun Heo <tj@kernel.org> wrote:
 
-mem_cgroup_charge_statistics() is a common operation, which is called
-on each memcg page charge and uncharge.
+>hpa, ping?
+>
+>Thanks.
+>
+>-- 
+>tejun
 
-The per arch/config effects of this patch:
-* non-preemptible kernels: there's no difference before/after this patc=
-h.
-* preemptible x86: this patch helps by removing an unnecessary
-preempt_disable/enable.
-* preemptible non-x86: this patch hurts by adding implicit
-preempt_disable/enable around each operation.
-
-So I am uncomfortable this patch's unmeasured impact on archs that do
-not have atomic this_cpu_foo() operations.  Please drop the patch from
-mmotm.  Sorry for the noise.
+Travelling at the moment... ping me again Tuesday if I haven't dealt with it by then.
+-- 
+Sent from my mobile phone. Please excuse my brevity and lack of formatting.
