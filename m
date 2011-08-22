@@ -1,47 +1,38 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 01/43] signal: Add block_sigmask() for adding sigmask
- to current->blocked
-Date: Mon, 22 Aug 2011 16:56:36 +0100
-Message-ID: <1314028596.19751.31.camel@mfleming-mobl1.ger.corp.intel.com>
-References: <1313772419-21951-1-git-send-email-matt@console-pimps.org>
-	 <1313772419-21951-2-git-send-email-matt@console-pimps.org>
-	 <1314008362.19751.22.camel@mfleming-mobl1.ger.corp.intel.com>
-	 <20110822140158.GA29312@redhat.com>
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: __ARCH_WANT_SYSCALL_DEPRECATED
+Date: Mon, 22 Aug 2011 14:36:02 -0500
+Message-ID: <20110822193602.GA23301__26705.7717232548$1314041785$gmane$org@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:35742 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751254Ab1HVP4j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Aug 2011 11:56:39 -0400
-In-Reply-To: <20110822140158.GA29312@redhat.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:57699 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753267Ab1HVTgN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2011 15:36:13 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexag
 
-On Mon, 2011-08-22 at 16:01 +0200, Oleg Nesterov wrote:
-> On 08/22, Matt Fleming wrote:
-> >
-> > (Adding linux-arch to Cc so arch maintainers will hopefully see this)
-> 
-> Yes, thanks.
-> 
-> So far I applied only this patch to
-> 
-> 	git://git.kernel.org/pub/scm/linux/kernel/git/oleg/misc.git ptrace
-> 
-> But I am going to take the whole series unless I have the nack from
-> maintainers. Everything looks correct.
-> 
-> IOW, I am going to wait a bit to collect the ACKs from the maintainers
-> in case (I hope ;) they want to review these changes.
-> 
-> OK?
 
-That's fine with me!
+Hi,
 
--- 
-Matt Fleming, Intel Open Source Technology Center
+So: What's the latest on asm-generic support on glibc?=20
+I just pulled glibc-2.14 and note that Chris Metcalf's
+generic implementation hasn't been folded in yet.=20
+It seems to work well for me, so can we expect it
+anytime soon?
+
+Another problem:  If I don't define __ARCH_WANT_SYSCALL_DEPRECATED
+in the kernel asm/unistd.h  then glibc won't build: currently,
+I get=20
+=2E./sysdeps/unix/sysv/linux/getdents.c:105: error: =E2=80=98__NR_getde=
+nts=E2=80=99 undeclared (first use in this function)
+
+A very quick grep tells me that asm-generic defines a getdents64
+but that is not what glibc is looking for.  Is there any chance
+that there are glibc patches floating around somewhere that heal
+this and any remaining __ARCH_WANT_SYSCALL_DEPRECATED issues?
+
+--linas=20
