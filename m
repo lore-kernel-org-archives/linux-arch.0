@@ -1,30 +1,45 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 22/24] C6X: EMIF - External Memory Interface
-Date: Mon, 22 Aug 2011 17:34:19 -0400
-Message-ID: <1314048859.2404.34.camel@deneb.redhat.com>
-References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
-	 <1314043785-2880-23-git-send-email-msalter@redhat.com>
-	 <6640139.XM528fXZpr@wuerfel>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/4] string: introduce memchr_inv
+Date: Mon, 22 Aug 2011 14:50:50 -0700
+Message-ID: <20110822145050.e3471fa0.akpm__10529.8261078589$1314049875$gmane$org@linux-foundation.org>
+References: <1314030548-21082-1-git-send-email-akinobu.mita@gmail.com>
+	<1314030548-21082-4-git-send-email-akinobu.mita@gmail.com>
+	<20110822135218.f2d9f462.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63247 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751204Ab1HVVeW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Aug 2011 17:34:22 -0400
-In-Reply-To: <6640139.XM528fXZpr@wuerfel>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:37906 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753963Ab1HVVvC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Aug 2011 17:51:02 -0400
+In-Reply-To: <20110822135218.f2d9f462.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+To: Akinobu Mita <akinobu.mita@gmail.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt
 
-On Mon, 2011-08-22 at 23:17 +0200, Arnd Bergmann wrote:
-> > +pure_initcall(c6x_emifa_init);
-> 
-> It looks like you are missing an iounmap here. Obviously a nop on nommu, but
-> it caught my eye anyway and perheps you get an mmu at some point.
-> 
->         Arnd
+On Mon, 22 Aug 2011 13:52:18 -0700
+Andrew Morton <akpm@linux-foundation.org> wrote:
 
-Yes. Good catch.
+> > +	value64 = value | value << 8 | value << 16 | value << 24;
+> > +	value64 = (value64 & 0xffffffff) | value64 << 32;
+> > +	prefix = 8 - ((unsigned long)start) % 8;
+> > +
+> > +	if (prefix) {
+> > +		u8 *r = check_bytes8(start, value, prefix);
+> > +		if (r)
+> > +			return r;
+> > +		start += prefix;
+> > +		bytes -= prefix;
+> > +	}
+> > +
+> > +	words = bytes / 8;
+> > +
+> > +	while (words) {
+> > +		if (*(u64 *)start != value64)
+> 
+> OK, problem.  This will explode if passed a misaligned address on
+> certain (non-x86) architectures.
+
+pls ignore.  As Marcin points out, I can't read.
