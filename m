@@ -1,52 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:59250 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753698Ab1HVUoZ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2011 16:44:25 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
-Date: Mon, 22 Aug 2011 22:43:18 +0200
-Message-ID: <2047151.mWElcT8jZQ@wuerfel>
-In-Reply-To: <20110822193602.GA23301@codeaurora.org>
-References: <20110822193602.GA23301@codeaurora.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 8BIT
-Content-Type: text/plain; charset="utf-8"
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:51606 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753884Ab1HVUwe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Aug 2011 16:52:34 -0400
+Date: Mon, 22 Aug 2011 13:52:18 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 3/4] string: introduce memchr_inv
+Message-ID: <20110822135218.f2d9f462.akpm@linux-foundation.org>
+In-Reply-To: <1314030548-21082-4-git-send-email-akinobu.mita@gmail.com>
+References: <1314030548-21082-1-git-send-email-akinobu.mita@gmail.com>
+	<1314030548-21082-4-git-send-email-akinobu.mita@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20110822204318.qVNXAkJbp_c_6q4uzTx9s3_CKPQJg3lpLKFWd-Jcs48@z>
+To: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Joern Engel <joern@logfs.org>, logfs@logfs.org, Marcin Slusarz <marcin.slusarz@gmail.com>, Eric Dumazet <eric.dumazet@gmail.com>, linux-arch@vger.kernel.org
+Message-ID: <20110822205218.SL5KRzTCxnSzNnAVAd5WNr_2yUGZbGb274q_OW4mQMk@z>
 
-On Monday 22 August 2011 14:36:02 Linas Vepstas wrote:
+On Tue, 23 Aug 2011 01:29:07 +0900
+Akinobu Mita <akinobu.mita@gmail.com> wrote:
+
+> memchr_inv() is mainly used to check whether the whole buffer is filled
+> with just a specified byte.
 > 
-> So: What's the latest on asm-generic support on glibc? 
-> I just pulled glibc-2.14 and note that Chris Metcalf's
-> generic implementation hasn't been folded in yet. 
-> It seems to work well for me, so can we expect it
-> anytime soon?
+> The function name and prototype are stolen from logfs and the
+> implementation is from SLUB.
 > 
-> Another problem:  If I don't define __ARCH_WANT_SYSCALL_DEPRECATED
-> in the kernel asm/unistd.h  then glibc won't build: currently,
-> I get 
-> ../sysdeps/unix/sysv/linux/getdents.c:105: error: ‘__NR_getdents’ undeclared (first use in this function)
-> 
-> A very quick grep tells me that asm-generic defines a getdents64
-> but that is not what glibc is looking for.  Is there any chance
-> that there are glibc patches floating around somewhere that heal
-> this and any remaining __ARCH_WANT_SYSCALL_DEPRECATED issues?
+> ...
+>
+> +/**
+> + * memchr_inv - Find a character in an area of memory.
+> + * @s: The memory area
+> + * @c: The byte to search for
+> + * @n: The size of the area.
 
-I don't know the answer to your question, but I've added Mark Salter,
-Guan Xuetao and Tobias Klauser to the list, since they probably have
-the same issue on c64x, unicore32 and nios2. c64x is currently nommu,
-but there is a similar problem with uclibc and I expect that architecture
-to grow an mmu at some point.
+This text seems to be stolen from memchr().  I guess it's close enough.
 
-As far as I can tell, there is now a total of six architectures using
-the generic syscalls (not counting s*core, because that relies on
-the deprecated calls) and at least two unnamed ones waiting to have
-their coming-out, plus a few stagnated ports (lm32, arc, mmix, meta, ...)
-that would need to get converted if someone wanted to push kernel
-support upstream.
+> + * returns the address of the first character other than @c, or %NULL
+> + * if the whole buffer contains just @c.
+> + */
+> +void *memchr_inv(const void *start, int c, size_t bytes)
+> +{
+> +	u8 value = c;
+> +	u64 value64;
+> +	unsigned int words, prefix;
+> +
+> +	if (bytes <= 16)
+> +		return check_bytes8(start, value, bytes);
+> +
+> +	value64 = value | value << 8 | value << 16 | value << 24;
+> +	value64 = (value64 & 0xffffffff) | value64 << 32;
+> +	prefix = 8 - ((unsigned long)start) % 8;
+> +
+> +	if (prefix) {
+> +		u8 *r = check_bytes8(start, value, prefix);
+> +		if (r)
+> +			return r;
+> +		start += prefix;
+> +		bytes -= prefix;
+> +	}
+> +
+> +	words = bytes / 8;
+> +
+> +	while (words) {
+> +		if (*(u64 *)start != value64)
 
-	Arnd
+OK, problem.  This will explode if passed a misaligned address on
+certain (non-x86) architectures.  This is nasty because people will
+develop and test code on x86 and it works.  Much later, the
+alpha/ia64/etc guys discover the problem.
+
+One fix would be to use get_unaligned().  This might be slow on some
+architectures, I don't know.  Another fix is to restrict the caller's
+alignment freedom; document this and add a runtime WARN_ON().
+
+> +			return check_bytes8(start, value, 8);
+> +		start += 8;
+> +		words--;
+> +	}
+> +
+> +	return check_bytes8(start, value, bytes % 8);
+> +}
+> +EXPORT_SYMBOL(memchr_inv);
+
