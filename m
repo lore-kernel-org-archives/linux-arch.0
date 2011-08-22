@@ -1,645 +1,364 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 08/24] C6X: process management
-Date: Mon, 22 Aug 2011 16:09:29 -0400
-Message-ID: <1314043785-2880-9-git-send-email-msalter@redhat.com>
+Subject: [PATCH 10/24] C6X: time management
+Date: Mon, 22 Aug 2011 16:09:31 -0400
+Message-ID: <1314043785-2880-11-git-send-email-msalter@redhat.com>
 References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:65317 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:32758 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753568Ab1HVULF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Aug 2011 16:11:05 -0400
+	id S1753582Ab1HVULG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Aug 2011 16:11:06 -0400
 Received: from int-mx09.intmail.prod.int.phx2.redhat.com (int-mx09.intmail.prod.int.phx2.redhat.com [10.5.11.22])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p7MKB5QH006647
+	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id p7MKB6o8006653
 	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-SHA bits=256 verify=OK)
-	for <linux-arch@vger.kernel.org>; Mon, 22 Aug 2011 16:11:05 -0400
+	for <linux-arch@vger.kernel.org>; Mon, 22 Aug 2011 16:11:06 -0400
 In-Reply-To: <1314043785-2880-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Mark Salter <msalter@redhat.com>
 
+The C6X architecture includes a 64-bit free running core clock counter which
+is used as the clocksource. The SoCs have a number of 64-bit programmable
+timers. One of these is used as the clockevent timer.
+
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/processor.h   |  132 ++++++++++++++++++
- arch/c6x/include/asm/thread_info.h |  121 +++++++++++++++++
- arch/c6x/kernel/process.c          |  260 ++++++++++++++++++++++++++++++++++++
- arch/c6x/kernel/switch_to.S        |   74 ++++++++++
- 4 files changed, 587 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/processor.h
- create mode 100644 arch/c6x/include/asm/thread_info.h
- create mode 100644 arch/c6x/kernel/process.c
- create mode 100644 arch/c6x/kernel/switch_to.S
+ arch/c6x/include/asm/timex.h |   41 +++++++++
+ arch/c6x/kernel/time.c       |   64 ++++++++++++++
+ arch/c6x/platforms/timer64.c |  191 ++++++++++++++++++++++++++++++++++++++++++
+ arch/c6x/platforms/timer64.h |    6 ++
+ 4 files changed, 302 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/timex.h
+ create mode 100644 arch/c6x/kernel/time.c
+ create mode 100644 arch/c6x/platforms/timer64.c
+ create mode 100644 arch/c6x/platforms/timer64.h
 
-diff --git a/arch/c6x/include/asm/processor.h b/arch/c6x/include/asm/processor.h
+diff --git a/arch/c6x/include/asm/timex.h b/arch/c6x/include/asm/timex.h
 new file mode 100644
-index 0000000..8154c4e
+index 0000000..0741648
 --- /dev/null
-+++ b/arch/c6x/include/asm/processor.h
-@@ -0,0 +1,132 @@
++++ b/arch/c6x/include/asm/timex.h
+@@ -0,0 +1,41 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
 + *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ *  Updated for 2.6.34: Mark Salter <msalter@redhat.com>
++ *  Modified for 2.6.34: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_PROCESSOR_H
-+#define _ASM_C6X_PROCESSOR_H
-+
-+#include <asm/ptrace.h>
-+#include <asm/page.h>
-+#include <asm/current.h>
++#ifndef _ASM_C6X_TIMEX_H
++#define _ASM_C6X_TIMEX_H
 +
 +/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
++ * This should be close enough...
 + */
-+#define current_text_addr()			\
-+({						\
-+	void *__pc;				\
-+	asm("mvc .S2 pce1,%0\n" : "=b"(__pc));	\
-+	__pc;					\
-+})
++#define CLOCK_TICK_RATE ((1000 * 1000000UL) / 6)
 +
-+/*
-+ * User space process size. This is mostly meaningless for NOMMU
-+ * but some C6X processors may have RAM addresses up to 0xFFFFFFFF.
-+ * Since calls like mmap() can return an address or an error, we
-+ * have to allow room for error returns when code does something
-+ * like:
-+ *
-+ *       addr = do_mmap(...)
-+ *       if ((unsigned long)addr >= TASK_SIZE)
-+ *            ... its an error code, not an address ...
-+ *
-+ * Here, we allow for 4096 error codes which means we really can't
-+ * use the last 4K page on systems with RAM extending all the way
-+ * to the end of the 32-bit address space.
-+ */
-+#define TASK_SIZE	0xFFFFF000
++/* 64-bit timestamp */
++typedef unsigned long long cycles_t;
 +
-+/*
-+ * This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's. We won't be using it
-+ */
-+#define TASK_UNMAPPED_BASE	0
++extern cycles_t cacheflush_time;
 +
-+struct thread_struct {
-+	unsigned long long b15_14;
-+	unsigned long long a15_14;
-+	unsigned long long b13_12;
-+	unsigned long long a13_12;
-+	unsigned long long b11_10;
-+	unsigned long long a11_10;
-+	unsigned long long ricl_icl;
-+	unsigned long  usp;		/* user stack pointer */
-+	unsigned long  pc;		/* kernel pc */
-+	unsigned long  wchan;
-+};
-+
-+#define INIT_THREAD					\
-+{							\
-+	.usp = 0,					\
-+	.wchan = 0,					\
-+}
-+
-+#define INIT_MMAP { \
-+	&init_mm, 0, 0, NULL, PAGE_SHARED, VM_READ | VM_WRITE | VM_EXEC, 1, \
-+	NULL, NULL }
-+
-+#define task_pt_regs(task) \
-+	((struct pt_regs *)(THREAD_START_SP + task_stack_page(task)) - 1)
-+
-+#define alloc_kernel_stack()	__get_free_page(GFP_KERNEL)
-+#define free_kernel_stack(page) free_page((page))
-+
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+extern void start_thread(struct pt_regs *regs, unsigned int pc,
-+			 unsigned long usp);
-+
-+/* Free all resources held by a thread. */
-+static inline void release_thread(struct task_struct *dead_task)
++static inline cycles_t get_cycles(void)
 +{
++	unsigned l, h;
++
++	asm volatile (" dint\n"
++		      " mvc .s2 TSCL,%0\n"
++		      " mvc .s2 TSCH,%1\n"
++		      " rint\n"
++		      : "=b"(l), "=b"(h));
++	return ((cycles_t)h << 32) | l;
 +}
 +
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)	do { } while (0)
++extern int init_tsc_clocksource(void);
++extern int init_timer64_clocksource(void);
 +
-+extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
-+
-+#define copy_segments(tsk, mm)		do { } while (0)
-+#define release_segments(mm)		do { } while (0)
-+
-+/*
-+ * saved PC of a blocked thread.
-+ */
-+#define thread_saved_pc(tsk) (task_pt_regs(tsk)->pc)
-+
-+/*
-+ * saved kernel SP and DP of a blocked thread.
-+ */
-+#ifdef _BIG_ENDIAN
-+#define thread_saved_ksp(tsk) \
-+	(*(unsigned long *)&(tsk)->thread.b15_14)
-+#define thread_saved_dp(tsk) \
-+	(*(((unsigned long *)&(tsk)->thread.b15_14) + 1))
-+#else
-+#define thread_saved_ksp(tsk) \
-+	(*(((unsigned long *)&(tsk)->thread.b15_14) + 1))
-+#define thread_saved_dp(tsk) \
-+	(*(unsigned long *)&(tsk)->thread.b15_14)
-+#endif
-+
-+extern unsigned long get_wchan(struct task_struct *p);
-+
-+#define KSTK_EIP(tsk)	(task_pt_regs(task)->pc)
-+#define	KSTK_ESP(tsk)	(task_pt_regs(task)->sp)
-+
-+#define cpu_relax()		do { } while (0)
-+
-+extern const struct seq_operations cpuinfo_op;
-+
-+#endif /* ASM_C6X_PROCESSOR_H */
-diff --git a/arch/c6x/include/asm/thread_info.h b/arch/c6x/include/asm/thread_info.h
++#endif /* _ASM_C6X_TIMEX_H */
+diff --git a/arch/c6x/kernel/time.c b/arch/c6x/kernel/time.c
 new file mode 100644
-index 0000000..fd99148
+index 0000000..5f0868f
 --- /dev/null
-+++ b/arch/c6x/include/asm/thread_info.h
-@@ -0,0 +1,121 @@
++++ b/arch/c6x/kernel/time.c
+@@ -0,0 +1,64 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
 + *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ *  Updated for 2.6.3x: Mark Salter <msalter@redhat.com>
-+ *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_THREAD_INFO_H
-+#define _ASM_C6X_THREAD_INFO_H
 +
-+#ifdef __KERNEL__
++#include <linux/kernel.h>
++#include <linux/clocksource.h>
++#include <linux/errno.h>
++#include <linux/sched.h>
++#include <linux/param.h>
++#include <linux/string.h>
++#include <linux/mm.h>
++#include <linux/interrupt.h>
++#include <linux/timex.h>
++#include <linux/profile.h>
 +
-+#include <asm/page.h>
++#include <asm/soc.h>
 +
-+#ifdef CONFIG_4KSTACKS
-+#define THREAD_SIZE		4096
-+#define THREAD_SHIFT		12
-+#define THREAD_ORDER		0
-+#else
-+#define THREAD_SIZE		8192
-+#define THREAD_SHIFT		13
-+#define THREAD_ORDER		1
-+#endif
++static u32 sched_clock_multiplier;
++#define SCHED_CLOCK_SHIFT 16
 +
-+#define THREAD_START_SP		(THREAD_SIZE - 8)
++static cycle_t tsc_read(struct clocksource *cs)
++{
++	return get_cycles();
++}
 +
-+#ifndef __ASSEMBLY__
-+
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
-+
-+/*
-+ * low level task data.
-+ */
-+struct thread_info {
-+	struct task_struct	*task;		/* main task structure */
-+	struct exec_domain	*exec_domain;	/* execution domain */
-+	unsigned long		flags;		/* low level flags */
-+	int			cpu;		/* cpu we're on */
-+	int			preempt_count;	/* 0 = preemptable, <0 = BUG */
-+	mm_segment_t		addr_limit;	/* thread address space */
-+	struct restart_block	restart_block;
++static struct clocksource clocksource_tsc = {
++	.name		= "timestamp",
++	.rating		= 300,
++	.read		= tsc_read,
++	.mask		= CLOCKSOURCE_MASK(64),
++	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
 +};
 +
 +/*
-+ * macros/functions for gaining access to the thread information structure
-+ *
-+ * preempt_count needs to be 1 initially, until the scheduler is functional.
++ * scheduler clock - returns current time in nanoseconds.
 + */
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task		= &tsk,			\
-+	.exec_domain	= &default_exec_domain,	\
-+	.flags		= 0,			\
-+	.cpu		= 0,			\
-+	.preempt_count	= INIT_PREEMPT_COUNT,	\
-+	.addr_limit	= KERNEL_DS,		\
-+	.restart_block	= {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
-+
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+
-+/* get the thread information struct of current task */
-+static inline __attribute__((const))
-+struct thread_info *current_thread_info(void)
++u64 sched_clock(void)
 +{
-+	struct thread_info *ti;
-+	asm volatile (" clr   .s2 B15,0,%1,%0\n"
-+		      : "=b" (ti)
-+		      : "Iu5" (THREAD_SHIFT - 1));
-+	return ti;
++	u64 tsc = get_cycles();
++
++	return (tsc * sched_clock_multiplier) >> SCHED_CLOCK_SHIFT;
 +}
 +
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
++void time_init(void)
++{
++	u64 tmp = (u64)NSEC_PER_SEC << SCHED_CLOCK_SHIFT;
 +
-+/* thread information allocation */
-+#ifdef CONFIG_DEBUG_STACK_USAGE
-+#define THREAD_FLAGS (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
-+#else
-+#define THREAD_FLAGS (GFP_KERNEL | __GFP_NOTRACK)
-+#endif
++	do_div(tmp, c6x_core_freq);
++	sched_clock_multiplier = tmp;
 +
-+#define alloc_thread_info_node(tsk, node)	\
-+	((struct thread_info *)__get_free_pages(THREAD_FLAGS, THREAD_ORDER))
++	clocksource_register_hz(&clocksource_tsc, c6x_core_freq);
 +
-+#define free_thread_info(ti)	free_pages((unsigned long) (ti), THREAD_ORDER)
-+#define get_thread_info(ti)	get_task_struct((ti)->task)
-+#define put_thread_info(ti)	put_task_struct((ti)->task)
-+#endif /* __ASSEMBLY__ */
++	/* write anything into TSCL to enable counting */
++	set_creg(TSCL, 0);
 +
-+#define	PREEMPT_ACTIVE	0x10000000
-+
-+/*
-+ * thread information flag bit numbers
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
-+ */
-+#define TIF_SYSCALL_TRACE	0	/* syscall trace active */
-+#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
-+#define TIF_SIGPENDING		2	/* signal pending */
-+#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
-+#define TIF_RESTORE_SIGMASK	4	/* restore signal mask in do_signal() */
-+
-+#define TIF_POLLING_NRFLAG	16	/* true if polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		17	/* OOM killer killed process */
-+
-+#define TIF_WORK_MASK		0x00007FFE /* work on irq/exception return */
-+#define TIF_ALLWORK_MASK	0x00007FFF /* work on any return to u-space */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* _ASM_C6X_THREAD_INFO_H */
-diff --git a/arch/c6x/kernel/process.c b/arch/c6x/kernel/process.c
++	soc_time_init();
++}
+diff --git a/arch/c6x/platforms/timer64.c b/arch/c6x/platforms/timer64.c
 new file mode 100644
-index 0000000..d7bc66f
+index 0000000..d74ac4a
 --- /dev/null
-+++ b/arch/c6x/kernel/process.c
-@@ -0,0 +1,260 @@
++++ b/arch/c6x/platforms/timer64.c
+@@ -0,0 +1,191 @@
 +/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2006, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Copyright (C) 2010, 2011 Texas Instruments Incorporated
++ *  Contributed by: Mark Salter (msalter@redhat.com)
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
-+ *
 + */
-+#include <linux/module.h>
-+#include <linux/unistd.h>
-+#include <linux/ptrace.h>
-+#include <linux/init_task.h>
-+#include <linux/tick.h>
-+#include <linux/mqueue.h>
-+#include <linux/syscalls.h>
-+#include <linux/reboot.h>
 +
-+#include <asm/syscalls.h>
++#include <linux/clockchips.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/of_address.h>
++#include <asm/soc.h>
++#include "timer64.h"
 +
-+/* hooks for board specific support */
-+void	(*c6x_restart)(void);
-+void	(*c6x_halt)(void);
-+void	(*c6x_power_off)(void);
-+
-+extern asmlinkage void ret_from_fork(void);
-+
-+static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-+static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-+
-+/*
-+ * Initial thread structure.
-+ */
-+union thread_union init_thread_union __init_task_data =	{
-+	INIT_THREAD_INFO(init_task)
++struct timer_regs {
++	u32	reserved0;
++	u32	emumgt;
++	u32	reserved1;
++	u32	reserved2;
++	u32	cntlo;
++	u32	cnthi;
++	u32	prdlo;
++	u32	prdhi;
++	u32	tcr;
++	u32	tgcr;
++	u32	wdtcr;
 +};
 +
-+/*
-+ * Initial task structure.
-+ */
-+struct task_struct init_task = INIT_TASK(init_task);
-+EXPORT_SYMBOL(init_task);
++static struct timer_regs __iomem *timer;
++
++static struct clock_event_device t64_clockevent_device;
++
++#define TCR_TSTATLO	     0x001
++#define TCR_INVOUTPLO	     0x002
++#define TCR_INVINPLO	     0x004
++#define TCR_CPLO	     0x008
++#define TCR_ENAMODELO_ONCE   0x040
++#define TCR_ENAMODELO_CONT   0x080
++#define TCR_ENAMODELO_MASK   0x0c0
++#define TCR_PWIDLO_MASK      0x030
++#define TCR_CLKSRCLO	     0x100
++#define TCR_TIENLO	     0x200
++#define TCR_TSTATHI	     (0x001 << 16)
++#define TCR_INVOUTPHI	     (0x002 << 16)
++#define TCR_CPHI	     (0x008 << 16)
++#define TCR_PWIDHI_MASK      (0x030 << 16)
++#define TCR_ENAMODEHI_ONCE   (0x040 << 16)
++#define TCR_ENAMODEHI_CONT   (0x080 << 16)
++#define TCR_ENAMODEHI_MASK   (0x0c0 << 16)
++
++#define TGCR_TIMLORS	     0x001
++#define TGCR_TIMHIRS	     0x002
++#define TGCR_TIMMODE_UD32    0x004
++#define TGCR_TIMMODE_WDT64   0x008
++#define TGCR_TIMMODE_CD32    0x00c
++#define TGCR_TIMMODE_MASK    0x00c
++#define TGCR_PSCHI_MASK      (0x00f << 8)
++#define TGCR_TDDRHI_MASK     (0x00f << 12)
 +
 +/*
-+ * power off function, if any
++ * Timer clocks are divided down from the CPU clock
++ * The divisor is in the EMUMGTCLKSPD register
 + */
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
++#define TIMER_DIVISOR \
++	((soc_readl(&timer->emumgt) & (0xf << 16)) >> 16)
 +
-+/*
-+ * power management idle function, if any..
-+ */
-+void (*pm_idle)(void);
-+EXPORT_SYMBOL(pm_idle);
++#define timer_period(f, d)	      (((f) * 1000000) / ((d) * HZ))
++#define ticks2usecs(f, d, x)	      (((x) * (d)) / (f))
 +
-+static void default_idle(void)
++
++static int next_event(unsigned long delta,
++		      struct clock_event_device *evt)
 +{
-+	asm volatile ("IDLE\n");
-+}
++	soc_writel(soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK, &timer->tcr);
++	soc_writel(delta - 1, &timer->prdlo);
++	soc_writel(0, &timer->cntlo);
++	soc_writel(soc_readl(&timer->tcr) | TCR_ENAMODELO_ONCE, &timer->tcr);
 +
-+/*
-+ * The idle loop for C64x
-+ */
-+void cpu_idle(void)
-+{
-+	/* endless idle loop with no priority at all */
-+	while (1) {
-+		tick_nohz_stop_sched_tick(1);
-+		while (!need_resched()) {
-+			void (*idle)(void);
-+
-+			smp_rmb();
-+			idle = pm_idle;
-+			if (!idle)
-+				idle = default_idle;
-+			idle();
-+		}
-+		tick_nohz_restart_sched_tick();
-+
-+		preempt_enable_no_resched();
-+		schedule();
-+		preempt_disable();
-+	}
-+}
-+
-+static void halt_loop(void)
-+{
-+	printk(KERN_EMERG "System Halted, OK to turn off power\n");
-+	local_irq_disable();
-+	while (1)
-+		default_idle();
-+}
-+
-+void machine_restart(char *__unused)
-+{
-+	if (c6x_restart)
-+		c6x_restart();
-+	halt_loop();
-+}
-+
-+void machine_halt(void)
-+{
-+	if (c6x_halt)
-+		c6x_halt();
-+	halt_loop();
-+}
-+
-+void machine_power_off(void)
-+{
-+	if (c6x_power_off)
-+		c6x_power_off();
-+	halt_loop();
-+}
-+
-+static void kernel_thread_helper(int dummy, void *arg, int (*fn)(void *))
-+{
-+	do_exit(fn(arg));
-+}
-+
-+/*
-+ * Create a kernel thread
-+ */
-+int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
-+{
-+	struct pt_regs regs;
-+
-+	/*
-+	 * copy_thread sets a4 to zero (child return from fork)
-+	 * so we can't just set things up to directly return to
-+	 * fn.
-+	 */
-+	memset(&regs, 0, sizeof(regs));
-+	regs.b4 = (unsigned long) arg;
-+	regs.a6 = (unsigned long) fn;
-+	regs.pc = (unsigned long) kernel_thread_helper;
-+	local_save_flags(regs.csr);
-+	regs.csr |= 1;
-+	regs.tsr = 5; /* Set GEE and GIE in TSR */
-+
-+	/* Ok, create the new process.. */
-+	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, -1, &regs,
-+		       0, NULL, NULL);
-+}
-+EXPORT_SYMBOL(kernel_thread);
-+
-+void flush_thread(void)
-+{
-+}
-+
-+void exit_thread(void)
-+{
-+}
-+
-+SYSCALL_DEFINE1(c6x_clone, struct pt_regs *, regs)
-+{
-+	unsigned long clone_flags;
-+	unsigned long newsp;
-+
-+	/* syscall puts clone_flags in A4 and usp in B4 */
-+	clone_flags = regs->orig_a4;
-+	if (regs->b4)
-+		newsp = regs->b4;
-+	else
-+		newsp = regs->sp;
-+
-+	return do_fork(clone_flags, newsp, regs, 0, (int __user *)regs->a6,
-+		       (int __user *)regs->b6);
-+}
-+
-+/*
-+ * Do necessary setup to start up a newly executed thread.
-+ */
-+void start_thread(struct pt_regs *regs, unsigned int pc, unsigned long usp)
-+{
-+	/*
-+	 * The binfmt loader will setup a "full" stack, but the C6X
-+	 * operates an "empty" stack. So we adjust the usp so that
-+	 * argc doesn't get destroyed if an interrupt is taken before
-+	 * it is read from the stack.
-+	 *
-+	 * NB: Library startup code needs to match this.
-+	 */
-+	usp -= 8;
-+
-+	set_fs(USER_DS);
-+	regs->pc  = pc;
-+	regs->sp  = usp;
-+	regs->tsr |= 0x40; /* set user mode */
-+	current->thread.usp = usp;
-+}
-+
-+/*
-+ * Copy a new thread context in its stack.
-+ */
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
-+		unsigned long ustk_size,
-+		struct task_struct *p, struct pt_regs *regs)
-+{
-+	struct pt_regs *childregs;
-+
-+	childregs = task_pt_regs(p);
-+
-+	*childregs = *regs;
-+	childregs->a4 = 0;
-+
-+	if (usp == -1)
-+		/* case of  __kernel_thread: we return to supervisor space */
-+		childregs->sp = (unsigned long)(childregs + 1);
-+	else
-+		/* Otherwise use the given stack */
-+		childregs->sp = usp;
-+
-+	/* Set usp/ksp */
-+	p->thread.usp = childregs->sp;
-+	/* switch_to uses stack to save/restore 14 callee-saved regs */
-+	thread_saved_ksp(p) = (unsigned long)childregs - 8;
-+	p->thread.pc = (unsigned int) ret_from_fork;
-+	p->thread.wchan	= (unsigned long) ret_from_fork;
-+#ifdef __DSBT__
-+	{
-+		unsigned long dp;
-+
-+		asm volatile ("mv .S2 b14,%0\n" : "=b"(dp));
-+
-+		thread_saved_dp(p) = dp;
-+		if (usp == -1)
-+			childregs->dp = dp;
-+	}
-+#endif
 +	return 0;
 +}
 +
-+/*
-+ * c6x_execve() executes a new program.
-+ */
-+SYSCALL_DEFINE4(c6x_execve, const char __user *, name,
-+		const char __user *const __user *, argv,
-+		const char __user *const __user *, envp,
-+		struct pt_regs *, regs)
++static void set_clock_mode(enum clock_event_mode mode,
++			   struct clock_event_device *evt)
 +{
-+	int error;
-+	char *filename;
-+
-+	filename = getname(name);
-+	error = PTR_ERR(filename);
-+	if (IS_ERR(filename))
-+		goto out;
-+
-+	error = do_execve(filename, argv, envp, regs);
-+	putname(filename);
-+out:
-+	return error;
 +}
 +
-+unsigned long get_wchan(struct task_struct *p)
++static void event_handler(struct clock_event_device *dev)
 +{
-+	return p->thread.wchan;
 +}
-diff --git a/arch/c6x/kernel/switch_to.S b/arch/c6x/kernel/switch_to.S
++
++static irqreturn_t timer_interrupt(int irq, void *dev_id)
++{
++	struct clock_event_device *cd = &t64_clockevent_device;
++
++	cd->event_handler(cd);
++
++	return IRQ_HANDLED;
++}
++
++
++void __init timer64_init(void)
++{
++	struct clock_event_device *cd = &t64_clockevent_device;
++	struct device_node *np, *node = NULL;
++	const __be32 *p;
++	int coremask_len;
++	u64 temp;
++	u32 val, shift;
++
++	for_each_compatible_node(np, NULL, "ti,c64x+timer64") {
++		p = of_get_property(np, "ti,core-mask", &coremask_len);
++		if (p && coremask_len == sizeof(*p)) {
++			val = be32_to_cpup(p);
++			if (val & (1 << get_coreid())) {
++				node = np;
++				break;
++			}
++		} else {
++			node = np;
++			break;
++		}
++	}
++	if (!node) {
++		pr_debug("Cannot find ti,c64x+timer64 timer.\n");
++		return;
++	}
++	np = node;
++
++	timer = of_iomap(np, 0);
++	if (!timer) {
++		pr_debug("%s: Cannot map timer registers.\n", np->full_name);
++		of_node_put(np);
++		return;
++	}
++	pr_debug("%s: Timer registers=%p.\n", np->full_name, timer);
++
++	/* disable timer, reset count */
++	soc_writel(soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK, &timer->tcr);
++	soc_writel(0, &timer->prdlo);
++
++	/* use internal clock and 1 cycle pulse width */
++	val = soc_readl(&timer->tcr);
++	soc_writel(val & ~(TCR_CLKSRCLO | TCR_PWIDLO_MASK), &timer->tcr);
++
++	/* dual 32-bit unchained mode */
++	val = soc_readl(&timer->tgcr) & ~TGCR_TIMMODE_MASK;
++	soc_writel(val, &timer->tgcr);
++	soc_writel(val | (TGCR_TIMLORS | TGCR_TIMMODE_UD32), &timer->tgcr);
++
++	cd->irq	= irq_of_parse_and_map(np, 0);
++	pr_debug("%s: Timer irq=%d.\n", np->full_name, cd->irq);
++
++	cd->name	= "TIMER64_EVT32_TIMER";
++	cd->features	= CLOCK_EVT_FEAT_ONESHOT;
++
++	/* Calculate the min / max delta */
++	/* Find a shift value */
++	for (shift = 32; shift > 0; shift--) {
++		temp = (u64)(c6x_core_freq / TIMER_DIVISOR);
++		temp <<=  shift;
++
++		do_div(temp, NSEC_PER_SEC);
++		if ((temp >> 32) == 0)
++			break;
++	}
++	cd->shift = shift;
++	cd->mult = (u32) temp;
++
++	cd->max_delta_ns	= clockevent_delta2ns(0x7fffffff, cd);
++	cd->min_delta_ns	= clockevent_delta2ns(250, cd);
++
++	cd->rating		= 200;
++	cd->set_mode		= set_clock_mode;
++	cd->event_handler	= event_handler;
++	cd->set_next_event	= next_event;
++	cd->cpumask		= cpumask_of(smp_processor_id());
++
++	clockevents_register_device(cd);
++
++	/* Set handler */
++	if (cd->irq != NO_IRQ)
++		request_irq(cd->irq, timer_interrupt,
++			    IRQF_DISABLED | IRQF_TIMER, "timer", NULL);
++
++	of_node_put(np);
++	return;
++}
+diff --git a/arch/c6x/platforms/timer64.h b/arch/c6x/platforms/timer64.h
 new file mode 100644
-index 0000000..09177ed
+index 0000000..11f53d6
 --- /dev/null
-+++ b/arch/c6x/kernel/switch_to.S
-@@ -0,0 +1,74 @@
-+/*
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter (msalter@redhat.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
++++ b/arch/c6x/platforms/timer64.h
+@@ -0,0 +1,6 @@
++#ifndef _C6X_TIMER64_PIC_H
++#define _C6X_TIMER64_PIC_H
 +
-+#include <linux/linkage.h>
-+#include <asm/asm-offsets.h>
++extern void __init timer64_init(void);
 +
-+#define SP	B15
-+
-+	/*
-+	 * void __switch_to(struct thread_info *prev,
-+	 *      	    struct thread_info *next,
-+	 *		    struct task_struct *tsk) ;
-+	 */
-+ENTRY(__switch_to)
-+	LDDW	.D2T2	*+B4(THREAD_B15_14),B7:B6
-+ ||	MV	.L2X	A4,B5	; prev
-+ ||	MV	.L1X	B4,A5	; next
-+ ||	MVC	.S2	RILC,B1
-+
-+	STW	.D2T2	B3,*+B5(THREAD_PC)
-+ ||	STDW	.D1T1	A13:A12,*+A4(THREAD_A13_12)
-+ ||	MVC	.S2	ILC,B0
-+
-+	LDW	.D2T2	*+B4(THREAD_PC),B3
-+ ||	LDDW	.D1T1	*+A5(THREAD_A13_12),A13:A12
-+
-+	STDW	.D1T1	A11:A10,*+A4(THREAD_A11_10)
-+ ||	STDW	.D2T2	B1:B0,*+B5(THREAD_RICL_ICL)
-+#ifndef __DSBT__
-+ ||	MVKL	.S2	current_ksp,B1
-+#endif
-+
-+	STDW	.D2T2	B15:B14,*+B5(THREAD_B15_14)
-+ ||	STDW	.D1T1	A15:A14,*+A4(THREAD_A15_14)
-+#ifndef __DSBT__
-+ ||	MVKH	.S2	current_ksp,B1
-+#endif
-+
-+	;; Switch to next SP
-+	MV	.S2	B7,SP
-+#ifdef __DSBT__
-+ ||	STW	.D2T2	B7,*+B14(current_ksp)
-+#else
-+ ||	STW	.D2T2	B7,*B1
-+ ||	MV	.L2	B6,B14
-+#endif
-+ ||	LDDW	.D1T1	*+A5(THREAD_RICL_ICL),A1:A0
-+
-+	STDW	.D2T2	B11:B10,*+B5(THREAD_B11_10)
-+ ||	LDDW	.D1T1	*+A5(THREAD_A15_14),A15:A14
-+
-+	STDW	.D2T2	B13:B12,*+B5(THREAD_B13_12)
-+ ||	LDDW	.D1T1	*+A5(THREAD_A11_10),A11:A10
-+
-+	B	.S2	B3		; return in next E1
-+ ||	LDDW	.D2T2	*+B4(THREAD_B13_12),B13:B12
-+
-+	LDDW	.D2T2	*+B4(THREAD_B11_10),B11:B10
-+	NOP
-+
-+	MV	.L2X	A0,B0
-+ ||	MV	.S1	A6,A4
-+
-+	MVC	.S2	B0,ILC
-+ ||	MV	.L2X	A1,B1
-+
-+	MVC	.S2	B1,RILC
-+ENDPROC(__switch_to)
++#endif /* _C6X_TIMER64_PIC_H */
 -- 
 1.7.6
