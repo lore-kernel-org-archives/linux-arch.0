@@ -1,88 +1,56 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/4] string: introduce memchr_inv
-Date: Mon, 22 Aug 2011 13:52:18 -0700
-Message-ID: <20110822135218.f2d9f462.akpm@linux-foundation.org>
-References: <1314030548-21082-1-git-send-email-akinobu.mita@gmail.com>
-	<1314030548-21082-4-git-send-email-akinobu.mita@gmail.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 04/24] C6X: build infrastructure
+Date: Mon, 22 Aug 2011 22:55:09 +0200
+Message-ID: <20110822205509.GA7940@merkur.ravnborg.org>
+References: <1314043785-2880-1-git-send-email-msalter@redhat.com> <1314043785-2880-5-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1314030548-21082-4-git-send-email-akinobu.mita@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Christoph Lameter <cl@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Matt Mackall <mpm@selenic.com>, Joern Engel <joern@logfs.org>, logfs@logfs.org, Marcin Slusarz <marcin.slusarz@gmail.com>, Eric Dumazet <eric.dumazet@gmail.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:43647 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751233Ab1HVUzL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Aug 2011 16:55:11 -0400
+Content-Disposition: inline
+In-Reply-To: <1314043785-2880-5-git-send-email-msalter@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-arch@vger.kernel.org
 
-On Tue, 23 Aug 2011 01:29:07 +0900
-Akinobu Mita <akinobu.mita@gmail.com> wrote:
-
-> memchr_inv() is mainly used to check whether the whole buffer is filled
-> with just a specified byte.
 > 
-> The function name and prototype are stolen from logfs and the
-> implementation is from SLUB.
-> 
-> ...
->
-> +/**
-> + * memchr_inv - Find a character in an area of memory.
-> + * @s: The memory area
-> + * @c: The byte to search for
-> + * @n: The size of the area.
-
-This text seems to be stolen from memchr().  I guess it's close enough.
-
-> + * returns the address of the first character other than @c, or %NULL
-> + * if the whole buffer contains just @c.
-> + */
-> +void *memchr_inv(const void *start, int c, size_t bytes)
-> +{
-> +	u8 value = c;
-> +	u64 value64;
-> +	unsigned int words, prefix;
+> diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
+> new file mode 100644
+> index 0000000..f147a446
+> --- /dev/null
+> +++ b/arch/c6x/Kconfig
+> @@ -0,0 +1,179 @@
+> +#
+> +# For a description of the syntax of this configuration file,
+> +# see Documentation/kbuild/kconfig-language.txt.
+> +#
 > +
-> +	if (bytes <= 16)
-> +		return check_bytes8(start, value, bytes);
-> +
-> +	value64 = value | value << 8 | value << 16 | value << 24;
-> +	value64 = (value64 & 0xffffffff) | value64 << 32;
-> +	prefix = 8 - ((unsigned long)start) % 8;
-> +
-> +	if (prefix) {
-> +		u8 *r = check_bytes8(start, value, prefix);
-> +		if (r)
-> +			return r;
-> +		start += prefix;
-> +		bytes -= prefix;
-> +	}
-> +
-> +	words = bytes / 8;
-> +
-> +	while (words) {
-> +		if (*(u64 *)start != value64)
+> +config TMS320C6X
+> +	def_bool y
+> +	select CLKDEV_LOOKUP
+> +	select GENERIC_HARDIRQS_NO__DO_IRQ
+> +	select GENERIC_HARDIRQS_NO__DO_IRQ
+Not present in todays kernel - not even if you try to select it twice
 
-OK, problem.  This will explode if passed a misaligned address on
-certain (non-x86) architectures.  This is nasty because people will
-develop and test code on x86 and it works.  Much later, the
-alpha/ia64/etc guys discover the problem.
+> +	select GENERIC_HARDIRQS_NO_DEPRECATED
+Not present either - drop it.
 
-One fix would be to use get_unaligned().  This might be slow on some
-architectures, I don't know.  Another fix is to restrict the caller's
-alignment freedom; document this and add a runtime WARN_ON().
-
-> +			return check_bytes8(start, value, 8);
-> +		start += 8;
-> +		words--;
-> +	}
 > +
-> +	return check_bytes8(start, value, bytes % 8);
-> +}
-> +EXPORT_SYMBOL(memchr_inv);
+> +menu "Processor type and features"
+> +
+> +config TMS320C64XPLUS
+> +	bool "TMS320C64X+"
+A little help would be nice. Maybe with a pointer to a web-site.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> +cflags-y := -D__linux__ -D__TMS320C6X__
+
+Why is __linux__ and __TMS3206C6X__ neeeded?
+and why are they not needed for CHECKFLAGS ?
+
+Other than this it looks good!
+
+	Sam
