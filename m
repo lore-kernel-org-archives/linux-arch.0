@@ -1,82 +1,52 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 2/3] direct ktime path for clockevent devices
-Date: Tue, 23 Aug 2011 15:29:43 +0200
-Message-ID: <20110823133142.815350967@de.ibm.com>
-References: <20110823132941.744407154@de.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=clockevent-feat-ktime.diff
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, john stultz <johnstul@us.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 18/24] C6X: headers
+Date: Tue, 23 Aug 2011 09:43:17 -0400
+Message-ID: <1314106998.2404.47.camel@deneb.redhat.com>
+References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
+	 <1314043785-2880-19-git-send-email-msalter@redhat.com>
+	 <1328178.VkYhLNAX5s@wuerfel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:41132 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755331Ab1HWNnV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Aug 2011 09:43:21 -0400
+In-Reply-To: <1328178.VkYhLNAX5s@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+On Mon, 2011-08-22 at 23:14 +0200, Arnd Bergmann wrote:
+> On Monday 22 August 2011 16:09:39 Mark Salter wrote:
+> > Signed-off-by: Mark Salter <msalter@redhat.com>
+> 
+> > 
+> > diff --git a/arch/c6x/include/asm/asm-offsets.h b/arch/c6x/include/asm/asm-offsets.h
+> > new file mode 100644
+> > index 0000000..d370ee3
+> > --- /dev/null
+> > +++ b/arch/c6x/include/asm/asm-offsets.h
+> > @@ -0,0 +1 @@
+> > +#include <generated/asm-offsets.h>
+> 
+> I wonder if it makes sense to install this file in asm-generic/asm-offsets.h
+> and referencing it like the other files.
 
-There is at least one architecture (s390) with a sane clockevent device
-that can be programmed with the equivalent of a ktime. No need to create
-a delta against the current time, the ktime can be used directly.
+I think so. It is the same for all arches.
 
-A new clock device function 'set_next_ktime' is introduced that is called
-with the unmodified ktime for the timer if the clock event device has the 
-CLOCK_EVT_FEAT_KTIME bit set.
+> 
+> > +#include <asm-generic/bitops/hweight.h>
+> 
+> Do you have an instruction that can be used for hweight? That is often a useful
+> optimization.
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- include/linux/clockchips.h |   10 +++++++---
- kernel/time/clockevents.c  |    4 ++++
- 2 files changed, 11 insertions(+), 3 deletions(-)
+Hmm, there is a bit count instruction, but it counts bits within octets
+of a 32 bit register, so it ends with 4 sums that would need shifting
+and adding. Even so, a little asm here would be a good optimization. All
+of the bitops need a look for such optimizations because of how well
+DSPs support bit manipulations.
 
-Index: linux-clockevents/include/linux/clockchips.h
-===================================================================
---- linux-clockevents.orig/include/linux/clockchips.h	2011-08-23 15:15:59.159588700 +0200
-+++ linux-clockevents/include/linux/clockchips.h	2011-08-23 15:16:02.327629024 +0200
-@@ -45,20 +45,22 @@
-  */
- #define CLOCK_EVT_FEAT_PERIODIC		0x000001
- #define CLOCK_EVT_FEAT_ONESHOT		0x000002
-+#define CLOCK_EVT_FEAT_KTIME		0x000004
- /*
-  * x86(64) specific misfeatures:
-  *
-  * - Clockevent source stops in C3 State and needs broadcast support.
-  * - Local APIC timer is used as a dummy device.
-  */
--#define CLOCK_EVT_FEAT_C3STOP		0x000004
--#define CLOCK_EVT_FEAT_DUMMY		0x000008
-+#define CLOCK_EVT_FEAT_C3STOP		0x000008
-+#define CLOCK_EVT_FEAT_DUMMY		0x000010
- 
- /**
-  * struct clock_event_device - clock event device descriptor
-  * @event_handler:	Assigned by the framework to be called by the low
-  *			level handler of the event source
-- * @set_next_event:	set next event function
-+ * @set_next_event:	set next event function using a clocksource delta
-+ * @set_next_ktime:	set next event function using a direct ktime value
-  * @next_event:		local storage for the next event in oneshot mode
-  * @max_delta_ns:	maximum delta value in ns
-  * @min_delta_ns:	minimum delta value in ns
-@@ -81,6 +83,8 @@
- 	void			(*event_handler)(struct clock_event_device *);
- 	int			(*set_next_event)(unsigned long evt,
- 						  struct clock_event_device *);
-+	int			(*set_next_ktime)(ktime_t expires,
-+						  struct clock_event_device *);
- 	ktime_t			next_event;
- 	u64			max_delta_ns;
- 	u64			min_delta_ns;
-Index: linux-clockevents/kernel/time/clockevents.c
-===================================================================
---- linux-clockevents.orig/kernel/time/clockevents.c	2011-08-23 15:15:59.159588700 +0200
-+++ linux-clockevents/kernel/time/clockevents.c	2011-08-23 15:16:02.327629024 +0200
-@@ -216,6 +216,10 @@
- 	if (dev->mode == CLOCK_EVT_MODE_SHUTDOWN)
- 		return 0;
- 
-+	/* Shortcut for clockevent devices that can deal with ktime. */
-+	if (dev->features & CLOCK_EVT_FEAT_KTIME)
-+		return dev->set_next_ktime(expires, dev);
-+
- 	delta = ktime_to_ns(ktime_sub(expires, ktime_get()));
- 	if (delta <= 0)
- 		return force ? clockevents_program_min_delta(dev) : -ETIME;
+--Mark
