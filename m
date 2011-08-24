@@ -1,48 +1,53 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 04/24] C6X: build infrastructure
-Date: Wed, 24 Aug 2011 10:10:32 -0400
-Message-ID: <1314195033.2344.8.camel@deneb.redhat.com>
-References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
-	 <1314043785-2880-5-git-send-email-msalter@redhat.com>
-	 <20110822205509.GA7940@merkur.ravnborg.org>
-	 <1314105799.2404.40.camel@deneb.redhat.com>
-	 <1314193639.16478.3.camel@i7.infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+From: Namjae Jeon <linkinjeon@gmail.com>
+Subject: [PATCH] include: Fix compile warning in include/linux/bitops.h
+Date: Thu, 25 Aug 2011 00:23:35 +0900
+Message-ID: <1314199415-7924-1-git-send-email-linkinjeon@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:19179 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750893Ab1HXOKr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Aug 2011 10:10:47 -0400
-In-Reply-To: <1314193639.16478.3.camel@i7.infradead.org>
+Received: from mail-iy0-f170.google.com ([209.85.210.170]:57801 "EHLO
+	mail-iy0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750893Ab1HXPYK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2011 11:24:10 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, Namjae Jeon <linkinjeon@gmail.com>
 
-On Wed, 2011-08-24 at 14:47 +0100, David Woodhouse wrote:
-> On Tue, 2011-08-23 at 09:23 -0400, Mark Salter wrote:
-> > 
-> > > > +cflags-y := -D__linux__ -D__TMS320C6X__
-> > > 
-> > > Why is __linux__ and __TMS3206C6X__ neeeded?
-> > > and why are they not needed for CHECKFLAGS ?
-> > 
-> > I think these two defines were left over from trying to compensate
-> > for differences between TI compiler and GCC. They aren't needed.
-> 
-> Last time I looked, the Coda file system was broken and would not
-> compile if __linux__ wasn't defined. This is the *only* thing that
-> prevents you from building a kernel with a generic $ARCH-elf toolchain,
-> IIRC.
-> 
+The compile warning is caused by __const_hweight8 when using hweight_long with -Wsign-compare option.
+The reason is that the default return value of this macro is signed. So need type casting to remove warning.
 
-The reason we defined it in the C6X Makefile was that the TI compiler
-did not define it for us. GCC does define it, so we're good without it
-the makefile now.
+Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
+---
+ include/asm-generic/bitops/const_hweight.h |   18 +++++++++---------
+ 1 files changed, 9 insertions(+), 9 deletions(-)
 
-It looks like coda still needs it as well as drm, scsi/aic7xxx driver,
-and a couple other places.
-
---Mark
+diff --git a/include/asm-generic/bitops/const_hweight.h b/include/asm-generic/bitops/const_hweight.h
+index fa2a50b..31b7fce 100644
+--- a/include/asm-generic/bitops/const_hweight.h
++++ b/include/asm-generic/bitops/const_hweight.h
+@@ -4,15 +4,15 @@
+ /*
+  * Compile time versions of __arch_hweightN()
+  */
+-#define __const_hweight8(w)		\
+-      (	(!!((w) & (1ULL << 0))) +	\
+-	(!!((w) & (1ULL << 1))) +	\
+-	(!!((w) & (1ULL << 2))) +	\
+-	(!!((w) & (1ULL << 3))) +	\
+-	(!!((w) & (1ULL << 4))) +	\
+-	(!!((w) & (1ULL << 5))) +	\
+-	(!!((w) & (1ULL << 6))) +	\
+-	(!!((w) & (1ULL << 7)))	)
++#define __const_hweight8(w)	(unsigned long)	\
++      	(	(!!((w) & (1ULL << 0))) +	\
++		(!!((w) & (1ULL << 1))) +	\
++		(!!((w) & (1ULL << 2))) +	\
++		(!!((w) & (1ULL << 3))) +	\
++		(!!((w) & (1ULL << 4))) +	\
++		(!!((w) & (1ULL << 5))) +	\
++		(!!((w) & (1ULL << 6))) +	\
++		(!!((w) & (1ULL << 7)))	)
+ 
+ #define __const_hweight16(w) (__const_hweight8(w)  + __const_hweight8((w)  >> 8 ))
+ #define __const_hweight32(w) (__const_hweight16(w) + __const_hweight16((w) >> 16))
+-- 
+1.7.4.4
