@@ -1,69 +1,44 @@
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
-Date: Wed, 24 Aug 2011 10:01:24 +0800
-Message-ID: <1314151284.29738.34.camel@epip-laptop>
-References: <20110822193602.GA23301@codeaurora.org>	 <2047151.mWElcT8jZQ@wuerfel>
-Reply-To: gxt@mprc.pku.edu.cn
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 18/24] C6X: headers
+Date: Wed, 24 Aug 2011 06:53:45 +0200
+Message-ID: <20110824045345.GB17879@merkur.ravnborg.org>
+References: <1314043785-2880-1-git-send-email-msalter@redhat.com> <1314043785-2880-19-git-send-email-msalter@redhat.com> <1328178.VkYhLNAX5s@wuerfel> <1314106998.2404.47.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
-Return-path: <libc-ports-return-2009-gclgp-libc-ports=m.gmane.org@sourceware.org>
-In-Reply-To: <2047151.mWElcT8jZQ@wuerfel>
-List-Unsubscribe: <mailto:libc-ports-unsubscribe-gclgp-libc-ports=m.gmane.org@sourceware.org>
-List-Subscribe: <mailto:libc-ports-subscribe@sourceware.org>
-List-Post: <mailto:libc-ports@sourceware.org>
-List-Help: <mailto:libc-ports-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
-Sender: libc-ports-owner@sourceware.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:13929 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750795Ab1HXExq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2011 00:53:46 -0400
+Content-Disposition: inline
+In-Reply-To: <1314106998.2404.47.camel@deneb.redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-Hi, Linas,
-  For unicore32, we have our own porting version of glibc, so conflict
-problems are solved when one abi defined. We will modify the code of
-kernel and glibc together to maintain the consistence.
-  So, sadly, you must choose one to modify (patching and re-building),
-otherwise you must choose old good-matched versions.
-  For getdents (or other deprecated syscalls), we select getdents64 to
-replace getdent, though we have not verified it on unicore32 platform. I
-think it's reasonable, and perhaps modifying/rebuilding glibc is enough
-for the whole file-system (there are always some applications which do
-do syscalls and handle structs by themselves).
-  Another words, compatibility is very important, so making the decision
-with your team.
+On Tue, Aug 23, 2011 at 09:43:17AM -0400, Mark Salter wrote:
+> On Mon, 2011-08-22 at 23:14 +0200, Arnd Bergmann wrote:
+> > On Monday 22 August 2011 16:09:39 Mark Salter wrote:
+> > > Signed-off-by: Mark Salter <msalter@redhat.com>
+> > 
+> > > 
+> > > diff --git a/arch/c6x/include/asm/asm-offsets.h b/arch/c6x/include/asm/asm-offsets.h
+> > > new file mode 100644
+> > > index 0000000..d370ee3
+> > > --- /dev/null
+> > > +++ b/arch/c6x/include/asm/asm-offsets.h
+> > > @@ -0,0 +1 @@
+> > > +#include <generated/asm-offsets.h>
+> > 
+> > I wonder if it makes sense to install this file in asm-generic/asm-offsets.h
+> > and referencing it like the other files.
+> 
+> I think so. It is the same for all arches.
 
-Guan Xuetao
+It was just a hack we used when we introduced generated/...
+This avoided the need to fix up all files that includes asm-offsets.h
 
-On Mon, 2011-08-22 at 22:43 +0200, Arnd Bergmann wrote:
-> On Monday 22 August 2011 14:36:02 Linas Vepstas wrote:
-> > 
-> > So: What's the latest on asm-generic support on glibc? 
-> > I just pulled glibc-2.14 and note that Chris Metcalf's
-> > generic implementation hasn't been folded in yet. 
-> > It seems to work well for me, so can we expect it
-> > anytime soon?
-> > 
-> > Another problem:  If I don't define __ARCH_WANT_SYSCALL_DEPRECATED
-> > in the kernel asm/unistd.h  then glibc won't build: currently,
-> > I get 
-> > ../sysdeps/unix/sysv/linux/getdents.c:105: error: ‘__NR_getdents’ undeclared (first use in this function)
-> > 
-> > A very quick grep tells me that asm-generic defines a getdents64
-> > but that is not what glibc is looking for.  Is there any chance
-> > that there are glibc patches floating around somewhere that heal
-> > this and any remaining __ARCH_WANT_SYSCALL_DEPRECATED issues?
-> 
-> I don't know the answer to your question, but I've added Mark Salter,
-> Guan Xuetao and Tobias Klauser to the list, since they probably have
-> the same issue on c64x, unicore32 and nios2. c64x is currently nommu,
-> but there is a similar problem with uclibc and I expect that architecture
-> to grow an mmu at some point.
-> 
-> As far as I can tell, there is now a total of six architectures using
-> the generic syscalls (not counting s*core, because that relies on
-> the deprecated calls) and at least two unnamed ones waiting to have
-> their coming-out, plus a few stagnated ports (lm32, arc, mmix, meta, ...)
-> that would need to get converted if someone wanted to push kernel
-> support upstream.
-> 
-> 	Arnd
+So it should not be needed.
+
+	Sam
