@@ -1,88 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mtagate2.uk.ibm.com ([194.196.100.162]:51722 "EHLO
-	mtagate2.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755443Ab1HWNcB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Aug 2011 09:32:01 -0400
-Message-ID: <20110823133142.815350967@de.ibm.com>
-Date: Tue, 23 Aug 2011 15:29:43 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [patch 2/3] direct ktime path for clockevent devices
-References: <20110823132941.744407154@de.ibm.com>
-Content-Disposition: inline; filename=clockevent-feat-ktime.diff
+Received: from mprc.pku.edu.cn ([162.105.203.9]:51970 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752028Ab1HXC7Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Aug 2011 22:59:25 -0400
+Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Reply-To: gxt@mprc.pku.edu.cn
+In-Reply-To: <2047151.mWElcT8jZQ@wuerfel>
+References: <20110822193602.GA23301@codeaurora.org>
+	 <2047151.mWElcT8jZQ@wuerfel>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 24 Aug 2011 10:01:24 +0800
+Message-ID: <1314151284.29738.34.camel@epip-laptop>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, john stultz <johnstul@us.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20110823132943.QiA33l12PLSP0tD3S7y-Tw8Cjts9wF2T2vd95CAADx8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
+Message-ID: <20110824020124.3e3tXZd7lfRbcSUNngI0JqlZFcnmiprHppQEMJiUlmk@z>
 
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Hi, Linas,
+  For unicore32, we have our own porting version of glibc, so conflict
+problems are solved when one abi defined. We will modify the code of
+kernel and glibc together to maintain the consistence.
+  So, sadly, you must choose one to modify (patching and re-building),
+otherwise you must choose old good-matched versions.
+  For getdents (or other deprecated syscalls), we select getdents64 to
+replace getdent, though we have not verified it on unicore32 platform. I
+think it's reasonable, and perhaps modifying/rebuilding glibc is enough
+for the whole file-system (there are always some applications which do
+do syscalls and handle structs by themselves).
+  Another words, compatibility is very important, so making the decision
+with your team.
 
-There is at least one architecture (s390) with a sane clockevent device
-that can be programmed with the equivalent of a ktime. No need to create
-a delta against the current time, the ktime can be used directly.
+Guan Xuetao
 
-A new clock device function 'set_next_ktime' is introduced that is called
-with the unmodified ktime for the timer if the clock event device has the 
-CLOCK_EVT_FEAT_KTIME bit set.
+On Mon, 2011-08-22 at 22:43 +0200, Arnd Bergmann wrote:
+> On Monday 22 August 2011 14:36:02 Linas Vepstas wrote:
+> > 
+> > So: What's the latest on asm-generic support on glibc? 
+> > I just pulled glibc-2.14 and note that Chris Metcalf's
+> > generic implementation hasn't been folded in yet. 
+> > It seems to work well for me, so can we expect it
+> > anytime soon?
+> > 
+> > Another problem:  If I don't define __ARCH_WANT_SYSCALL_DEPRECATED
+> > in the kernel asm/unistd.h  then glibc won't build: currently,
+> > I get 
+> > ../sysdeps/unix/sysv/linux/getdents.c:105: error: ‘__NR_getdents’ undeclared (first use in this function)
+> > 
+> > A very quick grep tells me that asm-generic defines a getdents64
+> > but that is not what glibc is looking for.  Is there any chance
+> > that there are glibc patches floating around somewhere that heal
+> > this and any remaining __ARCH_WANT_SYSCALL_DEPRECATED issues?
+> 
+> I don't know the answer to your question, but I've added Mark Salter,
+> Guan Xuetao and Tobias Klauser to the list, since they probably have
+> the same issue on c64x, unicore32 and nios2. c64x is currently nommu,
+> but there is a similar problem with uclibc and I expect that architecture
+> to grow an mmu at some point.
+> 
+> As far as I can tell, there is now a total of six architectures using
+> the generic syscalls (not counting s*core, because that relies on
+> the deprecated calls) and at least two unnamed ones waiting to have
+> their coming-out, plus a few stagnated ports (lm32, arc, mmix, meta, ...)
+> that would need to get converted if someone wanted to push kernel
+> support upstream.
+> 
+> 	Arnd
 
-Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- include/linux/clockchips.h |   10 +++++++---
- kernel/time/clockevents.c  |    4 ++++
- 2 files changed, 11 insertions(+), 3 deletions(-)
-
-Index: linux-clockevents/include/linux/clockchips.h
-===================================================================
---- linux-clockevents.orig/include/linux/clockchips.h	2011-08-23 15:15:59.159588700 +0200
-+++ linux-clockevents/include/linux/clockchips.h	2011-08-23 15:16:02.327629024 +0200
-@@ -45,20 +45,22 @@
-  */
- #define CLOCK_EVT_FEAT_PERIODIC		0x000001
- #define CLOCK_EVT_FEAT_ONESHOT		0x000002
-+#define CLOCK_EVT_FEAT_KTIME		0x000004
- /*
-  * x86(64) specific misfeatures:
-  *
-  * - Clockevent source stops in C3 State and needs broadcast support.
-  * - Local APIC timer is used as a dummy device.
-  */
--#define CLOCK_EVT_FEAT_C3STOP		0x000004
--#define CLOCK_EVT_FEAT_DUMMY		0x000008
-+#define CLOCK_EVT_FEAT_C3STOP		0x000008
-+#define CLOCK_EVT_FEAT_DUMMY		0x000010
- 
- /**
-  * struct clock_event_device - clock event device descriptor
-  * @event_handler:	Assigned by the framework to be called by the low
-  *			level handler of the event source
-- * @set_next_event:	set next event function
-+ * @set_next_event:	set next event function using a clocksource delta
-+ * @set_next_ktime:	set next event function using a direct ktime value
-  * @next_event:		local storage for the next event in oneshot mode
-  * @max_delta_ns:	maximum delta value in ns
-  * @min_delta_ns:	minimum delta value in ns
-@@ -81,6 +83,8 @@
- 	void			(*event_handler)(struct clock_event_device *);
- 	int			(*set_next_event)(unsigned long evt,
- 						  struct clock_event_device *);
-+	int			(*set_next_ktime)(ktime_t expires,
-+						  struct clock_event_device *);
- 	ktime_t			next_event;
- 	u64			max_delta_ns;
- 	u64			min_delta_ns;
-Index: linux-clockevents/kernel/time/clockevents.c
-===================================================================
---- linux-clockevents.orig/kernel/time/clockevents.c	2011-08-23 15:15:59.159588700 +0200
-+++ linux-clockevents/kernel/time/clockevents.c	2011-08-23 15:16:02.327629024 +0200
-@@ -216,6 +216,10 @@
- 	if (dev->mode == CLOCK_EVT_MODE_SHUTDOWN)
- 		return 0;
- 
-+	/* Shortcut for clockevent devices that can deal with ktime. */
-+	if (dev->features & CLOCK_EVT_FEAT_KTIME)
-+		return dev->set_next_ktime(expires, dev);
-+
- 	delta = ktime_to_ns(ktime_sub(expires, ktime_get()));
- 	if (delta <= 0)
- 		return force ? clockevents_program_min_delta(dev) : -ETIME;
 
