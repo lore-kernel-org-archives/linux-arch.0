@@ -1,53 +1,45 @@
-From: Namjae Jeon <linkinjeon@gmail.com>
-Subject: [PATCH] include: Fix compile warning in include/linux/bitops.h
-Date: Thu, 25 Aug 2011 00:23:35 +0900
-Message-ID: <1314199415-7924-1-git-send-email-linkinjeon@gmail.com>
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
+Date: Wed, 24 Aug 2011 10:25:37 -0500
+Message-ID: <20110824152537.GA3993@codeaurora.org>
+References: <20110822193602.GA23301@codeaurora.org>
+ <2047151.mWElcT8jZQ@wuerfel>
+ <1314151284.29738.34.camel@epip-laptop>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f170.google.com ([209.85.210.170]:57801 "EHLO
-	mail-iy0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750893Ab1HXPYK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2011 11:24:10 -0400
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:15342 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750893Ab1HXP0D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Aug 2011 11:26:03 -0400
+Content-Disposition: inline
+In-Reply-To: <1314151284.29738.34.camel@epip-laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, Namjae Jeon <linkinjeon@gmail.com>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Arnd Bergmann <arnd@arndb.de>, GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
 
-The compile warning is caused by __const_hweight8 when using hweight_long with -Wsign-compare option.
-The reason is that the default return value of this macro is signed. So need type casting to remove warning.
+On Wed, Aug 24, 2011 at 10:01:24AM +0800, Guan Xuetao wrote:
+>   For getdents (or other deprecated syscalls), we select getdents64 to
+> replace getdent, though we have not verified it on unicore32 platform.
 
-Signed-off-by: Namjae Jeon <linkinjeon@gmail.com>
----
- include/asm-generic/bitops/const_hweight.h |   18 +++++++++---------
- 1 files changed, 9 insertions(+), 9 deletions(-)
+Do you have a publically-available version? Have you considered
+submitting it to the FSF?  Have you signed the copyright-transfer
+forms with the FSF?
 
-diff --git a/include/asm-generic/bitops/const_hweight.h b/include/asm-generic/bitops/const_hweight.h
-index fa2a50b..31b7fce 100644
---- a/include/asm-generic/bitops/const_hweight.h
-+++ b/include/asm-generic/bitops/const_hweight.h
-@@ -4,15 +4,15 @@
- /*
-  * Compile time versions of __arch_hweightN()
-  */
--#define __const_hweight8(w)		\
--      (	(!!((w) & (1ULL << 0))) +	\
--	(!!((w) & (1ULL << 1))) +	\
--	(!!((w) & (1ULL << 2))) +	\
--	(!!((w) & (1ULL << 3))) +	\
--	(!!((w) & (1ULL << 4))) +	\
--	(!!((w) & (1ULL << 5))) +	\
--	(!!((w) & (1ULL << 6))) +	\
--	(!!((w) & (1ULL << 7)))	)
-+#define __const_hweight8(w)	(unsigned long)	\
-+      	(	(!!((w) & (1ULL << 0))) +	\
-+		(!!((w) & (1ULL << 1))) +	\
-+		(!!((w) & (1ULL << 2))) +	\
-+		(!!((w) & (1ULL << 3))) +	\
-+		(!!((w) & (1ULL << 4))) +	\
-+		(!!((w) & (1ULL << 5))) +	\
-+		(!!((w) & (1ULL << 6))) +	\
-+		(!!((w) & (1ULL << 7)))	)
- 
- #define __const_hweight16(w) (__const_hweight8(w)  + __const_hweight8((w)  >> 8 ))
- #define __const_hweight32(w) (__const_hweight16(w) + __const_hweight16((w) >> 16))
+My goal with the hexagon archiecture is to have the kernel asm/unistd.h
+include asm-generic/unistd.h, and have glibc compile (on hexagon) with
+no further #defines in asm/unistd.h.  This "almost" works today; with
+Chris Metcalf's generic syscall patches for glibc, I am able to compile
+glibc (and pass the glibc test suite). However, I have to #define
+__ARCH_WANT_SYSCALL_DEPRECATED to do this. If I don't, then the 
+getdents syscall fails to compile; I don't know how many others there are.
+
+As to the "API": I just want to use Arnd's "generic" kernel support;
+that will be the API.  No changing, porting, hacking :-)
+
+-- Linas
+
 -- 
-1.7.4.4
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
