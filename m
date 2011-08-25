@@ -1,38 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp106.prem.mail.ac4.yahoo.com ([76.13.13.45]:38254 "HELO
-	smtp106.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1754303Ab1HYPSd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Aug 2011 11:18:33 -0400
-Date: Thu, 25 Aug 2011 10:11:50 -0500 (CDT)
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-In-Reply-To: <1314284272.27911.32.camel@twins>
-Message-ID: <alpine.DEB.2.00.1108251009120.27407@router.home>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com>  <20110818144025.8e122a67.akpm@linux-foundation.org> <1314284272.27911.32.camel@twins>
+Received: from mx1.redhat.com ([209.132.183.28]:15999 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754639Ab1HYPeP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Aug 2011 11:34:15 -0400
+Date: Thu, 25 Aug 2011 17:31:08 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [PATCH v2 00/43] signal: set_current_blocked() and
+	block_sigmask()
+Message-ID: <20110825153108.GA4578@redhat.com>
+References: <1313772419-21951-1-git-send-email-matt@console-pimps.org> <20110824182411.GA30094@redhat.com> <1314246650.3218.3.camel@perseus.themaw.net>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1314246650.3218.3.camel@perseus.themaw.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
-Message-ID: <20110825151150.OT2JdwqocIypl2neCDGI5TNrwvUDhSSvzfP8hW6068I@z>
+To: Ian Kent <raven@themaw.net>
+Cc: Matt Fleming <matt@console-pimps.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Harkes <jaharkes@cs.cmu.edu>, Petr Vandrovec <petr@vandrovec.name>
+Message-ID: <20110825153108.DSaxPt2m2rU9hcJOK9i747faLRKjMx2hodDoPdMZeWA@z>
 
-On Thu, 25 Aug 2011, Peter Zijlstra wrote:
-
-> On Thu, 2011-08-18 at 14:40 -0700, Andrew Morton wrote:
-> >
-> > I think I'll apply it, as the call frequency is low (correct?) and the
-> > problem will correct itself as other architectures implement their
-> > atomic this_cpu_foo() operations.
+On 08/25, Ian Kent wrote:
 >
-> Which leads me to wonder, can anything but x86 implement that this_cpu_*
-> muck? I doubt any of the risk chips can actually do all this.
-> Maybe Itanic, but then that seems to be dying fast.
+> On Wed, 2011-08-24 at 20:24 +0200, Oleg Nesterov wrote:
+> >
+> > >  fs/autofs4/waitq.c                 |   13 +++-------
+> >
+> > I applied the whole series with a few acks we got. Other maintainers
+> > do not care, I guess.
+>
+> I wouldn't say that, I didn't NAK it for autofs4.
 
-The cpu needs to have an RMW instruction that does something to a
-variable relative to a register that points to the per cpu base.
+I meant, "Hopefully other maintainers do not object".
 
-Thats generally possible. The problem is how expensive the RMW is going to
-be.
+We need to resubmit this patch, set_current_blocked() is not
+exported. Your ack is welcomed ;)
+
+Oleg.
 
