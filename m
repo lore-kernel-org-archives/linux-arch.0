@@ -1,33 +1,43 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH v2 00/43] signal: set_current_blocked() and
-	block_sigmask()
-Date: Thu, 25 Aug 2011 17:31:08 +0200
-Message-ID: <20110825153108.GA4578@redhat.com>
-References: <1313772419-21951-1-git-send-email-matt@console-pimps.org> <20110824182411.GA30094@redhat.com> <1314246650.3218.3.camel@perseus.themaw.net>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH v2 00/24] C6X: New architecture patch set
+Date: Thu, 25 Aug 2011 12:00:19 -0400
+Message-ID: <1314288020.2344.30.camel@deneb.redhat.com>
+References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
+	 <1314284011.27911.29.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1314246650.3218.3.camel@perseus.themaw.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ian Kent <raven@themaw.net>
-Cc: Matt Fleming <matt@console-pimps.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Harkes <jaharkes@cs.cmu.edu>, Petr Vandrovec <petr@vandrovec.name>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:8078 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752262Ab1HYQAq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Aug 2011 12:00:46 -0400
+In-Reply-To: <1314284011.27911.29.camel@twins>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org
 
-On 08/25, Ian Kent wrote:
->
-> On Wed, 2011-08-24 at 20:24 +0200, Oleg Nesterov wrote:
-> >
-> > >  fs/autofs4/waitq.c                 |   13 +++-------
-> >
-> > I applied the whole series with a few acks we got. Other maintainers
-> > do not care, I guess.
->
-> I wouldn't say that, I didn't NAK it for autofs4.
+On Thu, 2011-08-25 at 16:53 +0200, Peter Zijlstra wrote:
+> It would be ever so nice to also point us to a binutils/gcc
+> source/patch
+> so that we can actually compile this muck.
 
-I meant, "Hopefully other maintainers do not object".
+Sorry. I did so in the earlier patch series.
 
-We need to resubmit this patch, set_current_blocked() is not
-exported. Your ack is welcomed ;)
+  http://www.codesourcery.com/sgpp/lite/c6000/portal/release1882
 
-Oleg.
+> 
+> Also, wth is c6x?
+
+This architecture supports members of the Texas Instruments family of
+C6xxx single and multicore DSPs. The multicore parts have no cache
+coherency among the cores so are not really suitable for SMP. The core
+architecture is a VLIW instruction set optimized for DSP operations (64
+general purpose registers, fast multiply, lots of bit manipulation
+instructions, no divide instruction). No MMU for now, but may be in the
+future. For details see:
+
+  http://focus.ti.com/dsp/docs/dsphome.tsp?sectionId=46&DCMP=TIHomeTracking&HQS=Other+OT+home_p_dsp
+
+--Mark
