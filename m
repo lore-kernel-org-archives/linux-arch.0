@@ -1,43 +1,63 @@
-From: Christoph Lameter <cl@linux.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-Date: Thu, 25 Aug 2011 14:19:26 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1108251413130.27407@router.home>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com>  <20110818144025.8e122a67.akpm@linux-foundation.org>  <1314284272.27911.32.camel@twins>  <alpine.DEB.2.00.1108251009120.27407@router.home>  <1314289208.3268.4.camel@mulgrave>
- <alpine.DEB.2.00.1108251128460.27407@router.home>  <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>  <alpine.DEB.2.00.1108251206440.27407@router.home>  <1e295500-5d1f-45dd-aa5b-3d2da2cf1a62@email.android.com>  <alpine.DEB.2.00.1108251341230.27407@router.home>
- <1314299115.26922.2.camel@twins>
+Date: Thu, 25 Aug 2011 12:29:06 -0700
+Message-ID: <1314300546.3268.8.camel@mulgrave>
+References: <1313650253-21794-1-git-send-email-gthelen@google.com>
+	 <20110818144025.8e122a67.akpm@linux-foundation.org>
+	 <1314284272.27911.32.camel@twins>
+	 <alpine.DEB.2.00.1108251009120.27407@router.home>
+	 <1314289208.3268.4.camel@mulgrave>
+	 <alpine.DEB.2.00.1108251128460.27407@router.home>
+	 <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>
+	 <alpine.DEB.2.00.1108251206440.27407@router.home>
+	 <1e295500-5d1f-45dd-aa5b-3d2da2cf1a62@email.android.com>
+	 <alpine.DEB.2.00.1108251341230.27407@router.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp105.prem.mail.ac4.yahoo.com ([76.13.13.44]:31663 "HELO
-	smtp105.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1752070Ab1HYTTb (ORCPT
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37444 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750703Ab1HYT3H (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Aug 2011 15:19:31 -0400
-In-Reply-To: <1314299115.26922.2.camel@twins>
+	Thu, 25 Aug 2011 15:29:07 -0400
+In-Reply-To: <alpine.DEB.2.00.1108251341230.27407@router.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: James Bottomley <James.bottomley@HansenPartnership.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
 
-On Thu, 25 Aug 2011, Peter Zijlstra wrote:
+On Thu, 2011-08-25 at 13:46 -0500, Christoph Lameter wrote:
+> On Thu, 25 Aug 2011, James Bottomley wrote:
+> 
+> > >Well then what is "really risc"? RISC is an old beaten down marketing
+> > >term
+> > >AFAICT and ARM claims it too.
+> >
+> > Reduced Instruction Set Computer.  This is why we're unlikely to have
+> > complex atomic instructions: the principle of risc is that you build
+> > them up from basic ones.
+> 
+> RISC cpus have instruction to construct complex atomic actions by the cpu
+> as I have shown before for ARM.
+> 
+> Principles always have exceptions to them.
+> 
+> (That statement in itself is a principle that should have an exception I
+> guess. But then language often only makes sense when it contains
+> contradictions.)
 
-> Also, I thought this_cpu thing's were at best locally atomic. If you
-> make them full blown atomic ops then even __this_cpu ops will have to be
-> full atomic ops, otherwise:
->
->
-> CPU0			CPU(1)
->
-> this_cpu_inc(&foo);	preempt_disable();
-> 			__this_cpu_inc(&foo);
-> 			preempt_enable();
->
-> might step on each other's toes.
+We seem to be talking at cross purposes.  I'm not saying a risc system
+can't do this ... of course the risc primitives can build into whatever
+you want.  To make it atomic, you simply add locking.  What I'm saying
+is that open coding asm in a macro makes no sense because the compiler
+will do it better from C.  Plus, since the net purpose of this patch is
+to require us to lock around each op instead of doing a global lock (or
+in this case preempt disable) then you're making us less efficient at
+executing it.
 
-They would both have their own instance of "foo". per cpu atomicity is
-only one requirement of this_cpu_ops. The other is the ability to relocate
-accesses relative to the current per cpu area.
+Therefore from the risc point of view, most of the this_cpu_xxx
+operations are things that we don't really care about except that the
+result would be easier to read in C.
 
-Full blown atomicity is almost a superset of per cpu atomicity but its
-only usable if the full atomic instructions can also relocate accesses
-relative to some base.
+James
