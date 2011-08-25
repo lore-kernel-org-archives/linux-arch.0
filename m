@@ -1,64 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:59842 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752935Ab1HYCdi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Aug 2011 22:33:38 -0400
-Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Reply-To: gxt@mprc.pku.edu.cn
-In-Reply-To: <20110824152537.GA3993@codeaurora.org>
-References: <20110822193602.GA23301@codeaurora.org>
-	 <2047151.mWElcT8jZQ@wuerfel> <1314151284.29738.34.camel@epip-laptop>
-	 <20110824152537.GA3993@codeaurora.org>
+Received: from out3.smtp.messagingengine.com ([66.111.4.27]:43717 "EHLO
+	out3.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750745Ab1HYEa4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Aug 2011 00:30:56 -0400
+Subject: Re: [PATCH v2 00/43] signal: set_current_blocked() and
+ block_sigmask()
+From: Ian Kent <raven@themaw.net>
+In-Reply-To: <20110824182411.GA30094@redhat.com>
+References: <1313772419-21951-1-git-send-email-matt@console-pimps.org>
+	 <20110824182411.GA30094@redhat.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Thu, 25 Aug 2011 10:33:42 +0800
-Message-ID: <1314239622.29738.53.camel@epip-laptop>
+Date: Thu, 25 Aug 2011 12:30:50 +0800
+Message-ID: <1314246650.3218.3.camel@perseus.themaw.net>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, GLIBC Devel <libc-alpha@sourceware.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
-Message-ID: <20110825023342.XeehpXCWh59UsITT8xyNZPNN6XptwuL-CAMwcwhpoKM@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Matt Fleming <matt@console-pimps.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jan Harkes <jaharkes@cs.cmu.edu>, Petr Vandrovec <petr@vandrovec.name>
+Message-ID: <20110825043050.WPhOVO4dPhSFX2Pbj-ZoMeUSnEwz5jfmaXBxygqv7OI@z>
 
-On Wed, 2011-08-24 at 10:25 -0500, Linas Vepstas (Code Aurora) wrote:
-> On Wed, Aug 24, 2011 at 10:01:24AM +0800, Guan Xuetao wrote:
-> >   For getdents (or other deprecated syscalls), we select getdents64 to
-> > replace getdent, though we have not verified it on unicore32 platform.
+On Wed, 2011-08-24 at 20:24 +0200, Oleg Nesterov wrote:
+> (add linux-arch)
 > 
-> Do you have a publically-available version? Have you considered
-> submitting it to the FSF?  Have you signed the copyright-transfer
-> forms with the FSF?
-Firstly, what I said for getdents64 in unicore is just in developing,
-not ready yet.
-And for glibc part, it need much time to prepare for submitting.
-
+> On 08/19, Matt Fleming wrote:
+> >
+> >  arch/alpha/kernel/signal.c         |   31 ++++++++----------------
+> >  arch/arm/kernel/signal.c           |   24 ++++++------------
+> >  arch/avr32/kernel/signal.c         |   26 ++++++--------------
+> >  arch/blackfin/kernel/signal.c      |   17 +++----------
+> >  arch/cris/arch-v10/kernel/signal.c |   34 +++++++++-----------------
+> >  arch/cris/arch-v32/kernel/signal.c |   37 ++++++++--------------------
+> >  arch/frv/kernel/signal.c           |   32 ++++++++-----------------
+> >  arch/h8300/kernel/signal.c         |   33 +++++++-------------------
+> >  arch/ia64/kernel/signal.c          |   15 +----------
+> >  arch/m32r/kernel/signal.c          |   12 +--------
+> >  arch/m68k/kernel/signal_mm.c       |   22 +++++++----------
+> >  arch/m68k/kernel/signal_no.c       |   28 +++++++---------------
+> >  arch/microblaze/kernel/signal.c    |   42 +++++++++++++--------------------
+> >  arch/mips/kernel/signal.c          |   27 ++++-----------------
+> >  arch/mips/kernel/signal32.c        |   20 +++------------
+> >  arch/mips/kernel/signal_n32.c      |   10 +------
+> >  arch/mn10300/kernel/signal.c       |   32 ++++++++-----------------
+> >  arch/openrisc/kernel/signal.c      |   45 +++++++++++++++--------------------
+> >  arch/parisc/kernel/signal.c        |   12 +--------
+> >  arch/powerpc/kernel/signal.c       |   13 +--------
+> >  arch/powerpc/kernel/signal_32.c    |   11 ++++----
+> >  arch/s390/kernel/compat_signal.c   |    6 +----
+> >  arch/s390/kernel/signal.c          |    6 +----
+> >  arch/score/kernel/signal.c         |   13 ++--------
+> >  arch/sh/kernel/signal_32.c         |   35 ++++++++--------------------
+> >  arch/sh/kernel/signal_64.c         |   40 ++++++++------------------------
+> >  arch/sparc/kernel/signal32.c       |   17 ++-----------
+> >  arch/sparc/kernel/signal_32.c      |   28 +++++++---------------
+> >  arch/sparc/kernel/signal_64.c      |   29 ++++++++---------------
+> >  arch/tile/kernel/compat_signal.c   |    5 +---
+> >  arch/tile/kernel/signal.c          |   13 +--------
+> >  arch/um/kernel/signal.c            |   28 +++++++---------------
+> >  arch/um/sys-i386/signal.c          |   12 +--------
+> >  arch/um/sys-x86_64/signal.c        |    6 +----
+> >  arch/unicore32/kernel/signal.c     |   13 +--------
+> >  arch/x86/kernel/signal.c           |    6 +----
+> >  arch/xtensa/kernel/signal.c        |   35 ++++++++-------------------
+> >  fs/autofs4/waitq.c                 |   13 +++-------
+> >  fs/coda/upcall.c                   |   19 ++++++--------
+> >  fs/dlm/user.c                      |    1 -
+> >  fs/ncpfs/sock.c                    |   15 ++++--------
+> >  include/linux/signal.h             |    1 +
+> >  kernel/signal.c                    |   21 ++++++++++++++++
 > 
-> My goal with the hexagon archiecture is to have the kernel asm/unistd.h
-> include asm-generic/unistd.h, and have glibc compile (on hexagon) with
-> no further #defines in asm/unistd.h.  This "almost" works today; with
-> Chris Metcalf's generic syscall patches for glibc, I am able to compile
-> glibc (and pass the glibc test suite). However, I have to #define
-> __ARCH_WANT_SYSCALL_DEPRECATED to do this. If I don't, then the 
-> getdents syscall fails to compile; I don't know how many others there are.
-It's also my goal. And you have walked further than me.
-I guess, Chris don't need getdent for tile, since he didn't export the
-syscall in kernel.
-IMO, it's better to add one syscall instead of
-__ARCH_WANT_SYSCALL_DEPRECATED in your own unistd.h:
-
-#define __NR_getdents 1065
-#define __ARCH_WANT_SYS_GETDENTS
-__SYSCALL(__NR_getdents, sys_getdents)
-
+> Thanks to those who replied.
 > 
-> As to the "API": I just want to use Arnd's "generic" kernel support;
-> that will be the API.  No changing, porting, hacking :-)
-> 
-> -- Linas
-> 
+> I applied the whole series with a few acks we got. Other maintainers
+> do not care, I guess.
 
-Regards
+I wouldn't say that, I didn't NAK it for autofs4.
+I do appreciate the cc on the post, thanks.
 
-Guan Xuetao
+Ian
+
 
