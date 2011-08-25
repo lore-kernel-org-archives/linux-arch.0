@@ -1,31 +1,40 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-Date: Thu, 25 Aug 2011 12:07:44 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1108251206440.27407@router.home>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com> <20110818144025.8e122a67.akpm@linux-foundation.org> <1314284272.27911.32.camel@twins> <alpine.DEB.2.00.1108251009120.27407@router.home> <1314289208.3268.4.camel@mulgrave>
- <alpine.DEB.2.00.1108251128460.27407@router.home> <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 00/24] C6X: New architecture patch set
+Date: Thu, 25 Aug 2011 19:27:30 +0200
+Message-ID: <1314293250.27911.36.camel@twins>
+References: <1314043785-2880-1-git-send-email-msalter@redhat.com>
+	 <1314284011.27911.29.camel@twins>
+	 <1314288020.2344.30.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp101.prem.mail.ac4.yahoo.com ([76.13.13.40]:45372 "HELO
-	smtp101.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1754823Ab1HYRHs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Aug 2011 13:07:48 -0400
-In-Reply-To: <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>
+Received: from merlin.infradead.org ([205.233.59.134]:36177 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754411Ab1HYR1q convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Aug 2011 13:27:46 -0400
+In-Reply-To: <1314288020.2344.30.camel@deneb.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.bottomley@HansenPartnership.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-arch@vger.kernel.org
 
-On Thu, 25 Aug 2011, James Bottomley wrote:
+On Thu, 2011-08-25 at 12:00 -0400, Mark Salter wrote:
+> On Thu, 2011-08-25 at 16:53 +0200, Peter Zijlstra wrote:
+> > It would be ever so nice to also point us to a binutils/gcc
+> > source/patch
+> > so that we can actually compile this muck.
+> 
+> Sorry. I did so in the earlier patch series.
+> 
+>   http://www.codesourcery.com/sgpp/lite/c6000/portal/release1882
 
-> >ARM seems to have these LDREX/STREX instructions for that purpose which
-> >seem to be used for generating atomic instructions without lockes. I
-> >guess
-> >other RISC architectures have similar means of doing it?
->
-> Arm isn't really risc.  Most don't.  However even with ldrex/strex you need two instructions for rmw.
+OK, so is all that properly merged in upstream binutils/gcc ? 
 
-Well then what is "really risc"? RISC is an old beaten down marketing term
-AFAICT and ARM claims it too.
+These codesourcery things are an utter friggin pain since they release a
+complete source tree for each target instead of patches. Nor do they
+release a single source for all targets.
+
+For someone who wants to simply be able to cross-compile all linux
+kernel archs life is hell, and looking at all these new archs recently
+that hell is only getting worse.
