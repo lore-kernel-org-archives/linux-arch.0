@@ -1,43 +1,52 @@
-From: Peter Zijlstra <peterz@infradead.org>
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH 1/2] mm: convert k{un}map_atomic(p, KM_type) to
  k{un}map_atomic(p)
-Date: Fri, 26 Aug 2011 10:59:56 +0200
-Message-ID: <1314349196.26922.22.camel@twins>
+Date: Fri, 26 Aug 2011 12:42:39 -0700
+Message-ID: <20110826124239.fc503491.akpm@linux-foundation.org>
 References: <1314346676.6486.25.camel@minggr.sh.intel.com>
+	<1314349096.26922.21.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:36528 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752677Ab1HZJAN convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2011 05:00:13 -0400
-In-Reply-To: <1314346676.6486.25.camel@minggr.sh.intel.com>
+Received: from smtp1.linux-foundation.org ([140.211.169.13]:44543 "EHLO
+	smtp1.linux-foundation.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752917Ab1HZTmu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 26 Aug 2011 15:42:50 -0400
+In-Reply-To: <1314349096.26922.21.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lin Ming <ming.m.lin@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Lin Ming <ming.m.lin@intel.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, x86@kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 2011-08-26 at 16:17 +0800, Lin Ming wrote:
-> @@ -292,7 +292,7 @@ static unsigned int bm_bit_to_page_idx(struct drbd_bitmap *b, u64 bitnr)
->  static unsigned long *__bm_map_pidx(struct drbd_bitmap *b, unsigned int idx, const enum km_type km)
->  {
->         struct page *page = b->bm_pages[idx];
-> -       return (unsigned long *) kmap_atomic(page, km);
-> +       return (unsigned long *) kmap_atomic(page);
->  }
->  
->  static unsigned long *bm_map_pidx(struct drbd_bitmap *b, unsigned int idx)
-> @@ -302,7 +302,7 @@ static unsigned long *bm_map_pidx(struct drbd_bitmap *b, unsigned int idx)
->  
->  static void __bm_unmap(unsigned long *p_addr, const enum km_type km)
->  {
-> -       kunmap_atomic(p_addr, km);
-> +       kunmap_atomic(p_addr);
->  };
->   
+On Fri, 26 Aug 2011 10:58:16 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Stuff like that is really only a half-assed cleanup, IIRC there's more
-sites like that.
+> On Fri, 2011-08-26 at 16:17 +0800, Lin Ming wrote:
+> > 
+> > The KM_type parameter for kmap_atomic/kunmap_atomic is not used anymore
+> > since commit 3e4d3af(mm: stack based kmap_atomic()).
+> > 
+> > So convert k{un}map_atomic(p, KM_type) to k{un}map_atomic(p).
+> > Most conversion are done by below commands. Some are done by hand.
+> > 
+> > find . -type f | xargs sed -i 's/\(kmap_atomic(.*\),\ .*)/\1)/'
+> > find . -type f | xargs sed -i 's/\(kunmap_atomic(.*\),\ .*)/\1)/'
+> > 
+> > Build and tested on 32/64bit x86 kernel(allyesconfig) with 3G memory.
+> > 
+> > ARM, MIPS, PowerPc and Sparc are build tested only with
+> > CONFIG_HIGHMEM=y and CONFIG_HIGHMEM=n.
+> > I don't have cross-compiler for other arches. 
+> 
+> yet-another-massive patch.. (you're the third or fourth to do so) if
+> Andrew wants to take this one I won't mind, however previously he didn't
+> want flag day patches..
 
-In my initial massive patch I cleaned all that up as well.
+I'm OK with cleaning all these up, but I suggest that we leave the
+back-compatibility macros in place for a while, to make sure that
+various stragglers get converted.  Extra marks will be awarded for
+working out how to make unconverted code generate a compile warning ;)
+
+Perhaps you could dust off your old patch and we'll bring it up to date?
