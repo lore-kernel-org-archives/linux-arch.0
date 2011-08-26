@@ -1,44 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:40889 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751612Ab1HYXB4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Aug 2011 19:01:56 -0400
-Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Fri, 26 Aug 2011 01:01:37 +0200
-In-Reply-To: <1314300546.3268.8.camel@mulgrave>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com>
-	 <20110818144025.8e122a67.akpm@linux-foundation.org>
-	 <1314284272.27911.32.camel@twins>
-	 <alpine.DEB.2.00.1108251009120.27407@router.home>
-	 <1314289208.3268.4.camel@mulgrave>
-	 <alpine.DEB.2.00.1108251128460.27407@router.home>
-	 <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>
-	 <alpine.DEB.2.00.1108251206440.27407@router.home>
-	 <1e295500-5d1f-45dd-aa5b-3d2da2cf1a62@email.android.com>
-	 <alpine.DEB.2.00.1108251341230.27407@router.home>
-	 <1314300546.3268.8.camel@mulgrave>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Message-ID: <1314313297.26922.17.camel@twins>
-Mime-Version: 1.0
+Received: from usmamail.tilera.com ([206.83.70.75]:57143 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750858Ab1HZDCD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Aug 2011 23:02:03 -0400
+Message-ID: <4E570B66.608@tilera.com>
+Date: Thu, 25 Aug 2011 22:56:38 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
+MIME-Version: 1.0
+Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
+References: <20110822193602.GA23301@codeaurora.org> <2047151.mWElcT8jZQ@wuerfel> <1314151284.29738.34.camel@epip-laptop> <20110824152537.GA3993@codeaurora.org>
+In-Reply-To: <20110824152537.GA3993@codeaurora.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Christoph Lameter <cl@linux.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
-Message-ID: <20110825230137.skq5bkOGnzYkhvNCDX0eSpjNn1RH_g2_RuSWA_hXnX8@z>
+To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>, GLIBC Devel <libc-alpha@sourceware.org>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
+Message-ID: <20110826025638.JO2c2KAVZCLxhlQNZsnMbfT9COGcXeJTfxrGakqehvk@z>
 
-On Thu, 2011-08-25 at 12:29 -0700, James Bottomley wrote:
-> 
-> Therefore from the risc point of view, most of the this_cpu_xxx
-> operations are things that we don't really care about except that the
-> result would be easier to read in C. 
+On 8/24/2011 11:25 AM, Linas Vepstas (Code Aurora) wrote:
+> On Wed, Aug 24, 2011 at 10:01:24AM +0800, Guan Xuetao wrote:
+>>   For getdents (or other deprecated syscalls), we select getdents64 to
+>> replace getdent, though we have not verified it on unicore32 platform.
+> Do you have a publically-available version? Have you considered
+> submitting it to the FSF?  Have you signed the copyright-transfer
+> forms with the FSF?
 
-Right, so the current fallback case is pretty much the optimal case for
-the RISC machines, which ends up with generic code being better off not
-using it much and instead preferring __this_cpu if there's more than
-one.
+I apologize for the slow-motion return of our glibc port to the community. 
+We have a signed FSF copyright-transfer on file, which we've already used
+for binutils, and gcc is in progress, but glibc is not quite at the top of
+the stack yet.  It's the curse of being a small company with new features
+to write, bugs to fix, and customers to keep happy :-)
 
-I mean, its absolutely awesome these things are 1 instruction on x86,
-but if we pessimize all other 20-odd architectures its just not cool.
+Our 2.11.2 port is here:
+
+http://www.tilera.com/scm/glibc-2.11.2.tar.bz2
+
+Wwe are using 2.12 for our upcoming release, which is based around RHEL 6. 
+We have not tried to return this to the community yet because there are
+plenty of small cleanups to do: another pass through the code to make sure
+there are no lingering minor issues, sync up to the git tip, check all the
+code style issues, update copyrights, write changelogs, etc.
+
+> My goal with the hexagon archiecture is to have the kernel asm/unistd.h
+> include asm-generic/unistd.h, and have glibc compile (on hexagon) with
+> no further #defines in asm/unistd.h.  This "almost" works today; with
+> Chris Metcalf's generic syscall patches for glibc, I am able to compile
+> glibc (and pass the glibc test suite). However, I have to #define
+> __ARCH_WANT_SYSCALL_DEPRECATED to do this. If I don't, then the 
+> getdents syscall fails to compile; I don't know how many others there are.
+
+For getdents in particular, we use this patch:
+
+--- sysdeps/unix/sysv/linux/getdents.c~        2010-05-04 07:27:23.000000000 -0400
++++ sysdeps/unix/sysv/linux/getdents.c  2010-10-12 14:28:47.026114000 -0400
+@@ -236,6 +236,7 @@
+ # endif
+     }
+ #endif
++#if !defined __NR_getdents64 || !defined __ASSUME_GETDENTS64_SYSCALL
+   {
+     size_t red_nbytes;
+     struct kernel_dirent *skdp, *kdp;
+@@ -295,4 +296,5 @@
+
+     return (char *) dp - buf;
+   }
++#endif
+ }
+
+
+> As to the "API": I just want to use Arnd's "generic" kernel support;
+> that will be the API.  No changing, porting, hacking :-)
+
+Indeed.
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
