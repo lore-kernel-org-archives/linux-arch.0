@@ -1,45 +1,79 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] memcg: remove unneeded preempt_disable
-Date: Fri, 26 Aug 2011 01:01:37 +0200
-Message-ID: <1314313297.26922.17.camel@twins>
-References: <1313650253-21794-1-git-send-email-gthelen@google.com>
-	 <20110818144025.8e122a67.akpm@linux-foundation.org>
-	 <1314284272.27911.32.camel@twins>
-	 <alpine.DEB.2.00.1108251009120.27407@router.home>
-	 <1314289208.3268.4.camel@mulgrave>
-	 <alpine.DEB.2.00.1108251128460.27407@router.home>
-	 <986ca4ed-6810-426f-b32f-5c8687e3a10b@email.android.com>
-	 <alpine.DEB.2.00.1108251206440.27407@router.home>
-	 <1e295500-5d1f-45dd-aa5b-3d2da2cf1a62@email.android.com>
-	 <alpine.DEB.2.00.1108251341230.27407@router.home>
-	 <1314300546.3268.8.camel@mulgrave>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
+Date: Thu, 25 Aug 2011 22:56:38 -0400
+Message-ID: <4E570B66.608@tilera.com>
+References: <20110822193602.GA23301@codeaurora.org> <2047151.mWElcT8jZQ@wuerfel> <1314151284.29738.34.camel@epip-laptop> <20110824152537.GA3993@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1314300546.3268.8.camel@mulgrave>
-Sender: owner-linux-mm@kvack.org
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Christoph Lameter <cl@linux.com>, Andrew Morton <akpm@linux-foundation.org>, Greg Thelen <gthelen@google.com>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>, Balbir Singh <bsingharora@gmail.com>, Daisuke Nishimura <nishimura@mxp.nes.nec.co.jp>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <libc-ports-return-2014-gclgp-libc-ports=m.gmane.org@sourceware.org>
+In-Reply-To: <20110824152537.GA3993@codeaurora.org>
+List-Unsubscribe: <mailto:libc-ports-unsubscribe-gclgp-libc-ports=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-ports-subscribe@sourceware.org>
+List-Post: <mailto:libc-ports@sourceware.org>
+List-Help: <mailto:libc-ports-help@sourceware.org>, <http://sourceware.org/lists.html#faqs>
+Sender: libc-ports-owner@sourceware.org
+To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>, GLIBC Devel <libc-alpha@sourceware.org>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Tobias Klauser <tklauser@distanz.ch>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-08-25 at 12:29 -0700, James Bottomley wrote:
->=20
-> Therefore from the risc point of view, most of the this_cpu_xxx
-> operations are things that we don't really care about except that the
-> result would be easier to read in C.=20
+On 8/24/2011 11:25 AM, Linas Vepstas (Code Aurora) wrote:
+> On Wed, Aug 24, 2011 at 10:01:24AM +0800, Guan Xuetao wrote:
+>>   For getdents (or other deprecated syscalls), we select getdents64 to
+>> replace getdent, though we have not verified it on unicore32 platform.
+> Do you have a publically-available version? Have you considered
+> submitting it to the FSF?  Have you signed the copyright-transfer
+> forms with the FSF?
 
-Right, so the current fallback case is pretty much the optimal case for
-the RISC machines, which ends up with generic code being better off not
-using it much and instead preferring __this_cpu if there's more than
-one.
+I apologize for the slow-motion return of our glibc port to the community. 
+We have a signed FSF copyright-transfer on file, which we've already used
+for binutils, and gcc is in progress, but glibc is not quite at the top of
+the stack yet.  It's the curse of being a small company with new features
+to write, bugs to fix, and customers to keep happy :-)
 
-I mean, its absolutely awesome these things are 1 instruction on x86,
-but if we pessimize all other 20-odd architectures its just not cool.
+Our 2.11.2 port is here:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+http://www.tilera.com/scm/glibc-2.11.2.tar.bz2
+
+Wwe are using 2.12 for our upcoming release, which is based around RHEL 6. 
+We have not tried to return this to the community yet because there are
+plenty of small cleanups to do: another pass through the code to make sure
+there are no lingering minor issues, sync up to the git tip, check all the
+code style issues, update copyrights, write changelogs, etc.
+
+> My goal with the hexagon archiecture is to have the kernel asm/unistd.h
+> include asm-generic/unistd.h, and have glibc compile (on hexagon) with
+> no further #defines in asm/unistd.h.  This "almost" works today; with
+> Chris Metcalf's generic syscall patches for glibc, I am able to compile
+> glibc (and pass the glibc test suite). However, I have to #define
+> __ARCH_WANT_SYSCALL_DEPRECATED to do this. If I don't, then the 
+> getdents syscall fails to compile; I don't know how many others there are.
+
+For getdents in particular, we use this patch:
+
+--- sysdeps/unix/sysv/linux/getdents.c~        2010-05-04 07:27:23.000000000 -0400
++++ sysdeps/unix/sysv/linux/getdents.c  2010-10-12 14:28:47.026114000 -0400
+@@ -236,6 +236,7 @@
+ # endif
+     }
+ #endif
++#if !defined __NR_getdents64 || !defined __ASSUME_GETDENTS64_SYSCALL
+   {
+     size_t red_nbytes;
+     struct kernel_dirent *skdp, *kdp;
+@@ -295,4 +296,5 @@
+
+     return (char *) dp - buf;
+   }
++#endif
+ }
+
+
+> As to the "API": I just want to use Arnd's "generic" kernel support;
+> that will be the API.  No changing, porting, hacking :-)
+
+Indeed.
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
