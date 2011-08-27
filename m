@@ -1,41 +1,26 @@
-From: David Miller <davem@davemloft.net>
+From: Mike Frysinger <vapier.adi@gmail.com>
 Subject: Re: [PATCH] All Arch: remove linkage for sys_nfsservctl system call
-Date: Fri, 26 Aug 2011 20:01:09 -0400 (EDT)
-Message-ID: <20110826.200109.1784685596300352827.davem@davemloft.net>
-References: <20110808180658.GC29924@decadent.org.uk>
-	<20110826220311.GA18140@fieldses.org>
-	<20110826233258.GE24107@decadent.org.uk>
+Date: Sat, 27 Aug 2011 10:39:55 -0400
+Message-ID: <CAMjpGUdJOh0=trV8vA9D3_uL27STo7MwbabwC9JHi1nVMwWLrA@mail.gmail.com>
+References: <1312810169.2591.1153.camel@deadeye> <20110808155538.GB904@fieldses.org>
+ <20110808180658.GC29924@decadent.org.uk> <20110826220311.GA18140@fieldses.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:40452 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754281Ab1H0ACH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Aug 2011 20:02:07 -0400
-In-Reply-To: <20110826233258.GE24107@decadent.org.uk>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:37353 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750993Ab1H0OkR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2011 10:40:17 -0400
+In-Reply-To: <20110826220311.GA18140@fieldses.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ben@decadent.org.uk
-Cc: bfields@fieldses.org, torvalds@linux-foundation.org, neilb@suse.de, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "J. Bruce Fields" <bfields@fieldses.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Neil Brown <neilb@suse.de>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Ben Hutchings <ben@decadent.org.uk>
-Date: Sat, 27 Aug 2011 00:32:58 +0100
+On Fri, Aug 26, 2011 at 18:03, J. Bruce Fields wrote:
+> =C2=A0arch/blackfin/mach-common/entry.S =C2=A0 =C2=A0 =C2=A0| =C2=A0 =
+=C2=A02 +-
 
-> On Fri, Aug 26, 2011 at 06:03:11PM -0400, J. Bruce Fields wrote:
-> [...]
->> diff --git a/arch/sparc/kernel/systbls_64.S b/arch/sparc/kernel/systbls_64.S
->> index f566518..c9296ab 100644
->> --- a/arch/sparc/kernel/systbls_64.S
->> +++ b/arch/sparc/kernel/systbls_64.S
->> @@ -145,7 +145,7 @@ sys_call_table:
->>  	.word sys_fstatfs64, sys_llseek, sys_mlock, sys_munlock, sys_mlockall
->>  /*240*/	.word sys_munlockall, sys_sched_setparam, sys_sched_getparam, sys_sched_setscheduler, sys_sched_getscheduler
->>  	.word sys_sched_yield, sys_sched_get_priority_max, sys_sched_get_priority_min, sys_sched_rr_get_interval, sys_nanosleep
->> -/*250*/	.word sys_64_mremap, sys_sysctl, sys_getsid, sys_fdatasync, sys_nfsservctl
->> +/*250*/	.word sys_64_mremap, sys_sysctl, sys_getsid, sys_fdatasync, sys_nis_syscall
-> [...]
->           	                                                                  ^
-> This seems to be a typo for 'sys_ni_syscall'.
-
-It's intentional, look at the sparc sources.
+Acked-by: Mike Frysinger <vapier@gentoo.org>
+-mike
