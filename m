@@ -1,26 +1,33 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH] All Arch: remove linkage for sys_nfsservctl system call
-Date: Sat, 27 Aug 2011 10:39:55 -0400
-Message-ID: <CAMjpGUdJOh0=trV8vA9D3_uL27STo7MwbabwC9JHi1nVMwWLrA@mail.gmail.com>
-References: <1312810169.2591.1153.camel@deadeye> <20110808155538.GB904@fieldses.org>
- <20110808180658.GC29924@decadent.org.uk> <20110826220311.GA18140@fieldses.org>
+Date: Sun, 28 Aug 2011 17:12:07 -0400 (EDT)
+Message-ID: <20110828.171207.2184384269364960247.davem@davemloft.net>
+References: <20110808155538.GB904@fieldses.org>
+	<20110808180658.GC29924@decadent.org.uk>
+	<20110826220311.GA18140@fieldses.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:37353 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750993Ab1H0OkR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 27 Aug 2011 10:40:17 -0400
+Received: from shards.monkeyblade.net ([198.137.202.13]:42549 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752134Ab1H1VMZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 28 Aug 2011 17:12:25 -0400
 In-Reply-To: <20110826220311.GA18140@fieldses.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "J. Bruce Fields" <bfields@fieldses.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Neil Brown <neilb@suse.de>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: bfields@fieldses.org
+Cc: torvalds@linux-foundation.org, ben@decadent.org.uk, neilb@suse.de, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Aug 26, 2011 at 18:03, J. Bruce Fields wrote:
-> =C2=A0arch/blackfin/mach-common/entry.S =C2=A0 =C2=A0 =C2=A0| =C2=A0 =
-=C2=A02 +-
+From: "J. Bruce Fields" <bfields@fieldses.org>
+Date: Fri, 26 Aug 2011 18:03:11 -0400
 
-Acked-by: Mike Frysinger <vapier@gentoo.org>
--mike
+> From: NeilBrown <neilb@suse.de>
+> 
+> The nfsservctl system call is now gone, so we should remove all
+> linkage for it.
+> 
+> Signed-off-by: NeilBrown <neilb@suse.de>
+> Signed-off-by: J. Bruce Fields <bfields@redhat.com>
+
+Acked-by: David S. Miller <davem@davemloft.net>
