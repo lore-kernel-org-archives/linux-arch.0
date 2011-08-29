@@ -1,74 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from chilli.pcug.org.au ([203.10.76.44]:55837 "EHLO smtps.tip.net.au"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754103Ab1H2W6B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 29 Aug 2011 18:58:01 -0400
-Date: Tue, 30 Aug 2011 08:57:52 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] All Arch: remove linkage for sys_nfsservctl system call
-Message-ID: <20110830085752.6db1ffa600f4c82135b3f3eb@canb.auug.org.au>
-In-Reply-To: <20110826220311.GA18140@fieldses.org>
-References: <1312810169.2591.1153.camel@deadeye>
-	<20110808155538.GB904@fieldses.org>
-	<20110808180658.GC29924@decadent.org.uk>
-	<20110826220311.GA18140@fieldses.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k"
+Received: from e33.co.us.ibm.com ([32.97.110.151]:56028 "EHLO
+	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755539Ab1H2X1r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2011 19:27:47 -0400
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 4/4] Add check for suspended vm in softlockup detector
+Date: Mon, 29 Aug 2011 17:27:15 -0600
+Message-ID: <1314660435-23293-5-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "J. Bruce Fields" <bfields@fieldses.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Neil Brown <neilb@suse.de>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110829225752.Wp0n6JJI8WjcLKS4O4XONFfAN9hTv4Y4MpPxVr_kmw8@z>
+To: avi@redhat.com
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, mtosatti@redhat.com, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Eric B Munson <emunson@mgebm.net>
+Message-ID: <20110829232715.t9b4DH6SoQaPXsK53s9ER8JH9r77wta0_7GAxehBUNg@z>
 
---Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
+watchdog now checks if the kernel knows it was stopped by the host and skips
+the warning if so.
 
-Hi Bruce,
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+---
+ kernel/watchdog.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-On Fri, 26 Aug 2011 18:03:11 -0400 "J. Bruce Fields" <bfields@fieldses.org>=
- wrote:
->
-> From: NeilBrown <neilb@suse.de>
->=20
-> The nfsservctl system call is now gone, so we should remove all
-> linkage for it.
->=20
-> Signed-off-by: NeilBrown <neilb@suse.de>
-> Signed-off-by: J. Bruce Fields <bfields@redhat.com>
-> ---
->=20
-> I don't normally have to deal with this kind of cross-architecture
-> patch; is this the right etiquette for it?
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 36491cd..4cbb69f 100644
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -25,6 +25,7 @@
+ #include <linux/sysctl.h>
+ 
+ #include <asm/irq_regs.h>
++#include <asm/pvclock.h>
+ #include <linux/perf_event.h>
+ 
+ int watchdog_enabled = 1;
+@@ -292,6 +293,17 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 	 */
+ 	duration = is_softlockup(touch_ts);
+ 	if (unlikely(duration)) {
++		/*
++		 * If a virtual machine is stopped by the host it can look to
++		 * the watchdog like a soft lockup, check to see if the host
++		 * stopped the vm before we issue the warning
++		 */
++		if (kvm_check_and_clear_host_stopped(get_cpu())) {
++			put_cpu();
++			return HRTIMER_RESTART;
++		}
++		put_cpu();
++
+ 		/* only warn once */
+ 		if (__this_cpu_read(soft_watchdog_warn) == true)
+ 			return HRTIMER_RESTART;
+-- 
+1.7.4.1
 
-It turns out (with hindsight) that my reaction to this patch should have
-been:
-
-If you haven't built this on all architectures (an noone expects you to
-actually do that), then it should spend a day or two in linux-next before
-being sent to Linus.
-
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQEcBAEBAgAGBQJOXBlwAAoJEDMEi1NhKgbssnMH/0Bb99IHgDTSfYa3/mtwN+Rg
-JFZiEYu/kaqLwT9lBx2xElHwjRBb+Moi+GHdFcQYV2YtOKldJqeVptEFHLQScuHK
-i2T3bYz2WjIRkfYjp58smmLk6pByLMDJBjO1E+x3MCiENvvze501nqooyrbd4eA0
-Oa7dwrIKosmZBNImuZfpBIdmOELQo6n5ewqyXqKFB+g/YRAiifhj2Pq1pMuawPxa
-JiEFywkrJuOSs8F6bk/p2WLydH70piIzdJsHxKisE0Pqvy1shHXS782gv/LTDWZp
-UjaQ2e+CdmmHmm/6lMCoemwOfYX13O0lmXdJa2kPKuBukadH/SsBsrpFv0UghVY=
-=zdQQ
------END PGP SIGNATURE-----
-
---Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k--
