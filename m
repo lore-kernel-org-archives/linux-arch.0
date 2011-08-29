@@ -1,28 +1,34 @@
-From: Sister Deborah Mannings <john@leo.wsinf.edu.pl>
-Subject: Beloved
-Date: Fri, 26 Aug 2011 18:49:57 -0700
-Message-ID: <E1Qx82B-000IxN-Uo@leo.wsinf.edu.pl>
-Reply-To: mann_deb@yahoo.cn
+From: "Joseph S. Myers" <joseph@codesourcery.com>
+Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
+Date: Mon, 29 Aug 2011 15:21:52 +0000 (UTC)
+Message-ID: <Pine.LNX.4.64.1108291518300.17624@digraph.polyomino.org.uk>
+References: <20110822193602.GA23301@codeaurora.org> <2047151.mWElcT8jZQ@wuerfel>
+ <20110829104324.GM24840@distanz.ch>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from leo.wsinf.edu.pl ([212.191.40.17]:52423 "EHLO leo.wsinf.edu.pl"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752615Ab1H2N7g convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2011 09:59:36 -0400
-Received: from [41.203.64.250] (port=6956 helo=[172.35.123.217])
-	by leo.wsinf.edu.pl with esmtpsa (TLSv1:DHE-RSA-AES256-SHA:256)
-	(Exim 4.76 (FreeBSD))
-	(envelope-from <john@leo.wsinf.edu.pl>)
-	id 1Qx82B-000IxN-Uo
-	for linux-arch@vger.kernel.org; Sat, 27 Aug 2011 03:50:08 +0200
-Content-Description: Mail message body
+Received: from mail.codesourcery.com ([38.113.113.100]:57955 "EHLO
+	mail.codesourcery.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753829Ab1H2PVy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Aug 2011 11:21:54 -0400
+In-Reply-To: <20110829104324.GM24840@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Beloved,I am Deborah Mannings.I write this email to you on my sick bed
-facing death.I have a substantial sum  I would like you to help me
-distribute to the needy and helpless.God bless you as you reply through
-mann_deb@yahoo.cn
+On Mon, 29 Aug 2011, Tobias Klauser wrote:
+
+> On nios2 we're using an outdated eglibc version (based on glibc 2.5)
+> right now and thus we still rely on our own non-asm-generic version of
+> asm/unistd.h
+
+As I noted before 
+<http://sourceware.org/ml/libc-ports/2010-09/msg00014.html> Nios II has 
+the problem for upstream submission of the unassigned nature of the 
+binutils and GCC ports - unless you know of any progress on that issue at 
+Altera.
+
+-- 
+Joseph S. Myers
+joseph@codesourcery.com
