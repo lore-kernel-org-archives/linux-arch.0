@@ -1,46 +1,73 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: __ARCH_WANT_SYSCALL_DEPRECATED
-Date: Mon, 29 Aug 2011 18:18:31 +0200
-Message-ID: <20110829161831.GA11405@distanz.ch>
-References: <20110822193602.GA23301@codeaurora.org> <2047151.mWElcT8jZQ@wuerfel> <20110829104324.GM24840@distanz.ch> <Pine.LNX.4.64.1108291518300.17624@digraph.polyomino.org.uk>
+From: Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>
+Subject: Re: [PATCH] All Arch: remove linkage for sys_nfsservctl system call
+Date: Tue, 30 Aug 2011 08:57:52 +1000
+Message-ID: <20110830085752.6db1ffa600f4c82135b3f3eb@canb.auug.org.au>
+References: <1312810169.2591.1153.camel@deadeye>
+	<20110808155538.GB904@fieldses.org>
+	<20110808180658.GC29924@decadent.org.uk>
+	<20110826220311.GA18140@fieldses.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.1108291518300.17624@digraph.polyomino.org.uk>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: "Joseph S. Myers" <joseph@codesourcery.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, Chris Metcalf <cmetcalf@tilera.com>, Jonas Bonn <jonas.bonn@gmail.com>, libc-ports@sourceware.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k"
+Return-path: <linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20110826220311.GA18140-uC3wQj2KruNg9hUCZPvPmw@public.gmane.org>
+Sender: linux-nfs-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "J. Bruce Fields" <bfields-uC3wQj2KruNg9hUCZPvPmw@public.gmane.org>
+Cc: Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Ben Hutchings <ben-/+tVBieCtBitmTQ+vhA3Yw@public.gmane.org>, Neil Brown <neilb-l3A5Bk7waGM@public.gmane.org>, linux-nfs-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 2011-08-29 at 17:21:52 +0200, Joseph S. Myers <joseph@codesourcery.com> wrote:
-> On Mon, 29 Aug 2011, Tobias Klauser wrote:
-> 
-> > On nios2 we're using an outdated eglibc version (based on glibc 2.5)
-> > right now and thus we still rely on our own non-asm-generic version of
-> > asm/unistd.h
-> 
-> As I noted before 
-> <http://sourceware.org/ml/libc-ports/2010-09/msg00014.html> Nios II has 
-> the problem for upstream submission of the unassigned nature of the 
-> binutils and GCC ports - unless you know of any progress on that issue at 
-> Altera.
+--Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Thanks, I wasn't aware of the discussion in this thread. Unfortunately
-I do not know of any progress wrt this matter at Altera.
+Hi Bruce,
 
-My primary interest at the moment is getting the kernel port ready for
-mainline submission. One of the requirements for this to happen seems
-to be the convertion to the asm-generic syscall ABI which I'm currently
-working on. For this an updated glibc port will be needed.
+On Fri, 26 Aug 2011 18:03:11 -0400 "J. Bruce Fields" <bfields-uC3wQj2KruNg9hUCZPvPmw@public.gmane.org>=
+ wrote:
+>
+> From: NeilBrown <neilb-l3A5Bk7waGM@public.gmane.org>
+>=20
+> The nfsservctl system call is now gone, so we should remove all
+> linkage for it.
+>=20
+> Signed-off-by: NeilBrown <neilb-l3A5Bk7waGM@public.gmane.org>
+> Signed-off-by: J. Bruce Fields <bfields-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> ---
+>=20
+> I don't normally have to deal with this kind of cross-architecture
+> patch; is this the right etiquette for it?
 
-Joseph: Are the sources of the improved CodeSourcery port availbale
-somewhere publicly or are they only available if one buys/evaluates
-CodeBench?
+It turns out (with hindsight) that my reaction to this patch should have
+been:
 
-I'd like to base my glibc work to come on the most recent and mature
-version of glibc, so it would be nice to start off CodeSourcey's
-version.
+If you haven't built this on all architectures (an noone expects you to
+actually do that), then it should spend a day or two in linux-next before
+being sent to Linus.
 
-Thanks
-Tobias
+--=20
+Cheers,
+Stephen Rothwell                    sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQEcBAEBAgAGBQJOXBlwAAoJEDMEi1NhKgbssnMH/0Bb99IHgDTSfYa3/mtwN+Rg
+JFZiEYu/kaqLwT9lBx2xElHwjRBb+Moi+GHdFcQYV2YtOKldJqeVptEFHLQScuHK
+i2T3bYz2WjIRkfYjp58smmLk6pByLMDJBjO1E+x3MCiENvvze501nqooyrbd4eA0
+Oa7dwrIKosmZBNImuZfpBIdmOELQo6n5ewqyXqKFB+g/YRAiifhj2Pq1pMuawPxa
+JiEFywkrJuOSs8F6bk/p2WLydH70piIzdJsHxKisE0Pqvy1shHXS782gv/LTDWZp
+UjaQ2e+CdmmHmm/6lMCoemwOfYX13O0lmXdJa2kPKuBukadH/SsBsrpFv0UghVY=
+=zdQQ
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__30_Aug_2011_08_57_52_+1000_Uw9KG.Cbr6Myuj=k--
+--
+To unsubscribe from this list: send the line "unsubscribe linux-nfs" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
