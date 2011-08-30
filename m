@@ -1,33 +1,48 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 1/4] Add flag to indicate that a vm was stopped by the host
-Date: Mon, 29 Aug 2011 17:27:12 -0600
-Message-ID: <1314660435-23293-2-git-send-email-emunson@mgebm.net>
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
+Date: Tue, 30 Aug 2011 09:26:30 -0300
+Message-ID: <20110830122630.GA19450@amt.cnet>
 References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
-Return-path: <kvm-ppc-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:31039 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751273Ab1H3McZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 30 Aug 2011 08:32:25 -0400
+Content-Disposition: inline
 In-Reply-To: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: avi@redhat.com
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, mtosatti@redhat.com, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Eric B Munson <emunson@mgebm.net>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org
 
-This flag will be used to check if the vm was stopped by the host when a soft
-lockup was detected.
+On Mon, Aug 29, 2011 at 05:27:11PM -0600, Eric B Munson wrote:
+> Currently, when qemu stops a guest kernel that guest will issue a soft lockup
+> message when it resumes.  This set provides the ability for qemu to comminucate
+> to the guest that it has been stopped.  When the guest hits the watchdog on
+> resume it will check if it was suspended before issuing the warning.
+> 
+> Eric B Munson (4):
+>   Add flag to indicate that a vm was stopped by the host
+>   Add functions to check if the host has stopped the vm
+>   Add generic stubs for kvm stop check functions
+>   Add check for suspended vm in softlockup detector
+> 
+>  arch/x86/include/asm/pvclock-abi.h |    1 +
+>  arch/x86/include/asm/pvclock.h     |    2 ++
+>  arch/x86/kernel/kvmclock.c         |   14 ++++++++++++++
+>  include/asm-generic/pvclock.h      |   14 ++++++++++++++
+>  kernel/watchdog.c                  |   12 ++++++++++++
+>  5 files changed, 43 insertions(+), 0 deletions(-)
+>  create mode 100644 include/asm-generic/pvclock.h
+> 
+> -- 
+> 1.7.4.1
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
----
- arch/x86/include/asm/pvclock-abi.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+How is the host supposed to set this flag? 
 
-diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
-index 35f2d19..6167fd7 100644
---- a/arch/x86/include/asm/pvclock-abi.h
-+++ b/arch/x86/include/asm/pvclock-abi.h
-@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
- } __attribute__((__packed__));
- 
- #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
-+#define PVCLOCK_GUEST_STOPPED	(1 << 1)
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_X86_PVCLOCK_ABI_H */
--- 
-1.7.4.1
+As mentioned previously, if you save save/restore the offset added to
+kvmclock on stop/cont (and the TSC MSR, forgot to mention that), no
+paravirt infrastructure is required. Which means the issue is also fixed
+for older guests.
