@@ -1,69 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:50719 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757437Ab1IATYS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Sep 2011 15:24:18 -0400
-Message-ID: <4E5FDBDC.2030302@codemonkey.ws>
-Date: Thu, 01 Sep 2011 14:24:12 -0500
-From: Anthony Liguori <anthony@codemonkey.ws>
+Received: from oz.csail.mit.edu ([128.30.30.239]:42900 "EHLO
+	ozymandias.localdomain" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1757892Ab1IAU16 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Sep 2011 16:27:58 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by
- host
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net> <20110830122630.GA19450@amt.cnet>
-In-Reply-To: <20110830122630.GA19450@amt.cnet>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain;
+ charset=UTF-8;
+ format=flowed
 Content-Transfer-Encoding: 7bit
+Date: Thu, 01 Sep 2011 14:27:49 -0600
+From: emunson@mgebm.net
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
+In-Reply-To: <4E5FDBDC.2030302@codemonkey.ws>
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
+ <20110830122630.GA19450@amt.cnet> <4E5FDBDC.2030302@codemonkey.ws>
+Message-ID: <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>
-Message-ID: <20110901192412.3_GXl3D5VohpngaUZHQ4nKFMmRsTkMQXZZnDeWB-pA4@z>
+To: Anthony Liguori <anthony@codemonkey.ws>
+Cc: Marcelo Tosatti <mtosatti@redhat.com>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>
+Message-ID: <20110901202749.pGDYbK6XSZ3fGSePkuwsGJ5cks9_P_rm3NNXbNjjhHw@z>
 
-On 08/30/2011 07:26 AM, Marcelo Tosatti wrote:
-> On Mon, Aug 29, 2011 at 05:27:11PM -0600, Eric B Munson wrote:
->> Currently, when qemu stops a guest kernel that guest will issue a soft lockup
->> message when it resumes.  This set provides the ability for qemu to comminucate
->> to the guest that it has been stopped.  When the guest hits the watchdog on
->> resume it will check if it was suspended before issuing the warning.
+ On Thu, 01 Sep 2011 14:24:12 -0500, Anthony Liguori wrote:
+> On 08/30/2011 07:26 AM, Marcelo Tosatti wrote:
+>> On Mon, Aug 29, 2011 at 05:27:11PM -0600, Eric B Munson wrote:
+>>> Currently, when qemu stops a guest kernel that guest will issue a 
+>>> soft lockup
+>>> message when it resumes.  This set provides the ability for qemu to 
+>>> comminucate
+>>> to the guest that it has been stopped.  When the guest hits the 
+>>> watchdog on
+>>> resume it will check if it was suspended before issuing the 
+>>> warning.
+>>>
+>>> Eric B Munson (4):
+>>>    Add flag to indicate that a vm was stopped by the host
+>>>    Add functions to check if the host has stopped the vm
+>>>    Add generic stubs for kvm stop check functions
+>>>    Add check for suspended vm in softlockup detector
+>>>
+>>>   arch/x86/include/asm/pvclock-abi.h |    1 +
+>>>   arch/x86/include/asm/pvclock.h     |    2 ++
+>>>   arch/x86/kernel/kvmclock.c         |   14 ++++++++++++++
+>>>   include/asm-generic/pvclock.h      |   14 ++++++++++++++
+>>>   kernel/watchdog.c                  |   12 ++++++++++++
+>>>   5 files changed, 43 insertions(+), 0 deletions(-)
+>>>   create mode 100644 include/asm-generic/pvclock.h
+>>>
+>>> --
+>>> 1.7.4.1
 >>
->> Eric B Munson (4):
->>    Add flag to indicate that a vm was stopped by the host
->>    Add functions to check if the host has stopped the vm
->>    Add generic stubs for kvm stop check functions
->>    Add check for suspended vm in softlockup detector
+>> How is the host supposed to set this flag?
 >>
->>   arch/x86/include/asm/pvclock-abi.h |    1 +
->>   arch/x86/include/asm/pvclock.h     |    2 ++
->>   arch/x86/kernel/kvmclock.c         |   14 ++++++++++++++
->>   include/asm-generic/pvclock.h      |   14 ++++++++++++++
->>   kernel/watchdog.c                  |   12 ++++++++++++
->>   5 files changed, 43 insertions(+), 0 deletions(-)
->>   create mode 100644 include/asm-generic/pvclock.h
->>
->> --
->> 1.7.4.1
+>> As mentioned previously, if you save save/restore the offset added 
+>> to
+>> kvmclock on stop/cont (and the TSC MSR, forgot to mention that), no
+>> paravirt infrastructure is required. Which means the issue is also 
+>> fixed
+>> for older guests.
 >
-> How is the host supposed to set this flag?
+> IIRC, the steal time patches have some logic that basically say:
 >
-> As mentioned previously, if you save save/restore the offset added to
-> kvmclock on stop/cont (and the TSC MSR, forgot to mention that), no
-> paravirt infrastructure is required. Which means the issue is also fixed
-> for older guests.
+> if there was steal time:
+>    kick soft lockup detector
+>
+> I wonder if that serves this purpose provided that time spent in stop
+> is accounted as steal time.  If it isn't, perhaps it should be?
+>
+> Regards,
+>
+> Anthony Liguori
+>
 
-IIRC, the steal time patches have some logic that basically say:
+ I could be missing it, but I don't see anywhere in the steal time 
+ patches that kicks the watchdog.
 
-if there was steal time:
-    kick soft lockup detector
+ Accounting stopped time as stolen time opens a possible problem when 
+ the accounting (CPU power modification) part is turned on.  As a process 
+ accumulates steal time its CPU power is increased.  If we account 
+ stopped time as stolen, it will do strange things with CPU power for 
+ that process.  I believe that it is for this reason that patch 4 of 
+ Glauber's series explicitly states that halted time is not stolen time.  
+ Stolen time is only accumulated when a vCPU actually has work to do.
 
-I wonder if that serves this purpose provided that time spent in stop is 
-accounted as steal time.  If it isn't, perhaps it should be?
-
-Regards,
-
-Anthony Liguori
-
-> --
-> To unsubscribe from this list: send the line "unsubscribe kvm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-
+ Eric
