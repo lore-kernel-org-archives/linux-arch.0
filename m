@@ -1,74 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fieldses.org ([174.143.236.118]:41828 "EHLO fieldses.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756414Ab1HaNrG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Aug 2011 09:47:06 -0400
-Date: Wed, 31 Aug 2011 09:46:52 -0400
-From: "J. Bruce Fields" <bfields@fieldses.org>
-Subject: Re: [PATCH] All Arch: remove linkage for sys_nfsservctl system call
-Message-ID: <20110831134652.GA16897@fieldses.org>
-References: <1312810169.2591.1153.camel@deadeye>
- <20110808155538.GB904@fieldses.org>
- <20110808180658.GC29924@decadent.org.uk>
- <20110826220311.GA18140@fieldses.org>
- <20110830085752.6db1ffa600f4c82135b3f3eb@canb.auug.org.au>
- <20110830091150.176cd08c@notabene.brown>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:50719 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757437Ab1IATYS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Sep 2011 15:24:18 -0400
+Message-ID: <4E5FDBDC.2030302@codemonkey.ws>
+Date: Thu, 01 Sep 2011 14:24:12 -0500
+From: Anthony Liguori <anthony@codemonkey.ws>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20110830091150.176cd08c@notabene.brown>
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by
+ host
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net> <20110830122630.GA19450@amt.cnet>
+In-Reply-To: <20110830122630.GA19450@amt.cnet>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: NeilBrown <neilb@suse.de>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, linux-nfs@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110831134652.X5Nh-dqjfk7PZueS3drgbPufu2x-qYXiz6F68xdcfa8@z>
+To: Marcelo Tosatti <mtosatti@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>
+Message-ID: <20110901192412.3_GXl3D5VohpngaUZHQ4nKFMmRsTkMQXZZnDeWB-pA4@z>
 
-On Tue, Aug 30, 2011 at 09:11:50AM +1000, NeilBrown wrote:
-> On Tue, 30 Aug 2011 08:57:52 +1000 Stephen Rothwell <sfr@canb.auug.org.au>
-> wrote:
-> 
-> > Hi Bruce,
-> > 
-> > On Fri, 26 Aug 2011 18:03:11 -0400 "J. Bruce Fields" <bfields@fieldses.org> wrote:
-> > >
-> > > From: NeilBrown <neilb@suse.de>
-> > > 
-> > > The nfsservctl system call is now gone, so we should remove all
-> > > linkage for it.
-> > > 
-> > > Signed-off-by: NeilBrown <neilb@suse.de>
-> > > Signed-off-by: J. Bruce Fields <bfields@redhat.com>
-> > > ---
-> > > 
-> > > I don't normally have to deal with this kind of cross-architecture
-> > > patch; is this the right etiquette for it?
-> > 
-> > It turns out (with hindsight) that my reaction to this patch should have
-> > been:
-> > 
-> > If you haven't built this on all architectures (an noone expects you to
-> > actually do that), then it should spend a day or two in linux-next before
-> > being sent to Linus.
-> > 
-> 
-> Hi Stephen,
->  Thanks for your help in sorting this out.  I have no idea how I missed those
->  few nfsservctl references but I clearly did and you and -next have proved
->  valuable yet again.
-> 
->  And really *everything* should spend a few days in linux-next before going
->  to Linus.  We all know that but it sometimes seem hard to *do* that ....
->  until we have learnt the hard way a couple of times :-(
+On 08/30/2011 07:26 AM, Marcelo Tosatti wrote:
+> On Mon, Aug 29, 2011 at 05:27:11PM -0600, Eric B Munson wrote:
+>> Currently, when qemu stops a guest kernel that guest will issue a soft lockup
+>> message when it resumes.  This set provides the ability for qemu to comminucate
+>> to the guest that it has been stopped.  When the guest hits the watchdog on
+>> resume it will check if it was suspended before issuing the warning.
+>>
+>> Eric B Munson (4):
+>>    Add flag to indicate that a vm was stopped by the host
+>>    Add functions to check if the host has stopped the vm
+>>    Add generic stubs for kvm stop check functions
+>>    Add check for suspended vm in softlockup detector
+>>
+>>   arch/x86/include/asm/pvclock-abi.h |    1 +
+>>   arch/x86/include/asm/pvclock.h     |    2 ++
+>>   arch/x86/kernel/kvmclock.c         |   14 ++++++++++++++
+>>   include/asm-generic/pvclock.h      |   14 ++++++++++++++
+>>   kernel/watchdog.c                  |   12 ++++++++++++
+>>   5 files changed, 43 insertions(+), 0 deletions(-)
+>>   create mode 100644 include/asm-generic/pvclock.h
+>>
+>> --
+>> 1.7.4.1
+>
+> How is the host supposed to set this flag?
+>
+> As mentioned previously, if you save save/restore the offset added to
+> kvmclock on stop/cont (and the TSC MSR, forgot to mention that), no
+> paravirt infrastructure is required. Which means the issue is also fixed
+> for older guests.
 
-Yes, sorry, I'll know not to skip -next, next time....
+IIRC, the steal time patches have some logic that basically say:
 
-(My excuse: I've been advertising to -next only stuff that I've done
-with and committed, and this was something I wasn't even sure I should
-take.
+if there was steal time:
+    kick soft lockup detector
 
-But I could have either mailed it out labelled as [RFC], or stuck it in
-a throwaway branch to merge into my -next branch.)
+I wonder if that serves this purpose provided that time spent in stop is 
+accounted as steal time.  If it isn't, perhaps it should be?
 
-Apologies again, and thanks for dealing with it so promptly.
+Regards,
 
---b.
+Anthony Liguori
+
+> --
+> To unsubscribe from this list: send the line "unsubscribe kvm" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
