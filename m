@@ -1,86 +1,191 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:42900 "EHLO
-	ozymandias.localdomain" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1757892Ab1IAU16 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Sep 2011 16:27:58 -0400
-MIME-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8;
- format=flowed
-Content-Transfer-Encoding: 7bit
-Date: Thu, 01 Sep 2011 14:27:49 -0600
-From: emunson@mgebm.net
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
-In-Reply-To: <4E5FDBDC.2030302@codemonkey.ws>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
- <20110830122630.GA19450@amt.cnet> <4E5FDBDC.2030302@codemonkey.ws>
-Message-ID: <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:17956 "EHLO
+	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752290Ab1IBNx1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Sep 2011 09:53:27 -0400
+Received: from euspt1 (mailout1.w1.samsung.com [210.118.77.11])
+ by mailout1.w1.samsung.com
+ (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
+ with ESMTP id <0LQW00JODEL1F0@mailout1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Fri, 02 Sep 2011 14:53:25 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LQW00DAHEL12T@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Fri, 02 Sep 2011 14:53:25 +0100 (BST)
+Date: Fri, 02 Sep 2011 15:53:17 +0200
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH 5/7] ARM: dma-mapping: remove redundant code and cleanup
+In-reply-to: <1314971599-14428-1-git-send-email-m.szyprowski@samsung.com>
+Message-ID: <1314971599-14428-6-git-send-email-m.szyprowski@samsung.com>
+MIME-version: 1.0
+Content-type: TEXT/PLAIN
+Content-transfer-encoding: 7BIT
+References: <1314971599-14428-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Anthony Liguori <anthony@codemonkey.ws>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>
-Message-ID: <20110901202749.pGDYbK6XSZ3fGSePkuwsGJ5cks9_P_rm3NNXbNjjhHw@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>
+Message-ID: <20110902135317.30528irbfKL2zGiAzCFF1YFo_anFE8vDo6yAhy-mCRg@z>
 
- On Thu, 01 Sep 2011 14:24:12 -0500, Anthony Liguori wrote:
-> On 08/30/2011 07:26 AM, Marcelo Tosatti wrote:
->> On Mon, Aug 29, 2011 at 05:27:11PM -0600, Eric B Munson wrote:
->>> Currently, when qemu stops a guest kernel that guest will issue a 
->>> soft lockup
->>> message when it resumes.  This set provides the ability for qemu to 
->>> comminucate
->>> to the guest that it has been stopped.  When the guest hits the 
->>> watchdog on
->>> resume it will check if it was suspended before issuing the 
->>> warning.
->>>
->>> Eric B Munson (4):
->>>    Add flag to indicate that a vm was stopped by the host
->>>    Add functions to check if the host has stopped the vm
->>>    Add generic stubs for kvm stop check functions
->>>    Add check for suspended vm in softlockup detector
->>>
->>>   arch/x86/include/asm/pvclock-abi.h |    1 +
->>>   arch/x86/include/asm/pvclock.h     |    2 ++
->>>   arch/x86/kernel/kvmclock.c         |   14 ++++++++++++++
->>>   include/asm-generic/pvclock.h      |   14 ++++++++++++++
->>>   kernel/watchdog.c                  |   12 ++++++++++++
->>>   5 files changed, 43 insertions(+), 0 deletions(-)
->>>   create mode 100644 include/asm-generic/pvclock.h
->>>
->>> --
->>> 1.7.4.1
->>
->> How is the host supposed to set this flag?
->>
->> As mentioned previously, if you save save/restore the offset added 
->> to
->> kvmclock on stop/cont (and the TSC MSR, forgot to mention that), no
->> paravirt infrastructure is required. Which means the issue is also 
->> fixed
->> for older guests.
->
-> IIRC, the steal time patches have some logic that basically say:
->
-> if there was steal time:
->    kick soft lockup detector
->
-> I wonder if that serves this purpose provided that time spent in stop
-> is accounted as steal time.  If it isn't, perhaps it should be?
->
-> Regards,
->
-> Anthony Liguori
->
+This patch just performs a global cleanup in DMA mapping implementation
+for ARM architecture. Some of the tiny helper functions have been moved
+to the caller code, some have been merged together.
 
- I could be missing it, but I don't see anywhere in the steal time 
- patches that kicks the watchdog.
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
+---
+ arch/arm/mm/dma-mapping.c |   88 ++++++++++++--------------------------------
+ 1 files changed, 24 insertions(+), 64 deletions(-)
 
- Accounting stopped time as stolen time opens a possible problem when 
- the accounting (CPU power modification) part is turned on.  As a process 
- accumulates steal time its CPU power is increased.  If we account 
- stopped time as stolen, it will do strange things with CPU power for 
- that process.  I believe that it is for this reason that patch 4 of 
- Glauber's series explicitly states that halted time is not stolen time.  
- Stolen time is only accumulated when a vCPU actually has work to do.
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index e7e7df4..66c40e2 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -38,64 +38,12 @@
+  * the CPU does do speculative prefetches, which means we clean caches
+  * before transfers and delay cache invalidation until transfer completion.
+  *
+- * Private support functions: these are not part of the API and are
+- * liable to change.  Drivers must not use these.
+  */
+-static inline void __dma_single_cpu_to_dev(const void *kaddr, size_t size,
+-	enum dma_data_direction dir)
+-{
+-	extern void ___dma_single_cpu_to_dev(const void *, size_t,
+-		enum dma_data_direction);
+-
+-	if (!arch_is_coherent())
+-		___dma_single_cpu_to_dev(kaddr, size, dir);
+-}
+-
+-static inline void __dma_single_dev_to_cpu(const void *kaddr, size_t size,
+-	enum dma_data_direction dir)
+-{
+-	extern void ___dma_single_dev_to_cpu(const void *, size_t,
+-		enum dma_data_direction);
+-
+-	if (!arch_is_coherent())
+-		___dma_single_dev_to_cpu(kaddr, size, dir);
+-}
+-
+-static inline void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
+-	size_t size, enum dma_data_direction dir)
+-{
+-	extern void ___dma_page_cpu_to_dev(struct page *, unsigned long,
++static void __dma_page_cpu_to_dev(struct page *, unsigned long,
+ 		size_t, enum dma_data_direction);
+-
+-	if (!arch_is_coherent())
+-		___dma_page_cpu_to_dev(page, off, size, dir);
+-}
+-
+-static inline void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
+-	size_t size, enum dma_data_direction dir)
+-{
+-	extern void ___dma_page_dev_to_cpu(struct page *, unsigned long,
++static void __dma_page_dev_to_cpu(struct page *, unsigned long,
+ 		size_t, enum dma_data_direction);
+ 
+-	if (!arch_is_coherent())
+-		___dma_page_dev_to_cpu(page, off, size, dir);
+-}
+-
+-
+-static inline dma_addr_t __dma_map_page(struct device *dev, struct page *page,
+-	     unsigned long offset, size_t size, enum dma_data_direction dir)
+-{
+-	__dma_page_cpu_to_dev(page, offset, size, dir);
+-	return pfn_to_dma(dev, page_to_pfn(page)) + offset;
+-}
+-
+-static inline void __dma_unmap_page(struct device *dev, dma_addr_t handle,
+-		size_t size, enum dma_data_direction dir)
+-{
+-	__dma_page_dev_to_cpu(pfn_to_page(dma_to_pfn(dev, handle)),
+-		handle & ~PAGE_MASK, size, dir);
+-}
+-
+ /**
+  * dma_map_page - map a portion of a page for streaming DMA
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+@@ -110,11 +58,13 @@ static inline void __dma_unmap_page(struct device *dev, dma_addr_t handle,
+  * The device owns this memory once this call has completed.  The CPU
+  * can regain ownership by calling dma_unmap_page().
+  */
+-static inline dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
++static dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
+ 	     unsigned long offset, size_t size, enum dma_data_direction dir,
+ 	     struct dma_attrs *attrs)
+ {
+-	return __dma_map_page(dev, page, offset, size, dir);
++	if (!arch_is_coherent())
++		__dma_page_cpu_to_dev(page, offset, size, dir);
++	return pfn_to_dma(dev, page_to_pfn(page)) + offset;
+ }
+ 
+ /**
+@@ -132,27 +82,31 @@ static inline dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
+  * whatever the device wrote there.
+  */
+ 
+-static inline void arm_dma_unmap_page(struct device *dev, dma_addr_t handle,
++static void arm_dma_unmap_page(struct device *dev, dma_addr_t handle,
+ 		size_t size, enum dma_data_direction dir,
+ 		struct dma_attrs *attrs)
+ {
+-	__dma_unmap_page(dev, handle, size, dir);
++	if (!arch_is_coherent())
++		__dma_page_dev_to_cpu(pfn_to_page(dma_to_pfn(dev, handle)),
++				      handle & ~PAGE_MASK, size, dir);
+ }
+ 
+-static inline void arm_dma_sync_single_for_cpu(struct device *dev,
++static void arm_dma_sync_single_for_cpu(struct device *dev,
+ 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+ {
+ 	unsigned int offset = handle & (PAGE_SIZE - 1);
+ 	struct page *page = pfn_to_page(dma_to_pfn(dev, handle-offset));
+-	__dma_page_dev_to_cpu(page, offset, size, dir);
++	if (!arch_is_coherent())
++		__dma_page_dev_to_cpu(page, offset, size, dir);
+ }
+ 
+-static inline void arm_dma_sync_single_for_device(struct device *dev,
++static void arm_dma_sync_single_for_device(struct device *dev,
+ 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+ {
+ 	unsigned int offset = handle & (PAGE_SIZE - 1);
+ 	struct page *page = pfn_to_page(dma_to_pfn(dev, handle-offset));
+-	__dma_page_cpu_to_dev(page, offset, size, dir);
++	if (!arch_is_coherent())
++		__dma_page_cpu_to_dev(page, offset, size, dir);
+ }
+ 
+ static int arm_dma_set_mask(struct device *dev, u64 dma_mask);
+@@ -609,7 +563,13 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
+ 	} while (left);
+ }
+ 
+-void ___dma_page_cpu_to_dev(struct page *page, unsigned long off,
++/*
++ * Make an area consistent for devices.
++ * Note: Drivers should NOT use this function directly, as it will break
++ * platforms with CONFIG_DMABOUNCE.
++ * Use the driver DMA support - see dma-mapping.h (dma_sync_*)
++ */
++static void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
+ 	size_t size, enum dma_data_direction dir)
+ {
+ 	unsigned long paddr;
+@@ -625,7 +585,7 @@ void ___dma_page_cpu_to_dev(struct page *page, unsigned long off,
+ 	/* FIXME: non-speculating: flush on bidirectional mappings? */
+ }
+ 
+-void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
++static void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
+ 	size_t size, enum dma_data_direction dir)
+ {
+ 	unsigned long paddr = page_to_phys(page) + off;
+-- 
+1.7.1.569.g6f426
 
- Eric
