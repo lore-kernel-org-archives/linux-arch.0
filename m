@@ -1,50 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:61042 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753552Ab1IFMgJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Sep 2011 08:36:09 -0400
-MIME-Version: 1.0
-In-Reply-To: <CAHQjnONHr-Ao_KLjdRKgVQQUKtOmmoyqFwdkSZCDsE6hx1q-Ug@mail.gmail.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:46023 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754389Ab1IHXwW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 19:52:22 -0400
+Message-ID: <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
+In-Reply-To: <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
 References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
- <1314971786-15140-3-git-send-email-m.szyprowski@samsung.com> <CAHQjnONHr-Ao_KLjdRKgVQQUKtOmmoyqFwdkSZCDsE6hx1q-Ug@mail.gmail.com>
-From: Ohad Ben-Cohen <ohad@wizery.com>
-Date: Tue, 6 Sep 2011 15:35:48 +0300
-Message-ID: <CADMYwHzTe7WcqjCOSdgnbFsHm6gtV7Bf1154WHXiTnffGSAYRA@mail.gmail.com>
-Subject: Re: [Linaro-mm-sig] [PATCH 2/2] ARM: Samsung: update/rewrite Samsung
- SYSMMU (IOMMU) driver
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+    <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
+Date: Thu, 8 Sep 2011 09:41:46 -0700 (PDT)
+Subject: Re: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept
+     IOMMU mapper for DMA-mapping
+From: "Laura Abbott" <lauraa@codeaurora.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: KyongHo Cho <pullip.cho@samsung.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, Kukjin Kim <kgene.kim@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, Kyungmin Park <kyungmin.park@samsung.com>, Linux Samsung SOC <linux-samsung-soc@vger.kernel.org>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Chunsang Jeong <chunsang.jeong@linaro.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20110906123548.tmFvVsp7TFodF06N1gbQkN7RRCKj0FY1kpTo8oIYdVQ@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
+Message-ID: <20110908164146.VEYakZQJbBxhrkxTReq0DVrrjsl9F09-rbiNwY4b8Bw@z>
 
-On Tue, Sep 6, 2011 at 1:27 PM, KyongHo Cho <pullip.cho@samsung.com> wrote:
-> On Fri, Sep 2, 2011 at 10:56 PM, Marek Szyprowski
->> +static int s5p_sysmmu_map(struct iommu_domain *domain, unsigned long iova,
->> +                         phys_addr_t paddr, int gfp_order, int prot)
->> +{
->> +       struct s5p_sysmmu_domain *s5p_domain = domain->priv;
->> +       int flpt_idx = flpt_index(iova);
->> +       size_t len = 0x1000UL << gfp_order;
->> +       void *flpt_va, *slpt_va;
->> +
->> +       if (len != SZ_16M && len != SZ_1M && len != SZ_64K && len != SZ_4K) {
->> +               sysmmu_debug(3, "bad order: %d\n", gfp_order);
->> +               return -EINVAL;
->> +       }
+
+Hi, a few comments
+On Fri, September 2, 2011 6:56 am, Marek Szyprowski wrote:
+...
+> +
+> +struct dma_iommu_mapping {
+> +	/* iommu specific data */
+> +	struct iommu_domain	*domain;
+> +
+> +	void			*bitmap;
+
+In the earlier version of this patch you had this as a genpool instead of
+just doing the bitmaps manually. Is there a reason genpool can't be used
+to get the iova addresses?
+> +	size_t			bits;
+> +	unsigned int		order;
+> +	dma_addr_t		base;
+> +
+> +	struct mutex		lock;
+> +};
+<snip>
+> +int arm_iommu_attach_device(struct device *dev, dma_addr_t base, size_t
+> size, int order)
+> +{
+> +	unsigned int count = (size >> PAGE_SHIFT) - order;
+> +	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
+> +	struct dma_iommu_mapping *mapping;
+> +	int err = -ENOMEM;
+> +
+> +	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
+> +	if (!mapping)
+> +		goto err;
+> +
+> +	mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
+> +	if (!mapping->bitmap)
+> +		goto err2;
+> +
+> +	mapping->base = base;
+> +	mapping->bits = bitmap_size;
+> +	mapping->order = order;
+> +	mutex_init(&mapping->lock);
+> +
+> +	mapping->domain = iommu_domain_alloc();
+> +	if (!mapping->domain)
+> +		goto err3;
+> +
+> +	err = iommu_attach_device(mapping->domain, dev);
+> +	if (err != 0)
+> +		goto err4;
+> +
+> +	dev->archdata.mapping = mapping;
+> +	set_dma_ops(dev, &iommu_ops);
+> +
+> +	printk(KERN_INFO "Attached IOMMU controller to %s device.\n",
+> dev_name(dev));
+> +	return 0;
+> +
+> +err4:
+> +	iommu_domain_free(mapping->domain);
+> +err3:
+> +	kfree(mapping->bitmap);
+> +err2:
+> +	kfree(mapping);
+> +err:
+> +	return -ENOMEM;
+> +}
+> +EXPORT_SYMBOL(arm_iommu_attach_device);
+> +
+> +#endif
+Attach makes the assumption that each iommu device will exist in a
+separate domain. What if multiple devices want to use the same iommu
+domain? The msm iommu implementation has many different iommu devices but
+many of these will need the same buffer to be mapped in each context so
+currently many devices share the same domain. Without this, the same map
+call would need to happen for each device, which creates extra map calls
+and overhead.
 >
-> Likewise, I think this driver need to support mapping 128KiB aligned,
-> 128KiB physical memory, for example.
+> _______________________________________________
+> Linaro-mm-sig mailing list
+> Linaro-mm-sig@lists.linaro.org
+> http://lists.linaro.org/mailman/listinfo/linaro-mm-sig
 >
-> Otherwise, it is somewhat restrictive than we expect.
 
-That's actually OK, because the IOMMU core will split physically
-contiguous memory regions to pages on behalf of its drivers (drivers
-will just have to advertise the page sizes their hardware supports);
-this way you don't duplicate the logic in every IOMMU driver.
+Laura
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
 
-Take a look:
 
-http://www.spinics.net/lists/linux-omap/msg56660.html
