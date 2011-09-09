@@ -1,115 +1,612 @@
-From: "Laura Abbott" <lauraa@codeaurora.org>
-Subject: Re: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept
-     IOMMU mapper for DMA-mapping
-Date: Thu, 8 Sep 2011 09:41:46 -0700 (PDT)
-Message-ID: <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
-References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
-    <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: text/plain;charset=iso-8859-1
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: [patch v3 14/36] Hexagon: Add signal functions
+Date: Thu, 08 Sep 2011 20:09:01 -0500
+Message-ID: <20110909010916.028280867@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:59700 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754209Ab1IIBK0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:10:26 -0400
+Content-Disposition: inline; filename=signals.diff
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Linas Vepstas <linas@codeaurora.org>
+
+Added vDSO support; signal trampoline is no longer on the stack
+so it no longer needs to be executable.
 
 
-Hi, a few comments
-On Fri, September 2, 2011 6:56 am, Marek Szyprowski wrote:
-...
-> +
-> +struct dma_iommu_mapping {
-> +	/* iommu specific data */
-> +	struct iommu_domain	*domain;
-> +
-> +	void			*bitmap;
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 
-In the earlier version of this patch you had this as a genpool instead of
-just doing the bitmaps manually. Is there a reason genpool can't be used
-to get the iova addresses?
-> +	size_t			bits;
-> +	unsigned int		order;
-> +	dma_addr_t		base;
-> +
-> +	struct mutex		lock;
-> +};
-<snip>
-> +int arm_iommu_attach_device(struct device *dev, dma_addr_t base, size_=
-t
-> size, int order)
-> +{
-> +	unsigned int count =3D (size >> PAGE_SHIFT) - order;
-> +	unsigned int bitmap_size =3D BITS_TO_LONGS(count) * sizeof(long);
-> +	struct dma_iommu_mapping *mapping;
-> +	int err =3D -ENOMEM;
-> +
-> +	mapping =3D kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
-> +	if (!mapping)
-> +		goto err;
-> +
-> +	mapping->bitmap =3D kzalloc(bitmap_size, GFP_KERNEL);
-> +	if (!mapping->bitmap)
-> +		goto err2;
-> +
-> +	mapping->base =3D base;
-> +	mapping->bits =3D bitmap_size;
-> +	mapping->order =3D order;
-> +	mutex_init(&mapping->lock);
-> +
-> +	mapping->domain =3D iommu_domain_alloc();
-> +	if (!mapping->domain)
-> +		goto err3;
-> +
-> +	err =3D iommu_attach_device(mapping->domain, dev);
-> +	if (err !=3D 0)
-> +		goto err4;
-> +
-> +	dev->archdata.mapping =3D mapping;
-> +	set_dma_ops(dev, &iommu_ops);
-> +
-> +	printk(KERN_INFO "Attached IOMMU controller to %s device.\n",
-> dev_name(dev));
-> +	return 0;
-> +
-> +err4:
-> +	iommu_domain_free(mapping->domain);
-> +err3:
-> +	kfree(mapping->bitmap);
-> +err2:
-> +	kfree(mapping);
-> +err:
-> +	return -ENOMEM;
-> +}
-> +EXPORT_SYMBOL(arm_iommu_attach_device);
-> +
-> +#endif
-Attach makes the assumption that each iommu device will exist in a
-separate domain. What if multiple devices want to use the same iommu
-domain? The msm iommu implementation has many different iommu devices but
-many of these will need the same buffer to be mapped in each context so
-currently many devices share the same domain. Without this, the same map
-call would need to happen for each device, which creates extra map calls
-and overhead.
->
-> _______________________________________________
-> Linaro-mm-sig mailing list
-> Linaro-mm-sig@lists.linaro.org
-> http://lists.linaro.org/mailman/listinfo/linaro-mm-sig
->
+---
+ arch/hexagon/include/asm/sigcontext.h |   32 +++
+ arch/hexagon/include/asm/signal.h     |   26 ++
+ arch/hexagon/include/asm/vdso.h       |   31 +++
+ arch/hexagon/kernel/signal.c          |  320 ++++++++++++++++++++++++++++++++++
+ arch/hexagon/kernel/trampoline.S      |   35 +++
+ arch/hexagon/kernel/vdso.c            |  101 ++++++++++
+ 6 files changed, 545 insertions(+)
 
-Laura
---=20
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum=
-.
-
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/sigcontext.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/include/asm/sigcontext.h	2011-09-08 19:22:01.150239048 -0500
+@@ -0,0 +1,32 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SIGCONTEXT_H
++#define _ASM_SIGCONTEXT_H
++
++#include <asm/registers.h>
++
++/*
++ * Signal context structure - contains all info to do with the state
++ * before the signal handler was invoked.
++ */
++struct sigcontext {
++	struct pt_regs sc_regs;
++};
++
++#endif
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/signal.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/include/asm/signal.h	2011-09-08 19:22:01.150239048 -0500
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SIGNAL_H
++#define _ASM_SIGNAL_H
++
++extern unsigned long __rt_sigtramp_template[2];
++
++#include <asm-generic/signal.h>
++
++#endif
+Index: linux-hexagon-kernel/arch/hexagon/kernel/signal.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/kernel/signal.c	2011-09-08 19:22:01.150239048 -0500
+@@ -0,0 +1,320 @@
++/*
++ * Signal support for Hexagon processor
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/linkage.h>
++#include <linux/syscalls.h>
++#include <linux/freezer.h>
++#include <asm/registers.h>
++#include <asm/thread_info.h>
++#include <asm/unistd.h>
++#include <asm/uaccess.h>
++#include <asm/ucontext.h>
++#include <asm/cacheflush.h>
++#include <asm/signal.h>
++#include <asm/vdso.h>
++
++#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
++
++struct sigframe {
++	unsigned long pad[2]; /* Used to be signal tramp */
++	struct sigcontext sc;
++	sigset_t mask;
++};
++
++struct rt_sigframe {
++	unsigned long pad[2]; /* Used to be signal tramp */
++	struct siginfo info;
++	struct ucontext uc;
++};
++
++static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
++			  size_t frame_size)
++{
++	unsigned long sp = regs->r29;
++
++	/* Switch to signal stack if appropriate */
++	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
++		sp = current->sas_ss_sp + current->sas_ss_size;
++
++	return (void __user *)((sp - frame_size) & ~(sizeof(long long) - 1));
++}
++
++static int setup_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc)
++{
++	int err = 0;
++
++	/*
++	 * Need to revisit if we're leaking anything inappropriate to user
++	 * stack.
++	 */
++
++	err |= copy_to_user(&sc->sc_regs, regs, sizeof(struct pt_regs));
++	return err;
++}
++
++static int restore_sigcontext(struct pt_regs *regs,
++			      struct sigcontext __user *sc)
++{
++	int err = 0;
++
++	/*
++	 * Should only restore vmel in case user stack is corrupted,
++	 * bogus status shouldn't be used in the rte.
++	 */
++
++	err |= copy_from_user(regs, &sc->sc_regs,
++			      offsetof(struct pt_regs, hvmer.vmel)
++			      + sizeof(unsigned long));
++	return err;
++}
++
++/*
++ * Setup signal stack frame with siginfo structure
++ */
++static int setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
++			  sigset_t *set,  struct pt_regs *regs)
++{
++	int err = 0;
++	struct rt_sigframe __user *frame;
++	struct hexagon_vdso *vdso = current->mm->context.vdso;
++
++	frame = get_sigframe(ka, regs, sizeof(struct rt_sigframe));
++
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(struct rt_sigframe)))
++		goto	sigsegv;
++
++	if (copy_siginfo_to_user(&frame->info, info))
++		goto	sigsegv;
++
++	mb();
++	err |= setup_sigcontext(regs, &frame->uc.uc_mcontext);
++	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++	if (err)
++		goto sigsegv;
++
++	/* Load r0/r1 pair with signumber/siginfo pointer... */
++	regs->r0100 = ((unsigned long long)((unsigned long)&frame->info) << 32)
++		| (unsigned long long)signr;
++	regs->r02 = (unsigned long) &frame->uc;
++	regs->r31 = (unsigned long) vdso->rt_signal_trampoline;
++	pt_psp(regs) = (unsigned long) frame;
++	pt_set_elr(regs, (unsigned long)ka->sa.sa_handler);
++
++	return 0;
++
++sigsegv:
++	force_sigsegv(signr, current);
++	return -EFAULT;
++}
++
++/*
++ * Setup invocation of signal handler
++ */
++static int handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
++			 sigset_t *oldset, struct pt_regs *regs)
++{
++	int rc;
++
++	/*
++	 * If we're handling a signal that aborted a system call,
++	 * set up the error return value before adding the signal
++	 * frame to the stack.
++	 */
++
++	if (regs->syscall_nr >= 0) {
++		switch (regs->r00) {
++		case -ERESTART_RESTARTBLOCK:
++		case -ERESTARTNOHAND:
++			regs->r00 = -EINTR;
++			break;
++		case -ERESTARTSYS:
++			if (!(ka->sa.sa_flags & SA_RESTART)) {
++				regs->r00 = -EINTR;
++				break;
++			}
++			/* Fall through */
++		case -ERESTARTNOINTR:
++			regs->r06 = regs->syscall_nr;
++			pt_set_elr(regs, pt_elr(regs) - 4);
++			regs->r00 = regs->restart_r0;
++			break;
++		default:
++			break;
++		}
++	}
++
++	/*
++	 * Set up the stack frame; not doing the SA_SIGINFO thing.  We
++	 * only set up the rt_frame flavor.
++	 */
++	rc = setup_rt_frame(sig, ka, info, oldset, regs);
++
++	/* If there was an error on setup, no signal was delivered. */
++	if (rc)
++		return rc;
++
++	spin_lock_irq(&current->sighand->siglock);
++	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
++	if (!(ka->sa.sa_flags & SA_NODEFER))
++		sigaddset(&current->blocked, sig);
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	return 0;
++}
++
++/*
++ * Called from return-from-event code.
++ */
++static void do_signal(struct pt_regs *regs)
++{
++	struct k_sigaction sigact;
++	siginfo_t info;
++	int signo;
++
++	if (!user_mode(regs))
++		return;
++
++	if (try_to_freeze())
++		goto no_signal;
++
++	signo = get_signal_to_deliver(&info, &sigact, regs, NULL);
++
++	if (signo > 0) {
++		sigset_t *oldset;
++
++		if (test_thread_flag(TIF_RESTORE_SIGMASK))
++			oldset = &current->saved_sigmask;
++		else
++			oldset = &current->blocked;
++
++		if (handle_signal(signo, &info, &sigact, oldset, regs) == 0) {
++			/*
++			 * Successful delivery case.  The saved sigmask is
++			 * stored in the signal frame, and will be restored
++			 * by sigreturn.  We can clear the TIF flag.
++			 */
++			clear_thread_flag(TIF_RESTORE_SIGMASK);
++		}
++		return;
++	}
++
++no_signal:
++	/*
++	 * If we came from a system call, handle the restart.
++	 */
++	if (regs->syscall_nr >= 0) {
++		switch (regs->r00) {
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			regs->r06 = regs->syscall_nr;
++			break;
++		case -ERESTART_RESTARTBLOCK:
++			regs->r06 = __NR_restart_syscall;
++			break;
++		default:
++			goto no_restart;
++		}
++		pt_set_elr(regs, pt_elr(regs) - 4);
++		regs->r00 = regs->restart_r0;
++	}
++
++no_restart:
++	/* If there's no signal to deliver, put the saved sigmask back */
++	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
++		clear_thread_flag(TIF_RESTORE_SIGMASK);
++		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
++	}
++}
++
++void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
++{
++	if (thread_info_flags & _TIF_SIGPENDING)
++		do_signal(regs);
++
++	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		if (current->replacement_session_keyring)
++			key_replace_session_keyring();
++	}
++}
++
++/*
++ * Architecture-specific wrappers for signal-related system calls
++ */
++asmlinkage int sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss)
++{
++	struct pt_regs *regs = current_thread_info()->regs;
++
++	return do_sigaltstack(uss, uoss, regs->r29);
++}
++
++asmlinkage int sys_rt_sigreturn(void)
++{
++	struct pt_regs *regs = current_thread_info()->regs;
++	struct rt_sigframe __user *frame;
++	sigset_t blocked;
++
++	frame = (struct rt_sigframe __user *)pt_psp(regs);
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++	if (__copy_from_user(&blocked, &frame->uc.uc_sigmask, sizeof(blocked)))
++		goto badframe;
++
++	sigdelsetmask(&blocked, ~_BLOCKABLE);
++	spin_lock_irq(&current->sighand->siglock);
++	current->blocked = blocked;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
++		goto badframe;
++
++	/* Restore the user's stack as well */
++	pt_psp(regs) = regs->r29;
++
++	/*
++	 * Leave a trace in the stack frame that this was a sigreturn.
++	 * If the system call is to replay, we've already restored the
++	 * number in the GPR slot and it will be regenerated on the
++	 * new system call trap entry. Note that if restore_sigcontext()
++	 * did something other than a bulk copy of the pt_regs struct,
++	 * we could avoid this assignment by simply not overwriting
++	 * regs->syscall_nr.
++	 */
++	regs->syscall_nr = __NR_rt_sigreturn;
++
++	/*
++	 * If we were meticulous, we'd only call this if we knew that
++	 * we were actually going to use an alternate stack, and we'd
++	 * consider any error to be fatal.  What we do here, in common
++	 * with many other architectures, is call it blindly and only
++	 * consider the -EFAULT return case to be proof of a problem.
++	 */
++	if (do_sigaltstack(&frame->uc.uc_stack, NULL, pt_psp(regs)) == -EFAULT)
++		goto badframe;
++
++	return 0;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
+Index: linux-hexagon-kernel/arch/hexagon/kernel/trampoline.S
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/kernel/trampoline.S	2011-09-08 19:22:01.150239048 -0500
+@@ -0,0 +1,35 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++/*
++ * Trampoline sequences to be copied onto user stack.
++ * This consumes a little more space than hand-assembling
++ * immediate constants for use in C, but is more portable
++ * to future tweaks to the Hexagon instruction set.
++ */
++
++#include <asm/unistd.h>
++
++/*  Sig trampolines - call sys_sigreturn or sys_rt_sigreturn as appropriate */
++
++/*  plain sigreturn is gone.  */
++
++	.globl __rt_sigtramp_template
++__rt_sigtramp_template:
++	r6 = #__NR_rt_sigreturn;
++	trap0(#1);
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/vdso.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/include/asm/vdso.h	2011-09-08 19:36:15.052799920 -0500
+@@ -0,0 +1,31 @@
++/*
++ * vDSO implementation for Hexagon
++ *
++ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef __ASM_VDSO_H
++#define __ASM_VDSO_H
++
++#include <linux/types.h>
++
++struct hexagon_vdso {
++	u32 rt_signal_trampoline[2];
++};
++
++#endif /* __ASM_VDSO_H */
++
+Index: linux-hexagon-kernel/arch/hexagon/kernel/vdso.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/kernel/vdso.c	2011-09-08 19:22:01.150239048 -0500
+@@ -0,0 +1,101 @@
++/*
++ * vDSO implementation for Hexagon
++ *
++ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/err.h>
++#include <linux/mm.h>
++#include <linux/vmalloc.h>
++
++#include <asm/vdso.h>
++
++static struct page *vdso_page;
++
++/* Create a vDSO page holding the signal trampoline.
++ * We want this for a non-executable stack.
++ */
++static int __init vdso_init(void)
++{
++	struct hexagon_vdso *vdso;
++
++	vdso_page = alloc_page(GFP_KERNEL);
++	if (!vdso_page)
++		panic("Cannot allocate vdso");
++
++	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
++	if (!vdso)
++		panic("Cannot map vdso");
++	clear_page(vdso);
++
++	/* Install the signal trampoline; currently looks like this:
++	 *	r6 = #__NR_rt_sigreturn;
++	 *	trap0(#1);
++	 */
++	vdso->rt_signal_trampoline[0] = __rt_sigtramp_template[0];
++	vdso->rt_signal_trampoline[1] = __rt_sigtramp_template[1];
++
++	vunmap(vdso);
++
++	return 0;
++}
++arch_initcall(vdso_init);
++
++/*
++ * Called from binfmt_elf.  Create a VMA for the vDSO page.
++ */
++int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++{
++	int ret;
++	unsigned long vdso_base;
++	struct mm_struct *mm = current->mm;
++
++	down_write(&mm->mmap_sem);
++
++	/* Try to get it loaded right near ld.so/glibc. */
++	vdso_base = STACK_TOP;
++
++	vdso_base = get_unmapped_area(NULL, vdso_base, PAGE_SIZE, 0, 0);
++	if (IS_ERR_VALUE(vdso_base)) {
++		ret = vdso_base;
++		goto up_fail;
++	}
++
++	/* MAYWRITE to allow gdb to COW and set breakpoints. */
++	ret = install_special_mapping(mm, vdso_base, PAGE_SIZE,
++				      VM_READ|VM_EXEC|
++				      VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC|
++				      VM_ALWAYSDUMP,
++				      &vdso_page);
++
++	if (ret)
++		goto up_fail;
++
++	mm->context.vdso = (void *)vdso_base;
++
++up_fail:
++	up_write(&mm->mmap_sem);
++	return ret;
++}
++
++const char *arch_vma_name(struct vm_area_struct *vma)
++{
++	if (vma->vm_mm && vma->vm_start == (long)vma->vm_mm->context.vdso)
++		return "[vdso]";
++	return NULL;
++}
++
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter=
-.ca/
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
