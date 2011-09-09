@@ -1,67 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:41863 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757663Ab1IIBK5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:10:57 -0400
-Message-ID: <20110909010915.450346603@codeaurora.org>
-Date: Thu, 08 Sep 2011 20:08:55 -0500
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 08/36] Hexagon: Add delay functions
-References: <20110909010847.294039464@codeaurora.org>
-Content-Disposition: inline; filename=delay.diff
+Received: from moutng.kundenserver.de ([212.227.126.186]:55938 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758461Ab1IIIHZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 04:07:25 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [patch v3 08/36] Hexagon: Add delay functions
+Date: Fri, 09 Sep 2011 10:07:05 +0200
+Message-ID: <7440179.BsgeraFyS5@wuerfel>
+In-Reply-To: <20110909010915.450346603@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org> <20110909010915.450346603@codeaurora.org>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909010855.dhGdIISjvtMKf4Kg7LIWQwgW11GTsy0qEC8hk-r90VA@z>
+To: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110909080705.Pe4MvUn6mUh5IprW-2RN94lom0IGSOcG5yhzlS7Yv4A@z>
 
-Added read_current_timer elsewhere.
+On Thursday 08 September 2011 20:08:55 Richard Kuo wrote:
+> Added read_current_timer elsewhere.
+> 
+> udelay is based off of __vmgettime() which returns processor ticks.
+> 
+> Removed __delay and CONFIG_GENERIC_CALIBRATE_DELAY.
+> 
+> Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 
-udelay is based off of __vmgettime() which returns processor ticks.
-
-Removed __delay and CONFIG_GENERIC_CALIBRATE_DELAY.
-
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-
----
- arch/hexagon/include/asm/delay.h |   28 ++++++++++++++++++++++++++++
- 1 file changed, 28 insertions(+)
-
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/delay.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/delay.h	2011-09-07 13:00:30.900646743 -0500
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_DELAY_H
-+#define _ASM_DELAY_H
-+
-+#include <asm/param.h>
-+
-+extern void __udelay(unsigned long usecs);
-+
-+#define udelay(usecs) __udelay((usecs))
-+
-+#endif /* _ASM_DELAY_H */
-
---
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
-
+Acked-by: Arnd Bergmann <arnd@arndb.de>
