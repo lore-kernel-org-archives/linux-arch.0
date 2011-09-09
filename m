@@ -1,34 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:29380 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757775Ab1IIBLo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:44 -0400
-Message-ID: <20110909010917.949863424@codeaurora.org>
-Date: Thu, 08 Sep 2011 20:09:21 -0500
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:12600 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757611Ab1IIBKv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:10:51 -0400
+Message-ID: <20110909010915.173882729@codeaurora.org>
+Date: Thu, 08 Sep 2011 20:08:52 -0500
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 34/36] Hexagon: Add basic stacktrace functionality for Hexagon architecture.
+Subject: [patch v3 05/36] Hexagon: Add syscalls
 References: <20110909010847.294039464@codeaurora.org>
-Content-Disposition: inline; filename=stacktrace.diff
+Content-Disposition: inline; filename=syscalls.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20110909010921.-PYU0y-aNNIzl5a51W4bMw4HCFDqI8Ydk91m1orl974@z>
+Message-ID: <20110909010852.NKU4gctJa-8ijcElzR4FaDggEwIK1rFaftKeAsG1yDQ@z>
+
+Removed sys_mmap* and replaced with sys_mmap_pgoff()
+
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/kernel/stacktrace.c |   66 +++++++++++++++++++++++++++++++++++++++
- 1 file changed, 66 insertions(+)
+ arch/hexagon/include/asm/syscall.h |   40 ++++++++++++++++
+ arch/hexagon/include/asm/unistd.h  |   36 ++++++++++++++
+ arch/hexagon/kernel/syscall.c      |   90 +++++++++++++++++++++++++++++++++++++
+ arch/hexagon/kernel/syscalltab.c   |   32 +++++++++++++
+ 4 files changed, 198 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/kernel/stacktrace.c
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/stacktrace.c	2011-09-07 13:00:31.140647106 -0500
-@@ -0,0 +1,66 @@
++++ linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h	2011-09-07 13:00:30.940646803 -0500
+@@ -0,0 +1,40 @@
 +/*
-+ * Stacktrace support for Hexagon
++ * Syscall support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -47,52 +51,199 @@ Index: linux-hexagon-kernel/arch/hexagon/kernel/stacktrace.c
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/stacktrace.h>
-+#include <linux/thread_info.h>
-+#include <linux/module.h>
++#ifndef _ASM_HEXAGON_SYSCALL_H
++#define _ASM_HEXAGON_SYSCALL_H
 +
-+register unsigned long current_frame_pointer asm("r30");
++typedef long (*syscall_fn)(unsigned long, unsigned long,
++	unsigned long, unsigned long,
++	unsigned long, unsigned long);
 +
-+struct stackframe {
-+	unsigned long fp;
-+	unsigned long rets;
-+};
++asmlinkage int sys_execve(char __user *ufilename, char __user * __user *argv,
++			  char __user * __user *envp);
++asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
++			 unsigned long parent_tidp, unsigned long child_tidp);
++
++#define sys_execve	sys_execve
++#define sys_clone	sys_clone
++
++#include <asm-generic/syscalls.h>
++
++extern void *sys_call_table[];
++
++#endif
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h	2011-09-07 13:00:31.010646910 -0500
+@@ -0,0 +1,36 @@
++/*
++ * Syscall support for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#if !defined(_ASM_HEXAGON_UNISTD_H) || defined(__SYSCALL)
++#define _ASM_HEXAGON_UNISTD_H
 +
 +/*
-+ * Save stack-backtrace addresses into a stack_trace buffer.
++ *  The kernel pulls this unistd.h in three different ways:
++ *  1.  the "normal" way which gets all the __NR defines
++ *  2.  with __SYSCALL defined to produce function declarations
++ *  3.  with __SYSCALL defined to produce syscall table initialization
++ *  See also:  syscalltab.c
 + */
-+void save_stack_trace(struct stack_trace *trace)
++
++#define sys_mmap2 sys_mmap_pgoff
++
++#include <asm-generic/unistd.h>
++
++#endif
+Index: linux-hexagon-kernel/arch/hexagon/kernel/syscall.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/kernel/syscall.c	2011-09-07 13:00:31.150647121 -0500
+@@ -0,0 +1,90 @@
++/*
++ * Hexagon system calls
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/linkage.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/syscalls.h>
++#include <linux/unistd.h>
++#include <asm/mman.h>
++#include <asm/registers.h>
++
++/*
++ * System calls with architecture-specific wrappers.
++ * See signal.c for signal-related system call wrappers.
++ */
++
++asmlinkage int sys_execve(char __user *ufilename,
++			  const char __user *const __user *argv,
++			  const char __user *const __user *envp)
 +{
-+	unsigned long low, high;
-+	unsigned long fp;
-+	struct stackframe *frame;
-+	int skip = trace->skip;
++	struct pt_regs *pregs = current_thread_info()->regs;
++	char *filename;
++	int retval;
 +
-+	low = (unsigned long)task_stack_page(current);
-+	high = low + THREAD_SIZE;
-+	fp = current_frame_pointer;
++	filename = getname(ufilename);
++	retval = PTR_ERR(filename);
++	if (IS_ERR(filename))
++		return retval;
 +
-+	while (fp >= low && fp <= (high - sizeof(*frame))) {
-+		frame = (struct stackframe *)fp;
++	retval = do_execve(filename, argv, envp, pregs);
++	putname(filename);
 +
-+		if (skip) {
-+			skip--;
-+		} else {
-+			trace->entries[trace->nr_entries++] = frame->rets;
-+			if (trace->nr_entries >= trace->max_entries)
-+				break;
-+		}
-+
-+		/*
-+		 * The next frame must be at a higher address than the
-+		 * current frame.
-+		 */
-+		low = fp + sizeof(*frame);
-+		fp = frame->fp;
-+	}
++	return retval;
 +}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
++
++asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
++			 unsigned long parent_tidp, unsigned long child_tidp)
++{
++	struct pt_regs *pregs = current_thread_info()->regs;
++
++	if (!newsp)
++		newsp = pregs->SP;
++	return do_fork(clone_flags, newsp, pregs, 0, (int __user *)parent_tidp,
++		       (int __user *)child_tidp);
++}
++
++/*
++ * Do a system call from the kernel, so as to have a proper pt_regs
++ * and recycle the sys_execvpe infrustructure.
++ */
++int kernel_execve(const char *filename,
++		  const char *const argv[], const char *const envp[])
++{
++	register unsigned long __a0 asm("r0") = (unsigned long) filename;
++	register unsigned long __a1 asm("r1") = (unsigned long) argv;
++	register unsigned long __a2 asm("r2") = (unsigned long) envp;
++	int retval;
++
++	__asm__ volatile(
++		"	R6 = #%4;\n"
++		"	trap0(#1);\n"
++		"	%0 = R0;\n"
++		: "=r" (retval)
++		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
++	);
++
++	return retval;
++}
++EXPORT_SYMBOL(kernel_execve);
+Index: linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c	2011-09-03 20:14:59.524980831 -0500
+@@ -0,0 +1,32 @@
++/*
++ * System call table for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
++
++#include <asm/syscall.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
++
++void *sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
++};
 
 --
 
