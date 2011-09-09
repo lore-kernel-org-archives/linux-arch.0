@@ -1,38 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:12600 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757611Ab1IIBKv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:10:51 -0400
-Message-ID: <20110909010915.173882729@codeaurora.org>
-Date: Thu, 08 Sep 2011 20:08:52 -0500
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:41661 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932088Ab1IIBLQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:16 -0400
+Message-ID: <20110909010915.923530082@codeaurora.org>
+Date: Thu, 08 Sep 2011 20:09:00 -0500
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 05/36] Hexagon: Add syscalls
+Subject: [patch v3 13/36] Hexagon: Support dynamic module loading.
 References: <20110909010847.294039464@codeaurora.org>
-Content-Disposition: inline; filename=syscalls.diff
+Content-Disposition: inline; filename=module.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909010852.NKU4gctJa-8ijcElzR4FaDggEwIK1rFaftKeAsG1yDQ@z>
+Cc: Linas Vepstas <linas@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20110909010900.kthwAabh78J0F7CgJivmT8Q9z7bAvHcEm-50LxPpgdw@z>
 
-Removed sys_mmap* and replaced with sys_mmap_pgoff()
+Modules should be compiled as ordinary .o's; shared objects are not
+supported.
 
+Deleted module functions that already have generic equivalents.
 
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/include/asm/syscall.h |   40 ++++++++++++++++
- arch/hexagon/include/asm/unistd.h  |   36 ++++++++++++++
- arch/hexagon/kernel/syscall.c      |   90 +++++++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/syscalltab.c   |   32 +++++++++++++
- 4 files changed, 198 insertions(+)
+ arch/hexagon/kernel/module.c |  162 +++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 162 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h
+Index: linux-hexagon-kernel/arch/hexagon/kernel/module.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h	2011-09-07 13:00:30.940646803 -0500
-@@ -0,0 +1,40 @@
++++ linux-hexagon-kernel/arch/hexagon/kernel/module.c	2011-09-07 13:00:31.090647031 -0500
+@@ -0,0 +1,162 @@
 +/*
-+ * Syscall support for the Hexagon architecture
++ * Kernel module loader for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -51,199 +52,148 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_HEXAGON_SYSCALL_H
-+#define _ASM_HEXAGON_SYSCALL_H
-+
-+typedef long (*syscall_fn)(unsigned long, unsigned long,
-+	unsigned long, unsigned long,
-+	unsigned long, unsigned long);
-+
-+asmlinkage int sys_execve(char __user *ufilename, char __user * __user *argv,
-+			  char __user * __user *envp);
-+asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			 unsigned long parent_tidp, unsigned long child_tidp);
-+
-+#define sys_execve	sys_execve
-+#define sys_clone	sys_clone
-+
-+#include <asm-generic/syscalls.h>
-+
-+extern void *sys_call_table[];
-+
-+#endif
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h	2011-09-07 13:00:31.010646910 -0500
-@@ -0,0 +1,36 @@
-+/*
-+ * Syscall support for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#if !defined(_ASM_HEXAGON_UNISTD_H) || defined(__SYSCALL)
-+#define _ASM_HEXAGON_UNISTD_H
-+
-+/*
-+ *  The kernel pulls this unistd.h in three different ways:
-+ *  1.  the "normal" way which gets all the __NR defines
-+ *  2.  with __SYSCALL defined to produce function declarations
-+ *  3.  with __SYSCALL defined to produce syscall table initialization
-+ *  See also:  syscalltab.c
-+ */
-+
-+#define sys_mmap2 sys_mmap_pgoff
-+
-+#include <asm-generic/unistd.h>
-+
-+#endif
-Index: linux-hexagon-kernel/arch/hexagon/kernel/syscall.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/syscall.c	2011-09-07 13:00:31.150647121 -0500
-@@ -0,0 +1,90 @@
-+/*
-+ * Hexagon system calls
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/file.h>
-+#include <linux/fs.h>
-+#include <linux/linkage.h>
-+#include <linux/mm.h>
++#include <asm/module.h>
++#include <linux/elf.h>
 +#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+#include <linux/unistd.h>
-+#include <asm/mman.h>
-+#include <asm/registers.h>
++#include <linux/moduleloader.h>
++#include <linux/vmalloc.h>
++
++#if 0
++#define DEBUGP printk
++#else
++#define DEBUGP(fmt , ...)
++#endif
 +
 +/*
-+ * System calls with architecture-specific wrappers.
-+ * See signal.c for signal-related system call wrappers.
++ * module_frob_arch_sections - tweak got/plt sections.
++ * @hdr - pointer to elf header
++ * @sechdrs - pointer to elf load section headers
++ * @secstrings - symbol names
++ * @mod - pointer to module
 + */
-+
-+asmlinkage int sys_execve(char __user *ufilename,
-+			  const char __user *const __user *argv,
-+			  const char __user *const __user *envp)
++int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
++				char *secstrings,
++				struct module *mod)
 +{
-+	struct pt_regs *pregs = current_thread_info()->regs;
-+	char *filename;
-+	int retval;
++	unsigned int i;
++	int found = 0;
 +
-+	filename = getname(ufilename);
-+	retval = PTR_ERR(filename);
-+	if (IS_ERR(filename))
-+		return retval;
++	/* Look for .plt and/or .got.plt and/or .init.plt sections */
++	for (i = 0; i < hdr->e_shnum; i++) {
++		DEBUGP("Section %d is %s\n", i,
++		       secstrings + sechdrs[i].sh_name);
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".plt") == 0)
++			found = i+1;
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".got.plt") == 0)
++			found = i+1;
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".rela.plt") == 0)
++			found = i+1;
++	}
 +
-+	retval = do_execve(filename, argv, envp, pregs);
-+	putname(filename);
++	/* At this time, we don't support modules comiled with -shared */
++	if (found) {
++		printk(KERN_WARNING
++			"Module '%s' contains unexpected .plt/.got sections.\n",
++			mod->name);
++		/*  return -ENOEXEC;  */
++	}
 +
-+	return retval;
-+}
-+
-+asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			 unsigned long parent_tidp, unsigned long child_tidp)
-+{
-+	struct pt_regs *pregs = current_thread_info()->regs;
-+
-+	if (!newsp)
-+		newsp = pregs->SP;
-+	return do_fork(clone_flags, newsp, pregs, 0, (int __user *)parent_tidp,
-+		       (int __user *)child_tidp);
++	return 0;
 +}
 +
 +/*
-+ * Do a system call from the kernel, so as to have a proper pt_regs
-+ * and recycle the sys_execvpe infrustructure.
++ * apply_relocate_add - perform rela relocations.
++ * @sechdrs - pointer to section headers
++ * @strtab - some sort of start address?
++ * @symindex - symbol index offset or something?
++ * @relsec - address to relocate to?
++ * @module - pointer to module
++ *
++ * Perform rela relocations.
 + */
-+int kernel_execve(const char *filename,
-+		  const char *const argv[], const char *const envp[])
++int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
++			unsigned int symindex, unsigned int relsec,
++			struct module *module)
 +{
-+	register unsigned long __a0 asm("r0") = (unsigned long) filename;
-+	register unsigned long __a1 asm("r1") = (unsigned long) argv;
-+	register unsigned long __a2 asm("r2") = (unsigned long) envp;
-+	int retval;
++	unsigned int i;
++	Elf32_Sym *sym;
++	uint32_t *location;
++	uint32_t value;
++	unsigned int nrelocs = sechdrs[relsec].sh_size / sizeof(Elf32_Rela);
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Word sym_info = sechdrs[relsec].sh_info;
++	Elf32_Sym *sym_base = (Elf32_Sym *) sechdrs[symindex].sh_addr;
++	void *loc_base = (void *) sechdrs[sym_info].sh_addr;
 +
-+	__asm__ volatile(
-+		"	R6 = #%4;\n"
-+		"	trap0(#1);\n"
-+		"	%0 = R0;\n"
-+		: "=r" (retval)
-+		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
-+	);
++	DEBUGP("Applying relocations in section %u to section %u base=%p\n",
++	       relsec, sym_info, loc_base);
 +
-+	return retval;
++	for (i = 0; i < nrelocs; i++) {
++
++		/* Symbol to relocate */
++		sym = sym_base + ELF32_R_SYM(rela[i].r_info);
++
++		/* Where to make the change */
++		location = loc_base + rela[i].r_offset;
++
++		/* `Everything is relative'. */
++		value = sym->st_value + rela[i].r_addend;
++
++		DEBUGP("%d: value=%08x loc=%p reloc=%d symbol=%s\n",
++		       i, value, location, ELF32_R_TYPE(rela[i].r_info),
++		       sym->st_name ?
++		       &strtab[sym->st_name] : "(anonymous)");
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_HEXAGON_B22_PCREL: {
++			int dist = (int)(value - (uint32_t)location);
++			if ((dist < -0x00800000) ||
++			    (dist >= 0x00800000)) {
++				printk(KERN_ERR
++				       "%s: %s: %08x=%08x-%08x %s\n",
++				       module->name,
++				       "R_HEXAGON_B22_PCREL reloc out of range",
++				       dist, value, (uint32_t)location,
++				       sym->st_name ?
++				       &strtab[sym->st_name] : "(anonymous)");
++				return -ENOEXEC;
++			}
++			DEBUGP("B22_PCREL contents: %08X.\n", *location);
++			*location &= ~0x01ff3fff;
++			*location |= 0x00003fff & dist;
++			*location |= 0x01ff0000 & (dist<<2);
++			DEBUGP("Contents after reloc: %08x\n", *location);
++			break;
++		}
++		case R_HEXAGON_HI16:
++			value = (value>>16) & 0xffff;
++			/* fallthrough */
++		case R_HEXAGON_LO16:
++			*location &= ~0x00c03fff;
++			*location |= value & 0x3fff;
++			*location |= (value & 0xc000) << 8;
++			break;
++		case R_HEXAGON_32:
++			*location = value;
++			break;
++		case R_HEXAGON_32_PCREL:
++			*location = value - (uint32_t)location;
++			break;
++		case R_HEXAGON_PLT_B22_PCREL:
++		case R_HEXAGON_GOTOFF_LO16:
++		case R_HEXAGON_GOTOFF_HI16:
++			printk(KERN_ERR "%s: GOT/PLT relocations unsupported\n",
++			       module->name);
++			return -ENOEXEC;
++		default:
++			printk(KERN_ERR "%s: unknown relocation: %u\n",
++			       module->name,
++			       ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
 +}
-+EXPORT_SYMBOL(kernel_execve);
-Index: linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c	2011-09-03 20:14:59.524980831 -0500
-@@ -0,0 +1,32 @@
-+/*
-+ * System call table for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+
-+#include <asm/syscall.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+void *sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
-+};
 
 --
 
