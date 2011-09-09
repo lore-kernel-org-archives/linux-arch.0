@@ -1,41 +1,39 @@
-From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Fri, 9 Sep 2011 16:18:08 -0500
-Message-ID: <20110909211808.GA3150@codeaurora.org>
-References: <20110909010847.294039464@codeaurora.org>
- <20110909010916.525482401@codeaurora.org>
- <CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
+From: "Webmail Administrator" <kamalk@iitk.ac.in>
+Subject: (unknown)
+Date: Sat, 10 Sep 2011 02:41:29 +0530
+Message-ID: <d28af0b9a4347487dc4a6caa3daad2bb.squirrel@webmail.iitk.ac.in>
+Reply-To: adming54@shqiptar.eu
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:24978 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758767Ab1IIVST (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 17:18:19 -0400
-Content-Disposition: inline
-In-Reply-To: <CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
+Received: from mail4.iitk.ac.in ([202.3.77.189]:55397 "EHLO mail4.iitk.ac.in"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758770Ab1IIVzU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Sep 2011 17:55:20 -0400
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On Fri, Sep 09, 2011 at 10:15:20PM +0200, Jonas Bonn wrote:
-> 
-> That said, I don't think gdbserver has been updated to use
-> GETREGSET/SETREGSET.  This is a bit like the uClibc/glibc issue,
 
-Some dumb questions then: I notice that a few arches declare
-struct user_regs_struct in glibc, most of the others in the
-kernel.  If I were to make pt_regs completely kernel-private,
-then I really do need to have struct user_regs_struct declared
-the kernel headers, right? 
 
-Putting a printk into case PTRACE_POKEUSR seemed to show that
-gdb was using this (and was somehow mis-numbering the registers
-... sigh.) Are you saying that the default should handle this?
 
---linas
+mailbox has exceeded the storage limit which is 20GB as set by your
+administrator,you are currently running on 20.9GB,you may not be able t=
+o
+send or receive new mail until you re-validate your mailbox.To re-valid=
+ate
+your mailbox please click this
+https://docs.google.com/spreadsheet/viewform?formkey=3DdG9lcmxIb0x1X2tG=
+bDdzMU5ZYW81ZFE6MQ
 
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+
+Warning!!! All Webmail. Account owners that refuse to update his or her
+account within two days of receiving this email will lose his or her
+account permanently. AGB =A9 upc cablecom GmbH 2011. We apologize for a=
+ny
+inconvenience this may have cause you. Thank you for using Webmail
+
+
+System Administrator.
+Customer Care Unit.
