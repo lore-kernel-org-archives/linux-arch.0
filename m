@@ -1,34 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:9489 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:8496 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759460Ab1IIS6K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 14:58:10 -0400
-Date: Fri, 9 Sep 2011 13:57:58 -0500
+	with ESMTP id S1759534Ab1IITOT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 15:14:19 -0400
+Date: Fri, 9 Sep 2011 14:14:13 -0500
 From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Subject: Re: [patch v3 17/36] Hexagon: Add interrupts
-Message-ID: <20110909185758.GA2034@codeaurora.org>
+Subject: Re: [patch v3 24/36] Hexagon: Provide basic implementation and/or
+ stubs for I/O routines.
+Message-ID: <20110909191412.GB2034@codeaurora.org>
 References: <20110909010847.294039464@codeaurora.org>
- <20110909010916.327107063@codeaurora.org>
+ <20110909010916.993872033@codeaurora.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20110909010916.327107063@codeaurora.org>
+In-Reply-To: <20110909010916.993872033@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20110909185758.ks6oaFf9izVzF0uwX9bQj3JwYkdiBQCQbyibxKS3bd8@z>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110909191413.nNDm2TVcT8PPXbTqwHYCGzVnNVWbx308d78GJ9iTtq8@z>
 
-On Thu, Sep 08, 2011 at 08:09:04PM -0500, Richard Kuo wrote:
-> Removed init_IRQ wrapper and fixed up some comments.
-> 
-> Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+On Thu, Sep 08, 2011 at 08:09:11PM -0500, Richard Kuo wrote:
+> +	asm volatile(
+> +		"memb(%0) = %1;"
+> +		:
+> +		: "r" (addr), "r" (data)
+> +	);
 
-This should have a 
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+I'm kind-of vague on this, but I think that this also needs a
+: "memory" at the end (to indicate that the asm snippet clobbers
+memory), as otherwise the compiler may be tempted to reorder
+these around other memory accesses. That is, the "volatile"
+keyword is not enough (well, I'm not sure...), but I think
+"volatile" only prevents the compiler from optimizing these
+away completely, but is not enough to prevent unwanted
+re-ordering.
 
-since I think I wrote about 100% of some of these files... 
+--linas
 
 -- 
 Sent by an employee of the Qualcomm Innovation Center, Inc.
