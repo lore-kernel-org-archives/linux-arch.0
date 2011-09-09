@@ -1,34 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:30784 "EHLO
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:6446 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932266Ab1IIBLe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:34 -0400
-Message-ID: <20110909010917.374485496@codeaurora.org>
-Date: Thu, 08 Sep 2011 20:09:15 -0500
+	with ESMTP id S1757765Ab1IIBLF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:05 -0400
+Message-ID: <20110909010915.831213239@codeaurora.org>
+Date: Thu, 08 Sep 2011 20:08:59 -0500
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 28/36] Hexagon: Add ioremap support
+Subject: [patch v3 12/36] Hexagon: Export ksyms defined in assembly files.
 References: <20110909010847.294039464@codeaurora.org>
-Content-Disposition: inline; filename=ioremap.diff
+Content-Disposition: inline; filename=ksyms.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909010915.1TaxNf6Oqm5ADIgELK-0xxOFurK7s3ysEN3oMj3yEBk@z>
+Cc: Linas Vepstas <linas@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20110909010859.C9W82-kt_UvpFRduzEtMRsQbzMnDRLw74moejhH7oOQ@z>
 
-Removed redundant flush_cache_vmap.
-
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/mm/ioremap.c |   56 ++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 56 insertions(+)
+ arch/hexagon/kernel/hexagon_ksyms.c |   42 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/mm/ioremap.c
+Index: linux-hexagon-kernel/arch/hexagon/kernel/hexagon_ksyms.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/mm/ioremap.c	2011-09-03 20:14:59.784981559 -0500
-@@ -0,0 +1,56 @@
++++ linux-hexagon-kernel/arch/hexagon/kernel/hexagon_ksyms.c	2011-09-07 13:00:31.040646956 -0500
+@@ -0,0 +1,42 @@
 +/*
-+ * I/O remap functions for Hexagon
++ * Export of symbols defined in assembly files and/or libgcc.
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -47,42 +47,28 @@ Index: linux-hexagon-kernel/arch/hexagon/mm/ioremap.c
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/io.h>
-+#include <linux/vmalloc.h>
++#include <asm/hexagon_vm.h>
++#include <asm/uaccess.h>
 +
-+void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
-+{
-+	unsigned long last_addr, addr;
-+	unsigned long offset = phys_addr & ~PAGE_MASK;
-+	struct vm_struct *area;
++EXPORT_SYMBOL(__copy_from_user_hexagon);
++EXPORT_SYMBOL(__copy_to_user_hexagon);
++EXPORT_SYMBOL(__vmgetie);
++EXPORT_SYMBOL(__vmsetie);
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
 +
-+	pgprot_t prot = __pgprot(_PAGE_PRESENT|_PAGE_READ|_PAGE_WRITE
-+					|(__HEXAGON_C_DEV << 6));
++#define DECLARE_EXPORT(name)     \
++	extern void name(void); EXPORT_SYMBOL(name)
 +
-+	last_addr = phys_addr + size - 1;
++/* Symbols found in libgcc that assorted kernel modules need */
++DECLARE_EXPORT(__hexagon_memcpy_likely_aligned_min32bytes_mult8bytes);
 +
-+	/*  Wrapping not allowed  */
-+	if (!size || (last_addr < phys_addr))
-+		return NULL;
++DECLARE_EXPORT(__hexagon_divsi3);
++DECLARE_EXPORT(__hexagon_modsi3);
++DECLARE_EXPORT(__hexagon_udivsi3);
++DECLARE_EXPORT(__hexagon_umodsi3);
 +
-+	/*  Rounds up to next page size, including whole-page offset */
-+	size = PAGE_ALIGN(offset + size);
 +
-+	area = get_vm_area(size, VM_IOREMAP);
-+	addr = (unsigned long)area->addr;
-+
-+	if (ioremap_page_range(addr, addr+size, phys_addr, prot)) {
-+		vunmap((void *)addr);
-+		return NULL;
-+	}
-+
-+	return (void __iomem *) (offset + addr);
-+}
-+
-+void __iounmap(const volatile void __iomem *addr)
-+{
-+	vunmap((void *) ((unsigned long) addr & PAGE_MASK));
-+}
 
 --
 
