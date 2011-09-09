@@ -1,32 +1,40 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Thu, 08 Sep 2011 20:09:06 -0500
-Message-ID: <20110909010916.525482401@codeaurora.org>
+Subject: [patch v3 24/36] Hexagon: Provide basic implementation and/or stubs for I/O routines.
+Date: Thu, 08 Sep 2011 20:09:11 -0500
+Message-ID: <20110909010916.993872033@codeaurora.org>
 References: <20110909010847.294039464@codeaurora.org>
 Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline; filename=ptrace.diff
+Content-Disposition: inline; filename=io.diff
 Sender: linux-hexagon-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Linas Vepstas <linas@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-Will look at the more generic ptrace support in the future.
+Filled in the ins/outs; leaving them in for now.
+
+Change _IO_BASE and IO_SPACE_LIMIT for safety.
+
+I have compiled this with sparse and it builds; I've also picked over
+various files related to the HAS_IOPORT_MAP from arm-soc.git and
+tried them out, and they work, so I guess we'll just wait until
+they're merged.
+
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 
 ---
- arch/hexagon/include/asm/ptrace.h |   46 +++++
- arch/hexagon/kernel/ptrace.c      |  333 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 379 insertions(+)
+ arch/hexagon/include/asm/io.h |  323 ++++++++++++++++++++++++++++++++++++++++++
+ arch/hexagon/lib/io.c         |   91 +++++++++++
+ 2 files changed, 414 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/ptrace.h
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/io.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/ptrace.h	2011-09-03 20:14:59.684981279 -0500
-@@ -0,0 +1,46 @@
++++ linux-hexagon-kernel/arch/hexagon/include/asm/io.h	2011-09-07 13:00:30.910646758 -0500
+@@ -0,0 +1,323 @@
 +/*
-+ * Ptrace definitions for the Hexagon architecture
++ * IO definitions for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -45,39 +53,316 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/ptrace.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_PTRACE_H
-+#define _ASM_PTRACE_H
++#ifndef _ASM_IO_H
++#define _ASM_IO_H
 +
-+#include <asm/registers.h>
++#ifdef __KERNEL__
 +
-+/*  arch_ptrace and ptrace_disable use task_struct in arg lists  */
-+struct task_struct;
++#include <linux/types.h>
++#include <linux/delay.h>
++#include <linux/vmalloc.h>
++#include <asm/string.h>
++#include <asm/mem-layout.h>
++#include <asm/iomap.h>
++#include <asm/page.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
 +
 +/*
-+ * ptrace commands not part of Linux base set (but common to essentially
-+ * all supported architectures).
++ * We don't have PCI yet.
++ * _IO_BASE is pointing at what should be unused virtual space.
++ */
++#define IO_SPACE_LIMIT 0xffff
++#define _IO_BASE ((void __iomem *)0xfe000000)
++
++extern int remap_area_pages(unsigned long start, unsigned long phys_addr,
++				unsigned long end, unsigned long flags);
++
++extern void __iounmap(const volatile void __iomem *addr);
++
++/* Defined in lib/io.c, needed for smc91x driver. */
++extern void __raw_readsw(const void __iomem *addr, void *data, int wordlen);
++extern void __raw_writesw(void __iomem *addr, const void *data, int wordlen);
++
++extern void __raw_readsl(const void __iomem *addr, void *data, int wordlen);
++extern void __raw_writesl(void __iomem *addr, const void *data, int wordlen);
++
++#define readsw(p, d, l)	__raw_readsw(p, d, l)
++#define writesw(p, d, l) __raw_writesw(p, d, l)
++
++#define readsl(p, d, l)   __raw_readsl(p, d, l)
++#define writesl(p, d, l)  __raw_writesl(p, d, l)
++
++/*
++ * virt_to_phys - map virtual address to physical
++ * @address:  address to map
++ */
++static inline unsigned long virt_to_phys(volatile void *address)
++{
++	return __pa(address);
++}
++
++/*
++ * phys_to_virt - map physical address to virtual
++ * @address: address to map
++ */
++static inline void *phys_to_virt(unsigned long address)
++{
++	return __va(address);
++}
++
++/*
++ * convert a physical pointer to a virtual kernel pointer for
++ * /dev/mem access.
++ */
++#define xlate_dev_kmem_ptr(p)    __va(p)
++#define xlate_dev_mem_ptr(p)    __va(p)
++
++/*
++ * IO port access primitives.  Hexagon doesn't have special IO access
++ * instructions; all I/O is memory mapped.
++ *
++ * in/out are used for "ports", but we don't have "port instructions",
++ * so these are really just memory mapped too.
 + */
 +
-+#define PTRACE_GETREGS	12
-+#define PTRACE_SETREGS	13
++/*
++ * readb - read byte from memory mapped device
++ * @addr:  pointer to memory
++ *
++ * Operates on "I/O bus memory space"
++ */
++static inline u8 readb(const volatile void __iomem *addr)
++{
++	u8 val;
++	asm volatile(
++		"%0 = memb(%1);"
++		: "=&r" (val)
++		: "r" (addr)
++	);
++	return val;
++}
 +
-+#define N_PTRACE_REGS	44
++static inline u16 readw(const volatile void __iomem *addr)
++{
++	u16 val;
++	asm volatile(
++		"%0 = memh(%1);"
++		: "=&r" (val)
++		: "r" (addr)
++	);
++	return val;
++}
 +
-+#define profile_pc(regs) instruction_pointer(regs)
-+#define instruction_pointer(regs) pt_elr(regs)
++static inline u32 readl(const volatile void __iomem *addr)
++{
++	u32 val;
++	asm volatile(
++		"%0 = memw(%1);"
++		: "=&r" (val)
++		: "r" (addr)
++	);
++	return val;
++}
 +
-+/* kprobe-based event tracer support */
-+extern int regs_query_register_offset(const char *name);
-+extern const char *regs_query_register_name(unsigned int offset);
++/*
++ * writeb - write a byte to a memory location
++ * @data: data to write to
++ * @addr:  pointer to memory
++ *
++ */
++static inline void writeb(u8 data, volatile void __iomem *addr)
++{
++	asm volatile(
++		"memb(%0) = %1;"
++		:
++		: "r" (addr), "r" (data)
++	);
++}
++
++static inline void writew(u16 data, volatile void __iomem *addr)
++{
++	asm volatile(
++		"memh(%0) = %1;"
++		:
++		: "r" (addr), "r" (data)
++	);
++
++}
++
++static inline void writel(u32 data, volatile void __iomem *addr)
++{
++	asm volatile(
++		"memw(%0) = %1;"
++		:
++		: "r" (addr), "r" (data)
++	);
++}
++
++#define __raw_writeb writeb
++#define __raw_writew writew
++#define __raw_writel writel
++
++#define __raw_readb readb
++#define __raw_readw readw
++#define __raw_readl readl
++
++/*
++ * Need an mtype somewhere in here, for cache type deals?
++ * This is probably too long for an inline.
++ */
++void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size);
++
++static inline void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
++{
++	return ioremap_nocache(phys_addr, size);
++}
++
++static inline void iounmap(volatile void __iomem *addr)
++{
++	__iounmap(addr);
++}
++
++#define __raw_writel writel
++
++static inline void memcpy_fromio(void *dst, const volatile void __iomem *src,
++	int count)
++{
++	memcpy(dst, (void *) src, count);
++}
++
++static inline void memcpy_toio(volatile void __iomem *dst, const void *src,
++	int count)
++{
++	memcpy((void *) dst, src, count);
++}
++
++#define PCI_IO_ADDR	(volatile void __iomem *)
++
++/*
++ * inb - read byte from I/O port or something
++ * @port:  address in I/O space
++ *
++ * Operates on "I/O bus I/O space"
++ */
++static inline u8 inb(unsigned long port)
++{
++	return readb(_IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++static inline u16 inw(unsigned long port)
++{
++	return readw(_IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++static inline u32 inl(unsigned long port)
++{
++	return readl(_IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++/*
++ * outb - write a byte to a memory location
++ * @data: data to write to
++ * @addr:  address in I/O space
++ */
++static inline void outb(u8 data, unsigned long port)
++{
++	writeb(data, _IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++static inline void outw(u16 data, unsigned long port)
++{
++	writew(data, _IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++static inline void outl(u32 data, unsigned long port)
++{
++	writel(data, _IO_BASE + (port & IO_SPACE_LIMIT));
++}
++
++#define outb_p outb
++#define outw_p outw
++#define outl_p outl
++
++#define inb_p inb
++#define inw_p inw
++#define inl_p inl
++
++static inline void insb(unsigned long port, void *buffer, int count)
++{
++	if (count) {
++		u8 *buf = buffer;
++		do {
++			u8 x = inb(port);
++			*buf++ = x;
++		} while (--count);
++	}
++}
++
++static inline void insw(unsigned long port, void *buffer, int count)
++{
++	if (count) {
++		u16 *buf = buffer;
++		do {
++			u16 x = inw(port);
++			*buf++ = x;
++		} while (--count);
++	}
++}
++
++static inline void insl(unsigned long port, void *buffer, int count)
++{
++	if (count) {
++		u32 *buf = buffer;
++		do {
++			u32 x = inw(port);
++			*buf++ = x;
++		} while (--count);
++	}
++}
++
++static inline void outsb(unsigned long port, const void *buffer, int count)
++{
++	if (count) {
++		const u8 *buf = buffer;
++		do {
++			outb(*buf++, port);
++		} while (--count);
++	}
++}
++
++static inline void outsw(unsigned long port, const void *buffer, int count)
++{
++	if (count) {
++		const u16 *buf = buffer;
++		do {
++			outw(*buf++, port);
++		} while (--count);
++	}
++}
++
++static inline void outsl(unsigned long port, const void *buffer, int count)
++{
++	if (count) {
++		const u32 *buf = buffer;
++		do {
++			outl(*buf++, port);
++		} while (--count);
++	}
++}
++
++#define flush_write_buffers() do { } while (0)
++
++#endif /* __KERNEL__ */
 +
 +#endif
-Index: linux-hexagon-kernel/arch/hexagon/kernel/ptrace.c
+Index: linux-hexagon-kernel/arch/hexagon/lib/io.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/ptrace.c	2011-09-07 13:00:31.110647061 -0500
-@@ -0,0 +1,333 @@
++++ linux-hexagon-kernel/arch/hexagon/lib/io.c	2011-09-03 20:14:59.734981419 -0500
+@@ -0,0 +1,91 @@
 +/*
-+ * Ptrace support for Hexagon
++ * I/O access functions for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -96,318 +381,76 @@ Index: linux-hexagon-kernel/arch/hexagon/kernel/ptrace.c
 + * 02110-1301, USA.
 + */
 +
-+#include <generated/compile.h>
++#include <asm/io.h>
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/user.h>
-+
-+#include <asm/system.h>
-+#include <asm/user.h>
-+
-+struct pt_regs_offset {
-+	const char *name;
-+	int offset;
-+};
-+
-+#define REG_OFFSET_NAME(r) {.name = #r, .offset = offsetof(struct pt_regs, r)}
-+#define REG_OFFSET_HVM_NAME(r, s) {.name = #r, \
-+				  .offset = offsetof(struct pt_regs, s)}
-+#define REG_OFFSET_END {.name = NULL, .offset = 0}
-+
-+static const struct pt_regs_offset regoffset_table[] = {
-+	REG_OFFSET_NAME(r00),
-+	REG_OFFSET_NAME(r01),
-+	REG_OFFSET_NAME(r02),
-+	REG_OFFSET_NAME(r03),
-+	REG_OFFSET_NAME(r04),
-+	REG_OFFSET_NAME(r05),
-+	REG_OFFSET_NAME(r06),
-+	REG_OFFSET_NAME(r07),
-+	REG_OFFSET_NAME(r08),
-+	REG_OFFSET_NAME(r09),
-+
-+	REG_OFFSET_NAME(r10),
-+	REG_OFFSET_NAME(r11),
-+	REG_OFFSET_NAME(r12),
-+	REG_OFFSET_NAME(r13),
-+	REG_OFFSET_NAME(r14),
-+	REG_OFFSET_NAME(r15),
-+	REG_OFFSET_NAME(r16),
-+	REG_OFFSET_NAME(r17),
-+	REG_OFFSET_NAME(r18),
-+	REG_OFFSET_NAME(r19),
-+
-+	REG_OFFSET_NAME(r20),
-+	REG_OFFSET_NAME(r21),
-+	REG_OFFSET_NAME(r22),
-+	REG_OFFSET_NAME(r23),
-+	REG_OFFSET_NAME(r24),
-+	REG_OFFSET_NAME(r25),
-+	REG_OFFSET_NAME(r26),
-+	REG_OFFSET_NAME(r27),
-+	REG_OFFSET_NAME(r28),
-+	REG_OFFSET_NAME(r29),
-+
-+	REG_OFFSET_NAME(r30),
-+	REG_OFFSET_NAME(r31),
-+
-+	REG_OFFSET_NAME(gp),
-+	REG_OFFSET_NAME(ugp),
-+	REG_OFFSET_NAME(sa0),
-+	REG_OFFSET_NAME(lc0),
-+	REG_OFFSET_NAME(sa1),
-+	REG_OFFSET_NAME(lc1),
-+	REG_OFFSET_NAME(m0),
-+	REG_OFFSET_NAME(m1),
-+	REG_OFFSET_NAME(preds),
-+	REG_OFFSET_HVM_NAME(pc, hvmer.vmel),
-+	REG_OFFSET_HVM_NAME(cause, hvmer.vmest),
-+	REG_OFFSET_HVM_NAME(badva, hvmer.vmbadva),
-+};
-+
-+/**
-+ * regs_query_register_offset() - query register offset from its name
-+ * @name:      the name of a register
-+ *
-+ * regs_query_register_offset() returns the offset of a register in struct
-+ * pt_regs from its name. If the name is invalid, this returns -EINVAL;
-+ */
-+int regs_query_register_offset(const char *name)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (!strcmp(roff->name, name))
-+			return roff->offset;
-+	return -EINVAL;
-+}
-+
-+/**
-+ * regs_query_register_name() - query register name from its offset
-+ * @offset:    the offset of a register in struct pt_regs.
-+ *
-+ * regs_query_register_name() returns the name of a register from its
-+ * offset in struct pt_regs. If the @offset is invalid, this returns NULL;
-+ */
-+const char *regs_query_register_name(unsigned int offset)
-+{
-+	const struct pt_regs_offset *roff;
-+	for (roff = regoffset_table; roff->name != NULL; roff++)
-+		if (roff->offset == offset)
-+			return roff->name;
-+	return NULL;
-+}
-+
-+static int gpr_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
-+{
-+	int ret;
-+	unsigned int dummy;
-+	struct pt_regs *regs = task_pt_regs(target);
-+
-+
-+	if (!regs)
-+		return -EIO;
-+
-+	/* The general idea here is that the copyout must happen in
-+	 * exactly the same order in which the userspace expects these
-+	 * regs. Now, the sequence in userspace does not match the
-+	 * sequence in the kernel, so everything past the 32 gprs
-+	 * happens one at a time.
-+	 */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->r00, 0, 32*sizeof(unsigned long));
-+
-+#define ONEXT(KPT_REG, USR_REG) \
-+	if (!ret) \
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
-+			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
-+			offsetof(struct user_regs_struct, USR_REG) + \
-+				 sizeof(unsigned long));
-+
-+	/* Must be exactly same sequence as struct user_regs_struct */
-+	ONEXT(&regs->gp, gp);
-+	ONEXT(&regs->ugp, ugp);
-+	ONEXT(&regs->sa0, sa0);
-+	ONEXT(&regs->lc0, lc0);
-+	ONEXT(&regs->sa1, sa1);
-+	ONEXT(&regs->lc1, lc1);
-+	ONEXT(&regs->m0, m0);
-+	ONEXT(&regs->m1, m1);
-+	ONEXT(&regs->preds, p3_0);
-+	ONEXT(&pt_elr(regs), pc);
-+	dummy = pt_cause(regs);
-+	ONEXT(&dummy, cause);
-+	ONEXT(&pt_badva(regs), badva);
-+
-+	/* Pad the rest with zeros, if needed */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					sizeof(struct user_regs_struct), -1);
-+	return ret;
-+}
-+
-+static int gpr_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
-+	unsigned long bucket;
-+	struct pt_regs *regs = task_pt_regs(target);
-+
-+	if (!regs)
-+		return -EIO;
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->r00, 0, 32*sizeof(unsigned long));
-+
-+#define INEXT(KPT_REG, USR_REG) \
-+	if (!ret) \
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
-+			offsetof(struct user_regs_struct, USR_REG) + \
-+				sizeof(unsigned long));
-+
-+	/* Must be exactly same sequence as struct user_regs_struct */
-+	INEXT(&regs->gp, gp);
-+	INEXT(&regs->ugp, ugp);
-+	INEXT(&regs->sa0, sa0);
-+	INEXT(&regs->lc0, lc0);
-+	INEXT(&regs->sa1, sa1);
-+	INEXT(&regs->lc1, lc1);
-+	INEXT(&regs->m0, m0);
-+	INEXT(&regs->m1, m1);
-+	INEXT(&regs->preds, p3_0);
-+	INEXT(&pt_elr(regs), pc);
-+
-+	/* CAUSE and BADVA aren't writeable. */
-+	INEXT(&bucket, cause);
-+	INEXT(&bucket, badva);
-+
-+	/* Ignore the rest, if needed */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					sizeof(struct user_regs_struct), -1);
-+
-+	if (ret)
-+		return ret;
-+
-+	/*
-+	 * This is special; SP is actually restored by the VM via the
-+	 * special event record which is set by the special trap.
-+	 */
-+	regs->hvmer.vmpsp = regs->r29;
-+	return 0;
-+}
-+
-+enum hexagon_regset {
-+	REGSET_GPR,
-+};
-+
-+static const struct user_regset hexagon_regsets[] = {
-+	[REGSET_GPR] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = N_PTRACE_REGS,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = gpr_get,
-+		.set = gpr_set
-+	},
-+};
-+
-+static const struct user_regset_view hexagon_user_view = {
-+	.name = UTS_MACHINE,
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = hexagon_regsets,
-+	.n = ARRAY_SIZE(hexagon_regsets)
-+};
-+
-+static int ptrace_pokeusr(struct task_struct *target, int regnum,
-+			  unsigned long data)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+
-+	if (!regs || (regnum < 0))
-+		return -EIO;
-+
-+	if (regnum < 32) {
-+		unsigned long *p = &regs->r00;
-+		*(p+regnum) = data;
-+
-+		/* Return happens via HVM */
-+		if (regnum == 29)
-+			regs->hvmer.vmpsp = regs->r29;
-+		return 0;
-+	}
++/*  These are all FIFO routines!  */
 +
 +/*
-+ * Todo:  sync up with gdb on register passing numbering.
++ * __raw_readsw - read words a short at a time
++ * @addr:  source address
++ * @data:  data address
++ * @len: number of shorts to read
 + */
++void __raw_readsw(const void __iomem *addr, void *data, int len)
++{
++	const volatile short int *src = (short int *) addr;
++	short int *dst = (short int *) data;
 +
-+#define SETREG(KPT_REG, USR_REG) \
-+	case offsetof(struct user_regs_struct, USR_REG)>>2: \
-+		KPT_REG = data; \
-+		return 0;
++	if ((u32)data & 0x1)
++		panic("unaligned pointer to readsw");
 +
-+	/* Other regs are scattered about */
-+	switch (regnum) {
-+	SETREG(regs->gp, gp);
-+	SETREG(regs->ugp, ugp);
-+	SETREG(regs->sa0, sa0);
-+	SETREG(regs->lc0, lc0);
-+	SETREG(regs->sa1, sa1);
-+	SETREG(regs->lc1, lc1);
-+	SETREG(regs->m0, m0);
-+	SETREG(regs->m1, m1);
-+	SETREG(regs->preds, p3_0);
-+	SETREG(pt_elr(regs), pc);
-+	}
++	while (len-- > 0)
++		*dst++ = *src;
 +
-+	/* CAUSE and BADVA aren't writeable. */
-+	return -EINVAL;
 +}
 +
-+void ptrace_disable(struct task_struct *child)
++/*
++ * __raw_writesw - read words a short at a time
++ * @addr:  source address
++ * @data:  data address
++ * @len: number of shorts to read
++ */
++void __raw_writesw(void __iomem *addr, const void *data, int len)
 +{
-+	/* Boilerplate - resolves to null inline if no HW single-step */
-+	user_disable_single_step(child);
++	const short int *src = (short int *)data;
++	volatile short int *dst = (short int *)addr;
++
++	if ((u32)data & 0x1)
++		panic("unaligned pointer to writesw");
++
++	while (len-- > 0)
++		*dst = *src++;
++
++
 +}
 +
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
++/*  Pretty sure len is pre-adjusted for the length of the access already */
++void __raw_readsl(const void __iomem *addr, void *data, int len)
 +{
-+	void __user *udata = (void __user *) data;
++	const volatile long *src = (long *) addr;
++	long *dst = (long *) data;
 +
-+	switch (request) {
-+	case PTRACE_POKETEXT:	/* write the word at location addr. */
-+	case PTRACE_POKEDATA:
-+		return generic_ptrace_pokedata(child, addr, data);
-+	case PTRACE_POKEUSR:	/* write register specified by addr. */
-+		return ptrace_pokeusr(child, addr, data);
-+	case PTRACE_GETREGS:
-+		return copy_regset_to_user(child, &hexagon_user_view,
-+					   REGSET_GPR, 0,
-+					   sizeof(struct user_regs_struct),
-+					   udata);
-+	case PTRACE_SETREGS:
-+		return copy_regset_from_user(child, &hexagon_user_view,
-+					     REGSET_GPR, 0,
-+					     sizeof(struct user_regs_struct),
-+					     udata);
-+	default:
-+		return ptrace_request(child, request, addr, data);
-+	}
++	if ((u32)data & 0x3)
++		panic("unaligned pointer to readsl");
 +
-+	return 0;
++	while (len-- > 0)
++		*dst++ = *src;
++
++
++}
++
++void __raw_writesl(void __iomem *addr, const void *data, int len)
++{
++	const long *src = (long *)data;
++	volatile long *dst = (long *)addr;
++
++	if ((u32)data & 0x3)
++		panic("unaligned pointer to writesl");
++
++	while (len-- > 0)
++		*dst = *src++;
++
++
 +}
 
 --
