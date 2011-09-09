@@ -1,33 +1,29 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 05/36] Hexagon: Add syscalls
-Date: Thu, 08 Sep 2011 20:08:52 -0500
-Message-ID: <20110909010915.173882729@codeaurora.org>
+Subject: [patch v3 12/36] Hexagon: Export ksyms defined in assembly files.
+Date: Thu, 08 Sep 2011 20:08:59 -0500
+Message-ID: <20110909010915.831213239@codeaurora.org>
 References: <20110909010847.294039464@codeaurora.org>
 Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline; filename=syscalls.diff
+Content-Disposition: inline; filename=ksyms.diff
 Sender: linux-hexagon-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Linas Vepstas <linas@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Removed sys_mmap* and replaced with sys_mmap_pgoff()
-
-
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/include/asm/syscall.h |   40 ++++++++++++++++
- arch/hexagon/include/asm/unistd.h  |   36 ++++++++++++++
- arch/hexagon/kernel/syscall.c      |   90 +++++++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/syscalltab.c   |   32 +++++++++++++
- 4 files changed, 198 insertions(+)
+ arch/hexagon/kernel/hexagon_ksyms.c |   42 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h
+Index: linux-hexagon-kernel/arch/hexagon/kernel/hexagon_ksyms.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h	2011-09-07 13:00:30.940646803 -0500
-@@ -0,0 +1,40 @@
++++ linux-hexagon-kernel/arch/hexagon/kernel/hexagon_ksyms.c	2011-09-07 13:00:31.040646956 -0500
+@@ -0,0 +1,42 @@
 +/*
-+ * Syscall support for the Hexagon architecture
++ * Export of symbols defined in assembly files and/or libgcc.
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -46,199 +42,28 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/syscall.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_HEXAGON_SYSCALL_H
-+#define _ASM_HEXAGON_SYSCALL_H
++#include <asm/hexagon_vm.h>
++#include <asm/uaccess.h>
 +
-+typedef long (*syscall_fn)(unsigned long, unsigned long,
-+	unsigned long, unsigned long,
-+	unsigned long, unsigned long);
++EXPORT_SYMBOL(__copy_from_user_hexagon);
++EXPORT_SYMBOL(__copy_to_user_hexagon);
++EXPORT_SYMBOL(__vmgetie);
++EXPORT_SYMBOL(__vmsetie);
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
 +
-+asmlinkage int sys_execve(char __user *ufilename, char __user * __user *argv,
-+			  char __user * __user *envp);
-+asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			 unsigned long parent_tidp, unsigned long child_tidp);
++#define DECLARE_EXPORT(name)     \
++	extern void name(void); EXPORT_SYMBOL(name)
 +
-+#define sys_execve	sys_execve
-+#define sys_clone	sys_clone
++/* Symbols found in libgcc that assorted kernel modules need */
++DECLARE_EXPORT(__hexagon_memcpy_likely_aligned_min32bytes_mult8bytes);
 +
-+#include <asm-generic/syscalls.h>
++DECLARE_EXPORT(__hexagon_divsi3);
++DECLARE_EXPORT(__hexagon_modsi3);
++DECLARE_EXPORT(__hexagon_udivsi3);
++DECLARE_EXPORT(__hexagon_umodsi3);
 +
-+extern void *sys_call_table[];
 +
-+#endif
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/unistd.h	2011-09-07 13:00:31.010646910 -0500
-@@ -0,0 +1,36 @@
-+/*
-+ * Syscall support for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#if !defined(_ASM_HEXAGON_UNISTD_H) || defined(__SYSCALL)
-+#define _ASM_HEXAGON_UNISTD_H
-+
-+/*
-+ *  The kernel pulls this unistd.h in three different ways:
-+ *  1.  the "normal" way which gets all the __NR defines
-+ *  2.  with __SYSCALL defined to produce function declarations
-+ *  3.  with __SYSCALL defined to produce syscall table initialization
-+ *  See also:  syscalltab.c
-+ */
-+
-+#define sys_mmap2 sys_mmap_pgoff
-+
-+#include <asm-generic/unistd.h>
-+
-+#endif
-Index: linux-hexagon-kernel/arch/hexagon/kernel/syscall.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/syscall.c	2011-09-07 13:00:31.150647121 -0500
-@@ -0,0 +1,90 @@
-+/*
-+ * Hexagon system calls
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/file.h>
-+#include <linux/fs.h>
-+#include <linux/linkage.h>
-+#include <linux/mm.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+#include <linux/unistd.h>
-+#include <asm/mman.h>
-+#include <asm/registers.h>
-+
-+/*
-+ * System calls with architecture-specific wrappers.
-+ * See signal.c for signal-related system call wrappers.
-+ */
-+
-+asmlinkage int sys_execve(char __user *ufilename,
-+			  const char __user *const __user *argv,
-+			  const char __user *const __user *envp)
-+{
-+	struct pt_regs *pregs = current_thread_info()->regs;
-+	char *filename;
-+	int retval;
-+
-+	filename = getname(ufilename);
-+	retval = PTR_ERR(filename);
-+	if (IS_ERR(filename))
-+		return retval;
-+
-+	retval = do_execve(filename, argv, envp, pregs);
-+	putname(filename);
-+
-+	return retval;
-+}
-+
-+asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
-+			 unsigned long parent_tidp, unsigned long child_tidp)
-+{
-+	struct pt_regs *pregs = current_thread_info()->regs;
-+
-+	if (!newsp)
-+		newsp = pregs->SP;
-+	return do_fork(clone_flags, newsp, pregs, 0, (int __user *)parent_tidp,
-+		       (int __user *)child_tidp);
-+}
-+
-+/*
-+ * Do a system call from the kernel, so as to have a proper pt_regs
-+ * and recycle the sys_execvpe infrustructure.
-+ */
-+int kernel_execve(const char *filename,
-+		  const char *const argv[], const char *const envp[])
-+{
-+	register unsigned long __a0 asm("r0") = (unsigned long) filename;
-+	register unsigned long __a1 asm("r1") = (unsigned long) argv;
-+	register unsigned long __a2 asm("r2") = (unsigned long) envp;
-+	int retval;
-+
-+	__asm__ volatile(
-+		"	R6 = #%4;\n"
-+		"	trap0(#1);\n"
-+		"	%0 = R0;\n"
-+		: "=r" (retval)
-+		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
-+	);
-+
-+	return retval;
-+}
-+EXPORT_SYMBOL(kernel_execve);
-Index: linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/kernel/syscalltab.c	2011-09-03 20:14:59.524980831 -0500
-@@ -0,0 +1,32 @@
-+/*
-+ * System call table for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
-+
-+#include <asm/syscall.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+void *sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
-+};
 
 --
 
