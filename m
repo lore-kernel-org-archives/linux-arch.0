@@ -1,228 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:30784 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932212Ab1IIBLa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:30 -0400
-Message-ID: <20110909010916.801809244@codeaurora.org>
-Date: Thu, 08 Sep 2011 20:09:09 -0500
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:55252 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932153Ab1IIBL0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:26 -0400
+Message-ID: <20110909010916.616586936@codeaurora.org>
+Date: Thu, 08 Sep 2011 20:09:07 -0500
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 22/36] Hexagon: Add locking types and functions
+Subject: [patch v3 20/36] Hexagon: Provide basic debugging and system trap support.
 References: <20110909010847.294039464@codeaurora.org>
-Content-Disposition: inline; filename=rwsem-spin.diff
+Content-Disposition: inline; filename=traps.diff
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909010909.qiw2Ojv7jfTxRDMcJT7nhRGUE5Yn75u_Q6I2_afzQ58@z>
-
-Moved rwsem to asm-generic.  Will submit a subsequent patch for PPC
-use it from the new location.
+Cc: Linas Vepstas <linas@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20110909010907.TXFwKnDWKfilDrlFz3kULMT0Zo_MEnGkhA5vdj-Njpk@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/include/asm/spinlock.h       |  186 ++++++++++++++++++++++++++++++
- arch/hexagon/include/asm/spinlock_types.h |   42 ++++++
- include/asm-generic/rwsem.h               |  132 +++++++++++++++++++++
- 3 files changed, 360 insertions(+)
+ arch/hexagon/include/asm/traps.h |   29 +++
+ arch/hexagon/kernel/traps.c      |  356 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 385 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/spinlock.h
+Index: linux-hexagon-kernel/arch/hexagon/kernel/traps.c
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/spinlock.h	2011-09-03 20:14:59.714981363 -0500
-@@ -0,0 +1,186 @@
++++ linux-hexagon-kernel/arch/hexagon/kernel/traps.c	2011-09-03 20:14:59.694981307 -0500
+@@ -0,0 +1,356 @@
 +/*
-+ * Spinlock support for the Hexagon architecture
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SPINLOCK_H
-+#define _ASM_SPINLOCK_H
-+
-+#include <asm/irqflags.h>
-+
-+/*
-+ * This file is pulled in for SMP builds.
-+ * Really need to check all the barrier stuff for "true" SMP
-+ */
-+
-+/*
-+ * Read locks:
-+ * - load the lock value
-+ * - increment it
-+ * - if the lock value is still negative, go back and try again.
-+ * - unsuccessful store is unsuccessful.  Go back and try again.  Loser.
-+ * - successful store new lock value if positive -> lock acquired
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	{ P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	R6 = add(R6,#-1);\n"
-+		"	memw_locked(%0,P3) = R6\n"
-+		"	if !P3 jump 1b;\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+/*  I think this returns 0 on fail, 1 on success.  */
-+static inline int arch_read_trylock(arch_rwlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1);\n"
-+		"	{ %0 = #0; P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
-+		"	{ if !P3 jump 1f; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	{ %0 = P3 }\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+}
-+
-+static inline int arch_read_can_lock(arch_rwlock_t *rwlock)
-+{
-+	return rwlock->lock == 0;
-+}
-+
-+static inline int arch_write_can_lock(arch_rwlock_t *rwlock)
-+{
-+	return rwlock->lock == 0;
-+}
-+
-+/*  Stuffs a -1 in the lock value?  */
-+static inline void arch_write_lock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0)\n"
-+		"	{ P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+}
-+
-+
-+static inline int arch_write_trylock(arch_rwlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1)\n"
-+		"	{ %0 = #0; P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
-+		"	{ if !P3 jump 1f; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	%0 = P3;\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *lock)
-+{
-+	smp_mb();
-+	lock->lock = 0;
-+}
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	P3 = cmp.eq(R6,#0);\n"
-+		"	{ if !P3 jump 1b; R6 = #1; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	smp_mb();
-+	lock->lock = 0;
-+}
-+
-+static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1);\n"
-+		"	P3 = cmp.eq(R6,#0);\n"
-+		"	{ if !P3 jump 1f; R6 = #1; %0 = #0; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	%0 = P3;\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+}
-+
-+/*
-+ * SMP spinlocks are intended to allow only a single CPU at the lock
-+ */
-+#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-+#define arch_spin_unlock_wait(lock) \
-+	do {while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
-+#define arch_spin_is_locked(x) ((x)->lock != 0)
-+
-+#define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-+
-+#endif
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/spinlock_types.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/spinlock_types.h	2011-09-03 20:14:59.714981363 -0500
-@@ -0,0 +1,42 @@
-+/*
-+ * Spinlock support for the Hexagon architecture
++ * Kernel traps/events for Hexagon processor
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -241,165 +49,376 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/spinlock_types.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_SPINLOCK_TYPES_H
-+#define _ASM_SPINLOCK_TYPES_H
-+
-+#include <linux/version.h>
-+
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/module.h>
++#include <linux/kallsyms.h>
++#include <linux/kdebug.h>
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/tracehook.h>
++#include <asm/traps.h>
++#include <asm/vm_fault.h>
++#include <asm/syscall.h>
++#include <asm/registers.h>
++#include <asm/unistd.h>
++#ifdef CONFIG_KGDB
++# include <linux/kgdb.h>
 +#endif
 +
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_spinlock_t;
++#define TRAP_SYSCALL	1
++#define TRAP_DEBUG	0xdb
 +
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
-+
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
-+
-+#endif
-Index: linux-hexagon-kernel/include/asm-generic/rwsem.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/include/asm-generic/rwsem.h	2011-09-07 13:00:37.190656296 -0500
-@@ -0,0 +1,132 @@
-+#ifndef _ASM_POWERPC_RWSEM_H
-+#define _ASM_POWERPC_RWSEM_H
-+
-+#ifndef _LINUX_RWSEM_H
-+#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
-+#endif
-+
-+#ifdef __KERNEL__
-+
-+/*
-+ * R/W semaphores for PPC using the stuff in lib/rwsem.c.
-+ * Adapted largely from include/asm-i386/rwsem.h
-+ * by Paul Mackerras <paulus@samba.org>.
-+ */
-+
-+/*
-+ * the semaphore definition
-+ */
-+#ifdef CONFIG_PPC64
-+# define RWSEM_ACTIVE_MASK		0xffffffffL
-+#else
-+# define RWSEM_ACTIVE_MASK		0x0000ffffL
-+#endif
-+
-+#define RWSEM_UNLOCKED_VALUE		0x00000000L
-+#define RWSEM_ACTIVE_BIAS		0x00000001L
-+#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
-+#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
-+#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
-+
-+/*
-+ * lock for reading
-+ */
-+static inline void __down_read(struct rw_semaphore *sem)
++void __init trap_init(void)
 +{
-+	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
-+		rwsem_down_read_failed(sem);
 +}
 +
-+static inline int __down_read_trylock(struct rw_semaphore *sem)
++#ifdef CONFIG_GENERIC_BUG
++/* Maybe should resemble arch/sh/kernel/traps.c ?? */
++int is_valid_bugaddr(unsigned long addr)
 +{
-+	long tmp;
++	return 1;
++}
++#endif /* CONFIG_GENERIC_BUG */
 +
-+	while ((tmp = sem->count) >= 0) {
-+		if (tmp == cmpxchg(&sem->count, tmp,
-+				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
-+			return 1;
++void show_stack(struct task_struct *task, unsigned long *fp)
++{
++	int kstack_depth_to_print = 20;
++	unsigned long offset, size;
++	const char *name = NULL;
++	unsigned long *newfp;
++	unsigned long ip;
++	char tmpstr[128];
++	char *modname;
++	int i;
++
++	if (task == NULL)
++		task = current;
++
++	if (fp == NULL) {
++		if (task == current) {
++			asm("%0 = r30" : "=r" (fp));
++		} else {
++			fp = (unsigned long *)
++			     ((struct hexagon_switch_stack *)
++			     task->thread.switch_sp)->fp;
 +		}
 +	}
++
++	printk(KERN_INFO "CPU#%d, %s/%d, Call Trace:\n",
++	       raw_smp_processor_id(), current->comm,
++	       task_pid_nr(current));
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (0 /* Check irq stack at some point */)
++			printk(KERN_INFO " <EOI> ");
++		else if (((long) fp & (THREAD_SIZE-1)) == 0)
++			break;
++
++		newfp = (unsigned long *) *fp;
++
++		ip = *(unsigned long *)((char *)fp + sizeof(unsigned long));
++		name = kallsyms_lookup(ip, &size, &offset, &modname, tmpstr);
++
++		printk(KERN_INFO "[%p] 0x%lx: %s + 0x%lx", fp, ip, name,
++			offset);
++		if (modname)
++			printk(KERN_CONT " [%s] ", modname);
++		if (i == 0)
++			printk(KERN_CONT " (unreliable)");
++		printk(KERN_CONT "\n");
++
++		/* If newfp isn't larger, we're tracing garbage */
++		if (newfp > fp)
++			fp = newfp;
++		else
++			break;
++	}
++}
++
++void dump_state(struct pt_regs *regs)
++{
++	show_regs(regs);
++	show_stack(current, &regs->r30);
++}
++
++void dump_stack(void)
++{
++	show_stack(current, NULL);
++}
++EXPORT_SYMBOL(dump_stack);
++
++int die(const char *str, struct pt_regs *regs, long err)
++{
++	static struct {
++		spinlock_t lock;
++		int counter;
++	} die = {
++		.lock = __SPIN_LOCK_UNLOCKED(die.lock),
++		.counter = 0
++	};
++
++	spin_lock_irq(&die.lock);
++	bust_spinlocks(1);
++	printk(KERN_INFO "%s[#%d]:\n", str, ++die.counter);
++
++	if (notify_die(DIE_OOPS, str, regs, err, pt_cause(regs), SIGSEGV) ==
++	    NOTIFY_STOP)
++		return 1;
++
++	print_modules();
++	dump_state(regs);
++
++	do_exit(err);
 +	return 0;
 +}
 +
-+/*
-+ * lock for writing
-+ */
-+static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
++int die_if_kernel(char *str, struct pt_regs *regs, long err)
 +{
-+	long tmp;
-+
-+	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				     (atomic_long_t *)&sem->count);
-+	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
-+		rwsem_down_write_failed(sem);
-+}
-+
-+static inline void __down_write(struct rw_semaphore *sem)
-+{
-+	__down_write_nested(sem, 0);
-+}
-+
-+static inline int __down_write_trylock(struct rw_semaphore *sem)
-+{
-+	long tmp;
-+
-+	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
-+		      RWSEM_ACTIVE_WRITE_BIAS);
-+	return tmp == RWSEM_UNLOCKED_VALUE;
++	if (!user_mode(regs))
++		return die(str, regs, err);
++	else
++		return 0;
 +}
 +
 +/*
-+ * unlock after reading
++ * It's not clear that misaligned fetches are ever recoverable.
 + */
-+static inline void __up_read(struct rw_semaphore *sem)
++static void misaligned_instruction(struct pt_regs *regs)
 +{
-+	long tmp;
-+
-+	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
-+	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
-+		rwsem_wake(sem);
++	die_if_kernel("Misaligned Instruction", regs, 0);
++	force_sig(SIGBUS, current);
 +}
 +
 +/*
-+ * unlock after writing
++ * Misaligned loads and stores, on the other hand, can be
++ * emulated, and probably should be, some day.  But for now
++ * they will be considered fatal.
 + */
-+static inline void __up_write(struct rw_semaphore *sem)
++static void misaligned_data_load(struct pt_regs *regs)
 +{
-+	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				 (atomic_long_t *)&sem->count) < 0))
-+		rwsem_wake(sem);
++	die_if_kernel("Misaligned Data Load", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++static void misaligned_data_store(struct pt_regs *regs)
++{
++	die_if_kernel("Misaligned Data Store", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++static void illegal_instruction(struct pt_regs *regs)
++{
++	die_if_kernel("Illegal Instruction", regs, 0);
++	force_sig(SIGILL, current);
 +}
 +
 +/*
-+ * implement atomic add functionality
++ * Precise bus errors may be recoverable with a a retry,
++ * but for now, treat them as irrecoverable.
 + */
-+static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
++static void precise_bus_error(struct pt_regs *regs)
 +{
-+	atomic_long_add(delta, (atomic_long_t *)&sem->count);
++	die_if_kernel("Precise Bus Error", regs, 0);
++	force_sig(SIGBUS, current);
 +}
 +
 +/*
-+ * downgrade write lock to read lock
++ * If anything is to be done here other than panic,
++ * it will probably be complex and migrate to another
++ * source module.  For now, just die.
 + */
-+static inline void __downgrade_write(struct rw_semaphore *sem)
++static void cache_error(struct pt_regs *regs)
 +{
-+	long tmp;
-+
-+	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
-+				     (atomic_long_t *)&sem->count);
-+	if (tmp < 0)
-+		rwsem_downgrade_wake(sem);
++	die("Cache Error", regs, 0);
 +}
 +
 +/*
-+ * implement exchange and add functionality
++ * General exception handler
 + */
-+static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
++void do_genex(struct pt_regs *regs)
 +{
-+	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
++
++	/*
++	 * Decode Cause and Dispatch
++	 */
++	switch (pt_cause(regs)) {
++	case HVM_GE_C_XPROT:
++	case HVM_GE_C_XUSER:
++		execute_protection_fault(regs);
++		break;
++	case HVM_GE_C_RPROT:
++	case HVM_GE_C_RUSER:
++		read_protection_fault(regs);
++		break;
++	case HVM_GE_C_WPROT:
++	case HVM_GE_C_WUSER:
++		write_protection_fault(regs);
++		break;
++	case HVM_GE_C_XMAL:
++		misaligned_instruction(regs);
++		break;
++	case HVM_GE_C_RMAL:
++		misaligned_data_load(regs);
++		break;
++	case HVM_GE_C_WMAL:
++		misaligned_data_store(regs);
++		break;
++	case HVM_GE_C_INVI:
++	case HVM_GE_C_PRIVI:
++		illegal_instruction(regs);
++		break;
++	case HVM_GE_C_BUS:
++		precise_bus_error(regs);
++		break;
++	case HVM_GE_C_CACHE:
++		cache_error(regs);
++		break;
++	default:
++		/* Halt and catch fire */
++		panic("Unrecognized exception 0x%lx\n", pt_cause(regs));
++		break;
++	}
 +}
 +
-+#endif	/* __KERNEL__ */
-+#endif	/* _ASM_POWERPC_RWSEM_H */
++/* Indirect system call dispatch */
++long sys_syscall(void)
++{
++	printk(KERN_ERR "sys_syscall invoked!\n");
++	return -ENOSYS;
++}
++
++void do_trap0(struct pt_regs *regs)
++{
++	unsigned long syscallret = 0;
++	syscall_fn syscall;
++
++	switch (pt_cause(regs)) {
++	case TRAP_SYSCALL:
++		/* System call is trap0 #1 */
++
++		/* allow strace to catch syscall args  */
++		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE) &&
++			tracehook_report_syscall_entry(regs)))
++			return;  /*  return -ENOSYS somewhere?  */
++
++		/* Interrupts should be re-enabled for syscall processing */
++		__vmsetie(VM_INT_ENABLE);
++
++		/*
++		 * System call number is in r6, arguments in r0..r5.
++		 * Fortunately, no Linux syscall has more than 6 arguments,
++		 * and Hexagon ABI passes first 6 arguments in registers.
++		 * 64-bit arguments are passed in odd/even register pairs.
++		 * Fortunately, we have no system calls that take more
++		 * than three arguments with more than one 64-bit value.
++		 * Should that change, we'd need to redesign to copy
++		 * between user and kernel stacks.
++		 */
++		regs->syscall_nr = regs->r06;
++
++		/*
++		 * GPR R0 carries the first parameter, and is also used
++		 * to report the return value.  We need a backup of
++		 * the user's value in case we need to do a late restart
++		 * of the system call.
++		 */
++		regs->restart_r0 = regs->r00;
++
++		if ((unsigned long) regs->syscall_nr >= __NR_syscalls) {
++			regs->r00 = -1;
++		} else {
++			syscall = (syscall_fn)
++				  (sys_call_table[regs->syscall_nr]);
++			syscallret = syscall(regs->r00, regs->r01,
++				   regs->r02, regs->r03,
++				   regs->r04, regs->r05);
++		}
++
++		/*
++		 * If it was a sigreturn system call, don't overwrite
++		 * r0 value in stack frame with return value.
++		 *
++		 * __NR_sigreturn doesn't seem to exist in new unistd.h
++		 */
++
++		if (regs->syscall_nr != __NR_rt_sigreturn)
++			regs->r00 = syscallret;
++
++		/* allow strace to get the syscall return state  */
++		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE)))
++			tracehook_report_syscall_exit(regs, 0);
++
++		break;
++	case TRAP_DEBUG:
++		/* Trap0 0xdb is debug breakpoint */
++		if (user_mode(regs)) {
++			struct siginfo info;
++
++			info.si_signo = SIGTRAP;
++			info.si_errno = 0;
++			/*
++			 * Some architecures add some per-thread state
++			 * to distinguish between breakpoint traps and
++			 * trace traps.  We may want to do that, and
++			 * set the si_code value appropriately, or we
++			 * may want to use a different trap0 flavor.
++			 */
++			info.si_code = TRAP_BRKPT;
++			info.si_addr = (void __user *) pt_elr(regs);
++			send_sig_info(SIGTRAP, &info, current);
++		} else {
++#ifdef CONFIG_KGDB
++			kgdb_handle_exception(pt_cause(regs), SIGTRAP,
++					      TRAP_BRKPT, regs);
++#endif
++		}
++		break;
++	}
++	/* Ignore other trap0 codes for now, especially 0 (Angel calls) */
++}
++
++/*
++ * Machine check exception handler
++ */
++void do_machcheck(struct pt_regs *regs)
++{
++	/* Halt and catch fire */
++	__vmstop();
++}
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/traps.h
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/include/asm/traps.h	2011-09-03 20:14:59.694981307 -0500
+@@ -0,0 +1,29 @@
++/*
++ * Trap support for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_HEXAGON_TRAPS_H
++#define _ASM_HEXAGON_TRAPS_H
++
++#include <asm/registers.h>
++
++extern int die(const char *str, struct pt_regs *regs, long err);
++extern int die_if_kernel(char *str, struct pt_regs *regs, long err);
++
++#endif /* _ASM_HEXAGON_TRAPS_H */
 
 --
 
