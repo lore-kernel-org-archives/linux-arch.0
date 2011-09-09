@@ -1,45 +1,25 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch v3 14/36] Hexagon: Add signal functions
-Date: Fri, 09 Sep 2011 10:12:38 +0200
-Message-ID: <3380882.JqAqX4juos@wuerfel>
-References: <20110909010847.294039464@codeaurora.org> <20110909010916.028280867@codeaurora.org>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Date: Fri, 09 Sep 2011 10:15:22 +0200
+Message-ID: <6788879.2Pf4OtZvAN@wuerfel>
+References: <20110909010847.294039464@codeaurora.org> <20110909010916.525482401@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20110909010916.028280867@codeaurora.org>
+In-Reply-To: <20110909010916.525482401@codeaurora.org>
 Sender: linux-hexagon-owner@vger.kernel.org
 To: Richard Kuo <rkuo@codeaurora.org>
 Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Linas Vepstas <linas@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 08 September 2011 20:09:01 Richard Kuo wrote:
-> +/*
-> + * Signal context structure - contains all info to do with the state
-> + * before the signal handler was invoked.
-> + */
-> +struct sigcontext {
-> +       struct pt_regs sc_regs;
-> +};
+On Thursday 08 September 2011 20:09:06 Richard Kuo wrote:
+> Will look at the more generic ptrace support in the future.
+> 
+> Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+> Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 
-I've recently discussed this with Martin Schwidefsky for an unrelated reason,
-but I think now that you should define the sigcontext independent of pt_regs.
-The pt_regs should really be internal 
-
-> +struct sigframe {
-> +       unsigned long pad[2]; /* Used to be signal tramp */
-> +       struct sigcontext sc;
-> +       sigset_t mask;
-> +};
-> +
-> +struct rt_sigframe {
-> +       unsigned long pad[2]; /* Used to be signal tramp */
-> +       struct siginfo info;
-> +       struct ucontext uc;
-> +};
-
-I hadn't noticed this earlier, but I think you can remove the struct sigframe
-definition. There should be absolutely no need to have both sigframe and
-rt_sigframe.
+Note that this absolutely has to be completed before the code is merged upstream,
+because it is relevant to the ABI.
 
 	Arnd
