@@ -1,104 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:53227 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:49206 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753546Ab1IINNS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 09:13:18 -0400
-Date: Fri, 9 Sep 2011 15:13:17 +0200 (CEST)
+	with ESMTP id S1758559Ab1IINY5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 09:24:57 -0400
+Date: Fri, 9 Sep 2011 15:24:54 +0200 (CEST)
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch v3 18/36] Hexagon: Add time and timer functions
-In-Reply-To: <20110909010916.422373448@codeaurora.org>
-Message-ID: <alpine.LFD.2.02.1109091507160.2723@ionos>
-References: <20110909010847.294039464@codeaurora.org> <20110909010916.422373448@codeaurora.org>
+Subject: Re: [patch v3 21/36] Hexagon: Add SMP support
+In-Reply-To: <20110909010916.709728186@codeaurora.org>
+Message-ID: <alpine.LFD.2.02.1109091517420.2723@ionos>
+References: <20110909010847.294039464@codeaurora.org> <20110909010916.709728186@codeaurora.org>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909131317.JeuDqtj5Prwa68GmTAIm-Cjl7SD5EJkEaEqy6vJTC4o@z>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Linas Vepstas <linas@codeaurora.org>
+Message-ID: <20110909132454.ZBq7NVYne_JSRTyJ3EYo_xxEwVD9YPm4j-xWzqLh52E@z>
 
 On Thu, 8 Sep 2011, Richard Kuo wrote:
-> +static cycle_t timer_get_cycles(struct clocksource *cs)
-> +{
-> +	return (cycle_t) __vmgettime();
-> +}
+
+> +	/*  Set the memory struct  */
+> +	atomic_inc(&init_mm.mm_count);
+> +	current->active_mm = &init_mm;
 > +
-> +static struct clocksource hexagon_clocksource = {
-> +	.name		= "pcycles",
-> +	.rating		= 250,
-> +	.shift		= 16,
-
-clocksource_register_khz() calcs mult and shift.
-
-> +	.read		= timer_get_cycles,
-> +	.mask		= CLOCKSOURCE_MASK(64),
-> +	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
-> +};
+> +	cpu = smp_processor_id();
 > +
-
-> +static struct clock_event_device hexagon_clockevent_dev = {
-> +	.name		= "clockevent",
-> +	.features	= CLOCK_EVT_FEAT_ONESHOT,
-> +	.rating		= 400,
-> +	.shift		= 32,
-
-You recalc this shift as well
-
-> +	.irq		= RTOS_TIMER_INT,
-> +	.set_next_event = set_next_event,
-> +	.set_mode	= set_mode,
-> +#ifdef CONFIG_SMP
-> +	.broadcast	= broadcast,
-> +#endif
-> +};
+> +	setup_irq(BASE_IPI_IRQ + cpu, &ipi_intdesc);
 > +
-
-> +/*  Called from smp.c for each CPU's timer ipi call  */
-> +void ipi_timer(void)
-> +{
-> +	int cpu = smp_processor_id();
-> +	struct clock_event_device *ce_dev = &hexagon_clockevent_dev;
-
-This initialization is pointless
-
-> +	ce_dev = &per_cpu(clock_events, cpu);
-> +	ce_dev->event_handler(ce_dev);
-> +}
-> +#endif /* CONFIG_SMP */
+> +	/*  Register the clock_event dummy  */
+> +	setup_percpu_clockdev();
 > +
-> +static irqreturn_t timer_interrupt(int irq, void *devid)
-> +{
-> +	struct clock_event_device *ce_dev = &hexagon_clockevent_dev;
+> +	printk(KERN_INFO "%s cpu %d\n", __func__, current_thread_info()->cpu);
 > +
-> +	rtos_timer->enable = 0;
-> +	ce_dev->event_handler(ce_dev);
-> +
-> +	return IRQ_HANDLED;
-> +}
-> +
-> +/*  This should also be pulled from devtree  */
-> +static struct irqaction rtos_timer_intdesc = {
-> +	.handler = timer_interrupt,
-> +	.flags = IRQF_DISABLED | IRQF_TIMER | IRQF_TRIGGER_RISING,
+> +	local_irq_enable();
+> +	set_cpu_online(cpu, true);
 
-  IRQF_DISABLED is about to be gone and IRQF_TIMER has it already.
+This wants to be:
 
-> +	.name = "rtos_timer"
-> +};
-> +
-> +void clocksource_debug(struct clocksource *cs)
-> +{
-> +	printk(KERN_DEBUG "cs->mult=0x%08x\n", cs->mult);
-> +	printk(KERN_DEBUG "cs->shift=%d\n", cs->shift);
-> +}
-> +
-> +void clockevent_debug(struct clock_event_device *ce)
-> +{
-> +	printk(KERN_DEBUG "ce->mult=0x%08x\n", ce->mult);
-> +	printk(KERN_DEBUG "ce->shift=%d\n", ce->shift);
-> +}
+     	set_cpu_online(cpu, true);
+        while (!cpumask_test_cpu(cpu, cpu_active_mask))
+                cpu_relax();
+	local_irq_enable();
 
-Important debug leftovers ?
+See x86/kernel/smpboot.c and 
+http://lists.arm.linux.org.uk/lurker/message/20110908.215756.a2ffbe5f.en.html
 
 Thanks,
 
