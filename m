@@ -1,111 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:46023 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754389Ab1IHXwW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 19:52:22 -0400
-Message-ID: <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
-In-Reply-To: <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
-References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
-    <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
-Date: Thu, 8 Sep 2011 09:41:46 -0700 (PDT)
-Subject: Re: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept
-     IOMMU mapper for DMA-mapping
-From: "Laura Abbott" <lauraa@codeaurora.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:9259 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757322Ab1IIBKm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:10:42 -0400
+Message-ID: <20110909010847.294039464@codeaurora.org>
+Date: Thu, 08 Sep 2011 20:08:47 -0500
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: [patch v3 00/36] Hexagon: Add support for Qualcomm Hexagon architecture
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
-Message-ID: <20110908164146.VEYakZQJbBxhrkxTReq0DVrrjsl9F09-rbiNwY4b8Bw@z>
+To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110909010847.cY50FwROqsrBhwlfL9l539viVmqjMgVaiWEeeK4qOhM@z>
 
+This is the third version of the patchset to the Linux kernel to support
+the Qualcomm Hexagon architecture.  These patches have been organized like
+the last time, in a somewhat logically grouped fashion.
 
-Hi, a few comments
-On Fri, September 2, 2011 6:56 am, Marek Szyprowski wrote:
-...
-> +
-> +struct dma_iommu_mapping {
-> +	/* iommu specific data */
-> +	struct iommu_domain	*domain;
-> +
-> +	void			*bitmap;
+A summary of changes from the last patchset:
+* removed __delay
+* cleaned up checksum header to pull generic one
+* implemented vDSO so signal trampolines are no longer on stack
+* fixed cpu_idle()
+* removed init_IRQ() wrapper
+* cleaned up (most of) the wrongness in time.c
+* cleaned up smp.c to use more generic IPI handlers
+* filled in ins/outs routines in IO and other misc cleanup
+* removed redundant vunmap from ioremap
+* removed more highmem cruft
+* moved rwsem to asm-generic
+* bonus ifdefs added to generic checksum.h
 
-In the earlier version of this patch you had this as a genpool instead of
-just doing the bitmaps manually. Is there a reason genpool can't be used
-to get the iova addresses?
-> +	size_t			bits;
-> +	unsigned int		order;
-> +	dma_addr_t		base;
-> +
-> +	struct mutex		lock;
-> +};
-<snip>
-> +int arm_iommu_attach_device(struct device *dev, dma_addr_t base, size_t
-> size, int order)
-> +{
-> +	unsigned int count = (size >> PAGE_SHIFT) - order;
-> +	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> +	struct dma_iommu_mapping *mapping;
-> +	int err = -ENOMEM;
-> +
-> +	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
-> +	if (!mapping)
-> +		goto err;
-> +
-> +	mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
-> +	if (!mapping->bitmap)
-> +		goto err2;
-> +
-> +	mapping->base = base;
-> +	mapping->bits = bitmap_size;
-> +	mapping->order = order;
-> +	mutex_init(&mapping->lock);
-> +
-> +	mapping->domain = iommu_domain_alloc();
-> +	if (!mapping->domain)
-> +		goto err3;
-> +
-> +	err = iommu_attach_device(mapping->domain, dev);
-> +	if (err != 0)
-> +		goto err4;
-> +
-> +	dev->archdata.mapping = mapping;
-> +	set_dma_ops(dev, &iommu_ops);
-> +
-> +	printk(KERN_INFO "Attached IOMMU controller to %s device.\n",
-> dev_name(dev));
-> +	return 0;
-> +
-> +err4:
-> +	iommu_domain_free(mapping->domain);
-> +err3:
-> +	kfree(mapping->bitmap);
-> +err2:
-> +	kfree(mapping);
-> +err:
-> +	return -ENOMEM;
-> +}
-> +EXPORT_SYMBOL(arm_iommu_attach_device);
-> +
-> +#endif
-Attach makes the assumption that each iommu device will exist in a
-separate domain. What if multiple devices want to use the same iommu
-domain? The msm iommu implementation has many different iommu devices but
-many of these will need the same buffer to be mapped in each context so
-currently many devices share the same domain. Without this, the same map
-call would need to happen for each device, which creates extra map calls
-and overhead.
->
-> _______________________________________________
-> Linaro-mm-sig mailing list
-> Linaro-mm-sig@lists.linaro.org
-> http://lists.linaro.org/mailman/listinfo/linaro-mm-sig
->
+Also, I have been compiling with sparse and it seems to pass.
 
-Laura
+These patches are available on Code Aurora:
+
+https://www.codeaurora.org/patches/quic/hlk/hexagon-linux-20110908.tar.gz
+
+Thanks again for everyone's feedback!
+
+-Richard Kuo
+
 -- 
+
 Sent by an employee of the Qualcomm Innovation Center, Inc.
 The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
-
-
