@@ -1,34 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:54698 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.9]:56180 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757534Ab1IIIYH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 04:24:07 -0400
+	with ESMTP id S932096Ab1IIIkM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 04:40:12 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch v3 18/36] Hexagon: Add time and timer functions
-Date: Fri, 09 Sep 2011 10:23:45 +0200
-Message-ID: <8440717.zkZKr0bf7e@wuerfel>
-In-Reply-To: <20110909010916.422373448@codeaurora.org>
-References: <20110909010847.294039464@codeaurora.org> <20110909010916.422373448@codeaurora.org>
+Subject: Re: [patch v3 00/36] Hexagon: Add support for Qualcomm Hexagon architecture
+Date: Fri, 09 Sep 2011 10:39:45 +0200
+Message-ID: <3067098.EfRYKETXVd@wuerfel>
+In-Reply-To: <20110909010847.294039464@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Kuo <rkuo@codeaurora.org>
+To: Richard Kuo <rkuo@codeaurora.org>, Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909082345.TgvDBtb_o1JVJj9m0c-i-PIyQYcD4_KeO5WVVfCJQyM@z>
+Message-ID: <20110909083945.SnbsoNf2IrFYrg34UX-EFZHMpcljAarfs8BzyrBtt5w@z>
 
+On Thursday 08 September 2011 20:08:47 Richard Kuo wrote:
+> This is the third version of the patchset to the Linux kernel to support
+> the Qualcomm Hexagon architecture.  These patches have been organized like
+> the last time, in a somewhat logically grouped fashion.
+> 
+> A summary of changes from the last patchset:
+> * removed __delay
+> * cleaned up checksum header to pull generic one
+> * implemented vDSO so signal trampolines are no longer on stack
+> * fixed cpu_idle()
+> * removed init_IRQ() wrapper
+> * cleaned up (most of) the wrongness in time.c
+> * cleaned up smp.c to use more generic IPI handlers
+> * filled in ins/outs routines in IO and other misc cleanup
+> * removed redundant vunmap from ioremap
+> * removed more highmem cruft
+> * moved rwsem to asm-generic
+> * bonus ifdefs added to generic checksum.h
+> 
+> Also, I have been compiling with sparse and it seems to pass.
+> 
+> These patches are available on Code Aurora:
+> 
+> https://www.codeaurora.org/patches/quic/hlk/hexagon-linux-20110908.tar.gz
+> 
+> Thanks again for everyone's feedback!
 
-> + * 8x50 HDD Specs 5-8.  Simulator co-sim not fixed until
-> + * release 1.1, and then it's "adjustable" and probably not defaulted.
-> + */
-> +#define RTOS_TIMER_INT         3
-> +#ifdef CONFIG_HEXAGON_COMET
-> +#define RTOS_TIMER_REGS_ADDR   0xAB000000UL
-> +#endif
-> +#define SLEEP_CLK_RATE         32000
+Ok, very good.
 
-I think it would be better to pull RTOS_TIMER_REGS_ADDR from the device
-tree, but this is probably good enough for 3.2.
+I haven't checked if it's already in linux-next, since you said you first
+wanted to fix a few things. If it's not, please have Stephen add it now.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+I wrote a small piece on the two new architectures for 3.2 in
+http://lwn.net/Articles/457635/ , I hope I got the facts right. 
+
+The ptrace interface is the only part that I'd ask you to definitely
+fix before the merge window, because of the impact to the user space
+ABI: We try to be strict about not breaking user-visible interfaces
+for any code that has been in an official kernel release. It's of course
+less important for a newly merged architecture when there are no existing
+users, but I think it's best to always enforce this rule.
+
+It would of course be very nice if you could get the board support based
+on device tree probing ready as well by the same time, but I don't see
+that as a show-stopper for inclusion.
+
+One small comment about the way that you send patches: The changelog part
+if each patch you send lists the changes that you have done since the first
+submission. This is indeed helpful for the purpose of the review, but it's
+not actually how you are supposed to use this. The body of the email
+should instead start with a 'changeset comment' that describes the changes
+made by the patch, followed by the 'Signed-off-by:' lines, and then after
+the '---' line you should write the text that does not become part of
+the permanent git history: the diffstat and any additional comments you have
+for reviewers including what has changed since last time.
+
+	Arnd
