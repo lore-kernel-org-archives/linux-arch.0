@@ -1,33 +1,37 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [patch v3 30/36] Hexagon: Add page-fault support.
-Date: Thu, 08 Sep 2011 20:09:17 -0500
-Message-ID: <20110909010917.578513171@codeaurora.org>
+Subject: [patch v3 25/36] Hexagon: Implement basic cache-flush support
+Date: Thu, 08 Sep 2011 20:09:12 -0500
+Message-ID: <20110909010917.093930591@codeaurora.org>
 References: <20110909010847.294039464@codeaurora.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=mem-fault.diff
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:31156 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932246Ab1IIBLd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Sep 2011 21:11:33 -0400
+Content-Disposition: inline; filename=cache.diff
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Linas Vepstas <linas@codeaurora.org>, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>
+
+We have separate I/D caches.  Data caches are physically indexed.
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 
 ---
- arch/hexagon/include/asm/mem-layout.h |  112 +++++++++++++
- arch/hexagon/include/asm/vm_fault.h   |   26 +++
- arch/hexagon/mm/init.c                |  276 ++++++++++++++++++++++++++++++++++
- arch/hexagon/mm/vm_fault.c            |  188 +++++++++++++++++++++++
- 4 files changed, 602 insertions(+)
+ arch/hexagon/include/asm/cache.h      |   34 +++++++++
+ arch/hexagon/include/asm/cacheflush.h |   99 ++++++++++++++++++++++++++
+ arch/hexagon/mm/cache.c               |  128 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 261 insertions(+)
 
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/mem-layout.h
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/cacheflush.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/mem-layout.h	2011-09-07 13:00:30.930646788 -0500
-@@ -0,0 +1,112 @@
++++ linux-hexagon-kernel/arch/hexagon/include/asm/cacheflush.h	2011-09-08 19:22:01.300239513 -0500
+@@ -0,0 +1,99 @@
 +/*
-+ * Memory layout definitions for the Hexagon architecture
++ * Cache flush operations for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -46,578 +50,93 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/mem-layout.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_HEXAGON_MEM_LAYOUT_H
-+#define _ASM_HEXAGON_MEM_LAYOUT_H
++#ifndef _ASM_CACHEFLUSH_H
++#define _ASM_CACHEFLUSH_H
 +
-+#include <linux/const.h>
-+
-+/*
-+ * Have to do this for ginormous numbers, else they get printed as
-+ * negative numbers, which the linker no likey when you try to
-+ * assign it to the location counter.
-+ */
-+
-+#define PAGE_OFFSET			_AC(0xc0000000, UL)
-+
-+/*
-+ * LOAD_ADDRESS is the physical/linear address of where in memory
-+ * the kernel gets loaded. The 12 least significant bits must be zero (0)
-+ * due to limitations on setting the EVB
-+ *
-+ */
-+
-+#ifndef LOAD_ADDRESS
-+#define LOAD_ADDRESS			0x00000000
-+#endif
-+
-+#define TASK_SIZE			(PAGE_OFFSET)
-+
-+/*  not sure how these are used yet  */
-+#define STACK_TOP			TASK_SIZE
-+#define STACK_TOP_MAX			TASK_SIZE
-+
-+#ifndef __ASSEMBLY__
-+enum fixed_addresses {
-+	FIX_KMAP_BEGIN,
-+	FIX_KMAP_END,  /*  check for per-cpuism  */
-+	__end_of_fixed_addresses
-+};
-+
-+#define MIN_KERNEL_SEG 0x300   /* From 0xc0000000 */
-+extern int max_kernel_seg;
-+
-+/*
-+ * Start of vmalloc virtual address space for kernel;
-+ * supposed to be based on the amount of physical memory available
-+ */
-+
-+#define VMALLOC_START (PAGE_OFFSET + VMALLOC_OFFSET + \
-+	(unsigned long)high_memory)
-+
-+/* Gap between physical ram and vmalloc space for guard purposes. */
-+#define VMALLOC_OFFSET PAGE_SIZE
-+
-+/*
-+ * Create the space between VMALLOC_START and FIXADDR_TOP backwards
-+ * from the ... "top".
-+ *
-+ * Permanent IO mappings will live at 0xfexx_xxxx
-+ * Hypervisor occupies the last 16MB page at 0xffxxxxxx
-+ */
-+
-+#define FIXADDR_TOP     0xfe000000
-+#define FIXADDR_SIZE    (__end_of_fixed_addresses << PAGE_SHIFT)
-+#define FIXADDR_START   (FIXADDR_TOP - FIXADDR_SIZE)
-+
-+/*
-+ * "permanent kernel mappings", defined as long-lasting mappings of
-+ * high-memory page frames into the kernel address space.
-+ */
-+
-+#define LAST_PKMAP	PTRS_PER_PTE
-+#define LAST_PKMAP_MASK	(LAST_PKMAP - 1)
-+#define PKMAP_NR(virt)	((virt - PKMAP_BASE) >> PAGE_SHIFT)
-+#define PKMAP_ADDR(nr)	(PKMAP_BASE + ((nr) << PAGE_SHIFT))
-+
-+/*
-+ * To the "left" of the fixed map space is the kmap space
-+ *
-+ * "Permanent Kernel Mappings"; fancy (or less fancy) PTE table
-+ * that looks like it's actually walked.
-+ * Need to check the alignment/shift usage; some archs use
-+ * PMD_MASK on this value
-+ */
-+#define PKMAP_BASE (FIXADDR_START-PAGE_SIZE*LAST_PKMAP)
-+
-+/*
-+ * 2 pages of guard gap between where vmalloc area ends
-+ * and pkmap_base begins.
-+ */
-+#define VMALLOC_END (PKMAP_BASE-PAGE_SIZE*2)
-+#endif /*  !__ASSEMBLY__  */
-+
-+
-+#endif /* _ASM_HEXAGON_MEM_LAYOUT_H */
-Index: linux-hexagon-kernel/arch/hexagon/mm/init.c
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/mm/init.c	2011-09-07 13:00:31.210647214 -0500
-@@ -0,0 +1,276 @@
-+/*
-+ * Memory subsystem initialization for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/init.h>
++#include <linux/cache.h>
 +#include <linux/mm.h>
-+#include <linux/bootmem.h>
-+#include <asm/atomic.h>
-+#include <linux/highmem.h>
-+#include <asm/tlb.h>
-+#include <asm/sections.h>
-+#include <asm/vm_mmu.h>
++#include <asm/string.h>
++#include <asm-generic/cacheflush.h>
 +
-+/*
-+ * Define a startpg just past the end of the kernel image and a lastpg
-+ * that corresponds to the end of real or simulated platform memory.
-+ */
-+#define bootmem_startpg (PFN_UP(((unsigned long) _end) - PAGE_OFFSET))
-+
-+unsigned long bootmem_lastpg;  /*  Should be set by platform code  */
-+
-+/*  Set as variable to limit PMD copies  */
-+int max_kernel_seg = 0x303;
-+
-+/*  think this should be (page_size-1) the way it's used...*/
-+unsigned long zero_page_mask;
-+
-+/*  indicate pfn's of high memory  */
-+unsigned long highstart_pfn, highend_pfn;
-+
-+/* struct mmu_gather defined in asm-generic.h;  */
-+DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
-+
-+/* Default cache attribute for newly created page tables */
-+unsigned long _dflt_cache_att = CACHEDEF;
-+
-+/*
-+ * The current "generation" of kernel map, which should not roll
-+ * over until Hell freezes over.  Actual bound in years needs to be
-+ * calculated to confirm.
-+ */
-+DEFINE_SPINLOCK(kmap_gen_lock);
-+
-+/*  checkpatch says don't init this to 0.  */
-+unsigned long long kmap_generation;
-+
-+/*
-+ * mem_init - initializes memory
++/* Cache flushing:
 + *
-+ * Frees up bootmem
-+ * Fixes up more stuff for HIGHMEM
-+ * Calculates and displays memory available/used
++ *  - flush_cache_all() flushes entire cache
++ *  - flush_cache_mm(mm) flushes the specified mm context's cache lines
++ *  - flush_cache_page(mm, vmaddr, pfn) flushes a single page
++ *  - flush_cache_range(vma, start, end) flushes a range of pages
++ *  - flush_icache_range(start, end) flush a range of instructions
++ *  - flush_dcache_page(pg) flushes(wback&invalidates) a page for dcache
++ *  - flush_icache_page(vma, pg) flushes(invalidates) a page for icache
++ *
++ *  Need to doublecheck which one is really needed for ptrace stuff to work.
 + */
-+void __init mem_init(void)
-+{
-+	/*  No idea where this is actually declared.  Seems to evade LXR.  */
-+	totalram_pages += free_all_bootmem();
-+	num_physpages = bootmem_lastpg;	/*  seriously, what?  */
-+
-+	printk(KERN_INFO "totalram_pages = %ld\n", totalram_pages);
-+
-+	/*
-+	 *  To-Do:  someone somewhere should wipe out the bootmem map
-+	 *  after we're done?
-+	 */
-+
-+	/*
-+	 * This can be moved to some more virtual-memory-specific
-+	 * initialization hook at some point.  Set the init_mm
-+	 * descriptors "context" value to point to the initial
-+	 * kernel segment table's physical address.
-+	 */
-+	init_mm.context.ptbase = __pa(init_mm.pgd);
-+}
++#define LINESIZE	32
++#define LINEBITS	5
 +
 +/*
-+ * free_initmem - frees memory used by stuff declared with __init
-+ *
-+ * Todo:  free pages between __init_begin and __init_end; possibly
-+ * some devtree related stuff as well.
++ * Flush Dcache range through current map.
 + */
-+void __init_refok free_initmem(void)
-+{
-+}
++extern void flush_dcache_range(unsigned long start, unsigned long end);
 +
 +/*
-+ * free_initrd_mem - frees...  initrd memory.
-+ * @start - start of init memory
-+ * @end - end of init memory
-+ *
-+ * Apparently has to be passed the address of the initrd memory.
-+ *
-+ * Wrapped by #ifdef CONFIG_BLKDEV_INITRD
++ * Flush Icache range through current map.
 + */
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+}
-+
-+void sync_icache_dcache(pte_t pte)
-+{
-+	unsigned long addr;
-+	struct page *page;
-+
-+	page = pte_page(pte);
-+	addr = (unsigned long) page_address(page);
-+
-+	__vmcache_idsync(addr, PAGE_SIZE);
-+}
++#undef flush_icache_range
++extern void flush_icache_range(unsigned long start, unsigned long end);
 +
 +/*
-+ * In order to set up page allocator "nodes",
-+ * somebody has to call free_area_init() for UMA.
-+ *
-+ * In this mode, we only have one pg_data_t
-+ * structure: contig_mem_data.
++ * Memory-management related flushes are there to ensure in non-physically
++ * indexed cache schemes that stale lines belonging to a given ASID aren't
++ * in the cache to confuse things.  The prototype Hexagon Virtual Machine
++ * only uses a single ASID for all user-mode maps, which should
++ * mean that they aren't necessary.  A brute-force, flush-everything
++ * implementation, with the name xxxxx_hexagon() is present in
++ * arch/hexagon/mm/cache.c, but let's not wire it up until we know
++ * it is needed.
 + */
-+void __init paging_init(void)
-+{
-+	unsigned long zones_sizes[MAX_NR_ZONES] = {0, };
-+
-+	/*
-+	 *  This is not particularly well documented anywhere, but
-+	 *  give ZONE_NORMAL all the memory, including the big holes
-+	 *  left by the kernel+bootmem_map which are already left as reserved
-+	 *  in the bootmem_map; free_area_init should see those bits and
-+	 *  adjust accordingly.
-+	 */
-+
-+	zones_sizes[ZONE_NORMAL] = max_low_pfn;
-+
-+	free_area_init(zones_sizes);  /*  sets up the zonelists and mem_map  */
-+
-+	/*
-+	 * Start of high memory area.  Will probably need something more
-+	 * fancy if we...  get more fancy.
-+	 */
-+	high_memory = (void *)((bootmem_lastpg + 1) << PAGE_SHIFT);
-+}
-+
-+#ifndef DMA_RESERVE
-+#define DMA_RESERVE		(4)
-+#endif
-+
-+#define DMA_CHUNKSIZE		(1<<22)
-+#define DMA_RESERVED_BYTES	(DMA_RESERVE * DMA_CHUNKSIZE)
++extern void flush_cache_all_hexagon(void);
 +
 +/*
-+ * Pick out the memory size.  We look for mem=size,
-+ * where size is "size[KkMm]"
++ * This may or may not ever have to be non-null, depending on the
++ * virtual machine MMU.  For a native kernel, it's definitiely  a no-op
++ *
++ * This is also the place where deferred cache coherency stuff seems
++ * to happen, classically...  but instead we do it like ia64 and
++ * clean the cache when the PTE is set.
++ *
 + */
-+static int __init early_mem(char *p)
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++					unsigned long address, pte_t *ptep)
 +{
-+	unsigned long size;
-+	char *endp;
-+
-+	size = memparse(p, &endp);
-+
-+	bootmem_lastpg = PFN_DOWN(size);
-+
-+	return 0;
++	/*  generic_ptrace_pokedata doesn't wind up here, does it?  */
 +}
-+early_param("mem", early_mem);
 +
-+size_t hexagon_coherent_pool_size = (size_t) (DMA_RESERVE << 22);
-+
-+void __init setup_arch_memory(void)
++#undef copy_to_user_page
++static inline void copy_to_user_page(struct vm_area_struct *vma,
++					     struct page *page,
++					     unsigned long vaddr,
++					     void *dst, void *src, int len)
 +{
-+	int bootmap_size;
-+	/*  XXX Todo: this probably should be cleaned up  */
-+	u32 *segtable = (u32 *) &swapper_pg_dir[0];
-+	u32 *segtable_end;
-+
-+	/*
-+	 * Set up boot memory allocator
-+	 *
-+	 * The Gorman book also talks about these functions.
-+	 * This needs to change for highmem setups.
-+	 */
-+
-+	/* Memory size needs to be a multiple of 16M */
-+	bootmem_lastpg = PFN_DOWN((bootmem_lastpg << PAGE_SHIFT) &
-+		~((BIG_KERNEL_PAGE_SIZE) - 1));
-+
-+	/*
-+	 * Reserve the top DMA_RESERVE bytes of RAM for DMA (uncached)
-+	 * memory allocation
-+	 */
-+	bootmap_size = init_bootmem(bootmem_startpg, bootmem_lastpg -
-+				    PFN_DOWN(DMA_RESERVED_BYTES));
-+
-+	printk(KERN_INFO "bootmem_startpg:  0x%08lx\n", bootmem_startpg);
-+	printk(KERN_INFO "bootmem_lastpg:  0x%08lx\n", bootmem_lastpg);
-+	printk(KERN_INFO "bootmap_size:  %d\n", bootmap_size);
-+	printk(KERN_INFO "max_low_pfn:  0x%08lx\n", max_low_pfn);
-+
-+	/*
-+	 * The default VM page tables (will be) populated with
-+	 * VA=PA+PAGE_OFFSET mapping.  We go in and invalidate entries
-+	 * higher than what we have memory for.
-+	 */
-+
-+	/*  this is pointer arithmetic; each entry covers 4MB  */
-+	segtable = segtable + (PAGE_OFFSET >> 22);
-+
-+	/*  this actually only goes to the end of the first gig  */
-+	segtable_end = segtable + (1<<(30-22));
-+
-+	/*  Move forward to the start of empty pages  */
-+	segtable += bootmem_lastpg >> (22-PAGE_SHIFT);
-+
-+	{
-+	    int i;
-+
-+	    for (i = 1 ; i <= DMA_RESERVE ; i++)
-+		segtable[-i] = ((segtable[-i] & __HVM_PTE_PGMASK_4MB)
-+				| __HVM_PTE_R | __HVM_PTE_W | __HVM_PTE_X
-+				| __HEXAGON_C_UNC << 6
-+				| __HVM_PDE_S_4MB);
++	memcpy(dst, src, len);
++	if (vma->vm_flags & VM_EXEC) {
++		flush_icache_range((unsigned long) dst,
++		(unsigned long) dst + len);
 +	}
-+
-+	printk(KERN_INFO "clearing segtable from %p to %p\n", segtable,
-+		segtable_end);
-+	while (segtable < (segtable_end-8))
-+		*(segtable++) = __HVM_PDE_S_INVALID;
-+	/* stop the pointer at the device I/O 4MB page  */
-+
-+	printk(KERN_INFO "segtable = %p (should be equal to _K_io_map)\n",
-+		segtable);
-+
-+#if 0
-+	/*  Other half of the early device table from vm_init_segtable. */
-+	printk(KERN_INFO "&_K_init_devicetable = 0x%08x\n",
-+		(unsigned long) _K_init_devicetable-PAGE_OFFSET);
-+	*segtable = ((u32) (unsigned long) _K_init_devicetable-PAGE_OFFSET) |
-+		__HVM_PDE_S_4KB;
-+	printk(KERN_INFO "*segtable = 0x%08x\n", *segtable);
-+#endif
-+
-+	/*
-+	 * Free all the memory that wasn't taken up by the bootmap, the DMA
-+	 * reserve, or kernel itself.
-+	 */
-+	free_bootmem(PFN_PHYS(bootmem_startpg)+bootmap_size,
-+		     PFN_PHYS(bootmem_lastpg - bootmem_startpg) - bootmap_size -
-+		     DMA_RESERVED_BYTES);
-+
-+	/*
-+	 *  The bootmem allocator seemingly just lives to feed memory
-+	 *  to the paging system
-+	 */
-+	printk(KERN_INFO "PAGE_SIZE=%lu\n", PAGE_SIZE);
-+	paging_init();  /*  See Gorman Book, 2.3  */
-+
-+	/*
-+	 *  At this point, the page allocator is kind of initialized, but
-+	 *  apparently no pages are available (just like with the bootmem
-+	 *  allocator), and need to be freed themselves via mem_init(),
-+	 *  which is called by start_kernel() later on in the process
-+	 */
 +}
-Index: linux-hexagon-kernel/arch/hexagon/mm/vm_fault.c
++
++
++extern void hexagon_inv_dcache_range(unsigned long start, unsigned long end);
++extern void hexagon_clean_dcache_range(unsigned long start, unsigned long end);
++
++#endif
+Index: linux-hexagon-kernel/arch/hexagon/include/asm/cache.h
 ===================================================================
 --- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/mm/vm_fault.c	2011-09-03 20:14:59.804981615 -0500
-@@ -0,0 +1,188 @@
++++ linux-hexagon-kernel/arch/hexagon/include/asm/cache.h	2011-09-08 19:24:27.480690545 -0500
+@@ -0,0 +1,34 @@
 +/*
-+ * Memory fault handling for Hexagon
++ * Cache definitions for the Hexagon architecture
 + *
-+ * Copyright (c) 2010-2011 Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+/*
-+ * Page fault handling for the Hexagon Virtual Machine.
-+ * Can also be called by a native port emulating the HVM
-+ * execptions.
-+ */
-+
-+#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/uaccess.h>
-+#include <linux/mm.h>
-+#include <linux/signal.h>
-+#include <linux/module.h>
-+#include <linux/hardirq.h>
-+
-+/*
-+ * Decode of hardware exception sends us to one of several
-+ * entry points.  At each, we generate canonical arguments
-+ * for handling by the abstract memory management code.
-+ */
-+#define FLT_IFETCH     -1
-+#define FLT_LOAD        0
-+#define FLT_STORE       1
-+
-+
-+/*
-+ * Canonical page fault handler
-+ */
-+void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
-+{
-+	struct vm_area_struct *vma;
-+	struct mm_struct *mm = current->mm;
-+	siginfo_t info;
-+	int si_code;
-+	int fault;
-+	const struct exception_table_entry *fixup;
-+
-+	si_code = SEGV_MAPERR;
-+	local_irq_enable();
-+
-+	/*
-+	 * If we're in an interrupt or have no user context,
-+	 * then must not take the fault.
-+	 */
-+	if (unlikely(in_interrupt() || !mm))
-+		goto no_context;
-+
-+	down_read(&mm->mmap_sem);
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+
-+good_area:
-+	/* Address space is OK.  Now check access rights. */
-+	si_code = SEGV_ACCERR;
-+
-+	switch (cause) {
-+	case FLT_IFETCH:
-+		if (!(vma->vm_flags & VM_EXEC))
-+			goto bad_area;
-+		break;
-+	case FLT_LOAD:
-+		if (!(vma->vm_flags & VM_READ))
-+			goto bad_area;
-+		break;
-+	case FLT_STORE:
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+		break;
-+	}
-+
-+	fault = handle_mm_fault(mm, vma, address, (cause > 0));
-+
-+	/* The most common case -- we are done. */
-+	if (likely(!(fault & VM_FAULT_ERROR))) {
-+		if (fault & VM_FAULT_MAJOR)
-+			current->maj_flt++;
-+		else
-+			current->min_flt++;
-+
-+		up_read(&mm->mmap_sem);
-+		return;
-+	}
-+
-+	up_read(&mm->mmap_sem);
-+
-+	/* Handle copyin/out exception cases */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	if (fault & VM_FAULT_OOM) {
-+		pagefault_out_of_memory();
-+		return;
-+	}
-+
-+	/* User-mode address is in the memory map, but we are
-+	 * unable to fix up the page fault.
-+	 */
-+	if (fault & VM_FAULT_SIGBUS) {
-+		info.si_signo = SIGBUS;
-+		info.si_code = BUS_ADRERR;
-+	}
-+	/* Address is not in the memory map */
-+	else {
-+		info.si_signo = SIGSEGV;
-+		info.si_code = SEGV_ACCERR;
-+	}
-+	info.si_errno = 0;
-+	info.si_addr = (void __user *)address;
-+	force_sig_info(info.si_code, &info, current);
-+	return;
-+
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+	if (user_mode(regs)) {
-+		info.si_signo = SIGSEGV;
-+		info.si_errno = 0;
-+		info.si_code = si_code;
-+		info.si_addr = (void *)address;
-+		force_sig_info(SIGSEGV, &info, current);
-+		return;
-+	}
-+	/* Kernel-mode fault falls through */
-+
-+no_context:
-+	fixup = search_exception_tables(pt_elr(regs));
-+	if (fixup) {
-+		pt_set_elr(regs, fixup->fixup);
-+		return;
-+	}
-+
-+	/* Things are looking very, very bad now */
-+	bust_spinlocks(1);
-+	printk(KERN_EMERG "Unable to handle kernel paging request at "
-+		"virtual address 0x%08lx, regs %p\n", address, regs);
-+	die("Bad Kernel VA", regs, SIGKILL);
-+}
-+
-+
-+void read_protection_fault(struct pt_regs *regs)
-+{
-+	unsigned long badvadr = pt_badva(regs);
-+
-+	do_page_fault(badvadr, FLT_LOAD, regs);
-+}
-+
-+void write_protection_fault(struct pt_regs *regs)
-+{
-+	unsigned long badvadr = pt_badva(regs);
-+
-+	do_page_fault(badvadr, FLT_STORE, regs);
-+}
-+
-+void execute_protection_fault(struct pt_regs *regs)
-+{
-+	unsigned long badvadr = pt_badva(regs);
-+
-+	do_page_fault(badvadr, FLT_IFETCH, regs);
-+}
-Index: linux-hexagon-kernel/arch/hexagon/include/asm/vm_fault.h
-===================================================================
---- /dev/null	1970-01-01 00:00:00.000000000 +0000
-+++ linux-hexagon-kernel/arch/hexagon/include/asm/vm_fault.h	2011-09-03 20:14:59.804981615 -0500
-@@ -0,0 +1,26 @@
-+/*
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -635,14 +154,153 @@ Index: linux-hexagon-kernel/arch/hexagon/include/asm/vm_fault.h
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_HEXAGON_VM_FAULT_H
-+#define _ASM_HEXAGON_VM_FAULT_H
++#ifndef __ASM_CACHE_H
++#define __ASM_CACHE_H
 +
-+extern void execute_protection_fault(struct pt_regs *);
-+extern void write_protection_fault(struct pt_regs *);
-+extern void read_protection_fault(struct pt_regs *);
++/* Bytes per L1 cache line */
++#define L1_CACHE_SHIFT		(5)
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++
++#define __cacheline_aligned	__aligned(L1_CACHE_BYTES)
++#define ____cacheline_aligned	__aligned(L1_CACHE_BYTES)
++
++/* See http://kerneltrap.org/node/15100  */
++#define __read_mostly
 +
 +#endif
+Index: linux-hexagon-kernel/arch/hexagon/mm/cache.c
+===================================================================
+--- /dev/null	1970-01-01 00:00:00.000000000 +0000
++++ linux-hexagon-kernel/arch/hexagon/mm/cache.c	2011-09-08 19:22:01.300239513 -0500
+@@ -0,0 +1,128 @@
++/*
++ * Cache management functions for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/mm.h>
++#include <asm/cacheflush.h>
++#include <asm/hexagon_vm.h>
++
++#define spanlines(start, end) \
++	(((end - (start & ~(LINESIZE - 1))) >> LINEBITS) + 1)
++
++void flush_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleaninva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++void flush_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++			"	dccleana(%0); "
++			"	icinva(%0);	"
++			:
++			: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	__asm__ __volatile__ (
++		"isync"
++	);
++	local_irq_restore(flags);
++}
++
++void hexagon_clean_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleana(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++void hexagon_inv_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dcinva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++
++
++
++/*
++ * This is just really brutal and shouldn't be used anyways,
++ * especially on V2.  Left here just in case.
++ */
++void flush_cache_all_hexagon(void)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	__vmcache_ickill();
++	__vmcache_dckill();
++	__vmcache_l2kill();
++	local_irq_restore(flags);
++	mb();
++}
 
 --
 
