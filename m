@@ -1,39 +1,41 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch v3 24/36] Hexagon: Provide basic implementation and/or stubs for I/O routines.
-Date: Fri, 09 Sep 2011 23:13:12 +0200
-Message-ID: <1883807.RYWKjfNqKd@wuerfel>
-References: <20110909010847.294039464@codeaurora.org> <20110909010916.993872033@codeaurora.org> <20110909191412.GB2034@codeaurora.org>
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Date: Fri, 9 Sep 2011 16:18:08 -0500
+Message-ID: <20110909211808.GA3150@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+ <20110909010916.525482401@codeaurora.org>
+ <CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20110909191412.GB2034@codeaurora.org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:24978 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758767Ab1IIVST (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 17:18:19 -0400
+Content-Disposition: inline
+In-Reply-To: <CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jonas Bonn <jonas.bonn@gmail.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On Friday 09 September 2011 14:14:13 Linas Vepstas wrote:
-> On Thu, Sep 08, 2011 at 08:09:11PM -0500, Richard Kuo wrote:
-> > +     asm volatile(
-> > +             "memb(%0) = %1;"
-> > +             :
-> > +             : "r" (addr), "r" (data)
-> > +     );
+On Fri, Sep 09, 2011 at 10:15:20PM +0200, Jonas Bonn wrote:
 > 
-> I'm kind-of vague on this, but I think that this also needs a
-> : "memory" at the end (to indicate that the asm snippet clobbers
-> memory), as otherwise the compiler may be tempted to reorder
-> these around other memory accesses. That is, the "volatile"
-> keyword is not enough (well, I'm not sure...), but I think
-> "volatile" only prevents the compiler from optimizing these
-> away completely, but is not enough to prevent unwanted
-> re-ordering.
+> That said, I don't think gdbserver has been updated to use
+> GETREGSET/SETREGSET.  This is a bit like the uClibc/glibc issue,
 
-Yes, absolutely correct. Specifically, this is required for the
-case where you first store values into regular memory and then
-use the writel() to trigger a DMA operation. Without the memory
-clobber, the dma may read from memory before the CPU has accessed
-it in case the store gets scheduled after the writel by the compiler.
+Some dumb questions then: I notice that a few arches declare
+struct user_regs_struct in glibc, most of the others in the
+kernel.  If I were to make pt_regs completely kernel-private,
+then I really do need to have struct user_regs_struct declared
+the kernel headers, right? 
 
-	Arnd
+Putting a printk into case PTRACE_POKEUSR seemed to show that
+gdb was using this (and was somehow mis-numbering the registers
+... sigh.) Are you saying that the default should handle this?
+
+--linas
+
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
