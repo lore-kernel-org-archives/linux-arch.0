@@ -1,39 +1,52 @@
-From: "Webmail Administrator" <kamalk@iitk.ac.in>
-Subject: (unknown)
-Date: Sat, 10 Sep 2011 02:31:42 +0530
-Message-ID: <754f49eced2e9b66443ddbe800cc3f2f.squirrel@webmail.iitk.ac.in>
-Reply-To: adming54@shqiptar.eu
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Date: Sat, 10 Sep 2011 08:42:26 +0200
+Message-ID: <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
+References: <20110909010847.294039464@codeaurora.org>
+	<20110909010916.525482401@codeaurora.org>
+	<CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
+	<20110909211808.GA3150@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail4.iitk.ac.in ([202.3.77.189]:56702 "EHLO mail4.iitk.ac.in"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759906Ab1IIWHM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Sep 2011 18:07:12 -0400
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+In-Reply-To: <20110909211808.GA3150@codeaurora.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+List-Id: linux-arch.vger.kernel.org
 
+On 9 September 2011 23:18, Linas Vepstas (Code Aurora)
+<linas@codeaurora.org> wrote:
+> On Fri, Sep 09, 2011 at 10:15:20PM +0200, Jonas Bonn wrote:
+>>
+>> That said, I don't think gdbserver has been updated to use
+>> GETREGSET/SETREGSET. =C2=A0This is a bit like the uClibc/glibc issue=
+,
+>
+> Some dumb questions then: I notice that a few arches declare
+> struct user_regs_struct in glibc, most of the others in the
+> kernel. =C2=A0If I were to make pt_regs completely kernel-private,
+> then I really do need to have struct user_regs_struct declared
+> the kernel headers, right?
 
+Yes, on OpenRISC we declare it in ptrace.h (see
+arch/openrisc/include/asm/ptrace.h).
 
+>
+> Putting a printk into case PTRACE_POKEUSR seemed to show that
+> gdb was using this (and was somehow mis-numbering the registers
+> ... sigh.) Are you saying that the default should handle this?
 
-mailbox has exceeded the storage limit which is 20GB as set by your
-administrator,you are currently running on 20.9GB,you may not be able t=
-o
-send or receive new mail until you re-validate your mailbox.To re-valid=
-ate
-your mailbox please click this
-https://docs.google.com/spreadsheet/viewform?formkey=3DdG9lcmxIb0x1X2tG=
-bDdzMU5ZYW81ZFE6MQ
+I'm really not an expert on GDB, but I believe it can use either the
+PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
+architecture-dependent configuration.  I think the second variant can
+be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
+variant wouldn't be needed at all.
 
-
-Warning!!! All Webmail. Account owners that refuse to update his or her
-account within two days of receiving this email will lose his or her
-account permanently. AGB =A9 upc cablecom GmbH 2011. We apologize for a=
-ny
-inconvenience this may have cause you. Thank you for using Webmail
-
-
-System Administrator.
-Customer Care Unit.
+/Jonas
+--
+To unsubscribe from this list: send the line "unsubscribe linux-hexagon=
+" in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
