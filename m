@@ -1,29 +1,27 @@
-From: Pedro Alves <pedro@codesourcery.com>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Sat, 10 Sep 2011 12:29:57 +0100
-Message-ID: <201109101229.58445.pedro@codesourcery.com>
-References: <20110909010847.294039464@codeaurora.org> <20110909211808.GA3150@codeaurora.org> <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
+From: Miss Alice John <alice_burning@hotmail.com>
+Subject: Miss Alice.
+Date: Sat, 10 Sep 2011 07:24:12 -0700 (PDT)
+Message-ID: <1315664652.61541.YahooMailClassic@web1103.biz.mail.sk1.yahoo.com>
+Reply-To: alicelight02@yahoo.com
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from nm12-vm0.access.bullet.mail.sp2.yahoo.com ([98.139.44.126]:24963
+	"HELO nm12-vm0.access.bullet.mail.sp2.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S932659Ab1IJOYO convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 10 Sep 2011 10:24:14 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Saturday 10 September 2011 07:42:26, Jonas Bonn wrote:
 
-> I'm really not an expert on GDB, but I believe it can use either the
-> PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
-> architecture-dependent configuration.  I think the second variant can
-> be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
-> variant wouldn't be needed at all.
-
-Yes, the x86/x86-64 ports or gdb and gdbserver are already
-using GET/SETREGSET even.
-
--- 
-Pedro Alves
+This message might meet you in utmost surprise; however, it=E2=80=99s j=
+ust my urgent need for a foreign partner that made me to contact you fo=
+r this transaction. I am the Miss Alice John,I am 26 years from Liberia=
+ in West Africa,I need your urgent assistance in transferring the sum o=
+f ($5.9 million) immediately to your account. I will send you full deta=
+ils on how the business will be executed and also note that you will re=
+ceive 40% of the above mentioned amount if you agree to help me execute=
+ this transaction. For more clarification reply=C2=A0 back to me and pl=
+ease note that the claims is 100% risk free.=C2=A0 Miss Alice.
