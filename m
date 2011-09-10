@@ -1,35 +1,29 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Pedro Alves <pedro@codesourcery.com>
 Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Sat, 10 Sep 2011 13:21:25 +0200
-Message-ID: <9538097.pLKYojR4H4@wuerfel>
+Date: Sat, 10 Sep 2011 12:29:57 +0100
+Message-ID: <201109101229.58445.pedro@codesourcery.com>
 References: <20110909010847.294039464@codeaurora.org> <20110909211808.GA3150@codeaurora.org> <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
-Sender: linux-hexagon-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 List-Id: linux-arch.vger.kernel.org
 
-On Saturday 10 September 2011 08:42:26 Jonas Bonn wrote:
-> > Putting a printk into case PTRACE_POKEUSR seemed to show that
-> > gdb was using this (and was somehow mis-numbering the registers
-> > ... sigh.) Are you saying that the default should handle this?
-> 
+On Saturday 10 September 2011 07:42:26, Jonas Bonn wrote:
+
 > I'm really not an expert on GDB, but I believe it can use either the
 > PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
 > architecture-dependent configuration.  I think the second variant can
 > be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
 > variant wouldn't be needed at all.
 
-Yes, I think that is the way to go for new architectures, although
-practically no architecture in the upstream kernel does it this
-way.
+Yes, the x86/x86-64 ports or gdb and gdbserver are already
+using GET/SETREGSET even.
 
-The PEEKUSR/POKEUSR stuff is a relic from ancient Unix time where you
-would directly access a kernel data structure with it, we should get
-over it.
-
-	Arnd
+-- 
+Pedro Alves
