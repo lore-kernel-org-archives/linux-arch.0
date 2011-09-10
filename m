@@ -1,44 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:52192 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933505Ab1IIVNc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Sep 2011 17:13:32 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [patch v3 24/36] Hexagon: Provide basic implementation and/or stubs for I/O routines.
-Date: Fri, 09 Sep 2011 23:13:12 +0200
-Message-ID: <1883807.RYWKjfNqKd@wuerfel>
-In-Reply-To: <20110909191412.GB2034@codeaurora.org>
-References: <20110909010847.294039464@codeaurora.org> <20110909010916.993872033@codeaurora.org> <20110909191412.GB2034@codeaurora.org>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:36225 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753897Ab1IJGm2 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 10 Sep 2011 02:42:28 -0400
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+In-Reply-To: <20110909211808.GA3150@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+	<20110909010916.525482401@codeaurora.org>
+	<CACM3HyGvJQABO3Hi6e+yH+Xoi+S+fctGrH3w4Jm7=zqtnPTXTQ@mail.gmail.com>
+	<20110909211808.GA3150@codeaurora.org>
+Date: Sat, 10 Sep 2011 08:42:26 +0200
+Message-ID: <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110909211312.kZ4_fo2bTVOvV6AzMawOBB8iw-1Knme9cxF8n6hqI3I@z>
+Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+Message-ID: <20110910064226.GAB0DyLrlWGyHwr_2kyfg40F5j0dOKBGPe_hLBfhP54@z>
 
-On Friday 09 September 2011 14:14:13 Linas Vepstas wrote:
-> On Thu, Sep 08, 2011 at 08:09:11PM -0500, Richard Kuo wrote:
-> > +     asm volatile(
-> > +             "memb(%0) = %1;"
-> > +             :
-> > +             : "r" (addr), "r" (data)
-> > +     );
-> 
-> I'm kind-of vague on this, but I think that this also needs a
-> : "memory" at the end (to indicate that the asm snippet clobbers
-> memory), as otherwise the compiler may be tempted to reorder
-> these around other memory accesses. That is, the "volatile"
-> keyword is not enough (well, I'm not sure...), but I think
-> "volatile" only prevents the compiler from optimizing these
-> away completely, but is not enough to prevent unwanted
-> re-ordering.
+On 9 September 2011 23:18, Linas Vepstas (Code Aurora)
+<linas@codeaurora.org> wrote:
+> On Fri, Sep 09, 2011 at 10:15:20PM +0200, Jonas Bonn wrote:
+>>
+>> That said, I don't think gdbserver has been updated to use
+>> GETREGSET/SETREGSET.  This is a bit like the uClibc/glibc issue,
+>
+> Some dumb questions then: I notice that a few arches declare
+> struct user_regs_struct in glibc, most of the others in the
+> kernel.  If I were to make pt_regs completely kernel-private,
+> then I really do need to have struct user_regs_struct declared
+> the kernel headers, right?
 
-Yes, absolutely correct. Specifically, this is required for the
-case where you first store values into regular memory and then
-use the writel() to trigger a DMA operation. Without the memory
-clobber, the dma may read from memory before the CPU has accessed
-it in case the store gets scheduled after the writel by the compiler.
+Yes, on OpenRISC we declare it in ptrace.h (see
+arch/openrisc/include/asm/ptrace.h).
 
-	Arnd
+>
+> Putting a printk into case PTRACE_POKEUSR seemed to show that
+> gdb was using this (and was somehow mis-numbering the registers
+> ... sigh.) Are you saying that the default should handle this?
+
+I'm really not an expert on GDB, but I believe it can use either the
+PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
+architecture-dependent configuration.  I think the second variant can
+be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
+variant wouldn't be needed at all.
+
+/Jonas
