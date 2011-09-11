@@ -1,18 +1,18 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [patch v3 21/36] Hexagon: Add SMP support
-Date: Sun, 11 Sep 2011 11:51:52 -0300
-Message-ID: <1315752712.455.50.camel@pasglop>
+Subject: Re: [patch v3 14/36] Hexagon: Add signal functions
+Date: Sun, 11 Sep 2011 11:59:18 -0300
+Message-ID: <1315753158.455.53.camel@pasglop>
 References: <20110909010847.294039464@codeaurora.org>
-	 <20110909010916.709728186@codeaurora.org>
+	 <20110909010916.028280867@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:54454 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:38220 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754499Ab1IKOv6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 11 Sep 2011 10:51:58 -0400
-In-Reply-To: <20110909010916.709728186@codeaurora.org>
+	id S1754499Ab1IKO70 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 Sep 2011 10:59:26 -0400
+In-Reply-To: <20110909010916.028280867@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Richard Kuo <rkuo@codeaurora.org>
@@ -20,54 +20,24 @@ Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger
 
 On Thu, 2011-09-08 at 20:09 -0500, Richard Kuo wrote:
 
-> +irqreturn_t handle_ipi(int irq, void *desc)
-> +{
-> +	int cpu = smp_processor_id();
-> +	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
-> +	unsigned long ops;
+> +#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
 > +
-> +	while ((ops = xchg(&ipi->bits, 0)) != 0)
-> +		__handle_ipi(&ops, ipi, cpu);
-> +	return IRQ_HANDLED;
-> +}
-
-So on the consumer side you are using xchg() ...
-
-> +void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
-> +{
-> +	unsigned long flags;
-> +	unsigned long cpu;
-> +	unsigned long retval;
+> +struct sigframe {
+> +	unsigned long pad[2]; /* Used to be signal tramp */
+> +	struct sigcontext sc;
+> +	sigset_t mask;
+> +};
 > +
-> +	local_irq_save(flags);
-> +
-> +	for_each_cpu(cpu, cpumask) {
-> +		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
-> +
-> +		spin_lock(&ipi->lock);
-> +		ipi->bits |= 1 << msg;  /*  one bit per message  */
-> +		spin_unlock(&ipi->lock);
-> +
-> +		retval = __vmintop_post(BASE_IPI_IRQ+cpu);
-> +		if (retval != 0) {
-> +			printk(KERN_ERR "interrupt %ld not configured?\n",
-> +				BASE_IPI_IRQ+cpu);
-> +		}
-> +	}
-> +
-> +	local_irq_restore(flags);
-> +}
+> +struct rt_sigframe {
+> +	unsigned long pad[2]; /* Used to be signal tramp */
+> +	struct siginfo info;
+> +	struct ucontext uc;
+> +};
 
-And on the producer side, a spinlock for one or... that looks like wheel
-re-inventing to me :-)
-
-In fact your bit iteration loop also re-invents find_*_bit interfaces.
-
-Any reason why you don't simply use bitops or atomics here ?
-
-Also what is your memory model ? ordered or weakly ordered ? Do you need
-some kind of memory barrier between setting ipi->bits and
-__vmintop_post() ?
+Why did you make two types of signal frames ? It's an unnecessary
+complication... Dunno if you can still fix that (if you can still
+control your ABI that is), but you should look how ppc64 uses the same
+frame for RT and non-RT, avoids duplication of bugs :-)
 
 Cheers,
 Ben.
