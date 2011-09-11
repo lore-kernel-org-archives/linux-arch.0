@@ -1,108 +1,73 @@
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: RE: [patch v3 24/36] Hexagon: Provide basic implementation and/or
- stubs for I/O routines.
-Date: Sun, 11 Sep 2011 11:46:55 -0300
-Message-ID: <1315752415.455.47.camel@pasglop>
+Subject: Re: [patch v3 21/36] Hexagon: Add SMP support
+Date: Sun, 11 Sep 2011 11:51:52 -0300
+Message-ID: <1315752712.455.50.camel@pasglop>
 References: <20110909010847.294039464@codeaurora.org>
-	 <20110909010916.993872033@codeaurora.org>
-	 <20110909191412.GB2034@codeaurora.org> <1883807.RYWKjfNqKd@wuerfel>
-	 <000001cc6ff4$8d706b00$a8514100$@org>
+	 <20110909010916.709728186@codeaurora.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <000001cc6ff4$8d706b00$a8514100$@org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Taylor Simpson <tsimpson@codeaurora.org>
-Cc: 'Arnd Bergmann' <arnd@arndb.de>, "'Linas Vepstas (Code Aurora)'" <linas@codeaurora.org>, 'Richard Kuo' <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:54454 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754499Ab1IKOv6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 Sep 2011 10:51:58 -0400
+In-Reply-To: <20110909010916.709728186@codeaurora.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, Linas Vepstas <linas@codeaurora.org>
 
-On Sat, 2011-09-10 at 15:02 -0500, Taylor Simpson wrote:
-> Using "memory" is a pretty big hammer.  Wouldn't it be better to use a
-> memory operand?
->      asm volatile(
->              "memb(%0) = %1;"
->              : "m" (*(u8*)addr)
->              : "r" (data)
->      );
+On Thu, 2011-09-08 at 20:09 -0500, Richard Kuo wrote:
 
-No you probably really want a full "memory" clobber, because typically
-your IO ops should also act as barriers. The compiler has no way to know
-for example that you want to order previous stores to memory (some DMA
-descriptor you are populating) vs. an MMIO access that will trigger the
-DMA from that location.
+> +irqreturn_t handle_ipi(int irq, void *desc)
+> +{
+> +	int cpu = smp_processor_id();
+> +	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
+> +	unsigned long ops;
+> +
+> +	while ((ops = xchg(&ipi->bits, 0)) != 0)
+> +		__handle_ipi(&ops, ipi, cpu);
+> +	return IRQ_HANDLED;
+> +}
 
-Linux defines the readX/writeX accessors as being fully ordered in that
-case.
+So on the consumer side you are using xchg() ...
 
-In fact, I'm not familiar with Hexagon, but if it's a weakly ordered
-memory model you may also need some kind of memory barrier in those
-accessors.
+> +void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
+> +{
+> +	unsigned long flags;
+> +	unsigned long cpu;
+> +	unsigned long retval;
+> +
+> +	local_irq_save(flags);
+> +
+> +	for_each_cpu(cpu, cpumask) {
+> +		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
+> +
+> +		spin_lock(&ipi->lock);
+> +		ipi->bits |= 1 << msg;  /*  one bit per message  */
+> +		spin_unlock(&ipi->lock);
+> +
+> +		retval = __vmintop_post(BASE_IPI_IRQ+cpu);
+> +		if (retval != 0) {
+> +			printk(KERN_ERR "interrupt %ld not configured?\n",
+> +				BASE_IPI_IRQ+cpu);
+> +		}
+> +	}
+> +
+> +	local_irq_restore(flags);
+> +}
+
+And on the producer side, a spinlock for one or... that looks like wheel
+re-inventing to me :-)
+
+In fact your bit iteration loop also re-invents find_*_bit interfaces.
+
+Any reason why you don't simply use bitops or atomics here ?
+
+Also what is your memory model ? ordered or weakly ordered ? Do you need
+some kind of memory barrier between setting ipi->bits and
+__vmintop_post() ?
 
 Cheers,
 Ben.
-
-> This may be a dumb question, but why do we need inline asm?  Why can't we
-> write this with plain C code?
-> /*
->  * writeb - write a byte to a memory location
->  * @data: data to write to
->  * @addr:  pointer to memory
->  *
->  */
-> static inline void writeb(u8 data, volatile void __iomem *addr) {
-> 	volatile u8 *ptr = (volatile u8*)addr;
-> 	*ptr = data;
-> }
-> 
-> 
-> Taylor
-> 
-> 
-> 
-> -----Original Message-----
-> From: linux-hexagon-owner@vger.kernel.org
-> [mailto:linux-hexagon-owner@vger.kernel.org] On Behalf Of Arnd Bergmann
-> Sent: Friday, September 09, 2011 4:13 PM
-> To: Linas Vepstas (Code Aurora)
-> Cc: Richard Kuo; linux-arch@vger.kernel.org; linux-hexagon@vger.kernel.org;
-> linux-kernel@vger.kernel.org
-> Subject: Re: [patch v3 24/36] Hexagon: Provide basic implementation and/or
-> stubs for I/O routines.
-> 
-> On Friday 09 September 2011 14:14:13 Linas Vepstas wrote:
-> > On Thu, Sep 08, 2011 at 08:09:11PM -0500, Richard Kuo wrote:
-> > > +     asm volatile(
-> > > +             "memb(%0) = %1;"
-> > > +             :
-> > > +             : "r" (addr), "r" (data)
-> > > +     );
-> > 
-> > I'm kind-of vague on this, but I think that this also needs a
-> > : "memory" at the end (to indicate that the asm snippet clobbers
-> > memory), as otherwise the compiler may be tempted to reorder
-> > these around other memory accesses. That is, the "volatile"
-> > keyword is not enough (well, I'm not sure...), but I think
-> > "volatile" only prevents the compiler from optimizing these
-> > away completely, but is not enough to prevent unwanted
-> > re-ordering.
-> 
-> Yes, absolutely correct. Specifically, this is required for the
-> case where you first store values into regular memory and then
-> use the writel() to trigger a DMA operation. Without the memory
-> clobber, the dma may read from memory before the CPU has accessed
-> it in case the store gets scheduled after the writel by the compiler.
-> 
-> 	Arnd
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-hexagon" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
-
-
