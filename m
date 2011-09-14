@@ -1,36 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:27902 "EHLO
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:27906 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932736Ab1IQAqo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:44 -0400
-Message-ID: <e97c6e$3hno06@wolverine02.qualcomm.com>
+	with ESMTP id S932824Ab1IQAqv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:51 -0400
+Message-ID: <e97c6e$3hno09@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:03 -0500
-Subject: [PATCH v4 19/36] Hexagon: Add ptrace support
+Date: Wed, 14 Sep 2011 13:19:06 -0500
+Subject: [PATCH v4 22/36] Hexagon: Add locking types and functions
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181903.TBIG3Z9kToW3YPIcXTiVgb23IR7GIG2_BLVmJ7MRL7w@z>
+Message-ID: <20110914181906.h-hw26HbW9650pgx4MnB8Qsx2zTptkaHaxDyRQavfXM@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/ptrace.h |   48 ++++++++++
- arch/hexagon/kernel/ptrace.c      |  178 +++++++++++++++++++++++++++++++++++++
- 2 files changed, 226 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/ptrace.h
- create mode 100644 arch/hexagon/kernel/ptrace.c
+ arch/hexagon/include/asm/spinlock.h       |  186 +++++++++++++++++++++++++++++
+ arch/hexagon/include/asm/spinlock_types.h |   42 +++++++
+ include/asm-generic/rwsem.h               |  132 ++++++++++++++++++++
+ 3 files changed, 360 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/spinlock.h
+ create mode 100644 arch/hexagon/include/asm/spinlock_types.h
+ create mode 100644 include/asm-generic/rwsem.h
 
-diff --git a/arch/hexagon/include/asm/ptrace.h b/arch/hexagon/include/asm/ptrace.h
+diff --git a/arch/hexagon/include/asm/spinlock.h b/arch/hexagon/include/asm/spinlock.h
 new file mode 100644
-index 0000000..43ceb5e
+index 0000000..168a920
 --- /dev/null
-+++ b/arch/hexagon/include/asm/ptrace.h
-@@ -0,0 +1,48 @@
++++ b/arch/hexagon/include/asm/spinlock.h
+@@ -0,0 +1,186 @@
 +/*
-+ * Ptrace definitions for the Hexagon architecture
++ * Spinlock support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 and
@@ -47,218 +50,357 @@ index 0000000..43ceb5e
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_PTRACE_H
-+#define _ASM_PTRACE_H
++#ifndef _ASM_SPINLOCK_H
++#define _ASM_SPINLOCK_H
 +
-+#include <asm/registers.h>
-+
-+/*  arch_ptrace and ptrace_disable use task_struct in arg lists  */
-+struct task_struct;
++#include <asm/irqflags.h>
 +
 +/*
-+ * ptrace commands not part of Linux base set (but common to essentially
-+ * all supported architectures).
++ * This file is pulled in for SMP builds.
++ * Really need to check all the barrier stuff for "true" SMP
 + */
 +
-+#define PTRACE_GETREGS	12
-+#define PTRACE_SETREGS	13
-+
-+#define N_PTRACE_REGS	44
-+
-+#define instruction_pointer(regs) pt_elr(regs)
-+#define user_stack_pointer(regs) ((regs)->r29)
-+
-+#define profile_pc(regs) instruction_pointer(regs)
-+
-+/* kprobe-based event tracer support */
-+extern int regs_query_register_offset(const char *name);
-+extern const char *regs_query_register_name(unsigned int offset);
-+
-+#endif
-diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
-new file mode 100644
-index 0000000..0f5e04c
---- /dev/null
-+++ b/arch/hexagon/kernel/ptrace.c
-@@ -0,0 +1,178 @@
 +/*
-+ * Ptrace support for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
++ * Read locks:
++ * - load the lock value
++ * - increment it
++ * - if the lock value is still negative, go back and try again.
++ * - unsuccessful store is unsuccessful.  Go back and try again.  Loser.
++ * - successful store new lock value if positive -> lock acquired
 + */
-+
-+#include <generated/compile.h>
-+
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/regset.h>
-+#include <linux/user.h>
-+
-+#include <asm/system.h>
-+#include <asm/user.h>
-+
-+static int genregs_get(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   void *kbuf, void __user *ubuf)
++static inline void arch_read_lock(arch_rwlock_t *lock)
 +{
-+	int ret;
-+	unsigned int dummy;
-+	struct pt_regs *regs = task_pt_regs(target);
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	{ P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
++		"	{ if !P3 jump 1b; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
 +
-+
-+	if (!regs)
-+		return -EIO;
-+
-+	/* The general idea here is that the copyout must happen in
-+	 * exactly the same order in which the userspace expects these
-+	 * regs. Now, the sequence in userspace does not match the
-+	 * sequence in the kernel, so everything past the 32 gprs
-+	 * happens one at a time.
-+	 */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->r00, 0, 32*sizeof(unsigned long));
-+
-+#define ONEXT(KPT_REG, USR_REG) \
-+	if (!ret) \
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, \
-+			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
-+			offsetof(struct user_regs_struct, USR_REG) + \
-+				 sizeof(unsigned long));
-+
-+	/* Must be exactly same sequence as struct user_regs_struct */
-+	ONEXT(&regs->gp, gp);
-+	ONEXT(&regs->ugp, ugp);
-+	ONEXT(&regs->sa0, sa0);
-+	ONEXT(&regs->lc0, lc0);
-+	ONEXT(&regs->sa1, sa1);
-+	ONEXT(&regs->lc1, lc1);
-+	ONEXT(&regs->m0, m0);
-+	ONEXT(&regs->m1, m1);
-+	ONEXT(&regs->preds, p3_0);
-+	ONEXT(&pt_elr(regs), pc);
-+	dummy = pt_cause(regs);
-+	ONEXT(&dummy, cause);
-+	ONEXT(&pt_badva(regs), badva);
-+
-+	/* Pad the rest with zeros, if needed */
-+	if (!ret)
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					sizeof(struct user_regs_struct), -1);
-+	return ret;
 +}
 +
-+static int genregs_set(struct task_struct *target,
-+		   const struct user_regset *regset,
-+		   unsigned int pos, unsigned int count,
-+		   const void *kbuf, const void __user *ubuf)
++static inline void arch_read_unlock(arch_rwlock_t *lock)
 +{
-+	int ret;
-+	unsigned long bucket;
-+	struct pt_regs *regs = task_pt_regs(target);
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	R6 = add(R6,#-1);\n"
++		"	memw_locked(%0,P3) = R6\n"
++		"	if !P3 jump 1b;\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
 +
-+	if (!regs)
-+		return -EIO;
++}
 +
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->r00, 0, 32*sizeof(unsigned long));
++/*  I think this returns 0 on fail, 1 on success.  */
++static inline int arch_read_trylock(arch_rwlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1);\n"
++		"	{ %0 = #0; P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
++		"	{ if !P3 jump 1f; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	{ %0 = P3 }\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
++}
 +
-+#define INEXT(KPT_REG, USR_REG) \
-+	if (!ret) \
-+		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
-+			KPT_REG, offsetof(struct user_regs_struct, USR_REG), \
-+			offsetof(struct user_regs_struct, USR_REG) + \
-+				sizeof(unsigned long));
++static inline int arch_read_can_lock(arch_rwlock_t *rwlock)
++{
++	return rwlock->lock == 0;
++}
 +
-+	/* Must be exactly same sequence as struct user_regs_struct */
-+	INEXT(&regs->gp, gp);
-+	INEXT(&regs->ugp, ugp);
-+	INEXT(&regs->sa0, sa0);
-+	INEXT(&regs->lc0, lc0);
-+	INEXT(&regs->sa1, sa1);
-+	INEXT(&regs->lc1, lc1);
-+	INEXT(&regs->m0, m0);
-+	INEXT(&regs->m1, m1);
-+	INEXT(&regs->preds, p3_0);
-+	INEXT(&pt_elr(regs), pc);
++static inline int arch_write_can_lock(arch_rwlock_t *rwlock)
++{
++	return rwlock->lock == 0;
++}
 +
-+	/* CAUSE and BADVA aren't writeable. */
-+	INEXT(&bucket, cause);
-+	INEXT(&bucket, badva);
++/*  Stuffs a -1 in the lock value?  */
++static inline void arch_write_lock(arch_rwlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0)\n"
++		"	{ P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
++		"	{ if !P3 jump 1b; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++}
 +
-+	/* Ignore the rest, if needed */
-+	if (!ret)
-+		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf,
-+					sizeof(struct user_regs_struct), -1);
 +
-+	if (ret)
-+		return ret;
++static inline int arch_write_trylock(arch_rwlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1)\n"
++		"	{ %0 = #0; P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
++		"	{ if !P3 jump 1f; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	%0 = P3;\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
 +
-+	/*
-+	 * This is special; SP is actually restored by the VM via the
-+	 * special event record which is set by the special trap.
-+	 */
-+	regs->hvmer.vmpsp = regs->r29;
++}
++
++static inline void arch_write_unlock(arch_rwlock_t *lock)
++{
++	smp_mb();
++	lock->lock = 0;
++}
++
++static inline void arch_spin_lock(arch_spinlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	P3 = cmp.eq(R6,#0);\n"
++		"	{ if !P3 jump 1b; R6 = #1; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++
++}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	smp_mb();
++	lock->lock = 0;
++}
++
++static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1);\n"
++		"	P3 = cmp.eq(R6,#0);\n"
++		"	{ if !P3 jump 1f; R6 = #1; %0 = #0; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	%0 = P3;\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
++}
++
++/*
++ * SMP spinlocks are intended to allow only a single CPU at the lock
++ */
++#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
++#define arch_spin_unlock_wait(lock) \
++	do {while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
++#define arch_spin_is_locked(x) ((x)->lock != 0)
++
++#define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
++#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
++
++#endif
+diff --git a/arch/hexagon/include/asm/spinlock_types.h b/arch/hexagon/include/asm/spinlock_types.h
+new file mode 100644
+index 0000000..5e937af
+--- /dev/null
++++ b/arch/hexagon/include/asm/spinlock_types.h
+@@ -0,0 +1,42 @@
++/*
++ * Spinlock support for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SPINLOCK_TYPES_H
++#define _ASM_SPINLOCK_TYPES_H
++
++#include <linux/version.h>
++
++#ifndef __LINUX_SPINLOCK_TYPES_H
++# error "please don't include this file directly"
++#endif
++
++typedef struct {
++	volatile unsigned int lock;
++} arch_spinlock_t;
++
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++
++typedef struct {
++	volatile unsigned int lock;
++} arch_rwlock_t;
++
++#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
++
++#endif
+diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
+new file mode 100644
+index 0000000..bb1e2cd
+--- /dev/null
++++ b/include/asm-generic/rwsem.h
+@@ -0,0 +1,132 @@
++#ifndef _ASM_POWERPC_RWSEM_H
++#define _ASM_POWERPC_RWSEM_H
++
++#ifndef _LINUX_RWSEM_H
++#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
++#endif
++
++#ifdef __KERNEL__
++
++/*
++ * R/W semaphores for PPC using the stuff in lib/rwsem.c.
++ * Adapted largely from include/asm-i386/rwsem.h
++ * by Paul Mackerras <paulus@samba.org>.
++ */
++
++/*
++ * the semaphore definition
++ */
++#ifdef CONFIG_PPC64
++# define RWSEM_ACTIVE_MASK		0xffffffffL
++#else
++# define RWSEM_ACTIVE_MASK		0x0000ffffL
++#endif
++
++#define RWSEM_UNLOCKED_VALUE		0x00000000L
++#define RWSEM_ACTIVE_BIAS		0x00000001L
++#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
++#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
++#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++
++/*
++ * lock for reading
++ */
++static inline void __down_read(struct rw_semaphore *sem)
++{
++	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
++		rwsem_down_read_failed(sem);
++}
++
++static inline int __down_read_trylock(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	while ((tmp = sem->count) >= 0) {
++		if (tmp == cmpxchg(&sem->count, tmp,
++				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
++			return 1;
++		}
++	}
 +	return 0;
 +}
 +
-+enum hexagon_regset {
-+	REGSET_GENERAL,
-+};
-+
-+static const struct user_regset hexagon_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = N_PTRACE_REGS,
-+		.size = sizeof(unsigned long),
-+		.align = sizeof(unsigned long),
-+		.get = genregs_get,
-+		.set = genregs_set,
-+	},
-+};
-+
-+static const struct user_regset_view hexagon_user_view = {
-+	.name = UTS_MACHINE,
-+	.e_machine = ELF_ARCH,
-+	.ei_osabi = ELF_OSABI,
-+	.regsets = hexagon_regsets,
-+	.n = ARRAY_SIZE(hexagon_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++/*
++ * lock for writing
++ */
++static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
 +{
-+	return &hexagon_user_view;
++	long tmp;
++
++	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
++				     (atomic_long_t *)&sem->count);
++	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
++		rwsem_down_write_failed(sem);
 +}
 +
-+void ptrace_disable(struct task_struct *child)
++static inline void __down_write(struct rw_semaphore *sem)
 +{
-+	/* Boilerplate - resolves to null inline if no HW single-step */
-+	user_disable_single_step(child);
++	__down_write_nested(sem, 0);
 +}
 +
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
++static inline int __down_write_trylock(struct rw_semaphore *sem)
 +{
-+	return ptrace_request(child, request, addr, data);
++	long tmp;
++
++	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
++		      RWSEM_ACTIVE_WRITE_BIAS);
++	return tmp == RWSEM_UNLOCKED_VALUE;
 +}
++
++/*
++ * unlock after reading
++ */
++static inline void __up_read(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
++	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
++		rwsem_wake(sem);
++}
++
++/*
++ * unlock after writing
++ */
++static inline void __up_write(struct rw_semaphore *sem)
++{
++	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
++				 (atomic_long_t *)&sem->count) < 0))
++		rwsem_wake(sem);
++}
++
++/*
++ * implement atomic add functionality
++ */
++static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
++{
++	atomic_long_add(delta, (atomic_long_t *)&sem->count);
++}
++
++/*
++ * downgrade write lock to read lock
++ */
++static inline void __downgrade_write(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
++				     (atomic_long_t *)&sem->count);
++	if (tmp < 0)
++		rwsem_downgrade_wake(sem);
++}
++
++/*
++ * implement exchange and add functionality
++ */
++static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
++{
++	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
++}
++
++#endif	/* __KERNEL__ */
++#endif	/* _ASM_POWERPC_RWSEM_H */
 -- 
 1.7.1
 
