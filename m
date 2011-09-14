@@ -1,97 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:62417 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:52089 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932945Ab1IQArT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:47:19 -0400
-Message-ID: <093448$3hsu05@wolverine01.qualcomm.com>
+	with ESMTP id S933049Ab1IQArU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:47:20 -0400
+Message-ID: <093448$3hsu09@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:18 -0500
-Subject: [PATCH v4 34/36] Hexagon: Add basic stacktrace functionality for Hexagon architecture.
+Date: Wed, 14 Sep 2011 13:19:19 -0500
+Subject: [PATCH v4 35/36] Hexagon: Add self to MAINTAINERS
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181918.5iOFEpoRYCn5_y-hWIaNF5SIAYKQiAPCUipSMkRcCdE@z>
+Message-ID: <20110914181919.H4AfqY7dz0-uF1DWJFCcv6nw-SYlicleanJI5CWur9Q@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/kernel/stacktrace.c |   66 ++++++++++++++++++++++++++++++++++++++
- 1 files changed, 66 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/kernel/stacktrace.c
+ MAINTAINERS |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/arch/hexagon/kernel/stacktrace.c b/arch/hexagon/kernel/stacktrace.c
-new file mode 100644
-index 0000000..11c597b
---- /dev/null
-+++ b/arch/hexagon/kernel/stacktrace.c
-@@ -0,0 +1,66 @@
-+/*
-+ * Stacktrace support for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 28f65c2..b67a78b 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5279,6 +5279,12 @@ F:	fs/qnx4/
+ F:	include/linux/qnx4_fs.h
+ F:	include/linux/qnxtypes.h
+ 
++QUALCOMM HEXAGON ARCHITECTURE
++M:	Richard Kuo <rkuo@codeaurora.org>
++L:	linux-hexagon@vger.kernel.org
++S:	Supported
++F:	arch/hexagon/
 +
-+#include <linux/sched.h>
-+#include <linux/stacktrace.h>
-+#include <linux/thread_info.h>
-+#include <linux/module.h>
-+
-+register unsigned long current_frame_pointer asm("r30");
-+
-+struct stackframe {
-+	unsigned long fp;
-+	unsigned long rets;
-+};
-+
-+/*
-+ * Save stack-backtrace addresses into a stack_trace buffer.
-+ */
-+void save_stack_trace(struct stack_trace *trace)
-+{
-+	unsigned long low, high;
-+	unsigned long fp;
-+	struct stackframe *frame;
-+	int skip = trace->skip;
-+
-+	low = (unsigned long)task_stack_page(current);
-+	high = low + THREAD_SIZE;
-+	fp = current_frame_pointer;
-+
-+	while (fp >= low && fp <= (high - sizeof(*frame))) {
-+		frame = (struct stackframe *)fp;
-+
-+		if (skip) {
-+			skip--;
-+		} else {
-+			trace->entries[trace->nr_entries++] = frame->rets;
-+			if (trace->nr_entries >= trace->max_entries)
-+				break;
-+		}
-+
-+		/*
-+		 * The next frame must be at a higher address than the
-+		 * current frame.
-+		 */
-+		low = fp + sizeof(*frame);
-+		fp = frame->fp;
-+	}
-+}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
+ RADOS BLOCK DEVICE (RBD)
+ F:	include/linux/qnxtypes.h
+ M:	Yehuda Sadeh <yehuda@hq.newdream.net>
 -- 
 1.7.1
 
