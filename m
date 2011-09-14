@@ -1,89 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:7362 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:5578 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755977Ab1IQAqN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:13 -0400
-Message-ID: <093448$3hstsm@wolverine01.qualcomm.com>
+	with ESMTP id S1755977Ab1IQAqU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:20 -0400
+Message-ID: <093448$3hstsu@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:18:46 -0500
-Subject: [PATCH v4 02/36] Hexagon: Core arch-specific header files
+Date: Wed, 14 Sep 2011 13:18:50 -0500
+Subject: [PATCH v4 06/36] Hexagon: Add processor and system headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181846.e6m2OR-oaNykpFoOyvttqQbIulcxTM3u6IfGU7tBF2Q@z>
+Message-ID: <20110914181850.-AOGzoMFr1yAEP7WNpwFaxGg8s1zNYUD3AqHasDiV5Y@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/byteorder.h  |   28 ++++
- arch/hexagon/include/asm/elf.h        |  229 +++++++++++++++++++++++++++++++++
- arch/hexagon/include/asm/fpu.h        |    4 +
- arch/hexagon/include/asm/futex.h      |  137 ++++++++++++++++++++
- arch/hexagon/include/asm/linkage.h    |   25 ++++
- arch/hexagon/include/asm/module.h     |   26 ++++
- arch/hexagon/include/asm/param.h      |   26 ++++
- arch/hexagon/include/asm/perf_event.h |   24 ++++
- arch/hexagon/include/asm/string.h     |   32 +++++
- arch/hexagon/include/asm/suspend.h    |   27 ++++
- arch/hexagon/include/asm/swab.h       |   24 ++++
- arch/hexagon/include/asm/timex.h      |   37 ++++++
- 12 files changed, 619 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/byteorder.h
- create mode 100644 arch/hexagon/include/asm/elf.h
- create mode 100644 arch/hexagon/include/asm/fpu.h
- create mode 100644 arch/hexagon/include/asm/futex.h
- create mode 100644 arch/hexagon/include/asm/linkage.h
- create mode 100644 arch/hexagon/include/asm/module.h
- create mode 100644 arch/hexagon/include/asm/param.h
- create mode 100644 arch/hexagon/include/asm/perf_event.h
- create mode 100644 arch/hexagon/include/asm/string.h
- create mode 100644 arch/hexagon/include/asm/suspend.h
- create mode 100644 arch/hexagon/include/asm/swab.h
- create mode 100644 arch/hexagon/include/asm/timex.h
+ arch/hexagon/include/asm/asm-offsets.h |    1 +
+ arch/hexagon/include/asm/irqflags.h    |   62 +++++++++
+ arch/hexagon/include/asm/processor.h   |  123 +++++++++++++++++
+ arch/hexagon/include/asm/registers.h   |  236 ++++++++++++++++++++++++++++++++
+ arch/hexagon/include/asm/system.h      |  126 +++++++++++++++++
+ 5 files changed, 548 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/asm-offsets.h
+ create mode 100644 arch/hexagon/include/asm/irqflags.h
+ create mode 100644 arch/hexagon/include/asm/processor.h
+ create mode 100644 arch/hexagon/include/asm/registers.h
+ create mode 100644 arch/hexagon/include/asm/system.h
 
-diff --git a/arch/hexagon/include/asm/byteorder.h b/arch/hexagon/include/asm/byteorder.h
+diff --git a/arch/hexagon/include/asm/asm-offsets.h b/arch/hexagon/include/asm/asm-offsets.h
 new file mode 100644
-index 0000000..0e19b9f
+index 0000000..d370ee3
 --- /dev/null
-+++ b/arch/hexagon/include/asm/byteorder.h
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_BYTEORDER_H
-+#define _ASM_BYTEORDER_H
-+
-+#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#  define __BYTEORDER_HAS_U64__
-+#endif
-+
-+#include <linux/byteorder/little_endian.h>
-+
-+#endif /* _ASM_BYTEORDER_H */
-diff --git a/arch/hexagon/include/asm/elf.h b/arch/hexagon/include/asm/elf.h
++++ b/arch/hexagon/include/asm/asm-offsets.h
+@@ -0,0 +1 @@
++#include <generated/asm-offsets.h>
+diff --git a/arch/hexagon/include/asm/irqflags.h b/arch/hexagon/include/asm/irqflags.h
 new file mode 100644
-index 0000000..37976a0
+index 0000000..ec15236
 --- /dev/null
-+++ b/arch/hexagon/include/asm/elf.h
-@@ -0,0 +1,229 @@
++++ b/arch/hexagon/include/asm/irqflags.h
+@@ -0,0 +1,62 @@
 +/*
-+ * ELF definitions for the Hexagon architecture
++ * IRQ support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -102,637 +61,551 @@ index 0000000..37976a0
 + * 02110-1301, USA.
 + */
 +
-+#ifndef __ASM_ELF_H
-+#define __ASM_ELF_H
++#ifndef _ASM_IRQFLAGS_H
++#define _ASM_IRQFLAGS_H
 +
-+#include <asm/ptrace.h>
-+#include <asm/user.h>
++#include <asm/hexagon_vm.h>
++#include <linux/types.h>
 +
-+/*
-+ * This should really be in linux/elf-em.h.
-+ */
-+#define EM_HEXAGON	164   /* QUALCOMM Hexagon */
-+
-+struct elf32_hdr;
-+
-+/*
-+ * ELF header e_flags defines.
-+ */
-+
-+/*  should have stuff like "CPU type" and maybe "ABI version", etc  */
-+
-+/* Hexagon relocations */
-+  /* V2 */
-+#define R_HEXAGON_NONE           0
-+#define R_HEXAGON_B22_PCREL      1
-+#define R_HEXAGON_B15_PCREL      2
-+#define R_HEXAGON_B7_PCREL       3
-+#define R_HEXAGON_LO16           4
-+#define R_HEXAGON_HI16           5
-+#define R_HEXAGON_32             6
-+#define R_HEXAGON_16             7
-+#define R_HEXAGON_8              8
-+#define R_HEXAGON_GPREL16_0      9
-+#define R_HEXAGON_GPREL16_1     10
-+#define R_HEXAGON_GPREL16_2     11
-+#define R_HEXAGON_GPREL16_3     12
-+#define R_HEXAGON_HL16          13
-+  /* V3 */
-+#define R_HEXAGON_B13_PCREL     14
-+  /* V4 */
-+#define R_HEXAGON_B9_PCREL      15
-+  /* V4 (extenders) */
-+#define R_HEXAGON_B32_PCREL_X   16
-+#define R_HEXAGON_32_6_X        17
-+  /* V4 (extended) */
-+#define R_HEXAGON_B22_PCREL_X   18
-+#define R_HEXAGON_B15_PCREL_X   19
-+#define R_HEXAGON_B13_PCREL_X   20
-+#define R_HEXAGON_B9_PCREL_X    21
-+#define R_HEXAGON_B7_PCREL_X    22
-+#define R_HEXAGON_16_X          23
-+#define R_HEXAGON_12_X          24
-+#define R_HEXAGON_11_X          25
-+#define R_HEXAGON_10_X          26
-+#define R_HEXAGON_9_X           27
-+#define R_HEXAGON_8_X           28
-+#define R_HEXAGON_7_X           29
-+#define R_HEXAGON_6_X           30
-+  /* V2 PIC */
-+#define R_HEXAGON_32_PCREL      31
-+#define R_HEXAGON_COPY          32
-+#define R_HEXAGON_GLOB_DAT      33
-+#define R_HEXAGON_JMP_SLOT      34
-+#define R_HEXAGON_RELATIVE      35
-+#define R_HEXAGON_PLT_B22_PCREL 36
-+#define R_HEXAGON_GOTOFF_LO16   37
-+#define R_HEXAGON_GOTOFF_HI16   38
-+#define R_HEXAGON_GOTOFF_32     39
-+#define R_HEXAGON_GOT_LO16      40
-+#define R_HEXAGON_GOT_HI16      41
-+#define R_HEXAGON_GOT_32        42
-+#define R_HEXAGON_GOT_16        43
-+
-+/*
-+ * ELF register definitions..
-+ */
-+typedef unsigned long elf_greg_t;
-+
-+typedef struct user_regs_struct elf_gregset_t;
-+#define ELF_NGREG (sizeof(elf_gregset_t)/sizeof(unsigned long))
-+
-+/*  Placeholder  */
-+typedef unsigned long elf_fpregset_t;
-+
-+/*
-+ * Bypass the whole "regsets" thing for now and use the define.
-+ */
-+
-+#define ELF_CORE_COPY_REGS(DEST, REGS)	\
-+do {					\
-+	DEST.r0 = REGS->r00;		\
-+	DEST.r1 = REGS->r01;		\
-+	DEST.r2 = REGS->r02;		\
-+	DEST.r3 = REGS->r03;		\
-+	DEST.r4 = REGS->r04;		\
-+	DEST.r5 = REGS->r05;		\
-+	DEST.r6 = REGS->r06;		\
-+	DEST.r7 = REGS->r07;		\
-+	DEST.r8 = REGS->r08;		\
-+	DEST.r9 = REGS->r09;		\
-+	DEST.r10 = REGS->r10;		\
-+	DEST.r11 = REGS->r11;		\
-+	DEST.r12 = REGS->r12;		\
-+	DEST.r13 = REGS->r13;		\
-+	DEST.r14 = REGS->r14;		\
-+	DEST.r15 = REGS->r15;		\
-+	DEST.r16 = REGS->r16;		\
-+	DEST.r17 = REGS->r17;		\
-+	DEST.r18 = REGS->r18;		\
-+	DEST.r19 = REGS->r19;		\
-+	DEST.r20 = REGS->r20;		\
-+	DEST.r21 = REGS->r21;		\
-+	DEST.r22 = REGS->r22;		\
-+	DEST.r23 = REGS->r23;		\
-+	DEST.r24 = REGS->r24;		\
-+	DEST.r25 = REGS->r25;		\
-+	DEST.r26 = REGS->r26;		\
-+	DEST.r27 = REGS->r27;		\
-+	DEST.r28 = REGS->r28;		\
-+	DEST.r29 = pt_psp(REGS);	\
-+	DEST.r30 = REGS->r30;		\
-+	DEST.r31 = REGS->r31;		\
-+	DEST.sa0 = REGS->sa0;		\
-+	DEST.lc0 = REGS->lc0;		\
-+	DEST.sa1 = REGS->sa1;		\
-+	DEST.lc1 = REGS->lc1;		\
-+	DEST.m0 = REGS->m0;		\
-+	DEST.m1 = REGS->m1;		\
-+	DEST.usr = REGS->usr;		\
-+	DEST.p3_0 = REGS->preds;	\
-+	DEST.gp = REGS->gp;		\
-+	DEST.ugp = REGS->ugp;		\
-+	DEST.pc = pt_elr(REGS);	\
-+	DEST.cause = pt_cause(REGS);	\
-+	DEST.badva = pt_badva(REGS);	\
-+} while (0);
-+
-+
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ * Checks the machine and ABI type.
-+ */
-+#define elf_check_arch(hdr)	((hdr)->e_machine == EM_HEXAGON)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_HEXAGON
-+
-+#ifdef CONFIG_HEXAGON_ARCH_V2
-+#define ELF_CORE_EFLAGS 0x1
-+#endif
-+
-+#ifdef CONFIG_HEXAGON_ARCH_V3
-+#define ELF_CORE_EFLAGS 0x2
-+#endif
-+
-+#ifdef CONFIG_HEXAGON_ARCH_V4
-+#define ELF_CORE_EFLAGS 0x3
-+#endif
-+
-+/*
-+ * Some architectures have ld.so set up a pointer to a function
-+ * to be registered using atexit, to facilitate cleanup.  So that
-+ * static executables will be well-behaved, we would null the register
-+ * in question here, in the pt_regs structure passed.  For now,
-+ * leave it a null macro.
-+ */
-+#define ELF_PLAT_INIT(regs, load_addr) do { } while (0)
-+
-+#define USE_ELF_CORE_DUMP
-+#define CORE_DUMP_USE_REGSET
-+
-+/* Hrm is this going to cause problems for changing PAGE_SIZE?  */
-+#define ELF_EXEC_PAGESIZE	4096
-+
-+/*
-+ * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+ * use of this is to invoke "./ld.so someprog" to test out a new version of
-+ * the loader.  We need to make sure that it is out of the way of the program
-+ * that it will "exec", and that there is sufficient room for the brk.
-+ */
-+#define ELF_ET_DYN_BASE         0x08000000UL
-+
-+/*
-+ * This yields a mask that user programs can use to figure out what
-+ * instruction set this cpu supports.
-+ */
-+#define ELF_HWCAP	(0)
-+
-+/*
-+ * This yields a string that ld.so will use to load implementation
-+ * specific libraries for optimization.  This is more specific in
-+ * intent than poking at uname or /proc/cpuinfo.
-+ */
-+#define ELF_PLATFORM  (NULL)
-+
-+#ifdef __KERNEL__
-+#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
-+#endif
-+
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-+				       int uses_interp);
-+
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/fpu.h b/arch/hexagon/include/asm/fpu.h
-new file mode 100644
-index 0000000..0e135ea
---- /dev/null
-+++ b/arch/hexagon/include/asm/fpu.h
-@@ -0,0 +1,4 @@
-+/*
-+ * If the FPU is used inside the kernel,
-+ * kernel_fpu_end() will be defined here.
-+ */
-diff --git a/arch/hexagon/include/asm/futex.h b/arch/hexagon/include/asm/futex.h
-new file mode 100644
-index 0000000..7e597f8
---- /dev/null
-+++ b/arch/hexagon/include/asm/futex.h
-@@ -0,0 +1,137 @@
-+#ifndef _ASM_HEXAGON_FUTEX_H
-+#define _ASM_HEXAGON_FUTEX_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/futex.h>
-+#include <linux/uaccess.h>
-+#include <asm/errno.h>
-+
-+/* XXX TODO-- need to add sync barriers! */
-+
-+#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg) \
-+	__asm__ __volatile( \
-+	"1: %0 = memw_locked(%3);\n" \
-+	    /* For example: %1 = %4 */ \
-+	    insn \
-+	"2: memw_locked(%3,p2) = %1;\n" \
-+	"   if !p2 jump 1b;\n" \
-+	"   %1 = #0;\n" \
-+	"3:\n" \
-+	".section .fixup,\"ax\"\n" \
-+	"4: %1 = #%5;\n" \
-+	"   jump 3b\n" \
-+	".previous\n" \
-+	".section __ex_table,\"a\"\n" \
-+	".long 1b,4b,2b,4b\n" \
-+	".previous\n" \
-+	: "=&r" (oldval), "=&r" (ret), "+m" (*uaddr) \
-+	: "r" (uaddr), "r" (oparg), "i" (-EFAULT) \
-+	: "p2", "memory")
-+
-+
-+static inline int
-+futex_atomic_op_inuser(int encoded_op, int __user *uaddr)
++static inline unsigned long arch_local_save_flags(void)
 +{
-+	int op = (encoded_op >> 28) & 7;
-+	int cmp = (encoded_op >> 24) & 15;
-+	int oparg = (encoded_op << 8) >> 20;
-+	int cmparg = (encoded_op << 20) >> 20;
-+	int oldval = 0, ret;
-+	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-+		oparg = 1 << oparg;
-+
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
-+		return -EFAULT;
-+
-+	pagefault_disable();
-+
-+	switch (op) {
-+	case FUTEX_OP_SET:
-+		__futex_atomic_op("%1 = %4\n", ret, oldval, uaddr, oparg);
-+		break;
-+	case FUTEX_OP_ADD:
-+		__futex_atomic_op("%1 = add(%0,%4)\n", ret, oldval, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_OR:
-+		__futex_atomic_op("%1 = or(%0,%4)\n", ret, oldval, uaddr,
-+				  oparg);
-+		break;
-+	case FUTEX_OP_ANDN:
-+		__futex_atomic_op("%1 = not(%4); %1 = and(%0,%1)\n", ret,
-+				  oldval, uaddr, oparg);
-+		break;
-+	case FUTEX_OP_XOR:
-+		__futex_atomic_op("%1 = xor(%0,%4)\n", ret, oldval, uaddr,
-+				  oparg);
-+		break;
-+	default:
-+		ret = -ENOSYS;
-+	}
-+
-+	pagefault_enable();
-+
-+	if (!ret) {
-+		switch (cmp) {
-+		case FUTEX_OP_CMP_EQ:
-+			ret = (oldval == cmparg);
-+			break;
-+		case FUTEX_OP_CMP_NE:
-+			ret = (oldval != cmparg);
-+			break;
-+		case FUTEX_OP_CMP_LT:
-+			ret = (oldval < cmparg);
-+			break;
-+		case FUTEX_OP_CMP_GE:
-+			ret = (oldval >= cmparg);
-+			break;
-+		case FUTEX_OP_CMP_LE:
-+			ret = (oldval <= cmparg);
-+			break;
-+		case FUTEX_OP_CMP_GT:
-+			ret = (oldval > cmparg);
-+			break;
-+		default:
-+			ret = -ENOSYS;
-+		}
-+	}
-+	return ret;
++	return __vmgetie();
 +}
 +
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 oldval,
-+			      u32 newval)
++static inline unsigned long arch_local_irq_save(void)
 +{
-+	int prev;
-+	int ret;
++	return __vmsetie(VM_INT_DISABLE);
++}
 +
-+	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+		return -EFAULT;
++static inline bool arch_irqs_disabled_flags(unsigned long flags)
++{
++	return !flags;
++}
++
++static inline bool arch_irqs_disabled(void)
++{
++	return !__vmgetie();
++}
++
++static inline void arch_local_irq_enable(void)
++{
++	__vmsetie(VM_INT_ENABLE);
++}
++
++static inline void arch_local_irq_disable(void)
++{
++	__vmsetie(VM_INT_DISABLE);
++}
++
++static inline void arch_local_irq_restore(unsigned long flags)
++{
++	__vmsetie(flags);
++}
++
++#endif
+diff --git a/arch/hexagon/include/asm/processor.h b/arch/hexagon/include/asm/processor.h
+new file mode 100644
+index 0000000..20c5dda
+--- /dev/null
++++ b/arch/hexagon/include/asm/processor.h
+@@ -0,0 +1,123 @@
++/*
++ * Process/processor support for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_PROCESSOR_H
++#define _ASM_PROCESSOR_H
++
++#ifndef __ASSEMBLY__
++
++#include <asm/mem-layout.h>
++#include <asm/registers.h>
++#include <asm/hexagon_vm.h>
++
++/*  must be a macro  */
++#define current_text_addr() ({ __label__ _l; _l: &&_l; })
++
++/*  task_struct, defined elsewhere, is the "process descriptor" */
++struct task_struct;
++
++/*  this is defined in arch/process.c  */
++extern pid_t kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
++extern unsigned long thread_saved_pc(struct task_struct *tsk);
++
++extern void start_thread(struct pt_regs *, unsigned long, unsigned long);
++
++/*
++ * thread_struct is supposed to be for context switch data.
++ * Specifically, to hold the state necessary to perform switch_to...
++ */
++struct thread_struct {
++	void *switch_sp;
++};
++
++/*
++ * initializes thread_struct
++ * The only thing we have in there is switch_sp
++ * which doesn't really need to be initialized.
++ */
++
++#define INIT_THREAD { \
++}
++
++#define cpu_relax() __vmyield()
++
++/*
++ * "Unlazying all lazy status" occurs here.
++ */
++static inline void prepare_to_copy(struct task_struct *tsk)
++{
++}
++
++/*
++ * Decides where the kernel will search for a free chunk of vm space during
++ * mmaps.
++ * See also arch_get_unmapped_area.
++ * Doesn't affect if you have MAX_FIXED in the page flags set though...
++ *
++ * Apparently the convention is that ld.so will ask for "unmapped" private
++ * memory to be allocated SOMEWHERE, but it also asks for memory explicitly
++ * via MAP_FIXED at the lower * addresses starting at VA=0x0.
++ *
++ * If the two requests collide, you get authentic segfaulting action, so
++ * you have to kick the "unmapped" base requests higher up.
++ */
++#define TASK_UNMAPPED_BASE	(PAGE_ALIGN(TASK_SIZE/3))
++
++
++#define task_pt_regs(task) \
++	((struct pt_regs *)(task_stack_page(task) + THREAD_SIZE) - 1)
++
++#define KSTK_EIP(tsk) (pt_elr(task_pt_regs(tsk)))
++#define KSTK_ESP(tsk) (pt_psp(task_pt_regs(tsk)))
++
++/*  Free all resources held by a thread; defined in process.c  */
++extern void release_thread(struct task_struct *dead_task);
++
++/* Get wait channel for task P.  */
++extern unsigned long get_wchan(struct task_struct *p);
++
++/*  The following stuff is pretty HEXAGON specific.  */
++
++/*  This is really just here for __switch_to.
++    Offsets are pulled via asm-offsets.c  */
++
++/*
++ * No real reason why VM and native switch stacks should be different.
++ * Ultimately this should merge.  Note that Rev C. ABI called out only
++ * R24-27 as callee saved GPRs needing explicit attention (R29-31 being
++ * dealt with automagically by allocframe), but the current ABI has
++ * more, R16-R27.  By saving more, the worst case is that we waste some
++ * cycles if building with the old compilers.
++ */
++
++struct hexagon_switch_stack {
++	unsigned long long	r1716;
++	unsigned long long	r1918;
++	unsigned long long	r2120;
++	unsigned long long	r2322;
++	unsigned long long	r2524;
++	unsigned long long	r2726;
++	unsigned long		fp;
++	unsigned long		lr;
++};
++
++#endif /* !__ASSEMBLY__ */
++
++#endif
+diff --git a/arch/hexagon/include/asm/registers.h b/arch/hexagon/include/asm/registers.h
+new file mode 100644
+index 0000000..4dd741b
+--- /dev/null
++++ b/arch/hexagon/include/asm/registers.h
+@@ -0,0 +1,236 @@
++/*
++ * Register definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_REGISTERS_H
++#define _ASM_REGISTERS_H
++
++#define SP r29
++
++#ifndef __ASSEMBLY__
++
++/*  See kernel/entry.S for further documentation.  */
++
++/*
++ * Entry code copies the event record out of guest registers into
++ * this structure (which is on the stack).
++ */
++
++struct hvm_event_record {
++	unsigned long vmel;     /* Event Linkage (return address) */
++	unsigned long vmest;    /* Event context - pre-event SSR values */
++	unsigned long vmpsp;    /* Previous stack pointer */
++	unsigned long vmbadva;  /* Bad virtual address for addressing events */
++};
++
++struct pt_regs {
++	long restart_r0;        /* R0 checkpoint for syscall restart */
++	long syscall_nr;        /* Only used in system calls */
++	union {
++		struct {
++			unsigned long usr;
++			unsigned long preds;
++		};
++		long long int predsusr;
++	};
++	union {
++		struct {
++			unsigned long m0;
++			unsigned long m1;
++		};
++		long long int m1m0;
++	};
++	union {
++		struct {
++			unsigned long sa1;
++			unsigned long lc1;
++		};
++		long long int lc1sa1;
++	};
++	union {
++		struct {
++			unsigned long sa0;
++			unsigned long lc0;
++		};
++		long long int lc0sa0;
++	};
++	union {
++		struct {
++			unsigned long gp;
++			unsigned long ugp;
++		};
++		long long int ugpgp;
++	};
++	/*
++	* Be extremely careful with rearranging these, if at all.  Some code
++	* assumes the 32 registers exist exactly like this in memory;
++	* e.g. kernel/ptrace.c
++	* e.g. kernel/signal.c (restore_sigcontext)
++	*/
++	union {
++		struct {
++			unsigned long r00;
++			unsigned long r01;
++		};
++		long long int r0100;
++	};
++	union {
++		struct {
++			unsigned long r02;
++			unsigned long r03;
++		};
++		long long int r0302;
++	};
++	union {
++		struct {
++			unsigned long r04;
++			unsigned long r05;
++		};
++		long long int r0504;
++	};
++	union {
++		struct {
++			unsigned long r06;
++			unsigned long r07;
++		};
++		long long int r0706;
++	};
++	union {
++		struct {
++			unsigned long r08;
++			unsigned long r09;
++		};
++		long long int r0908;
++	};
++	union {
++	       struct {
++			unsigned long r10;
++			unsigned long r11;
++	       };
++	       long long int r1110;
++	};
++	union {
++	       struct {
++			unsigned long r12;
++			unsigned long r13;
++	       };
++	       long long int r1312;
++	};
++	union {
++	       struct {
++			unsigned long r14;
++			unsigned long r15;
++	       };
++	       long long int r1514;
++	};
++	union {
++		struct {
++			unsigned long r16;
++			unsigned long r17;
++		};
++		long long int r1716;
++	};
++	union {
++		struct {
++			unsigned long r18;
++			unsigned long r19;
++		};
++		long long int r1918;
++	};
++	union {
++		struct {
++			unsigned long r20;
++			unsigned long r21;
++		};
++		long long int r2120;
++	};
++	union {
++		struct {
++			unsigned long r22;
++			unsigned long r23;
++		};
++		long long int r2322;
++	};
++	union {
++		struct {
++			unsigned long r24;
++			unsigned long r25;
++		};
++		long long int r2524;
++	};
++	union {
++		struct {
++			unsigned long r26;
++			unsigned long r27;
++		};
++		long long int r2726;
++	};
++	union {
++		struct {
++			unsigned long r28;
++			unsigned long r29;
++	       };
++	       long long int r2928;
++	};
++	union {
++		struct {
++			unsigned long r30;
++			unsigned long r31;
++		};
++		long long int r3130;
++	};
++	/* VM dispatch pushes event record onto stack - we can build on it */
++	struct hvm_event_record hvmer;
++};
++
++/* Defines to conveniently access the values  */
++
++/*
++ * As of the VM spec 0.5, these registers are now set/retrieved via a
++ * VM call.  On the in-bound side, we just fetch the values
++ * at the entry points and stuff them into the old record in pt_regs.
++ * However, on the outbound side, probably at VM rte, we set the
++ * registers back.
++ */
++
++#define pt_elr(regs) ((regs)->hvmer.vmel)
++#define pt_set_elr(regs, val) ((regs)->hvmer.vmel = (val))
++#define pt_cause(regs) ((regs)->hvmer.vmest & (HVM_VMEST_CAUSE_MSK))
++#define user_mode(regs) \
++	(((regs)->hvmer.vmest & (HVM_VMEST_UM_MSK << HVM_VMEST_UM_SFT)) != 0)
++#define ints_enabled(regs) \
++	(((regs)->hvmer.vmest & (HVM_VMEST_IE_MSK << HVM_VMEST_IE_SFT)) != 0)
++#define pt_psp(regs) ((regs)->hvmer.vmpsp)
++#define pt_badva(regs) ((regs)->hvmer.vmbadva)
++
++#define pt_set_rte_sp(regs, sp) do {\
++	pt_psp(regs) = (sp);\
++	(regs)->SP = (unsigned long) &((regs)->hvmer);\
++	} while (0)
++
++#define pt_set_kmode(regs) \
++	(regs)->hvmer.vmest = (HVM_VMEST_IE_MSK << HVM_VMEST_IE_SFT)
++
++#define pt_set_usermode(regs) \
++	(regs)->hvmer.vmest = (HVM_VMEST_UM_MSK << HVM_VMEST_UM_SFT) \
++			    | (HVM_VMEST_IE_MSK << HVM_VMEST_IE_SFT)
++
++#endif  /*  ifndef __ASSEMBLY  */
++
++#endif
+diff --git a/arch/hexagon/include/asm/system.h b/arch/hexagon/include/asm/system.h
+new file mode 100644
+index 0000000..323ed1d
+--- /dev/null
++++ b/arch/hexagon/include/asm/system.h
+@@ -0,0 +1,126 @@
++/*
++ * System level definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SYSTEM_H
++#define _ASM_SYSTEM_H
++
++#include <linux/linkage.h>
++#include <linux/irqflags.h>
++#include <asm/atomic.h>
++#include <asm/hexagon_vm.h>
++
++struct thread_struct;
++
++extern struct task_struct *__switch_to(struct task_struct *,
++	struct task_struct *,
++	struct task_struct *);
++
++#define switch_to(p, n, r) do {\
++	r = __switch_to((p), (n), (r));\
++} while (0)
++
++
++#define rmb()				barrier()
++#define read_barrier_depends()		barrier()
++#define wmb()				barrier()
++#define mb()				barrier()
++#define smp_rmb()			barrier()
++#define smp_read_barrier_depends()	barrier()
++#define smp_wmb()			barrier()
++#define smp_mb()			barrier()
++#define smp_mb__before_atomic_dec()	barrier()
++#define smp_mb__after_atomic_dec()	barrier()
++#define smp_mb__before_atomic_inc()	barrier()
++#define smp_mb__after_atomic_inc()	barrier()
++
++/*
++ * __xchg - atomically exchange a register and a memory location
++ * @x: value to swap
++ * @ptr: pointer to memory
++ * @size:  size of the value
++ *
++ * Only 4 bytes supported currently.
++ *
++ * Note:  there was an errata for V2 about .new's and memw_locked.
++ *
++ */
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++				   int size)
++{
++	unsigned long retval;
++
++	/*  Can't seem to use printk or panic here, so just stop  */
++	if (size != 4) do { asm volatile("brkpt;\n"); } while (1);
 +
 +	__asm__ __volatile__ (
-+	"1: %1 = memw_locked(%3)\n"
-+	"   {\n"
-+	"      p2 = cmp.eq(%1,%4)\n"
-+	"      if !p2.new jump:NT 3f\n"
-+	"   }\n"
-+	"2: memw_locked(%3,p2) = %5\n"
-+	"   if !p2 jump 1b\n"
-+	"3:\n"
-+	".section .fixup,\"ax\"\n"
-+	"4: %0 = #%6\n"
-+	"   jump 3b\n"
-+	".previous\n"
-+	".section __ex_table,\"a\"\n"
-+	".long 1b,4b,2b,4b\n"
-+	".previous\n"
-+	: "+r" (ret), "=&r" (prev), "+m" (*uaddr)
-+	: "r" (uaddr), "r" (oldval), "r" (newval), "i"(-EFAULT)
-+	: "p2", "memory");
-+
-+	*uval = prev;
-+	return ret;
++	"1:	%0 = memw_locked(%1);\n"    /*  load into retval */
++	"	memw_locked(%1,P0) = %2;\n" /*  store into memory */
++	"	if !P0 jump 1b;\n"
++	: "=&r" (retval)
++	: "r" (ptr), "r" (x)
++	: "memory", "p0"
++	);
++	return retval;
 +}
 +
-+#endif /* __KERNEL__ */
-+#endif /* _ASM_HEXAGON_FUTEX_H */
-diff --git a/arch/hexagon/include/asm/linkage.h b/arch/hexagon/include/asm/linkage.h
-new file mode 100644
-index 0000000..a00b85f
---- /dev/null
-+++ b/arch/hexagon/include/asm/linkage.h
-@@ -0,0 +1,25 @@
 +/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
++ * Atomically swap the contents of a register with memory.  Should be atomic
++ * between multiple CPU's and within interrupts on the same CPU.
 + */
++#define xchg(ptr, v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v), (ptr), \
++	sizeof(*(ptr))))
 +
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
++/*  Set a value and use a memory barrier.  Used by the scheduler somewhere.  */
++#define set_mb(var, value) \
++	do { var = value; mb(); } while (0)
 +
-+#define __ALIGN		.align 4
-+#define __ALIGN_STR	".align 4"
++/*
++ *  see rt-mutex-design.txt; cmpxchg supposedly checks if *ptr == A and swaps.
++ *  looks just like atomic_cmpxchg on our arch currently with a bunch of
++ *  variable casting.
++ */
++#define __HAVE_ARCH_CMPXCHG 1
++
++#define cmpxchg(ptr, old, new)					\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(*(ptr)) __old = (old);			\
++	__typeof__(*(ptr)) __new = (new);			\
++	__typeof__(*(ptr)) __oldval = 0;			\
++								\
++	asm volatile(						\
++		"1:	%0 = memw_locked(%1);\n"		\
++		"	{ P0 = cmp.eq(%0,%2);\n"		\
++		"	  if (!P0.new) jump:nt 2f; }\n"		\
++		"	memw_locked(%1,p0) = %3;\n"		\
++		"	if (!P0) jump 1b;\n"			\
++		"2:\n"						\
++		: "=&r" (__oldval)				\
++		: "r" (__ptr), "r" (__old), "r" (__new)		\
++		: "memory", "p0"				\
++	);							\
++	__oldval;						\
++})
++
++/*  Should probably shoot for an 8-byte aligned stack pointer  */
++#define STACK_MASK (~7)
++#define arch_align_stack(x) (x & STACK_MASK)
 +
 +#endif
-diff --git a/arch/hexagon/include/asm/module.h b/arch/hexagon/include/asm/module.h
-new file mode 100644
-index 0000000..72ba494
---- /dev/null
-+++ b/arch/hexagon/include/asm/module.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_MODULE_H
-+#define _ASM_MODULE_H
-+
-+#include <asm-generic/module.h>
-+
-+#define MODULE_ARCH_VERMAGIC __stringify(PROCESSOR_MODEL_NAME) " "
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/param.h b/arch/hexagon/include/asm/param.h
-new file mode 100644
-index 0000000..285344b
---- /dev/null
-+++ b/arch/hexagon/include/asm/param.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_PARAM_H
-+#define _ASM_PARAM_H
-+
-+#define EXEC_PAGESIZE	16384
-+
-+#include <asm-generic/param.h>
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/perf_event.h b/arch/hexagon/include/asm/perf_event.h
-new file mode 100644
-index 0000000..6c2910f
---- /dev/null
-+++ b/arch/hexagon/include/asm/perf_event.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_PERF_EVENT_H
-+#define _ASM_PERF_EVENT_H
-+
-+#define PERF_EVENT_INDEX_OFFSET	0
-+
-+#endif /* _ASM_PERF_EVENT_H */
-diff --git a/arch/hexagon/include/asm/string.h b/arch/hexagon/include/asm/string.h
-new file mode 100644
-index 0000000..f4489c1
---- /dev/null
-+++ b/arch/hexagon/include/asm/string.h
-@@ -0,0 +1,32 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_STRING_H_
-+#define _ASM_STRING_H_
-+
-+#ifdef __KERNEL__
-+#define __HAVE_ARCH_MEMCPY
-+extern void *memcpy(void *__to, __const__ void *__from, size_t __n);
-+
-+/*  ToDo:  use dczeroa, accelerate the compiler-constant zero case  */
-+#define __HAVE_ARCH_MEMSET
-+extern void *memset(void *__to, int c, size_t __n);
-+#endif
-+
-+
-+#endif /* _ASM_STRING_H_ */
-diff --git a/arch/hexagon/include/asm/suspend.h b/arch/hexagon/include/asm/suspend.h
-new file mode 100644
-index 0000000..089dd82
---- /dev/null
-+++ b/arch/hexagon/include/asm/suspend.h
-@@ -0,0 +1,27 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SUSPEND_H
-+#define _ASM_SUSPEND_H
-+
-+static inline int arch_prepare_suspend(void)
-+{
-+	return 0;
-+}
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/swab.h b/arch/hexagon/include/asm/swab.h
-new file mode 100644
-index 0000000..99cf0be
---- /dev/null
-+++ b/arch/hexagon/include/asm/swab.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SWAB_H
-+#define _ASM_SWAB_H
-+
-+#define __SWAB_64_THRU_32__
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/timex.h b/arch/hexagon/include/asm/timex.h
-new file mode 100644
-index 0000000..09cd843
---- /dev/null
-+++ b/arch/hexagon/include/asm/timex.h
-@@ -0,0 +1,37 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_TIMEX_H
-+#define _ASM_TIMEX_H
-+
-+#include <asm-generic/timex.h>
-+#include <asm/timer-regs.h>
-+
-+/* Using TCX0 as our clock.  CLOCK_TICK_RATE scheduled to be removed. */
-+#define CLOCK_TICK_RATE              TCX0_CLK_RATE
-+
-+#define ARCH_HAS_READ_CURRENT_TIMER
-+
-+static inline int read_current_timer(unsigned long *timer_val)
-+{
-+	*timer_val = (unsigned long) __vmgettime();
-+	return 0;
-+}
-+
-+#endif
-+
 -- 
 1.7.1
 
