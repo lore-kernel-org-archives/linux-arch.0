@@ -1,37 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:5608 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:7362 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932756Ab1IQAqr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:47 -0400
-Message-ID: <093448$3hstu8@wolverine01.qualcomm.com>
+	with ESMTP id S1755977Ab1IQAqN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:13 -0400
+Message-ID: <093448$3hstsm@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:05 -0500
-Subject: [PATCH v4 21/36] Hexagon: Add SMP support
+Date: Wed, 14 Sep 2011 13:18:46 -0500
+Subject: [PATCH v4 02/36] Hexagon: Core arch-specific header files
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181905.oKQN7cxGZYeJXrNTaJgLoGcio9Wtn1n7kvghJ3d-5hE@z>
+Message-ID: <20110914181846.e6m2OR-oaNykpFoOyvttqQbIulcxTM3u6IfGU7tBF2Q@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/smp.h |   44 +++++++
- arch/hexagon/kernel/smp.c      |  280 ++++++++++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/topology.c |   52 ++++++++
- 3 files changed, 376 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/smp.h
- create mode 100644 arch/hexagon/kernel/smp.c
- create mode 100644 arch/hexagon/kernel/topology.c
+ arch/hexagon/include/asm/byteorder.h  |   28 ++++
+ arch/hexagon/include/asm/elf.h        |  229 +++++++++++++++++++++++++++++++++
+ arch/hexagon/include/asm/fpu.h        |    4 +
+ arch/hexagon/include/asm/futex.h      |  137 ++++++++++++++++++++
+ arch/hexagon/include/asm/linkage.h    |   25 ++++
+ arch/hexagon/include/asm/module.h     |   26 ++++
+ arch/hexagon/include/asm/param.h      |   26 ++++
+ arch/hexagon/include/asm/perf_event.h |   24 ++++
+ arch/hexagon/include/asm/string.h     |   32 +++++
+ arch/hexagon/include/asm/suspend.h    |   27 ++++
+ arch/hexagon/include/asm/swab.h       |   24 ++++
+ arch/hexagon/include/asm/timex.h      |   37 ++++++
+ 12 files changed, 619 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/byteorder.h
+ create mode 100644 arch/hexagon/include/asm/elf.h
+ create mode 100644 arch/hexagon/include/asm/fpu.h
+ create mode 100644 arch/hexagon/include/asm/futex.h
+ create mode 100644 arch/hexagon/include/asm/linkage.h
+ create mode 100644 arch/hexagon/include/asm/module.h
+ create mode 100644 arch/hexagon/include/asm/param.h
+ create mode 100644 arch/hexagon/include/asm/perf_event.h
+ create mode 100644 arch/hexagon/include/asm/string.h
+ create mode 100644 arch/hexagon/include/asm/suspend.h
+ create mode 100644 arch/hexagon/include/asm/swab.h
+ create mode 100644 arch/hexagon/include/asm/timex.h
 
-diff --git a/arch/hexagon/include/asm/smp.h b/arch/hexagon/include/asm/smp.h
+diff --git a/arch/hexagon/include/asm/byteorder.h b/arch/hexagon/include/asm/byteorder.h
 new file mode 100644
-index 0000000..87c869a
+index 0000000..0e19b9f
 --- /dev/null
-+++ b/arch/hexagon/include/asm/smp.h
-@@ -0,0 +1,44 @@
++++ b/arch/hexagon/include/asm/byteorder.h
+@@ -0,0 +1,28 @@
 +/*
-+ * SMP definitions for the Hexagon architecture
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_BYTEORDER_H
++#define _ASM_BYTEORDER_H
++
++#if defined(__GNUC__) && !defined(__STRICT_ANSI__) || defined(__KERNEL__)
++#  define __BYTEORDER_HAS_U64__
++#endif
++
++#include <linux/byteorder/little_endian.h>
++
++#endif /* _ASM_BYTEORDER_H */
+diff --git a/arch/hexagon/include/asm/elf.h b/arch/hexagon/include/asm/elf.h
+new file mode 100644
+index 0000000..37976a0
+--- /dev/null
++++ b/arch/hexagon/include/asm/elf.h
+@@ -0,0 +1,229 @@
++/*
++ * ELF definitions for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -50,39 +102,375 @@ index 0000000..87c869a
 + * 02110-1301, USA.
 + */
 +
-+#ifndef __ASM_SMP_H
-+#define __ASM_SMP_H
++#ifndef __ASM_ELF_H
++#define __ASM_ELF_H
 +
-+#include <linux/cpumask.h>
++#include <asm/ptrace.h>
++#include <asm/user.h>
 +
-+#define raw_smp_processor_id() (current_thread_info()->cpu)
++/*
++ * This should really be in linux/elf-em.h.
++ */
++#define EM_HEXAGON	164   /* QUALCOMM Hexagon */
 +
-+enum ipi_message_type {
-+	IPI_NOP = 0,
-+	IPI_RESCHEDULE = 1,
-+	IPI_CALL_FUNC,
-+	IPI_CALL_FUNC_SINGLE,
-+	IPI_CPU_STOP,
-+	IPI_TIMER,
-+};
++struct elf32_hdr;
 +
-+extern void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg);
-+extern void smp_start_cpus(void);
-+extern void arch_send_call_function_single_ipi(int cpu);
-+extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++/*
++ * ELF header e_flags defines.
++ */
 +
-+extern void smp_vm_unmask_irq(void *info);
++/*  should have stuff like "CPU type" and maybe "ABI version", etc  */
++
++/* Hexagon relocations */
++  /* V2 */
++#define R_HEXAGON_NONE           0
++#define R_HEXAGON_B22_PCREL      1
++#define R_HEXAGON_B15_PCREL      2
++#define R_HEXAGON_B7_PCREL       3
++#define R_HEXAGON_LO16           4
++#define R_HEXAGON_HI16           5
++#define R_HEXAGON_32             6
++#define R_HEXAGON_16             7
++#define R_HEXAGON_8              8
++#define R_HEXAGON_GPREL16_0      9
++#define R_HEXAGON_GPREL16_1     10
++#define R_HEXAGON_GPREL16_2     11
++#define R_HEXAGON_GPREL16_3     12
++#define R_HEXAGON_HL16          13
++  /* V3 */
++#define R_HEXAGON_B13_PCREL     14
++  /* V4 */
++#define R_HEXAGON_B9_PCREL      15
++  /* V4 (extenders) */
++#define R_HEXAGON_B32_PCREL_X   16
++#define R_HEXAGON_32_6_X        17
++  /* V4 (extended) */
++#define R_HEXAGON_B22_PCREL_X   18
++#define R_HEXAGON_B15_PCREL_X   19
++#define R_HEXAGON_B13_PCREL_X   20
++#define R_HEXAGON_B9_PCREL_X    21
++#define R_HEXAGON_B7_PCREL_X    22
++#define R_HEXAGON_16_X          23
++#define R_HEXAGON_12_X          24
++#define R_HEXAGON_11_X          25
++#define R_HEXAGON_10_X          26
++#define R_HEXAGON_9_X           27
++#define R_HEXAGON_8_X           28
++#define R_HEXAGON_7_X           29
++#define R_HEXAGON_6_X           30
++  /* V2 PIC */
++#define R_HEXAGON_32_PCREL      31
++#define R_HEXAGON_COPY          32
++#define R_HEXAGON_GLOB_DAT      33
++#define R_HEXAGON_JMP_SLOT      34
++#define R_HEXAGON_RELATIVE      35
++#define R_HEXAGON_PLT_B22_PCREL 36
++#define R_HEXAGON_GOTOFF_LO16   37
++#define R_HEXAGON_GOTOFF_HI16   38
++#define R_HEXAGON_GOTOFF_32     39
++#define R_HEXAGON_GOT_LO16      40
++#define R_HEXAGON_GOT_HI16      41
++#define R_HEXAGON_GOT_32        42
++#define R_HEXAGON_GOT_16        43
++
++/*
++ * ELF register definitions..
++ */
++typedef unsigned long elf_greg_t;
++
++typedef struct user_regs_struct elf_gregset_t;
++#define ELF_NGREG (sizeof(elf_gregset_t)/sizeof(unsigned long))
++
++/*  Placeholder  */
++typedef unsigned long elf_fpregset_t;
++
++/*
++ * Bypass the whole "regsets" thing for now and use the define.
++ */
++
++#define ELF_CORE_COPY_REGS(DEST, REGS)	\
++do {					\
++	DEST.r0 = REGS->r00;		\
++	DEST.r1 = REGS->r01;		\
++	DEST.r2 = REGS->r02;		\
++	DEST.r3 = REGS->r03;		\
++	DEST.r4 = REGS->r04;		\
++	DEST.r5 = REGS->r05;		\
++	DEST.r6 = REGS->r06;		\
++	DEST.r7 = REGS->r07;		\
++	DEST.r8 = REGS->r08;		\
++	DEST.r9 = REGS->r09;		\
++	DEST.r10 = REGS->r10;		\
++	DEST.r11 = REGS->r11;		\
++	DEST.r12 = REGS->r12;		\
++	DEST.r13 = REGS->r13;		\
++	DEST.r14 = REGS->r14;		\
++	DEST.r15 = REGS->r15;		\
++	DEST.r16 = REGS->r16;		\
++	DEST.r17 = REGS->r17;		\
++	DEST.r18 = REGS->r18;		\
++	DEST.r19 = REGS->r19;		\
++	DEST.r20 = REGS->r20;		\
++	DEST.r21 = REGS->r21;		\
++	DEST.r22 = REGS->r22;		\
++	DEST.r23 = REGS->r23;		\
++	DEST.r24 = REGS->r24;		\
++	DEST.r25 = REGS->r25;		\
++	DEST.r26 = REGS->r26;		\
++	DEST.r27 = REGS->r27;		\
++	DEST.r28 = REGS->r28;		\
++	DEST.r29 = pt_psp(REGS);	\
++	DEST.r30 = REGS->r30;		\
++	DEST.r31 = REGS->r31;		\
++	DEST.sa0 = REGS->sa0;		\
++	DEST.lc0 = REGS->lc0;		\
++	DEST.sa1 = REGS->sa1;		\
++	DEST.lc1 = REGS->lc1;		\
++	DEST.m0 = REGS->m0;		\
++	DEST.m1 = REGS->m1;		\
++	DEST.usr = REGS->usr;		\
++	DEST.p3_0 = REGS->preds;	\
++	DEST.gp = REGS->gp;		\
++	DEST.ugp = REGS->ugp;		\
++	DEST.pc = pt_elr(REGS);	\
++	DEST.cause = pt_cause(REGS);	\
++	DEST.badva = pt_badva(REGS);	\
++} while (0);
++
++
++
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ * Checks the machine and ABI type.
++ */
++#define elf_check_arch(hdr)	((hdr)->e_machine == EM_HEXAGON)
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS	ELFCLASS32
++#define ELF_DATA	ELFDATA2LSB
++#define ELF_ARCH	EM_HEXAGON
++
++#ifdef CONFIG_HEXAGON_ARCH_V2
++#define ELF_CORE_EFLAGS 0x1
++#endif
++
++#ifdef CONFIG_HEXAGON_ARCH_V3
++#define ELF_CORE_EFLAGS 0x2
++#endif
++
++#ifdef CONFIG_HEXAGON_ARCH_V4
++#define ELF_CORE_EFLAGS 0x3
++#endif
++
++/*
++ * Some architectures have ld.so set up a pointer to a function
++ * to be registered using atexit, to facilitate cleanup.  So that
++ * static executables will be well-behaved, we would null the register
++ * in question here, in the pt_regs structure passed.  For now,
++ * leave it a null macro.
++ */
++#define ELF_PLAT_INIT(regs, load_addr) do { } while (0)
++
++#define USE_ELF_CORE_DUMP
++#define CORE_DUMP_USE_REGSET
++
++/* Hrm is this going to cause problems for changing PAGE_SIZE?  */
++#define ELF_EXEC_PAGESIZE	4096
++
++/*
++ * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
++ * use of this is to invoke "./ld.so someprog" to test out a new version of
++ * the loader.  We need to make sure that it is out of the way of the program
++ * that it will "exec", and that there is sufficient room for the brk.
++ */
++#define ELF_ET_DYN_BASE         0x08000000UL
++
++/*
++ * This yields a mask that user programs can use to figure out what
++ * instruction set this cpu supports.
++ */
++#define ELF_HWCAP	(0)
++
++/*
++ * This yields a string that ld.so will use to load implementation
++ * specific libraries for optimization.  This is more specific in
++ * intent than poking at uname or /proc/cpuinfo.
++ */
++#define ELF_PLATFORM  (NULL)
++
++#ifdef __KERNEL__
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
++#endif
++
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES 1
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++				       int uses_interp);
++
 +
 +#endif
-diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+diff --git a/arch/hexagon/include/asm/fpu.h b/arch/hexagon/include/asm/fpu.h
 new file mode 100644
-index 0000000..96bf6c2
+index 0000000..0e135ea
 --- /dev/null
-+++ b/arch/hexagon/kernel/smp.c
-@@ -0,0 +1,280 @@
++++ b/arch/hexagon/include/asm/fpu.h
+@@ -0,0 +1,4 @@
 +/*
-+ * SMP support for Hexagon
-+ *
++ * If the FPU is used inside the kernel,
++ * kernel_fpu_end() will be defined here.
++ */
+diff --git a/arch/hexagon/include/asm/futex.h b/arch/hexagon/include/asm/futex.h
+new file mode 100644
+index 0000000..7e597f8
+--- /dev/null
++++ b/arch/hexagon/include/asm/futex.h
+@@ -0,0 +1,137 @@
++#ifndef _ASM_HEXAGON_FUTEX_H
++#define _ASM_HEXAGON_FUTEX_H
++
++#ifdef __KERNEL__
++
++#include <linux/futex.h>
++#include <linux/uaccess.h>
++#include <asm/errno.h>
++
++/* XXX TODO-- need to add sync barriers! */
++
++#define __futex_atomic_op(insn, ret, oldval, uaddr, oparg) \
++	__asm__ __volatile( \
++	"1: %0 = memw_locked(%3);\n" \
++	    /* For example: %1 = %4 */ \
++	    insn \
++	"2: memw_locked(%3,p2) = %1;\n" \
++	"   if !p2 jump 1b;\n" \
++	"   %1 = #0;\n" \
++	"3:\n" \
++	".section .fixup,\"ax\"\n" \
++	"4: %1 = #%5;\n" \
++	"   jump 3b\n" \
++	".previous\n" \
++	".section __ex_table,\"a\"\n" \
++	".long 1b,4b,2b,4b\n" \
++	".previous\n" \
++	: "=&r" (oldval), "=&r" (ret), "+m" (*uaddr) \
++	: "r" (uaddr), "r" (oparg), "i" (-EFAULT) \
++	: "p2", "memory")
++
++
++static inline int
++futex_atomic_op_inuser(int encoded_op, int __user *uaddr)
++{
++	int op = (encoded_op >> 28) & 7;
++	int cmp = (encoded_op >> 24) & 15;
++	int oparg = (encoded_op << 8) >> 20;
++	int cmparg = (encoded_op << 20) >> 20;
++	int oldval = 0, ret;
++	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
++		oparg = 1 << oparg;
++
++	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(int)))
++		return -EFAULT;
++
++	pagefault_disable();
++
++	switch (op) {
++	case FUTEX_OP_SET:
++		__futex_atomic_op("%1 = %4\n", ret, oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_ADD:
++		__futex_atomic_op("%1 = add(%0,%4)\n", ret, oldval, uaddr,
++				  oparg);
++		break;
++	case FUTEX_OP_OR:
++		__futex_atomic_op("%1 = or(%0,%4)\n", ret, oldval, uaddr,
++				  oparg);
++		break;
++	case FUTEX_OP_ANDN:
++		__futex_atomic_op("%1 = not(%4); %1 = and(%0,%1)\n", ret,
++				  oldval, uaddr, oparg);
++		break;
++	case FUTEX_OP_XOR:
++		__futex_atomic_op("%1 = xor(%0,%4)\n", ret, oldval, uaddr,
++				  oparg);
++		break;
++	default:
++		ret = -ENOSYS;
++	}
++
++	pagefault_enable();
++
++	if (!ret) {
++		switch (cmp) {
++		case FUTEX_OP_CMP_EQ:
++			ret = (oldval == cmparg);
++			break;
++		case FUTEX_OP_CMP_NE:
++			ret = (oldval != cmparg);
++			break;
++		case FUTEX_OP_CMP_LT:
++			ret = (oldval < cmparg);
++			break;
++		case FUTEX_OP_CMP_GE:
++			ret = (oldval >= cmparg);
++			break;
++		case FUTEX_OP_CMP_LE:
++			ret = (oldval <= cmparg);
++			break;
++		case FUTEX_OP_CMP_GT:
++			ret = (oldval > cmparg);
++			break;
++		default:
++			ret = -ENOSYS;
++		}
++	}
++	return ret;
++}
++
++static inline int
++futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr, u32 oldval,
++			      u32 newval)
++{
++	int prev;
++	int ret;
++
++	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
++		return -EFAULT;
++
++	__asm__ __volatile__ (
++	"1: %1 = memw_locked(%3)\n"
++	"   {\n"
++	"      p2 = cmp.eq(%1,%4)\n"
++	"      if !p2.new jump:NT 3f\n"
++	"   }\n"
++	"2: memw_locked(%3,p2) = %5\n"
++	"   if !p2 jump 1b\n"
++	"3:\n"
++	".section .fixup,\"ax\"\n"
++	"4: %0 = #%6\n"
++	"   jump 3b\n"
++	".previous\n"
++	".section __ex_table,\"a\"\n"
++	".long 1b,4b,2b,4b\n"
++	".previous\n"
++	: "+r" (ret), "=&r" (prev), "+m" (*uaddr)
++	: "r" (uaddr), "r" (oldval), "r" (newval), "i"(-EFAULT)
++	: "p2", "memory");
++
++	*uval = prev;
++	return ret;
++}
++
++#endif /* __KERNEL__ */
++#endif /* _ASM_HEXAGON_FUTEX_H */
+diff --git a/arch/hexagon/include/asm/linkage.h b/arch/hexagon/include/asm/linkage.h
+new file mode 100644
+index 0000000..a00b85f
+--- /dev/null
++++ b/arch/hexagon/include/asm/linkage.h
+@@ -0,0 +1,25 @@
++/*
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -100,275 +488,20 @@ index 0000000..96bf6c2
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/err.h>
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/module.h>
-+#include <linux/percpu.h>
-+#include <linux/sched.h>
-+#include <linux/smp.h>
-+#include <linux/spinlock.h>
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
 +
-+#include <asm/system.h>  /*  xchg  */
-+#include <asm/time.h>    /*  timer_interrupt  */
-+#include <asm/hexagon_vm.h>
++#define __ALIGN		.align 4
++#define __ALIGN_STR	".align 4"
 +
-+#define BASE_IPI_IRQ 26
-+
-+/*
-+ * cpu_possible_map needs to be filled out prior to setup_per_cpu_areas
-+ * (which is prior to any of our smp_prepare_cpu crap), in order to set
-+ * up the...  per_cpu areas.
-+ */
-+
-+struct ipi_data {
-+	unsigned long bits;
-+};
-+
-+static DEFINE_PER_CPU(struct ipi_data, ipi_data);
-+
-+static inline void __handle_ipi(unsigned long *ops, struct ipi_data *ipi,
-+				int cpu)
-+{
-+	unsigned long msg = 0;
-+	do {
-+		msg = find_next_bit(ops, BITS_PER_LONG, msg+1);
-+
-+		switch (msg) {
-+
-+		case IPI_TIMER:
-+			ipi_timer();
-+			break;
-+
-+		case IPI_CALL_FUNC:
-+			generic_smp_call_function_interrupt();
-+			break;
-+
-+		case IPI_CALL_FUNC_SINGLE:
-+			generic_smp_call_function_single_interrupt();
-+			break;
-+
-+		case IPI_CPU_STOP:
-+			/*
-+			 * call vmstop()
-+			 */
-+			__vmstop();
-+			break;
-+
-+		case IPI_RESCHEDULE:
-+			/*
-+			 * need to revisit our exit path; see comments for
-+			 * scheduler_ipi()
-+			 */
-+			scheduler_ipi();
-+			break;
-+		}
-+	} while (msg < BITS_PER_LONG);
-+}
-+
-+/*  Used for IPI call from other CPU's to unmask int  */
-+void smp_vm_unmask_irq(void *info)
-+{
-+	__vmintop_locen((long) info);
-+}
-+
-+
-+/*
-+ * This is based on Alpha's IPI stuff.
-+ * Supposed to take (int, void*) as args now.
-+ * Specifically, first arg is irq, second is the irq_desc.
-+ */
-+
-+irqreturn_t handle_ipi(int irq, void *desc)
-+{
-+	int cpu = smp_processor_id();
-+	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
-+	unsigned long ops;
-+
-+	while ((ops = xchg(&ipi->bits, 0)) != 0)
-+		__handle_ipi(&ops, ipi, cpu);
-+	return IRQ_HANDLED;
-+}
-+
-+void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
-+{
-+	unsigned long flags;
-+	unsigned long cpu;
-+	unsigned long retval;
-+
-+	local_irq_save(flags);
-+
-+	for_each_cpu(cpu, cpumask) {
-+		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
-+
-+		set_bit(msg, &ipi->bits);
-+		/*  Possible barrier here  */
-+		retval = __vmintop_post(BASE_IPI_IRQ+cpu);
-+
-+		if (retval != 0) {
-+			printk(KERN_ERR "interrupt %ld not configured?\n",
-+				BASE_IPI_IRQ+cpu);
-+		}
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
-+static struct irqaction ipi_intdesc = {
-+	.handler = handle_ipi,
-+	.flags = IRQF_DISABLED | IRQF_TRIGGER_RISING,
-+	.name = "ipi_handler"
-+};
-+
-+void __init smp_prepare_boot_cpu(void)
-+{
-+}
-+
-+/*
-+ * interrupts should already be disabled from the VM
-+ * SP should already be correct; need to set THREADINFO_REG
-+ * to point to current thread info
-+ */
-+
-+void __cpuinit start_secondary(void)
-+{
-+	unsigned int cpu;
-+	unsigned long thread_ptr;
-+
-+	/*  Calculate thread_info pointer from stack pointer  */
-+	__asm__ __volatile__(
-+		"%0 = SP;\n"
-+		: "=r" (thread_ptr)
-+	);
-+
-+	thread_ptr = thread_ptr & ~(THREAD_SIZE-1);
-+
-+	__asm__ __volatile__(
-+		QUOTED_THREADINFO_REG " = %0;\n"
-+		:
-+		: "r" (thread_ptr)
-+	);
-+
-+	/*  Set the memory struct  */
-+	atomic_inc(&init_mm.mm_count);
-+	current->active_mm = &init_mm;
-+
-+	cpu = smp_processor_id();
-+
-+	setup_irq(BASE_IPI_IRQ + cpu, &ipi_intdesc);
-+
-+	/*  Register the clock_event dummy  */
-+	setup_percpu_clockdev();
-+
-+	printk(KERN_INFO "%s cpu %d\n", __func__, current_thread_info()->cpu);
-+
-+	set_cpu_online(cpu, true);
-+	while (!cpumask_test_cpu(cpu, cpu_active_mask))
-+		cpu_relax();
-+	local_irq_enable();
-+
-+	cpu_idle();
-+}
-+
-+
-+/*
-+ * called once for each present cpu
-+ * apparently starts up the CPU and then
-+ * maintains control until "cpu_online(cpu)" is set.
-+ */
-+
-+int __cpuinit __cpu_up(unsigned int cpu)
-+{
-+	struct task_struct *idle;
-+	struct thread_info *thread;
-+	void *stack_start;
-+
-+	/*  Create new init task for the CPU  */
-+	idle = fork_idle(cpu);
-+	if (IS_ERR(idle))
-+		panic(KERN_ERR "fork_idle failed\n");
-+
-+	thread = (struct thread_info *)idle->stack;
-+	thread->cpu = cpu;
-+
-+	/*  Boot to the head.  */
-+	stack_start =  ((void *) thread) + THREAD_SIZE;
-+	__vmstart(start_secondary, stack_start);
-+
-+	while (!cpu_isset(cpu, cpu_online_map))
-+		barrier();
-+
-+	return 0;
-+}
-+
-+void __init smp_cpus_done(unsigned int max_cpus)
-+{
-+}
-+
-+void __init smp_prepare_cpus(unsigned int max_cpus)
-+{
-+	int i;
-+
-+	/*
-+	 * should eventually have some sort of machine
-+	 * descriptor that has this stuff
-+	 */
-+
-+	/*  Right now, let's just fake it. */
-+	for (i = 0; i < max_cpus; i++)
-+		cpu_set(i, cpu_present_map);
-+
-+	/*  Also need to register the interrupts for IPI  */
-+	if (max_cpus > 1)
-+		setup_irq(BASE_IPI_IRQ, &ipi_intdesc);
-+}
-+
-+void smp_send_reschedule(int cpu)
-+{
-+	send_ipi(cpumask_of(cpu), IPI_RESCHEDULE);
-+}
-+
-+void smp_send_stop(void)
-+{
-+	struct cpumask targets;
-+	cpumask_copy(&targets, cpu_online_mask);
-+	cpumask_clear_cpu(smp_processor_id(), &targets);
-+	send_ipi(&targets, IPI_CPU_STOP);
-+}
-+
-+void arch_send_call_function_single_ipi(int cpu)
-+{
-+	send_ipi(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
-+}
-+
-+void arch_send_call_function_ipi_mask(const struct cpumask *mask)
-+{
-+	send_ipi(mask, IPI_CALL_FUNC);
-+}
-+
-+int setup_profiling_timer(unsigned int multiplier)
-+{
-+	return -EINVAL;
-+}
-+
-+void smp_start_cpus(void)
-+{
-+	int i;
-+
-+	for (i = 0; i < NR_CPUS; i++)
-+		cpu_set(i, cpu_possible_map);
-+}
-diff --git a/arch/hexagon/kernel/topology.c b/arch/hexagon/kernel/topology.c
++#endif
+diff --git a/arch/hexagon/include/asm/module.h b/arch/hexagon/include/asm/module.h
 new file mode 100644
-index 0000000..ba44751
+index 0000000..72ba494
 --- /dev/null
-+++ b/arch/hexagon/kernel/topology.c
-@@ -0,0 +1,52 @@
++++ b/arch/hexagon/include/asm/module.h
+@@ -0,0 +1,26 @@
 +/*
-+ * CPU topology for Hexagon
-+ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -386,38 +519,220 @@ index 0000000..ba44751
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/cpu.h>
-+#include <linux/cpumask.h>
-+#include <linux/init.h>
-+#include <linux/node.h>
-+#include <linux/nodemask.h>
-+#include <linux/percpu.h>
++#ifndef _ASM_MODULE_H
++#define _ASM_MODULE_H
 +
-+/*  Swiped from MIPS.  */
++#include <asm-generic/module.h>
 +
-+static DEFINE_PER_CPU(struct cpu, cpu_devices);
++#define MODULE_ARCH_VERMAGIC __stringify(PROCESSOR_MODEL_NAME) " "
 +
-+static int __init topology_init(void)
++#endif
+diff --git a/arch/hexagon/include/asm/param.h b/arch/hexagon/include/asm/param.h
+new file mode 100644
+index 0000000..285344b
+--- /dev/null
++++ b/arch/hexagon/include/asm/param.h
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_PARAM_H
++#define _ASM_PARAM_H
++
++#define EXEC_PAGESIZE	16384
++
++#include <asm-generic/param.h>
++
++#endif
+diff --git a/arch/hexagon/include/asm/perf_event.h b/arch/hexagon/include/asm/perf_event.h
+new file mode 100644
+index 0000000..6c2910f
+--- /dev/null
++++ b/arch/hexagon/include/asm/perf_event.h
+@@ -0,0 +1,24 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_PERF_EVENT_H
++#define _ASM_PERF_EVENT_H
++
++#define PERF_EVENT_INDEX_OFFSET	0
++
++#endif /* _ASM_PERF_EVENT_H */
+diff --git a/arch/hexagon/include/asm/string.h b/arch/hexagon/include/asm/string.h
+new file mode 100644
+index 0000000..f4489c1
+--- /dev/null
++++ b/arch/hexagon/include/asm/string.h
+@@ -0,0 +1,32 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_STRING_H_
++#define _ASM_STRING_H_
++
++#ifdef __KERNEL__
++#define __HAVE_ARCH_MEMCPY
++extern void *memcpy(void *__to, __const__ void *__from, size_t __n);
++
++/*  ToDo:  use dczeroa, accelerate the compiler-constant zero case  */
++#define __HAVE_ARCH_MEMSET
++extern void *memset(void *__to, int c, size_t __n);
++#endif
++
++
++#endif /* _ASM_STRING_H_ */
+diff --git a/arch/hexagon/include/asm/suspend.h b/arch/hexagon/include/asm/suspend.h
+new file mode 100644
+index 0000000..089dd82
+--- /dev/null
++++ b/arch/hexagon/include/asm/suspend.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SUSPEND_H
++#define _ASM_SUSPEND_H
++
++static inline int arch_prepare_suspend(void)
 +{
-+	int i, ret;
-+
-+	for_each_present_cpu(i) {
-+
-+		/*
-+		 * register_cpu takes a per_cpu pointer and
-+		 * just points it at another per_cpu struct...
-+		 */
-+
-+		ret = register_cpu(&per_cpu(cpu_devices, i), i);
-+		if (ret)
-+			printk(KERN_WARNING "topology_init: register_cpu %d "
-+			       "failed (%d)\n", i, ret);
-+	}
-+
 +	return 0;
 +}
 +
-+subsys_initcall(topology_init);
++#endif
+diff --git a/arch/hexagon/include/asm/swab.h b/arch/hexagon/include/asm/swab.h
+new file mode 100644
+index 0000000..99cf0be
+--- /dev/null
++++ b/arch/hexagon/include/asm/swab.h
+@@ -0,0 +1,24 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_SWAB_H
++#define _ASM_SWAB_H
++
++#define __SWAB_64_THRU_32__
++
++#endif
+diff --git a/arch/hexagon/include/asm/timex.h b/arch/hexagon/include/asm/timex.h
+new file mode 100644
+index 0000000..09cd843
+--- /dev/null
++++ b/arch/hexagon/include/asm/timex.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_TIMEX_H
++#define _ASM_TIMEX_H
++
++#include <asm-generic/timex.h>
++#include <asm/timer-regs.h>
++
++/* Using TCX0 as our clock.  CLOCK_TICK_RATE scheduled to be removed. */
++#define CLOCK_TICK_RATE              TCX0_CLK_RATE
++
++#define ARCH_HAS_READ_CURRENT_TIMER
++
++static inline int read_current_timer(unsigned long *timer_val)
++{
++	*timer_val = (unsigned long) __vmgettime();
++	return 0;
++}
++
++#endif
++
 -- 
 1.7.1
 
