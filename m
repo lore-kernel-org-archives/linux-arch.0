@@ -1,37 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:27906 "EHLO
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:27878 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932869Ab1IQAq4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:56 -0400
-Message-ID: <e97c6e$3hno0g@wolverine02.qualcomm.com>
+	with ESMTP id S932728Ab1IQAqm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:42 -0400
+Message-ID: <e97c6e$3hno05@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:10 -0500
-Subject: [PATCH v4 26/36] Hexagon: Implement basic TLB management routines for Hexagon.
+Date: Wed, 14 Sep 2011 13:19:02 -0500
+Subject: [PATCH v4 18/36] Hexagon: Add time and timer functions
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181910.QsSvQ9kNjIEtW2MueCYTM9aFiltCZI6fZa4-a6tfUT4@z>
-
-Mostly all stubs, as the TLB is managed by the hypervisor.
+Message-ID: <20110914181902.QNZfDRE5oHqIdLF3TMn5eoHhA2a3_YzCwZjWVs1pveM@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/tlb.h      |   39 +++++++++++++++
- arch/hexagon/include/asm/tlbflush.h |   58 ++++++++++++++++++++++
- arch/hexagon/mm/vm_tlb.c            |   93 +++++++++++++++++++++++++++++++++++
- 3 files changed, 190 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/tlb.h
- create mode 100644 arch/hexagon/include/asm/tlbflush.h
- create mode 100644 arch/hexagon/mm/vm_tlb.c
+ arch/hexagon/include/asm/time.h       |   29 ++++
+ arch/hexagon/include/asm/timer-regs.h |   39 +++++
+ arch/hexagon/kernel/time.c            |  258 +++++++++++++++++++++++++++++++++
+ 3 files changed, 326 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/time.h
+ create mode 100644 arch/hexagon/include/asm/timer-regs.h
+ create mode 100644 arch/hexagon/kernel/time.c
 
-diff --git a/arch/hexagon/include/asm/tlb.h b/arch/hexagon/include/asm/tlb.h
+diff --git a/arch/hexagon/include/asm/time.h b/arch/hexagon/include/asm/time.h
 new file mode 100644
-index 0000000..473abde
+index 0000000..081b82c
 --- /dev/null
-+++ b/arch/hexagon/include/asm/tlb.h
++++ b/arch/hexagon/include/asm/time.h
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef ASM_TIME_H
++#define ASM_TIME_H
++
++extern cycles_t        pcycle_freq_mhz;
++extern cycles_t        thread_freq_mhz;
++extern cycles_t        sleep_clk_freq;
++
++void setup_percpu_clockdev(void);
++void ipi_timer(void);
++
++#endif
+diff --git a/arch/hexagon/include/asm/timer-regs.h b/arch/hexagon/include/asm/timer-regs.h
+new file mode 100644
+index 0000000..d80db23
+--- /dev/null
++++ b/arch/hexagon/include/asm/timer-regs.h
 @@ -0,0 +1,39 @@
 +/*
++ * Timer support for Hexagon
++ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -49,35 +84,33 @@ index 0000000..473abde
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_TLB_H
-+#define _ASM_TLB_H
++#ifndef _ASM_TIMER_REGS_H
++#define _ASM_TIMER_REGS_H
 +
-+#include <linux/pagemap.h>
-+#include <asm/tlbflush.h>
-+
-+/*
-+ * We don't need any special per-pte or per-vma handling...
-+ */
-+#define tlb_start_vma(tlb, vma)				do { } while (0)
-+#define tlb_end_vma(tlb, vma)				do { } while (0)
-+#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
++/*  This stuff should go into a platform specific file  */
++#define TCX0_CLK_RATE		19200
++#define TIMER_ENABLE		0
++#define TIMER_CLR_ON_MATCH	1
 +
 +/*
-+ * .. because we flush the whole mm when it fills up
++ * 8x50 HDD Specs 5-8.  Simulator co-sim not fixed until
++ * release 1.1, and then it's "adjustable" and probably not defaulted.
 + */
-+#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
-+
-+#include <asm-generic/tlb.h>
++#define RTOS_TIMER_INT		3
++#ifdef CONFIG_HEXAGON_COMET
++#define RTOS_TIMER_REGS_ADDR	0xAB000000UL
++#endif
++#define SLEEP_CLK_RATE		32000
 +
 +#endif
-diff --git a/arch/hexagon/include/asm/tlbflush.h b/arch/hexagon/include/asm/tlbflush.h
+diff --git a/arch/hexagon/kernel/time.c b/arch/hexagon/kernel/time.c
 new file mode 100644
-index 0000000..b89a902
+index 0000000..fc8e95c
 --- /dev/null
-+++ b/arch/hexagon/include/asm/tlbflush.h
-@@ -0,0 +1,58 @@
++++ b/arch/hexagon/kernel/time.c
+@@ -0,0 +1,258 @@
 +/*
-+ * TLB flush support for Hexagon
++ * Time related functions for Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -96,143 +129,244 @@ index 0000000..b89a902
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_TLBFLUSH_H
-+#define _ASM_TLBFLUSH_H
++#include <linux/init.h>
++#include <linux/clockchips.h>
++#include <linux/clocksource.h>
++#include <linux/interrupt.h>
++#include <linux/err.h>
++#include <linux/platform_device.h>
++#include <linux/ioport.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_irq.h>
 +
-+#include <linux/mm.h>
-+#include <asm/processor.h>
-+
-+/*
-+ * TLB flushing -- in "SMP", these routines get defined to be the
-+ * ones from smp.c, else they are some local flavors.
-+ */
-+
-+/*
-+ * These functions are commonly macros, but in the interests of
-+ * VM vs. native implementation and code size, we simply declare
-+ * the function prototypes here.
-+ */
-+extern void tlb_flush_all(void);
-+extern void flush_tlb_mm(struct mm_struct *mm);
-+extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr);
-+extern void flush_tlb_range(struct vm_area_struct *vma,
-+				unsigned long start, unsigned long end);
-+extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
-+extern void flush_tlb_one(unsigned long);
-+
-+/*
-+ * "This is called in munmap when we have freed up some page-table pages.
-+ * We don't need to do anything here..."
-+ *
-+ * The VM kernel doesn't walk page tables, and they are passed to the VMM
-+ * by logical address. There doesn't seem to be any possibility that they
-+ * could be referenced by the VM kernel based on a stale mapping, since
-+ * they would only be located by consulting the mm structure, and they
-+ * will have been purged from that structure by the munmap.  Seems like
-+ * a noop on HVM as well.
-+ */
-+#define flush_tlb_pgtables(mm, start, end)
-+
-+#endif
-diff --git a/arch/hexagon/mm/vm_tlb.c b/arch/hexagon/mm/vm_tlb.c
-new file mode 100644
-index 0000000..c6ff415
---- /dev/null
-+++ b/arch/hexagon/mm/vm_tlb.c
-@@ -0,0 +1,93 @@
-+/*
-+ * Hexagon Virtual Machine TLB functions
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+/*
-+ * The Hexagon Virtual Machine conceals the real workings of
-+ * the TLB, but there are one or two functions that need to
-+ * be instantiated for it, differently from a native build.
-+ */
-+#include <linux/mm.h>
-+#include <asm/page.h>
++#include <asm/timer-regs.h>
 +#include <asm/hexagon_vm.h>
 +
 +/*
-+ * Initial VM implementation has only one map active at a time, with
-+ * TLB purgings on changes.  So either we're nuking the current map,
-+ * or it's a no-op.  This operation is messy on true SMPs where other
-+ * processors must be induced to flush the copies in their local TLBs,
-+ * but Hexagon thread-based virtual processors share the same MMU.
++ * For the clocksource we need:
++ *	pcycle frequency (600MHz)
++ * For the loops_per_jiffy we need:
++ *	thread/cpu frequency (100MHz)
++ * And for the timer, we need:
++ *	sleep clock rate
 + */
-+void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			unsigned long end)
-+{
-+	struct mm_struct *mm = vma->vm_mm;
 +
-+	if (mm->context.ptbase == current->active_mm->context.ptbase)
-+		__vmclrmap((void *)start, end - start);
++cycles_t	pcycle_freq_mhz;
++cycles_t	thread_freq_mhz;
++cycles_t	sleep_clk_freq;
++
++static struct resource rtos_timer_resources[] = {
++	{
++		.start	= RTOS_TIMER_REGS_ADDR,
++		.end	= RTOS_TIMER_REGS_ADDR+PAGE_SIZE-1,
++		.flags	= IORESOURCE_MEM,
++	},
++};
++
++static struct platform_device rtos_timer_device = {
++	.name		= "rtos_timer",
++	.id		= -1,
++	.num_resources	= ARRAY_SIZE(rtos_timer_resources),
++	.resource	= rtos_timer_resources,
++};
++
++/*  A lot of this stuff should move into a platform specific section.  */
++struct adsp_hw_timer_struct {
++	u32 match;   /*  Match value  */
++	u32 count;
++	u32 enable;  /*  [1] - CLR_ON_MATCH_EN, [0] - EN  */
++	u32 clear;   /*  one-shot register that clears the count  */
++};
++
++/*  Look for "TCX0" for related constants.  */
++static __iomem struct adsp_hw_timer_struct *rtos_timer;
++
++void debug_adsp_timers(void)
++{
++	printk(KERN_INFO "rtos_timer->match=0x%08x\n", rtos_timer->match);
++	printk(KERN_INFO "rtos_timer->count=%d\n", rtos_timer->count);
++	printk(KERN_INFO "rtos_timer->enable=%d\n", rtos_timer->enable);
++	printk(KERN_INFO "rtos_timer->clear=%d\n", rtos_timer->clear);
++}
++
++static cycle_t timer_get_cycles(struct clocksource *cs)
++{
++	return (cycle_t) __vmgettime();
++}
++
++static struct clocksource hexagon_clocksource = {
++	.name		= "pcycles",
++	.rating		= 250,
++	.read		= timer_get_cycles,
++	.mask		= CLOCKSOURCE_MASK(64),
++	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++static int set_next_event(unsigned long delta, struct clock_event_device *evt)
++{
++	/*  Assuming the timer will be disabled when we enter here.  */
++	rtos_timer->clear = 1;
++	rtos_timer->clear = 0;
++
++	/*  Does this need massaging?  */
++	rtos_timer->match = delta;
++	rtos_timer->enable = 1 << TIMER_ENABLE;
++	return 0;
 +}
 +
 +/*
-+ * Flush a page from the kernel virtual map - used by highmem
++ * Sets the mode (periodic, shutdown, oneshot, etc) of a timer.
 + */
-+void flush_tlb_one(unsigned long vaddr)
++static void set_mode(enum clock_event_mode mode,
++	struct clock_event_device *evt)
 +{
-+	__vmclrmap((void *)vaddr, PAGE_SIZE);
++	switch (mode) {
++	case CLOCK_EVT_MODE_SHUTDOWN:
++		/* XXX implement me */
++	default:
++		break;
++	}
++}
++
++#ifdef CONFIG_SMP
++/*  Broadcast mechanism  */
++static void broadcast(const struct cpumask *mask)
++{
++	send_ipi(mask, IPI_TIMER);
++}
++#endif
++
++static struct clock_event_device hexagon_clockevent_dev = {
++	.name		= "clockevent",
++	.features	= CLOCK_EVT_FEAT_ONESHOT,
++	.rating		= 400,
++	.irq		= RTOS_TIMER_INT,
++	.set_next_event = set_next_event,
++	.set_mode	= set_mode,
++#ifdef CONFIG_SMP
++	.broadcast	= broadcast,
++#endif
++};
++
++#ifdef CONFIG_SMP
++static DEFINE_PER_CPU(struct clock_event_device, clock_events);
++
++void setup_percpu_clockdev(void)
++{
++	int cpu = smp_processor_id();
++	struct clock_event_device *ce_dev = &hexagon_clockevent_dev;
++	struct clock_event_device *dummy_clock_dev =
++		&per_cpu(clock_events, cpu);
++
++	memcpy(dummy_clock_dev, ce_dev, sizeof(*dummy_clock_dev));
++	INIT_LIST_HEAD(&dummy_clock_dev->list);
++
++	dummy_clock_dev->features = CLOCK_EVT_FEAT_DUMMY;
++	dummy_clock_dev->cpumask = cpumask_of(cpu);
++	dummy_clock_dev->mode = CLOCK_EVT_MODE_UNUSED;
++
++	clockevents_register_device(dummy_clock_dev);
++}
++
++/*  Called from smp.c for each CPU's timer ipi call  */
++void ipi_timer(void)
++{
++	int cpu = smp_processor_id();
++	struct clock_event_device *ce_dev = &per_cpu(clock_events, cpu);
++
++	ce_dev->event_handler(ce_dev);
++}
++#endif /* CONFIG_SMP */
++
++static irqreturn_t timer_interrupt(int irq, void *devid)
++{
++	struct clock_event_device *ce_dev = &hexagon_clockevent_dev;
++
++	rtos_timer->enable = 0;
++	ce_dev->event_handler(ce_dev);
++
++	return IRQ_HANDLED;
++}
++
++/*  This should also be pulled from devtree  */
++static struct irqaction rtos_timer_intdesc = {
++	.handler = timer_interrupt,
++	.flags = IRQF_DISABLED | IRQF_TIMER | IRQF_TRIGGER_RISING,
++	.name = "rtos_timer"
++};
++
++/*
++ * time_init_deferred - called by start_kernel to set up timer/clock source
++ *
++ * Install the IRQ handler for the clock, setup timers.
++ * This is done late, as that way, we can use ioremap().
++ *
++ * This runs just before the delay loop is calibrated, and
++ * is used for delay calibration.
++ */
++void __init time_init_deferred(void)
++{
++	struct resource *resource = NULL;
++	struct clock_event_device *ce_dev = &hexagon_clockevent_dev;
++	struct device_node *dn;
++	struct resource r;
++	int err;
++
++	ce_dev->cpumask = cpu_all_mask;
++
++	if (!resource)
++		resource = rtos_timer_device.resource;
++
++	/*  ioremap here means this has to run later, after paging init  */
++	rtos_timer = ioremap(resource->start, resource->end
++		- resource->start + 1);
++
++	if (!rtos_timer) {
++		release_mem_region(resource->start, resource->end
++			- resource->start + 1);
++	}
++	clocksource_register_khz(&hexagon_clocksource, pcycle_freq_mhz * 1000);
++
++	/*  Note: the sim generic RTOS clock is apparently really 18750Hz  */
++
++	/*
++	 * Last arg is some guaranteed seconds for which the conversion will
++	 * work without overflow.
++	 */
++	clockevents_calc_mult_shift(ce_dev, sleep_clk_freq, 4);
++
++	ce_dev->max_delta_ns = clockevent_delta2ns(0x7fffffff, ce_dev);
++	ce_dev->min_delta_ns = clockevent_delta2ns(0xf, ce_dev);
++
++#ifdef CONFIG_SMP
++	setup_percpu_clockdev();
++#endif
++
++	clockevents_register_device(ce_dev);
++	setup_irq(ce_dev->irq, &rtos_timer_intdesc);
++}
++
++void __init time_init(void)
++{
++	late_time_init = time_init_deferred;
 +}
 +
 +/*
-+ * Flush all TLBs across all CPUs, virtual or real.
-+ * A single Hexagon core has 6 thread contexts but
-+ * only one TLB.
++ * This could become parametric or perhaps even computed at run-time,
++ * but for now we take the observed simulator jitter.
 + */
-+void tlb_flush_all(void)
-+{
-+	/*  should probably use that fixaddr end or whateve label  */
-+	__vmclrmap(0, 0xffff0000);
-+}
++static long long fudgefactor = 350;  /* Maybe lower if kernel optimized. */
 +
-+/*
-+ * Flush TLB entries associated with a given mm_struct mapping.
-+ */
-+void flush_tlb_mm(struct mm_struct *mm)
++void __udelay(unsigned long usecs)
 +{
-+	/* Current Virtual Machine has only one map active at a time */
-+	if (current->active_mm->context.ptbase == mm->context.ptbase)
-+		tlb_flush_all();
-+}
++	unsigned long long start = __vmgettime();
++	unsigned long long finish = (pcycle_freq_mhz * usecs) - fudgefactor;
 +
-+/*
-+ * Flush TLB state associated with a page of a vma.
-+ */
-+void flush_tlb_page(struct vm_area_struct *vma, unsigned long vaddr)
-+{
-+	struct mm_struct *mm = vma->vm_mm;
-+
-+	if (mm->context.ptbase  == current->active_mm->context.ptbase)
-+		__vmclrmap((void *)vaddr, PAGE_SIZE);
++	while ((__vmgettime() - start) < finish)
++		cpu_relax(); /*  not sure how this improves readability  */
 +}
-+
-+/*
-+ * Flush TLB entries associated with a kernel address range.
-+ * Like flush range, but without the check on the vma->vm_mm.
-+ */
-+void flush_tlb_kernel_range(unsigned long start, unsigned long end)
-+{
-+		__vmclrmap((void *)start, end - start);
-+}
++EXPORT_SYMBOL(__udelay);
 -- 
 1.7.1
 
