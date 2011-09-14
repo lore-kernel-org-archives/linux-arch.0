@@ -1,30 +1,35 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v4 04/36] Hexagon: Add atomic ops support
-Date: Wed, 14 Sep 2011 13:18:48 -0500
-Message-ID: <093448$3hstsr@wolverine01.qualcomm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v4 17/36] Hexagon: Add interrupts
+Date: Wed, 14 Sep 2011 13:19:01 -0500
+Message-ID: <e97c6e$3hno04@wolverine02.qualcomm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:27878 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932678Ab1IQAqk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:40 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/atomic.h |  164 +++++++++++++++++++++++++++++++++++++
- 1 files changed, 164 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/atomic.h
+ arch/hexagon/include/asm/irq.h |   36 ++++++++++++++++
+ arch/hexagon/kernel/irq_cpu.c  |   90 ++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 126 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/irq.h
+ create mode 100644 arch/hexagon/kernel/irq_cpu.c
 
-diff --git a/arch/hexagon/include/asm/atomic.h b/arch/hexagon/include/asm/atomic.h
+diff --git a/arch/hexagon/include/asm/irq.h b/arch/hexagon/include/asm/irq.h
 new file mode 100644
-index 0000000..e220f90
+index 0000000..ded8c15
 --- /dev/null
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -0,0 +1,164 @@
++++ b/arch/hexagon/include/asm/irq.h
+@@ -0,0 +1,36 @@
 +/*
-+ * Atomic operations for the Hexagon architecture
-+ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 and
@@ -41,149 +46,120 @@ index 0000000..e220f90
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_ATOMIC_H
-+#define _ASM_ATOMIC_H
++#ifndef _ASM_IRQ_H_
++#define _ASM_IRQ_H_
 +
-+#include <linux/types.h>
++/* Number of first-level interrupts associated with the CPU core. */
++#define HEXAGON_CPUINTS 32
 +
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_set(v, i)	((v)->counter = (i))
-+
-+/**
-+ * atomic_read - reads a word, atomically
-+ * @v: pointer to atomic value
++/*
++ * Must define NR_IRQS before including <asm-generic/irq.h>
++ * 64 == the two SIRC's, 176 == the two gpio's
 + *
-+ * Assumes all word reads on our architecture are atomic.
++ * IRQ configuration is still in flux; defining this to a comfortably
++ * large number.
 + */
-+#define atomic_read(v)		((v)->counter)
++#define NR_IRQS 512
 +
-+/**
-+ * atomic_xchg - atomic
-+ * @v: pointer to memory to change
-+ * @new: new value (technically passed in a register -- see xchg)
-+ */
-+#define atomic_xchg(v, new)	(xchg(&((v)->counter), (new)))
-+
-+
-+/**
-+ * atomic_cmpxchg - atomic compare-and-exchange values
-+ * @v: pointer to value to change
-+ * @old:  desired old value to match
-+ * @new:  new value to put in
-+ *
-+ * Parameters are then pointer, value-in-register, value-in-register,
-+ * and the output is the old value.
-+ *
-+ * Apparently this is complicated for archs that don't support
-+ * the memw_locked like we do (or it's broken or whatever).
-+ *
-+ * Kind of the lynchpin of the rest of the generically defined routines.
-+ * Remember V2 had that bug with dotnew predicate set by memw_locked.
-+ *
-+ * "old" is "expected" old val, __oldval is actual old value
-+ */
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int __oldval;
-+
-+	asm volatile(
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	{ P0 = cmp.eq(%0,%2);\n"
-+		"	  if (!P0.new) jump:nt 2f; }\n"
-+		"	memw_locked(%1,P0) = %3;\n"
-+		"	if (!P0) jump 1b;\n"
-+		"2:\n"
-+		: "=&r" (__oldval)
-+		: "r" (&v->counter), "r" (old), "r" (new)
-+		: "memory", "p0"
-+	);
-+
-+	return __oldval;
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	int output;
-+
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = add(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0;\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+
-+}
-+
-+#define atomic_add(i, v) atomic_add_return(i, (v))
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	int output;
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = sub(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
-+
-+#define atomic_sub(i, v) atomic_sub_return(i, (v))
-+
-+/**
-+ * atomic_add_unless - add unless the number is a given value
-+ * @v: pointer to value
-+ * @a: amount to add
-+ * @u: unless value is equal to u
-+ *
-+ * Returns 1 if the add happened, 0 if it didn't.
-+ */
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int output, __oldval;
-+	asm volatile(
-+		"1:	%0 = memw_locked(%2);"
-+		"	{"
-+		"		p3 = cmp.eq(%0, %4);"
-+		"		if (p3.new) jump:nt 2f;"
-+		"		%0 = add(%0, %3);"
-+		"		%1 = #0;"
-+		"	}"
-+		"	memw_locked(%2, p3) = %0;"
-+		"	{"
-+		"		if !p3 jump 1b;"
-+		"		%1 = #1;"
-+		"	}"
-+		"2:"
-+		: "=&r" (__oldval), "=&r" (output)
-+		: "r" (v), "r" (a), "r" (u)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
-+
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-+
-+#define atomic_inc(v) atomic_add(1, (v))
-+#define atomic_dec(v) atomic_sub(1, (v))
-+
-+#define atomic_inc_and_test(v) (atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
-+#define atomic_sub_and_test(i, v) (atomic_sub_return(i, (v)) == 0)
-+#define atomic_add_negative(i, v) (atomic_add_return(i, (v)) < 0)
-+
-+
-+#define atomic_inc_return(v) (atomic_add_return(1, v))
-+#define atomic_dec_return(v) (atomic_sub_return(1, v))
++#include <asm-generic/irq.h>
 +
 +#endif
+diff --git a/arch/hexagon/kernel/irq_cpu.c b/arch/hexagon/kernel/irq_cpu.c
+new file mode 100644
+index 0000000..d4416a1
+--- /dev/null
++++ b/arch/hexagon/kernel/irq_cpu.c
+@@ -0,0 +1,90 @@
++/*
++ * First-level interrupt controller model for Hexagon.
++ *
++ * Copyright (c) 2010-2011 Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/interrupt.h>
++#include <asm/irq.h>
++#include <asm/hexagon_vm.h>
++
++static void mask_irq(struct irq_data *data)
++{
++	__vmintop_locdis((long) data->irq);
++}
++
++static void mask_irq_num(unsigned int irq)
++{
++	__vmintop_locdis((long) irq);
++}
++
++static void unmask_irq(struct irq_data *data)
++{
++	__vmintop_locen((long) data->irq);
++}
++
++/*  This is actually all we need for handle_fasteoi_irq  */
++static void eoi_irq(struct irq_data *data)
++{
++	__vmintop_globen((long) data->irq);
++}
++
++/* Power mamangement wake call. We don't need this, however,
++ * if this is absent, then an -ENXIO error is returned to the
++ * msm_serial driver, and it fails to correctly initialize.
++ * This is a bug in the msm_serial driver, but, for now, we
++ * work around it here, by providing this bogus handler.
++ * XXX FIXME!!! remove this when msm_serial is fixed.
++ */
++static int set_wake(struct irq_data *data, unsigned int on)
++{
++	return 0;
++}
++
++static struct irq_chip hexagon_irq_chip = {
++	.name		= "HEXAGON",
++	.irq_mask	= mask_irq,
++	.irq_unmask	= unmask_irq,
++	.irq_set_wake	= set_wake,
++	.irq_eoi	= eoi_irq
++};
++
++/**
++ * The hexagon core comes with a first-level interrupt controller
++ * with 32 total possible interrupts.  When the core is embedded
++ * into different systems/platforms, it is typically wrapped by
++ * macro cells that provide one or more second-level interrupt
++ * controllers that are cascaded into one or more of the first-level
++ * interrupts handled here. The precise wiring of these other
++ * irqs varies from platform to platform, and are set up & configured
++ * in the platform-specific files.
++ *
++ * The first-level interrupt controller is wrapped by the VM, which
++ * virtualizes the interrupt controller for us.  It provides a very
++ * simple, fast & efficient API, and so the fasteoi handler is
++ * appropriate for this case.
++ */
++void __init init_IRQ(void)
++{
++	int irq;
++
++	for (irq = 0; irq < HEXAGON_CPUINTS; irq++) {
++		mask_irq_num(irq);
++		irq_set_chip_and_handler(irq, &hexagon_irq_chip,
++						 handle_fasteoi_irq);
++	}
++}
 -- 
 1.7.1
 
