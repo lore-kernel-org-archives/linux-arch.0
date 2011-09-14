@@ -1,32 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from wolverine02.qualcomm.com ([199.106.114.251]:27878 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932458Ab1IQAqX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:23 -0400
-Message-ID: <e97c6e$3hnnuo@wolverine02.qualcomm.com>
+	with ESMTP id S932595Ab1IQAqd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:33 -0400
+Message-ID: <e97c6e$3hnnvk@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:18:51 -0500
-Subject: [PATCH v4 07/36] Hexagon: Add threadinfo
+Date: Wed, 14 Sep 2011 13:18:57 -0500
+Subject: [PATCH v4 13/36] Hexagon: Support dynamic module loading.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181851.xlhHaIV1cVzXk-ntsYFOc0pOQ9Wq_rdqo-x3dKEdync@z>
+Message-ID: <20110914181857.vOmOXh8BXQRn11fwm2-dNThrME-ou9GE5uBdxKYjNVg@z>
 
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Modules should be compiled as ordinary .o's; shared objects are not
+supported.
+
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/thread_info.h |  154 ++++++++++++++++++++++++++++++++
- 1 files changed, 154 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/thread_info.h
+ arch/hexagon/kernel/module.c |  162 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 162 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/kernel/module.c
 
-diff --git a/arch/hexagon/include/asm/thread_info.h b/arch/hexagon/include/asm/thread_info.h
+diff --git a/arch/hexagon/kernel/module.c b/arch/hexagon/kernel/module.c
 new file mode 100644
-index 0000000..9c2934f
+index 0000000..61a76ba
 --- /dev/null
-+++ b/arch/hexagon/include/asm/thread_info.h
-@@ -0,0 +1,154 @@
++++ b/arch/hexagon/kernel/module.c
+@@ -0,0 +1,162 @@
 +/*
-+ * Thread support for the Hexagon architecture
++ * Kernel module loader for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -45,140 +48,148 @@ index 0000000..9c2934f
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_THREAD_INFO_H
-+#define _ASM_THREAD_INFO_H
++#include <asm/module.h>
++#include <linux/elf.h>
++#include <linux/module.h>
++#include <linux/moduleloader.h>
++#include <linux/vmalloc.h>
 +
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+#include <asm/processor.h>
-+#include <asm/registers.h>
-+#include <asm/page.h>
++#if 0
++#define DEBUGP printk
++#else
++#define DEBUGP(fmt , ...)
 +#endif
-+
-+#define THREAD_SHIFT		12
-+#define THREAD_SIZE		(1<<THREAD_SHIFT)
-+
-+#if THREAD_SHIFT >= PAGE_SHIFT
-+#define THREAD_SIZE_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
-+#else  /*  don't use standard allocator  */
-+#define __HAVE_ARCH_THREAD_INFO_ALLOCATOR
-+extern struct thread_info *alloc_thread_info_node(struct task_struct *tsk, int node);
-+extern void free_thread_info(struct thread_info *ti);
-+#endif
-+
-+
-+#ifndef __ASSEMBLY__
-+
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
 +
 +/*
-+ * This is union'd with the "bottom" of the kernel stack.
-+ * It keeps track of thread info which is handy for routines
-+ * to access quickly.
++ * module_frob_arch_sections - tweak got/plt sections.
++ * @hdr - pointer to elf header
++ * @sechdrs - pointer to elf load section headers
++ * @secstrings - symbol names
++ * @mod - pointer to module
 + */
++int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
++				char *secstrings,
++				struct module *mod)
++{
++	unsigned int i;
++	int found = 0;
 +
-+struct thread_info {
-+	struct task_struct	*task;		/* main task structure */
-+	struct exec_domain      *exec_domain;   /* execution domain */
-+	unsigned long		flags;          /* low level flags */
-+	__u32                   cpu;            /* current cpu */
-+	int                     preempt_count;  /* 0=>preemptible,<0=>BUG */
-+	mm_segment_t            addr_limit;     /* segmentation sux */
-+	/*
-+	 * used for syscalls somehow;
-+	 * seems to have a function pointer and four arguments
-+	 */
-+	struct restart_block    restart_block;
-+	/* Points to the current pt_regs frame  */
-+	struct pt_regs		*regs;
-+	/*
-+	 * saved kernel sp at switch_to time;
-+	 * not sure if this is used (it's not in the VM model it seems;
-+	 * see thread_struct)
-+	 */
-+	unsigned long		sp;
-+};
++	/* Look for .plt and/or .got.plt and/or .init.plt sections */
++	for (i = 0; i < hdr->e_shnum; i++) {
++		DEBUGP("Section %d is %s\n", i,
++		       secstrings + sechdrs[i].sh_name);
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".plt") == 0)
++			found = i+1;
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".got.plt") == 0)
++			found = i+1;
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".rela.plt") == 0)
++			found = i+1;
++	}
 +
-+#else /* !__ASSEMBLY__ */
++	/* At this time, we don't support modules comiled with -shared */
++	if (found) {
++		printk(KERN_WARNING
++			"Module '%s' contains unexpected .plt/.got sections.\n",
++			mod->name);
++		/*  return -ENOEXEC;  */
++	}
 +
-+#include <asm/asm-offsets.h>
-+
-+#endif  /* __ASSEMBLY__  */
-+
-+/*  looks like "linux/hardirq.h" uses this.  */
-+
-+#define PREEMPT_ACTIVE		0x10000000
-+
-+#ifndef __ASSEMBLY__
-+
-+#define INIT_THREAD_INFO(tsk)                   \
-+{                                               \
-+	.task           = &tsk,                 \
-+	.exec_domain    = &default_exec_domain, \
-+	.flags          = 0,                    \
-+	.cpu            = 0,                    \
-+	.preempt_count  = 1,                    \
-+	.addr_limit     = KERNEL_DS,            \
-+	.restart_block = {                      \
-+		.fn = do_no_restart_syscall,    \
-+	},                                      \
-+	.sp = 0,				\
-+	.regs = NULL,			\
++	return 0;
 +}
 +
-+#define init_thread_info        (init_thread_union.thread_info)
-+#define init_stack              (init_thread_union.stack)
-+
-+/* Tacky preprocessor trickery */
-+#define	qqstr(s) qstr(s)
-+#define qstr(s) #s
-+#define QUOTED_THREADINFO_REG qqstr(THREADINFO_REG)
-+
-+register struct thread_info *__current_thread_info asm(QUOTED_THREADINFO_REG);
-+#define current_thread_info()  __current_thread_info
-+
-+#endif /* __ASSEMBLY__ */
-+
 +/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files
-+ *   may need to access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
++ * apply_relocate_add - perform rela relocations.
++ * @sechdrs - pointer to section headers
++ * @strtab - some sort of start address?
++ * @symindex - symbol index offset or something?
++ * @relsec - address to relocate to?
++ * @module - pointer to module
++ *
++ * Perform rela relocations.
 + */
++int apply_relocate_add(Elf_Shdr *sechdrs, const char *strtab,
++			unsigned int symindex, unsigned int relsec,
++			struct module *module)
++{
++	unsigned int i;
++	Elf32_Sym *sym;
++	uint32_t *location;
++	uint32_t value;
++	unsigned int nrelocs = sechdrs[relsec].sh_size / sizeof(Elf32_Rela);
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Word sym_info = sechdrs[relsec].sh_info;
++	Elf32_Sym *sym_base = (Elf32_Sym *) sechdrs[symindex].sh_addr;
++	void *loc_base = (void *) sechdrs[sym_info].sh_addr;
 +
-+#define TIF_SYSCALL_TRACE       0       /* syscall trace active */
-+#define TIF_NOTIFY_RESUME       1       /* resumption notification requested */
-+#define TIF_SIGPENDING          2       /* signal pending */
-+#define TIF_NEED_RESCHED        3       /* rescheduling necessary */
-+#define TIF_SINGLESTEP          4       /* restore ss @ return to usr mode */
-+#define TIF_IRET                5       /* return with iret */
-+#define TIF_RESTORE_SIGMASK     6       /* restore sig mask in do_signal() */
-+/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_POLLING_NRFLAG      16
-+#define TIF_MEMDIE              17      /* OOM killer killed process */
++	DEBUGP("Applying relocations in section %u to section %u base=%p\n",
++	       relsec, sym_info, loc_base);
 +
-+#define _TIF_SYSCALL_TRACE      (1 << TIF_SYSCALL_TRACE)
-+#define _TIF_NOTIFY_RESUME      (1 << TIF_NOTIFY_RESUME)
-+#define _TIF_SIGPENDING         (1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED       (1 << TIF_NEED_RESCHED)
-+#define _TIF_SINGLESTEP         (1 << TIF_SINGLESTEP)
-+#define _TIF_IRET               (1 << TIF_IRET)
-+#define _TIF_RESTORE_SIGMASK    (1 << TIF_RESTORE_SIGMASK)
-+#define _TIF_POLLING_NRFLAG     (1 << TIF_POLLING_NRFLAG)
++	for (i = 0; i < nrelocs; i++) {
 +
-+/* work to do on interrupt/exception return - All but TIF_SYSCALL_TRACE */
-+#define _TIF_WORK_MASK          (0x0000FFFF & ~_TIF_SYSCALL_TRACE)
++		/* Symbol to relocate */
++		sym = sym_base + ELF32_R_SYM(rela[i].r_info);
 +
-+/* work to do on any return to u-space */
-+#define _TIF_ALLWORK_MASK       0x0000FFFF
++		/* Where to make the change */
++		location = loc_base + rela[i].r_offset;
 +
-+#endif /* __KERNEL__ */
++		/* `Everything is relative'. */
++		value = sym->st_value + rela[i].r_addend;
 +
-+#endif
++		DEBUGP("%d: value=%08x loc=%p reloc=%d symbol=%s\n",
++		       i, value, location, ELF32_R_TYPE(rela[i].r_info),
++		       sym->st_name ?
++		       &strtab[sym->st_name] : "(anonymous)");
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_HEXAGON_B22_PCREL: {
++			int dist = (int)(value - (uint32_t)location);
++			if ((dist < -0x00800000) ||
++			    (dist >= 0x00800000)) {
++				printk(KERN_ERR
++				       "%s: %s: %08x=%08x-%08x %s\n",
++				       module->name,
++				       "R_HEXAGON_B22_PCREL reloc out of range",
++				       dist, value, (uint32_t)location,
++				       sym->st_name ?
++				       &strtab[sym->st_name] : "(anonymous)");
++				return -ENOEXEC;
++			}
++			DEBUGP("B22_PCREL contents: %08X.\n", *location);
++			*location &= ~0x01ff3fff;
++			*location |= 0x00003fff & dist;
++			*location |= 0x01ff0000 & (dist<<2);
++			DEBUGP("Contents after reloc: %08x\n", *location);
++			break;
++		}
++		case R_HEXAGON_HI16:
++			value = (value>>16) & 0xffff;
++			/* fallthrough */
++		case R_HEXAGON_LO16:
++			*location &= ~0x00c03fff;
++			*location |= value & 0x3fff;
++			*location |= (value & 0xc000) << 8;
++			break;
++		case R_HEXAGON_32:
++			*location = value;
++			break;
++		case R_HEXAGON_32_PCREL:
++			*location = value - (uint32_t)location;
++			break;
++		case R_HEXAGON_PLT_B22_PCREL:
++		case R_HEXAGON_GOTOFF_LO16:
++		case R_HEXAGON_GOTOFF_HI16:
++			printk(KERN_ERR "%s: GOT/PLT relocations unsupported\n",
++			       module->name);
++			return -ENOEXEC;
++		default:
++			printk(KERN_ERR "%s: unknown relocation: %u\n",
++			       module->name,
++			       ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++}
 -- 
 1.7.1
 
