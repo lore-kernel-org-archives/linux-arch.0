@@ -1,37 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:5615 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932872Ab1IQAq5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:57 -0400
-Message-ID: <093448$3hstut@wolverine01.qualcomm.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:27906 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932869Ab1IQAq4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:56 -0400
+Message-ID: <e97c6e$3hno0g@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:09 -0500
-Subject: [PATCH v4 25/36] Hexagon: Implement basic cache-flush support
+Date: Wed, 14 Sep 2011 13:19:10 -0500
+Subject: [PATCH v4 26/36] Hexagon: Implement basic TLB management routines for Hexagon.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181909.s23aSN2rXNW7_UA3vx-mOMM4c3KTTHb47tffFKbX4y4@z>
+Message-ID: <20110914181910.QsSvQ9kNjIEtW2MueCYTM9aFiltCZI6fZa4-a6tfUT4@z>
+
+Mostly all stubs, as the TLB is managed by the hypervisor.
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/cache.h      |   34 +++++++++
- arch/hexagon/include/asm/cacheflush.h |   99 +++++++++++++++++++++++++
- arch/hexagon/mm/cache.c               |  128 +++++++++++++++++++++++++++++++++
- 3 files changed, 261 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/cache.h
- create mode 100644 arch/hexagon/include/asm/cacheflush.h
- create mode 100644 arch/hexagon/mm/cache.c
+ arch/hexagon/include/asm/tlb.h      |   39 +++++++++++++++
+ arch/hexagon/include/asm/tlbflush.h |   58 ++++++++++++++++++++++
+ arch/hexagon/mm/vm_tlb.c            |   93 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 190 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/tlb.h
+ create mode 100644 arch/hexagon/include/asm/tlbflush.h
+ create mode 100644 arch/hexagon/mm/vm_tlb.c
 
-diff --git a/arch/hexagon/include/asm/cache.h b/arch/hexagon/include/asm/cache.h
+diff --git a/arch/hexagon/include/asm/tlb.h b/arch/hexagon/include/asm/tlb.h
 new file mode 100644
-index 0000000..0f01de2
+index 0000000..473abde
 --- /dev/null
-+++ b/arch/hexagon/include/asm/cache.h
-@@ -0,0 +1,34 @@
++++ b/arch/hexagon/include/asm/tlb.h
+@@ -0,0 +1,39 @@
 +/*
-+ * Cache definitions for the Hexagon architecture
-+ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -49,28 +49,35 @@ index 0000000..0f01de2
 + * 02110-1301, USA.
 + */
 +
-+#ifndef __ASM_CACHE_H
-+#define __ASM_CACHE_H
++#ifndef _ASM_TLB_H
++#define _ASM_TLB_H
 +
-+/* Bytes per L1 cache line */
-+#define L1_CACHE_SHIFT		(5)
-+#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++#include <linux/pagemap.h>
++#include <asm/tlbflush.h>
 +
-+#define __cacheline_aligned	__aligned(L1_CACHE_BYTES)
-+#define ____cacheline_aligned	__aligned(L1_CACHE_BYTES)
++/*
++ * We don't need any special per-pte or per-vma handling...
++ */
++#define tlb_start_vma(tlb, vma)				do { } while (0)
++#define tlb_end_vma(tlb, vma)				do { } while (0)
++#define __tlb_remove_tlb_entry(tlb, ptep, address)	do { } while (0)
 +
-+/* See http://kerneltrap.org/node/15100  */
-+#define __read_mostly
++/*
++ * .. because we flush the whole mm when it fills up
++ */
++#define tlb_flush(tlb)		flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
 +
 +#endif
-diff --git a/arch/hexagon/include/asm/cacheflush.h b/arch/hexagon/include/asm/cacheflush.h
+diff --git a/arch/hexagon/include/asm/tlbflush.h b/arch/hexagon/include/asm/tlbflush.h
 new file mode 100644
-index 0000000..6865c1b
+index 0000000..b89a902
 --- /dev/null
-+++ b/arch/hexagon/include/asm/cacheflush.h
-@@ -0,0 +1,99 @@
++++ b/arch/hexagon/include/asm/tlbflush.h
+@@ -0,0 +1,58 @@
 +/*
-+ * Cache flush operations for the Hexagon architecture
++ * TLB flush support for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -89,93 +96,52 @@ index 0000000..6865c1b
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_CACHEFLUSH_H
-+#define _ASM_CACHEFLUSH_H
++#ifndef _ASM_TLBFLUSH_H
++#define _ASM_TLBFLUSH_H
 +
-+#include <linux/cache.h>
 +#include <linux/mm.h>
-+#include <asm/string.h>
-+#include <asm-generic/cacheflush.h>
-+
-+/* Cache flushing:
-+ *
-+ *  - flush_cache_all() flushes entire cache
-+ *  - flush_cache_mm(mm) flushes the specified mm context's cache lines
-+ *  - flush_cache_page(mm, vmaddr, pfn) flushes a single page
-+ *  - flush_cache_range(vma, start, end) flushes a range of pages
-+ *  - flush_icache_range(start, end) flush a range of instructions
-+ *  - flush_dcache_page(pg) flushes(wback&invalidates) a page for dcache
-+ *  - flush_icache_page(vma, pg) flushes(invalidates) a page for icache
-+ *
-+ *  Need to doublecheck which one is really needed for ptrace stuff to work.
-+ */
-+#define LINESIZE	32
-+#define LINEBITS	5
++#include <asm/processor.h>
 +
 +/*
-+ * Flush Dcache range through current map.
++ * TLB flushing -- in "SMP", these routines get defined to be the
++ * ones from smp.c, else they are some local flavors.
 + */
-+extern void flush_dcache_range(unsigned long start, unsigned long end);
 +
 +/*
-+ * Flush Icache range through current map.
++ * These functions are commonly macros, but in the interests of
++ * VM vs. native implementation and code size, we simply declare
++ * the function prototypes here.
 + */
-+#undef flush_icache_range
-+extern void flush_icache_range(unsigned long start, unsigned long end);
++extern void tlb_flush_all(void);
++extern void flush_tlb_mm(struct mm_struct *mm);
++extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long addr);
++extern void flush_tlb_range(struct vm_area_struct *vma,
++				unsigned long start, unsigned long end);
++extern void flush_tlb_kernel_range(unsigned long start, unsigned long end);
++extern void flush_tlb_one(unsigned long);
 +
 +/*
-+ * Memory-management related flushes are there to ensure in non-physically
-+ * indexed cache schemes that stale lines belonging to a given ASID aren't
-+ * in the cache to confuse things.  The prototype Hexagon Virtual Machine
-+ * only uses a single ASID for all user-mode maps, which should
-+ * mean that they aren't necessary.  A brute-force, flush-everything
-+ * implementation, with the name xxxxx_hexagon() is present in
-+ * arch/hexagon/mm/cache.c, but let's not wire it up until we know
-+ * it is needed.
-+ */
-+extern void flush_cache_all_hexagon(void);
-+
-+/*
-+ * This may or may not ever have to be non-null, depending on the
-+ * virtual machine MMU.  For a native kernel, it's definitiely  a no-op
++ * "This is called in munmap when we have freed up some page-table pages.
++ * We don't need to do anything here..."
 + *
-+ * This is also the place where deferred cache coherency stuff seems
-+ * to happen, classically...  but instead we do it like ia64 and
-+ * clean the cache when the PTE is set.
-+ *
++ * The VM kernel doesn't walk page tables, and they are passed to the VMM
++ * by logical address. There doesn't seem to be any possibility that they
++ * could be referenced by the VM kernel based on a stale mapping, since
++ * they would only be located by consulting the mm structure, and they
++ * will have been purged from that structure by the munmap.  Seems like
++ * a noop on HVM as well.
 + */
-+static inline void update_mmu_cache(struct vm_area_struct *vma,
-+					unsigned long address, pte_t *ptep)
-+{
-+	/*  generic_ptrace_pokedata doesn't wind up here, does it?  */
-+}
-+
-+#undef copy_to_user_page
-+static inline void copy_to_user_page(struct vm_area_struct *vma,
-+					     struct page *page,
-+					     unsigned long vaddr,
-+					     void *dst, void *src, int len)
-+{
-+	memcpy(dst, src, len);
-+	if (vma->vm_flags & VM_EXEC) {
-+		flush_icache_range((unsigned long) dst,
-+		(unsigned long) dst + len);
-+	}
-+}
-+
-+
-+extern void hexagon_inv_dcache_range(unsigned long start, unsigned long end);
-+extern void hexagon_clean_dcache_range(unsigned long start, unsigned long end);
++#define flush_tlb_pgtables(mm, start, end)
 +
 +#endif
-diff --git a/arch/hexagon/mm/cache.c b/arch/hexagon/mm/cache.c
+diff --git a/arch/hexagon/mm/vm_tlb.c b/arch/hexagon/mm/vm_tlb.c
 new file mode 100644
-index 0000000..c5cf6ee
+index 0000000..c6ff415
 --- /dev/null
-+++ b/arch/hexagon/mm/cache.c
-@@ -0,0 +1,128 @@
++++ b/arch/hexagon/mm/vm_tlb.c
+@@ -0,0 +1,93 @@
 +/*
-+ * Cache management functions for Hexagon
++ * Hexagon Virtual Machine TLB functions
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -194,113 +160,78 @@ index 0000000..c5cf6ee
 + * 02110-1301, USA.
 + */
 +
++/*
++ * The Hexagon Virtual Machine conceals the real workings of
++ * the TLB, but there are one or two functions that need to
++ * be instantiated for it, differently from a native build.
++ */
 +#include <linux/mm.h>
-+#include <asm/cacheflush.h>
++#include <asm/page.h>
 +#include <asm/hexagon_vm.h>
 +
-+#define spanlines(start, end) \
-+	(((end - (start & ~(LINESIZE - 1))) >> LINEBITS) + 1)
-+
-+void flush_dcache_range(unsigned long start, unsigned long end)
++/*
++ * Initial VM implementation has only one map active at a time, with
++ * TLB purgings on changes.  So either we're nuking the current map,
++ * or it's a no-op.  This operation is messy on true SMPs where other
++ * processors must be induced to flush the copies in their local TLBs,
++ * but Hexagon thread-based virtual processors share the same MMU.
++ */
++void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			unsigned long end)
 +{
-+	unsigned long lines = spanlines(start, end-1);
-+	unsigned long i, flags;
++	struct mm_struct *mm = vma->vm_mm;
 +
-+	start &= ~(LINESIZE - 1);
-+
-+	local_irq_save(flags);
-+
-+	for (i = 0; i < lines; i++) {
-+		__asm__ __volatile__ (
-+		"	dccleaninva(%0);	"
-+		:
-+		: "r" (start)
-+		);
-+		start += LINESIZE;
-+	}
-+	local_irq_restore(flags);
++	if (mm->context.ptbase == current->active_mm->context.ptbase)
++		__vmclrmap((void *)start, end - start);
 +}
-+
-+void flush_icache_range(unsigned long start, unsigned long end)
-+{
-+	unsigned long lines = spanlines(start, end-1);
-+	unsigned long i, flags;
-+
-+	start &= ~(LINESIZE - 1);
-+
-+	local_irq_save(flags);
-+
-+	for (i = 0; i < lines; i++) {
-+		__asm__ __volatile__ (
-+			"	dccleana(%0); "
-+			"	icinva(%0);	"
-+			:
-+			: "r" (start)
-+		);
-+		start += LINESIZE;
-+	}
-+	__asm__ __volatile__ (
-+		"isync"
-+	);
-+	local_irq_restore(flags);
-+}
-+
-+void hexagon_clean_dcache_range(unsigned long start, unsigned long end)
-+{
-+	unsigned long lines = spanlines(start, end-1);
-+	unsigned long i, flags;
-+
-+	start &= ~(LINESIZE - 1);
-+
-+	local_irq_save(flags);
-+
-+	for (i = 0; i < lines; i++) {
-+		__asm__ __volatile__ (
-+		"	dccleana(%0);	"
-+		:
-+		: "r" (start)
-+		);
-+		start += LINESIZE;
-+	}
-+	local_irq_restore(flags);
-+}
-+
-+void hexagon_inv_dcache_range(unsigned long start, unsigned long end)
-+{
-+	unsigned long lines = spanlines(start, end-1);
-+	unsigned long i, flags;
-+
-+	start &= ~(LINESIZE - 1);
-+
-+	local_irq_save(flags);
-+
-+	for (i = 0; i < lines; i++) {
-+		__asm__ __volatile__ (
-+		"	dcinva(%0);	"
-+		:
-+		: "r" (start)
-+		);
-+		start += LINESIZE;
-+	}
-+	local_irq_restore(flags);
-+}
-+
-+
-+
 +
 +/*
-+ * This is just really brutal and shouldn't be used anyways,
-+ * especially on V2.  Left here just in case.
++ * Flush a page from the kernel virtual map - used by highmem
 + */
-+void flush_cache_all_hexagon(void)
++void flush_tlb_one(unsigned long vaddr)
 +{
-+	unsigned long flags;
-+	local_irq_save(flags);
-+	__vmcache_ickill();
-+	__vmcache_dckill();
-+	__vmcache_l2kill();
-+	local_irq_restore(flags);
-+	mb();
++	__vmclrmap((void *)vaddr, PAGE_SIZE);
++}
++
++/*
++ * Flush all TLBs across all CPUs, virtual or real.
++ * A single Hexagon core has 6 thread contexts but
++ * only one TLB.
++ */
++void tlb_flush_all(void)
++{
++	/*  should probably use that fixaddr end or whateve label  */
++	__vmclrmap(0, 0xffff0000);
++}
++
++/*
++ * Flush TLB entries associated with a given mm_struct mapping.
++ */
++void flush_tlb_mm(struct mm_struct *mm)
++{
++	/* Current Virtual Machine has only one map active at a time */
++	if (current->active_mm->context.ptbase == mm->context.ptbase)
++		tlb_flush_all();
++}
++
++/*
++ * Flush TLB state associated with a page of a vma.
++ */
++void flush_tlb_page(struct vm_area_struct *vma, unsigned long vaddr)
++{
++	struct mm_struct *mm = vma->vm_mm;
++
++	if (mm->context.ptbase  == current->active_mm->context.ptbase)
++		__vmclrmap((void *)vaddr, PAGE_SIZE);
++}
++
++/*
++ * Flush TLB entries associated with a kernel address range.
++ * Like flush range, but without the check on the vma->vm_mm.
++ */
++void flush_tlb_kernel_range(unsigned long start, unsigned long end)
++{
++		__vmclrmap((void *)start, end - start);
 +}
 -- 
 1.7.1
