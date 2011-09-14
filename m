@@ -1,35 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:5608 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:5615 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932678Ab1IQAqp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:45 -0400
-Message-ID: <093448$3hstu7@wolverine01.qualcomm.com>
+	with ESMTP id S932872Ab1IQAq5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:57 -0400
+Message-ID: <093448$3hstut@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:04 -0500
-Subject: [PATCH v4 20/36] Hexagon: Provide basic debugging and system trap support.
+Date: Wed, 14 Sep 2011 13:19:09 -0500
+Subject: [PATCH v4 25/36] Hexagon: Implement basic cache-flush support
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181904.0c8ITT-vigUFq1Ky3swqMwxI4_0WLMwRL5B4hU0S0i4@z>
+Message-ID: <20110914181909.s23aSN2rXNW7_UA3vx-mOMM4c3KTTHb47tffFKbX4y4@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/traps.h |   29 +++
- arch/hexagon/kernel/traps.c      |  370 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 399 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/traps.h
- create mode 100644 arch/hexagon/kernel/traps.c
+ arch/hexagon/include/asm/cache.h      |   34 +++++++++
+ arch/hexagon/include/asm/cacheflush.h |   99 +++++++++++++++++++++++++
+ arch/hexagon/mm/cache.c               |  128 +++++++++++++++++++++++++++++++++
+ 3 files changed, 261 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/cache.h
+ create mode 100644 arch/hexagon/include/asm/cacheflush.h
+ create mode 100644 arch/hexagon/mm/cache.c
 
-diff --git a/arch/hexagon/include/asm/traps.h b/arch/hexagon/include/asm/traps.h
+diff --git a/arch/hexagon/include/asm/cache.h b/arch/hexagon/include/asm/cache.h
 new file mode 100644
-index 0000000..6a407f6
+index 0000000..0f01de2
 --- /dev/null
-+++ b/arch/hexagon/include/asm/traps.h
-@@ -0,0 +1,29 @@
++++ b/arch/hexagon/include/asm/cache.h
+@@ -0,0 +1,34 @@
 +/*
-+ * Trap support for Hexagon
++ * Cache definitions for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -48,23 +49,28 @@ index 0000000..6a407f6
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_HEXAGON_TRAPS_H
-+#define _ASM_HEXAGON_TRAPS_H
++#ifndef __ASM_CACHE_H
++#define __ASM_CACHE_H
 +
-+#include <asm/registers.h>
++/* Bytes per L1 cache line */
++#define L1_CACHE_SHIFT		(5)
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
 +
-+extern int die(const char *str, struct pt_regs *regs, long err);
-+extern int die_if_kernel(char *str, struct pt_regs *regs, long err);
++#define __cacheline_aligned	__aligned(L1_CACHE_BYTES)
++#define ____cacheline_aligned	__aligned(L1_CACHE_BYTES)
 +
-+#endif /* _ASM_HEXAGON_TRAPS_H */
-diff --git a/arch/hexagon/kernel/traps.c b/arch/hexagon/kernel/traps.c
++/* See http://kerneltrap.org/node/15100  */
++#define __read_mostly
++
++#endif
+diff --git a/arch/hexagon/include/asm/cacheflush.h b/arch/hexagon/include/asm/cacheflush.h
 new file mode 100644
-index 0000000..a47d804
+index 0000000..6865c1b
 --- /dev/null
-+++ b/arch/hexagon/kernel/traps.c
-@@ -0,0 +1,370 @@
++++ b/arch/hexagon/include/asm/cacheflush.h
+@@ -0,0 +1,99 @@
 +/*
-+ * Kernel traps/events for Hexagon processor
++ * Cache flush operations for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -83,355 +89,218 @@ index 0000000..a47d804
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/module.h>
-+#include <linux/kallsyms.h>
-+#include <linux/kdebug.h>
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/tracehook.h>
-+#include <asm/traps.h>
-+#include <asm/vm_fault.h>
-+#include <asm/syscall.h>
-+#include <asm/registers.h>
-+#include <asm/unistd.h>
-+#include <asm/sections.h>
-+#ifdef CONFIG_KGDB
-+# include <linux/kgdb.h>
++#ifndef _ASM_CACHEFLUSH_H
++#define _ASM_CACHEFLUSH_H
++
++#include <linux/cache.h>
++#include <linux/mm.h>
++#include <asm/string.h>
++#include <asm-generic/cacheflush.h>
++
++/* Cache flushing:
++ *
++ *  - flush_cache_all() flushes entire cache
++ *  - flush_cache_mm(mm) flushes the specified mm context's cache lines
++ *  - flush_cache_page(mm, vmaddr, pfn) flushes a single page
++ *  - flush_cache_range(vma, start, end) flushes a range of pages
++ *  - flush_icache_range(start, end) flush a range of instructions
++ *  - flush_dcache_page(pg) flushes(wback&invalidates) a page for dcache
++ *  - flush_icache_page(vma, pg) flushes(invalidates) a page for icache
++ *
++ *  Need to doublecheck which one is really needed for ptrace stuff to work.
++ */
++#define LINESIZE	32
++#define LINEBITS	5
++
++/*
++ * Flush Dcache range through current map.
++ */
++extern void flush_dcache_range(unsigned long start, unsigned long end);
++
++/*
++ * Flush Icache range through current map.
++ */
++#undef flush_icache_range
++extern void flush_icache_range(unsigned long start, unsigned long end);
++
++/*
++ * Memory-management related flushes are there to ensure in non-physically
++ * indexed cache schemes that stale lines belonging to a given ASID aren't
++ * in the cache to confuse things.  The prototype Hexagon Virtual Machine
++ * only uses a single ASID for all user-mode maps, which should
++ * mean that they aren't necessary.  A brute-force, flush-everything
++ * implementation, with the name xxxxx_hexagon() is present in
++ * arch/hexagon/mm/cache.c, but let's not wire it up until we know
++ * it is needed.
++ */
++extern void flush_cache_all_hexagon(void);
++
++/*
++ * This may or may not ever have to be non-null, depending on the
++ * virtual machine MMU.  For a native kernel, it's definitiely  a no-op
++ *
++ * This is also the place where deferred cache coherency stuff seems
++ * to happen, classically...  but instead we do it like ia64 and
++ * clean the cache when the PTE is set.
++ *
++ */
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++					unsigned long address, pte_t *ptep)
++{
++	/*  generic_ptrace_pokedata doesn't wind up here, does it?  */
++}
++
++#undef copy_to_user_page
++static inline void copy_to_user_page(struct vm_area_struct *vma,
++					     struct page *page,
++					     unsigned long vaddr,
++					     void *dst, void *src, int len)
++{
++	memcpy(dst, src, len);
++	if (vma->vm_flags & VM_EXEC) {
++		flush_icache_range((unsigned long) dst,
++		(unsigned long) dst + len);
++	}
++}
++
++
++extern void hexagon_inv_dcache_range(unsigned long start, unsigned long end);
++extern void hexagon_clean_dcache_range(unsigned long start, unsigned long end);
++
 +#endif
+diff --git a/arch/hexagon/mm/cache.c b/arch/hexagon/mm/cache.c
+new file mode 100644
+index 0000000..c5cf6ee
+--- /dev/null
++++ b/arch/hexagon/mm/cache.c
+@@ -0,0 +1,128 @@
++/*
++ * Cache management functions for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
 +
-+#define TRAP_SYSCALL	1
-+#define TRAP_DEBUG	0xdb
++#include <linux/mm.h>
++#include <asm/cacheflush.h>
++#include <asm/hexagon_vm.h>
 +
-+void __init trap_init(void)
++#define spanlines(start, end) \
++	(((end - (start & ~(LINESIZE - 1))) >> LINEBITS) + 1)
++
++void flush_dcache_range(unsigned long start, unsigned long end)
 +{
-+}
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
 +
-+#ifdef CONFIG_GENERIC_BUG
-+/* Maybe should resemble arch/sh/kernel/traps.c ?? */
-+int is_valid_bugaddr(unsigned long addr)
-+{
-+	return 1;
-+}
-+#endif /* CONFIG_GENERIC_BUG */
++	start &= ~(LINESIZE - 1);
 +
-+void show_stack(struct task_struct *task, unsigned long *fp)
-+{
-+	int kstack_depth_to_print = 20;
-+	unsigned long offset, size;
-+	const char *name = NULL;
-+	unsigned long *newfp;
-+	unsigned long ip;
-+	char tmpstr[128];
-+	char *modname;
-+	int i;
++	local_irq_save(flags);
 +
-+	if (task == NULL)
-+		task = current;
-+
-+	if (fp == NULL) {
-+		if (task == current) {
-+			asm("%0 = r30" : "=r" (fp));
-+		} else {
-+			fp = (unsigned long *)
-+			     ((struct hexagon_switch_stack *)
-+			     task->thread.switch_sp)->fp;
-+		}
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleaninva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
 +	}
++	local_irq_restore(flags);
++}
 +
-+	printk(KERN_INFO "CPU#%d, %s/%d, Call Trace:\n",
-+	       raw_smp_processor_id(), task->comm,
-+	       task_pid_nr(task));
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (((long) fp & (THREAD_SIZE-1)) == 0)
-+			break;
++void flush_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
 +
-+		newfp = (unsigned long *) *fp;
++	start &= ~(LINESIZE - 1);
 +
-+		ip = *(unsigned long *)((char *)fp + sizeof(unsigned long));
-+		name = kallsyms_lookup(ip, &size, &offset, &modname, tmpstr);
++	local_irq_save(flags);
 +
-+		printk(KERN_INFO "[%p] 0x%lx: %s + 0x%lx", fp, ip, name,
-+			offset);
-+		if (modname)
-+			printk(KERN_CONT " [%s] ", modname);
-+		printk(KERN_CONT "\n");
-+
-+		/* Attempt to continue past exception */
-+		if (0 == newfp) {
-+			struct pt_regs *regs;
-+			newfp = (unsigned long *) (((void *)fp) +
-+				 sizeof(struct pt_regs) + 8);
-+			regs = (struct pt_regs *) (((void *)fp) + 8);
-+			printk(KERN_INFO
-+				"Exception: syscall: %ld  psp: %lx  elr: %lx\n",
-+				regs->syscall_nr, pt_psp(regs), pt_elr(regs));
-+
-+			/* If link reg is null, we are done */
-+			if (*(newfp+1) == 0x0)
-+				break;
-+		}
-+
-+		/* If newfp isn't larger, we're tracing garbage */
-+		if (newfp > fp)
-+			fp = newfp;
-+		else
-+			break;
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++			"	dccleana(%0); "
++			"	icinva(%0);	"
++			:
++			: "r" (start)
++		);
++		start += LINESIZE;
 +	}
++	__asm__ __volatile__ (
++		"isync"
++	);
++	local_irq_restore(flags);
 +}
 +
-+void dump_state(struct pt_regs *regs)
++void hexagon_clean_dcache_range(unsigned long start, unsigned long end)
 +{
-+	show_regs(regs);
-+	show_stack(current, &regs->r30);
-+}
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
 +
-+void dump_stack(void)
-+{
-+	unsigned long *fp;
-+	asm("%0 = r30" : "=r" (fp));
-+	show_stack(current, fp);
-+}
-+EXPORT_SYMBOL(dump_stack);
++	start &= ~(LINESIZE - 1);
 +
-+int die(const char *str, struct pt_regs *regs, long err)
-+{
-+	static struct {
-+		spinlock_t lock;
-+		int counter;
-+	} die = {
-+		.lock = __SPIN_LOCK_UNLOCKED(die.lock),
-+		.counter = 0
-+	};
++	local_irq_save(flags);
 +
-+	spin_lock_irq(&die.lock);
-+	bust_spinlocks(1);
-+	printk(KERN_INFO "%s[#%d]:\n", str, ++die.counter);
-+
-+	if (notify_die(DIE_OOPS, str, regs, err, pt_cause(regs), SIGSEGV) ==
-+	    NOTIFY_STOP)
-+		return 1;
-+
-+	print_modules();
-+	dump_state(regs);
-+
-+	do_exit(err);
-+	return 0;
-+}
-+
-+int die_if_kernel(char *str, struct pt_regs *regs, long err)
-+{
-+	if (!user_mode(regs))
-+		return die(str, regs, err);
-+	else
-+		return 0;
-+}
-+
-+/*
-+ * It's not clear that misaligned fetches are ever recoverable.
-+ */
-+static void misaligned_instruction(struct pt_regs *regs)
-+{
-+	die_if_kernel("Misaligned Instruction", regs, 0);
-+	force_sig(SIGBUS, current);
-+}
-+
-+/*
-+ * Misaligned loads and stores, on the other hand, can be
-+ * emulated, and probably should be, some day.  But for now
-+ * they will be considered fatal.
-+ */
-+static void misaligned_data_load(struct pt_regs *regs)
-+{
-+	die_if_kernel("Misaligned Data Load", regs, 0);
-+	force_sig(SIGBUS, current);
-+}
-+
-+static void misaligned_data_store(struct pt_regs *regs)
-+{
-+	die_if_kernel("Misaligned Data Store", regs, 0);
-+	force_sig(SIGBUS, current);
-+}
-+
-+static void illegal_instruction(struct pt_regs *regs)
-+{
-+	die_if_kernel("Illegal Instruction", regs, 0);
-+	force_sig(SIGILL, current);
-+}
-+
-+/*
-+ * Precise bus errors may be recoverable with a a retry,
-+ * but for now, treat them as irrecoverable.
-+ */
-+static void precise_bus_error(struct pt_regs *regs)
-+{
-+	die_if_kernel("Precise Bus Error", regs, 0);
-+	force_sig(SIGBUS, current);
-+}
-+
-+/*
-+ * If anything is to be done here other than panic,
-+ * it will probably be complex and migrate to another
-+ * source module.  For now, just die.
-+ */
-+static void cache_error(struct pt_regs *regs)
-+{
-+	die("Cache Error", regs, 0);
-+}
-+
-+/*
-+ * General exception handler
-+ */
-+void do_genex(struct pt_regs *regs)
-+{
-+
-+	/*
-+	 * Decode Cause and Dispatch
-+	 */
-+	switch (pt_cause(regs)) {
-+	case HVM_GE_C_XPROT:
-+	case HVM_GE_C_XUSER:
-+		execute_protection_fault(regs);
-+		break;
-+	case HVM_GE_C_RPROT:
-+	case HVM_GE_C_RUSER:
-+		read_protection_fault(regs);
-+		break;
-+	case HVM_GE_C_WPROT:
-+	case HVM_GE_C_WUSER:
-+		write_protection_fault(regs);
-+		break;
-+	case HVM_GE_C_XMAL:
-+		misaligned_instruction(regs);
-+		break;
-+	case HVM_GE_C_RMAL:
-+		misaligned_data_load(regs);
-+		break;
-+	case HVM_GE_C_WMAL:
-+		misaligned_data_store(regs);
-+		break;
-+	case HVM_GE_C_INVI:
-+	case HVM_GE_C_PRIVI:
-+		illegal_instruction(regs);
-+		break;
-+	case HVM_GE_C_BUS:
-+		precise_bus_error(regs);
-+		break;
-+	case HVM_GE_C_CACHE:
-+		cache_error(regs);
-+		break;
-+	default:
-+		/* Halt and catch fire */
-+		panic("Unrecognized exception 0x%lx\n", pt_cause(regs));
-+		break;
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleana(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
 +	}
++	local_irq_restore(flags);
 +}
 +
-+/* Indirect system call dispatch */
-+long sys_syscall(void)
++void hexagon_inv_dcache_range(unsigned long start, unsigned long end)
 +{
-+	printk(KERN_ERR "sys_syscall invoked!\n");
-+	return -ENOSYS;
-+}
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
 +
-+void do_trap0(struct pt_regs *regs)
-+{
-+	unsigned long syscallret = 0;
-+	syscall_fn syscall;
++	start &= ~(LINESIZE - 1);
 +
-+	switch (pt_cause(regs)) {
-+	case TRAP_SYSCALL:
-+		/* System call is trap0 #1 */
++	local_irq_save(flags);
 +
-+		/* allow strace to catch syscall args  */
-+		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE) &&
-+			tracehook_report_syscall_entry(regs)))
-+			return;  /*  return -ENOSYS somewhere?  */
-+
-+		/* Interrupts should be re-enabled for syscall processing */
-+		__vmsetie(VM_INT_ENABLE);
-+
-+		/*
-+		 * System call number is in r6, arguments in r0..r5.
-+		 * Fortunately, no Linux syscall has more than 6 arguments,
-+		 * and Hexagon ABI passes first 6 arguments in registers.
-+		 * 64-bit arguments are passed in odd/even register pairs.
-+		 * Fortunately, we have no system calls that take more
-+		 * than three arguments with more than one 64-bit value.
-+		 * Should that change, we'd need to redesign to copy
-+		 * between user and kernel stacks.
-+		 */
-+		regs->syscall_nr = regs->r06;
-+
-+		/*
-+		 * GPR R0 carries the first parameter, and is also used
-+		 * to report the return value.  We need a backup of
-+		 * the user's value in case we need to do a late restart
-+		 * of the system call.
-+		 */
-+		regs->restart_r0 = regs->r00;
-+
-+		if ((unsigned long) regs->syscall_nr >= __NR_syscalls) {
-+			regs->r00 = -1;
-+		} else {
-+			syscall = (syscall_fn)
-+				  (sys_call_table[regs->syscall_nr]);
-+			syscallret = syscall(regs->r00, regs->r01,
-+				   regs->r02, regs->r03,
-+				   regs->r04, regs->r05);
-+		}
-+
-+		/*
-+		 * If it was a sigreturn system call, don't overwrite
-+		 * r0 value in stack frame with return value.
-+		 *
-+		 * __NR_sigreturn doesn't seem to exist in new unistd.h
-+		 */
-+
-+		if (regs->syscall_nr != __NR_rt_sigreturn)
-+			regs->r00 = syscallret;
-+
-+		/* allow strace to get the syscall return state  */
-+		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE)))
-+			tracehook_report_syscall_exit(regs, 0);
-+
-+		break;
-+	case TRAP_DEBUG:
-+		/* Trap0 0xdb is debug breakpoint */
-+		if (user_mode(regs)) {
-+			struct siginfo info;
-+
-+			info.si_signo = SIGTRAP;
-+			info.si_errno = 0;
-+			/*
-+			 * Some architecures add some per-thread state
-+			 * to distinguish between breakpoint traps and
-+			 * trace traps.  We may want to do that, and
-+			 * set the si_code value appropriately, or we
-+			 * may want to use a different trap0 flavor.
-+			 */
-+			info.si_code = TRAP_BRKPT;
-+			info.si_addr = (void __user *) pt_elr(regs);
-+			send_sig_info(SIGTRAP, &info, current);
-+		} else {
-+#ifdef CONFIG_KGDB
-+			kgdb_handle_exception(pt_cause(regs), SIGTRAP,
-+					      TRAP_BRKPT, regs);
-+#endif
-+		}
-+		break;
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dcinva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
 +	}
-+	/* Ignore other trap0 codes for now, especially 0 (Angel calls) */
++	local_irq_restore(flags);
 +}
++
++
++
 +
 +/*
-+ * Machine check exception handler
++ * This is just really brutal and shouldn't be used anyways,
++ * especially on V2.  Left here just in case.
 + */
-+void do_machcheck(struct pt_regs *regs)
++void flush_cache_all_hexagon(void)
 +{
-+	/* Halt and catch fire */
-+	__vmstop();
++	unsigned long flags;
++	local_irq_save(flags);
++	__vmcache_ickill();
++	__vmcache_dckill();
++	__vmcache_l2kill();
++	local_irq_restore(flags);
++	mb();
 +}
 -- 
 1.7.1
