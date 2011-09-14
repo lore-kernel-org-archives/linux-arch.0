@@ -1,228 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from wolverine02.qualcomm.com ([199.106.114.251]:27906 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932824Ab1IQAqv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:51 -0400
-Message-ID: <e97c6e$3hno09@wolverine02.qualcomm.com>
+	with ESMTP id S932843Ab1IQAqx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:53 -0400
+Message-ID: <e97c6e$3hno0c@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:06 -0500
-Subject: [PATCH v4 22/36] Hexagon: Add locking types and functions
+Date: Wed, 14 Sep 2011 13:19:07 -0500
+Subject: [PATCH v4 23/36] Hexagon: Add user access functions
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181906.h-hw26HbW9650pgx4MnB8Qsx2zTptkaHaxDyRQavfXM@z>
+Message-ID: <20110914181907.9ihxyrOBlCuQt8B64TtGndIuooK9qXLF4TJe5IKYiz4@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/spinlock.h       |  186 +++++++++++++++++++++++++++++
- arch/hexagon/include/asm/spinlock_types.h |   42 +++++++
- include/asm-generic/rwsem.h               |  132 ++++++++++++++++++++
- 3 files changed, 360 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/spinlock.h
- create mode 100644 arch/hexagon/include/asm/spinlock_types.h
- create mode 100644 include/asm-generic/rwsem.h
+ arch/hexagon/include/asm/uaccess.h   |  116 +++++++++++++++++++++
+ arch/hexagon/mm/copy_from_user.S     |  114 +++++++++++++++++++++
+ arch/hexagon/mm/copy_to_user.S       |   92 +++++++++++++++++
+ arch/hexagon/mm/copy_user_template.S |  185 ++++++++++++++++++++++++++++++++++
+ arch/hexagon/mm/strnlen_user.S       |  140 +++++++++++++++++++++++++
+ arch/hexagon/mm/uaccess.c            |   59 +++++++++++
+ 6 files changed, 706 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/uaccess.h
+ create mode 100644 arch/hexagon/mm/copy_from_user.S
+ create mode 100644 arch/hexagon/mm/copy_to_user.S
+ create mode 100644 arch/hexagon/mm/copy_user_template.S
+ create mode 100644 arch/hexagon/mm/strnlen_user.S
+ create mode 100644 arch/hexagon/mm/uaccess.c
 
-diff --git a/arch/hexagon/include/asm/spinlock.h b/arch/hexagon/include/asm/spinlock.h
+diff --git a/arch/hexagon/include/asm/uaccess.h b/arch/hexagon/include/asm/uaccess.h
 new file mode 100644
-index 0000000..168a920
+index 0000000..7e706ea
 --- /dev/null
-+++ b/arch/hexagon/include/asm/spinlock.h
-@@ -0,0 +1,186 @@
++++ b/arch/hexagon/include/asm/uaccess.h
+@@ -0,0 +1,116 @@
 +/*
-+ * Spinlock support for the Hexagon architecture
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SPINLOCK_H
-+#define _ASM_SPINLOCK_H
-+
-+#include <asm/irqflags.h>
-+
-+/*
-+ * This file is pulled in for SMP builds.
-+ * Really need to check all the barrier stuff for "true" SMP
-+ */
-+
-+/*
-+ * Read locks:
-+ * - load the lock value
-+ * - increment it
-+ * - if the lock value is still negative, go back and try again.
-+ * - unsuccessful store is unsuccessful.  Go back and try again.  Loser.
-+ * - successful store new lock value if positive -> lock acquired
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	{ P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	R6 = add(R6,#-1);\n"
-+		"	memw_locked(%0,P3) = R6\n"
-+		"	if !P3 jump 1b;\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+/*  I think this returns 0 on fail, 1 on success.  */
-+static inline int arch_read_trylock(arch_rwlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1);\n"
-+		"	{ %0 = #0; P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
-+		"	{ if !P3 jump 1f; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	{ %0 = P3 }\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+}
-+
-+static inline int arch_read_can_lock(arch_rwlock_t *rwlock)
-+{
-+	return rwlock->lock == 0;
-+}
-+
-+static inline int arch_write_can_lock(arch_rwlock_t *rwlock)
-+{
-+	return rwlock->lock == 0;
-+}
-+
-+/*  Stuffs a -1 in the lock value?  */
-+static inline void arch_write_lock(arch_rwlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0)\n"
-+		"	{ P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+}
-+
-+
-+static inline int arch_write_trylock(arch_rwlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1)\n"
-+		"	{ %0 = #0; P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
-+		"	{ if !P3 jump 1f; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	%0 = P3;\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *lock)
-+{
-+	smp_mb();
-+	lock->lock = 0;
-+}
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	__asm__ __volatile__(
-+		"1:	R6 = memw_locked(%0);\n"
-+		"	P3 = cmp.eq(R6,#0);\n"
-+		"	{ if !P3 jump 1b; R6 = #1; }\n"
-+		"	memw_locked(%0,P3) = R6;\n"
-+		"	{ if !P3 jump 1b; }\n"
-+		:
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	smp_mb();
-+	lock->lock = 0;
-+}
-+
-+static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	int temp;
-+	__asm__ __volatile__(
-+		"	R6 = memw_locked(%1);\n"
-+		"	P3 = cmp.eq(R6,#0);\n"
-+		"	{ if !P3 jump 1f; R6 = #1; %0 = #0; }\n"
-+		"	memw_locked(%1,P3) = R6;\n"
-+		"	%0 = P3;\n"
-+		"1:\n"
-+		: "=&r" (temp)
-+		: "r" (&lock->lock)
-+		: "memory", "r6", "p3"
-+	);
-+	return temp;
-+}
-+
-+/*
-+ * SMP spinlocks are intended to allow only a single CPU at the lock
-+ */
-+#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-+#define arch_spin_unlock_wait(lock) \
-+	do {while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
-+#define arch_spin_is_locked(x) ((x)->lock != 0)
-+
-+#define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/spinlock_types.h b/arch/hexagon/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..5e937af
---- /dev/null
-+++ b/arch/hexagon/include/asm/spinlock_types.h
-@@ -0,0 +1,42 @@
-+/*
-+ * Spinlock support for the Hexagon architecture
++ * User memory access support for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -241,166 +55,722 @@ index 0000000..5e937af
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_SPINLOCK_TYPES_H
-+#define _ASM_SPINLOCK_TYPES_H
-+
-+#include <linux/version.h>
-+
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
-+#endif
-+
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_spinlock_t;
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
-+
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
-+
-+#endif
-diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
-new file mode 100644
-index 0000000..bb1e2cd
---- /dev/null
-+++ b/include/asm-generic/rwsem.h
-@@ -0,0 +1,132 @@
-+#ifndef _ASM_POWERPC_RWSEM_H
-+#define _ASM_POWERPC_RWSEM_H
-+
-+#ifndef _LINUX_RWSEM_H
-+#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
-+#endif
-+
-+#ifdef __KERNEL__
++#ifndef _ASM_UACCESS_H
++#define _ASM_UACCESS_H
++/*
++ * User space memory access functions
++ */
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <asm/segment.h>
++#include <asm/sections.h>
 +
 +/*
-+ * R/W semaphores for PPC using the stuff in lib/rwsem.c.
-+ * Adapted largely from include/asm-i386/rwsem.h
-+ * by Paul Mackerras <paulus@samba.org>.
++ * access_ok: - Checks if a user space pointer is valid
++ * @type: Type of access: %VERIFY_READ or %VERIFY_WRITE.  Note that
++ *        %VERIFY_WRITE is a superset of %VERIFY_READ - if it is safe
++ *        to write to a block, it is always safe to read from it.
++ * @addr: User space pointer to start of block to check
++ * @size: Size of block to check
++ *
++ * Context: User context only.  This function may sleep.
++ *
++ * Checks if a pointer to a block of memory in user space is valid.
++ *
++ * Returns true (nonzero) if the memory block *may* be valid, false (zero)
++ * if it is definitely invalid.
++ *
++ * User address space in Hexagon, like x86, goes to 0xbfffffff, so the
++ * simple MSB-based tests used by MIPS won't work.  Some further
++ * optimization is probably possible here, but for now, keep it
++ * reasonably simple and not *too* slow.  After all, we've got the
++ * MMU for backup.
 + */
++#define VERIFY_READ     0
++#define VERIFY_WRITE    1
++
++#define __access_ok(addr, size) \
++	((get_fs().seg == KERNEL_DS.seg) || \
++	(((unsigned long)addr < get_fs().seg) && \
++	  (unsigned long)size < (get_fs().seg - (unsigned long)addr)))
 +
 +/*
-+ * the semaphore definition
++ * When a kernel-mode page fault is taken, the faulting instruction
++ * address is checked against a table of exception_table_entries.
++ * Each entry is a tuple of the address of an instruction that may
++ * be authorized to fault, and the address at which execution should
++ * be resumed instead of the faulting instruction, so as to effect
++ * a workaround.
 + */
-+#ifdef CONFIG_PPC64
-+# define RWSEM_ACTIVE_MASK		0xffffffffL
-+#else
-+# define RWSEM_ACTIVE_MASK		0x0000ffffL
-+#endif
 +
-+#define RWSEM_UNLOCKED_VALUE		0x00000000L
-+#define RWSEM_ACTIVE_BIAS		0x00000001L
-+#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
-+#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
-+#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++/*  Assembly somewhat optimized copy routines  */
++unsigned long __copy_from_user_hexagon(void *to, const void __user *from,
++				     unsigned long n);
++unsigned long __copy_to_user_hexagon(void __user *to, const void *from,
++				   unsigned long n);
++
++#define __copy_from_user(to, from, n) __copy_from_user_hexagon(to, from, n)
++#define __copy_to_user(to, from, n) __copy_to_user_hexagon(to, from, n)
 +
 +/*
-+ * lock for reading
++ * XXX todo: some additonal performance gain is possible by
++ * implementing __copy_to/from_user_inatomic, which is much
++ * like __copy_to/from_user, but performs slightly less checking.
 + */
-+static inline void __down_read(struct rw_semaphore *sem)
++
++__kernel_size_t __clear_user_hexagon(void __user *dest, unsigned long count);
++#define __clear_user(a, s) __clear_user_hexagon((a), (s))
++
++#define __strncpy_from_user(dst, src, n) hexagon_strncpy_from_user(dst, src, n)
++
++/*  get around the ifndef in asm-generic/uaccess.h  */
++#define __strnlen_user __strnlen_user
++
++extern long __strnlen_user(const char __user *src, long n);
++
++static inline long hexagon_strncpy_from_user(char *dst, const char __user *src,
++					     long n);
++
++#include <asm-generic/uaccess.h>
++
++/*  Todo:  an actual accelerated version of this.  */
++static inline long hexagon_strncpy_from_user(char *dst, const char __user *src,
++					     long n)
 +{
-+	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
-+		rwsem_down_read_failed(sem);
-+}
++	long res = __strnlen_user(src, n);
 +
-+static inline int __down_read_trylock(struct rw_semaphore *sem)
-+{
-+	long tmp;
++	/* return from strnlen can't be zero -- that would be rubbish. */
 +
-+	while ((tmp = sem->count) >= 0) {
-+		if (tmp == cmpxchg(&sem->count, tmp,
-+				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
-+			return 1;
-+		}
++	if (res > n) {
++		copy_from_user(dst, src, n);
++		return n;
++	} else {
++		copy_from_user(dst, src, res);
++		return res-1;
 +	}
-+	return 0;
 +}
++
++#endif
+diff --git a/arch/hexagon/mm/copy_from_user.S b/arch/hexagon/mm/copy_from_user.S
+new file mode 100644
+index 0000000..8eb1d4d
+--- /dev/null
++++ b/arch/hexagon/mm/copy_from_user.S
+@@ -0,0 +1,114 @@
++/*
++ * User memory copy functions for kernel
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
 +
 +/*
-+ * lock for writing
++ * The right way to do this involves valignb
++ * The easy way to do this is only speed up src/dest similar alignment.
 + */
-+static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
-+{
-+	long tmp;
-+
-+	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				     (atomic_long_t *)&sem->count);
-+	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
-+		rwsem_down_write_failed(sem);
-+}
-+
-+static inline void __down_write(struct rw_semaphore *sem)
-+{
-+	__down_write_nested(sem, 0);
-+}
-+
-+static inline int __down_write_trylock(struct rw_semaphore *sem)
-+{
-+	long tmp;
-+
-+	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
-+		      RWSEM_ACTIVE_WRITE_BIAS);
-+	return tmp == RWSEM_UNLOCKED_VALUE;
-+}
 +
 +/*
-+ * unlock after reading
++ * Copy to/from user are the same, except that for packets with a load and
++ * a store, I don't know how to tell which kind of exception we got.
++ * Therefore, we duplicate the function, and handle faulting addresses
++ * differently for each function
 + */
-+static inline void __up_read(struct rw_semaphore *sem)
-+{
-+	long tmp;
-+
-+	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
-+	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
-+		rwsem_wake(sem);
-+}
 +
 +/*
-+ * unlock after writing
++ * copy from user: loads can fault
 + */
-+static inline void __up_write(struct rw_semaphore *sem)
-+{
-+	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				 (atomic_long_t *)&sem->count) < 0))
-+		rwsem_wake(sem);
-+}
++#define src_sav r13
++#define dst_sav r12
++#define src_dst_sav r13:12
++#define d_dbuf r15:14
++#define w_dbuf r15
++
++#define dst r0
++#define src r1
++#define bytes r2
++#define loopcount r5
++
++#define FUNCNAME __copy_from_user_hexagon
++#include "copy_user_template.S"
++
++	/* LOAD FAULTS from COPY_FROM_USER */
++
++	/* Alignment loop.  r2 has been updated. Return it. */
++	.falign
++1009:
++2009:
++4009:
++	{
++		r0 = r2
++		jumpr r31
++	}
++	/* Normal copy loops. Do epilog. Use src-src_sav to compute distance */
++	/* X - (A - B) == X + B - A */
++	.falign
++8089:
++	{
++		memd(dst) = d_dbuf
++		r2 += sub(src_sav,src)
++	}
++	{
++		r0 = r2
++		jumpr r31
++	}
++	.falign
++4089:
++	{
++		memw(dst) = w_dbuf
++		r2 += sub(src_sav,src)
++	}
++	{
++		r0 = r2
++		jumpr r31
++	}
++	.falign
++2089:
++	{
++		memh(dst) = w_dbuf
++		r2 += sub(src_sav,src)
++	}
++	{
++		r0 = r2
++		jumpr r31
++	}
++	.falign
++1089:
++	{
++		memb(dst) = w_dbuf
++		r2 += sub(src_sav,src)
++	}
++	{
++		r0 = r2
++		jumpr r31
++	}
++
++	/* COPY FROM USER: only loads can fail */
++
++	.section __ex_table,"a"
++	.long 1000b,1009b
++	.long 2000b,2009b
++	.long 4000b,4009b
++	.long 8080b,8089b
++	.long 4080b,4089b
++	.long 2080b,2089b
++	.long 1080b,1089b
++	.previous
+diff --git a/arch/hexagon/mm/copy_to_user.S b/arch/hexagon/mm/copy_to_user.S
+new file mode 100644
+index 0000000..cb9740e
+--- /dev/null
++++ b/arch/hexagon/mm/copy_to_user.S
+@@ -0,0 +1,92 @@
++/*
++ * User memory copying routines for the Hexagon Kernel
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++/* The right way to do this involves valignb
++ * The easy way to do this is only speed up src/dest similar alignment.
++ */
 +
 +/*
-+ * implement atomic add functionality
++ * Copy to/from user are the same, except that for packets with a load and
++ * a store, I don't know how to tell which kind of exception we got.
++ * Therefore, we duplicate the function, and handle faulting addresses
++ * differently for each function
 + */
-+static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
-+{
-+	atomic_long_add(delta, (atomic_long_t *)&sem->count);
-+}
 +
 +/*
-+ * downgrade write lock to read lock
++ * copy to user: stores can fault
 + */
-+static inline void __downgrade_write(struct rw_semaphore *sem)
-+{
-+	long tmp;
++#define src_sav r13
++#define dst_sav r12
++#define src_dst_sav r13:12
++#define d_dbuf r15:14
++#define w_dbuf r15
 +
-+	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
-+				     (atomic_long_t *)&sem->count);
-+	if (tmp < 0)
-+		rwsem_downgrade_wake(sem);
-+}
++#define dst r0
++#define src r1
++#define bytes r2
++#define loopcount r5
++
++#define FUNCNAME __copy_to_user_hexagon
++#include "copy_user_template.S"
++
++	/* STORE FAULTS from COPY_TO_USER */
++	.falign
++1109:
++2109:
++4109:
++	/* Alignment loop.  r2 has been updated.  Return it. */
++	{
++		r0 = r2
++		jumpr r31
++	}
++	/* Normal copy loops.  Use dst-dst_sav to compute distance */
++	/* dst holds best write, no need to unwind any loops */
++	/* X - (A - B) == X + B - A */
++	.falign
++8189:
++8199:
++4189:
++4199:
++2189:
++2199:
++1189:
++1199:
++	{
++		r2 += sub(dst_sav,dst)
++	}
++	{
++		r0 = r2
++		jumpr r31
++	}
++
++	/* COPY TO USER: only stores can fail */
++	.section __ex_table,"a"
++	.long 1100b,1109b
++	.long 2100b,2109b
++	.long 4100b,4109b
++	.long 8180b,8189b
++	.long 8190b,8199b
++	.long 4180b,4189b
++	.long 4190b,4199b
++	.long 2180b,2189b
++	.long 2190b,2199b
++	.long 1180b,1189b
++	.long 1190b,1199b
++	.previous
+diff --git a/arch/hexagon/mm/copy_user_template.S b/arch/hexagon/mm/copy_user_template.S
+new file mode 100644
+index 0000000..08d7d7b
+--- /dev/null
++++ b/arch/hexagon/mm/copy_user_template.S
+@@ -0,0 +1,185 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++/* Numerology:
++ * WXYZ
++ * W: width in bytes
++ * X: Load=0, Store=1
++ * Y: Location 0=preamble,8=loop,9=epilog
++ * Z: Location=0,handler=9
++ */
++	.text
++	.global FUNCNAME
++	.type FUNCNAME, @function
++	.p2align 5
++FUNCNAME:
++	{
++		p0 = cmp.gtu(bytes,#0)
++		if (!p0.new) jump:nt .Ldone
++		r3 = or(dst,src)
++		r4 = xor(dst,src)
++	}
++	{
++		p1 = cmp.gtu(bytes,#15)
++		p0 = bitsclr(r3,#7)
++		if (!p0.new) jump:nt .Loop_not_aligned_8
++		src_dst_sav = combine(src,dst)
++	}
++
++	{
++		loopcount = lsr(bytes,#3)
++		if (!p1) jump .Lsmall
++	}
++	p3=sp1loop0(.Loop8,loopcount)
++.Loop8:
++8080:
++8180:
++	{
++		if (p3) memd(dst++#8) = d_dbuf
++		d_dbuf = memd(src++#8)
++	}:endloop0
++8190:
++	{
++		memd(dst++#8) = d_dbuf
++		bytes -= asl(loopcount,#3)
++		jump .Lsmall
++	}
++
++.Loop_not_aligned_8:
++	{
++		p0 = bitsclr(r4,#7)
++		if (p0.new) jump:nt .Lalign
++	}
++	{
++		p0 = bitsclr(r3,#3)
++		if (!p0.new) jump:nt .Loop_not_aligned_4
++		p1 = cmp.gtu(bytes,#7)
++	}
++
++	{
++		if (!p1) jump .Lsmall
++		loopcount = lsr(bytes,#2)
++	}
++	p3=sp1loop0(.Loop4,loopcount)
++.Loop4:
++4080:
++4180:
++	{
++		if (p3) memw(dst++#4) = w_dbuf
++		w_dbuf = memw(src++#4)
++	}:endloop0
++4190:
++	{
++		memw(dst++#4) = w_dbuf
++		bytes -= asl(loopcount,#2)
++		jump .Lsmall
++	}
++
++.Loop_not_aligned_4:
++	{
++		p0 = bitsclr(r3,#1)
++		if (!p0.new) jump:nt .Loop_not_aligned
++		p1 = cmp.gtu(bytes,#3)
++	}
++
++	{
++		if (!p1) jump .Lsmall
++		loopcount = lsr(bytes,#1)
++	}
++	p3=sp1loop0(.Loop2,loopcount)
++.Loop2:
++2080:
++2180:
++	{
++		if (p3) memh(dst++#2) = w_dbuf
++		w_dbuf = memuh(src++#2)
++	}:endloop0
++2190:
++	{
++		memh(dst++#2) = w_dbuf
++		bytes -= asl(loopcount,#1)
++		jump .Lsmall
++	}
++
++.Loop_not_aligned: /* Works for as small as one byte */
++	p3=sp1loop0(.Loop1,bytes)
++.Loop1:
++1080:
++1180:
++	{
++		if (p3) memb(dst++#1) = w_dbuf
++		w_dbuf = memub(src++#1)
++	}:endloop0
++	/* Done */
++1190:
++	{
++		memb(dst) = w_dbuf
++		jumpr r31
++		r0 = #0
++	}
++
++.Lsmall:
++	{
++		p0 = cmp.gtu(bytes,#0)
++		if (p0.new) jump:nt .Loop_not_aligned
++	}
++.Ldone:
++	{
++		r0 = #0
++		jumpr r31
++	}
++	.falign
++.Lalign:
++1000:
++	{
++		if (p0.new) w_dbuf = memub(src)
++		p0 = tstbit(src,#0)
++		if (!p1) jump .Lsmall
++	}
++1100:
++	{
++		if (p0) memb(dst++#1) = w_dbuf
++		if (p0) bytes = add(bytes,#-1)
++		if (p0) src = add(src,#1)
++	}
++2000:
++	{
++		if (p0.new) w_dbuf = memuh(src)
++		p0 = tstbit(src,#1)
++		if (!p1) jump .Lsmall
++	}
++2100:
++	{
++		if (p0) memh(dst++#2) = w_dbuf
++		if (p0) bytes = add(bytes,#-2)
++		if (p0) src = add(src,#2)
++	}
++4000:
++	{
++		if (p0.new) w_dbuf = memw(src)
++		p0 = tstbit(src,#2)
++		if (!p1) jump .Lsmall
++	}
++4100:
++	{
++		if (p0) memw(dst++#4) = w_dbuf
++		if (p0) bytes = add(bytes,#-4)
++		if (p0) src = add(src,#4)
++		jump FUNCNAME
++	}
++	.size FUNCNAME,.-FUNCNAME
+diff --git a/arch/hexagon/mm/strnlen_user.S b/arch/hexagon/mm/strnlen_user.S
+new file mode 100644
+index 0000000..324ff54
+--- /dev/null
++++ b/arch/hexagon/mm/strnlen_user.S
+@@ -0,0 +1,140 @@
++/*
++ * User string length functions for kernel
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#define isrc	r0
++#define max	r1	/*  Do not change!  */
++
++#define end	r2
++#define tmp1	r3
++
++#define obo	r6	/*  off-by-one  */
++#define start	r7
++#define mod8	r8
++#define dbuf    r15:14
++#define dcmp	r13:12
 +
 +/*
-+ * implement exchange and add functionality
++ * The vector mask version of this turned out *really* badly.
++ * The hardware loop version also turned out *really* badly.
++ * Seems straight pointer arithmetic basically wins here.
 + */
-+static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
++
++#define fname __strnlen_user
++
++	.text
++	.global fname
++	.type fname, @function
++	.p2align 5  /*  why?  */
++fname:
++	{
++		mod8 = and(isrc,#7);
++		end = add(isrc,max);
++		start = isrc;
++	}
++	{
++		P0 = cmp.eq(mod8,#0);
++		mod8 = and(end,#7);
++		dcmp = #0;
++		if (P0.new) jump:t dw_loop;	/*  fire up the oven  */
++	}
++
++alignment_loop:
++fail_1:	{
++		tmp1 = memb(start++#1);
++	}
++	{
++		P0 = cmp.eq(tmp1,#0);
++		if (P0.new) jump:nt exit_found;
++		P1 = cmp.gtu(end,start);
++		mod8 = and(start,#7);
++	}
++	{
++		if (!P1) jump exit_error;  /*  hit the end  */
++		P0 = cmp.eq(mod8,#0);
++	}
++	{
++		if (!P0) jump alignment_loop;
++	}
++
++
++
++dw_loop:
++fail_2:	{
++		dbuf = memd(start);
++		obo = add(start,#1);
++	}
++	{
++		P0 = vcmpb.eq(dbuf,dcmp);
++	}
++	{
++		tmp1 = P0;
++		P0 = cmp.gtu(end,start);
++	}
++	{
++		tmp1 = ct0(tmp1);
++		mod8 = and(end,#7);
++		if (!P0) jump end_check;
++	}
++	{
++		P0 = cmp.eq(tmp1,#32);
++		if (!P0.new) jump:nt exit_found;
++		if (!P0.new) start = add(obo,tmp1);
++	}
++	{
++		start = add(start,#8);
++		jump dw_loop;
++	}	/*  might be nice to combine these jumps...   */
++
++
++end_check:
++	{
++		P0 = cmp.gt(tmp1,mod8);
++		if (P0.new) jump:nt exit_error;	/*  neverfound!  */
++		start = add(obo,tmp1);
++	}
++
++exit_found:
++	{
++		R0 = sub(start,isrc);
++		jumpr R31;
++	}
++
++exit_error:
++	{
++		R0 = add(max,#1);
++		jumpr R31;
++	}
++
++	/*  Uh, what does the "fixup" return here?  */
++	.falign
++fix_1:
++	{
++		R0 = #0;
++		jumpr R31;
++	}
++
++	.size fname,.-fname
++
++
++.section __ex_table,"a"
++.long fail_1,fix_1
++.long fail_2,fix_1
++.previous
++
+diff --git a/arch/hexagon/mm/uaccess.c b/arch/hexagon/mm/uaccess.c
+new file mode 100644
+index 0000000..e748108
+--- /dev/null
++++ b/arch/hexagon/mm/uaccess.c
+@@ -0,0 +1,59 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++/*
++ * Support for user memory access from kernel.  This will
++ * probably be inlined for performance at some point, but
++ * for ease of debug, and to a lesser degree for code size,
++ * we implement here as subroutines.
++ */
++#include <linux/types.h>
++#include <asm/uaccess.h>
++#include <asm/pgtable.h>
++
++/*
++ * For clear_user(), exploit previously defined copy_to_user function
++ * and the fact that we've got a handy zero page defined in kernel/head.S
++ *
++ * dczero here would be even faster.
++ */
++__kernel_size_t __clear_user_hexagon(void __user *dest, unsigned long count)
 +{
-+	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
++	long uncleared;
++
++	while (count > PAGE_SIZE) {
++		uncleared = __copy_to_user_hexagon(dest, &empty_zero_page,
++						PAGE_SIZE);
++		if (uncleared)
++			return count - (PAGE_SIZE - uncleared);
++		count -= PAGE_SIZE;
++		dest += PAGE_SIZE;
++	}
++	if (count)
++		count = __copy_to_user_hexagon(dest, &empty_zero_page, count);
++
++	return count;
 +}
 +
-+#endif	/* __KERNEL__ */
-+#endif	/* _ASM_POWERPC_RWSEM_H */
++unsigned long clear_user_hexagon(void __user *dest, unsigned long count)
++{
++	if (!access_ok(VERIFY_WRITE, dest, count))
++		return count;
++	else
++		return __clear_user_hexagon(dest, count);
++}
 -- 
 1.7.1
 
