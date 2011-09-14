@@ -1,53 +1,110 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v4 36/36] Add extra arch overrides to asm-generic/checksum.h
-Date: Wed, 14 Sep 2011 13:19:20 -0500
-Message-ID: <e97c6e$3hno2c@wolverine02.qualcomm.com>
+Subject: [PATCH v4 32/36] Hexagon: Comet platform support
+Date: Wed, 14 Sep 2011 13:19:16 -0500
+Message-ID: <093448$3hstvq@wolverine01.qualcomm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-There are plausible reasons for architectures to provide their own
-versions of csum_partial_copy_nocheck and csum_tcpudp_magic.
-By protecting these, the architecture can still re-use the
-asm-generic checksum.h, instead of copying it.
-
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/checksum.h |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ arch/hexagon/configs/comet_defconfig |   85 ++++++++++++++++++++++++++++++++++
+ 1 files changed, 85 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/configs/comet_defconfig
 
-diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
-index 4647c76..c084767 100644
---- a/include/asm-generic/checksum.h
-+++ b/include/asm-generic/checksum.h
-@@ -33,8 +33,10 @@ extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
- extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
- 					int len, __wsum sum, int *csum_err);
- 
-+#ifndef csum_partial_copy_nocheck
- #define csum_partial_copy_nocheck(src, dst, len, sum)	\
- 	csum_partial_copy((src), (dst), (len), (sum))
-+#endif
- 
- /*
-  * This is a version of ip_compute_csum() optimized for IP headers,
-@@ -63,12 +65,14 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
- 		unsigned short proto, __wsum sum);
- #endif
- 
-+#ifndef csum_tcpudp_magic
- static inline __sum16
- csum_tcpudp_magic(__be32 saddr, __be32 daddr, unsigned short len,
- 		  unsigned short proto, __wsum sum)
- {
- 	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
- }
-+#endif
- 
- /*
-  * this routine is used for miscellaneous IP-like checksums, mainly
+diff --git a/arch/hexagon/configs/comet_defconfig b/arch/hexagon/configs/comet_defconfig
+new file mode 100644
+index 0000000..e324f65
+--- /dev/null
++++ b/arch/hexagon/configs/comet_defconfig
+@@ -0,0 +1,85 @@
++CONFIG_SMP=y
++CONFIG_DEFAULT_MMAP_MIN_ADDR=0
++CONFIG_HZ_100=y
++CONFIG_EXPERIMENTAL=y
++CONFIG_CROSS_COMPILE="hexagon-"
++CONFIG_LOCALVERSION="-smp"
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_TASKSTATS=y
++CONFIG_TASK_DELAY_ACCT=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=18
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
++# CONFIG_STANDALONE is not set
++CONFIG_CONNECTOR=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_NBD=y
++CONFIG_NETDEVICES=y
++CONFIG_MII=y
++CONFIG_PHYLIB=y
++CONFIG_NET_ETHERNET=y
++# CONFIG_NETDEV_1000 is not set
++# CONFIG_NETDEV_10000 is not set
++# CONFIG_INPUT_MOUSEDEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_SERIO is not set
++# CONFIG_CONSOLE_TRANSLATIONS is not set
++CONFIG_LEGACY_PTY_COUNT=64
++# CONFIG_DEVKMEM is not set
++# CONFIG_HW_RANDOM is not set
++CONFIG_SPI=y
++CONFIG_SPI_DEBUG=y
++CONFIG_SPI_BITBANG=y
++# CONFIG_HWMON is not set
++# CONFIG_VGA_CONSOLE is not set
++# CONFIG_HID_SUPPORT is not set
++# CONFIG_USB_SUPPORT is not set
++CONFIG_EXT2_FS=y
++CONFIG_EXT2_FS_XATTR=y
++CONFIG_EXT2_FS_POSIX_ACL=y
++CONFIG_EXT2_FS_SECURITY=y
++CONFIG_EXT3_FS=y
++# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set
++CONFIG_EXT3_FS_POSIX_ACL=y
++CONFIG_EXT3_FS_SECURITY=y
++CONFIG_QUOTA=y
++CONFIG_PROC_KCORE=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3=y
++CONFIG_NFS_V3_ACL=y
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_LRO is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++CONFIG_CRYPTO_MD5=y
++# CONFIG_CRYPTO_ANSI_CPRNG is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_CRC_CCITT=y
++CONFIG_CRC16=y
++CONFIG_CRC_T10DIF=y
++CONFIG_LIBCRC32C=y
++CONFIG_FRAME_WARN=0
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_DEBUG_FS=y
++# CONFIG_SCHED_DEBUG is not set
++CONFIG_DEBUG_INFO=y
 -- 
 1.7.1
 
