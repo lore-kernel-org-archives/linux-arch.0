@@ -1,39 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:27878 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932694Ab1IQAqi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:38 -0400
-Message-ID: <e97c6e$3hno02@wolverine02.qualcomm.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:5608 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932756Ab1IQAqr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:47 -0400
+Message-ID: <093448$3hstu8@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:19:00 -0500
-Subject: [PATCH v4 16/36] Hexagon: Add startup code
+Date: Wed, 14 Sep 2011 13:19:05 -0500
+Subject: [PATCH v4 21/36] Hexagon: Add SMP support
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181900._aU1nz_NTsJWLn5KeiAJT56Ju7rdBOmPGS6je2JNsyg@z>
+Message-ID: <20110914181905.oKQN7cxGZYeJXrNTaJgLoGcio9Wtn1n7kvghJ3d-5hE@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/kernel/head.S  |  162 +++++++++++++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/reset.c |   38 ++++++++++
- arch/hexagon/kernel/setup.c |  145 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 345 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/kernel/head.S
- create mode 100644 arch/hexagon/kernel/reset.c
- create mode 100644 arch/hexagon/kernel/setup.c
+ arch/hexagon/include/asm/smp.h |   44 +++++++
+ arch/hexagon/kernel/smp.c      |  280 ++++++++++++++++++++++++++++++++++++++++
+ arch/hexagon/kernel/topology.c |   52 ++++++++
+ 3 files changed, 376 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/smp.h
+ create mode 100644 arch/hexagon/kernel/smp.c
+ create mode 100644 arch/hexagon/kernel/topology.c
 
-diff --git a/arch/hexagon/kernel/head.S b/arch/hexagon/kernel/head.S
+diff --git a/arch/hexagon/include/asm/smp.h b/arch/hexagon/include/asm/smp.h
 new file mode 100644
-index 0000000..6964da5
+index 0000000..87c869a
 --- /dev/null
-+++ b/arch/hexagon/kernel/head.S
-@@ -0,0 +1,162 @@
++++ b/arch/hexagon/include/asm/smp.h
+@@ -0,0 +1,44 @@
 +/*
-+ * Early kernel startup code for Hexagon
++ * SMP definitions for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 and
@@ -50,342 +50,374 @@ index 0000000..6964da5
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/linkage.h>
++#ifndef __ASM_SMP_H
++#define __ASM_SMP_H
++
++#include <linux/cpumask.h>
++
++#define raw_smp_processor_id() (current_thread_info()->cpu)
++
++enum ipi_message_type {
++	IPI_NOP = 0,
++	IPI_RESCHEDULE = 1,
++	IPI_CALL_FUNC,
++	IPI_CALL_FUNC_SINGLE,
++	IPI_CPU_STOP,
++	IPI_TIMER,
++};
++
++extern void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg);
++extern void smp_start_cpus(void);
++extern void arch_send_call_function_single_ipi(int cpu);
++extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++
++extern void smp_vm_unmask_irq(void *info);
++
++#endif
+diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+new file mode 100644
+index 0000000..96bf6c2
+--- /dev/null
++++ b/arch/hexagon/kernel/smp.c
+@@ -0,0 +1,280 @@
++/*
++ * SMP support for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
 +#include <linux/init.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/mem-layout.h>
-+#include <asm/vm_mmu.h>
-+#include <asm/page.h>
-+
-+       	__INIT
-+ENTRY(stext)
-+	/*
-+	 * VMM will already have set up true vector page, MMU, etc.
-+	 * To set up initial kernel identity map, we have to pass
-+	 * the VMM a pointer to some canonical page tables. In
-+	 * this implementation, we're assuming that we've got
-+	 * them precompiled. Generate value in R24, as we'll need
-+	 * it again shortly.
-+	 */
-+	r24.L = #LO(swapper_pg_dir)
-+	r24.H = #HI(swapper_pg_dir)
-+
-+	/*
-+	 * Symbol is kernel segment address, but we need
-+	 * the logical/physical address.
-+	 */
-+	r24 = asl(r24, #2)
-+	r24 = lsr(r24, #2)
-+
-+	r0 = r24
-+
-+	/*
-+	 * Initialize a 16MB PTE to make the virtual and physical
-+	 * addresses where the kernel was loaded be identical.
-+	 */
-+#define PTE_BITS ( __HVM_PTE_R | __HVM_PTE_W | __HVM_PTE_X	\
-+		  | __HEXAGON_C_WB_L2 << 6			\
-+		  | __HVM_PDE_S_4MB)
-+
-+	r1 = pc
-+	r2.H = #0xffc0
-+	r2.L = #0x0000
-+	r1 = and(r1,r2)		/* round PC to 4MB boundary	*/
-+	r2 = lsr(r1, #22)	/* 4MB page number		*/
-+	r2 = asl(r2, #2)	/* times sizeof(PTE) (4bytes)	*/
-+	r0 = add(r0,r2)		/* r0 = address of correct PTE	*/
-+	r2 = #PTE_BITS
-+	r1 = add(r1,r2)		/* r1 = 4MB PTE for the first entry	*/
-+	r2.h = #0x0040
-+	r2.l = #0x0000		/* 4MB	*/
-+	memw(r0 ++ #4) = r1
-+	r1 = add(r1, r2)
-+	memw(r0 ++ #4) = r1
-+
-+	r0 = r24
-+
-+	/*
-+	 * The subroutine wrapper around the virtual instruction touches
-+	 * no memory, so we should be able to use it even here.
-+	 */
-+	call	__vmnewmap;
-+
-+	/*  Jump into virtual address range.  */
-+
-+	r31.h = #hi(__head_s_vaddr_target)
-+	r31.l = #lo(__head_s_vaddr_target)
-+	jumpr r31
-+
-+	/*  Insert trippy space effects.  */
-+
-+__head_s_vaddr_target:
-+	/*
-+	 * Tear down VA=PA translation now that we are running
-+	 * in the desgnated kernel segments.
-+	 */
-+	r0 = #__HVM_PDE_S_INVALID
-+	r1 = r24
-+	loop0(1f,#0x100)
-+1:
-+	{
-+		memw(R1 ++ #4) = R0
-+	}:endloop0
-+
-+	r0 = r24
-+	call __vmnewmap
-+
-+	/*  Go ahead and install the trap0 return so angel calls work  */
-+	r0.h = #hi(_K_provisional_vec)
-+	r0.l = #lo(_K_provisional_vec)
-+	call __vmsetvec
-+
-+	/*
-+	 * OK, at this point we should start to be much more careful,
-+	 * we're going to enter C code and start touching memory
-+	 * in all sorts of places.
-+	 * This means:
-+	 *      SGP needs to be OK
-+	 *	Need to lock shared resources
-+	 *	A bunch of other things that will cause
-+	 * 	all kinds of painful bugs
-+	 */
-+
-+	/*
-+	 * Stack pointer should be pointed at the init task's
-+	 * thread stack, which should have been declared in arch/init_task.c.
-+	 * So uhhhhh...
-+	 * It's accessible via the init_thread_union, which is a union
-+	 * of a thread_info struct and a stack; of course, the top
-+	 * of the stack is not for you.  The end of the stack
-+	 * is simply init_thread_union + THREAD_SIZE.
-+	 */
-+
-+	{r29.H = #HI(init_thread_union); r0.H = #HI(_THREAD_SIZE); }
-+	{r29.L = #LO(init_thread_union); r0.L = #LO(_THREAD_SIZE); }
-+
-+	/*  initialize the register used to point to current_thread_info */
-+	/*  Fixme:  THREADINFO_REG can't be R2 because of that memset thing. */
-+	{r29 = add(r29,r0); THREADINFO_REG = r29; }
-+
-+	/*  Hack:  zero bss; */
-+	{ r0.L = #LO(__bss_start);  r1 = #0; r2.l = #LO(__bss_stop); }
-+	{ r0.H = #HI(__bss_start);           r2.h = #HI(__bss_stop); }
-+
-+	r2 = sub(r2,r0);
-+	call memset;
-+
-+	/* Time to make the doughnuts.   */
-+	call start_kernel
-+
-+	/*
-+	 * Should not reach here.
-+	 */
-+1:
-+	jump 1b
-+
-+.p2align PAGE_SHIFT
-+ENTRY(external_cmdline_buffer)
-+        .fill _PAGE_SIZE,1,0
-+
-+.data
-+.p2align PAGE_SHIFT
-+ENTRY(empty_zero_page)
-+        .fill _PAGE_SIZE,1,0
-diff --git a/arch/hexagon/kernel/reset.c b/arch/hexagon/kernel/reset.c
-new file mode 100644
-index 0000000..4d72fc5
---- /dev/null
-+++ b/arch/hexagon/kernel/reset.c
-@@ -0,0 +1,38 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/percpu.h>
++#include <linux/sched.h>
 +#include <linux/smp.h>
++#include <linux/spinlock.h>
++
++#include <asm/system.h>  /*  xchg  */
++#include <asm/time.h>    /*  timer_interrupt  */
 +#include <asm/hexagon_vm.h>
 +
-+void machine_power_off(void)
-+{
-+	smp_send_stop();
-+	__vmstop();
-+}
-+
-+void machine_halt(void)
-+{
-+}
-+
-+void machine_restart(char *cmd)
-+{
-+}
-+
-+void pm_power_off(void)
-+{
-+}
-diff --git a/arch/hexagon/kernel/setup.c b/arch/hexagon/kernel/setup.c
-new file mode 100644
-index 0000000..1202f78
---- /dev/null
-+++ b/arch/hexagon/kernel/setup.c
-@@ -0,0 +1,145 @@
-+/*
-+ * Arch related setup for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/bootmem.h>
-+#include <linux/mmzone.h>
-+#include <linux/mm.h>
-+#include <linux/seq_file.h>
-+#include <linux/console.h>
-+#include <linux/of_fdt.h>
-+#include <asm/io.h>
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/processor.h>
-+#include <asm/hexagon_vm.h>
-+#include <asm/vm_mmu.h>
-+#include <asm/time.h>
-+#ifdef CONFIG_OF
-+#include <asm/prom.h>
-+#endif
-+
-+char cmd_line[COMMAND_LINE_SIZE];
-+static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
-+
-+int on_simulator;
-+
-+void __cpuinit calibrate_delay(void)
-+{
-+	loops_per_jiffy = thread_freq_mhz * 1000000 / HZ;
-+}
++#define BASE_IPI_IRQ 26
 +
 +/*
-+ * setup_arch -  high level architectural setup routine
-+ * @cmdline_p: pointer to pointer to command-line arguments
++ * cpu_possible_map needs to be filled out prior to setup_per_cpu_areas
++ * (which is prior to any of our smp_prepare_cpu crap), in order to set
++ * up the...  per_cpu areas.
 + */
 +
-+void __init setup_arch(char **cmdline_p)
++struct ipi_data {
++	unsigned long bits;
++};
++
++static DEFINE_PER_CPU(struct ipi_data, ipi_data);
++
++static inline void __handle_ipi(unsigned long *ops, struct ipi_data *ipi,
++				int cpu)
 +{
-+	char *p = &external_cmdline_buffer;
++	unsigned long msg = 0;
++	do {
++		msg = find_next_bit(ops, BITS_PER_LONG, msg+1);
 +
-+	/*
-+	 * These will eventually be pulled in via either some hypervisor
-+	 * or devicetree description.  Hardwiring for now.
-+	 */
-+	pcycle_freq_mhz = 600;
-+	thread_freq_mhz = 100;
-+	sleep_clk_freq = 32000;
++		switch (msg) {
 +
-+	/*
-+	 * Set up event bindings to handle exceptions and interrupts.
-+	 */
-+	__vmsetvec(_K_VM_event_vector);
++		case IPI_TIMER:
++			ipi_timer();
++			break;
 +
-+	/*
-+	 * Simulator has a few differences from the hardware.
-+	 * For now, check uninitialized-but-mapped memory
-+	 * prior to invoking setup_arch_memory().
-+	 */
-+	if (*(int *)((unsigned long)_end + 8) == 0x1f1f1f1f)
-+		on_simulator = 1;
-+	else
-+		on_simulator = 0;
++		case IPI_CALL_FUNC:
++			generic_smp_call_function_interrupt();
++			break;
 +
-+	if (p[0] != '\0')
-+		strlcpy(boot_command_line, p, COMMAND_LINE_SIZE);
-+	else
-+		strlcpy(boot_command_line, default_command_line,
-+			COMMAND_LINE_SIZE);
++		case IPI_CALL_FUNC_SINGLE:
++			generic_smp_call_function_single_interrupt();
++			break;
 +
-+	/*
-+	 * boot_command_line and the value set up by setup_arch
-+	 * are both picked up by the init code. If no reason to
-+	 * make them different, pass the same pointer back.
-+	 */
-+	strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-+	*cmdline_p = cmd_line;
++		case IPI_CPU_STOP:
++			/*
++			 * call vmstop()
++			 */
++			__vmstop();
++			break;
 +
-+	parse_early_param();
-+
-+	setup_arch_memory();
-+
-+#ifdef CONFIG_SMP
-+	smp_start_cpus();
-+#endif
++		case IPI_RESCHEDULE:
++			/*
++			 * need to revisit our exit path; see comments for
++			 * scheduler_ipi()
++			 */
++			scheduler_ipi();
++			break;
++		}
++	} while (msg < BITS_PER_LONG);
 +}
++
++/*  Used for IPI call from other CPU's to unmask int  */
++void smp_vm_unmask_irq(void *info)
++{
++	__vmintop_locen((long) info);
++}
++
 +
 +/*
-+ * Functions for dumping CPU info via /proc
-+ * Probably should move to kernel/proc.c or something.
++ * This is based on Alpha's IPI stuff.
++ * Supposed to take (int, void*) as args now.
++ * Specifically, first arg is irq, second is the irq_desc.
 + */
-+static void *c_start(struct seq_file *m, loff_t *pos)
++
++irqreturn_t handle_ipi(int irq, void *desc)
 +{
-+	return *pos < nr_cpu_ids ? (void *)((unsigned long) *pos + 1) : NULL;
++	int cpu = smp_processor_id();
++	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++	unsigned long ops;
++
++	while ((ops = xchg(&ipi->bits, 0)) != 0)
++		__handle_ipi(&ops, ipi, cpu);
++	return IRQ_HANDLED;
 +}
 +
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++void send_ipi(const struct cpumask *cpumask, enum ipi_message_type msg)
 +{
-+	++*pos;
-+	return c_start(m, pos);
++	unsigned long flags;
++	unsigned long cpu;
++	unsigned long retval;
++
++	local_irq_save(flags);
++
++	for_each_cpu(cpu, cpumask) {
++		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++
++		set_bit(msg, &ipi->bits);
++		/*  Possible barrier here  */
++		retval = __vmintop_post(BASE_IPI_IRQ+cpu);
++
++		if (retval != 0) {
++			printk(KERN_ERR "interrupt %ld not configured?\n",
++				BASE_IPI_IRQ+cpu);
++		}
++	}
++
++	local_irq_restore(flags);
 +}
 +
-+static void c_stop(struct seq_file *m, void *v)
++static struct irqaction ipi_intdesc = {
++	.handler = handle_ipi,
++	.flags = IRQF_DISABLED | IRQF_TRIGGER_RISING,
++	.name = "ipi_handler"
++};
++
++void __init smp_prepare_boot_cpu(void)
 +{
 +}
 +
 +/*
-+ * Eventually this will dump information about
-+ * CPU properties like ISA level, TLB size, etc.
++ * interrupts should already be disabled from the VM
++ * SP should already be correct; need to set THREADINFO_REG
++ * to point to current thread info
 + */
-+static int show_cpuinfo(struct seq_file *m, void *v)
-+{
-+	int cpu = (unsigned long) v - 1;
 +
-+	seq_printf(m, "processor\t: %d\n", cpu);
-+	seq_printf(m, "model name\t: Hexagon Virtual Machine\n");
-+	seq_printf(m, "BogoMips\t: %lu.%02lu\n",
-+		(loops_per_jiffy * HZ) / 500000,
-+		((loops_per_jiffy * HZ) / 5000) % 100);
-+	seq_printf(m, "\n");
++void __cpuinit start_secondary(void)
++{
++	unsigned int cpu;
++	unsigned long thread_ptr;
++
++	/*  Calculate thread_info pointer from stack pointer  */
++	__asm__ __volatile__(
++		"%0 = SP;\n"
++		: "=r" (thread_ptr)
++	);
++
++	thread_ptr = thread_ptr & ~(THREAD_SIZE-1);
++
++	__asm__ __volatile__(
++		QUOTED_THREADINFO_REG " = %0;\n"
++		:
++		: "r" (thread_ptr)
++	);
++
++	/*  Set the memory struct  */
++	atomic_inc(&init_mm.mm_count);
++	current->active_mm = &init_mm;
++
++	cpu = smp_processor_id();
++
++	setup_irq(BASE_IPI_IRQ + cpu, &ipi_intdesc);
++
++	/*  Register the clock_event dummy  */
++	setup_percpu_clockdev();
++
++	printk(KERN_INFO "%s cpu %d\n", __func__, current_thread_info()->cpu);
++
++	set_cpu_online(cpu, true);
++	while (!cpumask_test_cpu(cpu, cpu_active_mask))
++		cpu_relax();
++	local_irq_enable();
++
++	cpu_idle();
++}
++
++
++/*
++ * called once for each present cpu
++ * apparently starts up the CPU and then
++ * maintains control until "cpu_online(cpu)" is set.
++ */
++
++int __cpuinit __cpu_up(unsigned int cpu)
++{
++	struct task_struct *idle;
++	struct thread_info *thread;
++	void *stack_start;
++
++	/*  Create new init task for the CPU  */
++	idle = fork_idle(cpu);
++	if (IS_ERR(idle))
++		panic(KERN_ERR "fork_idle failed\n");
++
++	thread = (struct thread_info *)idle->stack;
++	thread->cpu = cpu;
++
++	/*  Boot to the head.  */
++	stack_start =  ((void *) thread) + THREAD_SIZE;
++	__vmstart(start_secondary, stack_start);
++
++	while (!cpu_isset(cpu, cpu_online_map))
++		barrier();
++
 +	return 0;
 +}
 +
-+const struct seq_operations cpuinfo_op = {
-+	.start  = &c_start,
-+	.next   = &c_next,
-+	.stop   = &c_stop,
-+	.show   = &show_cpuinfo,
-+};
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++	int i;
++
++	/*
++	 * should eventually have some sort of machine
++	 * descriptor that has this stuff
++	 */
++
++	/*  Right now, let's just fake it. */
++	for (i = 0; i < max_cpus; i++)
++		cpu_set(i, cpu_present_map);
++
++	/*  Also need to register the interrupts for IPI  */
++	if (max_cpus > 1)
++		setup_irq(BASE_IPI_IRQ, &ipi_intdesc);
++}
++
++void smp_send_reschedule(int cpu)
++{
++	send_ipi(cpumask_of(cpu), IPI_RESCHEDULE);
++}
++
++void smp_send_stop(void)
++{
++	struct cpumask targets;
++	cpumask_copy(&targets, cpu_online_mask);
++	cpumask_clear_cpu(smp_processor_id(), &targets);
++	send_ipi(&targets, IPI_CPU_STOP);
++}
++
++void arch_send_call_function_single_ipi(int cpu)
++{
++	send_ipi(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++}
++
++void arch_send_call_function_ipi_mask(const struct cpumask *mask)
++{
++	send_ipi(mask, IPI_CALL_FUNC);
++}
++
++int setup_profiling_timer(unsigned int multiplier)
++{
++	return -EINVAL;
++}
++
++void smp_start_cpus(void)
++{
++	int i;
++
++	for (i = 0; i < NR_CPUS; i++)
++		cpu_set(i, cpu_possible_map);
++}
+diff --git a/arch/hexagon/kernel/topology.c b/arch/hexagon/kernel/topology.c
+new file mode 100644
+index 0000000..ba44751
+--- /dev/null
++++ b/arch/hexagon/kernel/topology.c
+@@ -0,0 +1,52 @@
++/*
++ * CPU topology for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/cpu.h>
++#include <linux/cpumask.h>
++#include <linux/init.h>
++#include <linux/node.h>
++#include <linux/nodemask.h>
++#include <linux/percpu.h>
++
++/*  Swiped from MIPS.  */
++
++static DEFINE_PER_CPU(struct cpu, cpu_devices);
++
++static int __init topology_init(void)
++{
++	int i, ret;
++
++	for_each_present_cpu(i) {
++
++		/*
++		 * register_cpu takes a per_cpu pointer and
++		 * just points it at another per_cpu struct...
++		 */
++
++		ret = register_cpu(&per_cpu(cpu_devices, i), i);
++		if (ret)
++			printk(KERN_WARNING "topology_init: register_cpu %d "
++			       "failed (%d)\n", i, ret);
++	}
++
++	return 0;
++}
++
++subsys_initcall(topology_init);
 -- 
 1.7.1
 
