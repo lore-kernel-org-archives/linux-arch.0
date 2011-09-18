@@ -1,199 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:7362 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755977Ab1IQAqQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Sep 2011 20:46:16 -0400
-Message-ID: <093448$3hstsr@wolverine01.qualcomm.com>
-From: Richard Kuo <rkuo@codeaurora.org>
-Date: Wed, 14 Sep 2011 13:18:48 -0500
-Subject: [PATCH v4 04/36] Hexagon: Add atomic ops support
+Received: from www17.your-server.de ([213.133.104.17]:43418 "EHLO
+	www17.your-server.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754076Ab1IRIFL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Sep 2011 04:05:11 -0400
+Subject: [PATCH 1/3] sys_poll: Fix negative timeout values for x86 userland
+ on x86_64 kernels v2
+From: Thomas Meyer <thomas@m3y3r.de>
+Content-Type: text/plain; charset="UTF-8"
+Date: Sun, 18 Sep 2011 10:04:02 +0200
+Message-ID: <1316333042.5814.23.camel@localhost.localdomain>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110914181848.Syb_aZR_gAqX60qIlNJXhJBc_S-PTVROfO9WwyxhRgw@z>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20110918080402.YmEub2qTA0qLCjJI8QSmeS4w9KvQ4CtYD9wX55nZRxM@z>
 
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+size of int and long differs on x86 and x86_64. the ia32 emulation calls
+directly into the sys_poll function. when the timeout is set to -1
+the test for sign will fail in sys_poll as the 64bit register is tested.
+the timeout timer will be set to 0xffffffff milliseconds, but the timer
+shouldn't get set at all in this situation.
+
+Signed-off-by: Thomas Meyer <thomas@m3y3r.de>
 ---
- arch/hexagon/include/asm/atomic.h |  164 +++++++++++++++++++++++++++++++++++++
- 1 files changed, 164 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/atomic.h
+ arch/x86/ia32/ia32entry.S |    2 +-
+ fs/compat.c               |    6 ++++++
+ include/linux/compat.h    |    2 ++
+ 3 files changed, 9 insertions(+), 1 deletions(-)
 
-diff --git a/arch/hexagon/include/asm/atomic.h b/arch/hexagon/include/asm/atomic.h
-new file mode 100644
-index 0000000..e220f90
---- /dev/null
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -0,0 +1,164 @@
-+/*
-+ * Atomic operations for the Hexagon architecture
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_ATOMIC_H
-+#define _ASM_ATOMIC_H
-+
-+#include <linux/types.h>
-+
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_set(v, i)	((v)->counter = (i))
-+
-+/**
-+ * atomic_read - reads a word, atomically
-+ * @v: pointer to atomic value
-+ *
-+ * Assumes all word reads on our architecture are atomic.
-+ */
-+#define atomic_read(v)		((v)->counter)
-+
-+/**
-+ * atomic_xchg - atomic
-+ * @v: pointer to memory to change
-+ * @new: new value (technically passed in a register -- see xchg)
-+ */
-+#define atomic_xchg(v, new)	(xchg(&((v)->counter), (new)))
-+
-+
-+/**
-+ * atomic_cmpxchg - atomic compare-and-exchange values
-+ * @v: pointer to value to change
-+ * @old:  desired old value to match
-+ * @new:  new value to put in
-+ *
-+ * Parameters are then pointer, value-in-register, value-in-register,
-+ * and the output is the old value.
-+ *
-+ * Apparently this is complicated for archs that don't support
-+ * the memw_locked like we do (or it's broken or whatever).
-+ *
-+ * Kind of the lynchpin of the rest of the generically defined routines.
-+ * Remember V2 had that bug with dotnew predicate set by memw_locked.
-+ *
-+ * "old" is "expected" old val, __oldval is actual old value
-+ */
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+move sys_poll() out of the #ifdef
+
+diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
+index 54edb207..30f4116 100644
+--- a/arch/x86/ia32/ia32entry.S
++++ b/arch/x86/ia32/ia32entry.S
+@@ -671,7 +671,7 @@ ia32_sys_call_table:
+ 	.quad sys_getresuid16	/* 165 */
+ 	.quad sys32_vm86_warning	/* vm86 */ 
+ 	.quad quiet_ni_syscall	/* query_module */
+-	.quad sys_poll
++	.quad compat_sys_poll
+ 	.quad quiet_ni_syscall /* old nfsservctl */
+ 	.quad sys_setresgid16	/* 170 */
+ 	.quad sys_getresgid16
+diff --git a/fs/compat.c b/fs/compat.c
+index 58b1da4..232675e 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1550,6 +1550,12 @@ asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
+ 				 compat_ptr(a.exp), compat_ptr(a.tvp));
+ }
+ 
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++				int timeout)
 +{
-+	int __oldval;
-+
-+	asm volatile(
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	{ P0 = cmp.eq(%0,%2);\n"
-+		"	  if (!P0.new) jump:nt 2f; }\n"
-+		"	memw_locked(%1,P0) = %3;\n"
-+		"	if (!P0) jump 1b;\n"
-+		"2:\n"
-+		: "=&r" (__oldval)
-+		: "r" (&v->counter), "r" (old), "r" (new)
-+		: "memory", "p0"
-+	);
-+
-+	return __oldval;
++	return sys_poll(ufds, nfds, timeout);
 +}
 +
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	int output;
-+
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = add(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0;\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+
-+}
-+
-+#define atomic_add(i, v) atomic_add_return(i, (v))
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	int output;
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = sub(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
-+
-+#define atomic_sub(i, v) atomic_sub_return(i, (v))
-+
-+/**
-+ * atomic_add_unless - add unless the number is a given value
-+ * @v: pointer to value
-+ * @a: amount to add
-+ * @u: unless value is equal to u
-+ *
-+ * Returns 1 if the add happened, 0 if it didn't.
-+ */
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int output, __oldval;
-+	asm volatile(
-+		"1:	%0 = memw_locked(%2);"
-+		"	{"
-+		"		p3 = cmp.eq(%0, %4);"
-+		"		if (p3.new) jump:nt 2f;"
-+		"		%0 = add(%0, %3);"
-+		"		%1 = #0;"
-+		"	}"
-+		"	memw_locked(%2, p3) = %0;"
-+		"	{"
-+		"		if !p3 jump 1b;"
-+		"		%1 = #1;"
-+		"	}"
-+		"2:"
-+		: "=&r" (__oldval), "=&r" (output)
-+		: "r" (v), "r" (a), "r" (u)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
-+
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-+
-+#define atomic_inc(v) atomic_add(1, (v))
-+#define atomic_dec(v) atomic_sub(1, (v))
-+
-+#define atomic_inc_and_test(v) (atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
-+#define atomic_sub_and_test(i, v) (atomic_sub_return(i, (v)) == 0)
-+#define atomic_add_negative(i, v) (atomic_add_return(i, (v)) < 0)
-+
-+
-+#define atomic_inc_return(v) (atomic_add_return(1, v))
-+#define atomic_dec_return(v) (atomic_sub_return(1, v))
-+
-+#endif
+ #ifdef HAVE_SET_RESTORE_SIGMASK
+ static long do_compat_pselect(int n, compat_ulong_t __user *inp,
+ 	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c6e7523..3bfb30a 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -433,6 +433,8 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
+ 				    compat_ulong_t __user *exp,
+ 				    struct compat_timespec __user *tsp,
+ 				    void __user *sig);
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++				int timeout);
+ asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
+ 				 unsigned int nfds,
+ 				 struct compat_timespec __user *tsp,
 -- 
-1.7.1
+1.7.6
 
 
---
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
