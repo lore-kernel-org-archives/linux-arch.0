@@ -1,41 +1,42 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: Eric Dumazet <eric.dumazet@gmail.com>
 Subject: Re: [PATCH 1/3] sys_poll: Fix negative timeout values for x86
  userland on x86_64 kernels v2
-Date: Sun, 18 Sep 2011 10:47:01 +0200
-Message-ID: <CAMuHMdVoVt3uYjExQfkd8LK3sjwA9ug=dQJ-w4cQ=QORKW93NA@mail.gmail.com>
+Date: Sun, 18 Sep 2011 10:58:26 +0200
+Message-ID: <1316336306.31335.8.camel@edumazet-laptop>
 References: <1316333042.5814.23.camel@localhost.localdomain>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:41850 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754398Ab1IRIrD convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Sep 2011 04:47:03 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316333042.5814.23.camel@localhost.localdomain>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Meyer <thomas@m3y3r.de>
 Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Sep 18, 2011 at 10:04, Thomas Meyer <thomas@m3y3r.de> wrote:
+Le dimanche 18 septembre 2011 =C3=A0 10:04 +0200, Thomas Meyer a =C3=A9=
+crit :
 > size of int and long differs on x86 and x86_64. the ia32 emulation ca=
 lls
+> directly into the sys_poll function. when the timeout is set to -1
+> the test for sign will fail in sys_poll as the 64bit register is test=
+ed.
+> the timeout timer will be set to 0xffffffff milliseconds, but the tim=
+er
+> shouldn't get set at all in this situation.
+>=20
 
-The size of int is the same on x86 and x86_64.
+As I said, you should CC stable@kernel.org team on this patch.
+All previous linux versions had this bug : A program might misbehave
+because of a spurious poll(..., timeout < 0) wakeup.
 
-Gr{oetje,eeting}s,
+Could you please refine this Changelog again ?
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
+On 32bit user program, all negative timeout values should not set a
+timout at all, not only 0xffffffff (-1)
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
+man poll states :
 
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+The timeout argument specifies an upper limit on the time for which
+poll() will block, in milliseconds.  Specifying a negative value in
+timeout means an infinite timeout.
