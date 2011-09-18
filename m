@@ -1,73 +1,41 @@
-From: Thomas Meyer <thomas@m3y3r.de>
-Subject: [PATCH 1/3] sys_poll: Fix negative timeout values for x86 userland
- on x86_64 kernels v2
-Date: Sun, 18 Sep 2011 10:04:02 +0200
-Message-ID: <1316333042.5814.23.camel@localhost.localdomain>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 1/3] sys_poll: Fix negative timeout values for x86
+ userland on x86_64 kernels v2
+Date: Sun, 18 Sep 2011 10:47:01 +0200
+Message-ID: <CAMuHMdVoVt3uYjExQfkd8LK3sjwA9ug=dQJ-w4cQ=QORKW93NA@mail.gmail.com>
+References: <1316333042.5814.23.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:41850 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754398Ab1IRIrD convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Sep 2011 04:47:03 -0400
+In-Reply-To: <1316333042.5814.23.camel@localhost.localdomain>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Meyer <thomas@m3y3r.de>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-size of int and long differs on x86 and x86_64. the ia32 emulation calls
-directly into the sys_poll function. when the timeout is set to -1
-the test for sign will fail in sys_poll as the 64bit register is tested.
-the timeout timer will be set to 0xffffffff milliseconds, but the timer
-shouldn't get set at all in this situation.
+On Sun, Sep 18, 2011 at 10:04, Thomas Meyer <thomas@m3y3r.de> wrote:
+> size of int and long differs on x86 and x86_64. the ia32 emulation ca=
+lls
 
-Signed-off-by: Thomas Meyer <thomas@m3y3r.de>
----
- arch/x86/ia32/ia32entry.S |    2 +-
- fs/compat.c               |    6 ++++++
- include/linux/compat.h    |    2 ++
- 3 files changed, 9 insertions(+), 1 deletions(-)
+The size of int is the same on x86 and x86_64.
 
-move sys_poll() out of the #ifdef
+Gr{oetje,eeting}s,
 
-diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
-index 54edb207..30f4116 100644
---- a/arch/x86/ia32/ia32entry.S
-+++ b/arch/x86/ia32/ia32entry.S
-@@ -671,7 +671,7 @@ ia32_sys_call_table:
- 	.quad sys_getresuid16	/* 165 */
- 	.quad sys32_vm86_warning	/* vm86 */ 
- 	.quad quiet_ni_syscall	/* query_module */
--	.quad sys_poll
-+	.quad compat_sys_poll
- 	.quad quiet_ni_syscall /* old nfsservctl */
- 	.quad sys_setresgid16	/* 170 */
- 	.quad sys_getresgid16
-diff --git a/fs/compat.c b/fs/compat.c
-index 58b1da4..232675e 100644
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -1550,6 +1550,12 @@ asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
- 				 compat_ptr(a.exp), compat_ptr(a.tvp));
- }
- 
-+asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
-+				int timeout)
-+{
-+	return sys_poll(ufds, nfds, timeout);
-+}
-+
- #ifdef HAVE_SET_RESTORE_SIGMASK
- static long do_compat_pselect(int n, compat_ulong_t __user *inp,
- 	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index c6e7523..3bfb30a 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -433,6 +433,8 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
- 				    compat_ulong_t __user *exp,
- 				    struct compat_timespec __user *tsp,
- 				    void __user *sig);
-+asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
-+				int timeout);
- asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
- 				 unsigned int nfds,
- 				 struct compat_timespec __user *tsp,
--- 
-1.7.6
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
