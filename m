@@ -1,49 +1,42 @@
 From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Subject: Re: [PATCH v4 31/36] Hexagon: kgdb support files
-Date: Mon, 19 Sep 2011 10:15:32 -0500
-Message-ID: <20110919151532.GA6830@codeaurora.org>
-References: <e97c6e$3hno1n@wolverine02.qualcomm.com>
- <CAGn38=0herzUuFyq7-4irgi8Myq0tibz0FGLiZY0GRq8iiO5kg@mail.gmail.com>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Date: Mon, 19 Sep 2011 10:25:05 -0500
+Message-ID: <20110919152505.GB6830@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+ <20110909211808.GA3150@codeaurora.org>
+ <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
+ <201109101229.58445.pedro@codesourcery.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:2153 "EHLO
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:28064 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754496Ab1ISPPo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:15:44 -0400
+	with ESMTP id S1752246Ab1ISPZN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:25:13 -0400
 Content-Disposition: inline
-In-Reply-To: <CAGn38=0herzUuFyq7-4irgi8Myq0tibz0FGLiZY0GRq8iiO5kg@mail.gmail.com>
+In-Reply-To: <201109101229.58445.pedro@codesourcery.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dongdong Deng <libfetion@gmail.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Pedro Alves <pedro@codesourcery.com>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On Mon, Sep 19, 2011 at 05:46:09PM +0800, Dongdong Deng wrote:
-> On Thu, Sep 15, 2011 at 2:19 AM, Richard Kuo <rkuo@codeaurora.org> wr=
-ote:
-> > +#if 0
-> > + =A0 =A0 =A0 ret =3D kgdb_handle_exception(args->trapnr & 0xff, ar=
-gs->signr, args->err,
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- regs);
-> > + =A0 =A0 =A0 if (ret)
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NOTIFY_DONE;
-> > +#endif
->=20
-> Hmm,  the key code of invoking kgdb_core was disabled by "#if 0".
+On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
+> On Saturday 10 September 2011 07:42:26, Jonas Bonn wrote:
+> 
+> > I'm really not an expert on GDB, but I believe it can use either the
+> > PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
+> > architecture-dependent configuration.  I think the second variant can
+> > be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
+> > variant wouldn't be needed at all.
+> 
+> Yes, the x86/x86-64 ports or gdb and gdbserver are already
+> using GET/SETREGSET even.
 
-The Hexagon kgdb implementation is incomplete; I work on it as time
-permits and urgency requires.  I know from direct experience that,
-for kernel bringup and stress testing on new platforms, that kdb is=20
-invaluable, being infinitely easier to use than any hardware debugger.
-(cheaper, too)
+Reading the code, it seemed to only fetch "extended state" in
+this way, and not all of the registers.  Am I mistaken?
 
-This world could use a really cheap, easy-to-setup jtag debugger.
+--linas
 
--- Linas
-
---=20
+-- 
 Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora For=
-um.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
