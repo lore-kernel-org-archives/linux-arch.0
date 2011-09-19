@@ -1,42 +1,48 @@
-From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Mon, 19 Sep 2011 10:25:05 -0500
-Message-ID: <20110919152505.GB6830@codeaurora.org>
-References: <20110909010847.294039464@codeaurora.org>
- <20110909211808.GA3150@codeaurora.org>
- <CACM3HyH8P=u9pR0sa2besxsgDN5TUKg_7utLJTwL+hu8Wv48ow@mail.gmail.com>
- <201109101229.58445.pedro@codesourcery.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH v4 18/36] Hexagon: Add time and timer functions
+Date: Mon, 19 Sep 2011 10:54:03 -0500
+Message-ID: <20110919155403.GB2627@codeaurora.org>
+References: <e97c6e$3hno05@wolverine02.qualcomm.com>
+ <alpine.LFD.2.02.1109191536330.2723@ionos>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:28064 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752246Ab1ISPZN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:25:13 -0400
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:6858 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756366Ab1ISPyH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:54:07 -0400
 Content-Disposition: inline
-In-Reply-To: <201109101229.58445.pedro@codesourcery.com>
+In-Reply-To: <alpine.LFD.2.02.1109191536330.2723@ionos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Pedro Alves <pedro@codesourcery.com>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
-> On Saturday 10 September 2011 07:42:26, Jonas Bonn wrote:
+On Mon, Sep 19, 2011 at 03:38:02PM +0200, Thomas Gleixner wrote:
+> On Wed, 14 Sep 2011, Richard Kuo wrote:
+> > +
+> > +void debug_adsp_timers(void)
+> > +{
+> > +	printk(KERN_INFO "rtos_timer->match=0x%08x\n", rtos_timer->match);
+> > +	printk(KERN_INFO "rtos_timer->count=%d\n", rtos_timer->count);
+> > +	printk(KERN_INFO "rtos_timer->enable=%d\n", rtos_timer->enable);
+> > +	printk(KERN_INFO "rtos_timer->clear=%d\n", rtos_timer->clear);
+> > +}
 > 
-> > I'm really not an expert on GDB, but I believe it can use either the
-> > PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
-> > architecture-dependent configuration.  I think the second variant can
-> > be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
-> > variant wouldn't be needed at all.
+> Does this have a caller and is it useful ?
 > 
-> Yes, the x86/x86-64 ports or gdb and gdbserver are already
-> using GET/SETREGSET even.
+> Otherwise this looks good.
+> 
+> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 
-Reading the code, it seemed to only fetch "extended state" in
-this way, and not all of the registers.  Am I mistaken?
+Mostly just me being paranoid.  It can be removed.
 
---linas
+
+Thanks,
+Richard Kuo
+
 
 -- 
+
 Sent by an employee of the Qualcomm Innovation Center, Inc.
 The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
