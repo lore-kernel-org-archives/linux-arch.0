@@ -1,26 +1,49 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 21/36] Hexagon: Add SMP support
-Date: Mon, 19 Sep 2011 16:05:59 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1109191601380.2723@ionos>
-References: <093448$3hstu8@wolverine01.qualcomm.com>
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Re: [PATCH v4 31/36] Hexagon: kgdb support files
+Date: Mon, 19 Sep 2011 10:15:32 -0500
+Message-ID: <20110919151532.GA6830@codeaurora.org>
+References: <e97c6e$3hno1n@wolverine02.qualcomm.com>
+ <CAGn38=0herzUuFyq7-4irgi8Myq0tibz0FGLiZY0GRq8iiO5kg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <093448$3hstu8@wolverine01.qualcomm.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:2153 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754496Ab1ISPPo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:15:44 -0400
+Content-Disposition: inline
+In-Reply-To: <CAGn38=0herzUuFyq7-4irgi8Myq0tibz0FGLiZY0GRq8iiO5kg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dongdong Deng <libfetion@gmail.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, 14 Sep 2011, Richard Kuo wrote:
-> +		case IPI_RESCHEDULE:
-> +			/*
-> +			 * need to revisit our exit path; see comments for
-> +			 * scheduler_ipi()
-> +			 */
+On Mon, Sep 19, 2011 at 05:46:09PM +0800, Dongdong Deng wrote:
+> On Thu, Sep 15, 2011 at 2:19 AM, Richard Kuo <rkuo@codeaurora.org> wr=
+ote:
+> > +#if 0
+> > + =A0 =A0 =A0 ret =3D kgdb_handle_exception(args->trapnr & 0xff, ar=
+gs->signr, args->err,
+> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ regs);
+> > + =A0 =A0 =A0 if (ret)
+> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NOTIFY_DONE;
+> > +#endif
+>=20
+> Hmm,  the key code of invoking kgdb_core was disabled by "#if 0".
 
-  You mean the irqe_enter/exit() comment there? Your implementation
-  should be fine as your IPIs come over the regular irq path which has
-  the irq_enter/exit pair already.
+The Hexagon kgdb implementation is incomplete; I work on it as time
+permits and urgency requires.  I know from direct experience that,
+for kernel bringup and stress testing on new platforms, that kdb is=20
+invaluable, being infinitely easier to use than any hardware debugger.
+(cheaper, too)
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+This world could use a really cheap, easy-to-setup jtag debugger.
+
+-- Linas
+
+--=20
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora For=
+um.
