@@ -1,31 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:55942 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750713Ab1ISOGC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 10:06:02 -0400
-Date: Mon, 19 Sep 2011 16:05:59 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v4 21/36] Hexagon: Add SMP support
-In-Reply-To: <093448$3hstu8@wolverine01.qualcomm.com>
-Message-ID: <alpine.LFD.2.02.1109191601380.2723@ionos>
-References: <093448$3hstu8@wolverine01.qualcomm.com>
+Received: from hqemgate03.nvidia.com ([216.228.121.140]:6911 "EHLO
+	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752841Ab1ITSsf convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2011 14:48:35 -0400
+From: Krishna Reddy <vdumpa@nvidia.com>
+Date: Tue, 20 Sep 2011 11:48:26 -0700
+Subject: Re: [PATCH 1/2] ARM: initial proof-of-concept IOMMU mapper for
+ DMA-mapping
+Message-ID: <401E54CE964CD94BAE1EB4A729C7087E1229036B6D@HQMAIL04.nvidia.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20110919140559.E_H6sxlL4LZ-pJrsbmpYWpSRb7sIgSpL2v6LHG2VbN8@z>
+To: Linux-ARM Kernel <linux-arm-kernel@lists.infradead.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linaro-mm-sig <linaro-mm-sig@lists.linaro.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
+Message-ID: <20110920184826.VhojMebf3Lr5xBBKBYUO5hUgGnW4bXZy6EGzdj9Nio0@z>
 
-On Wed, 14 Sep 2011, Richard Kuo wrote:
-> +		case IPI_RESCHEDULE:
-> +			/*
-> +			 * need to revisit our exit path; see comments for
-> +			 * scheduler_ipi()
-> +			 */
+Hi,
+The following change fixes a bug, which causes releasing incorrect iova space, in the original patch of this mail thread. It fixes compilation error either.
 
-  You mean the irqe_enter/exit() comment there? Your implementation
-  should be fine as your IPIs come over the regular irq path which has
-  the irq_enter/exit pair already.
-
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 82d5134..8c16ed7 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -900,10 +900,8 @@ static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t si
+        unsigned int count = size >> PAGE_SHIFT;
+        int i;
+ 
+-       for (i=0; i<count; i++) {
+-               iommu_unmap(mapping->domain, iova, 0);
+-               iova += PAGE_SIZE;
+-       }
++       for (i=0; i<count; i++)
++               iommu_unmap(mapping->domain, iova + i * PAGE_SIZE, 0);
+        __free_iova(mapping, iova, size);
+        return 0;
+ }
+@@ -1073,7 +1071,7 @@ int arm_iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+                size += sg->length;
+        }
+        __map_sg_chunk(dev, start, size, &dma->dma_address, dir);
+-       d->dma_address += offset;
++       dma->dma_address += offset;
+ 
+        return count;
