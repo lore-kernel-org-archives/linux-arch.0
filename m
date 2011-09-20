@@ -1,51 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate03.nvidia.com ([216.228.121.140]:16400 "EHLO
-	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751740Ab1ITULe convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2011 16:11:34 -0400
-From: Krishna Reddy <vdumpa@nvidia.com>
-Date: Tue, 20 Sep 2011 13:11:20 -0700
-Subject: Re: [PATCH 1/2] ARM: initial proof-of-concept IOMMU mapper for
- DMA-mapping
-Message-ID: <401E54CE964CD94BAE1EB4A729C7087E1229036BAC@HQMAIL04.nvidia.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from mail2.shareable.org ([80.68.89.115]:44260 "EHLO
+	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751114Ab1ITUra (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2011 16:47:30 -0400
+Date: Tue, 20 Sep 2011 21:03:51 +0100
+From: Jamie Lokier <jamie@shareable.org>
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
+Message-ID: <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
+ <20110830122630.GA19450@amt.cnet>
+ <4E5FDBDC.2030302@codemonkey.ws>
+ <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
+ <20110909132955.GA19459@amt.cnet>
+ <20110913204955.GD9096@mgebm.net>
+ <20110915132614.GA7101@amt.cnet>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20110915132614.GA7101@amt.cnet>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linux-ARM Kernel <linux-arm-kernel@lists.infradead.org>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linaro-mm-sig <linaro-mm-sig@lists.linaro.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
-Message-ID: <20110920201120.j8sKGIZ88vuESlPhVdb0pW3DP5043_-zB7kqOFe5OYw@z>
+To: Marcelo Tosatti <mtosatti@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
+Message-ID: <20110920200351.wMtPON_82wEBHBpMMqkqi5amCBb9mk9wzgVFPGT8fiI@z>
 
-Hi,
-The following change fixes a bug, which causes releasing incorrect iova space, in the original patch of this mail thread. It fixes compilation error either.
+Marcelo Tosatti wrote:
+> In case the VM stops for whatever reason, the host system is not
+> supposed to adjust time related hardware state to compensate, in an
+> attempt to present apparent continuous time.
+> 
+> If you save a VM and then restore it later, it is the guest
+> responsability to adjust its time representation.
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 82d5134..8c16ed7 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -900,10 +900,8 @@ static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t si
-        unsigned int count = size >> PAGE_SHIFT;
-        int i;
- 
--       for (i=0; i<count; i++) {
--               iommu_unmap(mapping->domain, iova, 0);
--               iova += PAGE_SIZE;
--       }
-+       for (i=0; i<count; i++)
-+               iommu_unmap(mapping->domain, iova + i * PAGE_SIZE, 0);
-        __free_iova(mapping, iova, size);
-        return 0;
- }
-@@ -1073,7 +1071,7 @@ int arm_iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
-                size += sg->length;
-        }
-        __map_sg_chunk(dev, start, size, &dma->dma_address, dir);
--       d->dma_address += offset;
-+       dma->dma_address += offset;
- 
-        return count;
+If the guest doesn't know it's been stopped, then its time
+representation will be wrong until it finds out, e.g. after a few
+minutes with NTP, or even a seconds can be too long.
 
+That is sad when it happens because it breaks the coherence of any
+timed-lease caching the guest is involved in.  I.e. where the guest
+acquires a lock on some data object (like a file in NFS) that it can
+efficiently access without network round trips (similar to MESI), with
+all nodes having agreed that it's coherent for, say, 5 seconds before
+renewing or breaking.  (It's just a way to reduce latency.)
 
--nvpublic
+But we can't trust CLOCK_MONOTONIC when a VM is involved, it's just
+one of those facts of life.  So instead the effort is to try and
+detect when a VM is involved and then distrust the clock.
+
+(Non-VM) suspend/resume is similar, but there's usually a way to
+be notified about that as it happens.
+
+-- Jamie
