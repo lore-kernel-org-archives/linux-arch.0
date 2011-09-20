@@ -1,48 +1,51 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH v4 18/36] Hexagon: Add time and timer functions
-Date: Mon, 19 Sep 2011 10:54:03 -0500
-Message-ID: <20110919155403.GB2627@codeaurora.org>
-References: <e97c6e$3hno05@wolverine02.qualcomm.com>
- <alpine.LFD.2.02.1109191536330.2723@ionos>
+From: Krishna Reddy <vdumpa@nvidia.com>
+Subject: Re: [PATCH 1/2] ARM: initial proof-of-concept IOMMU mapper for
+ DMA-mapping
+Date: Tue, 20 Sep 2011 11:39:16 -0700
+Message-ID: <401E54CE964CD94BAE1EB4A729C7087E1229036B5F@HQMAIL04.nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:6858 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756366Ab1ISPyH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Sep 2011 11:54:07 -0400
-Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.02.1109191536330.2723@ionos>
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:14133 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751037Ab1ITSj3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2011 14:39:29 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linux-ARM Kernel <linux-arm-kernel@lists.infradead.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linaro-mm-sig <linaro-mm-sig@lists.linaro.org>, linux-mm <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>Marek Szyprowski <m.szyprowski@samsung.com>
 
-On Mon, Sep 19, 2011 at 03:38:02PM +0200, Thomas Gleixner wrote:
-> On Wed, 14 Sep 2011, Richard Kuo wrote:
-> > +
-> > +void debug_adsp_timers(void)
-> > +{
-> > +	printk(KERN_INFO "rtos_timer->match=0x%08x\n", rtos_timer->match);
-> > +	printk(KERN_INFO "rtos_timer->count=%d\n", rtos_timer->count);
-> > +	printk(KERN_INFO "rtos_timer->enable=%d\n", rtos_timer->enable);
-> > +	printk(KERN_INFO "rtos_timer->clear=%d\n", rtos_timer->clear);
-> > +}
-> 
-> Does this have a caller and is it useful ?
-> 
-> Otherwise this looks good.
-> 
-> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Hi,
+The following change fixes a bug, which causes releasing incorrect iova space, in this patch. It fixes compilation error either.
 
-Mostly just me being paranoid.  It can be removed.
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 82d5134..8c16ed7 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -900,10 +900,8 @@ static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t si
+        unsigned int count = size >> PAGE_SHIFT;
+        int i;
+ 
+-       for (i=0; i<count; i++) {
+-               iommu_unmap(mapping->domain, iova, 0);
+-               iova += PAGE_SIZE;
+-       }
++       for (i=0; i<count; i++)
++               iommu_unmap(mapping->domain, iova + i * PAGE_SIZE, 0);
+        __free_iova(mapping, iova, size);
+        return 0;
+ }
+@@ -1073,7 +1071,7 @@ int arm_iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+                size += sg->length;
+        }
+        __map_sg_chunk(dev, start, size, &dma->dma_address, dir);
+-       d->dma_address += offset;
++       dma->dma_address += offset;
+ 
+        return count;
 
 
-Thanks,
-Richard Kuo
-
-
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+-KR
+ 
