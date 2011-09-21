@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:47439 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753658Ab1IUJes (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:34:48 -0400
+Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
+	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753740Ab1IUJfM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:35:12 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 40/57] dirvers/parisc: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:41 +0800
-Message-ID: <1316597339-29861-41-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 43/57] PNP: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:44 +0800
+Message-ID: <1316597339-29861-44-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
-Message-ID: <20110921092841.S8V3YkwN3CPIj6nh9-OvTqJ8l-AHK7x-UY5GdnPx7b8@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Adam Belay <abelay@mit.edu>, Bjorn Helgaas <bhelgaas@google.com>
+Message-ID: <20110921092844.m3tpWNodXmy4g6lckqf8x9laILmJlmJrrVxDHBD5w3E@z>
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,22 +25,22 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/parisc/superio.c |    2 +-
+ drivers/pnp/resource.c |    2 +-
  1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/parisc/superio.c b/drivers/parisc/superio.c
-index e3b76d4..5e6fd94e 100644
---- a/drivers/parisc/superio.c
-+++ b/drivers/parisc/superio.c
-@@ -274,7 +274,7 @@ superio_init(struct pci_dev *pcidev)
- 	else
- 		printk(KERN_ERR PFX "USB regulator not initialized!\n");
- 
--	if (request_irq(pdev->irq, superio_interrupt, IRQF_DISABLED,
-+	if (request_irq(pdev->irq, superio_interrupt, 0,
- 			SUPERIO, (void *)sio)) {
- 
- 		printk(KERN_ERR PFX "could not get irq\n");
+diff --git a/drivers/pnp/resource.c b/drivers/pnp/resource.c
+index b0ecacb..3669821 100644
+--- a/drivers/pnp/resource.c
++++ b/drivers/pnp/resource.c
+@@ -385,7 +385,7 @@ int pnp_check_irq(struct pnp_dev *dev, struct resource *res)
+ 	 * device is active because it itself may be in use */
+ 	if (!dev->active) {
+ 		if (request_irq(*irq, pnp_test_handler,
+-				IRQF_DISABLED | IRQF_PROBE_SHARED, "pnp", NULL))
++				IRQF_PROBE_SHARED, "pnp", NULL))
+ 			return 0;
+ 		free_irq(*irq, NULL);
+ 	}
 -- 
 1.7.4.1
 
