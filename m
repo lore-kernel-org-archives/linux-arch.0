@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 20/57] unicore32: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:21 +0800
-Message-ID: <1316597339-29861-21-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 23/57] clocksource: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:24 +0800
+Message-ID: <1316597339-29861-24-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, John Stultz <johnstul@us.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -20,44 +20,92 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/unicore32/kernel/puv3-nb0916.c |    4 ++--
- arch/unicore32/kernel/time.c        |    2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ drivers/clocksource/cs5535-clockevt.c |    2 +-
+ drivers/clocksource/dw_apb_timer.c    |    3 +--
+ drivers/clocksource/sh_cmt.c          |    2 +-
+ drivers/clocksource/sh_mtu2.c         |    2 +-
+ drivers/clocksource/sh_tmu.c          |    2 +-
+ drivers/clocksource/tcb_clksrc.c      |    2 +-
+ 6 files changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/arch/unicore32/kernel/puv3-nb0916.c b/arch/unicore32/kernel/puv3-nb0916.c
-index e731c56..951826a 100644
---- a/arch/unicore32/kernel/puv3-nb0916.c
-+++ b/arch/unicore32/kernel/puv3-nb0916.c
-@@ -124,7 +124,7 @@ int __init mach_nb0916_init(void)
+diff --git a/drivers/clocksource/cs5535-clockevt.c b/drivers/clocksource/cs5535-clockevt.c
+index b7dab32..2d3715f 100644
+--- a/drivers/clocksource/cs5535-clockevt.c
++++ b/drivers/clocksource/cs5535-clockevt.c
+@@ -133,7 +133,7 @@ static irqreturn_t mfgpt_tick(int irq, void *dev_id)
  
- 	if (request_irq(gpio_to_irq(GPI_LCD_CASE_OFF),
- 		&nb0916_lcdcaseoff_handler,
--		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
- 		"NB0916 lcd case off", NULL) < 0) {
- 
- 		printk(KERN_DEBUG "LCD-Case-OFF IRQ %d not available\n",
-@@ -132,7 +132,7 @@ int __init mach_nb0916_init(void)
- 	}
- 
- 	if (request_irq(gpio_to_irq(GPI_OTP_INT), &nb0916_overheat_handler,
--		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
- 		"NB0916 overheating protection", NULL) < 0) {
- 
- 		printk(KERN_DEBUG "Overheating Protection IRQ %d not available\n",
-diff --git a/arch/unicore32/kernel/time.c b/arch/unicore32/kernel/time.c
-index 080710c..d3824b2 100644
---- a/arch/unicore32/kernel/time.c
-+++ b/arch/unicore32/kernel/time.c
-@@ -86,7 +86,7 @@ static struct clocksource cksrc_puv3_oscr = {
- 
- static struct irqaction puv3_timer_irq = {
- 	.name		= "ost0",
--	.flags		= IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-+	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
- 	.handler	= puv3_ost0_interrupt,
- 	.dev_id		= &ckevt_puv3_osmr0,
+ static struct irqaction mfgptirq  = {
+ 	.handler = mfgpt_tick,
+-	.flags = IRQF_DISABLED | IRQF_NOBALANCING | IRQF_TIMER,
++	.flags = IRQF_NOBALANCING | IRQF_TIMER,
+ 	.name = DRV_NAME,
  };
+ 
+diff --git a/drivers/clocksource/dw_apb_timer.c b/drivers/clocksource/dw_apb_timer.c
+index 580f870..55eb8ad 100644
+--- a/drivers/clocksource/dw_apb_timer.c
++++ b/drivers/clocksource/dw_apb_timer.c
+@@ -243,8 +243,7 @@ dw_apb_clockevent_init(int cpu, const char *name, unsigned rating,
+ 	dw_ced->irqaction.dev_id	= &dw_ced->ced;
+ 	dw_ced->irqaction.irq		= irq;
+ 	dw_ced->irqaction.flags		= IRQF_TIMER | IRQF_IRQPOLL |
+-					  IRQF_NOBALANCING |
+-					  IRQF_DISABLED;
++					  IRQF_NOBALANCING;
+ 
+ 	dw_ced->eoi = apbt_eoi;
+ 	err = setup_irq(irq, &dw_ced->irqaction);
+diff --git a/drivers/clocksource/sh_cmt.c b/drivers/clocksource/sh_cmt.c
+index ca09bc4..3bc55c4 100644
+--- a/drivers/clocksource/sh_cmt.c
++++ b/drivers/clocksource/sh_cmt.c
+@@ -641,7 +641,7 @@ static int sh_cmt_setup(struct sh_cmt_priv *p, struct platform_device *pdev)
+ 	p->irqaction.name = dev_name(&p->pdev->dev);
+ 	p->irqaction.handler = sh_cmt_interrupt;
+ 	p->irqaction.dev_id = p;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
+ 
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/sh_mtu2.c b/drivers/clocksource/sh_mtu2.c
+index db8d595..0521f03 100644
+--- a/drivers/clocksource/sh_mtu2.c
++++ b/drivers/clocksource/sh_mtu2.c
+@@ -282,7 +282,7 @@ static int sh_mtu2_setup(struct sh_mtu2_priv *p, struct platform_device *pdev)
+ 	p->irqaction.handler = sh_mtu2_interrupt;
+ 	p->irqaction.dev_id = p;
+ 	p->irqaction.irq = irq;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
+ 
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/sh_tmu.c b/drivers/clocksource/sh_tmu.c
+index 079e96a..306d212 100644
+--- a/drivers/clocksource/sh_tmu.c
++++ b/drivers/clocksource/sh_tmu.c
+@@ -385,7 +385,7 @@ static int sh_tmu_setup(struct sh_tmu_priv *p, struct platform_device *pdev)
+ 	p->irqaction.handler = sh_tmu_interrupt;
+ 	p->irqaction.dev_id = p;
+ 	p->irqaction.irq = irq;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
+ 
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/tcb_clksrc.c b/drivers/clocksource/tcb_clksrc.c
+index 79c47e8..1963b93 100644
+--- a/drivers/clocksource/tcb_clksrc.c
++++ b/drivers/clocksource/tcb_clksrc.c
+@@ -175,7 +175,7 @@ static irqreturn_t ch2_irq(int irq, void *handle)
+ 
+ static struct irqaction tc_irqaction = {
+ 	.name		= "tc_clkevt",
+-	.flags		= IRQF_TIMER | IRQF_DISABLED,
++	.flags		= IRQF_TIMER,
+ 	.handler	= ch2_irq,
+ };
+ 
 -- 
 1.7.4.1
