@@ -1,38 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e4.ny.us.ibm.com ([32.97.182.144]:40676 "EHLO e4.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750797Ab1IUOLX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Sep 2011 10:11:23 -0400
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by
- host
-From: Dave Hansen <haveblue@us.ibm.com>
-In-Reply-To: <20110920195514.GD32325@amt.cnet>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
-	 <20110830122630.GA19450@amt.cnet> <4E5FDBDC.2030302@codemonkey.ws>
-	 <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
-	 <20110909132955.GA19459@amt.cnet> <20110913204955.GD9096@mgebm.net>
-	 <20110915132614.GA7101@amt.cnet> <20110920190054.GA31415@mgebm.net>
-	 <20110920195514.GD32325@amt.cnet>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 21 Sep 2011 07:11:08 -0700
-Message-ID: <1316614268.16137.280.camel@nimitz>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:11427 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751480Ab1IUPr4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 11:47:56 -0400
+Date: Wed, 21 Sep 2011 10:47:41 -0500
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH v4 21/36] Hexagon: Add SMP support
+Message-ID: <20110921154741.GB6006@codeaurora.org>
+References: <093448$3hstu8@wolverine01.qualcomm.com>
+ <CAMk6uBmBqJsYSW+X9iY8Zc6BaC0jRy+a0CW0UV93gBAo98CzyA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAMk6uBmBqJsYSW+X9iY8Zc6BaC0jRy+a0CW0UV93gBAo98CzyA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
-Message-ID: <20110921141108.gpTV7FmDMCpMH8ahYN6Q4BtG68KAuBNnWBv8XYibhn0@z>
+To: realmz paranoid <realmz6@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20110921154741.SmwHiC3s-tGpjugMoikA96eGyaGeTzOvSd_twpoO1IE@z>
 
-On Tue, 2011-09-20 at 16:55 -0300, Marcelo Tosatti wrote:
-> > and the wall clock stays behind my host wall clock by the amount of
-> > time it took to resume.
-> 
-> This is expected, similar to savevm/loadvm. 
+On Wed, Sep 21, 2011 at 10:10:27AM +0800, realmz paranoid wrote:
+> > +/*
+> > + * called once for each present cpu
+> > + * apparently starts up the CPU and then
+> > + * maintains control until "cpu_online(cpu)" is set.
+> > + */
+> > +
+> __cpu_up only called once?
 
-That seems like pretty undesirable behavior to me.  It's too bad that it
-does that with savevm/loadvm, but is it really behavior that we want to
-spread?
+Well, for us currently, I'm pretty sure it's called only once, but perhaps
+I should be a little more precise on the comment.
 
--- Dave
+
+Thanks,
+Richard Kuo
 
