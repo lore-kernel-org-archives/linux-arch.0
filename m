@@ -1,53 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.shareable.org ([80.68.89.115]:44260 "EHLO
-	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751114Ab1ITUra (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Sep 2011 16:47:30 -0400
-Date: Tue, 20 Sep 2011 21:03:51 +0100
-From: Jamie Lokier <jamie@shareable.org>
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
-Message-ID: <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
- <20110830122630.GA19450@amt.cnet>
- <4E5FDBDC.2030302@codemonkey.ws>
- <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
- <20110909132955.GA19459@amt.cnet>
- <20110913204955.GD9096@mgebm.net>
- <20110915132614.GA7101@amt.cnet>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20110915132614.GA7101@amt.cnet>
+Received: from mail-ey0-f174.google.com ([209.85.215.174]:62530 "EHLO
+	mail-ey0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752860Ab1IUJaL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:30:11 -0400
+From: Yong Zhang <yong.zhang0@gmail.com>
+Subject: [PATCH 06/57] frv: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:07 +0800
+Message-ID: <1316597339-29861-7-git-send-email-yong.zhang0@gmail.com>
+In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
-Message-ID: <20110920200351.wMtPON_82wEBHBpMMqkqi5amCBb9mk9wzgVFPGT8fiI@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, David Howells <dhowells@redhat.com>, Torben Hohn <torbenh@gmx.de>
+Message-ID: <20110921092807.TeYARnxnIazzv7QNzJqiGkwId4tZPmtCI9pBHE4F5DM@z>
 
-Marcelo Tosatti wrote:
-> In case the VM stops for whatever reason, the host system is not
-> supposed to adjust time related hardware state to compensate, in an
-> attempt to present apparent continuous time.
-> 
-> If you save a VM and then restore it later, it is the guest
-> responsability to adjust its time representation.
+Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+We run all interrupt handlers with interrupts disabled
+and we even check and yell when an interrupt handler
+returns with interrupts enabled (see commit [b738a50a:
+genirq: Warn when handler enables interrupts]).
 
-If the guest doesn't know it's been stopped, then its time
-representation will be wrong until it finds out, e.g. after a few
-minutes with NTP, or even a seconds can be too long.
+So now this flag is a NOOP and can be removed.
 
-That is sad when it happens because it breaks the coherence of any
-timed-lease caching the guest is involved in.  I.e. where the guest
-acquires a lock on some data object (like a file in NFS) that it can
-efficiently access without network round trips (similar to MESI), with
-all nodes having agreed that it's coherent for, say, 5 seconds before
-renewing or breaking.  (It's just a way to reduce latency.)
+Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+Acked-by: David Howells <dhowells@redhat.com>
+---
+ arch/frv/kernel/irq-mb93091.c |    8 ++++----
+ arch/frv/kernel/irq-mb93093.c |    1 -
+ arch/frv/kernel/irq-mb93493.c |    4 ++--
+ arch/frv/kernel/time.c        |    1 -
+ 4 files changed, 6 insertions(+), 8 deletions(-)
 
-But we can't trust CLOCK_MONOTONIC when a VM is involved, it's just
-one of those facts of life.  So instead the effort is to try and
-detect when a VM is involved and then distrust the clock.
+diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
+index 9afc2ea..f4dfc0b 100644
+--- a/arch/frv/kernel/irq-mb93091.c
++++ b/arch/frv/kernel/irq-mb93091.c
+@@ -108,25 +108,25 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
+ static struct irqaction fpga_irq[4]  = {
+ 	[0] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.0",
+ 		.dev_id		= (void *) 0x0028UL,
+ 	},
+ 	[1] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.1",
+ 		.dev_id		= (void *) 0x0050UL,
+ 	},
+ 	[2] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.2",
+ 		.dev_id		= (void *) 0x1c00UL,
+ 	},
+ 	[3] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.3",
+ 		.dev_id		= (void *) 0x6386UL,
+ 	}
+diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
+index 4d4ad09..bac526d 100644
+--- a/arch/frv/kernel/irq-mb93093.c
++++ b/arch/frv/kernel/irq-mb93093.c
+@@ -106,7 +106,6 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
+ static struct irqaction fpga_irq[1]  = {
+ 	[0] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED,
+ 		.name		= "fpga.0",
+ 		.dev_id		= (void *) 0x0700UL,
+ 	}
+diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
+index 4d034c7..b632726 100644
+--- a/arch/frv/kernel/irq-mb93493.c
++++ b/arch/frv/kernel/irq-mb93493.c
+@@ -119,13 +119,13 @@ static irqreturn_t mb93493_interrupt(int irq, void *_piqsr)
+ static struct irqaction mb93493_irq[2]  = {
+ 	[0] = {
+ 		.handler	= mb93493_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "mb93493.0",
+ 		.dev_id		= (void *) __addr_MB93493_IQSR(0),
+ 	},
+ 	[1] = {
+ 		.handler	= mb93493_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "mb93493.1",
+ 		.dev_id		= (void *) __addr_MB93493_IQSR(1),
+ 	}
+diff --git a/arch/frv/kernel/time.c b/arch/frv/kernel/time.c
+index b457de4..332e00b 100644
+--- a/arch/frv/kernel/time.c
++++ b/arch/frv/kernel/time.c
+@@ -44,7 +44,6 @@ static irqreturn_t timer_interrupt(int irq, void *dummy);
+ 
+ static struct irqaction timer_irq  = {
+ 	.handler = timer_interrupt,
+-	.flags = IRQF_DISABLED,
+ 	.name = "timer",
+ };
+ 
+-- 
+1.7.4.1
 
-(Non-VM) suspend/resume is similar, but there's usually a way to
-be notified about that as it happens.
-
--- Jamie
