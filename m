@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 09/57] m32r: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:10 +0800
-Message-ID: <1316597339-29861-10-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 07/57] h8300: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:08 +0800
+Message-ID: <1316597339-29861-8-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Hirokazu Takata <takata@linux-m32r.org>, Torben Hohn <torbenh@gmx.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Yoshinori Sato <ysato@users.sourceforge.jp>, Torben Hohn <torbenh@gmx.de>
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -20,20 +20,63 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/m32r/kernel/time.c |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
+ arch/h8300/kernel/timer/itu.c     |    2 +-
+ arch/h8300/kernel/timer/timer16.c |    2 +-
+ arch/h8300/kernel/timer/timer8.c  |    2 +-
+ arch/h8300/kernel/timer/tpu.c     |    2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/m32r/kernel/time.c b/arch/m32r/kernel/time.c
-index 84dd040..b3b5b32 100644
---- a/arch/m32r/kernel/time.c
-+++ b/arch/m32r/kernel/time.c
-@@ -134,7 +134,6 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
- 
- static struct irqaction irq0 = {
- 	.handler = timer_interrupt,
--	.flags = IRQF_DISABLED,
- 	.name = "MFT2",
+diff --git a/arch/h8300/kernel/timer/itu.c b/arch/h8300/kernel/timer/itu.c
+index a2ae5e9..21afa64 100644
+--- a/arch/h8300/kernel/timer/itu.c
++++ b/arch/h8300/kernel/timer/itu.c
+@@ -59,7 +59,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+ static struct irqaction itu_irq = {
+ 	.name		= "itu",
+ 	.handler	= timer_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_TIMER,
++	.flags		= IRQF_TIMER,
  };
  
+ static const int __initdata divide_rate[] = {1, 2, 4, 8};
+diff --git a/arch/h8300/kernel/timer/timer16.c b/arch/h8300/kernel/timer/timer16.c
+index ae0d381..3864531 100644
+--- a/arch/h8300/kernel/timer/timer16.c
++++ b/arch/h8300/kernel/timer/timer16.c
+@@ -54,7 +54,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+ static struct irqaction timer16_irq = {
+ 	.name		= "timer-16",
+ 	.handler	= timer_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_TIMER,
++	.flags		= IRQF_TIMER,
+ };
+ 
+ static const int __initdata divide_rate[] = {1, 2, 4, 8};
+diff --git a/arch/h8300/kernel/timer/timer8.c b/arch/h8300/kernel/timer/timer8.c
+index 7a1533f..13617fb 100644
+--- a/arch/h8300/kernel/timer/timer8.c
++++ b/arch/h8300/kernel/timer/timer8.c
+@@ -74,7 +74,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+ static struct irqaction timer8_irq = {
+ 	.name		= "timer-8",
+ 	.handler	= timer_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_TIMER,
++	.flags		= IRQF_TIMER,
+ };
+ 
+ static const int __initdata divide_rate[] = {8, 64, 8192};
+diff --git a/arch/h8300/kernel/timer/tpu.c b/arch/h8300/kernel/timer/tpu.c
+index 2193a2e..aa5707e 100644
+--- a/arch/h8300/kernel/timer/tpu.c
++++ b/arch/h8300/kernel/timer/tpu.c
+@@ -63,7 +63,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+ static struct irqaction tpu_irq = {
+ 	.name		= "tpu",
+ 	.handler	= timer_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_TIMER,
++	.flags		= IRQF_TIMER,
+ };
+ 
+ static const int __initdata divide_rate[] = {
 -- 
 1.7.4.1
