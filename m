@@ -1,18 +1,14 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 30/57] dmaengine: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:31 +0800
-Message-ID: <1316597339-29861-31-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 33/57] infiniband: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:34 +0800
+Message-ID: <1316597339-29861-34-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
-	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753315Ab1IUJeJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:34:09 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Vinod Koul <vinod.koul@intel.com>, Dan Williams <dan.j.williams@intel.com>, Linus Walleij <linus.walleij@stericsson.com>, linux-arm-kernel@lists.infradead.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -23,61 +19,31 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Vinod Koul <vinod.koul@linux.intel.com>
-Acked-by: Linus Walleij <linus.walleij@linaro.org>
 ---
- drivers/dma/amba-pl08x.c |    2 +-
- drivers/dma/coh901318.c  |    2 +-
- drivers/dma/shdma.c      |    4 ++--
- 3 files changed, 4 insertions(+), 4 deletions(-)
+ drivers/infiniband/hw/ehca/ehca_eq.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/dma/amba-pl08x.c b/drivers/dma/amba-pl08x.c
-index cd8df7f..5337b69 100644
---- a/drivers/dma/amba-pl08x.c
-+++ b/drivers/dma/amba-pl08x.c
-@@ -1866,7 +1866,7 @@ static int pl08x_probe(struct amba_device *adev, const struct amba_id *id)
- 	writel(0x000000FF, pl08x->base + PL080_ERR_CLEAR);
- 	writel(0x000000FF, pl08x->base + PL080_TC_CLEAR);
+diff --git a/drivers/infiniband/hw/ehca/ehca_eq.c b/drivers/infiniband/hw/ehca/ehca_eq.c
+index d9b1bb4..818d721 100644
+--- a/drivers/infiniband/hw/ehca/ehca_eq.c
++++ b/drivers/infiniband/hw/ehca/ehca_eq.c
+@@ -125,7 +125,7 @@ int ehca_create_eq(struct ehca_shca *shca,
+ 		tasklet_init(&eq->interrupt_task, ehca_tasklet_eq, (long)shca);
  
--	ret = request_irq(adev->irq[0], pl08x_irq, IRQF_DISABLED,
-+	ret = request_irq(adev->irq[0], pl08x_irq, 0,
- 			  DRIVER_NAME, pl08x);
- 	if (ret) {
- 		dev_err(&adev->dev, "%s failed to request interrupt %d\n",
-diff --git a/drivers/dma/coh901318.c b/drivers/dma/coh901318.c
-index 4234f41..1dd9455 100644
---- a/drivers/dma/coh901318.c
-+++ b/drivers/dma/coh901318.c
-@@ -1506,7 +1506,7 @@ static int __init coh901318_probe(struct platform_device *pdev)
- 	if (irq < 0)
- 		goto err_no_irq;
+ 		ret = ibmebus_request_irq(eq->ist, ehca_interrupt_eq,
+-					  IRQF_DISABLED, "ehca_eq",
++					  0, "ehca_eq",
+ 					  (void *)shca);
+ 		if (ret < 0)
+ 			ehca_err(ib_dev, "Can't map interrupt handler.");
+@@ -133,7 +133,7 @@ int ehca_create_eq(struct ehca_shca *shca,
+ 		tasklet_init(&eq->interrupt_task, ehca_tasklet_neq, (long)shca);
  
--	err = request_irq(irq, dma_irq_handler, IRQF_DISABLED,
-+	err = request_irq(irq, dma_irq_handler, 0,
- 			  "coh901318", base);
- 	if (err) {
- 		dev_crit(&pdev->dev,
-diff --git a/drivers/dma/shdma.c b/drivers/dma/shdma.c
-index 7f49235..8c137d2 100644
---- a/drivers/dma/shdma.c
-+++ b/drivers/dma/shdma.c
-@@ -1106,7 +1106,7 @@ static void sh_dmae_chan_remove(struct sh_dmae_device *shdev)
- static int __init sh_dmae_probe(struct platform_device *pdev)
- {
- 	struct sh_dmae_pdata *pdata = pdev->dev.platform_data;
--	unsigned long irqflags = IRQF_DISABLED,
-+	unsigned long irqflags = 0,
- 		chan_flag[SH_DMAC_MAX_CHANNELS] = {};
- 	int errirq, chan_irq[SH_DMAC_MAX_CHANNELS];
- 	int err, i, irq_cnt = 0, irqres = 0, irq_cap = 0;
-@@ -1266,7 +1266,7 @@ static int __init sh_dmae_probe(struct platform_device *pdev)
- 				    IORESOURCE_IRQ_SHAREABLE)
- 					chan_flag[irq_cnt] = IRQF_SHARED;
- 				else
--					chan_flag[irq_cnt] = IRQF_DISABLED;
-+					chan_flag[irq_cnt] = 0;
- 				dev_dbg(&pdev->dev,
- 					"Found IRQ %d for channel %d\n",
- 					i, irq_cnt);
+ 		ret = ibmebus_request_irq(eq->ist, ehca_interrupt_neq,
+-					  IRQF_DISABLED, "ehca_neq",
++					  0, "ehca_neq",
+ 					  (void *)shca);
+ 		if (ret < 0)
+ 			ehca_err(ib_dev, "Can't map interrupt handler.");
 -- 
 1.7.4.1
