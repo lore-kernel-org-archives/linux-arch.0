@@ -1,85 +1,37 @@
-From: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
-Subject: Re: [PATCH 37/57] mmc: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 12:16:06 +0200 (CEST)
-Message-ID: <Pine.LNX.4.64.1109211208440.24024@axis700.grange>
+From: "Ujfalusi, Peter" <peter.ujfalusi@ti.com>
+Subject: Re: [PATCH 53/57] sound: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 13:21:17 +0300
+Message-ID: <CAPo=G1zGu7zf2KTKmzZynWQ9X3DS+SjKLFuZkjSQ5KsSuZ6Dgw@mail.gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
- <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
+	<1316597339-29861-54-git-send-email-yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-mmc-owner@vger.kernel.org>
-In-Reply-To: <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-mmc-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <1316597339-29861-54-git-send-email-yong.zhang0@gmail.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+	<mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Chris Ball <cjb@laptop.org>, Ian Molton <ian@mnementh.co.uk>, Tony Lindgren <tony@atomide.com>, Kishore Kadiyala <kishore.kadiyala@ti.com>, Adrian Hunter <adrian.hunter@nokia.com>, Balaji T K <balajitk@ti.com>, linux-omap@vger.kernel.org, linux-mmc@vger.kernel.org
+Cc: alsa-devel@alsa-project.org, Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>, Takashi Iwai <tiwai@suse.de>, Clemens Ladisch <clemens@ladisch.de>, Jaroslav Kysela <perex@perex.cz>, Paul Gortmaker <paul.gortmaker@windriver.com>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Jassi Brar <jassisinghbrar@gmail.com>, Manuel Lauss <manuel.lauss@googlemail.com>, =?ISO-8859-1?Q?Uwe_Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Axel Lin <axel.lin@gmail.com>, Liam Girdwood <lrg@ti.com>, cbe-oss-dev@lists.ozlabs.org, Wan ZongShun <mcuos.com@gmail.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, tglx@linutronix.de, linux-arm-kernel@lists.infradead.org, Eric Miao <eric.y.miao@gmail.com>, Sangbeom Kim <sbkim73@samsung.com>, Jiri Kosina <jkosina@suse.cz>, Mark Brown <broonie@opensource.wolfsonmicro.com>, linux-kernel@vger.kernel.org, Geoff
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 21 Sep 2011, Yong Zhang wrote:
-
+On Wed, Sep 21, 2011 at 12:28 PM, Yong Zhang <yong.zhang0@gmail.com> wrote:
 > Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 > We run all interrupt handlers with interrupts disabled
 > and we even check and yell when an interrupt handler
 > returns with interrupts enabled (see commit [b738a50a:
 > genirq: Warn when handler enables interrupts]).
-> 
+>
 > So now this flag is a NOOP and can be removed.
-> 
+>
 > Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-> ---
->  drivers/mmc/host/omap_hsmmc.c |    5 ++---
->  drivers/mmc/host/tmio_mmc.c   |    4 ++--
+> Acked-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
 
-For tmio_mmc.c:
-
-Acked-by: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
-
-Thanks
-Guennadi
-
->  2 files changed, 4 insertions(+), 5 deletions(-)
-> 
-> diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hsmmc.c
-> index 21e4a79..75c6395 100644
-> --- a/drivers/mmc/host/omap_hsmmc.c
-> +++ b/drivers/mmc/host/omap_hsmmc.c
-> @@ -2015,7 +2015,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
->  	}
->  
->  	/* Request IRQ for MMC operations */
-> -	ret = request_irq(host->irq, omap_hsmmc_irq, IRQF_DISABLED,
-> +	ret = request_irq(host->irq, omap_hsmmc_irq, 0,
->  			mmc_hostname(mmc), host);
->  	if (ret) {
->  		dev_dbg(mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
-> @@ -2043,8 +2043,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
->  	if ((mmc_slot(host).card_detect_irq)) {
->  		ret = request_irq(mmc_slot(host).card_detect_irq,
->  				  omap_hsmmc_cd_handler,
-> -				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
-> -					  | IRQF_DISABLED,
-> +				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
->  				  mmc_hostname(mmc), host);
->  		if (ret) {
->  			dev_dbg(mmc_dev(host->mmc),
-> diff --git a/drivers/mmc/host/tmio_mmc.c b/drivers/mmc/host/tmio_mmc.c
-> index 44a9668..a4ea102 100644
-> --- a/drivers/mmc/host/tmio_mmc.c
-> +++ b/drivers/mmc/host/tmio_mmc.c
-> @@ -88,8 +88,8 @@ static int __devinit tmio_mmc_probe(struct platform_device *pdev)
->  	if (ret)
->  		goto cell_disable;
->  
-> -	ret = request_irq(irq, tmio_mmc_irq, IRQF_DISABLED |
-> -			  IRQF_TRIGGER_FALLING, dev_name(&pdev->dev), host);
-> +	ret = request_irq(irq, tmio_mmc_irq, IRQF_TRIGGER_FALLING,
-> +				dev_name(&pdev->dev), host);
->  	if (ret)
->  		goto host_remove;
->  
-> -- 
-> 1.7.4.1
-> 
-
----
-Guennadi Liakhovetski, Ph.D.
-Freelance Open-Source Software Developer
-http://www.open-technology.de/
+Acked-by: Peter Ujfalusi <peter.ujfalusi@ti.com>
