@@ -1,45 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:41148 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750844Ab1IUQP0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 12:15:26 -0400
-From: Pedro Alves <pedro@codesourcery.com>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Wed, 21 Sep 2011 17:15:20 +0100
-References: <20110909010847.294039464@codeaurora.org> <201109101229.58445.pedro@codesourcery.com> <20110919152505.GB6830@codeaurora.org>
-In-Reply-To: <20110919152505.GB6830@codeaurora.org>
+Received: from mx1.redhat.com ([209.132.183.28]:46563 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752870Ab1IURrH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Sep 2011 13:47:07 -0400
+Date: Wed, 21 Sep 2011 14:46:24 -0300
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
+Message-ID: <20110921174624.GB21677@amt.cnet>
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
+ <20110830122630.GA19450@amt.cnet>
+ <4E5FDBDC.2030302@codemonkey.ws>
+ <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
+ <20110909132955.GA19459@amt.cnet>
+ <20110913204955.GD9096@mgebm.net>
+ <20110915132614.GA7101@amt.cnet>
+ <20110920190054.GA31415@mgebm.net>
+ <20110920195514.GD32325@amt.cnet>
+ <1316614268.16137.280.camel@nimitz>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201109211715.20795.pedro@codesourcery.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1316614268.16137.280.camel@nimitz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-Message-ID: <20110921161520.Xrwkq3iPainsu06Mzqv0H3OxZaGQN2cklgazWhT2BNg@z>
+To: Dave Hansen <haveblue@us.ibm.com>
+Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
+Message-ID: <20110921174624.bLA9RSRIf2MB69PSNh3CTEUTiSoeqpNxC6YLW-NOVTk@z>
 
-On Monday 19 September 2011 16:25:05, Linas Vepstas (Code Aurora) wrote:
-> On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
-> > On Saturday 10 September 2011 07:42:26, Jonas Bonn wrote:
+On Wed, Sep 21, 2011 at 07:11:08AM -0700, Dave Hansen wrote:
+> On Tue, 2011-09-20 at 16:55 -0300, Marcelo Tosatti wrote:
+> > > and the wall clock stays behind my host wall clock by the amount of
+> > > time it took to resume.
 > > 
-> > > I'm really not an expert on GDB, but I believe it can use either the
-> > > PEEK/POKE functions to access regs, or it can use GET/SETREGS; it's an
-> > > architecture-dependent configuration.  I think the second variant can
-> > > be easily modified to become GET/SETREGSET instead, and the PEEK/POKE
-> > > variant wouldn't be needed at all.
-> > 
-> > Yes, the x86/x86-64 ports or gdb and gdbserver are already
-> > using GET/SETREGSET even.
+> > This is expected, similar to savevm/loadvm. 
 > 
-> Reading the code, it seemed to only fetch "extended state" in
-> this way, and not all of the registers.  Am I mistaken?
+> That seems like pretty undesirable behavior to me.  It's too bad that it
+> does that with savevm/loadvm, but is it really behavior that we want to
+> spread?
 
-True.  gdb/gdbserver need to keep working with older x86 kernels, so
-we avoid having two ways of doing things with the other registers.
-No reason to support legacy interfaces with new ports though.
+Not really. savevm/loadvm has more widespread use, so a solution could
+apply equally to both cases.
 
-I wish there was an equivalent of PTRACE_GETREGSET for siginfo...
-
--- 
-Pedro Alves
