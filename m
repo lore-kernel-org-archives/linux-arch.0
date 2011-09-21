@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 11/57] microblaze: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:12 +0800
-Message-ID: <1316597339-29861-12-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 09/57] m32r: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:10 +0800
+Message-ID: <1316597339-29861-10-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Michal Simek <monstr@monstr.eu>, Joe Perches <joe@perches.com>, John Stultz <johnstul@us.ibm.com>, microblaze-uclinux@itee.uq.edu.au
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Hirokazu Takata <takata@linux-m32r.org>, Torben Hohn <torbenh@gmx.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -20,21 +20,20 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/microblaze/kernel/timer.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ arch/m32r/kernel/time.c |    1 -
+ 1 files changed, 0 insertions(+), 1 deletions(-)
 
-diff --git a/arch/microblaze/kernel/timer.c b/arch/microblaze/kernel/timer.c
-index e5550ce..bb86351 100644
---- a/arch/microblaze/kernel/timer.c
-+++ b/arch/microblaze/kernel/timer.c
-@@ -163,7 +163,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+diff --git a/arch/m32r/kernel/time.c b/arch/m32r/kernel/time.c
+index 84dd040..b3b5b32 100644
+--- a/arch/m32r/kernel/time.c
++++ b/arch/m32r/kernel/time.c
+@@ -134,7 +134,6 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
  
- static struct irqaction timer_irqaction = {
+ static struct irqaction irq0 = {
  	.handler = timer_interrupt,
--	.flags = IRQF_DISABLED | IRQF_TIMER,
-+	.flags = IRQF_TIMER,
- 	.name = "timer",
- 	.dev_id = &clockevent_microblaze_timer,
+-	.flags = IRQF_DISABLED,
+ 	.name = "MFT2",
  };
+ 
 -- 
 1.7.4.1
