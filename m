@@ -1,128 +1,55 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept IOMMU
- mapper for DMA-mapping
-Date: Wed, 21 Sep 2011 16:50:41 +0200
-Message-ID: <001f01cc786d$d55222c0$7ff66840$%szyprowski@samsung.com>
-References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
- <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
- <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 35/57] media: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 15:02:30 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1109211501440.2723@ionos>
+References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+	<1316597339-29861-36-git-send-email-yong.zhang0@gmail.com>
+	<4E79DF04.8060209@infradead.org>
+Reply-To: MJPEG-tools user list <mjpeg-users@lists.sourceforge.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:37340 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751690Ab1IUOut (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 10:50:49 -0400
-Received: from euspt1 (mailout2.w1.samsung.com [210.118.77.12])
- by mailout2.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LRV0048WNWM37@mailout2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 21 Sep 2011 15:50:46 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LRV000HMNWMTS@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 21 Sep 2011 15:50:46 +0100 (BST)
-In-reply-to: <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
-Content-language: pl
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Laura Abbott' <lauraa@codeaurora.org>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <mjpeg-users-bounces@lists.sourceforge.net>
+In-Reply-To: <4E79DF04.8060209@infradead.org>
+List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/mjpeg-users>,
+	<mailto:mjpeg-users-request@lists.sourceforge.net?subject=unsubscribe>
+List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=mjpeg-users>
+List-Post: <mailto:mjpeg-users@lists.sourceforge.net>
+List-Help: <mailto:mjpeg-users-request@lists.sourceforge.net?subject=help>
+List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/mjpeg-users>,
+	<mailto:mjpeg-users-request@lists.sourceforge.net?subject=subscribe>
+Errors-To: mjpeg-users-bounces@lists.sourceforge.net
+To: Mauro Carvalho Chehab <mchehab@infradead.org>
+Cc: Kamil Debski <k.debski@samsung.com>, =?ISO-8859-15?Q?David_H=E4rdeman?= <david@hardeman.nu>, Wolfram Sang <w.sang@pengutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, Laurent Pinchart <laurent.pinchart@ideasonboard.com>, "Igor M. Liplianin" <liplianin@netup.ru>, linux-arch@vger.kernel.org, Lawrence Rust <lawrence@softsystem.co.uk>, Mats Randgaard <mats.randgaard@cisco.com>, Vaibhav Hiremath <hvaibhav@ti.com>, Jarod Wilson <jarod@redhat.com>, Muralidharan Karicheri <m-karicheri2@ti.com>, Istvan Varga <istvan_v@mailbox.hu>, Hans Verkuil <hans.verkuil@cisco.com>, Jean Delvare <khali@linux-fr.org>, linux-media@vger.kernel.org, Lucas De Marchi <lucas.demarchi@profusion.mobi>, ivtv-devel@ivtvdriver.org, Jonathan Nieder <jrnieder@gmail.com>, Yong Zhang <yong.zhang0@gmail.com>, mjpeg-users@lists.sourceforge.net, Andy Walls <awalls@md.metrocast.net>, Devin
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Wed, 21 Sep 2011, Mauro Carvalho Chehab wrote:
 
-On Thursday, September 08, 2011 6:42 PM Laura Abbott wrote:
-
-> Hi, a few comments
-> On Fri, September 2, 2011 6:56 am, Marek Szyprowski wrote:
-> ...
-> > +
-> > +struct dma_iommu_mapping {
-> > +	/* iommu specific data */
-> > +	struct iommu_domain	*domain;
-> > +
-> > +	void			*bitmap;
+> Em 21-09-2011 06:28, Yong Zhang escreveu:
+> > Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+> > We run all interrupt handlers with interrupts disabled
+> > and we even check and yell when an interrupt handler
+> > returns with interrupts enabled (see commit [b738a50a:
+> > genirq: Warn when handler enables interrupts]).
+> > 
+> > So now this flag is a NOOP and can be removed.
+> > 
+> > Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+> > Acked-by: Wolfram Sang <w.sang@pengutronix.de>
 > 
-> In the earlier version of this patch you had this as a genpool instead of
-> just doing the bitmaps manually. Is there a reason genpool can't be used
-> to get the iova addresses?
+> Not sure if you want to send this patch directly or via
+> the linux-media tree. If you want to send it directly:
+> 
+> Acked-by: Mauro Carvalho Chehab <mchehab@redhat.com>
+> 
+> If not, please let me know, and I'll apply it on my tree
+> with my SOB.
 
-IMHO genpool was a bit overkill in this case and required some additional
-patches for aligned allocations. In the next version I also want to extend
-this bitmap based allocator to dynamically resize the bitmap for more than
-one page if the io address space gets exhausted. 
+Please take it, I collect the leftovers.
 
-> > +	size_t			bits;
-> > +	unsigned int		order;
-> > +	dma_addr_t		base;
-> > +
-> > +	struct mutex		lock;
-> > +};
-> <snip>
-> > +int arm_iommu_attach_device(struct device *dev, dma_addr_t base, size_t
-> > size, int order)
-> > +{
-> > +	unsigned int count = (size >> PAGE_SHIFT) - order;
-> > +	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> > +	struct dma_iommu_mapping *mapping;
-> > +	int err = -ENOMEM;
-> > +
-> > +	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
-> > +	if (!mapping)
-> > +		goto err;
-> > +
-> > +	mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
-> > +	if (!mapping->bitmap)
-> > +		goto err2;
-> > +
-> > +	mapping->base = base;
-> > +	mapping->bits = bitmap_size;
-> > +	mapping->order = order;
-> > +	mutex_init(&mapping->lock);
-> > +
-> > +	mapping->domain = iommu_domain_alloc();
-> > +	if (!mapping->domain)
-> > +		goto err3;
-> > +
-> > +	err = iommu_attach_device(mapping->domain, dev);
-> > +	if (err != 0)
-> > +		goto err4;
-> > +
-> > +	dev->archdata.mapping = mapping;
-> > +	set_dma_ops(dev, &iommu_ops);
-> > +
-> > +	printk(KERN_INFO "Attached IOMMU controller to %s device.\n",
-> > dev_name(dev));
-> > +	return 0;
-> > +
-> > +err4:
-> > +	iommu_domain_free(mapping->domain);
-> > +err3:
-> > +	kfree(mapping->bitmap);
-> > +err2:
-> > +	kfree(mapping);
-> > +err:
-> > +	return -ENOMEM;
-> > +}
-> > +EXPORT_SYMBOL(arm_iommu_attach_device);
-> > +
-> > +#endif
-
-> Attach makes the assumption that each iommu device will exist in a
-> separate domain. What if multiple devices want to use the same iommu
-> domain? The msm iommu implementation has many different iommu devices but
-> many of these will need the same buffer to be mapped in each context so
-> currently many devices share the same domain. Without this, the same map
-> call would need to happen for each device, which creates extra map calls
-> and overhead.
-
-Ah, right. I forgot about the case when devices need to share one domain.
-Moving iommu_domain_alloc out of arm_iommu_attach_device and giving that
-function just a pointer to the iommu domain should solve this issue. I will
-change this in the next version of the patches.
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+------------------------------------------------------------------------------
+All the data continuously generated in your IT infrastructure contains a
+definitive record of customers, application performance, security
+threats, fraudulent activity and more. Splunk takes this data and makes
+sense of it. Business sense. IT sense. Common sense.
+http://p.sf.net/sfu/splunk-d2dcopy1
