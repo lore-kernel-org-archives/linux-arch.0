@@ -1,63 +1,34 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
-Date: Wed, 21 Sep 2011 14:43:17 -0300
-Message-ID: <20110921174317.GA21677@amt.cnet>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
- <20110830122630.GA19450@amt.cnet>
- <4E5FDBDC.2030302@codemonkey.ws>
- <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
- <20110909132955.GA19459@amt.cnet>
- <20110913204955.GD9096@mgebm.net>
- <20110915132614.GA7101@amt.cnet>
- <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 39/57] net: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 13:40:26 -0400 (EDT)
+Message-ID: <20110921.134026.121607758721728538.davem@davemloft.net>
+References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+	<1316597339-29861-40-git-send-email-yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:50608 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751103Ab1IURte (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 13:49:34 -0400
+In-Reply-To: <1316597339-29861-40-git-send-email-yong.zhang0@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: yong.zhang0@gmail.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, perex@perex.cz, leitao@linux.vnet.ibm.com, olof@lixom.net, nico@fluxnic.net, steve.glendinning@smsc.com, geoff@infradead.org, t.sailer@alumni.ethz.ch, jreuter@yaina.de, klaus.kudielka@ieee.org, jpr@f6fbb.org, samuel@sortiz.org, chunkeey@googlemail.com, linville@tuxdriver.com, jeffrey.t.kirsher@intel.com, jpirko@redhat.com, bob.liu@analog.com, grundler@parisc-linux.org, ralf@linux-mips.org, blogic@openwrt.org, marc@tensilica.com, lucas.demarchi@profusion.mobi, joe@perches.com, uclinux-dist-devel@blackfin.uclinux.org, netdev@vger.kernel.org, cbe-oss-dev@lists.ozlabs.org, linux-hams@vger.kernel.org, linux-wireless@vger.kernel.org
 
-On Tue, Sep 20, 2011 at 09:03:51PM +0100, Jamie Lokier wrote:
-> Marcelo Tosatti wrote:
-> > In case the VM stops for whatever reason, the host system is not
-> > supposed to adjust time related hardware state to compensate, in an
-> > attempt to present apparent continuous time.
-> > 
-> > If you save a VM and then restore it later, it is the guest
-> > responsability to adjust its time representation.
-> 
-> If the guest doesn't know it's been stopped, then its time
-> representation will be wrong until it finds out, e.g. after a few
-> minutes with NTP, or even a seconds can be too long.
-> 
-> That is sad when it happens because it breaks the coherence of any
-> timed-lease caching the guest is involved in.  I.e. where the guest
-> acquires a lock on some data object (like a file in NFS) that it can
-> efficiently access without network round trips (similar to MESI), with
-> all nodes having agreed that it's coherent for, say, 5 seconds before
-> renewing or breaking.  (It's just a way to reduce latency.)
-> 
-> But we can't trust CLOCK_MONOTONIC when a VM is involved, it's just
-> one of those facts of life.  So instead the effort is to try and
-> detect when a VM is involved and then distrust the clock.
-> 
-> (Non-VM) suspend/resume is similar, but there's usually a way to
-> be notified about that as it happens.
-> 
-> -- Jamie
+From: Yong Zhang <yong.zhang0@gmail.com>
+Date: Wed, 21 Sep 2011 17:28:40 +0800
 
-Thats pretty bad.
+> Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+> We run all interrupt handlers with interrupts disabled
+> and we even check and yell when an interrupt handler
+> returns with interrupts enabled (see commit [b738a50a:
+> genirq: Warn when handler enables interrupts]).
+> 
+> So now this flag is a NOOP and can be removed.
+> 
+> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 
-Time leased caching cannot be enabled in conjunction with save/restore
-without VM involvement (the hypervisor management application must
-notify the guest so it can drop such cache/writeback pending data).
-
-But, if paravirtual clock is available (Linux VMs), it should be
-possible to add an offset similarly to how suspend/resume is performed,
-via a high priority channel, before resuming operation. We should look
-into that possibility.
-
-Thanks
+Acked-by: David S. Miller <davem@davemloft.net>
