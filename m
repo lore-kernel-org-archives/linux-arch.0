@@ -1,70 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:44302 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753993Ab1IUJhH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:37:07 -0400
+Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
+	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752815Ab1IUJdv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:33:51 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 57/57] genirq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:58 +0800
-Message-ID: <1316597339-29861-58-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 34/57] ISDN: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:35 +0800
+Message-ID: <1316597339-29861-35-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Randy Dunlap <rdunlap@xenotime.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Eric Dumazet <eric.dumazet@gmail.com>, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-doc@vger.kernel.org
-Message-ID: <20110921092858.8GVv7l0kkCgpB7KBivPoSZYnizasRV_KOg_jDkOPxXw@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Armin Schindler <mac@melware.de>, Karsten Keil <isdn@linux-pingi.de>, netdev@vger.kernel.org
+Message-ID: <20110921092835.MnLCBaM5OOMtFCeFZZN-Wvtn2HtVH_9gp1egUS35qjg@z>
 
-There is no stuff which depends on IRQF_DISABLED after we
-made the tree-wide cleanup. Time to remove it completely.
+Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+We run all interrupt handlers with interrupts disabled
+and we even check and yell when an interrupt handler
+returns with interrupts enabled (see commit [b738a50a:
+genirq: Warn when handler enables interrupts]).
 
-No too late than 2.6.36 :)
+So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- Documentation/feature-removal-schedule.txt |    7 -------
- include/linux/interrupt.h                  |    3 ---
- 2 files changed, 0 insertions(+), 10 deletions(-)
+ drivers/isdn/hardware/eicon/divasmain.c |    2 +-
+ drivers/isdn/sc/init.c                  |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/Documentation/feature-removal-schedule.txt b/Documentation/feature-removal-schedule.txt
-index 188cd81..2beacf3 100644
---- a/Documentation/feature-removal-schedule.txt
-+++ b/Documentation/feature-removal-schedule.txt
-@@ -400,13 +400,6 @@ Who:	Netfilter developer team <netfilter-devel@vger.kernel.org>
+diff --git a/drivers/isdn/hardware/eicon/divasmain.c b/drivers/isdn/hardware/eicon/divasmain.c
+index f332b60..8a0a831 100644
+--- a/drivers/isdn/hardware/eicon/divasmain.c
++++ b/drivers/isdn/hardware/eicon/divasmain.c
+@@ -481,7 +481,7 @@ void __inline__ outpp(void __iomem *addr, word p)
+ int diva_os_register_irq(void *context, byte irq, const char *name)
+ {
+ 	int result = request_irq(irq, diva_os_irq_wrapper,
+-				 IRQF_DISABLED | IRQF_SHARED, name, context);
++				 IRQF_SHARED, name, context);
+ 	return (result);
+ }
  
- ----------------------------
- 
--What:	IRQF_DISABLED
--When:	2.6.36
--Why:	The flag is a NOOP as we run interrupt handlers with interrupts disabled
--Who:	Thomas Gleixner <tglx@linutronix.de>
--
------------------------------
--
- What: 	PCI DMA unmap state API
- When:	August 2012
- Why:	PCI DMA unmap state API (include/linux/pci-dma.h) was replaced
-diff --git a/include/linux/interrupt.h b/include/linux/interrupt.h
-index a103732..6b10d87 100644
---- a/include/linux/interrupt.h
-+++ b/include/linux/interrupt.h
-@@ -42,8 +42,6 @@
-  * These flags used only by the kernel as part of the
-  * irq handling routines.
-  *
-- * IRQF_DISABLED - keep irqs disabled when calling the action handler.
-- *                 DEPRECATED. This flag is a NOOP and scheduled to be removed
-  * IRQF_SAMPLE_RANDOM - irq is used to feed the random generator
-  * IRQF_SHARED - allow sharing the irq among several devices
-  * IRQF_PROBE_SHARED - set by callers when they expect sharing mismatches to occur
-@@ -60,7 +58,6 @@
-  * IRQF_FORCE_RESUME - Force enable it on resume even if IRQF_NO_SUSPEND is set
-  * IRQF_NO_THREAD - Interrupt cannot be threaded
-  */
--#define IRQF_DISABLED		0x00000020
- #define IRQF_SAMPLE_RANDOM	0x00000040
- #define IRQF_SHARED		0x00000080
- #define IRQF_PROBE_SHARED	0x00000100
+diff --git a/drivers/isdn/sc/init.c b/drivers/isdn/sc/init.c
+index ca710ab..a3127fb 100644
+--- a/drivers/isdn/sc/init.c
++++ b/drivers/isdn/sc/init.c
+@@ -336,7 +336,7 @@ static int __init sc_init(void)
+ 		 */
+ 		sc_adapter[cinst]->interrupt = irq[b];
+ 		if (request_irq(sc_adapter[cinst]->interrupt, interrupt_handler,
+-				IRQF_DISABLED, interface->id,
++				0, interface->id,
+ 				(void *)(unsigned long) cinst))
+ 		{
+ 			kfree(sc_adapter[cinst]->channel);
 -- 
 1.7.4.1
 
