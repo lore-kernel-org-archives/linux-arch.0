@@ -1,32 +1,128 @@
-From: Dave Hansen <haveblue@us.ibm.com>
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by
- host
-Date: Wed, 21 Sep 2011 07:11:08 -0700
-Message-ID: <1316614268.16137.280.camel@nimitz>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
-	 <20110830122630.GA19450@amt.cnet> <4E5FDBDC.2030302@codemonkey.ws>
-	 <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
-	 <20110909132955.GA19459@amt.cnet> <20110913204955.GD9096@mgebm.net>
-	 <20110915132614.GA7101@amt.cnet> <20110920190054.GA31415@mgebm.net>
-	 <20110920195514.GD32325@amt.cnet>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept IOMMU
+ mapper for DMA-mapping
+Date: Wed, 21 Sep 2011 16:50:41 +0200
+Message-ID: <001f01cc786d$d55222c0$7ff66840$%szyprowski@samsung.com>
+References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
+ <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
+ <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvm-ppc-owner@vger.kernel.org>
-In-Reply-To: <20110920195514.GD32325@amt.cnet>
-Sender: kvm-ppc-owner@vger.kernel.org
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:37340 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751690Ab1IUOut (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 10:50:49 -0400
+Received: from euspt1 (mailout2.w1.samsung.com [210.118.77.12])
+ by mailout2.w1.samsung.com
+ (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
+ with ESMTP id <0LRV0048WNWM37@mailout2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 21 Sep 2011 15:50:46 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LRV000HMNWMTS@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 21 Sep 2011 15:50:46 +0100 (BST)
+In-reply-to: <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
+Content-language: pl
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: 'Laura Abbott' <lauraa@codeaurora.org>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
 
-On Tue, 2011-09-20 at 16:55 -0300, Marcelo Tosatti wrote:
-> > and the wall clock stays behind my host wall clock by the amount of
-> > time it took to resume.
+Hello,
+
+On Thursday, September 08, 2011 6:42 PM Laura Abbott wrote:
+
+> Hi, a few comments
+> On Fri, September 2, 2011 6:56 am, Marek Szyprowski wrote:
+> ...
+> > +
+> > +struct dma_iommu_mapping {
+> > +	/* iommu specific data */
+> > +	struct iommu_domain	*domain;
+> > +
+> > +	void			*bitmap;
 > 
-> This is expected, similar to savevm/loadvm. 
+> In the earlier version of this patch you had this as a genpool instead of
+> just doing the bitmaps manually. Is there a reason genpool can't be used
+> to get the iova addresses?
 
-That seems like pretty undesirable behavior to me.  It's too bad that it
-does that with savevm/loadvm, but is it really behavior that we want to
-spread?
+IMHO genpool was a bit overkill in this case and required some additional
+patches for aligned allocations. In the next version I also want to extend
+this bitmap based allocator to dynamically resize the bitmap for more than
+one page if the io address space gets exhausted. 
 
--- Dave
+> > +	size_t			bits;
+> > +	unsigned int		order;
+> > +	dma_addr_t		base;
+> > +
+> > +	struct mutex		lock;
+> > +};
+> <snip>
+> > +int arm_iommu_attach_device(struct device *dev, dma_addr_t base, size_t
+> > size, int order)
+> > +{
+> > +	unsigned int count = (size >> PAGE_SHIFT) - order;
+> > +	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
+> > +	struct dma_iommu_mapping *mapping;
+> > +	int err = -ENOMEM;
+> > +
+> > +	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
+> > +	if (!mapping)
+> > +		goto err;
+> > +
+> > +	mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
+> > +	if (!mapping->bitmap)
+> > +		goto err2;
+> > +
+> > +	mapping->base = base;
+> > +	mapping->bits = bitmap_size;
+> > +	mapping->order = order;
+> > +	mutex_init(&mapping->lock);
+> > +
+> > +	mapping->domain = iommu_domain_alloc();
+> > +	if (!mapping->domain)
+> > +		goto err3;
+> > +
+> > +	err = iommu_attach_device(mapping->domain, dev);
+> > +	if (err != 0)
+> > +		goto err4;
+> > +
+> > +	dev->archdata.mapping = mapping;
+> > +	set_dma_ops(dev, &iommu_ops);
+> > +
+> > +	printk(KERN_INFO "Attached IOMMU controller to %s device.\n",
+> > dev_name(dev));
+> > +	return 0;
+> > +
+> > +err4:
+> > +	iommu_domain_free(mapping->domain);
+> > +err3:
+> > +	kfree(mapping->bitmap);
+> > +err2:
+> > +	kfree(mapping);
+> > +err:
+> > +	return -ENOMEM;
+> > +}
+> > +EXPORT_SYMBOL(arm_iommu_attach_device);
+> > +
+> > +#endif
+
+> Attach makes the assumption that each iommu device will exist in a
+> separate domain. What if multiple devices want to use the same iommu
+> domain? The msm iommu implementation has many different iommu devices but
+> many of these will need the same buffer to be mapped in each context so
+> currently many devices share the same domain. Without this, the same map
+> call would need to happen for each device, which creates extra map calls
+> and overhead.
+
+Ah, right. I forgot about the case when devices need to share one domain.
+Moving iommu_domain_alloc out of arm_iommu_attach_device and giving that
+function just a pointer to the iommu domain should solve this issue. I will
+change this in the next version of the patches.
+
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
