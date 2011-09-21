@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 28/57] driver/char: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:29 +0800
-Message-ID: <1316597339-29861-29-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 26/57] block: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:27 +0800
+Message-ID: <1316597339-29861-27-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Clemens Ladisch <clemens@ladisch.de>, Corey Minyard <minyard@acm.org>, Mark Gross <mark.gross@intel.com>, Arnd Bergmann <arnd@arndb.de>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Jiri Kosina <jkosina@suse.cz>, Christian Dietrich <christian.dietrich@informatik.uni-erlangen.de>, openipmi-developer@lists.sourceforge.net
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Mike Miller <mike.miller@hp.com>, Chirag Kantharia <chirag.kantharia@hp.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Ralf Baechle <ralf@linux-mips.org>, iss_storagedev@hp.com
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -19,127 +19,86 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Clemens Ladisch <clemens@ladisch.de>
-Acked-by: Corey Minyard <cminyard@mvista.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Mike Miller <mike.miller@hp.com>
 ---
- drivers/char/hpet.c              |    2 +-
- drivers/char/ipmi/ipmi_si_intf.c |    4 ++--
- drivers/char/nwbutton.c          |    2 +-
- drivers/char/rtc.c               |    4 ++--
- drivers/char/snsc.c              |    2 +-
- drivers/char/snsc_event.c        |    2 +-
- drivers/char/tlclk.c             |    2 +-
- 7 files changed, 9 insertions(+), 9 deletions(-)
+ drivers/block/cciss.c    |    4 ++--
+ drivers/block/cpqarray.c |    2 +-
+ drivers/block/hd.c       |    7 +------
+ drivers/block/mg_disk.c  |    2 +-
+ 4 files changed, 5 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/char/hpet.c b/drivers/char/hpet.c
-index c9aeb7f..2a2ecac 100644
---- a/drivers/char/hpet.c
-+++ b/drivers/char/hpet.c
-@@ -532,7 +532,7 @@ static int hpet_ioctl_ieon(struct hpet_dev *devp)
- 
- 		sprintf(devp->hd_name, "hpet%d", (int)(devp - hpetp->hp_dev));
- 		irq_flags = devp->hd_flags & HPET_SHARED_IRQ
--						? IRQF_SHARED : IRQF_DISABLED;
-+						? IRQF_SHARED : 0;
- 		if (request_irq(irq, hpet_interrupt, irq_flags,
- 				devp->hd_name, (void *)devp)) {
- 			printk(KERN_ERR "hpet: IRQ %d is not free\n", irq);
-diff --git a/drivers/char/ipmi/ipmi_si_intf.c b/drivers/char/ipmi/ipmi_si_intf.c
-index 9397ab4..44e8da3 100644
---- a/drivers/char/ipmi/ipmi_si_intf.c
-+++ b/drivers/char/ipmi/ipmi_si_intf.c
-@@ -1336,7 +1336,7 @@ static int std_irq_setup(struct smi_info *info)
- 	if (info->si_type == SI_BT) {
- 		rv = request_irq(info->irq,
- 				 si_bt_irq_handler,
--				 IRQF_SHARED | IRQF_DISABLED,
-+				 IRQF_SHARED,
- 				 DEVICE_NAME,
- 				 info);
- 		if (!rv)
-@@ -1346,7 +1346,7 @@ static int std_irq_setup(struct smi_info *info)
- 	} else
- 		rv = request_irq(info->irq,
- 				 si_irq_handler,
--				 IRQF_SHARED | IRQF_DISABLED,
-+				 IRQF_SHARED,
- 				 DEVICE_NAME,
- 				 info);
- 	if (rv) {
-diff --git a/drivers/char/nwbutton.c b/drivers/char/nwbutton.c
-index 04a480f..36aaf43 100644
---- a/drivers/char/nwbutton.c
-+++ b/drivers/char/nwbutton.c
-@@ -220,7 +220,7 @@ static int __init nwbutton_init(void)
- 		return -EBUSY;
+diff --git a/drivers/block/cciss.c b/drivers/block/cciss.c
+index 6da7ede..3f3b7a2 100644
+--- a/drivers/block/cciss.c
++++ b/drivers/block/cciss.c
+@@ -4868,7 +4868,7 @@ static int cciss_request_irq(ctlr_info_t *h,
+ {
+ 	if (h->msix_vector || h->msi_vector) {
+ 		if (!request_irq(h->intr[h->intr_mode], msixhandler,
+-				IRQF_DISABLED, h->devname, h))
++				0, h->devname, h))
+ 			return 0;
+ 		dev_err(&h->pdev->dev, "Unable to get msi irq %d"
+ 			" for %s\n", h->intr[h->intr_mode],
+@@ -4877,7 +4877,7 @@ static int cciss_request_irq(ctlr_info_t *h,
  	}
  
--	if (request_irq (IRQ_NETWINDER_BUTTON, button_handler, IRQF_DISABLED,
-+	if (request_irq (IRQ_NETWINDER_BUTTON, button_handler, 0,
- 			"nwbutton", NULL)) {
- 		printk (KERN_WARNING "nwbutton: IRQ %d is not free.\n",
- 				IRQ_NETWINDER_BUTTON);
-diff --git a/drivers/char/rtc.c b/drivers/char/rtc.c
-index ccd124a..d1478cd 100644
---- a/drivers/char/rtc.c
-+++ b/drivers/char/rtc.c
-@@ -228,7 +228,7 @@ static inline unsigned char rtc_is_updating(void)
+ 	if (!request_irq(h->intr[h->intr_mode], intxhandler,
+-			IRQF_DISABLED, h->devname, h))
++			0, h->devname, h))
+ 		return 0;
+ 	dev_err(&h->pdev->dev, "Unable to get irq %d for %s\n",
+ 		h->intr[h->intr_mode], h->devname);
+diff --git a/drivers/block/cpqarray.c b/drivers/block/cpqarray.c
+index b2fceb5..33afbd7 100644
+--- a/drivers/block/cpqarray.c
++++ b/drivers/block/cpqarray.c
+@@ -406,7 +406,7 @@ static int __devinit cpqarray_register_ctlr( int i, struct pci_dev *pdev)
+ 	}
+ 	hba[i]->access.set_intr_mask(hba[i], 0);
+ 	if (request_irq(hba[i]->intr, do_ida_intr,
+-		IRQF_DISABLED|IRQF_SHARED, hba[i]->devname, hba[i]))
++		IRQF_SHARED, hba[i]->devname, hba[i]))
+ 	{
+ 		printk(KERN_ERR "cpqarray: Unable to get irq %d for %s\n",
+ 				hba[i]->intr, hba[i]->devname);
+diff --git a/drivers/block/hd.c b/drivers/block/hd.c
+index b52c9ca..c30d1f9 100644
+--- a/drivers/block/hd.c
++++ b/drivers/block/hd.c
+@@ -696,11 +696,6 @@ static const struct block_device_operations hd_fops = {
+ };
  
- #ifdef RTC_IRQ
  /*
-- *	A very tiny interrupt handler. It runs with IRQF_DISABLED set,
-+ *	A very tiny interrupt handler. It runs with irqs disabled,
-  *	but there is possibility of conflicting with the set_rtc_mmss()
-  *	call (the rtc irq and the timer irq can easily run at the same
-  *	time in two different CPUs). So we need to serialize
-@@ -1041,7 +1041,7 @@ no_irq:
- 		rtc_int_handler_ptr = rtc_interrupt;
+- * This is the hard disk IRQ description. The IRQF_DISABLED in sa_flags
+- * means we run the IRQ-handler with interrupts disabled:  this is bad for
+- * interrupt latency, but anything else has led to problems on some
+- * machines.
+- *
+  * We enable interrupts in some of the routines after making sure it's
+  * safe.
+  */
+@@ -762,7 +757,7 @@ static int __init hd_init(void)
+ 			p->cyl, p->head, p->sect);
  	}
  
--	if (request_irq(RTC_IRQ, rtc_int_handler_ptr, IRQF_DISABLED,
-+	if (request_irq(RTC_IRQ, rtc_int_handler_ptr, 0,
- 			"rtc", NULL)) {
- 		/* Yeah right, seeing as irq 8 doesn't even hit the bus. */
- 		rtc_has_irq = 0;
-diff --git a/drivers/char/snsc.c b/drivers/char/snsc.c
-index 5816b39..d3464ef 100644
---- a/drivers/char/snsc.c
-+++ b/drivers/char/snsc.c
-@@ -108,7 +108,7 @@ scdrv_open(struct inode *inode, struct file *file)
- 	/* hook this subchannel up to the system controller interrupt */
- 	mutex_lock(&scdrv_mutex);
- 	rv = request_irq(SGI_UART_VECTOR, scdrv_interrupt,
--			 IRQF_SHARED | IRQF_DISABLED,
-+			 IRQF_SHARED,
- 			 SYSCTL_BASENAME, sd);
- 	if (rv) {
- 		ia64_sn_irtr_close(sd->sd_nasid, sd->sd_subch);
-diff --git a/drivers/char/snsc_event.c b/drivers/char/snsc_event.c
-index ee15694..a35978c 100644
---- a/drivers/char/snsc_event.c
-+++ b/drivers/char/snsc_event.c
-@@ -292,7 +292,7 @@ scdrv_event_init(struct sysctl_data_s *scd)
- 
- 	/* hook event subchannel up to the system controller interrupt */
- 	rv = request_irq(SGI_UART_VECTOR, scdrv_event_interrupt,
--			 IRQF_SHARED | IRQF_DISABLED,
-+			 IRQF_SHARED,
- 			 "system controller events", event_sd);
- 	if (rv) {
- 		printk(KERN_WARNING "%s: irq request failed (%d)\n",
-diff --git a/drivers/char/tlclk.c b/drivers/char/tlclk.c
-index 0c964cd..771e48e 100644
---- a/drivers/char/tlclk.c
-+++ b/drivers/char/tlclk.c
-@@ -222,7 +222,7 @@ static int tlclk_open(struct inode *inode, struct file *filp)
- 	/* This device is wired through the FPGA IO space of the ATCA blade
- 	 * we can't share this IRQ */
- 	result = request_irq(telclk_interrupt, &tlclk_interrupt,
--			     IRQF_DISABLED, "telco_clock", tlclk_interrupt);
-+			     0, "telco_clock", tlclk_interrupt);
- 	if (result == -EBUSY)
- 		printk(KERN_ERR "tlclk: Interrupt can't be reserved.\n");
- 	else
+-	if (request_irq(HD_IRQ, hd_interrupt, IRQF_DISABLED, "hd", NULL)) {
++	if (request_irq(HD_IRQ, hd_interrupt, 0, "hd", NULL)) {
+ 		printk("hd: unable to get IRQ%d for the hard disk driver\n",
+ 			HD_IRQ);
+ 		goto out1;
+diff --git a/drivers/block/mg_disk.c b/drivers/block/mg_disk.c
+index 76fa3de..3c80cba 100644
+--- a/drivers/block/mg_disk.c
++++ b/drivers/block/mg_disk.c
+@@ -930,7 +930,7 @@ static int mg_probe(struct platform_device *plat_dev)
+ 			goto probe_err_3b;
+ 		}
+ 		err = request_irq(host->irq, mg_irq,
+-				IRQF_DISABLED | IRQF_TRIGGER_RISING,
++				IRQF_TRIGGER_RISING,
+ 				MG_DEV_NAME, host);
+ 		if (err) {
+ 			printk(KERN_ERR "%s:%d fail (request_irq err=%d)\n",
 -- 
 1.7.4.1
