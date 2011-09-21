@@ -1,35 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47879 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752899Ab1IUKHM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Sep 2011 06:07:12 -0400
-Subject: Re: [PATCH 40/57] dirvers/parisc: irq: Remove IRQF_DISABLED
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-In-Reply-To: <1316597339-29861-41-git-send-email-yong.zhang0@gmail.com>
+Received: from moutng.kundenserver.de ([212.227.126.171]:54222 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753002Ab1IUKQL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 06:16:11 -0400
+Date: Wed, 21 Sep 2011 12:16:06 +0200 (CEST)
+From: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
+Subject: Re: [PATCH 37/57] mmc: irq: Remove IRQF_DISABLED
+In-Reply-To: <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
+Message-ID: <Pine.LNX.4.64.1109211208440.24024@axis700.grange>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
-	 <1316597339-29861-41-git-send-email-yong.zhang0@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 21 Sep 2011 14:07:04 +0400
-Message-ID: <1316599624.2966.12.camel@dabdike>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
-Message-ID: <20110921100704.F7VmNtRnvpeCdVtMWPqXKU9BjmqfSAqeqA0XmeFtU7Y@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Chris Ball <cjb@laptop.org>, Ian Molton <ian@mnementh.co.uk>, Tony Lindgren <tony@atomide.com>, Kishore Kadiyala <kishore.kadiyala@ti.com>, Adrian Hunter <adrian.hunter@nokia.com>, Balaji T K <balajitk@ti.com>, linux-omap@vger.kernel.org, linux-mmc@vger.kernel.org
+Message-ID: <20110921101606.I1NCFY4hR1b76xCeeA6UD7xRtZwB8h6_vjIDeY12mvk@z>
 
-Firstly, we don't need 57 patches doing this ... a single one through
-the trivial tree should be sufficient (and it can nuke the flag at the
-same time).
+On Wed, 21 Sep 2011, Yong Zhang wrote:
 
-On Wed, 2011-09-21 at 17:28 +0800, Yong Zhang wrote:
 > Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+> We run all interrupt handlers with interrupts disabled
+> and we even check and yell when an interrupt handler
+> returns with interrupts enabled (see commit [b738a50a:
+> genirq: Warn when handler enables interrupts]).
+> 
+> So now this flag is a NOOP and can be removed.
+> 
+> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+> ---
+>  drivers/mmc/host/omap_hsmmc.c |    5 ++---
+>  drivers/mmc/host/tmio_mmc.c   |    4 ++--
 
-um, that's commit e58aa3d2d0cc01ad8d6f7f640a0670433f794922
+For tmio_mmc.c:
 
-James
+Acked-by: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
 
+Thanks
+Guennadi
 
+>  2 files changed, 4 insertions(+), 5 deletions(-)
+> 
+> diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hsmmc.c
+> index 21e4a79..75c6395 100644
+> --- a/drivers/mmc/host/omap_hsmmc.c
+> +++ b/drivers/mmc/host/omap_hsmmc.c
+> @@ -2015,7 +2015,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
+>  	}
+>  
+>  	/* Request IRQ for MMC operations */
+> -	ret = request_irq(host->irq, omap_hsmmc_irq, IRQF_DISABLED,
+> +	ret = request_irq(host->irq, omap_hsmmc_irq, 0,
+>  			mmc_hostname(mmc), host);
+>  	if (ret) {
+>  		dev_dbg(mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
+> @@ -2043,8 +2043,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
+>  	if ((mmc_slot(host).card_detect_irq)) {
+>  		ret = request_irq(mmc_slot(host).card_detect_irq,
+>  				  omap_hsmmc_cd_handler,
+> -				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
+> -					  | IRQF_DISABLED,
+> +				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+>  				  mmc_hostname(mmc), host);
+>  		if (ret) {
+>  			dev_dbg(mmc_dev(host->mmc),
+> diff --git a/drivers/mmc/host/tmio_mmc.c b/drivers/mmc/host/tmio_mmc.c
+> index 44a9668..a4ea102 100644
+> --- a/drivers/mmc/host/tmio_mmc.c
+> +++ b/drivers/mmc/host/tmio_mmc.c
+> @@ -88,8 +88,8 @@ static int __devinit tmio_mmc_probe(struct platform_device *pdev)
+>  	if (ret)
+>  		goto cell_disable;
+>  
+> -	ret = request_irq(irq, tmio_mmc_irq, IRQF_DISABLED |
+> -			  IRQF_TRIGGER_FALLING, dev_name(&pdev->dev), host);
+> +	ret = request_irq(irq, tmio_mmc_irq, IRQF_TRIGGER_FALLING,
+> +				dev_name(&pdev->dev), host);
+>  	if (ret)
+>  		goto host_remove;
+>  
+> -- 
+> 1.7.4.1
+> 
 
+---
+Guennadi Liakhovetski, Ph.D.
+Freelance Open-Source Software Developer
+http://www.open-technology.de/
