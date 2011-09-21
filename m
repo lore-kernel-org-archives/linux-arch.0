@@ -1,35 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from intermatrixgroup.ru ([195.178.208.66]:58140 "EHLO
-	tservice.net.ru" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753010Ab1IUKQP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 06:16:15 -0400
-Date: Wed, 21 Sep 2011 14:06:27 +0400
-From: Evgeniy Polyakov <zbr@ioremap.net>
-Subject: Re: [PATCH 50/57] w1: irq: Remove IRQF_DISABLED
-Message-ID: <20110921100627.GA15912@ioremap.net>
-References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
- <1316597339-29861-51-git-send-email-yong.zhang0@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1316597339-29861-51-git-send-email-yong.zhang0@gmail.com>
+Received: from e4.ny.us.ibm.com ([32.97.182.144]:40676 "EHLO e4.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750797Ab1IUOLX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Sep 2011 10:11:23 -0400
+Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by
+ host
+From: Dave Hansen <haveblue@us.ibm.com>
+In-Reply-To: <20110920195514.GD32325@amt.cnet>
+References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
+	 <20110830122630.GA19450@amt.cnet> <4E5FDBDC.2030302@codemonkey.ws>
+	 <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
+	 <20110909132955.GA19459@amt.cnet> <20110913204955.GD9096@mgebm.net>
+	 <20110915132614.GA7101@amt.cnet> <20110920190054.GA31415@mgebm.net>
+	 <20110920195514.GD32325@amt.cnet>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 21 Sep 2011 07:11:08 -0700
+Message-ID: <1316614268.16137.280.camel@nimitz>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Samuel Ortiz <sameo@linux.intel.com>, Andres Salomon <dilinger@queued.net>, Andrew Morton <akpm@linux-foundation.org>, =?utf-8?Q?Jean-Fran=C3=A7ois?= Dagenais <dagenaisj@sonatest.com>, Tony Lindgren <tony@atomide.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Amit Kucheria <amit.kucheria@canonical.com>, Julia Lawall <julia@diku.dk>
-Message-ID: <20110921100627.Tslv9cR1mjwcvyjISiWnNL39Wm0grl20RrfDkjomgOE@z>
+To: Marcelo Tosatti <mtosatti@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
+Message-ID: <20110921141108.gpTV7FmDMCpMH8ahYN6Q4BtG68KAuBNnWBv8XYibhn0@z>
 
-On Wed, Sep 21, 2011 at 05:28:51PM +0800, Yong Zhang (yong.zhang0@gmail.com) wrote:
-> Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
-> We run all interrupt handlers with interrupts disabled
-> and we even check and yell when an interrupt handler
-> returns with interrupts enabled (see commit [b738a50a:
-> genirq: Warn when handler enables interrupts]).
+On Tue, 2011-09-20 at 16:55 -0300, Marcelo Tosatti wrote:
+> > and the wall clock stays behind my host wall clock by the amount of
+> > time it took to resume.
 > 
-> So now this flag is a NOOP and can be removed.
+> This is expected, similar to savevm/loadvm. 
 
-Looks good, thank you.
-Acked-by: Evgeniy Polyakov <zbr@ioremap.net>
+That seems like pretty undesirable behavior to me.  It's too bad that it
+does that with savevm/loadvm, but is it really behavior that we want to
+spread?
 
--- 
-	Evgeniy Polyakov
+-- Dave
+
