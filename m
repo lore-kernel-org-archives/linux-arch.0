@@ -1,50 +1,53 @@
-From: Pedro Alves <pedro@codesourcery.com>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Wed, 21 Sep 2011 19:04:29 +0100
-Message-ID: <201109211904.29572.pedro@codesourcery.com>
-References: <20110909010847.294039464@codeaurora.org> <201109211715.20795.pedro@codesourcery.com> <20110921175009.GA3703@codeaurora.org>
+From: Guenter Roeck <guenter.roeck@ericsson.com>
+Subject: Re: [PATCH 56/57] hwmon: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 12:07:45 -0700
+Message-ID: <20110921190745.GA30759@ericsson.com>
+References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+ <1316597339-29861-57-git-send-email-yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20110921175009.GA3703@codeaurora.org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from imr4.ericy.com ([198.24.6.9]:54860 "EHLO imr4.ericy.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751992Ab1IUTJX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Sep 2011 15:09:23 -0400
+Content-Disposition: inline
+In-Reply-To: <1316597339-29861-57-git-send-email-yong.zhang0@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, Jean Delvare <khali@linux-fr.org>, "lm-sensors@lm-sensors.org" <lm-sensors@lm-sensors.org>
 
-On Wednesday 21 September 2011 18:50:09, Linas Vepstas (Code Aurora) wrote:
-> On Wed, Sep 21, 2011 at 05:15:20PM +0100, Pedro Alves wrote:
-> > > On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
-> > > > Yes, the x86/x86-64 ports or gdb and gdbserver are already
-> > > > using GET/SETREGSET even.
+On Wed, Sep 21, 2011 at 05:28:57AM -0400, Yong Zhang wrote:
+> Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
+> We run all interrupt handlers with interrupts disabled
+> and we even check and yell when an interrupt handler
+> returns with interrupts enabled (see commit [b738a50a:
+> genirq: Warn when handler enables interrupts]).
 > 
-> Thanks; after a bit of initial confusion, I've gotten gdb to
-> work with this, so I'm happy. 
+> So now this flag is a NOOP and can be removed.
 > 
-> > I wish there was an equivalent of PTRACE_GETREGSET for siginfo...
+> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+> ---
+>  drivers/hwmon/exynos4_tmu.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
 > 
-> How? Why?
+> diff --git a/drivers/hwmon/exynos4_tmu.c b/drivers/hwmon/exynos4_tmu.c
+> index 0170c90..faa0884 100644
+> --- a/drivers/hwmon/exynos4_tmu.c
+> +++ b/drivers/hwmon/exynos4_tmu.c
+> @@ -394,7 +394,7 @@ static int __devinit exynos4_tmu_probe(struct platform_device *pdev)
+>  	}
+>  
+>  	ret = request_irq(data->irq, exynos4_tmu_irq,
+> -		IRQF_DISABLED | IRQF_TRIGGER_RISING,
+> +		IRQF_TRIGGER_RISING,
+>  		"exynos4-tmu", data);
+>  	if (ret) {
+>  		dev_err(&pdev->dev, "Failed to request irq: %d\n", data->irq);
+> -- 
 
-One of the the cool features of PTRACE_GETREGSET is that it returns
-the regset in the natural layout of the tracee.  So when debugging a 
-32-bit process on a 64-bit kernel, PTRACE_GETREGSET returns the
-regset in 32-bit layout.  Recent enough GDBs can print the siginfo of a
-caught signal (before its delivered with (PTRACE_CONT, sig).
-Try "(gdb) p $_siginfo" on x86.  Trouble is 32-bit processes on 64-bit
-kernels or other biarch setups.  PTRACE_GETSIGINFO returns the siginfo in
-64-bit layout, so GDB gets to try to immitate what the kernel's 32-bit
-compat layer does.  Both for reading and writting siginfo.
-See compat_siginfo_from_siginfo and siginfo_from_compat_siginfo
-at [1].
-The kernel already knows to convert siginfo to the native layout
-of the process -- needed to pass to the user space signal handler
-at least.  But AFAIK, there's no way for the debugger to get at it
-before the signal is actually delivered.
+Applied.
 
-[1]
-http://sourceware.org/cgi-bin/cvsweb.cgi/src/gdb/amd64-linux-nat.c?rev=1.35&content-type=text/x-cvsweb-markup&cvsroot=src
-
--- 
-Pedro Alves
+Thanks,
+Guenter
