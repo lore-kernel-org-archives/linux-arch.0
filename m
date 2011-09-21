@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
-	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753515Ab1IUJeM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:34:12 -0400
+Received: from mail-ey0-f174.google.com ([209.85.215.174]:62030 "EHLO
+	mail-ey0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753427Ab1IUJhB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:37:01 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 36/57] drivers:misc:irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:37 +0800
-Message-ID: <1316597339-29861-37-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 56/57] hwmon: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:57 +0800
+Message-ID: <1316597339-29861-57-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jiri Slaby <jirislaby@gmail.com>, =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Jiri Kosina <jkosina@suse.cz>
-Message-ID: <20110921092837.wTfQiZ3dSyh-WbXbR1TQvw2XPdwjcQVQWC90xzs9Gpo@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jean Delvare <khali@linux-fr.org>, Guenter Roeck <guenter.roeck@ericsson.com>, lm-sensors@lm-sensors.org
+Message-ID: <20110921092857._2k7NljDF9AdUxZX__WJ2XSUxMLK5ZoymmacI2_jI0k@z>
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,36 +25,22 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/misc/arm-charlcd.c |    2 +-
- drivers/misc/phantom.c     |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ drivers/hwmon/exynos4_tmu.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/misc/arm-charlcd.c b/drivers/misc/arm-charlcd.c
-index fe8616a..c0688b03 100644
---- a/drivers/misc/arm-charlcd.c
-+++ b/drivers/misc/arm-charlcd.c
-@@ -297,7 +297,7 @@ static int __init charlcd_probe(struct platform_device *pdev)
- 	lcd->irq = platform_get_irq(pdev, 0);
- 	/* If no IRQ is supplied, we'll survive without it */
- 	if (lcd->irq >= 0) {
--		if (request_irq(lcd->irq, charlcd_interrupt, IRQF_DISABLED,
-+		if (request_irq(lcd->irq, charlcd_interrupt, 0,
- 				DRIVERNAME, lcd)) {
- 			ret = -EIO;
- 			goto out_no_irq;
-diff --git a/drivers/misc/phantom.c b/drivers/misc/phantom.c
-index 21b28fc..7f7c521 100644
---- a/drivers/misc/phantom.c
-+++ b/drivers/misc/phantom.c
-@@ -395,7 +395,7 @@ static int __devinit phantom_probe(struct pci_dev *pdev,
- 	iowrite32(0, pht->caddr + PHN_IRQCTL);
- 	ioread32(pht->caddr + PHN_IRQCTL); /* PCI posting */
- 	retval = request_irq(pdev->irq, phantom_isr,
--			IRQF_SHARED | IRQF_DISABLED, "phantom", pht);
-+			IRQF_SHARED, "phantom", pht);
- 	if (retval) {
- 		dev_err(&pdev->dev, "can't establish ISR\n");
- 		goto err_unmo;
+diff --git a/drivers/hwmon/exynos4_tmu.c b/drivers/hwmon/exynos4_tmu.c
+index 0170c90..faa0884 100644
+--- a/drivers/hwmon/exynos4_tmu.c
++++ b/drivers/hwmon/exynos4_tmu.c
+@@ -394,7 +394,7 @@ static int __devinit exynos4_tmu_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	ret = request_irq(data->irq, exynos4_tmu_irq,
+-		IRQF_DISABLED | IRQF_TRIGGER_RISING,
++		IRQF_TRIGGER_RISING,
+ 		"exynos4-tmu", data);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "Failed to request irq: %d\n", data->irq);
 -- 
 1.7.4.1
 
