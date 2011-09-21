@@ -1,34 +1,35 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 39/57] net: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 13:40:26 -0400 (EDT)
-Message-ID: <20110921.134026.121607758721728538.davem@davemloft.net>
-References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
-	<1316597339-29861-40-git-send-email-yong.zhang0@gmail.com>
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Date: Wed, 21 Sep 2011 12:50:09 -0500
+Message-ID: <20110921175009.GA3703@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+ <201109101229.58445.pedro@codesourcery.com>
+ <20110919152505.GB6830@codeaurora.org>
+ <201109211715.20795.pedro@codesourcery.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:50608 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751103Ab1IURte (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 13:49:34 -0400
-In-Reply-To: <1316597339-29861-40-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: yong.zhang0@gmail.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, perex@perex.cz, leitao@linux.vnet.ibm.com, olof@lixom.net, nico@fluxnic.net, steve.glendinning@smsc.com, geoff@infradead.org, t.sailer@alumni.ethz.ch, jreuter@yaina.de, klaus.kudielka@ieee.org, jpr@f6fbb.org, samuel@sortiz.org, chunkeey@googlemail.com, linville@tuxdriver.com, jeffrey.t.kirsher@intel.com, jpirko@redhat.com, bob.liu@analog.com, grundler@parisc-linux.org, ralf@linux-mips.org, blogic@openwrt.org, marc@tensilica.com, lucas.demarchi@profusion.mobi, joe@perches.com, uclinux-dist-devel@blackfin.uclinux.org, netdev@vger.kernel.org, cbe-oss-dev@lists.ozlabs.org, linux-hams@vger.kernel.org, linux-wireless@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201109211715.20795.pedro@codesourcery.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pedro Alves <pedro@codesourcery.com>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+List-Id: linux-arch.vger.kernel.org
 
-From: Yong Zhang <yong.zhang0@gmail.com>
-Date: Wed, 21 Sep 2011 17:28:40 +0800
+On Wed, Sep 21, 2011 at 05:15:20PM +0100, Pedro Alves wrote:
+> > On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
+> > > Yes, the x86/x86-64 ports or gdb and gdbserver are already
+> > > using GET/SETREGSET even.
 
-> Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
-> We run all interrupt handlers with interrupts disabled
-> and we even check and yell when an interrupt handler
-> returns with interrupts enabled (see commit [b738a50a:
-> genirq: Warn when handler enables interrupts]).
-> 
-> So now this flag is a NOOP and can be removed.
-> 
-> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+Thanks; after a bit of initial confusion, I've gotten gdb to
+work with this, so I'm happy. 
 
-Acked-by: David S. Miller <davem@davemloft.net>
+> I wish there was an equivalent of PTRACE_GETREGSET for siginfo...
+
+How? Why?
+
+-- Linas
+
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
