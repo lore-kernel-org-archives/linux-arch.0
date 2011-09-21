@@ -1,60 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f180.google.com ([74.125.82.180]:63946 "EHLO
-	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753871Ab1IUJgK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:36:10 -0400
-From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 50/57] w1: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:51 +0800
-Message-ID: <1316597339-29861-51-git-send-email-yong.zhang0@gmail.com>
-In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:47879 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752899Ab1IUKHM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Sep 2011 06:07:12 -0400
+Subject: Re: [PATCH 40/57] dirvers/parisc: irq: Remove IRQF_DISABLED
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <1316597339-29861-41-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
+	 <1316597339-29861-41-git-send-email-yong.zhang0@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 21 Sep 2011 14:07:04 +0400
+Message-ID: <1316599624.2966.12.camel@dabdike>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Evgeniy Polyakov <zbr@ioremap.net>, Samuel Ortiz <sameo@linux.intel.com>, Andres Salomon <dilinger@queued.net>, Andrew Morton <akpm@linux-foundation.org>, =?UTF-8?q?Jean-Fran=C3=A7ois=20Dagenais?= <dagenaisj@sonatest.com>, Tony Lindgren <tony@atomide.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Amit Kucheria <amit.kucheria@canonical.com>, Julia Lawall <julia@diku.dk>
-Message-ID: <20110921092851.6BaiT70an1FY1AMtRkgdyo6Kx6kv_FX1jmYLzHZtsjA@z>
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
+Message-ID: <20110921100704.F7VmNtRnvpeCdVtMWPqXKU9BjmqfSAqeqA0XmeFtU7Y@z>
 
-Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
-We run all interrupt handlers with interrupts disabled
-and we even check and yell when an interrupt handler
-returns with interrupts enabled (see commit [b738a50a:
-genirq: Warn when handler enables interrupts]).
+Firstly, we don't need 57 patches doing this ... a single one through
+the trivial tree should be sufficient (and it can nuke the flag at the
+same time).
 
-So now this flag is a NOOP and can be removed.
+On Wed, 2011-09-21 at 17:28 +0800, Yong Zhang wrote:
+> Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 
-Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
----
- drivers/w1/masters/ds1wm.c    |    2 +-
- drivers/w1/masters/omap_hdq.c |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+um, that's commit e58aa3d2d0cc01ad8d6f7f640a0670433f794922
 
-diff --git a/drivers/w1/masters/ds1wm.c b/drivers/w1/masters/ds1wm.c
-index a0c8965..9fa6844 100644
---- a/drivers/w1/masters/ds1wm.c
-+++ b/drivers/w1/masters/ds1wm.c
-@@ -502,7 +502,7 @@ static int ds1wm_probe(struct platform_device *pdev)
- 		irq_set_irq_type(ds1wm_data->irq, IRQ_TYPE_EDGE_FALLING);
- 
- 	ret = request_irq(ds1wm_data->irq, ds1wm_isr,
--			IRQF_DISABLED | IRQF_SHARED, "ds1wm", ds1wm_data);
-+			IRQF_SHARED, "ds1wm", ds1wm_data);
- 	if (ret)
- 		goto err1;
- 
-diff --git a/drivers/w1/masters/omap_hdq.c b/drivers/w1/masters/omap_hdq.c
-index 5ef385b..d1ef89d 100644
---- a/drivers/w1/masters/omap_hdq.c
-+++ b/drivers/w1/masters/omap_hdq.c
-@@ -633,7 +633,7 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
- 		goto err_irq;
- 	}
- 
--	ret = request_irq(irq, hdq_isr, IRQF_DISABLED, "omap_hdq", hdq_data);
-+	ret = request_irq(irq, hdq_isr, 0, "omap_hdq", hdq_data);
- 	if (ret < 0) {
- 		dev_dbg(&pdev->dev, "could not request irq\n");
- 		goto err_irq;
--- 
-1.7.4.1
+James
+
+
 
