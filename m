@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 25/57] ata: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:26 +0800
-Message-ID: <1316597339-29861-26-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 29/57] crypto: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:30 +0800
+Message-ID: <1316597339-29861-30-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jeff Garzik <jgarzik@pobox.com>, linux-ide@vger.kernel.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, linux-crypto@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -20,21 +20,22 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/ata/pata_mpc52xx.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ drivers/crypto/mv_cesa.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/ata/pata_mpc52xx.c b/drivers/ata/pata_mpc52xx.c
-index 2fcac51..3e17463 100644
---- a/drivers/ata/pata_mpc52xx.c
-+++ b/drivers/ata/pata_mpc52xx.c
-@@ -780,7 +780,7 @@ mpc52xx_ata_probe(struct platform_device *op)
+diff --git a/drivers/crypto/mv_cesa.c b/drivers/crypto/mv_cesa.c
+index 5c6f56f..7a10360 100644
+--- a/drivers/crypto/mv_cesa.c
++++ b/drivers/crypto/mv_cesa.c
+@@ -1041,8 +1041,7 @@ static int mv_probe(struct platform_device *pdev)
+ 		goto err_unmap_sram;
  	}
  
- 	task_irq = bcom_get_task_irq(dmatsk);
--	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, IRQF_DISABLED,
-+	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, 0,
- 				"ATA task", priv);
- 	if (ret) {
- 		dev_err(&op->dev, "error requesting DMA IRQ\n");
+-	ret = request_irq(irq, crypto_int, IRQF_DISABLED, dev_name(&pdev->dev),
+-			cp);
++	ret = request_irq(irq, crypto_int, 0, dev_name(&pdev->dev), cp);
+ 	if (ret)
+ 		goto err_thread;
+ 
 -- 
 1.7.4.1
