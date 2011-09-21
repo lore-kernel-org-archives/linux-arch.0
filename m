@@ -1,69 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42642 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753260Ab1IURrJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Sep 2011 13:47:09 -0400
-Date: Wed, 21 Sep 2011 14:43:17 -0300
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/4] Avoid soft lockup message when KVM is stopped by host
-Message-ID: <20110921174317.GA21677@amt.cnet>
-References: <1314660435-23293-1-git-send-email-emunson@mgebm.net>
- <20110830122630.GA19450@amt.cnet>
- <4E5FDBDC.2030302@codemonkey.ws>
- <6c387b0ab0b091253c1a1488dd625b94@mgebm.net>
- <20110909132955.GA19459@amt.cnet>
- <20110913204955.GD9096@mgebm.net>
- <20110915132614.GA7101@amt.cnet>
- <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:44242 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750811Ab1IURuP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 13:50:15 -0400
+Date: Wed, 21 Sep 2011 12:50:09 -0500
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
+Message-ID: <20110921175009.GA3703@codeaurora.org>
+References: <20110909010847.294039464@codeaurora.org>
+ <201109101229.58445.pedro@codesourcery.com>
+ <20110919152505.GB6830@codeaurora.org>
+ <201109211715.20795.pedro@codesourcery.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20110920200351.GH6690@jl-vm1.vm.bytemark.co.uk>
+In-Reply-To: <201109211715.20795.pedro@codesourcery.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Eric B Munson <emunson@mgebm.net>, Anthony Liguori <anthony@codemonkey.ws>, avi@redhat.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, riel@redhat.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm-ppc@vger.kernel.org, aliguori@us.ibm.com, raharper@us.ibm.com, kvm-ia64@vger.kernel.org, Glauber Costa <glommer@gmail.com>, mjwolf@us.ibm.com
-Message-ID: <20110921174317.8QWLPrNT2DIMCIV7_WXDBxu2_vRYOAgwiGtUR1lj6Yk@z>
+To: Pedro Alves <pedro@codesourcery.com>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+Message-ID: <20110921175009.hKXQewsy9YZkJ4znH3ZCN0QJgPtHk5kxdlLFj1fXWt0@z>
 
-On Tue, Sep 20, 2011 at 09:03:51PM +0100, Jamie Lokier wrote:
-> Marcelo Tosatti wrote:
-> > In case the VM stops for whatever reason, the host system is not
-> > supposed to adjust time related hardware state to compensate, in an
-> > attempt to present apparent continuous time.
-> > 
-> > If you save a VM and then restore it later, it is the guest
-> > responsability to adjust its time representation.
-> 
-> If the guest doesn't know it's been stopped, then its time
-> representation will be wrong until it finds out, e.g. after a few
-> minutes with NTP, or even a seconds can be too long.
-> 
-> That is sad when it happens because it breaks the coherence of any
-> timed-lease caching the guest is involved in.  I.e. where the guest
-> acquires a lock on some data object (like a file in NFS) that it can
-> efficiently access without network round trips (similar to MESI), with
-> all nodes having agreed that it's coherent for, say, 5 seconds before
-> renewing or breaking.  (It's just a way to reduce latency.)
-> 
-> But we can't trust CLOCK_MONOTONIC when a VM is involved, it's just
-> one of those facts of life.  So instead the effort is to try and
-> detect when a VM is involved and then distrust the clock.
-> 
-> (Non-VM) suspend/resume is similar, but there's usually a way to
-> be notified about that as it happens.
-> 
-> -- Jamie
+On Wed, Sep 21, 2011 at 05:15:20PM +0100, Pedro Alves wrote:
+> > On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
+> > > Yes, the x86/x86-64 ports or gdb and gdbserver are already
+> > > using GET/SETREGSET even.
 
-Thats pretty bad.
+Thanks; after a bit of initial confusion, I've gotten gdb to
+work with this, so I'm happy. 
 
-Time leased caching cannot be enabled in conjunction with save/restore
-without VM involvement (the hypervisor management application must
-notify the guest so it can drop such cache/writeback pending data).
+> I wish there was an equivalent of PTRACE_GETREGSET for siginfo...
 
-But, if paravirtual clock is available (Linux VMs), it should be
-possible to add an offset similarly to how suspend/resume is performed,
-via a high priority channel, before resuming operation. We should look
-into that possibility.
+How? Why?
 
-Thanks
+-- Linas
 
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
