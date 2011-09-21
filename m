@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 22/57] xtensa: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:23 +0800
-Message-ID: <1316597339-29861-23-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 20/57] unicore32: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:21 +0800
+Message-ID: <1316597339-29861-21-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Chris Zankel <chris@zankel.net>, Torben Hohn <torbenh@gmx.de>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
@@ -20,20 +20,44 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/xtensa/kernel/time.c |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
+ arch/unicore32/kernel/puv3-nb0916.c |    4 ++--
+ arch/unicore32/kernel/time.c        |    2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/xtensa/kernel/time.c b/arch/xtensa/kernel/time.c
-index f3e5eb4..2370229 100644
---- a/arch/xtensa/kernel/time.c
-+++ b/arch/xtensa/kernel/time.c
-@@ -54,7 +54,6 @@ static struct clocksource ccount_clocksource = {
- static irqreturn_t timer_interrupt(int irq, void *dev_id);
- static struct irqaction timer_irqaction = {
- 	.handler =	timer_interrupt,
--	.flags =	IRQF_DISABLED,
- 	.name =		"timer",
- };
+diff --git a/arch/unicore32/kernel/puv3-nb0916.c b/arch/unicore32/kernel/puv3-nb0916.c
+index e731c56..951826a 100644
+--- a/arch/unicore32/kernel/puv3-nb0916.c
++++ b/arch/unicore32/kernel/puv3-nb0916.c
+@@ -124,7 +124,7 @@ int __init mach_nb0916_init(void)
  
+ 	if (request_irq(gpio_to_irq(GPI_LCD_CASE_OFF),
+ 		&nb0916_lcdcaseoff_handler,
+-		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
++		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+ 		"NB0916 lcd case off", NULL) < 0) {
+ 
+ 		printk(KERN_DEBUG "LCD-Case-OFF IRQ %d not available\n",
+@@ -132,7 +132,7 @@ int __init mach_nb0916_init(void)
+ 	}
+ 
+ 	if (request_irq(gpio_to_irq(GPI_OTP_INT), &nb0916_overheat_handler,
+-		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
++		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+ 		"NB0916 overheating protection", NULL) < 0) {
+ 
+ 		printk(KERN_DEBUG "Overheating Protection IRQ %d not available\n",
+diff --git a/arch/unicore32/kernel/time.c b/arch/unicore32/kernel/time.c
+index 080710c..d3824b2 100644
+--- a/arch/unicore32/kernel/time.c
++++ b/arch/unicore32/kernel/time.c
+@@ -86,7 +86,7 @@ static struct clocksource cksrc_puv3_oscr = {
+ 
+ static struct irqaction puv3_timer_irq = {
+ 	.name		= "ost0",
+-	.flags		= IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
++	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
+ 	.handler	= puv3_ost0_interrupt,
+ 	.dev_id		= &ckevt_puv3_osmr0,
+ };
 -- 
 1.7.4.1
