@@ -1,54 +1,86 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 50/57] w1: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:51 +0800
-Message-ID: <1316597339-29861-51-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 54/57] Documentation: irq: Change documents related to IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:55 +0800
+Message-ID: <1316597339-29861-55-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Evgeniy Polyakov <zbr@ioremap.net>, Samuel Ortiz <sameo@linux.intel.com>, Andres Salomon <dilinger@queued.net>, Andrew Morton <akpm@linux-foundation.org>, =?UTF-8?q?Jean-Fran=C3=A7ois=20Dagenais?= <dagenaisj@sonatest.com>, Tony Lindgren <tony@atomide.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Amit Kucheria <amit.kucheria@canonical.com>, Julia Lawall <julia@diku.dk>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jesse Barnes <jbarnes@virtuousgeek.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-pci@vger.kernel.org, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
-We run all interrupt handlers with interrupts disabled
-and we even check and yell when an interrupt handler
-returns with interrupts enabled (see commit [b738a50a:
-genirq: Warn when handler enables interrupts]).
-
-So now this flag is a NOOP and can be removed.
+IRQF_DISABLED is a NOOP now, place where suggest to use this
+flag also doesn't make sense any more.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/w1/masters/ds1wm.c    |    2 +-
- drivers/w1/masters/omap_hdq.c |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ Documentation/PCI/MSI-HOWTO.txt  |   21 ---------------------
+ Documentation/scsi/ncr53c8xx.txt |    4 +++-
+ Documentation/scsi/tmscsim.txt   |    4 ++--
+ 3 files changed, 5 insertions(+), 24 deletions(-)
 
-diff --git a/drivers/w1/masters/ds1wm.c b/drivers/w1/masters/ds1wm.c
-index a0c8965..9fa6844 100644
---- a/drivers/w1/masters/ds1wm.c
-+++ b/drivers/w1/masters/ds1wm.c
-@@ -502,7 +502,7 @@ static int ds1wm_probe(struct platform_device *pdev)
- 		irq_set_irq_type(ds1wm_data->irq, IRQ_TYPE_EDGE_FALLING);
+diff --git a/Documentation/PCI/MSI-HOWTO.txt b/Documentation/PCI/MSI-HOWTO.txt
+index 53e6fca..b3f514d 100644
+--- a/Documentation/PCI/MSI-HOWTO.txt
++++ b/Documentation/PCI/MSI-HOWTO.txt
+@@ -255,27 +255,6 @@ as many vectors for MSI as it could for MSI-X.  On some platforms, MSI
+ interrupts must all be targeted at the same set of CPUs whereas MSI-X
+ interrupts can all be targeted at different CPUs.
  
- 	ret = request_irq(ds1wm_data->irq, ds1wm_isr,
--			IRQF_DISABLED | IRQF_SHARED, "ds1wm", ds1wm_data);
-+			IRQF_SHARED, "ds1wm", ds1wm_data);
- 	if (ret)
- 		goto err1;
+-4.5.2 Spinlocks
+-
+-Most device drivers have a per-device spinlock which is taken in the
+-interrupt handler.  With pin-based interrupts or a single MSI, it is not
+-necessary to disable interrupts (Linux guarantees the same interrupt will
+-not be re-entered).  If a device uses multiple interrupts, the driver
+-must disable interrupts while the lock is held.  If the device sends
+-a different interrupt, the driver will deadlock trying to recursively
+-acquire the spinlock.
+-
+-There are two solutions.  The first is to take the lock with
+-spin_lock_irqsave() or spin_lock_irq() (see
+-Documentation/DocBook/kernel-locking).  The second is to specify
+-IRQF_DISABLED to request_irq() so that the kernel runs the entire
+-interrupt routine with interrupts disabled.
+-
+-If your MSI interrupt routine does not hold the lock for the whole time
+-it is running, the first solution may be best.  The second solution is
+-normally preferred as it avoids making two transitions from interrupt
+-disabled to enabled and back again.
+-
+ 4.6 How to tell whether MSI/MSI-X is enabled on a device
  
-diff --git a/drivers/w1/masters/omap_hdq.c b/drivers/w1/masters/omap_hdq.c
-index 5ef385b..d1ef89d 100644
---- a/drivers/w1/masters/omap_hdq.c
-+++ b/drivers/w1/masters/omap_hdq.c
-@@ -633,7 +633,7 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
- 		goto err_irq;
- 	}
+ Using 'lspci -v' (as root) may show some devices with "MSI", "Message
+diff --git a/Documentation/scsi/ncr53c8xx.txt b/Documentation/scsi/ncr53c8xx.txt
+index cda5f8f..c5a9904 100644
+--- a/Documentation/scsi/ncr53c8xx.txt
++++ b/Documentation/scsi/ncr53c8xx.txt
+@@ -786,7 +786,9 @@ port address 0x1400.
+         irqm:1     same as initial settings (assumed BIOS settings)
+         irqm:2     always totem pole
+         irqm:0x10  driver will not use IRQF_SHARED flag when requesting irq
+-        irqm:0x20  driver will not use IRQF_DISABLED flag when requesting irq
++        irqm:0x20  driver will not use IRQF_DISABLED (does not make sense
++		   any more since genirq will keep irq disabled and the flag
++		   is dead from linux-2.6.35) flag when requesting irq
  
--	ret = request_irq(irq, hdq_isr, IRQF_DISABLED, "omap_hdq", hdq_data);
-+	ret = request_irq(irq, hdq_isr, 0, "omap_hdq", hdq_data);
- 	if (ret < 0) {
- 		dev_dbg(&pdev->dev, "could not request irq\n");
- 		goto err_irq;
+     (Bits 0x10 and 0x20 can be combined with hardware irq mode option)
+ 
+diff --git a/Documentation/scsi/tmscsim.txt b/Documentation/scsi/tmscsim.txt
+index 61c0531..1dee219 100644
+--- a/Documentation/scsi/tmscsim.txt
++++ b/Documentation/scsi/tmscsim.txt
+@@ -108,8 +108,8 @@ MHz PCI bus works for me, though, but I don't recommend using higher clocks
+ than the 33.33 MHz being in the PCI spec.
+ 
+ If you want to share the IRQ with another device and the driver refuses to
+-do so, you might succeed with changing the DC390_IRQ type in tmscsim.c to 
+-IRQF_SHARED | IRQF_DISABLED.
++do so, you should find out what's the mismatch between the shared IRQs,
++and CONFIG_DEBUG_SHIRQ may give you more help.
+ 
+ 
+ 3.Features
 -- 
 1.7.4.1
