@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f180.google.com ([74.125.82.180]:49741 "EHLO
+Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
 	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752928Ab1IUJau (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:30:50 -0400
+	with ESMTP id S1753480Ab1IUJdp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:33:45 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 11/57] microblaze: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:12 +0800
-Message-ID: <1316597339-29861-12-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 33/57] infiniband: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:34 +0800
+Message-ID: <1316597339-29861-34-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Michal Simek <monstr@monstr.eu>, Joe Perches <joe@perches.com>, John Stultz <johnstul@us.ibm.com>, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20110921092812.i82G991dzPee8srd0ibKD_dY9g0dX1NmmjqCKXSbktM@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Roland Dreier <roland@kernel.org>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org
+Message-ID: <20110921092834.hY6XVuwieRjdm2kRBcfZ71A4ike3t4TnZN87pw3Zql8@z>
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,22 +25,31 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/microblaze/kernel/timer.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ drivers/infiniband/hw/ehca/ehca_eq.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/microblaze/kernel/timer.c b/arch/microblaze/kernel/timer.c
-index e5550ce..bb86351 100644
---- a/arch/microblaze/kernel/timer.c
-+++ b/arch/microblaze/kernel/timer.c
-@@ -163,7 +163,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
+diff --git a/drivers/infiniband/hw/ehca/ehca_eq.c b/drivers/infiniband/hw/ehca/ehca_eq.c
+index d9b1bb4..818d721 100644
+--- a/drivers/infiniband/hw/ehca/ehca_eq.c
++++ b/drivers/infiniband/hw/ehca/ehca_eq.c
+@@ -125,7 +125,7 @@ int ehca_create_eq(struct ehca_shca *shca,
+ 		tasklet_init(&eq->interrupt_task, ehca_tasklet_eq, (long)shca);
  
- static struct irqaction timer_irqaction = {
- 	.handler = timer_interrupt,
--	.flags = IRQF_DISABLED | IRQF_TIMER,
-+	.flags = IRQF_TIMER,
- 	.name = "timer",
- 	.dev_id = &clockevent_microblaze_timer,
- };
+ 		ret = ibmebus_request_irq(eq->ist, ehca_interrupt_eq,
+-					  IRQF_DISABLED, "ehca_eq",
++					  0, "ehca_eq",
+ 					  (void *)shca);
+ 		if (ret < 0)
+ 			ehca_err(ib_dev, "Can't map interrupt handler.");
+@@ -133,7 +133,7 @@ int ehca_create_eq(struct ehca_shca *shca,
+ 		tasklet_init(&eq->interrupt_task, ehca_tasklet_neq, (long)shca);
+ 
+ 		ret = ibmebus_request_irq(eq->ist, ehca_interrupt_neq,
+-					  IRQF_DISABLED, "ehca_neq",
++					  0, "ehca_neq",
+ 					  (void *)shca);
+ 		if (ret < 0)
+ 			ehca_err(ib_dev, "Can't map interrupt handler.");
 -- 
 1.7.4.1
 
