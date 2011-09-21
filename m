@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
+Received: from mail-wy0-f180.google.com ([74.125.82.180]:63946 "EHLO
 	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752815Ab1IUJdv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:33:51 -0400
+	with ESMTP id S1753871Ab1IUJgK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:36:10 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 34/57] ISDN: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:35 +0800
-Message-ID: <1316597339-29861-35-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 50/57] w1: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:51 +0800
+Message-ID: <1316597339-29861-51-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Armin Schindler <mac@melware.de>, Karsten Keil <isdn@linux-pingi.de>, netdev@vger.kernel.org
-Message-ID: <20110921092835.MnLCBaM5OOMtFCeFZZN-Wvtn2HtVH_9gp1egUS35qjg@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Evgeniy Polyakov <zbr@ioremap.net>, Samuel Ortiz <sameo@linux.intel.com>, Andres Salomon <dilinger@queued.net>, Andrew Morton <akpm@linux-foundation.org>, =?UTF-8?q?Jean-Fran=C3=A7ois=20Dagenais?= <dagenaisj@sonatest.com>, Tony Lindgren <tony@atomide.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Amit Kucheria <amit.kucheria@canonical.com>, Julia Lawall <julia@diku.dk>
+Message-ID: <20110921092851.6BaiT70an1FY1AMtRkgdyo6Kx6kv_FX1jmYLzHZtsjA@z>
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,36 +25,36 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/isdn/hardware/eicon/divasmain.c |    2 +-
- drivers/isdn/sc/init.c                  |    2 +-
+ drivers/w1/masters/ds1wm.c    |    2 +-
+ drivers/w1/masters/omap_hdq.c |    2 +-
  2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/isdn/hardware/eicon/divasmain.c b/drivers/isdn/hardware/eicon/divasmain.c
-index f332b60..8a0a831 100644
---- a/drivers/isdn/hardware/eicon/divasmain.c
-+++ b/drivers/isdn/hardware/eicon/divasmain.c
-@@ -481,7 +481,7 @@ void __inline__ outpp(void __iomem *addr, word p)
- int diva_os_register_irq(void *context, byte irq, const char *name)
- {
- 	int result = request_irq(irq, diva_os_irq_wrapper,
--				 IRQF_DISABLED | IRQF_SHARED, name, context);
-+				 IRQF_SHARED, name, context);
- 	return (result);
- }
+diff --git a/drivers/w1/masters/ds1wm.c b/drivers/w1/masters/ds1wm.c
+index a0c8965..9fa6844 100644
+--- a/drivers/w1/masters/ds1wm.c
++++ b/drivers/w1/masters/ds1wm.c
+@@ -502,7 +502,7 @@ static int ds1wm_probe(struct platform_device *pdev)
+ 		irq_set_irq_type(ds1wm_data->irq, IRQ_TYPE_EDGE_FALLING);
  
-diff --git a/drivers/isdn/sc/init.c b/drivers/isdn/sc/init.c
-index ca710ab..a3127fb 100644
---- a/drivers/isdn/sc/init.c
-+++ b/drivers/isdn/sc/init.c
-@@ -336,7 +336,7 @@ static int __init sc_init(void)
- 		 */
- 		sc_adapter[cinst]->interrupt = irq[b];
- 		if (request_irq(sc_adapter[cinst]->interrupt, interrupt_handler,
--				IRQF_DISABLED, interface->id,
-+				0, interface->id,
- 				(void *)(unsigned long) cinst))
- 		{
- 			kfree(sc_adapter[cinst]->channel);
+ 	ret = request_irq(ds1wm_data->irq, ds1wm_isr,
+-			IRQF_DISABLED | IRQF_SHARED, "ds1wm", ds1wm_data);
++			IRQF_SHARED, "ds1wm", ds1wm_data);
+ 	if (ret)
+ 		goto err1;
+ 
+diff --git a/drivers/w1/masters/omap_hdq.c b/drivers/w1/masters/omap_hdq.c
+index 5ef385b..d1ef89d 100644
+--- a/drivers/w1/masters/omap_hdq.c
++++ b/drivers/w1/masters/omap_hdq.c
+@@ -633,7 +633,7 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
+ 		goto err_irq;
+ 	}
+ 
+-	ret = request_irq(irq, hdq_isr, IRQF_DISABLED, "omap_hdq", hdq_data);
++	ret = request_irq(irq, hdq_isr, 0, "omap_hdq", hdq_data);
+ 	if (ret < 0) {
+ 		dev_dbg(&pdev->dev, "could not request irq\n");
+ 		goto err_irq;
 -- 
 1.7.4.1
 
