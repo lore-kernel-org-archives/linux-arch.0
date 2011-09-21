@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ew0-f46.google.com ([209.85.215.46]:57864 "EHLO
-	mail-ew0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753290Ab1IUJda (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:33:30 -0400
+Received: from mail-wy0-f180.google.com ([74.125.82.180]:37829 "EHLO
+	mail-wy0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753539Ab1IUJeZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 05:34:25 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 31/57] EDAC: irq: Remove IRQF_DISABLED
-Date: Wed, 21 Sep 2011 17:28:32 +0800
-Message-ID: <1316597339-29861-32-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 38/57] mtd: irq: Remove IRQF_DISABLED
+Date: Wed, 21 Sep 2011 17:28:39 +0800
+Message-ID: <1316597339-29861-39-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Andrew Morton <akpm@linux-foundation.org>, Jiri Kosina <jkosina@suse.cz>, Joe Perches <joe@perches.com>, Kumar Gala <galak@kernel.crashing.org>, "Kai.Jiang" <Kai.Jiang@freescale.com>, Grant Likely <grant.likely@secretlab.ca>, Mike Williams <mike@mikebwilliams.com>, =?UTF-8?q?Uwe=20Kleine-K=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Michal Marek <mmarek@suse.cz>
-Message-ID: <20110921092832.G45fs1mxt1u1yQXKRO1KHMBRVALZusjocyBx5ISMytw@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, David Woodhouse <dwmw2@infradead.org>, Artem Bityutskiy <artem.bityutskiy@intel.com>, Brian Norris <computersforpeace@gmail.com>, Sascha Hauer <s.hauer@pengutronix.de>, Baruch Siach <baruch@tkos.co.il>, Lei Wen <leiwen@marvell.com>, Haojian Zhuang <haojian.zhuang@marvell.com>, Eric Miao <eric.y.miao@gmail.com>, Samuel Ortiz <sameo@linux.intel.com>, Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>, Andres Salomon <dilinger@queued.net>, linux-mtd@lists.infradead.org
+Message-ID: <20110921092839.O6SH4ivJJFWl44xZp1Mr_LulUnxhwmBdqlMRAhSgZcQ@z>
 
 Since commit [c58543c8: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -24,105 +24,53 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+Acked-by: Wolfram Sang <w.sang@pengutronix.de>
 ---
- drivers/edac/mpc85xx_edac.c |    6 +++---
- drivers/edac/mv64x60_edac.c |    8 ++++----
- drivers/edac/ppc4xx_edac.c  |    4 ++--
- 3 files changed, 9 insertions(+), 9 deletions(-)
+ drivers/mtd/nand/mxc_nand.c    |    2 +-
+ drivers/mtd/nand/pxa3xx_nand.c |    3 +--
+ drivers/mtd/nand/tmio_nand.c   |    2 +-
+ 3 files changed, 3 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/edac/mpc85xx_edac.c b/drivers/edac/mpc85xx_edac.c
-index 8af8e86..5cf8620 100644
---- a/drivers/edac/mpc85xx_edac.c
-+++ b/drivers/edac/mpc85xx_edac.c
-@@ -275,7 +275,7 @@ static int __devinit mpc85xx_pci_err_probe(struct platform_device *op)
- 	if (edac_op_state == EDAC_OPSTATE_INT) {
- 		pdata->irq = irq_of_parse_and_map(op->dev.of_node, 0);
- 		res = devm_request_irq(&op->dev, pdata->irq,
--				       mpc85xx_pci_isr, IRQF_DISABLED,
-+				       mpc85xx_pci_isr, 0,
- 				       "[EDAC] PCI err", pci);
- 		if (res < 0) {
- 			printk(KERN_ERR
-@@ -577,7 +577,7 @@ static int __devinit mpc85xx_l2_err_probe(struct platform_device *op)
- 	if (edac_op_state == EDAC_OPSTATE_INT) {
- 		pdata->irq = irq_of_parse_and_map(op->dev.of_node, 0);
- 		res = devm_request_irq(&op->dev, pdata->irq,
--				       mpc85xx_l2_isr, IRQF_DISABLED,
-+				       mpc85xx_l2_isr, 0,
- 				       "[EDAC] L2 err", edac_dev);
- 		if (res < 0) {
- 			printk(KERN_ERR
-@@ -1057,7 +1057,7 @@ static int __devinit mpc85xx_mc_err_probe(struct platform_device *op)
- 		pdata->irq = irq_of_parse_and_map(op->dev.of_node, 0);
- 		res = devm_request_irq(&op->dev, pdata->irq,
- 				       mpc85xx_mc_isr,
--					IRQF_DISABLED | IRQF_SHARED,
-+					IRQF_SHARED,
- 				       "[EDAC] MC err", mci);
- 		if (res < 0) {
- 			printk(KERN_ERR "%s: Unable to request irq %d for "
-diff --git a/drivers/edac/mv64x60_edac.c b/drivers/edac/mv64x60_edac.c
-index 7e5ff36..224d9f1 100644
---- a/drivers/edac/mv64x60_edac.c
-+++ b/drivers/edac/mv64x60_edac.c
-@@ -178,7 +178,7 @@ static int __devinit mv64x60_pci_err_probe(struct platform_device *pdev)
- 		res = devm_request_irq(&pdev->dev,
- 				       pdata->irq,
- 				       mv64x60_pci_isr,
--				       IRQF_DISABLED,
-+				       0,
- 				       "[EDAC] PCI err",
- 				       pci);
- 		if (res < 0) {
-@@ -345,7 +345,7 @@ static int __devinit mv64x60_sram_err_probe(struct platform_device *pdev)
- 		res = devm_request_irq(&pdev->dev,
- 				       pdata->irq,
- 				       mv64x60_sram_isr,
--				       IRQF_DISABLED,
-+				       0,
- 				       "[EDAC] SRAM err",
- 				       edac_dev);
- 		if (res < 0) {
-@@ -540,7 +540,7 @@ static int __devinit mv64x60_cpu_err_probe(struct platform_device *pdev)
- 		res = devm_request_irq(&pdev->dev,
- 				       pdata->irq,
- 				       mv64x60_cpu_isr,
--				       IRQF_DISABLED,
-+				       0,
- 				       "[EDAC] CPU err",
- 				       edac_dev);
- 		if (res < 0) {
-@@ -785,7 +785,7 @@ static int __devinit mv64x60_mc_err_probe(struct platform_device *pdev)
- 		res = devm_request_irq(&pdev->dev,
- 				       pdata->irq,
- 				       mv64x60_mc_isr,
--				       IRQF_DISABLED,
-+				       0,
- 				       "[EDAC] MC err",
- 				       mci);
- 		if (res < 0) {
-diff --git a/drivers/edac/ppc4xx_edac.c b/drivers/edac/ppc4xx_edac.c
-index 3840096..2c36d4a 100644
---- a/drivers/edac/ppc4xx_edac.c
-+++ b/drivers/edac/ppc4xx_edac.c
-@@ -1122,7 +1122,7 @@ ppc4xx_edac_register_irq(struct platform_device *op, struct mem_ctl_info *mci)
+diff --git a/drivers/mtd/nand/mxc_nand.c b/drivers/mtd/nand/mxc_nand.c
+index 4d4c677..b03eb16 100644
+--- a/drivers/mtd/nand/mxc_nand.c
++++ b/drivers/mtd/nand/mxc_nand.c
+@@ -1191,7 +1191,7 @@ static int __init mxcnd_probe(struct platform_device *pdev)
+ 	else
+ 		host->irq_control(host, 0);
  
- 	status = request_irq(ded_irq,
- 			     ppc4xx_edac_isr,
--			     IRQF_DISABLED,
-+			     0,
- 			     "[EDAC] MC ECCDED",
- 			     mci);
+-	err = request_irq(host->irq, mxc_nfc_irq, IRQF_DISABLED, DRIVER_NAME, host);
++	err = request_irq(host->irq, mxc_nfc_irq, 0, DRIVER_NAME, host);
+ 	if (err)
+ 		goto eirq;
  
-@@ -1136,7 +1136,7 @@ ppc4xx_edac_register_irq(struct platform_device *op, struct mem_ctl_info *mci)
+diff --git a/drivers/mtd/nand/pxa3xx_nand.c b/drivers/mtd/nand/pxa3xx_nand.c
+index 9eb7f87..fabba5c 100644
+--- a/drivers/mtd/nand/pxa3xx_nand.c
++++ b/drivers/mtd/nand/pxa3xx_nand.c
+@@ -1132,8 +1132,7 @@ static int alloc_nand_resource(struct platform_device *pdev)
+ 	/* initialize all interrupts to be disabled */
+ 	disable_int(info, NDSR_MASK);
  
- 	status = request_irq(sec_irq,
- 			     ppc4xx_edac_isr,
--			     IRQF_DISABLED,
-+			     0,
- 			     "[EDAC] MC ECCSEC",
- 			     mci);
+-	ret = request_irq(irq, pxa3xx_nand_irq, IRQF_DISABLED,
+-			  pdev->name, info);
++	ret = request_irq(irq, pxa3xx_nand_irq, 0, pdev->name, info);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "failed to request IRQ\n");
+ 		goto fail_free_buf;
+diff --git a/drivers/mtd/nand/tmio_nand.c b/drivers/mtd/nand/tmio_nand.c
+index beebd95..6e5d6ff 100644
+--- a/drivers/mtd/nand/tmio_nand.c
++++ b/drivers/mtd/nand/tmio_nand.c
+@@ -441,7 +441,7 @@ static int tmio_probe(struct platform_device *dev)
+ 	nand_chip->chip_delay = 15;
  
+ 	retval = request_irq(irq, &tmio_irq,
+-				IRQF_DISABLED, dev_name(&dev->dev), tmio);
++				0, dev_name(&dev->dev), tmio);
+ 	if (retval) {
+ 		dev_err(&dev->dev, "request_irq error %d\n", retval);
+ 		goto err_irq;
 -- 
 1.7.4.1
 
