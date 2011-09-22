@@ -1,13 +1,23 @@
-From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 44/55] power_supply:irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:59:11 +0800
-Message-ID: <1316681962-8217-45-git-send-email-yong.zhang0@gmail.com>
+From: Yong Zhang <yong.zhang0-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: [PATCH 47/55] spi: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:59:14 +0800
+Message-ID: <1316681962-8217-48-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Anton Vorontsov <cbouatmailru@gmail.com>, Tejun Heo <tj@kernel.org>, Marek Vasut <marek.vasut@gmail.com>, Axel Lin <axel.lin@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <spi-devel-general-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+List-Unsubscribe: <https://lists.sourceforge.net/lists/listinfo/spi-devel-general>,
+	<mailto:spi-devel-general-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://sourceforge.net/mailarchive/forum.php?forum_name=spi-devel-general>
+List-Post: <mailto:spi-devel-general-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org>
+List-Help: <mailto:spi-devel-general-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.sourceforge.net/lists/listinfo/spi-devel-general>,
+	<mailto:spi-devel-general-request-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org?subject=subscribe>
+Errors-To: spi-devel-general-bounces-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: yong.zhang0-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, spi-devel-general-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
@@ -18,37 +28,88 @@ genirq: Warn when handler enables interrupts]).
 
 So now this flag is a NOOP and can be removed.
 
-Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+Signed-off-by: Yong Zhang <yong.zhang0-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Acked-by: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
 ---
- drivers/power/wm97xx_battery.c |    2 +-
- drivers/power/z2_battery.c     |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ drivers/spi/spi-bfin5xx.c       |    2 +-
+ drivers/spi/spi-coldfire-qspi.c |    2 +-
+ drivers/spi/spi-ppc4xx.c        |    2 +-
+ drivers/spi/spi-sh-msiof.c      |    2 +-
+ drivers/spi/spi-sh.c            |    2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/power/wm97xx_battery.c b/drivers/power/wm97xx_battery.c
-index 156559e..cf8681c 100644
---- a/drivers/power/wm97xx_battery.c
-+++ b/drivers/power/wm97xx_battery.c
-@@ -196,7 +196,7 @@ static int __devinit wm97xx_bat_probe(struct platform_device *dev)
- 		if (ret)
- 			goto err2;
- 		ret = request_irq(gpio_to_irq(pdata->charge_gpio),
--				wm97xx_chrg_irq, IRQF_DISABLED,
-+				wm97xx_chrg_irq, 0,
- 				"AC Detect", dev);
- 		if (ret)
- 			goto err2;
-diff --git a/drivers/power/z2_battery.c b/drivers/power/z2_battery.c
-index ae38c44..636ebb2 100644
---- a/drivers/power/z2_battery.c
-+++ b/drivers/power/z2_battery.c
-@@ -218,7 +218,7 @@ static int __devinit z2_batt_probe(struct i2c_client *client,
- 		irq_set_irq_type(gpio_to_irq(info->charge_gpio),
- 				 IRQ_TYPE_EDGE_BOTH);
- 		ret = request_irq(gpio_to_irq(info->charge_gpio),
--				z2_charge_switch_irq, IRQF_DISABLED,
-+				z2_charge_switch_irq, 0,
- 				"AC Detect", charger);
- 		if (ret)
- 			goto err3;
+diff --git a/drivers/spi/spi-bfin5xx.c b/drivers/spi/spi-bfin5xx.c
+index b8d25f2..3b83ff8 100644
+--- a/drivers/spi/spi-bfin5xx.c
++++ b/drivers/spi/spi-bfin5xx.c
+@@ -1098,7 +1098,7 @@ static int bfin_spi_setup(struct spi_device *spi)
+ 
+ 	if (chip->pio_interrupt && !drv_data->irq_requested) {
+ 		ret = request_irq(drv_data->spi_irq, bfin_spi_pio_irq_handler,
+-			IRQF_DISABLED, "BFIN_SPI", drv_data);
++			0, "BFIN_SPI", drv_data);
+ 		if (ret) {
+ 			dev_err(&spi->dev, "Unable to register spi IRQ\n");
+ 			goto error;
+diff --git a/drivers/spi/spi-coldfire-qspi.c b/drivers/spi/spi-coldfire-qspi.c
+index ae2cd1c..7397c4d 100644
+--- a/drivers/spi/spi-coldfire-qspi.c
++++ b/drivers/spi/spi-coldfire-qspi.c
+@@ -487,7 +487,7 @@ static int __devinit mcfqspi_probe(struct platform_device *pdev)
+ 		goto fail2;
+ 	}
+ 
+-	status = request_irq(mcfqspi->irq, mcfqspi_irq_handler, IRQF_DISABLED,
++	status = request_irq(mcfqspi->irq, mcfqspi_irq_handler, 0,
+ 			     pdev->name, mcfqspi);
+ 	if (status) {
+ 		dev_dbg(&pdev->dev, "request_irq failed\n");
+diff --git a/drivers/spi/spi-ppc4xx.c b/drivers/spi/spi-ppc4xx.c
+index b267fd9..8ec43e0 100644
+--- a/drivers/spi/spi-ppc4xx.c
++++ b/drivers/spi/spi-ppc4xx.c
+@@ -514,7 +514,7 @@ static int __init spi_ppc4xx_of_probe(struct platform_device *op)
+ 	/* Request IRQ */
+ 	hw->irqnum = irq_of_parse_and_map(np, 0);
+ 	ret = request_irq(hw->irqnum, spi_ppc4xx_int,
+-			  IRQF_DISABLED, "spi_ppc4xx_of", (void *)hw);
++			  0, "spi_ppc4xx_of", (void *)hw);
+ 	if (ret) {
+ 		dev_err(dev, "unable to allocate interrupt\n");
+ 		goto free_gpios;
+diff --git a/drivers/spi/spi-sh-msiof.c b/drivers/spi/spi-sh-msiof.c
+index 2f61a84..51b14c9 100644
+--- a/drivers/spi/spi-sh-msiof.c
++++ b/drivers/spi/spi-sh-msiof.c
+@@ -636,7 +636,7 @@ static int sh_msiof_spi_probe(struct platform_device *pdev)
+ 		goto err2;
+ 	}
+ 
+-	ret = request_irq(i, sh_msiof_spi_irq, IRQF_DISABLED,
++	ret = request_irq(i, sh_msiof_spi_irq, 0,
+ 			  dev_name(&pdev->dev), p);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "unable to request irq\n");
+diff --git a/drivers/spi/spi-sh.c b/drivers/spi/spi-sh.c
+index 9eedd71..e0343d4 100644
+--- a/drivers/spi/spi-sh.c
++++ b/drivers/spi/spi-sh.c
+@@ -484,7 +484,7 @@ static int __devinit spi_sh_probe(struct platform_device *pdev)
+ 		goto error2;
+ 	}
+ 
+-	ret = request_irq(irq, spi_sh_irq, IRQF_DISABLED, "spi_sh", ss);
++	ret = request_irq(irq, spi_sh_irq, 0, "spi_sh", ss);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "request_irq error\n");
+ 		goto error3;
 -- 
 1.7.4.1
+
+
+------------------------------------------------------------------------------
+All the data continuously generated in your IT infrastructure contains a
+definitive record of customers, application performance, security
+threats, fraudulent activity and more. Splunk takes this data and makes
+sense of it. Business sense. IT sense. Common sense.
+http://p.sf.net/sfu/splunk-d2dcopy1
