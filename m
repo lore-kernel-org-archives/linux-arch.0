@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:39135 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753101Ab1IVJG3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:06:29 -0400
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:40391 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751164Ab1IVJAf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:00:35 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 23/55] clocksource: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:50 +0800
-Message-ID: <1316681962-8217-24-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 06/55] frv: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:33 +0800
+Message-ID: <1316681962-8217-7-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, John Stultz <johnstul@us.ibm.com>
-Message-ID: <20110922085850.WKm3WmIAPcYmI7vSnY3lAusP3-fjgOwSPOb-ioNGP7o@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, David Howells <dhowells@redhat.com>, Torben Hohn <torbenh@gmx.de>
+Message-ID: <20110922085833.-60u3DggZZ026iolPI7M2NnSPW38plD5QNvd0687H94@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -24,92 +24,90 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+Acked-by: David Howells <dhowells@redhat.com>
 ---
- drivers/clocksource/cs5535-clockevt.c |    2 +-
- drivers/clocksource/dw_apb_timer.c    |    3 +--
- drivers/clocksource/sh_cmt.c          |    2 +-
- drivers/clocksource/sh_mtu2.c         |    2 +-
- drivers/clocksource/sh_tmu.c          |    2 +-
- drivers/clocksource/tcb_clksrc.c      |    2 +-
- 6 files changed, 6 insertions(+), 7 deletions(-)
+ arch/frv/kernel/irq-mb93091.c |    8 ++++----
+ arch/frv/kernel/irq-mb93093.c |    1 -
+ arch/frv/kernel/irq-mb93493.c |    4 ++--
+ arch/frv/kernel/time.c        |    1 -
+ 4 files changed, 6 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/clocksource/cs5535-clockevt.c b/drivers/clocksource/cs5535-clockevt.c
-index b7dab32..2d3715f 100644
---- a/drivers/clocksource/cs5535-clockevt.c
-+++ b/drivers/clocksource/cs5535-clockevt.c
-@@ -133,7 +133,7 @@ static irqreturn_t mfgpt_tick(int irq, void *dev_id)
+diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
+index 9afc2ea..f4dfc0b 100644
+--- a/arch/frv/kernel/irq-mb93091.c
++++ b/arch/frv/kernel/irq-mb93091.c
+@@ -108,25 +108,25 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
+ static struct irqaction fpga_irq[4]  = {
+ 	[0] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.0",
+ 		.dev_id		= (void *) 0x0028UL,
+ 	},
+ 	[1] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.1",
+ 		.dev_id		= (void *) 0x0050UL,
+ 	},
+ 	[2] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.2",
+ 		.dev_id		= (void *) 0x1c00UL,
+ 	},
+ 	[3] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "fpga.3",
+ 		.dev_id		= (void *) 0x6386UL,
+ 	}
+diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
+index 4d4ad09..bac526d 100644
+--- a/arch/frv/kernel/irq-mb93093.c
++++ b/arch/frv/kernel/irq-mb93093.c
+@@ -106,7 +106,6 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
+ static struct irqaction fpga_irq[1]  = {
+ 	[0] = {
+ 		.handler	= fpga_interrupt,
+-		.flags		= IRQF_DISABLED,
+ 		.name		= "fpga.0",
+ 		.dev_id		= (void *) 0x0700UL,
+ 	}
+diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
+index 4d034c7..b632726 100644
+--- a/arch/frv/kernel/irq-mb93493.c
++++ b/arch/frv/kernel/irq-mb93493.c
+@@ -119,13 +119,13 @@ static irqreturn_t mb93493_interrupt(int irq, void *_piqsr)
+ static struct irqaction mb93493_irq[2]  = {
+ 	[0] = {
+ 		.handler	= mb93493_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "mb93493.0",
+ 		.dev_id		= (void *) __addr_MB93493_IQSR(0),
+ 	},
+ 	[1] = {
+ 		.handler	= mb93493_interrupt,
+-		.flags		= IRQF_DISABLED | IRQF_SHARED,
++		.flags		= IRQF_SHARED,
+ 		.name		= "mb93493.1",
+ 		.dev_id		= (void *) __addr_MB93493_IQSR(1),
+ 	}
+diff --git a/arch/frv/kernel/time.c b/arch/frv/kernel/time.c
+index b457de4..332e00b 100644
+--- a/arch/frv/kernel/time.c
++++ b/arch/frv/kernel/time.c
+@@ -44,7 +44,6 @@ static irqreturn_t timer_interrupt(int irq, void *dummy);
  
- static struct irqaction mfgptirq  = {
- 	.handler = mfgpt_tick,
--	.flags = IRQF_DISABLED | IRQF_NOBALANCING | IRQF_TIMER,
-+	.flags = IRQF_NOBALANCING | IRQF_TIMER,
- 	.name = DRV_NAME,
- };
- 
-diff --git a/drivers/clocksource/dw_apb_timer.c b/drivers/clocksource/dw_apb_timer.c
-index 580f870..55eb8ad 100644
---- a/drivers/clocksource/dw_apb_timer.c
-+++ b/drivers/clocksource/dw_apb_timer.c
-@@ -243,8 +243,7 @@ dw_apb_clockevent_init(int cpu, const char *name, unsigned rating,
- 	dw_ced->irqaction.dev_id	= &dw_ced->ced;
- 	dw_ced->irqaction.irq		= irq;
- 	dw_ced->irqaction.flags		= IRQF_TIMER | IRQF_IRQPOLL |
--					  IRQF_NOBALANCING |
--					  IRQF_DISABLED;
-+					  IRQF_NOBALANCING;
- 
- 	dw_ced->eoi = apbt_eoi;
- 	err = setup_irq(irq, &dw_ced->irqaction);
-diff --git a/drivers/clocksource/sh_cmt.c b/drivers/clocksource/sh_cmt.c
-index ca09bc4..3bc55c4 100644
---- a/drivers/clocksource/sh_cmt.c
-+++ b/drivers/clocksource/sh_cmt.c
-@@ -641,7 +641,7 @@ static int sh_cmt_setup(struct sh_cmt_priv *p, struct platform_device *pdev)
- 	p->irqaction.name = dev_name(&p->pdev->dev);
- 	p->irqaction.handler = sh_cmt_interrupt;
- 	p->irqaction.dev_id = p;
--	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
-+	p->irqaction.flags = IRQF_TIMER | \
- 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
- 
- 	/* get hold of clock */
-diff --git a/drivers/clocksource/sh_mtu2.c b/drivers/clocksource/sh_mtu2.c
-index db8d595..0521f03 100644
---- a/drivers/clocksource/sh_mtu2.c
-+++ b/drivers/clocksource/sh_mtu2.c
-@@ -282,7 +282,7 @@ static int sh_mtu2_setup(struct sh_mtu2_priv *p, struct platform_device *pdev)
- 	p->irqaction.handler = sh_mtu2_interrupt;
- 	p->irqaction.dev_id = p;
- 	p->irqaction.irq = irq;
--	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
-+	p->irqaction.flags = IRQF_TIMER | \
- 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
- 
- 	/* get hold of clock */
-diff --git a/drivers/clocksource/sh_tmu.c b/drivers/clocksource/sh_tmu.c
-index 079e96a..306d212 100644
---- a/drivers/clocksource/sh_tmu.c
-+++ b/drivers/clocksource/sh_tmu.c
-@@ -385,7 +385,7 @@ static int sh_tmu_setup(struct sh_tmu_priv *p, struct platform_device *pdev)
- 	p->irqaction.handler = sh_tmu_interrupt;
- 	p->irqaction.dev_id = p;
- 	p->irqaction.irq = irq;
--	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
-+	p->irqaction.flags = IRQF_TIMER | \
- 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
- 
- 	/* get hold of clock */
-diff --git a/drivers/clocksource/tcb_clksrc.c b/drivers/clocksource/tcb_clksrc.c
-index 79c47e8..1963b93 100644
---- a/drivers/clocksource/tcb_clksrc.c
-+++ b/drivers/clocksource/tcb_clksrc.c
-@@ -175,7 +175,7 @@ static irqreturn_t ch2_irq(int irq, void *handle)
- 
- static struct irqaction tc_irqaction = {
- 	.name		= "tc_clkevt",
--	.flags		= IRQF_TIMER | IRQF_DISABLED,
-+	.flags		= IRQF_TIMER,
- 	.handler	= ch2_irq,
+ static struct irqaction timer_irq  = {
+ 	.handler = timer_interrupt,
+-	.flags = IRQF_DISABLED,
+ 	.name = "timer",
  };
  
 -- 
