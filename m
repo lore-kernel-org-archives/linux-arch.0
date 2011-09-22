@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-wy0-f174.google.com ([74.125.82.174]:33503 "EHLO
 	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752979Ab1IVJFy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:05:54 -0400
+	with ESMTP id S1752964Ab1IVJEj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:04:39 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 41/55] pcmcia: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:59:08 +0800
-Message-ID: <1316681962-8217-42-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 29/55] crypto: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:56 +0800
+Message-ID: <1316681962-8217-30-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Wolfram Sang <w.sang@pengutronix.de>, Paul Gortmaker <paul.gortmaker@windriver.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Russell King <rmk+kernel@arm.linux.org.uk>, Marcelo Roberto Jimenez <mroberto@cpti.cetuc.puc-rio.br>, Joe Perches <joe@perches.com>, linux-pcmcia@lists.infradead.org
-Message-ID: <20110922085908.CUdAc4dlKnBpzTrpHGGE3qtns5zGwzOH3sdog9-Qd2c@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, linux-crypto@vger.kernel.org
+Message-ID: <20110922085856.moL-EIs15SeltZ071BEQY5WJVct31E5jpsHElSh5BHs@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -24,44 +24,24 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Wolfram Sang <w.sang@pengutronix.de>
 ---
- drivers/pcmcia/db1xxx_ss.c  |    4 ++--
- drivers/pcmcia/soc_common.c |    2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ drivers/crypto/mv_cesa.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/pcmcia/db1xxx_ss.c b/drivers/pcmcia/db1xxx_ss.c
-index 3e49df6..6d76a92 100644
---- a/drivers/pcmcia/db1xxx_ss.c
-+++ b/drivers/pcmcia/db1xxx_ss.c
-@@ -162,12 +162,12 @@ static int db1x_pcmcia_setup_irqs(struct db1x_pcmcia_sock *sock)
- 	 */
- 	if (sock->board_type == BOARD_TYPE_DB1200) {
- 		ret = request_irq(sock->insert_irq, db1200_pcmcia_cdirq,
--				  IRQF_DISABLED, "pcmcia_insert", sock);
-+				  0, "pcmcia_insert", sock);
- 		if (ret)
- 			goto out1;
+diff --git a/drivers/crypto/mv_cesa.c b/drivers/crypto/mv_cesa.c
+index 5c6f56f..7a10360 100644
+--- a/drivers/crypto/mv_cesa.c
++++ b/drivers/crypto/mv_cesa.c
+@@ -1041,8 +1041,7 @@ static int mv_probe(struct platform_device *pdev)
+ 		goto err_unmap_sram;
+ 	}
  
- 		ret = request_irq(sock->eject_irq, db1200_pcmcia_cdirq,
--				  IRQF_DISABLED, "pcmcia_eject", sock);
-+				  0, "pcmcia_eject", sock);
- 		if (ret) {
- 			free_irq(sock->insert_irq, sock);
- 			goto out1;
-diff --git a/drivers/pcmcia/soc_common.c b/drivers/pcmcia/soc_common.c
-index a0a9c2a..0493a31 100644
---- a/drivers/pcmcia/soc_common.c
-+++ b/drivers/pcmcia/soc_common.c
-@@ -535,7 +535,7 @@ int soc_pcmcia_request_irqs(struct soc_pcmcia_socket *skt,
- 		if (irqs[i].sock != skt->nr)
- 			continue;
- 		res = request_irq(irqs[i].irq, soc_common_pcmcia_interrupt,
--				  IRQF_DISABLED, irqs[i].str, skt);
-+				  0, irqs[i].str, skt);
- 		if (res)
- 			break;
- 		irq_set_irq_type(irqs[i].irq, IRQ_TYPE_NONE);
+-	ret = request_irq(irq, crypto_int, IRQF_DISABLED, dev_name(&pdev->dev),
+-			cp);
++	ret = request_irq(irq, crypto_int, 0, dev_name(&pdev->dev), cp);
+ 	if (ret)
+ 		goto err_thread;
+ 
 -- 
 1.7.4.1
 
