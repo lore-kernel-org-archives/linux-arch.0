@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:33503 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752964Ab1IVJEj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:04:39 -0400
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:34429 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750813Ab1IVJGQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:06:16 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 29/55] crypto: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:56 +0800
-Message-ID: <1316681962-8217-30-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 44/55] power_supply:irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:59:11 +0800
+Message-ID: <1316681962-8217-45-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Herbert Xu <herbert@gondor.apana.org.au>, "David S. Miller" <davem@davemloft.net>, linux-crypto@vger.kernel.org
-Message-ID: <20110922085856.moL-EIs15SeltZ071BEQY5WJVct31E5jpsHElSh5BHs@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Anton Vorontsov <cbouatmailru@gmail.com>, Tejun Heo <tj@kernel.org>, Marek Vasut <marek.vasut@gmail.com>, Axel Lin <axel.lin@gmail.com>
+Message-ID: <20110922085911.c3NSTRgogSwpx32sY2ZTshJi15E7_fwbTh7l437n2X8@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,23 +25,36 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- drivers/crypto/mv_cesa.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
+ drivers/power/wm97xx_battery.c |    2 +-
+ drivers/power/z2_battery.c     |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/crypto/mv_cesa.c b/drivers/crypto/mv_cesa.c
-index 5c6f56f..7a10360 100644
---- a/drivers/crypto/mv_cesa.c
-+++ b/drivers/crypto/mv_cesa.c
-@@ -1041,8 +1041,7 @@ static int mv_probe(struct platform_device *pdev)
- 		goto err_unmap_sram;
- 	}
- 
--	ret = request_irq(irq, crypto_int, IRQF_DISABLED, dev_name(&pdev->dev),
--			cp);
-+	ret = request_irq(irq, crypto_int, 0, dev_name(&pdev->dev), cp);
- 	if (ret)
- 		goto err_thread;
- 
+diff --git a/drivers/power/wm97xx_battery.c b/drivers/power/wm97xx_battery.c
+index 156559e..cf8681c 100644
+--- a/drivers/power/wm97xx_battery.c
++++ b/drivers/power/wm97xx_battery.c
+@@ -196,7 +196,7 @@ static int __devinit wm97xx_bat_probe(struct platform_device *dev)
+ 		if (ret)
+ 			goto err2;
+ 		ret = request_irq(gpio_to_irq(pdata->charge_gpio),
+-				wm97xx_chrg_irq, IRQF_DISABLED,
++				wm97xx_chrg_irq, 0,
+ 				"AC Detect", dev);
+ 		if (ret)
+ 			goto err2;
+diff --git a/drivers/power/z2_battery.c b/drivers/power/z2_battery.c
+index ae38c44..636ebb2 100644
+--- a/drivers/power/z2_battery.c
++++ b/drivers/power/z2_battery.c
+@@ -218,7 +218,7 @@ static int __devinit z2_batt_probe(struct i2c_client *client,
+ 		irq_set_irq_type(gpio_to_irq(info->charge_gpio),
+ 				 IRQ_TYPE_EDGE_BOTH);
+ 		ret = request_irq(gpio_to_irq(info->charge_gpio),
+-				z2_charge_switch_irq, IRQF_DISABLED,
++				z2_charge_switch_irq, 0,
+ 				"AC Detect", charger);
+ 		if (ret)
+ 			goto err3;
 -- 
 1.7.4.1
 
