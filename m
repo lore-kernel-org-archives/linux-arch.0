@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 37/55] mmc: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:59:04 +0800
-Message-ID: <1316681962-8217-38-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 40/55] dirvers/parisc: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:59:07 +0800
+Message-ID: <1316681962-8217-41-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Chris Ball <cjb@laptop.org>, Guennadi Liakhovetski <g.liakhovetski@gmx.de>, Ian Molton <ian@mnementh.co.uk>, Tony Lindgren <tony@atomide.com>, Kishore Kadiyala <kishore.kadiyala@ti.com>, Adrian Hunter <adrian.hunter@nokia.com>, Balaji T K <balajitk@ti.com>, linux-omap@vger.kernel.org, linux-mmc@vger.kernel.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
@@ -19,49 +19,22 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Guennadi Liakhovetski <g.liakhovetski@gmx.de>
 ---
- drivers/mmc/host/omap_hsmmc.c |    5 ++---
- drivers/mmc/host/tmio_mmc.c   |    4 ++--
- 2 files changed, 4 insertions(+), 5 deletions(-)
+ drivers/parisc/superio.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hsmmc.c
-index 21e4a79..75c6395 100644
---- a/drivers/mmc/host/omap_hsmmc.c
-+++ b/drivers/mmc/host/omap_hsmmc.c
-@@ -2015,7 +2015,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
- 	}
+diff --git a/drivers/parisc/superio.c b/drivers/parisc/superio.c
+index e3b76d4..5e6fd94e 100644
+--- a/drivers/parisc/superio.c
++++ b/drivers/parisc/superio.c
+@@ -274,7 +274,7 @@ superio_init(struct pci_dev *pcidev)
+ 	else
+ 		printk(KERN_ERR PFX "USB regulator not initialized!\n");
  
- 	/* Request IRQ for MMC operations */
--	ret = request_irq(host->irq, omap_hsmmc_irq, IRQF_DISABLED,
-+	ret = request_irq(host->irq, omap_hsmmc_irq, 0,
- 			mmc_hostname(mmc), host);
- 	if (ret) {
- 		dev_dbg(mmc_dev(host->mmc), "Unable to grab HSMMC IRQ\n");
-@@ -2043,8 +2043,7 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
- 	if ((mmc_slot(host).card_detect_irq)) {
- 		ret = request_irq(mmc_slot(host).card_detect_irq,
- 				  omap_hsmmc_cd_handler,
--				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
--					  | IRQF_DISABLED,
-+				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
- 				  mmc_hostname(mmc), host);
- 		if (ret) {
- 			dev_dbg(mmc_dev(host->mmc),
-diff --git a/drivers/mmc/host/tmio_mmc.c b/drivers/mmc/host/tmio_mmc.c
-index 44a9668..a4ea102 100644
---- a/drivers/mmc/host/tmio_mmc.c
-+++ b/drivers/mmc/host/tmio_mmc.c
-@@ -88,8 +88,8 @@ static int __devinit tmio_mmc_probe(struct platform_device *pdev)
- 	if (ret)
- 		goto cell_disable;
+-	if (request_irq(pdev->irq, superio_interrupt, IRQF_DISABLED,
++	if (request_irq(pdev->irq, superio_interrupt, 0,
+ 			SUPERIO, (void *)sio)) {
  
--	ret = request_irq(irq, tmio_mmc_irq, IRQF_DISABLED |
--			  IRQF_TRIGGER_FALLING, dev_name(&pdev->dev), host);
-+	ret = request_irq(irq, tmio_mmc_irq, IRQF_TRIGGER_FALLING,
-+				dev_name(&pdev->dev), host);
- 	if (ret)
- 		goto host_remove;
- 
+ 		printk(KERN_ERR PFX "could not get irq\n");
 -- 
 1.7.4.1
