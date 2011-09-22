@@ -1,92 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:62222 "EHLO
+Received: from mail-wy0-f174.google.com ([74.125.82.174]:39135 "EHLO
 	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753137Ab1IVJHx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:07:53 -0400
+	with ESMTP id S1753101Ab1IVJG3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:06:29 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 54/55] Documentation: irq: Change documents related to IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:59:21 +0800
-Message-ID: <1316681962-8217-55-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 23/55] clocksource: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:50 +0800
+Message-ID: <1316681962-8217-24-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jesse Barnes <jbarnes@virtuousgeek.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-pci@vger.kernel.org, linux-doc@vger.kernel.org
-Message-ID: <20110922085921.2czmuIMhde24n95VhCgzluLfSHek_QwBnBua8dJnLRw@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, John Stultz <johnstul@us.ibm.com>
+Message-ID: <20110922085850.WKm3WmIAPcYmI7vSnY3lAusP3-fjgOwSPOb-ioNGP7o@z>
 
-IRQF_DISABLED is a NOOP now, place where suggest to use this
-flag also doesn't make sense any more.
+Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
+We run all interrupt handlers with interrupts disabled
+and we even check and yell when an interrupt handler
+returns with interrupts enabled (see commit [b738a50a:
+genirq: Warn when handler enables interrupts]).
+
+So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- Documentation/PCI/MSI-HOWTO.txt  |   21 ---------------------
- Documentation/scsi/ncr53c8xx.txt |    4 +++-
- Documentation/scsi/tmscsim.txt   |    4 ++--
- 3 files changed, 5 insertions(+), 24 deletions(-)
+ drivers/clocksource/cs5535-clockevt.c |    2 +-
+ drivers/clocksource/dw_apb_timer.c    |    3 +--
+ drivers/clocksource/sh_cmt.c          |    2 +-
+ drivers/clocksource/sh_mtu2.c         |    2 +-
+ drivers/clocksource/sh_tmu.c          |    2 +-
+ drivers/clocksource/tcb_clksrc.c      |    2 +-
+ 6 files changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/PCI/MSI-HOWTO.txt b/Documentation/PCI/MSI-HOWTO.txt
-index 53e6fca..b3f514d 100644
---- a/Documentation/PCI/MSI-HOWTO.txt
-+++ b/Documentation/PCI/MSI-HOWTO.txt
-@@ -255,27 +255,6 @@ as many vectors for MSI as it could for MSI-X.  On some platforms, MSI
- interrupts must all be targeted at the same set of CPUs whereas MSI-X
- interrupts can all be targeted at different CPUs.
+diff --git a/drivers/clocksource/cs5535-clockevt.c b/drivers/clocksource/cs5535-clockevt.c
+index b7dab32..2d3715f 100644
+--- a/drivers/clocksource/cs5535-clockevt.c
++++ b/drivers/clocksource/cs5535-clockevt.c
+@@ -133,7 +133,7 @@ static irqreturn_t mfgpt_tick(int irq, void *dev_id)
  
--4.5.2 Spinlocks
--
--Most device drivers have a per-device spinlock which is taken in the
--interrupt handler.  With pin-based interrupts or a single MSI, it is not
--necessary to disable interrupts (Linux guarantees the same interrupt will
--not be re-entered).  If a device uses multiple interrupts, the driver
--must disable interrupts while the lock is held.  If the device sends
--a different interrupt, the driver will deadlock trying to recursively
--acquire the spinlock.
--
--There are two solutions.  The first is to take the lock with
--spin_lock_irqsave() or spin_lock_irq() (see
--Documentation/DocBook/kernel-locking).  The second is to specify
--IRQF_DISABLED to request_irq() so that the kernel runs the entire
--interrupt routine with interrupts disabled.
--
--If your MSI interrupt routine does not hold the lock for the whole time
--it is running, the first solution may be best.  The second solution is
--normally preferred as it avoids making two transitions from interrupt
--disabled to enabled and back again.
--
- 4.6 How to tell whether MSI/MSI-X is enabled on a device
+ static struct irqaction mfgptirq  = {
+ 	.handler = mfgpt_tick,
+-	.flags = IRQF_DISABLED | IRQF_NOBALANCING | IRQF_TIMER,
++	.flags = IRQF_NOBALANCING | IRQF_TIMER,
+ 	.name = DRV_NAME,
+ };
  
- Using 'lspci -v' (as root) may show some devices with "MSI", "Message
-diff --git a/Documentation/scsi/ncr53c8xx.txt b/Documentation/scsi/ncr53c8xx.txt
-index cda5f8f..c5a9904 100644
---- a/Documentation/scsi/ncr53c8xx.txt
-+++ b/Documentation/scsi/ncr53c8xx.txt
-@@ -786,7 +786,9 @@ port address 0x1400.
-         irqm:1     same as initial settings (assumed BIOS settings)
-         irqm:2     always totem pole
-         irqm:0x10  driver will not use IRQF_SHARED flag when requesting irq
--        irqm:0x20  driver will not use IRQF_DISABLED flag when requesting irq
-+        irqm:0x20  driver will not use IRQF_DISABLED (does not make sense
-+		   any more since genirq will keep irq disabled and the flag
-+		   is dead from linux-2.6.35) flag when requesting irq
+diff --git a/drivers/clocksource/dw_apb_timer.c b/drivers/clocksource/dw_apb_timer.c
+index 580f870..55eb8ad 100644
+--- a/drivers/clocksource/dw_apb_timer.c
++++ b/drivers/clocksource/dw_apb_timer.c
+@@ -243,8 +243,7 @@ dw_apb_clockevent_init(int cpu, const char *name, unsigned rating,
+ 	dw_ced->irqaction.dev_id	= &dw_ced->ced;
+ 	dw_ced->irqaction.irq		= irq;
+ 	dw_ced->irqaction.flags		= IRQF_TIMER | IRQF_IRQPOLL |
+-					  IRQF_NOBALANCING |
+-					  IRQF_DISABLED;
++					  IRQF_NOBALANCING;
  
-     (Bits 0x10 and 0x20 can be combined with hardware irq mode option)
+ 	dw_ced->eoi = apbt_eoi;
+ 	err = setup_irq(irq, &dw_ced->irqaction);
+diff --git a/drivers/clocksource/sh_cmt.c b/drivers/clocksource/sh_cmt.c
+index ca09bc4..3bc55c4 100644
+--- a/drivers/clocksource/sh_cmt.c
++++ b/drivers/clocksource/sh_cmt.c
+@@ -641,7 +641,7 @@ static int sh_cmt_setup(struct sh_cmt_priv *p, struct platform_device *pdev)
+ 	p->irqaction.name = dev_name(&p->pdev->dev);
+ 	p->irqaction.handler = sh_cmt_interrupt;
+ 	p->irqaction.dev_id = p;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
  
-diff --git a/Documentation/scsi/tmscsim.txt b/Documentation/scsi/tmscsim.txt
-index 61c0531..1dee219 100644
---- a/Documentation/scsi/tmscsim.txt
-+++ b/Documentation/scsi/tmscsim.txt
-@@ -108,8 +108,8 @@ MHz PCI bus works for me, though, but I don't recommend using higher clocks
- than the 33.33 MHz being in the PCI spec.
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/sh_mtu2.c b/drivers/clocksource/sh_mtu2.c
+index db8d595..0521f03 100644
+--- a/drivers/clocksource/sh_mtu2.c
++++ b/drivers/clocksource/sh_mtu2.c
+@@ -282,7 +282,7 @@ static int sh_mtu2_setup(struct sh_mtu2_priv *p, struct platform_device *pdev)
+ 	p->irqaction.handler = sh_mtu2_interrupt;
+ 	p->irqaction.dev_id = p;
+ 	p->irqaction.irq = irq;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
  
- If you want to share the IRQ with another device and the driver refuses to
--do so, you might succeed with changing the DC390_IRQ type in tmscsim.c to 
--IRQF_SHARED | IRQF_DISABLED.
-+do so, you should find out what's the mismatch between the shared IRQs,
-+and CONFIG_DEBUG_SHIRQ may give you more help.
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/sh_tmu.c b/drivers/clocksource/sh_tmu.c
+index 079e96a..306d212 100644
+--- a/drivers/clocksource/sh_tmu.c
++++ b/drivers/clocksource/sh_tmu.c
+@@ -385,7 +385,7 @@ static int sh_tmu_setup(struct sh_tmu_priv *p, struct platform_device *pdev)
+ 	p->irqaction.handler = sh_tmu_interrupt;
+ 	p->irqaction.dev_id = p;
+ 	p->irqaction.irq = irq;
+-	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER | \
++	p->irqaction.flags = IRQF_TIMER | \
+ 			     IRQF_IRQPOLL  | IRQF_NOBALANCING;
  
+ 	/* get hold of clock */
+diff --git a/drivers/clocksource/tcb_clksrc.c b/drivers/clocksource/tcb_clksrc.c
+index 79c47e8..1963b93 100644
+--- a/drivers/clocksource/tcb_clksrc.c
++++ b/drivers/clocksource/tcb_clksrc.c
+@@ -175,7 +175,7 @@ static irqreturn_t ch2_irq(int irq, void *handle)
  
- 3.Features
+ static struct irqaction tc_irqaction = {
+ 	.name		= "tc_clkevt",
+-	.flags		= IRQF_TIMER | IRQF_DISABLED,
++	.flags		= IRQF_TIMER,
+ 	.handler	= ch2_irq,
+ };
+ 
 -- 
 1.7.4.1
 
