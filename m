@@ -1,55 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:59603 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751370Ab1IUSEe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Sep 2011 14:04:34 -0400
-From: Pedro Alves <pedro@codesourcery.com>
-Subject: Re: [patch v3 19/36] Hexagon: Add ptrace support
-Date: Wed, 21 Sep 2011 19:04:29 +0100
-References: <20110909010847.294039464@codeaurora.org> <201109211715.20795.pedro@codesourcery.com> <20110921175009.GA3703@codeaurora.org>
-In-Reply-To: <20110921175009.GA3703@codeaurora.org>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201109211904.29572.pedro@codesourcery.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:40391 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752494Ab1IVI7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 04:59:39 -0400
+From: Yong Zhang <yong.zhang0@gmail.com>
+Subject: [PATCH 01/55] usb/hcd: Remove tricky code dealing with IRQF_DISABLED && IRQF_SHARED
+Date: Thu, 22 Sep 2011 16:58:28 +0800
+Message-ID: <1316681962-8217-2-git-send-email-yong.zhang0@gmail.com>
+In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
+References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Richard Kuo <rkuo@codeaurora.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-Message-ID: <20110921180429.ut1H-3Lm3sik3TgbooajH2pFIbYM8lT3P3s5T1vOvRQ@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Greg Kroah-Hartman <gregkh@suse.de>, Sarah Sharp <sarah.a.sharp@linux.intel.com>, Alan Stern <stern@rowland.harvard.edu>, Maulik Mankad <x0082077@ti.com>, Robert Morell <rmorell@nvidia.com>, linux-usb@vger.kernel.org
+Message-ID: <20110922085828.y7MORAMWUJ6M3xuUwSQWUMT4WARtBQ_XxDU--NqMcRQ@z>
 
-On Wednesday 21 September 2011 18:50:09, Linas Vepstas (Code Aurora) wrote:
-> On Wed, Sep 21, 2011 at 05:15:20PM +0100, Pedro Alves wrote:
-> > > On Sat, Sep 10, 2011 at 12:29:57PM +0100, Pedro Alves wrote:
-> > > > Yes, the x86/x86-64 ports or gdb and gdbserver are already
-> > > > using GET/SETREGSET even.
-> 
-> Thanks; after a bit of initial confusion, I've gotten gdb to
-> work with this, so I'm happy. 
-> 
-> > I wish there was an equivalent of PTRACE_GETREGSET for siginfo...
-> 
-> How? Why?
+Now, genirq keep irqs disabled when calling the action handler,
+we don't need to disable irq by ourselves anymore.
 
-One of the the cool features of PTRACE_GETREGSET is that it returns
-the regset in the natural layout of the tracee.  So when debugging a 
-32-bit process on a 64-bit kernel, PTRACE_GETREGSET returns the
-regset in 32-bit layout.  Recent enough GDBs can print the siginfo of a
-caught signal (before its delivered with (PTRACE_CONT, sig).
-Try "(gdb) p $_siginfo" on x86.  Trouble is 32-bit processes on 64-bit
-kernels or other biarch setups.  PTRACE_GETSIGINFO returns the siginfo in
-64-bit layout, so GDB gets to try to immitate what the kernel's 32-bit
-compat layer does.  Both for reading and writting siginfo.
-See compat_siginfo_from_siginfo and siginfo_from_compat_siginfo
-at [1].
-The kernel already knows to convert siginfo to the native layout
-of the process -- needed to pass to the user space signal handler
-at least.  But AFAIK, there's no way for the debugger to get at it
-before the signal is actually delivered.
+Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+---
+ drivers/usb/core/hcd.c |   15 ---------------
+ 1 files changed, 0 insertions(+), 15 deletions(-)
 
-[1]
-http://sourceware.org/cgi-bin/cvsweb.cgi/src/gdb/amd64-linux-nat.c?rev=1.35&content-type=text/x-cvsweb-markup&cvsroot=src
-
+diff --git a/drivers/usb/core/hcd.c b/drivers/usb/core/hcd.c
+index c1dabf0..8d0cd99 100644
+--- a/drivers/usb/core/hcd.c
++++ b/drivers/usb/core/hcd.c
+@@ -2124,15 +2124,8 @@ EXPORT_SYMBOL_GPL(usb_bus_start_enum);
+ irqreturn_t usb_hcd_irq (int irq, void *__hcd)
+ {
+ 	struct usb_hcd		*hcd = __hcd;
+-	unsigned long		flags;
+ 	irqreturn_t		rc;
+ 
+-	/* IRQF_DISABLED doesn't work correctly with shared IRQs
+-	 * when the first handler doesn't use it.  So let's just
+-	 * assume it's never used.
+-	 */
+-	local_irq_save(flags);
+-
+ 	if (unlikely(HCD_DEAD(hcd) || !HCD_HW_ACCESSIBLE(hcd))) {
+ 		rc = IRQ_NONE;
+ 	} else if (hcd->driver->irq(hcd) == IRQ_NONE) {
+@@ -2144,7 +2137,6 @@ irqreturn_t usb_hcd_irq (int irq, void *__hcd)
+ 		rc = IRQ_HANDLED;
+ 	}
+ 
+-	local_irq_restore(flags);
+ 	return rc;
+ }
+ EXPORT_SYMBOL_GPL(usb_hcd_irq);
+@@ -2333,13 +2325,6 @@ static int usb_hcd_request_irqs(struct usb_hcd *hcd,
+ 
+ 	if (hcd->driver->irq) {
+ 
+-		/* IRQF_DISABLED doesn't work as advertised when used together
+-		 * with IRQF_SHARED. As usb_hcd_irq() will always disable
+-		 * interrupts we can remove it here.
+-		 */
+-		if (irqflags & IRQF_SHARED)
+-			irqflags &= ~IRQF_DISABLED;
+-
+ 		snprintf(hcd->irq_descr, sizeof(hcd->irq_descr), "%s:usb%d",
+ 				hcd->driver->description, hcd->self.busnum);
+ 		retval = request_irq(irqnum, &usb_hcd_irq, irqflags,
 -- 
-Pedro Alves
+1.7.4.1
+
