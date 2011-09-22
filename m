@@ -1,72 +1,97 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 6/7] common: dma-mapping: change alloc/free_coherent	method
- to more generic alloc/free_attrs
-Date: Thu, 22 Sep 2011 16:00:28 +0200
-Message-ID: <006301cc792f$fc3a3a40$f4aeaec0$%szyprowski@samsung.com>
-References: <1314971599-14428-1-git-send-email-m.szyprowski@samsung.com>
- <1314971599-14428-7-git-send-email-m.szyprowski@samsung.com>
- <20110905104352.GD5203@8bytes.org>
+From: "Kadiyala, Kishore" <kishore.kadiyala@ti.com>
+Subject: Re: [PATCH 37/57] mmc: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 20:20:23 +0530
+Message-ID: <CAA93xcbHJNpPsPetnLZbPiJ+36QBr8cHFwOdv=yCOVgY9LjgFw@mail.gmail.com>
+References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com> <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:65186 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751735Ab1IVOAk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 10:00:40 -0400
-Received: from euspt1 (mailout1.w1.samsung.com [210.118.77.11])
- by mailout1.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LRX005UAG91CX@mailout1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Thu, 22 Sep 2011 15:00:37 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LRX00E63G90C7@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Thu, 22 Sep 2011 15:00:37 +0100 (BST)
-In-reply-to: <20110905104352.GD5203@8bytes.org>
-Content-language: pl
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Joerg Roedel' <joro@8bytes.org>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-mmc-owner@vger.kernel.org>
+In-Reply-To: <1316597339-29861-38-git-send-email-yong.zhang0@gmail.com>
+Sender: linux-mmc-owner@vger.kernel.org
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Chris Ball <cjb@laptop.org>, Guennadi Liakhovetski <g.liakhovetski@gmx.de>, Ian Molton <ian@mnementh.co.uk>, Tony Lindgren <tony@atomide.com>, Adrian Hunter <adrian.hunter@nokia.com>, Balaji T K <balajitk@ti.com>, linux-omap@vger.kernel.org, linux-mmc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Wed, Sep 21, 2011 at 2:58 PM, Yong Zhang <yong.zhang0@gmail.com> wro=
+te:
+> Since commit [c58543c8: genirq: Run irq handlers with interrupts disa=
+bled],
+> We run all interrupt handlers with interrupts disabled
+> and we even check and yell when an interrupt handler
+> returns with interrupts enabled (see commit [b738a50a:
+> genirq: Warn when handler enables interrupts]).
+>
+> So now this flag is a NOOP and can be removed.
+>
+> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 
-On Monday, September 05, 2011 12:44 PM Joerg Roedel wrote:
+=46or omap_hsmmc.c
 
-> On Fri, Sep 02, 2011 at 03:53:18PM +0200, Marek Szyprowski wrote:
-> >  struct dma_map_ops {
-> > -	void* (*alloc_coherent)(struct device *dev, size_t size,
-> > -				dma_addr_t *dma_handle, gfp_t gfp);
-> > -	void (*free_coherent)(struct device *dev, size_t size,
-> > -			      void *vaddr, dma_addr_t dma_handle);
-> > +	void* (*alloc)(struct device *dev, size_t size,
-> > +				dma_addr_t *dma_handle, gfp_t gfp,
-> > +				struct dma_attrs *attrs);
-> > +	void (*free)(struct device *dev, size_t size,
-> > +			      void *vaddr, dma_addr_t dma_handle,
-> > +			      struct dma_attrs *attrs);
-> > +	int (*mmap)(struct device *, struct vm_area_struct *,
-> > +			  void *, dma_addr_t, size_t, struct dma_attrs *attrs);
-> > +
-> >  	dma_addr_t (*map_page)(struct device *dev, struct page *page,
-> >  			       unsigned long offset, size_t size,
-> >  			       enum dma_data_direction dir,
-> > --
-> > 1.7.1.569.g6f426
-> 
-> This needs conversion of all drivers implementing dma_map_ops or you
-> will break a lot of architectures. A better approach is to keep
-> *_coherent and implement alloc/free/mmap side-by-side until all drivers
-> are converted.
-> Also I miss some documentation about the new call-backs.
+Acked-by: Kishore Kadiyala <kishore.kadiyala@ti.com>
 
-Right this patch will break all other architectures, however it was just 
-a snapshot of my work-in-progress. Converting all other architectures from
-alloc_coherent to alloc with NULL attribute shouldn't be really hard and will
-be added in the final version - together with documentation.
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+> ---
+> =A0drivers/mmc/host/omap_hsmmc.c | =A0 =A05 ++---
+> =A0drivers/mmc/host/tmio_mmc.c =A0 | =A0 =A04 ++--
+> =A02 files changed, 4 insertions(+), 5 deletions(-)
+>
+> diff --git a/drivers/mmc/host/omap_hsmmc.c b/drivers/mmc/host/omap_hs=
+mmc.c
+> index 21e4a79..75c6395 100644
+> --- a/drivers/mmc/host/omap_hsmmc.c
+> +++ b/drivers/mmc/host/omap_hsmmc.c
+> @@ -2015,7 +2015,7 @@ static int __init omap_hsmmc_probe(struct platf=
+orm_device *pdev)
+> =A0 =A0 =A0 =A0}
+>
+> =A0 =A0 =A0 =A0/* Request IRQ for MMC operations */
+> - =A0 =A0 =A0 ret =3D request_irq(host->irq, omap_hsmmc_irq, IRQF_DIS=
+ABLED,
+> + =A0 =A0 =A0 ret =3D request_irq(host->irq, omap_hsmmc_irq, 0,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0mmc_hostname(mmc), hos=
+t);
+> =A0 =A0 =A0 =A0if (ret) {
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0dev_dbg(mmc_dev(host->mmc), "Unable to=
+ grab HSMMC IRQ\n");
+> @@ -2043,8 +2043,7 @@ static int __init omap_hsmmc_probe(struct platf=
+orm_device *pdev)
+> =A0 =A0 =A0 =A0if ((mmc_slot(host).card_detect_irq)) {
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0ret =3D request_irq(mmc_slot(host).car=
+d_detect_irq,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0om=
+ap_hsmmc_cd_handler,
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 IRQ=
+=46_TRIGGER_RISING | IRQF_TRIGGER_FALLING
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ =A0 =A0 =A0 | IRQF_DISABLED,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 IRQ=
+=46_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0mm=
+c_hostname(mmc), host);
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (ret) {
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0dev_dbg(mmc_dev(host->=
+mmc),
+> diff --git a/drivers/mmc/host/tmio_mmc.c b/drivers/mmc/host/tmio_mmc.=
+c
+> index 44a9668..a4ea102 100644
+> --- a/drivers/mmc/host/tmio_mmc.c
+> +++ b/drivers/mmc/host/tmio_mmc.c
+> @@ -88,8 +88,8 @@ static int __devinit tmio_mmc_probe(struct platform=
+_device *pdev)
+> =A0 =A0 =A0 =A0if (ret)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto cell_disable;
+>
+> - =A0 =A0 =A0 ret =3D request_irq(irq, tmio_mmc_irq, IRQF_DISABLED |
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 IRQF_TRIGGER_FALLIN=
+G, dev_name(&pdev->dev), host);
+> + =A0 =A0 =A0 ret =3D request_irq(irq, tmio_mmc_irq, IRQF_TRIGGER_FAL=
+LING,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_nam=
+e(&pdev->dev), host);
+> =A0 =A0 =A0 =A0if (ret)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto host_remove;
+>
+> --
+> 1.7.4.1
+>
+>
