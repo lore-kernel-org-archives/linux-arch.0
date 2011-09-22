@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:43591 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752494Ab1IVJCn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:02:43 -0400
+Received: from mail-ww0-f42.google.com ([74.125.82.42]:60583 "EHLO
+	mail-ww0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752614Ab1IVJBT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:01:19 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 20/55] unicore32: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:47 +0800
-Message-ID: <1316681962-8217-21-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 11/55] microblaze: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:38 +0800
+Message-ID: <1316681962-8217-12-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Guan Xuetao <gxt@mprc.pku.edu.cn>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20110922085847.GMtodrh1iA6TFHmoXXlrKC0YM08eeQiWwkws72cpdGY@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Michal Simek <monstr@monstr.eu>, Joe Perches <joe@perches.com>, John Stultz <johnstul@us.ibm.com>, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20110922085838.DN7akmzimM_GVYWEnDCin7ptytSv94lyMIJWE66VoaU@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,44 +25,21 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/unicore32/kernel/puv3-nb0916.c |    4 ++--
- arch/unicore32/kernel/time.c        |    2 +-
- 2 files changed, 3 insertions(+), 3 deletions(-)
+ arch/microblaze/kernel/timer.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/unicore32/kernel/puv3-nb0916.c b/arch/unicore32/kernel/puv3-nb0916.c
-index e731c56..951826a 100644
---- a/arch/unicore32/kernel/puv3-nb0916.c
-+++ b/arch/unicore32/kernel/puv3-nb0916.c
-@@ -124,7 +124,7 @@ int __init mach_nb0916_init(void)
+diff --git a/arch/microblaze/kernel/timer.c b/arch/microblaze/kernel/timer.c
+index e5550ce..bb86351 100644
+--- a/arch/microblaze/kernel/timer.c
++++ b/arch/microblaze/kernel/timer.c
+@@ -163,7 +163,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
  
- 	if (request_irq(gpio_to_irq(GPI_LCD_CASE_OFF),
- 		&nb0916_lcdcaseoff_handler,
--		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
- 		"NB0916 lcd case off", NULL) < 0) {
- 
- 		printk(KERN_DEBUG "LCD-Case-OFF IRQ %d not available\n",
-@@ -132,7 +132,7 @@ int __init mach_nb0916_init(void)
- 	}
- 
- 	if (request_irq(gpio_to_irq(GPI_OTP_INT), &nb0916_overheat_handler,
--		IRQF_DISABLED | IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-+		IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
- 		"NB0916 overheating protection", NULL) < 0) {
- 
- 		printk(KERN_DEBUG "Overheating Protection IRQ %d not available\n",
-diff --git a/arch/unicore32/kernel/time.c b/arch/unicore32/kernel/time.c
-index 080710c..d3824b2 100644
---- a/arch/unicore32/kernel/time.c
-+++ b/arch/unicore32/kernel/time.c
-@@ -86,7 +86,7 @@ static struct clocksource cksrc_puv3_oscr = {
- 
- static struct irqaction puv3_timer_irq = {
- 	.name		= "ost0",
--	.flags		= IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-+	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
- 	.handler	= puv3_ost0_interrupt,
- 	.dev_id		= &ckevt_puv3_osmr0,
+ static struct irqaction timer_irqaction = {
+ 	.handler = timer_interrupt,
+-	.flags = IRQF_DISABLED | IRQF_TIMER,
++	.flags = IRQF_TIMER,
+ 	.name = "timer",
+ 	.dev_id = &clockevent_microblaze_timer,
  };
 -- 
 1.7.4.1
