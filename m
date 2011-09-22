@@ -1,13 +1,13 @@
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 25/55] ata: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:52 +0800
-Message-ID: <1316681962-8217-26-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 27/55] cdrom: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:54 +0800
+Message-ID: <1316681962-8217-28-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
-Return-path: <linux-ide-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-ide-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jeff Garzik <jgarzik@pobox.com>, linux-ide@vger.kernel.org
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Tejun Heo <tj@kernel.org>, Paul Mundt <lethal@linux-sh.org>, Jens Axboe <jaxboe@fusionio.com>, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
@@ -19,24 +19,27 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Wolfram Sang <w.sang@pengutronix.de>
 ---
- drivers/ata/pata_mpc52xx.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ drivers/cdrom/gdrom.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/ata/pata_mpc52xx.c b/drivers/ata/pata_mpc52xx.c
-index 2fcac51..3e17463 100644
---- a/drivers/ata/pata_mpc52xx.c
-+++ b/drivers/ata/pata_mpc52xx.c
-@@ -780,7 +780,7 @@ mpc52xx_ata_probe(struct platform_device *op)
- 	}
+diff --git a/drivers/cdrom/gdrom.c b/drivers/cdrom/gdrom.c
+index 3ceaf00..88ae54a 100644
+--- a/drivers/cdrom/gdrom.c
++++ b/drivers/cdrom/gdrom.c
+@@ -562,11 +562,11 @@ static int __devinit gdrom_set_interrupt_handlers(void)
+ 	int err;
  
- 	task_irq = bcom_get_task_irq(dmatsk);
--	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, IRQF_DISABLED,
-+	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, 0,
- 				"ATA task", priv);
- 	if (ret) {
- 		dev_err(&op->dev, "error requesting DMA IRQ\n");
+ 	err = request_irq(HW_EVENT_GDROM_CMD, gdrom_command_interrupt,
+-		IRQF_DISABLED, "gdrom_command", &gd);
++		0, "gdrom_command", &gd);
+ 	if (err)
+ 		return err;
+ 	err = request_irq(HW_EVENT_GDROM_DMA, gdrom_dma_interrupt,
+-		IRQF_DISABLED, "gdrom_dma", &gd);
++		0, "gdrom_dma", &gd);
+ 	if (err)
+ 		free_irq(HW_EVENT_GDROM_CMD, &gd);
+ 	return err;
 -- 
 1.7.4.1
-
