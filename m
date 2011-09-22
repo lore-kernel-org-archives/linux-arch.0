@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:40391 "EHLO
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:38518 "EHLO
 	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752012Ab1IVJAn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:00:43 -0400
+	with ESMTP id S1753106Ab1IVJEo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:04:44 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 07/55] h8300: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:34 +0800
-Message-ID: <1316681962-8217-8-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 34/55] ISDN: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:59:01 +0800
+Message-ID: <1316681962-8217-35-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Yoshinori Sato <ysato@users.sourceforge.jp>, Torben Hohn <torbenh@gmx.de>
-Message-ID: <20110922085834.3TYR8kvuLRpNoZ14KxEwLFfm2KaLYs65aeYffMYVZi4@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Armin Schindler <mac@melware.de>, Karsten Keil <isdn@linux-pingi.de>, netdev@vger.kernel.org
+Message-ID: <20110922085901.HKPaSWauRQ7TVUEJWxcxuWx2ubu7l_0fPzYzl7paVVk@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -25,64 +25,36 @@ So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
 ---
- arch/h8300/kernel/timer/itu.c     |    2 +-
- arch/h8300/kernel/timer/timer16.c |    2 +-
- arch/h8300/kernel/timer/timer8.c  |    2 +-
- arch/h8300/kernel/timer/tpu.c     |    2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+ drivers/isdn/hardware/eicon/divasmain.c |    2 +-
+ drivers/isdn/sc/init.c                  |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/h8300/kernel/timer/itu.c b/arch/h8300/kernel/timer/itu.c
-index a2ae5e9..21afa64 100644
---- a/arch/h8300/kernel/timer/itu.c
-+++ b/arch/h8300/kernel/timer/itu.c
-@@ -59,7 +59,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
- static struct irqaction itu_irq = {
- 	.name		= "itu",
- 	.handler	= timer_interrupt,
--	.flags		= IRQF_DISABLED | IRQF_TIMER,
-+	.flags		= IRQF_TIMER,
- };
+diff --git a/drivers/isdn/hardware/eicon/divasmain.c b/drivers/isdn/hardware/eicon/divasmain.c
+index f332b60..8a0a831 100644
+--- a/drivers/isdn/hardware/eicon/divasmain.c
++++ b/drivers/isdn/hardware/eicon/divasmain.c
+@@ -481,7 +481,7 @@ void __inline__ outpp(void __iomem *addr, word p)
+ int diva_os_register_irq(void *context, byte irq, const char *name)
+ {
+ 	int result = request_irq(irq, diva_os_irq_wrapper,
+-				 IRQF_DISABLED | IRQF_SHARED, name, context);
++				 IRQF_SHARED, name, context);
+ 	return (result);
+ }
  
- static const int __initdata divide_rate[] = {1, 2, 4, 8};
-diff --git a/arch/h8300/kernel/timer/timer16.c b/arch/h8300/kernel/timer/timer16.c
-index ae0d381..3864531 100644
---- a/arch/h8300/kernel/timer/timer16.c
-+++ b/arch/h8300/kernel/timer/timer16.c
-@@ -54,7 +54,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
- static struct irqaction timer16_irq = {
- 	.name		= "timer-16",
- 	.handler	= timer_interrupt,
--	.flags		= IRQF_DISABLED | IRQF_TIMER,
-+	.flags		= IRQF_TIMER,
- };
- 
- static const int __initdata divide_rate[] = {1, 2, 4, 8};
-diff --git a/arch/h8300/kernel/timer/timer8.c b/arch/h8300/kernel/timer/timer8.c
-index 7a1533f..13617fb 100644
---- a/arch/h8300/kernel/timer/timer8.c
-+++ b/arch/h8300/kernel/timer/timer8.c
-@@ -74,7 +74,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
- static struct irqaction timer8_irq = {
- 	.name		= "timer-8",
- 	.handler	= timer_interrupt,
--	.flags		= IRQF_DISABLED | IRQF_TIMER,
-+	.flags		= IRQF_TIMER,
- };
- 
- static const int __initdata divide_rate[] = {8, 64, 8192};
-diff --git a/arch/h8300/kernel/timer/tpu.c b/arch/h8300/kernel/timer/tpu.c
-index 2193a2e..aa5707e 100644
---- a/arch/h8300/kernel/timer/tpu.c
-+++ b/arch/h8300/kernel/timer/tpu.c
-@@ -63,7 +63,7 @@ static irqreturn_t timer_interrupt(int irq, void *dev_id)
- static struct irqaction tpu_irq = {
- 	.name		= "tpu",
- 	.handler	= timer_interrupt,
--	.flags		= IRQF_DISABLED | IRQF_TIMER,
-+	.flags		= IRQF_TIMER,
- };
- 
- static const int __initdata divide_rate[] = {
+diff --git a/drivers/isdn/sc/init.c b/drivers/isdn/sc/init.c
+index ca710ab..a3127fb 100644
+--- a/drivers/isdn/sc/init.c
++++ b/drivers/isdn/sc/init.c
+@@ -336,7 +336,7 @@ static int __init sc_init(void)
+ 		 */
+ 		sc_adapter[cinst]->interrupt = irq[b];
+ 		if (request_irq(sc_adapter[cinst]->interrupt, interrupt_handler,
+-				IRQF_DISABLED, interface->id,
++				0, interface->id,
+ 				(void *)(unsigned long) cinst))
+ 		{
+ 			kfree(sc_adapter[cinst]->channel);
 -- 
 1.7.4.1
 
