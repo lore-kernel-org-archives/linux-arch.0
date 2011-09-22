@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-ww0-f44.google.com ([74.125.82.44]:43591 "EHLO
 	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752877Ab1IVJD0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:03:26 -0400
+	with ESMTP id S1752910Ab1IVJDd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:03:33 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 25/55] ata: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:52 +0800
-Message-ID: <1316681962-8217-26-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 26/55] block: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:58:53 +0800
+Message-ID: <1316681962-8217-27-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Jeff Garzik <jgarzik@pobox.com>, linux-ide@vger.kernel.org
-Message-ID: <20110922085852.Lp0P57hhi9vaeHRslslqLB_Ohpwzp4AeoEcsXs1qoTw@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Mike Miller <mike.miller@hp.com>, Chirag Kantharia <chirag.kantharia@hp.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Ralf Baechle <ralf@linux-mips.org>, iss_storagedev@hp.com
+Message-ID: <20110922085853.XPMVuXcq6aby5bzkBDt8H-brC5twFMcpEvjW1RQcrHI@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -24,24 +24,87 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: Wolfram Sang <w.sang@pengutronix.de>
+Acked-by: Mike Miller <mike.miller@hp.com>
 ---
- drivers/ata/pata_mpc52xx.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+ drivers/block/cciss.c    |    4 ++--
+ drivers/block/cpqarray.c |    2 +-
+ drivers/block/hd.c       |    7 +------
+ drivers/block/mg_disk.c  |    2 +-
+ 4 files changed, 5 insertions(+), 10 deletions(-)
 
-diff --git a/drivers/ata/pata_mpc52xx.c b/drivers/ata/pata_mpc52xx.c
-index 2fcac51..3e17463 100644
---- a/drivers/ata/pata_mpc52xx.c
-+++ b/drivers/ata/pata_mpc52xx.c
-@@ -780,7 +780,7 @@ mpc52xx_ata_probe(struct platform_device *op)
+diff --git a/drivers/block/cciss.c b/drivers/block/cciss.c
+index 6da7ede..3f3b7a2 100644
+--- a/drivers/block/cciss.c
++++ b/drivers/block/cciss.c
+@@ -4868,7 +4868,7 @@ static int cciss_request_irq(ctlr_info_t *h,
+ {
+ 	if (h->msix_vector || h->msi_vector) {
+ 		if (!request_irq(h->intr[h->intr_mode], msixhandler,
+-				IRQF_DISABLED, h->devname, h))
++				0, h->devname, h))
+ 			return 0;
+ 		dev_err(&h->pdev->dev, "Unable to get msi irq %d"
+ 			" for %s\n", h->intr[h->intr_mode],
+@@ -4877,7 +4877,7 @@ static int cciss_request_irq(ctlr_info_t *h,
  	}
  
- 	task_irq = bcom_get_task_irq(dmatsk);
--	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, IRQF_DISABLED,
-+	ret = request_irq(task_irq, &mpc52xx_ata_task_irq, 0,
- 				"ATA task", priv);
- 	if (ret) {
- 		dev_err(&op->dev, "error requesting DMA IRQ\n");
+ 	if (!request_irq(h->intr[h->intr_mode], intxhandler,
+-			IRQF_DISABLED, h->devname, h))
++			0, h->devname, h))
+ 		return 0;
+ 	dev_err(&h->pdev->dev, "Unable to get irq %d for %s\n",
+ 		h->intr[h->intr_mode], h->devname);
+diff --git a/drivers/block/cpqarray.c b/drivers/block/cpqarray.c
+index b2fceb5..33afbd7 100644
+--- a/drivers/block/cpqarray.c
++++ b/drivers/block/cpqarray.c
+@@ -406,7 +406,7 @@ static int __devinit cpqarray_register_ctlr( int i, struct pci_dev *pdev)
+ 	}
+ 	hba[i]->access.set_intr_mask(hba[i], 0);
+ 	if (request_irq(hba[i]->intr, do_ida_intr,
+-		IRQF_DISABLED|IRQF_SHARED, hba[i]->devname, hba[i]))
++		IRQF_SHARED, hba[i]->devname, hba[i]))
+ 	{
+ 		printk(KERN_ERR "cpqarray: Unable to get irq %d for %s\n",
+ 				hba[i]->intr, hba[i]->devname);
+diff --git a/drivers/block/hd.c b/drivers/block/hd.c
+index b52c9ca..c30d1f9 100644
+--- a/drivers/block/hd.c
++++ b/drivers/block/hd.c
+@@ -696,11 +696,6 @@ static const struct block_device_operations hd_fops = {
+ };
+ 
+ /*
+- * This is the hard disk IRQ description. The IRQF_DISABLED in sa_flags
+- * means we run the IRQ-handler with interrupts disabled:  this is bad for
+- * interrupt latency, but anything else has led to problems on some
+- * machines.
+- *
+  * We enable interrupts in some of the routines after making sure it's
+  * safe.
+  */
+@@ -762,7 +757,7 @@ static int __init hd_init(void)
+ 			p->cyl, p->head, p->sect);
+ 	}
+ 
+-	if (request_irq(HD_IRQ, hd_interrupt, IRQF_DISABLED, "hd", NULL)) {
++	if (request_irq(HD_IRQ, hd_interrupt, 0, "hd", NULL)) {
+ 		printk("hd: unable to get IRQ%d for the hard disk driver\n",
+ 			HD_IRQ);
+ 		goto out1;
+diff --git a/drivers/block/mg_disk.c b/drivers/block/mg_disk.c
+index 76fa3de..3c80cba 100644
+--- a/drivers/block/mg_disk.c
++++ b/drivers/block/mg_disk.c
+@@ -930,7 +930,7 @@ static int mg_probe(struct platform_device *plat_dev)
+ 			goto probe_err_3b;
+ 		}
+ 		err = request_irq(host->irq, mg_irq,
+-				IRQF_DISABLED | IRQF_TRIGGER_RISING,
++				IRQF_TRIGGER_RISING,
+ 				MG_DEV_NAME, host);
+ 		if (err) {
+ 			printk(KERN_ERR "%s:%d fail (request_irq err=%d)\n",
 -- 
 1.7.4.1
 
