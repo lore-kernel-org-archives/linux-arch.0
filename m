@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:40391 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751164Ab1IVJAf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:00:35 -0400
+Received: from mail-ww0-f42.google.com ([74.125.82.42]:62601 "EHLO
+	mail-ww0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753215Ab1IVJHT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 05:07:19 -0400
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: [PATCH 06/55] frv: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 16:58:33 +0800
-Message-ID: <1316681962-8217-7-git-send-email-yong.zhang0@gmail.com>
+Subject: [PATCH 51/55] watchdog: irq: Remove IRQF_DISABLED
+Date: Thu, 22 Sep 2011 16:59:18 +0800
+Message-ID: <1316681962-8217-52-git-send-email-yong.zhang0@gmail.com>
 In-Reply-To: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: tglx@linutronix.de, yong.zhang0@gmail.com, David Howells <dhowells@redhat.com>, Torben Hohn <torbenh@gmx.de>
-Message-ID: <20110922085833.-60u3DggZZ026iolPI7M2NnSPW38plD5QNvd0687H94@z>
+Cc: tglx@linutronix.de, yong.zhang0@gmail.com, Linus Walleij <linus.walleij@stericsson.com>, Wim Van Sebroeck <wim@iguana.be>, linux-arm-kernel@lists.infradead.org, linux-watchdog@vger.kernel.org
+Message-ID: <20110922085918.nxBsTRV0vPAbCWx7iHarihpEWTL3TYrT4pJup08Lfz8@z>
 
 Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
 We run all interrupt handlers with interrupts disabled
@@ -24,92 +24,119 @@ genirq: Warn when handler enables interrupts]).
 So now this flag is a NOOP and can be removed.
 
 Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
-Acked-by: David Howells <dhowells@redhat.com>
+Acked-by: Wolfram Sang <w.sang@pengutronix.de>
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 ---
- arch/frv/kernel/irq-mb93091.c |    8 ++++----
- arch/frv/kernel/irq-mb93093.c |    1 -
- arch/frv/kernel/irq-mb93493.c |    4 ++--
- arch/frv/kernel/time.c        |    1 -
- 4 files changed, 6 insertions(+), 8 deletions(-)
+ drivers/watchdog/coh901327_wdt.c   |    2 +-
+ drivers/watchdog/eurotechwdt.c     |    2 +-
+ drivers/watchdog/mpcore_wdt.c      |    3 +--
+ drivers/watchdog/octeon-wdt-main.c |    2 +-
+ drivers/watchdog/sb_wdog.c         |    4 ++--
+ drivers/watchdog/wdt.c             |    2 +-
+ drivers/watchdog/wdt_pci.c         |    2 +-
+ 7 files changed, 8 insertions(+), 9 deletions(-)
 
-diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
-index 9afc2ea..f4dfc0b 100644
---- a/arch/frv/kernel/irq-mb93091.c
-+++ b/arch/frv/kernel/irq-mb93091.c
-@@ -108,25 +108,25 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
- static struct irqaction fpga_irq[4]  = {
- 	[0] = {
- 		.handler	= fpga_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "fpga.0",
- 		.dev_id		= (void *) 0x0028UL,
- 	},
- 	[1] = {
- 		.handler	= fpga_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "fpga.1",
- 		.dev_id		= (void *) 0x0050UL,
- 	},
- 	[2] = {
- 		.handler	= fpga_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "fpga.2",
- 		.dev_id		= (void *) 0x1c00UL,
- 	},
- 	[3] = {
- 		.handler	= fpga_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "fpga.3",
- 		.dev_id		= (void *) 0x6386UL,
- 	}
-diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
-index 4d4ad09..bac526d 100644
---- a/arch/frv/kernel/irq-mb93093.c
-+++ b/arch/frv/kernel/irq-mb93093.c
-@@ -106,7 +106,6 @@ static irqreturn_t fpga_interrupt(int irq, void *_mask)
- static struct irqaction fpga_irq[1]  = {
- 	[0] = {
- 		.handler	= fpga_interrupt,
--		.flags		= IRQF_DISABLED,
- 		.name		= "fpga.0",
- 		.dev_id		= (void *) 0x0700UL,
- 	}
-diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
-index 4d034c7..b632726 100644
---- a/arch/frv/kernel/irq-mb93493.c
-+++ b/arch/frv/kernel/irq-mb93493.c
-@@ -119,13 +119,13 @@ static irqreturn_t mb93493_interrupt(int irq, void *_piqsr)
- static struct irqaction mb93493_irq[2]  = {
- 	[0] = {
- 		.handler	= mb93493_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "mb93493.0",
- 		.dev_id		= (void *) __addr_MB93493_IQSR(0),
- 	},
- 	[1] = {
- 		.handler	= mb93493_interrupt,
--		.flags		= IRQF_DISABLED | IRQF_SHARED,
-+		.flags		= IRQF_SHARED,
- 		.name		= "mb93493.1",
- 		.dev_id		= (void *) __addr_MB93493_IQSR(1),
- 	}
-diff --git a/arch/frv/kernel/time.c b/arch/frv/kernel/time.c
-index b457de4..332e00b 100644
---- a/arch/frv/kernel/time.c
-+++ b/arch/frv/kernel/time.c
-@@ -44,7 +44,6 @@ static irqreturn_t timer_interrupt(int irq, void *dummy);
+diff --git a/drivers/watchdog/coh901327_wdt.c b/drivers/watchdog/coh901327_wdt.c
+index 9291506..03f449a 100644
+--- a/drivers/watchdog/coh901327_wdt.c
++++ b/drivers/watchdog/coh901327_wdt.c
+@@ -429,7 +429,7 @@ static int __init coh901327_probe(struct platform_device *pdev)
+ 	writew(U300_WDOG_SR_RESET_STATUS_RESET, virtbase + U300_WDOG_SR);
  
- static struct irqaction timer_irq  = {
- 	.handler = timer_interrupt,
--	.flags = IRQF_DISABLED,
- 	.name = "timer",
- };
+ 	irq = platform_get_irq(pdev, 0);
+-	if (request_irq(irq, coh901327_interrupt, IRQF_DISABLED,
++	if (request_irq(irq, coh901327_interrupt, 0,
+ 			DRV_NAME " Bark", pdev)) {
+ 		ret = -EIO;
+ 		goto out_no_irq;
+diff --git a/drivers/watchdog/eurotechwdt.c b/drivers/watchdog/eurotechwdt.c
+index f1d1da6..41018d4 100644
+--- a/drivers/watchdog/eurotechwdt.c
++++ b/drivers/watchdog/eurotechwdt.c
+@@ -427,7 +427,7 @@ static int __init eurwdt_init(void)
+ {
+ 	int ret;
  
+-	ret = request_irq(irq, eurwdt_interrupt, IRQF_DISABLED, "eurwdt", NULL);
++	ret = request_irq(irq, eurwdt_interrupt, 0, "eurwdt", NULL);
+ 	if (ret) {
+ 		printk(KERN_ERR "eurwdt: IRQ %d is not free.\n", irq);
+ 		goto out;
+diff --git a/drivers/watchdog/mpcore_wdt.c b/drivers/watchdog/mpcore_wdt.c
+index 4dc3102..82ccd36 100644
+--- a/drivers/watchdog/mpcore_wdt.c
++++ b/drivers/watchdog/mpcore_wdt.c
+@@ -367,8 +367,7 @@ static int __devinit mpcore_wdt_probe(struct platform_device *dev)
+ 		goto err_misc;
+ 	}
+ 
+-	ret = request_irq(wdt->irq, mpcore_wdt_fire, IRQF_DISABLED,
+-							"mpcore_wdt", wdt);
++	ret = request_irq(wdt->irq, mpcore_wdt_fire, 0, "mpcore_wdt", wdt);
+ 	if (ret) {
+ 		dev_printk(KERN_ERR, wdt->dev,
+ 			"cannot register IRQ%d for watchdog\n", wdt->irq);
+diff --git a/drivers/watchdog/octeon-wdt-main.c b/drivers/watchdog/octeon-wdt-main.c
+index 945ee83..6019087 100644
+--- a/drivers/watchdog/octeon-wdt-main.c
++++ b/drivers/watchdog/octeon-wdt-main.c
+@@ -402,7 +402,7 @@ static void octeon_wdt_setup_interrupt(int cpu)
+ 	irq = OCTEON_IRQ_WDOG0 + core;
+ 
+ 	if (request_irq(irq, octeon_wdt_poke_irq,
+-			IRQF_DISABLED, "octeon_wdt", octeon_wdt_poke_irq))
++			0, "octeon_wdt", octeon_wdt_poke_irq))
+ 		panic("octeon_wdt: Couldn't obtain irq %d", irq);
+ 
+ 	cpumask_set_cpu(cpu, &irq_enabled_cpus);
+diff --git a/drivers/watchdog/sb_wdog.c b/drivers/watchdog/sb_wdog.c
+index f31493e..b01a30e 100644
+--- a/drivers/watchdog/sb_wdog.c
++++ b/drivers/watchdog/sb_wdog.c
+@@ -300,7 +300,7 @@ static int __init sbwdog_init(void)
+ 	 * get the resources
+ 	 */
+ 
+-	ret = request_irq(1, sbwdog_interrupt, IRQF_DISABLED | IRQF_SHARED,
++	ret = request_irq(1, sbwdog_interrupt, IRQF_SHARED,
+ 		ident.identity, (void *)user_dog);
+ 	if (ret) {
+ 		printk(KERN_ERR "%s: failed to request irq 1 - %d\n",
+@@ -350,7 +350,7 @@ void platform_wd_setup(void)
+ {
+ 	int ret;
+ 
+-	ret = request_irq(1, sbwdog_interrupt, IRQF_DISABLED | IRQF_SHARED,
++	ret = request_irq(1, sbwdog_interrupt, IRQF_SHARED,
+ 		"Kernel Watchdog", IOADDR(A_SCD_WDOG_CFG_0));
+ 	if (ret) {
+ 		printk(KERN_CRIT
+diff --git a/drivers/watchdog/wdt.c b/drivers/watchdog/wdt.c
+index bb03e15..d2ef002 100644
+--- a/drivers/watchdog/wdt.c
++++ b/drivers/watchdog/wdt.c
+@@ -612,7 +612,7 @@ static int __init wdt_init(void)
+ 		goto out;
+ 	}
+ 
+-	ret = request_irq(irq, wdt_interrupt, IRQF_DISABLED, "wdt501p", NULL);
++	ret = request_irq(irq, wdt_interrupt, 0, "wdt501p", NULL);
+ 	if (ret) {
+ 		printk(KERN_ERR "wdt: IRQ %d is not free.\n", irq);
+ 		goto outreg;
+diff --git a/drivers/watchdog/wdt_pci.c b/drivers/watchdog/wdt_pci.c
+index 172dad6..e0fc3baa 100644
+--- a/drivers/watchdog/wdt_pci.c
++++ b/drivers/watchdog/wdt_pci.c
+@@ -643,7 +643,7 @@ static int __devinit wdtpci_init_one(struct pci_dev *dev,
+ 	irq = dev->irq;
+ 	io = pci_resource_start(dev, 2);
+ 
+-	if (request_irq(irq, wdtpci_interrupt, IRQF_DISABLED | IRQF_SHARED,
++	if (request_irq(irq, wdtpci_interrupt, IRQF_SHARED,
+ 			 "wdt_pci", &wdtpci_miscdev)) {
+ 		printk(KERN_ERR PFX "IRQ %d is not free\n", irq);
+ 		goto out_reg;
 -- 
 1.7.4.1
 
