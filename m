@@ -1,58 +1,72 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH 19/55] um: irq: Remove IRQF_DISABLED
-Date: Thu, 22 Sep 2011 12:46:33 +0200
-Message-ID: <4E7B1209.3000405@nod.at>
-References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com> <1316681962-8217-20-git-send-email-yong.zhang0@gmail.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCH 6/7] common: dma-mapping: change alloc/free_coherent	method
+ to more generic alloc/free_attrs
+Date: Thu, 22 Sep 2011 16:00:28 +0200
+Message-ID: <006301cc792f$fc3a3a40$f4aeaec0$%szyprowski@samsung.com>
+References: <1314971599-14428-1-git-send-email-m.szyprowski@samsung.com>
+ <1314971599-14428-7-git-send-email-m.szyprowski@samsung.com>
+ <20110905104352.GD5203@8bytes.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="------------enigCD7C5D6E0CD757D1FCB585B8"
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:43682 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752819Ab1IVKqn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Sep 2011 06:46:43 -0400
-In-Reply-To: <1316681962-8217-20-git-send-email-yong.zhang0@gmail.com>
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:65186 "EHLO
+	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751735Ab1IVOAk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 10:00:40 -0400
+Received: from euspt1 (mailout1.w1.samsung.com [210.118.77.11])
+ by mailout1.w1.samsung.com
+ (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
+ with ESMTP id <0LRX005UAG91CX@mailout1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 22 Sep 2011 15:00:37 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0LRX00E63G90C7@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 22 Sep 2011 15:00:37 +0100 (BST)
+In-reply-to: <20110905104352.GD5203@8bytes.org>
+Content-language: pl
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, Jeff Dike <jdike@addtoit.com>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Will Newton <will.newton@gmail.com>, WANG Cong <xiyou.wangcong@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "David S. Miller" <davem@davemloft.net>, Boaz Harrosh <bharrosh@panasas.com>, Jiri Pirko <jpirko@redhat.com>, Jens Axboe <jaxboe@fusionio.com>, Tejun Heo <tj@kernel.org>, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net
+To: 'Joerg Roedel' <joro@8bytes.org>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
 
-This is an OpenPGP/MIME signed message (RFC 2440 and 3156)
---------------enigCD7C5D6E0CD757D1FCB585B8
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: quoted-printable
+Hello,
 
-Am 22.09.2011 10:58, schrieb Yong Zhang:
-> Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabl=
-ed],
-> We run all interrupt handlers with interrupts disabled
-> and we even check and yell when an interrupt handler
-> returns with interrupts enabled (see commit [b738a50a:
-> genirq: Warn when handler enables interrupts]).
->=20
-> So now this flag is a NOOP and can be removed.
->=20
-> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+On Monday, September 05, 2011 12:44 PM Joerg Roedel wrote:
 
-Acked-by: Richard Weinberger <richard@nod.at>
+> On Fri, Sep 02, 2011 at 03:53:18PM +0200, Marek Szyprowski wrote:
+> >  struct dma_map_ops {
+> > -	void* (*alloc_coherent)(struct device *dev, size_t size,
+> > -				dma_addr_t *dma_handle, gfp_t gfp);
+> > -	void (*free_coherent)(struct device *dev, size_t size,
+> > -			      void *vaddr, dma_addr_t dma_handle);
+> > +	void* (*alloc)(struct device *dev, size_t size,
+> > +				dma_addr_t *dma_handle, gfp_t gfp,
+> > +				struct dma_attrs *attrs);
+> > +	void (*free)(struct device *dev, size_t size,
+> > +			      void *vaddr, dma_addr_t dma_handle,
+> > +			      struct dma_attrs *attrs);
+> > +	int (*mmap)(struct device *, struct vm_area_struct *,
+> > +			  void *, dma_addr_t, size_t, struct dma_attrs *attrs);
+> > +
+> >  	dma_addr_t (*map_page)(struct device *dev, struct page *page,
+> >  			       unsigned long offset, size_t size,
+> >  			       enum dma_data_direction dir,
+> > --
+> > 1.7.1.569.g6f426
+> 
+> This needs conversion of all drivers implementing dma_map_ops or you
+> will break a lot of architectures. A better approach is to keep
+> *_coherent and implement alloc/free/mmap side-by-side until all drivers
+> are converted.
+> Also I miss some documentation about the new call-backs.
 
+Right this patch will break all other architectures, however it was just 
+a snapshot of my work-in-progress. Converting all other architectures from
+alloc_coherent to alloc with NULL attribute shouldn't be really hard and will
+be added in the final version - together with documentation.
 
---------------enigCD7C5D6E0CD757D1FCB585B8
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.16 (GNU/Linux)
-
-iQEcBAEBAgAGBQJOexIJAAoJEN9758yqZn9eHV0IAMflEqTvHKFm2orgjCmVNvBz
-CFoVsLZbck1UMVmBhE+gcbT473A1aMUPsyXFVggCOjEvdHeaXwKp6jEAS8GeuMEN
-KWJiKnJ/D6i01FrnDCxWTMDFcqEfJbHO12eCo7UrXnLC/PmglcBR596BBRnp7Vnt
-W83v3ssMd4iL6hqz0V/4dI1TmAK6otRUTn8KjZ22lxY69QgtoAVSSh0jJQmazctO
-QtwOFe/V12/NtmUUw0s2Azc2yPKKEfW0nGK7MU0sommsWDDNwAzBuI8lfNNW3LAK
-6q5JSnoHYGPdJIhZPlid5mzNe4WiP4PLSsC4MG+p1a2UMZK9lGOuq0aYtkQLXgg=
-=cPjO
------END PGP SIGNATURE-----
-
---------------enigCD7C5D6E0CD757D1FCB585B8--
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
