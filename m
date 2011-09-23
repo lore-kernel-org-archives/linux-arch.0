@@ -1,44 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wy0-f174.google.com ([74.125.82.174]:43319 "EHLO
-	mail-wy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754657Ab1IWBsi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Sep 2011 21:48:38 -0400
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:56523 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753850Ab1IWRNR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Sep 2011 13:13:17 -0400
+Date: Fri, 23 Sep 2011 12:13:00 -0500
+From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
+Subject: Device trees and systems-on-a-chip
+Message-ID: <20110923171300.GA15815@codeaurora.org>
 MIME-Version: 1.0
-In-Reply-To: <20110923014002.GA21500@zhy>
-References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
-	<1316681962-8217-34-git-send-email-yong.zhang0@gmail.com>
-	<CAL1RGDWoNpFyTi5PaA8sfsEts4GLm_LzPC+tTmu6EPbkndx=NQ@mail.gmail.com>
-	<20110923014002.GA21500@zhy>
-Date: Fri, 23 Sep 2011 09:48:37 +0800
-Message-ID: <CAM2zO=DEdkoXwKkE1QrT162R9c6CAjhn7QBpMxw0PocZqjPuvA@mail.gmail.com>
-Subject: Re: [PATCH 33/55] infiniband: irq: Remove IRQF_DISABLED
-From: Yong Zhang <yong.zhang0@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland Dreier <roland@kernel.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org
-Message-ID: <20110923014837.q9-7zqMY-eYUsVdZRUPOV2Sh-JNLifDOX2ilb3FJGCA@z>
-
-On Fri, Sep 23, 2011 at 9:40 AM, Yong Zhang <yong.zhang0@gmail.com> wrote:
-> On Thu, Sep 22, 2011 at 09:56:07AM -0700, Roland Dreier wrote:
->> Is someone taking this whole series, or should I take the ehca part?
->
-> You could take it and Thomas will take the leftovers.
->
->> (I know the ehca guys already acked this)
->
-> Yeah, so I mentioned it in the cover letter :)
-
-Seems I still don't wake up yet. Sorry for my misreading.
-
-So like I said above, you could take it if you want to.
-Otherwise Thomas will take it.
-
-Thanks,
-Yong
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+Message-ID: <20110923171300.Fox90E3tiFljZotEj3L5CFV-uO_9TYSiAbR8S1cU26w@z>
 
 
+Arnd,
+
+Here:  http://lwn.net/Articles/457635/  you say:  "If the device tree
+vision comes true, a single board will actually be able to use the
+same device tree binary on either one, independent of which CPU
+actually runs the kernel."
+
+In my case, the hexagon and the arm cores will perceive the same
+devices at different addresses; there are also devices attached to one
+core that aren't attached to the other.  So either we have two DT's,
+one for each core, or we have one DT with subsections for each core.    
+
+I haven't yet looked to see how the DT's are being designed, but I have
+this sneaking suspicion that the second alternative is not being
+pursued ...
+
+--linas
 
 -- 
-Only stand for myself
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
