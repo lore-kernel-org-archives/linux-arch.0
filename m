@@ -1,35 +1,25 @@
-From: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Subject: Device trees and systems-on-a-chip
-Date: Fri, 23 Sep 2011 12:13:00 -0500
-Message-ID: <20110923171300.GA15815@codeaurora.org>
+From: Roland Dreier <roland@kernel.org>
+Subject: Re: [PATCH 33/55] infiniband: irq: Remove IRQF_DISABLED
+Date: Fri, 23 Sep 2011 11:09:16 -0700
+Message-ID: <CAL1RGDWM_My2zgh41pbOo5-iZahveOFQ6gMvMr_X8E-Jrm0xdA@mail.gmail.com>
+References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
+ <1316681962-8217-34-git-send-email-yong.zhang0@gmail.com> <CAL1RGDWoNpFyTi5PaA8sfsEts4GLm_LzPC+tTmu6EPbkndx=NQ@mail.gmail.com>
+ <20110923014002.GA21500@zhy> <CAM2zO=DEdkoXwKkE1QrT162R9c6CAjhn7QBpMxw0PocZqjPuvA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-Content-Disposition: inline
-Sender: linux-hexagon-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from na3sys010aog113.obsmtp.com ([74.125.245.94]:37605 "HELO
+	na3sys010aog113.obsmtp.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1750736Ab1IWSJi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 23 Sep 2011 14:09:38 -0400
+In-Reply-To: <CAM2zO=DEdkoXwKkE1QrT162R9c6CAjhn7QBpMxw0PocZqjPuvA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, Hoang-Nam Nguyen <hnguyen@de.ibm.com>, Christoph Raisch <raisch@de.ibm.com>, Sean Hefty <sean.hefty@intel.com>, Hal Rosenstock <hal.rosenstock@gmail.com>, linux-rdma@vger.kernel.org
 
+On Thu, Sep 22, 2011 at 6:48 PM, Yong Zhang <yong.zhang0@gmail.com> wrote:
+> So like I said above, you could take it if you want to.
 
-Arnd,
-
-Here:  http://lwn.net/Articles/457635/  you say:  "If the device tree
-vision comes true, a single board will actually be able to use the
-same device tree binary on either one, independent of which CPU
-actually runs the kernel."
-
-In my case, the hexagon and the arm cores will perceive the same
-devices at different addresses; there are also devices attached to one
-core that aren't attached to the other.  So either we have two DT's,
-one for each core, or we have one DT with subsections for each core.    
-
-I haven't yet looked to see how the DT's are being designed, but I have
-this sneaking suspicion that the second alternative is not being
-pursued ...
-
---linas
-
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Great, I queued this up for 3.2, thanks.
