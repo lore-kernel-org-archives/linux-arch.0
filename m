@@ -1,39 +1,71 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: Device trees and systems-on-a-chip
-Date: Fri, 23 Sep 2011 22:56:18 +0200
-Message-ID: <1420112.d5BXaqWxOG@wuerfel>
-References: <20110923171300.GA15815@codeaurora.org>
+From: Thomas Meyer <thomas@m3y3r.de>
+Subject: [PATCH] sys_poll: Fix negative timeout values for x86 userland on
+ x86_64 kernels
+Date: Sat, 24 Sep 2011 10:31:01 +0200
+Message-ID: <1316853066.1696.2.camel@localhost.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20110923171300.GA15815@codeaurora.org>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: "Linas Vepstas (Code Aurora)" <linas@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, stable@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Friday 23 September 2011 12:13:00 Linas Vepstas wrote:
-> Here:  http://lwn.net/Articles/457635/  you say:  "If the device tree
-> vision comes true, a single board will actually be able to use the
-> same device tree binary on either one, independent of which CPU
-> actually runs the kernel."
-> 
-> In my case, the hexagon and the arm cores will perceive the same
-> devices at different addresses; there are also devices attached to one
-> core that aren't attached to the other.  So either we have two DT's,
-> one for each core, or we have one DT with subsections for each core.    
-> 
-> I haven't yet looked to see how the DT's are being designed, but I have
-> this sneaking suspicion that the second alternative is not being
-> pursued ...
+size of 'long' differs on x86 and x86_64. the ia32 emulation calls
+directly into the sys_poll() function. when the timeout is set to a negative
+value the test for sign will fail in sys_poll as the 64bit register is tested.
+the timeout timer will be set to very high value, because of the sign bit.
+this is an error as the timer shouldn't get set at all for negative timeout values.
 
-Hi Linas,
+Signed-off-by: Thomas Meyer <thomas@m3y3r.de>
+---
+ arch/x86/ia32/ia32entry.S |    2 +-
+ fs/compat.c               |    6 ++++++
+ include/linux/compat.h    |    2 ++
+ 3 files changed, 9 insertions(+), 1 deletions(-)
 
-You can have .dtsi include files that describe the common parts and
-just put the child buses at different addresses or leave them out
-from a main .dts source file.
-I think it should all work out. If not, there is still the option
-of adding features to dtc to allow what you need.
-
-	Arnd
+diff --git a/arch/x86/ia32/ia32entry.S b/arch/x86/ia32/ia32entry.S
+index 54edb207..30f4116 100644
+--- a/arch/x86/ia32/ia32entry.S
++++ b/arch/x86/ia32/ia32entry.S
+@@ -671,7 +671,7 @@ ia32_sys_call_table:
+ 	.quad sys_getresuid16	/* 165 */
+ 	.quad sys32_vm86_warning	/* vm86 */ 
+ 	.quad quiet_ni_syscall	/* query_module */
+-	.quad sys_poll
++	.quad compat_sys_poll
+ 	.quad quiet_ni_syscall /* old nfsservctl */
+ 	.quad sys_setresgid16	/* 170 */
+ 	.quad sys_getresgid16
+diff --git a/fs/compat.c b/fs/compat.c
+index 58b1da4..232675e 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1550,6 +1550,12 @@ asmlinkage long compat_sys_old_select(struct compat_sel_arg_struct __user *arg)
+ 				 compat_ptr(a.exp), compat_ptr(a.tvp));
+ }
+ 
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++				int timeout)
++{
++	return sys_poll(ufds, nfds, timeout);
++}
++
+ #ifdef HAVE_SET_RESTORE_SIGMASK
+ static long do_compat_pselect(int n, compat_ulong_t __user *inp,
+ 	compat_ulong_t __user *outp, compat_ulong_t __user *exp,
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c6e7523..3bfb30a 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -433,6 +433,8 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
+ 				    compat_ulong_t __user *exp,
+ 				    struct compat_timespec __user *tsp,
+ 				    void __user *sig);
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++				int timeout);
+ asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
+ 				 unsigned int nfds,
+ 				 struct compat_timespec __user *tsp,
+-- 
+1.7.6.2
