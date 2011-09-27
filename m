@@ -1,42 +1,910 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16256 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39484 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753414Ab1I0Uad (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Sep 2011 16:30:33 -0400
+	id S1753413Ab1I0Uab (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Sep 2011 16:30:31 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 23/24] C6X: DSCR - Device State Configuration Registers
-Date: Tue, 27 Sep 2011 16:30:04 -0400
-Message-ID: <1317155405-26235-24-git-send-email-msalter@redhat.com>
+Subject: [PATCH v3 19/24] C6X: headers
+Date: Tue, 27 Sep 2011 16:30:00 -0400
+Message-ID: <1317155405-26235-20-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20110927203004.KN8yWhNxA1QRL4F7h4DCDXTsqrGZIWIXFDz5TMt_8b4@z>
-
-All SoCs provide an area of device configuration registers called the DSCR. The
-location of specific registers as well as their use varies considerably from
-implementation to implementation. Rather than having to rely on additional
-SoC-specific DSCR code for each new supported SoC, this code generalize things
-as much as possible using device tree properties. Initialization must take
-place early on (setup_arch time) in case the event timer device needs to be
-enable via the DSCR.
+Message-ID: <20110927203000.S0QU_Og-uwqpuZUgj0zsWMtes3hItmXpNETDiMnSBmI@z>
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/dscr.h |   34 +++
- arch/c6x/platforms/dscr.c   |  598 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 632 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/dscr.h
- create mode 100644 arch/c6x/platforms/dscr.c
+ arch/c6x/include/asm/asm-offsets.h |    1 +
+ arch/c6x/include/asm/bitops.h      |  105 +++++++++++++
+ arch/c6x/include/asm/byteorder.h   |   12 ++
+ arch/c6x/include/asm/delay.h       |   67 +++++++++
+ arch/c6x/include/asm/elf.h         |  113 ++++++++++++++
+ arch/c6x/include/asm/ftrace.h      |    6 +
+ arch/c6x/include/asm/linkage.h     |   30 ++++
+ arch/c6x/include/asm/memblock.h    |    4 +
+ arch/c6x/include/asm/mmu.h         |   18 +++
+ arch/c6x/include/asm/mutex.h       |    6 +
+ arch/c6x/include/asm/page.h        |   11 ++
+ arch/c6x/include/asm/pgtable.h     |   81 ++++++++++
+ arch/c6x/include/asm/procinfo.h    |   28 ++++
+ arch/c6x/include/asm/prom.h        |    1 +
+ arch/c6x/include/asm/sections.h    |   12 ++
+ arch/c6x/include/asm/setup.h       |   32 ++++
+ arch/c6x/include/asm/string.h      |   21 +++
+ arch/c6x/include/asm/system.h      |  168 +++++++++++++++++++++
+ arch/c6x/include/asm/tlb.h         |    8 +
+ arch/c6x/include/asm/uaccess.h     |  107 +++++++++++++
+ arch/c6x/include/asm/unaligned.h   |  288 ++++++++++++++++++++++++++++++++++++
+ 21 files changed, 1119 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/asm-offsets.h
+ create mode 100644 arch/c6x/include/asm/bitops.h
+ create mode 100644 arch/c6x/include/asm/byteorder.h
+ create mode 100644 arch/c6x/include/asm/delay.h
+ create mode 100644 arch/c6x/include/asm/elf.h
+ create mode 100644 arch/c6x/include/asm/ftrace.h
+ create mode 100644 arch/c6x/include/asm/linkage.h
+ create mode 100644 arch/c6x/include/asm/memblock.h
+ create mode 100644 arch/c6x/include/asm/mmu.h
+ create mode 100644 arch/c6x/include/asm/mutex.h
+ create mode 100644 arch/c6x/include/asm/page.h
+ create mode 100644 arch/c6x/include/asm/pgtable.h
+ create mode 100644 arch/c6x/include/asm/procinfo.h
+ create mode 100644 arch/c6x/include/asm/prom.h
+ create mode 100644 arch/c6x/include/asm/sections.h
+ create mode 100644 arch/c6x/include/asm/setup.h
+ create mode 100644 arch/c6x/include/asm/string.h
+ create mode 100644 arch/c6x/include/asm/system.h
+ create mode 100644 arch/c6x/include/asm/tlb.h
+ create mode 100644 arch/c6x/include/asm/uaccess.h
+ create mode 100644 arch/c6x/include/asm/unaligned.h
 
-diff --git a/arch/c6x/include/asm/dscr.h b/arch/c6x/include/asm/dscr.h
+diff --git a/arch/c6x/include/asm/asm-offsets.h b/arch/c6x/include/asm/asm-offsets.h
 new file mode 100644
-index 0000000..561ba83
+index 0000000..d370ee3
 --- /dev/null
-+++ b/arch/c6x/include/asm/dscr.h
-@@ -0,0 +1,34 @@
++++ b/arch/c6x/include/asm/asm-offsets.h
+@@ -0,0 +1 @@
++#include <generated/asm-offsets.h>
+diff --git a/arch/c6x/include/asm/bitops.h b/arch/c6x/include/asm/bitops.h
+new file mode 100644
+index 0000000..39ab7e8
+--- /dev/null
++++ b/arch/c6x/include/asm/bitops.h
+@@ -0,0 +1,105 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_BITOPS_H
++#define _ASM_C6X_BITOPS_H
++
++#ifdef __KERNEL__
++
++#include <linux/bitops.h>
++
++#include <asm/system.h>
++#include <asm/byteorder.h>
++
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit() barrier()
++#define smp_mb__after_clear_bit()  barrier()
++
++/*
++ * We are lucky, DSP is perfect for bitops: do it in 3 cycles
++ */
++
++/**
++ * __ffs - find first bit in word.
++ * @word: The word to search
++ *
++ * Undefined if no bit exists, so code should check against 0 first.
++ * Note __ffs(0) = undef, __ffs(1) = 0, __ffs(0x80000000) = 31.
++ *
++ */
++static inline unsigned long __ffs(unsigned long x)
++{
++	asm (" bitr  .M1  %0,%0\n"
++	     " nop\n"
++	     " lmbd  .L1  1,%0,%0\n"
++	     : "+a"(x));
++
++	return x;
++}
++
++/*
++ * ffz - find first zero in word.
++ * @word: The word to search
++ *
++ * Undefined if no zero exists, so code should check against ~0UL first.
++ */
++#define ffz(x) __ffs(~(x))
++
++/**
++ * fls - find last (most-significant) bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as ffs.
++ * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
++ */
++static inline int fls(int x)
++{
++	if (!x)
++		return 0;
++
++	asm (" lmbd  .L1  1,%0,%0\n" : "+a"(x));
++
++	return 32 - x;
++}
++
++/**
++ * ffs - find first bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as
++ * the libc and compiler builtin ffs routines, therefore
++ * differs in spirit from the above ffz (man ffs).
++ * Note ffs(0) = 0, ffs(1) = 1, ffs(0x80000000) = 32.
++ */
++static inline int ffs(int x)
++{
++	if (!x)
++		return 0;
++
++	return __ffs(x) + 1;
++}
++
++#include <asm-generic/bitops/__fls.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++
++#include <asm-generic/bitops/atomic.h>
++#include <asm-generic/bitops/non-atomic.h>
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++
++#endif /* __KERNEL__ */
++#endif /* _ASM_C6X_BITOPS_H */
+diff --git a/arch/c6x/include/asm/byteorder.h b/arch/c6x/include/asm/byteorder.h
+new file mode 100644
+index 0000000..166038d
+--- /dev/null
++++ b/arch/c6x/include/asm/byteorder.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_C6X_BYTEORDER_H
++#define _ASM_C6X_BYTEORDER_H
++
++#include <asm/types.h>
++
++#ifdef _BIG_ENDIAN
++#include <linux/byteorder/big_endian.h>
++#else /* _BIG_ENDIAN */
++#include <linux/byteorder/little_endian.h>
++#endif /* _BIG_ENDIAN */
++
++#endif /* _ASM_BYTEORDER_H */
+diff --git a/arch/c6x/include/asm/delay.h b/arch/c6x/include/asm/delay.h
+new file mode 100644
+index 0000000..f314c2e
+--- /dev/null
++++ b/arch/c6x/include/asm/delay.h
+@@ -0,0 +1,67 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_DELAY_H
++#define _ASM_C6X_DELAY_H
++
++#include <linux/kernel.h>
++
++extern unsigned int ticks_per_ns_scaled;
++
++static inline void __delay(unsigned long loops)
++{
++	uint32_t tmp;
++
++	/* 6 cycles per loop */
++	asm volatile ("        mv    .s1  %0,%1\n"
++		      "0: [%1] b     .s1  0b\n"
++		      "        add   .l1  -6,%0,%0\n"
++		      "        cmplt .l1  1,%0,%1\n"
++		      "        nop   3\n"
++		      : "+a"(loops), "=A"(tmp));
++}
++
++static inline void _c6x_tickdelay(unsigned int x)
++{
++	uint32_t cnt, endcnt;
++
++	asm volatile ("        mvc   .s2   TSCL,%0\n"
++		      "        add   .s2x  %0,%1,%2\n"
++		      " ||     mvk   .l2   1,B0\n"
++		      "0: [B0] b     .s2   0b\n"
++		      "        mvc   .s2   TSCL,%0\n"
++		      "        sub   .s2   %0,%2,%0\n"
++		      "        cmpgt .l2   0,%0,B0\n"
++		      "        nop   2\n"
++		      : "=b"(cnt), "+a"(x), "=b"(endcnt) : : "B0");
++}
++
++/* use scaled math to avoid slow division */
++#define C6X_NDELAY_SCALE 10
++
++static inline void _ndelay(unsigned int n)
++{
++	_c6x_tickdelay((ticks_per_ns_scaled * n) >> C6X_NDELAY_SCALE);
++}
++
++static inline void _udelay(unsigned int n)
++{
++	while (n >= 10) {
++		_ndelay(10000);
++		n -= 10;
++	}
++	while (n-- > 0)
++		_ndelay(1000);
++}
++
++#define udelay(x) _udelay((unsigned int)(x))
++#define ndelay(x) _ndelay((unsigned int)(x))
++
++#endif /* _ASM_C6X_DELAY_H */
+diff --git a/arch/c6x/include/asm/elf.h b/arch/c6x/include/asm/elf.h
+new file mode 100644
+index 0000000..d57865b
+--- /dev/null
++++ b/arch/c6x/include/asm/elf.h
+@@ -0,0 +1,113 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_ELF_H
++#define _ASM_C6X_ELF_H
++
++/*
++ * ELF register definitions..
++ */
++#include <asm/ptrace.h>
++
++typedef unsigned long elf_greg_t;
++typedef unsigned long elf_fpreg_t;
++
++#define ELF_NGREG  58
++#define ELF_NFPREG 1
++
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) ((x)->e_machine == EM_TI_C6000)
++
++#define elf_check_const_displacement(x) (1)
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#ifdef __LITTLE_ENDIAN__
++#define ELF_DATA	ELFDATA2LSB
++#else
++#define ELF_DATA	ELFDATA2MSB
++#endif
++
++#define ELF_CLASS	ELFCLASS32
++#define ELF_ARCH	EM_TI_C6000
++
++/* Nothing for now. Need to setup DP... */
++#define ELF_PLAT_INIT(_r)
++
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE	4096
++
++#define ELF_CORE_COPY_REGS(_dest, _regs)		\
++	memcpy((char *) &_dest, (char *) _regs,		\
++	sizeof(struct pt_regs));
++
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  */
++
++#define ELF_HWCAP	(0)
++
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.  */
++
++#define ELF_PLATFORM  (NULL)
++
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
++
++/* C6X specific section types */
++#define SHT_C6000_UNWIND	0x70000001
++#define SHT_C6000_PREEMPTMAP	0x70000002
++#define SHT_C6000_ATTRIBUTES	0x70000003
++
++/* C6X specific DT_ tags */
++#define DT_C6000_DSBT_BASE	0x70000000
++#define DT_C6000_DSBT_SIZE	0x70000001
++#define DT_C6000_PREEMPTMAP	0x70000002
++#define DT_C6000_DSBT_INDEX	0x70000003
++
++/* C6X specific relocs */
++#define R_C6000_NONE		0
++#define R_C6000_ABS32		1
++#define R_C6000_ABS16		2
++#define R_C6000_ABS8		3
++#define R_C6000_PCR_S21		4
++#define R_C6000_PCR_S12		5
++#define R_C6000_PCR_S10		6
++#define R_C6000_PCR_S7		7
++#define R_C6000_ABS_S16		8
++#define R_C6000_ABS_L16		9
++#define R_C6000_ABS_H16		10
++#define R_C6000_SBR_U15_B	11
++#define R_C6000_SBR_U15_H	12
++#define R_C6000_SBR_U15_W	13
++#define R_C6000_SBR_S16		14
++#define R_C6000_SBR_L16_B	15
++#define R_C6000_SBR_L16_H	16
++#define R_C6000_SBR_L16_W	17
++#define R_C6000_SBR_H16_B	18
++#define R_C6000_SBR_H16_H	19
++#define R_C6000_SBR_H16_W	20
++#define R_C6000_SBR_GOT_U15_W	21
++#define R_C6000_SBR_GOT_L16_W	22
++#define R_C6000_SBR_GOT_H16_W	23
++#define R_C6000_DSBT_INDEX	24
++#define R_C6000_PREL31		25
++#define R_C6000_COPY		26
++#define R_C6000_ALIGN		253
++#define R_C6000_FPHEAD		254
++#define R_C6000_NOCMP		255
++
++#endif /*_ASM_C6X_ELF_H */
+diff --git a/arch/c6x/include/asm/ftrace.h b/arch/c6x/include/asm/ftrace.h
+new file mode 100644
+index 0000000..3701958
+--- /dev/null
++++ b/arch/c6x/include/asm/ftrace.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_FTRACE_H
++#define _ASM_C6X_FTRACE_H
++
++/* empty */
++
++#endif /* _ASM_C6X_FTRACE_H */
+diff --git a/arch/c6x/include/asm/linkage.h b/arch/c6x/include/asm/linkage.h
+new file mode 100644
+index 0000000..376925c
+--- /dev/null
++++ b/arch/c6x/include/asm/linkage.h
+@@ -0,0 +1,30 @@
++#ifndef _ASM_C6X_LINKAGE_H
++#define _ASM_C6X_LINKAGE_H
++
++#ifdef __ASSEMBLER__
++
++#define __ALIGN		.align 2
++#define __ALIGN_STR	".align 2"
++
++#ifndef __DSBT__
++#define ENTRY(name)		\
++	.global name @		\
++	__ALIGN @		\
++name:
++#else
++#define ENTRY(name)		\
++	.global name @		\
++	.hidden name @		\
++	__ALIGN @		\
++name:
++#endif
++
++#define ENDPROC(name)		\
++	.type name, @function @	\
++	.size name, . - name
++
++#endif
++
++#include <asm-generic/linkage.h>
++
++#endif /* _ASM_C6X_LINKAGE_H */
+diff --git a/arch/c6x/include/asm/memblock.h b/arch/c6x/include/asm/memblock.h
+new file mode 100644
+index 0000000..1181a97
+--- /dev/null
++++ b/arch/c6x/include/asm/memblock.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_C6X_MEMBLOCK_H
++#define _ASM_C6X_MEMBLOCK_H
++
++#endif /* _ASM_C6X_MEMBLOCK_H */
+diff --git a/arch/c6x/include/asm/mmu.h b/arch/c6x/include/asm/mmu.h
+new file mode 100644
+index 0000000..41592bf
+--- /dev/null
++++ b/arch/c6x/include/asm/mmu.h
+@@ -0,0 +1,18 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_MMU_H
++#define _ASM_C6X_MMU_H
++
++typedef struct {
++	unsigned long		end_brk;
++} mm_context_t;
++
++#endif /* _ASM_C6X_MMU_H */
+diff --git a/arch/c6x/include/asm/mutex.h b/arch/c6x/include/asm/mutex.h
+new file mode 100644
+index 0000000..7a7248e
+--- /dev/null
++++ b/arch/c6x/include/asm/mutex.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_MUTEX_H
++#define _ASM_C6X_MUTEX_H
++
++#include <asm-generic/mutex-null.h>
++
++#endif /* _ASM_C6X_MUTEX_H */
+diff --git a/arch/c6x/include/asm/page.h b/arch/c6x/include/asm/page.h
+new file mode 100644
+index 0000000..d18e2b0
+--- /dev/null
++++ b/arch/c6x/include/asm/page.h
+@@ -0,0 +1,11 @@
++#ifndef _ASM_C6X_PAGE_H
++#define _ASM_C6X_PAGE_H
++
++#define VM_DATA_DEFAULT_FLAGS \
++	(VM_READ | VM_WRITE | \
++	((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
++		 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++#include <asm-generic/page.h>
++
++#endif /* _ASM_C6X_PAGE_H */
+diff --git a/arch/c6x/include/asm/pgtable.h b/arch/c6x/include/asm/pgtable.h
+new file mode 100644
+index 0000000..68c8af4
+--- /dev/null
++++ b/arch/c6x/include/asm/pgtable.h
+@@ -0,0 +1,81 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_PGTABLE_H
++#define _ASM_C6X_PGTABLE_H
++
++#include <asm-generic/4level-fixup.h>
++
++#include <asm/setup.h>
++#include <asm/page.h>
++
++/*
++ * All 32bit addresses are effectively valid for vmalloc...
++ * Sort of meaningless for non-VM targets.
++ */
++#define	VMALLOC_START	0
++#define	VMALLOC_END	0xffffffff
++
++#define pgd_present(pgd)	(1)
++#define pgd_none(pgd)		(0)
++#define pgd_bad(pgd)		(0)
++#define pgd_clear(pgdp)
++#define kern_addr_valid(addr) (1)
++
++#define pmd_offset(a, b)	((void *)0)
++#define pmd_none(x)		(!pmd_val(x))
++#define pmd_present(x)		(pmd_val(x))
++#define pmd_clear(xp)		do { set_pmd(xp, __pmd(0)); } while (0)
++#define pmd_bad(x)		(pmd_val(x) & ~PAGE_MASK)
++
++#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_READONLY	        __pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
++#define pgprot_noncached(prot)	(prot)
++
++extern void paging_init(void);
++
++#define __swp_type(x)		(0)
++#define __swp_offset(x)		(0)
++#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++
++static inline int pte_file(pte_t pte)
++{
++	return 0;
++}
++
++#define set_pte(pteptr, pteval) (*(pteptr) = pteval)
++#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero: used
++ * for zero-mapped memory areas etc..
++ */
++#define ZERO_PAGE(vaddr)	virt_to_page(empty_zero_page)
++extern unsigned long empty_zero_page;
++
++#define swapper_pg_dir ((pgd_t *) 0)
++
++/*
++ * No page table caches to initialise
++ */
++#define pgtable_cache_init()   do { } while (0)
++#define io_remap_pfn_range      remap_pfn_range
++
++#define io_remap_page_range(vma, vaddr, paddr, size, prot)		\
++		remap_pfn_range(vma, vaddr, (paddr) >> PAGE_SHIFT, size, prot)
++
++#include <asm-generic/pgtable.h>
++
++#endif /* _ASM_C6X_PGTABLE_H */
+diff --git a/arch/c6x/include/asm/procinfo.h b/arch/c6x/include/asm/procinfo.h
+new file mode 100644
+index 0000000..c139d1e
+--- /dev/null
++++ b/arch/c6x/include/asm/procinfo.h
+@@ -0,0 +1,28 @@
++/*
++ *  Copyright (C) 2010 Texas Instruments Incorporated
++ *  Author: Mark Salter (msalter@redhat.com)
++ *
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_PROCINFO_H
++#define _ASM_C6X_PROCINFO_H
++
++#ifdef __KERNEL__
++
++struct proc_info_list {
++	unsigned int		cpu_val;
++	unsigned int		cpu_mask;
++	const char		*arch_name;
++	const char		*elf_name;
++	unsigned int		elf_hwcap;
++};
++
++#else	/* __KERNEL__ */
++#include <asm/elf.h>
++#warning "Please include asm/elf.h instead"
++#endif	/* __KERNEL__ */
++
++#endif	/* _ASM_C6X_PROCINFO_H */
+diff --git a/arch/c6x/include/asm/prom.h b/arch/c6x/include/asm/prom.h
+new file mode 100644
+index 0000000..b4ec95f
+--- /dev/null
++++ b/arch/c6x/include/asm/prom.h
+@@ -0,0 +1 @@
++/* dummy prom.h; here to make linux/of.h's #includes happy */
+diff --git a/arch/c6x/include/asm/sections.h b/arch/c6x/include/asm/sections.h
+new file mode 100644
+index 0000000..f703989
+--- /dev/null
++++ b/arch/c6x/include/asm/sections.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_C6X_SECTIONS_H
++#define _ASM_C6X_SECTIONS_H
++
++#include <asm-generic/sections.h>
++
++extern char _vectors_start[];
++extern char _vectors_end[];
++
++extern char _data_lma[];
++extern char _fdt_start[], _fdt_end[];
++
++#endif /* _ASM_C6X_SECTIONS_H */
+diff --git a/arch/c6x/include/asm/setup.h b/arch/c6x/include/asm/setup.h
+new file mode 100644
+index 0000000..1808f27
+--- /dev/null
++++ b/arch/c6x/include/asm/setup.h
+@@ -0,0 +1,32 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_SETUP_H
++#define _ASM_C6X_SETUP_H
++
++#define COMMAND_LINE_SIZE   1024
++
++#ifndef __ASSEMBLY__
++extern char c6x_command_line[COMMAND_LINE_SIZE];
++
++extern int c6x_add_memory(phys_addr_t start, unsigned long size);
++
++extern unsigned long ram_start;
++extern unsigned long ram_end;
++
++extern int c6x_num_cores;
++extern unsigned int c6x_silicon_rev;
++extern unsigned int c6x_devstat;
++extern unsigned char c6x_fuse_mac[6];
++
++extern void machine_init(unsigned long dt_ptr);
++
++#endif /* !__ASSEMBLY__ */
++#endif /* _ASM_C6X_SETUP_H */
+diff --git a/arch/c6x/include/asm/string.h b/arch/c6x/include/asm/string.h
+new file mode 100644
+index 0000000..b21517c
+--- /dev/null
++++ b/arch/c6x/include/asm/string.h
+@@ -0,0 +1,21 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_STRING_H
++#define _ASM_C6X_STRING_H
++
++#include <asm/page.h>
++#include <linux/linkage.h>
++
++asmlinkage extern void *memcpy(void *to, const void *from, size_t n);
++
++#define __HAVE_ARCH_MEMCPY
++
++#endif /* _ASM_C6X_STRING_H */
+diff --git a/arch/c6x/include/asm/system.h b/arch/c6x/include/asm/system.h
+new file mode 100644
+index 0000000..e076dc0
+--- /dev/null
++++ b/arch/c6x/include/asm/system.h
+@@ -0,0 +1,168 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_SYSTEM_H
++#define _ASM_C6X_SYSTEM_H
++
++#include <linux/linkage.h>
++#include <linux/irqflags.h>
++
++#define prepare_to_switch()    do { } while (0)
++
++struct task_struct;
++struct thread_struct;
++asmlinkage void *__switch_to(struct thread_struct *prev,
++			     struct thread_struct *next,
++			     struct task_struct *tsk);
++
++#define switch_to(prev, next, last)				\
++	do {							\
++		current->thread.wchan = (u_long) __builtin_return_address(0); \
++		(last) = __switch_to(&(prev)->thread,		\
++				     &(next)->thread, (prev));	\
++		mb();						\
++		current->thread.wchan = 0;			\
++	} while (0)
++
++/* Reset the board */
++#define HARD_RESET_NOW()
++
++#define get_creg(reg) \
++	({ unsigned int __x; \
++	   asm volatile ("mvc .s2 " #reg ",%0\n" : "=b"(__x)); __x; })
++
++#define set_creg(reg, v) \
++	do { unsigned int __x = (unsigned int)(v); \
++		asm volatile ("mvc .s2 %0," #reg "\n" : : "b"(__x)); \
++	} while (0)
++
++#define or_creg(reg, n) \
++	do { unsigned __x, __n = (unsigned)(n);		  \
++		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
++			      "or  .l2 %1,%0,%0\n"	  \
++			      "mvc .s2 %0," #reg "\n"	  \
++			      "nop\n"			  \
++			      : "=&b"(__x) : "b"(__n));	  \
++	} while (0)
++
++#define and_creg(reg, n) \
++	do { unsigned __x, __n = (unsigned)(n);		  \
++		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
++			      "and .l2 %1,%0,%0\n"	  \
++			      "mvc .s2 %0," #reg "\n"	  \
++			      "nop\n"    \
++			      : "=&b"(__x) : "b"(__n));	  \
++	} while (0)
++
++#define get_coreid() (get_creg(DNUM) & 0xff)
++
++/* Set/get IST */
++#define set_ist(x)	set_creg(ISTP, x)
++#define get_ist()       get_creg(ISTP)
++
++/*
++ * Exception management
++ */
++asmlinkage void enable_exception(void);
++#define disable_exception()
++#define get_except_type()        get_creg(EFR)
++#define ack_exception(type)      set_creg(ECR, 1 << (type))
++#define get_iexcept()            get_creg(IERR)
++#define set_iexcept(mask)        set_creg(IERR, (mask))
++
++/*
++ * Misc. functions
++ */
++#define nop()                    asm("NOP\n");
++#define mb()                     barrier()
++#define rmb()                    barrier()
++#define wmb()                    barrier()
++#define set_mb(var, value)       do { var = value;  mb(); } while (0)
++#define set_wmb(var, value)      do { var = value; wmb(); } while (0)
++
++#define smp_mb()	         barrier()
++#define smp_rmb()	         barrier()
++#define smp_wmb()	         barrier()
++#define smp_read_barrier_depends()	do { } while (0)
++
++#define xchg(ptr, x) \
++	((__typeof__(*(ptr)))__xchg((unsigned int)(x), (void *) (ptr), \
++				    sizeof(*(ptr))))
++#define tas(ptr)    xchg((ptr), 1)
++
++unsigned int _lmbd(unsigned int, unsigned int);
++unsigned int _bitr(unsigned int);
++
++struct __xchg_dummy { unsigned int a[100]; };
++#define __xg(x) ((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned int __xchg(unsigned int x, volatile void *ptr, int size)
++{
++	unsigned int tmp;
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		tmp = 0;
++		tmp = *((unsigned char *) ptr);
++		*((unsigned char *) ptr) = (unsigned char) x;
++		break;
++	case 2:
++		tmp = 0;
++		tmp = *((unsigned short *) ptr);
++		*((unsigned short *) ptr) = x;
++		break;
++	case 4:
++		tmp = 0;
++		tmp = *((unsigned int *) ptr);
++		*((unsigned int *) ptr) = x;
++		break;
++	}
++	local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)					\
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),		\
++						     (unsigned long)(o), \
++						     (unsigned long)(n), \
++						     sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#include <asm-generic/cmpxchg.h>
++
++#define _extu(x, s, e)							\
++	({      unsigned int __x;					\
++		asm volatile ("extu .S2 %3,%1,%2,%0\n" :		\
++			      "=b"(__x) : "n"(s), "n"(e), "b"(x));	\
++	       __x; })
++
++
++extern unsigned int c6x_core_freq;
++
++struct pt_regs;
++
++extern void die(char *str, struct pt_regs *fp, int nr);
++extern asmlinkage int process_exception(struct pt_regs *regs);
++extern void time_init(void);
++extern void free_initmem(void);
++
++extern void (*c6x_restart)(void);
++extern void (*c6x_halt)(void);
++
++#endif /* _ASM_C6X_SYSTEM_H */
+diff --git a/arch/c6x/include/asm/tlb.h b/arch/c6x/include/asm/tlb.h
+new file mode 100644
+index 0000000..8709e5e
+--- /dev/null
++++ b/arch/c6x/include/asm/tlb.h
+@@ -0,0 +1,8 @@
++#ifndef _ASM_C6X_TLB_H
++#define _ASM_C6X_TLB_H
++
++#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
++
++#endif /* _ASM_C6X_TLB_H */
+diff --git a/arch/c6x/include/asm/uaccess.h b/arch/c6x/include/asm/uaccess.h
+new file mode 100644
+index 0000000..453dd26
+--- /dev/null
++++ b/arch/c6x/include/asm/uaccess.h
+@@ -0,0 +1,107 @@
 +/*
 + *  Copyright (C) 2011 Texas Instruments Incorporated
 + *  Author: Mark Salter <msalter@redhat.com>
@@ -44,637 +912,400 @@ index 0000000..561ba83
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
-+ *
 + */
-+#ifndef _ASM_C6X_DSCR_H
-+#define _ASM_C6X_DSCR_H
++#ifndef _ASM_C6X_UACCESS_H
++#define _ASM_C6X_UACCESS_H
 +
-+enum dscr_devstate_t {
-+	DSCR_DEVSTATE_ENABLED,
-+	DSCR_DEVSTATE_DISABLED,
-+};
++#include <linux/types.h>
++#include <linux/compiler.h>
++#include <linux/string.h>
++
++#ifdef CONFIG_ACCESS_CHECK
++#define __access_ok _access_ok
++#endif
 +
 +/*
-+ * Set the device state of the device with the given ID.
++ * __copy_from_user/copy_to_user are based on ones in asm-generic/uaccess.h
 + *
-+ * Individual drivers should use this to enable or disable the
-+ * hardware device. The devid used to identify the device being
-+ * controlled should be a property in the device's tree node.
++ * C6X supports unaligned 32 and 64 bit loads and stores.
 + */
-+extern void dscr_set_devstate(int devid, enum dscr_devstate_t state);
++static inline __must_check long __copy_from_user(void *to,
++		const void __user *from, unsigned long n)
++{
++	u32 tmp32;
++	u64 tmp64;
 +
-+/*
-+ * Assert or de-assert an RMII reset.
-+ */
-+extern void dscr_rmii_reset(int id, int assert);
++	if (__builtin_constant_p(n)) {
++		switch (n) {
++		case 1:
++			*(u8 *)to = *(u8 __force *)from;
++			return 0;
++		case 4:
++			asm volatile ("ldnw .d1t1 *%2,%0\n"
++				      "nop  4\n"
++				      "stnw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp32)
++				      : "A"(to), "a"(from)
++				      : "memory");
++			return 0;
++		case 8:
++			asm volatile ("ldndw .d1t1 *%2,%0\n"
++				      "nop   4\n"
++				      "stndw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp64)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		default:
++			break;
++		}
++	}
 +
-+extern void dscr_probe(void);
++	memcpy(to, (const void __force *)from, n);
++	return 0;
++}
 +
-+#endif /* _ASM_C6X_DSCR_H */
-diff --git a/arch/c6x/platforms/dscr.c b/arch/c6x/platforms/dscr.c
++static inline __must_check long __copy_to_user(void __user *to,
++		const void *from, unsigned long n)
++{
++	u32 tmp32;
++	u64 tmp64;
++
++	if (__builtin_constant_p(n)) {
++		switch (n) {
++		case 1:
++			*(u8 __force *)to = *(u8 *)from;
++			return 0;
++		case 4:
++			asm volatile ("ldnw .d1t1 *%2,%0\n"
++				      "nop  4\n"
++				      "stnw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp32)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		case 8:
++			asm volatile ("ldndw .d1t1 *%2,%0\n"
++				      "nop   4\n"
++				      "stndw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp64)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		default:
++			break;
++		}
++	}
++
++	memcpy((void __force *)to, from, n);
++	return 0;
++}
++
++#define __copy_to_user   __copy_to_user
++#define __copy_from_user __copy_from_user
++
++extern int _access_ok(unsigned long addr, unsigned long size);
++#ifdef CONFIG_ACCESS_CHECK
++#define __access_ok _access_ok
++#endif
++
++#include <asm-generic/uaccess.h>
++
++#endif /* _ASM_C6X_UACCESS_H */
+diff --git a/arch/c6x/include/asm/unaligned.h b/arch/c6x/include/asm/unaligned.h
 new file mode 100644
-index 0000000..f848a65
+index 0000000..1dcb006
 --- /dev/null
-+++ b/arch/c6x/platforms/dscr.c
-@@ -0,0 +1,598 @@
++++ b/arch/c6x/include/asm/unaligned.h
+@@ -0,0 +1,288 @@
 +/*
-+ *  Device State Control Registers driver
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Rewritten for 2.6.3x: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_UNALIGNED_H
++#define _ASM_C6X_UNALIGNED_H
 +
 +/*
-+ * The Device State Control Registers (DSCR) provide SoC level control over
-+ * a number of peripherals. Details vary considerably among the various SoC
-+ * parts. In general, the DSCR block will provide one or more configuration
-+ * registers often protected by a lock register. One or more key values must
-+ * be written to a lock register in order to unlock the configuration register.
-+ * The configuration register may be used to enable (and disable in some
-+ * cases) SoC pin drivers, peripheral clock sources (internal or pin), etc.
-+ * In some cases, a configuration register is write once or the individual
-+ * bits are write once. That is, you may be able to enable a device, but
-+ * will not be able to disable it.
-+ *
-+ * In addition to device configuration, the DSCR block may provide registers
-+ * which are used to reset SoC peripherals, provide device ID information,
-+ * provide MAC addresses, and other miscellaneous functions.
++ * The C64x+ can do unaligned word and dword accesses in hardware
++ * using special load/store instructions.
 + */
 +
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_platform.h>
-+#include <linux/module.h>
-+#include <linux/io.h>
-+#include <linux/delay.h>
-+#include <asm/soc.h>
-+#include <asm/dscr.h>
-+
-+#define MAX_DEVSTATE_IDS   32
-+#define MAX_DEVCTL_REGS     8
-+#define MAX_DEVSTAT_REGS    8
-+#define MAX_LOCKED_REGS     4
-+#define MAX_SOC_EMACS       2
-+
-+struct rmii_reset_reg {
-+	u32 reg;
-+	u32 mask;
-+};
-+
-+/*
-+ * Some registerd may be locked. In order to write to these
-+ * registers, the key value must first be written to the lockreg.
-+ */
-+struct locked_reg {
-+	u32 reg;	/* offset from base */
-+	u32 lockreg;	/* offset from base */
-+	u32 key;	/* unlock key */
-+};
-+
-+/*
-+ * This describes a contiguous area of like control bits used to enable/disable
-+ * SoC devices. Each controllable device is given an ID which is used by the
-+ * individual device drivers to control the device state. These IDs start at
-+ * zero and are assigned sequentially to the control bitfield ranges described
-+ * by this structure.
-+ */
-+struct devstate_ctl_reg {
-+	u32 reg;		/* register holding the control bits */
-+	u8  start_id;		/* start id of this range */
-+	u8  num_ids;		/* number of devices in this range */
-+	u8  enable_only;	/* bits are write-once to enable only */
-+	u8  enable;		/* value used to enable device */
-+	u8  disable;		/* value used to disable device */
-+	u8  shift;		/* starting (rightmost) bit in range */
-+	u8  nbits;		/* number of bits per device */
-+};
-+
-+
-+/*
-+ * This describes a region of status bits indicating the state of
-+ * various devices. This is used internally to wait for status
-+ * change completion when enabling/disabling a device. Status is
-+ * optional and not all device controls will have a corresponding
-+ * status.
-+ */
-+struct devstate_stat_reg {
-+	u32 reg;		/* register holding the status bits */
-+	u8  start_id;		/* start id of this range */
-+	u8  num_ids;		/* number of devices in this range */
-+	u8  enable;		/* value indicating enabled state */
-+	u8  disable;		/* value indicating disabled state */
-+	u8  shift;		/* starting (rightmost) bit in range */
-+	u8  nbits;		/* number of bits per device */
-+};
-+
-+struct devstate_info {
-+	struct devstate_ctl_reg *ctl;
-+	struct devstate_stat_reg *stat;
-+};
-+
-+/* These are callbacks to SOC-specific code. */
-+struct dscr_ops {
-+	void (*init)(struct device_node *node);
-+};
-+
-+struct dscr_regs {
-+	spinlock_t		lock;
-+	void __iomem		*base;
-+	u32			kick_reg[2];
-+	u32			kick_key[2];
-+	struct locked_reg	locked[MAX_LOCKED_REGS];
-+	struct devstate_info	devstate_info[MAX_DEVSTATE_IDS];
-+	struct rmii_reset_reg   rmii_resets[MAX_SOC_EMACS];
-+	struct devstate_ctl_reg devctl[MAX_DEVCTL_REGS];
-+	struct devstate_stat_reg devstat[MAX_DEVSTAT_REGS];
-+};
-+
-+static struct dscr_regs	dscr;
-+
-+static struct locked_reg *find_locked_reg(u32 reg)
++static inline u16 __get_unaligned_le16(const u8 *p)
 +{
-+	int i;
-+
-+	for (i = 0; i < MAX_LOCKED_REGS; i++)
-+		if (dscr.locked[i].key && reg == dscr.locked[i].reg)
-+			return &dscr.locked[i];
-+	return NULL;
++	return p[0] | p[1] << 8;
 +}
 +
-+/*
-+ * Write to a register with one lock
-+ */
-+static void dscr_write_locked1(u32 reg, u32 val,
-+			       u32 lock, u32 key)
++static inline u16 __get_unaligned_be16(const u8 *p)
 +{
-+	void __iomem *reg_addr = dscr.base + reg;
-+	void __iomem *lock_addr = dscr.base + lock;
-+
-+	/*
-+	 * For some registers, the lock is relocked after a short number
-+	 * of cycles. We have to put the lock write and register write in
-+	 * the same fetch packet to meet this timing. The .align ensures
-+	 * the two stw instructions are in the same fetch packet.
-+	 */
-+	asm volatile ("b	.s2	0f\n"
-+		      "nop	5\n"
-+		      "    .align 5\n"
-+		      "0:\n"
-+		      "stw	.D1T2	%3,*%2\n"
-+		      "stw	.D1T2	%1,*%0\n"
-+		      :
-+		      : "a"(reg_addr), "b"(val), "a"(lock_addr), "b"(key)
-+		);
-+
-+	/* in case the hw doesn't reset the lock */
-+	soc_writel(0, lock_addr);
++	return p[0] << 8 | p[1];
 +}
 +
-+/*
-+ * Write to a register protected by two lock registers
-+ */
-+static void dscr_write_locked2(u32 reg, u32 val,
-+			       u32 lock0, u32 key0,
-+			       u32 lock1, u32 key1)
++static inline void __put_unaligned_le16(u16 val, u8 *p)
 +{
-+	soc_writel(key0, dscr.base + lock0);
-+	soc_writel(key1, dscr.base + lock1);
-+	soc_writel(val, dscr.base + reg);
-+	soc_writel(0, dscr.base + lock0);
-+	soc_writel(0, dscr.base + lock1);
++	*p++ = val;
++	*p++ = val >> 8;
 +}
 +
-+static void dscr_write(u32 reg, u32 val)
++static inline void __put_unaligned_be16(u16 val, u8 *p)
 +{
-+	struct locked_reg *lock;
++	*p++ = val >> 8;
++	*p++ = val;
++}
 +
-+	lock = find_locked_reg(reg);
-+	if (lock)
-+		dscr_write_locked1(reg, val, lock->lockreg, lock->key);
-+	else if (dscr.kick_key[0])
-+		dscr_write_locked2(reg, val, dscr.kick_reg[0], dscr.kick_key[0],
-+				   dscr.kick_reg[1], dscr.kick_key[1]);
-+	else
-+		soc_writel(val, dscr.base + reg);
++static inline u32 __get_unaligned32_swab(const u8 *p)
++{
++	u32 val = (u32) p;
++	asm volatile (" ldnw	.d1t1	*%0,%0\n"
++		      " nop	4\n"
++		      " swap2	.s1	%0,%0\n"
++		      " swap4	.l1	%0,%0\n"
++		      : "+a"(val));
++	return val;
++}
++
++static inline u32 __get_unaligned32(const u8 *p)
++{
++	u32 val = (u32) p;
++	asm volatile (" ldnw	.d1t1	*%0,%0\n"
++		      " nop     4\n"
++		      : "+a"(val));
++	return val;
++}
++
++static inline void __put_unaligned32_swab(u32 val, u8 *p)
++{
++	asm volatile (" swap2	.s1	%0,%0\n"
++		      " swap4	.l1	%0,%0\n"
++		      " stnw	.d2t1	%0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
++}
++
++static inline void __put_unaligned32(u32 val, u8 *p)
++{
++	asm volatile (" stnw	.d2t1	%0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
++}
++
++static inline u64 __get_unaligned64_swab(const u8 *p)
++{
++	u64 val;
++
++	asm volatile ("    ldndw   .d2t1  *%1,%0\n"
++		      "    nop	   4\n"
++		      "    swap2   .s1	  %p0,%P0\n"
++		      " || swap2   .l1    %P0,%p0\n"
++		      "    swap4   .l1    %p0,%p0\n"
++		      "    swap4   .l1    %P0,%P0\n"
++		      : "=a"(val) : "b"(p));
++	return val;
++}
++
++static inline u64 __get_unaligned64(const u8 *p)
++{
++	u64 val;
++	asm volatile (" ldndw	.d1t1	*%1,%0\n"
++		      " nop     4\n"
++		      : "=a"(val) : "a"(p));
++	return val;
++}
++
++static inline void __put_unaligned64_swab(u64 val, u8 *p)
++{
++	asm volatile ("    swap2  .s1     %p0,%P0\n"
++		      " || swap2  .l1	  %P0,%p0\n"
++		      "	   swap4  .l1	  %p0,%p0\n"
++		      "	   swap4  .l1	  %P0,%P0\n"
++		      "	   stndw  .d2t1	  %0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
++}
++
++static inline void __put_unaligned64(u64 val, u8 *p)
++{
++	asm volatile (" stndw	.d2t1	%0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
 +}
 +
 +
-+/*
-+ * Drivers can use this interface to enable/disable SoC IP blocks.
-+ */
-+void dscr_set_devstate(int id, enum dscr_devstate_t state)
++static inline u16 get_unaligned_le16(const void *p)
 +{
-+	struct devstate_ctl_reg *ctl;
-+	struct devstate_stat_reg *stat;
-+	struct devstate_info *info;
-+	u32 ctl_val, val;
-+	int ctl_shift, ctl_mask;
-+	unsigned long flags;
-+
-+	if (!dscr.base)
-+		return;
-+
-+	if (id < 0 || id >= MAX_DEVSTATE_IDS)
-+		return;
-+
-+	info = &dscr.devstate_info[id];
-+	ctl = info->ctl;
-+	stat = info->stat;
-+
-+	if (ctl == NULL)
-+		return;
-+
-+	ctl_shift = ctl->shift + ctl->nbits * (id - ctl->start_id);
-+	ctl_mask = ((1 << ctl->nbits) - 1) << ctl_shift;
-+
-+	switch (state) {
-+	case DSCR_DEVSTATE_ENABLED:
-+		ctl_val = ctl->enable << ctl_shift;
-+		break;
-+	case DSCR_DEVSTATE_DISABLED:
-+		if (ctl->enable_only)
-+			return;
-+		ctl_val = ctl->disable << ctl_shift;
-+		break;
-+	default:
-+		return;
-+	}
-+
-+	spin_lock_irqsave(&dscr.lock, flags);
-+
-+	val = soc_readl(dscr.base + ctl->reg);
-+	val &= ~ctl_mask;
-+	val |= ctl_val;
-+
-+	dscr_write(ctl->reg, val);
-+
-+	spin_unlock_irqrestore(&dscr.lock, flags);
-+
-+	if (!stat)
-+		return;
-+
-+	ctl_shift = stat->shift + stat->nbits * (id - stat->start_id);
-+
-+	if (state == DSCR_DEVSTATE_ENABLED)
-+		ctl_val = stat->enable;
-+	else
-+		ctl_val = stat->disable;
-+
-+	do {
-+		val = soc_readl(dscr.base + stat->reg);
-+		val >>= ctl_shift;
-+		val &= ((1 << stat->nbits) - 1);
-+	} while (val != ctl_val);
-+}
-+EXPORT_SYMBOL(dscr_set_devstate);
-+
-+/*
-+ * Drivers can use this to reset RMII module.
-+ */
-+void dscr_rmii_reset(int id, int assert)
-+{
-+	struct rmii_reset_reg *r;
-+	unsigned long flags;
-+	u32 val;
-+
-+	if (id < 0 || id >= MAX_SOC_EMACS)
-+		return;
-+
-+	r = &dscr.rmii_resets[id];
-+	if (r->mask == 0)
-+		return;
-+
-+	spin_lock_irqsave(&dscr.lock, flags);
-+
-+	val = soc_readl(dscr.base + r->reg);
-+	if (assert)
-+		dscr_write(r->reg, val | r->mask);
-+	else
-+		dscr_write(r->reg, val & ~(r->mask));
-+
-+	spin_unlock_irqrestore(&dscr.lock, flags);
-+}
-+EXPORT_SYMBOL(dscr_rmii_reset);
-+
-+static void __init dscr_parse_devstat(struct device_node *node,
-+				      void __iomem *base)
-+{
-+	u32 val;
-+	int err;
-+
-+	err = of_property_read_u32_array(node, "ti,dscr-devstat", &val, 1);
-+	if (!err)
-+		c6x_devstat = soc_readl(base + val);
-+	printk(KERN_INFO "DEVSTAT: %08x\n", c6x_devstat);
++	return __get_unaligned_le16((const u8 *)p);
 +}
 +
-+static void __init dscr_parse_silicon_rev(struct device_node *node,
-+					 void __iomem *base)
++static inline u16 get_unaligned_be16(const void *p)
 +{
-+	u32 vals[3];
-+	int err;
++	return __get_unaligned_be16((const u8 *)p);
++}
 +
-+	err = of_property_read_u32_array(node, "ti,dscr-silicon-rev", vals, 3);
-+	if (!err) {
-+		c6x_silicon_rev = soc_readl(base + vals[0]);
-+		c6x_silicon_rev >>= vals[1];
-+		c6x_silicon_rev &= vals[2];
-+	}
++static inline void put_unaligned_le16(u16 val, void *p)
++{
++	__put_unaligned_le16(val, p);
++}
++
++static inline void put_unaligned_be16(u16 val, void *p)
++{
++	__put_unaligned_be16(val, p);
++}
++
++
++static inline u32 get_unaligned_le32(const void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	return __get_unaligned32_swab((const u8 *)p);
++#else
++	return __get_unaligned32((const u8 *)p);
++#endif
++}
++
++static inline u32 get_unaligned_be32(const void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	return __get_unaligned32((const u8 *)p);
++#else
++	return __get_unaligned32_swab((const u8 *)p);
++#endif
++}
++
++static inline void put_unaligned_le32(u32 val, void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	__put_unaligned32_swab(val, p);
++#else
++	__put_unaligned32(val, p);
++#endif
++}
++
++static inline void put_unaligned_be32(u32 val, void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	__put_unaligned32(val, p);
++#else
++	__put_unaligned32_swab(val, p);
++#endif
++}
++
++static inline u64 get_unaligned_le64(const void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	return __get_unaligned64_swab((const u8 *)p);
++#else
++	return __get_unaligned64((const u8 *)p);
++#endif
++}
++
++static inline u64 get_unaligned_be64(const void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	return __get_unaligned64((const u8 *)p);
++#else
++	return __get_unaligned64_swab((const u8 *)p);
++#endif
++}
++
++static inline void put_unaligned_le64(u64 val, void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	__put_unaligned64_swab(val, p);
++#else
++	__put_unaligned64(val, p);
++#endif
++}
++
++static inline void put_unaligned_be64(u64 val, void *p)
++{
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	__put_unaligned64(val, p);
++#else
++	__put_unaligned64_swab(val, p);
++#endif
 +}
 +
 +/*
-+ * Some SoCs will have a pair of fuse registers which hold
-+ * an ethernet MAC address. The "ti,dscr-mac-fuse-regs"
-+ * property is a mapping from fuse register bytes to MAC
-+ * address bytes. The expected format is:
-+ *
-+ *	ti,dscr-mac-fuse-regs = <reg0 b3 b2 b1 b0
-+ *				 reg1 b3 b2 b1 b0>
-+ *
-+ * reg0 and reg1 are the offsets of the two fuse registers.
-+ * b3-b0 positionally represent bytes within the fuse register.
-+ * b3 is the most significant byte and b0 is the least.
-+ * Allowable values for b3-b0 are:
-+ *
-+ *	  0 = fuse register byte not used in MAC address
-+ *      1-6 = index+1 into c6x_fuse_mac[]
++ * Cause a link-time error if we try an unaligned access other than
++ * 1,2,4 or 8 bytes long
 + */
-+static void __init dscr_parse_mac_fuse(struct device_node *node,
-+				       void __iomem *base)
-+{
-+	u32 vals[10], fuse;
-+	int f, i, j, err;
++extern int __bad_unaligned_access_size(void);
 +
-+	err = of_property_read_u32_array(node, "ti,dscr-mac-fuse-regs",
-+					 vals, 10);
-+	if (err)
-+		return;
++#define __get_unaligned_le(ptr) (typeof(*(ptr)))({			\
++	sizeof(*(ptr)) == 1 ? *(ptr) :					\
++	  (sizeof(*(ptr)) == 2 ? get_unaligned_le16((ptr)) :		\
++	     (sizeof(*(ptr)) == 4 ? get_unaligned_le32((ptr)) :		\
++		(sizeof(*(ptr)) == 8 ? get_unaligned_le64((ptr)) :	\
++		   __bad_unaligned_access_size())));			\
++	})
 +
-+	for (f = 0; f < 2; f++) {
-+		fuse = soc_readl(base + vals[f * 5]);
-+		for (j = (f * 5) + 1, i = 24; i >= 0; i -= 8, j++)
-+			if (vals[j] && vals[j] <= 6)
-+				c6x_fuse_mac[vals[j] - 1] = fuse >> i;
-+	}
-+}
++#define __get_unaligned_be(ptr) (__force typeof(*(ptr)))({	\
++	sizeof(*(ptr)) == 1 ? *(ptr) :					\
++	  (sizeof(*(ptr)) == 2 ? get_unaligned_be16((ptr)) :		\
++	     (sizeof(*(ptr)) == 4 ? get_unaligned_be32((ptr)) :		\
++		(sizeof(*(ptr)) == 8 ? get_unaligned_be64((ptr)) :	\
++		   __bad_unaligned_access_size())));			\
++	})
 +
-+static void __init dscr_parse_rmii_resets(struct device_node *node,
-+					  void __iomem *base)
-+{
-+	const __be32 *p;
-+	int i, size;
++#define __put_unaligned_le(val, ptr) ({					\
++	void *__gu_p = (ptr);						\
++	switch (sizeof(*(ptr))) {					\
++	case 1:								\
++		*(u8 *)__gu_p = (__force u8)(val);			\
++		break;							\
++	case 2:								\
++		put_unaligned_le16((__force u16)(val), __gu_p);		\
++		break;							\
++	case 4:								\
++		put_unaligned_le32((__force u32)(val), __gu_p);		\
++		break;							\
++	case 8:								\
++		put_unaligned_le64((__force u64)(val), __gu_p);		\
++		break;							\
++	default:							\
++		__bad_unaligned_access_size();				\
++		break;							\
++	}								\
++	(void)0; })
 +
-+	/* look for RMII reset registers */
-+	p = of_get_property(node, "ti,dscr-rmii-resets", &size);
-+	if (p) {
-+		/* parse all the reg/mask pairs we can handle */
-+		size /= (sizeof(*p) * 2);
-+		if (size > MAX_SOC_EMACS)
-+			size = MAX_SOC_EMACS;
-+
-+		for (i = 0; i < size; i++) {
-+			dscr.rmii_resets[i].reg = be32_to_cpup(p++);
-+			dscr.rmii_resets[i].mask = be32_to_cpup(p++);
-+		}
-+	}
-+}
-+
-+
-+static void __init dscr_parse_privperm(struct device_node *node,
-+				       void __iomem *base)
-+{
-+	u32 vals[2];
-+	int err;
-+
-+	err = of_property_read_u32_array(node, "ti,dscr-privperm", vals, 2);
-+	if (err)
-+		return;
-+	dscr_write(vals[0], vals[1]);
-+}
-+
-+/*
-+ * SoCs may have "locked" DSCR registers which can only be written
-+ * to only after writing a key value to a lock registers. These
-+ * regisers can be described with the "ti,dscr-locked-regs" property.
-+ * This property provides a list of register descriptions with each
-+ * description consisting of three values.
-+ *
-+ *	ti,dscr-locked-regs = <reg0 lockreg0 key0
-+ *                               ...
-+ *                             regN lockregN keyN>;
-+ *
-+ * reg is the offset of the locked register
-+ * lockreg is the offset of the lock register
-+ * key is the unlock key written to lockreg
-+ *
-+ */
-+static void __init dscr_parse_locked_regs(struct device_node *node,
-+					  void __iomem *base)
-+{
-+	struct locked_reg *r;
-+	const __be32 *p;
-+	int i, size;
-+
-+	p = of_get_property(node, "ti,dscr-locked-regs", &size);
-+	if (p) {
-+		/* parse all the register descriptions we can handle */
-+		size /= (sizeof(*p) * 3);
-+		if (size > MAX_LOCKED_REGS)
-+			size = MAX_LOCKED_REGS;
-+
-+		for (i = 0; i < size; i++) {
-+			r = &dscr.locked[i];
-+
-+			r->reg = be32_to_cpup(p++);
-+			r->lockreg = be32_to_cpup(p++);
-+			r->key = be32_to_cpup(p++);
-+		}
-+	}
-+}
-+
-+/*
-+ * SoCs may have DSCR registers which are only write enabled after
-+ * writing specific key values to two registers. The two key registers
-+ * and the key values can be parsed from a "ti,dscr-kick-regs"
-+ * propety with the following layout:
-+ *
-+ *	ti,dscr-kick-regs = <kickreg0 key0 kickreg1 key1>
-+ *
-+ * kickreg is the offset of the "kick" register
-+ * key is the value which unlocks writing for protected regs
-+ */
-+static void __init dscr_parse_kick_regs(struct device_node *node,
-+					void __iomem *base)
-+{
-+	u32 vals[4];
-+	int err;
-+
-+	err = of_property_read_u32_array(node, "ti,dscr-kick-regs", vals, 4);
-+	if (!err) {
-+		dscr.kick_reg[0] = vals[0];
-+		dscr.kick_key[0] = vals[1];
-+		dscr.kick_reg[1] = vals[2];
-+		dscr.kick_key[1] = vals[3];
-+	}
-+}
++#define __put_unaligned_be(val, ptr) ({					\
++	void *__gu_p = (ptr);						\
++	switch (sizeof(*(ptr))) {					\
++	case 1:								\
++		*(u8 *)__gu_p = (__force u8)(val);			\
++		break;							\
++	case 2:								\
++		put_unaligned_be16((__force u16)(val), __gu_p);		\
++		break;							\
++	case 4:								\
++		put_unaligned_be32((__force u32)(val), __gu_p);		\
++		break;							\
++	case 8:								\
++		put_unaligned_be64((__force u64)(val), __gu_p);		\
++		break;							\
++	default:							\
++		__bad_unaligned_access_size();				\
++		break;							\
++	}								\
++	(void)0; })
 +
 +
-+/*
-+ * SoCs may provide controls to enable/disable individual IP blocks. These
-+ * controls in the DSCR usually control pin drivers but also may control
-+ * clocking and or resets. The device tree is used to describe the bitfields
-+ * in registers used to control device state. The number of bits and their
-+ * values may vary even within the same register.
-+ *
-+ * The layout of these bitfields is described by the ti,dscr-devstate-ctl-regs
-+ * property. This property is a list where each element describes a contiguous
-+ * range of control fields with like properties. Each element of the list
-+ * consists of 7 cells with the following values:
-+ *
-+ *   start_id num_ids reg enable disable start_bit nbits
-+ *
-+ * start_id is device id for the first device control in the range
-+ * num_ids is the number of device controls in the range
-+ * reg is the offset of the register holding the control bits
-+ * enable is the value to enable a device
-+ * disable is the value to disable a device (0xffffffff if cannot disable)
-+ * start_bit is the bit number of the first bit in the range
-+ * nbits is the number of bits per device control
-+ */
-+static void __init dscr_parse_devstate_ctl_regs(struct device_node *node,
-+						void __iomem *base)
-+{
-+	struct devstate_ctl_reg *r;
-+	const __be32 *p;
-+	int i, j, size;
++#ifdef _BIG_ENDIAN
++#define get_unaligned	__get_unaligned_be
++#define put_unaligned	__put_unaligned_be
++#define get_unaligned16	get_unaligned_be16
++#define get_unaligned32	get_unaligned_be32
++#define get_unaligned64	get_unaligned_be64
++#else
++#define get_unaligned	__get_unaligned_le
++#define put_unaligned	__put_unaligned_le
++#define get_unaligned16	get_unaligned_le16
++#define get_unaligned32	get_unaligned_le32
++#define get_unaligned64	get_unaligned_le64
++#endif
 +
-+	p = of_get_property(node, "ti,dscr-devstate-ctl-regs", &size);
-+	if (p) {
-+		/* parse all the ranges we can handle */
-+		size /= (sizeof(*p) * 7);
-+		if (size > MAX_DEVCTL_REGS)
-+			size = MAX_DEVCTL_REGS;
-+
-+		for (i = 0; i < size; i++) {
-+			r = &dscr.devctl[i];
-+
-+			r->start_id = be32_to_cpup(p++);
-+			r->num_ids = be32_to_cpup(p++);
-+			r->reg = be32_to_cpup(p++);
-+			r->enable = be32_to_cpup(p++);
-+			r->disable = be32_to_cpup(p++);
-+			if (r->disable == 0xffffffff)
-+				r->enable_only = 1;
-+			r->shift = be32_to_cpup(p++);
-+			r->nbits = be32_to_cpup(p++);
-+
-+			for (j = r->start_id;
-+			     j < (r->start_id + r->num_ids);
-+			     j++)
-+				dscr.devstate_info[j].ctl = r;
-+		}
-+	}
-+}
-+
-+/*
-+ * SoCs may provide status registers indicating the state (enabled/disabled) of
-+ * devices on the SoC. The device tree is used to describe the bitfields in
-+ * registers used to provide device status. The number of bits and their
-+ * values used to provide status may vary even within the same register.
-+ *
-+ * The layout of these bitfields is described by the ti,dscr-devstate-stat-regs
-+ * property. This property is a list where each element describes a contiguous
-+ * range of status fields with like properties. Each element of the list
-+ * consists of 7 cells with the following values:
-+ *
-+ *   start_id num_ids reg enable disable start_bit nbits
-+ *
-+ * start_id is device id for the first device status in the range
-+ * num_ids is the number of devices covered by the range
-+ * reg is the offset of the register holding the status bits
-+ * enable is the value indicating device is enabled
-+ * disable is the value indicating device is disabled
-+ * start_bit is the bit number of the first bit in the range
-+ * nbits is the number of bits per device status
-+ */
-+static void __init dscr_parse_devstate_stat_regs(struct device_node *node,
-+						 void __iomem *base)
-+{
-+	struct devstate_stat_reg *r;
-+	const __be32 *p;
-+	int i, j, size;
-+
-+	p = of_get_property(node, "ti,dscr-devstate-stat-regs", &size);
-+	if (p) {
-+		/* parse all the ranges we can handle */
-+		size /= (sizeof(*p) * 7);
-+		if (size > MAX_DEVSTAT_REGS)
-+			size = MAX_DEVSTAT_REGS;
-+
-+		for (i = 0; i < size; i++) {
-+			r = &dscr.devstat[i];
-+
-+			r->start_id = be32_to_cpup(p++);
-+			r->num_ids = be32_to_cpup(p++);
-+			r->reg = be32_to_cpup(p++);
-+			r->enable = be32_to_cpup(p++);
-+			r->disable = be32_to_cpup(p++);
-+			r->shift = be32_to_cpup(p++);
-+			r->nbits = be32_to_cpup(p++);
-+
-+			for (j = r->start_id;
-+			     j < (r->start_id + r->num_ids);
-+			     j++)
-+				dscr.devstate_info[j].stat = r;
-+		}
-+	}
-+}
-+
-+static struct of_device_id dscr_ids[] __initdata = {
-+	{ .compatible = "ti,c64x+dscr" },
-+	{}
-+};
-+
-+/*
-+ * Probe for DSCR area.
-+ *
-+ * This has to be done early on in case timer or interrupt controller
-+ * needs something. e.g. On C6455 SoC, timer must be enabled through
-+ * DSCR before it is functional.
-+ */
-+void __init dscr_probe(void)
-+{
-+	struct device_node *node;
-+	void __iomem *base;
-+
-+	spin_lock_init(&dscr.lock);
-+
-+	node = of_find_matching_node(NULL, dscr_ids);
-+	if (!node)
-+		return;
-+
-+	base = of_iomap(node, 0);
-+	if (!base) {
-+		of_node_put(node);
-+		return;
-+	}
-+
-+	dscr.base = base;
-+
-+	dscr_parse_devstat(node, base);
-+	dscr_parse_silicon_rev(node, base);
-+	dscr_parse_mac_fuse(node, base);
-+	dscr_parse_rmii_resets(node, base);
-+	dscr_parse_locked_regs(node, base);
-+	dscr_parse_kick_regs(node, base);
-+	dscr_parse_devstate_ctl_regs(node, base);
-+	dscr_parse_devstate_stat_regs(node, base);
-+	dscr_parse_privperm(node, base);
-+}
++#endif /* _ASM_C6X_UNALIGNED_H */
 -- 
 1.7.6.2
 
