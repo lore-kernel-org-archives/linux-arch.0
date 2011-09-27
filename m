@@ -1,61 +1,106 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v3 12/24] C6X: interrupt handling
-Date: Wed, 28 Sep 2011 01:30:28 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1109280115130.2711@ionos>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <1317155405-26235-13-git-send-email-msalter@redhat.com>
+Subject: Re: [PATCH v3 11/24] C6X: time management
+Date: Wed, 28 Sep 2011 01:41:25 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1109280130570.2711@ionos>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <1317155405-26235-12-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:57160 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:57178 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752815Ab1I0Xaa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2011 19:30:30 -0400
-In-Reply-To: <1317155405-26235-13-git-send-email-msalter@redhat.com>
+	with ESMTP id S1750803Ab1I0Xl1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2011 19:41:27 -0400
+In-Reply-To: <1317155405-26235-12-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Salter <msalter@redhat.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-B1;2601;0cOn Tue, 27 Sep 2011, Mark Salter wrote:
-> diff --git a/arch/c6x/kernel/irq.c b/arch/c6x/kernel/irq.c
-> +static raw_spinlock_t core_irq_lock;
+On Tue, 27 Sep 2011, Mark Salter wrote:
 
-static DEFINE_RAW_SPINLOCK(...) please, so you can get rid of the
-raw_spin_lock_init(...) below.
+> The C6X architecture includes a 64-bit free running core clock counter which
+> is used as the clocksource. The SoCs have a number of 64-bit programmable
+> timers. One of these is used as the clockevent timer.
+> 
+> + *  Port on Texas Instruments TMS320C6x architecture
+> + *
+> + *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
+> + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
+> + *
+> + *  Modified for 2.6.34: Mark Salter <msalter@redhat.com>
 
-> +static int core_host_map(struct irq_host *h, unsigned int virq,
-> +			 irq_hw_number_t hw)
-> +{
-> +	if (hw < 4 || hw >= NR_PRIORITY_IRQS)
-> +		return -1;
+Hmm. Who wrote that code and who is assigned the authorship? If the
+original Author is Aurelian, then this patch is missing:
 
-Proper error code please, i.e -EINVAL or such
+  - An extra From: ....
 
+  - A SOB from the orginal author or an explnation why it's not
+    available.
+
+If not, then this want's to be documented in a proper form.
+
+Please do not attribute other peoples code to yourself w/o a fcking
+good reason. And porting forward itself is not considered to be one.
+
+> +/*
+> + * This should be close enough...
+
+What's the point of that comment ?
+
+> + */
+> +#define CLOCK_TICK_RATE ((1000 * 1000000UL) / 6)
 > +
-> +	irq_set_status_flags(virq, IRQ_LEVEL);
-> +	irq_set_chip_and_handler(virq, &core_chip, handle_level_irq);
+> +/* 64-bit timestamp */
+> +typedef unsigned long long cycles_t;
+
+...
+
+> +static int next_event(unsigned long delta,
+> +		      struct clock_event_device *evt)
+> +{
+> +	soc_writel(soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK, &timer->tcr);
+> +	soc_writel(delta - 1, &timer->prdlo);
+> +	soc_writel(0, &timer->cntlo);
+> +	soc_writel(soc_readl(&timer->tcr) | TCR_ENAMODELO_ONCE, &timer->tcr);
+> +
 > +	return 0;
 > +}
 > +
-> +static struct irq_host_ops core_host_ops = {
-> +	.map = core_host_map,
+> +static void set_clock_mode(enum clock_event_mode mode,
+> +			   struct clock_event_device *evt)
+> +{
+
+So there is no way to disable that thing ?
+
+> +}
+> +
+> +static struct clock_event_device t64_clockevent_device = {
+> +	.name		= "TIMER64_EVT32_TIMER",
+> +	.features	= CLOCK_EVT_FEAT_ONESHOT,
+> +	.rating		= 200,
+> +	.set_mode	= set_clock_mode,
+> +	.set_next_event	= next_event,
 > +};
 > +
-> +void __init init_IRQ(void)
+> +static irqreturn_t timer_interrupt(int irq, void *dev_id)
 > +{
-> +	struct device_node *np;
+> +	struct clock_event_device *cd = &t64_clockevent_device;
+
+If proper set up, then you can just hand in dev_id to the handler.
+
 > +
-> +	raw_spin_lock_init(&core_irq_lock);
+> +	cd->event_handler(cd);
+> +
+> +	return IRQ_HANDLED;
+> +}
+> +
+> +static struct irqaction timer_iact = {
+> +	.name		= "timer",
+> +	.flags		= IRQF_TIMER,
+> +	.handler	= timer_interrupt,
+> +	.dev_id		= &t64_clockevent_device,
 
-See above.
-
-Aside of that I'm still not too happy about the of_/irqhost/domain
-code replication and the cleanup which needs to be done after that has
-been solved. Though if you and Grant have a plan for that, I'm not in
-the way.
-
-Btw, keeping people who have been added to previous review comments of
-a particular patch in the CC makes everyones life easier.
+Which seems to be the case :)
 
 Thanks,
 
