@@ -1,12 +1,12 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 22/24] C6X: EMIF - External Memory Interface
-Date: Tue, 27 Sep 2011 16:30:03 -0400
-Message-ID: <1317155405-26235-23-git-send-email-msalter@redhat.com>
+Subject: [PATCH v3 21/24] C6X: general SoC support
+Date: Tue, 27 Sep 2011 16:30:02 -0400
+Message-ID: <1317155405-26235-22-git-send-email-msalter@redhat.com>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57199 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13152 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753179Ab1I0Uac (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753044Ab1I0Uac (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 27 Sep 2011 16:30:32 -0400
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -14,28 +14,66 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 
-Several SoC parts provide a simple bridge to support external memory mapped
-devices. This code probes the device tree for an EMIF node and sets up the
-bridge registers if such a node is found. Beyond initial set up, there is no
-further need to access the bridge control registers. External devices on the
-bus are accessed through their MMIO registers using suitable drivers. The
-bridge hardware does provide for timeout and other error interrupts, but these
-are not yet supported.
+This patch provides a soc_ops struct which provides hooks for SoC functionality
+which doesn't fit well into other places.
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/platforms/emif.c |   88 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 88 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/platforms/emif.c
+ arch/c6x/include/asm/soc.h |   35 +++++++++++++++++++
+ arch/c6x/kernel/soc.c      |   78 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 113 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/soc.h
+ create mode 100644 arch/c6x/kernel/soc.c
 
-diff --git a/arch/c6x/platforms/emif.c b/arch/c6x/platforms/emif.c
+diff --git a/arch/c6x/include/asm/soc.h b/arch/c6x/include/asm/soc.h
 new file mode 100644
-index 0000000..6a0d4ff
+index 0000000..43f5015
 --- /dev/null
-+++ b/arch/c6x/platforms/emif.c
-@@ -0,0 +1,88 @@
++++ b/arch/c6x/include/asm/soc.h
+@@ -0,0 +1,35 @@
 +/*
-+ *  External Memory Interface
++ * Miscellaneous SoC-specific hooks.
++ *
++ * Copyright (C) 2011 Texas Instruments Incorporated
++ *
++ * Author: Mark Salter <msalter@redhat.com>
++ *
++ * This file is licensed under the terms of the GNU General Public License
++ * version 2. This program is licensed "as is" without any warranty of any
++ * kind, whether express or implied.
++ */
++#ifndef _ASM_C6X_SOC_H
++#define _ASM_C6X_SOC_H
++
++struct soc_ops {
++	/* Return active exception event or -1 if none */
++	int		(*get_exception)(void);
++
++	/* Assert an event */
++	void		(*assert_event)(unsigned int evt);
++};
++
++extern struct soc_ops soc_ops;
++
++extern int soc_get_exception(void);
++extern void soc_assert_event(unsigned int event);
++extern int soc_mac_addr(unsigned int index, u8 *addr);
++
++/*
++ * for mmio on SoC devices. regs are always same byte order as cpu.
++ */
++#define soc_readl(addr)    __raw_readl(addr)
++#define soc_writel(b, addr) __raw_writel((b), (addr))
++
++#endif /* _ASM_C6X_SOC_H */
+diff --git a/arch/c6x/kernel/soc.c b/arch/c6x/kernel/soc.c
+new file mode 100644
+index 0000000..2df9e02
+--- /dev/null
++++ b/arch/c6x/kernel/soc.c
+@@ -0,0 +1,78 @@
++/*
++ *  Miscellaneous SoC-specific hooks.
 + *
 + *  Copyright (C) 2011 Texas Instruments Incorporated
 + *  Author: Mark Salter <msalter@redhat.com>
@@ -44,83 +82,73 @@ index 0000000..6a0d4ff
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/ctype.h>
++#include <asm/system.h>
++#include <asm/setup.h>
 +#include <asm/soc.h>
-+#include <asm/dscr.h>
 +
-+#define NUM_EMIFA_CHIP_ENABLES 4
++struct soc_ops soc_ops;
 +
-+struct emifa_regs {
-+	u32	midr;
-+	u32	stat;
-+	u32	reserved1[6];
-+	u32	bprio;
-+	u32	reserved2[23];
-+	u32	ce_config;
-+	u32	cecfg[NUM_EMIFA_CHIP_ENABLES];
-+	u32	reserved3[4];
-+	u32	awcc;
-+	u32	reserved4[7];
-+	u32	intraw;
-+	u32	intmsk;
-+	u32	intmskset;
-+	u32	intmskclr;
-+};
-+
-+static struct of_device_id emifa_match[] __initdata = {
-+	{ .compatible = "ti,c64x+emifa"	},
-+	{}
-+};
-+
-+/*
-+ * Parse device tree for existence of an EMIF (External Memory Interface)
-+ * and initialize it if found.
-+ */
-+static int __init c6x_emifa_init(void)
++int soc_get_exception(void)
 +{
-+	struct emifa_regs __iomem *regs;
-+	struct device_node *node;
-+	const __be32 *p;
-+	u32 val;
-+	int i, len, err;
++	if (!soc_ops.get_exception)
++		return -1;
++	return soc_ops.get_exception();
++}
 +
-+	node = of_find_matching_node(NULL, emifa_match);
-+	if (!node)
-+		return 0;
++void soc_assert_event(unsigned int evt)
++{
++	if (soc_ops.assert_event)
++		soc_ops.assert_event(evt);
++}
 +
-+	regs = of_iomap(node, 0);
-+	if (!regs)
-+		return 0;
++static u8 cmdline_mac[6];
 +
-+	/* look for a dscr-based enable for emifa pin buffers */
-+	err = of_property_read_u32_array(node, "ti,dscr-dev-enable", &val, 1);
-+	if (!err)
-+		dscr_set_devstate(val, DSCR_DEVSTATE_ENABLED);
++static int __init get_mac_addr_from_cmdline(char *str)
++{
++	int count, i, val;
 +
-+	/* set up the chip enables */
-+	p = of_get_property(node, "ti,emifa-ce-config", &len);
-+	if (p) {
-+		len /= sizeof(u32);
-+		if (len > NUM_EMIFA_CHIP_ENABLES)
-+			len = NUM_EMIFA_CHIP_ENABLES;
-+		for (i = 0; i <= len; i++)
-+			soc_writel(be32_to_cpup(&p[i]), &regs->cecfg[i]);
++	for (count = 0; count < 6 && *str; count++, str += 3) {
++		if (!isxdigit(str[0]) || !isxdigit(str[1]))
++			return 0;
++		if (str[2] != ((count < 5) ? ':' : '\0'))
++			return 0;
++
++		for (i = 0, val = 0; i < 2; i++) {
++			val = val << 4;
++			val |= isdigit(str[i]) ?
++				str[i] - '0' : toupper(str[i]) - 'A' + 10;
++		}
++		cmdline_mac[count] = val;
++	}
++	return 1;
++}
++__setup("emac_addr=", get_mac_addr_from_cmdline);
++
++int soc_mac_addr(unsigned int index, u8 *addr)
++{
++	int i, have_cmdline_mac = 0, have_fuse_mac = 0;
++
++	for (i = 0; i < 6; i++) {
++		if (cmdline_mac[i])
++			have_cmdline_mac = 1;
++		if (c6x_fuse_mac[i])
++			have_fuse_mac = 1;
 +	}
 +
-+	err = of_property_read_u32_array(node, "ti,emifa-burst-priority", &val, 1);
-+	if (!err)
-+		soc_writel(val, &regs->bprio);
++	/* cmdline overrides hardware fuse MAC */
++	if (have_cmdline_mac)
++		memcpy(addr, cmdline_mac, 6);
++	else if (have_fuse_mac)
++		memcpy(addr, c6x_fuse_mac, 6);
++	else
++		return 0;
 +
-+	err = of_property_read_u32_array(node, "ti,emifa-async-wait-control", &val, 1);
-+	if (!err)
-+		soc_writel(val, &regs->awcc);
-+
-+	iounmap(regs);
-+	of_node_put(node);
-+	return 0;
++	/* adjust for specific EMAC device */
++	addr[5] += index * c6x_num_cores;
++	return 1;
 +}
-+pure_initcall(c6x_emifa_init);
++EXPORT_SYMBOL(soc_mac_addr);
 -- 
 1.7.6.2
