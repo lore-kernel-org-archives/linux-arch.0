@@ -1,36 +1,62 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 03/24] add ELF machine define for TI C6X DSPs
-Date: Tue, 27 Sep 2011 16:29:44 -0400
-Message-ID: <1317155405-26235-4-git-send-email-msalter@redhat.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH v3 00/24] C6X: New architecture
+Date: Wed, 28 Sep 2011 09:15:42 +1000
+Message-ID: <20110928091542.9b1e35afa2075106550de7be@canb.auug.org.au>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA1";
+ boundary="Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1025 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753224Ab1I0UaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Sep 2011 16:30:21 -0400
+Received: from calzone.tip.net.au ([203.10.76.15]:55215 "EHLO
+	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752555Ab1I0XPu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2011 19:15:50 -0400
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/linux/elf-em.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+--Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/include/linux/elf-em.h b/include/linux/elf-em.h
-index 18bea78..8e2b7ba 100644
---- a/include/linux/elf-em.h
-+++ b/include/linux/elf-em.h
-@@ -33,6 +33,7 @@
- #define EM_H8_300	46	/* Renesas H8/300,300H,H8S */
- #define EM_MN10300	89	/* Panasonic/MEI MN10300, AM33 */
- #define EM_BLACKFIN     106     /* ADI Blackfin Processor */
-+#define EM_TI_C6000	140	/* TI C6X DSPs */
- #define EM_FRV		0x5441	/* Fujitsu FR-V */
- #define EM_AVR32	0x18ad	/* Atmel AVR32 */
- 
--- 
-1.7.6.2
+On Tue, 27 Sep 2011 16:29:41 -0400 Mark Salter <msalter@redhat.com> wrote:
+>
+> Here is v3 of the C6X architecture patch series. Patches are
+> available in 'upstream-v3' branch at:
+>=20
+>     git@linux-c6x.org:/git/projects/linux-c6x-upstreaming
+
+Is it time for this to be included in linux-next (i.e. are you intending
+to send this to Linus during the next merge window)?  If so, please send
+a request (cc'd to here, linux-next and linux-kernel) asking for
+inclusion.  I would prefer a publically fetchable tree (the tree above is
+(implicitly) fetched over ssh and is so not generally available) and
+branch name that does not change over time (like "for-next" or something)
+but it can just be an alias for the above.
+
+Arnd, do you have an opinion on this?
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQEcBAEBAgAGBQJOglkeAAoJEDMEi1NhKgbsa0MH/3cDHuENZ5q8jJL3h52zr7zW
+snrxT8XwkgBqPwdKdGymmvHIVqC6ZdCiocznA873WLrx4D6l639Eyq3I7OW588TP
+MztUKA85b9Z4C8h2g/9LTupZIqpsoq7CzcT86y99q79R3V75m/VBP4WVNQ9VzYFy
+P02nnKe32QrmadEwazUwm+m51RY9BykW6EOQj0i12EPc/grIQJsm2t9S4w+zwvWZ
+ySBo9VzaaEJuZgesCCSXQ6YA/q+S5gFYBm3hIm3TY7cvhwZm56Lp71MaqCdj2bbF
+jMV8msUrifAugF85zeRbH+J0Ieei6Smbx2aRXJZBdlmkMONh6FkAdzg+gV3pcBg=
+=N2+k
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW--
