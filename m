@@ -1,521 +1,573 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26307 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:41820 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753333Ab1I0UaZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Sep 2011 16:30:25 -0400
+	id S1753313Ab1I0UaY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Sep 2011 16:30:24 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 10/24] C6X: signal management
-Date: Tue, 27 Sep 2011 16:29:51 -0400
-Message-ID: <1317155405-26235-11-git-send-email-msalter@redhat.com>
+Subject: [PATCH v3 08/24] C6X: memory management and DMA support
+Date: Tue, 27 Sep 2011 16:29:49 -0400
+Message-ID: <1317155405-26235-9-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20110927202951.n8t0ngyoMvm2OHMgOEaH4VuvzwyihQjciZ6jBVaPoog@z>
+Message-ID: <20110927202949.cUy3SH_wHSR0uYXzbapiFx1xXjru42sCzYkT5YaeyFs@z>
+
+The C6X architecture currently lacks an MMU so memory management is relatively
+simple. There is no bus snooping between L2 and main memory but coherent DMA
+memory is supported by making regions of main memory uncached. If such a region
+is desired, it can be specified on the commandline with a "memdma=" argument.
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/sigcontext.h |   80 ++++++++
- arch/c6x/include/asm/signal.h     |   17 ++
- arch/c6x/kernel/signal.c          |  377 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 474 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/sigcontext.h
- create mode 100644 arch/c6x/include/asm/signal.h
- create mode 100644 arch/c6x/kernel/signal.c
+ arch/c6x/include/asm/dma-mapping.h |   91 +++++++++++++++++++
+ arch/c6x/kernel/dma.c              |  168 ++++++++++++++++++++++++++++++++++++
+ arch/c6x/mm/dma-coherent.c         |  142 ++++++++++++++++++++++++++++++
+ arch/c6x/mm/init.c                 |  112 ++++++++++++++++++++++++
+ 4 files changed, 513 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/dma-mapping.h
+ create mode 100644 arch/c6x/kernel/dma.c
+ create mode 100644 arch/c6x/mm/dma-coherent.c
+ create mode 100644 arch/c6x/mm/init.c
 
-diff --git a/arch/c6x/include/asm/sigcontext.h b/arch/c6x/include/asm/sigcontext.h
+diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..eb702f3
+index 0000000..03579fd
 --- /dev/null
-+++ b/arch/c6x/include/asm/sigcontext.h
-@@ -0,0 +1,80 @@
++++ b/arch/c6x/include/asm/dma-mapping.h
+@@ -0,0 +1,91 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2004, 2009 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ */
++#ifndef _ASM_C6X_DMA_MAPPING_H
++#define _ASM_C6X_DMA_MAPPING_H
++
++#include <linux/dma-debug.h>
++#include <asm-generic/dma-coherent.h>
++
++#define dma_supported(d, m)	1
++
++static inline int dma_set_mask(struct device *dev, u64 dma_mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
++		return -EIO;
++
++	*dev->dma_mask = dma_mask;
++
++	return 0;
++}
++
++/*
++ * DMA errors are defined by all-bits-set in the DMA address.
++ */
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return dma_addr == ~0;
++}
++
++extern dma_addr_t dma_map_single(struct device *dev, void *cpu_addr,
++				 size_t size, enum dma_data_direction dir);
++
++extern void dma_unmap_single(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir);
++
++extern int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++		      int nents, enum dma_data_direction direction);
++
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction direction);
++
++static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
++				      unsigned long offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	dma_addr_t handle;
++
++	handle = dma_map_single(dev, page_address(page) + offset, size, dir);
++
++	debug_dma_map_page(dev, page, offset, size, dir, handle, false);
++
++	return handle;
++}
++
++static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
++		size_t size, enum dma_data_direction dir)
++{
++	dma_unmap_single(dev, handle, size, dir);
++
++	debug_dma_unmap_page(dev, handle, size, dir, false);
++}
++
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++				    size_t size, enum dma_data_direction dir);
++
++extern void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				       size_t size,
++				       enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++				int nents, enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				   int nents, enum dma_data_direction dir);
++
++extern void coherent_mem_init(u32 start, u32 size);
++extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
++extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
++
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent((d), (s), (h), (f))
++#define dma_free_noncoherent(d, s, v, h)  dma_free_coherent((d), (s), (v), (h))
++
++#endif	/* _ASM_C6X_DMA_MAPPING_H */
+diff --git a/arch/c6x/kernel/dma.c b/arch/c6x/kernel/dma.c
+new file mode 100644
+index 0000000..4120de0
+--- /dev/null
++++ b/arch/c6x/kernel/dma.c
+@@ -0,0 +1,168 @@
++/*
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_SIGCONTEXT_H
-+#define _ASM_C6X_SIGCONTEXT_H
++#include <linux/dma-mapping.h>
++#include <linux/mm.h>
++#include <linux/mm_types.h>
++#include <linux/scatterlist.h>
 +
-+
-+struct sigcontext {
-+	unsigned long  sc_mask;		/* old sigmask */
-+	unsigned long  sc_sp;		/* old user stack pointer */
-+
-+	unsigned long  sc_a4;
-+	unsigned long  sc_b4;
-+	unsigned long  sc_a6;
-+	unsigned long  sc_b6;
-+	unsigned long  sc_a8;
-+	unsigned long  sc_b8;
-+
-+	unsigned long  sc_a0;
-+	unsigned long  sc_a1;
-+	unsigned long  sc_a2;
-+	unsigned long  sc_a3;
-+	unsigned long  sc_a5;
-+	unsigned long  sc_a7;
-+	unsigned long  sc_a9;
-+
-+	unsigned long  sc_b0;
-+	unsigned long  sc_b1;
-+	unsigned long  sc_b2;
-+	unsigned long  sc_b3;
-+	unsigned long  sc_b5;
-+	unsigned long  sc_b7;
-+	unsigned long  sc_b9;
-+
-+	unsigned long  sc_a16;
-+	unsigned long  sc_a17;
-+	unsigned long  sc_a18;
-+	unsigned long  sc_a19;
-+	unsigned long  sc_a20;
-+	unsigned long  sc_a21;
-+	unsigned long  sc_a22;
-+	unsigned long  sc_a23;
-+	unsigned long  sc_a24;
-+	unsigned long  sc_a25;
-+	unsigned long  sc_a26;
-+	unsigned long  sc_a27;
-+	unsigned long  sc_a28;
-+	unsigned long  sc_a29;
-+	unsigned long  sc_a30;
-+	unsigned long  sc_a31;
-+
-+	unsigned long  sc_b16;
-+	unsigned long  sc_b17;
-+	unsigned long  sc_b18;
-+	unsigned long  sc_b19;
-+	unsigned long  sc_b20;
-+	unsigned long  sc_b21;
-+	unsigned long  sc_b22;
-+	unsigned long  sc_b23;
-+	unsigned long  sc_b24;
-+	unsigned long  sc_b25;
-+	unsigned long  sc_b26;
-+	unsigned long  sc_b27;
-+	unsigned long  sc_b28;
-+	unsigned long  sc_b29;
-+	unsigned long  sc_b30;
-+	unsigned long  sc_b31;
-+
-+	unsigned long  sc_csr;
-+	unsigned long  sc_pc;
-+};
-+
-+#endif /* _ASM_C6X_SIGCONTEXT_H */
-diff --git a/arch/c6x/include/asm/signal.h b/arch/c6x/include/asm/signal.h
-new file mode 100644
-index 0000000..f1cd870
---- /dev/null
-+++ b/arch/c6x/include/asm/signal.h
-@@ -0,0 +1,17 @@
-+#ifndef _ASM_C6X_SIGNAL_H
-+#define _ASM_C6X_SIGNAL_H
-+
-+#include <asm-generic/signal.h>
-+
-+#ifndef __ASSEMBLY__
-+#include <linux/linkage.h>
-+
-+struct pt_regs;
-+
-+extern asmlinkage int do_rt_sigreturn(struct pt_regs *regs);
-+extern asmlinkage void do_notify_resume(struct pt_regs *regs,
-+					u32 thread_info_flags,
-+					int syscall);
-+#endif
-+
-+#endif /* _ASM_C6X_SIGNAL_H */
-diff --git a/arch/c6x/kernel/signal.c b/arch/c6x/kernel/signal.c
-new file mode 100644
-index 0000000..304f675
---- /dev/null
-+++ b/arch/c6x/kernel/signal.c
-@@ -0,0 +1,377 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2006, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  Updated for 2.6.34: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/uaccess.h>
-+#include <linux/syscalls.h>
-+#include <linux/tracehook.h>
-+
-+#include <asm/ucontext.h>
 +#include <asm/cacheflush.h>
 +
-+
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-+
-+/*
-+ * Do a signal return, undo the signal stack.
-+ */
-+
-+#define RETCODE_SIZE (9 << 2)	/* 9 instructions = 36 bytes */
-+
-+struct rt_sigframe {
-+	struct siginfo __user *pinfo;
-+	void __user *puc;
-+	struct siginfo info;
-+	struct ucontext uc;
-+	unsigned long retcode[RETCODE_SIZE >> 2];
-+};
-+
-+static int restore_sigcontext(struct pt_regs *regs,
-+			      struct sigcontext __user *sc)
++dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size,
++			  enum dma_data_direction dir)
 +{
-+	int err = 0;
++	dma_addr_t addr = virt_to_phys(ptr);
 +
-+	/* The access_ok check was done by caller, so use __get_user here */
-+#define COPY(x)  (err |= __get_user(regs->x, &sc->sc_##x))
++	BUG_ON(!valid_dma_direction(dir));
 +
-+	COPY(sp); COPY(a4); COPY(b4); COPY(a6); COPY(b6); COPY(a8); COPY(b8);
-+	COPY(a0); COPY(a1); COPY(a2); COPY(a3); COPY(a5); COPY(a7); COPY(a9);
-+	COPY(b0); COPY(b1); COPY(b2); COPY(b3); COPY(b5); COPY(b7); COPY(b9);
-+
-+	COPY(a16); COPY(a17); COPY(a18); COPY(a19);
-+	COPY(a20); COPY(a21); COPY(a22); COPY(a23);
-+	COPY(a24); COPY(a25); COPY(a26); COPY(a27);
-+	COPY(a28); COPY(a29); COPY(a30); COPY(a31);
-+	COPY(b16); COPY(b17); COPY(b18); COPY(b19);
-+	COPY(b20); COPY(b21); COPY(b22); COPY(b23);
-+	COPY(b24); COPY(b25); COPY(b26); COPY(b27);
-+	COPY(b28); COPY(b29); COPY(b30); COPY(b31);
-+
-+	COPY(csr); COPY(pc);
-+
-+#undef COPY
-+
-+	return err;
-+}
-+
-+asmlinkage int do_rt_sigreturn(struct pt_regs *regs)
-+{
-+	struct rt_sigframe __user *frame;
-+	sigset_t set;
-+
-+	/*
-+	 * Since we stacked the signal on a dword boundary,
-+	 * 'sp' should be dword aligned here.  If it's
-+	 * not, then the user is trying to mess with us.
-+	 */
-+	if (regs->sp & 7)
-+		goto badframe;
-+
-+	frame = (struct rt_sigframe __user *) ((unsigned long) regs->sp + 8);
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	sigdelsetmask(&set, ~_BLOCKABLE);
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = set;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
-+		goto badframe;
-+
-+	return regs->a4;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-+
-+static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
-+			    unsigned long mask)
-+{
-+	int err = 0;
-+
-+	err |= __put_user(mask, &sc->sc_mask);
-+
-+	/* The access_ok check was done by caller, so use __put_user here */
-+#define COPY(x) (err |= __put_user(regs->x, &sc->sc_##x))
-+
-+	COPY(sp); COPY(a4); COPY(b4); COPY(a6); COPY(b6); COPY(a8); COPY(b8);
-+	COPY(a0); COPY(a1); COPY(a2); COPY(a3); COPY(a5); COPY(a7); COPY(a9);
-+	COPY(b0); COPY(b1); COPY(b2); COPY(b3); COPY(b5); COPY(b7); COPY(b9);
-+
-+	COPY(a16); COPY(a17); COPY(a18); COPY(a19);
-+	COPY(a20); COPY(a21); COPY(a22); COPY(a23);
-+	COPY(a24); COPY(a25); COPY(a26); COPY(a27);
-+	COPY(a28); COPY(a29); COPY(a30); COPY(a31);
-+	COPY(b16); COPY(b17); COPY(b18); COPY(b19);
-+	COPY(b20); COPY(b21); COPY(b22); COPY(b23);
-+	COPY(b24); COPY(b25); COPY(b26); COPY(b27);
-+	COPY(b28); COPY(b29); COPY(b30); COPY(b31);
-+
-+	COPY(csr); COPY(pc);
-+
-+#undef COPY
-+
-+	return err;
-+}
-+
-+static inline void __user *get_sigframe(struct k_sigaction *ka,
-+					struct pt_regs *regs,
-+					unsigned long framesize)
-+{
-+	unsigned long sp = regs->sp;
-+
-+	/*
-+	 * This is the X/Open sanctioned signal stack switching.
-+	 */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && sas_ss_flags(sp) == 0)
-+		sp = current->sas_ss_sp + current->sas_ss_size;
-+
-+	/*
-+	 * No matter what happens, 'sp' must be dword
-+	 * aligned. Otherwise, nasty things will happen
-+	 */
-+	return (void __user *)((sp - framesize) & ~7);
-+}
-+
-+static int setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
-+			   sigset_t *set, struct pt_regs *regs)
-+{
-+	struct rt_sigframe __user *frame;
-+	unsigned long __user *retcode;
-+	int err = 0;
-+
-+	frame = get_sigframe(ka, regs, sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		goto segv_and_exit;
-+
-+	err |= __put_user(&frame->info, &frame->pinfo);
-+	err |= __put_user(&frame->uc, &frame->puc);
-+	err |= copy_siginfo_to_user(&frame->info, info);
-+
-+	/* Clear all the bits of the ucontext we don't use.  */
-+	err |= __clear_user(&frame->uc, offsetof(struct ucontext, uc_mcontext));
-+
-+	err |= setup_sigcontext(&frame->uc.uc_mcontext,	regs, set->sig[0]);
-+	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+
-+	/* Set up to return from userspace */
-+	retcode = (unsigned long __user *) &frame->retcode;
-+
-+	/* The access_ok check was done above, so use __put_user here */
-+#define COPY(x) (err |= __put_user(x, retcode++))
-+
-+	COPY(0x0000002AUL | (__NR_rt_sigreturn << 7));
-+				/* MVK __NR_rt_sigreturn,B0 */
-+	COPY(0x10000000UL);	/* SWE */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+	COPY(0x00006000UL);	/* NOP 4 */
-+
-+#undef COPY
-+
-+	if (err)
-+		goto segv_and_exit;
-+
-+	flush_icache_range((unsigned long) &frame->retcode,
-+			   (unsigned long) &frame->retcode + RETCODE_SIZE);
-+
-+	retcode = (unsigned long __user *) &frame->retcode;
-+
-+	/* Change user context to branch to signal handler */
-+	regs->sp = (unsigned long) frame - 8;
-+	regs->b3 = (unsigned long) retcode;
-+	regs->pc = (unsigned long) ka->sa.sa_handler;
-+
-+	/* Give the signal number to the handler */
-+	regs->a4 = signr;
-+
-+	/*
-+	 * For realtime signals we must also set the second and third
-+	 * arguments for the signal handler.
-+	 *   -- Peter Maydell <pmaydell@chiark.greenend.org.uk> 2000-12-06
-+	 */
-+	regs->b4 = (unsigned long)&frame->info;
-+	regs->a6 = (unsigned long)&frame->uc;
-+
-+	return 0;
-+
-+segv_and_exit:
-+	force_sigsegv(signr, current);
-+	return -EFAULT;
-+}
-+
-+static inline void
-+handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
-+{
-+	switch (regs->a4) {
-+	case -ERESTARTNOHAND:
-+		if (!has_handler)
-+			goto do_restart;
-+		regs->a4 = -EINTR;
++	switch (dir) {
++	case DMA_FROM_DEVICE:
++		L2_cache_block_invalidate(addr, addr + size);
 +		break;
-+
-+	case -ERESTARTSYS:
-+		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
-+			regs->a4 = -EINTR;
-+			break;
-+		}
-+	/* fallthrough */
-+	case -ERESTARTNOINTR:
-+do_restart:
-+		regs->a4 = regs->orig_a4;
-+		regs->pc -= 4;
++	case DMA_TO_DEVICE:
++		L2_cache_block_writeback(addr, addr + size);
++		break;
++	case DMA_BIDIRECTIONAL:
++		/*
++		 * If area will be used bidirectionally, syncing will
++		 * take place manually in the driver.
++		 */
++	default:
 +		break;
 +	}
++
++	debug_dma_map_page(dev, virt_to_page(ptr),
++			   (unsigned long)ptr & ~PAGE_MASK, size,
++			   dir, addr, true);
++	return addr;
++}
++EXPORT_SYMBOL(dma_map_single);
++
++
++void dma_unmap_single(struct device *dev, dma_addr_t handle,
++		      size_t size, enum dma_data_direction dir)
++{
++	/* nothing to do here */
++	debug_dma_unmap_page(dev, handle, size, dir, true);
++}
++EXPORT_SYMBOL(dma_unmap_single);
++
++
++int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++	       int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		sg->dma_address = dma_map_single(dev, sg_virt(sg), sg->length,
++						 dir);
++
++	debug_dma_map_sg(dev, sglist, nents, nents, dir);
++
++	return nents;
++}
++EXPORT_SYMBOL(dma_map_sg);
++
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++		  int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_unmap_single(dev, sg_dma_address(sg), sg->length, dir);
++
++	debug_dma_unmap_sg(dev, sglist,	nents, dir);
++}
++EXPORT_SYMBOL(dma_unmap_sg);
++
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir)
++{
++	unsigned long paddr = handle;
++
++	BUG_ON(!valid_dma_direction(dir));
++
++	switch (dir) {
++	case DMA_FROM_DEVICE:
++		L2_cache_block_invalidate(paddr, paddr + size);
++		break;
++	case DMA_TO_DEVICE:
++		L2_cache_block_writeback(paddr, paddr + size);
++		break;
++	case DMA_BIDIRECTIONAL:
++		L2_cache_block_writeback_invalidate(paddr, paddr + size);
++		break;
++	default:
++		break;
++	}
++
++	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				size_t size, enum dma_data_direction dir)
++{
++	unsigned long paddr = handle;
++
++	BUG_ON(!valid_dma_direction(dir));
++
++	/* don't bother invalidating if DMA to device */
++	if (dir != DMA_TO_DEVICE)
++		L2_cache_block_invalidate(paddr, paddr + size);
++
++	debug_dma_sync_single_for_device(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_cpu(dev, sg_dma_address(sg),
++					sg->length, dir);
++
++	debug_dma_sync_sg_for_cpu(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
++			    int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_device(dev, sg_dma_address(sg),
++					   sg->length, dir);
++
++	debug_dma_sync_sg_for_device(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
++
++
++/* Number of entries preallocated for DMA-API debugging */
++#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
++
++static int __init dma_init(void)
++{
++	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
++
++	return 0;
++}
++fs_initcall(dma_init);
+diff --git a/arch/c6x/mm/dma-coherent.c b/arch/c6x/mm/dma-coherent.c
+new file mode 100644
+index 0000000..98ef9e1
+--- /dev/null
++++ b/arch/c6x/mm/dma-coherent.c
+@@ -0,0 +1,142 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ *  DMA uncached mapping support.
++ *
++ *  Using code pulled from ARM
++ *  Copyright (C) 2000-2004 Russell King
++ *
++ */
++#include <linux/slab.h>
++#include <linux/bitmap.h>
++#include <linux/bitops.h>
++#include <linux/interrupt.h>
++#include <linux/dma-mapping.h>
++#include <linux/memblock.h>
++
++#include <asm/page.h>
++
++/*
++ * DMA coherent memory management, can be redefined using the memdma=
++ * kernel command line
++ */
++
++/* none by default */
++static phys_addr_t dma_base;
++static u32 dma_size;
++static u32 dma_pages;
++
++static unsigned long *dma_bitmap;
++
++/* bitmap lock */
++static DEFINE_SPINLOCK(dma_lock);
++
++/*
++ * Return a DMA coherent and contiguous memory chunk from the DMA memory
++ */
++static inline u32 __alloc_dma_pages(int order)
++{
++	unsigned long flags;
++	u32 pos;
++
++	spin_lock_irqsave(&dma_lock, flags);
++	pos = bitmap_find_free_region(dma_bitmap, dma_pages, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
++
++	return dma_base + (pos << PAGE_SHIFT);
++}
++
++static void __free_dma_pages(u32 addr, int order)
++{
++	unsigned long flags;
++	u32 pos = (addr - dma_base) >> PAGE_SHIFT;
++
++	if (addr < dma_base || (pos + (1 << order)) >= dma_pages) {
++		printk(KERN_ERR "%s: freeing outside range.\n", __func__);
++		BUG();
++	}
++
++	spin_lock_irqsave(&dma_lock, flags);
++	bitmap_release_region(dma_bitmap, pos, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
 +}
 +
 +/*
-+ * handle the actual delivery of a signal to userspace
++ * Allocate DMA coherent memory space and return both the kernel
++ * virtual and DMA address for that space.
 + */
-+static int handle_signal(int sig,
-+			 siginfo_t *info, struct k_sigaction *ka,
-+			 sigset_t *oldset, struct pt_regs *regs,
-+			 int syscall)
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *handle, gfp_t gfp)
 +{
-+	int ret;
++	u32 paddr;
++	int order;
 +
-+	/* Are we from a system call? */
-+	if (syscall) {
-+		/* If so, check system call restarting.. */
-+		switch (regs->a4) {
-+		case -ERESTART_RESTARTBLOCK:
-+		case -ERESTARTNOHAND:
-+			regs->a4 = -EINTR;
-+			break;
++	if (!dma_size || !size)
++		return NULL;
 +
-+		case -ERESTARTSYS:
-+			if (!(ka->sa.sa_flags & SA_RESTART)) {
-+				regs->a4 = -EINTR;
-+				break;
-+			}
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
 +
-+			/* fallthrough */
-+		case -ERESTARTNOINTR:
-+			regs->a4 = regs->orig_a4;
-+			regs->pc -= 4;
-+		}
-+	}
++	paddr = __alloc_dma_pages(order);
 +
-+	/* Set up the stack frame */
-+	ret = setup_rt_frame(sig, ka, info, oldset, regs);
-+	if (ret == 0) {
-+		spin_lock_irq(&current->sighand->siglock);
-+		sigorsets(&current->blocked, &current->blocked,
-+			  &ka->sa.sa_mask);
-+		if (!(ka->sa.sa_flags & SA_NODEFER))
-+			sigaddset(&current->blocked, sig);
-+		recalc_sigpending();
-+		spin_unlock_irq(&current->sighand->siglock);
-+	}
++	if (handle)
++		*handle = paddr;
 +
-+	return ret;
++	if (!paddr)
++		return NULL;
++
++	return phys_to_virt(paddr);
 +}
++EXPORT_SYMBOL(dma_alloc_coherent);
 +
 +/*
-+ * handle a potential signal
++ * Free DMA coherent memory as defined by the above mapping.
 + */
-+static void do_signal(struct pt_regs *regs, int syscall)
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++		       dma_addr_t dma_handle)
 +{
-+	struct k_sigaction ka;
-+	siginfo_t info;
-+	sigset_t *oldset;
-+	int signr;
++	int order;
 +
-+	/* we want the common case to go fast, which is why we may in certain
-+	 * cases get here from kernel mode */
-+	if (!user_mode(regs))
++	if (!dma_size || !size)
 +		return;
 +
-+	if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+		oldset = &current->saved_sigmask;
-+	else
-+		oldset = &current->blocked;
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
 +
-+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+	if (signr > 0) {
-+		if (handle_signal(signr, &info, &ka, oldset,
-+				  regs, syscall) == 0) {
-+			/* a signal was successfully delivered; the saved
-+			 * sigmask will have been stored in the signal frame,
-+			 * and will be restored by sigreturn, so we can simply
-+			 * clear the TIF_RESTORE_SIGMASK flag */
-+			if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+				clear_thread_flag(TIF_RESTORE_SIGMASK);
-+
-+			tracehook_signal_handler(signr, &info, &ka, regs, 0);
-+		}
-+
-+		return;
-+	}
-+
-+	/* did we come from a system call? */
-+	if (syscall) {
-+		/* restart the system call - no handlers present */
-+		switch (regs->a4) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->a4 = regs->orig_a4;
-+			regs->pc -= 4;
-+			break;
-+
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->a4 = regs->orig_a4;
-+			regs->b0 = __NR_restart_syscall;
-+			regs->pc -= 4;
-+			break;
-+		}
-+	}
-+
-+	/* if there's no signal to deliver, we just put the saved sigmask
-+	 * back */
-+	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+		clear_thread_flag(TIF_RESTORE_SIGMASK);
-+		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+	}
++	__free_dma_pages(virt_to_phys(vaddr), order);
 +}
++EXPORT_SYMBOL(dma_free_coherent);
 +
 +/*
-+ * notification of userspace execution resumption
-+ * - triggered by current->work.notify_resume
++ * Initialise the coherent DMA memory allocator using the given uncached region.
 + */
-+asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags,
-+				 int syscall)
++void __init coherent_mem_init(phys_addr_t start, u32 size)
 +{
-+	/* deal with pending signal delivery */
-+	if (thread_info_flags & ((1 << TIF_SIGPENDING) |
-+				 (1 << TIF_RESTORE_SIGMASK)))
-+		do_signal(regs, syscall);
++	phys_addr_t bitmap_phys;
 +
-+	if (thread_info_flags & (1 << TIF_NOTIFY_RESUME)) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
-+		if (current->replacement_session_keyring)
-+			key_replace_session_keyring();
++	if (!size)
++		return;
++
++	printk(KERN_INFO
++	       "Coherent memory (DMA) region start=0x%x size=0x%x\n",
++	       start, size);
++
++	dma_base = start;
++	dma_size = size;
++
++	/* allocate bitmap */
++	dma_pages = dma_size >> PAGE_SHIFT;
++	if (dma_size & (PAGE_SIZE - 1))
++		++dma_pages;
++
++	bitmap_phys = memblock_alloc(BITS_TO_LONGS(dma_pages) * sizeof(long),
++				     sizeof(long));
++
++	dma_bitmap = phys_to_virt(bitmap_phys);
++	memset(dma_bitmap, 0, dma_pages * PAGE_SIZE);
++}
+diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+new file mode 100644
+index 0000000..6b4d396
+--- /dev/null
++++ b/arch/c6x/mm/init.c
+@@ -0,0 +1,112 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/bootmem.h>
++#ifdef CONFIG_BLK_DEV_RAM
++#include <linux/blkdev.h>
++#endif
++#include <linux/initrd.h>
++
++#include <asm/sections.h>
++
++/*
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++unsigned long empty_zero_page;
++EXPORT_SYMBOL(empty_zero_page);
++
++/*
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses  of available kernel virtual memory.
++ */
++void __init paging_init(void)
++{
++	struct pglist_data *pgdat = NODE_DATA(0);
++	unsigned long zones_size[MAX_NR_ZONES] = {0, };
++
++	empty_zero_page      = (unsigned long) alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++
++	/*
++	 * Set up user data space
++	 */
++	set_fs(KERNEL_DS);
++
++	/*
++	 * Define zones
++	 */
++	zones_size[ZONE_NORMAL] = (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
++	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =
++		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
++
++	free_area_init(zones_size);
++}
++
++void __init mem_init(void)
++{
++	int codek, datak;
++	unsigned long tmp;
++	unsigned long len = memory_end - memory_start;
++
++	high_memory = (void *)(memory_end & PAGE_MASK);
++
++	/* this will put all memory onto the freelists */
++	totalram_pages = free_all_bootmem();
++
++	codek = (_etext - _stext) >> 10;
++	datak = (_end - _sdata) >> 10;
++
++	tmp = nr_free_pages() << PAGE_SHIFT;
++	printk(KERN_INFO "Memory: %luk/%luk RAM (%dk kernel code, %dk data)\n",
++	       tmp >> 10, len >> 10, codek, datak);
++}
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init free_initrd_mem(unsigned long start, unsigned long end)
++{
++	int pages = 0;
++	for (; start < end; start += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(start));
++		init_page_count(virt_to_page(start));
++		free_page(start);
++		totalram_pages++;
++		pages++;
 +	}
++	printk(KERN_INFO "Freeing initrd memory: %luk freed\n",
++	       (pages * PAGE_SIZE) >> 10);
++}
++#endif
++
++void __init free_initmem(void)
++{
++	unsigned long addr;
++
++	/*
++	 * The following code should be cool even if these sections
++	 * are not page aligned.
++	 */
++	addr = PAGE_ALIGN((unsigned long)(__init_begin));
++
++	/* next to check that the page we free is not a partial page */
++	for (; addr + PAGE_SIZE < (unsigned long)(__init_end);
++	     addr += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(addr));
++		init_page_count(virt_to_page(addr));
++		free_page(addr);
++		totalram_pages++;
++	}
++	printk(KERN_INFO "Freeing unused kernel memory: %dK freed\n",
++	       (int) ((addr - PAGE_ALIGN((long) &__init_begin)) >> 10));
 +}
 -- 
 1.7.6.2
