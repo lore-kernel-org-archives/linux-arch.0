@@ -1,62 +1,62 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v3 00/24] C6X: New architecture
-Date: Wed, 28 Sep 2011 09:15:42 +1000
-Message-ID: <20110928091542.9b1e35afa2075106550de7be@canb.auug.org.au>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v3 12/24] C6X: interrupt handling
+Date: Wed, 28 Sep 2011 01:30:28 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1109280115130.2711@ionos>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <1317155405-26235-13-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA1";
- boundary="Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW"
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from calzone.tip.net.au ([203.10.76.15]:55215 "EHLO
-	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752555Ab1I0XPu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2011 19:15:50 -0400
-In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+Received: from www.linutronix.de ([62.245.132.108]:57160 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752815Ab1I0Xaa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Sep 2011 19:30:30 -0400
+In-Reply-To: <1317155405-26235-13-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>
 
---Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+B1;2601;0cOn Tue, 27 Sep 2011, Mark Salter wrote:
+> diff --git a/arch/c6x/kernel/irq.c b/arch/c6x/kernel/irq.c
+> +static raw_spinlock_t core_irq_lock;
 
-On Tue, 27 Sep 2011 16:29:41 -0400 Mark Salter <msalter@redhat.com> wrote:
->
-> Here is v3 of the C6X architecture patch series. Patches are
-> available in 'upstream-v3' branch at:
->=20
->     git@linux-c6x.org:/git/projects/linux-c6x-upstreaming
+static DEFINE_RAW_SPINLOCK(...) please, so you can get rid of the
+raw_spin_lock_init(...) below.
 
-Is it time for this to be included in linux-next (i.e. are you intending
-to send this to Linus during the next merge window)?  If so, please send
-a request (cc'd to here, linux-next and linux-kernel) asking for
-inclusion.  I would prefer a publically fetchable tree (the tree above is
-(implicitly) fetched over ssh and is so not generally available) and
-branch name that does not change over time (like "for-next" or something)
-but it can just be an alias for the above.
+> +static int core_host_map(struct irq_host *h, unsigned int virq,
+> +			 irq_hw_number_t hw)
+> +{
+> +	if (hw < 4 || hw >= NR_PRIORITY_IRQS)
+> +		return -1;
 
-Arnd, do you have an opinion on this?
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+Proper error code please, i.e -EINVAL or such
 
---Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW
-Content-Type: application/pgp-signature
+> +
+> +	irq_set_status_flags(virq, IRQ_LEVEL);
+> +	irq_set_chip_and_handler(virq, &core_chip, handle_level_irq);
+> +	return 0;
+> +}
+> +
+> +static struct irq_host_ops core_host_ops = {
+> +	.map = core_host_map,
+> +};
+> +
+> +void __init init_IRQ(void)
+> +{
+> +	struct device_node *np;
+> +
+> +	raw_spin_lock_init(&core_irq_lock);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+See above.
 
-iQEcBAEBAgAGBQJOglkeAAoJEDMEi1NhKgbsa0MH/3cDHuENZ5q8jJL3h52zr7zW
-snrxT8XwkgBqPwdKdGymmvHIVqC6ZdCiocznA873WLrx4D6l639Eyq3I7OW588TP
-MztUKA85b9Z4C8h2g/9LTupZIqpsoq7CzcT86y99q79R3V75m/VBP4WVNQ9VzYFy
-P02nnKe32QrmadEwazUwm+m51RY9BykW6EOQj0i12EPc/grIQJsm2t9S4w+zwvWZ
-ySBo9VzaaEJuZgesCCSXQ6YA/q+S5gFYBm3hIm3TY7cvhwZm56Lp71MaqCdj2bbF
-jMV8msUrifAugF85zeRbH+J0Ieei6Smbx2aRXJZBdlmkMONh6FkAdzg+gV3pcBg=
-=N2+k
------END PGP SIGNATURE-----
+Aside of that I'm still not too happy about the of_/irqhost/domain
+code replication and the cleanup which needs to be done after that has
+been solved. Though if you and Grant have a plan for that, I'm not in
+the way.
 
---Signature=_Wed__28_Sep_2011_09_15_42_+1000_.9MlTJr0TDCvg.NW--
+Btw, keeping people who have been added to previous review comments of
+a particular patch in the CC makes everyones life easier.
+
+Thanks,
+
+	tglx
