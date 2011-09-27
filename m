@@ -1,1443 +1,1078 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60888 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:31382 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753059Ab1I0Ua2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753394Ab1I0Ua2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 27 Sep 2011 16:30:28 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 14/24] C6X: traps
-Date: Tue, 27 Sep 2011 16:29:55 -0400
-Message-ID: <1317155405-26235-15-git-send-email-msalter@redhat.com>
+Subject: [PATCH v3 15/24] C6X: clocks
+Date: Tue, 27 Sep 2011 16:29:56 -0400
+Message-ID: <1317155405-26235-16-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20110927202955.EZV0l2Fbzizrc5HPJcCKp_kvZJ3oxGkZo5XG7tSE0CY@z>
+Message-ID: <20110927202956.iT0XvqBft42TCLyyGPRvFU7uYhXA1q0pJnCuCPlaTpM@z>
 
-This patch provides the kernel entry points for traps, syscalls and
-interrupts.
+The C6X SoCs contain several PLL controllers each with up to 16 clock outputs
+feeding into the cores or peripheral clock domains. The hardware is very similar
+to arm/mach-davinci clocks. This is still a work in progress which needs to be
+updated once device tree clock binding changes shake out.
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/traps.h  |   36 ++
- arch/c6x/kernel/asm-offsets.c |  123 +++++++
- arch/c6x/kernel/entry.S       |  803 +++++++++++++++++++++++++++++++++++++++++
- arch/c6x/kernel/traps.c       |  423 ++++++++++++++++++++++
- 4 files changed, 1385 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/traps.h
- create mode 100644 arch/c6x/kernel/asm-offsets.c
- create mode 100644 arch/c6x/kernel/entry.S
- create mode 100644 arch/c6x/kernel/traps.c
+ arch/c6x/include/asm/clkdev.h |   22 ++
+ arch/c6x/include/asm/clock.h  |  148 ++++++++++++++
+ arch/c6x/platforms/pll.c      |  444 +++++++++++++++++++++++++++++++++++++++++
+ arch/c6x/platforms/plldata.c  |  404 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 1018 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/clkdev.h
+ create mode 100644 arch/c6x/include/asm/clock.h
+ create mode 100644 arch/c6x/platforms/pll.c
+ create mode 100644 arch/c6x/platforms/plldata.c
 
-diff --git a/arch/c6x/include/asm/traps.h b/arch/c6x/include/asm/traps.h
+diff --git a/arch/c6x/include/asm/clkdev.h b/arch/c6x/include/asm/clkdev.h
 new file mode 100644
-index 0000000..62124d7
+index 0000000..76a070b
 --- /dev/null
-+++ b/arch/c6x/include/asm/traps.h
-@@ -0,0 +1,36 @@
++++ b/arch/c6x/include/asm/clkdev.h
+@@ -0,0 +1,22 @@
++#ifndef _ASM_CLKDEV_H
++#define _ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++struct clk;
++
++static inline int __clk_get(struct clk *clk)
++{
++	return 1;
++}
++
++static inline void __clk_put(struct clk *clk)
++{
++}
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif /* _ASM_CLKDEV_H */
+diff --git a/arch/c6x/include/asm/clock.h b/arch/c6x/include/asm/clock.h
+new file mode 100644
+index 0000000..bcf42b2
+--- /dev/null
++++ b/arch/c6x/include/asm/clock.h
+@@ -0,0 +1,148 @@
 +/*
-+ *  Port on Texas Instruments TMS320C6x architecture
++ * TI C64X clock definitions
 + *
-+ *  Copyright (C) 2004, 2009, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ * Copyright (C) 2010, 2011 Texas Instruments.
++ * Contributed by: Mark Salter <msalter@redhat.com>
 + *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
++ * Copied heavily from arm/mach-davinci/clock.h, so:
++ *
++ * Copyright (C) 2006-2007 Texas Instruments.
++ * Copyright (C) 2008-2009 Deep Root Systems, LLC
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_TRAPS_H
-+#define _ASM_C6X_TRAPS_H
 +
-+#define EXCEPT_TYPE_NXF   31	   /* NMI */
-+#define EXCEPT_TYPE_EXC   30	   /* external exception */
-+#define EXCEPT_TYPE_IXF   1	   /* internal exception */
-+#define EXCEPT_TYPE_SXF   0	   /* software exception */
++#ifndef _ASM_C6X_CLOCK_H
++#define _ASM_C6X_CLOCK_H
 +
-+#define EXCEPT_CAUSE_LBX  (1 << 7) /* loop buffer exception */
-+#define EXCEPT_CAUSE_PRX  (1 << 6) /* privilege exception */
-+#define EXCEPT_CAUSE_RAX  (1 << 5) /* resource access exception */
-+#define EXCEPT_CAUSE_RCX  (1 << 4) /* resource conflict exception */
-+#define EXCEPT_CAUSE_OPX  (1 << 3) /* opcode exception */
-+#define EXCEPT_CAUSE_EPX  (1 << 2) /* execute packet exception */
-+#define EXCEPT_CAUSE_FPX  (1 << 1) /* fetch packet exception */
-+#define EXCEPT_CAUSE_IFX  (1 << 0) /* instruction fetch exception */
++#ifndef __ASSEMBLER__
 +
-+struct exception_info {
-+	char *kernel_str;
-+	int  signo;
-+	int  code;
++#include <linux/list.h>
++
++/* PLL/Reset register offsets */
++#define PLLCTL		0x100
++#define PLLM		0x110
++#define PLLPRE		0x114
++#define PLLDIV1		0x118
++#define PLLDIV2		0x11c
++#define PLLDIV3		0x120
++#define PLLPOST		0x128
++#define PLLCMD		0x138
++#define PLLSTAT		0x13c
++#define PLLALNCTL	0x140
++#define PLLDCHANGE	0x144
++#define PLLCKEN		0x148
++#define PLLCKSTAT	0x14c
++#define PLLSYSTAT	0x150
++#define PLLDIV4		0x160
++#define PLLDIV5		0x164
++#define PLLDIV6		0x168
++#define PLLDIV7		0x16c
++#define PLLDIV8		0x170
++#define PLLDIV9		0x174
++#define PLLDIV10	0x178
++#define PLLDIV11	0x17c
++#define PLLDIV12	0x180
++#define PLLDIV13	0x184
++#define PLLDIV14	0x188
++#define PLLDIV15	0x18c
++#define PLLDIV16	0x190
++
++/* PLLM register bits */
++#define PLLM_PLLM_MASK	0xff
++#define PLLM_VAL(x)	((x) - 1)
++
++/* PREDIV register bits */
++#define PLLPREDIV_EN	BIT(15)
++#define PLLPREDIV_VAL(x) ((x) - 1)
++
++/* PLLCTL register bits */
++#define PLLCTL_PLLEN	BIT(0)
++#define PLLCTL_PLLPWRDN	BIT(1)
++#define PLLCTL_PLLRST	BIT(3)
++#define PLLCTL_PLLDIS	BIT(4)
++#define PLLCTL_PLLENSRC	BIT(5)
++#define PLLCTL_CLKMODE	BIT(8)
++
++/* PLLCMD register bits */
++#define PLLCMD_GOSTAT	BIT(0)
++
++/* PLLSTAT register bits */
++#define PLLSTAT_GOSTAT	BIT(0)
++
++/* PLLDIV register bits */
++#define PLLDIV_EN	BIT(15)
++#define PLLDIV_RATIO_MASK 0x1f
++#define PLLDIV_RATIO(x) ((x) - 1)
++
++struct pll_data;
++
++struct clk {
++	struct list_head	node;
++	struct module		*owner;
++	const char		*name;
++	unsigned long		rate;
++	int			usecount;
++	u32			flags;
++	struct clk		*parent;
++	struct list_head	children;	/* list of children */
++	struct list_head	childnode;	/* parent's child list node */
++	struct pll_data		*pll_data;
++	u32			div;
++	unsigned long (*recalc) (struct clk *);
++	int (*set_rate) (struct clk *clk, unsigned long rate);
++	int (*round_rate) (struct clk *clk, unsigned long rate);
 +};
 +
-+extern int (*c6x_nmi_handler)(struct pt_regs *regs);
++/* Clock flags: SoC-specific flags start at BIT(16) */
++#define ALWAYS_ENABLED		BIT(1)
++#define CLK_PLL			BIT(2) /* PLL-derived clock */
++#define PRE_PLL			BIT(3) /* source is before PLL mult/div */
++#define FIXED_DIV_PLL		BIT(4) /* fixed divisor from PLL */
++#define FIXED_RATE_PLL		BIT(5) /* fixed ouput rate PLL */
 +
-+#endif /* _ASM_C6X_TRAPS_H */
-diff --git a/arch/c6x/kernel/asm-offsets.c b/arch/c6x/kernel/asm-offsets.c
++#define MAX_PLL_SYSCLKS 16
++
++struct pll_data {
++	void __iomem *base;
++	u32 num;
++	u32 flags;
++	u32 input_rate;
++	u32 bypass_delay; /* in loops */
++	u32 reset_delay;  /* in loops */
++	u32 lock_delay;   /* in loops */
++	struct clk sysclks[MAX_PLL_SYSCLKS + 1];
++};
++
++/* pll_data flag bit */
++#define PLL_HAS_PRE	BIT(0)
++#define PLL_HAS_MUL	BIT(1)
++#define PLL_HAS_POST	BIT(2)
++
++#define CLK(dev, con, ck)	\
++	{			\
++		.dev_id = dev,	\
++		.con_id = con,	\
++		.clk = ck,	\
++	}			\
++
++extern void c6x_clks_init(struct clk_lookup *clocks);
++extern int clk_register(struct clk *clk);
++extern void clk_unregister(struct clk *clk);
++extern void c64x_setup_clocks(void);
++
++extern struct pll_data c6x_soc_pll1;
++
++extern struct clk clkin1;
++extern struct clk c6x_core_clk;
++extern struct clk c6x_i2c_clk;
++extern struct clk c6x_watchdog_clk;
++extern struct clk c6x_mcbsp1_clk;
++extern struct clk c6x_mcbsp2_clk;
++extern struct clk c6x_mdio_clk;
++
++#endif
++
++#endif /* _ASM_C6X_CLOCK_H */
+diff --git a/arch/c6x/platforms/pll.c b/arch/c6x/platforms/pll.c
 new file mode 100644
-index 0000000..759ad6d
+index 0000000..3aa898f
 --- /dev/null
-+++ b/arch/c6x/kernel/asm-offsets.c
-@@ -0,0 +1,123 @@
++++ b/arch/c6x/platforms/pll.c
+@@ -0,0 +1,444 @@
 +/*
-+ * Generate definitions needed by assembly language modules.
-+ * This code generates raw asm output which is post-processed
-+ * to extract and format the required data.
++ * Clock and PLL control for C64x+ devices
++ *
++ * Copyright (C) 2010, 2011 Texas Instruments.
++ * Contributed by: Mark Salter <msalter@redhat.com>
++ *
++ * Copied heavily from arm/mach-davinci/clock.c, so:
++ *
++ * Copyright (C) 2006-2007 Texas Instruments.
++ * Copyright (C) 2008-2009 Deep Root Systems, LLC
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/thread_info.h>
-+#include <asm/procinfo.h>
-+#include <linux/kbuild.h>
-+#include <linux/unistd.h>
-+
-+void foo(void)
-+{
-+	OFFSET(REGS_A16,	pt_regs, a16);
-+	OFFSET(REGS_A17,	pt_regs, a17);
-+	OFFSET(REGS_A18,	pt_regs, a18);
-+	OFFSET(REGS_A19,	pt_regs, a19);
-+	OFFSET(REGS_A20,	pt_regs, a20);
-+	OFFSET(REGS_A21,	pt_regs, a21);
-+	OFFSET(REGS_A22,	pt_regs, a22);
-+	OFFSET(REGS_A23,	pt_regs, a23);
-+	OFFSET(REGS_A24,	pt_regs, a24);
-+	OFFSET(REGS_A25,	pt_regs, a25);
-+	OFFSET(REGS_A26,	pt_regs, a26);
-+	OFFSET(REGS_A27,	pt_regs, a27);
-+	OFFSET(REGS_A28,	pt_regs, a28);
-+	OFFSET(REGS_A29,	pt_regs, a29);
-+	OFFSET(REGS_A30,	pt_regs, a30);
-+	OFFSET(REGS_A31,	pt_regs, a31);
-+
-+	OFFSET(REGS_B16,	pt_regs, b16);
-+	OFFSET(REGS_B17,	pt_regs, b17);
-+	OFFSET(REGS_B18,	pt_regs, b18);
-+	OFFSET(REGS_B19,	pt_regs, b19);
-+	OFFSET(REGS_B20,	pt_regs, b20);
-+	OFFSET(REGS_B21,	pt_regs, b21);
-+	OFFSET(REGS_B22,	pt_regs, b22);
-+	OFFSET(REGS_B23,	pt_regs, b23);
-+	OFFSET(REGS_B24,	pt_regs, b24);
-+	OFFSET(REGS_B25,	pt_regs, b25);
-+	OFFSET(REGS_B26,	pt_regs, b26);
-+	OFFSET(REGS_B27,	pt_regs, b27);
-+	OFFSET(REGS_B28,	pt_regs, b28);
-+	OFFSET(REGS_B29,	pt_regs, b29);
-+	OFFSET(REGS_B30,	pt_regs, b30);
-+	OFFSET(REGS_B31,	pt_regs, b31);
-+
-+	OFFSET(REGS_A0,		pt_regs, a0);
-+	OFFSET(REGS_A1,		pt_regs, a1);
-+	OFFSET(REGS_A2,		pt_regs, a2);
-+	OFFSET(REGS_A3,		pt_regs, a3);
-+	OFFSET(REGS_A4,		pt_regs, a4);
-+	OFFSET(REGS_A5,		pt_regs, a5);
-+	OFFSET(REGS_A6,		pt_regs, a6);
-+	OFFSET(REGS_A7,		pt_regs, a7);
-+	OFFSET(REGS_A8,		pt_regs, a8);
-+	OFFSET(REGS_A9,		pt_regs, a9);
-+	OFFSET(REGS_A10,	pt_regs, a10);
-+	OFFSET(REGS_A11,	pt_regs, a11);
-+	OFFSET(REGS_A12,	pt_regs, a12);
-+	OFFSET(REGS_A13,	pt_regs, a13);
-+	OFFSET(REGS_A14,	pt_regs, a14);
-+	OFFSET(REGS_A15,	pt_regs, a15);
-+
-+	OFFSET(REGS_B0,		pt_regs, b0);
-+	OFFSET(REGS_B1,		pt_regs, b1);
-+	OFFSET(REGS_B2,		pt_regs, b2);
-+	OFFSET(REGS_B3,		pt_regs, b3);
-+	OFFSET(REGS_B4,		pt_regs, b4);
-+	OFFSET(REGS_B5,		pt_regs, b5);
-+	OFFSET(REGS_B6,		pt_regs, b6);
-+	OFFSET(REGS_B7,		pt_regs, b7);
-+	OFFSET(REGS_B8,		pt_regs, b8);
-+	OFFSET(REGS_B9,		pt_regs, b9);
-+	OFFSET(REGS_B10,	pt_regs, b10);
-+	OFFSET(REGS_B11,	pt_regs, b11);
-+	OFFSET(REGS_B12,	pt_regs, b12);
-+	OFFSET(REGS_B13,	pt_regs, b13);
-+	OFFSET(REGS_DP,		pt_regs, dp);
-+	OFFSET(REGS_SP,		pt_regs, sp);
-+
-+	OFFSET(REGS_TSR,	pt_regs, tsr);
-+	OFFSET(REGS_ORIG_A4,	pt_regs, orig_a4);
-+
-+	DEFINE(REGS__END,	sizeof(struct pt_regs));
-+	BLANK();
-+
-+	OFFSET(THREAD_PC,	thread_struct, pc);
-+	OFFSET(THREAD_B15_14,	thread_struct, b15_14);
-+	OFFSET(THREAD_A15_14,	thread_struct, a15_14);
-+	OFFSET(THREAD_B13_12,	thread_struct, b13_12);
-+	OFFSET(THREAD_A13_12,	thread_struct, a13_12);
-+	OFFSET(THREAD_B11_10,	thread_struct, b11_10);
-+	OFFSET(THREAD_A11_10,	thread_struct, a11_10);
-+	OFFSET(THREAD_RICL_ICL,	thread_struct, ricl_icl);
-+	BLANK();
-+
-+	OFFSET(TASK_STATE,	task_struct, state);
-+	BLANK();
-+
-+	OFFSET(THREAD_INFO_FLAGS,	thread_info, flags);
-+	OFFSET(THREAD_INFO_PREEMPT_COUNT, thread_info, preempt_count);
-+	BLANK();
-+
-+	/* These would be unneccessary if we ran asm files
-+	 * through the preprocessor.
-+	 */
-+	DEFINE(KTHREAD_SIZE, THREAD_SIZE);
-+	DEFINE(KTHREAD_SHIFT, THREAD_SHIFT);
-+	DEFINE(KTHREAD_START_SP, THREAD_START_SP);
-+	DEFINE(ENOSYS_, ENOSYS);
-+	DEFINE(NR_SYSCALLS_, __NR_syscalls);
-+
-+	DEFINE(_TIF_SYSCALL_TRACE, (1<<TIF_SYSCALL_TRACE));
-+	DEFINE(_TIF_NOTIFY_RESUME, (1<<TIF_NOTIFY_RESUME));
-+	DEFINE(_TIF_SIGPENDING, (1<<TIF_SIGPENDING));
-+	DEFINE(_TIF_NEED_RESCHED, (1<<TIF_NEED_RESCHED));
-+	DEFINE(_TIF_POLLING_NRFLAG, (1<<TIF_POLLING_NRFLAG));
-+
-+	DEFINE(_TIF_ALLWORK_MASK, TIF_ALLWORK_MASK);
-+	DEFINE(_TIF_WORK_MASK, TIF_WORK_MASK);
-+}
-diff --git a/arch/c6x/kernel/entry.S b/arch/c6x/kernel/entry.S
-new file mode 100644
-index 0000000..3e977cc
---- /dev/null
-+++ b/arch/c6x/kernel/entry.S
-@@ -0,0 +1,803 @@
-+;
-+;  Port on Texas Instruments TMS320C6x architecture
-+;
-+;  Copyright (C) 2004-2011 Texas Instruments Incorporated
-+;  Author: Aurelien Jacquiot (aurelien.jacquiot@virtuallogix.com)
-+;  Updated for 2.6.34: Mark Salter <msalter@redhat.com>
-+;
-+;  This program is free software; you can redistribute it and/or modify
-+;  it under the terms of the GNU General Public License version 2 as
-+;  published by the Free Software Foundation.
-+;
-+
-+#include <linux/sys.h>
-+#include <linux/linkage.h>
-+#include <asm/thread_info.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/unistd.h>
-+#include <asm/errno.h>
-+
-+; Registers naming
-+#define DP	B14
-+#define SP	B15
-+
-+#ifndef CONFIG_PREEMPT
-+#define resume_kernel restore_all
-+#endif
-+
-+	.altmacro
-+
-+	.macro MASK_INT reg
-+	MVC	.S2	CSR,reg
-+	CLR	.S2	reg,0,0,reg
-+	MVC	.S2	reg,CSR
-+	.endm
-+
-+	.macro UNMASK_INT reg
-+	MVC	.S2	CSR,reg
-+	SET	.S2	reg,0,0,reg
-+	MVC	.S2	reg,CSR
-+	.endm
-+
-+	.macro GET_THREAD_INFO reg
-+	SHR	.S1X	SP,THREAD_SHIFT,reg
-+	SHL	.S1	reg,THREAD_SHIFT,reg
-+	.endm
-+
-+	;;
-+	;;  This defines the normal kernel pt_regs layout.
-+	;;
-+	.macro SAVE_ALL __rp __tsr
-+	STW	.D2T2	B0,*SP--[2]		; save original B0
-+	MVKL	.S2	current_ksp,B0
-+	MVKH	.S2	current_ksp,B0
-+	LDW	.D2T2	*B0,B1			; KSP
-+
-+	NOP	3
-+	STW	.D2T2	B1,*+SP[1]		; save original B1
-+	XOR	.D2	SP,B1,B0		; (SP ^ KSP)
-+	LDW	.D2T2	*+SP[1],B1		; restore B0/B1
-+	LDW	.D2T2	*++SP[2],B0
-+	SHR	.S2	B0,THREAD_SHIFT,B0	; 0 if already using kstack
-+  [B0]	STDW	.D2T2	SP:DP,*--B1[1]		; user: save user sp/dp kstack
-+  [B0]	MV	.S2	B1,SP			;    and switch to kstack
-+||[!B0] STDW	.D2T2	SP:DP,*--SP[1]		; kernel: save on current stack
-+
-+	SUBAW	.D2	SP,2,SP
-+
-+	ADD	.D1X	SP,-8,A15
-+ ||	STDW	.D2T1	A15:A14,*SP--[16]	; save A15:A14
-+
-+	STDW	.D2T2	B13:B12,*SP--[1]
-+ ||	STDW	.D1T1	A13:A12,*A15--[1]
-+ ||	MVC	.S2	__rp,B13
-+
-+	STDW	.D2T2	B11:B10,*SP--[1]
-+ ||	STDW	.D1T1	A11:A10,*A15--[1]
-+ ||	MVC	.S2	CSR,B12
-+
-+	STDW	.D2T2	B9:B8,*SP--[1]
-+ ||	STDW	.D1T1	A9:A8,*A15--[1]
-+ ||	MVC	.S2	RILC,B11
-+	STDW	.D2T2	B7:B6,*SP--[1]
-+ ||	STDW	.D1T1	A7:A6,*A15--[1]
-+ ||	MVC	.S2	ILC,B10
-+
-+	STDW	.D2T2	B5:B4,*SP--[1]
-+ ||	STDW	.D1T1	A5:A4,*A15--[1]
-+
-+	STDW	.D2T2	B3:B2,*SP--[1]
-+ ||	STDW	.D1T1	A3:A2,*A15--[1]
-+ ||	MVC	.S2	__tsr,B5
-+
-+	STDW	.D2T2	B1:B0,*SP--[1]
-+ ||	STDW	.D1T1	A1:A0,*A15--[1]
-+ ||	MV	.S1X	B5,A5
-+
-+	STDW	.D2T2	B31:B30,*SP--[1]
-+ ||	STDW	.D1T1	A31:A30,*A15--[1]
-+	STDW	.D2T2	B29:B28,*SP--[1]
-+ ||	STDW	.D1T1	A29:A28,*A15--[1]
-+	STDW	.D2T2	B27:B26,*SP--[1]
-+ ||	STDW	.D1T1	A27:A26,*A15--[1]
-+	STDW	.D2T2	B25:B24,*SP--[1]
-+ ||	STDW	.D1T1	A25:A24,*A15--[1]
-+	STDW	.D2T2	B23:B22,*SP--[1]
-+ ||	STDW	.D1T1	A23:A22,*A15--[1]
-+	STDW	.D2T2	B21:B20,*SP--[1]
-+ ||	STDW	.D1T1	A21:A20,*A15--[1]
-+	STDW	.D2T2	B19:B18,*SP--[1]
-+ ||	STDW	.D1T1	A19:A18,*A15--[1]
-+	STDW	.D2T2	B17:B16,*SP--[1]
-+ ||	STDW	.D1T1	A17:A16,*A15--[1]
-+
-+	STDW	.D2T2	B13:B12,*SP--[1]	; save PC and CSR
-+
-+	STDW	.D2T2	B11:B10,*SP--[1]	; save RILC and ILC
-+	STDW	.D2T1	A5:A4,*SP--[1]		; save TSR and orig A4
-+
-+	;; We left an unused word on the stack just above pt_regs.
-+	;; It is used to save whether or not this frame is due to
-+	;; a syscall. It is cleared here, but the syscall handler
-+	;; sets it to a non-zero value.
-+	MVK	.L2	0,B1
-+	STW	.D2T2	B1,*+SP(REGS__END+8)	; clear syscall flag
-+	.endm
-+
-+	.macro RESTORE_ALL __rp __tsr
-+	LDDW	.D2T2	*++SP[1],B9:B8		; get TSR (B9)
-+	LDDW	.D2T2	*++SP[1],B11:B10	; get RILC (B11) and ILC (B10)
-+	LDDW	.D2T2	*++SP[1],B13:B12	; get PC (B13) and CSR (B12)
-+
-+	ADDAW	.D1X	SP,30,A15
-+
-+	LDDW	.D1T1	*++A15[1],A17:A16
-+ ||	LDDW	.D2T2	*++SP[1],B17:B16
-+	LDDW	.D1T1	*++A15[1],A19:A18
-+ ||	LDDW	.D2T2	*++SP[1],B19:B18
-+	LDDW	.D1T1	*++A15[1],A21:A20
-+ ||	LDDW	.D2T2	*++SP[1],B21:B20
-+	LDDW	.D1T1	*++A15[1],A23:A22
-+ ||	LDDW	.D2T2	*++SP[1],B23:B22
-+	LDDW	.D1T1	*++A15[1],A25:A24
-+ ||	LDDW	.D2T2	*++SP[1],B25:B24
-+	LDDW	.D1T1	*++A15[1],A27:A26
-+ ||	LDDW	.D2T2	*++SP[1],B27:B26
-+	LDDW	.D1T1	*++A15[1],A29:A28
-+ ||	LDDW	.D2T2	*++SP[1],B29:B28
-+	LDDW	.D1T1	*++A15[1],A31:A30
-+ ||	LDDW	.D2T2	*++SP[1],B31:B30
-+
-+	LDDW	.D1T1	*++A15[1],A1:A0
-+ ||	LDDW	.D2T2	*++SP[1],B1:B0
-+
-+	LDDW	.D1T1	*++A15[1],A3:A2
-+ ||	LDDW	.D2T2	*++SP[1],B3:B2
-+ ||	MVC	.S2	B9,__tsr
-+	LDDW	.D1T1	*++A15[1],A5:A4
-+ ||	LDDW	.D2T2	*++SP[1],B5:B4
-+ ||	MVC	.S2	B11,RILC
-+	LDDW	.D1T1	*++A15[1],A7:A6
-+ ||	LDDW	.D2T2	*++SP[1],B7:B6
-+ ||	MVC	.S2	B10,ILC
-+
-+	LDDW	.D1T1	*++A15[1],A9:A8
-+ ||	LDDW	.D2T2	*++SP[1],B9:B8
-+ ||	MVC	.S2	B13,__rp
-+
-+	LDDW	.D1T1	*++A15[1],A11:A10
-+ ||	LDDW	.D2T2	*++SP[1],B11:B10
-+ ||	MVC	.S2	B12,CSR
-+
-+	LDDW	.D1T1	*++A15[1],A13:A12
-+ ||	LDDW	.D2T2	*++SP[1],B13:B12
-+
-+	MV	.D2X	A15,SP
-+ ||	MVKL	.S1	current_ksp,A15
-+	MVKH	.S1	current_ksp,A15
-+ ||	ADDAW	.D1X	SP,6,A14
-+	STW	.D1T1	A14,*A15	; save kernel stack pointer
-+
-+	LDDW	.D2T1	*++SP[1],A15:A14
-+
-+	B	.S2	__rp		; return from interruption
-+	LDDW	.D2T2	*+SP[1],SP:DP
-+	NOP	4
-+	.endm
-+
-+	.section .text
-+
-+	;;
-+	;; Jump to schedule() then return to ret_from_exception
-+	;;
-+_reschedule:
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	schedule,A0
-+	MVKH	.S1	schedule,A0
-+	B	.S2X	A0
-+#else
-+	B	.S1	schedule
-+#endif
-+	ADDKPC	.S2	ret_from_exception,B3,4
-+
-+	;;
-+	;; Called before syscall handler when process is being debugged
-+	;;
-+tracesys_on:
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	syscall_trace_entry,A0
-+	MVKH	.S1	syscall_trace_entry,A0
-+	B	.S2X	A0
-+#else
-+	B	.S1	syscall_trace_entry
-+#endif
-+	ADDKPC	.S2	ret_from_syscall_trace,B3,3
-+	ADD	.S1X	8,SP,A4
-+
-+ret_from_syscall_trace:
-+	;; tracing returns (possibly new) syscall number
-+	MV	.D2X	A4,B0
-+ ||	MVK	.S2	__NR_syscalls,B1
-+	CMPLTU	.L2	B0,B1,B1
-+
-+ [!B1]	BNOP	.S2	ret_from_syscall_function,5
-+ ||	MVK	.S1	-ENOSYS,A4
-+
-+	;; reload syscall args from (possibly modified) stack frame
-+	;; and get syscall handler addr from sys_call_table:
-+	LDW	.D2T2	*+SP(REGS_B4+8),B4
-+ ||	MVKL	.S2	sys_call_table,B1
-+	LDW	.D2T1	*+SP(REGS_A6+8),A6
-+ ||	MVKH	.S2	sys_call_table,B1
-+	LDW	.D2T2	*+B1[B0],B0
-+ ||	MVKL	.S2	ret_from_syscall_function,B3
-+	LDW	.D2T2	*+SP(REGS_B6+8),B6
-+ ||	MVKH	.S2	ret_from_syscall_function,B3
-+	LDW	.D2T1	*+SP(REGS_A8+8),A8
-+	LDW	.D2T2	*+SP(REGS_B8+8),B8
-+	NOP
-+	; B0 = sys_call_table[__NR_*]
-+	BNOP	.S2	B0,5			; branch to syscall handler
-+ ||	LDW	.D2T1	*+SP(REGS_ORIG_A4+8),A4
-+
-+syscall_exit_work:
-+	AND	.D1	_TIF_SYSCALL_TRACE,A2,A0
-+ [!A0]	BNOP	.S1	work_pending,5
-+ [A0]	B	.S2	syscall_trace_exit
-+	ADDKPC	.S2	resume_userspace,B3,1
-+	MVC	.S2	CSR,B1
-+	SET	.S2	B1,0,0,B1
-+	MVC	.S2	B1,CSR		; enable ints
-+
-+work_pending:
-+	AND	.D1	_TIF_NEED_RESCHED,A2,A0
-+ [!A0]	BNOP	.S1	work_notifysig,5
-+
-+work_resched:
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	schedule,A1
-+	MVKH	.S1	schedule,A1
-+	B	.S2X	A1
-+#else
-+	B	.S2	schedule
-+#endif
-+	ADDKPC	.S2	work_rescheduled,B3,4
-+work_rescheduled:
-+	;; make sure we don't miss an interrupt setting need_resched or
-+	;; sigpending between sampling and the rti
-+	MASK_INT B2
-+	GET_THREAD_INFO A12
-+	LDW	.D1T1	*+A12(THREAD_INFO_FLAGS),A2
-+	MVK	.S1	_TIF_WORK_MASK,A1
-+	MVK	.S1	_TIF_NEED_RESCHED,A3
-+	NOP	2
-+	AND	.D1	A1,A2,A0
-+ ||	AND	.S1	A3,A2,A1
-+ [!A0]	BNOP	.S1	restore_all,5
-+ [A1]	BNOP	.S1	work_resched,5
-+
-+work_notifysig:
-+	B	.S2	do_notify_resume
-+	LDW	.D2T1	*+SP(REGS__END+8),A6 ; syscall flag
-+	ADDKPC	.S2	resume_userspace,B3,1
-+	ADD	.S1X	8,SP,A4		; pt_regs pointer is first arg
-+	MV	.D2X	A2,B4		; thread_info flags is second arg
-+
-+	;;
-+	;; On C64x+, the return way from exception and interrupt
-+	;; is a little bit different
-+	;;
-+ENTRY(ret_from_exception)
-+#ifdef CONFIG_PREEMPT
-+	MASK_INT B2
-+#endif
-+
-+ENTRY(ret_from_interrupt)
-+	;;
-+	;; Check if we are comming from user mode.
-+	;;
-+	LDW	.D2T2	*+SP(REGS_TSR+8),B0
-+	MVK	.S2	0x40,B1
-+	NOP	3
-+	AND	.D2	B0,B1,B0
-+ [!B0]	BNOP	.S2	resume_kernel,5
-+
-+resume_userspace:
-+	;; make sure we don't miss an interrupt setting need_resched or
-+	;; sigpending between sampling and the rti
-+	MASK_INT B2
-+	GET_THREAD_INFO A12
-+	LDW	.D1T1	*+A12(THREAD_INFO_FLAGS),A2
-+	MVK	.S1	_TIF_WORK_MASK,A1
-+	MVK	.S1	_TIF_NEED_RESCHED,A3
-+	NOP	2
-+	AND	.D1	A1,A2,A0
-+ [A0]	BNOP	.S1	work_pending,5
-+	BNOP	.S1	restore_all,5
-+
-+	;;
-+	;; System call handling
-+	;; B0 = syscall number (in sys_call_table)
-+	;; A4,B4,A6,B6,A8,B8 = arguments of the syscall function
-+	;; A4 is the return value register
-+	;;
-+system_call_saved:
-+	MVK	.L2	1,B2
-+	STW	.D2T2	B2,*+SP(REGS__END+8)	; set syscall flag
-+	MVC	.S2	B2,ECR			; ack the software exception
-+
-+	UNMASK_INT B2			; re-enable global IT
-+
-+system_call_saved_noack:
-+	;; Check system call number
-+	MVK	.S2	__NR_syscalls,B1
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_ni_syscall,A0
-+#endif
-+	CMPLTU	.L2	B0,B1,B1
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKH	.S1	sys_ni_syscall,A0
-+#endif
-+
-+	;; Check for ptrace
-+	GET_THREAD_INFO A12
-+
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ [!B1]	B	.S2X	A0
-+#else
-+ [!B1]	B	.S2	sys_ni_syscall
-+#endif
-+ [!B1]	ADDKPC	.S2	ret_from_syscall_function,B3,4
-+
-+	;; Get syscall handler addr from sys_call_table
-+	;; call tracesys_on or call syscall handler
-+	LDW	.D1T1	*+A12(THREAD_INFO_FLAGS),A2
-+ ||	MVKL	.S2	sys_call_table,B1
-+	MVKH	.S2	sys_call_table,B1
-+	LDW	.D2T2	*+B1[B0],B0
-+	NOP	2
-+	; A2 = thread_info flags
-+	AND	.D1	_TIF_SYSCALL_TRACE,A2,A2
-+ [A2]	BNOP	.S1	tracesys_on,5
-+	;; B0 = _sys_call_table[__NR_*]
-+	B	.S2	B0
-+	ADDKPC	.S2	ret_from_syscall_function,B3,4
-+
-+ret_from_syscall_function:
-+	STW	.D2T1	A4,*+SP(REGS_A4+8)	; save return value in A4
-+						; original A4 is in orig_A4
-+syscall_exit:
-+	;; make sure we don't miss an interrupt setting need_resched or
-+	;; sigpending between sampling and the rti
-+	MASK_INT B2
-+	LDW	.D1T1	*+A12(THREAD_INFO_FLAGS),A2
-+	MVK	.S1	_TIF_ALLWORK_MASK,A1
-+	NOP	3
-+	AND	.D1	A1,A2,A2 ; check for work to do
-+ [A2]	BNOP	.S1	syscall_exit_work,5
-+
-+restore_all:
-+	RESTORE_ALL NRP,NTSR
-+
-+	;;
-+	;; After a fork we jump here directly from resume,
-+	;; so that A4 contains the previous task structure.
-+	;;
-+ENTRY(ret_from_fork)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	schedule_tail,A0
-+	MVKH	.S1	schedule_tail,A0
-+	B	.S2X	A0
-+#else
-+	B	.S2	schedule_tail
-+#endif
-+	ADDKPC	.S2	ret_from_fork_2,B3,4
-+ret_from_fork_2:
-+	;; return 0 in A4 for child process
-+	GET_THREAD_INFO A12
-+	BNOP	.S2	syscall_exit,3
-+	MVK	.L2	0,B0
-+	STW	.D2T2	B0,*+SP(REGS_A4+8)
-+ENDPROC(ret_from_fork)
-+
-+	;;
-+	;; These are the interrupt handlers, responsible for calling __do_IRQ()
-+	;; int6 is used for syscalls (see _system_call entry)
-+	;;
-+	.macro SAVE_ALL_INT
-+	SAVE_ALL IRP,ITSR
-+	.endm
-+
-+	.macro CALL_INT int
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	c6x_do_IRQ,A0
-+	MVKH	.S1	c6x_do_IRQ,A0
-+	BNOP	.S2X	A0,1
-+	MVK	.S1	int,A4
-+	ADDAW	.D2	SP,2,B4
-+	MVKL	.S2	ret_from_interrupt,B3
-+	MVKH	.S2	ret_from_interrupt,B3
-+#else
-+	CALLP   .S2	c6x_do_IRQ,B3
-+ ||	MVK	.S1	int,A4
-+ ||	ADDAW	.D2	SP,2,B4
-+	B	.S1	ret_from_interrupt
-+	NOP	5
-+#endif
-+	.endm
-+
-+ENTRY(_int4_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 4
-+ENDPROC(_int4_handler)
-+
-+ENTRY(_int5_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 5
-+ENDPROC(_int5_handler)
-+
-+ENTRY(_int6_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 6
-+ENDPROC(_int6_handler)
-+
-+ENTRY(_int7_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 7
-+ENDPROC(_int7_handler)
-+
-+ENTRY(_int8_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 8
-+ENDPROC(_int8_handler)
-+
-+ENTRY(_int9_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 9
-+ENDPROC(_int9_handler)
-+
-+ENTRY(_int10_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 10
-+ENDPROC(_int10_handler)
-+
-+ENTRY(_int11_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 11
-+ENDPROC(_int11_handler)
-+
-+ENTRY(_int12_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 12
-+ENDPROC(_int12_handler)
-+
-+ENTRY(_int13_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 13
-+ENDPROC(_int13_handler)
-+
-+ENTRY(_int14_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 14
-+ENDPROC(_int14_handler)
-+
-+ENTRY(_int15_handler)
-+	SAVE_ALL_INT
-+	CALL_INT 15
-+ENDPROC(_int15_handler)
-+
-+	;;
-+	;; Handler for uninitialized and spurious interrupts
-+	;;
-+ENTRY(_bad_interrupt)
-+	B	.S2	IRP
-+	NOP	5
-+ENDPROC(_bad_interrupt)
-+
-+	;;
-+	;; Entry for NMI/exceptions/syscall
-+	;;
-+ENTRY(_nmi_handler)
-+	SAVE_ALL NRP,NTSR
-+
-+	MVC	.S2	EFR,B2
-+	CMPEQ	.L2	1,B2,B2
-+ ||	MVC	.S2	TSR,B1
-+	CLR	.S2	B1,10,10,B1
-+	MVC	.S2	B1,TSR
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ [!B2]	MVKL	.S1	process_exception,A0
-+ [!B2]	MVKH	.S1	process_exception,A0
-+ [!B2]	B	.S2X	A0
-+#else
-+ [!B2]	B	.S2	process_exception
-+#endif
-+ [B2]	B	.S2	system_call_saved
-+ [!B2]	ADDAW	.D2	SP,2,B1
-+ [!B2]	MV	.D1X	B1,A4
-+	ADDKPC	.S2	ret_from_trap,B3,2
-+
-+ret_from_trap:
-+	MV	.D2X	A4,B0
-+ [!B0]	BNOP	.S2	ret_from_exception,5
-+
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S2	system_call_saved_noack,B3
-+	MVKH	.S2	system_call_saved_noack,B3
-+#endif
-+	LDW	.D2T2	*+SP(REGS_B0+8),B0
-+	LDW	.D2T1	*+SP(REGS_A4+8),A4
-+	LDW	.D2T2	*+SP(REGS_B4+8),B4
-+	LDW	.D2T1	*+SP(REGS_A6+8),A6
-+	LDW	.D2T2	*+SP(REGS_B6+8),B6
-+	LDW	.D2T1	*+SP(REGS_A8+8),A8
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	B	.S2	B3
-+#else
-+ ||	B	.S2	system_call_saved_noack
-+#endif
-+	LDW	.D2T2	*+SP(REGS_B8+8),B8
-+	NOP	4
-+ENDPROC(_nmi_handler)
-+
-+	;;
-+	;; Jump to schedule() then return to ret_from_isr
-+	;;
-+#ifdef	CONFIG_PREEMPT
-+resume_kernel:
-+	GET_THREAD_INFO A12
-+	LDW	.D1T1	*+A12(THREAD_INFO_PREEMPT_COUNT),A1
-+	NOP	4
-+ [A1]	BNOP	.S2	restore_all,5
-+
-+preempt_schedule:
-+	GET_THREAD_INFO A2
-+	LDW	.D1T1	*+A2(THREAD_INFO_FLAGS),A1
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S2	preempt_schedule_irq,B0
-+	MVKH	.S2	preempt_schedule_irq,B0
-+	NOP	2
-+#else
-+	NOP	4
-+#endif
-+	AND	.D1	_TIF_NEED_RESCHED,A1,A1
-+ [!A1]	BNOP	.S2	restore_all,5
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	B	.S2	B0
-+#else
-+	B	.S2	preempt_schedule_irq
-+#endif
-+	ADDKPC	.S2	preempt_schedule,B3,4
-+#endif /* CONFIG_PREEMPT */
-+
-+ENTRY(enable_exception)
-+	DINT
-+	MVC	.S2	TSR,B0
-+	MVC	.S2	B3,NRP
-+	MVK	.L2	0xc,B1
-+	OR	.D2	B0,B1,B0
-+	MVC	.S2	B0,TSR			;  Set GEE and XEN in TSR
-+	B	.S2	NRP
-+	NOP	5
-+ENDPROC(enable_exception)
-+
-+ENTRY(sys_sigaltstack)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	do_sigaltstack,A0	; branch to do_sigaltstack
-+	MVKH	.S1	do_sigaltstack,A0
-+	B	.S2X	A0
-+#else
-+	B	.S2	do_sigaltstack
-+#endif
-+	LDW	.D2T1	*+SP(REGS_SP+8),A6
-+	NOP	4
-+ENDPROC(sys_sigaltstack)
-+
-+	;; kernel_execve
-+ENTRY(kernel_execve)
-+	MVK	.S2	__NR_execve,B0
-+	SWE
-+	BNOP	.S2	B3,5
-+ENDPROC(kernel_execve)
-+
-+	;;
-+	;; Special system calls
-+	;; return address is in B3
-+	;;
-+ENTRY(sys_clone)
-+	ADD	.D1X	SP,8,A4
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_c6x_clone,A0
-+	MVKH	.S1	sys_c6x_clone,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	sys_c6x_clone
-+	NOP	5
-+#endif
-+ENDPROC(sys_clone)
-+
-+ENTRY(sys_rt_sigreturn)
-+	ADD	.D1X	SP,8,A4
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	do_rt_sigreturn,A0
-+	MVKH	.S1	do_rt_sigreturn,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	do_rt_sigreturn
-+	NOP	5
-+#endif
-+ENDPROC(sys_rt_sigreturn)
-+
-+ENTRY(sys_execve)
-+	ADDAW	.D2	SP,2,B6		; put regs addr in 4th parameter
-+					; & adjust regs stack addr
-+	LDW	.D2T2	*+SP(REGS_B4+8),B4
-+
-+	;; c6x_execve(char *name, char **argv,
-+	;;            char **envp, struct pt_regs *regs)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_c6x_execve,A0
-+	MVKH	.S1	sys_c6x_execve,A0
-+	B	.S2X	A0
-+#else
-+ ||	B	.S2	sys_c6x_execve
-+#endif
-+	STW	.D2T2	B3,*SP--[2]
-+	ADDKPC	.S2	ret_from_c6x_execve,B3,3
-+
-+ret_from_c6x_execve:
-+	LDW	.D2T2	*++SP[2],B3
-+	NOP	4
-+	BNOP	.S2	B3,5
-+ENDPROC(sys_execve)
-+
-+ENTRY(sys_pread_c6x)
-+	MV	.D2X	A8,B7
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_pread64,A0
-+	MVKH	.S1	sys_pread64,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	sys_pread64
-+	NOP	5
-+#endif
-+ENDPROC(sys_pread_c6x)
-+
-+ENTRY(sys_pwrite_c6x)
-+	MV	.D2X	A8,B7
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_pwrite64,A0
-+	MVKH	.S1	sys_pwrite64,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	sys_pwrite64
-+	NOP	5
-+#endif
-+ENDPROC(sys_pwrite_c6x)
-+
-+;; On Entry
-+;;   A4 - path
-+;;   B4 - offset_lo (LE), offset_hi (BE)
-+;;   A6 - offset_lo (BE), offset_hi (LE)
-+ENTRY(sys_truncate64_c6x)
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	MV	.S2	B4,B5
-+	MV	.D2X	A6,B4
-+#else
-+	MV	.D2X	A6,B5
-+#endif
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_truncate64,A0
-+	MVKH	.S1	sys_truncate64,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	sys_truncate64
-+	NOP	5
-+#endif
-+ENDPROC(sys_truncate64_c6x)
-+
-+;; On Entry
-+;;   A4 - fd
-+;;   B4 - offset_lo (LE), offset_hi (BE)
-+;;   A6 - offset_lo (BE), offset_hi (LE)
-+ENTRY(sys_ftruncate64_c6x)
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	MV	.S2	B4,B5
-+	MV	.D2X	A6,B4
-+#else
-+	MV	.D2X	A6,B5
-+#endif
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+ ||	MVKL	.S1	sys_ftruncate64,A0
-+	MVKH	.S1	sys_ftruncate64,A0
-+	BNOP	.S2X	A0,5
-+#else
-+ ||	B	.S2	sys_ftruncate64
-+	NOP	5
-+#endif
-+ENDPROC(sys_ftruncate64_c6x)
-+
-+#ifdef __ARCH_WANT_SYSCALL_OFF_T
-+;; On Entry
-+;;   A4 - fd
-+;;   B4 - offset_lo (LE), offset_hi (BE)
-+;;   A6 - offset_lo (BE), offset_hi (LE)
-+;;   B6 - len
-+;;   A8 - advice
-+ENTRY(sys_fadvise64_c6x)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	sys_fadvise64,A0
-+	MVKH	.S1	sys_fadvise64,A0
-+	BNOP	.S2X	A0,2
-+#else
-+	B	.S2	sys_fadvise64
-+	NOP	2
-+#endif
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	MV	.L2	B4,B5
-+ ||	MV	.D2X	A6,B4
-+#else
-+	MV	.D2X	A6,B5
-+#endif
-+	MV	.D1X	B6,A6
-+	MV	.D2X	A8,B6
-+#endif
-+ENDPROC(sys_fadvise64_c6x)
-+
-+;; On Entry
-+;;   A4 - fd
-+;;   B4 - offset_lo (LE), offset_hi (BE)
-+;;   A6 - offset_lo (BE), offset_hi (LE)
-+;;   B6 - len_lo (LE), len_hi (BE)
-+;;   A8 - len_lo (BE), len_hi (LE)
-+;;   B8 - advice
-+ENTRY(sys_fadvise64_64_c6x)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	sys_fadvise64_64,A0
-+	MVKH	.S1	sys_fadvise64_64,A0
-+	BNOP	.S2X	A0,2
-+#else
-+	B	.S2	sys_fadvise64_64
-+	NOP	2
-+#endif
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	MV	.L2	B4,B5
-+ ||	MV	.D2X	A6,B4
-+	MV	.L1	A8,A6
-+ ||	MV	.D1X	B6,A7
-+#else
-+	MV	.D2X	A6,B5
-+	MV	.L1	A8,A7
-+ ||	MV	.D1X	B6,A6
-+#endif
-+	MV	.L2	B8,B6
-+ENDPROC(sys_fadvise64_64_c6x)
-+
-+;; On Entry
-+;;   A4 - fd
-+;;   B4 - mode
-+;;   A6 - offset_hi
-+;;   B6 - offset_lo
-+;;   A8 - len_hi
-+;;   B8 - len_lo
-+ENTRY(sys_fallocate_c6x)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	sys_fallocate,A0
-+	MVKH	.S1	sys_fallocate,A0
-+	BNOP	.S2X	A0,1
-+#else
-+	B	.S2	sys_fallocate
-+	NOP
-+#endif
-+	MV	.D1	A6,A7
-+	MV	.D1X	B6,A6
-+	MV	.D2X	A8,B7
-+	MV	.D2	B8,B6
-+ENDPROC(sys_fallocate_c6x)
-+
-+	;; put this in .neardata for faster access when using DSBT mode
-+	.section .neardata,"aw",@progbits
-+	.global	current_ksp
-+	.hidden	current_ksp
-+current_ksp:
-+	.word	init_thread_union + THREAD_START_SP
-diff --git a/arch/c6x/kernel/traps.c b/arch/c6x/kernel/traps.c
-new file mode 100644
-index 0000000..f50e3ed
---- /dev/null
-+++ b/arch/c6x/kernel/traps.c
-@@ -0,0 +1,423 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2006, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
 +#include <linux/module.h>
-+#include <linux/ptrace.h>
-+#include <linux/kallsyms.h>
-+#include <linux/bug.h>
++#include <linux/clkdev.h>
++#include <linux/clk.h>
++#include <linux/io.h>
++#include <linux/err.h>
 +
++#include <asm/clock.h>
 +#include <asm/soc.h>
-+#include <asm/traps.h>
 +
-+int (*c6x_nmi_handler)(struct pt_regs *regs);
++static LIST_HEAD(clocks);
++static DEFINE_MUTEX(clocks_mutex);
++static DEFINE_SPINLOCK(clockfw_lock);
 +
-+void __init trap_init(void)
++static void __clk_enable(struct clk *clk)
 +{
-+	ack_exception(EXCEPT_TYPE_NXF);
-+	ack_exception(EXCEPT_TYPE_EXC);
-+	ack_exception(EXCEPT_TYPE_IXF);
-+	ack_exception(EXCEPT_TYPE_SXF);
-+	enable_exception();
++	if (clk->parent)
++		__clk_enable(clk->parent);
++	clk->usecount++;
 +}
 +
-+void show_regs(struct pt_regs *regs)
++static void __clk_disable(struct clk *clk)
 +{
-+	pr_err("\n");
-+	pr_err("PC: %08lx SP: %08lx\n", regs->pc, regs->sp);
-+	pr_err("Status: %08lx ORIG_A4: %08lx\n", regs->csr, regs->orig_a4);
-+	pr_err("A0: %08lx  B0: %08lx\n", regs->a0, regs->b0);
-+	pr_err("A1: %08lx  B1: %08lx\n", regs->a1, regs->b1);
-+	pr_err("A2: %08lx  B2: %08lx\n", regs->a2, regs->b2);
-+	pr_err("A3: %08lx  B3: %08lx\n", regs->a3, regs->b3);
-+	pr_err("A4: %08lx  B4: %08lx\n", regs->a4, regs->b4);
-+	pr_err("A5: %08lx  B5: %08lx\n", regs->a5, regs->b5);
-+	pr_err("A6: %08lx  B6: %08lx\n", regs->a6, regs->b6);
-+	pr_err("A7: %08lx  B7: %08lx\n", regs->a7, regs->b7);
-+	pr_err("A8: %08lx  B8: %08lx\n", regs->a8, regs->b8);
-+	pr_err("A9: %08lx  B9: %08lx\n", regs->a9, regs->b9);
-+	pr_err("A10: %08lx  B10: %08lx\n", regs->a10, regs->b10);
-+	pr_err("A11: %08lx  B11: %08lx\n", regs->a11, regs->b11);
-+	pr_err("A12: %08lx  B12: %08lx\n", regs->a12, regs->b12);
-+	pr_err("A13: %08lx  B13: %08lx\n", regs->a13, regs->b13);
-+	pr_err("A14: %08lx  B14: %08lx\n", regs->a14, regs->dp);
-+	pr_err("A15: %08lx  B15: %08lx\n", regs->a15, regs->sp);
-+	pr_err("A16: %08lx  B16: %08lx\n", regs->a16, regs->b16);
-+	pr_err("A17: %08lx  B17: %08lx\n", regs->a17, regs->b17);
-+	pr_err("A18: %08lx  B18: %08lx\n", regs->a18, regs->b18);
-+	pr_err("A19: %08lx  B19: %08lx\n", regs->a19, regs->b19);
-+	pr_err("A20: %08lx  B20: %08lx\n", regs->a20, regs->b20);
-+	pr_err("A21: %08lx  B21: %08lx\n", regs->a21, regs->b21);
-+	pr_err("A22: %08lx  B22: %08lx\n", regs->a22, regs->b22);
-+	pr_err("A23: %08lx  B23: %08lx\n", regs->a23, regs->b23);
-+	pr_err("A24: %08lx  B24: %08lx\n", regs->a24, regs->b24);
-+	pr_err("A25: %08lx  B25: %08lx\n", regs->a25, regs->b25);
-+	pr_err("A26: %08lx  B26: %08lx\n", regs->a26, regs->b26);
-+	pr_err("A27: %08lx  B27: %08lx\n", regs->a27, regs->b27);
-+	pr_err("A28: %08lx  B28: %08lx\n", regs->a28, regs->b28);
-+	pr_err("A29: %08lx  B29: %08lx\n", regs->a29, regs->b29);
-+	pr_err("A30: %08lx  B30: %08lx\n", regs->a30, regs->b30);
-+	pr_err("A31: %08lx  B31: %08lx\n", regs->a31, regs->b31);
++	if (WARN_ON(clk->usecount == 0))
++		return;
++	--clk->usecount;
++
++	if (clk->parent)
++		__clk_disable(clk->parent);
 +}
 +
-+void dump_stack(void)
++int clk_enable(struct clk *clk)
 +{
-+	unsigned long stack;
++	unsigned long flags;
 +
-+	show_stack(current, &stack);
++	if (clk == NULL || IS_ERR(clk))
++		return -EINVAL;
++
++	spin_lock_irqsave(&clockfw_lock, flags);
++	__clk_enable(clk);
++	spin_unlock_irqrestore(&clockfw_lock, flags);
++
++	return 0;
 +}
-+EXPORT_SYMBOL(dump_stack);
++EXPORT_SYMBOL(clk_enable);
 +
-+
-+void die(char *str, struct pt_regs *fp, int nr)
++void clk_disable(struct clk *clk)
 +{
-+	console_verbose();
-+	pr_err("%s: %08x\n", str, nr);
-+	show_regs(fp);
++	unsigned long flags;
 +
-+	pr_err("Process %s (pid: %d, stackpage=%08lx)\n",
-+	       current->comm, current->pid, (PAGE_SIZE +
-+					     (unsigned long) current));
-+
-+	dump_stack();
-+	while (1)
-+		;
-+}
-+
-+static void die_if_kernel(char *str, struct pt_regs *fp, int nr)
-+{
-+	if (user_mode(fp))
++	if (clk == NULL || IS_ERR(clk))
 +		return;
 +
-+	die(str, fp, nr);
++	spin_lock_irqsave(&clockfw_lock, flags);
++	__clk_disable(clk);
++	spin_unlock_irqrestore(&clockfw_lock, flags);
 +}
++EXPORT_SYMBOL(clk_disable);
 +
-+
-+/* Internal exceptions */
-+static struct exception_info iexcept_table[10] = {
-+	{ "Oops - instruction fetch", SIGBUS, BUS_ADRERR },
-+	{ "Oops - fetch packet", SIGBUS, BUS_ADRERR },
-+	{ "Oops - execute packet", SIGILL, ILL_ILLOPC },
-+	{ "Oops - undefined instruction", SIGILL, ILL_ILLOPC },
-+	{ "Oops - resource conflict", SIGILL, ILL_ILLOPC },
-+	{ "Oops - resource access", SIGILL, ILL_PRVREG },
-+	{ "Oops - privilege", SIGILL, ILL_PRVOPC },
-+	{ "Oops - loops buffer", SIGILL, ILL_ILLOPC },
-+	{ "Oops - software exception", SIGILL, ILL_ILLTRP },
-+	{ "Oops - unknown exception", SIGILL, ILL_ILLOPC }
-+};
-+
-+/* External exceptions */
-+static struct exception_info eexcept_table[128] = {
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - external exception", SIGBUS, BUS_ADRERR },
-+	{ "Oops - CPU memory protection fault", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - CPU memory protection fault in L1P", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - DMA memory protection fault in L1P", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - CPU memory protection fault in L1D", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - DMA memory protection fault in L1D", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - CPU memory protection fault in L2", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - DMA memory protection fault in L2", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - EMC CPU memory protection fault", SIGSEGV, SEGV_ACCERR },
-+	{ "Oops - EMC bus error", SIGBUS, BUS_ADRERR }
-+};
-+
-+static void do_trap(struct exception_info *except_info, struct pt_regs *regs)
++unsigned long clk_get_rate(struct clk *clk)
 +{
-+	unsigned long addr = instruction_pointer(regs);
-+	siginfo_t info;
++	if (clk == NULL || IS_ERR(clk))
++		return -EINVAL;
 +
-+	if (except_info->code != TRAP_BRKPT)
-+		pr_err("TRAP: %s PC[0x%lx] signo[%d] code[%d]\n",
-+		       except_info->kernel_str, regs->pc,
-+		       except_info->signo, except_info->code);
-+
-+	die_if_kernel(except_info->kernel_str, regs, addr);
-+
-+	info.si_signo = except_info->signo;
-+	info.si_errno = 0;
-+	info.si_code  = except_info->code;
-+	info.si_addr  = (void __user *)addr;
-+
-+	force_sig_info(except_info->signo, &info, current);
++	return clk->rate;
 +}
++EXPORT_SYMBOL(clk_get_rate);
 +
-+/*
-+ * Process an internal exception (non maskable)
-+ */
-+static int process_iexcept(struct pt_regs *regs)
++long clk_round_rate(struct clk *clk, unsigned long rate)
 +{
-+	unsigned int iexcept_report = get_iexcept();
-+	unsigned int iexcept_num;
++	if (clk == NULL || IS_ERR(clk))
++		return -EINVAL;
 +
-+	ack_exception(EXCEPT_TYPE_IXF);
++	if (clk->round_rate)
++		return clk->round_rate(clk, rate);
 +
-+	pr_err("IEXCEPT: PC[0x%lx]\n", regs->pc);
++	return clk->rate;
++}
++EXPORT_SYMBOL(clk_round_rate);
 +
-+	while (iexcept_report) {
-+		iexcept_num = __ffs(iexcept_report);
-+		iexcept_report &= ~(1 << iexcept_num);
-+		set_iexcept(iexcept_report);
-+		if (*(unsigned int *)regs->pc == BKPT_OPCODE) {
-+			/* This is a breakpoint */
-+			struct exception_info bkpt_exception = {
-+				"Oops - undefined instruction",
-+				  SIGTRAP, TRAP_BRKPT
-+			};
-+			do_trap(&bkpt_exception, regs);
-+			iexcept_report &= ~(0xFF);
-+			set_iexcept(iexcept_report);
-+			continue;
-+		}
++/* Propagate rate to children */
++static void propagate_rate(struct clk *root)
++{
++	struct clk *clk;
 +
-+		do_trap(&iexcept_table[iexcept_num], regs);
++	list_for_each_entry(clk, &root->children, childnode) {
++		if (clk->recalc)
++			clk->rate = clk->recalc(clk);
++		propagate_rate(clk);
 +	}
++}
++
++int clk_set_rate(struct clk *clk, unsigned long rate)
++{
++	unsigned long flags;
++	int ret = -EINVAL;
++
++	if (clk == NULL || IS_ERR(clk))
++		return ret;
++
++	if (clk->set_rate)
++		ret = clk->set_rate(clk, rate);
++
++	spin_lock_irqsave(&clockfw_lock, flags);
++	if (ret == 0) {
++		if (clk->recalc)
++			clk->rate = clk->recalc(clk);
++		propagate_rate(clk);
++	}
++	spin_unlock_irqrestore(&clockfw_lock, flags);
++
++	return ret;
++}
++EXPORT_SYMBOL(clk_set_rate);
++
++int clk_set_parent(struct clk *clk, struct clk *parent)
++{
++	unsigned long flags;
++
++	if (clk == NULL || IS_ERR(clk))
++		return -EINVAL;
++
++	/* Cannot change parent on enabled clock */
++	if (WARN_ON(clk->usecount))
++		return -EINVAL;
++
++	mutex_lock(&clocks_mutex);
++	clk->parent = parent;
++	list_del_init(&clk->childnode);
++	list_add(&clk->childnode, &clk->parent->children);
++	mutex_unlock(&clocks_mutex);
++
++	spin_lock_irqsave(&clockfw_lock, flags);
++	if (clk->recalc)
++		clk->rate = clk->recalc(clk);
++	propagate_rate(clk);
++	spin_unlock_irqrestore(&clockfw_lock, flags);
++
 +	return 0;
 +}
++EXPORT_SYMBOL(clk_set_parent);
 +
-+/*
-+ * Process an external exception (maskable)
-+ */
-+static void process_eexcept(struct pt_regs *regs)
++int clk_register(struct clk *clk)
 +{
-+	int evt;
++	if (clk == NULL || IS_ERR(clk))
++		return -EINVAL;
 +
-+	pr_err("EEXCEPT: PC[0x%lx]\n", regs->pc);
++	if (WARN(clk->parent && !clk->parent->rate,
++		 "CLK: %s parent %s has no rate!\n",
++		 clk->name, clk->parent->name))
++		return -EINVAL;
 +
-+	while ((evt = soc_get_exception()) >= 0)
-+		do_trap(&eexcept_table[evt], regs);
++	mutex_lock(&clocks_mutex);
++	list_add_tail(&clk->node, &clocks);
++	if (clk->parent)
++		list_add_tail(&clk->childnode, &clk->parent->children);
++	mutex_unlock(&clocks_mutex);
 +
-+	ack_exception(EXCEPT_TYPE_EXC);
-+}
++	/* If rate is already set, use it */
++	if (clk->rate)
++		return 0;
 +
-+/*
-+ * Main exception processing
-+ */
-+asmlinkage int process_exception(struct pt_regs *regs)
-+{
-+	unsigned int type;
-+	unsigned int type_num;
-+	unsigned int ie_num = 9; /* default is unknown exception */
++	/* Else, see if there is a way to calculate it */
++	if (clk->recalc)
++		clk->rate = clk->recalc(clk);
 +
-+	while ((type = get_except_type()) != 0) {
-+		type_num = fls(type) - 1;
++	/* Otherwise, default to parent rate */
++	else if (clk->parent)
++		clk->rate = clk->parent->rate;
 +
-+		switch (type_num) {
-+		case EXCEPT_TYPE_NXF:
-+			ack_exception(EXCEPT_TYPE_NXF);
-+			if (c6x_nmi_handler)
-+				(c6x_nmi_handler)(regs);
-+			else
-+				pr_alert("NMI interrupt!\n");
-+			break;
-+
-+		case EXCEPT_TYPE_IXF:
-+			if (process_iexcept(regs))
-+				return 1;
-+			break;
-+
-+		case EXCEPT_TYPE_EXC:
-+			process_eexcept(regs);
-+			break;
-+
-+		case EXCEPT_TYPE_SXF:
-+			ie_num = 8;
-+		default:
-+			ack_exception(type_num);
-+			do_trap(&iexcept_table[ie_num], regs);
-+			break;
-+		}
-+	}
 +	return 0;
 +}
++EXPORT_SYMBOL(clk_register);
 +
-+static int kstack_depth_to_print = 48;
-+
-+static void show_trace(unsigned long *stack, unsigned long *endstack)
++void clk_unregister(struct clk *clk)
 +{
-+	unsigned long addr;
-+	int i;
++	if (clk == NULL || IS_ERR(clk))
++		return;
 +
-+	pr_debug("Call trace:");
-+	i = 0;
-+	while (stack + 1 <= endstack) {
-+		addr = *stack++;
-+		/*
-+		 * If the address is either in the text segment of the
-+		 * kernel, or in the region which contains vmalloc'ed
-+		 * memory, it *may* be the address of a calling
-+		 * routine; if so, print it so that someone tracing
-+		 * down the cause of the crash will be able to figure
-+		 * out the call path that was taken.
-+		 */
-+		if (__kernel_text_address(addr)) {
-+#ifndef CONFIG_KALLSYMS
-+			if (i % 5 == 0)
-+				pr_debug("\n	    ");
-+#endif
-+			pr_debug(" [<%08lx>]", addr);
-+			print_symbol(" %s\n", addr);
-+			i++;
-+		}
-+	}
-+	pr_debug("\n");
++	mutex_lock(&clocks_mutex);
++	list_del(&clk->node);
++	list_del(&clk->childnode);
++	mutex_unlock(&clocks_mutex);
++}
++EXPORT_SYMBOL(clk_unregister);
++
++
++static u32 pll_read(struct pll_data *pll, int reg)
++{
++	return soc_readl(pll->base + reg);
 +}
 +
-+void show_stack(struct task_struct *task, unsigned long *stack)
++static unsigned long clk_sysclk_recalc(struct clk *clk)
 +{
-+	unsigned long *p, *endstack;
-+	int i;
++	u32 v, plldiv = 0;
++	struct pll_data *pll;
++	unsigned long rate = clk->rate;
 +
-+	if (!stack) {
-+		if (task && task != current)
-+			/* We know this is a kernel stack,
-+			   so this is the start/end */
-+			stack = (unsigned long *)thread_saved_ksp(task);
++	if (WARN_ON(!clk->parent))
++		return rate;
++
++	rate = clk->parent->rate;
++
++	/* the parent must be a PLL */
++	if (WARN_ON(!clk->parent->pll_data))
++		return rate;
++
++	pll = clk->parent->pll_data;
++
++	/* If pre-PLL, source clock is before the multiplier and divider(s) */
++	if (clk->flags & PRE_PLL)
++		rate = pll->input_rate;
++
++	if (!clk->div) {
++		pr_debug("%s: (no divider) rate = %lu KHz\n",
++			 clk->name, rate / 1000);
++		return rate;
++	}
++
++	if (clk->flags & FIXED_DIV_PLL) {
++		rate /= clk->div;
++		pr_debug("%s: (fixed divide by %d) rate = %lu KHz\n",
++			 clk->name, clk->div, rate / 1000);
++		return rate;
++	}
++
++	v = pll_read(pll, clk->div);
++	if (v & PLLDIV_EN)
++		plldiv = (v & PLLDIV_RATIO_MASK) + 1;
++
++	if (plldiv == 0)
++		plldiv = 1;
++
++	rate /= plldiv;
++
++	pr_debug("%s: (divide by %d) rate = %lu KHz\n",
++		 clk->name, plldiv, rate / 1000);
++
++	return rate;
++}
++
++static unsigned long clk_leafclk_recalc(struct clk *clk)
++{
++	if (WARN_ON(!clk->parent))
++		return clk->rate;
++
++	pr_debug("%s: (parent %s) rate = %lu KHz\n",
++		 clk->name, clk->parent->name,	clk->parent->rate / 1000);
++
++	return clk->parent->rate;
++}
++
++static unsigned long clk_pllclk_recalc(struct clk *clk)
++{
++	u32 ctrl, mult = 0, prediv = 0, postdiv = 0;
++	u8 bypass;
++	struct pll_data *pll = clk->pll_data;
++	unsigned long rate = clk->rate;
++
++	if (clk->flags & FIXED_RATE_PLL)
++		return rate;
++
++	ctrl = pll_read(pll, PLLCTL);
++	rate = pll->input_rate = clk->parent->rate;
++
++	if (ctrl & PLLCTL_PLLEN)
++		bypass = 0;
++	else
++		bypass = 1;
++
++	if (pll->flags & PLL_HAS_MUL) {
++		mult = pll_read(pll, PLLM);
++		mult = (mult & PLLM_PLLM_MASK) + 1;
++	}
++	if (pll->flags & PLL_HAS_PRE) {
++		prediv = pll_read(pll, PLLPRE);
++		if (prediv & PLLDIV_EN)
++			prediv = (prediv & PLLDIV_RATIO_MASK) + 1;
 +		else
-+			stack = (unsigned long *)&stack;
++			prediv = 0;
 +	}
-+	endstack = (unsigned long *)(((unsigned long)stack + THREAD_SIZE - 1)
-+				     & -THREAD_SIZE);
++	if (pll->flags & PLL_HAS_POST) {
++		postdiv = pll_read(pll, PLLPOST);
++		if (postdiv & PLLDIV_EN)
++			postdiv = (postdiv & PLLDIV_RATIO_MASK) + 1;
++		else
++			postdiv = 1;
++	}
 +
-+	pr_debug("Stack from %08lx:", (unsigned long)stack);
-+	for (i = 0, p = stack; i < kstack_depth_to_print; i++) {
-+		if (p + 1 > endstack)
-+			break;
-+		if (i % 8 == 0)
-+			pr_cont("\n	    ");
-+		pr_cont(" %08lx", *p++);
-+	}
-+	pr_cont("\n");
-+	show_trace(stack, endstack);
++	if (!bypass) {
++		if (prediv)
++			rate /= prediv;
++		if (mult)
++			rate *= mult;
++		if (postdiv)
++			rate /= postdiv;
++
++		pr_debug("PLL%d: input = %luMHz, pre[%d] mul[%d] post[%d] "
++			 "--> %luMHz output.\n",
++			 pll->num, clk->parent->rate / 1000000,
++			 prediv, mult, postdiv, rate / 1000000);
++	} else
++		pr_debug("PLL%d: input = %luMHz, bypass mode.\n",
++			 pll->num, clk->parent->rate / 1000000);
++
++	return rate;
 +}
 +
-+int is_valid_bugaddr(unsigned long addr)
++
++static void __init __init_clk(struct clk *clk)
 +{
-+	return __kernel_text_address(addr);
++	INIT_LIST_HEAD(&clk->node);
++	INIT_LIST_HEAD(&clk->children);
++	INIT_LIST_HEAD(&clk->childnode);
++
++	if (!clk->recalc) {
++
++		/* Check if clock is a PLL */
++		if (clk->pll_data)
++			clk->recalc = clk_pllclk_recalc;
++
++		/* Else, if it is a PLL-derived clock */
++		else if (clk->flags & CLK_PLL)
++			clk->recalc = clk_sysclk_recalc;
++
++		/* Otherwise, it is a leaf clock (PSC clock) */
++		else if (clk->parent)
++			clk->recalc = clk_leafclk_recalc;
++	}
++}
++
++void __init c6x_clks_init(struct clk_lookup *clocks)
++{
++	struct clk_lookup *c;
++	struct clk *clk;
++	size_t num_clocks = 0;
++
++	for (c = clocks; c->clk; c++) {
++		clk = c->clk;
++
++		__init_clk(clk);
++		clk_register(clk);
++		num_clocks++;
++
++		/* Turn on clocks that Linux doesn't otherwise manage */
++		if (clk->flags & ALWAYS_ENABLED)
++			clk_enable(clk);
++	}
++
++	clkdev_add_table(clocks, num_clocks);
++}
++
++#ifdef CONFIG_DEBUG_FS
++
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
++
++#define CLKNAME_MAX	10		/* longest clock name */
++#define NEST_DELTA	2
++#define NEST_MAX	4
++
++static void
++dump_clock(struct seq_file *s, unsigned nest, struct clk *parent)
++{
++	char		*state;
++	char		buf[CLKNAME_MAX + NEST_DELTA * NEST_MAX];
++	struct clk	*clk;
++	unsigned	i;
++
++	if (parent->flags & CLK_PLL)
++		state = "pll";
++	else
++		state = "";
++
++	/* <nest spaces> name <pad to end> */
++	memset(buf, ' ', sizeof(buf) - 1);
++	buf[sizeof(buf) - 1] = 0;
++	i = strlen(parent->name);
++	memcpy(buf + nest, parent->name,
++	       min(i, (unsigned)(sizeof(buf) - 1 - nest)));
++
++	seq_printf(s, "%s users=%2d %-3s %9ld Hz\n",
++		   buf, parent->usecount, state, clk_get_rate(parent));
++	/* REVISIT show device associations too */
++
++	/* cost is now small, but not linear... */
++	list_for_each_entry(clk, &parent->children, childnode) {
++		dump_clock(s, nest + NEST_DELTA, clk);
++	}
++}
++
++static int c6x_ck_show(struct seq_file *m, void *v)
++{
++	struct clk *clk;
++
++	/*
++	 * Show clock tree; We trust nonzero usecounts equate to PSC enables...
++	 */
++	mutex_lock(&clocks_mutex);
++	list_for_each_entry(clk, &clocks, node)
++		if (!clk->parent)
++			dump_clock(m, 0, clk);
++	mutex_unlock(&clocks_mutex);
++
++	return 0;
++}
++
++static int c6x_ck_open(struct inode *inode, struct file *file)
++{
++	return single_open(file, c6x_ck_show, NULL);
++}
++
++static const struct file_operations c6x_ck_operations = {
++	.open		= c6x_ck_open,
++	.read		= seq_read,
++	.llseek		= seq_lseek,
++	.release	= single_release,
++};
++
++static int __init c6x_clk_debugfs_init(void)
++{
++	debugfs_create_file("c6x_clocks", S_IFREG | S_IRUGO, NULL, NULL,
++			    &c6x_ck_operations);
++
++	return 0;
++}
++device_initcall(c6x_clk_debugfs_init);
++#endif /* CONFIG_DEBUG_FS */
+diff --git a/arch/c6x/platforms/plldata.c b/arch/c6x/platforms/plldata.c
+new file mode 100644
+index 0000000..2cfd6f4
+--- /dev/null
++++ b/arch/c6x/platforms/plldata.c
+@@ -0,0 +1,404 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#include <linux/kernel.h>
++#include <linux/delay.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/ioport.h>
++#include <linux/clkdev.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++
++#include <asm/clock.h>
++#include <asm/setup.h>
++#include <asm/irq.h>
++
++/*
++ * Common SoC clock support.
++ */
++
++/* Default input for PLL1 */
++struct clk clkin1 = {
++	.name = "clkin1",
++	.node = LIST_HEAD_INIT(clkin1.node),
++	.children = LIST_HEAD_INIT(clkin1.children),
++	.childnode = LIST_HEAD_INIT(clkin1.childnode),
++};
++
++struct pll_data c6x_soc_pll1 = {
++	.num	   = 1,
++	.sysclks   = {
++		{
++			.name = "pll1",
++			.parent = &clkin1,
++			.pll_data = &c6x_soc_pll1,
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk1",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk2",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk3",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk4",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk5",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk6",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk7",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk8",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk9",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk10",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk11",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk12",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk13",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk14",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk15",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++		{
++			.name = "pll1_sysclk16",
++			.parent = &c6x_soc_pll1.sysclks[0],
++			.flags = CLK_PLL,
++		},
++	},
++};
++
++/* CPU core clock */
++struct clk c6x_core_clk = {
++	.name = "core",
++};
++
++/* miscellaneous IO clocks */
++struct clk c6x_i2c_clk = {
++	.name = "i2c",
++};
++
++struct clk c6x_watchdog_clk = {
++	.name = "watchdog",
++};
++
++struct clk c6x_mcbsp1_clk = {
++	.name = "mcbsp1",
++};
++
++struct clk c6x_mcbsp2_clk = {
++	.name = "mcbsp2",
++};
++
++struct clk c6x_mdio_clk = {
++	.name = "mdio",
++};
++
++
++#ifdef CONFIG_SOC_TMS320C6455
++static struct clk_lookup c6455_clks[] = {
++	CLK(NULL, "pll1", &c6x_soc_pll1.sysclks[0]),
++	CLK(NULL, "pll1_sysclk2", &c6x_soc_pll1.sysclks[2]),
++	CLK(NULL, "pll1_sysclk3", &c6x_soc_pll1.sysclks[3]),
++	CLK(NULL, "pll1_sysclk4", &c6x_soc_pll1.sysclks[4]),
++	CLK(NULL, "pll1_sysclk5", &c6x_soc_pll1.sysclks[5]),
++	CLK(NULL, "core", &c6x_core_clk),
++	CLK("i2c_davinci.1", NULL, &c6x_i2c_clk),
++	CLK("watchdog", NULL, &c6x_watchdog_clk),
++	CLK("2c81800.mdio", NULL, &c6x_mdio_clk),
++	CLK("", NULL, NULL)
++};
++
++
++static void __init c6455_setup_clocks(struct device_node *node)
++{
++	struct pll_data *pll = &c6x_soc_pll1;
++	struct clk *sysclks = pll->sysclks;
++
++	pll->flags = PLL_HAS_PRE | PLL_HAS_MUL;
++
++	sysclks[2].flags |= FIXED_DIV_PLL;
++	sysclks[2].div = 3;
++	sysclks[3].flags |= FIXED_DIV_PLL;
++	sysclks[3].div = 6;
++	sysclks[4].div = PLLDIV4;
++	sysclks[5].div = PLLDIV5;
++
++	c6x_core_clk.parent = &sysclks[0];
++	c6x_i2c_clk.parent = &sysclks[3];
++	c6x_watchdog_clk.parent = &sysclks[3];
++	c6x_mdio_clk.parent = &sysclks[3];
++
++	c6x_clks_init(c6455_clks);
++}
++#endif /* CONFIG_SOC_TMS320C6455 */
++
++#ifdef CONFIG_SOC_TMS320C6457
++static struct clk_lookup c6457_clks[] = {
++	CLK(NULL, "pll1", &c6x_soc_pll1.sysclks[0]),
++	CLK(NULL, "pll1_sysclk1", &c6x_soc_pll1.sysclks[1]),
++	CLK(NULL, "pll1_sysclk2", &c6x_soc_pll1.sysclks[2]),
++	CLK(NULL, "pll1_sysclk3", &c6x_soc_pll1.sysclks[3]),
++	CLK(NULL, "pll1_sysclk4", &c6x_soc_pll1.sysclks[4]),
++	CLK(NULL, "pll1_sysclk5", &c6x_soc_pll1.sysclks[5]),
++	CLK(NULL, "core", &c6x_core_clk),
++	CLK("i2c_davinci.1", NULL, &c6x_i2c_clk),
++	CLK("watchdog", NULL, &c6x_watchdog_clk),
++	CLK("2c81800.mdio", NULL, &c6x_mdio_clk),
++	CLK("", NULL, NULL)
++};
++
++static void __init c6457_setup_clocks(struct device_node *node)
++{
++	struct pll_data *pll = &c6x_soc_pll1;
++	struct clk *sysclks = pll->sysclks;
++
++	pll->flags = PLL_HAS_MUL | PLL_HAS_POST;
++
++	sysclks[1].flags |= FIXED_DIV_PLL;
++	sysclks[1].div = 1;
++	sysclks[2].flags |= FIXED_DIV_PLL;
++	sysclks[2].div = 3;
++	sysclks[3].flags |= FIXED_DIV_PLL;
++	sysclks[3].div = 6;
++	sysclks[4].div = PLLDIV4;
++	sysclks[5].div = PLLDIV5;
++
++	c6x_core_clk.parent = &sysclks[1];
++	c6x_i2c_clk.parent = &sysclks[3];
++	c6x_watchdog_clk.parent = &sysclks[5];
++	c6x_mdio_clk.parent = &sysclks[5];
++
++	c6x_clks_init(c6457_clks);
++}
++#endif /* CONFIG_SOC_TMS320C6455 */
++
++#ifdef CONFIG_SOC_TMS320C6472
++static struct clk_lookup c6472_clks[] = {
++	CLK(NULL, "pll1", &c6x_soc_pll1.sysclks[0]),
++	CLK(NULL, "pll1_sysclk1", &c6x_soc_pll1.sysclks[1]),
++	CLK(NULL, "pll1_sysclk2", &c6x_soc_pll1.sysclks[2]),
++	CLK(NULL, "pll1_sysclk3", &c6x_soc_pll1.sysclks[3]),
++	CLK(NULL, "pll1_sysclk4", &c6x_soc_pll1.sysclks[4]),
++	CLK(NULL, "pll1_sysclk5", &c6x_soc_pll1.sysclks[5]),
++	CLK(NULL, "pll1_sysclk6", &c6x_soc_pll1.sysclks[6]),
++	CLK(NULL, "pll1_sysclk7", &c6x_soc_pll1.sysclks[7]),
++	CLK(NULL, "pll1_sysclk8", &c6x_soc_pll1.sysclks[8]),
++	CLK(NULL, "pll1_sysclk9", &c6x_soc_pll1.sysclks[9]),
++	CLK(NULL, "pll1_sysclk10", &c6x_soc_pll1.sysclks[10]),
++	CLK(NULL, "core", &c6x_core_clk),
++	CLK("i2c_davinci.1", NULL, &c6x_i2c_clk),
++	CLK("watchdog", NULL, &c6x_watchdog_clk),
++	CLK("2c81800.mdio", NULL, &c6x_mdio_clk),
++	CLK("", NULL, NULL)
++};
++
++/* assumptions used for delay loop calculations */
++#define MIN_CLKIN1_KHz 15625
++#define MAX_CORE_KHz   700000
++#define MIN_PLLOUT_KHz MIN_CLKIN1_KHz
++
++static void __init c6472_setup_clocks(struct device_node *node)
++{
++	struct pll_data *pll = &c6x_soc_pll1;
++	struct clk *sysclks = pll->sysclks;
++	int i;
++
++	pll->flags = PLL_HAS_MUL;
++
++	for (i = 1; i <= 6; i++) {
++		sysclks[i].flags |= FIXED_DIV_PLL;
++		sysclks[i].div = 1;
++	}
++
++	sysclks[7].flags |= FIXED_DIV_PLL;
++	sysclks[7].div = 3;
++	sysclks[8].flags |= FIXED_DIV_PLL;
++	sysclks[8].div = 6;
++	sysclks[9].flags |= FIXED_DIV_PLL;
++	sysclks[9].div = 2;
++	sysclks[10].div = PLLDIV10;
++
++	c6x_core_clk.parent = &sysclks[get_coreid() + 1];
++	c6x_i2c_clk.parent = &sysclks[8];
++	c6x_watchdog_clk.parent = &sysclks[8];
++	c6x_mdio_clk.parent = &sysclks[5];
++
++	c6x_clks_init(c6472_clks);
++}
++#endif /* CONFIG_SOC_TMS320C6472 */
++
++
++#ifdef CONFIG_SOC_TMS320C6474
++static struct clk_lookup c6474_clks[] = {
++	CLK(NULL, "pll1", &c6x_soc_pll1.sysclks[0]),
++	CLK(NULL, "pll1_sysclk7", &c6x_soc_pll1.sysclks[7]),
++	CLK(NULL, "pll1_sysclk9", &c6x_soc_pll1.sysclks[9]),
++	CLK(NULL, "pll1_sysclk10", &c6x_soc_pll1.sysclks[10]),
++	CLK(NULL, "pll1_sysclk11", &c6x_soc_pll1.sysclks[11]),
++	CLK(NULL, "pll1_sysclk12", &c6x_soc_pll1.sysclks[12]),
++	CLK(NULL, "pll1_sysclk13", &c6x_soc_pll1.sysclks[13]),
++	CLK(NULL, "core", &c6x_core_clk),
++	CLK("i2c_davinci.1", NULL, &c6x_i2c_clk),
++	CLK("mcbsp.1", NULL, &c6x_mcbsp1_clk),
++	CLK("mcbsp.2", NULL, &c6x_mcbsp2_clk),
++	CLK("watchdog", NULL, &c6x_watchdog_clk),
++	CLK("2c81800.mdio", NULL, &c6x_mdio_clk),
++	CLK("", NULL, NULL)
++};
++
++static void __init c6474_setup_clocks(struct device_node *node)
++{
++	struct pll_data *pll = &c6x_soc_pll1;
++	struct clk *sysclks = pll->sysclks;
++
++	pll->flags = PLL_HAS_MUL;
++
++	sysclks[7].flags |= FIXED_DIV_PLL;
++	sysclks[7].div = 1;
++	sysclks[9].flags |= FIXED_DIV_PLL;
++	sysclks[9].div = 3;
++	sysclks[10].flags |= FIXED_DIV_PLL;
++	sysclks[10].div = 6;
++
++	sysclks[11].div = PLLDIV11;
++
++	sysclks[12].flags |= FIXED_DIV_PLL;
++	sysclks[12].div = 2;
++
++	sysclks[13].div = PLLDIV13;
++
++	c6x_core_clk.parent = &sysclks[7];
++	c6x_i2c_clk.parent = &sysclks[10];
++	c6x_watchdog_clk.parent = &sysclks[10];
++	c6x_mcbsp1_clk.parent = &sysclks[10];
++	c6x_mcbsp2_clk.parent = &sysclks[10];
++
++	c6x_clks_init(c6474_clks);
++}
++#endif /* CONFIG_SOC_TMS320C6474 */
++
++static struct of_device_id c6x_clkc_match[] __initdata = {
++#ifdef CONFIG_SOC_TMS320C6455
++	{ .compatible = "ti,c6455-pll", .data = c6455_setup_clocks },
++#endif
++#ifdef CONFIG_SOC_TMS320C6457
++	{ .compatible = "ti,c6457-pll", .data = c6457_setup_clocks },
++#endif
++#ifdef CONFIG_SOC_TMS320C6472
++	{ .compatible = "ti,c6472-pll", .data = c6472_setup_clocks },
++#endif
++#ifdef CONFIG_SOC_TMS320C6474
++	{ .compatible = "ti,c6474-pll", .data = c6474_setup_clocks },
++#endif
++	{ .compatible = "ti,c64x+pll" },
++	{}
++};
++
++void __init c64x_setup_clocks(void)
++{
++	void (*__setup_clocks)(struct device_node *np);
++	struct pll_data *pll = &c6x_soc_pll1;
++	struct device_node *node;
++	const struct of_device_id *id;
++	int err;
++	u32 val;
++
++	node = of_find_matching_node(NULL, c6x_clkc_match);
++	if (!node)
++		return;
++
++	pll->base = of_iomap(node, 0);
++	if (!pll->base)
++		goto out;
++
++	err = of_property_read_u32(node, "clock-frequency", &val);
++	if (err || val == 0) {
++		pr_err("%s: no clock-frequency found! Using %dMHz\n",
++		       node->full_name, (int)val / 1000000);
++		val = 25000000;
++	}
++	clkin1.rate = val;
++
++	err = of_property_read_u32(node, "ti,c64x+pll-bypass-delay", &val);
++	if (err)
++		val = 5000;
++	pll->bypass_delay = val;
++
++	err = of_property_read_u32(node, "ti,c64x+pll-reset-delay", &val);
++	if (err)
++		val = 30000;
++	pll->reset_delay = val;
++
++	err = of_property_read_u32(node, "ti,c64x+pll-lock-delay", &val);
++	if (err)
++		val = 30000;
++	pll->lock_delay = val;
++
++	/* id->data is a pointer to SoC-specific setup */
++	id = of_match_node(c6x_clkc_match, node);
++	if (id && id->data) {
++		__setup_clocks = id->data;
++		__setup_clocks(node);
++	}
++
++out:
++	of_node_put(node);
 +}
 -- 
 1.7.6.2
