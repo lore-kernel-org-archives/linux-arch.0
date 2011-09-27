@@ -1,44 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:7210 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:15686 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753427Ab1I0Uae (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 27 Sep 2011 16:30:34 -0400
+	id S1753059Ab1I0UaU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 27 Sep 2011 16:30:20 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v3 24/24] C6X: MAINTAINERS
-Date: Tue, 27 Sep 2011 16:30:05 -0400
-Message-ID: <1317155405-26235-25-git-send-email-msalter@redhat.com>
+Subject: [PATCH v3 02/24] fixed generic page.h for non-zero PAGE_OFFSET
+Date: Tue, 27 Sep 2011 16:29:43 -0400
+Message-ID: <1317155405-26235-3-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20110927203005._bKoaDnFh0k4zUduPhE3vjGBqiklxnaAU4rpCK56vrs@z>
+Message-ID: <20110927202943.0iOK7UaqNXZwCTdhUPnPvtbDjCKdpAoygyXoSBr-e2I@z>
+
+asm-generic/page.h had several problems when used with a non-zero PAGE_OFFSET.
+This patch adds a default ARCH_PFN_OFFSET and fixes the __va, __pa, and
+pfn_valid macros to work with non-zero PAGE_OFFSETs.
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- MAINTAINERS |    8 ++++++++
- 1 files changed, 8 insertions(+), 0 deletions(-)
+ include/asm-generic/page.h |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 28f65c2..adc3e81 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -1626,6 +1626,14 @@ T:	git git://git.alsa-project.org/alsa-kernel.git
- S:	Maintained
- F:	sound/pci/oxygen/
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 75fec18..f376db2 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -71,10 +71,14 @@ extern unsigned long memory_end;
+ #define PAGE_OFFSET		(0)
+ #endif
  
-+C6X ARCHITECTURE
-+M:	Mark Salter <msalter@redhat.com>
-+M:	Aurelien Jacquiot <a-jacquiot@ti.com>
-+L:	linux-c6x-dev@linux-c6x.org
-+W:	http://www.linux-c6x.org/wiki/index.php/Main_Page
-+S:	Maintained
-+F:	arch/c6x/
++#ifndef ARCH_PFN_OFFSET
++#define ARCH_PFN_OFFSET		(PAGE_OFFSET >> PAGE_SHIFT)
++#endif
 +
- CACHEFILES: FS-CACHE BACKEND FOR CACHING ON MOUNTED FILESYSTEMS
- M:	David Howells <dhowells@redhat.com>
- L:	linux-cachefs@redhat.com
+ #ifndef __ASSEMBLY__
+ 
+-#define __va(x) ((void *)((unsigned long)(x) + PAGE_OFFSET))
+-#define __pa(x) ((unsigned long) (x) - PAGE_OFFSET)
++#define __va(x) ((void *)((unsigned long) (x)))
++#define __pa(x) ((unsigned long) (x))
+ 
+ #define virt_to_pfn(kaddr)	(__pa(kaddr) >> PAGE_SHIFT)
+ #define pfn_to_virt(pfn)	__va((pfn) << PAGE_SHIFT)
+@@ -86,7 +90,7 @@ extern unsigned long memory_end;
+ #define page_to_phys(page)      ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
+ #endif
+ 
+-#define pfn_valid(pfn)		((pfn) < max_mapnr)
++#define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
+ 
+ #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+ 				((void *)(kaddr) < (void *)memory_end))
 -- 
 1.7.6.2
 
