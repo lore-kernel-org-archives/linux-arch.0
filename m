@@ -1,52 +1,72 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 54/57] Documentation: irq: Change documents related to IRQF_DISABLED
-Date: Wed, 28 Sep 2011 16:33:08 -0600
-Message-ID: <CAErSpo7EUw_4sKXXd2pYkTuqvBFOHgZ1zwrv68K3OU57-QE2Dw@mail.gmail.com>
-References: <1316597339-29861-1-git-send-email-yong.zhang0@gmail.com> <1316597339-29861-55-git-send-email-yong.zhang0@gmail.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH v3 07/24] C6X: devicetree support
+Date: Wed, 28 Sep 2011 18:11:12 -0500
+Message-ID: <20110928231112.GE2838@ponder.secretlab.ca>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+ <1317155405-26235-8-git-send-email-msalter@redhat.com>
+ <201109281531.36792.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1316597339-29861-55-git-send-email-yong.zhang0@gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Jesse Barnes <jbarnes@virtuousgeek.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-pci@vger.kernel.org, linux-doc@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201109281531.36792.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 21, 2011 at 3:28 AM, Yong Zhang <yong.zhang0@gmail.com> wro=
-te:
-> IRQF_DISABLED is a NOOP now, place where suggest to use this
-> flag also doesn't make sense any more.
->
-> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+On Wed, Sep 28, 2011 at 03:31:36PM +0200, Arnd Bergmann wrote:
+> On Tuesday 27 September 2011, Mark Salter wrote:
+> > diff --git a/arch/c6x/boot/install-dtb.c b/arch/c6x/boot/install-dtb.c
+> > new file mode 100644
+> > index 0000000..fa979ce
+> > --- /dev/null
+> > +++ b/arch/c6x/boot/install-dtb.c
+> > @@ -0,0 +1,333 @@
+> > +/*
+> > + * Program to hack in a DTB to an ELF file having a placeholder
+> > + * section named __fst_blob.
+> > + *
+> > + * This allows for building multiple images with builtin DTBs
+> > + * using a single vmlinux image. This is only necessary until
+> > + * bootloader support exists.
+> > + *
+> > + * Copyright 2011 Texas Instruments Incorporated
+> > + *
+> > + * This program is free software; you can redistribute it and/or
+> > + * modify it under the terms of the GNU General Public License
+> > + * as published by the Free Software Foundation; either version
+> > + * 2 of the License, or (at your option) any later version.
+> > + *
+> > + * Usage: install-dtb <image.dtb> <kernel.elf>
+> > + */
+> 
+> Other architectures allow simply appending the device tree to the
+> kernel image file, which is more convenient for users and does
+> not require much kernel support. Have you tried this?
+> 
+> > diff --git a/arch/c6x/platforms/platform.c b/arch/c6x/platforms/platform.c
+> > new file mode 100644
+> > index 0000000..ad4651c
+> > --- /dev/null
+> > +++ b/arch/c6x/platforms/platform.c
+> > @@ -0,0 +1,17 @@
+> > +
+> > +static int __init c6x_device_probe(void)
+> > +{
+> > +       of_platform_bus_probe(NULL, of_default_bus_match_table, NULL);
+> > +       return 0;
+> > +}
+> > +device_initcall(c6x_device_probe);
+> 
+> device_initcall is run rather late. I think it would be more useful
+> to run this as early as possible, in order to make it possible to
+> have more of the core services probed through the device tree.
+> 
+> I also think that for probing the device tree root, you should be
+> using of_platform_populate instead of of_platform_bus_probe
+> nowadays. Maybe Grant can provide more information on this.
 
-I assume this will be applied via some non-PCI tree (let me know if
-otherwise).  The MSI-HOWTO.txt change looks fine to me.
+Yes.  Use of_platform_populate().  It's better.
 
-> --- a/Documentation/scsi/ncr53c8xx.txt
-> +++ b/Documentation/scsi/ncr53c8xx.txt
-> @@ -786,7 +786,9 @@ port address 0x1400.
-> =A0 =A0 =A0 =A0 irqm:1 =A0 =A0 same as initial settings (assumed BIOS=
- settings)
-> =A0 =A0 =A0 =A0 irqm:2 =A0 =A0 always totem pole
-> =A0 =A0 =A0 =A0 irqm:0x10 =A0driver will not use IRQF_SHARED flag whe=
-n requesting irq
-> - =A0 =A0 =A0 =A0irqm:0x20 =A0driver will not use IRQF_DISABLED flag =
-when requesting irq
-> + =A0 =A0 =A0 =A0irqm:0x20 =A0driver will not use IRQF_DISABLED (does=
- not make sense
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0any more since genirq will keep =
-irq disabled and the flag
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0is dead from linux-2.6.35) flag =
-when requesting irq
->
-> =A0 =A0 (Bits 0x10 and 0x20 can be combined with hardware irq mode op=
-tion)
-
-The new text doesn't make sense to me.  I think it should say something=
- like:
-
-    irqm:0x20  driver will not use IRQF_DISABLED flag when requesting
-irq (only useful for linux-2.6.34 and earlier)
-
-Bjorn
+g.
