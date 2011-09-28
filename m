@@ -1,61 +1,65 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 21/24] C6X: general SoC support
-Date: Wed, 28 Sep 2011 16:19:07 +0200
-Message-ID: <201109281619.07213.arnd@arndb.de>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <1317155405-26235-22-git-send-email-msalter@redhat.com>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH v3 05/24] C6X: build infrastructure
+Date: Wed, 28 Sep 2011 10:32:51 -0400
+Message-ID: <1317220372.2580.68.camel@deneb.redhat.com>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+	 <1317155405-26235-6-git-send-email-msalter@redhat.com>
+	 <201109281523.15680.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:58590 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752643Ab1I1OTL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2011 10:19:11 -0400
-In-Reply-To: <1317155405-26235-22-git-send-email-msalter@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:27546 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751562Ab1I1Oc5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Sep 2011 10:32:57 -0400
+In-Reply-To: <201109281523.15680.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday 27 September 2011, Mark Salter wrote:
-> +int soc_mac_addr(unsigned int index, u8 *addr)
-> +{
-> +       int i, have_cmdline_mac = 0, have_fuse_mac = 0;
-> +
-> +       for (i = 0; i < 6; i++) {
-> +               if (cmdline_mac[i])
-> +                       have_cmdline_mac = 1;
-> +               if (c6x_fuse_mac[i])
-> +                       have_fuse_mac = 1;
-> +       }
-> +
-> +       /* cmdline overrides hardware fuse MAC */
-> +       if (have_cmdline_mac)
-> +               memcpy(addr, cmdline_mac, 6);
-> +       else if (have_fuse_mac)
-> +               memcpy(addr, c6x_fuse_mac, 6);
-> +       else
-> +               return 0;
+On Wed, 2011-09-28 at 15:23 +0200, Arnd Bergmann wrote:
+> On Tuesday 27 September 2011, Mark Salter wrote:
+> > +comment "Board Selection"
+> > +choice
+> > +       prompt "Board"
+> > +       help
+> > +         This option specifies the specific board for which the kernel will be
+> > +         compiled.
+> > +
+> > +config BOARD_DSK6455
+> > +       bool "DSK6455"
+> > +       select SOC_TMS320C6455
+> > +
+> > +config BOARD_EVM6457
+> > +       bool "EVM6472"
+> > +       select SOC_TMS320C6457
+> > +
+> > +config BOARD_EVM6472
+> > +       bool "EVM6472"
+> > +       select SOC_TMS320C6472
+> > +
+> > +config BOARD_EVM6474
+> > +       bool "EVM6474"
+> > +       select SOC_TMS320C6474
+> > +
+> > +endchoice
+> 
+> This really wants to be a flat list instead of a "choice" statement,
+> so you can build a kernel for multiple boards at once. Is there a
+> reason why this is not possible right now?
 
-IMHO it's more important to let the user override the MAC address through
-the device tree than the command line, although if you allow both, the
-command line should take precedence. If you think you need to keep the
-command line option, please add a way to read it from the device tree
-as a fallback before falling back to the fused mac address.
+This is just left over from the time before device trees. I'll take
+the BOARD_foo configs out completely. Its just a matter of selecting
+the SOC in the defconfig rather than the board.
 
-Also, a final fallback on random_mac_address() would be reasonable here.
+> 
+> Also, how different are these boards and socs still? Since you are
+> based on device trees for hardware configuration, do you actually
+> need the options at all?
 
-Finally, how about passing a struct device pointer from the driver, rather
-than the index? That would seem more logical and make it easier to get
-to the device tree properties.
+The BOARD configs can go. The SOC configs will go out when clkdev
+stuff gets reworked when generic clock bindings are available.
 
-> +       /* adjust for specific EMAC device */
-> +       addr[5] += index * c6x_num_cores;
-> +       return 1;
-> +}
-> +EXPORT_SYMBOL(soc_mac_addr);
-
-EXPORT_SYMBOL_GPL()
-
-	Arnd
+--Mark
