@@ -1,38 +1,57 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 18/24] C6X: ptrace support
-Date: Wed, 28 Sep 2011 15:57:47 +0200
-Message-ID: <201109281557.47986.arnd@arndb.de>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <1317155405-26235-19-git-send-email-msalter@redhat.com>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH v3 06/24] C6X: early boot code
+Date: Wed, 28 Sep 2011 10:06:59 -0400
+Message-ID: <1317218820.2580.64.camel@deneb.redhat.com>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+	 <1317155405-26235-7-git-send-email-msalter@redhat.com>
+	 <201109281526.07969.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1317155405-26235-19-git-send-email-msalter@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Salter <msalter@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:37921 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753108Ab1I1OHC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 28 Sep 2011 10:07:02 -0400
+In-Reply-To: <201109281526.07969.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 27 September 2011, Mark Salter wrote:
-> +       case PTRACE_GETREGS:
-> +               return copy_regset_to_user(child, &user_c6x_native_view,
-> +                                          REGSET_GPR,
-> +                                          0, NR_PTREGS * sizeof(long),
-> +                                          datap);
-> +
-> +               /*
-> +                * set all gp regs in the child.
-> +                */
-> +       case PTRACE_SETREGS:
-> +               return copy_regset_from_user(child, &user_c6x_native_view,
-> +                                            REGSET_GPR,
-> +                                            0, NR_PTREGS * sizeof(long),
-> +                                            datap);
-> +
+On Wed, 2011-09-28 at 15:26 +0200, Arnd Bergmann wrote:
+> On Tuesday 27 September 2011, Mark Salter wrote:
+> 
+> > +int c6x_num_cores;
+> > +EXPORT_SYMBOL(c6x_num_cores);
+> > +
+> > +unsigned int c6x_silicon_rev;
+> > +EXPORT_SYMBOL(c6x_silicon_rev);
+> > +
+> > +/*
+> > + * Device status register. This holds information
+> > + * about device configuration needed by some drivers.
+> > + */
+> > +unsigned int c6x_devstat;
+> > +EXPORT_SYMBOL(c6x_devstat);
+> 
+> > +unsigned int ticks_per_ns_scaled;
+> > +EXPORT_SYMBOL(ticks_per_ns_scaled);
+> > +
+> > +unsigned int c6x_core_freq;
+> > +EXPORT_SYMBOL(c6x_core_freq);
+> 
+> These all look like they are used internally (maybe not
+> ticks_per_ns_scaled) so it would be more appropriate to make
+> them EXPORT_SYMBOL_GPL.
 
-I believe that you can let this be handled by the common 
-ptrace_request() function if you provide the necessary code for
-setting CONFIG_HAVE_ARCH_TRACEHOOK, which is preferred now.
+Hmm, we don't need to export c6x_core_freq at all.
 
-	Arnd
+c6x_silicon_rev is needed by drivers (though none in the current
+patch series) to deal with silicon errata.
+
+c6x_devstat has pin-strap config info some drivers may need.
+
+ticks_per_ns_scale is used in udelay/mdelay.
+
+--Mark
