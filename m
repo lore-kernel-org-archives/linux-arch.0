@@ -1,46 +1,55 @@
-From: Mark Salter <msalter@redhat.com>
+From: Valdis.Kletnieks@vt.edu
 Subject: Re: [PATCH v3 00/24] C6X: New architecture
-Date: Thu, 29 Sep 2011 08:21:58 -0400
-Message-ID: <1317298919.2580.92.camel@deneb.redhat.com>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
-	 <22021.1317246541@turing-police.cc.vt.edu>
-	 <201109291233.24623.arnd@arndb.de>
+Date: Thu, 29 Sep 2011 08:42:37 -0400
+Message-ID: <60327.1317300157@turing-police.cc.vt.edu>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <22021.1317246541@turing-police.cc.vt.edu> <201109291233.24623.arnd@arndb.de>
+            <1317298919.2580.92.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: multipart/signed; boundary="==_Exmh_1317300157_4421P";
+	 micalg=pgp-sha1; protocol="application/pgp-signature"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46439 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754299Ab1I2MWH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 Sep 2011 08:22:07 -0400
-In-Reply-To: <201109291233.24623.arnd@arndb.de>
+Received: from lennier.cc.vt.edu ([198.82.162.213]:43340 "EHLO
+	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754512Ab1I2MnL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Sep 2011 08:43:11 -0400
+In-Reply-To: Your message of "Thu, 29 Sep 2011 08:21:58 EDT."
+             <1317298919.2580.92.camel@deneb.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Valdis.Kletnieks@vt.edu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Mark Salter <msalter@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2011-09-29 at 12:33 +0200, Arnd Bergmann wrote:
-> On Wednesday 28 September 2011, Valdis.Kletnieks@vt.edu wrote:
-> >   Show Details
-> >   On Tue, 27 Sep 2011 16:29:41 EDT, Mark Salter said:
-> > 
-> > > This architecture supports members of the Texas Instruments family
-> > > of C6x single and multicore DSPs. The multicore DSPs do not support
-> > > cache coherancy, so are not suitable for SMP.
-> > 
-> > Is there a usage model for the multicore? I know somebody had some patches for
-> > "HPC dedicated compute cores" that would just basically run a userspace process
-> > and that's it - would those be applicable here?
-> 
-> No, that's a different thing. Even with dedicated compute cores, you need
-> cache coherency.
+--==_Exmh_1317300157_4421P
+Content-Type: text/plain; charset=us-ascii
 
-One thing that we plan to push later is an XIP model where cores can
-share a
-single kernel text image but run with their own copies of data. So you
-end up
-with something like a loosely coupled multiprocessor system with some
-hardware
-support for multicore communication and peripheral sharing.
+On Thu, 29 Sep 2011 08:21:58 EDT, Mark Salter said:
 
---Mark
+> One thing that we plan to push later is an XIP model where cores can share a
+> single kernel text image but run with their own copies of data. So you end up
+> with something like a loosely coupled multiprocessor system with some hardware
+> support for multicore communication and peripheral sharing.
+
+Ah, OK.  I eventually came across a mention in one of the patches of running
+a separate instance of Linux on each core, whick left me even more mystified.
+But the above clarifies it, thanks...
+
+I wonder how many currently global variables will need to be moved to per_cpu
+structures to make it work, and how intrusive that will end up.  Or is the plan
+to have the boot loader simply plonk the entire .data/.bss in different locations
+for each core?
+
+
+--==_Exmh_1317300157_4421P
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+Comment: Exmh version 2.5 07/13/2001
+
+iD8DBQFOhGe9cC3lWbTT17ARAjxVAJ9BK60NbcVXSY506pqOWLd94GQz6QCgs58c
+2poKcwjoj4HP1RBqkzd9Tp0=
+=ms+8
+-----END PGP SIGNATURE-----
+
+--==_Exmh_1317300157_4421P--
