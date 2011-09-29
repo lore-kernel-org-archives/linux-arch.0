@@ -1,49 +1,29 @@
-From: Mark Salter <msalter@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v3 19/24] C6X: headers
-Date: Thu, 29 Sep 2011 10:24:43 -0400
-Message-ID: <1317306284.2580.119.camel@deneb.redhat.com>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
-	 <1317155405-26235-20-git-send-email-msalter@redhat.com>
-	 <201109281607.11228.arnd@arndb.de>
+Date: Thu, 29 Sep 2011 16:41:21 +0200
+Message-ID: <3471979.HTqjRmXnHP@wuerfel>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <201109281607.11228.arnd@arndb.de> <1317306284.2580.119.camel@deneb.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47218 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753227Ab1I2OYr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 Sep 2011 10:24:47 -0400
-In-Reply-To: <201109281607.11228.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.187]:52619 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755070Ab1I2OmH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Sep 2011 10:42:07 -0400
+In-Reply-To: <1317306284.2580.119.camel@deneb.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Mark Salter <msalter@redhat.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 2011-09-28 at 16:07 +0200, Arnd Bergmann wrote:
-> On Tuesday 27 September 2011, Mark Salter wrote:
-> > diff --git a/arch/c6x/include/asm/unaligned.h b/arch/c6x/include/asm/unaligned.h
-> > new file mode 100644
-> > index 0000000..1dcb006
-> > --- /dev/null
-> > +++ b/arch/c6x/include/asm/unaligned.h
-> > @@ -0,0 +1,288 @@
-> > +/*
-> > + *  Port on Texas Instruments TMS320C6x architecture
-> 
-> This file basically just optimizes unaligned endianess conversion, but
-> you don't provide an optimized swab.h, which is the regular endianess
-> conversion.
-> 
-> I think it would less code and more useful to provide your own swab.h
-> and use the generic unaligned.h.
-> 
+On Thursday 29 September 2011 10:24:43 Mark Salter wrote:
+> I think we still want the c6x unaligned.h because the hardware can do
+> unaligned 32 and 64 memory accesses with no performance penalty. There
+> are some addressing mode limitations which is why the compiler doesn't
+> use them generally.
 
-Ah, I missed swab.h which is a trivial optimization. We can do 1 cycle
-swab16, 2 cycle swab32, and 3 cycle swab64.
+Ok. I guess you still only need to override __cpu_to_{le,be}{16,32,64}p and
+__{le,be}{16,32,64}_to_cpup then and use include/linux/unaligned/access_ok.h.
 
-I think we still want the c6x unaligned.h because the hardware can do
-unaligned 32 and 64 memory accesses with no performance penalty. There
-are some addressing mode limitations which is why the compiler doesn't
-use them generally.
-
---Mark
+	Arnd
