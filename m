@@ -1,55 +1,50 @@
-From: Valdis.Kletnieks@vt.edu
+From: Mark Salter <msalter@redhat.com>
 Subject: Re: [PATCH v3 00/24] C6X: New architecture
-Date: Thu, 29 Sep 2011 08:42:37 -0400
-Message-ID: <60327.1317300157@turing-police.cc.vt.edu>
-References: <1317155405-26235-1-git-send-email-msalter@redhat.com> <22021.1317246541@turing-police.cc.vt.edu> <201109291233.24623.arnd@arndb.de>
-            <1317298919.2580.92.camel@deneb.redhat.com>
+Date: Thu, 29 Sep 2011 09:02:11 -0400
+Message-ID: <1317301332.2580.108.camel@deneb.redhat.com>
+References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
+	 <22021.1317246541@turing-police.cc.vt.edu>
+	 <201109291233.24623.arnd@arndb.de>
+	 <1317298919.2580.92.camel@deneb.redhat.com>
+	 <60327.1317300157@turing-police.cc.vt.edu>
 Mime-Version: 1.0
-Content-Type: multipart/signed; boundary="==_Exmh_1317300157_4421P";
-	 micalg=pgp-sha1; protocol="application/pgp-signature"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lennier.cc.vt.edu ([198.82.162.213]:43340 "EHLO
-	lennier.cc.vt.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754512Ab1I2MnL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Sep 2011 08:43:11 -0400
-In-Reply-To: Your message of "Thu, 29 Sep 2011 08:21:58 EDT."
-             <1317298919.2580.92.camel@deneb.redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <60327.1317300157@turing-police.cc.vt.edu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Valdis.Kletnieks@vt.edu
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
---==_Exmh_1317300157_4421P
-Content-Type: text/plain; charset=us-ascii
+On Thu, 2011-09-29 at 08:42 -0400, Valdis.Kletnieks@vt.edu wrote:
+> On Thu, 29 Sep 2011 08:21:58 EDT, Mark Salter said:
+> 
+> > One thing that we plan to push later is an XIP model where cores can share a
+> > single kernel text image but run with their own copies of data. So you end up
+> > with something like a loosely coupled multiprocessor system with some hardware
+> > support for multicore communication and peripheral sharing.
+> 
+> Ah, OK.  I eventually came across a mention in one of the patches of running
+> a separate instance of Linux on each core, whick left me even more mystified.
+> But the above clarifies it, thanks...
+> 
+> I wonder how many currently global variables will need to be moved to per_cpu
+> structures to make it work, and how intrusive that will end up.  Or is the plan
+> to have the boot loader simply plonk the entire .data/.bss in different locations
+> for each core?
+> 
 
-On Thu, 29 Sep 2011 08:21:58 EDT, Mark Salter said:
+What we have prototyped is more like the latter. The XIP image (binary
+kernel block) is in ROM. Bootloader boots the first core by jumping to
+kernel image. Kernel copies initialized data to its reserved chunk of
+RAM and runs from there. The other kernels can be started by the boot
+kernel and they too will jump to the ROM image and make their own copies
+of all data. Without cache coherency, sharing any cached data is
+problematic.
 
-> One thing that we plan to push later is an XIP model where cores can share a
-> single kernel text image but run with their own copies of data. So you end up
-> with something like a loosely coupled multiprocessor system with some hardware
-> support for multicore communication and peripheral sharing.
+Other models are also possible. For instance, other cores could run
+dedicated DSP applications using some other minimal OS with HW supported
+communication with the Linux OS acting as the overall manager.
 
-Ah, OK.  I eventually came across a mention in one of the patches of running
-a separate instance of Linux on each core, whick left me even more mystified.
-But the above clarifies it, thanks...
-
-I wonder how many currently global variables will need to be moved to per_cpu
-structures to make it work, and how intrusive that will end up.  Or is the plan
-to have the boot loader simply plonk the entire .data/.bss in different locations
-for each core?
-
-
---==_Exmh_1317300157_4421P
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-Comment: Exmh version 2.5 07/13/2001
-
-iD8DBQFOhGe9cC3lWbTT17ARAjxVAJ9BK60NbcVXSY506pqOWLd94GQz6QCgs58c
-2poKcwjoj4HP1RBqkzd9Tp0=
-=ms+8
------END PGP SIGNATURE-----
-
---==_Exmh_1317300157_4421P--
+--Mark
