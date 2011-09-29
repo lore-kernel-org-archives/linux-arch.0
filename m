@@ -1,58 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:5862 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:58795 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756392Ab1I2NCP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 Sep 2011 09:02:15 -0400
-Subject: Re: [PATCH v3 00/24] C6X: New architecture
+	id S1752794Ab1I2NcE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Sep 2011 09:32:04 -0400
+Subject: Re: [PATCH v3 19/24] C6X: headers
 From: Mark Salter <msalter@redhat.com>
-Date: Thu, 29 Sep 2011 09:02:11 -0400
-In-Reply-To: <60327.1317300157@turing-police.cc.vt.edu>
+Date: Thu, 29 Sep 2011 09:32:00 -0400
+In-Reply-To: <201109281607.11228.arnd@arndb.de>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
-	 <22021.1317246541@turing-police.cc.vt.edu>
-	 <201109291233.24623.arnd@arndb.de>
-	 <1317298919.2580.92.camel@deneb.redhat.com>
-	 <60327.1317300157@turing-police.cc.vt.edu>
+	 <1317155405-26235-20-git-send-email-msalter@redhat.com>
+	 <201109281607.11228.arnd@arndb.de>
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Message-ID: <1317301332.2580.108.camel@deneb.redhat.com>
+Message-ID: <1317303121.2580.113.camel@deneb.redhat.com>
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Valdis.Kletnieks@vt.edu
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20110929130211.tKBRTcXh04Z7twqeyXAi9t6yluvoFO9EZf1CXpZpxfk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110929133200.tOo0ZuLpY04x2CMc-DipCV10ODzQWBrFwyHnMe_x7Lk@z>
 
-On Thu, 2011-09-29 at 08:42 -0400, Valdis.Kletnieks@vt.edu wrote:
-> On Thu, 29 Sep 2011 08:21:58 EDT, Mark Salter said:
+On Wed, 2011-09-28 at 16:07 +0200, Arnd Bergmann wrote:
+> On Tuesday 27 September 2011, Mark Salter wrote:
 > 
-> > One thing that we plan to push later is an XIP model where cores can share a
-> > single kernel text image but run with their own copies of data. So you end up
-> > with something like a loosely coupled multiprocessor system with some hardware
-> > support for multicore communication and peripheral sharing.
+> > +
+> > +static inline void __delay(unsigned long loops)
+> > +{
+> > +	uint32_t tmp;
+> > +
+> > +	/* 6 cycles per loop */
+> > +	asm volatile ("        mv    .s1  %0,%1\n"
+> > +		      "0: [%1] b     .s1  0b\n"
+> > +		      "        add   .l1  -6,%0,%0\n"
+> > +		      "        cmplt .l1  1,%0,%1\n"
+> > +		      "        nop   3\n"
+> > +		      : "+a"(loops), "=A"(tmp));
+> > +}
+> > +
+> > +static inline void _c6x_tickdelay(unsigned int x)
+> > +{
+> > +	uint32_t cnt, endcnt;
+> > +
+> > +	asm volatile ("        mvc   .s2   TSCL,%0\n"
+> > +		      "        add   .s2x  %0,%1,%2\n"
+> > +		      " ||     mvk   .l2   1,B0\n"
+> > +		      "0: [B0] b     .s2   0b\n"
+> > +		      "        mvc   .s2   TSCL,%0\n"
+> > +		      "        sub   .s2   %0,%2,%0\n"
+> > +		      "        cmpgt .l2   0,%0,B0\n"
+> > +		      "        nop   2\n"
+> > +		      : "=b"(cnt), "+a"(x), "=b"(endcnt) : : "B0");
+> > +}
 > 
-> Ah, OK.  I eventually came across a mention in one of the patches of running
-> a separate instance of Linux on each core, whick left me even more mystified.
-> But the above clarifies it, thanks...
-> 
-> I wonder how many currently global variables will need to be moved to per_cpu
-> structures to make it work, and how intrusive that will end up.  Or is the plan
-> to have the boot loader simply plonk the entire .data/.bss in different locations
-> for each core?
+> Do you actually need to provide the __delay function here?
+> I think it's really only used by the calibrate_delay() function
+> that you don't need.
 > 
 
-What we have prototyped is more like the latter. The XIP image (binary
-kernel block) is in ROM. Bootloader boots the first core by jumping to
-kernel image. Kernel copies initialized data to its reserved chunk of
-RAM and runs from there. The other kernels can be started by the boot
-kernel and they too will jump to the ROM image and make their own copies
-of all data. Without cache coherency, sharing any cached data is
-problematic.
-
-Other models are also possible. For instance, other cores could run
-dedicated DSP applications using some other minimal OS with HW supported
-communication with the Linux OS acting as the overall manager.
+It is still used in spinlock_debug.c and a few drivers.
 
 --Mark
-
 
 
