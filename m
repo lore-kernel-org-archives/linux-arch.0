@@ -1,78 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:65053 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755250Ab1I1XYj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Sep 2011 19:24:39 -0400
-Date: Wed, 28 Sep 2011 18:11:12 -0500
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH v3 07/24] C6X: devicetree support
-Message-ID: <20110928231112.GE2838@ponder.secretlab.ca>
+Received: from mx1.redhat.com ([209.132.183.28]:5862 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756392Ab1I2NCP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Sep 2011 09:02:15 -0400
+Subject: Re: [PATCH v3 00/24] C6X: New architecture
+From: Mark Salter <msalter@redhat.com>
+Date: Thu, 29 Sep 2011 09:02:11 -0400
+In-Reply-To: <60327.1317300157@turing-police.cc.vt.edu>
 References: <1317155405-26235-1-git-send-email-msalter@redhat.com>
- <1317155405-26235-8-git-send-email-msalter@redhat.com>
- <201109281531.36792.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201109281531.36792.arnd@arndb.de>
+	 <22021.1317246541@turing-police.cc.vt.edu>
+	 <201109291233.24623.arnd@arndb.de>
+	 <1317298919.2580.92.camel@deneb.redhat.com>
+	 <60327.1317300157@turing-police.cc.vt.edu>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Message-ID: <1317301332.2580.108.camel@deneb.redhat.com>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org
-Message-ID: <20110928231112.AQJiw0kzWzuWPHni4mh4S7LcXLA1YVNMNZIiBJEBGxo@z>
+To: Valdis.Kletnieks@vt.edu
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20110929130211.tKBRTcXh04Z7twqeyXAi9t6yluvoFO9EZf1CXpZpxfk@z>
 
-On Wed, Sep 28, 2011 at 03:31:36PM +0200, Arnd Bergmann wrote:
-> On Tuesday 27 September 2011, Mark Salter wrote:
-> > diff --git a/arch/c6x/boot/install-dtb.c b/arch/c6x/boot/install-dtb.c
-> > new file mode 100644
-> > index 0000000..fa979ce
-> > --- /dev/null
-> > +++ b/arch/c6x/boot/install-dtb.c
-> > @@ -0,0 +1,333 @@
-> > +/*
-> > + * Program to hack in a DTB to an ELF file having a placeholder
-> > + * section named __fst_blob.
-> > + *
-> > + * This allows for building multiple images with builtin DTBs
-> > + * using a single vmlinux image. This is only necessary until
-> > + * bootloader support exists.
-> > + *
-> > + * Copyright 2011 Texas Instruments Incorporated
-> > + *
-> > + * This program is free software; you can redistribute it and/or
-> > + * modify it under the terms of the GNU General Public License
-> > + * as published by the Free Software Foundation; either version
-> > + * 2 of the License, or (at your option) any later version.
-> > + *
-> > + * Usage: install-dtb <image.dtb> <kernel.elf>
-> > + */
+On Thu, 2011-09-29 at 08:42 -0400, Valdis.Kletnieks@vt.edu wrote:
+> On Thu, 29 Sep 2011 08:21:58 EDT, Mark Salter said:
 > 
-> Other architectures allow simply appending the device tree to the
-> kernel image file, which is more convenient for users and does
-> not require much kernel support. Have you tried this?
+> > One thing that we plan to push later is an XIP model where cores can share a
+> > single kernel text image but run with their own copies of data. So you end up
+> > with something like a loosely coupled multiprocessor system with some hardware
+> > support for multicore communication and peripheral sharing.
 > 
-> > diff --git a/arch/c6x/platforms/platform.c b/arch/c6x/platforms/platform.c
-> > new file mode 100644
-> > index 0000000..ad4651c
-> > --- /dev/null
-> > +++ b/arch/c6x/platforms/platform.c
-> > @@ -0,0 +1,17 @@
-> > +
-> > +static int __init c6x_device_probe(void)
-> > +{
-> > +       of_platform_bus_probe(NULL, of_default_bus_match_table, NULL);
-> > +       return 0;
-> > +}
-> > +device_initcall(c6x_device_probe);
+> Ah, OK.  I eventually came across a mention in one of the patches of running
+> a separate instance of Linux on each core, whick left me even more mystified.
+> But the above clarifies it, thanks...
 > 
-> device_initcall is run rather late. I think it would be more useful
-> to run this as early as possible, in order to make it possible to
-> have more of the core services probed through the device tree.
+> I wonder how many currently global variables will need to be moved to per_cpu
+> structures to make it work, and how intrusive that will end up.  Or is the plan
+> to have the boot loader simply plonk the entire .data/.bss in different locations
+> for each core?
 > 
-> I also think that for probing the device tree root, you should be
-> using of_platform_populate instead of of_platform_bus_probe
-> nowadays. Maybe Grant can provide more information on this.
 
-Yes.  Use of_platform_populate().  It's better.
+What we have prototyped is more like the latter. The XIP image (binary
+kernel block) is in ROM. Bootloader boots the first core by jumping to
+kernel image. Kernel copies initialized data to its reserved chunk of
+RAM and runs from there. The other kernels can be started by the boot
+kernel and they too will jump to the ROM image and make their own copies
+of all data. Without cache coherency, sharing any cached data is
+problematic.
 
-g.
+Other models are also possible. For instance, other cores could run
+dedicated DSP applications using some other minimal OS with HW supported
+communication with the Linux OS acting as the overall manager.
+
+--Mark
+
+
 
