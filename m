@@ -1,7 +1,7 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 19/24] C6X: headers
-Date: Tue,  4 Oct 2011 12:43:56 -0400
-Message-ID: <1317746641-26725-20-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 08/24] C6X: memory management and DMA support
+Date: Tue,  4 Oct 2011 12:43:45 -0400
+Message-ID: <1317746641-26725-9-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
@@ -15,906 +15,439 @@ From: Aurelien Jacquiot <a-jacquiot@ti.com>
 Original port to early 2.6 kernel using TI COFF toolchain.
 Brought up to date by Mark Salter <msalter@redhat.com>
 
+The C6X architecture currently lacks an MMU so memory management is relatively
+simple. There is no bus snooping between L2 and main memory but coherent DMA
+memory is supported by making regions of main memory uncached. If such a region
+is desired, it can be specified on the commandline with a "memdma=" argument.
+
 Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
 Signed-off-by: Mark Salter <msalter@redhat.com>
 CC: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/c6x/include/asm/asm-offsets.h |    1 +
- arch/c6x/include/asm/bitops.h      |  105 ++++++++++++++++++++++
- arch/c6x/include/asm/byteorder.h   |   12 +++
- arch/c6x/include/asm/delay.h       |   67 ++++++++++++++
- arch/c6x/include/asm/elf.h         |  113 ++++++++++++++++++++++++
- arch/c6x/include/asm/ftrace.h      |    6 ++
- arch/c6x/include/asm/linkage.h     |   30 +++++++
- arch/c6x/include/asm/memblock.h    |    4 +
- arch/c6x/include/asm/mmu.h         |   18 ++++
- arch/c6x/include/asm/mutex.h       |    6 ++
- arch/c6x/include/asm/page.h        |   11 +++
- arch/c6x/include/asm/pgtable.h     |   81 +++++++++++++++++
- arch/c6x/include/asm/procinfo.h    |   28 ++++++
- arch/c6x/include/asm/prom.h        |    1 +
- arch/c6x/include/asm/sections.h    |   12 +++
- arch/c6x/include/asm/setup.h       |   32 +++++++
- arch/c6x/include/asm/string.h      |   21 +++++
- arch/c6x/include/asm/swab.h        |   54 +++++++++++
- arch/c6x/include/asm/syscall.h     |  123 ++++++++++++++++++++++++++
- arch/c6x/include/asm/system.h      |  168 +++++++++++++++++++++++++++++++++++
- arch/c6x/include/asm/tlb.h         |    8 ++
- arch/c6x/include/asm/uaccess.h     |  107 ++++++++++++++++++++++
- arch/c6x/include/asm/unaligned.h   |  170 ++++++++++++++++++++++++++++++++++++
- 23 files changed, 1178 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/asm-offsets.h
- create mode 100644 arch/c6x/include/asm/bitops.h
- create mode 100644 arch/c6x/include/asm/byteorder.h
- create mode 100644 arch/c6x/include/asm/delay.h
- create mode 100644 arch/c6x/include/asm/elf.h
- create mode 100644 arch/c6x/include/asm/ftrace.h
- create mode 100644 arch/c6x/include/asm/linkage.h
- create mode 100644 arch/c6x/include/asm/memblock.h
- create mode 100644 arch/c6x/include/asm/mmu.h
- create mode 100644 arch/c6x/include/asm/mutex.h
- create mode 100644 arch/c6x/include/asm/page.h
- create mode 100644 arch/c6x/include/asm/pgtable.h
- create mode 100644 arch/c6x/include/asm/procinfo.h
- create mode 100644 arch/c6x/include/asm/prom.h
- create mode 100644 arch/c6x/include/asm/sections.h
- create mode 100644 arch/c6x/include/asm/setup.h
- create mode 100644 arch/c6x/include/asm/string.h
- create mode 100644 arch/c6x/include/asm/swab.h
- create mode 100644 arch/c6x/include/asm/syscall.h
- create mode 100644 arch/c6x/include/asm/system.h
- create mode 100644 arch/c6x/include/asm/tlb.h
- create mode 100644 arch/c6x/include/asm/uaccess.h
- create mode 100644 arch/c6x/include/asm/unaligned.h
+ arch/c6x/include/asm/dma-mapping.h |   91 +++++++++++++++++++++
+ arch/c6x/kernel/dma.c              |  153 ++++++++++++++++++++++++++++++++++++
+ arch/c6x/mm/dma-coherent.c         |  143 +++++++++++++++++++++++++++++++++
+ arch/c6x/mm/init.c                 |  113 ++++++++++++++++++++++++++
+ 4 files changed, 500 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/dma-mapping.h
+ create mode 100644 arch/c6x/kernel/dma.c
+ create mode 100644 arch/c6x/mm/dma-coherent.c
+ create mode 100644 arch/c6x/mm/init.c
 
-diff --git a/arch/c6x/include/asm/asm-offsets.h b/arch/c6x/include/asm/asm-offsets.h
+diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..d370ee3
+index 0000000..03579fd
 --- /dev/null
-+++ b/arch/c6x/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/c6x/include/asm/bitops.h b/arch/c6x/include/asm/bitops.h
-new file mode 100644
-index 0000000..39ab7e8
---- /dev/null
-+++ b/arch/c6x/include/asm/bitops.h
-@@ -0,0 +1,105 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_BITOPS_H
-+#define _ASM_C6X_BITOPS_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/bitops.h>
-+
-+#include <asm/system.h>
-+#include <asm/byteorder.h>
-+
-+/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
-+ */
-+#define smp_mb__before_clear_bit() barrier()
-+#define smp_mb__after_clear_bit()  barrier()
-+
-+/*
-+ * We are lucky, DSP is perfect for bitops: do it in 3 cycles
-+ */
-+
-+/**
-+ * __ffs - find first bit in word.
-+ * @word: The word to search
-+ *
-+ * Undefined if no bit exists, so code should check against 0 first.
-+ * Note __ffs(0) = undef, __ffs(1) = 0, __ffs(0x80000000) = 31.
-+ *
-+ */
-+static inline unsigned long __ffs(unsigned long x)
-+{
-+	asm (" bitr  .M1  %0,%0\n"
-+	     " nop\n"
-+	     " lmbd  .L1  1,%0,%0\n"
-+	     : "+a"(x));
-+
-+	return x;
-+}
-+
-+/*
-+ * ffz - find first zero in word.
-+ * @word: The word to search
-+ *
-+ * Undefined if no zero exists, so code should check against ~0UL first.
-+ */
-+#define ffz(x) __ffs(~(x))
-+
-+/**
-+ * fls - find last (most-significant) bit set
-+ * @x: the word to search
-+ *
-+ * This is defined the same way as ffs.
-+ * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-+ */
-+static inline int fls(int x)
-+{
-+	if (!x)
-+		return 0;
-+
-+	asm (" lmbd  .L1  1,%0,%0\n" : "+a"(x));
-+
-+	return 32 - x;
-+}
-+
-+/**
-+ * ffs - find first bit set
-+ * @x: the word to search
-+ *
-+ * This is defined the same way as
-+ * the libc and compiler builtin ffs routines, therefore
-+ * differs in spirit from the above ffz (man ffs).
-+ * Note ffs(0) = 0, ffs(1) = 1, ffs(0x80000000) = 32.
-+ */
-+static inline int ffs(int x)
-+{
-+	if (!x)
-+		return 0;
-+
-+	return __ffs(x) + 1;
-+}
-+
-+#include <asm-generic/bitops/__fls.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/find.h>
-+
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+
-+#include <asm-generic/bitops/atomic.h>
-+#include <asm-generic/bitops/non-atomic.h>
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+
-+#endif /* __KERNEL__ */
-+#endif /* _ASM_C6X_BITOPS_H */
-diff --git a/arch/c6x/include/asm/byteorder.h b/arch/c6x/include/asm/byteorder.h
-new file mode 100644
-index 0000000..166038d
---- /dev/null
-+++ b/arch/c6x/include/asm/byteorder.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_C6X_BYTEORDER_H
-+#define _ASM_C6X_BYTEORDER_H
-+
-+#include <asm/types.h>
-+
-+#ifdef _BIG_ENDIAN
-+#include <linux/byteorder/big_endian.h>
-+#else /* _BIG_ENDIAN */
-+#include <linux/byteorder/little_endian.h>
-+#endif /* _BIG_ENDIAN */
-+
-+#endif /* _ASM_BYTEORDER_H */
-diff --git a/arch/c6x/include/asm/delay.h b/arch/c6x/include/asm/delay.h
-new file mode 100644
-index 0000000..f314c2e
---- /dev/null
-+++ b/arch/c6x/include/asm/delay.h
-@@ -0,0 +1,67 @@
++++ b/arch/c6x/include/asm/dma-mapping.h
+@@ -0,0 +1,91 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
 + *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ */
++#ifndef _ASM_C6X_DMA_MAPPING_H
++#define _ASM_C6X_DMA_MAPPING_H
++
++#include <linux/dma-debug.h>
++#include <asm-generic/dma-coherent.h>
++
++#define dma_supported(d, m)	1
++
++static inline int dma_set_mask(struct device *dev, u64 dma_mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
++		return -EIO;
++
++	*dev->dma_mask = dma_mask;
++
++	return 0;
++}
++
++/*
++ * DMA errors are defined by all-bits-set in the DMA address.
++ */
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return dma_addr == ~0;
++}
++
++extern dma_addr_t dma_map_single(struct device *dev, void *cpu_addr,
++				 size_t size, enum dma_data_direction dir);
++
++extern void dma_unmap_single(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir);
++
++extern int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++		      int nents, enum dma_data_direction direction);
++
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction direction);
++
++static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
++				      unsigned long offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	dma_addr_t handle;
++
++	handle = dma_map_single(dev, page_address(page) + offset, size, dir);
++
++	debug_dma_map_page(dev, page, offset, size, dir, handle, false);
++
++	return handle;
++}
++
++static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
++		size_t size, enum dma_data_direction dir)
++{
++	dma_unmap_single(dev, handle, size, dir);
++
++	debug_dma_unmap_page(dev, handle, size, dir, false);
++}
++
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++				    size_t size, enum dma_data_direction dir);
++
++extern void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				       size_t size,
++				       enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++				int nents, enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				   int nents, enum dma_data_direction dir);
++
++extern void coherent_mem_init(u32 start, u32 size);
++extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
++extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
++
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent((d), (s), (h), (f))
++#define dma_free_noncoherent(d, s, v, h)  dma_free_coherent((d), (s), (v), (h))
++
++#endif	/* _ASM_C6X_DMA_MAPPING_H */
+diff --git a/arch/c6x/kernel/dma.c b/arch/c6x/kernel/dma.c
+new file mode 100644
+index 0000000..ab7b12d
+--- /dev/null
++++ b/arch/c6x/kernel/dma.c
+@@ -0,0 +1,153 @@
++/*
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_DELAY_H
-+#define _ASM_C6X_DELAY_H
++#include <linux/module.h>
++#include <linux/dma-mapping.h>
++#include <linux/mm.h>
++#include <linux/mm_types.h>
++#include <linux/scatterlist.h>
 +
-+#include <linux/kernel.h>
++#include <asm/cacheflush.h>
 +
-+extern unsigned int ticks_per_ns_scaled;
-+
-+static inline void __delay(unsigned long loops)
++static void c6x_dma_sync(dma_addr_t handle, size_t size,
++			 enum dma_data_direction dir)
 +{
-+	uint32_t tmp;
++	unsigned long paddr = handle;
 +
-+	/* 6 cycles per loop */
-+	asm volatile ("        mv    .s1  %0,%1\n"
-+		      "0: [%1] b     .s1  0b\n"
-+		      "        add   .l1  -6,%0,%0\n"
-+		      "        cmplt .l1  1,%0,%1\n"
-+		      "        nop   3\n"
-+		      : "+a"(loops), "=A"(tmp));
-+}
++	BUG_ON(!valid_dma_direction(dir));
 +
-+static inline void _c6x_tickdelay(unsigned int x)
-+{
-+	uint32_t cnt, endcnt;
-+
-+	asm volatile ("        mvc   .s2   TSCL,%0\n"
-+		      "        add   .s2x  %0,%1,%2\n"
-+		      " ||     mvk   .l2   1,B0\n"
-+		      "0: [B0] b     .s2   0b\n"
-+		      "        mvc   .s2   TSCL,%0\n"
-+		      "        sub   .s2   %0,%2,%0\n"
-+		      "        cmpgt .l2   0,%0,B0\n"
-+		      "        nop   2\n"
-+		      : "=b"(cnt), "+a"(x), "=b"(endcnt) : : "B0");
-+}
-+
-+/* use scaled math to avoid slow division */
-+#define C6X_NDELAY_SCALE 10
-+
-+static inline void _ndelay(unsigned int n)
-+{
-+	_c6x_tickdelay((ticks_per_ns_scaled * n) >> C6X_NDELAY_SCALE);
-+}
-+
-+static inline void _udelay(unsigned int n)
-+{
-+	while (n >= 10) {
-+		_ndelay(10000);
-+		n -= 10;
++	switch (dir) {
++	case DMA_FROM_DEVICE:
++		L2_cache_block_invalidate(paddr, paddr + size);
++		break;
++	case DMA_TO_DEVICE:
++		L2_cache_block_writeback(paddr, paddr + size);
++		break;
++	case DMA_BIDIRECTIONAL:
++		L2_cache_block_writeback_invalidate(paddr, paddr + size);
++		break;
++	default:
++		break;
 +	}
-+	while (n-- > 0)
-+		_ndelay(1000);
 +}
 +
-+#define udelay(x) _udelay((unsigned int)(x))
-+#define ndelay(x) _ndelay((unsigned int)(x))
++dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size,
++			  enum dma_data_direction dir)
++{
++	dma_addr_t addr = virt_to_phys(ptr);
 +
-+#endif /* _ASM_C6X_DELAY_H */
-diff --git a/arch/c6x/include/asm/elf.h b/arch/c6x/include/asm/elf.h
++	c6x_dma_sync(addr, size, dir);
++
++	debug_dma_map_page(dev, virt_to_page(ptr),
++			   (unsigned long)ptr & ~PAGE_MASK, size,
++			   dir, addr, true);
++	return addr;
++}
++EXPORT_SYMBOL(dma_map_single);
++
++
++void dma_unmap_single(struct device *dev, dma_addr_t handle,
++		      size_t size, enum dma_data_direction dir)
++{
++	c6x_dma_sync(handle, size, dir);
++
++	debug_dma_unmap_page(dev, handle, size, dir, true);
++}
++EXPORT_SYMBOL(dma_unmap_single);
++
++
++int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++	       int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		sg->dma_address = dma_map_single(dev, sg_virt(sg), sg->length,
++						 dir);
++
++	debug_dma_map_sg(dev, sglist, nents, nents, dir);
++
++	return nents;
++}
++EXPORT_SYMBOL(dma_map_sg);
++
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++		  int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_unmap_single(dev, sg_dma_address(sg), sg->length, dir);
++
++	debug_dma_unmap_sg(dev, sglist,	nents, dir);
++}
++EXPORT_SYMBOL(dma_unmap_sg);
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir)
++{
++	c6x_dma_sync(handle, size, dir);
++
++	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				size_t size, enum dma_data_direction dir)
++{
++	c6x_dma_sync(handle, size, dir);
++
++	debug_dma_sync_single_for_device(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_cpu(dev, sg_dma_address(sg),
++					sg->length, dir);
++
++	debug_dma_sync_sg_for_cpu(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
++			    int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_device(dev, sg_dma_address(sg),
++					   sg->length, dir);
++
++	debug_dma_sync_sg_for_device(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
++
++
++/* Number of entries preallocated for DMA-API debugging */
++#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
++
++static int __init dma_init(void)
++{
++	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
++
++	return 0;
++}
++fs_initcall(dma_init);
+diff --git a/arch/c6x/mm/dma-coherent.c b/arch/c6x/mm/dma-coherent.c
 new file mode 100644
-index 0000000..d57865b
+index 0000000..4187e51
 --- /dev/null
-+++ b/arch/c6x/include/asm/elf.h
++++ b/arch/c6x/mm/dma-coherent.c
+@@ -0,0 +1,143 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ *  DMA uncached mapping support.
++ *
++ *  Using code pulled from ARM
++ *  Copyright (C) 2000-2004 Russell King
++ *
++ */
++#include <linux/slab.h>
++#include <linux/bitmap.h>
++#include <linux/bitops.h>
++#include <linux/module.h>
++#include <linux/interrupt.h>
++#include <linux/dma-mapping.h>
++#include <linux/memblock.h>
++
++#include <asm/page.h>
++
++/*
++ * DMA coherent memory management, can be redefined using the memdma=
++ * kernel command line
++ */
++
++/* none by default */
++static phys_addr_t dma_base;
++static u32 dma_size;
++static u32 dma_pages;
++
++static unsigned long *dma_bitmap;
++
++/* bitmap lock */
++static DEFINE_SPINLOCK(dma_lock);
++
++/*
++ * Return a DMA coherent and contiguous memory chunk from the DMA memory
++ */
++static inline u32 __alloc_dma_pages(int order)
++{
++	unsigned long flags;
++	u32 pos;
++
++	spin_lock_irqsave(&dma_lock, flags);
++	pos = bitmap_find_free_region(dma_bitmap, dma_pages, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
++
++	return dma_base + (pos << PAGE_SHIFT);
++}
++
++static void __free_dma_pages(u32 addr, int order)
++{
++	unsigned long flags;
++	u32 pos = (addr - dma_base) >> PAGE_SHIFT;
++
++	if (addr < dma_base || (pos + (1 << order)) >= dma_pages) {
++		printk(KERN_ERR "%s: freeing outside range.\n", __func__);
++		BUG();
++	}
++
++	spin_lock_irqsave(&dma_lock, flags);
++	bitmap_release_region(dma_bitmap, pos, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
++}
++
++/*
++ * Allocate DMA coherent memory space and return both the kernel
++ * virtual and DMA address for that space.
++ */
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *handle, gfp_t gfp)
++{
++	u32 paddr;
++	int order;
++
++	if (!dma_size || !size)
++		return NULL;
++
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
++
++	paddr = __alloc_dma_pages(order);
++
++	if (handle)
++		*handle = paddr;
++
++	if (!paddr)
++		return NULL;
++
++	return phys_to_virt(paddr);
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++/*
++ * Free DMA coherent memory as defined by the above mapping.
++ */
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++		       dma_addr_t dma_handle)
++{
++	int order;
++
++	if (!dma_size || !size)
++		return;
++
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
++
++	__free_dma_pages(virt_to_phys(vaddr), order);
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++/*
++ * Initialise the coherent DMA memory allocator using the given uncached region.
++ */
++void __init coherent_mem_init(phys_addr_t start, u32 size)
++{
++	phys_addr_t bitmap_phys;
++
++	if (!size)
++		return;
++
++	printk(KERN_INFO
++	       "Coherent memory (DMA) region start=0x%x size=0x%x\n",
++	       start, size);
++
++	dma_base = start;
++	dma_size = size;
++
++	/* allocate bitmap */
++	dma_pages = dma_size >> PAGE_SHIFT;
++	if (dma_size & (PAGE_SIZE - 1))
++		++dma_pages;
++
++	bitmap_phys = memblock_alloc(BITS_TO_LONGS(dma_pages) * sizeof(long),
++				     sizeof(long));
++
++	dma_bitmap = phys_to_virt(bitmap_phys);
++	memset(dma_bitmap, 0, dma_pages * PAGE_SIZE);
++}
+diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+new file mode 100644
+index 0000000..89395f0
+--- /dev/null
++++ b/arch/c6x/mm/init.c
 @@ -0,0 +1,113 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_ELF_H
-+#define _ASM_C6X_ELF_H
-+
-+/*
-+ * ELF register definitions..
-+ */
-+#include <asm/ptrace.h>
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_fpreg_t;
-+
-+#define ELF_NGREG  58
-+#define ELF_NFPREG 1
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ */
-+#define elf_check_arch(x) ((x)->e_machine == EM_TI_C6000)
-+
-+#define elf_check_const_displacement(x) (1)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#ifdef __LITTLE_ENDIAN__
-+#define ELF_DATA	ELFDATA2LSB
-+#else
-+#define ELF_DATA	ELFDATA2MSB
-+#endif
-+
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_ARCH	EM_TI_C6000
-+
-+/* Nothing for now. Need to setup DP... */
-+#define ELF_PLAT_INIT(_r)
-+
-+#define USE_ELF_CORE_DUMP
-+#define ELF_EXEC_PAGESIZE	4096
-+
-+#define ELF_CORE_COPY_REGS(_dest, _regs)		\
-+	memcpy((char *) &_dest, (char *) _regs,		\
-+	sizeof(struct pt_regs));
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM  (NULL)
-+
-+#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
-+
-+/* C6X specific section types */
-+#define SHT_C6000_UNWIND	0x70000001
-+#define SHT_C6000_PREEMPTMAP	0x70000002
-+#define SHT_C6000_ATTRIBUTES	0x70000003
-+
-+/* C6X specific DT_ tags */
-+#define DT_C6000_DSBT_BASE	0x70000000
-+#define DT_C6000_DSBT_SIZE	0x70000001
-+#define DT_C6000_PREEMPTMAP	0x70000002
-+#define DT_C6000_DSBT_INDEX	0x70000003
-+
-+/* C6X specific relocs */
-+#define R_C6000_NONE		0
-+#define R_C6000_ABS32		1
-+#define R_C6000_ABS16		2
-+#define R_C6000_ABS8		3
-+#define R_C6000_PCR_S21		4
-+#define R_C6000_PCR_S12		5
-+#define R_C6000_PCR_S10		6
-+#define R_C6000_PCR_S7		7
-+#define R_C6000_ABS_S16		8
-+#define R_C6000_ABS_L16		9
-+#define R_C6000_ABS_H16		10
-+#define R_C6000_SBR_U15_B	11
-+#define R_C6000_SBR_U15_H	12
-+#define R_C6000_SBR_U15_W	13
-+#define R_C6000_SBR_S16		14
-+#define R_C6000_SBR_L16_B	15
-+#define R_C6000_SBR_L16_H	16
-+#define R_C6000_SBR_L16_W	17
-+#define R_C6000_SBR_H16_B	18
-+#define R_C6000_SBR_H16_H	19
-+#define R_C6000_SBR_H16_W	20
-+#define R_C6000_SBR_GOT_U15_W	21
-+#define R_C6000_SBR_GOT_L16_W	22
-+#define R_C6000_SBR_GOT_H16_W	23
-+#define R_C6000_DSBT_INDEX	24
-+#define R_C6000_PREL31		25
-+#define R_C6000_COPY		26
-+#define R_C6000_ALIGN		253
-+#define R_C6000_FPHEAD		254
-+#define R_C6000_NOCMP		255
-+
-+#endif /*_ASM_C6X_ELF_H */
-diff --git a/arch/c6x/include/asm/ftrace.h b/arch/c6x/include/asm/ftrace.h
-new file mode 100644
-index 0000000..3701958
---- /dev/null
-+++ b/arch/c6x/include/asm/ftrace.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_C6X_FTRACE_H
-+#define _ASM_C6X_FTRACE_H
-+
-+/* empty */
-+
-+#endif /* _ASM_C6X_FTRACE_H */
-diff --git a/arch/c6x/include/asm/linkage.h b/arch/c6x/include/asm/linkage.h
-new file mode 100644
-index 0000000..376925c
---- /dev/null
-+++ b/arch/c6x/include/asm/linkage.h
-@@ -0,0 +1,30 @@
-+#ifndef _ASM_C6X_LINKAGE_H
-+#define _ASM_C6X_LINKAGE_H
-+
-+#ifdef __ASSEMBLER__
-+
-+#define __ALIGN		.align 2
-+#define __ALIGN_STR	".align 2"
-+
-+#ifndef __DSBT__
-+#define ENTRY(name)		\
-+	.global name @		\
-+	__ALIGN @		\
-+name:
-+#else
-+#define ENTRY(name)		\
-+	.global name @		\
-+	.hidden name @		\
-+	__ALIGN @		\
-+name:
-+#endif
-+
-+#define ENDPROC(name)		\
-+	.type name, @function @	\
-+	.size name, . - name
-+
-+#endif
-+
-+#include <asm-generic/linkage.h>
-+
-+#endif /* _ASM_C6X_LINKAGE_H */
-diff --git a/arch/c6x/include/asm/memblock.h b/arch/c6x/include/asm/memblock.h
-new file mode 100644
-index 0000000..1181a97
---- /dev/null
-+++ b/arch/c6x/include/asm/memblock.h
-@@ -0,0 +1,4 @@
-+#ifndef _ASM_C6X_MEMBLOCK_H
-+#define _ASM_C6X_MEMBLOCK_H
-+
-+#endif /* _ASM_C6X_MEMBLOCK_H */
-diff --git a/arch/c6x/include/asm/mmu.h b/arch/c6x/include/asm/mmu.h
-new file mode 100644
-index 0000000..41592bf
---- /dev/null
-+++ b/arch/c6x/include/asm/mmu.h
-@@ -0,0 +1,18 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_MMU_H
-+#define _ASM_C6X_MMU_H
-+
-+typedef struct {
-+	unsigned long		end_brk;
-+} mm_context_t;
-+
-+#endif /* _ASM_C6X_MMU_H */
-diff --git a/arch/c6x/include/asm/mutex.h b/arch/c6x/include/asm/mutex.h
-new file mode 100644
-index 0000000..7a7248e
---- /dev/null
-+++ b/arch/c6x/include/asm/mutex.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_C6X_MUTEX_H
-+#define _ASM_C6X_MUTEX_H
-+
-+#include <asm-generic/mutex-null.h>
-+
-+#endif /* _ASM_C6X_MUTEX_H */
-diff --git a/arch/c6x/include/asm/page.h b/arch/c6x/include/asm/page.h
-new file mode 100644
-index 0000000..d18e2b0
---- /dev/null
-+++ b/arch/c6x/include/asm/page.h
-@@ -0,0 +1,11 @@
-+#ifndef _ASM_C6X_PAGE_H
-+#define _ASM_C6X_PAGE_H
-+
-+#define VM_DATA_DEFAULT_FLAGS \
-+	(VM_READ | VM_WRITE | \
-+	((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
-+		 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
-+
-+#include <asm-generic/page.h>
-+
-+#endif /* _ASM_C6X_PAGE_H */
-diff --git a/arch/c6x/include/asm/pgtable.h b/arch/c6x/include/asm/pgtable.h
-new file mode 100644
-index 0000000..68c8af4
---- /dev/null
-+++ b/arch/c6x/include/asm/pgtable.h
-@@ -0,0 +1,81 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_PGTABLE_H
-+#define _ASM_C6X_PGTABLE_H
-+
-+#include <asm-generic/4level-fixup.h>
-+
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+
-+/*
-+ * All 32bit addresses are effectively valid for vmalloc...
-+ * Sort of meaningless for non-VM targets.
-+ */
-+#define	VMALLOC_START	0
-+#define	VMALLOC_END	0xffffffff
-+
-+#define pgd_present(pgd)	(1)
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_clear(pgdp)
-+#define kern_addr_valid(addr) (1)
-+
-+#define pmd_offset(a, b)	((void *)0)
-+#define pmd_none(x)		(!pmd_val(x))
-+#define pmd_present(x)		(pmd_val(x))
-+#define pmd_clear(xp)		do { set_pmd(xp, __pmd(0)); } while (0)
-+#define pmd_bad(x)		(pmd_val(x) & ~PAGE_MASK)
-+
-+#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
-+#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
-+#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
-+#define PAGE_READONLY	        __pgprot(0)    /* these mean nothing to NO_MM */
-+#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
-+#define pgprot_noncached(prot)	(prot)
-+
-+extern void paging_init(void);
-+
-+#define __swp_type(x)		(0)
-+#define __swp_offset(x)		(0)
-+#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-+
-+static inline int pte_file(pte_t pte)
-+{
-+	return 0;
-+}
-+
-+#define set_pte(pteptr, pteval) (*(pteptr) = pteval)
-+#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
-+
-+/*
-+ * ZERO_PAGE is a global shared page that is always zero: used
-+ * for zero-mapped memory areas etc..
-+ */
-+#define ZERO_PAGE(vaddr)	virt_to_page(empty_zero_page)
-+extern unsigned long empty_zero_page;
-+
-+#define swapper_pg_dir ((pgd_t *) 0)
-+
-+/*
-+ * No page table caches to initialise
-+ */
-+#define pgtable_cache_init()   do { } while (0)
-+#define io_remap_pfn_range      remap_pfn_range
-+
-+#define io_remap_page_range(vma, vaddr, paddr, size, prot)		\
-+		remap_pfn_range(vma, vaddr, (paddr) >> PAGE_SHIFT, size, prot)
-+
-+#include <asm-generic/pgtable.h>
-+
-+#endif /* _ASM_C6X_PGTABLE_H */
-diff --git a/arch/c6x/include/asm/procinfo.h b/arch/c6x/include/asm/procinfo.h
-new file mode 100644
-index 0000000..c139d1e
---- /dev/null
-+++ b/arch/c6x/include/asm/procinfo.h
-@@ -0,0 +1,28 @@
-+/*
-+ *  Copyright (C) 2010 Texas Instruments Incorporated
-+ *  Author: Mark Salter (msalter@redhat.com)
-+ *
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_PROCINFO_H
-+#define _ASM_C6X_PROCINFO_H
-+
-+#ifdef __KERNEL__
-+
-+struct proc_info_list {
-+	unsigned int		cpu_val;
-+	unsigned int		cpu_mask;
-+	const char		*arch_name;
-+	const char		*elf_name;
-+	unsigned int		elf_hwcap;
-+};
-+
-+#else	/* __KERNEL__ */
-+#include <asm/elf.h>
-+#warning "Please include asm/elf.h instead"
-+#endif	/* __KERNEL__ */
-+
-+#endif	/* _ASM_C6X_PROCINFO_H */
-diff --git a/arch/c6x/include/asm/prom.h b/arch/c6x/include/asm/prom.h
-new file mode 100644
-index 0000000..b4ec95f
---- /dev/null
-+++ b/arch/c6x/include/asm/prom.h
-@@ -0,0 +1 @@
-+/* dummy prom.h; here to make linux/of.h's #includes happy */
-diff --git a/arch/c6x/include/asm/sections.h b/arch/c6x/include/asm/sections.h
-new file mode 100644
-index 0000000..f703989
---- /dev/null
-+++ b/arch/c6x/include/asm/sections.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_C6X_SECTIONS_H
-+#define _ASM_C6X_SECTIONS_H
-+
-+#include <asm-generic/sections.h>
-+
-+extern char _vectors_start[];
-+extern char _vectors_end[];
-+
-+extern char _data_lma[];
-+extern char _fdt_start[], _fdt_end[];
-+
-+#endif /* _ASM_C6X_SECTIONS_H */
-diff --git a/arch/c6x/include/asm/setup.h b/arch/c6x/include/asm/setup.h
-new file mode 100644
-index 0000000..1808f27
---- /dev/null
-+++ b/arch/c6x/include/asm/setup.h
-@@ -0,0 +1,32 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_SETUP_H
-+#define _ASM_C6X_SETUP_H
-+
-+#define COMMAND_LINE_SIZE   1024
-+
-+#ifndef __ASSEMBLY__
-+extern char c6x_command_line[COMMAND_LINE_SIZE];
-+
-+extern int c6x_add_memory(phys_addr_t start, unsigned long size);
-+
-+extern unsigned long ram_start;
-+extern unsigned long ram_end;
-+
-+extern int c6x_num_cores;
-+extern unsigned int c6x_silicon_rev;
-+extern unsigned int c6x_devstat;
-+extern unsigned char c6x_fuse_mac[6];
-+
-+extern void machine_init(unsigned long dt_ptr);
-+
-+#endif /* !__ASSEMBLY__ */
-+#endif /* _ASM_C6X_SETUP_H */
-diff --git a/arch/c6x/include/asm/string.h b/arch/c6x/include/asm/string.h
-new file mode 100644
-index 0000000..b21517c
---- /dev/null
-+++ b/arch/c6x/include/asm/string.h
-@@ -0,0 +1,21 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_STRING_H
-+#define _ASM_C6X_STRING_H
-+
-+#include <asm/page.h>
-+#include <linux/linkage.h>
-+
-+asmlinkage extern void *memcpy(void *to, const void *from, size_t n);
-+
-+#define __HAVE_ARCH_MEMCPY
-+
-+#endif /* _ASM_C6X_STRING_H */
-diff --git a/arch/c6x/include/asm/swab.h b/arch/c6x/include/asm/swab.h
-new file mode 100644
-index 0000000..fd4bb05
---- /dev/null
-+++ b/arch/c6x/include/asm/swab.h
-@@ -0,0 +1,54 @@
-+/*
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_SWAB_H
-+#define _ASM_C6X_SWAB_H
-+
-+static inline __attribute_const__ __u16 __c6x_swab16(__u16 val)
-+{
-+	asm("swap4 .l1 %0,%0\n" : "+a"(val));
-+	return val;
-+}
-+
-+static inline __attribute_const__ __u32 __c6x_swab32(__u32 val)
-+{
-+	asm("swap4 .l1 %0,%0\n"
-+	    "swap2 .l1 %0,%0\n"
-+	    : "+a"(val));
-+	return val;
-+}
-+
-+static inline __attribute_const__ __u64 __c6x_swab64(__u64 val)
-+{
-+	asm("   swap2 .s1 %p0,%P0\n"
-+	    "|| swap2 .l1 %P0,%p0\n"
-+	    "   swap4 .l1 %p0,%p0\n"
-+	    "   swap4 .l1 %P0,%P0\n"
-+	    : "+a"(val));
-+	return val;
-+}
-+
-+static inline __attribute_const__ __u32 __c6x_swahw32(__u32 val)
-+{
-+	asm("swap2 .l1 %0,%0\n" : "+a"(val));
-+	return val;
-+}
-+
-+static inline __attribute_const__ __u32 __c6x_swahb32(__u32 val)
-+{
-+	asm("swap4 .l1 %0,%0\n" : "+a"(val));
-+	return val;
-+}
-+
-+#define __arch_swab16 __c6x_swab16
-+#define __arch_swab32 __c6x_swab32
-+#define __arch_swab64 __c6x_swab64
-+#define __arch_swahw32 __c6x_swahw32
-+#define __arch_swahb32 __c6x_swahb32
-+
-+#endif /* _ASM_C6X_SWAB_H */
-diff --git a/arch/c6x/include/asm/syscall.h b/arch/c6x/include/asm/syscall.h
-new file mode 100644
-index 0000000..ae2be31
---- /dev/null
-+++ b/arch/c6x/include/asm/syscall.h
-@@ -0,0 +1,123 @@
-+/*
-+ * Copyright (C) 2011 Texas Instruments Incorporated
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ */
-+
-+#ifndef __ASM_C6X_SYSCALL_H
-+#define __ASM_C6X_SYSCALL_H
-+
-+#include <linux/err.h>
-+#include <linux/sched.h>
-+
-+static inline int syscall_get_nr(struct task_struct *task,
-+				 struct pt_regs *regs)
-+{
-+	return regs->b0;
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				    struct pt_regs *regs)
-+{
-+	/* do nothing */
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				     struct pt_regs *regs)
-+{
-+	return IS_ERR_VALUE(regs->a4) ? regs->a4 : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+					    struct pt_regs *regs)
-+{
-+	return regs->a4;
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+					    struct pt_regs *regs,
-+					    int error, long val)
-+{
-+	regs->a4 = error ?: val;
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+					 struct pt_regs *regs, unsigned int i,
-+					 unsigned int n, unsigned long *args)
-+{
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		*args++ = regs->a4;
-+	case 1:
-+		if (!n--)
-+			break;
-+		*args++ = regs->b4;
-+	case 2:
-+		if (!n--)
-+			break;
-+		*args++ = regs->a6;
-+	case 3:
-+		if (!n--)
-+			break;
-+		*args++ = regs->b6;
-+	case 4:
-+		if (!n--)
-+			break;
-+		*args++ = regs->a8;
-+	case 5:
-+		if (!n--)
-+			break;
-+		*args++ = regs->b8;
-+	case 6:
-+		if (!n--)
-+			break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+static inline void syscall_set_arguments(struct task_struct *task,
-+					 struct pt_regs *regs,
-+					 unsigned int i, unsigned int n,
-+					 const unsigned long *args)
-+{
-+	switch (i) {
-+	case 0:
-+		if (!n--)
-+			break;
-+		regs->a4 = *args++;
-+	case 1:
-+		if (!n--)
-+			break;
-+		regs->b4 = *args++;
-+	case 2:
-+		if (!n--)
-+			break;
-+		regs->a6 = *args++;
-+	case 3:
-+		if (!n--)
-+			break;
-+		regs->b6 = *args++;
-+	case 4:
-+		if (!n--)
-+			break;
-+		regs->a8 = *args++;
-+	case 5:
-+		if (!n--)
-+			break;
-+		regs->a9 = *args++;
-+	case 6:
-+		if (!n)
-+			break;
-+	default:
-+		BUG();
-+	}
-+}
-+
-+#endif /* __ASM_C6X_SYSCALLS_H */
-diff --git a/arch/c6x/include/asm/system.h b/arch/c6x/include/asm/system.h
-new file mode 100644
-index 0000000..e076dc0
---- /dev/null
-+++ b/arch/c6x/include/asm/system.h
-@@ -0,0 +1,168 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
 + *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
@@ -922,466 +455,108 @@ index 0000000..e076dc0
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_SYSTEM_H
-+#define _ASM_C6X_SYSTEM_H
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/module.h>
++#include <linux/bootmem.h>
++#ifdef CONFIG_BLK_DEV_RAM
++#include <linux/blkdev.h>
++#endif
++#include <linux/initrd.h>
 +
-+#include <linux/linkage.h>
-+#include <linux/irqflags.h>
-+
-+#define prepare_to_switch()    do { } while (0)
-+
-+struct task_struct;
-+struct thread_struct;
-+asmlinkage void *__switch_to(struct thread_struct *prev,
-+			     struct thread_struct *next,
-+			     struct task_struct *tsk);
-+
-+#define switch_to(prev, next, last)				\
-+	do {							\
-+		current->thread.wchan = (u_long) __builtin_return_address(0); \
-+		(last) = __switch_to(&(prev)->thread,		\
-+				     &(next)->thread, (prev));	\
-+		mb();						\
-+		current->thread.wchan = 0;			\
-+	} while (0)
-+
-+/* Reset the board */
-+#define HARD_RESET_NOW()
-+
-+#define get_creg(reg) \
-+	({ unsigned int __x; \
-+	   asm volatile ("mvc .s2 " #reg ",%0\n" : "=b"(__x)); __x; })
-+
-+#define set_creg(reg, v) \
-+	do { unsigned int __x = (unsigned int)(v); \
-+		asm volatile ("mvc .s2 %0," #reg "\n" : : "b"(__x)); \
-+	} while (0)
-+
-+#define or_creg(reg, n) \
-+	do { unsigned __x, __n = (unsigned)(n);		  \
-+		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
-+			      "or  .l2 %1,%0,%0\n"	  \
-+			      "mvc .s2 %0," #reg "\n"	  \
-+			      "nop\n"			  \
-+			      : "=&b"(__x) : "b"(__n));	  \
-+	} while (0)
-+
-+#define and_creg(reg, n) \
-+	do { unsigned __x, __n = (unsigned)(n);		  \
-+		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
-+			      "and .l2 %1,%0,%0\n"	  \
-+			      "mvc .s2 %0," #reg "\n"	  \
-+			      "nop\n"    \
-+			      : "=&b"(__x) : "b"(__n));	  \
-+	} while (0)
-+
-+#define get_coreid() (get_creg(DNUM) & 0xff)
-+
-+/* Set/get IST */
-+#define set_ist(x)	set_creg(ISTP, x)
-+#define get_ist()       get_creg(ISTP)
++#include <asm/sections.h>
 +
 +/*
-+ * Exception management
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
 + */
-+asmlinkage void enable_exception(void);
-+#define disable_exception()
-+#define get_except_type()        get_creg(EFR)
-+#define ack_exception(type)      set_creg(ECR, 1 << (type))
-+#define get_iexcept()            get_creg(IERR)
-+#define set_iexcept(mask)        set_creg(IERR, (mask))
++unsigned long empty_zero_page;
++EXPORT_SYMBOL(empty_zero_page);
 +
 +/*
-+ * Misc. functions
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses  of available kernel virtual memory.
 + */
-+#define nop()                    asm("NOP\n");
-+#define mb()                     barrier()
-+#define rmb()                    barrier()
-+#define wmb()                    barrier()
-+#define set_mb(var, value)       do { var = value;  mb(); } while (0)
-+#define set_wmb(var, value)      do { var = value; wmb(); } while (0)
-+
-+#define smp_mb()	         barrier()
-+#define smp_rmb()	         barrier()
-+#define smp_wmb()	         barrier()
-+#define smp_read_barrier_depends()	do { } while (0)
-+
-+#define xchg(ptr, x) \
-+	((__typeof__(*(ptr)))__xchg((unsigned int)(x), (void *) (ptr), \
-+				    sizeof(*(ptr))))
-+#define tas(ptr)    xchg((ptr), 1)
-+
-+unsigned int _lmbd(unsigned int, unsigned int);
-+unsigned int _bitr(unsigned int);
-+
-+struct __xchg_dummy { unsigned int a[100]; };
-+#define __xg(x) ((volatile struct __xchg_dummy *)(x))
-+
-+static inline unsigned int __xchg(unsigned int x, volatile void *ptr, int size)
++void __init paging_init(void)
 +{
-+	unsigned int tmp;
-+	unsigned long flags;
++	struct pglist_data *pgdat = NODE_DATA(0);
++	unsigned long zones_size[MAX_NR_ZONES] = {0, };
 +
-+	local_irq_save(flags);
++	empty_zero_page      = (unsigned long) alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
 +
-+	switch (size) {
-+	case 1:
-+		tmp = 0;
-+		tmp = *((unsigned char *) ptr);
-+		*((unsigned char *) ptr) = (unsigned char) x;
-+		break;
-+	case 2:
-+		tmp = 0;
-+		tmp = *((unsigned short *) ptr);
-+		*((unsigned short *) ptr) = x;
-+		break;
-+	case 4:
-+		tmp = 0;
-+		tmp = *((unsigned int *) ptr);
-+		*((unsigned int *) ptr) = x;
-+		break;
-+	}
-+	local_irq_restore(flags);
-+	return tmp;
++	/*
++	 * Set up user data space
++	 */
++	set_fs(KERNEL_DS);
++
++	/*
++	 * Define zones
++	 */
++	zones_size[ZONE_NORMAL] = (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
++	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =
++		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
++
++	free_area_init(zones_size);
 +}
 +
-+#include <asm-generic/cmpxchg-local.h>
++void __init mem_init(void)
++{
++	int codek, datak;
++	unsigned long tmp;
++	unsigned long len = memory_end - memory_start;
 +
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr, o, n)					\
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),		\
-+						     (unsigned long)(o), \
-+						     (unsigned long)(n), \
-+						     sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++	high_memory = (void *)(memory_end & PAGE_MASK);
 +
-+#include <asm-generic/cmpxchg.h>
++	/* this will put all memory onto the freelists */
++	totalram_pages = free_all_bootmem();
 +
-+#define _extu(x, s, e)							\
-+	({      unsigned int __x;					\
-+		asm volatile ("extu .S2 %3,%1,%2,%0\n" :		\
-+			      "=b"(__x) : "n"(s), "n"(e), "b"(x));	\
-+	       __x; })
++	codek = (_etext - _stext) >> 10;
++	datak = (_end - _sdata) >> 10;
 +
++	tmp = nr_free_pages() << PAGE_SHIFT;
++	printk(KERN_INFO "Memory: %luk/%luk RAM (%dk kernel code, %dk data)\n",
++	       tmp >> 10, len >> 10, codek, datak);
++}
 +
-+extern unsigned int c6x_core_freq;
-+
-+struct pt_regs;
-+
-+extern void die(char *str, struct pt_regs *fp, int nr);
-+extern asmlinkage int process_exception(struct pt_regs *regs);
-+extern void time_init(void);
-+extern void free_initmem(void);
-+
-+extern void (*c6x_restart)(void);
-+extern void (*c6x_halt)(void);
-+
-+#endif /* _ASM_C6X_SYSTEM_H */
-diff --git a/arch/c6x/include/asm/tlb.h b/arch/c6x/include/asm/tlb.h
-new file mode 100644
-index 0000000..8709e5e
---- /dev/null
-+++ b/arch/c6x/include/asm/tlb.h
-@@ -0,0 +1,8 @@
-+#ifndef _ASM_C6X_TLB_H
-+#define _ASM_C6X_TLB_H
-+
-+#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
-+
-+#include <asm-generic/tlb.h>
-+
-+#endif /* _ASM_C6X_TLB_H */
-diff --git a/arch/c6x/include/asm/uaccess.h b/arch/c6x/include/asm/uaccess.h
-new file mode 100644
-index 0000000..453dd26
---- /dev/null
-+++ b/arch/c6x/include/asm/uaccess.h
-@@ -0,0 +1,107 @@
-+/*
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_UACCESS_H
-+#define _ASM_C6X_UACCESS_H
-+
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+#include <linux/string.h>
-+
-+#ifdef CONFIG_ACCESS_CHECK
-+#define __access_ok _access_ok
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init free_initrd_mem(unsigned long start, unsigned long end)
++{
++	int pages = 0;
++	for (; start < end; start += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(start));
++		init_page_count(virt_to_page(start));
++		free_page(start);
++		totalram_pages++;
++		pages++;
++	}
++	printk(KERN_INFO "Freeing initrd memory: %luk freed\n",
++	       (pages * PAGE_SIZE) >> 10);
++}
 +#endif
 +
-+/*
-+ * __copy_from_user/copy_to_user are based on ones in asm-generic/uaccess.h
-+ *
-+ * C6X supports unaligned 32 and 64 bit loads and stores.
-+ */
-+static inline __must_check long __copy_from_user(void *to,
-+		const void __user *from, unsigned long n)
++void __init free_initmem(void)
 +{
-+	u32 tmp32;
-+	u64 tmp64;
++	unsigned long addr;
 +
-+	if (__builtin_constant_p(n)) {
-+		switch (n) {
-+		case 1:
-+			*(u8 *)to = *(u8 __force *)from;
-+			return 0;
-+		case 4:
-+			asm volatile ("ldnw .d1t1 *%2,%0\n"
-+				      "nop  4\n"
-+				      "stnw .d1t1 %0,*%1\n"
-+				      : "=&a"(tmp32)
-+				      : "A"(to), "a"(from)
-+				      : "memory");
-+			return 0;
-+		case 8:
-+			asm volatile ("ldndw .d1t1 *%2,%0\n"
-+				      "nop   4\n"
-+				      "stndw .d1t1 %0,*%1\n"
-+				      : "=&a"(tmp64)
-+				      : "a"(to), "a"(from)
-+				      : "memory");
-+			return 0;
-+		default:
-+			break;
-+		}
++	/*
++	 * The following code should be cool even if these sections
++	 * are not page aligned.
++	 */
++	addr = PAGE_ALIGN((unsigned long)(__init_begin));
++
++	/* next to check that the page we free is not a partial page */
++	for (; addr + PAGE_SIZE < (unsigned long)(__init_end);
++	     addr += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(addr));
++		init_page_count(virt_to_page(addr));
++		free_page(addr);
++		totalram_pages++;
 +	}
-+
-+	memcpy(to, (const void __force *)from, n);
-+	return 0;
++	printk(KERN_INFO "Freeing unused kernel memory: %dK freed\n",
++	       (int) ((addr - PAGE_ALIGN((long) &__init_begin)) >> 10));
 +}
-+
-+static inline __must_check long __copy_to_user(void __user *to,
-+		const void *from, unsigned long n)
-+{
-+	u32 tmp32;
-+	u64 tmp64;
-+
-+	if (__builtin_constant_p(n)) {
-+		switch (n) {
-+		case 1:
-+			*(u8 __force *)to = *(u8 *)from;
-+			return 0;
-+		case 4:
-+			asm volatile ("ldnw .d1t1 *%2,%0\n"
-+				      "nop  4\n"
-+				      "stnw .d1t1 %0,*%1\n"
-+				      : "=&a"(tmp32)
-+				      : "a"(to), "a"(from)
-+				      : "memory");
-+			return 0;
-+		case 8:
-+			asm volatile ("ldndw .d1t1 *%2,%0\n"
-+				      "nop   4\n"
-+				      "stndw .d1t1 %0,*%1\n"
-+				      : "=&a"(tmp64)
-+				      : "a"(to), "a"(from)
-+				      : "memory");
-+			return 0;
-+		default:
-+			break;
-+		}
-+	}
-+
-+	memcpy((void __force *)to, from, n);
-+	return 0;
-+}
-+
-+#define __copy_to_user   __copy_to_user
-+#define __copy_from_user __copy_from_user
-+
-+extern int _access_ok(unsigned long addr, unsigned long size);
-+#ifdef CONFIG_ACCESS_CHECK
-+#define __access_ok _access_ok
-+#endif
-+
-+#include <asm-generic/uaccess.h>
-+
-+#endif /* _ASM_C6X_UACCESS_H */
-diff --git a/arch/c6x/include/asm/unaligned.h b/arch/c6x/include/asm/unaligned.h
-new file mode 100644
-index 0000000..b976cb7
---- /dev/null
-+++ b/arch/c6x/include/asm/unaligned.h
-@@ -0,0 +1,170 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *  Rewritten for 2.6.3x: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_UNALIGNED_H
-+#define _ASM_C6X_UNALIGNED_H
-+
-+#include <linux/swab.h>
-+
-+/*
-+ * The C64x+ can do unaligned word and dword accesses in hardware
-+ * using special load/store instructions.
-+ */
-+
-+static inline u16 get_unaligned_le16(const void *p)
-+{
-+	const u8 *_p = p;
-+	return _p[0] | _p[1] << 8;
-+}
-+
-+static inline u16 get_unaligned_be16(const void *p)
-+{
-+	const u8 *_p = p;
-+	return _p[0] << 8 | _p[1];
-+}
-+
-+static inline void put_unaligned_le16(u16 val, void *p)
-+{
-+	u8 *_p = p;
-+	_p[0] = val;
-+	_p[1] = val >> 8;
-+}
-+
-+static inline void put_unaligned_be16(u16 val, void *p)
-+{
-+	u8 *_p = p;
-+	_p[0] = val >> 8;
-+	_p[1] = val;
-+}
-+
-+static inline u32 get_unaligned32(const void *p)
-+{
-+	u32 val = (u32) p;
-+	asm (" ldnw	.d1t1	*%0,%0\n"
-+	     " nop     4\n"
-+	     : "+a"(val));
-+	return val;
-+}
-+
-+static inline void put_unaligned32(u32 val, void *p)
-+{
-+	asm volatile (" stnw	.d2t1	%0,*%1\n"
-+		      : : "a"(val), "b"(p) : "memory");
-+}
-+
-+static inline u64 get_unaligned64(const void *p)
-+{
-+	u64 val;
-+	asm volatile (" ldndw	.d1t1	*%1,%0\n"
-+		      " nop     4\n"
-+		      : "=a"(val) : "a"(p));
-+	return val;
-+}
-+
-+static inline void put_unaligned64(u64 val, const void *p)
-+{
-+	asm volatile (" stndw	.d2t1	%0,*%1\n"
-+		      : : "a"(val), "b"(p) : "memory");
-+}
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+
-+#define get_unaligned_le32(p)	 __swab32(get_unaligned32(p))
-+#define get_unaligned_le64(p)	 __swab64(get_unaligned64(p))
-+#define get_unaligned_be32(p)	 get_unaligned32(p)
-+#define get_unaligned_be64(p)	 get_unaligned64(p)
-+#define put_unaligned_le32(v, p) put_unaligned32(__swab32(v), (p))
-+#define put_unaligned_le64(v, p) put_unaligned64(__swab64(v), (p))
-+#define put_unaligned_be32(v, p) put_unaligned32((v), (p))
-+#define put_unaligned_be64(v, p) put_unaligned64((v), (p))
-+#define get_unaligned	__get_unaligned_be
-+#define put_unaligned	__put_unaligned_be
-+
-+#else
-+
-+#define get_unaligned_le32(p)	 get_unaligned32(p)
-+#define get_unaligned_le64(p)	 get_unaligned64(p)
-+#define get_unaligned_be32(p)	 __swab32(get_unaligned32(p))
-+#define get_unaligned_be64(p)	 __swab64(get_unaligned64(p))
-+#define put_unaligned_le32(v, p) put_unaligned32((v), (p))
-+#define put_unaligned_le64(v, p) put_unaligned64((v), (p))
-+#define put_unaligned_be32(v, p) put_unaligned32(__swab32(v), (p))
-+#define put_unaligned_be64(v, p) put_unaligned64(__swab64(v), (p))
-+#define get_unaligned	__get_unaligned_le
-+#define put_unaligned	__put_unaligned_le
-+
-+#endif
-+
-+/*
-+ * Cause a link-time error if we try an unaligned access other than
-+ * 1,2,4 or 8 bytes long
-+ */
-+extern int __bad_unaligned_access_size(void);
-+
-+#define __get_unaligned_le(ptr) (typeof(*(ptr)))({			\
-+	sizeof(*(ptr)) == 1 ? *(ptr) :					\
-+	  (sizeof(*(ptr)) == 2 ? get_unaligned_le16((ptr)) :		\
-+	     (sizeof(*(ptr)) == 4 ? get_unaligned_le32((ptr)) :		\
-+		(sizeof(*(ptr)) == 8 ? get_unaligned_le64((ptr)) :	\
-+		   __bad_unaligned_access_size())));			\
-+	})
-+
-+#define __get_unaligned_be(ptr) (__force typeof(*(ptr)))({	\
-+	sizeof(*(ptr)) == 1 ? *(ptr) :					\
-+	  (sizeof(*(ptr)) == 2 ? get_unaligned_be16((ptr)) :		\
-+	     (sizeof(*(ptr)) == 4 ? get_unaligned_be32((ptr)) :		\
-+		(sizeof(*(ptr)) == 8 ? get_unaligned_be64((ptr)) :	\
-+		   __bad_unaligned_access_size())));			\
-+	})
-+
-+#define __put_unaligned_le(val, ptr) ({					\
-+	void *__gu_p = (ptr);						\
-+	switch (sizeof(*(ptr))) {					\
-+	case 1:								\
-+		*(u8 *)__gu_p = (__force u8)(val);			\
-+		break;							\
-+	case 2:								\
-+		put_unaligned_le16((__force u16)(val), __gu_p);		\
-+		break;							\
-+	case 4:								\
-+		put_unaligned_le32((__force u32)(val), __gu_p);		\
-+		break;							\
-+	case 8:								\
-+		put_unaligned_le64((__force u64)(val), __gu_p);		\
-+		break;							\
-+	default:							\
-+		__bad_unaligned_access_size();				\
-+		break;							\
-+	}								\
-+	(void)0; })
-+
-+#define __put_unaligned_be(val, ptr) ({					\
-+	void *__gu_p = (ptr);						\
-+	switch (sizeof(*(ptr))) {					\
-+	case 1:								\
-+		*(u8 *)__gu_p = (__force u8)(val);			\
-+		break;							\
-+	case 2:								\
-+		put_unaligned_be16((__force u16)(val), __gu_p);		\
-+		break;							\
-+	case 4:								\
-+		put_unaligned_be32((__force u32)(val), __gu_p);		\
-+		break;							\
-+	case 8:								\
-+		put_unaligned_be64((__force u64)(val), __gu_p);		\
-+		break;							\
-+	default:							\
-+		__bad_unaligned_access_size();				\
-+		break;							\
-+	}								\
-+	(void)0; })
-+
-+#endif /* _ASM_C6X_UNALIGNED_H */
 -- 
 1.7.6.2
