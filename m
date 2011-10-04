@@ -1,397 +1,680 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 11/24] C6X: time management
-Date: Tue,  4 Oct 2011 12:43:48 -0400
-Message-ID: <1317746641-26725-12-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 23/24] C6X: DSCR - Device State Configuration Registers
+Date: Tue,  4 Oct 2011 12:44:00 -0400
+Message-ID: <1317746641-26725-24-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:56435 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932918Ab1JDQoa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Oct 2011 12:44:30 -0400
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>
 
-From: Aurelien Jacquiot <a-jacquiot@ti.com>
+All SoCs provide an area of device configuration registers called the DSCR. The
+location of specific registers as well as their use varies considerably from
+implementation to implementation. Rather than having to rely on additional
+SoC-specific DSCR code for each new supported SoC, this code generalize things
+as much as possible using device tree properties. Initialization must take
+place early on (setup_arch time) in case the event timer device needs to be
+enable via the DSCR.
 
-Original port to early 2.6 kernel using TI COFF toolchain.
-Brought up to date by Mark Salter <msalter@redhat.com>
-
-Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
 Signed-off-by: Mark Salter <msalter@redhat.com>
-CC: Thomas Gleixner <tglx@linutronix.de>
+Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/c6x/include/asm/timer64.h |    6 +
- arch/c6x/include/asm/timex.h   |   33 ++++++
- arch/c6x/kernel/time.c         |   65 +++++++++++
- arch/c6x/platforms/timer64.c   |  236 ++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 340 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/timer64.h
- create mode 100644 arch/c6x/include/asm/timex.h
- create mode 100644 arch/c6x/kernel/time.c
- create mode 100644 arch/c6x/platforms/timer64.c
+ arch/c6x/include/asm/dscr.h |   34 +++
+ arch/c6x/platforms/dscr.c   |  598 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 632 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/dscr.h
+ create mode 100644 arch/c6x/platforms/dscr.c
 
-diff --git a/arch/c6x/include/asm/timer64.h b/arch/c6x/include/asm/timer64.h
+diff --git a/arch/c6x/include/asm/dscr.h b/arch/c6x/include/asm/dscr.h
 new file mode 100644
-index 0000000..bbe27bb
+index 0000000..561ba83
 --- /dev/null
-+++ b/arch/c6x/include/asm/timer64.h
-@@ -0,0 +1,6 @@
-+#ifndef _C6X_TIMER64_H
-+#define _C6X_TIMER64_H
-+
-+extern void __init timer64_init(void);
-+
-+#endif /* _C6X_TIMER64_H */
-diff --git a/arch/c6x/include/asm/timex.h b/arch/c6x/include/asm/timex.h
-new file mode 100644
-index 0000000..508c3ec
---- /dev/null
-+++ b/arch/c6x/include/asm/timex.h
-@@ -0,0 +1,33 @@
++++ b/arch/c6x/include/asm/dscr.h
+@@ -0,0 +1,34 @@
 +/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  Modified for 2.6.34: Mark Salter <msalter@redhat.com>
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_TIMEX_H
-+#define _ASM_C6X_TIMEX_H
-+
-+#define CLOCK_TICK_RATE ((1000 * 1000000UL) / 6)
-+
-+/* 64-bit timestamp */
-+typedef unsigned long long cycles_t;
-+
-+static inline cycles_t get_cycles(void)
-+{
-+	unsigned l, h;
-+
-+	asm volatile (" dint\n"
-+		      " mvc .s2 TSCL,%0\n"
-+		      " mvc .s2 TSCH,%1\n"
-+		      " rint\n"
-+		      : "=b"(l), "=b"(h));
-+	return ((cycles_t)h << 32) | l;
-+}
-+
-+#endif /* _ASM_C6X_TIMEX_H */
-diff --git a/arch/c6x/kernel/time.c b/arch/c6x/kernel/time.c
-new file mode 100644
-index 0000000..4c9f136
---- /dev/null
-+++ b/arch/c6x/kernel/time.c
-@@ -0,0 +1,65 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_DSCR_H
++#define _ASM_C6X_DSCR_H
 +
-+#include <linux/kernel.h>
-+#include <linux/clocksource.h>
-+#include <linux/errno.h>
-+#include <linux/sched.h>
-+#include <linux/param.h>
-+#include <linux/string.h>
-+#include <linux/mm.h>
-+#include <linux/interrupt.h>
-+#include <linux/timex.h>
-+#include <linux/profile.h>
-+
-+#include <asm/timer64.h>
-+
-+static u32 sched_clock_multiplier;
-+#define SCHED_CLOCK_SHIFT 16
-+
-+static cycle_t tsc_read(struct clocksource *cs)
-+{
-+	return get_cycles();
-+}
-+
-+static struct clocksource clocksource_tsc = {
-+	.name		= "timestamp",
-+	.rating		= 300,
-+	.read		= tsc_read,
-+	.mask		= CLOCKSOURCE_MASK(64),
-+	.flags		= CLOCK_SOURCE_IS_CONTINUOUS,
++enum dscr_devstate_t {
++	DSCR_DEVSTATE_ENABLED,
++	DSCR_DEVSTATE_DISABLED,
 +};
 +
 +/*
-+ * scheduler clock - returns current time in nanoseconds.
++ * Set the device state of the device with the given ID.
++ *
++ * Individual drivers should use this to enable or disable the
++ * hardware device. The devid used to identify the device being
++ * controlled should be a property in the device's tree node.
 + */
-+u64 sched_clock(void)
-+{
-+	u64 tsc = get_cycles();
++extern void dscr_set_devstate(int devid, enum dscr_devstate_t state);
 +
-+	return (tsc * sched_clock_multiplier) >> SCHED_CLOCK_SHIFT;
-+}
-+
-+void time_init(void)
-+{
-+	u64 tmp = (u64)NSEC_PER_SEC << SCHED_CLOCK_SHIFT;
-+
-+	do_div(tmp, c6x_core_freq);
-+	sched_clock_multiplier = tmp;
-+
-+	clocksource_register_hz(&clocksource_tsc, c6x_core_freq);
-+
-+	/* write anything into TSCL to enable counting */
-+	set_creg(TSCL, 0);
-+
-+	/* probe for timer64 event timer */
-+	timer64_init();
-+}
-diff --git a/arch/c6x/platforms/timer64.c b/arch/c6x/platforms/timer64.c
-new file mode 100644
-index 0000000..7834158
---- /dev/null
-+++ b/arch/c6x/platforms/timer64.c
-@@ -0,0 +1,236 @@
 +/*
-+ *  Copyright (C) 2010, 2011 Texas Instruments Incorporated
-+ *  Contributed by: Mark Salter (msalter@redhat.com)
++ * Assert or de-assert an RMII reset.
++ */
++extern void dscr_rmii_reset(int id, int assert);
++
++extern void dscr_probe(void);
++
++#endif /* _ASM_C6X_DSCR_H */
+diff --git a/arch/c6x/platforms/dscr.c b/arch/c6x/platforms/dscr.c
+new file mode 100644
+index 0000000..f848a65
+--- /dev/null
++++ b/arch/c6x/platforms/dscr.c
+@@ -0,0 +1,598 @@
++/*
++ *  Device State Control Registers driver
++ *
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
 +
-+#include <linux/clockchips.h>
-+#include <linux/interrupt.h>
-+#include <linux/io.h>
++/*
++ * The Device State Control Registers (DSCR) provide SoC level control over
++ * a number of peripherals. Details vary considerably among the various SoC
++ * parts. In general, the DSCR block will provide one or more configuration
++ * registers often protected by a lock register. One or more key values must
++ * be written to a lock register in order to unlock the configuration register.
++ * The configuration register may be used to enable (and disable in some
++ * cases) SoC pin drivers, peripheral clock sources (internal or pin), etc.
++ * In some cases, a configuration register is write once or the individual
++ * bits are write once. That is, you may be able to enable a device, but
++ * will not be able to disable it.
++ *
++ * In addition to device configuration, the DSCR block may provide registers
++ * which are used to reset SoC peripherals, provide device ID information,
++ * provide MAC addresses, and other miscellaneous functions.
++ */
++
 +#include <linux/of.h>
-+#include <linux/of_irq.h>
 +#include <linux/of_address.h>
++#include <linux/of_platform.h>
++#include <linux/module.h>
++#include <linux/io.h>
++#include <linux/delay.h>
 +#include <asm/soc.h>
 +#include <asm/dscr.h>
-+#include <asm/timer64.h>
 +
-+struct timer_regs {
-+	u32	reserved0;
-+	u32	emumgt;
-+	u32	reserved1;
-+	u32	reserved2;
-+	u32	cntlo;
-+	u32	cnthi;
-+	u32	prdlo;
-+	u32	prdhi;
-+	u32	tcr;
-+	u32	tgcr;
-+	u32	wdtcr;
++#define MAX_DEVSTATE_IDS   32
++#define MAX_DEVCTL_REGS     8
++#define MAX_DEVSTAT_REGS    8
++#define MAX_LOCKED_REGS     4
++#define MAX_SOC_EMACS       2
++
++struct rmii_reset_reg {
++	u32 reg;
++	u32 mask;
 +};
-+
-+static struct timer_regs __iomem *timer;
-+
-+#define TCR_TSTATLO	     0x001
-+#define TCR_INVOUTPLO	     0x002
-+#define TCR_INVINPLO	     0x004
-+#define TCR_CPLO	     0x008
-+#define TCR_ENAMODELO_ONCE   0x040
-+#define TCR_ENAMODELO_CONT   0x080
-+#define TCR_ENAMODELO_MASK   0x0c0
-+#define TCR_PWIDLO_MASK      0x030
-+#define TCR_CLKSRCLO	     0x100
-+#define TCR_TIENLO	     0x200
-+#define TCR_TSTATHI	     (0x001 << 16)
-+#define TCR_INVOUTPHI	     (0x002 << 16)
-+#define TCR_CPHI	     (0x008 << 16)
-+#define TCR_PWIDHI_MASK      (0x030 << 16)
-+#define TCR_ENAMODEHI_ONCE   (0x040 << 16)
-+#define TCR_ENAMODEHI_CONT   (0x080 << 16)
-+#define TCR_ENAMODEHI_MASK   (0x0c0 << 16)
-+
-+#define TGCR_TIMLORS	     0x001
-+#define TGCR_TIMHIRS	     0x002
-+#define TGCR_TIMMODE_UD32    0x004
-+#define TGCR_TIMMODE_WDT64   0x008
-+#define TGCR_TIMMODE_CD32    0x00c
-+#define TGCR_TIMMODE_MASK    0x00c
-+#define TGCR_PSCHI_MASK      (0x00f << 8)
-+#define TGCR_TDDRHI_MASK     (0x00f << 12)
 +
 +/*
-+ * Timer clocks are divided down from the CPU clock
-+ * The divisor is in the EMUMGTCLKSPD register
++ * Some registerd may be locked. In order to write to these
++ * registers, the key value must first be written to the lockreg.
 + */
-+#define TIMER_DIVISOR \
-+	((soc_readl(&timer->emumgt) & (0xf << 16)) >> 16)
-+
-+#define TIMER64_RATE (c6x_core_freq / TIMER_DIVISOR)
-+
-+#define TIMER64_MODE_DISABLED 0
-+#define TIMER64_MODE_ONE_SHOT TCR_ENAMODELO_ONCE
-+#define TIMER64_MODE_PERIODIC TCR_ENAMODELO_CONT
-+
-+static int timer64_mode;
-+static int timer64_devstate_id = -1;
-+
-+static void timer64_config(unsigned long period)
-+{
-+	u32 tcr = soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK;
-+
-+	soc_writel(tcr, &timer->tcr);
-+	soc_writel(period - 1, &timer->prdlo);
-+	soc_writel(0, &timer->cntlo);
-+	tcr |= timer64_mode;
-+	soc_writel(tcr, &timer->tcr);
-+}
-+
-+static void timer64_enable(void)
-+{
-+	u32 val;
-+
-+	if (timer64_devstate_id >= 0)
-+		dscr_set_devstate(timer64_devstate_id, DSCR_DEVSTATE_ENABLED);
-+
-+	/* disable timer, reset count */
-+	soc_writel(soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK, &timer->tcr);
-+	soc_writel(0, &timer->prdlo);
-+
-+	/* use internal clock and 1 cycle pulse width */
-+	val = soc_readl(&timer->tcr);
-+	soc_writel(val & ~(TCR_CLKSRCLO | TCR_PWIDLO_MASK), &timer->tcr);
-+
-+	/* dual 32-bit unchained mode */
-+	val = soc_readl(&timer->tgcr) & ~TGCR_TIMMODE_MASK;
-+	soc_writel(val, &timer->tgcr);
-+	soc_writel(val | (TGCR_TIMLORS | TGCR_TIMMODE_UD32), &timer->tgcr);
-+}
-+
-+static void timer64_disable(void)
-+{
-+	/* disable timer, reset count */
-+	soc_writel(soc_readl(&timer->tcr) & ~TCR_ENAMODELO_MASK, &timer->tcr);
-+	soc_writel(0, &timer->prdlo);
-+
-+	if (timer64_devstate_id >= 0)
-+		dscr_set_devstate(timer64_devstate_id, DSCR_DEVSTATE_DISABLED);
-+}
-+
-+static int next_event(unsigned long delta,
-+		      struct clock_event_device *evt)
-+{
-+	timer64_config(delta);
-+	return 0;
-+}
-+
-+static void set_clock_mode(enum clock_event_mode mode,
-+			   struct clock_event_device *evt)
-+{
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		timer64_enable();
-+		timer64_mode = TIMER64_MODE_PERIODIC;
-+		timer64_config(TIMER64_RATE / HZ);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		timer64_enable();
-+		timer64_mode = TIMER64_MODE_ONE_SHOT;
-+		break;
-+	case CLOCK_EVT_MODE_UNUSED:
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		timer64_mode = TIMER64_MODE_DISABLED;
-+		timer64_disable();
-+		break;
-+	case CLOCK_EVT_MODE_RESUME:
-+		break;
-+	}
-+}
-+
-+static struct clock_event_device t64_clockevent_device = {
-+	.name		= "TIMER64_EVT32_TIMER",
-+	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
-+	.rating		= 200,
-+	.set_mode	= set_clock_mode,
-+	.set_next_event	= next_event,
++struct locked_reg {
++	u32 reg;	/* offset from base */
++	u32 lockreg;	/* offset from base */
++	u32 key;	/* unlock key */
 +};
 +
-+static irqreturn_t timer_interrupt(int irq, void *dev_id)
-+{
-+	struct clock_event_device *cd = &t64_clockevent_device;
-+
-+	cd->event_handler(cd);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static struct irqaction timer_iact = {
-+	.name		= "timer",
-+	.flags		= IRQF_TIMER,
-+	.handler	= timer_interrupt,
-+	.dev_id		= &t64_clockevent_device,
++/*
++ * This describes a contiguous area of like control bits used to enable/disable
++ * SoC devices. Each controllable device is given an ID which is used by the
++ * individual device drivers to control the device state. These IDs start at
++ * zero and are assigned sequentially to the control bitfield ranges described
++ * by this structure.
++ */
++struct devstate_ctl_reg {
++	u32 reg;		/* register holding the control bits */
++	u8  start_id;		/* start id of this range */
++	u8  num_ids;		/* number of devices in this range */
++	u8  enable_only;	/* bits are write-once to enable only */
++	u8  enable;		/* value used to enable device */
++	u8  disable;		/* value used to disable device */
++	u8  shift;		/* starting (rightmost) bit in range */
++	u8  nbits;		/* number of bits per device */
 +};
 +
-+void __init timer64_init(void)
-+{
-+	struct clock_event_device *cd = &t64_clockevent_device;
-+	struct device_node *np, *first = NULL;
-+	u32 val;
-+	int err, found = 0;
 +
-+	for_each_compatible_node(np, NULL, "ti,c64x+timer64") {
-+		err = of_property_read_u32(np, "ti,core-mask", &val);
-+		if (!err) {
-+			if (val & (1 << get_coreid())) {
-+				found = 1;
-+				break;
-+			}
-+		} else if (!first)
-+			first = np;
-+	}
-+	if (!found) {
-+		/* try first one with no core-mask */
-+		if (first)
-+			np = of_node_get(first);
-+		else {
-+			pr_debug("Cannot find ti,c64x+timer64 timer.\n");
++/*
++ * This describes a region of status bits indicating the state of
++ * various devices. This is used internally to wait for status
++ * change completion when enabling/disabling a device. Status is
++ * optional and not all device controls will have a corresponding
++ * status.
++ */
++struct devstate_stat_reg {
++	u32 reg;		/* register holding the status bits */
++	u8  start_id;		/* start id of this range */
++	u8  num_ids;		/* number of devices in this range */
++	u8  enable;		/* value indicating enabled state */
++	u8  disable;		/* value indicating disabled state */
++	u8  shift;		/* starting (rightmost) bit in range */
++	u8  nbits;		/* number of bits per device */
++};
++
++struct devstate_info {
++	struct devstate_ctl_reg *ctl;
++	struct devstate_stat_reg *stat;
++};
++
++/* These are callbacks to SOC-specific code. */
++struct dscr_ops {
++	void (*init)(struct device_node *node);
++};
++
++struct dscr_regs {
++	spinlock_t		lock;
++	void __iomem		*base;
++	u32			kick_reg[2];
++	u32			kick_key[2];
++	struct locked_reg	locked[MAX_LOCKED_REGS];
++	struct devstate_info	devstate_info[MAX_DEVSTATE_IDS];
++	struct rmii_reset_reg   rmii_resets[MAX_SOC_EMACS];
++	struct devstate_ctl_reg devctl[MAX_DEVCTL_REGS];
++	struct devstate_stat_reg devstat[MAX_DEVSTAT_REGS];
++};
++
++static struct dscr_regs	dscr;
++
++static struct locked_reg *find_locked_reg(u32 reg)
++{
++	int i;
++
++	for (i = 0; i < MAX_LOCKED_REGS; i++)
++		if (dscr.locked[i].key && reg == dscr.locked[i].reg)
++			return &dscr.locked[i];
++	return NULL;
++}
++
++/*
++ * Write to a register with one lock
++ */
++static void dscr_write_locked1(u32 reg, u32 val,
++			       u32 lock, u32 key)
++{
++	void __iomem *reg_addr = dscr.base + reg;
++	void __iomem *lock_addr = dscr.base + lock;
++
++	/*
++	 * For some registers, the lock is relocked after a short number
++	 * of cycles. We have to put the lock write and register write in
++	 * the same fetch packet to meet this timing. The .align ensures
++	 * the two stw instructions are in the same fetch packet.
++	 */
++	asm volatile ("b	.s2	0f\n"
++		      "nop	5\n"
++		      "    .align 5\n"
++		      "0:\n"
++		      "stw	.D1T2	%3,*%2\n"
++		      "stw	.D1T2	%1,*%0\n"
++		      :
++		      : "a"(reg_addr), "b"(val), "a"(lock_addr), "b"(key)
++		);
++
++	/* in case the hw doesn't reset the lock */
++	soc_writel(0, lock_addr);
++}
++
++/*
++ * Write to a register protected by two lock registers
++ */
++static void dscr_write_locked2(u32 reg, u32 val,
++			       u32 lock0, u32 key0,
++			       u32 lock1, u32 key1)
++{
++	soc_writel(key0, dscr.base + lock0);
++	soc_writel(key1, dscr.base + lock1);
++	soc_writel(val, dscr.base + reg);
++	soc_writel(0, dscr.base + lock0);
++	soc_writel(0, dscr.base + lock1);
++}
++
++static void dscr_write(u32 reg, u32 val)
++{
++	struct locked_reg *lock;
++
++	lock = find_locked_reg(reg);
++	if (lock)
++		dscr_write_locked1(reg, val, lock->lockreg, lock->key);
++	else if (dscr.kick_key[0])
++		dscr_write_locked2(reg, val, dscr.kick_reg[0], dscr.kick_key[0],
++				   dscr.kick_reg[1], dscr.kick_key[1]);
++	else
++		soc_writel(val, dscr.base + reg);
++}
++
++
++/*
++ * Drivers can use this interface to enable/disable SoC IP blocks.
++ */
++void dscr_set_devstate(int id, enum dscr_devstate_t state)
++{
++	struct devstate_ctl_reg *ctl;
++	struct devstate_stat_reg *stat;
++	struct devstate_info *info;
++	u32 ctl_val, val;
++	int ctl_shift, ctl_mask;
++	unsigned long flags;
++
++	if (!dscr.base)
++		return;
++
++	if (id < 0 || id >= MAX_DEVSTATE_IDS)
++		return;
++
++	info = &dscr.devstate_info[id];
++	ctl = info->ctl;
++	stat = info->stat;
++
++	if (ctl == NULL)
++		return;
++
++	ctl_shift = ctl->shift + ctl->nbits * (id - ctl->start_id);
++	ctl_mask = ((1 << ctl->nbits) - 1) << ctl_shift;
++
++	switch (state) {
++	case DSCR_DEVSTATE_ENABLED:
++		ctl_val = ctl->enable << ctl_shift;
++		break;
++	case DSCR_DEVSTATE_DISABLED:
++		if (ctl->enable_only)
 +			return;
++		ctl_val = ctl->disable << ctl_shift;
++		break;
++	default:
++		return;
++	}
++
++	spin_lock_irqsave(&dscr.lock, flags);
++
++	val = soc_readl(dscr.base + ctl->reg);
++	val &= ~ctl_mask;
++	val |= ctl_val;
++
++	dscr_write(ctl->reg, val);
++
++	spin_unlock_irqrestore(&dscr.lock, flags);
++
++	if (!stat)
++		return;
++
++	ctl_shift = stat->shift + stat->nbits * (id - stat->start_id);
++
++	if (state == DSCR_DEVSTATE_ENABLED)
++		ctl_val = stat->enable;
++	else
++		ctl_val = stat->disable;
++
++	do {
++		val = soc_readl(dscr.base + stat->reg);
++		val >>= ctl_shift;
++		val &= ((1 << stat->nbits) - 1);
++	} while (val != ctl_val);
++}
++EXPORT_SYMBOL(dscr_set_devstate);
++
++/*
++ * Drivers can use this to reset RMII module.
++ */
++void dscr_rmii_reset(int id, int assert)
++{
++	struct rmii_reset_reg *r;
++	unsigned long flags;
++	u32 val;
++
++	if (id < 0 || id >= MAX_SOC_EMACS)
++		return;
++
++	r = &dscr.rmii_resets[id];
++	if (r->mask == 0)
++		return;
++
++	spin_lock_irqsave(&dscr.lock, flags);
++
++	val = soc_readl(dscr.base + r->reg);
++	if (assert)
++		dscr_write(r->reg, val | r->mask);
++	else
++		dscr_write(r->reg, val & ~(r->mask));
++
++	spin_unlock_irqrestore(&dscr.lock, flags);
++}
++EXPORT_SYMBOL(dscr_rmii_reset);
++
++static void __init dscr_parse_devstat(struct device_node *node,
++				      void __iomem *base)
++{
++	u32 val;
++	int err;
++
++	err = of_property_read_u32_array(node, "ti,dscr-devstat", &val, 1);
++	if (!err)
++		c6x_devstat = soc_readl(base + val);
++	printk(KERN_INFO "DEVSTAT: %08x\n", c6x_devstat);
++}
++
++static void __init dscr_parse_silicon_rev(struct device_node *node,
++					 void __iomem *base)
++{
++	u32 vals[3];
++	int err;
++
++	err = of_property_read_u32_array(node, "ti,dscr-silicon-rev", vals, 3);
++	if (!err) {
++		c6x_silicon_rev = soc_readl(base + vals[0]);
++		c6x_silicon_rev >>= vals[1];
++		c6x_silicon_rev &= vals[2];
++	}
++}
++
++/*
++ * Some SoCs will have a pair of fuse registers which hold
++ * an ethernet MAC address. The "ti,dscr-mac-fuse-regs"
++ * property is a mapping from fuse register bytes to MAC
++ * address bytes. The expected format is:
++ *
++ *	ti,dscr-mac-fuse-regs = <reg0 b3 b2 b1 b0
++ *				 reg1 b3 b2 b1 b0>
++ *
++ * reg0 and reg1 are the offsets of the two fuse registers.
++ * b3-b0 positionally represent bytes within the fuse register.
++ * b3 is the most significant byte and b0 is the least.
++ * Allowable values for b3-b0 are:
++ *
++ *	  0 = fuse register byte not used in MAC address
++ *      1-6 = index+1 into c6x_fuse_mac[]
++ */
++static void __init dscr_parse_mac_fuse(struct device_node *node,
++				       void __iomem *base)
++{
++	u32 vals[10], fuse;
++	int f, i, j, err;
++
++	err = of_property_read_u32_array(node, "ti,dscr-mac-fuse-regs",
++					 vals, 10);
++	if (err)
++		return;
++
++	for (f = 0; f < 2; f++) {
++		fuse = soc_readl(base + vals[f * 5]);
++		for (j = (f * 5) + 1, i = 24; i >= 0; i -= 8, j++)
++			if (vals[j] && vals[j] <= 6)
++				c6x_fuse_mac[vals[j] - 1] = fuse >> i;
++	}
++}
++
++static void __init dscr_parse_rmii_resets(struct device_node *node,
++					  void __iomem *base)
++{
++	const __be32 *p;
++	int i, size;
++
++	/* look for RMII reset registers */
++	p = of_get_property(node, "ti,dscr-rmii-resets", &size);
++	if (p) {
++		/* parse all the reg/mask pairs we can handle */
++		size /= (sizeof(*p) * 2);
++		if (size > MAX_SOC_EMACS)
++			size = MAX_SOC_EMACS;
++
++		for (i = 0; i < size; i++) {
++			dscr.rmii_resets[i].reg = be32_to_cpup(p++);
++			dscr.rmii_resets[i].mask = be32_to_cpup(p++);
 +		}
 +	}
++}
 +
-+	timer = of_iomap(np, 0);
-+	if (!timer) {
-+		pr_debug("%s: Cannot map timer registers.\n", np->full_name);
-+		goto out;
++
++static void __init dscr_parse_privperm(struct device_node *node,
++				       void __iomem *base)
++{
++	u32 vals[2];
++	int err;
++
++	err = of_property_read_u32_array(node, "ti,dscr-privperm", vals, 2);
++	if (err)
++		return;
++	dscr_write(vals[0], vals[1]);
++}
++
++/*
++ * SoCs may have "locked" DSCR registers which can only be written
++ * to only after writing a key value to a lock registers. These
++ * regisers can be described with the "ti,dscr-locked-regs" property.
++ * This property provides a list of register descriptions with each
++ * description consisting of three values.
++ *
++ *	ti,dscr-locked-regs = <reg0 lockreg0 key0
++ *                               ...
++ *                             regN lockregN keyN>;
++ *
++ * reg is the offset of the locked register
++ * lockreg is the offset of the lock register
++ * key is the unlock key written to lockreg
++ *
++ */
++static void __init dscr_parse_locked_regs(struct device_node *node,
++					  void __iomem *base)
++{
++	struct locked_reg *r;
++	const __be32 *p;
++	int i, size;
++
++	p = of_get_property(node, "ti,dscr-locked-regs", &size);
++	if (p) {
++		/* parse all the register descriptions we can handle */
++		size /= (sizeof(*p) * 3);
++		if (size > MAX_LOCKED_REGS)
++			size = MAX_LOCKED_REGS;
++
++		for (i = 0; i < size; i++) {
++			r = &dscr.locked[i];
++
++			r->reg = be32_to_cpup(p++);
++			r->lockreg = be32_to_cpup(p++);
++			r->key = be32_to_cpup(p++);
++		}
 +	}
-+	pr_debug("%s: Timer registers=%p.\n", np->full_name, timer);
++}
 +
-+	cd->irq	= irq_of_parse_and_map(np, 0);
-+	if (cd->irq == NO_IRQ) {
-+		pr_debug("%s: Cannot find interrupt.\n", np->full_name);
-+		iounmap(timer);
-+		goto out;
++/*
++ * SoCs may have DSCR registers which are only write enabled after
++ * writing specific key values to two registers. The two key registers
++ * and the key values can be parsed from a "ti,dscr-kick-regs"
++ * propety with the following layout:
++ *
++ *	ti,dscr-kick-regs = <kickreg0 key0 kickreg1 key1>
++ *
++ * kickreg is the offset of the "kick" register
++ * key is the value which unlocks writing for protected regs
++ */
++static void __init dscr_parse_kick_regs(struct device_node *node,
++					void __iomem *base)
++{
++	u32 vals[4];
++	int err;
++
++	err = of_property_read_u32_array(node, "ti,dscr-kick-regs", vals, 4);
++	if (!err) {
++		dscr.kick_reg[0] = vals[0];
++		dscr.kick_key[0] = vals[1];
++		dscr.kick_reg[1] = vals[2];
++		dscr.kick_key[1] = vals[3];
++	}
++}
++
++
++/*
++ * SoCs may provide controls to enable/disable individual IP blocks. These
++ * controls in the DSCR usually control pin drivers but also may control
++ * clocking and or resets. The device tree is used to describe the bitfields
++ * in registers used to control device state. The number of bits and their
++ * values may vary even within the same register.
++ *
++ * The layout of these bitfields is described by the ti,dscr-devstate-ctl-regs
++ * property. This property is a list where each element describes a contiguous
++ * range of control fields with like properties. Each element of the list
++ * consists of 7 cells with the following values:
++ *
++ *   start_id num_ids reg enable disable start_bit nbits
++ *
++ * start_id is device id for the first device control in the range
++ * num_ids is the number of device controls in the range
++ * reg is the offset of the register holding the control bits
++ * enable is the value to enable a device
++ * disable is the value to disable a device (0xffffffff if cannot disable)
++ * start_bit is the bit number of the first bit in the range
++ * nbits is the number of bits per device control
++ */
++static void __init dscr_parse_devstate_ctl_regs(struct device_node *node,
++						void __iomem *base)
++{
++	struct devstate_ctl_reg *r;
++	const __be32 *p;
++	int i, j, size;
++
++	p = of_get_property(node, "ti,dscr-devstate-ctl-regs", &size);
++	if (p) {
++		/* parse all the ranges we can handle */
++		size /= (sizeof(*p) * 7);
++		if (size > MAX_DEVCTL_REGS)
++			size = MAX_DEVCTL_REGS;
++
++		for (i = 0; i < size; i++) {
++			r = &dscr.devctl[i];
++
++			r->start_id = be32_to_cpup(p++);
++			r->num_ids = be32_to_cpup(p++);
++			r->reg = be32_to_cpup(p++);
++			r->enable = be32_to_cpup(p++);
++			r->disable = be32_to_cpup(p++);
++			if (r->disable == 0xffffffff)
++				r->enable_only = 1;
++			r->shift = be32_to_cpup(p++);
++			r->nbits = be32_to_cpup(p++);
++
++			for (j = r->start_id;
++			     j < (r->start_id + r->num_ids);
++			     j++)
++				dscr.devstate_info[j].ctl = r;
++		}
++	}
++}
++
++/*
++ * SoCs may provide status registers indicating the state (enabled/disabled) of
++ * devices on the SoC. The device tree is used to describe the bitfields in
++ * registers used to provide device status. The number of bits and their
++ * values used to provide status may vary even within the same register.
++ *
++ * The layout of these bitfields is described by the ti,dscr-devstate-stat-regs
++ * property. This property is a list where each element describes a contiguous
++ * range of status fields with like properties. Each element of the list
++ * consists of 7 cells with the following values:
++ *
++ *   start_id num_ids reg enable disable start_bit nbits
++ *
++ * start_id is device id for the first device status in the range
++ * num_ids is the number of devices covered by the range
++ * reg is the offset of the register holding the status bits
++ * enable is the value indicating device is enabled
++ * disable is the value indicating device is disabled
++ * start_bit is the bit number of the first bit in the range
++ * nbits is the number of bits per device status
++ */
++static void __init dscr_parse_devstate_stat_regs(struct device_node *node,
++						 void __iomem *base)
++{
++	struct devstate_stat_reg *r;
++	const __be32 *p;
++	int i, j, size;
++
++	p = of_get_property(node, "ti,dscr-devstate-stat-regs", &size);
++	if (p) {
++		/* parse all the ranges we can handle */
++		size /= (sizeof(*p) * 7);
++		if (size > MAX_DEVSTAT_REGS)
++			size = MAX_DEVSTAT_REGS;
++
++		for (i = 0; i < size; i++) {
++			r = &dscr.devstat[i];
++
++			r->start_id = be32_to_cpup(p++);
++			r->num_ids = be32_to_cpup(p++);
++			r->reg = be32_to_cpup(p++);
++			r->enable = be32_to_cpup(p++);
++			r->disable = be32_to_cpup(p++);
++			r->shift = be32_to_cpup(p++);
++			r->nbits = be32_to_cpup(p++);
++
++			for (j = r->start_id;
++			     j < (r->start_id + r->num_ids);
++			     j++)
++				dscr.devstate_info[j].stat = r;
++		}
++	}
++}
++
++static struct of_device_id dscr_ids[] __initdata = {
++	{ .compatible = "ti,c64x+dscr" },
++	{}
++};
++
++/*
++ * Probe for DSCR area.
++ *
++ * This has to be done early on in case timer or interrupt controller
++ * needs something. e.g. On C6455 SoC, timer must be enabled through
++ * DSCR before it is functional.
++ */
++void __init dscr_probe(void)
++{
++	struct device_node *node;
++	void __iomem *base;
++
++	spin_lock_init(&dscr.lock);
++
++	node = of_find_matching_node(NULL, dscr_ids);
++	if (!node)
++		return;
++
++	base = of_iomap(node, 0);
++	if (!base) {
++		of_node_put(node);
++		return;
 +	}
 +
-+	/* If there is a device state control, save the ID. */
-+	err = of_property_read_u32(np, "ti,dscr-dev-enable", &val);
-+	if (!err)
-+		timer64_devstate_id = val;
++	dscr.base = base;
 +
-+	pr_debug("%s: Timer irq=%d.\n", np->full_name, cd->irq);
-+
-+	clockevents_calc_mult_shift(cd, c6x_core_freq / TIMER_DIVISOR, 5);
-+
-+	cd->max_delta_ns	= clockevent_delta2ns(0x7fffffff, cd);
-+	cd->min_delta_ns	= clockevent_delta2ns(250, cd);
-+
-+	cd->cpumask		= cpumask_of(smp_processor_id());
-+
-+	clockevents_register_device(cd);
-+	setup_irq(cd->irq, &timer_iact);
-+
-+out:
-+	of_node_put(np);
-+	return;
++	dscr_parse_devstat(node, base);
++	dscr_parse_silicon_rev(node, base);
++	dscr_parse_mac_fuse(node, base);
++	dscr_parse_rmii_resets(node, base);
++	dscr_parse_locked_regs(node, base);
++	dscr_parse_kick_regs(node, base);
++	dscr_parse_devstate_ctl_regs(node, base);
++	dscr_parse_devstate_stat_regs(node, base);
++	dscr_parse_privperm(node, base);
 +}
 -- 
 1.7.6.2
