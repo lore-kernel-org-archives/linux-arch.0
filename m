@@ -1,14 +1,18 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 16/24] C6X: cache control
-Date: Tue,  4 Oct 2011 12:43:53 -0400
-Message-ID: <1317746641-26725-17-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 13/24] C6X: syscalls
+Date: Tue,  4 Oct 2011 12:43:50 -0400
+Message-ID: <1317746641-26725-14-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:20977 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757242Ab1JDQoX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Oct 2011 12:44:23 -0400
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>
-List-Id: linux-arch.vger.kernel.org
 
 From: Aurelien Jacquiot <a-jacquiot@ti.com>
 
@@ -18,632 +22,189 @@ Brought up to date by Mark Salter <msalter@redhat.com>
 Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
 Signed-off-by: Mark Salter <msalter@redhat.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
+[msalter@redhat.com: add include of linux/module.h to sys_c6x.c]
+Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/include/asm/cache.h      |   90 ++++++++
- arch/c6x/include/asm/cacheflush.h |   65 ++++++
- arch/c6x/platforms/cache.c        |  445 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 600 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/cache.h
- create mode 100644 arch/c6x/include/asm/cacheflush.h
- create mode 100644 arch/c6x/platforms/cache.c
+ arch/c6x/include/asm/syscalls.h |   55 +++++++++++++++++++++++++++++
+ arch/c6x/include/asm/unistd.h   |   26 ++++++++++++++
+ arch/c6x/kernel/sys_c6x.c       |   74 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 155 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/syscalls.h
+ create mode 100644 arch/c6x/include/asm/unistd.h
+ create mode 100644 arch/c6x/kernel/sys_c6x.c
 
-diff --git a/arch/c6x/include/asm/cache.h b/arch/c6x/include/asm/cache.h
+diff --git a/arch/c6x/include/asm/syscalls.h b/arch/c6x/include/asm/syscalls.h
 new file mode 100644
-index 0000000..6d521d9
+index 0000000..aed53da
 --- /dev/null
-+++ b/arch/c6x/include/asm/cache.h
-@@ -0,0 +1,90 @@
++++ b/arch/c6x/include/asm/syscalls.h
+@@ -0,0 +1,55 @@
++/*
++ * Copyright (C) 2011 Texas Instruments Incorporated
++ * Author: Mark Salter <msalter@redhat.com>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation, version 2.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ * NON INFRINGEMENT.  See the GNU General Public License for
++ * more details.
++ */
++
++#ifndef __ASM_C6X_SYSCALLS_H
++#define __ASM_C6X_SYSCALLS_H
++
++#include <linux/compiler.h>
++#include <linux/linkage.h>
++#include <linux/types.h>
++
++/* The array of function pointers for syscalls. */
++extern void *sys_call_table[];
++
++/* The following are trampolines in entry.S to handle 64-bit arguments */
++extern long sys_pread_c6x(unsigned int fd, char __user *buf,
++			  size_t count, off_t pos_low, off_t pos_high);
++extern long sys_pwrite_c6x(unsigned int fd, const char __user *buf,
++			   size_t count, off_t pos_low, off_t pos_high);
++extern long sys_truncate64_c6x(const char __user *path,
++			       off_t length_low, off_t length_high);
++extern long sys_ftruncate64_c6x(unsigned int fd,
++			       off_t length_low, off_t length_high);
++extern long sys_fadvise64_c6x(int fd, u32 offset_lo, u32 offset_hi,
++			      u32 len, int advice);
++extern long sys_fadvise64_64_c6x(int fd, u32 offset_lo, u32 offset_hi,
++				u32 len_lo, u32 len_hi, int advice);
++extern long sys_fallocate_c6x(int fd, int mode,
++			      u32 offset_lo, u32 offset_hi,
++			      u32 len_lo, u32 len_hi);
++extern int sys_cache_sync(unsigned long s, unsigned long e);
++
++struct pt_regs;
++
++extern asmlinkage long sys_c6x_clone(struct pt_regs *regs);
++extern asmlinkage long sys_c6x_execve(const char __user *name,
++				      const char __user *const __user *argv,
++				      const char __user *const __user *envp,
++				      struct pt_regs *regs);
++
++
++#include <asm-generic/syscalls.h>
++
++#endif /* __ASM_C6X_SYSCALLS_H */
+diff --git a/arch/c6x/include/asm/unistd.h b/arch/c6x/include/asm/unistd.h
+new file mode 100644
+index 0000000..6d54ea4
+--- /dev/null
++++ b/arch/c6x/include/asm/unistd.h
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (C) 2011 Texas Instruments Incorporated
++ *
++ * Based on arch/tile version.
++ *
++ *   This program is free software; you can redistribute it and/or
++ *   modify it under the terms of the GNU General Public License
++ *   as published by the Free Software Foundation, version 2.
++ *
++ *   This program is distributed in the hope that it will be useful, but
++ *   WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
++ *   NON INFRINGEMENT.	See the GNU General Public License for
++ *   more details.
++ */
++#if !defined(_ASM_C6X_UNISTD_H) || defined(__SYSCALL)
++#define _ASM_C6X_UNISTD_H
++
++/* Use the standard ABI for syscalls. */
++#include <asm-generic/unistd.h>
++
++/* C6X-specific syscalls. */
++#define __NR_cache_sync	(__NR_arch_specific_syscall + 0)
++__SYSCALL(__NR_cache_sync, sys_cache_sync)
++
++#endif /* _ASM_C6X_UNISTD_H */
+diff --git a/arch/c6x/kernel/sys_c6x.c b/arch/c6x/kernel/sys_c6x.c
+new file mode 100644
+index 0000000..3e9bdfb
+--- /dev/null
++++ b/arch/c6x/kernel/sys_c6x.c
+@@ -0,0 +1,74 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2005, 2006, 2009, 2010 Texas Instruments Incorporated
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
 + *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_CACHE_H
-+#define _ASM_C6X_CACHE_H
++#include <linux/module.h>
++#include <linux/syscalls.h>
++#include <linux/uaccess.h>
 +
-+#include <linux/irqflags.h>
++#include <asm/syscalls.h>
 +
-+/*
-+ * Cache line size
-+ */
-+#define L1D_CACHE_BYTES   64
-+#define L1P_CACHE_BYTES   32
-+#define L2_CACHE_BYTES	  128
-+
-+/*
-+ * L2 used as cache
-+ */
-+#define L2MODE_SIZE	  L2MODE_256K_CACHE
-+
-+/*
-+ * For practical reasons the L1_CACHE_BYTES defines should not be smaller than
-+ * the L2 line size
-+ */
-+#define L1_CACHE_BYTES        L2_CACHE_BYTES
-+
-+#define L2_CACHE_ALIGN_LOW(x) \
-+	(((x) & ~(L2_CACHE_BYTES - 1)))
-+#define L2_CACHE_ALIGN_UP(x) \
-+	(((x) + (L2_CACHE_BYTES - 1)) & ~(L2_CACHE_BYTES - 1))
-+#define L2_CACHE_ALIGN_CNT(x) \
-+	(((x) + (sizeof(int) - 1)) & ~(sizeof(int) - 1))
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
-+
-+/*
-+ * This is the granularity of hardware cacheability control.
-+ */
-+#define CACHEABILITY_ALIGN	0x01000000
-+
-+/*
-+ * Align a physical address to MAR regions
-+ */
-+#define CACHE_REGION_START(v) \
-+	(((u32) (v)) & ~(CACHEABILITY_ALIGN - 1))
-+#define CACHE_REGION_END(v) \
-+	(((u32) (v) + (CACHEABILITY_ALIGN - 1)) & ~(CACHEABILITY_ALIGN - 1))
-+
-+extern void __init c6x_cache_init(void);
-+
-+extern void enable_caching(unsigned long start, unsigned long end);
-+extern void disable_caching(unsigned long start, unsigned long end);
-+
-+extern void L1_cache_off(void);
-+extern void L1_cache_on(void);
-+
-+extern void L1P_cache_global_invalidate(void);
-+extern void L1D_cache_global_invalidate(void);
-+extern void L1D_cache_global_writeback(void);
-+extern void L1D_cache_global_writeback_invalidate(void);
-+extern void L2_cache_set_mode(unsigned int mode);
-+extern void L2_cache_global_writeback_invalidate(void);
-+extern void L2_cache_global_writeback(void);
-+
-+extern void L1P_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_writeback_invalidate(unsigned int start,
-+						 unsigned int end);
-+extern void L1D_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback_invalidate(unsigned int start,
-+						unsigned int end);
-+extern void L2_cache_block_invalidate_nowait(unsigned int start,
-+					     unsigned int end);
-+extern void L2_cache_block_writeback_nowait(unsigned int start,
-+					    unsigned int end);
-+
-+extern void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						       unsigned int end);
-+
-+#endif /* _ASM_C6X_CACHE_H */
-diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
-new file mode 100644
-index 0000000..df5db90
---- /dev/null
-+++ b/arch/c6x/include/asm/cacheflush.h
-@@ -0,0 +1,65 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
-+ *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_CACHEFLUSH_H
-+#define _ASM_C6X_CACHEFLUSH_H
-+
-+#include <linux/spinlock.h>
-+
-+#include <asm/setup.h>
-+#include <asm/cache.h>
-+#include <asm/mman.h>
-+#include <asm/page.h>
-+#include <asm/string.h>
-+
-+/*
-+ * virtually-indexed cache management (our cache is physically indexed)
-+ */
-+#define flush_cache_all()			do {} while (0)
-+#define flush_cache_mm(mm)			do {} while (0)
-+#define flush_cache_dup_mm(mm)			do {} while (0)
-+#define flush_cache_range(mm, start, end)	do {} while (0)
-+#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
-+#define flush_cache_vmap(start, end)		do {} while (0)
-+#define flush_cache_vunmap(start, end)		do {} while (0)
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-+#define flush_dcache_page(page)			do {} while (0)
-+#define flush_dcache_mmap_lock(mapping)		do {} while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
-+
-+/*
-+ * physically-indexed cache management
-+ */
-+#define flush_icache_range(s, e)				  \
-+do {								  \
-+		L1D_cache_block_writeback((s), (e));		  \
-+		L1P_cache_block_invalidate((s), (e));		  \
-+} while (0)
-+
-+#define flush_icache_page(vma, page)					  \
-+do {								  \
-+	if ((vma)->vm_flags & PROT_EXEC)				  \
-+		L1D_cache_block_writeback_invalidate(page_address(page),  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+		L1P_cache_block_invalidate(page_address(page),		  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+} while (0)
-+
-+
-+#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-+do {						     \
-+	memcpy(dst, src, len);			     \
-+	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
-+} while (0)
-+
-+#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-+	memcpy(dst, src, len)
-+
-+#endif /* _ASM_C6X_CACHEFLUSH_H */
-diff --git a/arch/c6x/platforms/cache.c b/arch/c6x/platforms/cache.c
-new file mode 100644
-index 0000000..86318a1
---- /dev/null
-+++ b/arch/c6x/platforms/cache.c
-@@ -0,0 +1,445 @@
-+/*
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
-+ */
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/io.h>
-+
-+#include <asm/cache.h>
-+#include <asm/soc.h>
-+
-+/*
-+ * Internal Memory Control Registers for caches
-+ */
-+#define IMCR_CCFG	  0x0000
-+#define IMCR_L1PCFG	  0x0020
-+#define IMCR_L1PCC	  0x0024
-+#define IMCR_L1DCFG	  0x0040
-+#define IMCR_L1DCC	  0x0044
-+#define IMCR_L2ALLOC0	  0x2000
-+#define IMCR_L2ALLOC1	  0x2004
-+#define IMCR_L2ALLOC2	  0x2008
-+#define IMCR_L2ALLOC3	  0x200c
-+#define IMCR_L2WBAR	  0x4000
-+#define IMCR_L2WWC	  0x4004
-+#define IMCR_L2WIBAR	  0x4010
-+#define IMCR_L2WIWC	  0x4014
-+#define IMCR_L2IBAR	  0x4018
-+#define IMCR_L2IWC	  0x401c
-+#define IMCR_L1PIBAR	  0x4020
-+#define IMCR_L1PIWC	  0x4024
-+#define IMCR_L1DWIBAR	  0x4030
-+#define IMCR_L1DWIWC	  0x4034
-+#define IMCR_L1DWBAR	  0x4040
-+#define IMCR_L1DWWC	  0x4044
-+#define IMCR_L1DIBAR	  0x4048
-+#define IMCR_L1DIWC	  0x404c
-+#define IMCR_L2WB	  0x5000
-+#define IMCR_L2WBINV	  0x5004
-+#define IMCR_L2INV	  0x5008
-+#define IMCR_L1PINV	  0x5028
-+#define IMCR_L1DWB	  0x5040
-+#define IMCR_L1DWBINV	  0x5044
-+#define IMCR_L1DINV	  0x5048
-+#define IMCR_MAR_BASE	  0x8000
-+#define IMCR_MAR96_111	  0x8180
-+#define IMCR_MAR128_191   0x8200
-+#define IMCR_MAR224_239   0x8380
-+#define IMCR_L2MPFAR	  0xa000
-+#define IMCR_L2MPFSR	  0xa004
-+#define IMCR_L2MPFCR	  0xa008
-+#define IMCR_L2MPLK0	  0xa100
-+#define IMCR_L2MPLK1	  0xa104
-+#define IMCR_L2MPLK2	  0xa108
-+#define IMCR_L2MPLK3	  0xa10c
-+#define IMCR_L2MPLKCMD	  0xa110
-+#define IMCR_L2MPLKSTAT   0xa114
-+#define IMCR_L2MPPA_BASE  0xa200
-+#define IMCR_L1PMPFAR	  0xa400
-+#define IMCR_L1PMPFSR	  0xa404
-+#define IMCR_L1PMPFCR	  0xa408
-+#define IMCR_L1PMPLK0	  0xa500
-+#define IMCR_L1PMPLK1	  0xa504
-+#define IMCR_L1PMPLK2	  0xa508
-+#define IMCR_L1PMPLK3	  0xa50c
-+#define IMCR_L1PMPLKCMD   0xa510
-+#define IMCR_L1PMPLKSTAT  0xa514
-+#define IMCR_L1PMPPA_BASE 0xa600
-+#define IMCR_L1DMPFAR	  0xac00
-+#define IMCR_L1DMPFSR	  0xac04
-+#define IMCR_L1DMPFCR	  0xac08
-+#define IMCR_L1DMPLK0	  0xad00
-+#define IMCR_L1DMPLK1	  0xad04
-+#define IMCR_L1DMPLK2	  0xad08
-+#define IMCR_L1DMPLK3	  0xad0c
-+#define IMCR_L1DMPLKCMD   0xad10
-+#define IMCR_L1DMPLKSTAT  0xad14
-+#define IMCR_L1DMPPA_BASE 0xae00
-+#define IMCR_L2PDWAKE0	  0xc040
-+#define IMCR_L2PDWAKE1	  0xc044
-+#define IMCR_L2PDSLEEP0   0xc050
-+#define IMCR_L2PDSLEEP1   0xc054
-+#define IMCR_L2PDSTAT0	  0xc060
-+#define IMCR_L2PDSTAT1	  0xc064
-+
-+/*
-+ * CCFG register values and bits
-+ */
-+#define L2MODE_0K_CACHE   0x0
-+#define L2MODE_32K_CACHE  0x1
-+#define L2MODE_64K_CACHE  0x2
-+#define L2MODE_128K_CACHE 0x3
-+#define L2MODE_256K_CACHE 0x7
-+
-+#define L2PRIO_URGENT     0x0
-+#define L2PRIO_HIGH       0x1
-+#define L2PRIO_MEDIUM     0x2
-+#define L2PRIO_LOW        0x3
-+
-+#define CCFG_ID           0x100   /* Invalidate L1P bit */
-+#define CCFG_IP           0x200   /* Invalidate L1D bit */
-+
-+static void __iomem *cache_base;
-+
-+/*
-+ * L1 & L2 caches generic functions
-+ */
-+#define imcr_get(reg) soc_readl(cache_base + (reg))
-+#define imcr_set(reg, value) \
-+do {								\
-+	soc_writel((value), cache_base + (reg));		\
-+	soc_readl(cache_base + (reg));				\
-+} while (0)
-+
-+static void cache_block_operation_wait(unsigned int wc_reg)
++#ifdef CONFIG_ACCESS_CHECK
++int _access_ok(unsigned long addr, unsigned long size)
 +{
-+	/* Wait for completion */
-+	while (imcr_get(wc_reg))
-+		cpu_relax();
++	if (!size)
++		return 1;
++
++	if (!addr || addr > (0xffffffffUL - (size - 1)))
++		goto _bad_access;
++
++	if (segment_eq(get_fs(), KERNEL_DS))
++		return 1;
++
++	if (memory_start <= addr && (addr + size - 1) < memory_end)
++		return 1;
++
++_bad_access:
++	pr_debug("Bad access attempt: pid[%d] addr[%08lx] size[0x%lx]\n",
++		 current->pid, addr, size);
++	return 0;
++}
++EXPORT_SYMBOL(_access_ok);
++#endif
++
++/* sys_cache_sync -- sync caches over given range */
++asmlinkage int sys_cache_sync(unsigned long s, unsigned long e)
++{
++	L1D_cache_block_writeback_invalidate(s, e);
++	L1P_cache_block_invalidate(s, e);
++
++	return 0;
 +}
 +
-+static DEFINE_SPINLOCK(cache_lock);
++/* Provide the actual syscall number to call mapping. */
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
 +
 +/*
-+ * Generic function to perform a block cache operation as
-+ * invalidate or writeback/invalidate
++ * Use trampolines
 + */
-+static void cache_block_operation(unsigned int *start,
-+				  unsigned int *end,
-+				  unsigned int bar_reg,
-+				  unsigned int wc_reg)
-+{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
++#define sys_pread64		sys_pread_c6x
++#define sys_pwrite64		sys_pwrite_c6x
++#define sys_truncate64		sys_truncate64_c6x
++#define sys_ftruncate64		sys_ftruncate64_c6x
++#define sys_fadvise64		sys_fadvise64_c6x
++#define sys_fadvise64_64	sys_fadvise64_64_c6x
++#define sys_fallocate		sys_fallocate_c6x
 +
-+	for (; wcnt; wcnt -= wc, start += wc) {
-+loop:
-+		spin_lock_irqsave(&cache_lock, flags);
-+
-+		/*
-+		 * If another cache operation is occuring
-+		 */
-+		if (unlikely(imcr_get(wc_reg))) {
-+			spin_unlock_irqrestore(&cache_lock, flags);
-+
-+			/* Wait for previous operation completion */
-+			cache_block_operation_wait(wc_reg);
-+
-+			/* Try again */
-+			goto loop;
-+		}
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		spin_unlock_irqrestore(&cache_lock, flags);
-+
-+		/* Wait for completion */
-+		cache_block_operation_wait(wc_reg);
-+	}
-+}
-+
-+static void cache_block_operation_nowait(unsigned int *start,
-+					 unsigned int *end,
-+					 unsigned int bar_reg,
-+					 unsigned int wc_reg)
-+{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
-+
-+	for (; wcnt; wcnt -= wc, start += wc) {
-+
-+		spin_lock_irqsave(&cache_lock, flags);
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		spin_unlock_irqrestore(&cache_lock, flags);
-+
-+		/* Don't wait for completion on last cache operation */
-+		if (wcnt > 0xffff)
-+			cache_block_operation_wait(wc_reg);
-+	}
-+}
++/* Use sys_mmap_pgoff directly */
++#define sys_mmap2 sys_mmap_pgoff
 +
 +/*
-+ * L1 caches management
++ * Note that we can't include <linux/unistd.h> here since the header
++ * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
 + */
-+
-+/*
-+ * Disable L1 caches
-+ */
-+void L1_cache_off(void)
-+{
-+	unsigned int dummy;
-+
-+	imcr_set(IMCR_L1PCFG, 0);
-+	dummy = imcr_get(IMCR_L1PCFG);
-+
-+	imcr_set(IMCR_L1DCFG, 0);
-+	dummy = imcr_get(IMCR_L1DCFG);
-+}
-+
-+/*
-+ * Enable L1 caches
-+ */
-+void L1_cache_on(void)
-+{
-+	unsigned int dummy;
-+
-+	imcr_set(IMCR_L1PCFG, 7);
-+	dummy = imcr_get(IMCR_L1PCFG);
-+
-+	imcr_set(IMCR_L1DCFG, 7);
-+	dummy = imcr_get(IMCR_L1DCFG);
-+}
-+
-+/*
-+ *  L1P global-invalidate all
-+ */
-+void L1P_cache_global_invalidate(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1PINV, set);
-+	while (imcr_get(IMCR_L1PINV) & 1)
-+		cpu_relax();
-+}
-+
-+/*
-+ *  L1D global-invalidate all
-+ *
-+ * Warning: this operation causes all updated data in L1D to
-+ * be discarded rather than written back to the lower levels of
-+ * memory
-+ */
-+void L1D_cache_global_invalidate(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DINV, set);
-+	while (imcr_get(IMCR_L1DINV) & 1)
-+		cpu_relax();
-+}
-+
-+void L1D_cache_global_writeback(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWB, set);
-+	while (imcr_get(IMCR_L1DWB) & 1)
-+		cpu_relax();
-+}
-+
-+void L1D_cache_global_writeback_invalidate(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWBINV, set);
-+	while (imcr_get(IMCR_L1DWBINV) & 1)
-+		cpu_relax();
-+}
-+
-+/*
-+ * L2 caches management
-+ */
-+
-+/*
-+ * Set L2 operation mode
-+ */
-+void L2_cache_set_mode(unsigned int mode)
-+{
-+	unsigned int ccfg = imcr_get(IMCR_CCFG);
-+
-+	/* Clear and set the L2MODE bits in CCFG */
-+	ccfg &= ~7;
-+	ccfg |= (mode & 7);
-+	imcr_set(IMCR_CCFG, ccfg);
-+	ccfg = imcr_get(IMCR_CCFG);
-+}
-+
-+/*
-+ *  L2 global-writeback and global-invalidate all
-+ */
-+void L2_cache_global_writeback_invalidate(void)
-+{
-+	imcr_set(IMCR_L2WBINV, 1);
-+	while (imcr_get(IMCR_L2WBINV))
-+		cpu_relax();
-+}
-+
-+/*
-+ *  L2 global-writeback all
-+ */
-+void L2_cache_global_writeback(void)
-+{
-+	imcr_set(IMCR_L2WB, 1);
-+	while (imcr_get(IMCR_L2WB))
-+		cpu_relax();
-+}
-+
-+/*
-+ * Cacheability controls
-+ */
-+void enable_caching(unsigned long start, unsigned long end)
-+{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
-+
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) | 1);
-+}
-+
-+void disable_caching(unsigned long start, unsigned long end)
-+{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
-+
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) & ~1);
-+}
-+
-+
-+/*
-+ *  L1 block operations
-+ */
-+void L1P_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1PIBAR, IMCR_L1PIWC);
-+}
-+
-+void L1D_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DIBAR, IMCR_L1DIWC);
-+}
-+
-+void L1D_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWIBAR, IMCR_L1DWIWC);
-+}
-+
-+void L1D_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWBAR, IMCR_L1DWWC);
-+}
-+
-+/*
-+ *  L2 block operations
-+ */
-+void L2_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+void L2_cache_block_invalidate_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+
-+/*
-+ * L1 and L2 caches configuration
-+ */
-+void __init c6x_cache_init(void)
-+{
-+	struct device_node *node;
-+
-+	node = of_find_compatible_node(NULL, NULL, "ti,c64x+cache");
-+	if (!node)
-+		return;
-+
-+	cache_base = of_iomap(node, 0);
-+
-+	of_node_put(node);
-+
-+	if (!cache_base)
-+		return;
-+
-+	/* Set L2 caches on the the whole L2 SRAM memory */
-+	L2_cache_set_mode(L2MODE_SIZE);
-+
-+	/* Enable L1 */
-+	L1_cache_on();
-+}
++void *sys_call_table[__NR_syscalls] = {
++	[0 ... __NR_syscalls-1] = sys_ni_syscall,
++#include <asm/unistd.h>
++};
 -- 
 1.7.6.2
