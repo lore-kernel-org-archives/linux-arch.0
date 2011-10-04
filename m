@@ -1,1279 +1,1393 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36350 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:60856 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932898Ab1JDQo2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Oct 2011 12:44:28 -0400
+	id S932916Ab1JDQoa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Oct 2011 12:44:30 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 07/24] C6X: devicetree support
-Date: Tue,  4 Oct 2011 12:43:44 -0400
-Message-ID: <1317746641-26725-8-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 19/24] C6X: headers
+Date: Tue,  4 Oct 2011 12:43:56 -0400
+Message-ID: <1317746641-26725-20-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, devicetree-discuss@lists.ozlabs.org, Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20111004164344.ii9Sq99zs6m_MAZt_ehaLnkyAYNhphS0mRnDjh9zgWs@z>
+Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20111004164356.frPkkcQ70fR5Ig5FfZulwPWESpO47NvLDiC28JydTIA@z>
 
-This is the basic devicetree support for C6X. Currently, four boards are
-supported. Each one uses a different SoC part. Two of the four supported
-SoCs are multicore. One with 3 cores and the other with 6 cores. There is
-no coherency between the core-level caches, so SMP is not an option. It is
-possible to run separate kernel instances on the various cores. There is
-currently no C6X bootloader support for device trees so we build in the DTB
-for now.
+From: Aurelien Jacquiot <a-jacquiot@ti.com>
 
-There are some interesting twists to the hardware which are of note for device
-tree support. Each core has its own interrupt controller which is controlled
-by special purpose core registers. This core controller provides 12 general
-purpose prioritized interrupt sources. Each core is contained within a
-hardware "module" which provides L1 and L2 caches, power control, and another
-interrupt controller which cascades into the core interrupt controller. These
-core module functions are controlled by memory mapped registers. The addresses
-for these registers are the same for each core. That is, when coreN accesses
-a module-level MMIO register at a given address, it accesses the register for
-coreN even though other cores would use the same address to access the register
-in the module containing those cores. Other hardware modules (timers, enet, etc)
-which are memory mapped can be accessed by all cores.
+Original port to early 2.6 kernel using TI COFF toolchain.
+Brought up to date by Mark Salter <msalter@redhat.com>
 
-The timers need some further explanation for multicore SoCs. Even though all
-timer control registers are visible to all cores, interrupt routing or other
-considerations may make a given timer more suitable for use by a core than
-some other timer. Because of this and the desire to have the same image run
-on more than one core, the timer nodes have a "ti,core-mask" property which
-is used by the driver to scan for a suitable timer to use.
-
-Signed-off-by: Mark Salter <msalter@redhat.com>
 Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
-CC: devicetree-discuss@lists.ozlabs.org
-CC: Grant Likely <grant.likely@secretlab.ca>
+Signed-off-by: Mark Salter <msalter@redhat.com>
 CC: Arnd Bergmann <arnd@arndb.de>
 ---
- Documentation/devicetree/bindings/c6x/clocks.txt   |   40 ++++++
- Documentation/devicetree/bindings/c6x/dscr.txt     |  127 +++++++++++++++++++
- Documentation/devicetree/bindings/c6x/emifa.txt    |   62 +++++++++
- .../devicetree/bindings/c6x/interrupt.txt          |  104 +++++++++++++++
- Documentation/devicetree/bindings/c6x/soc.txt      |   28 ++++
- Documentation/devicetree/bindings/c6x/timer64.txt  |   26 ++++
- arch/c6x/boot/dts/dsk6455.dts                      |   62 +++++++++
- arch/c6x/boot/dts/evmc6457.dts                     |   48 +++++++
- arch/c6x/boot/dts/evmc6472.dts                     |   73 +++++++++++
- arch/c6x/boot/dts/evmc6474.dts                     |   58 +++++++++
- arch/c6x/boot/dts/tms320c6455.dtsi                 |   96 ++++++++++++++
- arch/c6x/boot/dts/tms320c6457.dtsi                 |   68 ++++++++++
- arch/c6x/boot/dts/tms320c6472.dtsi                 |  134 ++++++++++++++++++++
- arch/c6x/boot/dts/tms320c6474.dtsi                 |   89 +++++++++++++
- arch/c6x/boot/linked_dtb.S                         |    2 +
- arch/c6x/kernel/devicetree.c                       |   53 ++++++++
- arch/c6x/platforms/platform.c                      |   17 +++
- 17 files changed, 1087 insertions(+), 0 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/c6x/clocks.txt
- create mode 100644 Documentation/devicetree/bindings/c6x/dscr.txt
- create mode 100644 Documentation/devicetree/bindings/c6x/emifa.txt
- create mode 100644 Documentation/devicetree/bindings/c6x/interrupt.txt
- create mode 100644 Documentation/devicetree/bindings/c6x/soc.txt
- create mode 100644 Documentation/devicetree/bindings/c6x/timer64.txt
- create mode 100644 arch/c6x/boot/dts/dsk6455.dts
- create mode 100644 arch/c6x/boot/dts/evmc6457.dts
- create mode 100644 arch/c6x/boot/dts/evmc6472.dts
- create mode 100644 arch/c6x/boot/dts/evmc6474.dts
- create mode 100644 arch/c6x/boot/dts/tms320c6455.dtsi
- create mode 100644 arch/c6x/boot/dts/tms320c6457.dtsi
- create mode 100644 arch/c6x/boot/dts/tms320c6472.dtsi
- create mode 100644 arch/c6x/boot/dts/tms320c6474.dtsi
- create mode 100644 arch/c6x/boot/linked_dtb.S
- create mode 100644 arch/c6x/kernel/devicetree.c
- create mode 100644 arch/c6x/platforms/platform.c
+ arch/c6x/include/asm/asm-offsets.h |    1 +
+ arch/c6x/include/asm/bitops.h      |  105 ++++++++++++++++++++++
+ arch/c6x/include/asm/byteorder.h   |   12 +++
+ arch/c6x/include/asm/delay.h       |   67 ++++++++++++++
+ arch/c6x/include/asm/elf.h         |  113 ++++++++++++++++++++++++
+ arch/c6x/include/asm/ftrace.h      |    6 ++
+ arch/c6x/include/asm/linkage.h     |   30 +++++++
+ arch/c6x/include/asm/memblock.h    |    4 +
+ arch/c6x/include/asm/mmu.h         |   18 ++++
+ arch/c6x/include/asm/mutex.h       |    6 ++
+ arch/c6x/include/asm/page.h        |   11 +++
+ arch/c6x/include/asm/pgtable.h     |   81 +++++++++++++++++
+ arch/c6x/include/asm/procinfo.h    |   28 ++++++
+ arch/c6x/include/asm/prom.h        |    1 +
+ arch/c6x/include/asm/sections.h    |   12 +++
+ arch/c6x/include/asm/setup.h       |   32 +++++++
+ arch/c6x/include/asm/string.h      |   21 +++++
+ arch/c6x/include/asm/swab.h        |   54 +++++++++++
+ arch/c6x/include/asm/syscall.h     |  123 ++++++++++++++++++++++++++
+ arch/c6x/include/asm/system.h      |  168 +++++++++++++++++++++++++++++++++++
+ arch/c6x/include/asm/tlb.h         |    8 ++
+ arch/c6x/include/asm/uaccess.h     |  107 ++++++++++++++++++++++
+ arch/c6x/include/asm/unaligned.h   |  170 ++++++++++++++++++++++++++++++++++++
+ 23 files changed, 1178 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/asm-offsets.h
+ create mode 100644 arch/c6x/include/asm/bitops.h
+ create mode 100644 arch/c6x/include/asm/byteorder.h
+ create mode 100644 arch/c6x/include/asm/delay.h
+ create mode 100644 arch/c6x/include/asm/elf.h
+ create mode 100644 arch/c6x/include/asm/ftrace.h
+ create mode 100644 arch/c6x/include/asm/linkage.h
+ create mode 100644 arch/c6x/include/asm/memblock.h
+ create mode 100644 arch/c6x/include/asm/mmu.h
+ create mode 100644 arch/c6x/include/asm/mutex.h
+ create mode 100644 arch/c6x/include/asm/page.h
+ create mode 100644 arch/c6x/include/asm/pgtable.h
+ create mode 100644 arch/c6x/include/asm/procinfo.h
+ create mode 100644 arch/c6x/include/asm/prom.h
+ create mode 100644 arch/c6x/include/asm/sections.h
+ create mode 100644 arch/c6x/include/asm/setup.h
+ create mode 100644 arch/c6x/include/asm/string.h
+ create mode 100644 arch/c6x/include/asm/swab.h
+ create mode 100644 arch/c6x/include/asm/syscall.h
+ create mode 100644 arch/c6x/include/asm/system.h
+ create mode 100644 arch/c6x/include/asm/tlb.h
+ create mode 100644 arch/c6x/include/asm/uaccess.h
+ create mode 100644 arch/c6x/include/asm/unaligned.h
 
-diff --git a/Documentation/devicetree/bindings/c6x/clocks.txt b/Documentation/devicetree/bindings/c6x/clocks.txt
+diff --git a/arch/c6x/include/asm/asm-offsets.h b/arch/c6x/include/asm/asm-offsets.h
 new file mode 100644
-index 0000000..a04f5fd
+index 0000000..d370ee3
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/clocks.txt
-@@ -0,0 +1,40 @@
-+C6X PLL Clock Controllers
-+-------------------------
-+
-+This is a first-cut support for the SoC clock controllers. This is still
-+under development and will probably change as the common device tree
-+clock support is added to the kernel.
-+
-+Required properties:
-+
-+- compatible: "ti,c64x+pll"
-+    May also have SoC-specific value to support SoC-specific initialization
-+    in the driver. One of:
-+        "ti,c6455-pll"
-+        "ti,c6457-pll"
-+        "ti,c6472-pll"
-+        "ti,c6474-pll"
-+
-+- reg: base address and size of register area
-+- clock-frequency: input clock frequency in hz
-+
-+
-+Optional properties:
-+
-+- ti,c64x+pll-bypass-delay: CPU cycles to delay when entering bypass mode
-+
-+- ti,c64x+pll-reset-delay:  CPU cycles to delay after PLL reset
-+
-+- ti,c64x+pll-lock-delay:   CPU cycles to delay after PLL frequency change
-+
-+Example:
-+
-+	clock-controller@29a0000 {
-+		compatible = "ti,c6472-pll", "ti,c64x+pll";
-+		reg = <0x029a0000 0x200>;
-+		clock-frequency = <25000000>;
-+
-+		ti,c64x+pll-bypass-delay = <200>;
-+		ti,c64x+pll-reset-delay = <12000>;
-+		ti,c64x+pll-lock-delay = <80000>;
-+	};
-diff --git a/Documentation/devicetree/bindings/c6x/dscr.txt b/Documentation/devicetree/bindings/c6x/dscr.txt
++++ b/arch/c6x/include/asm/asm-offsets.h
+@@ -0,0 +1 @@
++#include <generated/asm-offsets.h>
+diff --git a/arch/c6x/include/asm/bitops.h b/arch/c6x/include/asm/bitops.h
 new file mode 100644
-index 0000000..d847758
+index 0000000..39ab7e8
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/dscr.txt
-@@ -0,0 +1,127 @@
-+Device State Configuration Registers
-+------------------------------------
++++ b/arch/c6x/include/asm/bitops.h
+@@ -0,0 +1,105 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_BITOPS_H
++#define _ASM_C6X_BITOPS_H
 +
-+TI C6X SoCs contain a region of miscellaneous registers which provide various
-+function for SoC control or status. Details vary considerably among from SoC
-+to SoC with no two being alike.
++#ifdef __KERNEL__
 +
-+In general, the Device State Configuraion Registers (DSCR) will provide one or
-+more configuration registers often protected by a lock register where one or
-+more key values must be written to a lock register in order to unlock the
-+configuration register for writes. These configuration register may be used to
-+enable (and disable in some cases) SoC pin drivers, select peripheral clock
-+sources (internal or pin), etc. In some cases, a configuration register is
-+write once or the individual bits are write once. In addition to device config,
-+the DSCR block may provide registers which which are used to reset peripherals,
-+provide device ID information, provide ethernet MAC addresses, as well as other
-+miscellaneous functions.
++#include <linux/bitops.h>
 +
-+For device state control (enable/disable), each device control is assigned an
-+id which is used by individual device drivers to control the state as needed.
++#include <asm/system.h>
++#include <asm/byteorder.h>
 +
-+Required properties:
++/*
++ * clear_bit() doesn't provide any barrier for the compiler.
++ */
++#define smp_mb__before_clear_bit() barrier()
++#define smp_mb__after_clear_bit()  barrier()
 +
-+- compatible: must be "ti,c64x+dscr"
-+- reg: register area base and size
++/*
++ * We are lucky, DSP is perfect for bitops: do it in 3 cycles
++ */
 +
-+Optional properties:
++/**
++ * __ffs - find first bit in word.
++ * @word: The word to search
++ *
++ * Undefined if no bit exists, so code should check against 0 first.
++ * Note __ffs(0) = undef, __ffs(1) = 0, __ffs(0x80000000) = 31.
++ *
++ */
++static inline unsigned long __ffs(unsigned long x)
++{
++	asm (" bitr  .M1  %0,%0\n"
++	     " nop\n"
++	     " lmbd  .L1  1,%0,%0\n"
++	     : "+a"(x));
 +
-+  NOTE: These are optional in that not all SoCs will have all properties. For
-+        SoCs which do support a given property, leaving the property out of the
-+        device tree will result in reduced functionality or possibly driver
-+        failure.
++	return x;
++}
 +
-+- ti,dscr-devstat
-+    offset of the devstat register
++/*
++ * ffz - find first zero in word.
++ * @word: The word to search
++ *
++ * Undefined if no zero exists, so code should check against ~0UL first.
++ */
++#define ffz(x) __ffs(~(x))
 +
-+- ti,dscr-silicon-rev
-+    offset, start bit, and bitsize of silicon revision field
++/**
++ * fls - find last (most-significant) bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as ffs.
++ * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
++ */
++static inline int fls(int x)
++{
++	if (!x)
++		return 0;
 +
-+- ti,dscr-rmii-resets
-+    offset and bitmask of RMII reset field. May have multiple tuples if more
-+    than one ethernet port is available.
++	asm (" lmbd  .L1  1,%0,%0\n" : "+a"(x));
 +
-+- ti,dscr-locked-regs
-+    possibly multiple tuples describing registers which are write protected by
-+    a lock register. Each tuple consists of the register offset, lock register
-+    offsset, and the key value used to unlock the register.
++	return 32 - x;
++}
 +
-+- ti,dscr-kick-regs
-+    offset and key values of two "kick" registers used to write protect other
-+    registers in DSCR. On SoCs using kick registers, the first key must be
-+    written to the first kick register and the second key must be written to
-+    the second register before other registers in the area are write-enabled.
++/**
++ * ffs - find first bit set
++ * @x: the word to search
++ *
++ * This is defined the same way as
++ * the libc and compiler builtin ffs routines, therefore
++ * differs in spirit from the above ffz (man ffs).
++ * Note ffs(0) = 0, ffs(1) = 1, ffs(0x80000000) = 32.
++ */
++static inline int ffs(int x)
++{
++	if (!x)
++		return 0;
 +
-+- ti,dscr-mac-fuse-regs
-+    MAC addresses are contained in two registers. Each element of a MAC address
-+    is contained in a single byte. This property has two tuples. Each tuple has
-+    a register offset and four cells representing bytes in the register from
-+    most significant to least. The value of these four cells is the MAC byte
-+    index (1-6) of the byte within the register. A value of 0 means the byte
-+    is unused in the MAC address.
++	return __ffs(x) + 1;
++}
 +
-+- ti,dscr-devstate-ctl-regs
-+    This property describes the bitfields used to control the state of devices.
-+    Each tuple describes a range of identical bitfields used to control one or
-+    more devices (one bitfield per device). The layout of each tuple is:
++#include <asm-generic/bitops/__fls.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
 +
-+        start_id num_ids reg enable disable start_bit nbits
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
 +
-+    Where:
-+        start_id is device id for the first device control in the range
-+        num_ids is the number of device controls in the range
-+        reg is the offset of the register holding the control bits
-+        enable is the value to enable a device
-+        disable is the value to disable a device (0xffffffff if cannot disable)
-+        start_bit is the bit number of the first bit in the range
-+        nbits is the number of bits per device control
++#include <asm-generic/bitops/atomic.h>
++#include <asm-generic/bitops/non-atomic.h>
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
 +
-+- ti,dscr-devstate-stat-regs
-+    This property describes the bitfields used to provide device state status
-+    for device states controlled by the DSCR. Each tuple describes a range of
-+    identical bitfields used to provide status for one or more devices (one
-+    bitfield per device). The layout of each tuple is:
-+
-+        start_id num_ids reg enable disable start_bit nbits
-+
-+    Where:
-+        start_id is device id for the first device status in the range
-+        num_ids is the number of devices covered by the range
-+        reg is the offset of the register holding the status bits
-+        enable is the value indicating device is enabled
-+        disable is the value indicating device is disabled
-+        start_bit is the bit number of the first bit in the range
-+        nbits is the number of bits per device status
-+
-+- ti,dscr-privperm
-+    Offset and default value for register used to set access privilege for
-+    some SoC devices.
-+
-+
-+Example:
-+
-+	device-state-config-regs@2a80000 {
-+		compatible = "ti,c64x+dscr";
-+		reg = <0x02a80000 0x41000>;
-+
-+		ti,dscr-devstat = <0>;
-+		ti,dscr-silicon-rev = <8 28 0xf>;
-+		ti,dscr-rmii-resets = <0x40020 0x00040000>;
-+
-+		ti,dscr-locked-regs = <0x40008 0x40004 0x0f0a0b00>;
-+		ti,dscr-devstate-ctl-regs =
-+			 <0 12 0x40008 1 0  0  2
-+			  12 1 0x40008 3 0 30  2
-+			  13 2 0x4002c 1 0xffffffff 0 1>;
-+		ti,dscr-devstate-stat-regs =
-+			<0 10 0x40014 1 0  0  3
-+			 10 2 0x40018 1 0  0  3>;
-+
-+		ti,dscr-mac-fuse-regs = <0x700 1 2 3 4
-+					 0x704 5 6 0 0>;
-+
-+		ti,dscr-privperm = <0x41c 0xaaaaaaaa>;
-+
-+		ti,dscr-kick-regs = <0x38 0x83E70B13
-+				     0x3c 0x95A4F1E0>;
-+	};
-diff --git a/Documentation/devicetree/bindings/c6x/emifa.txt b/Documentation/devicetree/bindings/c6x/emifa.txt
++#endif /* __KERNEL__ */
++#endif /* _ASM_C6X_BITOPS_H */
+diff --git a/arch/c6x/include/asm/byteorder.h b/arch/c6x/include/asm/byteorder.h
 new file mode 100644
-index 0000000..0ff6e9b
+index 0000000..166038d
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/emifa.txt
-@@ -0,0 +1,62 @@
-+External Memory Interface
-+-------------------------
++++ b/arch/c6x/include/asm/byteorder.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_C6X_BYTEORDER_H
++#define _ASM_C6X_BYTEORDER_H
 +
-+The emifa node describes a simple external bus controller found on some C6X
-+SoCs. This interface provides external busses with a number of chip selects.
++#include <asm/types.h>
 +
-+Required properties:
++#ifdef _BIG_ENDIAN
++#include <linux/byteorder/big_endian.h>
++#else /* _BIG_ENDIAN */
++#include <linux/byteorder/little_endian.h>
++#endif /* _BIG_ENDIAN */
 +
-+- compatible: must be "ti,c64x+emifa", "simple-bus"
-+- reg: register area base and size
-+- #address-cells: must be 2 (chip-select + offset)
-+- #size-cells: must be 1
-+- ranges: mapping from EMIFA space to parent space
-+
-+
-+Optional properties:
-+
-+- ti,dscr-dev-enable: Device ID if EMIF is enabled/disabled from DSCR
-+
-+- ti,emifa-burst-priority:
-+      Number of memory transfers after which the EMIF will elevate the priority
-+      of the oldest command in the command FIFO. Setting this field to 255
-+      disables this feature, thereby allowing old commands to stay in the FIFO
-+      indefinitely.
-+
-+- ti,emifa-ce-config:
-+      Configuration values for each of the supported chip selects.
-+
-+Example:
-+
-+	emifa@70000000 {
-+		compatible = "ti,c64x+emifa", "simple-bus";
-+		#address-cells = <2>;
-+		#size-cells = <1>;
-+		reg = <0x70000000 0x100>;
-+		ranges = <0x2 0x0 0xa0000000 0x00000008
-+		          0x3 0x0 0xb0000000 0x00400000
-+			  0x4 0x0 0xc0000000 0x10000000
-+			  0x5 0x0 0xD0000000 0x10000000>;
-+
-+		ti,dscr-dev-enable = <13>;
-+		ti,emifa-burst-priority = <255>;
-+		ti,emifa-ce-config = <0x00240120
-+				      0x00240120
-+				      0x00240122
-+				      0x00240122>;
-+
-+		flash@3,0 {
-+			#address-cells = <1>;
-+			#size-cells = <1>;
-+			compatible = "cfi-flash";
-+			reg = <0x3 0x0 0x400000>;
-+			bank-width = <1>;
-+			device-width = <1>;
-+			partition@0 {
-+				reg = <0x0 0x400000>;
-+				label = "NOR";
-+			};
-+		};
-+	};
-+
-+This shows a flash chip attached to chip select 3.
-diff --git a/Documentation/devicetree/bindings/c6x/interrupt.txt b/Documentation/devicetree/bindings/c6x/interrupt.txt
++#endif /* _ASM_BYTEORDER_H */
+diff --git a/arch/c6x/include/asm/delay.h b/arch/c6x/include/asm/delay.h
 new file mode 100644
-index 0000000..42bb796
+index 0000000..f314c2e
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/interrupt.txt
-@@ -0,0 +1,104 @@
-+C6X Interrupt Chips
-+-------------------
++++ b/arch/c6x/include/asm/delay.h
+@@ -0,0 +1,67 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_DELAY_H
++#define _ASM_C6X_DELAY_H
 +
-+* C64X+ Core Interrupt Controller
++#include <linux/kernel.h>
 +
-+  The core interrupt controller provides 16 prioritized interrupts to the
-+  C64X+ core. Priority 0 and 1 are used for reset and NMI respectively.
-+  Priority 2 and 3 are reserved. Priority 4-15 are used for interrupt
-+  sources coming from outside the core.
++extern unsigned int ticks_per_ns_scaled;
 +
-+  Required properties:
-+  --------------------
-+  - compatible: Should be "ti,c64x+core-pic";
-+  - #interrupt-cells: <1>
++static inline void __delay(unsigned long loops)
++{
++	uint32_t tmp;
 +
-+  Interrupt Specifier Definition
-+  ------------------------------
-+  Single cell specifying the core interrupt priority level (4-15) where
-+  4 is highest priority and 15 is lowest priority.
++	/* 6 cycles per loop */
++	asm volatile ("        mv    .s1  %0,%1\n"
++		      "0: [%1] b     .s1  0b\n"
++		      "        add   .l1  -6,%0,%0\n"
++		      "        cmplt .l1  1,%0,%1\n"
++		      "        nop   3\n"
++		      : "+a"(loops), "=A"(tmp));
++}
 +
-+  Example
-+  -------
-+  core_pic: interrupt-controller@0 {
-+	interrupt-controller;
-+	#interrupt-cells = <1>;
-+	compatible = "ti,c64x+core-pic";
-+  };
++static inline void _c6x_tickdelay(unsigned int x)
++{
++	uint32_t cnt, endcnt;
 +
++	asm volatile ("        mvc   .s2   TSCL,%0\n"
++		      "        add   .s2x  %0,%1,%2\n"
++		      " ||     mvk   .l2   1,B0\n"
++		      "0: [B0] b     .s2   0b\n"
++		      "        mvc   .s2   TSCL,%0\n"
++		      "        sub   .s2   %0,%2,%0\n"
++		      "        cmpgt .l2   0,%0,B0\n"
++		      "        nop   2\n"
++		      : "=b"(cnt), "+a"(x), "=b"(endcnt) : : "B0");
++}
 +
++/* use scaled math to avoid slow division */
++#define C6X_NDELAY_SCALE 10
 +
-+* C64x+ Megamodule Interrupt Controller
++static inline void _ndelay(unsigned int n)
++{
++	_c6x_tickdelay((ticks_per_ns_scaled * n) >> C6X_NDELAY_SCALE);
++}
 +
-+  The megamodule PIC consists of four interrupt mupliplexers each of which
-+  combine up to 32 interrupt inputs into a single interrupt output which
-+  may be cascaded into the core interrupt controller. The megamodule PIC
-+  has a total of 12 outputs cascading into the core interrupt controller.
-+  One for each core interrupt priority level. In addition to the combined
-+  interrupt sources, individual megamodule interrupts may be cascaded to
-+  the core interrupt controller. When an individual interrupt is cascaded,
-+  it is no longer handled through a megamodule interrupt combiner and is
-+  considered to have the core interrupt controller as the parent.
++static inline void _udelay(unsigned int n)
++{
++	while (n >= 10) {
++		_ndelay(10000);
++		n -= 10;
++	}
++	while (n-- > 0)
++		_ndelay(1000);
++}
 +
-+  Required properties:
-+  --------------------
-+  - compatible: "ti,c64x+megamod-pic"
-+  - interrupt-controller
-+  - #interrupt-cells: <1>
-+  - reg: base address and size of register area
-+  - interrupt-parent: must be core interrupt controller
-+  - interrupts: This should have four cells; one for each interrupt combiner.
-+                The cells contain the core priority interrupt to which the
-+                corresponding combiner output is wired.
++#define udelay(x) _udelay((unsigned int)(x))
++#define ndelay(x) _ndelay((unsigned int)(x))
 +
-+  Optional properties:
-+  --------------------
-+  - ti,c64x+megamod-pic-mux: Array of 12 cells correspnding to the 12 core
-+                             priority interrupts. The first cell corresponds to
-+                             core priority 4 and the last cell corresponds to
-+                             core priority 15. The value of each cell is the
-+                             megamodule interrupt source which is MUXed to
-+                             the core interrupt corresponding to the cell
-+                             position. Allowed values are 4 - 127. Mapping for
-+                             interrupts 0 - 3 (combined interrupt sources) are
-+                             ignored.
-+
-+  Interrupt Specifier Definition
-+  ------------------------------
-+  Single cell specifying the megamodule interrupt source (4-127). Note that
-+  interrupts mapped directly to the core with "ti,c64x+megamod-pic-mux" will
-+  use the core interrupt controller as their parent and the specifier will
-+  be the core priority level, not the megamodule interrupt number.
-+
-+  Examples
-+  --------
-+  megamod_pic: interrupt-controller@1800000 {
-+	compatible = "ti,c64x+megamod-pic";
-+	interrupt-controller;
-+	#interrupt-cells = <1>;
-+	reg = <0x1800000 0x1000>;
-+	interrupt-parent = <&core_pic>;
-+	interrupts = < 12 13 14 15 >;
-+  };
-+
-+  This is a minimal example where all individual interrupts go through a
-+  combiner. Combiner-0 is mapped to core interrupt 12, combiner-1 is mapped
-+  to interrupt 13, etc.
-+
-+
-+  megamod_pic: interrupt-controller@1800000 {
-+	compatible = "ti,c64x+megamod-pic";
-+	interrupt-controller;
-+	#interrupt-cells = <1>;
-+	reg = <0x1800000 0x1000>;
-+	interrupt-parent = <&core_pic>;
-+	interrupts = < 12 13 14 15 >;
-+	ti,c64x+megamod-pic-mux = <  0  0  0  0
-+                                    32  0  0  0
-+                                     0  0  0  0 >;
-+  };
-+
-+  This the same as the first example except that megamodule interrupt 32 is
-+  mapped directly to core priority interrupt 8. The node using this interrupt
-+  must set the core controller as its interrupt parent and use 8 in the
-+  interrupt specifier value.
-diff --git a/Documentation/devicetree/bindings/c6x/soc.txt b/Documentation/devicetree/bindings/c6x/soc.txt
++#endif /* _ASM_C6X_DELAY_H */
+diff --git a/arch/c6x/include/asm/elf.h b/arch/c6x/include/asm/elf.h
 new file mode 100644
-index 0000000..b1e4973
+index 0000000..d57865b
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/soc.txt
++++ b/arch/c6x/include/asm/elf.h
+@@ -0,0 +1,113 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_ELF_H
++#define _ASM_C6X_ELF_H
++
++/*
++ * ELF register definitions..
++ */
++#include <asm/ptrace.h>
++
++typedef unsigned long elf_greg_t;
++typedef unsigned long elf_fpreg_t;
++
++#define ELF_NGREG  58
++#define ELF_NFPREG 1
++
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++typedef elf_fpreg_t elf_fpregset_t[ELF_NFPREG];
++
++/*
++ * This is used to ensure we don't load something for the wrong architecture.
++ */
++#define elf_check_arch(x) ((x)->e_machine == EM_TI_C6000)
++
++#define elf_check_const_displacement(x) (1)
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#ifdef __LITTLE_ENDIAN__
++#define ELF_DATA	ELFDATA2LSB
++#else
++#define ELF_DATA	ELFDATA2MSB
++#endif
++
++#define ELF_CLASS	ELFCLASS32
++#define ELF_ARCH	EM_TI_C6000
++
++/* Nothing for now. Need to setup DP... */
++#define ELF_PLAT_INIT(_r)
++
++#define USE_ELF_CORE_DUMP
++#define ELF_EXEC_PAGESIZE	4096
++
++#define ELF_CORE_COPY_REGS(_dest, _regs)		\
++	memcpy((char *) &_dest, (char *) _regs,		\
++	sizeof(struct pt_regs));
++
++/* This yields a mask that user programs can use to figure out what
++   instruction set this cpu supports.  */
++
++#define ELF_HWCAP	(0)
++
++/* This yields a string that ld.so will use to load implementation
++   specific libraries for optimization.  This is more specific in
++   intent than poking at uname or /proc/cpuinfo.  */
++
++#define ELF_PLATFORM  (NULL)
++
++#define SET_PERSONALITY(ex) set_personality(PER_LINUX)
++
++/* C6X specific section types */
++#define SHT_C6000_UNWIND	0x70000001
++#define SHT_C6000_PREEMPTMAP	0x70000002
++#define SHT_C6000_ATTRIBUTES	0x70000003
++
++/* C6X specific DT_ tags */
++#define DT_C6000_DSBT_BASE	0x70000000
++#define DT_C6000_DSBT_SIZE	0x70000001
++#define DT_C6000_PREEMPTMAP	0x70000002
++#define DT_C6000_DSBT_INDEX	0x70000003
++
++/* C6X specific relocs */
++#define R_C6000_NONE		0
++#define R_C6000_ABS32		1
++#define R_C6000_ABS16		2
++#define R_C6000_ABS8		3
++#define R_C6000_PCR_S21		4
++#define R_C6000_PCR_S12		5
++#define R_C6000_PCR_S10		6
++#define R_C6000_PCR_S7		7
++#define R_C6000_ABS_S16		8
++#define R_C6000_ABS_L16		9
++#define R_C6000_ABS_H16		10
++#define R_C6000_SBR_U15_B	11
++#define R_C6000_SBR_U15_H	12
++#define R_C6000_SBR_U15_W	13
++#define R_C6000_SBR_S16		14
++#define R_C6000_SBR_L16_B	15
++#define R_C6000_SBR_L16_H	16
++#define R_C6000_SBR_L16_W	17
++#define R_C6000_SBR_H16_B	18
++#define R_C6000_SBR_H16_H	19
++#define R_C6000_SBR_H16_W	20
++#define R_C6000_SBR_GOT_U15_W	21
++#define R_C6000_SBR_GOT_L16_W	22
++#define R_C6000_SBR_GOT_H16_W	23
++#define R_C6000_DSBT_INDEX	24
++#define R_C6000_PREL31		25
++#define R_C6000_COPY		26
++#define R_C6000_ALIGN		253
++#define R_C6000_FPHEAD		254
++#define R_C6000_NOCMP		255
++
++#endif /*_ASM_C6X_ELF_H */
+diff --git a/arch/c6x/include/asm/ftrace.h b/arch/c6x/include/asm/ftrace.h
+new file mode 100644
+index 0000000..3701958
+--- /dev/null
++++ b/arch/c6x/include/asm/ftrace.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_FTRACE_H
++#define _ASM_C6X_FTRACE_H
++
++/* empty */
++
++#endif /* _ASM_C6X_FTRACE_H */
+diff --git a/arch/c6x/include/asm/linkage.h b/arch/c6x/include/asm/linkage.h
+new file mode 100644
+index 0000000..376925c
+--- /dev/null
++++ b/arch/c6x/include/asm/linkage.h
+@@ -0,0 +1,30 @@
++#ifndef _ASM_C6X_LINKAGE_H
++#define _ASM_C6X_LINKAGE_H
++
++#ifdef __ASSEMBLER__
++
++#define __ALIGN		.align 2
++#define __ALIGN_STR	".align 2"
++
++#ifndef __DSBT__
++#define ENTRY(name)		\
++	.global name @		\
++	__ALIGN @		\
++name:
++#else
++#define ENTRY(name)		\
++	.global name @		\
++	.hidden name @		\
++	__ALIGN @		\
++name:
++#endif
++
++#define ENDPROC(name)		\
++	.type name, @function @	\
++	.size name, . - name
++
++#endif
++
++#include <asm-generic/linkage.h>
++
++#endif /* _ASM_C6X_LINKAGE_H */
+diff --git a/arch/c6x/include/asm/memblock.h b/arch/c6x/include/asm/memblock.h
+new file mode 100644
+index 0000000..1181a97
+--- /dev/null
++++ b/arch/c6x/include/asm/memblock.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_C6X_MEMBLOCK_H
++#define _ASM_C6X_MEMBLOCK_H
++
++#endif /* _ASM_C6X_MEMBLOCK_H */
+diff --git a/arch/c6x/include/asm/mmu.h b/arch/c6x/include/asm/mmu.h
+new file mode 100644
+index 0000000..41592bf
+--- /dev/null
++++ b/arch/c6x/include/asm/mmu.h
+@@ -0,0 +1,18 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_MMU_H
++#define _ASM_C6X_MMU_H
++
++typedef struct {
++	unsigned long		end_brk;
++} mm_context_t;
++
++#endif /* _ASM_C6X_MMU_H */
+diff --git a/arch/c6x/include/asm/mutex.h b/arch/c6x/include/asm/mutex.h
+new file mode 100644
+index 0000000..7a7248e
+--- /dev/null
++++ b/arch/c6x/include/asm/mutex.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_MUTEX_H
++#define _ASM_C6X_MUTEX_H
++
++#include <asm-generic/mutex-null.h>
++
++#endif /* _ASM_C6X_MUTEX_H */
+diff --git a/arch/c6x/include/asm/page.h b/arch/c6x/include/asm/page.h
+new file mode 100644
+index 0000000..d18e2b0
+--- /dev/null
++++ b/arch/c6x/include/asm/page.h
+@@ -0,0 +1,11 @@
++#ifndef _ASM_C6X_PAGE_H
++#define _ASM_C6X_PAGE_H
++
++#define VM_DATA_DEFAULT_FLAGS \
++	(VM_READ | VM_WRITE | \
++	((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
++		 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++#include <asm-generic/page.h>
++
++#endif /* _ASM_C6X_PAGE_H */
+diff --git a/arch/c6x/include/asm/pgtable.h b/arch/c6x/include/asm/pgtable.h
+new file mode 100644
+index 0000000..68c8af4
+--- /dev/null
++++ b/arch/c6x/include/asm/pgtable.h
+@@ -0,0 +1,81 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_PGTABLE_H
++#define _ASM_C6X_PGTABLE_H
++
++#include <asm-generic/4level-fixup.h>
++
++#include <asm/setup.h>
++#include <asm/page.h>
++
++/*
++ * All 32bit addresses are effectively valid for vmalloc...
++ * Sort of meaningless for non-VM targets.
++ */
++#define	VMALLOC_START	0
++#define	VMALLOC_END	0xffffffff
++
++#define pgd_present(pgd)	(1)
++#define pgd_none(pgd)		(0)
++#define pgd_bad(pgd)		(0)
++#define pgd_clear(pgdp)
++#define kern_addr_valid(addr) (1)
++
++#define pmd_offset(a, b)	((void *)0)
++#define pmd_none(x)		(!pmd_val(x))
++#define pmd_present(x)		(pmd_val(x))
++#define pmd_clear(xp)		do { set_pmd(xp, __pmd(0)); } while (0)
++#define pmd_bad(x)		(pmd_val(x) & ~PAGE_MASK)
++
++#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_READONLY	        __pgprot(0)    /* these mean nothing to NO_MM */
++#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
++#define pgprot_noncached(prot)	(prot)
++
++extern void paging_init(void);
++
++#define __swp_type(x)		(0)
++#define __swp_offset(x)		(0)
++#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++
++static inline int pte_file(pte_t pte)
++{
++	return 0;
++}
++
++#define set_pte(pteptr, pteval) (*(pteptr) = pteval)
++#define set_pte_at(mm, addr, ptep, pteval) set_pte(ptep, pteval)
++
++/*
++ * ZERO_PAGE is a global shared page that is always zero: used
++ * for zero-mapped memory areas etc..
++ */
++#define ZERO_PAGE(vaddr)	virt_to_page(empty_zero_page)
++extern unsigned long empty_zero_page;
++
++#define swapper_pg_dir ((pgd_t *) 0)
++
++/*
++ * No page table caches to initialise
++ */
++#define pgtable_cache_init()   do { } while (0)
++#define io_remap_pfn_range      remap_pfn_range
++
++#define io_remap_page_range(vma, vaddr, paddr, size, prot)		\
++		remap_pfn_range(vma, vaddr, (paddr) >> PAGE_SHIFT, size, prot)
++
++#include <asm-generic/pgtable.h>
++
++#endif /* _ASM_C6X_PGTABLE_H */
+diff --git a/arch/c6x/include/asm/procinfo.h b/arch/c6x/include/asm/procinfo.h
+new file mode 100644
+index 0000000..c139d1e
+--- /dev/null
++++ b/arch/c6x/include/asm/procinfo.h
 @@ -0,0 +1,28 @@
-+C6X System-on-Chip
-+------------------
-+
-+Required properties:
-+
-+- compatible: "simple-bus"
-+- #address-cells: must be 1
-+- #size-cells: must be 1
-+- ranges
-+
-+Optional properties:
-+
-+- model: specific SoC model
-+
-+- nodes for IP blocks within SoC
-+
-+
-+Example:
-+
-+	soc {
-+		compatible = "simple-bus";
-+		model = "tms320c6455";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		...
-+	};
-diff --git a/Documentation/devicetree/bindings/c6x/timer64.txt b/Documentation/devicetree/bindings/c6x/timer64.txt
-new file mode 100644
-index 0000000..95911fe
---- /dev/null
-+++ b/Documentation/devicetree/bindings/c6x/timer64.txt
-@@ -0,0 +1,26 @@
-+Timer64
-+-------
-+
-+The timer64 node describes C6X event timers.
-+
-+Required properties:
-+
-+- compatible: must be "ti,c64x+timer64"
-+- reg: base address and size of register region
-+- interrupt-parent: interrupt controller
-+- interrupts: interrupt id
-+
-+Optional properties:
-+
-+- ti,dscr-dev-enable: Device ID used to enable timer IP through DSCR interface.
-+
-+- ti,core-mask: on multi-core SoCs, bitmask of cores allowed to use this timer.
-+
-+Example:
-+	timer0: timer@25e0000 {
-+		compatible = "ti,c64x+timer64";
-+		ti,core-mask = < 0x01 >;
-+		reg = <0x25e0000 0x40>;
-+		interrupt-parent = <&megamod_pic>;
-+		interrupts = < 16 >;
-+	};
-diff --git a/arch/c6x/boot/dts/dsk6455.dts b/arch/c6x/boot/dts/dsk6455.dts
-new file mode 100644
-index 0000000..2b71f80
---- /dev/null
-+++ b/arch/c6x/boot/dts/dsk6455.dts
-@@ -0,0 +1,62 @@
 +/*
-+ * arch/c6x/boot/dts/dsk6455.dts
++ *  Copyright (C) 2010 Texas Instruments Incorporated
++ *  Author: Mark Salter (msalter@redhat.com)
 + *
-+ * DSK6455 Evaluation Platform For TMS320C6455
-+ * Copyright (C) 2011 Texas Instruments Incorporated
 + *
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version 2
-+ * of the License, or (at your option) any later version.
-+ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_PROCINFO_H
++#define _ASM_C6X_PROCINFO_H
 +
-+/dts-v1/;
++#ifdef __KERNEL__
 +
-+/include/ "tms320c6455.dtsi"
-+
-+/ {
-+	model = "Spectrum Digital DSK6455";
-+	compatible = "spectrum-digital,dsk6455";
-+
-+	chosen {
-+		bootargs = "root=/dev/nfs ip=dhcp rw";
-+	};
-+
-+	memory {
-+		device_type = "memory";
-+		reg = <0xE0000000 0x08000000>;
-+	};
-+
-+	soc {
-+		megamod_pic: interrupt-controller@1800000 {
-+			interrupts = < 12 13 14 15 >;
-+		};
-+
-+		emifa@70000000 {
-+			flash@3,0 {
-+				  #address-cells = <1>;
-+				#size-cells = <1>;
-+				compatible = "cfi-flash";
-+				reg = <0x3 0x0 0x400000>;
-+				bank-width = <1>;
-+				device-width = <1>;
-+				partition@0 {
-+					reg = <0x0 0x400000>;
-+					label = "NOR";
-+				};
-+			};
-+		};
-+
-+		timer1: timer@2980000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 69 >;
-+		};
-+
-+		clock-controller@029a0000 {
-+			clock-frequency = <50000000>;
-+		};
-+	};
++struct proc_info_list {
++	unsigned int		cpu_val;
++	unsigned int		cpu_mask;
++	const char		*arch_name;
++	const char		*elf_name;
++	unsigned int		elf_hwcap;
 +};
-diff --git a/arch/c6x/boot/dts/evmc6457.dts b/arch/c6x/boot/dts/evmc6457.dts
++
++#else	/* __KERNEL__ */
++#include <asm/elf.h>
++#warning "Please include asm/elf.h instead"
++#endif	/* __KERNEL__ */
++
++#endif	/* _ASM_C6X_PROCINFO_H */
+diff --git a/arch/c6x/include/asm/prom.h b/arch/c6x/include/asm/prom.h
 new file mode 100644
-index 0000000..0301eb9a
+index 0000000..b4ec95f
 --- /dev/null
-+++ b/arch/c6x/boot/dts/evmc6457.dts
-@@ -0,0 +1,48 @@
++++ b/arch/c6x/include/asm/prom.h
+@@ -0,0 +1 @@
++/* dummy prom.h; here to make linux/of.h's #includes happy */
+diff --git a/arch/c6x/include/asm/sections.h b/arch/c6x/include/asm/sections.h
+new file mode 100644
+index 0000000..f703989
+--- /dev/null
++++ b/arch/c6x/include/asm/sections.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_C6X_SECTIONS_H
++#define _ASM_C6X_SECTIONS_H
++
++#include <asm-generic/sections.h>
++
++extern char _vectors_start[];
++extern char _vectors_end[];
++
++extern char _data_lma[];
++extern char _fdt_start[], _fdt_end[];
++
++#endif /* _ASM_C6X_SECTIONS_H */
+diff --git a/arch/c6x/include/asm/setup.h b/arch/c6x/include/asm/setup.h
+new file mode 100644
+index 0000000..1808f27
+--- /dev/null
++++ b/arch/c6x/include/asm/setup.h
+@@ -0,0 +1,32 @@
 +/*
-+ * arch/c6x/boot/dts/evmc6457.dts
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ * EVMC6457 Evaluation Platform For TMS320C6457
++ *  Copyright (C) 2004, 2009, 2010 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ * Copyright (C) 2011 Texas Instruments Incorporated
-+ *
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version 2
-+ * of the License, or (at your option) any later version.
-+ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_SETUP_H
++#define _ASM_C6X_SETUP_H
 +
-+/dts-v1/;
++#define COMMAND_LINE_SIZE   1024
 +
-+/include/ "tms320c6457.dtsi"
++#ifndef __ASSEMBLY__
++extern char c6x_command_line[COMMAND_LINE_SIZE];
 +
-+/ {
-+	model = "eInfochips EVMC6457";
-+	compatible = "einfochips,evmc6457";
++extern int c6x_add_memory(phys_addr_t start, unsigned long size);
 +
-+	chosen {
-+		bootargs = "console=hvc root=/dev/nfs ip=dhcp rw";
-+	};
++extern unsigned long ram_start;
++extern unsigned long ram_end;
 +
-+	memory {
-+		device_type = "memory";
-+		reg = <0xE0000000 0x10000000>;
-+	};
++extern int c6x_num_cores;
++extern unsigned int c6x_silicon_rev;
++extern unsigned int c6x_devstat;
++extern unsigned char c6x_fuse_mac[6];
 +
-+	soc {
-+		megamod_pic: interrupt-controller@1800000 {
-+		       interrupts = < 12 13 14 15 >;
-+		};
++extern void machine_init(unsigned long dt_ptr);
 +
-+		timer0: timer@2940000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 67 >;
-+		};
-+
-+		clock-controller@29a0000 {
-+			clock-frequency = <60000000>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/evmc6472.dts b/arch/c6x/boot/dts/evmc6472.dts
++#endif /* !__ASSEMBLY__ */
++#endif /* _ASM_C6X_SETUP_H */
+diff --git a/arch/c6x/include/asm/string.h b/arch/c6x/include/asm/string.h
 new file mode 100644
-index 0000000..3e207b4
+index 0000000..b21517c
 --- /dev/null
-+++ b/arch/c6x/boot/dts/evmc6472.dts
-@@ -0,0 +1,73 @@
++++ b/arch/c6x/include/asm/string.h
+@@ -0,0 +1,21 @@
 +/*
-+ * arch/c6x/boot/dts/evmc6472.dts
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ * EVMC6472 Evaluation Platform For TMS320C6472
++ *  Copyright (C) 2004, 2009, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ * Copyright (C) 2011 Texas Instruments Incorporated
-+ *
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version 2
-+ * of the License, or (at your option) any later version.
-+ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
 + */
++#ifndef _ASM_C6X_STRING_H
++#define _ASM_C6X_STRING_H
 +
-+/dts-v1/;
++#include <asm/page.h>
++#include <linux/linkage.h>
 +
-+/include/ "tms320c6472.dtsi"
++asmlinkage extern void *memcpy(void *to, const void *from, size_t n);
 +
-+/ {
-+	model = "eInfochips EVMC6472";
-+	compatible = "einfochips,evmc6472";
++#define __HAVE_ARCH_MEMCPY
 +
-+	chosen {
-+		bootargs = "console=hvc root=/dev/nfs ip=dhcp rw";
-+	};
-+
-+	memory {
-+		device_type = "memory";
-+		reg = <0xE0000000 0x10000000>;
-+	};
-+
-+	soc {
-+		megamod_pic: interrupt-controller@1800000 {
-+		       interrupts = < 12 13 14 15 >;
-+		};
-+
-+		timer0: timer@25e0000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		timer1: timer@25f0000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		timer2: timer@2600000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		timer3: timer@2610000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		timer4: timer@2620000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		timer5: timer@2630000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 16 >;
-+		};
-+
-+		clock-controller@29a0000 {
-+			clock-frequency = <25000000>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/evmc6474.dts b/arch/c6x/boot/dts/evmc6474.dts
++#endif /* _ASM_C6X_STRING_H */
+diff --git a/arch/c6x/include/asm/swab.h b/arch/c6x/include/asm/swab.h
 new file mode 100644
-index 0000000..4dc2912
+index 0000000..fd4bb05
 --- /dev/null
-+++ b/arch/c6x/boot/dts/evmc6474.dts
-@@ -0,0 +1,58 @@
++++ b/arch/c6x/include/asm/swab.h
+@@ -0,0 +1,54 @@
 +/*
-+ * arch/c6x/boot/dts/evmc6474.dts
-+ *
-+ * EVMC6474 Evaluation Platform For TMS320C6474
-+ *
-+ * Copyright (C) 2011 Texas Instruments Incorporated
-+ *
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version 2
-+ * of the License, or (at your option) any later version.
-+ *
-+ */
-+
-+/dts-v1/;
-+
-+/include/ "tms320c6474.dtsi"
-+
-+/ {
-+	model = "Spectrum Digital EVMC6474";
-+	compatible = "spectrum-digital,evmc6474";
-+
-+	chosen {
-+		bootargs = "console=hvc root=/dev/nfs ip=dhcp rw";
-+	};
-+
-+	memory {
-+		device_type = "memory";
-+		reg = <0x80000000 0x08000000>;
-+	};
-+
-+	soc {
-+		megamod_pic: interrupt-controller@1800000 {
-+		       interrupts = < 12 13 14 15 >;
-+		};
-+
-+		timer3: timer@2940000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 39 >;
-+		};
-+
-+		timer4: timer@2950000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 41 >;
-+		};
-+
-+		timer5: timer@2960000 {
-+			interrupt-parent = <&megamod_pic>;
-+			interrupts = < 43 >;
-+		};
-+
-+		clock-controller@29a0000 {
-+			clock-frequency = <50000000>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/tms320c6455.dtsi b/arch/c6x/boot/dts/tms320c6455.dtsi
-new file mode 100644
-index 0000000..a804ec1
---- /dev/null
-+++ b/arch/c6x/boot/dts/tms320c6455.dtsi
-@@ -0,0 +1,96 @@
-+
-+/ {
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+
-+		cpu@0 {
-+			device_type = "cpu";
-+			model = "ti,c64x+";
-+			reg = <0>;
-+		};
-+	};
-+
-+	soc {
-+		compatible = "simple-bus";
-+		model = "tms320c6455";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		core_pic: interrupt-controller {
-+			  interrupt-controller;
-+			  #interrupt-cells = <1>;
-+			  compatible = "ti,c64x+core-pic";
-+		};
-+
-+		/*
-+		 * Megamodule interrupt controller
-+		 */
-+		megamod_pic: interrupt-controller@1800000 {
-+		       compatible = "ti,c64x+megamod-pic";
-+		       interrupt-controller;
-+		       #interrupt-cells = <1>;
-+		       reg = <0x1800000 0x1000>;
-+		       interrupt-parent = <&core_pic>;
-+		};
-+
-+		cache-controller@1840000 {
-+			compatible = "ti,c64x+cache";
-+			reg = <0x01840000 0x8400>;
-+		};
-+
-+		emifa@70000000 {
-+			compatible = "ti,c64x+emifa", "simple-bus";
-+			#address-cells = <2>;
-+			#size-cells = <1>;
-+			reg = <0x70000000 0x100>;
-+			ranges = <0x2 0x0 0xa0000000 0x00000008
-+			          0x3 0x0 0xb0000000 0x00400000
-+				  0x4 0x0 0xc0000000 0x10000000
-+				  0x5 0x0 0xD0000000 0x10000000>;
-+
-+			ti,dscr-dev-enable = <13>;
-+			ti,emifa-burst-priority = <255>;
-+			ti,emifa-ce-config = <0x00240120
-+					      0x00240120
-+					      0x00240122
-+					      0x00240122>;
-+		};
-+
-+		timer1: timer@2980000 {
-+			compatible = "ti,c64x+timer64";
-+			reg = <0x2980000 0x40>;
-+			ti,dscr-dev-enable = <4>;
-+		};
-+
-+		clock-controller@029a0000 {
-+			compatible = "ti,c6455-pll", "ti,c64x+pll";
-+			reg = <0x029a0000 0x200>;
-+			ti,c64x+pll-bypass-delay = <1440>;
-+			ti,c64x+pll-reset-delay = <15360>;
-+			ti,c64x+pll-lock-delay = <24000>;
-+		};
-+
-+		device-state-config-regs@2a80000 {
-+			compatible = "ti,c64x+dscr";
-+			reg = <0x02a80000 0x41000>;
-+
-+			ti,dscr-devstat = <0>;
-+			ti,dscr-silicon-rev = <8 28 0xf>;
-+			ti,dscr-rmii-resets = <0 0x40020 0x00040000>;
-+
-+			ti,dscr-locked-regs = <0x40008 0x40004 0x0f0a0b00>;
-+			ti,dscr-devstate-ctl-regs =
-+				 <0 12 0x40008 1 0  0  2
-+				  12 1 0x40008 3 0 30  2
-+				  13 2 0x4002c 1 0xffffffff 0 1>;
-+			ti,dscr-devstate-stat-regs =
-+				<0 10 0x40014 1 0  0  3
-+				 10 2 0x40018 1 0  0  3>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/tms320c6457.dtsi b/arch/c6x/boot/dts/tms320c6457.dtsi
-new file mode 100644
-index 0000000..35f4070
---- /dev/null
-+++ b/arch/c6x/boot/dts/tms320c6457.dtsi
-@@ -0,0 +1,68 @@
-+
-+/ {
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+
-+		cpu@0 {
-+			device_type = "cpu";
-+			model = "ti,c64x+";
-+			reg = <0>;
-+		};
-+	};
-+
-+	soc {
-+		compatible = "simple-bus";
-+		model = "tms320c6457";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		core_pic: interrupt-controller {
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+			compatible = "ti,c64x+core-pic";
-+		};
-+
-+		megamod_pic: interrupt-controller@1800000 {
-+			compatible = "ti,c64x+megamod-pic";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+			interrupt-parent = <&core_pic>;
-+			reg = <0x1800000 0x1000>;
-+		};
-+
-+		cache-controller@1840000 {
-+			compatible = "ti,c64x+cache";
-+			reg = <0x01840000 0x8400>;
-+		};
-+
-+		device-state-controller@2880800 {
-+			compatible = "ti,c64x+dscr";
-+			reg = <0x02880800 0x400>;
-+
-+			ti,dscr-devstat = <0x20>;
-+			ti,dscr-silicon-rev = <0x18 28 0xf>;
-+			ti,dscr-mac-fuse-regs = <0x114 3 4 5 6
-+						 0x118 0 0 1 2>;
-+			ti,dscr-kick-regs = <0x38 0x83E70B13
-+					     0x3c 0x95A4F1E0>;
-+		};
-+
-+		timer0: timer@2940000 {
-+			compatible = "ti,c64x+timer64";
-+			reg = <0x2940000 0x40>;
-+		};
-+
-+		clock-controller@29a0000 {
-+			compatible = "ti,c6457-pll", "ti,c64x+pll";
-+			reg = <0x029a0000 0x200>;
-+			ti,c64x+pll-bypass-delay = <300>;
-+			ti,c64x+pll-reset-delay = <24000>;
-+			ti,c64x+pll-lock-delay = <50000>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/tms320c6472.dtsi b/arch/c6x/boot/dts/tms320c6472.dtsi
-new file mode 100644
-index 0000000..b488aae
---- /dev/null
-+++ b/arch/c6x/boot/dts/tms320c6472.dtsi
-@@ -0,0 +1,134 @@
-+
-+/ {
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+
-+		cpu@0 {
-+			device_type = "cpu";
-+			reg = <0>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@1 {
-+			device_type = "cpu";
-+			reg = <1>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@2 {
-+			device_type = "cpu";
-+			reg = <2>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@3 {
-+			device_type = "cpu";
-+			reg = <3>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@4 {
-+			device_type = "cpu";
-+			reg = <4>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@5 {
-+			device_type = "cpu";
-+			reg = <5>;
-+			model = "ti,c64x+";
-+		};
-+	};
-+
-+	soc {
-+		compatible = "simple-bus";
-+		model = "tms320c6472";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		core_pic: interrupt-controller {
-+			compatible = "ti,c64x+core-pic";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		megamod_pic: interrupt-controller@1800000 {
-+		       compatible = "ti,c64x+megamod-pic";
-+		       interrupt-controller;
-+		       #interrupt-cells = <1>;
-+		       reg = <0x1800000 0x1000>;
-+		       interrupt-parent = <&core_pic>;
-+		};
-+
-+		cache-controller@1840000 {
-+			compatible = "ti,c64x+cache";
-+			reg = <0x01840000 0x8400>;
-+		};
-+
-+		timer0: timer@25e0000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x01 >;
-+			reg = <0x25e0000 0x40>;
-+		};
-+
-+		timer1: timer@25f0000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x02 >;
-+			reg = <0x25f0000 0x40>;
-+		};
-+
-+		timer2: timer@2600000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x04 >;
-+			reg = <0x2600000 0x40>;
-+		};
-+
-+		timer3: timer@2610000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x08 >;
-+			reg = <0x2610000 0x40>;
-+		};
-+
-+		timer4: timer@2620000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x10 >;
-+			reg = <0x2620000 0x40>;
-+		};
-+
-+		timer5: timer@2630000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x20 >;
-+			reg = <0x2630000 0x40>;
-+		};
-+
-+		clock-controller@29a0000 {
-+			compatible = "ti,c6472-pll", "ti,c64x+pll";
-+			reg = <0x029a0000 0x200>;
-+			ti,c64x+pll-bypass-delay = <200>;
-+			ti,c64x+pll-reset-delay = <12000>;
-+			ti,c64x+pll-lock-delay = <80000>;
-+		};
-+
-+		device-state-controller@2a80000 {
-+			compatible = "ti,c64x+dscr";
-+			reg = <0x02a80000 0x1000>;
-+
-+			ti,dscr-devstat = <0>;
-+			ti,dscr-silicon-rev = <0x70c 16 0xff>;
-+
-+			ti,dscr-mac-fuse-regs = <0x700 1 2 3 4
-+						 0x704 5 6 0 0>;
-+
-+			ti,dscr-rmii-resets = <0x208 1
-+					       0x20c 1>;
-+
-+			ti,dscr-locked-regs = <0x200 0x204 0x0a1e183a
-+					       0x40c 0x420 0xbea7
-+					       0x41c 0x420 0xbea7>;
-+
-+			ti,dscr-privperm = <0x41c 0xaaaaaaaa>;
-+
-+			ti,dscr-devstate-ctl-regs = <0 13 0x200 1 0 0 1>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/dts/tms320c6474.dtsi b/arch/c6x/boot/dts/tms320c6474.dtsi
-new file mode 100644
-index 0000000..cc601bf
---- /dev/null
-+++ b/arch/c6x/boot/dts/tms320c6474.dtsi
-@@ -0,0 +1,89 @@
-+
-+/ {
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+
-+		cpu@0 {
-+			device_type = "cpu";
-+			reg = <0>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@1 {
-+			device_type = "cpu";
-+			reg = <1>;
-+			model = "ti,c64x+";
-+		};
-+		cpu@2 {
-+			device_type = "cpu";
-+			reg = <2>;
-+			model = "ti,c64x+";
-+		};
-+	};
-+
-+	soc {
-+		compatible = "simple-bus";
-+		model = "tms320c6474";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		ranges;
-+
-+		core_pic: interrupt-controller {
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+			compatible = "ti,c64x+core-pic";
-+		};
-+
-+		megamod_pic: interrupt-controller@1800000 {
-+		       compatible = "ti,c64x+megamod-pic";
-+		       interrupt-controller;
-+		       #interrupt-cells = <1>;
-+		       reg = <0x1800000 0x1000>;
-+		       interrupt-parent = <&core_pic>;
-+		};
-+
-+		cache-controller@1840000 {
-+			compatible = "ti,c64x+cache";
-+			reg = <0x01840000 0x8400>;
-+		};
-+
-+		timer3: timer@2940000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x04 >;
-+			reg = <0x2940000 0x40>;
-+		};
-+
-+		timer4: timer@2950000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x02 >;
-+			reg = <0x2950000 0x40>;
-+		};
-+
-+		timer5: timer@2960000 {
-+			compatible = "ti,c64x+timer64";
-+			ti,core-mask = < 0x01 >;
-+			reg = <0x2960000 0x40>;
-+		};
-+
-+		device-state-controller@2880800 {
-+			compatible = "ti,c64x+dscr";
-+			reg = <0x02880800 0x400>;
-+
-+			ti,dscr-devstat = <0x004>;
-+			ti,dscr-silicon-rev = <0x014 28 0xf>;
-+			ti,dscr-mac-fuse-regs = <0x34 3 4 5 6
-+						 0x38 0 0 1 2>;
-+		};
-+
-+		clock-controller@29a0000 {
-+			compatible = "ti,c6474-pll", "ti,c64x+pll";
-+			reg = <0x029a0000 0x200>;
-+			ti,c64x+pll-bypass-delay = <120>;
-+			ti,c64x+pll-reset-delay = <30000>;
-+			ti,c64x+pll-lock-delay = <60000>;
-+		};
-+	};
-+};
-diff --git a/arch/c6x/boot/linked_dtb.S b/arch/c6x/boot/linked_dtb.S
-new file mode 100644
-index 0000000..57a4454
---- /dev/null
-+++ b/arch/c6x/boot/linked_dtb.S
-@@ -0,0 +1,2 @@
-+.section __fdt_blob,"a"
-+.incbin "arch/c6x/boot/builtin.dtb"
-diff --git a/arch/c6x/kernel/devicetree.c b/arch/c6x/kernel/devicetree.c
-new file mode 100644
-index 0000000..bdb56f0
---- /dev/null
-+++ b/arch/c6x/kernel/devicetree.c
-@@ -0,0 +1,53 @@
-+/*
-+ *  Architecture specific OF callbacks.
-+ *
 + *  Copyright (C) 2011 Texas Instruments Incorporated
 + *  Author: Mark Salter <msalter@redhat.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
-+ *
 + */
-+#include <linux/init.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/initrd.h>
-+#include <linux/memblock.h>
++#ifndef _ASM_C6X_SWAB_H
++#define _ASM_C6X_SWAB_H
 +
-+void __init early_init_devtree(void *params)
++static inline __attribute_const__ __u16 __c6x_swab16(__u16 val)
 +{
-+	/* Setup flat device-tree pointer */
-+	initial_boot_params = params;
-+
-+	/* Retrieve various informations from the /chosen node of the
-+	 * device-tree, including the platform type, initrd location and
-+	 * size and more ...
-+	 */
-+	of_scan_flat_dt(early_init_dt_scan_chosen, c6x_command_line);
-+
-+	/* Scan memory nodes and rebuild MEMBLOCKs */
-+	of_scan_flat_dt(early_init_dt_scan_root, NULL);
-+	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
++	asm("swap4 .l1 %0,%0\n" : "+a"(val));
++	return val;
 +}
 +
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void __init early_init_dt_setup_initrd_arch(unsigned long start,
-+		unsigned long end)
++static inline __attribute_const__ __u32 __c6x_swab32(__u32 val)
 +{
-+	initrd_start = (unsigned long)__va(start);
-+	initrd_end = (unsigned long)__va(end);
-+	initrd_below_start_ok = 1;
++	asm("swap4 .l1 %0,%0\n"
++	    "swap2 .l1 %0,%0\n"
++	    : "+a"(val));
++	return val;
 +}
++
++static inline __attribute_const__ __u64 __c6x_swab64(__u64 val)
++{
++	asm("   swap2 .s1 %p0,%P0\n"
++	    "|| swap2 .l1 %P0,%p0\n"
++	    "   swap4 .l1 %p0,%p0\n"
++	    "   swap4 .l1 %P0,%P0\n"
++	    : "+a"(val));
++	return val;
++}
++
++static inline __attribute_const__ __u32 __c6x_swahw32(__u32 val)
++{
++	asm("swap2 .l1 %0,%0\n" : "+a"(val));
++	return val;
++}
++
++static inline __attribute_const__ __u32 __c6x_swahb32(__u32 val)
++{
++	asm("swap4 .l1 %0,%0\n" : "+a"(val));
++	return val;
++}
++
++#define __arch_swab16 __c6x_swab16
++#define __arch_swab32 __c6x_swab32
++#define __arch_swab64 __c6x_swab64
++#define __arch_swahw32 __c6x_swahw32
++#define __arch_swahb32 __c6x_swahb32
++
++#endif /* _ASM_C6X_SWAB_H */
+diff --git a/arch/c6x/include/asm/syscall.h b/arch/c6x/include/asm/syscall.h
+new file mode 100644
+index 0000000..ae2be31
+--- /dev/null
++++ b/arch/c6x/include/asm/syscall.h
+@@ -0,0 +1,123 @@
++/*
++ * Copyright (C) 2011 Texas Instruments Incorporated
++ * Author: Mark Salter <msalter@redhat.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ */
++
++#ifndef __ASM_C6X_SYSCALL_H
++#define __ASM_C6X_SYSCALL_H
++
++#include <linux/err.h>
++#include <linux/sched.h>
++
++static inline int syscall_get_nr(struct task_struct *task,
++				 struct pt_regs *regs)
++{
++	return regs->b0;
++}
++
++static inline void syscall_rollback(struct task_struct *task,
++				    struct pt_regs *regs)
++{
++	/* do nothing */
++}
++
++static inline long syscall_get_error(struct task_struct *task,
++				     struct pt_regs *regs)
++{
++	return IS_ERR_VALUE(regs->a4) ? regs->a4 : 0;
++}
++
++static inline long syscall_get_return_value(struct task_struct *task,
++					    struct pt_regs *regs)
++{
++	return regs->a4;
++}
++
++static inline void syscall_set_return_value(struct task_struct *task,
++					    struct pt_regs *regs,
++					    int error, long val)
++{
++	regs->a4 = error ?: val;
++}
++
++static inline void syscall_get_arguments(struct task_struct *task,
++					 struct pt_regs *regs, unsigned int i,
++					 unsigned int n, unsigned long *args)
++{
++	switch (i) {
++	case 0:
++		if (!n--)
++			break;
++		*args++ = regs->a4;
++	case 1:
++		if (!n--)
++			break;
++		*args++ = regs->b4;
++	case 2:
++		if (!n--)
++			break;
++		*args++ = regs->a6;
++	case 3:
++		if (!n--)
++			break;
++		*args++ = regs->b6;
++	case 4:
++		if (!n--)
++			break;
++		*args++ = regs->a8;
++	case 5:
++		if (!n--)
++			break;
++		*args++ = regs->b8;
++	case 6:
++		if (!n--)
++			break;
++	default:
++		BUG();
++	}
++}
++
++static inline void syscall_set_arguments(struct task_struct *task,
++					 struct pt_regs *regs,
++					 unsigned int i, unsigned int n,
++					 const unsigned long *args)
++{
++	switch (i) {
++	case 0:
++		if (!n--)
++			break;
++		regs->a4 = *args++;
++	case 1:
++		if (!n--)
++			break;
++		regs->b4 = *args++;
++	case 2:
++		if (!n--)
++			break;
++		regs->a6 = *args++;
++	case 3:
++		if (!n--)
++			break;
++		regs->b6 = *args++;
++	case 4:
++		if (!n--)
++			break;
++		regs->a8 = *args++;
++	case 5:
++		if (!n--)
++			break;
++		regs->a9 = *args++;
++	case 6:
++		if (!n)
++			break;
++	default:
++		BUG();
++	}
++}
++
++#endif /* __ASM_C6X_SYSCALLS_H */
+diff --git a/arch/c6x/include/asm/system.h b/arch/c6x/include/asm/system.h
+new file mode 100644
+index 0000000..e076dc0
+--- /dev/null
++++ b/arch/c6x/include/asm/system.h
+@@ -0,0 +1,168 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_SYSTEM_H
++#define _ASM_C6X_SYSTEM_H
++
++#include <linux/linkage.h>
++#include <linux/irqflags.h>
++
++#define prepare_to_switch()    do { } while (0)
++
++struct task_struct;
++struct thread_struct;
++asmlinkage void *__switch_to(struct thread_struct *prev,
++			     struct thread_struct *next,
++			     struct task_struct *tsk);
++
++#define switch_to(prev, next, last)				\
++	do {							\
++		current->thread.wchan = (u_long) __builtin_return_address(0); \
++		(last) = __switch_to(&(prev)->thread,		\
++				     &(next)->thread, (prev));	\
++		mb();						\
++		current->thread.wchan = 0;			\
++	} while (0)
++
++/* Reset the board */
++#define HARD_RESET_NOW()
++
++#define get_creg(reg) \
++	({ unsigned int __x; \
++	   asm volatile ("mvc .s2 " #reg ",%0\n" : "=b"(__x)); __x; })
++
++#define set_creg(reg, v) \
++	do { unsigned int __x = (unsigned int)(v); \
++		asm volatile ("mvc .s2 %0," #reg "\n" : : "b"(__x)); \
++	} while (0)
++
++#define or_creg(reg, n) \
++	do { unsigned __x, __n = (unsigned)(n);		  \
++		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
++			      "or  .l2 %1,%0,%0\n"	  \
++			      "mvc .s2 %0," #reg "\n"	  \
++			      "nop\n"			  \
++			      : "=&b"(__x) : "b"(__n));	  \
++	} while (0)
++
++#define and_creg(reg, n) \
++	do { unsigned __x, __n = (unsigned)(n);		  \
++		asm volatile ("mvc .s2 " #reg ",%0\n"	  \
++			      "and .l2 %1,%0,%0\n"	  \
++			      "mvc .s2 %0," #reg "\n"	  \
++			      "nop\n"    \
++			      : "=&b"(__x) : "b"(__n));	  \
++	} while (0)
++
++#define get_coreid() (get_creg(DNUM) & 0xff)
++
++/* Set/get IST */
++#define set_ist(x)	set_creg(ISTP, x)
++#define get_ist()       get_creg(ISTP)
++
++/*
++ * Exception management
++ */
++asmlinkage void enable_exception(void);
++#define disable_exception()
++#define get_except_type()        get_creg(EFR)
++#define ack_exception(type)      set_creg(ECR, 1 << (type))
++#define get_iexcept()            get_creg(IERR)
++#define set_iexcept(mask)        set_creg(IERR, (mask))
++
++/*
++ * Misc. functions
++ */
++#define nop()                    asm("NOP\n");
++#define mb()                     barrier()
++#define rmb()                    barrier()
++#define wmb()                    barrier()
++#define set_mb(var, value)       do { var = value;  mb(); } while (0)
++#define set_wmb(var, value)      do { var = value; wmb(); } while (0)
++
++#define smp_mb()	         barrier()
++#define smp_rmb()	         barrier()
++#define smp_wmb()	         barrier()
++#define smp_read_barrier_depends()	do { } while (0)
++
++#define xchg(ptr, x) \
++	((__typeof__(*(ptr)))__xchg((unsigned int)(x), (void *) (ptr), \
++				    sizeof(*(ptr))))
++#define tas(ptr)    xchg((ptr), 1)
++
++unsigned int _lmbd(unsigned int, unsigned int);
++unsigned int _bitr(unsigned int);
++
++struct __xchg_dummy { unsigned int a[100]; };
++#define __xg(x) ((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned int __xchg(unsigned int x, volatile void *ptr, int size)
++{
++	unsigned int tmp;
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		tmp = 0;
++		tmp = *((unsigned char *) ptr);
++		*((unsigned char *) ptr) = (unsigned char) x;
++		break;
++	case 2:
++		tmp = 0;
++		tmp = *((unsigned short *) ptr);
++		*((unsigned short *) ptr) = x;
++		break;
++	case 4:
++		tmp = 0;
++		tmp = *((unsigned int *) ptr);
++		*((unsigned int *) ptr) = x;
++		break;
++	}
++	local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)					\
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),		\
++						     (unsigned long)(o), \
++						     (unsigned long)(n), \
++						     sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#include <asm-generic/cmpxchg.h>
++
++#define _extu(x, s, e)							\
++	({      unsigned int __x;					\
++		asm volatile ("extu .S2 %3,%1,%2,%0\n" :		\
++			      "=b"(__x) : "n"(s), "n"(e), "b"(x));	\
++	       __x; })
++
++
++extern unsigned int c6x_core_freq;
++
++struct pt_regs;
++
++extern void die(char *str, struct pt_regs *fp, int nr);
++extern asmlinkage int process_exception(struct pt_regs *regs);
++extern void time_init(void);
++extern void free_initmem(void);
++
++extern void (*c6x_restart)(void);
++extern void (*c6x_halt)(void);
++
++#endif /* _ASM_C6X_SYSTEM_H */
+diff --git a/arch/c6x/include/asm/tlb.h b/arch/c6x/include/asm/tlb.h
+new file mode 100644
+index 0000000..8709e5e
+--- /dev/null
++++ b/arch/c6x/include/asm/tlb.h
+@@ -0,0 +1,8 @@
++#ifndef _ASM_C6X_TLB_H
++#define _ASM_C6X_TLB_H
++
++#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
++
++#include <asm-generic/tlb.h>
++
++#endif /* _ASM_C6X_TLB_H */
+diff --git a/arch/c6x/include/asm/uaccess.h b/arch/c6x/include/asm/uaccess.h
+new file mode 100644
+index 0000000..453dd26
+--- /dev/null
++++ b/arch/c6x/include/asm/uaccess.h
+@@ -0,0 +1,107 @@
++/*
++ *  Copyright (C) 2011 Texas Instruments Incorporated
++ *  Author: Mark Salter <msalter@redhat.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_UACCESS_H
++#define _ASM_C6X_UACCESS_H
++
++#include <linux/types.h>
++#include <linux/compiler.h>
++#include <linux/string.h>
++
++#ifdef CONFIG_ACCESS_CHECK
++#define __access_ok _access_ok
 +#endif
 +
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-+{
-+	c6x_add_memory(base, size);
-+}
-+
-+void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-+{
-+	return __va(memblock_alloc(size, align));
-+}
-diff --git a/arch/c6x/platforms/platform.c b/arch/c6x/platforms/platform.c
-new file mode 100644
-index 0000000..26c1a35
---- /dev/null
-+++ b/arch/c6x/platforms/platform.c
-@@ -0,0 +1,17 @@
 +/*
-+ * Copyright 2011 Texas Instruments Incorporated
++ * __copy_from_user/copy_to_user are based on ones in asm-generic/uaccess.h
 + *
-+ * This file is licensed under the terms of the GNU General Public License
-+ * version 2. This program is licensed "as is" without any warranty of any
-+ * kind, whether express or implied.
++ * C6X supports unaligned 32 and 64 bit loads and stores.
 + */
-+
-+#include <linux/init.h>
-+#include <linux/of_platform.h>
-+
-+static int __init c6x_device_probe(void)
++static inline __must_check long __copy_from_user(void *to,
++		const void __user *from, unsigned long n)
 +{
-+	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
++	u32 tmp32;
++	u64 tmp64;
++
++	if (__builtin_constant_p(n)) {
++		switch (n) {
++		case 1:
++			*(u8 *)to = *(u8 __force *)from;
++			return 0;
++		case 4:
++			asm volatile ("ldnw .d1t1 *%2,%0\n"
++				      "nop  4\n"
++				      "stnw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp32)
++				      : "A"(to), "a"(from)
++				      : "memory");
++			return 0;
++		case 8:
++			asm volatile ("ldndw .d1t1 *%2,%0\n"
++				      "nop   4\n"
++				      "stndw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp64)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		default:
++			break;
++		}
++	}
++
++	memcpy(to, (const void __force *)from, n);
 +	return 0;
 +}
-+core_initcall(c6x_device_probe);
++
++static inline __must_check long __copy_to_user(void __user *to,
++		const void *from, unsigned long n)
++{
++	u32 tmp32;
++	u64 tmp64;
++
++	if (__builtin_constant_p(n)) {
++		switch (n) {
++		case 1:
++			*(u8 __force *)to = *(u8 *)from;
++			return 0;
++		case 4:
++			asm volatile ("ldnw .d1t1 *%2,%0\n"
++				      "nop  4\n"
++				      "stnw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp32)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		case 8:
++			asm volatile ("ldndw .d1t1 *%2,%0\n"
++				      "nop   4\n"
++				      "stndw .d1t1 %0,*%1\n"
++				      : "=&a"(tmp64)
++				      : "a"(to), "a"(from)
++				      : "memory");
++			return 0;
++		default:
++			break;
++		}
++	}
++
++	memcpy((void __force *)to, from, n);
++	return 0;
++}
++
++#define __copy_to_user   __copy_to_user
++#define __copy_from_user __copy_from_user
++
++extern int _access_ok(unsigned long addr, unsigned long size);
++#ifdef CONFIG_ACCESS_CHECK
++#define __access_ok _access_ok
++#endif
++
++#include <asm-generic/uaccess.h>
++
++#endif /* _ASM_C6X_UACCESS_H */
+diff --git a/arch/c6x/include/asm/unaligned.h b/arch/c6x/include/asm/unaligned.h
+new file mode 100644
+index 0000000..b976cb7
+--- /dev/null
++++ b/arch/c6x/include/asm/unaligned.h
+@@ -0,0 +1,170 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Rewritten for 2.6.3x: Mark Salter <msalter@redhat.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#ifndef _ASM_C6X_UNALIGNED_H
++#define _ASM_C6X_UNALIGNED_H
++
++#include <linux/swab.h>
++
++/*
++ * The C64x+ can do unaligned word and dword accesses in hardware
++ * using special load/store instructions.
++ */
++
++static inline u16 get_unaligned_le16(const void *p)
++{
++	const u8 *_p = p;
++	return _p[0] | _p[1] << 8;
++}
++
++static inline u16 get_unaligned_be16(const void *p)
++{
++	const u8 *_p = p;
++	return _p[0] << 8 | _p[1];
++}
++
++static inline void put_unaligned_le16(u16 val, void *p)
++{
++	u8 *_p = p;
++	_p[0] = val;
++	_p[1] = val >> 8;
++}
++
++static inline void put_unaligned_be16(u16 val, void *p)
++{
++	u8 *_p = p;
++	_p[0] = val >> 8;
++	_p[1] = val;
++}
++
++static inline u32 get_unaligned32(const void *p)
++{
++	u32 val = (u32) p;
++	asm (" ldnw	.d1t1	*%0,%0\n"
++	     " nop     4\n"
++	     : "+a"(val));
++	return val;
++}
++
++static inline void put_unaligned32(u32 val, void *p)
++{
++	asm volatile (" stnw	.d2t1	%0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
++}
++
++static inline u64 get_unaligned64(const void *p)
++{
++	u64 val;
++	asm volatile (" ldndw	.d1t1	*%1,%0\n"
++		      " nop     4\n"
++		      : "=a"(val) : "a"(p));
++	return val;
++}
++
++static inline void put_unaligned64(u64 val, const void *p)
++{
++	asm volatile (" stndw	.d2t1	%0,*%1\n"
++		      : : "a"(val), "b"(p) : "memory");
++}
++
++#ifdef CONFIG_CPU_BIG_ENDIAN
++
++#define get_unaligned_le32(p)	 __swab32(get_unaligned32(p))
++#define get_unaligned_le64(p)	 __swab64(get_unaligned64(p))
++#define get_unaligned_be32(p)	 get_unaligned32(p)
++#define get_unaligned_be64(p)	 get_unaligned64(p)
++#define put_unaligned_le32(v, p) put_unaligned32(__swab32(v), (p))
++#define put_unaligned_le64(v, p) put_unaligned64(__swab64(v), (p))
++#define put_unaligned_be32(v, p) put_unaligned32((v), (p))
++#define put_unaligned_be64(v, p) put_unaligned64((v), (p))
++#define get_unaligned	__get_unaligned_be
++#define put_unaligned	__put_unaligned_be
++
++#else
++
++#define get_unaligned_le32(p)	 get_unaligned32(p)
++#define get_unaligned_le64(p)	 get_unaligned64(p)
++#define get_unaligned_be32(p)	 __swab32(get_unaligned32(p))
++#define get_unaligned_be64(p)	 __swab64(get_unaligned64(p))
++#define put_unaligned_le32(v, p) put_unaligned32((v), (p))
++#define put_unaligned_le64(v, p) put_unaligned64((v), (p))
++#define put_unaligned_be32(v, p) put_unaligned32(__swab32(v), (p))
++#define put_unaligned_be64(v, p) put_unaligned64(__swab64(v), (p))
++#define get_unaligned	__get_unaligned_le
++#define put_unaligned	__put_unaligned_le
++
++#endif
++
++/*
++ * Cause a link-time error if we try an unaligned access other than
++ * 1,2,4 or 8 bytes long
++ */
++extern int __bad_unaligned_access_size(void);
++
++#define __get_unaligned_le(ptr) (typeof(*(ptr)))({			\
++	sizeof(*(ptr)) == 1 ? *(ptr) :					\
++	  (sizeof(*(ptr)) == 2 ? get_unaligned_le16((ptr)) :		\
++	     (sizeof(*(ptr)) == 4 ? get_unaligned_le32((ptr)) :		\
++		(sizeof(*(ptr)) == 8 ? get_unaligned_le64((ptr)) :	\
++		   __bad_unaligned_access_size())));			\
++	})
++
++#define __get_unaligned_be(ptr) (__force typeof(*(ptr)))({	\
++	sizeof(*(ptr)) == 1 ? *(ptr) :					\
++	  (sizeof(*(ptr)) == 2 ? get_unaligned_be16((ptr)) :		\
++	     (sizeof(*(ptr)) == 4 ? get_unaligned_be32((ptr)) :		\
++		(sizeof(*(ptr)) == 8 ? get_unaligned_be64((ptr)) :	\
++		   __bad_unaligned_access_size())));			\
++	})
++
++#define __put_unaligned_le(val, ptr) ({					\
++	void *__gu_p = (ptr);						\
++	switch (sizeof(*(ptr))) {					\
++	case 1:								\
++		*(u8 *)__gu_p = (__force u8)(val);			\
++		break;							\
++	case 2:								\
++		put_unaligned_le16((__force u16)(val), __gu_p);		\
++		break;							\
++	case 4:								\
++		put_unaligned_le32((__force u32)(val), __gu_p);		\
++		break;							\
++	case 8:								\
++		put_unaligned_le64((__force u64)(val), __gu_p);		\
++		break;							\
++	default:							\
++		__bad_unaligned_access_size();				\
++		break;							\
++	}								\
++	(void)0; })
++
++#define __put_unaligned_be(val, ptr) ({					\
++	void *__gu_p = (ptr);						\
++	switch (sizeof(*(ptr))) {					\
++	case 1:								\
++		*(u8 *)__gu_p = (__force u8)(val);			\
++		break;							\
++	case 2:								\
++		put_unaligned_be16((__force u16)(val), __gu_p);		\
++		break;							\
++	case 4:								\
++		put_unaligned_be32((__force u32)(val), __gu_p);		\
++		break;							\
++	case 8:								\
++		put_unaligned_be64((__force u64)(val), __gu_p);		\
++		break;							\
++	default:							\
++		__bad_unaligned_access_size();				\
++		break;							\
++	}								\
++	(void)0; })
++
++#endif /* _ASM_C6X_UNALIGNED_H */
 -- 
 1.7.6.2
 
