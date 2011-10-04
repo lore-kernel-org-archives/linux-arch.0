@@ -1,171 +1,277 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:12397 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:45379 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932928Ab1JDQob (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Oct 2011 12:44:31 -0400
+	id S932905Ab1JDQo3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Oct 2011 12:44:29 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 21/24] C6X: general SoC support
-Date: Tue,  4 Oct 2011 12:43:58 -0400
-Message-ID: <1317746641-26725-22-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 17/24] C6X: loadable module support
+Date: Tue,  4 Oct 2011 12:43:54 -0400
+Message-ID: <1317746641-26725-18-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20111004164358.41tAvQ4iYFSI2i1IjRymEfzLI5tM1_KcCGNhazGeLcY@z>
+Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20111004164354.StuKtW7Pk-pZnmJ4VVOzwPlelCluty0RCtf6rcswESA@z>
 
-This patch provides a soc_ops struct which provides hooks for SoC functionality
-which doesn't fit well into other places.
+From: Aurelien Jacquiot <a-jacquiot@ti.com>
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
+Original port to early 2.6 kernel using TI COFF toolchain.
+Brought up to date by Mark Salter <msalter@redhat.com>
+
 Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
+Signed-off-by: Mark Salter <msalter@redhat.com>
 CC: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/c6x/include/asm/soc.h |   35 +++++++++++++++++
- arch/c6x/kernel/soc.c      |   91 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 126 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/soc.h
- create mode 100644 arch/c6x/kernel/soc.c
+ arch/c6x/include/asm/module.h |   33 +++++++++++
+ arch/c6x/kernel/c6x_ksyms.c   |   66 ++++++++++++++++++++++
+ arch/c6x/kernel/module.c      |  123 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 222 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/module.h
+ create mode 100644 arch/c6x/kernel/c6x_ksyms.c
+ create mode 100644 arch/c6x/kernel/module.c
 
-diff --git a/arch/c6x/include/asm/soc.h b/arch/c6x/include/asm/soc.h
+diff --git a/arch/c6x/include/asm/module.h b/arch/c6x/include/asm/module.h
 new file mode 100644
-index 0000000..43f5015
+index 0000000..a453f97
 --- /dev/null
-+++ b/arch/c6x/include/asm/soc.h
-@@ -0,0 +1,35 @@
++++ b/arch/c6x/include/asm/module.h
+@@ -0,0 +1,33 @@
 +/*
-+ * Miscellaneous SoC-specific hooks.
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ * Copyright (C) 2011 Texas Instruments Incorporated
++ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
 + *
-+ * Author: Mark Salter <msalter@redhat.com>
-+ *
-+ * This file is licensed under the terms of the GNU General Public License
-+ * version 2. This program is licensed "as is" without any warranty of any
-+ * kind, whether express or implied.
-+ */
-+#ifndef _ASM_C6X_SOC_H
-+#define _ASM_C6X_SOC_H
-+
-+struct soc_ops {
-+	/* Return active exception event or -1 if none */
-+	int		(*get_exception)(void);
-+
-+	/* Assert an event */
-+	void		(*assert_event)(unsigned int evt);
-+};
-+
-+extern struct soc_ops soc_ops;
-+
-+extern int soc_get_exception(void);
-+extern void soc_assert_event(unsigned int event);
-+extern int soc_mac_addr(unsigned int index, u8 *addr);
-+
-+/*
-+ * for mmio on SoC devices. regs are always same byte order as cpu.
-+ */
-+#define soc_readl(addr)    __raw_readl(addr)
-+#define soc_writel(b, addr) __raw_writel((b), (addr))
-+
-+#endif /* _ASM_C6X_SOC_H */
-diff --git a/arch/c6x/kernel/soc.c b/arch/c6x/kernel/soc.c
-new file mode 100644
-index 0000000..dd45bc3
---- /dev/null
-+++ b/arch/c6x/kernel/soc.c
-@@ -0,0 +1,91 @@
-+/*
-+ *  Miscellaneous SoC-specific hooks.
-+ *
-+ *  Copyright (C) 2011 Texas Instruments Incorporated
-+ *  Author: Mark Salter <msalter@redhat.com>
++ *  Updated for 2.6.34 by: Mark Salter (msalter@redhat.com)
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#include <linux/module.h>
-+#include <linux/ctype.h>
-+#include <linux/etherdevice.h>
-+#include <asm/system.h>
-+#include <asm/setup.h>
-+#include <asm/soc.h>
++#ifndef _ASM_C6X_MODULE_H
++#define _ASM_C6X_MODULE_H
 +
-+struct soc_ops soc_ops;
-+
-+int soc_get_exception(void)
-+{
-+	if (!soc_ops.get_exception)
-+		return -1;
-+	return soc_ops.get_exception();
-+}
-+
-+void soc_assert_event(unsigned int evt)
-+{
-+	if (soc_ops.assert_event)
-+		soc_ops.assert_event(evt);
-+}
-+
-+static u8 cmdline_mac[6];
-+
-+static int __init get_mac_addr_from_cmdline(char *str)
-+{
-+	int count, i, val;
-+
-+	for (count = 0; count < 6 && *str; count++, str += 3) {
-+		if (!isxdigit(str[0]) || !isxdigit(str[1]))
-+			return 0;
-+		if (str[2] != ((count < 5) ? ':' : '\0'))
-+			return 0;
-+
-+		for (i = 0, val = 0; i < 2; i++) {
-+			val = val << 4;
-+			val |= isdigit(str[i]) ?
-+				str[i] - '0' : toupper(str[i]) - 'A' + 10;
-+		}
-+		cmdline_mac[count] = val;
-+	}
-+	return 1;
-+}
-+__setup("emac_addr=", get_mac_addr_from_cmdline);
++#define Elf_Shdr	Elf32_Shdr
++#define Elf_Sym		Elf32_Sym
++#define Elf_Ehdr	Elf32_Ehdr
++#define Elf_Addr	Elf32_Addr
++#define Elf_Word	Elf32_Word
 +
 +/*
-+ * Setup the MAC address for SoC ethernet devices.
-+ *
-+ * Before calling this function, the ethernet driver will have
-+ * initialized the addr with local-mac-address from the device
-+ * tree (if found). Allow command line to override, but not
-+ * the fused address.
++ * This file contains the C6x architecture specific module code.
 + */
-+int soc_mac_addr(unsigned int index, u8 *addr)
++struct mod_arch_specific {
++};
++
++struct loaded_sections {
++	unsigned int new_vaddr;
++	unsigned int loaded;
++};
++
++#endif /* _ASM_C6X_MODULE_H */
+diff --git a/arch/c6x/kernel/c6x_ksyms.c b/arch/c6x/kernel/c6x_ksyms.c
+new file mode 100644
+index 0000000..0ba3e0b
+--- /dev/null
++++ b/arch/c6x/kernel/c6x_ksyms.c
+@@ -0,0 +1,66 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ */
++#include <linux/module.h>
++#include <asm/checksum.h>
++#include <linux/io.h>
++
++/*
++ * libgcc functions - used internally by the compiler...
++ */
++extern int __c6xabi_divi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_divi);
++
++extern unsigned __c6xabi_divu(unsigned	dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_divu);
++
++extern int __c6xabi_remi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_remi);
++
++extern unsigned __c6xabi_remu(unsigned	dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_remu);
++
++extern int __c6xabi_divremi(int dividend, int divisor);
++EXPORT_SYMBOL(__c6xabi_divremi);
++
++extern unsigned __c6xabi_divremu(unsigned  dividend, unsigned divisor);
++EXPORT_SYMBOL(__c6xabi_divremu);
++
++extern unsigned long long __c6xabi_mpyll(unsigned long long src1,
++					 unsigned long long src2);
++EXPORT_SYMBOL(__c6xabi_mpyll);
++
++extern long long __c6xabi_negll(long long src);
++EXPORT_SYMBOL(__c6xabi_negll);
++
++extern unsigned long long __c6xabi_llshl(unsigned long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshl);
++
++extern long long __c6xabi_llshr(long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshr);
++
++extern unsigned long long __c6xabi_llshru(unsigned long long src1, uint src2);
++EXPORT_SYMBOL(__c6xabi_llshru);
++
++extern void __c6xabi_strasgi(int *dst, const int *src, unsigned cnt);
++EXPORT_SYMBOL(__c6xabi_strasgi);
++
++extern void __c6xabi_push_rts(void);
++EXPORT_SYMBOL(__c6xabi_push_rts);
++
++extern void __c6xabi_pop_rts(void);
++EXPORT_SYMBOL(__c6xabi_pop_rts);
++
++extern void __c6xabi_strasgi_64plus(int *dst, const int *src, unsigned cnt);
++EXPORT_SYMBOL(__c6xabi_strasgi_64plus);
++
++/* lib functions */
++EXPORT_SYMBOL(memcpy);
+diff --git a/arch/c6x/kernel/module.c b/arch/c6x/kernel/module.c
+new file mode 100644
+index 0000000..5fc03f1
+--- /dev/null
++++ b/arch/c6x/kernel/module.c
+@@ -0,0 +1,123 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2005, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Thomas Charleux (thomas.charleux@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ */
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/kernel.h>
++
++static inline int fixup_pcr(u32 *ip, Elf32_Addr dest, u32 maskbits, int shift)
 +{
-+	int i, have_dt_mac = 0, have_cmdline_mac = 0, have_fuse_mac = 0;
++	u32 opcode;
++	long ep = (long)ip & ~31;
++	long delta = ((long)dest - ep) >> 2;
++	long mask = (1 << maskbits) - 1;
 +
-+	for (i = 0; i < 6; i++) {
-+		if (cmdline_mac[i])
-+			have_cmdline_mac = 1;
-+		if (c6x_fuse_mac[i])
-+			have_fuse_mac = 1;
-+		if (addr[i])
-+			have_dt_mac = 1;
++	if ((delta >> (maskbits - 1)) == 0 ||
++	    (delta >> (maskbits - 1)) == -1) {
++		opcode = *ip;
++		opcode &= ~(mask << shift);
++		opcode |= ((delta & mask) << shift);
++		*ip = opcode;
++
++		pr_debug("REL PCR_S%d[%p] dest[%p] opcode[%08x]\n",
++			 maskbits, ip, (void *)dest, opcode);
++
++		return 0;
 +	}
++	pr_err("PCR_S%d reloc %p -> %p out of range!\n",
++	       maskbits, ip, (void *)dest);
 +
-+	/* cmdline overrides all */
-+	if (have_cmdline_mac)
-+		memcpy(addr, cmdline_mac, 6);
-+	else if (!have_dt_mac) {
-+		if (have_fuse_mac)
-+			memcpy(addr, c6x_fuse_mac, 6);
-+		else
-+			random_ether_addr(addr);
-+	}
-+
-+	/* adjust for specific EMAC device */
-+	addr[5] += index * c6x_num_cores;
-+	return 1;
++	return -1;
 +}
-+EXPORT_SYMBOL_GPL(soc_mac_addr);
++
++/*
++ * apply a RELA relocation
++ */
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,
++		       unsigned int relsec,
++		       struct module *me)
++{
++	Elf32_Rela *rel = (void *) sechdrs[relsec].sh_addr;
++	Elf_Sym *sym;
++	u32 *location, opcode;
++	unsigned int i;
++	Elf32_Addr v;
++	Elf_Addr offset = 0;
++
++	pr_debug("Applying relocate section %u to %u with offset 0x%x\n",
++		 relsec, sechdrs[relsec].sh_info, offset);
++
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset - offset;
++
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
++
++		/* this is the adjustment to be made */
++		v = sym->st_value + rel[i].r_addend;
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_C6000_ABS32:
++			pr_debug("RELA ABS32: [%p] = 0x%x\n", location, v);
++			*location = v;
++			break;
++		case R_C6000_ABS16:
++			pr_debug("RELA ABS16: [%p] = 0x%x\n", location, v);
++			*(u16 *)location = v;
++			break;
++		case R_C6000_ABS8:
++			pr_debug("RELA ABS8: [%p] = 0x%x\n", location, v);
++			*(u8 *)location = v;
++			break;
++		case R_C6000_ABS_L16:
++			opcode = *location;
++			opcode &= ~0x7fff80;
++			opcode |= ((v & 0xffff) << 7);
++			pr_debug("RELA ABS_L16[%p] v[0x%x] opcode[0x%x]\n",
++				 location, v, opcode);
++			*location = opcode;
++			break;
++		case R_C6000_ABS_H16:
++			opcode = *location;
++			opcode &= ~0x7fff80;
++			opcode |= ((v >> 9) & 0x7fff80);
++			pr_debug("RELA ABS_H16[%p] v[0x%x] opcode[0x%x]\n",
++				 location, v, opcode);
++			*location = opcode;
++			break;
++		case R_C6000_PCR_S21:
++			if (fixup_pcr(location, v, 21, 7))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S12:
++			if (fixup_pcr(location, v, 12, 16))
++				return -ENOEXEC;
++			break;
++		case R_C6000_PCR_S10:
++			if (fixup_pcr(location, v, 10, 13))
++				return -ENOEXEC;
++			break;
++		default:
++			pr_err("module %s: Unknown RELA relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++
++	return 0;
++}
 -- 
 1.7.6.2
 
