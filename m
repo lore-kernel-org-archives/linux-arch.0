@@ -1,210 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:21680 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:49029 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757403Ab1JDQo0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Oct 2011 12:44:26 -0400
+	id S1757275Ab1JDQoY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Oct 2011 12:44:24 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH v4 16/24] C6X: cache control
-Date: Tue,  4 Oct 2011 12:43:53 -0400
-Message-ID: <1317746641-26725-17-git-send-email-msalter@redhat.com>
+Subject: [PATCH v4 08/24] C6X: memory management and DMA support
+Date: Tue,  4 Oct 2011 12:43:45 -0400
+Message-ID: <1317746641-26725-9-git-send-email-msalter@redhat.com>
 In-Reply-To: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>
-Message-ID: <20111004164353.1IQDMiJ_MJInpFgxutzMHCcMy47KSi3-W3Zw86WzNcw@z>
+Cc: linux-arch@vger.kernel.org, Aurelien Jacquiot <a-jacquiot@ti.com>, Mark Salter <msalter@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20111004164345.vPLx6RA4Er3GeIhIC3j0AE_l4qHN8kasmzZIBD_WF0o@z>
 
 From: Aurelien Jacquiot <a-jacquiot@ti.com>
 
 Original port to early 2.6 kernel using TI COFF toolchain.
 Brought up to date by Mark Salter <msalter@redhat.com>
 
+The C6X architecture currently lacks an MMU so memory management is relatively
+simple. There is no bus snooping between L2 and main memory but coherent DMA
+memory is supported by making regions of main memory uncached. If such a region
+is desired, it can be specified on the commandline with a "memdma=" argument.
+
 Signed-off-by: Aurelien Jacquiot <a-jacquiot@ti.com>
 Signed-off-by: Mark Salter <msalter@redhat.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+CC: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/c6x/include/asm/cache.h      |   90 ++++++++
- arch/c6x/include/asm/cacheflush.h |   65 ++++++
- arch/c6x/platforms/cache.c        |  445 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 600 insertions(+), 0 deletions(-)
- create mode 100644 arch/c6x/include/asm/cache.h
- create mode 100644 arch/c6x/include/asm/cacheflush.h
- create mode 100644 arch/c6x/platforms/cache.c
+ arch/c6x/include/asm/dma-mapping.h |   91 +++++++++++++++++++++
+ arch/c6x/kernel/dma.c              |  153 ++++++++++++++++++++++++++++++++++++
+ arch/c6x/mm/dma-coherent.c         |  143 +++++++++++++++++++++++++++++++++
+ arch/c6x/mm/init.c                 |  113 ++++++++++++++++++++++++++
+ 4 files changed, 500 insertions(+), 0 deletions(-)
+ create mode 100644 arch/c6x/include/asm/dma-mapping.h
+ create mode 100644 arch/c6x/kernel/dma.c
+ create mode 100644 arch/c6x/mm/dma-coherent.c
+ create mode 100644 arch/c6x/mm/init.c
 
-diff --git a/arch/c6x/include/asm/cache.h b/arch/c6x/include/asm/cache.h
+diff --git a/arch/c6x/include/asm/dma-mapping.h b/arch/c6x/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..6d521d9
+index 0000000..03579fd
 --- /dev/null
-+++ b/arch/c6x/include/asm/cache.h
-@@ -0,0 +1,90 @@
++++ b/arch/c6x/include/asm/dma-mapping.h
+@@ -0,0 +1,91 @@
 +/*
 + *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2005, 2006, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
 + *
 + *  This program is free software; you can redistribute it and/or modify
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
-+ */
-+#ifndef _ASM_C6X_CACHE_H
-+#define _ASM_C6X_CACHE_H
-+
-+#include <linux/irqflags.h>
-+
-+/*
-+ * Cache line size
-+ */
-+#define L1D_CACHE_BYTES   64
-+#define L1P_CACHE_BYTES   32
-+#define L2_CACHE_BYTES	  128
-+
-+/*
-+ * L2 used as cache
-+ */
-+#define L2MODE_SIZE	  L2MODE_256K_CACHE
-+
-+/*
-+ * For practical reasons the L1_CACHE_BYTES defines should not be smaller than
-+ * the L2 line size
-+ */
-+#define L1_CACHE_BYTES        L2_CACHE_BYTES
-+
-+#define L2_CACHE_ALIGN_LOW(x) \
-+	(((x) & ~(L2_CACHE_BYTES - 1)))
-+#define L2_CACHE_ALIGN_UP(x) \
-+	(((x) + (L2_CACHE_BYTES - 1)) & ~(L2_CACHE_BYTES - 1))
-+#define L2_CACHE_ALIGN_CNT(x) \
-+	(((x) + (sizeof(int) - 1)) & ~(sizeof(int) - 1))
-+
-+#define ARCH_DMA_MINALIGN	L1_CACHE_BYTES
-+#define ARCH_SLAB_MINALIGN	L1_CACHE_BYTES
-+
-+/*
-+ * This is the granularity of hardware cacheability control.
-+ */
-+#define CACHEABILITY_ALIGN	0x01000000
-+
-+/*
-+ * Align a physical address to MAR regions
-+ */
-+#define CACHE_REGION_START(v) \
-+	(((u32) (v)) & ~(CACHEABILITY_ALIGN - 1))
-+#define CACHE_REGION_END(v) \
-+	(((u32) (v) + (CACHEABILITY_ALIGN - 1)) & ~(CACHEABILITY_ALIGN - 1))
-+
-+extern void __init c6x_cache_init(void);
-+
-+extern void enable_caching(unsigned long start, unsigned long end);
-+extern void disable_caching(unsigned long start, unsigned long end);
-+
-+extern void L1_cache_off(void);
-+extern void L1_cache_on(void);
-+
-+extern void L1P_cache_global_invalidate(void);
-+extern void L1D_cache_global_invalidate(void);
-+extern void L1D_cache_global_writeback(void);
-+extern void L1D_cache_global_writeback_invalidate(void);
-+extern void L2_cache_set_mode(unsigned int mode);
-+extern void L2_cache_global_writeback_invalidate(void);
-+extern void L2_cache_global_writeback(void);
-+
-+extern void L1P_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L1D_cache_block_writeback_invalidate(unsigned int start,
-+						 unsigned int end);
-+extern void L1D_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_invalidate(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback(unsigned int start, unsigned int end);
-+extern void L2_cache_block_writeback_invalidate(unsigned int start,
-+						unsigned int end);
-+extern void L2_cache_block_invalidate_nowait(unsigned int start,
-+					     unsigned int end);
-+extern void L2_cache_block_writeback_nowait(unsigned int start,
-+					    unsigned int end);
-+
-+extern void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						       unsigned int end);
-+
-+#endif /* _ASM_C6X_CACHE_H */
-diff --git a/arch/c6x/include/asm/cacheflush.h b/arch/c6x/include/asm/cacheflush.h
-new file mode 100644
-index 0000000..df5db90
---- /dev/null
-+++ b/arch/c6x/include/asm/cacheflush.h
-@@ -0,0 +1,65 @@
-+/*
-+ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
-+ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
-+ *
-+ *  This program is free software; you can redistribute it and/or modify
-+ *  it under the terms of the GNU General Public License version 2 as
-+ *  published by the Free Software Foundation.
 + */
-+#ifndef _ASM_C6X_CACHEFLUSH_H
-+#define _ASM_C6X_CACHEFLUSH_H
++#ifndef _ASM_C6X_DMA_MAPPING_H
++#define _ASM_C6X_DMA_MAPPING_H
 +
-+#include <linux/spinlock.h>
++#include <linux/dma-debug.h>
++#include <asm-generic/dma-coherent.h>
 +
-+#include <asm/setup.h>
-+#include <asm/cache.h>
-+#include <asm/mman.h>
-+#include <asm/page.h>
-+#include <asm/string.h>
++#define dma_supported(d, m)	1
++
++static inline int dma_set_mask(struct device *dev, u64 dma_mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, dma_mask))
++		return -EIO;
++
++	*dev->dma_mask = dma_mask;
++
++	return 0;
++}
 +
 +/*
-+ * virtually-indexed cache management (our cache is physically indexed)
++ * DMA errors are defined by all-bits-set in the DMA address.
 + */
-+#define flush_cache_all()			do {} while (0)
-+#define flush_cache_mm(mm)			do {} while (0)
-+#define flush_cache_dup_mm(mm)			do {} while (0)
-+#define flush_cache_range(mm, start, end)	do {} while (0)
-+#define flush_cache_page(vma, vmaddr, pfn)	do {} while (0)
-+#define flush_cache_vmap(start, end)		do {} while (0)
-+#define flush_cache_vunmap(start, end)		do {} while (0)
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 0
-+#define flush_dcache_page(page)			do {} while (0)
-+#define flush_dcache_mmap_lock(mapping)		do {} while (0)
-+#define flush_dcache_mmap_unlock(mapping)	do {} while (0)
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return dma_addr == ~0;
++}
 +
-+/*
-+ * physically-indexed cache management
-+ */
-+#define flush_icache_range(s, e)				  \
-+do {								  \
-+		L1D_cache_block_writeback((s), (e));		  \
-+		L1P_cache_block_invalidate((s), (e));		  \
-+} while (0)
++extern dma_addr_t dma_map_single(struct device *dev, void *cpu_addr,
++				 size_t size, enum dma_data_direction dir);
 +
-+#define flush_icache_page(vma, page)					  \
-+do {								  \
-+	if ((vma)->vm_flags & PROT_EXEC)				  \
-+		L1D_cache_block_writeback_invalidate(page_address(page),  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+		L1P_cache_block_invalidate(page_address(page),		  \
-+			(unsigned long) page_address(page) + PAGE_SIZE)); \
-+} while (0)
++extern void dma_unmap_single(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir);
 +
++extern int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++		      int nents, enum dma_data_direction direction);
 +
-+#define copy_to_user_page(vma, page, vaddr, dst, src, len) \
-+do {						     \
-+	memcpy(dst, src, len);			     \
-+	flush_icache_range((unsigned) (dst), (unsigned) (dst) + (len)); \
-+} while (0)
++extern void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction direction);
 +
-+#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-+	memcpy(dst, src, len)
++static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
++				      unsigned long offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	dma_addr_t handle;
 +
-+#endif /* _ASM_C6X_CACHEFLUSH_H */
-diff --git a/arch/c6x/platforms/cache.c b/arch/c6x/platforms/cache.c
++	handle = dma_map_single(dev, page_address(page) + offset, size, dir);
++
++	debug_dma_map_page(dev, page, offset, size, dir, handle, false);
++
++	return handle;
++}
++
++static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
++		size_t size, enum dma_data_direction dir)
++{
++	dma_unmap_single(dev, handle, size, dir);
++
++	debug_dma_unmap_page(dev, handle, size, dir, false);
++}
++
++extern void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++				    size_t size, enum dma_data_direction dir);
++
++extern void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				       size_t size,
++				       enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
++				int nents, enum dma_data_direction dir);
++
++extern void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++				   int nents, enum dma_data_direction dir);
++
++extern void coherent_mem_init(u32 start, u32 size);
++extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
++extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
++
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent((d), (s), (h), (f))
++#define dma_free_noncoherent(d, s, v, h)  dma_free_coherent((d), (s), (v), (h))
++
++#endif	/* _ASM_C6X_DMA_MAPPING_H */
+diff --git a/arch/c6x/kernel/dma.c b/arch/c6x/kernel/dma.c
 new file mode 100644
-index 0000000..86318a1
+index 0000000..ab7b12d
 --- /dev/null
-+++ b/arch/c6x/platforms/cache.c
-@@ -0,0 +1,445 @@
++++ b/arch/c6x/kernel/dma.c
+@@ -0,0 +1,153 @@
 +/*
 + *  Copyright (C) 2011 Texas Instruments Incorporated
 + *  Author: Mark Salter <msalter@redhat.com>
@@ -213,442 +150,418 @@ index 0000000..86318a1
 + *  it under the terms of the GNU General Public License version 2 as
 + *  published by the Free Software Foundation.
 + */
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/dma-mapping.h>
++#include <linux/mm.h>
++#include <linux/mm_types.h>
++#include <linux/scatterlist.h>
 +
-+#include <asm/cache.h>
-+#include <asm/soc.h>
++#include <asm/cacheflush.h>
 +
-+/*
-+ * Internal Memory Control Registers for caches
-+ */
-+#define IMCR_CCFG	  0x0000
-+#define IMCR_L1PCFG	  0x0020
-+#define IMCR_L1PCC	  0x0024
-+#define IMCR_L1DCFG	  0x0040
-+#define IMCR_L1DCC	  0x0044
-+#define IMCR_L2ALLOC0	  0x2000
-+#define IMCR_L2ALLOC1	  0x2004
-+#define IMCR_L2ALLOC2	  0x2008
-+#define IMCR_L2ALLOC3	  0x200c
-+#define IMCR_L2WBAR	  0x4000
-+#define IMCR_L2WWC	  0x4004
-+#define IMCR_L2WIBAR	  0x4010
-+#define IMCR_L2WIWC	  0x4014
-+#define IMCR_L2IBAR	  0x4018
-+#define IMCR_L2IWC	  0x401c
-+#define IMCR_L1PIBAR	  0x4020
-+#define IMCR_L1PIWC	  0x4024
-+#define IMCR_L1DWIBAR	  0x4030
-+#define IMCR_L1DWIWC	  0x4034
-+#define IMCR_L1DWBAR	  0x4040
-+#define IMCR_L1DWWC	  0x4044
-+#define IMCR_L1DIBAR	  0x4048
-+#define IMCR_L1DIWC	  0x404c
-+#define IMCR_L2WB	  0x5000
-+#define IMCR_L2WBINV	  0x5004
-+#define IMCR_L2INV	  0x5008
-+#define IMCR_L1PINV	  0x5028
-+#define IMCR_L1DWB	  0x5040
-+#define IMCR_L1DWBINV	  0x5044
-+#define IMCR_L1DINV	  0x5048
-+#define IMCR_MAR_BASE	  0x8000
-+#define IMCR_MAR96_111	  0x8180
-+#define IMCR_MAR128_191   0x8200
-+#define IMCR_MAR224_239   0x8380
-+#define IMCR_L2MPFAR	  0xa000
-+#define IMCR_L2MPFSR	  0xa004
-+#define IMCR_L2MPFCR	  0xa008
-+#define IMCR_L2MPLK0	  0xa100
-+#define IMCR_L2MPLK1	  0xa104
-+#define IMCR_L2MPLK2	  0xa108
-+#define IMCR_L2MPLK3	  0xa10c
-+#define IMCR_L2MPLKCMD	  0xa110
-+#define IMCR_L2MPLKSTAT   0xa114
-+#define IMCR_L2MPPA_BASE  0xa200
-+#define IMCR_L1PMPFAR	  0xa400
-+#define IMCR_L1PMPFSR	  0xa404
-+#define IMCR_L1PMPFCR	  0xa408
-+#define IMCR_L1PMPLK0	  0xa500
-+#define IMCR_L1PMPLK1	  0xa504
-+#define IMCR_L1PMPLK2	  0xa508
-+#define IMCR_L1PMPLK3	  0xa50c
-+#define IMCR_L1PMPLKCMD   0xa510
-+#define IMCR_L1PMPLKSTAT  0xa514
-+#define IMCR_L1PMPPA_BASE 0xa600
-+#define IMCR_L1DMPFAR	  0xac00
-+#define IMCR_L1DMPFSR	  0xac04
-+#define IMCR_L1DMPFCR	  0xac08
-+#define IMCR_L1DMPLK0	  0xad00
-+#define IMCR_L1DMPLK1	  0xad04
-+#define IMCR_L1DMPLK2	  0xad08
-+#define IMCR_L1DMPLK3	  0xad0c
-+#define IMCR_L1DMPLKCMD   0xad10
-+#define IMCR_L1DMPLKSTAT  0xad14
-+#define IMCR_L1DMPPA_BASE 0xae00
-+#define IMCR_L2PDWAKE0	  0xc040
-+#define IMCR_L2PDWAKE1	  0xc044
-+#define IMCR_L2PDSLEEP0   0xc050
-+#define IMCR_L2PDSLEEP1   0xc054
-+#define IMCR_L2PDSTAT0	  0xc060
-+#define IMCR_L2PDSTAT1	  0xc064
-+
-+/*
-+ * CCFG register values and bits
-+ */
-+#define L2MODE_0K_CACHE   0x0
-+#define L2MODE_32K_CACHE  0x1
-+#define L2MODE_64K_CACHE  0x2
-+#define L2MODE_128K_CACHE 0x3
-+#define L2MODE_256K_CACHE 0x7
-+
-+#define L2PRIO_URGENT     0x0
-+#define L2PRIO_HIGH       0x1
-+#define L2PRIO_MEDIUM     0x2
-+#define L2PRIO_LOW        0x3
-+
-+#define CCFG_ID           0x100   /* Invalidate L1P bit */
-+#define CCFG_IP           0x200   /* Invalidate L1D bit */
-+
-+static void __iomem *cache_base;
-+
-+/*
-+ * L1 & L2 caches generic functions
-+ */
-+#define imcr_get(reg) soc_readl(cache_base + (reg))
-+#define imcr_set(reg, value) \
-+do {								\
-+	soc_writel((value), cache_base + (reg));		\
-+	soc_readl(cache_base + (reg));				\
-+} while (0)
-+
-+static void cache_block_operation_wait(unsigned int wc_reg)
++static void c6x_dma_sync(dma_addr_t handle, size_t size,
++			 enum dma_data_direction dir)
 +{
-+	/* Wait for completion */
-+	while (imcr_get(wc_reg))
-+		cpu_relax();
-+}
++	unsigned long paddr = handle;
 +
-+static DEFINE_SPINLOCK(cache_lock);
++	BUG_ON(!valid_dma_direction(dir));
 +
-+/*
-+ * Generic function to perform a block cache operation as
-+ * invalidate or writeback/invalidate
-+ */
-+static void cache_block_operation(unsigned int *start,
-+				  unsigned int *end,
-+				  unsigned int bar_reg,
-+				  unsigned int wc_reg)
-+{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
-+
-+	for (; wcnt; wcnt -= wc, start += wc) {
-+loop:
-+		spin_lock_irqsave(&cache_lock, flags);
-+
-+		/*
-+		 * If another cache operation is occuring
-+		 */
-+		if (unlikely(imcr_get(wc_reg))) {
-+			spin_unlock_irqrestore(&cache_lock, flags);
-+
-+			/* Wait for previous operation completion */
-+			cache_block_operation_wait(wc_reg);
-+
-+			/* Try again */
-+			goto loop;
-+		}
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		spin_unlock_irqrestore(&cache_lock, flags);
-+
-+		/* Wait for completion */
-+		cache_block_operation_wait(wc_reg);
++	switch (dir) {
++	case DMA_FROM_DEVICE:
++		L2_cache_block_invalidate(paddr, paddr + size);
++		break;
++	case DMA_TO_DEVICE:
++		L2_cache_block_writeback(paddr, paddr + size);
++		break;
++	case DMA_BIDIRECTIONAL:
++		L2_cache_block_writeback_invalidate(paddr, paddr + size);
++		break;
++	default:
++		break;
 +	}
 +}
 +
-+static void cache_block_operation_nowait(unsigned int *start,
-+					 unsigned int *end,
-+					 unsigned int bar_reg,
-+					 unsigned int wc_reg)
++dma_addr_t dma_map_single(struct device *dev, void *ptr, size_t size,
++			  enum dma_data_direction dir)
 +{
-+	unsigned long flags;
-+	unsigned int wcnt =
-+		(L2_CACHE_ALIGN_CNT((unsigned int) end)
-+		 - L2_CACHE_ALIGN_LOW((unsigned int) start)) >> 2;
-+	unsigned int wc = 0;
++	dma_addr_t addr = virt_to_phys(ptr);
 +
-+	for (; wcnt; wcnt -= wc, start += wc) {
++	c6x_dma_sync(addr, size, dir);
 +
-+		spin_lock_irqsave(&cache_lock, flags);
-+
-+		imcr_set(bar_reg, L2_CACHE_ALIGN_LOW((unsigned int) start));
-+
-+		if (wcnt > 0xffff)
-+			wc = 0xffff;
-+		else
-+			wc = wcnt;
-+
-+		/* Set word count value in the WC register */
-+		imcr_set(wc_reg, wc & 0xffff);
-+
-+		spin_unlock_irqrestore(&cache_lock, flags);
-+
-+		/* Don't wait for completion on last cache operation */
-+		if (wcnt > 0xffff)
-+			cache_block_operation_wait(wc_reg);
-+	}
++	debug_dma_map_page(dev, virt_to_page(ptr),
++			   (unsigned long)ptr & ~PAGE_MASK, size,
++			   dir, addr, true);
++	return addr;
 +}
++EXPORT_SYMBOL(dma_map_single);
 +
-+/*
-+ * L1 caches management
-+ */
 +
-+/*
-+ * Disable L1 caches
-+ */
-+void L1_cache_off(void)
++void dma_unmap_single(struct device *dev, dma_addr_t handle,
++		      size_t size, enum dma_data_direction dir)
 +{
-+	unsigned int dummy;
++	c6x_dma_sync(handle, size, dir);
 +
-+	imcr_set(IMCR_L1PCFG, 0);
-+	dummy = imcr_get(IMCR_L1PCFG);
-+
-+	imcr_set(IMCR_L1DCFG, 0);
-+	dummy = imcr_get(IMCR_L1DCFG);
++	debug_dma_unmap_page(dev, handle, size, dir, true);
 +}
++EXPORT_SYMBOL(dma_unmap_single);
 +
-+/*
-+ * Enable L1 caches
-+ */
-+void L1_cache_on(void)
++
++int dma_map_sg(struct device *dev, struct scatterlist *sglist,
++	       int nents, enum dma_data_direction dir)
 +{
-+	unsigned int dummy;
++	struct scatterlist *sg;
++	int i;
 +
-+	imcr_set(IMCR_L1PCFG, 7);
-+	dummy = imcr_get(IMCR_L1PCFG);
++	for_each_sg(sglist, sg, nents, i)
++		sg->dma_address = dma_map_single(dev, sg_virt(sg), sg->length,
++						 dir);
 +
-+	imcr_set(IMCR_L1DCFG, 7);
-+	dummy = imcr_get(IMCR_L1DCFG);
++	debug_dma_map_sg(dev, sglist, nents, nents, dir);
++
++	return nents;
 +}
++EXPORT_SYMBOL(dma_map_sg);
 +
-+/*
-+ *  L1P global-invalidate all
-+ */
-+void L1P_cache_global_invalidate(void)
++
++void dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
++		  int nents, enum dma_data_direction dir)
 +{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1PINV, set);
-+	while (imcr_get(IMCR_L1PINV) & 1)
-+		cpu_relax();
-+}
++	struct scatterlist *sg;
++	int i;
 +
++	for_each_sg(sglist, sg, nents, i)
++		dma_unmap_single(dev, sg_dma_address(sg), sg->length, dir);
++
++	debug_dma_unmap_sg(dev, sglist,	nents, dir);
++}
++EXPORT_SYMBOL(dma_unmap_sg);
++
++void dma_sync_single_for_cpu(struct device *dev, dma_addr_t handle,
++			     size_t size, enum dma_data_direction dir)
++{
++	c6x_dma_sync(handle, size, dir);
++
++	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_cpu);
++
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				size_t size, enum dma_data_direction dir)
++{
++	c6x_dma_sync(handle, size, dir);
++
++	debug_dma_sync_single_for_device(dev, handle, size, dir);
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++
++void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist,
++			 int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_cpu(dev, sg_dma_address(sg),
++					sg->length, dir);
++
++	debug_dma_sync_sg_for_cpu(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_cpu);
++
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
++			    int nents, enum dma_data_direction dir)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sglist, sg, nents, i)
++		dma_sync_single_for_device(dev, sg_dma_address(sg),
++					   sg->length, dir);
++
++	debug_dma_sync_sg_for_device(dev, sglist, nents, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
++
++
++/* Number of entries preallocated for DMA-API debugging */
++#define PREALLOC_DMA_DEBUG_ENTRIES (1 << 16)
++
++static int __init dma_init(void)
++{
++	dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
++
++	return 0;
++}
++fs_initcall(dma_init);
+diff --git a/arch/c6x/mm/dma-coherent.c b/arch/c6x/mm/dma-coherent.c
+new file mode 100644
+index 0000000..4187e51
+--- /dev/null
++++ b/arch/c6x/mm/dma-coherent.c
+@@ -0,0 +1,143 @@
 +/*
-+ *  L1D global-invalidate all
++ *  Port on Texas Instruments TMS320C6x architecture
 + *
-+ * Warning: this operation causes all updated data in L1D to
-+ * be discarded rather than written back to the lower levels of
-+ * memory
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot <aurelien.jacquiot@ti.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ *  DMA uncached mapping support.
++ *
++ *  Using code pulled from ARM
++ *  Copyright (C) 2000-2004 Russell King
++ *
 + */
-+void L1D_cache_global_invalidate(void)
++#include <linux/slab.h>
++#include <linux/bitmap.h>
++#include <linux/bitops.h>
++#include <linux/module.h>
++#include <linux/interrupt.h>
++#include <linux/dma-mapping.h>
++#include <linux/memblock.h>
++
++#include <asm/page.h>
++
++/*
++ * DMA coherent memory management, can be redefined using the memdma=
++ * kernel command line
++ */
++
++/* none by default */
++static phys_addr_t dma_base;
++static u32 dma_size;
++static u32 dma_pages;
++
++static unsigned long *dma_bitmap;
++
++/* bitmap lock */
++static DEFINE_SPINLOCK(dma_lock);
++
++/*
++ * Return a DMA coherent and contiguous memory chunk from the DMA memory
++ */
++static inline u32 __alloc_dma_pages(int order)
 +{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DINV, set);
-+	while (imcr_get(IMCR_L1DINV) & 1)
-+		cpu_relax();
++	unsigned long flags;
++	u32 pos;
++
++	spin_lock_irqsave(&dma_lock, flags);
++	pos = bitmap_find_free_region(dma_bitmap, dma_pages, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
++
++	return dma_base + (pos << PAGE_SHIFT);
 +}
 +
-+void L1D_cache_global_writeback(void)
++static void __free_dma_pages(u32 addr, int order)
 +{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWB, set);
-+	while (imcr_get(IMCR_L1DWB) & 1)
-+		cpu_relax();
-+}
++	unsigned long flags;
++	u32 pos = (addr - dma_base) >> PAGE_SHIFT;
 +
-+void L1D_cache_global_writeback_invalidate(void)
-+{
-+	unsigned int set = 1;
-+	imcr_set(IMCR_L1DWBINV, set);
-+	while (imcr_get(IMCR_L1DWBINV) & 1)
-+		cpu_relax();
++	if (addr < dma_base || (pos + (1 << order)) >= dma_pages) {
++		printk(KERN_ERR "%s: freeing outside range.\n", __func__);
++		BUG();
++	}
++
++	spin_lock_irqsave(&dma_lock, flags);
++	bitmap_release_region(dma_bitmap, pos, order);
++	spin_unlock_irqrestore(&dma_lock, flags);
 +}
 +
 +/*
-+ * L2 caches management
++ * Allocate DMA coherent memory space and return both the kernel
++ * virtual and DMA address for that space.
 + */
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *handle, gfp_t gfp)
++{
++	u32 paddr;
++	int order;
++
++	if (!dma_size || !size)
++		return NULL;
++
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
++
++	paddr = __alloc_dma_pages(order);
++
++	if (handle)
++		*handle = paddr;
++
++	if (!paddr)
++		return NULL;
++
++	return phys_to_virt(paddr);
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
 +
 +/*
-+ * Set L2 operation mode
++ * Free DMA coherent memory as defined by the above mapping.
 + */
-+void L2_cache_set_mode(unsigned int mode)
++void dma_free_coherent(struct device *dev, size_t size, void *vaddr,
++		       dma_addr_t dma_handle)
 +{
-+	unsigned int ccfg = imcr_get(IMCR_CCFG);
++	int order;
 +
-+	/* Clear and set the L2MODE bits in CCFG */
-+	ccfg &= ~7;
-+	ccfg |= (mode & 7);
-+	imcr_set(IMCR_CCFG, ccfg);
-+	ccfg = imcr_get(IMCR_CCFG);
-+}
-+
-+/*
-+ *  L2 global-writeback and global-invalidate all
-+ */
-+void L2_cache_global_writeback_invalidate(void)
-+{
-+	imcr_set(IMCR_L2WBINV, 1);
-+	while (imcr_get(IMCR_L2WBINV))
-+		cpu_relax();
-+}
-+
-+/*
-+ *  L2 global-writeback all
-+ */
-+void L2_cache_global_writeback(void)
-+{
-+	imcr_set(IMCR_L2WB, 1);
-+	while (imcr_get(IMCR_L2WB))
-+		cpu_relax();
-+}
-+
-+/*
-+ * Cacheability controls
-+ */
-+void enable_caching(unsigned long start, unsigned long end)
-+{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
-+
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) | 1);
-+}
-+
-+void disable_caching(unsigned long start, unsigned long end)
-+{
-+	unsigned int mar = IMCR_MAR_BASE + ((start >> 24) << 2);
-+	unsigned int mar_e = IMCR_MAR_BASE + ((end >> 24) << 2);
-+
-+	for (; mar <= mar_e; mar += 4)
-+		imcr_set(mar, imcr_get(mar) & ~1);
-+}
-+
-+
-+/*
-+ *  L1 block operations
-+ */
-+void L1P_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1PIBAR, IMCR_L1PIWC);
-+}
-+
-+void L1D_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DIBAR, IMCR_L1DIWC);
-+}
-+
-+void L1D_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWIBAR, IMCR_L1DWIWC);
-+}
-+
-+void L1D_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L1DWBAR, IMCR_L1DWWC);
-+}
-+
-+/*
-+ *  L2 block operations
-+ */
-+void L2_cache_block_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation((unsigned int *) start,
-+			      (unsigned int *) end,
-+			      IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+void L2_cache_block_invalidate_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2IBAR, IMCR_L2IWC);
-+}
-+
-+void L2_cache_block_writeback_nowait(unsigned int start, unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WBAR, IMCR_L2WWC);
-+}
-+
-+void L2_cache_block_writeback_invalidate_nowait(unsigned int start,
-+						unsigned int end)
-+{
-+	cache_block_operation_nowait((unsigned int *) start,
-+				     (unsigned int *) end,
-+				     IMCR_L2WIBAR, IMCR_L2WIWC);
-+}
-+
-+
-+/*
-+ * L1 and L2 caches configuration
-+ */
-+void __init c6x_cache_init(void)
-+{
-+	struct device_node *node;
-+
-+	node = of_find_compatible_node(NULL, NULL, "ti,c64x+cache");
-+	if (!node)
++	if (!dma_size || !size)
 +		return;
 +
-+	cache_base = of_iomap(node, 0);
++	order = get_count_order(((size - 1) >> PAGE_SHIFT) + 1);
 +
-+	of_node_put(node);
++	__free_dma_pages(virt_to_phys(vaddr), order);
++}
++EXPORT_SYMBOL(dma_free_coherent);
 +
-+	if (!cache_base)
++/*
++ * Initialise the coherent DMA memory allocator using the given uncached region.
++ */
++void __init coherent_mem_init(phys_addr_t start, u32 size)
++{
++	phys_addr_t bitmap_phys;
++
++	if (!size)
 +		return;
 +
-+	/* Set L2 caches on the the whole L2 SRAM memory */
-+	L2_cache_set_mode(L2MODE_SIZE);
++	printk(KERN_INFO
++	       "Coherent memory (DMA) region start=0x%x size=0x%x\n",
++	       start, size);
 +
-+	/* Enable L1 */
-+	L1_cache_on();
++	dma_base = start;
++	dma_size = size;
++
++	/* allocate bitmap */
++	dma_pages = dma_size >> PAGE_SHIFT;
++	if (dma_size & (PAGE_SIZE - 1))
++		++dma_pages;
++
++	bitmap_phys = memblock_alloc(BITS_TO_LONGS(dma_pages) * sizeof(long),
++				     sizeof(long));
++
++	dma_bitmap = phys_to_virt(bitmap_phys);
++	memset(dma_bitmap, 0, dma_pages * PAGE_SIZE);
++}
+diff --git a/arch/c6x/mm/init.c b/arch/c6x/mm/init.c
+new file mode 100644
+index 0000000..89395f0
+--- /dev/null
++++ b/arch/c6x/mm/init.c
+@@ -0,0 +1,113 @@
++/*
++ *  Port on Texas Instruments TMS320C6x architecture
++ *
++ *  Copyright (C) 2004, 2009, 2010, 2011 Texas Instruments Incorporated
++ *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ */
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/module.h>
++#include <linux/bootmem.h>
++#ifdef CONFIG_BLK_DEV_RAM
++#include <linux/blkdev.h>
++#endif
++#include <linux/initrd.h>
++
++#include <asm/sections.h>
++
++/*
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++unsigned long empty_zero_page;
++EXPORT_SYMBOL(empty_zero_page);
++
++/*
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses  of available kernel virtual memory.
++ */
++void __init paging_init(void)
++{
++	struct pglist_data *pgdat = NODE_DATA(0);
++	unsigned long zones_size[MAX_NR_ZONES] = {0, };
++
++	empty_zero_page      = (unsigned long) alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++
++	/*
++	 * Set up user data space
++	 */
++	set_fs(KERNEL_DS);
++
++	/*
++	 * Define zones
++	 */
++	zones_size[ZONE_NORMAL] = (memory_end - PAGE_OFFSET) >> PAGE_SHIFT;
++	pgdat->node_zones[ZONE_NORMAL].zone_start_pfn =
++		__pa(PAGE_OFFSET) >> PAGE_SHIFT;
++
++	free_area_init(zones_size);
++}
++
++void __init mem_init(void)
++{
++	int codek, datak;
++	unsigned long tmp;
++	unsigned long len = memory_end - memory_start;
++
++	high_memory = (void *)(memory_end & PAGE_MASK);
++
++	/* this will put all memory onto the freelists */
++	totalram_pages = free_all_bootmem();
++
++	codek = (_etext - _stext) >> 10;
++	datak = (_end - _sdata) >> 10;
++
++	tmp = nr_free_pages() << PAGE_SHIFT;
++	printk(KERN_INFO "Memory: %luk/%luk RAM (%dk kernel code, %dk data)\n",
++	       tmp >> 10, len >> 10, codek, datak);
++}
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void __init free_initrd_mem(unsigned long start, unsigned long end)
++{
++	int pages = 0;
++	for (; start < end; start += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(start));
++		init_page_count(virt_to_page(start));
++		free_page(start);
++		totalram_pages++;
++		pages++;
++	}
++	printk(KERN_INFO "Freeing initrd memory: %luk freed\n",
++	       (pages * PAGE_SIZE) >> 10);
++}
++#endif
++
++void __init free_initmem(void)
++{
++	unsigned long addr;
++
++	/*
++	 * The following code should be cool even if these sections
++	 * are not page aligned.
++	 */
++	addr = PAGE_ALIGN((unsigned long)(__init_begin));
++
++	/* next to check that the page we free is not a partial page */
++	for (; addr + PAGE_SIZE < (unsigned long)(__init_end);
++	     addr += PAGE_SIZE) {
++		ClearPageReserved(virt_to_page(addr));
++		init_page_count(virt_to_page(addr));
++		free_page(addr);
++		totalram_pages++;
++	}
++	printk(KERN_INFO "Freeing unused kernel memory: %dK freed\n",
++	       (int) ((addr - PAGE_ALIGN((long) &__init_begin)) >> 10));
 +}
 -- 
 1.7.6.2
