@@ -1,57 +1,36 @@
-From: "COCA COLA 2011" <a.kumar@ncl.res.in>
-Subject: (unknown)
-Date: Wed, 5 Oct 2011 11:19:35 +0530
-Message-ID: <20111005054943.QXOM1579.viefep20-int.chello.at__10942.0301778757$1317793883$gmane$org@edge04.upcmail.net>
-Reply-To: <drawsupdate222@qatar.io>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH v4 00/24] C6X: New architecture
+Date: Wed, 05 Oct 2011 08:52:02 -0400
+Message-ID: <1317819123.2703.8.camel@deneb.redhat.com>
+References: <1317746641-26725-1-git-send-email-msalter@redhat.com>
+	 <3214215.H2jdYLnAju@wuerfel>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
-	boundary="----=_NextPart_000_001F_01C2A9A6.19485D02"
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fep32.mx.upcmail.net ([62.179.121.50]:46518 "EHLO
-	fep32.mx.upcmail.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933071Ab1JEFvQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Oct 2011 01:51:16 -0400
-Subject: 
+Received: from mx1.redhat.com ([209.132.183.28]:60165 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S934540Ab1JEMwH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Oct 2011 08:52:07 -0400
+In-Reply-To: <3214215.H2jdYLnAju@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-This is a multi-part message in MIME format.
+On Tue, 2011-10-04 at 21:27 +0200, Arnd Bergmann wrote:
+> On Tuesday 04 October 2011 12:43:37 Mark Salter wrote:
+> > Here is v4 of the C6X architecture patch series. Patches are
+> > available in 'for-linux-next' branch at:
+> > 
+> >     http://linux-c6x.org/git/projects/linux-c6x-upstreaming.git
+> 
+> Hi Mark,
+> 
+> This looks all good to me, great work!
+> 
+> 	Arnd
 
-------=_NextPart_000_001F_01C2A9A6.19485D02
-Content-Type: text/plain;
-	charset="Windows-1251"
-Content-Transfer-Encoding: 7bit
+Thanks! So what is the next step?
 
-DOWNLOAD ATTACHTMENT
-
-------=_NextPart_000_001F_01C2A9A6.19485D02
-Content-Type: application/octet-stream;
-	name="COCA COLA2.rtf"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment;
-	filename="COCA COLA2.rtf"
-
-e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjB7XGZvbnR0Ymx7XGYwXGZu
-aWxcZmNoYXJzZXQwIENhbGlicmk7fX0NCntcKlxnZW5lcmF0b3IgTXNmdGVk
-aXQgNS40MS4yMS4yNTA5O31cdmlld2tpbmQ0XHVjMVxwYXJkXHNhMjAwXHNs
-Mjc2XHNsbXVsdDFcbGFuZzlcZjBcZnMyMiBZb3UgaGF2ZSBiZWVuIHNlbGVj
-dGVkIGluIHRoZSBvbi1nb2luZyBDT0NBIENPTEEgYXdhcmQgaGVsZCB0aGlz
-ICBPY3RvYmVyXHBhcg0KMjAxMS5XZSB0aGUgUHJvbW8gQm9hcmQgYXJlIHBs
-ZWFzZWQgdG8gaW5mb3JtIHlvdSB0aGF0IHlvdSBhbG9uZ3NpZGUgZm91cig0
-KVxwYXINCm90aGVybHVja3kgd2lubmVycyBoYXZlIGJlZW4gYXBwcm92ZWQg
-Zm9yIGEgcGF5bWVudCBvZiAxLDAwMCAwMDBHQlAgKE9uZVxwYXINCk1pbGxp
-b24gUG91bmRzIFN0ZXJsaW5nKS5ccGFyDQpJZiB5b3UgZGlkIHJlY2VpdmUg
-dGhpcyBlbWFpbCwgaXQgbWVhbnMgeW91IGFyZSBvbmUgb2YgdGhlIGZpdmUo
-NSlsdWNreVxwYXINCndpbm5lcnMuXHBhcg0KXHBhcg0KKkNMQUlNUyBQUk9D
-RVNTSU5HIE9GRklDRVI6XHBhcg0KKk5hbWU6TXIgVE9NTVkgUk9HRVJccGFy
-DQpFbWFpbDogZHJhd3N1cGRhdGUyMjJAcWF0YXIuaW9ccGFyDQpccGFyDQpZ
-b3UgYXJlIGFsc28gYWR2aXNlZCB0byBwcm92aWRlIGhpbSB3aXRoIHRoZSB1
-bmRlciBsaXN0ZWQgaW5mb3JtYXRpb25ccGFyDQphcyBzb29uIGFzIHBvc3Np
-YmxlOlxwYXINClxwYXINCipOQU1FIElOIEZVTEw6XHBhcg0KKkRFTElWRVJZ
-IEFERFJFU1M6XHBhcg0KKlNFWDpccGFyDQoqQUdFOlxwYXINCipDT1VOVFJZ
-OlxwYXINCipOQVRJT05BTElUWTpccGFyDQoqT0NDVVBBVElPTjpccGFyDQoq
-TU9CSUxFIE5VTUJFUjpccGFyDQpFTUFJTCBJRDpccGFyDQpccGFyDQpXZSBh
-cmUgZ2xhZCB0byBoYXZlIHlvdSBhcyBvbmUgb2Ygb3VyIGx1Y2tseSB3aW5u
-ZXJzLlxwYXINCn0NCgA=
-
-------=_NextPart_000_001F_01C2A9A6.19485D02--
+--Mark
