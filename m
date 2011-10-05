@@ -1,131 +1,47 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH] mm, arch: Complete pagefault_disable abstraction
-Date: Wed, 05 Oct 2011 15:12:14 +0200
-Message-ID: <1317820334.6766.23.camel@twins>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v4 00/24] C6X: New architecture
+Date: Wed, 5 Oct 2011 18:16:43 +0200
+Message-ID: <201110051816.44080.arnd@arndb.de>
+References: <1317746641-26725-1-git-send-email-msalter@redhat.com> <3214215.H2jdYLnAju@wuerfel> <1317819123.2703.8.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, linux-arch <linux-arch@vger.kernel.org>, linux-kernel <linux-kernel@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:61032 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934476Ab1JEQQ6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Oct 2011 12:16:58 -0400
+In-Reply-To: <1317819123.2703.8.camel@deneb.redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-For those with a strong stomach, here's what we do with kmap_atomic:
+On Wednesday 05 October 2011, Mark Salter wrote:
+> On Tue, 2011-10-04 at 21:27 +0200, Arnd Bergmann wrote:
+> > On Tuesday 04 October 2011 12:43:37 Mark Salter wrote:
+> > > Here is v4 of the C6X architecture patch series. Patches are
+> > > available in 'for-linux-next' branch at:
+> > > 
+> > >     http://linux-c6x.org/git/projects/linux-c6x-upstreaming.git
+> > 
+> > Hi Mark,
+> > 
+> > This looks all good to me, great work!
+> > 
+> >       Arnd
+> 
+> Thanks! So what is the next step?
 
----
-Subject: mm, rt: kmap_atomic scheduling
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 28 Jul 2011 10:43:51 +0200
+Easy:
+* Make sure the code is in linux-next
+* Make sure that linux-next actually still works for you, with everything else that 
+  went in
+* Wait for Linus to open the merge window, then send him a pull request,
+  with the same Cc list as this review.
 
-In fact, with migrate_disable() existing one could play games with
-kmap_atomic. You could save/restore the kmap_atomic slots on context
-switch (if there are any in use of course), this should be esp easy now
-that we have a kmap_atomic stack.
+Once everything is merged, you are alone responsible for deciding what
+goes in, but we will be there to give advice when needed.
 
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-[dvhart@linux.intel.com: build fix]
-Link: http://lkml.kernel.org/r/1311842631.5890.208.camel@twins
----
- arch/x86/kernel/process_32.c |   36 ++++++++++++++++++++++++++++++++++++
- include/linux/sched.h        |    5 +++++
- mm/memory.c                  |    2 ++
- 3 files changed, 43 insertions(+)
-
-Index: linux-2.6/arch/x86/kernel/process_32.c
-===================================================================
---- linux-2.6.orig/arch/x86/kernel/process_32.c
-+++ linux-2.6/arch/x86/kernel/process_32.c
-@@ -38,6 +38,7 @@
- #include <linux/uaccess.h>
- #include <linux/io.h>
- #include <linux/kdebug.h>
-+#include <linux/highmem.h>
- 
- #include <asm/pgtable.h>
- #include <asm/system.h>
-@@ -346,6 +347,41 @@ __switch_to(struct task_struct *prev_p, 
- 		     task_thread_info(next_p)->flags & _TIF_WORK_CTXSW_NEXT))
- 		__switch_to_xtra(prev_p, next_p, tss);
- 
-+#if defined CONFIG_PREEMPT_RT_FULL && defined CONFIG_HIGHMEM
-+	/*
-+	 * Save @prev's kmap_atomic stack
-+	 */
-+	prev_p->kmap_idx = __this_cpu_read(__kmap_atomic_idx);
-+	if (unlikely(prev_p->kmap_idx)) {
-+		int i;
-+
-+		for (i = 0; i < prev_p->kmap_idx; i++) {
-+			int idx = i + KM_TYPE_NR * smp_processor_id();
-+
-+			pte_t *ptep = kmap_pte - idx;
-+			prev_p->kmap_pte[i] = *ptep;
-+			kpte_clear_flush(ptep, __fix_to_virt(FIX_KMAP_BEGIN + idx));
-+		}
-+
-+		__this_cpu_write(__kmap_atomic_idx, 0);
-+	}
-+
-+	/*
-+	 * Restore @next_p's kmap_atomic stack
-+	 */
-+	if (unlikely(next_p->kmap_idx)) {
-+		int i;
-+
-+		__this_cpu_write(__kmap_atomic_idx, next_p->kmap_idx);
-+
-+		for (i = 0; i < next_p->kmap_idx; i++) {
-+			int idx = i + KM_TYPE_NR * smp_processor_id();
-+
-+			set_pte(kmap_pte - idx, next_p->kmap_pte[i]);
-+		}
-+	}
-+#endif
-+
- 	/* If we're going to preload the fpu context, make sure clts
- 	   is run while we're batching the cpu state updates. */
- 	if (preload_fpu)
-Index: linux-2.6/include/linux/sched.h
-===================================================================
---- linux-2.6.orig/include/linux/sched.h
-+++ linux-2.6/include/linux/sched.h
-@@ -63,6 +63,7 @@ struct sched_param {
- #include <linux/nodemask.h>
- #include <linux/mm_types.h>
- 
-+#include <asm/kmap_types.h>
- #include <asm/system.h>
- #include <asm/page.h>
- #include <asm/ptrace.h>
-@@ -1594,6 +1595,10 @@ struct task_struct {
- 	struct rcu_head put_rcu;
- 	int softirq_nestcnt;
- #endif
-+#if defined CONFIG_PREEMPT_RT_FULL && defined CONFIG_HIGHMEM
-+	int kmap_idx;
-+	pte_t kmap_pte[KM_TYPE_NR];
-+#endif
- };
- 
- #ifdef CONFIG_PREEMPT_RT_FULL
-Index: linux-2.6/mm/memory.c
-===================================================================
---- linux-2.6.orig/mm/memory.c
-+++ linux-2.6/mm/memory.c
-@@ -3431,6 +3431,7 @@ unlock:
- #ifdef CONFIG_PREEMPT_RT_FULL
- void pagefault_disable(void)
- {
-+	migrate_disable();
- 	current->pagefault_disabled++;
- 	/*
- 	 * make sure to have issued the store before a pagefault
-@@ -3448,6 +3449,7 @@ void pagefault_enable(void)
- 	 */
- 	barrier();
- 	current->pagefault_disabled--;
-+	migrate_enable();
- }
- EXPORT_SYMBOL_GPL(pagefault_enable);
- #endif
+	Arnd
