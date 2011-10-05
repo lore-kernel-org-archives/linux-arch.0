@@ -1,34 +1,57 @@
-From: Ben Dooks <ben-i2c@fluff.org>
-Subject: Re: [PATCH 32/55] i2c: irq: Remove IRQF_DISABLED
-Date: Tue, 4 Oct 2011 21:59:41 +0100
-Message-ID: <20111004205941.GJ19115@trinity.fluff.org>
-References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com> <1316681962-8217-33-git-send-email-yong.zhang0@gmail.com>
+From: "COCA COLA 2011" <a.kumar@ncl.res.in>
+Subject: (unknown)
+Date: Wed, 5 Oct 2011 11:19:35 +0530
+Message-ID: <20111005054943.QXOM1579.viefep20-int.chello.at__10942.0301778757$1317793883$gmane$org@edge04.upcmail.net>
+Reply-To: <drawsupdate222@qatar.io>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/mixed;
+	boundary="----=_NextPart_000_001F_01C2A9A6.19485D02"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from trinity.fluff.org ([89.16.178.74]:59040 "EHLO trinity.fluff.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933618Ab1JDVB3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Oct 2011 17:01:29 -0400
-Content-Disposition: inline
-In-Reply-To: <1316681962-8217-33-git-send-email-yong.zhang0@gmail.com>
+Received: from fep32.mx.upcmail.net ([62.179.121.50]:46518 "EHLO
+	fep32.mx.upcmail.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933071Ab1JEFvQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Oct 2011 01:51:16 -0400
+Subject: 
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, Sonic Zhang <sonic.zhang@analog.com>, "Jean Delvare (PC drivers, core)" <khali@linux-fr.org>, "Ben Dooks (embedded platforms)" <ben-linux@fluff.org>, Alessandro Rubini <rubini@unipv.it>, Linus Walleij <linus.walleij@stericsson.com>, STEricsson <STEricsson_nomadik_linux@list.st.com>, Kukjin Kim <kgene.kim@samsung.com>, Wolfram Sang <w.sang@pengutronix.de>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Barry Song <21cnbao@gmail.com>, Jiri Kosina <jkosina@suse.cz>, "Justin P. Mattock" <justinmattock@gmail.com>, Joe Perches <joe@perches.com>, Dave Airlie <airlied@linux.ie>, Paul Gortmaker <paul.gortmaker@windriver.com>, Paul Mundt <lethal@linux-sh.org>, Nobuhiro Iwamatsu <iwamatsu@nigauri.org>, Magnus Damm <damm@opensource.se>, uclinux-dist-devel@blackfin.uclinux.org, linux-i2c@vger.kernel.o
 
-On Thu, Sep 22, 2011 at 04:58:59PM +0800, Yong Zhang wrote:
-> Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
-> We run all interrupt handlers with interrupts disabled
-> and we even check and yell when an interrupt handler
-> returns with interrupts enabled (see commit [b738a50a:
-> genirq: Warn when handler enables interrupts]).
-> 
-> So now this flag is a NOOP and can be removed.
+This is a multi-part message in MIME format.
 
-ok, applied thanks.
+------=_NextPart_000_001F_01C2A9A6.19485D02
+Content-Type: text/plain;
+	charset="Windows-1251"
+Content-Transfer-Encoding: 7bit
 
--- 
-Ben Dooks, ben@fluff.org, http://www.fluff.org/ben/
+DOWNLOAD ATTACHTMENT
 
-Large Hadron Colada: A large Pina Colada that makes the universe disappear.
+------=_NextPart_000_001F_01C2A9A6.19485D02
+Content-Type: application/octet-stream;
+	name="COCA COLA2.rtf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment;
+	filename="COCA COLA2.rtf"
+
+e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjB7XGZvbnR0Ymx7XGYwXGZu
+aWxcZmNoYXJzZXQwIENhbGlicmk7fX0NCntcKlxnZW5lcmF0b3IgTXNmdGVk
+aXQgNS40MS4yMS4yNTA5O31cdmlld2tpbmQ0XHVjMVxwYXJkXHNhMjAwXHNs
+Mjc2XHNsbXVsdDFcbGFuZzlcZjBcZnMyMiBZb3UgaGF2ZSBiZWVuIHNlbGVj
+dGVkIGluIHRoZSBvbi1nb2luZyBDT0NBIENPTEEgYXdhcmQgaGVsZCB0aGlz
+ICBPY3RvYmVyXHBhcg0KMjAxMS5XZSB0aGUgUHJvbW8gQm9hcmQgYXJlIHBs
+ZWFzZWQgdG8gaW5mb3JtIHlvdSB0aGF0IHlvdSBhbG9uZ3NpZGUgZm91cig0
+KVxwYXINCm90aGVybHVja3kgd2lubmVycyBoYXZlIGJlZW4gYXBwcm92ZWQg
+Zm9yIGEgcGF5bWVudCBvZiAxLDAwMCAwMDBHQlAgKE9uZVxwYXINCk1pbGxp
+b24gUG91bmRzIFN0ZXJsaW5nKS5ccGFyDQpJZiB5b3UgZGlkIHJlY2VpdmUg
+dGhpcyBlbWFpbCwgaXQgbWVhbnMgeW91IGFyZSBvbmUgb2YgdGhlIGZpdmUo
+NSlsdWNreVxwYXINCndpbm5lcnMuXHBhcg0KXHBhcg0KKkNMQUlNUyBQUk9D
+RVNTSU5HIE9GRklDRVI6XHBhcg0KKk5hbWU6TXIgVE9NTVkgUk9HRVJccGFy
+DQpFbWFpbDogZHJhd3N1cGRhdGUyMjJAcWF0YXIuaW9ccGFyDQpccGFyDQpZ
+b3UgYXJlIGFsc28gYWR2aXNlZCB0byBwcm92aWRlIGhpbSB3aXRoIHRoZSB1
+bmRlciBsaXN0ZWQgaW5mb3JtYXRpb25ccGFyDQphcyBzb29uIGFzIHBvc3Np
+YmxlOlxwYXINClxwYXINCipOQU1FIElOIEZVTEw6XHBhcg0KKkRFTElWRVJZ
+IEFERFJFU1M6XHBhcg0KKlNFWDpccGFyDQoqQUdFOlxwYXINCipDT1VOVFJZ
+OlxwYXINCipOQVRJT05BTElUWTpccGFyDQoqT0NDVVBBVElPTjpccGFyDQoq
+TU9CSUxFIE5VTUJFUjpccGFyDQpFTUFJTCBJRDpccGFyDQpccGFyDQpXZSBh
+cmUgZ2xhZCB0byBoYXZlIHlvdSBhcyBvbmUgb2Ygb3VyIGx1Y2tseSB3aW5u
+ZXJzLlxwYXINCn0NCgA=
+
+------=_NextPart_000_001F_01C2A9A6.19485D02--
