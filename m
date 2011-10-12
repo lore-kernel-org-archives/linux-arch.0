@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39355 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:18746 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751977Ab1JLQtV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Oct 2011 12:49:21 -0400
+	id S1751296Ab1JLQsm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Oct 2011 12:48:42 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 7/7] RxRPC: Use new core assertion macros
-Date: Wed, 12 Oct 2011 17:48:18 +0100
-Message-ID: <20111012164818.539.48082.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 3/7] Make shrink_dcache_for_umount_subtree() use the core
+ assertion code
+Date: Wed, 12 Oct 2011 17:47:38 +0100
+Message-ID: <20111012164738.539.55474.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20111012164717.539.44368.stgit@warthog.procyon.org.uk>
 References: <20111012164717.539.44368.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,103 +17,50 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20111012164818.XXWpcnkVdEGK57hUORne5Z7mkPOJidpH2ic1kbKJX_k@z>
+Message-ID: <20111012164738.3KPu5HnakjqBHhiRmVDg1qUYCUo2TDsmrVEF1X0qVRE@z>
 
-Make RxRPC use the new core assertion macros in place of its own.
+Make shrink_dcache_for_umount_subtree() use the core assertion code rather than
+doing printk() then BUG() so that the annotation appears _after_ the "cut here"
+line instead of before it.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- net/rxrpc/ar-internal.h |   71 +----------------------------------------------
- 1 files changed, 2 insertions(+), 69 deletions(-)
+ fs/dcache.c |    9 ++++-----
+ 1 files changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
-index 8e22bd3..b86fe78 100644
---- a/net/rxrpc/ar-internal.h
-+++ b/net/rxrpc/ar-internal.h
-@@ -10,6 +10,8 @@
-  */
- 
- #include <rxrpc/packet.h>
-+#define ENABLE_ASSERTIONS
+diff --git a/fs/dcache.c b/fs/dcache.c
+index a88948b..29f9e44 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -36,6 +36,7 @@
+ #include <linux/bit_spinlock.h>
+ #include <linux/rculist_bl.h>
+ #include <linux/prefetch.h>
 +#include <linux/assert.h>
- 
- #if 0
- #define CHECK_SLAB_OKAY(X)				     \
-@@ -657,75 +659,6 @@ do {							\
- #endif
+ #include "internal.h"
  
  /*
-- * debug assertion checking
-- */
--#if 1 // defined(__KDEBUGALL)
--
--#define ASSERT(X)						\
--do {								\
--	if (unlikely(!(X))) {					\
--		printk(KERN_ERR "\n");				\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");	\
--		BUG();						\
--	}							\
--} while(0)
--
--#define ASSERTCMP(X, OP, Y)						\
--do {									\
--	if (unlikely(!((X) OP (Y)))) {					\
--		printk(KERN_ERR "\n");					\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");		\
--		printk(KERN_ERR "%lu " #OP " %lu is false\n",		\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		printk(KERN_ERR "0x%lx " #OP " 0x%lx is false\n",	\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		BUG();							\
--	}								\
--} while(0)
--
--#define ASSERTIF(C, X)						\
--do {								\
--	if (unlikely((C) && !(X))) {				\
--		printk(KERN_ERR "\n");				\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");	\
--		BUG();						\
--	}							\
--} while(0)
--
--#define ASSERTIFCMP(C, X, OP, Y)					\
--do {									\
--	if (unlikely((C) && !((X) OP (Y)))) {				\
--		printk(KERN_ERR "\n");					\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");		\
--		printk(KERN_ERR "%lu " #OP " %lu is false\n",		\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		printk(KERN_ERR "0x%lx " #OP " 0x%lx is false\n",	\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		BUG();							\
--	}								\
--} while(0)
--
--#else
--
--#define ASSERT(X)				\
--do {						\
--} while(0)
--
--#define ASSERTCMP(X, OP, Y)			\
--do {						\
--} while(0)
--
--#define ASSERTIF(C, X)				\
--do {						\
--} while(0)
--
--#define ASSERTIFCMP(C, X, OP, Y)		\
--do {						\
--} while(0)
--
--#endif /* __KDEBUGALL */
--
--/*
-  * socket buffer accounting / leak finding
-  */
- static inline void __rxrpc_new_skb(struct sk_buff *skb, const char *fn)
+@@ -858,9 +859,9 @@ static void shrink_dcache_for_umount_subtree(struct dentry *dentry)
+ 			dentry_lru_del(dentry);
+ 			__d_shrink(dentry);
+ 
+-			if (dentry->d_count != 0) {
+-				printk(KERN_ERR
+-				       "BUG: Dentry %p{i=%lx,n=%s}"
++			if (unlikely(dentry->d_count != 0))
++				assertion_failed(
++				       "Dentry %p{i=%lx,n=%s}"
+ 				       " still in use (%d)"
+ 				       " [unmount of %s %s]\n",
+ 				       dentry,
+@@ -870,8 +871,6 @@ static void shrink_dcache_for_umount_subtree(struct dentry *dentry)
+ 				       dentry->d_count,
+ 				       dentry->d_sb->s_type->name,
+ 				       dentry->d_sb->s_id);
+-				BUG();
+-			}
+ 
+ 			if (IS_ROOT(dentry)) {
+ 				parent = NULL;
 
