@@ -1,90 +1,26 @@
-From: Jiri Slaby <jirislaby@gmail.com>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH 2/7] Add assertion checking macros
-Date: Wed, 12 Oct 2011 19:43:19 +0200
-Message-ID: <4E95D1B7.4050603@gmail.com>
-References: <20111012164717.539.44368.stgit@warthog.procyon.org.uk> <20111012164728.539.29820.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Date: Wed, 12 Oct 2011 21:36:16 +0100
+Message-ID: <4874.1318451776@redhat.com>
+References: <4E95D1B7.4050603@gmail.com> <20111012164717.539.44368.stgit@warthog.procyon.org.uk> <20111012164728.539.29820.stgit@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:59676 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751102Ab1JLRp2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Oct 2011 13:45:28 -0400
-In-Reply-To: <20111012164728.539.29820.stgit@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:22332 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753842Ab1JLUhW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Oct 2011 16:37:22 -0400
+In-Reply-To: <4E95D1B7.4050603@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Jiri Slaby <jirislaby@gmail.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 10/12/2011 06:47 PM, David Howells wrote:
-> Add a range of ASSERT* macros to linux/assert.h for performing runtime
-> assertions.  These will use assertion_failure() to cause an annotated oops if
-> the check fails.
-> 
-> The checks are only enabled under two circumstances:
-> 
->  (1) CONFIG_DEBUG_ENABLE_ASSERTIONS=y
-> 
->  (2) ENABLE_ASSERTIONS is defined prior to the #inclusion of <linux/assert.h>
-> 
-> There are five macros provided:
-> 
->  (a) ASSERT(X)
-> 
->      Issue an assertion failure error if X is false.  In other words, require
->      the expression X to be true.  For example:
-> 
-> 	ASSERT(val != 0);
-> 
->      There is no need to display val here in the case the expression fails
->      since it can only be 0.  If this fails, it produces an error like the
->      following:
-> 
-> 	------------[ cut here ]------------
-> 	ASSERTION FAILED at fs/fscache/main.c:109!
-> 	invalid opcode: 0000 [#1] SMP
-> 
->  (b) ASSERTCMP(X, OP, Y)
-> 
->      Issue an assertion failure error if the expression X OP Y is false.  For
->      example:
-> 
-> 	ASSERTCMP(x, >, 12)
-> 
-> 
->      If an oops is produced, then the values of X and Y will be displayed in
->      hex, along with OP:
-> 
-> 	------------[ cut here ]------------
-> 	ASSERTION FAILED at fs/fscache/main.c:109!
-> 	Check 2 > c is false
-> 	invalid opcode: 0000 [#1] SMP
-> 
->  (c) ASSERTRANGE(X, OP, Y, OP2, Z)
-> 
->      Issue an assertion failure error if the expression X OP Y or if the
->      expression Y OP2 Z is false.  Typically OP and OP2 would be < or <=,
->      looking something like:
-> 
-> 	ASSERTRANGE(11, <, x, <=, 13);
-> 
->      and giving the following error:
-> 
-> 	------------[ cut here ]------------
-> 	ASSERTION FAILED at fs/fscache/main.c:109!
-> 	Check b < 2 <= d is false
-> 	invalid opcode: 0000 [#1] SMP
+Jiri Slaby <jirislaby@gmail.com> wrote:
 
-Hmm, but why not have a single something-like-"ASSERT" doing the same as
-in userspace:
-#define ASSERT(X) do {                                   \
-  if (unlikely(!(X)))                                    \
-    cond_assertion_failed("Assertion '" #X "' failed");  \
-} while (0)
+> Hmm, but why not have a single something-like-"ASSERT" doing the same as
+> in userspace:
 
-You would not need zillion of sub-macros then.
+Because I want to print the values that were checked.  Your suggestion merely
+turns the unevaluated expression into a string and prints that.  The values
+are very useful to know in debugging the problem.
 
-thanks,
--- 
-js
+David
