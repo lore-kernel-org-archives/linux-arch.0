@@ -1,8 +1,8 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
+From: Krishna Reddy <vdumpa@nvidia.com>
 Subject: RE: [Linaro-mm-sig] [PATCH 1/2] ARM: initial proof-of-concept IOMMU
  mapper for DMA-mapping
-Date: Wed, 12 Oct 2011 07:49:34 +0200
-Message-ID: <00e501cc88a2$b82fc680$288f5380$%szyprowski@samsung.com>
+Date: Wed, 12 Oct 2011 00:02:34 -0700
+Message-ID: <401E54CE964CD94BAE1EB4A729C7087E3722519C65@HQMAIL04.nvidia.com>
 References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
  <1314971786-15140-2-git-send-email-m.szyprowski@samsung.com>
  <594816116217195c28de13accaf1f9f2.squirrel@www.codeaurora.org>
@@ -11,33 +11,21 @@ References: <1314971786-15140-1-git-send-email-m.szyprowski@samsung.com>
  <00b101cc87ee$8976c410$9c644c30$%szyprowski@samsung.com>
  <401E54CE964CD94BAE1EB4A729C7087E3722519A1F@HQMAIL04.nvidia.com>
  <401E54CE964CD94BAE1EB4A729C7087E3722519BF4@HQMAIL04.nvidia.com>
+ <00e501cc88a2$b82fc680$288f5380$%szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:38035 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751148Ab1JLFtu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Oct 2011 01:49:50 -0400
-Received: from euspt1 (mailout1.w1.samsung.com [210.118.77.11])
- by mailout1.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LSX00GCLUUXL0@mailout1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 12 Oct 2011 06:49:45 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LSX002RRUUXTJ@spt1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 12 Oct 2011 06:49:45 +0100 (BST)
-In-reply-to: <401E54CE964CD94BAE1EB4A729C7087E3722519BF4@HQMAIL04.nvidia.com>
-Content-language: pl
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:4183 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751686Ab1JLHCj convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Oct 2011 03:02:39 -0400
+In-Reply-To: <00e501cc88a2$b82fc680$288f5380$%szyprowski@samsung.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Krishna Reddy' <vdumpa@nvidia.com>
-Cc: linux-arch@vger.kernel.org, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, linux-arm-kernel@lists.infradead.org
-
-Hello,
-
-On Wednesday, October 12, 2011 3:35 AM Krishna Reddy wrote:
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
 > >>It looks that You have simplified arm_iommu_map_sg() function too much.
 > >>The main advantage of the iommu is to map scattered memory pages into
@@ -55,9 +43,12 @@ On Wednesday, October 12, 2011 3:35 AM Krishna Reddy wrote:
 > Should the clients be forced to handle bigger buffers or is there any better way to handle
 > these kind of issues?
 
-There is struct device_dma_parameters *dma_parms member of struct device. You can specify
-maximum segment size for the dma_map_sg function. This will of course complicate this function
-even more...
+>There is struct device_dma_parameters *dma_parms member of struct device. You can specify
+>maximum segment size for the dma_map_sg function. This will of course complicate this function
+>even more...
+
+dma_get_max_seg_size() seem to take care of this issue already. This returns default max_seg_size as 64K unless device has defined its own size.
+
 
 Best regards
 -- 
