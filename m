@@ -1,34 +1,54 @@
-From: Rusty Russell <rusty@ozlabs.org>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
 Subject: Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage
-Date: Thu, 13 Oct 2011 12:37:47 +1030
-Message-ID: <87botlej9o.fsf@rustcorp.com.au>
+Date: Thu, 13 Oct 2011 17:51:43 -0400
+Message-ID: <20111013215142.GB28189@windriver.com>
 References: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
+ <87botlej9o.fsf@rustcorp.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:41491 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752068Ab1JMCJJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Oct 2011 22:09:09 -0400
-In-Reply-To: <1311830178-30314-1-git-send-email-paul.gortmaker@windriver.com>
+Received: from mail.windriver.com ([147.11.1.11]:61277 "EHLO
+	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754614Ab1JMVwF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Oct 2011 17:52:05 -0400
+Content-Disposition: inline
+In-Reply-To: <87botlej9o.fsf@rustcorp.com.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, mingo@elte.hu, torvalds@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org
+To: Rusty Russell <rusty@ozlabs.org>
+Cc: mingo@elte.hu, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org
 
-On Thu, 28 Jul 2011 01:16:07 -0400, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
-> I don't think there really is any rocket science or contentious stuff here.
-> It is a sensible cleanup that adds organization and speeds up compiles.
-> The RFC I'm hoping for is more about how/when we want to get this in tree.
+[Re: [RFC/PULL 00/11] introduce export.h; reduce module.h usage] On 13/10/2011 (Thu 12:37) Rusty Russell wrote:
 
-In future, when you're ripping into module.h, please CC the module
-maintainer.  It's not just a courtesy, it helps everyone avoid redundant
-work.
+> On Thu, 28 Jul 2011 01:16:07 -0400, Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+> > I don't think there really is any rocket science or contentious stuff here.
+> > It is a sensible cleanup that adds organization and speeds up compiles.
+> > The RFC I'm hoping for is more about how/when we want to get this in tree.
+> 
+> In future, when you're ripping into module.h, please CC the module
+> maintainer.  It's not just a courtesy, it helps everyone avoid redundant
+> work.
 
-You may insert your own sarcastic comment about "rocket science" here.
+Sorry about that.  I think I'd created the original module.h patch in
+the context of the thread that Ingo started, and it never crossed my
+mind at the time to run get_maintainer.pl on module.h itself.  And
+that patch hasn't changed since.  An oversight on my part.  :(
 
-As to the patch: it's marginal improvement, but it's neater and I'm
-happy you're doing it.
+> 
+> You may insert your own sarcastic comment about "rocket science" here.
 
-Thanks,
-Rusty.
+Yeah, fair enough -- remembering to CC maintainers isn't rocket science.
+I hope you'll accept that it was an honest oversight caused by
+circumstance and that it wasn't an intentional exclusion.
+
+> 
+> As to the patch: it's marginal improvement, but it's neater and I'm
+> happy you're doing it.
+
+Thanks -- I'm glad at least the end result is OK with you.
+
+Paul.
+
+> 
+> Thanks,
+> Rusty.
