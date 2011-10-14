@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:49803 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:50044 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932238Ab1JNE1e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:34 -0400
-Subject: [PATCH v2 04/29] MIPS: PCI: convert to pci_scan_root_bus() for
+	with ESMTP id S932300Ab1JNE2M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:12 -0400
+Subject: [PATCH v2 12/29] microblaze/PCI: convert to pci_create_root_bus() for
 	correct root bus resources
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:27:27 -0600
-Message-ID: <20111014042727.23504.20722.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:28:08 -0600
+Message-ID: <20111014042808.23504.2668.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,67 +16,102 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Deng-Cheng Zhu <dczhu@mips.com>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20111014042727.tK--5hMjUSynnmp-fF5W3xpQ8NFXZs0lxTFd43YV0PM@z>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
+Message-ID: <20111014042808.MYha3AXt22v55MGfBAQJvaiNXlPzMBW3Ok3eAIl1DM8@z>
 
-Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
-resource fixups.  This fixes the problem of "early" and "header" quirks
-seeing incorrect root bus resources.
+Convert from pci_create_bus() to pci_create_root_bus().  This way the root
+bus resources are correct immediately.  This patch doesn't fix anything
+because microblaze fixed them before scanning the bus, but it makes it more
+consistent with other architectures.  It also allows us to use the
+pci_scan_root_bus() path safely.
 
-Based on original patch by Deng-Cheng Zhu.
-
-Reference: https://lkml.org/lkml/2011/8/26/89
-CC: Ralf Baechle <ralf@linux-mips.org>
-Signed-off-by: Deng-Cheng Zhu <dczhu@mips.com>
+CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/mips/pci/pci.c |   18 +++++++++++-------
- 1 files changed, 11 insertions(+), 7 deletions(-)
+ arch/microblaze/pci/pci-common.c |   31 ++++++++++++++++---------------
+ 1 files changed, 16 insertions(+), 15 deletions(-)
 
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index 33bba7b..8ce4979 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -80,6 +80,7 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 9dde153..9382869 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -1507,14 +1507,18 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	return pci_enable_resources(dev, mask);
+ }
+ 
+-static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
++static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, struct list_head *resources)
  {
- 	static int next_busno;
- 	static int need_domain_info;
+-	struct pci_bus *bus = hose->bus;
+ 	struct resource *res;
+ 	int i;
+ 
+ 	/* Hookup PHB IO resource */
+-	bus->resource[0] = res = &hose->io_resource;
++	res = &hose->io_resource;
++
++	/* Fixup IO space offset */
++	io_offset = (unsigned long)hose->io_base_virt - isa_io_base;
++	res->start = (res->start + io_offset) & 0xffffffffu;
++	res->end = (res->end + io_offset) & 0xffffffffu;
+ 
+ 	if (!res->flags) {
+ 		printk(KERN_WARNING "PCI: I/O resource not set for host"
+@@ -1525,6 +1529,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ 		res->end = res->start + IO_SPACE_LIMIT;
+ 		res->flags = IORESOURCE_IO;
+ 	}
++	pci_add_resource(resources, res);
+ 
+ 	pr_debug("PCI: PHB IO resource    = %016llx-%016llx [%lx]\n",
+ 		 (unsigned long long)res->start,
+@@ -1547,7 +1552,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ 			res->flags = IORESOURCE_MEM;
+ 
+ 		}
+-		bus->resource[i+1] = res;
++		pci_add_resource(resources, res);
+ 
+ 		pr_debug("PCI: PHB MEM resource %d = %016llx-%016llx [%lx]\n",
+ 			i, (unsigned long long)res->start,
+@@ -1570,32 +1575,28 @@ struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
+ 
+ static void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ {
 +	struct list_head resources;
  	struct pci_bus *bus;
+ 	struct device_node *node = hose->dn;
+-	unsigned long io_offset;
+-	struct resource *res = &hose->io_resource;
  
- 	if (!hose->iommu)
-@@ -88,7 +89,14 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
- 	if (hose->get_busno && pci_probe_only)
- 		next_busno = (*hose->get_busno)();
+ 	pr_debug("PCI: Scanning PHB %s\n",
+ 		 node ? node->full_name : "<NO NAME>");
  
--	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
 +	INIT_LIST_HEAD(&resources);
-+	pci_add_resource(&resources, hose->mem_resource);
-+	pci_add_resource(&resources, hose->io_resource);
-+	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-+				&resources);
-+	if (!bus)
-+		pci_free_resource_list(&resources);
++	pcibios_setup_phb_resources(hose, &resources);
 +
+ 	/* Create an empty bus for the toplevel */
+-	bus = pci_create_bus(hose->parent, hose->first_busno, hose->ops, hose);
++	bus = pci_create_root_bus(hose->parent, hose->first_busno, hose->ops,
++				  hose, &resources);
+ 	if (bus == NULL) {
+ 		printk(KERN_ERR "Failed to create bus for PCI domain %04x\n",
+ 		       hose->global_number);
++		pci_free_resource_list(&resources);
+ 		return;
+ 	}
+ 	bus->secondary = hose->first_busno;
  	hose->bus = bus;
  
- 	need_domain_info = need_domain_info || hose->index;
-@@ -265,15 +273,11 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
- {
- 	/* Propagate hose info into the subordinate devices.  */
- 
--	struct pci_controller *hose = bus->sysdata;
- 	struct list_head *ln;
- 	struct pci_dev *dev = bus->self;
- 
--	if (!dev) {
--		bus->resource[0] = hose->io_resource;
--		bus->resource[1] = hose->mem_resource;
--	} else if (pci_probe_only &&
--		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
-+	if (pci_probe_only && dev &&
-+	    (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
- 		pci_read_bridge_bases(bus);
- 		pcibios_fixup_device_resources(dev, bus);
- 	}
+-	/* Fixup IO space offset */
+-	io_offset = (unsigned long)hose->io_base_virt - isa_io_base;
+-	res->start = (res->start + io_offset) & 0xffffffffu;
+-	res->end = (res->end + io_offset) & 0xffffffffu;
+-
+-	/* Wire up PHB bus resources */
+-	pcibios_setup_phb_resources(hose);
+-
+ 	/* Scan children */
+ 	hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
+ }
 
