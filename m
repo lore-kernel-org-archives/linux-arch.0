@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:21323 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:49969 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932471Ab1JNE2m (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:42 -0400
-Subject: [PATCH v2 18/29] parisc/PCI: use pci_create_root_bus() instead of
-	pci_scan_bus_parented()
+	with ESMTP id S932356Ab1JNE2B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:01 -0400
+Subject: [PATCH v2 10/29] microblaze/PCI: fix pci_bus_for_each_resource() usage
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:28:39 -0600
-Message-ID: <20111014042839.23504.62250.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:27:58 -0600
+Message-ID: <20111014042758.23504.52748.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,56 +15,38 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111014042839.uAktHSl6LcAvhhHM3RaO7QV4aLlZ4cG_WQYvEvegLD8@z>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
+Message-ID: <20111014042758.4_0qGKF9XI26wJyOhmtwDT_Y5PIi91de22tQ2htFoeI@z>
 
-No functional change here; just converting from the deprecated
-pci_scan_bus_parented() to pci_create_root_bus() to make a future
-patch simpler.
+The pci_bus_for_each_resource() iterator sets "res" itself, so there's
+no need to look it up in the bus->resource[] table.
 
+Logically part of 89a74ecccd and 8a66da71fa.
+
+CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/dino.c |   24 +++++++++++++-----------
- 1 files changed, 13 insertions(+), 11 deletions(-)
+ arch/microblaze/pci/pci-common.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index bcd5d54..fba5636 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -1007,22 +1007,24 @@ static int __init dino_probe(struct parisc_device *dev)
- 	** It's not used to avoid chicken/egg problems
- 	** with configuration accessor functions.
- 	*/
--	dino_dev->hba.hba_bus = bus = pci_scan_bus_parented(&dev->dev,
--			 dino_current_bus, &dino_cfg_ops, NULL);
--
--	if(bus) {
--		/* This code *depends* on scanning being single threaded
--		 * if it isn't, this global bus number count will fail
--		 */
--		dino_current_bus = bus->subordinate + 1;
--		pci_bus_assign_resources(bus);
--		pci_bus_add_devices(bus);
--	} else {
-+	dino_dev->hba.hba_bus = bus = pci_create_root_bus(&dev->dev,
-+			 dino_current_bus, &dino_cfg_ops, NULL, NULL);
-+	if (!bus) {
- 		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
- 		       dev_name(&dev->dev), dino_current_bus);
- 		/* increment the bus number in case of duplicates */
- 		dino_current_bus++;
-+		return 0;
- 	}
-+
-+	bus->subordinate = pci_scan_child_bus(bus);
-+
-+	/* This code *depends* on scanning being single threaded
-+	 * if it isn't, this global bus number count will fail
-+	 */
-+	dino_current_bus = bus->subordinate + 1;
-+	pci_bus_assign_resources(bus);
-+	pci_bus_add_devices(bus);
- 	return 0;
- }
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 4cfae20..9df5e5b 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -1018,7 +1018,6 @@ static void __devinit pcibios_fixup_bridge(struct pci_bus *bus)
+ 	struct pci_dev *dev = bus->self;
  
+ 	pci_bus_for_each_resource(bus, res, i) {
+-		res = bus->resource[i];
+ 		if (!res)
+ 			continue;
+ 		if (!res->flags)
+@@ -1218,7 +1217,6 @@ void pcibios_allocate_bus_resources(struct pci_bus *bus)
+ 		 pci_domain_nr(bus), bus->number);
+ 
+ 	pci_bus_for_each_resource(bus, res, i) {
+-		res = bus->resource[i];
+ 		if (!res || !res->flags
+ 		    || res->start > res->end || res->parent)
+ 			continue;
 
