@@ -1,8 +1,9 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 16/29] ia64/PCI: use pci_create_bus() instead of
-	pci_scan_bus_parented()
-Date: Thu, 13 Oct 2011 22:28:28 -0600
-Message-ID: <20111014042828.23504.61212.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 15/29] sparc32,
+	leon/PCI: convert to pci_scan_root_bus() for correct root bus
+	resources
+Date: Thu, 13 Oct 2011 22:28:23 -0600
+Message-ID: <20111014042823.23504.88314.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,32 +12,71 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-This doesn't change any functionality, but it makes a subsequent patch
-slightly simpler.
+Convert from pci_scan_bus_parented() to pci_scan_root_bus() and remove root
+bus resource fixups.  This fixes the problem of "early" and "header" quirks
+seeing incorrect root bus resources.
 
-CC: Tony Luck <tony.luck@intel.com>
+pci_scan_root_bus() also includes the pci_bus_add_devices() so we don't
+need to do that separately.
+
+CC: David S. Miller <davem@davemloft.net>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/ia64/pci/pci.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+ arch/sparc/kernel/leon_pci.c |   26 +++++++++-----------------
+ 1 files changed, 9 insertions(+), 17 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index aa2533a..d7e47a9 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -386,8 +386,11 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	 * should handle the case here, but it appears that IA64 hasn't
- 	 * such quirk. So we just ignore the case now.
- 	 */
--	pbus = pci_scan_bus_parented(NULL, bus, &pci_root_ops, controller);
-+	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller, NULL);
-+	if (!pbus)
-+		return NULL;
+diff --git a/arch/sparc/kernel/leon_pci.c b/arch/sparc/kernel/leon_pci.c
+index a8a9a27..b7f2e9a 100644
+--- a/arch/sparc/kernel/leon_pci.c
++++ b/arch/sparc/kernel/leon_pci.c
+@@ -18,22 +18,23 @@
+  */
+ void leon_pci_init(struct platform_device *ofdev, struct leon_pci_info *info)
+ {
++	struct list_head resources;
+ 	struct pci_bus *root_bus;
  
-+	pbus->subordinate = pci_scan_child_bus(pbus);
- 	return pbus;
+-	root_bus = pci_scan_bus_parented(&ofdev->dev, 0, info->ops, info);
+-	if (root_bus) {
+-		root_bus->resource[0] = &info->io_space;
+-		root_bus->resource[1] = &info->mem_space;
+-		root_bus->resource[2] = NULL;
+-
+-		/* Init all PCI devices into PCI tree */
+-		pci_bus_add_devices(root_bus);
++	INIT_LIST_HEAD(&resources);
++	pci_add_resource(&resources, &info->io_space);
++	pci_add_resource(&resources, &info->mem_space);
  
- out3:
++	root_bus = pci_scan_root_bus(&ofdev->dev, 0, info->ops, info,
++				     &resources);
++	if (root_bus) {
+ 		/* Setup IRQs of all devices using custom routines */
+ 		pci_fixup_irqs(pci_common_swizzle, info->map_irq);
+ 
+ 		/* Assign devices with resources */
+ 		pci_assign_unassigned_resources();
++	} else {
++		pci_free_resource_list(&resources);
+ 	}
+ }
+ 
+@@ -82,15 +83,6 @@ void __devinit pcibios_fixup_bus(struct pci_bus *pbus)
+ 	int i, has_io, has_mem;
+ 	u16 cmd;
+ 
+-	/* Generic PCI bus probing sets these to point at
+-	 * &io{port,mem}_resouce which is wrong for us.
+-	 */
+-	if (pbus->self == NULL) {
+-		pbus->resource[0] = &info->io_space;
+-		pbus->resource[1] = &info->mem_space;
+-		pbus->resource[2] = NULL;
+-	}
+-
+ 	list_for_each_entry(dev, &pbus->devices, bus_list) {
+ 		/*
+ 		 * We can not rely on that the bootloader has enabled I/O
