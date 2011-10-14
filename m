@@ -1,84 +1,57 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 19/29] parisc/PCI: supply root bus resources to
-	pci_create_root_bus()
-Date: Thu, 13 Oct 2011 22:28:44 -0600
-Message-ID: <20111014042844.23504.97139.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 21/29] parisc/PCI: use pci_create_root_bus() instead of
+	pci_scan_bus_parented()
+Date: Thu, 13 Oct 2011 22:28:54 -0600
+Message-ID: <20111014042854.23504.33428.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Supply root bus resources to pci_create_root_bus() so they're correct
-immediately.  This fixes the problem of "early" and "header" quirks seeing
-incorrect root bus resources.
+No functional change here; just converting from the deprecated
+pci_scan_bus_parented() to pci_create_root_bus() to make a future
+patch simpler.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/dino.c |   26 ++++++++++++--------------
- 1 files changed, 12 insertions(+), 14 deletions(-)
+ drivers/parisc/lba_pci.c |   14 ++++++++------
+ 1 files changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index fba5636..2aca77f 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -562,19 +562,6 @@ dino_fixup_bus(struct pci_bus *bus)
- 	/* Firmware doesn't set up card-mode dino, so we have to */
- 	if (is_card_dino(&dino_dev->hba.dev->id)) {
- 		dino_card_setup(bus, dino_dev->hba.base_addr);
--	} else if(bus->parent == NULL) {
--		/* must have a dino above it, reparent the resources
--		 * into the dino window */
--		int i;
--		struct resource *res = &dino_dev->hba.lmmio_space;
--
--		bus->resource[0] = &(dino_dev->hba.io_space);
--		for(i = 0; i < DINO_MAX_LMMIO_RESOURCES; i++) {
--			if(res[i].flags == 0)
--				break;
--			bus->resource[i+1] = &res[i];
--		}
--
- 	} else if (bus->parent) {
- 		int i;
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index 2c7edf3..d62c268 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1521,8 +1521,12 @@ lba_driver_probe(struct parisc_device *dev)
  
-@@ -927,6 +914,7 @@ static int __init dino_probe(struct parisc_device *dev)
- 	const char *version = "unknown";
- 	char *name;
- 	int is_cujo = 0;
-+	struct list_head resources;
- 	struct pci_bus *bus;
- 	unsigned long hpa = dev->hpa.start;
- 
-@@ -1003,15 +991,25 @@ static int __init dino_probe(struct parisc_device *dev)
- 
- 	dev->dev.platform_data = dino_dev;
- 
-+	INIT_LIST_HEAD(&resources);
-+	pci_add_resource(&resources, &dino_dev->hba.io_space);
-+	if (dino_dev->hba.lmmio_space.flags)
-+		pci_add_resource(&resources, &dino_dev->hba.lmmio_space);
-+	if (dino_dev->hba.elmmio_space.flags)
-+		pci_add_resource(&resources, &dino_dev->hba.elmmio_space);
-+	if (dino_dev->hba.gmmio_space.flags)
-+		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+-		pci_scan_bus_parented(&dev->dev, lba_dev->hba.bus_num.start,
+-				cfg_ops, NULL);
++		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
++				    cfg_ops, NULL, NULL);
++	if (!lba_bus)
++		return 0;
 +
- 	/*
- 	** It's not used to avoid chicken/egg problems
- 	** with configuration accessor functions.
- 	*/
- 	dino_dev->hba.hba_bus = bus = pci_create_root_bus(&dev->dev,
--			 dino_current_bus, &dino_cfg_ops, NULL, NULL);
-+			 dino_current_bus, &dino_cfg_ops, NULL, &resources);
- 	if (!bus) {
- 		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
- 		       dev_name(&dev->dev), dino_current_bus);
-+		pci_free_resource_list(&resources);
- 		/* increment the bus number in case of duplicates */
- 		dino_current_bus++;
- 		return 0;
++	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
+ 
+ 	/* This is in lieu of calling pci_assign_unassigned_resources() */
+ 	if (is_pdc_pat()) {
+@@ -1552,10 +1556,8 @@ lba_driver_probe(struct parisc_device *dev)
+ 		lba_dev->flags |= LBA_FLAG_SKIP_PROBE;
+ 	}
+ 
+-	if (lba_bus) {
+-		lba_next_bus = lba_bus->subordinate + 1;
+-		pci_bus_add_devices(lba_bus);
+-	}
++	lba_next_bus = lba_bus->subordinate + 1;
++	pci_bus_add_devices(lba_bus);
+ 
+ 	/* Whew! Finally done! Tell services we got this one covered. */
+ 	return 0;
