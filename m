@@ -1,66 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:24911 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:23493 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755547Ab1JNRVt convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 13:21:49 -0400
-Received: from wpaz13.hot.corp.google.com (wpaz13.hot.corp.google.com [172.24.198.77])
-	by smtp-out.google.com with ESMTP id p9EHLla0011038
-	for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 10:21:48 -0700
-Received: from gyd8 (gyd8.prod.google.com [10.243.49.200])
-	by wpaz13.hot.corp.google.com with ESMTP id p9EHLPgL005045
+	with ESMTP id S1754258Ab1JNUzO convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 16:55:14 -0400
+Received: from hpaq1.eem.corp.google.com (hpaq1.eem.corp.google.com [172.25.149.1])
+	by smtp-out.google.com with ESMTP id p9EKt7fn029161
+	for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 13:55:12 -0700
+Received: from ywm13 (ywm13.prod.google.com [10.192.13.13])
+	by hpaq1.eem.corp.google.com with ESMTP id p9EKsHgC015577
 	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
-	for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 10:21:46 -0700
-Received: by gyd8 with SMTP id 8so1951943gyd.10
-        for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 10:21:46 -0700 (PDT)
+	for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 13:55:06 -0700
+Received: by ywm13 with SMTP id 13so3901475ywm.1
+        for <linux-arch@vger.kernel.org>; Fri, 14 Oct 2011 13:55:06 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
+In-Reply-To: <4E989E07.6030404@oracle.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
- <1318605254.3018.20.camel@dabdike.int.hansenpartnership.com>
- <CAErSpo7d3hHeJU87zYo=yJoG3eqOZ4QggkOyNnu7xuJe8oG9Qg@mail.gmail.com> <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
+ <20111014042737.23504.46601.stgit@bhelgaas.mtv.corp.google.com>
+ <4E97C8F0.7030108@oracle.com> <CAErSpo568q-KOk25RaaZ+=erLEEC4rsPwGNy0drCbqpCLKGybQ@mail.gmail.com>
+ <4E989E07.6030404@oracle.com>
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 14 Oct 2011 11:21:26 -0600
-Message-ID: <CAErSpo7HKLHUcFBO9=--C4X3casDvtTpwRTq3up_mfOBJ+zbjw@mail.gmail.com>
-Subject: Re: [PATCH v2 00/29] Create PCI root buses with correct resources
+Date: Fri, 14 Oct 2011 14:54:46 -0600
+Message-ID: <CAErSpo4629XKU=TNp0cb6Cxc+Jm_dQcD4244eTna2TC49_EtTw@mail.gmail.com>
+Subject: Re: [PATCH v2 06/29] x86/PCI: convert to pci_create_root_bus() and pci_scan_root_bus()
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111014172126.gu1eYL1xuba8asB3vT1h2CCVq4s457RSlTwdjgaEwSQ@z>
+To: Yinghai Lu <yinghai.lu@oracle.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>
+Message-ID: <20111014205446.VyFaP4jQrayHIFleeOZxmc6oPfBVZj4x6mb8n_JdYkQ@z>
 
-On Fri, Oct 14, 2011 at 9:45 AM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Fri, 2011-10-14 at 09:33 -0600, Bjorn Helgaas wrote:
->> On Fri, Oct 14, 2011 at 9:14 AM, James Bottomley
->> <James.Bottomley@hansenpartnership.com> wrote:
->> > On Thu, 2011-10-13 at 22:27 -0600, Bjorn Helgaas wrote:
->> >> The most generic way to create a PCI root bus is with pci_scan_bus(), but
->> >> that doesn't allow you to specify what resources are available on the bus,
->> >> i.e., what the host bridge apertures are.
->> >
->> > Do you have an actual tree for this?  The PARISC pieces look a bit
->> > non-trivial and I'd like to test them out on the various sba/astro/dino
->> > systems.
->>
->> I don't yet, but it'd be great if you were willing to test them out,
->> so I'll set one up.
->>
->> While this is on your mind, I'm dubious about the pci_enable_bridges()
->> call in lba_driver_probe() and the pci_bus_assign_resources() call in
->> dino_probe().  These stand out as exceptions because no other arches
->> do that.
->>
->> If they weren't there, both places could use pci_scan_root_bus() like
->> most other arches.
+On Fri, Oct 14, 2011 at 2:39 PM, Yinghai Lu <yinghai.lu@oracle.com> wrote:
+> On 10/14/2011 01:32 PM, Bjorn Helgaas wrote:
 >
-> Right, the dino code actually has to rearrange some of the PCI resources
-> to make sure we get our apertures correct.  That's the specific bit I
-> was planning to test.  I think it's only relevant for dino SBA cards
-> where the bridge doesn't set up the card correctly so we have to do it
-> after the fact.
+>
+>>>>       int node;
+>>>> @@ -353,11 +349,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+>>>>               memcpy(bus->sysdata, sd, sizeof(*sd));
+>>>>               kfree(sd);
+>>>>       } else {
+>>>> -             bus = pci_create_bus(NULL, busnum, &pci_root_ops, sd);
+>>>> -             if (bus) {
+>>>> -                     get_current_resources(device, busnum, domain, bus);
+>>>> -                     bus->subordinate = pci_scan_child_bus(bus);
+>>>> +             INIT_LIST_HEAD(&resources);
+>>>> +             get_current_resources(device, busnum, domain, &resources);
+>>>> +             if (!pci_use_crs) {
+>>>> +                     pci_free_resource_list(&resources);
+>>>> +                     x86_pci_root_bus_resources(busnum, &resources);
+>>>>               }
+>>>
+>>>
+>>> You may need to update get_current_resources() to return status about handling _CRS...
+>>> and check that status insteaf of !pci_use_crs.
+>>
+>> Is the current patch broken here?  I don't think it will be simpler to
+>> have get_current_resources() return a status and check that.  But if
+>> something's actually broken, I want to fix it, of course.
+>>
+>
+>
+> yes. if for some reason, _CRS is not handled right, that root bus resources will not get set to default res.
+>
+> +             status = get_current_resources(device, busnum, domain, &resources);
+> +             if (status) {
+> +                     pci_free_resource_list(&resources);
+> +                     x86_pci_root_bus_resources(busnum, &resources);
+>              }
+>
+> get_current_resources() will not return 0 if _CRS is not really used.
 
-I put these patches here: git://github.com/bjorn-helgaas/linux.git on
-the "pci-scan" branch.
+OK.  I think it was that way before, too.  We created the bus with
+default resources, but the first thing get_current_resources() did was
+clear them all out.  If there was a problem parsing _CRS, we never
+went back and put the defaults back in.
 
-Bjorn
+But I think this will do what you suggest and is nicer than what I had before:
+
+                INIT_LIST_HEAD(&resources);
+                get_current_resources(device, busnum, domain, &resources);
+                if (list_empty(&resources))
+                        x86_pci_root_bus_resources(busnum, &resources);
