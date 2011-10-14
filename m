@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 24/29] alpha/PCI: convert to pci_scan_root_bus() for
-	correct root bus resources
-Date: Thu, 13 Oct 2011 22:29:09 -0600
-Message-ID: <20111014042909.23504.29138.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 18/29] parisc/PCI: use pci_create_root_bus() instead of
+	pci_scan_bus_parented()
+Date: Thu, 13 Oct 2011 22:28:39 -0600
+Message-ID: <20111014042839.23504.62250.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -14,73 +14,52 @@ To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
-resource fixups.  This fixes the problem of "early" and "header" quirks
-seeing incorrect root bus resources.
+No functional change here; just converting from the deprecated
+pci_scan_bus_parented() to pci_create_root_bus() to make a future
+patch simpler.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/alpha/kernel/pci.c |   37 ++++++++++++++++++++-----------------
- 1 files changed, 20 insertions(+), 17 deletions(-)
+ drivers/parisc/dino.c |   24 +++++++++++++-----------
+ 1 files changed, 13 insertions(+), 11 deletions(-)
 
-diff --git a/arch/alpha/kernel/pci.c b/arch/alpha/kernel/pci.c
-index c9ab94e..e9e78a2 100644
---- a/arch/alpha/kernel/pci.c
-+++ b/arch/alpha/kernel/pci.c
-@@ -286,22 +286,7 @@ pcibios_fixup_bus(struct pci_bus *bus)
- 	struct pci_controller *hose = bus->sysdata;
- 	struct pci_dev *dev = bus->self;
- 
--	if (!dev) {
--		/* Root bus. */
--		u32 pci_mem_end;
--		u32 sg_base = hose->sg_pci ? hose->sg_pci->dma_base : ~0;
--		unsigned long end;
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index bcd5d54..fba5636 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -1007,22 +1007,24 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	** It's not used to avoid chicken/egg problems
+ 	** with configuration accessor functions.
+ 	*/
+-	dino_dev->hba.hba_bus = bus = pci_scan_bus_parented(&dev->dev,
+-			 dino_current_bus, &dino_cfg_ops, NULL);
 -
--		bus->resource[0] = hose->io_space;
--		bus->resource[1] = hose->mem_space;
--
--		/* Adjust hose mem_space limit to prevent PCI allocations
--		   in the iommu windows. */
--		pci_mem_end = min((u32)__direct_map_base, sg_base) - 1;
--		end = hose->mem_space->start + pci_mem_end;
--		if (hose->mem_space->end > end)
--			hose->mem_space->end = end;
-- 	} else if (pci_probe_only &&
-+	if (pci_probe_only && dev &&
-  		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
-  		pci_read_bridge_bases(bus);
-  		pcibios_fixup_device_resources(dev, bus);
-@@ -414,13 +399,31 @@ void __init
- common_init_pci(void)
- {
- 	struct pci_controller *hose;
-+	struct list_head resources;
- 	struct pci_bus *bus;
- 	int next_busno;
- 	int need_domain_info = 0;
-+	u32 pci_mem_end;
-+	u32 sg_base;
-+	unsigned long end;
+-	if(bus) {
+-		/* This code *depends* on scanning being single threaded
+-		 * if it isn't, this global bus number count will fail
+-		 */
+-		dino_current_bus = bus->subordinate + 1;
+-		pci_bus_assign_resources(bus);
+-		pci_bus_add_devices(bus);
+-	} else {
++	dino_dev->hba.hba_bus = bus = pci_create_root_bus(&dev->dev,
++			 dino_current_bus, &dino_cfg_ops, NULL, NULL);
++	if (!bus) {
+ 		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
+ 		       dev_name(&dev->dev), dino_current_bus);
+ 		/* increment the bus number in case of duplicates */
+ 		dino_current_bus++;
++		return 0;
+ 	}
++
++	bus->subordinate = pci_scan_child_bus(bus);
++
++	/* This code *depends* on scanning being single threaded
++	 * if it isn't, this global bus number count will fail
++	 */
++	dino_current_bus = bus->subordinate + 1;
++	pci_bus_assign_resources(bus);
++	pci_bus_add_devices(bus);
+ 	return 0;
+ }
  
- 	/* Scan all of the recorded PCI controllers.  */
- 	for (next_busno = 0, hose = hose_head; hose; hose = hose->next) {
--		bus = pci_scan_bus(next_busno, alpha_mv.pci_ops, hose);
-+		sg_base = hose->sg_pci ? hose->sg_pci->dma_base : ~0;
-+
-+		/* Adjust hose mem_space limit to prevent PCI allocations
-+		   in the iommu windows. */
-+		pci_mem_end = min((u32)__direct_map_base, sg_base) - 1;
-+		end = hose->mem_space->start + pci_mem_end;
-+		if (hose->mem_space->end > end)
-+			hose->mem_space->end = end;
-+
-+		INIT_LIST_HEAD(&resources);
-+		pci_add_resource(&resources, &hose->io_space);
-+		pci_add_resource(&resources, &hose->mem_space);
-+
-+		bus = pci_scan_root_bus(NULL, next_busno, alpha_mv.pci_ops,
-+					hose, &resources);
- 		hose->bus = bus;
- 		hose->need_domain_info = need_domain_info;
- 		next_busno = bus->subordinate + 1;
