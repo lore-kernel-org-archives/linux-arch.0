@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 18/29] parisc/PCI: use pci_create_root_bus() instead of
-	pci_scan_bus_parented()
-Date: Thu, 13 Oct 2011 22:28:39 -0600
-Message-ID: <20111014042839.23504.62250.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 11/29] microblaze/PCI: make pcibios_setup_phb_resources()
+	static
+Date: Thu, 13 Oct 2011 22:28:03 -0600
+Message-ID: <20111014042803.23504.11906.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,55 +11,38 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-No functional change here; just converting from the deprecated
-pci_scan_bus_parented() to pci_create_root_bus() to make a future
-patch simpler.
-
+CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/dino.c |   24 +++++++++++++-----------
- 1 files changed, 13 insertions(+), 11 deletions(-)
+ arch/microblaze/include/asm/pci-bridge.h |    1 -
+ arch/microblaze/pci/pci-common.c         |    2 +-
+ 2 files changed, 1 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index bcd5d54..fba5636 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -1007,22 +1007,24 @@ static int __init dino_probe(struct parisc_device *dev)
- 	** It's not used to avoid chicken/egg problems
- 	** with configuration accessor functions.
- 	*/
--	dino_dev->hba.hba_bus = bus = pci_scan_bus_parented(&dev->dev,
--			 dino_current_bus, &dino_cfg_ops, NULL);
--
--	if(bus) {
--		/* This code *depends* on scanning being single threaded
--		 * if it isn't, this global bus number count will fail
--		 */
--		dino_current_bus = bus->subordinate + 1;
--		pci_bus_assign_resources(bus);
--		pci_bus_add_devices(bus);
--	} else {
-+	dino_dev->hba.hba_bus = bus = pci_create_root_bus(&dev->dev,
-+			 dino_current_bus, &dino_cfg_ops, NULL, NULL);
-+	if (!bus) {
- 		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
- 		       dev_name(&dev->dev), dino_current_bus);
- 		/* increment the bus number in case of duplicates */
- 		dino_current_bus++;
-+		return 0;
- 	}
-+
-+	bus->subordinate = pci_scan_child_bus(bus);
-+
-+	/* This code *depends* on scanning being single threaded
-+	 * if it isn't, this global bus number count will fail
-+	 */
-+	dino_current_bus = bus->subordinate + 1;
-+	pci_bus_assign_resources(bus);
-+	pci_bus_add_devices(bus);
- 	return 0;
+diff --git a/arch/microblaze/include/asm/pci-bridge.h b/arch/microblaze/include/asm/pci-bridge.h
+index 32764cd..e9834b2 100644
+--- a/arch/microblaze/include/asm/pci-bridge.h
++++ b/arch/microblaze/include/asm/pci-bridge.h
+@@ -140,7 +140,6 @@ extern void pci_process_bridge_OF_ranges(struct pci_controller *hose,
+ /* Allocate & free a PCI host bridge structure */
+ extern struct pci_controller *pcibios_alloc_controller(struct device_node *dev);
+ extern void pcibios_free_controller(struct pci_controller *phb);
+-extern void pcibios_setup_phb_resources(struct pci_controller *hose);
+ 
+ #endif	/* __KERNEL__ */
+ #endif	/* _ASM_MICROBLAZE_PCI_BRIDGE_H */
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 9df5e5b..9dde153 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -1507,7 +1507,7 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	return pci_enable_resources(dev, mask);
  }
  
+-void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
++static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ {
+ 	struct pci_bus *bus = hose->bus;
+ 	struct resource *res;
