@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:49733 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:50002 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932239Ab1JNE1Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:25 -0400
-Subject: [PATCH v2 03/29] PCI: add pci_scan_root_bus(),
-	deprecate pci_scan_bus() and pci_scan_bus_parented()
+	with ESMTP id S932362Ab1JNE2G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:06 -0400
+Subject: [PATCH v2 11/29] microblaze/PCI: make pcibios_setup_phb_resources()
+	static
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:27:22 -0600
-Message-ID: <20111014042722.23504.2041.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:28:03 -0600
+Message-ID: <20111014042803.23504.11906.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,137 +16,39 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111014042722.8A519hqAIFku2_7BCAFoCwGpqMK42YQYtDw32TgdA1s@z>
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
+Message-ID: <20111014042803.hCBmzzKjhP9xsXv8m60vNq01oxw9Ax2ZUH11iBig7z8@z>
 
-"Early" and "header" quirks use incorrect bus resources because they see
-the default resources assigned by pci_create_bus(), before the architecture
-fixes them up (typically in pcibios_fixup_bus()).  Regions reserved by
-these quirks end up with the wrong parents.
-
-Here's the standard path for scanning a PCI root bus:
-
-  pci_scan_bus or pci_scan_bus_parented
-    pci_create_bus                     <-- A create with default resources
-    pci_scan_child_bus
-      pci_scan_slot
-        pci_scan_single_device
-          pci_scan_device
-            pci_setup_device
-              pci_fixup_device(early)  <-- B
-          pci_device_add
-            pci_fixup_device(header)   <-- C
-      pcibios_fixup_bus                <-- D fill in correct resources
-
-Early and header quirks at B and C use the default (incorrect) root bus
-resources rather than those filled in at D.
-
-This patch adds a new pci_scan_root_bus() function that sets the bus
-resources correctly from a supplied list of resources.  It also marks
-pci_scan_bus() and pci_scan_bus_parented() as deprecated.
-
-Callers of pci_scan_bus() should switch to pci_scan_root_bus().  Callers of
-pci_scan_bus_parented() should use pci_create_root_bus() followed by
-pci_scan_child_bus().  In both cases, root bus resource fixups, e.g.,
-in pcibios_fixup_bus(), should be removed.
-
+CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/probe.c |   39 +++++++++++++++++++++++++++++++++++++--
- include/linux/pci.h |   19 ++++++++-----------
- 2 files changed, 45 insertions(+), 13 deletions(-)
+ arch/microblaze/include/asm/pci-bridge.h |    1 -
+ arch/microblaze/pci/pci-common.c         |    2 +-
+ 2 files changed, 1 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 20d2d40..9cb7158 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1624,18 +1624,53 @@ struct pci_bus *pci_create_bus(struct device *parent,
- 	return pci_create_root_bus(parent, bus, ops, sysdata, NULL);
+diff --git a/arch/microblaze/include/asm/pci-bridge.h b/arch/microblaze/include/asm/pci-bridge.h
+index 32764cd..e9834b2 100644
+--- a/arch/microblaze/include/asm/pci-bridge.h
++++ b/arch/microblaze/include/asm/pci-bridge.h
+@@ -140,7 +140,6 @@ extern void pci_process_bridge_OF_ranges(struct pci_controller *hose,
+ /* Allocate & free a PCI host bridge structure */
+ extern struct pci_controller *pcibios_alloc_controller(struct device_node *dev);
+ extern void pcibios_free_controller(struct pci_controller *phb);
+-extern void pcibios_setup_phb_resources(struct pci_controller *hose);
+ 
+ #endif	/* __KERNEL__ */
+ #endif	/* _ASM_MICROBLAZE_PCI_BRIDGE_H */
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 9df5e5b..9dde153 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -1507,7 +1507,7 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	return pci_enable_resources(dev, mask);
  }
  
-+/*
-+ * Deprecated; use pci_create_root_bus() with non-NULL resources and
-+ * pci_scan_child_bus() instead
-+ */
- struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
- 		int bus, struct pci_ops *ops, void *sysdata)
+-void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
++static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
  {
- 	struct pci_bus *b;
- 
- 	b = pci_create_root_bus(parent, bus, ops, sysdata, NULL);
--	if (b)
--		b->subordinate = pci_scan_child_bus(b);
-+	if (!b)
-+		return NULL;
-+
-+	b->subordinate = pci_scan_child_bus(b);
- 	return b;
- }
- EXPORT_SYMBOL(pci_scan_bus_parented);
- 
-+/* Deprecated; use pci_scan_root_bus() with non-NULL resources instead */
-+struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
-+		void *sysdata)
-+{
-+	struct pci_bus *b;
-+
-+	b = pci_create_root_bus(NULL, bus, ops, sysdata, NULL);
-+	if (!b)
-+		return NULL;
-+
-+	b->subordinate = pci_scan_child_bus(b);
-+	pci_bus_add_devices(b);
-+	return b;
-+}
-+
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus_num,
-+		struct pci_ops *ops, void *sysdata, struct list_head *resources)
-+{
-+	struct pci_bus *bus;
-+
-+	bus = pci_create_root_bus(parent, bus_num, ops, sysdata, resources);
-+	if (!bus)
-+		return NULL;
-+
-+	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_add_devices(bus);
-+	return bus;
-+}
-+
- #ifdef CONFIG_HOTPLUG
- /**
-  * pci_rescan_bus - scan a PCI bus for devices.
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 6bdf854..03c6089 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -655,20 +655,17 @@ void pci_fixup_cardbus(struct pci_bus *);
- void pcibios_scan_specific_bus(int busn);
- extern struct pci_bus *pci_find_bus(int domain, int busnr);
- void pci_bus_add_devices(const struct pci_bus *bus);
--struct pci_bus *pci_scan_bus_parented(struct device *parent, int bus,
--				      struct pci_ops *ops, void *sysdata);
--static inline struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
--					   void *sysdata)
--{
--	struct pci_bus *root_bus;
--	root_bus = pci_scan_bus_parented(NULL, bus, ops, sysdata);
--	if (root_bus)
--		pci_bus_add_devices(root_bus);
--	return root_bus;
--}
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
-+					     struct pci_ops *ops, void *sysdata,
-+					     struct list_head *resources);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+struct pci_bus *pci_scan_bus_parented(struct device *parent, int bus,
-+				      struct pci_ops *ops, void *sysdata)
-+				      __deprecated;
-+struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
-+					void *sysdata) __deprecated;
- struct pci_bus *pci_create_bus(struct device *parent, int bus,
- 			       struct pci_ops *ops, void *sysdata) __deprecated;
- struct pci_bus *pci_add_new_bus(struct pci_bus *parent, struct pci_dev *dev,
+ 	struct pci_bus *bus = hose->bus;
+ 	struct resource *res;
 
