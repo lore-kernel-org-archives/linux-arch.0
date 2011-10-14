@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:50731 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:50739 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932615Ab1JNE3h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:29:37 -0400
-Subject: [PATCH v2 28/29] sh/PCI: convert to pci_scan_root_bus() for correct
-	root bus resources
+	with ESMTP id S932587Ab1JNE3j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:29:39 -0400
+Subject: [PATCH v2 29/29] xtensa/PCI: convert to pci_scan_root_bus() for
+	correct root bus resources
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:29:30 -0600
-Message-ID: <20111014042930.23504.60734.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:29:35 -0600
+Message-ID: <20111014042935.23504.27541.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,63 +16,130 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-kernel@vger.kernel.org
-Message-ID: <20111014042930.cRme9geFa4gWXvZyavoADFmAuPM9gNdIyMunwWD52Kw@z>
+Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, linux-kernel@vger.kernel.org
+Message-ID: <20111014042935.Af_3tkE5AKFxkcJqzQg4KzKv-N7kmOyS8NvhI1wCtuo@z>
 
 Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
-resource fixups.  This fixes the problem of "early" and "header" quirks
+fixups.  This fixes the problem of "early" and "header" quirks
 seeing incorrect root bus resources.
 
-CC: Paul Mundt <lethal@linux-sh.org>
+CC: Chris Zankel <chris@zankel.net>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/sh/drivers/pci/pci.c |   19 ++++++++++---------
- 1 files changed, 10 insertions(+), 9 deletions(-)
+ arch/xtensa/kernel/pci.c |   85 +++++++++++++++++++++++-----------------------
+ 1 files changed, 42 insertions(+), 43 deletions(-)
 
-diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index 194231c..d8dc68b 100644
---- a/arch/sh/drivers/pci/pci.c
-+++ b/arch/sh/drivers/pci/pci.c
-@@ -35,9 +35,16 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
- {
- 	static int next_busno;
- 	static int need_domain_info;
-+	struct list_head resources;
-+	int i;
- 	struct pci_bus *bus;
- 
--	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
-+	INIT_LIST_HEAD(&resources);
-+	for (i = 0; i < hose->nr_resources; i++)
-+		pci_add_resource(&resources, hose->resources + i);
-+
-+	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-+				&resources);
- 	hose->bus = bus;
- 
- 	need_domain_info = need_domain_info || hose->index;
-@@ -54,6 +61,8 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
- 		pci_bus_size_bridges(bus);
- 		pci_bus_assign_resources(bus);
- 		pci_enable_bridges(bus);
-+	} else {
-+		pci_free_resource_list(&resources);
- 	}
+diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
+index cd10269..d35325c 100644
+--- a/arch/xtensa/kernel/pci.c
++++ b/arch/xtensa/kernel/pci.c
+@@ -134,9 +134,46 @@ struct pci_controller * __init pcibios_alloc_controller(void)
+ 	return pci_ctrl;
  }
  
-@@ -163,14 +172,6 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
++static void __init pci_controller_apertures(struct pci_controller *pci_ctrl,
++					    struct list_head *resources)
++{
++	struct resource *res;
++	unsigned long io_offset;
++	int i;
++
++	res = &pci_ctrl->io_resource;
++	if (!res->flags) {
++		if (io_offset)
++			printk (KERN_ERR "I/O resource not set for host"
++				" bridge %d\n", pci_ctrl->index);
++		res->start = 0;
++		res->end = IO_SPACE_LIMIT;
++		res->flags = IORESOURCE_IO;
++	}
++	io_offset = (unsigned long)pci_ctrl->io_space.base;
++	res->start += io_offset;
++	res->end += io_offset;
++	pci_add_resource(resources, res);
++
++	for (i = 0; i < 3; i++) {
++		res = &pci_ctrl->mem_resources[i];
++		if (!res->flags) {
++			if (i > 0)
++				continue;
++			printk(KERN_ERR "Memory resource not set for "
++			       "host bridge %d\n", pci_ctrl->index);
++			res->start = 0;
++			res->end = ~0U;
++			res->flags = IORESOURCE_MEM;
++		}
++		pci_add_resource(resources, res);
++	}
++}
++
+ static int __init pcibios_init(void)
  {
- 	struct pci_dev *dev = bus->self;
- 	struct list_head *ln;
--	struct pci_channel *hose = bus->sysdata;
--
--	if (!dev) {
--		int i;
--
--		for (i = 0; i < hose->nr_resources; i++)
--			bus->resource[i] = hose->resources + i;
--	}
+ 	struct pci_controller *pci_ctrl;
++	struct list_head resources;
+ 	struct pci_bus *bus;
+ 	int next_busno = 0, i;
  
- 	for (ln = bus->devices.next; ln != &bus->devices; ln = ln->next) {
- 		dev = pci_dev_b(ln);
+@@ -145,19 +182,10 @@ static int __init pcibios_init(void)
+ 	/* Scan all of the recorded PCI controllers.  */
+ 	for (pci_ctrl = pci_ctrl_head; pci_ctrl; pci_ctrl = pci_ctrl->next) {
+ 		pci_ctrl->last_busno = 0xff;
+-		bus = pci_scan_bus(pci_ctrl->first_busno, pci_ctrl->ops,
+-				   pci_ctrl);
+-		if (pci_ctrl->io_resource.flags) {
+-			unsigned long offs;
+-
+-			offs = (unsigned long)pci_ctrl->io_space.base;
+-			pci_ctrl->io_resource.start += offs;
+-			pci_ctrl->io_resource.end += offs;
+-			bus->resource[0] = &pci_ctrl->io_resource;
+-		}
+-		for (i = 0; i < 3; ++i)
+-			if (pci_ctrl->mem_resources[i].flags)
+-				bus->resource[i+1] =&pci_ctrl->mem_resources[i];
++		INIT_LIST_HEAD(&resources);
++		pci_controller_apertures(pci_ctrl, &resources);
++		bus = pci_scan_root_bus(NULL, pci_ctrl->first_busno,
++					pci_ctrl->ops, pci_ctrl, &resources);
+ 		pci_ctrl->bus = bus;
+ 		pci_ctrl->last_busno = bus->subordinate;
+ 		if (next_busno <= pci_ctrl->last_busno)
+@@ -178,36 +206,7 @@ void __init pcibios_fixup_bus(struct pci_bus *bus)
+ 	int i;
+ 
+ 	io_offset = (unsigned long)pci_ctrl->io_space.base;
+-	if (bus->parent == NULL) {
+-		/* this is a host bridge - fill in its resources */
+-		pci_ctrl->bus = bus;
+-
+-		bus->resource[0] = res = &pci_ctrl->io_resource;
+-		if (!res->flags) {
+-			if (io_offset)
+-				printk (KERN_ERR "I/O resource not set for host"
+-					" bridge %d\n", pci_ctrl->index);
+-			res->start = 0;
+-			res->end = IO_SPACE_LIMIT;
+-			res->flags = IORESOURCE_IO;
+-		}
+-		res->start += io_offset;
+-		res->end += io_offset;
+-
+-		for (i = 0; i < 3; i++) {
+-			res = &pci_ctrl->mem_resources[i];
+-			if (!res->flags) {
+-				if (i > 0)
+-					continue;
+-				printk(KERN_ERR "Memory resource not set for "
+-				       "host bridge %d\n", pci_ctrl->index);
+-				res->start = 0;
+-				res->end = ~0U;
+-				res->flags = IORESOURCE_MEM;
+-			}
+-			bus->resource[i+1] = res;
+-		}
+-	} else {
++	if (bus->parent) {
+ 		/* This is a subordinate bridge */
+ 		pci_read_bridge_bases(bus);
+ 
 
