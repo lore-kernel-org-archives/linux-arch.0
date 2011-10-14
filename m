@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 17/29] ia64/PCI: convert to pci_create_root_bus() for
-	correct root bus resources
-Date: Thu, 13 Oct 2011 22:28:33 -0600
-Message-ID: <20111014042833.23504.81310.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 22/29] parisc/PCI: supply root bus resources to
+	pci_create_root_bus()
+Date: Thu, 13 Oct 2011 22:28:59 -0600
+Message-ID: <20111014042859.23504.62988.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,113 +11,100 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Convert from pci_create_bus() to pci_create_root_bus().  This way the root
-bus resources are correct immediately.  This fixes the problem of "early"
-and "header" quirks seeing incorrect root bus resources.
+Supply root bus resources to pci_create_root_bus() so they're correct
+immediately.  This fixes the problem of "early" and "header" quirks seeing
+incorrect root bus resources.
 
-We can't use pci_scan_root_bus() because, like x86, ACPI hotplug currently
-requires pci_bus_add_devices() in a separate host bridge .start() method.
-
-CC: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/ia64/pci/pci.c |   39 ++++++++++++++-------------------------
- 1 files changed, 14 insertions(+), 25 deletions(-)
+ drivers/parisc/lba_pci.c |   28 +++++++++++++++++-----------
+ 1 files changed, 17 insertions(+), 11 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d7e47a9..a7949b5 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -133,6 +133,7 @@ alloc_pci_controller (int seg)
- struct pci_root_info {
- 	struct acpi_device *bridge;
- 	struct pci_controller *controller;
-+	struct list_head resources;
- 	char *name;
- };
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index d62c268..7dd5699 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -653,7 +653,7 @@ lba_fixup_bus(struct pci_bus *bus)
+ 		}
+ 	} else {
+ 		/* Host-PCI Bridge */
+-		int err, i;
++		int err;
  
-@@ -314,24 +315,13 @@ static __devinit acpi_status add_window(struct acpi_resource *res, void *data)
- 				 &window->resource);
- 	}
+ 		DBG("lba_fixup_bus() %s [%lx/%lx]/%lx\n",
+ 			ldev->hba.io_space.name,
+@@ -669,9 +669,6 @@ lba_fixup_bus(struct pci_bus *bus)
+ 			lba_dump_res(&ioport_resource, 2);
+ 			BUG();
+ 		}
+-		/* advertize Host bridge resources to PCI bus */
+-		bus->resource[0] = &(ldev->hba.io_space);
+-		i = 1;
  
--	return AE_OK;
--}
-+	/* HP's firmware has a hack to work around a Windows bug.
-+	 * Ignore these tiny memory ranges */
-+	if (!((res->flags & IORESOURCE_MEM) &&
-+	      (res->end - res->start < 16)))
-+		pci_add_resource(&info->resources, &window->resource);
+ 		if (ldev->hba.elmmio_space.start) {
+ 			err = request_resource(&iomem_resource,
+@@ -685,8 +682,7 @@ lba_fixup_bus(struct pci_bus *bus)
  
--static void __devinit
--pcibios_setup_root_windows(struct pci_bus *bus, struct pci_controller *ctrl)
--{
--	int i;
--
--	pci_bus_remove_resources(bus);
--	for (i = 0; i < ctrl->windows; i++) {
--		struct resource *res = &ctrl->window[i].resource;
--		/* HP's firmware has a hack to work around a Windows bug.
--		 * Ignore these tiny memory ranges */
--		if ((res->flags & IORESOURCE_MEM) &&
--		    (res->end - res->start < 16))
--			continue;
--		pci_bus_add_resource(bus, res, 0);
--	}
-+	return AE_OK;
- }
+ 				/* lba_dump_res(&iomem_resource, 2); */
+ 				/* BUG(); */
+-			} else
+-				bus->resource[i++] = &(ldev->hba.elmmio_space);
++			}
+ 		}
  
- struct pci_bus * __devinit
-@@ -342,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	int bus = root->secondary.start;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
-+	struct pci_root_info info;
- 	struct pci_bus *pbus;
- 	char *name;
- 	int pxm;
-@@ -358,11 +349,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		controller->node = pxm_to_node(pxm);
+ 		if (ldev->hba.lmmio_space.flags) {
+@@ -696,8 +692,7 @@ lba_fixup_bus(struct pci_bus *bus)
+ 					"lmmio_space [%lx/%lx]\n",
+ 					(long)ldev->hba.lmmio_space.start,
+ 					(long)ldev->hba.lmmio_space.end);
+-			} else
+-				bus->resource[i++] = &(ldev->hba.lmmio_space);
++			}
+ 		}
+ 
+ #ifdef CONFIG_64BIT
+@@ -712,7 +707,6 @@ lba_fixup_bus(struct pci_bus *bus)
+ 				lba_dump_res(&iomem_resource, 2);
+ 				BUG();
+ 			}
+-			bus->resource[i++] = &(ldev->hba.gmmio_space);
+ 		}
  #endif
  
-+	INIT_LIST_HEAD(&info.resources);
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
- 			&windows);
- 	if (windows) {
--		struct pci_root_info info;
--
- 		controller->window =
- 			kmalloc_node(sizeof(*controller->window) * windows,
- 				     GFP_KERNEL, controller->node);
-@@ -386,9 +376,12 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	 * should handle the case here, but it appears that IA64 hasn't
- 	 * such quirk. So we just ignore the case now.
- 	 */
--	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller, NULL);
--	if (!pbus)
-+	pbus = pci_create_root_bus(NULL, bus, &pci_root_ops, controller,
-+				   &info.resources);
-+	if (!pbus) {
-+		pci_free_resource_list(&info.resources);
- 		return NULL;
+@@ -1388,6 +1382,7 @@ static int __init
+ lba_driver_probe(struct parisc_device *dev)
+ {
+ 	struct lba_device *lba_dev;
++	struct list_head resources;
+ 	struct pci_bus *lba_bus;
+ 	struct pci_ops *cfg_ops;
+ 	u32 func_class;
+@@ -1519,12 +1514,23 @@ lba_driver_probe(struct parisc_device *dev)
+ 		lba_dev->hba.lmmio_space.flags = 0;
+ 	}
+ 
++	INIT_LIST_HEAD(&resources);
++	pci_add_resource(&resources, &lba_dev->hba.io_space);
++	if (lba_dev->hba.elmmio_space.start)
++		pci_add_resource(&resources, &lba_dev->hba.elmmio_space);
++	if (lba_dev->hba.lmmio_space.flags)
++		pci_add_resource(&resources, &lba_dev->hba.lmmio_space);
++	if (lba_dev->hba.gmmio_space.flags)
++		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
++
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+ 		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
+-				    cfg_ops, NULL, NULL);
+-	if (!lba_bus)
++				    cfg_ops, NULL, &resources);
++	if (!lba_bus) {
++		pci_free_resource_list(&resources);
+ 		return 0;
 +	}
  
- 	pbus->subordinate = pci_scan_child_bus(pbus);
- 	return pbus;
-@@ -506,14 +499,10 @@ pcibios_fixup_bus (struct pci_bus *b)
- 	if (b->self) {
- 		pci_read_bridge_bases(b);
- 		pcibios_fixup_bridge_resources(b->self);
--	} else {
--		pcibios_setup_root_windows(b, b->sysdata);
- 	}
- 	list_for_each_entry(dev, &b->devices, bus_list)
- 		pcibios_fixup_device_resources(dev);
- 	platform_pci_fixup_bus(b);
--
--	return;
- }
+ 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
  
- void __devinit
