@@ -1,45 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:60088 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752000Ab1JNErL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:47:11 -0400
-Date: Fri, 14 Oct 2011 00:46:54 -0400 (EDT)
-Message-ID: <20111014.004654.210648346142583443.davem@davemloft.net>
-Subject: Re: [PATCH v2 14/29] sparc/PCI: convert to pci_create_root_bus()
- for correct root bus resources
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20111014042818.23504.61318.stgit@bhelgaas.mtv.corp.google.com>
-References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
-	<20111014042818.23504.61318.stgit@bhelgaas.mtv.corp.google.com>
+Received: from mga05.intel.com ([192.55.52.89]:39609 "EHLO
+	fmsmga101.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1755915Ab1JNJ1K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 05:27:10 -0400
+Subject: Re: linux-next: build failure after merge of the final tree
+ (sparc, ptrace trees related)
+From: Matt Fleming <matt.fleming@intel.com>
+In-Reply-To: <20111014.035459.2238341687770152474.davem@davemloft.net>
+References: <20111014180714.e11e15fd35dfaca839c6421e@canb.auug.org.au>
+	 <20111014.035459.2238341687770152474.davem@davemloft.net>
+Content-Type: text/plain; charset="UTF-8"
+Date: Fri, 14 Oct 2011 10:27:02 +0100
+Message-ID: <1318584422.23581.118.camel@mfleming-mobl1.ger.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: bhelgaas@google.com
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111014044654.y2cO_amhIGANav6EG7ySeUov-Aetep00xr5d41pj8cU@z>
+To: David Miller <davem@davemloft.net>
+Cc: sfr@canb.auug.org.au, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, tj@kernel.org, oleg@redhat.com, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20111014092702._qYIP8AHHlA3botivppUB4xS5nvU478kHAsJ6KTwfy8@z>
 
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:28:18 -0600
-
-> Convert from pci_create_bus() to pci_create_root_bus().  This way the root
-> bus resources are correct immediately.  This patch doesn't fix anything
-> because sparc fixed them before scanning the bus, but it makes it more
-> consistent with other architectures.
+On Fri, 2011-10-14 at 03:54 -0400, David Miller wrote:
+> Ptrace folks can we not operate like this?  The only reason I found
+> out about the set_current_blocked() transformations was by accident,
+> because the original patch was posted to linux-kernel only so it never
+> got queued up into sparc patchwork.
 > 
-> I didn't work out where pcibios_fixup_bus() is called.  I don't see a
-> use of pci_scan_bus(), pci_scan_bus_parented(), or pci_scan_child_bus().
+> Then once Oleg mentioned it to me, it didn't even compile so I fixed
+> it up and put the fixed up copy into my tree.  It also didn't
+> transform the TS_RESTORE_SIGMASK cases in the sparc signal code, so I
+> also added a patch to the sparc tree which took care of that.
 > 
-> CC: David S. Miller <davem@davemloft.net>
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> Now you guys are creating conflicts against those fixed up patches in
+> another non-sparc tree, and adding new kinds of build failures as
+> well.
+> 
+> This doesn't work.
 
-The pcibios_fixup_bus() case here (sparc64) is an artifact from when
-we actually probed the PCI config space for device probing on sparc64,
-and pci_bus_probe() would invoke it.
+Sorry David, this is my fault.
 
-Unfortunately we can't delete this function now even though it's empty
-with your changes, because drivers/pci/probe.o is unconditionally
-linked into the kernel when CONFIG_PCI even when an architecture
-(such as sparc64) doesn't use the majority of the code in it.
+The reason that these patches couldn't be taken through the arch trees
+was because they were dependent on the non-arch patch that introduced
+block_sigmask(). I figured it would make more sense to put all the
+patches through Oleg's tree. It's now pretty clear I was wrong about
+that.
+
+In hindsight, what I should have done was got the first patch that
+introduced block_sigmask() into 3.1, then waited till the next release
+cycle and sent out all the arch patches to the arch maintainers. That
+way the patches could have been pulled into the respective arch trees.
+
+Guys, how did you want to sort this out? Should we get the first patch
+into 3.1, then get all the arch maintainers to pick up their patches?
 
