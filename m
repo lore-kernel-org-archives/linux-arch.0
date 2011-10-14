@@ -1,95 +1,123 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 20/29] parisc/PCI: deal with LMMIO/PAT overlaps before
-	creating PCI root bus
-Date: Thu, 13 Oct 2011 22:28:49 -0600
-Message-ID: <20111014042849.23504.74781.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 17/29] ia64/PCI: convert to pci_create_root_bus() for
+	correct root bus resources
+Date: Thu, 13 Oct 2011 22:28:33 -0600
+Message-ID: <20111014042833.23504.81310.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:21442 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932497Ab1JNE2v (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:51 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This moves the truncate_pat_collision() call out of the pcibios_fixup_bus()
-path so that when a future patch builds a list of root bus resources for
-pci_create_bus(), it can use the truncated LMMIO range.
+Convert from pci_create_bus() to pci_create_root_bus().  This way the root
+bus resources are correct immediately.  This fixes the problem of "early"
+and "header" quirks seeing incorrect root bus resources.
 
-truncate_pat_collision() used to be called in this path:
+We can't use pci_scan_root_bus() because, like x86, ACPI hotplug currently
+requires pci_bus_add_devices() in a separate host bridge .start() method.
 
-    pci_scan_bus_parented
-      pci_create_bus
-      pci_scan_child_bus
-        pcibios_fixup_bus
-	  lba_fixup_bus
-	    truncate_pat_collision
-
-All of the PAT and lba_dev resource setup must be done before we call
-pci_scan_bus_parented(), so it should be safe to move the
-truncate_pat_collision() to just before pci_scan_bus_parented().
-
+CC: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/lba_pci.c |   35 ++++++++++++++++++-----------------
- 1 files changed, 18 insertions(+), 17 deletions(-)
+ arch/ia64/pci/pci.c |   39 ++++++++++++++-------------------------
+ 1 files changed, 14 insertions(+), 25 deletions(-)
 
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index 3aeb327..2c7edf3 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -689,23 +689,7 @@ lba_fixup_bus(struct pci_bus *bus)
- 				bus->resource[i++] = &(ldev->hba.elmmio_space);
- 		}
+diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+index d7e47a9..a7949b5 100644
+--- a/arch/ia64/pci/pci.c
++++ b/arch/ia64/pci/pci.c
+@@ -133,6 +133,7 @@ alloc_pci_controller (int seg)
+ struct pci_root_info {
+ 	struct acpi_device *bridge;
+ 	struct pci_controller *controller;
++	struct list_head resources;
+ 	char *name;
+ };
  
--
--		/*   Overlaps with elmmio can (and should) fail here.
--		 *   We will prune (or ignore) the distributed range.
--		 *
--		 *   FIXME: SBA code should register all elmmio ranges first.
--		 *      that would take care of elmmio ranges routed
--		 *	to a different rope (already discovered) from
--		 *	getting registered *after* LBA code has already
--		 *	registered it's distributed lmmio range.
--		 */
--		if (truncate_pat_collision(&iomem_resource,
--				       	&(ldev->hba.lmmio_space))) {
--
--			printk(KERN_WARNING "LBA: lmmio_space [%lx/%lx] duplicate!\n",
--					(long)ldev->hba.lmmio_space.start,
--					(long)ldev->hba.lmmio_space.end);
--		} else {
-+		if (ldev->hba.lmmio_space.flags) {
- 			err = request_resource(&iomem_resource, &(ldev->hba.lmmio_space));
- 			if (err < 0) {
- 				printk(KERN_ERR "FAILED: lba_fixup_bus() request for "
-@@ -1518,6 +1502,23 @@ lba_driver_probe(struct parisc_device *dev)
- 	if (lba_dev->hba.bus_num.start < lba_next_bus)
- 		lba_dev->hba.bus_num.start = lba_next_bus;
+@@ -314,24 +315,13 @@ static __devinit acpi_status add_window(struct acpi_resource *res, void *data)
+ 				 &window->resource);
+ 	}
  
-+	/*   Overlaps with elmmio can (and should) fail here.
-+	 *   We will prune (or ignore) the distributed range.
-+	 *
-+	 *   FIXME: SBA code should register all elmmio ranges first.
-+	 *      that would take care of elmmio ranges routed
-+	 *	to a different rope (already discovered) from
-+	 *	getting registered *after* LBA code has already
-+	 *	registered it's distributed lmmio range.
-+	 */
-+	if (truncate_pat_collision(&iomem_resource,
-+				   &(lba_dev->hba.lmmio_space))) {
-+		printk(KERN_WARNING "LBA: lmmio_space [%lx/%lx] duplicate!\n",
-+				(long)lba_dev->hba.lmmio_space.start,
-+				(long)lba_dev->hba.lmmio_space.end);
-+		lba_dev->hba.lmmio_space.flags = 0;
+-	return AE_OK;
+-}
++	/* HP's firmware has a hack to work around a Windows bug.
++	 * Ignore these tiny memory ranges */
++	if (!((res->flags & IORESOURCE_MEM) &&
++	      (res->end - res->start < 16)))
++		pci_add_resource(&info->resources, &window->resource);
+ 
+-static void __devinit
+-pcibios_setup_root_windows(struct pci_bus *bus, struct pci_controller *ctrl)
+-{
+-	int i;
+-
+-	pci_bus_remove_resources(bus);
+-	for (i = 0; i < ctrl->windows; i++) {
+-		struct resource *res = &ctrl->window[i].resource;
+-		/* HP's firmware has a hack to work around a Windows bug.
+-		 * Ignore these tiny memory ranges */
+-		if ((res->flags & IORESOURCE_MEM) &&
+-		    (res->end - res->start < 16))
+-			continue;
+-		pci_bus_add_resource(bus, res, 0);
+-	}
++	return AE_OK;
+ }
+ 
+ struct pci_bus * __devinit
+@@ -342,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	int bus = root->secondary.start;
+ 	struct pci_controller *controller;
+ 	unsigned int windows = 0;
++	struct pci_root_info info;
+ 	struct pci_bus *pbus;
+ 	char *name;
+ 	int pxm;
+@@ -358,11 +349,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		controller->node = pxm_to_node(pxm);
+ #endif
+ 
++	INIT_LIST_HEAD(&info.resources);
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
+ 			&windows);
+ 	if (windows) {
+-		struct pci_root_info info;
+-
+ 		controller->window =
+ 			kmalloc_node(sizeof(*controller->window) * windows,
+ 				     GFP_KERNEL, controller->node);
+@@ -386,9 +376,12 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	 * should handle the case here, but it appears that IA64 hasn't
+ 	 * such quirk. So we just ignore the case now.
+ 	 */
+-	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller, NULL);
+-	if (!pbus)
++	pbus = pci_create_root_bus(NULL, bus, &pci_root_ops, controller,
++				   &info.resources);
++	if (!pbus) {
++		pci_free_resource_list(&info.resources);
+ 		return NULL;
 +	}
-+
- 	dev->dev.platform_data = lba_dev;
- 	lba_bus = lba_dev->hba.hba_bus =
- 		pci_scan_bus_parented(&dev->dev, lba_dev->hba.bus_num.start,
+ 
+ 	pbus->subordinate = pci_scan_child_bus(pbus);
+ 	return pbus;
+@@ -506,14 +499,10 @@ pcibios_fixup_bus (struct pci_bus *b)
+ 	if (b->self) {
+ 		pci_read_bridge_bases(b);
+ 		pcibios_fixup_bridge_resources(b->self);
+-	} else {
+-		pcibios_setup_root_windows(b, b->sysdata);
+ 	}
+ 	list_for_each_entry(dev, &b->devices, bus_list)
+ 		pcibios_fixup_device_resources(dev);
+ 	platform_pci_fixup_bus(b);
+-
+-	return;
+ }
+ 
+ void __devinit
