@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:20719 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:21007 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751129Ab1JNE1O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:14 -0400
-Subject: [PATCH v2 01/29] PCI: add helpers for building PCI bus resource lists
+	with ESMTP id S932238Ab1JNE1x (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:53 -0400
+Subject: [PATCH v2 08/29] powerpc/PCI: split PHB part out of
+	pcibios_map_io_space()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:27:11 -0600
-Message-ID: <20111014042711.23504.13042.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:27:47 -0600
+Message-ID: <20111014042747.23504.28856.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -15,83 +16,84 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111014042711.hB3xzzD0eQ7Wl2PbHk3xwRnY1XajabrWQnFUSETC-Eg@z>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org
+Message-ID: <20111014042747.BPtPTz8sAUgtlo4mu9pbUxSIroVPkCe1x5Jb5nlX2dI@z>
 
-We'd like to supply a list of resources when we create a new PCI bus,
-e.g., the root bus under a PCI host bridge.  These are helpers for
-constructing that list.
+No functional change.  This is so we can use pcibios_phb_map_io_space()
+before we have a struct pci_bus.
 
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/bus.c   |   30 +++++++++++++++++++++++++-----
- include/linux/pci.h |    2 ++
- 2 files changed, 27 insertions(+), 5 deletions(-)
+ arch/powerpc/kernel/pci_64.c |   40 +++++++++++++++++++++-------------------
+ 1 files changed, 21 insertions(+), 19 deletions(-)
 
-diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-index 1e2ad92..79fc31a 100644
---- a/drivers/pci/bus.c
-+++ b/drivers/pci/bus.c
-@@ -18,6 +18,30 @@
+diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+index ab34046..4401425 100644
+--- a/arch/powerpc/kernel/pci_64.c
++++ b/arch/powerpc/kernel/pci_64.c
+@@ -130,30 +130,13 @@ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
  
- #include "pci.h"
+ #endif /* CONFIG_HOTPLUG */
  
-+void pci_add_resource(struct list_head *resources, struct resource *res)
-+{
-+	struct pci_bus_resource *bus_res;
-+
-+	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
-+	if (!bus_res) {
-+		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
-+		return;
-+	}
-+
-+	bus_res->res = res;
-+	list_add_tail(&bus_res->list, resources);
-+}
-+
-+void pci_free_resource_list(struct list_head *resources)
-+{
-+	struct pci_bus_resource *bus_res, *tmp;
-+
-+	list_for_each_entry_safe(bus_res, tmp, resources, list) {
-+		list_del(&bus_res->list);
-+		kfree(bus_res);
-+	}
-+}
-+
- void pci_bus_add_resource(struct pci_bus *bus, struct resource *res,
- 			  unsigned int flags)
+-int __devinit pcibios_map_io_space(struct pci_bus *bus)
++static int __devinit pcibios_map_phb_io_space(struct pci_controller *hose)
  {
-@@ -52,16 +76,12 @@ EXPORT_SYMBOL_GPL(pci_bus_resource_n);
- 
- void pci_bus_remove_resources(struct pci_bus *bus)
- {
--	struct pci_bus_resource *bus_res, *tmp;
- 	int i;
- 
- 	for (i = 0; i < PCI_BRIDGE_RESOURCE_NUM; i++)
- 		bus->resource[i] = NULL;
- 
--	list_for_each_entry_safe(bus_res, tmp, &bus->resources, list) {
--		list_del(&bus_res->list);
--		kfree(bus_res);
+ 	struct vm_struct *area;
+ 	unsigned long phys_page;
+ 	unsigned long size_page;
+ 	unsigned long io_virt_offset;
+-	struct pci_controller *hose;
+-
+-	WARN_ON(bus == NULL);
+-
+-	/* If this not a PHB, nothing to do, page tables still exist and
+-	 * thus HPTEs will be faulted in when needed
+-	 */
+-	if (bus->self) {
+-		pr_debug("IO mapping for PCI-PCI bridge %s\n",
+-			 pci_name(bus->self));
+-		pr_debug("  virt=0x%016llx...0x%016llx\n",
+-			 bus->resource[0]->start + _IO_BASE,
+-			 bus->resource[0]->end + _IO_BASE);
+-		return 0;
 -	}
-+	pci_free_resource_list(&bus->resources);
+ 
+-	/* Get the host bridge */
+-	hose = pci_bus_to_host(bus);
+ 	phys_page = _ALIGN_DOWN(hose->io_base_phys, PAGE_SIZE);
+ 	size_page = _ALIGN_UP(hose->pci_io_size, PAGE_SIZE);
+ 
+@@ -197,11 +180,30 @@ int __devinit pcibios_map_io_space(struct pci_bus *bus)
+ 
+ 	return 0;
+ }
++
++int __devinit pcibios_map_io_space(struct pci_bus *bus)
++{
++	WARN_ON(bus == NULL);
++
++	/* If this not a PHB, nothing to do, page tables still exist and
++	 * thus HPTEs will be faulted in when needed
++	 */
++	if (bus->self) {
++		pr_debug("IO mapping for PCI-PCI bridge %s\n",
++			 pci_name(bus->self));
++		pr_debug("  virt=0x%016llx...0x%016llx\n",
++			 bus->resource[0]->start + _IO_BASE,
++			 bus->resource[0]->end + _IO_BASE);
++		return 0;
++	}
++
++	return pcibios_phb_map_phb_io_space(pci_bus_to_host(bus));
++}
+ EXPORT_SYMBOL_GPL(pcibios_map_io_space);
+ 
+ void __devinit pcibios_setup_phb_io_space(struct pci_controller *hose)
+ {
+-	pcibios_map_io_space(hose->bus);
++	pcibios_map_phb_io_space(hose);
  }
  
- /**
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 9fc0122..6841e7f 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -907,6 +907,8 @@ int pci_request_selected_regions_exclusive(struct pci_dev *, int, const char *);
- void pci_release_selected_regions(struct pci_dev *, int);
- 
- /* drivers/pci/bus.c */
-+void pci_add_resource(struct list_head *resources, struct resource *res);
-+void pci_free_resource_list(struct list_head *resources);
- void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
- struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
- void pci_bus_remove_resources(struct pci_bus *bus);
+ #define IOBASE_BRIDGE_NUMBER	0
 
