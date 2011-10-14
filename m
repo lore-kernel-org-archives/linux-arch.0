@@ -1,82 +1,156 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: Please include const-sections into linux-next
-Date: Fri, 14 Oct 2011 11:04:25 +1100
-Message-ID: <20111014110425.ce5b966f8f8882114028a23d@canb.auug.org.au>
-References: <20111013233818.GB26654@one.firstfloor.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: [PATCH v2 00/29] Create PCI root buses with correct resources
+Date: Thu, 13 Oct 2011 22:27:06 -0600
+Message-ID: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Fri__14_Oct_2011_11_04_25_+1100_BVWE1sgvs6u9IbVC"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from calzone.tip.net.au ([203.10.76.15]:50454 "EHLO
-	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751085Ab1JNAEh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Oct 2011 20:04:37 -0400
-In-Reply-To: <20111013233818.GB26654@one.firstfloor.org>
+Received: from smtp-out.google.com ([74.125.121.67]:49632 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750822Ab1JNE1K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:10 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Linus <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
---Signature=_Fri__14_Oct_2011_11_04_25_+1100_BVWE1sgvs6u9IbVC
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The most generic way to create a PCI root bus is with pci_scan_bus(), but
+that doesn't allow you to specify what resources are available on the bus,
+i.e., what the host bridge apertures are.
 
-Hi Andi,
+That means that pci_create_bus() has to fill in some incorrect defaults
+(ioport_resource and iomem_resource), and the architecture has to fix
+them later in pcibios_fixup_bus().  Between creation and fixup, we
+run quirks, and they see the wrong bus resources:
 
-On Fri, 14 Oct 2011 01:38:18 +0200 Andi Kleen <andi@firstfloor.org> wrote:
->
-> Please include=20
-> git://github.com/andikleen/linux-misc.git const-sections
-> in linux-next. This has a tree sweep to fix all kind of constant=20
-> section issues.
->=20
-> I intend to send Linus a pull request next cycle and would like=20
-> to get some testing in next first.
+  pci_scan_bus or pci_scan_bus_parented
+    pci_create_bus                     <-- A create with default resources
+    pci_scan_child_bus
+      pci_scan_slot
+        pci_scan_single_device
+          pci_scan_device
+            pci_setup_device
+              pci_fixup_device(early)  <-- B
+          pci_device_add
+            pci_fixup_device(header)   <-- C
+      pcibios_fixup_bus                <-- D fill in correct resources
 
-You picked a bad time unfortunately.  Today will amost certainly be the
-last linux-next tree before the merge window opens (since I will be on
-vacation until kernel summit) so if it breaks the tree, it will impact on
-others testing (and there won't be a followup tree to correct the problem).
+Early and header quirks at B and C use the default (incorrect) root
+bus resources rather than those filled in at D.  If they request any
+regions, they get the wrong parent.  quirk_piix4_acpi() tripped over
+this on MIPS and caused a driver to fail with unexpected conflicts
+(http://www.spinics.net/lists/mips/msg41654.html).
 
-Also, the commit messages are still very terse (as a few people pointed
-out) and I have seen no response to Thomas' remarks either.
+A few architectures avoid this problem by using pci_create_bus()
+directly and fixing the root bus resources before scanning the bus.
+But that's ugly and is normally done because the arch needs a different
+bus scanner, such as pci_of_scan_bus().
 
-> I got various acks last time it was posted and added them all.
-> In general it falls more in the "trivial" category, but it's=20
-> rather large and all over so I may have made a mistake.
+This series fixes the problem by adding new interfaces that take a list
+of bus resources:
 
-It really isn't trivial because we have had various problems with init
-and const in the past with various toolchains (and even different
-problems on different architectures with the "same" toolchain).
+    pci_scan_root_bus()
+    pci_create_root_bus()
 
-Linus or Andrew may still want to take these, but I don't think I can add
-it to linux-next right now, sorry.
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+To reduce backporting issues and remove cross-arch dependencies, I retained the
+following interfaces unchanged, but marked them "deprecated."  
 
---Signature=_Fri__14_Oct_2011_11_04_25_+1100_BVWE1sgvs6u9IbVC
-Content-Type: application/pgp-signature
+    pci_scan_bus()
+    pci_scan_bus_parented() (replace with pci_scan_root_bus/pci_scan_child_bus)
+    pci_create_bus()
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+I'm open to suggestions for improving pci_scan_root_bus().  For instance,
+I wonder whether it should take a domain argument, so we could move some
+of the PCI domain support into the core.
 
-iQIcBAEBCAAGBQJOl3yJAAoJEECxmPOUX5FE32QP/Rkc5yeAo1xT9uCuCdIsi2p4
-PznXKlYgWs8bwlae+BeBOGU5avVih9zs2VS85NuM+1MKWV6Ec/dXQ2eH0O7S35oB
-lTRz0N6M2INdX2MXqI1i59UmUhZT2fDqMUcwbnA8KoSwfShkcue2SkRFXlzJuJkH
-1JxAaMWyyi4pP5teij2ARw/k1eIKFHKRs1wSxAK7a/nMVU4gC8WD+H35XByeTxcm
-YVQXTkLIBLTousKKshQX6J4oTRN4f494AzD3DX34eX0NjTUQsZWWuNL6lefcPXk5
-z8uUgj2B63QEoQkf1fK8q8/4oOhCvWN5FMd+rfIcaKeWziR6h25CRjbkbIn4eaSi
-rWV6z3TIdXfu4dKkr4FRiRuK2A9odJ0zO6YxBW5MaqXY23olHfMC1eTCg7TBA2Yu
-7hyvDFd07C7rtCEbiHcy1/eZt3M13+XOd2FC0l8gMuY37c/UHEOGBaYQ7ujbJIeP
-5ifwUl3FDv21qUArevwOw6QxZMYwH7QWL8//cQWAfaNt0/w2JsPJG6LNraYFC+9v
-gwFaD/CEkV3BxMp0W6nwgKQjD8pKbXR9gU8IVD/8gT749ifM8Vjt6XfmXkjrLYJR
-uHAh9lS5FwU3joGYmvfLOGxlPI2d+lh4TPGxQk9CGSFFoO/RbU/4fEbNkMJQ3yKj
-1g0emSYDVVdOopDmpOHB
-=mdEI
------END PGP SIGNATURE-----
+Changes since V1:
+    - left existing interfaces unchanged, but deprecated
+    - added pci_create_root_bus() and pci_scan_root_bus()
+    - fixed many more architectures
 
---Signature=_Fri__14_Oct_2011_11_04_25_+1100_BVWE1sgvs6u9IbVC--
+---
+
+Bjorn Helgaas (29):
+      PCI: add helpers for building PCI bus resource lists
+      PCI: add pci_create_root_bus(), deprecate pci_create_bus()
+      PCI: add pci_scan_root_bus(), deprecate pci_scan_bus() and pci_scan_bus_parented()
+      MIPS: PCI: convert to pci_scan_root_bus() for correct root bus resources
+      x86/PCI: use pci_scan_bus() instead of pci_scan_bus_parented()
+      x86/PCI: convert to pci_create_root_bus() and pci_scan_root_bus()
+      powerpc/PCI: make pcibios_setup_phb_resources() static
+      powerpc/PCI: split PHB part out of pcibios_map_io_space()
+      powerpc/PCI: convert to pci_create_root_bus() for correct root bus resources
+      microblaze/PCI: fix pci_bus_for_each_resource() usage
+      microblaze/PCI: make pcibios_setup_phb_resources() static
+      microblaze/PCI: convert to pci_create_root_bus() for correct root bus resources
+      microblaze/PCI: use pci_scan_root_bus()
+      sparc/PCI: convert to pci_create_root_bus() for correct root bus resources
+      sparc32,leon/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      ia64/PCI: use pci_create_bus() instead of pci_scan_bus_parented()
+      ia64/PCI: convert to pci_create_root_bus() for correct root bus resources
+      parisc/PCI: use pci_create_root_bus() instead of pci_scan_bus_parented()
+      parisc/PCI: supply root bus resources to pci_create_root_bus()
+      parisc/PCI: deal with LMMIO/PAT overlaps before creating PCI root bus
+      parisc/PCI: use pci_create_root_bus() instead of pci_scan_bus_parented()
+      parisc/PCI: supply root bus resources to pci_create_root_bus()
+      xen/PCI: use pci_create_root_bus() instead of pci_scan_bus_parented()
+      alpha/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      arm/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      frv/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      mn10300/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      sh/PCI: convert to pci_scan_root_bus() for correct root bus resources
+      xtensa/PCI: convert to pci_scan_root_bus() for correct root bus resources
+
+
+ arch/alpha/kernel/pci.c                  |   37 +++++++------
+ arch/arm/common/it8152.c                 |    6 +-
+ arch/arm/common/via82c505.c              |    3 +
+ arch/arm/include/asm/mach/pci.h          |    2 -
+ arch/arm/kernel/bios32.c                 |   27 +++-------
+ arch/arm/mach-cns3xxx/pcie.c             |    8 +--
+ arch/arm/mach-dove/pcie.c                |    9 +--
+ arch/arm/mach-footbridge/dc21285.c       |    8 +--
+ arch/arm/mach-integrator/pci_v3.c        |   19 ++++---
+ arch/arm/mach-iop13xx/pci.c              |   17 +++---
+ arch/arm/mach-ixp2000/enp2611.c          |    3 +
+ arch/arm/mach-ixp2000/pci.c              |    8 +--
+ arch/arm/mach-ixp23xx/pci.c              |    8 +--
+ arch/arm/mach-ixp4xx/common-pci.c        |    8 +--
+ arch/arm/mach-kirkwood/pcie.c            |    8 +--
+ arch/arm/mach-ks8695/pci.c               |    8 +--
+ arch/arm/mach-mv78xx0/pcie.c             |    8 +--
+ arch/arm/mach-orion5x/pci.c              |   16 +++---
+ arch/arm/mach-sa1100/pci-nanoengine.c    |    9 ++-
+ arch/arm/mach-tegra/pcie.c               |    9 ++-
+ arch/arm/mach-versatile/pci.c            |   19 ++++---
+ arch/arm/plat-iop/pci.c                  |    8 +--
+ arch/frv/mb93090-mb00/pci-vdk.c          |   26 +++++++--
+ arch/ia64/pci/pci.c                      |   40 ++++++--------
+ arch/microblaze/include/asm/pci-bridge.h |    1 
+ arch/microblaze/pci/pci-common.c         |   39 ++++++--------
+ arch/mips/pci/pci.c                      |   18 ++++--
+ arch/mn10300/unit-asb2305/pci.c          |   14 +++--
+ arch/powerpc/include/asm/pci-bridge.h    |    1 
+ arch/powerpc/kernel/pci-common.c         |   27 ++++++----
+ arch/powerpc/kernel/pci_64.c             |   40 +++++++-------
+ arch/sh/drivers/pci/pci.c                |   19 ++++---
+ arch/sparc/kernel/leon_pci.c             |   26 +++------
+ arch/sparc/kernel/pci.c                  |   18 ++----
+ arch/x86/include/asm/topology.h          |    2 -
+ arch/x86/pci/acpi.c                      |   31 ++++++-----
+ arch/x86/pci/bus_numa.c                  |   31 ++++++-----
+ arch/x86/pci/common.c                    |   21 +++++--
+ arch/x86/pci/legacy.c                    |    3 -
+ arch/x86/pci/numaq_32.c                  |    2 -
+ arch/xtensa/kernel/pci.c                 |   85 +++++++++++++++---------------
+ drivers/parisc/dino.c                    |   48 ++++++++---------
+ drivers/parisc/lba_pci.c                 |   73 ++++++++++++++------------
+ drivers/pci/bus.c                        |   30 +++++++++--
+ drivers/pci/probe.c                      |   75 ++++++++++++++++++++++++--
+ drivers/pci/xen-pcifront.c               |    7 +-
+ include/linux/pci.h                      |   24 +++++---
+ 47 files changed, 522 insertions(+), 427 deletions(-)
+
+-- 
+Bjorn
