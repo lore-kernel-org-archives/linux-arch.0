@@ -1,78 +1,44 @@
-From: Yinghai Lu <yinghai.lu@oracle.com>
-Subject: Re: [PATCH v2 06/29] x86/PCI: convert to pci_create_root_bus() and
- pci_scan_root_bus()
-Date: Fri, 14 Oct 2011 14:15:35 -0700
-Message-ID: <4E98A677.6050507@oracle.com>
-References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com> <20111014042737.23504.46601.stgit@bhelgaas.mtv.corp.google.com> <4E97C8F0.7030108@oracle.com> <CAErSpo568q-KOk25RaaZ+=erLEEC4rsPwGNy0drCbqpCLKGybQ@mail.gmail.com> <4E989E07.6030404@oracle.com> <CAErSpo4629XKU=TNp0cb6Cxc+Jm_dQcD4244eTna2TC49_EtTw@mail.gmail.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: Please include const-sections into linux-next
+Date: Fri, 14 Oct 2011 17:26:44 -0500
+Message-ID: <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
+References: <20111013233818.GB26654@one.firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo4629XKU=TNp0cb6Cxc+Jm_dQcD4244eTna2TC49_EtTw@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:44126 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752584Ab1JNW0r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Oct 2011 18:26:47 -0400
+In-Reply-To: <20111013233818.GB26654@one.firstfloor.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 10/14/2011 01:54 PM, Bjorn Helgaas wrote:
-
-> On Fri, Oct 14, 2011 at 2:39 PM, Yinghai Lu <yinghai.lu@oracle.com> wrote:
->> On 10/14/2011 01:32 PM, Bjorn Helgaas wrote:
->>
->>
->>>>>       int node;
->>>>> @@ -353,11 +349,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
->>>>>               memcpy(bus->sysdata, sd, sizeof(*sd));
->>>>>               kfree(sd);
->>>>>       } else {
->>>>> -             bus = pci_create_bus(NULL, busnum, &pci_root_ops, sd);
->>>>> -             if (bus) {
->>>>> -                     get_current_resources(device, busnum, domain, bus);
->>>>> -                     bus->subordinate = pci_scan_child_bus(bus);
->>>>> +             INIT_LIST_HEAD(&resources);
->>>>> +             get_current_resources(device, busnum, domain, &resources);
->>>>> +             if (!pci_use_crs) {
->>>>> +                     pci_free_resource_list(&resources);
->>>>> +                     x86_pci_root_bus_resources(busnum, &resources);
->>>>>               }
->>>>
->>>>
->>>> You may need to update get_current_resources() to return status about handling _CRS...
->>>> and check that status insteaf of !pci_use_crs.
->>>
->>> Is the current patch broken here?  I don't think it will be simpler to
->>> have get_current_resources() return a status and check that.  But if
->>> something's actually broken, I want to fix it, of course.
->>>
->>
->>
->> yes. if for some reason, _CRS is not handled right, that root bus resources will not get set to default res.
->>
->> +             status = get_current_resources(device, busnum, domain, &resources);
->> +             if (status) {
->> +                     pci_free_resource_list(&resources);
->> +                     x86_pci_root_bus_resources(busnum, &resources);
->>              }
->>
->> get_current_resources() will not return 0 if _CRS is not really used.
+On Fri, 2011-10-14 at 01:38 +0200, Andi Kleen wrote:
+> Stephen,
 > 
-> OK.  I think it was that way before, too.  We created the bus with
-> default resources, but the first thing get_current_resources() did was
-> clear them all out.  If there was a problem parsing _CRS, we never
-> went back and put the defaults back in.
-
-
-that means you broke it when you clean up it last time. 
-
+> Please include 
+> git://github.com/andikleen/linux-misc.git const-sections
+> in linux-next. This has a tree sweep to fix all kind of constant 
+> section issues.
 > 
-> But I think this will do what you suggest and is nicer than what I had before:
+> I intend to send Linus a pull request next cycle and would like 
+> to get some testing in next first.
 > 
->                 INIT_LIST_HEAD(&resources);
->                 get_current_resources(device, busnum, domain, &resources);
->                 if (list_empty(&resources))
->                         x86_pci_root_bus_resources(busnum, &resources);
+> I got various acks last time it was posted and added them all.
+> In general it falls more in the "trivial" category, but it's 
+> rather large and all over so I may have made a mistake.
 
+It's not incredibly trivial: it causes a compile failure on parisc:
 
-yes, that should work.
+mm/percpu.c:1372: error: __setup_str_percpu_alloc_setup causes a section
+type conflict
+make[1]: *** [mm/percpu.o] Error 1
 
-Yinghai
+I have no idea why, though.
+
+James
