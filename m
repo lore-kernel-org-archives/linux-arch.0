@@ -1,8 +1,7 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 07/29] powerpc/PCI: make pcibios_setup_phb_resources()
-	static
-Date: Thu, 13 Oct 2011 22:27:42 -0600
-Message-ID: <20111014042742.23504.77418.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 10/29] microblaze/PCI: fix pci_bus_for_each_resource() usage
+Date: Thu, 13 Oct 2011 22:27:58 -0600
+Message-ID: <20111014042758.23504.52748.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,38 +10,37 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+The pci_bus_for_each_resource() iterator sets "res" itself, so there's
+no need to look it up in the bus->resource[] table.
+
+Logically part of 89a74ecccd and 8a66da71fa.
+
+CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/include/asm/pci-bridge.h |    1 -
- arch/powerpc/kernel/pci-common.c      |    2 +-
- 2 files changed, 1 insertions(+), 2 deletions(-)
+ arch/microblaze/pci/pci-common.c |    2 --
+ 1 files changed, 0 insertions(+), 2 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 56b879a..31bf836 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -222,7 +222,6 @@ extern void pci_process_bridge_OF_ranges(struct pci_controller *hose,
- /* Allocate & free a PCI host bridge structure */
- extern struct pci_controller *pcibios_alloc_controller(struct device_node *dev);
- extern void pcibios_free_controller(struct pci_controller *phb);
--extern void pcibios_setup_phb_resources(struct pci_controller *hose);
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index 4cfae20..9df5e5b 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -1018,7 +1018,6 @@ static void __devinit pcibios_fixup_bridge(struct pci_bus *bus)
+ 	struct pci_dev *dev = bus->self;
  
- #ifdef CONFIG_PCI
- extern int pcibios_vaddr_is_ioport(void __iomem *address);
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 32656f1..942ced2 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1554,7 +1554,7 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
- 	return pci_enable_resources(dev, mask);
- }
+ 	pci_bus_for_each_resource(bus, res, i) {
+-		res = bus->resource[i];
+ 		if (!res)
+ 			continue;
+ 		if (!res->flags)
+@@ -1218,7 +1217,6 @@ void pcibios_allocate_bus_resources(struct pci_bus *bus)
+ 		 pci_domain_nr(bus), bus->number);
  
--void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
-+static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
- {
- 	struct pci_bus *bus = hose->bus;
- 	struct resource *res;
+ 	pci_bus_for_each_resource(bus, res, i) {
+-		res = bus->resource[i];
+ 		if (!res || !res->flags
+ 		    || res->start > res->end || res->parent)
+ 			continue;
