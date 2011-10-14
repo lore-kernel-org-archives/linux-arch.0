@@ -1,7 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 01/29] PCI: add helpers for building PCI bus resource lists
-Date: Thu, 13 Oct 2011 22:27:11 -0600
-Message-ID: <20111014042711.23504.13042.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 02/29] PCI: add pci_create_root_bus(),
+	deprecate pci_create_bus()
+Date: Thu, 13 Oct 2011 22:27:17 -0600
+Message-ID: <20111014042717.23504.68062.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,82 +11,118 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Deng-Cheng Zhu <dczhu@mips.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-We'd like to supply a list of resources when we create a new PCI bus,
-e.g., the root bus under a PCI host bridge.  These are helpers for
-constructing that list.
+pci_create_bus() assigns ioport_resource and iomem_resource as the default
+bus resources, i.e., the entire address space.  Architectures fix these
+later, typically in pcibios_fixup_bus() or after pci_scan_bus_parented()
+returns, but code that runs in the interim sees incorrect resource
+information.
 
+This patch adds a new pci_create_root_bus() that sets the bus resources
+correctly from a supplied list of resources and marks pci_create_bus() as
+deprecated.
+
+Most architectures use pci_scan_bus() or pci_scan_bus_parented() instead of
+calling pci_create_bus() directly.  Those that use pci_create_bus()
+directly (usually because they need different bus scanning than
+pci_scan_child_bus()) should switch to pci_create_root_bus().
+
+Based on original patch by Deng-Cheng Zhu.
+
+Reference: http://www.spinics.net/lists/mips/msg41654.html
+Reference: https://lkml.org/lkml/2011/8/26/88
+Signed-off-by: Deng-Cheng Zhu <dczhu@mips.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/bus.c   |   30 +++++++++++++++++++++++++-----
- include/linux/pci.h |    2 ++
- 2 files changed, 27 insertions(+), 5 deletions(-)
+ drivers/pci/probe.c |   36 ++++++++++++++++++++++++++++++------
+ include/linux/pci.h |    5 ++++-
+ 2 files changed, 34 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-index 1e2ad92..79fc31a 100644
---- a/drivers/pci/bus.c
-+++ b/drivers/pci/bus.c
-@@ -18,6 +18,30 @@
- 
- #include "pci.h"
- 
-+void pci_add_resource(struct list_head *resources, struct resource *res)
-+{
-+	struct pci_bus_resource *bus_res;
-+
-+	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
-+	if (!bus_res) {
-+		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
-+		return;
-+	}
-+
-+	bus_res->res = res;
-+	list_add_tail(&bus_res->list, resources);
-+}
-+
-+void pci_free_resource_list(struct list_head *resources)
-+{
-+	struct pci_bus_resource *bus_res, *tmp;
-+
-+	list_for_each_entry_safe(bus_res, tmp, resources, list) {
-+		list_del(&bus_res->list);
-+		kfree(bus_res);
-+	}
-+}
-+
- void pci_bus_add_resource(struct pci_bus *bus, struct resource *res,
- 			  unsigned int flags)
- {
-@@ -52,16 +76,12 @@ EXPORT_SYMBOL_GPL(pci_bus_resource_n);
- 
- void pci_bus_remove_resources(struct pci_bus *bus)
- {
--	struct pci_bus_resource *bus_res, *tmp;
- 	int i;
- 
- 	for (i = 0; i < PCI_BRIDGE_RESOURCE_NUM; i++)
- 		bus->resource[i] = NULL;
- 
--	list_for_each_entry_safe(bus_res, tmp, &bus->resources, list) {
--		list_del(&bus_res->list);
--		kfree(bus_res);
--	}
-+	pci_free_resource_list(&bus->resources);
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 6ab6bd3..20d2d40 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1528,12 +1528,14 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
+ 	return max;
  }
  
- /**
+-struct pci_bus * pci_create_bus(struct device *parent,
+-		int bus, struct pci_ops *ops, void *sysdata)
++struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
++		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
+-	int error;
++	int error, i;
+ 	struct pci_bus *b, *b2;
+ 	struct device *dev;
++	struct pci_bus_resource *bus_res, *n;
++	struct resource *res;
+ 
+ 	b = pci_alloc_bus();
+ 	if (!b)
+@@ -1583,8 +1585,23 @@ struct pci_bus * pci_create_bus(struct device *parent,
+ 	pci_create_legacy_files(b);
+ 
+ 	b->number = b->secondary = bus;
+-	b->resource[0] = &ioport_resource;
+-	b->resource[1] = &iomem_resource;
++
++	/* Add initial resources to the bus */
++	if (resources) {
++		list_for_each_entry_safe(bus_res, n, resources, list)
++			list_move_tail(&bus_res->list, &b->resources);
++	} else {
++		b->resource[0] = &ioport_resource;
++		b->resource[1] = &iomem_resource;
++	}
++
++	if (parent)
++		dev_info(parent, "PCI host bridge to %s\n",
++			 dev_name(&b->dev));
++	pci_bus_for_each_resource(b, res, i) {
++		if (res)
++			dev_info(&b->dev, "root bus resource %pR\n", res);
++	}
+ 
+ 	return b;
+ 
+@@ -1600,12 +1617,19 @@ err_out:
+ 	return NULL;
+ }
+ 
++/* Deprecated; use pci_create_root_bus() with non-NULL resources instead */
++struct pci_bus *pci_create_bus(struct device *parent,
++		int bus, struct pci_ops *ops, void *sysdata)
++{
++	return pci_create_root_bus(parent, bus, ops, sysdata, NULL);
++}
++
+ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
+ 		int bus, struct pci_ops *ops, void *sysdata)
+ {
+ 	struct pci_bus *b;
+ 
+-	b = pci_create_bus(parent, bus, ops, sysdata);
++	b = pci_create_root_bus(parent, bus, ops, sysdata, NULL);
+ 	if (b)
+ 		b->subordinate = pci_scan_child_bus(b);
+ 	return b;
 diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 9fc0122..6841e7f 100644
+index 6841e7f..6bdf854 100644
 --- a/include/linux/pci.h
 +++ b/include/linux/pci.h
-@@ -907,6 +907,8 @@ int pci_request_selected_regions_exclusive(struct pci_dev *, int, const char *);
- void pci_release_selected_regions(struct pci_dev *, int);
- 
- /* drivers/pci/bus.c */
-+void pci_add_resource(struct list_head *resources, struct resource *res);
-+void pci_free_resource_list(struct list_head *resources);
- void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
- struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
- void pci_bus_remove_resources(struct pci_bus *bus);
+@@ -666,8 +666,11 @@ static inline struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *o
+ 		pci_bus_add_devices(root_bus);
+ 	return root_bus;
+ }
++struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
++				    struct pci_ops *ops, void *sysdata,
++				    struct list_head *resources);
+ struct pci_bus *pci_create_bus(struct device *parent, int bus,
+-			       struct pci_ops *ops, void *sysdata);
++			       struct pci_ops *ops, void *sysdata) __deprecated;
+ struct pci_bus *pci_add_new_bus(struct pci_bus *parent, struct pci_dev *dev,
+ 				int busnr);
+ void pcie_update_link_speed(struct pci_bus *bus, u16 link_status);
