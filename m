@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:21295 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:21484 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932433Ab1JNE2i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:38 -0400
-Subject: [PATCH v2 17/29] ia64/PCI: convert to pci_create_root_bus() for
-	correct root bus resources
+	with ESMTP id S932497Ab1JNE24 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:28:56 -0400
+Subject: [PATCH v2 21/29] parisc/PCI: use pci_create_root_bus() instead of
+	pci_scan_bus_parented()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:28:33 -0600
-Message-ID: <20111014042833.23504.81310.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:28:54 -0600
+Message-ID: <20111014042854.23504.33428.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,114 +16,48 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-kernel@vger.kernel.org
-Message-ID: <20111014042833.AbMZfLVGUC4v4WrAktiFGdiytHpGorE-StGor_3qq5A@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111014042854.uQSu3_thSw7z2hEDMS-V1wuNRC-PQ9bb5KZUfBcZYvw@z>
 
-Convert from pci_create_bus() to pci_create_root_bus().  This way the root
-bus resources are correct immediately.  This fixes the problem of "early"
-and "header" quirks seeing incorrect root bus resources.
+No functional change here; just converting from the deprecated
+pci_scan_bus_parented() to pci_create_root_bus() to make a future
+patch simpler.
 
-We can't use pci_scan_root_bus() because, like x86, ACPI hotplug currently
-requires pci_bus_add_devices() in a separate host bridge .start() method.
-
-CC: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/ia64/pci/pci.c |   39 ++++++++++++++-------------------------
- 1 files changed, 14 insertions(+), 25 deletions(-)
+ drivers/parisc/lba_pci.c |   14 ++++++++------
+ 1 files changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d7e47a9..a7949b5 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -133,6 +133,7 @@ alloc_pci_controller (int seg)
- struct pci_root_info {
- 	struct acpi_device *bridge;
- 	struct pci_controller *controller;
-+	struct list_head resources;
- 	char *name;
- };
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index 2c7edf3..d62c268 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1521,8 +1521,12 @@ lba_driver_probe(struct parisc_device *dev)
  
-@@ -314,24 +315,13 @@ static __devinit acpi_status add_window(struct acpi_resource *res, void *data)
- 				 &window->resource);
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+-		pci_scan_bus_parented(&dev->dev, lba_dev->hba.bus_num.start,
+-				cfg_ops, NULL);
++		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
++				    cfg_ops, NULL, NULL);
++	if (!lba_bus)
++		return 0;
++
++	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
+ 
+ 	/* This is in lieu of calling pci_assign_unassigned_resources() */
+ 	if (is_pdc_pat()) {
+@@ -1552,10 +1556,8 @@ lba_driver_probe(struct parisc_device *dev)
+ 		lba_dev->flags |= LBA_FLAG_SKIP_PROBE;
  	}
  
--	return AE_OK;
--}
-+	/* HP's firmware has a hack to work around a Windows bug.
-+	 * Ignore these tiny memory ranges */
-+	if (!((res->flags & IORESOURCE_MEM) &&
-+	      (res->end - res->start < 16)))
-+		pci_add_resource(&info->resources, &window->resource);
- 
--static void __devinit
--pcibios_setup_root_windows(struct pci_bus *bus, struct pci_controller *ctrl)
--{
--	int i;
--
--	pci_bus_remove_resources(bus);
--	for (i = 0; i < ctrl->windows; i++) {
--		struct resource *res = &ctrl->window[i].resource;
--		/* HP's firmware has a hack to work around a Windows bug.
--		 * Ignore these tiny memory ranges */
--		if ((res->flags & IORESOURCE_MEM) &&
--		    (res->end - res->start < 16))
--			continue;
--		pci_bus_add_resource(bus, res, 0);
+-	if (lba_bus) {
+-		lba_next_bus = lba_bus->subordinate + 1;
+-		pci_bus_add_devices(lba_bus);
 -	}
-+	return AE_OK;
- }
++	lba_next_bus = lba_bus->subordinate + 1;
++	pci_bus_add_devices(lba_bus);
  
- struct pci_bus * __devinit
-@@ -342,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	int bus = root->secondary.start;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
-+	struct pci_root_info info;
- 	struct pci_bus *pbus;
- 	char *name;
- 	int pxm;
-@@ -358,11 +349,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		controller->node = pxm_to_node(pxm);
- #endif
- 
-+	INIT_LIST_HEAD(&info.resources);
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
- 			&windows);
- 	if (windows) {
--		struct pci_root_info info;
--
- 		controller->window =
- 			kmalloc_node(sizeof(*controller->window) * windows,
- 				     GFP_KERNEL, controller->node);
-@@ -386,9 +376,12 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	 * should handle the case here, but it appears that IA64 hasn't
- 	 * such quirk. So we just ignore the case now.
- 	 */
--	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller, NULL);
--	if (!pbus)
-+	pbus = pci_create_root_bus(NULL, bus, &pci_root_ops, controller,
-+				   &info.resources);
-+	if (!pbus) {
-+		pci_free_resource_list(&info.resources);
- 		return NULL;
-+	}
- 
- 	pbus->subordinate = pci_scan_child_bus(pbus);
- 	return pbus;
-@@ -506,14 +499,10 @@ pcibios_fixup_bus (struct pci_bus *b)
- 	if (b->self) {
- 		pci_read_bridge_bases(b);
- 		pcibios_fixup_bridge_resources(b->self);
--	} else {
--		pcibios_setup_root_windows(b, b->sysdata);
- 	}
- 	list_for_each_entry(dev, &b->devices, bus_list)
- 		pcibios_fixup_device_resources(dev);
- 	platform_pci_fixup_bus(b);
--
--	return;
- }
- 
- void __devinit
+ 	/* Whew! Finally done! Tell services we got this one covered. */
+ 	return 0;
 
