@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:50479 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:20719 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932497Ab1JNE3L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:29:11 -0400
-Subject: [PATCH v2 23/29] xen/PCI: use pci_create_root_bus() instead of
-	pci_scan_bus_parented()
+	with ESMTP id S1751129Ab1JNE1O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 00:27:14 -0400
+Subject: [PATCH v2 01/29] PCI: add helpers for building PCI bus resource lists
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 13 Oct 2011 22:29:04 -0600
-Message-ID: <20111014042904.23504.36507.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 13 Oct 2011 22:27:11 -0600
+Message-ID: <20111014042711.23504.13042.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,49 +15,83 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Message-ID: <20111014042904.Qf483DvuMWjH5Iqi6fB3J9b20dLF5vuyb5AZtFZIldU@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111014042711.hB3xzzD0eQ7Wl2PbHk3xwRnY1XajabrWQnFUSETC-Eg@z>
 
-No functional change here; just converting from the deprecated
-pci_scan_bus_parented() to pci_create_root_bus().
+We'd like to supply a list of resources when we create a new PCI bus,
+e.g., the root bus under a PCI host bridge.  These are helpers for
+constructing that list.
 
-I don't see that Xen ever updates the root bus resources, but in
-general, the default resources (ioport_resource and iomem_resource)
-installed by pci_create_bus() are incorrect.
-
-CC: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/xen-pcifront.c |    7 ++++---
- 1 files changed, 4 insertions(+), 3 deletions(-)
+ drivers/pci/bus.c   |   30 +++++++++++++++++++++++++-----
+ include/linux/pci.h |    2 ++
+ 2 files changed, 27 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/pci/xen-pcifront.c b/drivers/pci/xen-pcifront.c
-index 6fa215a..3a07b33 100644
---- a/drivers/pci/xen-pcifront.c
-+++ b/drivers/pci/xen-pcifront.c
-@@ -470,8 +470,8 @@ static int __devinit pcifront_scan_root(struct pcifront_device *pdev,
- 	}
- 	pcifront_init_sd(sd, domain, bus, pdev);
+diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
+index 1e2ad92..79fc31a 100644
+--- a/drivers/pci/bus.c
++++ b/drivers/pci/bus.c
+@@ -18,6 +18,30 @@
  
--	b = pci_scan_bus_parented(&pdev->xdev->dev, bus,
--				  &pcifront_bus_ops, sd);
-+	b = pci_create_root_bus(&pdev->xdev->dev, bus, &pcifront_bus_ops, sd,
-+				NULL);
- 	if (!b) {
- 		dev_err(&pdev->xdev->dev,
- 			"Error creating PCI Frontend Bus!\n");
-@@ -479,11 +479,12 @@ static int __devinit pcifront_scan_root(struct pcifront_device *pdev,
- 		goto err_out;
- 	}
+ #include "pci.h"
  
-+	b->subordinate = pci_scan_child_bus(b);
- 	bus_entry->bus = b;
++void pci_add_resource(struct list_head *resources, struct resource *res)
++{
++	struct pci_bus_resource *bus_res;
++
++	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
++	if (!bus_res) {
++		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
++		return;
++	}
++
++	bus_res->res = res;
++	list_add_tail(&bus_res->list, resources);
++}
++
++void pci_free_resource_list(struct list_head *resources)
++{
++	struct pci_bus_resource *bus_res, *tmp;
++
++	list_for_each_entry_safe(bus_res, tmp, resources, list) {
++		list_del(&bus_res->list);
++		kfree(bus_res);
++	}
++}
++
+ void pci_bus_add_resource(struct pci_bus *bus, struct resource *res,
+ 			  unsigned int flags)
+ {
+@@ -52,16 +76,12 @@ EXPORT_SYMBOL_GPL(pci_bus_resource_n);
  
- 	list_add(&bus_entry->list, &pdev->root_buses);
+ void pci_bus_remove_resources(struct pci_bus *bus)
+ {
+-	struct pci_bus_resource *bus_res, *tmp;
+ 	int i;
  
--	/* pci_scan_bus_parented skips devices which do not have a have
-+	/* pci_scan_child_bus skips devices which do not have
- 	* devfn==0. The pcifront_scan_bus enumerates all devfn. */
- 	err = pcifront_scan_bus(pdev, domain, bus, b);
+ 	for (i = 0; i < PCI_BRIDGE_RESOURCE_NUM; i++)
+ 		bus->resource[i] = NULL;
  
+-	list_for_each_entry_safe(bus_res, tmp, &bus->resources, list) {
+-		list_del(&bus_res->list);
+-		kfree(bus_res);
+-	}
++	pci_free_resource_list(&bus->resources);
+ }
+ 
+ /**
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 9fc0122..6841e7f 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -907,6 +907,8 @@ int pci_request_selected_regions_exclusive(struct pci_dev *, int, const char *);
+ void pci_release_selected_regions(struct pci_dev *, int);
+ 
+ /* drivers/pci/bus.c */
++void pci_add_resource(struct list_head *resources, struct resource *res);
++void pci_free_resource_list(struct list_head *resources);
+ void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
+ struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
+ void pci_bus_remove_resources(struct pci_bus *bus);
 
