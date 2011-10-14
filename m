@@ -1,129 +1,49 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v2 09/29] powerpc/PCI: convert to pci_create_root_bus()
- for correct root bus resources
-Date: Fri, 14 Oct 2011 09:34:16 +0200
-Message-ID: <1318577656.29415.513.camel@pasglop>
-References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
-	 <20111014042752.23504.73508.stgit@bhelgaas.mtv.corp.google.com>
+From: Matt Fleming <matt.fleming@intel.com>
+Subject: Re: linux-next: build failure after merge of the final tree
+ (sparc, ptrace trees related)
+Date: Fri, 14 Oct 2011 10:27:02 +0100
+Message-ID: <1318584422.23581.118.camel@mfleming-mobl1.ger.corp.intel.com>
+References: <20111014180714.e11e15fd35dfaca839c6421e@canb.auug.org.au>
+	 <20111014.035459.2238341687770152474.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:56213 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755810Ab1JNHeU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Oct 2011 03:34:20 -0400
-In-Reply-To: <20111014042752.23504.73508.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20111014.035459.2238341687770152474.davem@davemloft.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: sfr@canb.auug.org.au, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, tj@kernel.org, oleg@redhat.com, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2011-10-13 at 22:27 -0600, Bjorn Helgaas wrote:
-> Convert from pci_create_bus() to pci_create_root_bus().  This way the root
-> bus resources are correct immediately.  This patch doesn't fix anything
-> because powerpc fixed them before scanning the bus, but it makes it more
-> consistent with other architectures.
-
-All 3 look ok but of course like anything like that, need testing :-) I
-won't be able to do that until I'm back to Australia, early November.
-
-Cheers,
-Ben.
-
-> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
->  arch/powerpc/kernel/pci-common.c |   27 ++++++++++++++++-----------
->  1 files changed, 16 insertions(+), 11 deletions(-)
+On Fri, 2011-10-14 at 03:54 -0400, David Miller wrote:
+> Ptrace folks can we not operate like this?  The only reason I found
+> out about the set_current_blocked() transformations was by accident,
+> because the original patch was posted to linux-kernel only so it never
+> got queued up into sparc patchwork.
 > 
-> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-> index 942ced2..2dbef49 100644
-> --- a/arch/powerpc/kernel/pci-common.c
-> +++ b/arch/powerpc/kernel/pci-common.c
-> @@ -1554,14 +1554,13 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
->  	return pci_enable_resources(dev, mask);
->  }
->  
-> -static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
-> +static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, struct list_head *resources)
->  {
-> -	struct pci_bus *bus = hose->bus;
->  	struct resource *res;
->  	int i;
->  
->  	/* Hookup PHB IO resource */
-> -	bus->resource[0] = res = &hose->io_resource;
-> +	res = &hose->io_resource;
->  
->  	if (!res->flags) {
->  		printk(KERN_WARNING "PCI: I/O resource not set for host"
-> @@ -1579,6 +1578,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
->  		 (unsigned long long)res->start,
->  		 (unsigned long long)res->end,
->  		 (unsigned long)res->flags);
-> +	pci_add_resource(resources, res);
->  
->  	/* Hookup PHB Memory resources */
->  	for (i = 0; i < 3; ++i) {
-> @@ -1596,12 +1596,12 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
->  			res->flags = IORESOURCE_MEM;
->  #endif /* CONFIG_PPC32 */
->  		}
-> -		bus->resource[i+1] = res;
->  
->  		pr_debug("PCI: PHB MEM resource %d = %016llx-%016llx [%lx]\n", i,
->  			 (unsigned long long)res->start,
->  			 (unsigned long long)res->end,
->  			 (unsigned long)res->flags);
-> +		pci_add_resource(resources, res);
->  	}
->  
->  	pr_debug("PCI: PHB MEM offset     = %016llx\n",
-> @@ -1695,6 +1695,7 @@ struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
->   */
->  void __devinit pcibios_scan_phb(struct pci_controller *hose)
->  {
-> +	struct list_head resources;
->  	struct pci_bus *bus;
->  	struct device_node *node = hose->dn;
->  	int mode;
-> @@ -1702,22 +1703,26 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
->  	pr_debug("PCI: Scanning PHB %s\n",
->  		 node ? node->full_name : "<NO NAME>");
->  
-> +	INIT_LIST_HEAD(&resources);
-> +
-> +	/* Get some IO space for the new PHB */
-> +	pcibios_setup_phb_io_space(hose);
-> +
-> +	/* Wire up PHB bus resources */
-> +	pcibios_setup_phb_resources(hose, &resources);
-> +
->  	/* Create an empty bus for the toplevel */
-> -	bus = pci_create_bus(hose->parent, hose->first_busno, hose->ops, hose);
-> +	bus = pci_create_root_bus(hose->parent, hose->first_busno,
-> +				  hose->ops, hose, resources);
->  	if (bus == NULL) {
->  		pr_err("Failed to create bus for PCI domain %04x\n",
->  			hose->global_number);
-> +		pci_free_resource_list(&resources);
->  		return;
->  	}
->  	bus->secondary = hose->first_busno;
->  	hose->bus = bus;
->  
-> -	/* Get some IO space for the new PHB */
-> -	pcibios_setup_phb_io_space(hose);
-> -
-> -	/* Wire up PHB bus resources */
-> -	pcibios_setup_phb_resources(hose);
-> -
->  	/* Get probe mode and perform scan */
->  	mode = PCI_PROBE_NORMAL;
->  	if (node && ppc_md.pci_probe_mode)
+> Then once Oleg mentioned it to me, it didn't even compile so I fixed
+> it up and put the fixed up copy into my tree.  It also didn't
+> transform the TS_RESTORE_SIGMASK cases in the sparc signal code, so I
+> also added a patch to the sparc tree which took care of that.
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Now you guys are creating conflicts against those fixed up patches in
+> another non-sparc tree, and adding new kinds of build failures as
+> well.
+> 
+> This doesn't work.
+
+Sorry David, this is my fault.
+
+The reason that these patches couldn't be taken through the arch trees
+was because they were dependent on the non-arch patch that introduced
+block_sigmask(). I figured it would make more sense to put all the
+patches through Oleg's tree. It's now pretty clear I was wrong about
+that.
+
+In hindsight, what I should have done was got the first patch that
+introduced block_sigmask() into 3.1, then waited till the next release
+cycle and sent out all the arch patches to the arch maintainers. That
+way the patches could have been pulled into the respective arch trees.
+
+Guys, how did you want to sort this out? Should we get the first patch
+into 3.1, then get all the arch maintainers to pick up their patches?
