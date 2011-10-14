@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 08/29] powerpc/PCI: split PHB part out of
-	pcibios_map_io_space()
-Date: Thu, 13 Oct 2011 22:27:47 -0600
-Message-ID: <20111014042747.23504.28856.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 05/29] x86/PCI: use pci_scan_bus() instead of
+	pci_scan_bus_parented()
+Date: Thu, 13 Oct 2011 22:27:32 -0600
+Message-ID: <20111014042732.23504.87730.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,83 +11,71 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-No functional change.  This is so we can use pcibios_phb_map_io_space()
-before we have a struct pci_bus.
+This doesn't change any functionality, but it makes a subsequent patch
+slightly simpler.
 
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+pci_scan_bus(NULL, ...) and pci_scan_bus_parented() are identical except
+that pci_scan_bus() also calls pci_bus_add_devices():
+
+  pci_scan_bus_parented
+    pci_create_bus
+    pci_scan_child_bus
+
+  pci_scan_bus
+    pci_create_bus
+    pci_scan_child_bus
+    pci_bus_add_devices
+
+All callers of pcibios_scan_root() call pci_bus_add_devices() explicitly,
+and we don't pass a parent device, so we might as well use pci_scan_bus().
+
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/kernel/pci_64.c |   40 +++++++++++++++++++++-------------------
- 1 files changed, 21 insertions(+), 19 deletions(-)
+ arch/x86/pci/common.c   |    2 +-
+ arch/x86/pci/legacy.c   |    3 ---
+ arch/x86/pci/numaq_32.c |    2 --
+ 3 files changed, 1 insertions(+), 6 deletions(-)
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index ab34046..4401425 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -130,30 +130,13 @@ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 92df322..b389a2d 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -456,7 +456,7 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	sd->node = get_mp_bus_to_node(busnum);
  
- #endif /* CONFIG_HOTPLUG */
+ 	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	bus = pci_scan_bus_parented(NULL, busnum, &pci_root_ops, sd);
++	bus = pci_scan_bus(busnum, &pci_root_ops, sd);
+ 	if (!bus)
+ 		kfree(sd);
  
--int __devinit pcibios_map_io_space(struct pci_bus *bus)
-+static int __devinit pcibios_map_phb_io_space(struct pci_controller *hose)
- {
- 	struct vm_struct *area;
- 	unsigned long phys_page;
- 	unsigned long size_page;
- 	unsigned long io_virt_offset;
--	struct pci_controller *hose;
+diff --git a/arch/x86/pci/legacy.c b/arch/x86/pci/legacy.c
+index c89266b..6e3f26a 100644
+--- a/arch/x86/pci/legacy.c
++++ b/arch/x86/pci/legacy.c
+@@ -30,9 +30,6 @@ int __init pci_legacy_init(void)
+ 
+ 	printk("PCI: Probing PCI hardware\n");
+ 	pci_root_bus = pcibios_scan_root(0);
+-	if (pci_root_bus)
+-		pci_bus_add_devices(pci_root_bus);
 -
--	WARN_ON(bus == NULL);
--
--	/* If this not a PHB, nothing to do, page tables still exist and
--	 * thus HPTEs will be faulted in when needed
--	 */
--	if (bus->self) {
--		pr_debug("IO mapping for PCI-PCI bridge %s\n",
--			 pci_name(bus->self));
--		pr_debug("  virt=0x%016llx...0x%016llx\n",
--			 bus->resource[0]->start + _IO_BASE,
--			 bus->resource[0]->end + _IO_BASE);
--		return 0;
--	}
- 
--	/* Get the host bridge */
--	hose = pci_bus_to_host(bus);
- 	phys_page = _ALIGN_DOWN(hose->io_base_phys, PAGE_SIZE);
- 	size_page = _ALIGN_UP(hose->pci_io_size, PAGE_SIZE);
- 
-@@ -197,11 +180,30 @@ int __devinit pcibios_map_io_space(struct pci_bus *bus)
- 
  	return 0;
  }
-+
-+int __devinit pcibios_map_io_space(struct pci_bus *bus)
-+{
-+	WARN_ON(bus == NULL);
-+
-+	/* If this not a PHB, nothing to do, page tables still exist and
-+	 * thus HPTEs will be faulted in when needed
-+	 */
-+	if (bus->self) {
-+		pr_debug("IO mapping for PCI-PCI bridge %s\n",
-+			 pci_name(bus->self));
-+		pr_debug("  virt=0x%016llx...0x%016llx\n",
-+			 bus->resource[0]->start + _IO_BASE,
-+			 bus->resource[0]->end + _IO_BASE);
-+		return 0;
-+	}
-+
-+	return pcibios_phb_map_phb_io_space(pci_bus_to_host(bus));
-+}
- EXPORT_SYMBOL_GPL(pcibios_map_io_space);
  
- void __devinit pcibios_setup_phb_io_space(struct pci_controller *hose)
- {
--	pcibios_map_io_space(hose->bus);
-+	pcibios_map_phb_io_space(hose);
- }
+diff --git a/arch/x86/pci/numaq_32.c b/arch/x86/pci/numaq_32.c
+index 512a88c..2b94aa9 100644
+--- a/arch/x86/pci/numaq_32.c
++++ b/arch/x86/pci/numaq_32.c
+@@ -153,8 +153,6 @@ int __init pci_numaq_init(void)
+ 	raw_pci_ops = &pci_direct_conf1_mq;
  
- #define IOBASE_BRIDGE_NUMBER	0
+ 	pci_root_bus = pcibios_scan_root(0);
+-	if (pci_root_bus)
+-		pci_bus_add_devices(pci_root_bus);
+ 	if (num_online_nodes() > 1)
+ 		for_each_online_node(quad) {
+ 			if (quad == 0)
