@@ -1,55 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga05.intel.com ([192.55.52.89]:39609 "EHLO
-	fmsmga101.fm.intel.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1755915Ab1JNJ1K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 05:27:10 -0400
-Subject: Re: linux-next: build failure after merge of the final tree
- (sparc, ptrace trees related)
-From: Matt Fleming <matt.fleming@intel.com>
-In-Reply-To: <20111014.035459.2238341687770152474.davem@davemloft.net>
-References: <20111014180714.e11e15fd35dfaca839c6421e@canb.auug.org.au>
-	 <20111014.035459.2238341687770152474.davem@davemloft.net>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:42615 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756931Ab1JNPOS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Oct 2011 11:14:18 -0400
+Subject: Re: [PATCH v2 00/29] Create PCI root buses with correct resources
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
+References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 14 Oct 2011 10:27:02 +0100
-Message-ID: <1318584422.23581.118.camel@mfleming-mobl1.ger.corp.intel.com>
+Date: Fri, 14 Oct 2011 10:14:14 -0500
+Message-ID: <1318605254.3018.20.camel@dabdike.int.hansenpartnership.com>
 Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: sfr@canb.auug.org.au, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, tj@kernel.org, oleg@redhat.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20111014092702._qYIP8AHHlA3botivppUB4xS5nvU478kHAsJ6KTwfy8@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111014151414.ha9j0HxhxSH0VLBlH1vw6QL-v4WxD0pe1HmpiyX2tSw@z>
 
-On Fri, 2011-10-14 at 03:54 -0400, David Miller wrote:
-> Ptrace folks can we not operate like this?  The only reason I found
-> out about the set_current_blocked() transformations was by accident,
-> because the original patch was posted to linux-kernel only so it never
-> got queued up into sparc patchwork.
-> 
-> Then once Oleg mentioned it to me, it didn't even compile so I fixed
-> it up and put the fixed up copy into my tree.  It also didn't
-> transform the TS_RESTORE_SIGMASK cases in the sparc signal code, so I
-> also added a patch to the sparc tree which took care of that.
-> 
-> Now you guys are creating conflicts against those fixed up patches in
-> another non-sparc tree, and adding new kinds of build failures as
-> well.
-> 
-> This doesn't work.
+On Thu, 2011-10-13 at 22:27 -0600, Bjorn Helgaas wrote:
+> The most generic way to create a PCI root bus is with pci_scan_bus(), but
+> that doesn't allow you to specify what resources are available on the bus,
+> i.e., what the host bridge apertures are.
 
-Sorry David, this is my fault.
+Do you have an actual tree for this?  The PARISC pieces look a bit
+non-trivial and I'd like to test them out on the various sba/astro/dino
+systems.
 
-The reason that these patches couldn't be taken through the arch trees
-was because they were dependent on the non-arch patch that introduced
-block_sigmask(). I figured it would make more sense to put all the
-patches through Oleg's tree. It's now pretty clear I was wrong about
-that.
+James
 
-In hindsight, what I should have done was got the first patch that
-introduced block_sigmask() into 3.1, then waited till the next release
-cycle and sent out all the arch patches to the arch maintainers. That
-way the patches could have been pulled into the respective arch trees.
-
-Guys, how did you want to sort this out? Should we get the first patch
-into 3.1, then get all the arch maintainers to pick up their patches?
 
