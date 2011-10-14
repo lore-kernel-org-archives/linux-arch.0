@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 26/29] frv/PCI: convert to pci_scan_root_bus() for correct
-	root bus resources
-Date: Thu, 13 Oct 2011 22:29:20 -0600
-Message-ID: <20111014042920.23504.73959.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 27/29] mn10300/PCI: convert to pci_scan_root_bus() for
+	correct root bus resources
+Date: Thu, 13 Oct 2011 22:29:25 -0600
+Message-ID: <20111014042925.23504.24786.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -21,72 +21,45 @@ seeing incorrect root bus resources.
 CC: David Howells <dhowells@redhat.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/frv/mb93090-mb00/pci-vdk.c |   26 +++++++++++++++++++-------
- 1 files changed, 19 insertions(+), 7 deletions(-)
+ arch/mn10300/unit-asb2305/pci.c |   14 ++++++++------
+ 1 files changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
-index f8dd37e..a27c5db 100644
---- a/arch/frv/mb93090-mb00/pci-vdk.c
-+++ b/arch/frv/mb93090-mb00/pci-vdk.c
-@@ -226,6 +226,7 @@ static struct pci_ops * __init pci_check_direct(void)
-  */
- static void __init pcibios_fixup_peer_bridges(void)
+diff --git a/arch/mn10300/unit-asb2305/pci.c b/arch/mn10300/unit-asb2305/pci.c
+index a4954fe..4cc7136 100644
+--- a/arch/mn10300/unit-asb2305/pci.c
++++ b/arch/mn10300/unit-asb2305/pci.c
+@@ -380,11 +380,6 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
  {
-+	struct list_head resources;
- 	struct pci_bus bus;
- 	struct pci_dev dev;
- 	int n;
-@@ -245,7 +246,17 @@ static void __init pcibios_fixup_peer_bridges(void)
- 			    l != 0x0000 && l != 0xffff) {
- 				printk("Found device at %02x:%02x [%04x]\n", n, dev.devfn, l);
- 				printk("PCI: Discovered peer bus %02x\n", n);
--				pci_scan_bus(n, pci_root_ops, NULL);
-+				/*
-+				 * It's wrong to give peer root buses the same
-+				 * resources as the first one, but that's what
-+				 * we did before via pcibios_fixup_bus(), so
-+				 * this doesn't change it.
-+				 */
-+				INIT_LIST_HEAD(&resources);
-+				pci_add_resource(&resources, &pci_ioport_resource);
-+				pci_add_resource(&resources, &pci_iomem_resource);
-+				pci_scan_root_bus(NULL, n, pci_root_ops, NULL,
-+						  &resources);
- 				break;
- 			}
- 	}
-@@ -327,11 +338,6 @@ void __init pcibios_fixup_bus(struct pci_bus *bus)
- 	printk("### PCIBIOS_FIXUP_BUS(%d)\n",bus->number);
- #endif
+ 	struct pci_dev *dev;
  
 -	if (bus->number == 0) {
 -		bus->resource[0] = &pci_ioport_resource;
 -		bus->resource[1] = &pci_iomem_resource;
 -	}
 -
- 	pci_read_bridge_bases(bus);
- 
- 	if (bus->number == 0) {
-@@ -357,6 +363,7 @@ void __init pcibios_fixup_bus(struct pci_bus *bus)
- int __init pcibios_init(void)
+ 	if (bus->self) {
+ 		pci_read_bridge_bases(bus);
+ 		pcibios_fixup_device_resources(bus->self);
+@@ -402,6 +397,8 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
+  */
+ static int __init pcibios_init(void)
  {
- 	struct pci_ops *dir = NULL;
 +	struct list_head resources;
++
+ 	ioport_resource.start	= 0xA0000000;
+ 	ioport_resource.end	= 0xDFFFFFFF;
+ 	iomem_resource.start	= 0xA0000000;
+@@ -423,7 +420,12 @@ static int __init pcibios_init(void)
+ 	printk(KERN_INFO "PCI: Probing PCI hardware [mempage %08x]\n",
+ 	       MEM_PAGING_REG);
  
- 	if (!mb93090_mb00_detected)
- 		return -ENXIO;
-@@ -419,8 +426,13 @@ int __init pcibios_init(void)
- 		return -ENXIO;
- 	}
- 
+-	pci_root_bus = pci_scan_bus(0, &pci_direct_ampci, NULL);
 +	INIT_LIST_HEAD(&resources);
 +	pci_add_resource(&resources, &pci_ioport_resource);
 +	pci_add_resource(&resources, &pci_iomem_resource);
 +
- 	printk("PCI: Probing PCI hardware\n");
--	pci_root_bus = pci_scan_bus(0, pci_root_ops, NULL);
-+	pci_root_bus = pci_scan_root_bus(NULL, 0, pci_root_ops, NULL,
++	pci_root_bus = pci_scan_root_bus(NULL, 0, &pci_direct_ampci, NULL,
 +					 &resources);
  
  	pcibios_irq_init();
- 	pcibios_fixup_peer_bridges();
+ 	pcibios_fixup_irqs();
