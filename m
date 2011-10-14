@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 22/29] parisc/PCI: supply root bus resources to
-	pci_create_root_bus()
-Date: Thu, 13 Oct 2011 22:28:59 -0600
-Message-ID: <20111014042859.23504.62988.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 26/29] frv/PCI: convert to pci_scan_root_bus() for correct
+	root bus resources
+Date: Thu, 13 Oct 2011 22:29:20 -0600
+Message-ID: <20111014042920.23504.73959.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,100 +11,82 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Supply root bus resources to pci_create_root_bus() so they're correct
-immediately.  This fixes the problem of "early" and "header" quirks seeing
-incorrect root bus resources.
+Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
+resource fixups.  This fixes the problem of "early" and "header" quirks
+seeing incorrect root bus resources.
 
+CC: David Howells <dhowells@redhat.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/lba_pci.c |   28 +++++++++++++++++-----------
- 1 files changed, 17 insertions(+), 11 deletions(-)
+ arch/frv/mb93090-mb00/pci-vdk.c |   26 +++++++++++++++++++-------
+ 1 files changed, 19 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index d62c268..7dd5699 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -653,7 +653,7 @@ lba_fixup_bus(struct pci_bus *bus)
- 		}
- 	} else {
- 		/* Host-PCI Bridge */
--		int err, i;
-+		int err;
- 
- 		DBG("lba_fixup_bus() %s [%lx/%lx]/%lx\n",
- 			ldev->hba.io_space.name,
-@@ -669,9 +669,6 @@ lba_fixup_bus(struct pci_bus *bus)
- 			lba_dump_res(&ioport_resource, 2);
- 			BUG();
- 		}
--		/* advertize Host bridge resources to PCI bus */
--		bus->resource[0] = &(ldev->hba.io_space);
--		i = 1;
- 
- 		if (ldev->hba.elmmio_space.start) {
- 			err = request_resource(&iomem_resource,
-@@ -685,8 +682,7 @@ lba_fixup_bus(struct pci_bus *bus)
- 
- 				/* lba_dump_res(&iomem_resource, 2); */
- 				/* BUG(); */
--			} else
--				bus->resource[i++] = &(ldev->hba.elmmio_space);
-+			}
- 		}
- 
- 		if (ldev->hba.lmmio_space.flags) {
-@@ -696,8 +692,7 @@ lba_fixup_bus(struct pci_bus *bus)
- 					"lmmio_space [%lx/%lx]\n",
- 					(long)ldev->hba.lmmio_space.start,
- 					(long)ldev->hba.lmmio_space.end);
--			} else
--				bus->resource[i++] = &(ldev->hba.lmmio_space);
-+			}
- 		}
- 
- #ifdef CONFIG_64BIT
-@@ -712,7 +707,6 @@ lba_fixup_bus(struct pci_bus *bus)
- 				lba_dump_res(&iomem_resource, 2);
- 				BUG();
+diff --git a/arch/frv/mb93090-mb00/pci-vdk.c b/arch/frv/mb93090-mb00/pci-vdk.c
+index f8dd37e..a27c5db 100644
+--- a/arch/frv/mb93090-mb00/pci-vdk.c
++++ b/arch/frv/mb93090-mb00/pci-vdk.c
+@@ -226,6 +226,7 @@ static struct pci_ops * __init pci_check_direct(void)
+  */
+ static void __init pcibios_fixup_peer_bridges(void)
+ {
++	struct list_head resources;
+ 	struct pci_bus bus;
+ 	struct pci_dev dev;
+ 	int n;
+@@ -245,7 +246,17 @@ static void __init pcibios_fixup_peer_bridges(void)
+ 			    l != 0x0000 && l != 0xffff) {
+ 				printk("Found device at %02x:%02x [%04x]\n", n, dev.devfn, l);
+ 				printk("PCI: Discovered peer bus %02x\n", n);
+-				pci_scan_bus(n, pci_root_ops, NULL);
++				/*
++				 * It's wrong to give peer root buses the same
++				 * resources as the first one, but that's what
++				 * we did before via pcibios_fixup_bus(), so
++				 * this doesn't change it.
++				 */
++				INIT_LIST_HEAD(&resources);
++				pci_add_resource(&resources, &pci_ioport_resource);
++				pci_add_resource(&resources, &pci_iomem_resource);
++				pci_scan_root_bus(NULL, n, pci_root_ops, NULL,
++						  &resources);
+ 				break;
  			}
--			bus->resource[i++] = &(ldev->hba.gmmio_space);
- 		}
+ 	}
+@@ -327,11 +338,6 @@ void __init pcibios_fixup_bus(struct pci_bus *bus)
+ 	printk("### PCIBIOS_FIXUP_BUS(%d)\n",bus->number);
  #endif
  
-@@ -1388,6 +1382,7 @@ static int __init
- lba_driver_probe(struct parisc_device *dev)
+-	if (bus->number == 0) {
+-		bus->resource[0] = &pci_ioport_resource;
+-		bus->resource[1] = &pci_iomem_resource;
+-	}
+-
+ 	pci_read_bridge_bases(bus);
+ 
+ 	if (bus->number == 0) {
+@@ -357,6 +363,7 @@ void __init pcibios_fixup_bus(struct pci_bus *bus)
+ int __init pcibios_init(void)
  {
- 	struct lba_device *lba_dev;
+ 	struct pci_ops *dir = NULL;
 +	struct list_head resources;
- 	struct pci_bus *lba_bus;
- 	struct pci_ops *cfg_ops;
- 	u32 func_class;
-@@ -1519,12 +1514,23 @@ lba_driver_probe(struct parisc_device *dev)
- 		lba_dev->hba.lmmio_space.flags = 0;
+ 
+ 	if (!mb93090_mb00_detected)
+ 		return -ENXIO;
+@@ -419,8 +426,13 @@ int __init pcibios_init(void)
+ 		return -ENXIO;
  	}
  
 +	INIT_LIST_HEAD(&resources);
-+	pci_add_resource(&resources, &lba_dev->hba.io_space);
-+	if (lba_dev->hba.elmmio_space.start)
-+		pci_add_resource(&resources, &lba_dev->hba.elmmio_space);
-+	if (lba_dev->hba.lmmio_space.flags)
-+		pci_add_resource(&resources, &lba_dev->hba.lmmio_space);
-+	if (lba_dev->hba.gmmio_space.flags)
-+		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
++	pci_add_resource(&resources, &pci_ioport_resource);
++	pci_add_resource(&resources, &pci_iomem_resource);
 +
- 	dev->dev.platform_data = lba_dev;
- 	lba_bus = lba_dev->hba.hba_bus =
- 		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
--				    cfg_ops, NULL, NULL);
--	if (!lba_bus)
-+				    cfg_ops, NULL, &resources);
-+	if (!lba_bus) {
-+		pci_free_resource_list(&resources);
- 		return 0;
-+	}
+ 	printk("PCI: Probing PCI hardware\n");
+-	pci_root_bus = pci_scan_bus(0, pci_root_ops, NULL);
++	pci_root_bus = pci_scan_root_bus(NULL, 0, pci_root_ops, NULL,
++					 &resources);
  
- 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
- 
+ 	pcibios_irq_init();
+ 	pcibios_fixup_peer_bridges();
