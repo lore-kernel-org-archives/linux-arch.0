@@ -1,75 +1,37 @@
-From: Clemens Ladisch <clemens@ladisch.de>
-Subject: [PATCH] dma-mapping: fix sync_single_range_* DMA debugging
-Date: Sat, 15 Oct 2011 23:09:51 +0200
-Message-ID: <4E99F69F.1080701@ladisch.de>
-References: <4DC960B2.40406@ladisch.de>	<20110510203826.17d1ad91@stein>	<4DCAAEFF.8060907@ladisch.de>	<20110517223618.43633eee@stein>	<4DD36B16.6040802@ladisch.de>	<4E920ABE.8070100@ladisch.de>	<20111015171523.434f47c8@stein> <4E99E92B.6020408@ladisch.de>
+From: David Rientjes <rientjes@google.com>
+Subject: [patch] parisc, iommu: add missing include for prefetchw()
+Date: Sat, 15 Oct 2011 15:38:41 -0700 (PDT)
+Message-ID: <alpine.DEB.2.00.1110151536310.25063@chino.kir.corp.google.com>
+References: <20111013233818.GB26654@one.firstfloor.org> <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out5.smtp.messagingengine.com ([66.111.4.29]:50047 "EHLO
-	out5.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751345Ab1JOVKb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 15 Oct 2011 17:10:31 -0400
-In-Reply-To: <4E99E92B.6020408@ladisch.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Commit 5fd75a7850b5 (dma-mapping: remove unnecessary sync_single_range_*
-in dma_map_ops) unified not only the dma_map_ops but also the
-corresponding debug_dma_sync_* calls.  This led to spurious WARN()ings
-like the following because the DMA debug code was no longer able to
-detect the DMA buffer base address without the separate offset parameter:
+prefetchw() requires it to be defined by linux/prefetch.h, or it results
+in a compile error:
 
-WARNING: at lib/dma-debug.c:911 check_sync+0xce/0x446()
-firewire_ohci 0000:04:00.0: DMA-API: device driver tries to sync DMA memory it has not allocated [device address=0x00000000cedaa400] [size=1024 bytes]
-Call Trace: ...
- [<ffffffff811326a5>] check_sync+0xce/0x446
- [<ffffffff81132ad9>] debug_dma_sync_single_for_device+0x39/0x3b
- [<ffffffffa01d6e6a>] ohci_queue_iso+0x4f3/0x77d [firewire_ohci]
- ...
+In file included from drivers/parisc/sba_iommu.c:916:0:
+drivers/parisc/iommu-helpers.h: In function 'iommu_fill_pdir':
+drivers/parisc/iommu-helpers.h:62:4: error: implicit declaration of function 'prefetchw'
 
-To fix this, unshare the sync_single_* and sync_single_range_*
-implementations so that we are able to call the correct debug_dma_sync_*
-functions.
+Include linux/prefetch.h.
 
-Signed-off-by: Clemens Ladisch <clemens@ladisch.de>
+Signed-off-by: David Rientjes <rientjes@google.com>
 ---
- include/asm-generic/dma-mapping-common.h |   14 ++++++++++++--
- 1 files changed, 12 insertions(+), 2 deletions(-)
+ drivers/parisc/iommu-helpers.h |    2 ++
+ 1 files changed, 2 insertions(+)
 
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index 0c80bb3..9e31514 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -123,7 +123,12 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
- 						 size_t size,
- 						 enum dma_data_direction dir)
- {
--	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
-+	struct dma_map_ops *ops = get_dma_ops(dev);
+diff --git a/drivers/parisc/iommu-helpers.h b/drivers/parisc/iommu-helpers.h
+--- a/drivers/parisc/iommu-helpers.h
++++ b/drivers/parisc/iommu-helpers.h
+@@ -1,3 +1,5 @@
++#include <linux/prefetch.h>
 +
-+	BUG_ON(!valid_dma_direction(dir));
-+	if (ops->sync_single_for_cpu)
-+		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
-+	debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
- }
-
- static inline void dma_sync_single_range_for_device(struct device *dev,
-@@ -132,7 +137,12 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
- 						    size_t size,
- 						    enum dma_data_direction dir)
- {
--	dma_sync_single_for_device(dev, addr + offset, size, dir);
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+
-+	BUG_ON(!valid_dma_direction(dir));
-+	if (ops->sync_single_for_device)
-+		ops->sync_single_for_device(dev, addr + offset, size, dir);
-+	debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
- }
-
- static inline void
+ /**
+  * iommu_fill_pdir - Insert coalesced scatter/gather chunks into the I/O Pdir.
+  * @ioc: The I/O Controller.
