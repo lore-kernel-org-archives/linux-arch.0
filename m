@@ -1,83 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:29221 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754724Ab1JNVPy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 14 Oct 2011 17:15:54 -0400
-Message-ID: <4E98A677.6050507@oracle.com>
-Date: Fri, 14 Oct 2011 14:15:35 -0700
-From: Yinghai Lu <yinghai.lu@oracle.com>
+Received: from smtp-out.google.com ([74.125.121.67]:8350 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752837Ab1JOWis (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Oct 2011 18:38:48 -0400
+Received: from hpaq11.eem.corp.google.com (hpaq11.eem.corp.google.com [172.25.149.11])
+	by smtp-out.google.com with ESMTP id p9FMckk3023452
+	for <linux-arch@vger.kernel.org>; Sat, 15 Oct 2011 15:38:46 -0700
+Received: from pzk2 (pzk2.prod.google.com [10.243.19.130])
+	by hpaq11.eem.corp.google.com with ESMTP id p9FMciRB007799
+	(version=TLSv1/SSLv3 cipher=RC4-SHA bits=128 verify=NOT)
+	for <linux-arch@vger.kernel.org>; Sat, 15 Oct 2011 15:38:45 -0700
+Received: by pzk2 with SMTP id 2so6472391pzk.4
+        for <linux-arch@vger.kernel.org>; Sat, 15 Oct 2011 15:38:43 -0700 (PDT)
+Date: Sat, 15 Oct 2011 15:38:41 -0700 (PDT)
+From: David Rientjes <rientjes@google.com>
+Subject: [patch] parisc, iommu: add missing include for prefetchw()
+In-Reply-To: <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
+Message-ID: <alpine.DEB.2.00.1110151536310.25063@chino.kir.corp.google.com>
+References: <20111013233818.GB26654@one.firstfloor.org> <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 06/29] x86/PCI: convert to pci_create_root_bus() and
- pci_scan_root_bus()
-References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com> <20111014042737.23504.46601.stgit@bhelgaas.mtv.corp.google.com> <4E97C8F0.7030108@oracle.com> <CAErSpo568q-KOk25RaaZ+=erLEEC4rsPwGNy0drCbqpCLKGybQ@mail.gmail.com> <4E989E07.6030404@oracle.com> <CAErSpo4629XKU=TNp0cb6Cxc+Jm_dQcD4244eTna2TC49_EtTw@mail.gmail.com>
-In-Reply-To: <CAErSpo4629XKU=TNp0cb6Cxc+Jm_dQcD4244eTna2TC49_EtTw@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>
-Message-ID: <20111014211535.MmS6m5tbg55vnALF_kGHOPtIXsdWOxLZeD81PoJE3D8@z>
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20111015223841.IN_7WDLUc0VIS0q_C8Pu0e0wA21JRUS_4PIGuFBTV64@z>
 
-On 10/14/2011 01:54 PM, Bjorn Helgaas wrote:
+prefetchw() requires it to be defined by linux/prefetch.h, or it results
+in a compile error:
 
-> On Fri, Oct 14, 2011 at 2:39 PM, Yinghai Lu <yinghai.lu@oracle.com> wrote:
->> On 10/14/2011 01:32 PM, Bjorn Helgaas wrote:
->>
->>
->>>>>       int node;
->>>>> @@ -353,11 +349,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
->>>>>               memcpy(bus->sysdata, sd, sizeof(*sd));
->>>>>               kfree(sd);
->>>>>       } else {
->>>>> -             bus = pci_create_bus(NULL, busnum, &pci_root_ops, sd);
->>>>> -             if (bus) {
->>>>> -                     get_current_resources(device, busnum, domain, bus);
->>>>> -                     bus->subordinate = pci_scan_child_bus(bus);
->>>>> +             INIT_LIST_HEAD(&resources);
->>>>> +             get_current_resources(device, busnum, domain, &resources);
->>>>> +             if (!pci_use_crs) {
->>>>> +                     pci_free_resource_list(&resources);
->>>>> +                     x86_pci_root_bus_resources(busnum, &resources);
->>>>>               }
->>>>
->>>>
->>>> You may need to update get_current_resources() to return status about handling _CRS...
->>>> and check that status insteaf of !pci_use_crs.
->>>
->>> Is the current patch broken here?  I don't think it will be simpler to
->>> have get_current_resources() return a status and check that.  But if
->>> something's actually broken, I want to fix it, of course.
->>>
->>
->>
->> yes. if for some reason, _CRS is not handled right, that root bus resources will not get set to default res.
->>
->> +             status = get_current_resources(device, busnum, domain, &resources);
->> +             if (status) {
->> +                     pci_free_resource_list(&resources);
->> +                     x86_pci_root_bus_resources(busnum, &resources);
->>              }
->>
->> get_current_resources() will not return 0 if _CRS is not really used.
-> 
-> OK.  I think it was that way before, too.  We created the bus with
-> default resources, but the first thing get_current_resources() did was
-> clear them all out.  If there was a problem parsing _CRS, we never
-> went back and put the defaults back in.
+In file included from drivers/parisc/sba_iommu.c:916:0:
+drivers/parisc/iommu-helpers.h: In function 'iommu_fill_pdir':
+drivers/parisc/iommu-helpers.h:62:4: error: implicit declaration of function 'prefetchw'
 
+Include linux/prefetch.h.
 
-that means you broke it when you clean up it last time. 
+Signed-off-by: David Rientjes <rientjes@google.com>
+---
+ drivers/parisc/iommu-helpers.h |    2 ++
+ 1 files changed, 2 insertions(+)
 
-> 
-> But I think this will do what you suggest and is nicer than what I had before:
-> 
->                 INIT_LIST_HEAD(&resources);
->                 get_current_resources(device, busnum, domain, &resources);
->                 if (list_empty(&resources))
->                         x86_pci_root_bus_resources(busnum, &resources);
-
-
-yes, that should work.
-
-Yinghai
+diff --git a/drivers/parisc/iommu-helpers.h b/drivers/parisc/iommu-helpers.h
+--- a/drivers/parisc/iommu-helpers.h
++++ b/drivers/parisc/iommu-helpers.h
+@@ -1,3 +1,5 @@
++#include <linux/prefetch.h>
++
+ /**
+  * iommu_fill_pdir - Insert coalesced scatter/gather chunks into the I/O Pdir.
+  * @ioc: The I/O Controller.
