@@ -1,44 +1,75 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: Please include const-sections into linux-next
-Date: Fri, 14 Oct 2011 17:26:44 -0500
-Message-ID: <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
-References: <20111013233818.GB26654@one.firstfloor.org>
+From: Clemens Ladisch <clemens@ladisch.de>
+Subject: [PATCH] dma-mapping: fix sync_single_range_* DMA debugging
+Date: Sat, 15 Oct 2011 23:09:51 +0200
+Message-ID: <4E99F69F.1080701@ladisch.de>
+References: <4DC960B2.40406@ladisch.de>	<20110510203826.17d1ad91@stein>	<4DCAAEFF.8060907@ladisch.de>	<20110517223618.43633eee@stein>	<4DD36B16.6040802@ladisch.de>	<4E920ABE.8070100@ladisch.de>	<20111015171523.434f47c8@stein> <4E99E92B.6020408@ladisch.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:44126 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752584Ab1JNW0r (ORCPT
+Received: from out5.smtp.messagingengine.com ([66.111.4.29]:50047 "EHLO
+	out5.smtp.messagingengine.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751345Ab1JOVKb (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Oct 2011 18:26:47 -0400
-In-Reply-To: <20111013233818.GB26654@one.firstfloor.org>
+	Sat, 15 Oct 2011 17:10:31 -0400
+In-Reply-To: <4E99E92B.6020408@ladisch.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andi Kleen <andi@firstfloor.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Stefan Richter <stefanr@s5r6.in-berlin.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, 2011-10-14 at 01:38 +0200, Andi Kleen wrote:
-> Stephen,
-> 
-> Please include 
-> git://github.com/andikleen/linux-misc.git const-sections
-> in linux-next. This has a tree sweep to fix all kind of constant 
-> section issues.
-> 
-> I intend to send Linus a pull request next cycle and would like 
-> to get some testing in next first.
-> 
-> I got various acks last time it was posted and added them all.
-> In general it falls more in the "trivial" category, but it's 
-> rather large and all over so I may have made a mistake.
+Commit 5fd75a7850b5 (dma-mapping: remove unnecessary sync_single_range_*
+in dma_map_ops) unified not only the dma_map_ops but also the
+corresponding debug_dma_sync_* calls.  This led to spurious WARN()ings
+like the following because the DMA debug code was no longer able to
+detect the DMA buffer base address without the separate offset parameter:
 
-It's not incredibly trivial: it causes a compile failure on parisc:
+WARNING: at lib/dma-debug.c:911 check_sync+0xce/0x446()
+firewire_ohci 0000:04:00.0: DMA-API: device driver tries to sync DMA memory it has not allocated [device address=0x00000000cedaa400] [size=1024 bytes]
+Call Trace: ...
+ [<ffffffff811326a5>] check_sync+0xce/0x446
+ [<ffffffff81132ad9>] debug_dma_sync_single_for_device+0x39/0x3b
+ [<ffffffffa01d6e6a>] ohci_queue_iso+0x4f3/0x77d [firewire_ohci]
+ ...
 
-mm/percpu.c:1372: error: __setup_str_percpu_alloc_setup causes a section
-type conflict
-make[1]: *** [mm/percpu.o] Error 1
+To fix this, unshare the sync_single_* and sync_single_range_*
+implementations so that we are able to call the correct debug_dma_sync_*
+functions.
 
-I have no idea why, though.
+Signed-off-by: Clemens Ladisch <clemens@ladisch.de>
+---
+ include/asm-generic/dma-mapping-common.h |   14 ++++++++++++--
+ 1 files changed, 12 insertions(+), 2 deletions(-)
 
-James
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 0c80bb3..9e31514 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -123,7 +123,12 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ 						 size_t size,
+ 						 enum dma_data_direction dir)
+ {
+-	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
++	struct dma_map_ops *ops = get_dma_ops(dev);
++
++	BUG_ON(!valid_dma_direction(dir));
++	if (ops->sync_single_for_cpu)
++		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
++	debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
+ }
+
+ static inline void dma_sync_single_range_for_device(struct device *dev,
+@@ -132,7 +137,12 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
+ 						    size_t size,
+ 						    enum dma_data_direction dir)
+ {
+-	dma_sync_single_for_device(dev, addr + offset, size, dir);
++	struct dma_map_ops *ops = get_dma_ops(dev);
++
++	BUG_ON(!valid_dma_direction(dir));
++	if (ops->sync_single_for_device)
++		ops->sync_single_for_device(dev, addr + offset, size, dir);
++	debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
+ }
+
+ static inline void
