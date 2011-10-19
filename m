@@ -1,31 +1,35 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v5 16/36] Hexagon: Add startup code
-Date: Tue, 18 Oct 2011 22:23:53 -0500
-Message-ID: <093448$3qutll@wolverine01.qualcomm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH v5 22/36] Hexagon: Add locking types and functions
+Date: Tue, 18 Oct 2011 22:39:41 -0500
+Message-ID: <093448$3qutnv@wolverine01.qualcomm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:35224 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754155Ab1JSEFZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:25 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/kernel/head.S  |  162 +++++++++++++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/reset.c |   38 ++++++++++
- arch/hexagon/kernel/setup.c |  145 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 345 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/kernel/head.S
- create mode 100644 arch/hexagon/kernel/reset.c
- create mode 100644 arch/hexagon/kernel/setup.c
+ arch/hexagon/include/asm/spinlock.h       |  186 +++++++++++++++++++++++++++++
+ arch/hexagon/include/asm/spinlock_types.h |   42 +++++++
+ include/asm-generic/rwsem.h               |  132 ++++++++++++++++++++
+ 3 files changed, 360 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/spinlock.h
+ create mode 100644 arch/hexagon/include/asm/spinlock_types.h
+ create mode 100644 include/asm-generic/rwsem.h
 
-diff --git a/arch/hexagon/kernel/head.S b/arch/hexagon/kernel/head.S
+diff --git a/arch/hexagon/include/asm/spinlock.h b/arch/hexagon/include/asm/spinlock.h
 new file mode 100644
-index 0000000..6964da5
+index 0000000..168a920
 --- /dev/null
-+++ b/arch/hexagon/kernel/head.S
-@@ -0,0 +1,162 @@
++++ b/arch/hexagon/include/asm/spinlock.h
+@@ -0,0 +1,186 @@
 +/*
-+ * Early kernel startup code for Hexagon
++ * Spinlock support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -45,199 +49,179 @@ index 0000000..6964da5
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/linkage.h>
-+#include <linux/init.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/mem-layout.h>
-+#include <asm/vm_mmu.h>
-+#include <asm/page.h>
++#ifndef _ASM_SPINLOCK_H
++#define _ASM_SPINLOCK_H
 +
-+       	__INIT
-+ENTRY(stext)
-+	/*
-+	 * VMM will already have set up true vector page, MMU, etc.
-+	 * To set up initial kernel identity map, we have to pass
-+	 * the VMM a pointer to some canonical page tables. In
-+	 * this implementation, we're assuming that we've got
-+	 * them precompiled. Generate value in R24, as we'll need
-+	 * it again shortly.
-+	 */
-+	r24.L = #LO(swapper_pg_dir)
-+	r24.H = #HI(swapper_pg_dir)
++#include <asm/irqflags.h>
 +
-+	/*
-+	 * Symbol is kernel segment address, but we need
-+	 * the logical/physical address.
-+	 */
-+	r24 = asl(r24, #2)
-+	r24 = lsr(r24, #2)
-+
-+	r0 = r24
-+
-+	/*
-+	 * Initialize a 16MB PTE to make the virtual and physical
-+	 * addresses where the kernel was loaded be identical.
-+	 */
-+#define PTE_BITS ( __HVM_PTE_R | __HVM_PTE_W | __HVM_PTE_X	\
-+		  | __HEXAGON_C_WB_L2 << 6			\
-+		  | __HVM_PDE_S_4MB)
-+
-+	r1 = pc
-+	r2.H = #0xffc0
-+	r2.L = #0x0000
-+	r1 = and(r1,r2)		/* round PC to 4MB boundary	*/
-+	r2 = lsr(r1, #22)	/* 4MB page number		*/
-+	r2 = asl(r2, #2)	/* times sizeof(PTE) (4bytes)	*/
-+	r0 = add(r0,r2)		/* r0 = address of correct PTE	*/
-+	r2 = #PTE_BITS
-+	r1 = add(r1,r2)		/* r1 = 4MB PTE for the first entry	*/
-+	r2.h = #0x0040
-+	r2.l = #0x0000		/* 4MB	*/
-+	memw(r0 ++ #4) = r1
-+	r1 = add(r1, r2)
-+	memw(r0 ++ #4) = r1
-+
-+	r0 = r24
-+
-+	/*
-+	 * The subroutine wrapper around the virtual instruction touches
-+	 * no memory, so we should be able to use it even here.
-+	 */
-+	call	__vmnewmap;
-+
-+	/*  Jump into virtual address range.  */
-+
-+	r31.h = #hi(__head_s_vaddr_target)
-+	r31.l = #lo(__head_s_vaddr_target)
-+	jumpr r31
-+
-+	/*  Insert trippy space effects.  */
-+
-+__head_s_vaddr_target:
-+	/*
-+	 * Tear down VA=PA translation now that we are running
-+	 * in the desgnated kernel segments.
-+	 */
-+	r0 = #__HVM_PDE_S_INVALID
-+	r1 = r24
-+	loop0(1f,#0x100)
-+1:
-+	{
-+		memw(R1 ++ #4) = R0
-+	}:endloop0
-+
-+	r0 = r24
-+	call __vmnewmap
-+
-+	/*  Go ahead and install the trap0 return so angel calls work  */
-+	r0.h = #hi(_K_provisional_vec)
-+	r0.l = #lo(_K_provisional_vec)
-+	call __vmsetvec
-+
-+	/*
-+	 * OK, at this point we should start to be much more careful,
-+	 * we're going to enter C code and start touching memory
-+	 * in all sorts of places.
-+	 * This means:
-+	 *      SGP needs to be OK
-+	 *	Need to lock shared resources
-+	 *	A bunch of other things that will cause
-+	 * 	all kinds of painful bugs
-+	 */
-+
-+	/*
-+	 * Stack pointer should be pointed at the init task's
-+	 * thread stack, which should have been declared in arch/init_task.c.
-+	 * So uhhhhh...
-+	 * It's accessible via the init_thread_union, which is a union
-+	 * of a thread_info struct and a stack; of course, the top
-+	 * of the stack is not for you.  The end of the stack
-+	 * is simply init_thread_union + THREAD_SIZE.
-+	 */
-+
-+	{r29.H = #HI(init_thread_union); r0.H = #HI(_THREAD_SIZE); }
-+	{r29.L = #LO(init_thread_union); r0.L = #LO(_THREAD_SIZE); }
-+
-+	/*  initialize the register used to point to current_thread_info */
-+	/*  Fixme:  THREADINFO_REG can't be R2 because of that memset thing. */
-+	{r29 = add(r29,r0); THREADINFO_REG = r29; }
-+
-+	/*  Hack:  zero bss; */
-+	{ r0.L = #LO(__bss_start);  r1 = #0; r2.l = #LO(__bss_stop); }
-+	{ r0.H = #HI(__bss_start);           r2.h = #HI(__bss_stop); }
-+
-+	r2 = sub(r2,r0);
-+	call memset;
-+
-+	/* Time to make the doughnuts.   */
-+	call start_kernel
-+
-+	/*
-+	 * Should not reach here.
-+	 */
-+1:
-+	jump 1b
-+
-+.p2align PAGE_SHIFT
-+ENTRY(external_cmdline_buffer)
-+        .fill _PAGE_SIZE,1,0
-+
-+.data
-+.p2align PAGE_SHIFT
-+ENTRY(empty_zero_page)
-+        .fill _PAGE_SIZE,1,0
-diff --git a/arch/hexagon/kernel/reset.c b/arch/hexagon/kernel/reset.c
-new file mode 100644
-index 0000000..4d72fc5
---- /dev/null
-+++ b/arch/hexagon/kernel/reset.c
-@@ -0,0 +1,38 @@
 +/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
++ * This file is pulled in for SMP builds.
++ * Really need to check all the barrier stuff for "true" SMP
 + */
 +
-+#include <linux/smp.h>
-+#include <asm/hexagon_vm.h>
-+
-+void machine_power_off(void)
-+{
-+	smp_send_stop();
-+	__vmstop();
-+}
-+
-+void machine_halt(void)
-+{
-+}
-+
-+void machine_restart(char *cmd)
-+{
-+}
-+
-+void pm_power_off(void)
-+{
-+}
-diff --git a/arch/hexagon/kernel/setup.c b/arch/hexagon/kernel/setup.c
-new file mode 100644
-index 0000000..1202f78
---- /dev/null
-+++ b/arch/hexagon/kernel/setup.c
-@@ -0,0 +1,145 @@
 +/*
-+ * Arch related setup for Hexagon
++ * Read locks:
++ * - load the lock value
++ * - increment it
++ * - if the lock value is still negative, go back and try again.
++ * - unsuccessful store is unsuccessful.  Go back and try again.  Loser.
++ * - successful store new lock value if positive -> lock acquired
++ */
++static inline void arch_read_lock(arch_rwlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	{ P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
++		"	{ if !P3 jump 1b; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++
++}
++
++static inline void arch_read_unlock(arch_rwlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	R6 = add(R6,#-1);\n"
++		"	memw_locked(%0,P3) = R6\n"
++		"	if !P3 jump 1b;\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++
++}
++
++/*  I think this returns 0 on fail, 1 on success.  */
++static inline int arch_read_trylock(arch_rwlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1);\n"
++		"	{ %0 = #0; P3 = cmp.ge(R6,#0); R6 = add(R6,#1);}\n"
++		"	{ if !P3 jump 1f; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	{ %0 = P3 }\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
++}
++
++static inline int arch_read_can_lock(arch_rwlock_t *rwlock)
++{
++	return rwlock->lock == 0;
++}
++
++static inline int arch_write_can_lock(arch_rwlock_t *rwlock)
++{
++	return rwlock->lock == 0;
++}
++
++/*  Stuffs a -1 in the lock value?  */
++static inline void arch_write_lock(arch_rwlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0)\n"
++		"	{ P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
++		"	{ if !P3 jump 1b; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++}
++
++
++static inline int arch_write_trylock(arch_rwlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1)\n"
++		"	{ %0 = #0; P3 = cmp.eq(R6,#0);  R6 = #-1;}\n"
++		"	{ if !P3 jump 1f; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	%0 = P3;\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
++
++}
++
++static inline void arch_write_unlock(arch_rwlock_t *lock)
++{
++	smp_mb();
++	lock->lock = 0;
++}
++
++static inline void arch_spin_lock(arch_spinlock_t *lock)
++{
++	__asm__ __volatile__(
++		"1:	R6 = memw_locked(%0);\n"
++		"	P3 = cmp.eq(R6,#0);\n"
++		"	{ if !P3 jump 1b; R6 = #1; }\n"
++		"	memw_locked(%0,P3) = R6;\n"
++		"	{ if !P3 jump 1b; }\n"
++		:
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++
++}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	smp_mb();
++	lock->lock = 0;
++}
++
++static inline unsigned int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	int temp;
++	__asm__ __volatile__(
++		"	R6 = memw_locked(%1);\n"
++		"	P3 = cmp.eq(R6,#0);\n"
++		"	{ if !P3 jump 1f; R6 = #1; %0 = #0; }\n"
++		"	memw_locked(%1,P3) = R6;\n"
++		"	%0 = P3;\n"
++		"1:\n"
++		: "=&r" (temp)
++		: "r" (&lock->lock)
++		: "memory", "r6", "p3"
++	);
++	return temp;
++}
++
++/*
++ * SMP spinlocks are intended to allow only a single CPU at the lock
++ */
++#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
++#define arch_spin_unlock_wait(lock) \
++	do {while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
++#define arch_spin_is_locked(x) ((x)->lock != 0)
++
++#define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
++#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
++
++#endif
+diff --git a/arch/hexagon/include/asm/spinlock_types.h b/arch/hexagon/include/asm/spinlock_types.h
+new file mode 100644
+index 0000000..5e937af
+--- /dev/null
++++ b/arch/hexagon/include/asm/spinlock_types.h
+@@ -0,0 +1,42 @@
++/*
++ * Spinlock support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -256,131 +240,166 @@ index 0000000..1202f78
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/bootmem.h>
-+#include <linux/mmzone.h>
-+#include <linux/mm.h>
-+#include <linux/seq_file.h>
-+#include <linux/console.h>
-+#include <linux/of_fdt.h>
-+#include <asm/io.h>
-+#include <asm/sections.h>
-+#include <asm/setup.h>
-+#include <asm/processor.h>
-+#include <asm/hexagon_vm.h>
-+#include <asm/vm_mmu.h>
-+#include <asm/time.h>
-+#ifdef CONFIG_OF
-+#include <asm/prom.h>
++#ifndef _ASM_SPINLOCK_TYPES_H
++#define _ASM_SPINLOCK_TYPES_H
++
++#include <linux/version.h>
++
++#ifndef __LINUX_SPINLOCK_TYPES_H
++# error "please don't include this file directly"
 +#endif
 +
-+char cmd_line[COMMAND_LINE_SIZE];
-+static char default_command_line[COMMAND_LINE_SIZE] __initdata = CONFIG_CMDLINE;
++typedef struct {
++	volatile unsigned int lock;
++} arch_spinlock_t;
 +
-+int on_simulator;
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
 +
-+void __cpuinit calibrate_delay(void)
-+{
-+	loops_per_jiffy = thread_freq_mhz * 1000000 / HZ;
-+}
++typedef struct {
++	volatile unsigned int lock;
++} arch_rwlock_t;
 +
-+/*
-+ * setup_arch -  high level architectural setup routine
-+ * @cmdline_p: pointer to pointer to command-line arguments
-+ */
++#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
 +
-+void __init setup_arch(char **cmdline_p)
-+{
-+	char *p = &external_cmdline_buffer;
-+
-+	/*
-+	 * These will eventually be pulled in via either some hypervisor
-+	 * or devicetree description.  Hardwiring for now.
-+	 */
-+	pcycle_freq_mhz = 600;
-+	thread_freq_mhz = 100;
-+	sleep_clk_freq = 32000;
-+
-+	/*
-+	 * Set up event bindings to handle exceptions and interrupts.
-+	 */
-+	__vmsetvec(_K_VM_event_vector);
-+
-+	/*
-+	 * Simulator has a few differences from the hardware.
-+	 * For now, check uninitialized-but-mapped memory
-+	 * prior to invoking setup_arch_memory().
-+	 */
-+	if (*(int *)((unsigned long)_end + 8) == 0x1f1f1f1f)
-+		on_simulator = 1;
-+	else
-+		on_simulator = 0;
-+
-+	if (p[0] != '\0')
-+		strlcpy(boot_command_line, p, COMMAND_LINE_SIZE);
-+	else
-+		strlcpy(boot_command_line, default_command_line,
-+			COMMAND_LINE_SIZE);
-+
-+	/*
-+	 * boot_command_line and the value set up by setup_arch
-+	 * are both picked up by the init code. If no reason to
-+	 * make them different, pass the same pointer back.
-+	 */
-+	strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-+	*cmdline_p = cmd_line;
-+
-+	parse_early_param();
-+
-+	setup_arch_memory();
-+
-+#ifdef CONFIG_SMP
-+	smp_start_cpus();
 +#endif
-+}
+diff --git a/include/asm-generic/rwsem.h b/include/asm-generic/rwsem.h
+new file mode 100644
+index 0000000..bb1e2cd
+--- /dev/null
++++ b/include/asm-generic/rwsem.h
+@@ -0,0 +1,132 @@
++#ifndef _ASM_POWERPC_RWSEM_H
++#define _ASM_POWERPC_RWSEM_H
++
++#ifndef _LINUX_RWSEM_H
++#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
++#endif
++
++#ifdef __KERNEL__
 +
 +/*
-+ * Functions for dumping CPU info via /proc
-+ * Probably should move to kernel/proc.c or something.
++ * R/W semaphores for PPC using the stuff in lib/rwsem.c.
++ * Adapted largely from include/asm-i386/rwsem.h
++ * by Paul Mackerras <paulus@samba.org>.
 + */
-+static void *c_start(struct seq_file *m, loff_t *pos)
-+{
-+	return *pos < nr_cpu_ids ? (void *)((unsigned long) *pos + 1) : NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	++*pos;
-+	return c_start(m, pos);
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
 +
 +/*
-+ * Eventually this will dump information about
-+ * CPU properties like ISA level, TLB size, etc.
++ * the semaphore definition
 + */
-+static int show_cpuinfo(struct seq_file *m, void *v)
-+{
-+	int cpu = (unsigned long) v - 1;
++#ifdef CONFIG_PPC64
++# define RWSEM_ACTIVE_MASK		0xffffffffL
++#else
++# define RWSEM_ACTIVE_MASK		0x0000ffffL
++#endif
 +
-+	seq_printf(m, "processor\t: %d\n", cpu);
-+	seq_printf(m, "model name\t: Hexagon Virtual Machine\n");
-+	seq_printf(m, "BogoMips\t: %lu.%02lu\n",
-+		(loops_per_jiffy * HZ) / 500000,
-+		((loops_per_jiffy * HZ) / 5000) % 100);
-+	seq_printf(m, "\n");
++#define RWSEM_UNLOCKED_VALUE		0x00000000L
++#define RWSEM_ACTIVE_BIAS		0x00000001L
++#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
++#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
++#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
++
++/*
++ * lock for reading
++ */
++static inline void __down_read(struct rw_semaphore *sem)
++{
++	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
++		rwsem_down_read_failed(sem);
++}
++
++static inline int __down_read_trylock(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	while ((tmp = sem->count) >= 0) {
++		if (tmp == cmpxchg(&sem->count, tmp,
++				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
++			return 1;
++		}
++	}
 +	return 0;
 +}
 +
-+const struct seq_operations cpuinfo_op = {
-+	.start  = &c_start,
-+	.next   = &c_next,
-+	.stop   = &c_stop,
-+	.show   = &show_cpuinfo,
-+};
++/*
++ * lock for writing
++ */
++static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
++{
++	long tmp;
++
++	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
++				     (atomic_long_t *)&sem->count);
++	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
++		rwsem_down_write_failed(sem);
++}
++
++static inline void __down_write(struct rw_semaphore *sem)
++{
++	__down_write_nested(sem, 0);
++}
++
++static inline int __down_write_trylock(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
++		      RWSEM_ACTIVE_WRITE_BIAS);
++	return tmp == RWSEM_UNLOCKED_VALUE;
++}
++
++/*
++ * unlock after reading
++ */
++static inline void __up_read(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
++	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
++		rwsem_wake(sem);
++}
++
++/*
++ * unlock after writing
++ */
++static inline void __up_write(struct rw_semaphore *sem)
++{
++	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
++				 (atomic_long_t *)&sem->count) < 0))
++		rwsem_wake(sem);
++}
++
++/*
++ * implement atomic add functionality
++ */
++static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
++{
++	atomic_long_add(delta, (atomic_long_t *)&sem->count);
++}
++
++/*
++ * downgrade write lock to read lock
++ */
++static inline void __downgrade_write(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
++				     (atomic_long_t *)&sem->count);
++	if (tmp < 0)
++		rwsem_downgrade_wake(sem);
++}
++
++/*
++ * implement exchange and add functionality
++ */
++static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
++{
++	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
++}
++
++#endif	/* __KERNEL__ */
++#endif	/* _ASM_POWERPC_RWSEM_H */
 -- 
 1.7.1
 
