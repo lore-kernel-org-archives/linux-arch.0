@@ -1,151 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:50936 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:35224 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753944Ab1JSEFL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:11 -0400
-Message-ID: <093448$3qutlc@wolverine01.qualcomm.com>
+	with ESMTP id S1754058Ab1JSEFW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:22 -0400
+Message-ID: <093448$3qutnl@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 22:21:23 -0500
-Subject: [PATCH v5 14/36] Hexagon: Add signal functions
+Date: Tue, 18 Oct 2011 22:38:36 -0500
+Subject: [PATCH v5 20/36] Hexagon: Provide basic debugging and system trap support.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019032123.D7ERFtVbyGWr3Cz3cKhIhzc6RPca-oYMvlplOzIsbxw@z>
+Message-ID: <20111019033836.RXbZcQjJ_CojpK-nx0DVMNQcOSSMwHiNhyO9hh7zV2A@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/sigcontext.h |   33 +++
- arch/hexagon/include/asm/signal.h     |   26 +++
- arch/hexagon/include/asm/vdso.h       |   31 +++
- arch/hexagon/kernel/signal.c          |  345 +++++++++++++++++++++++++++++++++
- arch/hexagon/kernel/trampoline.S      |   35 ++++
- arch/hexagon/kernel/vdso.c            |  101 ++++++++++
- 6 files changed, 571 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/sigcontext.h
- create mode 100644 arch/hexagon/include/asm/signal.h
- create mode 100644 arch/hexagon/include/asm/vdso.h
- create mode 100644 arch/hexagon/kernel/signal.c
- create mode 100644 arch/hexagon/kernel/trampoline.S
- create mode 100644 arch/hexagon/kernel/vdso.c
+ arch/hexagon/include/asm/traps.h |   29 +++
+ arch/hexagon/kernel/traps.c      |  454 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 483 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/traps.h
+ create mode 100644 arch/hexagon/kernel/traps.c
 
-diff --git a/arch/hexagon/include/asm/sigcontext.h b/arch/hexagon/include/asm/sigcontext.h
+diff --git a/arch/hexagon/include/asm/traps.h b/arch/hexagon/include/asm/traps.h
 new file mode 100644
-index 0000000..ce6dcd9
+index 0000000..6a407f6
 --- /dev/null
-+++ b/arch/hexagon/include/asm/sigcontext.h
-@@ -0,0 +1,33 @@
++++ b/arch/hexagon/include/asm/traps.h
+@@ -0,0 +1,29 @@
 +/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SIGCONTEXT_H
-+#define _ASM_SIGCONTEXT_H
-+
-+#include <asm/user.h>
-+
-+/*
-+ * Signal context structure - contains all info to do with the state
-+ * before the signal handler was invoked.  Note: only add new entries
-+ * to the end of the structure.
-+ */
-+struct sigcontext {
-+	struct user_regs_struct sc_regs;
-+} __aligned(8);
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/signal.h b/arch/hexagon/include/asm/signal.h
-new file mode 100644
-index 0000000..471c056
---- /dev/null
-+++ b/arch/hexagon/include/asm/signal.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_SIGNAL_H
-+#define _ASM_SIGNAL_H
-+
-+extern unsigned long __rt_sigtramp_template[2];
-+
-+#include <asm-generic/signal.h>
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/vdso.h b/arch/hexagon/include/asm/vdso.h
-new file mode 100644
-index 0000000..2e429a3
---- /dev/null
-+++ b/arch/hexagon/include/asm/vdso.h
-@@ -0,0 +1,31 @@
-+/*
-+ * vDSO implementation for Hexagon
-+ *
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef __ASM_VDSO_H
-+#define __ASM_VDSO_H
-+
-+#include <linux/types.h>
-+
-+struct hexagon_vdso {
-+	u32 rt_signal_trampoline[2];
-+};
-+
-+#endif /* __ASM_VDSO_H */
-+
-diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
-new file mode 100644
-index 0000000..b45be31
---- /dev/null
-+++ b/arch/hexagon/kernel/signal.c
-@@ -0,0 +1,345 @@
-+/*
-+ * Signal support for Hexagon processor
++ * Trap support for Hexagon
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -164,338 +48,24 @@ index 0000000..b45be31
 + * 02110-1301, USA.
 + */
 +
-+#include <linux/linkage.h>
-+#include <linux/syscalls.h>
-+#include <linux/freezer.h>
-+#include <linux/tracehook.h>
++#ifndef _ASM_HEXAGON_TRAPS_H
++#define _ASM_HEXAGON_TRAPS_H
++
 +#include <asm/registers.h>
-+#include <asm/thread_info.h>
-+#include <asm/unistd.h>
-+#include <asm/uaccess.h>
-+#include <asm/ucontext.h>
-+#include <asm/cacheflush.h>
-+#include <asm/signal.h>
-+#include <asm/vdso.h>
 +
-+#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
++extern int die(const char *str, struct pt_regs *regs, long err);
++extern int die_if_kernel(char *str, struct pt_regs *regs, long err);
 +
-+struct rt_sigframe {
-+	unsigned long tramp[2];
-+	struct siginfo info;
-+	struct ucontext uc;
-+};
-+
-+static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
-+			  size_t frame_size)
-+{
-+	unsigned long sp = regs->r29;
-+
-+	/* Switch to signal stack if appropriate */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
-+		sp = current->sas_ss_sp + current->sas_ss_size;
-+
-+	return (void __user *)((sp - frame_size) & ~(sizeof(long long) - 1));
-+}
-+
-+static int setup_sigcontext(struct pt_regs *regs, struct sigcontext __user *sc)
-+{
-+	unsigned long tmp;
-+	int err = 0;
-+
-+	err |= copy_to_user(&sc->sc_regs.r0, &regs->r00,
-+			    32*sizeof(unsigned long));
-+
-+	err |= __put_user(regs->sa0, &sc->sc_regs.sa0);
-+	err |= __put_user(regs->lc0, &sc->sc_regs.lc0);
-+	err |= __put_user(regs->sa1, &sc->sc_regs.sa1);
-+	err |= __put_user(regs->lc1, &sc->sc_regs.lc1);
-+	err |= __put_user(regs->m0, &sc->sc_regs.m0);
-+	err |= __put_user(regs->m1, &sc->sc_regs.m1);
-+	err |= __put_user(regs->usr, &sc->sc_regs.usr);
-+	err |= __put_user(regs->preds, &sc->sc_regs.p3_0);
-+	err |= __put_user(regs->gp, &sc->sc_regs.gp);
-+	err |= __put_user(regs->ugp, &sc->sc_regs.ugp);
-+
-+	tmp = pt_elr(regs); err |= __put_user(tmp, &sc->sc_regs.pc);
-+	tmp = pt_cause(regs); err |= __put_user(tmp, &sc->sc_regs.cause);
-+	tmp = pt_badva(regs); err |= __put_user(tmp, &sc->sc_regs.badva);
-+
-+	return err;
-+}
-+
-+static int restore_sigcontext(struct pt_regs *regs,
-+			      struct sigcontext __user *sc)
-+{
-+	unsigned long tmp;
-+	int err = 0;
-+
-+	err |= copy_from_user(&regs->r00, &sc->sc_regs.r0,
-+			      32 * sizeof(unsigned long));
-+
-+	err |= __get_user(regs->sa0, &sc->sc_regs.sa0);
-+	err |= __get_user(regs->lc0, &sc->sc_regs.lc0);
-+	err |= __get_user(regs->sa1, &sc->sc_regs.sa1);
-+	err |= __get_user(regs->lc1, &sc->sc_regs.lc1);
-+	err |= __get_user(regs->m0, &sc->sc_regs.m0);
-+	err |= __get_user(regs->m1, &sc->sc_regs.m1);
-+	err |= __get_user(regs->usr, &sc->sc_regs.usr);
-+	err |= __get_user(regs->preds, &sc->sc_regs.p3_0);
-+	err |= __get_user(regs->gp, &sc->sc_regs.gp);
-+	err |= __get_user(regs->ugp, &sc->sc_regs.ugp);
-+
-+	err |= __get_user(tmp, &sc->sc_regs.pc); pt_set_elr(regs, tmp);
-+
-+	return err;
-+}
-+
-+/*
-+ * Setup signal stack frame with siginfo structure
-+ */
-+static int setup_rt_frame(int signr, struct k_sigaction *ka, siginfo_t *info,
-+			  sigset_t *set,  struct pt_regs *regs)
-+{
-+	int err = 0;
-+	struct rt_sigframe __user *frame;
-+	struct hexagon_vdso *vdso = current->mm->context.vdso;
-+
-+	frame = get_sigframe(ka, regs, sizeof(struct rt_sigframe));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(struct rt_sigframe)))
-+		goto	sigsegv;
-+
-+	if (copy_siginfo_to_user(&frame->info, info))
-+		goto	sigsegv;
-+
-+	/* The on-stack signal trampoline is no longer executed;
-+	 * however, the libgcc signal frame unwinding code checks for
-+	 * the presence of these two numeric magic values.
-+	 */
-+	err |= __put_user(0x7800d166, &frame->tramp[0]);
-+	err |= __put_user(0x5400c004, &frame->tramp[1]);
-+	err |= setup_sigcontext(regs, &frame->uc.uc_mcontext);
-+	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+	if (err)
-+		goto sigsegv;
-+
-+	/* Load r0/r1 pair with signumber/siginfo pointer... */
-+	regs->r0100 = ((unsigned long long)((unsigned long)&frame->info) << 32)
-+		| (unsigned long long)signr;
-+	regs->r02 = (unsigned long) &frame->uc;
-+	regs->r31 = (unsigned long) vdso->rt_signal_trampoline;
-+	pt_psp(regs) = (unsigned long) frame;
-+	pt_set_elr(regs, (unsigned long)ka->sa.sa_handler);
-+
-+	return 0;
-+
-+sigsegv:
-+	force_sigsegv(signr, current);
-+	return -EFAULT;
-+}
-+
-+/*
-+ * Setup invocation of signal handler
-+ */
-+static int handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
-+			 sigset_t *oldset, struct pt_regs *regs)
-+{
-+	int rc;
-+
-+	/*
-+	 * If we're handling a signal that aborted a system call,
-+	 * set up the error return value before adding the signal
-+	 * frame to the stack.
-+	 */
-+
-+	if (regs->syscall_nr >= 0) {
-+		switch (regs->r00) {
-+		case -ERESTART_RESTARTBLOCK:
-+		case -ERESTARTNOHAND:
-+			regs->r00 = -EINTR;
-+			break;
-+		case -ERESTARTSYS:
-+			if (!(ka->sa.sa_flags & SA_RESTART)) {
-+				regs->r00 = -EINTR;
-+				break;
-+			}
-+			/* Fall through */
-+		case -ERESTARTNOINTR:
-+			regs->r06 = regs->syscall_nr;
-+			pt_set_elr(regs, pt_elr(regs) - 4);
-+			regs->r00 = regs->restart_r0;
-+			break;
-+		default:
-+			break;
-+		}
-+	}
-+
-+	/*
-+	 * Set up the stack frame; not doing the SA_SIGINFO thing.  We
-+	 * only set up the rt_frame flavor.
-+	 */
-+	rc = setup_rt_frame(sig, ka, info, oldset, regs);
-+
-+	/* If there was an error on setup, no signal was delivered. */
-+	if (rc)
-+		return rc;
-+
-+	spin_lock_irq(&current->sighand->siglock);
-+	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
-+	if (!(ka->sa.sa_flags & SA_NODEFER))
-+		sigaddset(&current->blocked, sig);
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	return 0;
-+}
-+
-+/*
-+ * Called from return-from-event code.
-+ */
-+static void do_signal(struct pt_regs *regs)
-+{
-+	struct k_sigaction sigact;
-+	siginfo_t info;
-+	int signo;
-+
-+	if (!user_mode(regs))
-+		return;
-+
-+	if (try_to_freeze())
-+		goto no_signal;
-+
-+	signo = get_signal_to_deliver(&info, &sigact, regs, NULL);
-+
-+	if (signo > 0) {
-+		sigset_t *oldset;
-+
-+		if (test_thread_flag(TIF_RESTORE_SIGMASK))
-+			oldset = &current->saved_sigmask;
-+		else
-+			oldset = &current->blocked;
-+
-+		if (handle_signal(signo, &info, &sigact, oldset, regs) == 0) {
-+			/*
-+			 * Successful delivery case.  The saved sigmask is
-+			 * stored in the signal frame, and will be restored
-+			 * by sigreturn.  We can clear the TIF flag.
-+			 */
-+			clear_thread_flag(TIF_RESTORE_SIGMASK);
-+
-+			tracehook_signal_handler(signo, &info, &sigact, regs,
-+				test_thread_flag(TIF_SINGLESTEP));
-+		}
-+		return;
-+	}
-+
-+no_signal:
-+	/*
-+	 * If we came from a system call, handle the restart.
-+	 */
-+	if (regs->syscall_nr >= 0) {
-+		switch (regs->r00) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->r06 = regs->syscall_nr;
-+			break;
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->r06 = __NR_restart_syscall;
-+			break;
-+		default:
-+			goto no_restart;
-+		}
-+		pt_set_elr(regs, pt_elr(regs) - 4);
-+		regs->r00 = regs->restart_r0;
-+	}
-+
-+no_restart:
-+	/* If there's no signal to deliver, put the saved sigmask back */
-+	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-+		clear_thread_flag(TIF_RESTORE_SIGMASK);
-+		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-+	}
-+}
-+
-+void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
-+{
-+	if (thread_info_flags & _TIF_SIGPENDING)
-+		do_signal(regs);
-+
-+	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		if (current->replacement_session_keyring)
-+			key_replace_session_keyring();
-+	}
-+}
-+
-+/*
-+ * Architecture-specific wrappers for signal-related system calls
-+ */
-+asmlinkage int sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss)
-+{
-+	struct pt_regs *regs = current_thread_info()->regs;
-+
-+	return do_sigaltstack(uss, uoss, regs->r29);
-+}
-+
-+asmlinkage int sys_rt_sigreturn(void)
-+{
-+	struct pt_regs *regs = current_thread_info()->regs;
-+	struct rt_sigframe __user *frame;
-+	sigset_t blocked;
-+
-+	frame = (struct rt_sigframe __user *)pt_psp(regs);
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&blocked, &frame->uc.uc_sigmask, sizeof(blocked)))
-+		goto badframe;
-+
-+	sigdelsetmask(&blocked, ~_BLOCKABLE);
-+	spin_lock_irq(&current->sighand->siglock);
-+	current->blocked = blocked;
-+	recalc_sigpending();
-+	spin_unlock_irq(&current->sighand->siglock);
-+
-+	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
-+		goto badframe;
-+
-+	/* Restore the user's stack as well */
-+	pt_psp(regs) = regs->r29;
-+
-+	/*
-+	 * Leave a trace in the stack frame that this was a sigreturn.
-+	 * If the system call is to replay, we've already restored the
-+	 * number in the GPR slot and it will be regenerated on the
-+	 * new system call trap entry. Note that if restore_sigcontext()
-+	 * did something other than a bulk copy of the pt_regs struct,
-+	 * we could avoid this assignment by simply not overwriting
-+	 * regs->syscall_nr.
-+	 */
-+	regs->syscall_nr = __NR_rt_sigreturn;
-+
-+	/*
-+	 * If we were meticulous, we'd only call this if we knew that
-+	 * we were actually going to use an alternate stack, and we'd
-+	 * consider any error to be fatal.  What we do here, in common
-+	 * with many other architectures, is call it blindly and only
-+	 * consider the -EFAULT return case to be proof of a problem.
-+	 */
-+	if (do_sigaltstack(&frame->uc.uc_stack, NULL, pt_psp(regs)) == -EFAULT)
-+		goto badframe;
-+
-+	return 0;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
-diff --git a/arch/hexagon/kernel/trampoline.S b/arch/hexagon/kernel/trampoline.S
++#endif /* _ASM_HEXAGON_TRAPS_H */
+diff --git a/arch/hexagon/kernel/traps.c b/arch/hexagon/kernel/traps.c
 new file mode 100644
-index 0000000..06c36c0
+index 0000000..f08857d
 --- /dev/null
-+++ b/arch/hexagon/kernel/trampoline.S
-@@ -0,0 +1,35 @@
++++ b/arch/hexagon/kernel/traps.c
+@@ -0,0 +1,454 @@
 +/*
++ * Kernel traps/events for Hexagon processor
++ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -513,130 +83,440 @@ index 0000000..06c36c0
 + * 02110-1301, USA.
 + */
 +
-+/*
-+ * Trampoline sequences to be copied onto user stack.
-+ * This consumes a little more space than hand-assembling
-+ * immediate constants for use in C, but is more portable
-+ * to future tweaks to the Hexagon instruction set.
-+ */
-+
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/module.h>
++#include <linux/kallsyms.h>
++#include <linux/kdebug.h>
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/tracehook.h>
++#include <asm/traps.h>
++#include <asm/vm_fault.h>
++#include <asm/syscall.h>
++#include <asm/registers.h>
 +#include <asm/unistd.h>
++#include <asm/sections.h>
++#ifdef CONFIG_KGDB
++# include <linux/kgdb.h>
++#endif
 +
-+/*  Sig trampolines - call sys_sigreturn or sys_rt_sigreturn as appropriate */
++#define TRAP_SYSCALL	1
++#define TRAP_DEBUG	0xdb
 +
-+/*  plain sigreturn is gone.  */
-+
-+	.globl __rt_sigtramp_template
-+__rt_sigtramp_template:
-+	r6 = #__NR_rt_sigreturn;
-+	trap0(#1);
-diff --git a/arch/hexagon/kernel/vdso.c b/arch/hexagon/kernel/vdso.c
-new file mode 100644
-index 0000000..5ae4134
---- /dev/null
-+++ b/arch/hexagon/kernel/vdso.c
-@@ -0,0 +1,101 @@
-+/*
-+ * vDSO implementation for Hexagon
-+ *
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/err.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+
-+#include <asm/vdso.h>
-+
-+static struct page *vdso_page;
-+
-+/* Create a vDSO page holding the signal trampoline.
-+ * We want this for a non-executable stack.
-+ */
-+static int __init vdso_init(void)
++void __init trap_init(void)
 +{
-+	struct hexagon_vdso *vdso;
-+
-+	vdso_page = alloc_page(GFP_KERNEL);
-+	if (!vdso_page)
-+		panic("Cannot allocate vdso");
-+
-+	vdso = vmap(&vdso_page, 1, 0, PAGE_KERNEL);
-+	if (!vdso)
-+		panic("Cannot map vdso");
-+	clear_page(vdso);
-+
-+	/* Install the signal trampoline; currently looks like this:
-+	 *	r6 = #__NR_rt_sigreturn;
-+	 *	trap0(#1);
-+	 */
-+	vdso->rt_signal_trampoline[0] = __rt_sigtramp_template[0];
-+	vdso->rt_signal_trampoline[1] = __rt_sigtramp_template[1];
-+
-+	vunmap(vdso);
-+
-+	return 0;
 +}
-+arch_initcall(vdso_init);
 +
-+/*
-+ * Called from binfmt_elf.  Create a VMA for the vDSO page.
-+ */
-+int arch_setup_additional_pages(struct linux_binprm *bprm, int uses_interp)
++#ifdef CONFIG_GENERIC_BUG
++/* Maybe should resemble arch/sh/kernel/traps.c ?? */
++int is_valid_bugaddr(unsigned long addr)
 +{
-+	int ret;
-+	unsigned long vdso_base;
-+	struct mm_struct *mm = current->mm;
++	return 1;
++}
++#endif /* CONFIG_GENERIC_BUG */
 +
-+	down_write(&mm->mmap_sem);
++static const char *ex_name(int ex)
++{
++	switch (ex) {
++	case HVM_GE_C_XPROT:
++	case HVM_GE_C_XUSER:
++		return "Execute protection fault";
++	case HVM_GE_C_RPROT:
++	case HVM_GE_C_RUSER:
++		return "Read protection fault";
++	case HVM_GE_C_WPROT:
++	case HVM_GE_C_WUSER:
++		return "Write protection fault";
++	case HVM_GE_C_XMAL:
++		return "Misaligned instruction";
++	case HVM_GE_C_RMAL:
++		return "Misaligned data load";
++	case HVM_GE_C_WMAL:
++		return "Misaligned data store";
++	case HVM_GE_C_INVI:
++	case HVM_GE_C_PRIVI:
++		return "Illegal instruction";
++	case HVM_GE_C_BUS:
++		return "Precise bus error";
++	case HVM_GE_C_CACHE:
++		return "Cache error";
 +
-+	/* Try to get it loaded right near ld.so/glibc. */
-+	vdso_base = STACK_TOP;
++	case 0xdb:
++		return "Debugger trap";
 +
-+	vdso_base = get_unmapped_area(NULL, vdso_base, PAGE_SIZE, 0, 0);
-+	if (IS_ERR_VALUE(vdso_base)) {
-+		ret = vdso_base;
-+		goto up_fail;
++	default:
++		return "Unrecognized exception";
++	}
++}
++
++static void do_show_stack(struct task_struct *task, unsigned long *fp,
++			  unsigned long ip)
++{
++	int kstack_depth_to_print = 24;
++	unsigned long offset, size;
++	const char *name = NULL;
++	unsigned long *newfp;
++	unsigned long low, high;
++	char tmpstr[128];
++	char *modname;
++	int i;
++
++	if (task == NULL)
++		task = current;
++
++	printk(KERN_INFO "CPU#%d, %s/%d, Call Trace:\n",
++	       raw_smp_processor_id(), task->comm,
++	       task_pid_nr(task));
++
++	if (fp == NULL) {
++		if (task == current) {
++			asm("%0 = r30" : "=r" (fp));
++		} else {
++			fp = (unsigned long *)
++			     ((struct hexagon_switch_stack *)
++			     task->thread.switch_sp)->fp;
++		}
 +	}
 +
-+	/* MAYWRITE to allow gdb to COW and set breakpoints. */
-+	ret = install_special_mapping(mm, vdso_base, PAGE_SIZE,
-+				      VM_READ|VM_EXEC|
-+				      VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC|
-+				      VM_ALWAYSDUMP,
-+				      &vdso_page);
++	if ((((unsigned long) fp) & 0x3) || ((unsigned long) fp < 0x1000)) {
++		printk(KERN_INFO "-- Corrupt frame pointer %p\n", fp);
++		return;
++	}
 +
-+	if (ret)
-+		goto up_fail;
++	/* Saved link reg is one word above FP */
++	if (!ip)
++		ip = *(fp+1);
 +
-+	mm->context.vdso = (void *)vdso_base;
++	/* Expect kernel stack to be in-bounds */
++	low = (unsigned long)task_stack_page(task);
++	high = low + THREAD_SIZE - 8;
++	low += sizeof(struct thread_info);
 +
-+up_fail:
-+	up_write(&mm->mmap_sem);
-+	return ret;
++	for (i = 0; i < kstack_depth_to_print; i++) {
++
++		name = kallsyms_lookup(ip, &size, &offset, &modname, tmpstr);
++
++		printk(KERN_INFO "[%p] 0x%lx: %s + 0x%lx", fp, ip, name,
++			offset);
++		if (((unsigned long) fp < low) || (high < (unsigned long) fp))
++			printk(KERN_CONT " (FP out of bounds!)");
++		if (modname)
++			printk(KERN_CONT " [%s] ", modname);
++		printk(KERN_CONT "\n");
++
++		newfp = (unsigned long *) *fp;
++
++		if (((unsigned long) newfp) & 0x3) {
++			printk(KERN_INFO "-- Corrupt frame pointer %p\n",
++				newfp);
++			break;
++		}
++
++		/* Attempt to continue past exception. */
++		if (0 == newfp) {
++			struct pt_regs *regs = (struct pt_regs *) (((void *)fp)
++						+ 8);
++
++			if (regs->syscall_nr != -1) {
++				printk(KERN_INFO "-- trap0 -- syscall_nr: %ld",
++					regs->syscall_nr);
++				printk(KERN_CONT "  psp: %lx  elr: %lx\n",
++					 pt_psp(regs), pt_elr(regs));
++				break;
++			} else {
++				/* really want to see more ... */
++				kstack_depth_to_print += 6;
++				printk(KERN_INFO "-- %s (0x%lx)  badva: %lx\n",
++					ex_name(pt_cause(regs)), pt_cause(regs),
++					pt_badva(regs));
++			}
++
++			newfp = (unsigned long *) regs->r30;
++			ip = pt_elr(regs);
++		} else {
++			ip = *(newfp + 1);
++		}
++
++		/* If link reg is null, we are done. */
++		if (ip == 0x0)
++			break;
++
++		/* If newfp isn't larger, we're tracing garbage. */
++		if (newfp > fp)
++			fp = newfp;
++		else
++			break;
++	}
 +}
 +
-+const char *arch_vma_name(struct vm_area_struct *vma)
++void show_stack(struct task_struct *task, unsigned long *fp)
 +{
-+	if (vma->vm_mm && vma->vm_start == (long)vma->vm_mm->context.vdso)
-+		return "[vdso]";
-+	return NULL;
++	/* Saved link reg is one word above FP */
++	do_show_stack(task, fp, 0);
 +}
 +
++void dump_stack(void)
++{
++	unsigned long *fp;
++	asm("%0 = r30" : "=r" (fp));
++	show_stack(current, fp);
++}
++EXPORT_SYMBOL(dump_stack);
++
++int die(const char *str, struct pt_regs *regs, long err)
++{
++	static struct {
++		spinlock_t lock;
++		int counter;
++	} die = {
++		.lock = __SPIN_LOCK_UNLOCKED(die.lock),
++		.counter = 0
++	};
++
++	console_verbose();
++	oops_enter();
++
++	spin_lock_irq(&die.lock);
++	bust_spinlocks(1);
++	printk(KERN_EMERG "Oops: %s[#%d]:\n", str, ++die.counter);
++
++	if (notify_die(DIE_OOPS, str, regs, err, pt_cause(regs), SIGSEGV) ==
++	    NOTIFY_STOP)
++		return 1;
++
++	print_modules();
++	show_regs(regs);
++	do_show_stack(current, &regs->r30, pt_elr(regs));
++
++	bust_spinlocks(0);
++	add_taint(TAINT_DIE);
++
++	spin_unlock_irq(&die.lock);
++
++	if (in_interrupt())
++		panic("Fatal exception in interrupt");
++
++	if (panic_on_oops)
++		panic("Fatal exception");
++
++	oops_exit();
++	do_exit(err);
++	return 0;
++}
++
++int die_if_kernel(char *str, struct pt_regs *regs, long err)
++{
++	if (!user_mode(regs))
++		return die(str, regs, err);
++	else
++		return 0;
++}
++
++/*
++ * It's not clear that misaligned fetches are ever recoverable.
++ */
++static void misaligned_instruction(struct pt_regs *regs)
++{
++	die_if_kernel("Misaligned Instruction", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++/*
++ * Misaligned loads and stores, on the other hand, can be
++ * emulated, and probably should be, some day.  But for now
++ * they will be considered fatal.
++ */
++static void misaligned_data_load(struct pt_regs *regs)
++{
++	die_if_kernel("Misaligned Data Load", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++static void misaligned_data_store(struct pt_regs *regs)
++{
++	die_if_kernel("Misaligned Data Store", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++static void illegal_instruction(struct pt_regs *regs)
++{
++	die_if_kernel("Illegal Instruction", regs, 0);
++	force_sig(SIGILL, current);
++}
++
++/*
++ * Precise bus errors may be recoverable with a a retry,
++ * but for now, treat them as irrecoverable.
++ */
++static void precise_bus_error(struct pt_regs *regs)
++{
++	die_if_kernel("Precise Bus Error", regs, 0);
++	force_sig(SIGBUS, current);
++}
++
++/*
++ * If anything is to be done here other than panic,
++ * it will probably be complex and migrate to another
++ * source module.  For now, just die.
++ */
++static void cache_error(struct pt_regs *regs)
++{
++	die("Cache Error", regs, 0);
++}
++
++/*
++ * General exception handler
++ */
++void do_genex(struct pt_regs *regs)
++{
++	/*
++	 * Decode Cause and Dispatch
++	 */
++	switch (pt_cause(regs)) {
++	case HVM_GE_C_XPROT:
++	case HVM_GE_C_XUSER:
++		execute_protection_fault(regs);
++		break;
++	case HVM_GE_C_RPROT:
++	case HVM_GE_C_RUSER:
++		read_protection_fault(regs);
++		break;
++	case HVM_GE_C_WPROT:
++	case HVM_GE_C_WUSER:
++		write_protection_fault(regs);
++		break;
++	case HVM_GE_C_XMAL:
++		misaligned_instruction(regs);
++		break;
++	case HVM_GE_C_RMAL:
++		misaligned_data_load(regs);
++		break;
++	case HVM_GE_C_WMAL:
++		misaligned_data_store(regs);
++		break;
++	case HVM_GE_C_INVI:
++	case HVM_GE_C_PRIVI:
++		illegal_instruction(regs);
++		break;
++	case HVM_GE_C_BUS:
++		precise_bus_error(regs);
++		break;
++	case HVM_GE_C_CACHE:
++		cache_error(regs);
++		break;
++	default:
++		/* Halt and catch fire */
++		panic("Unrecognized exception 0x%lx\n", pt_cause(regs));
++		break;
++	}
++}
++
++/* Indirect system call dispatch */
++long sys_syscall(void)
++{
++	printk(KERN_ERR "sys_syscall invoked!\n");
++	return -ENOSYS;
++}
++
++void do_trap0(struct pt_regs *regs)
++{
++	unsigned long syscallret = 0;
++	syscall_fn syscall;
++
++	switch (pt_cause(regs)) {
++	case TRAP_SYSCALL:
++		/* System call is trap0 #1 */
++
++		/* allow strace to catch syscall args  */
++		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE) &&
++			tracehook_report_syscall_entry(regs)))
++			return;  /*  return -ENOSYS somewhere?  */
++
++		/* Interrupts should be re-enabled for syscall processing */
++		__vmsetie(VM_INT_ENABLE);
++
++		/*
++		 * System call number is in r6, arguments in r0..r5.
++		 * Fortunately, no Linux syscall has more than 6 arguments,
++		 * and Hexagon ABI passes first 6 arguments in registers.
++		 * 64-bit arguments are passed in odd/even register pairs.
++		 * Fortunately, we have no system calls that take more
++		 * than three arguments with more than one 64-bit value.
++		 * Should that change, we'd need to redesign to copy
++		 * between user and kernel stacks.
++		 */
++		regs->syscall_nr = regs->r06;
++
++		/*
++		 * GPR R0 carries the first parameter, and is also used
++		 * to report the return value.  We need a backup of
++		 * the user's value in case we need to do a late restart
++		 * of the system call.
++		 */
++		regs->restart_r0 = regs->r00;
++
++		if ((unsigned long) regs->syscall_nr >= __NR_syscalls) {
++			regs->r00 = -1;
++		} else {
++			syscall = (syscall_fn)
++				  (sys_call_table[regs->syscall_nr]);
++			syscallret = syscall(regs->r00, regs->r01,
++				   regs->r02, regs->r03,
++				   regs->r04, regs->r05);
++		}
++
++		/*
++		 * If it was a sigreturn system call, don't overwrite
++		 * r0 value in stack frame with return value.
++		 *
++		 * __NR_sigreturn doesn't seem to exist in new unistd.h
++		 */
++
++		if (regs->syscall_nr != __NR_rt_sigreturn)
++			regs->r00 = syscallret;
++
++		/* allow strace to get the syscall return state  */
++		if (unlikely(test_thread_flag(TIF_SYSCALL_TRACE)))
++			tracehook_report_syscall_exit(regs, 0);
++
++		break;
++	case TRAP_DEBUG:
++		/* Trap0 0xdb is debug breakpoint */
++		if (user_mode(regs)) {
++			struct siginfo info;
++
++			info.si_signo = SIGTRAP;
++			info.si_errno = 0;
++			/*
++			 * Some architecures add some per-thread state
++			 * to distinguish between breakpoint traps and
++			 * trace traps.  We may want to do that, and
++			 * set the si_code value appropriately, or we
++			 * may want to use a different trap0 flavor.
++			 */
++			info.si_code = TRAP_BRKPT;
++			info.si_addr = (void __user *) pt_elr(regs);
++			send_sig_info(SIGTRAP, &info, current);
++		} else {
++#ifdef CONFIG_KGDB
++			kgdb_handle_exception(pt_cause(regs), SIGTRAP,
++					      TRAP_BRKPT, regs);
++#endif
++		}
++		break;
++	}
++	/* Ignore other trap0 codes for now, especially 0 (Angel calls) */
++}
++
++/*
++ * Machine check exception handler
++ */
++void do_machcheck(struct pt_regs *regs)
++{
++	/* Halt and catch fire */
++	__vmstop();
++}
 -- 
 1.7.1
 
