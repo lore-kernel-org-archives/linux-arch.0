@@ -1,52 +1,69 @@
-From: Andi Kleen <andi@firstfloor.org>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
 Subject: Re: Please include const-sections into linux-next
-Date: Wed, 19 Oct 2011 18:33:51 +0200
-Message-ID: <20111019163351.GJ15908@one.firstfloor.org>
-References: <20111013233818.GB26654@one.firstfloor.org> <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com> <20111016033514.GC26654@one.firstfloor.org> <1318799006.2995.1.camel@dabdike.int.hansenpartnership.com> <0e9ef9174a0089187fde0b3d084672ad.squirrel@www.firstfloor.org> <1319039663.3034.18.camel@dabdike.int.hansenpartnership.com> <20111019161537.GH15908@one.firstfloor.org> <1319041281.3034.25.camel@dabdike.int.hansenpartnership.com>
+Date: Wed, 19 Oct 2011 13:55:57 -0500
+Message-ID: <1319050557.3034.46.camel@dabdike.int.hansenpartnership.com>
+References: <20111013233818.GB26654@one.firstfloor.org>
+	 <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
+	 <20111016033514.GC26654@one.firstfloor.org>
+	 <1318799006.2995.1.camel@dabdike.int.hansenpartnership.com>
+	 <0e9ef9174a0089187fde0b3d084672ad.squirrel@www.firstfloor.org>
+	 <1319039663.3034.18.camel@dabdike.int.hansenpartnership.com>
+	 <20111019161537.GH15908@one.firstfloor.org>
+	 <1319041281.3034.25.camel@dabdike.int.hansenpartnership.com>
+	 <20111019163351.GJ15908@one.firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:47011 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753411Ab1JSQdw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 12:33:52 -0400
-Content-Disposition: inline
-In-Reply-To: <1319041281.3034.25.camel@dabdike.int.hansenpartnership.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37017 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751710Ab1JSS4A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Oct 2011 14:56:00 -0400
+In-Reply-To: <20111019163351.GJ15908@one.firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-> I think I've already said 3 times that I think it's some kind of
-> toolchain bug.  The problem is it's likely in all the non-x86
-> toolchains.
-
-Not convinced it's everywhere. Just need to track it down.
-
-
+On Wed, 2011-10-19 at 18:33 +0200, Andi Kleen wrote:
+> > OK, look at it another way: why do we need the type annotations?  I
+> > think it's only for section conflict checking, right?  If the compiler
+> > gets it wrong anyway, why not just dump all the type annotations, then
+> > it should have no type conflicts (spurious or otherwise) to complain
+> > about.  We already have link time section checking scripts (they're the
+> > useless ones that complain about section mismatches in dev annoations)
+> > so why not put them to work to make up for compiler deficiencies?
 > 
-> > > linker script?  Linker scripts seem to be much better tested.
-> > 
-> > The linker script just declares the order of the section. 
-> > The attributes are a union of what the compiler declares.
-> > To dump them I just use objdump --section-headers or
-> > readelf -a usually.
+> You mean removing all the init sections stuff?  I think it has been proposed
+> in the past, but it's a couple of hundred KB of memory usually.
+> Would you accept that for PA-RISC? 
 > 
-> OK, look at it another way: why do we need the type annotations?  I
-> think it's only for section conflict checking, right?  If the compiler
-> gets it wrong anyway, why not just dump all the type annotations, then
-> it should have no type conflicts (spurious or otherwise) to complain
-> about.  We already have link time section checking scripts (they're the
-> useless ones that complain about section mismatches in dev annoations)
-> so why not put them to work to make up for compiler deficiencies?
+> If you have init sections you need to annotate them correctly because
+> a section is defined by its rwx attributes plus name and both need
+> to match. We didn't always check this, so there was some bitrot,
+> but it ultimatively has to be correct.
 
-You mean removing all the init sections stuff?  I think it has been proposed
-in the past, but it's a couple of hundred KB of memory usually.
-Would you accept that for PA-RISC? 
+We're talking at cross purposes. But it doesn't matter, the error
+doesn't seem to be anything to do with type.  This simple patch is
+what's causing it (I can apply it alone to the working tree) and get the
+error.
 
-If you have init sections you need to annotate them correctly because
-a section is defined by its rwx attributes plus name and both need
-to match. We didn't always check this, so there was some bitrot,
-but it ultimatively has to be correct.
+What I can't see is why.
 
--Andi
+James
+
+---
+diff --git a/drivers/net/fealnx.c b/drivers/net/fealnx.c
+index fa8677c..196356f 100644
+--- a/drivers/net/fealnx.c
++++ b/drivers/net/fealnx.c
+@@ -150,7 +150,7 @@ struct chip_info {
+ 	int flags;
+ };
+ 
+-static const struct chip_info skel_netdrv_tbl[] __devinitdata = {
++static const struct chip_info skel_netdrv_tbl[] __devinitconst = {
+  	{ "100/10M Ethernet PCI Adapter",	HAS_MII_XCVR },
+ 	{ "100/10M Ethernet PCI Adapter",	HAS_CHIP_XCVR },
+ 	{ "1000/100/10M Ethernet PCI Adapter",	HAS_MII_XCVR },
