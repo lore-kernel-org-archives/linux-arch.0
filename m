@@ -1,35 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:31960 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751289Ab1JSEEx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:04:53 -0400
-Message-ID: <093448$3qutji@wolverine01.qualcomm.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:56344 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751292Ab1JSEEz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:04:55 -0400
+Message-ID: <e97c6e$3qqv3f@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 21:29:34 -0500
-Subject: [PATCH v5 04/36] Hexagon: Add atomic ops support
+Date: Tue, 18 Oct 2011 21:31:17 -0500
+Subject: [PATCH v5 05/36] Hexagon: Add syscalls
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019022934.50dWWFOmheB7_1_Ag7gtxxh5QYlKvzckLWBX8ooOC9Q@z>
+Message-ID: <20111019023117.qLGmu0bBSM0irp3LVCSOIOaTEHmMb4OhS3K1KHgO1bk@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/atomic.h |  164 +++++++++++++++++++++++++++++++++++++
- 1 files changed, 164 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/atomic.h
+ arch/hexagon/include/asm/syscall.h |   54 +++++++++++++++++++++
+ arch/hexagon/include/asm/unistd.h  |   36 ++++++++++++++
+ arch/hexagon/kernel/syscall.c      |   90 ++++++++++++++++++++++++++++++++++++
+ arch/hexagon/kernel/syscalltab.c   |   32 +++++++++++++
+ 4 files changed, 212 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/syscall.h
+ create mode 100644 arch/hexagon/include/asm/unistd.h
+ create mode 100644 arch/hexagon/kernel/syscall.c
+ create mode 100644 arch/hexagon/kernel/syscalltab.c
 
-diff --git a/arch/hexagon/include/asm/atomic.h b/arch/hexagon/include/asm/atomic.h
+diff --git a/arch/hexagon/include/asm/syscall.h b/arch/hexagon/include/asm/syscall.h
 new file mode 100644
-index 0000000..e220f90
+index 0000000..3e7d61d
 --- /dev/null
-+++ b/arch/hexagon/include/asm/atomic.h
-@@ -0,0 +1,164 @@
++++ b/arch/hexagon/include/asm/syscall.h
+@@ -0,0 +1,54 @@
 +/*
-+ * Atomic operations for the Hexagon architecture
++ * Syscall support for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 and
@@ -46,149 +52,216 @@ index 0000000..e220f90
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_ATOMIC_H
-+#define _ASM_ATOMIC_H
++#ifndef _ASM_HEXAGON_SYSCALL_H
++#define _ASM_HEXAGON_SYSCALL_H
 +
-+#include <linux/types.h>
++typedef long (*syscall_fn)(unsigned long, unsigned long,
++	unsigned long, unsigned long,
++	unsigned long, unsigned long);
 +
-+#define ATOMIC_INIT(i)		{ (i) }
-+#define atomic_set(v, i)	((v)->counter = (i))
++asmlinkage int sys_execve(char __user *ufilename, char __user * __user *argv,
++			  char __user * __user *envp);
++asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
++			 unsigned long parent_tidp, unsigned long child_tidp);
 +
-+/**
-+ * atomic_read - reads a word, atomically
-+ * @v: pointer to atomic value
-+ *
-+ * Assumes all word reads on our architecture are atomic.
-+ */
-+#define atomic_read(v)		((v)->counter)
++#define sys_execve	sys_execve
++#define sys_clone	sys_clone
 +
-+/**
-+ * atomic_xchg - atomic
-+ * @v: pointer to memory to change
-+ * @new: new value (technically passed in a register -- see xchg)
-+ */
-+#define atomic_xchg(v, new)	(xchg(&((v)->counter), (new)))
++#include <asm-generic/syscalls.h>
 +
++extern void *sys_call_table[];
 +
-+/**
-+ * atomic_cmpxchg - atomic compare-and-exchange values
-+ * @v: pointer to value to change
-+ * @old:  desired old value to match
-+ * @new:  new value to put in
-+ *
-+ * Parameters are then pointer, value-in-register, value-in-register,
-+ * and the output is the old value.
-+ *
-+ * Apparently this is complicated for archs that don't support
-+ * the memw_locked like we do (or it's broken or whatever).
-+ *
-+ * Kind of the lynchpin of the rest of the generically defined routines.
-+ * Remember V2 had that bug with dotnew predicate set by memw_locked.
-+ *
-+ * "old" is "expected" old val, __oldval is actual old value
-+ */
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
++static inline long syscall_get_nr(struct task_struct *task,
++				  struct pt_regs *regs)
 +{
-+	int __oldval;
-+
-+	asm volatile(
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	{ P0 = cmp.eq(%0,%2);\n"
-+		"	  if (!P0.new) jump:nt 2f; }\n"
-+		"	memw_locked(%1,P0) = %3;\n"
-+		"	if (!P0) jump 1b;\n"
-+		"2:\n"
-+		: "=&r" (__oldval)
-+		: "r" (&v->counter), "r" (old), "r" (new)
-+		: "memory", "p0"
-+	);
-+
-+	return __oldval;
++	return regs->r06;
 +}
 +
-+static inline int atomic_add_return(int i, atomic_t *v)
++static inline void syscall_get_arguments(struct task_struct *task,
++					 struct pt_regs *regs,
++					 unsigned int i, unsigned int n,
++					 unsigned long *args)
 +{
-+	int output;
-+
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = add(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0;\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+
++	BUG_ON(i + n > 6);
++	memcpy(args, &(&regs->r00)[i], n * sizeof(args[0]));
 +}
-+
-+#define atomic_add(i, v) atomic_add_return(i, (v))
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	int output;
-+	__asm__ __volatile__ (
-+		"1:	%0 = memw_locked(%1);\n"
-+		"	%0 = sub(%0,%2);\n"
-+		"	memw_locked(%1,P3)=%0\n"
-+		"	if !P3 jump 1b;\n"
-+		: "=&r" (output)
-+		: "r" (&v->counter), "r" (i)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
-+
-+#define atomic_sub(i, v) atomic_sub_return(i, (v))
-+
-+/**
-+ * atomic_add_unless - add unless the number is a given value
-+ * @v: pointer to value
-+ * @a: amount to add
-+ * @u: unless value is equal to u
++#endif
+diff --git a/arch/hexagon/include/asm/unistd.h b/arch/hexagon/include/asm/unistd.h
+new file mode 100644
+index 0000000..4d0ecde
+--- /dev/null
++++ b/arch/hexagon/include/asm/unistd.h
+@@ -0,0 +1,36 @@
++/*
++ * Syscall support for Hexagon
 + *
-+ * Returns 1 if the add happened, 0 if it didn't.
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
 + */
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int output, __oldval;
-+	asm volatile(
-+		"1:	%0 = memw_locked(%2);"
-+		"	{"
-+		"		p3 = cmp.eq(%0, %4);"
-+		"		if (p3.new) jump:nt 2f;"
-+		"		%0 = add(%0, %3);"
-+		"		%1 = #0;"
-+		"	}"
-+		"	memw_locked(%2, p3) = %0;"
-+		"	{"
-+		"		if !p3 jump 1b;"
-+		"		%1 = #1;"
-+		"	}"
-+		"2:"
-+		: "=&r" (__oldval), "=&r" (output)
-+		: "r" (v), "r" (a), "r" (u)
-+		: "memory", "p3"
-+	);
-+	return output;
-+}
 +
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
++#if !defined(_ASM_HEXAGON_UNISTD_H) || defined(__SYSCALL)
++#define _ASM_HEXAGON_UNISTD_H
 +
-+#define atomic_inc(v) atomic_add(1, (v))
-+#define atomic_dec(v) atomic_sub(1, (v))
++/*
++ *  The kernel pulls this unistd.h in three different ways:
++ *  1.  the "normal" way which gets all the __NR defines
++ *  2.  with __SYSCALL defined to produce function declarations
++ *  3.  with __SYSCALL defined to produce syscall table initialization
++ *  See also:  syscalltab.c
++ */
 +
-+#define atomic_inc_and_test(v) (atomic_add_return(1, (v)) == 0)
-+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
-+#define atomic_sub_and_test(i, v) (atomic_sub_return(i, (v)) == 0)
-+#define atomic_add_negative(i, v) (atomic_add_return(i, (v)) < 0)
++#define sys_mmap2 sys_mmap_pgoff
 +
-+
-+#define atomic_inc_return(v) (atomic_add_return(1, v))
-+#define atomic_dec_return(v) (atomic_sub_return(1, v))
++#include <asm-generic/unistd.h>
 +
 +#endif
+diff --git a/arch/hexagon/kernel/syscall.c b/arch/hexagon/kernel/syscall.c
+new file mode 100644
+index 0000000..620dd18
+--- /dev/null
++++ b/arch/hexagon/kernel/syscall.c
+@@ -0,0 +1,90 @@
++/*
++ * Hexagon system calls
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/file.h>
++#include <linux/fs.h>
++#include <linux/linkage.h>
++#include <linux/mm.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/slab.h>
++#include <linux/syscalls.h>
++#include <linux/unistd.h>
++#include <asm/mman.h>
++#include <asm/registers.h>
++
++/*
++ * System calls with architecture-specific wrappers.
++ * See signal.c for signal-related system call wrappers.
++ */
++
++asmlinkage int sys_execve(char __user *ufilename,
++			  const char __user *const __user *argv,
++			  const char __user *const __user *envp)
++{
++	struct pt_regs *pregs = current_thread_info()->regs;
++	char *filename;
++	int retval;
++
++	filename = getname(ufilename);
++	retval = PTR_ERR(filename);
++	if (IS_ERR(filename))
++		return retval;
++
++	retval = do_execve(filename, argv, envp, pregs);
++	putname(filename);
++
++	return retval;
++}
++
++asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
++			 unsigned long parent_tidp, unsigned long child_tidp)
++{
++	struct pt_regs *pregs = current_thread_info()->regs;
++
++	if (!newsp)
++		newsp = pregs->SP;
++	return do_fork(clone_flags, newsp, pregs, 0, (int __user *)parent_tidp,
++		       (int __user *)child_tidp);
++}
++
++/*
++ * Do a system call from the kernel, so as to have a proper pt_regs
++ * and recycle the sys_execvpe infrustructure.
++ */
++int kernel_execve(const char *filename,
++		  const char *const argv[], const char *const envp[])
++{
++	register unsigned long __a0 asm("r0") = (unsigned long) filename;
++	register unsigned long __a1 asm("r1") = (unsigned long) argv;
++	register unsigned long __a2 asm("r2") = (unsigned long) envp;
++	int retval;
++
++	__asm__ volatile(
++		"	R6 = #%4;\n"
++		"	trap0(#1);\n"
++		"	%0 = R0;\n"
++		: "=r" (retval)
++		: "r" (__a0), "r" (__a1), "r" (__a2), "i" (__NR_execve)
++	);
++
++	return retval;
++}
++EXPORT_SYMBOL(kernel_execve);
+diff --git a/arch/hexagon/kernel/syscalltab.c b/arch/hexagon/kernel/syscalltab.c
+new file mode 100644
+index 0000000..c550f41
+--- /dev/null
++++ b/arch/hexagon/kernel/syscalltab.c
+@@ -0,0 +1,32 @@
++/*
++ * System call table for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
++
++#include <asm/syscall.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
++
++void *sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
++};
 -- 
 1.7.1
 
