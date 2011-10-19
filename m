@@ -1,456 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:35224 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754093Ab1JSEF3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:29 -0400
-Message-ID: <093448$3quto2@wolverine01.qualcomm.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:32631 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754452Ab1JSEFn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:43 -0400
+Message-ID: <e97c6e$3qqv6d@wolverine02.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 22:41:36 -0500
-Subject: [PATCH v5 24/36] Hexagon: Provide basic implementation and/or stubs for I/O routines.
+Date: Tue, 18 Oct 2011 22:46:25 -0500
+Subject: [PATCH v5 32/36] Hexagon: Comet platform support
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019034136.1JpElycJ7qPJEE93_hDpV5BA2yfTS1uW5DWX6Fouzcs@z>
+Message-ID: <20111019034625.71gC6ARpSwgTbL6sGQw1Sb1UcH8Z8cH7QEGvIgx9doc@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/io.h |  326 +++++++++++++++++++++++++++++++++++++++++
- arch/hexagon/lib/io.c         |   91 ++++++++++++
- 2 files changed, 417 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/io.h
- create mode 100644 arch/hexagon/lib/io.c
+ arch/hexagon/configs/comet_defconfig |   85 ++++++++++++++++++++++++++++++++++
+ 1 files changed, 85 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/configs/comet_defconfig
 
-diff --git a/arch/hexagon/include/asm/io.h b/arch/hexagon/include/asm/io.h
+diff --git a/arch/hexagon/configs/comet_defconfig b/arch/hexagon/configs/comet_defconfig
 new file mode 100644
-index 0000000..b3acc2c
+index 0000000..e324f65
 --- /dev/null
-+++ b/arch/hexagon/include/asm/io.h
-@@ -0,0 +1,326 @@
-+/*
-+ * IO definitions for the Hexagon architecture
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_IO_H
-+#define _ASM_IO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/types.h>
-+#include <linux/delay.h>
-+#include <linux/vmalloc.h>
-+#include <asm/string.h>
-+#include <asm/mem-layout.h>
-+#include <asm/iomap.h>
-+#include <asm/page.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+
-+/*
-+ * We don't have PCI yet.
-+ * _IO_BASE is pointing at what should be unused virtual space.
-+ */
-+#define IO_SPACE_LIMIT 0xffff
-+#define _IO_BASE ((void __iomem *)0xfe000000)
-+
-+extern int remap_area_pages(unsigned long start, unsigned long phys_addr,
-+				unsigned long end, unsigned long flags);
-+
-+extern void __iounmap(const volatile void __iomem *addr);
-+
-+/* Defined in lib/io.c, needed for smc91x driver. */
-+extern void __raw_readsw(const void __iomem *addr, void *data, int wordlen);
-+extern void __raw_writesw(void __iomem *addr, const void *data, int wordlen);
-+
-+extern void __raw_readsl(const void __iomem *addr, void *data, int wordlen);
-+extern void __raw_writesl(void __iomem *addr, const void *data, int wordlen);
-+
-+#define readsw(p, d, l)	__raw_readsw(p, d, l)
-+#define writesw(p, d, l) __raw_writesw(p, d, l)
-+
-+#define readsl(p, d, l)   __raw_readsl(p, d, l)
-+#define writesl(p, d, l)  __raw_writesl(p, d, l)
-+
-+/*
-+ * virt_to_phys - map virtual address to physical
-+ * @address:  address to map
-+ */
-+static inline unsigned long virt_to_phys(volatile void *address)
-+{
-+	return __pa(address);
-+}
-+
-+/*
-+ * phys_to_virt - map physical address to virtual
-+ * @address: address to map
-+ */
-+static inline void *phys_to_virt(unsigned long address)
-+{
-+	return __va(address);
-+}
-+
-+/*
-+ * convert a physical pointer to a virtual kernel pointer for
-+ * /dev/mem access.
-+ */
-+#define xlate_dev_kmem_ptr(p)    __va(p)
-+#define xlate_dev_mem_ptr(p)    __va(p)
-+
-+/*
-+ * IO port access primitives.  Hexagon doesn't have special IO access
-+ * instructions; all I/O is memory mapped.
-+ *
-+ * in/out are used for "ports", but we don't have "port instructions",
-+ * so these are really just memory mapped too.
-+ */
-+
-+/*
-+ * readb - read byte from memory mapped device
-+ * @addr:  pointer to memory
-+ *
-+ * Operates on "I/O bus memory space"
-+ */
-+static inline u8 readb(const volatile void __iomem *addr)
-+{
-+	u8 val;
-+	asm volatile(
-+		"%0 = memb(%1);"
-+		: "=&r" (val)
-+		: "r" (addr)
-+	);
-+	return val;
-+}
-+
-+static inline u16 readw(const volatile void __iomem *addr)
-+{
-+	u16 val;
-+	asm volatile(
-+		"%0 = memh(%1);"
-+		: "=&r" (val)
-+		: "r" (addr)
-+	);
-+	return val;
-+}
-+
-+static inline u32 readl(const volatile void __iomem *addr)
-+{
-+	u32 val;
-+	asm volatile(
-+		"%0 = memw(%1);"
-+		: "=&r" (val)
-+		: "r" (addr)
-+	);
-+	return val;
-+}
-+
-+/*
-+ * writeb - write a byte to a memory location
-+ * @data: data to write to
-+ * @addr:  pointer to memory
-+ *
-+ */
-+static inline void writeb(u8 data, volatile void __iomem *addr)
-+{
-+	asm volatile(
-+		"memb(%0) = %1;"
-+		:
-+		: "r" (addr), "r" (data)
-+		: "memory"
-+	);
-+}
-+
-+static inline void writew(u16 data, volatile void __iomem *addr)
-+{
-+	asm volatile(
-+		"memh(%0) = %1;"
-+		:
-+		: "r" (addr), "r" (data)
-+		: "memory"
-+	);
-+
-+}
-+
-+static inline void writel(u32 data, volatile void __iomem *addr)
-+{
-+	asm volatile(
-+		"memw(%0) = %1;"
-+		:
-+		: "r" (addr), "r" (data)
-+		: "memory"
-+	);
-+}
-+
-+#define __raw_writeb writeb
-+#define __raw_writew writew
-+#define __raw_writel writel
-+
-+#define __raw_readb readb
-+#define __raw_readw readw
-+#define __raw_readl readl
-+
-+/*
-+ * Need an mtype somewhere in here, for cache type deals?
-+ * This is probably too long for an inline.
-+ */
-+void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size);
-+
-+static inline void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
-+{
-+	return ioremap_nocache(phys_addr, size);
-+}
-+
-+static inline void iounmap(volatile void __iomem *addr)
-+{
-+	__iounmap(addr);
-+}
-+
-+#define __raw_writel writel
-+
-+static inline void memcpy_fromio(void *dst, const volatile void __iomem *src,
-+	int count)
-+{
-+	memcpy(dst, (void *) src, count);
-+}
-+
-+static inline void memcpy_toio(volatile void __iomem *dst, const void *src,
-+	int count)
-+{
-+	memcpy((void *) dst, src, count);
-+}
-+
-+#define PCI_IO_ADDR	(volatile void __iomem *)
-+
-+/*
-+ * inb - read byte from I/O port or something
-+ * @port:  address in I/O space
-+ *
-+ * Operates on "I/O bus I/O space"
-+ */
-+static inline u8 inb(unsigned long port)
-+{
-+	return readb(_IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+static inline u16 inw(unsigned long port)
-+{
-+	return readw(_IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+static inline u32 inl(unsigned long port)
-+{
-+	return readl(_IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+/*
-+ * outb - write a byte to a memory location
-+ * @data: data to write to
-+ * @addr:  address in I/O space
-+ */
-+static inline void outb(u8 data, unsigned long port)
-+{
-+	writeb(data, _IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+static inline void outw(u16 data, unsigned long port)
-+{
-+	writew(data, _IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+static inline void outl(u32 data, unsigned long port)
-+{
-+	writel(data, _IO_BASE + (port & IO_SPACE_LIMIT));
-+}
-+
-+#define outb_p outb
-+#define outw_p outw
-+#define outl_p outl
-+
-+#define inb_p inb
-+#define inw_p inw
-+#define inl_p inl
-+
-+static inline void insb(unsigned long port, void *buffer, int count)
-+{
-+	if (count) {
-+		u8 *buf = buffer;
-+		do {
-+			u8 x = inb(port);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insw(unsigned long port, void *buffer, int count)
-+{
-+	if (count) {
-+		u16 *buf = buffer;
-+		do {
-+			u16 x = inw(port);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void insl(unsigned long port, void *buffer, int count)
-+{
-+	if (count) {
-+		u32 *buf = buffer;
-+		do {
-+			u32 x = inw(port);
-+			*buf++ = x;
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsb(unsigned long port, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u8 *buf = buffer;
-+		do {
-+			outb(*buf++, port);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsw(unsigned long port, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u16 *buf = buffer;
-+		do {
-+			outw(*buf++, port);
-+		} while (--count);
-+	}
-+}
-+
-+static inline void outsl(unsigned long port, const void *buffer, int count)
-+{
-+	if (count) {
-+		const u32 *buf = buffer;
-+		do {
-+			outl(*buf++, port);
-+		} while (--count);
-+	}
-+}
-+
-+#define flush_write_buffers() do { } while (0)
-+
-+#endif /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/hexagon/lib/io.c b/arch/hexagon/lib/io.c
-new file mode 100644
-index 0000000..8ae47ba
---- /dev/null
-+++ b/arch/hexagon/lib/io.c
-@@ -0,0 +1,91 @@
-+/*
-+ * I/O access functions for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <asm/io.h>
-+
-+/*  These are all FIFO routines!  */
-+
-+/*
-+ * __raw_readsw - read words a short at a time
-+ * @addr:  source address
-+ * @data:  data address
-+ * @len: number of shorts to read
-+ */
-+void __raw_readsw(const void __iomem *addr, void *data, int len)
-+{
-+	const volatile short int *src = (short int *) addr;
-+	short int *dst = (short int *) data;
-+
-+	if ((u32)data & 0x1)
-+		panic("unaligned pointer to readsw");
-+
-+	while (len-- > 0)
-+		*dst++ = *src;
-+
-+}
-+
-+/*
-+ * __raw_writesw - read words a short at a time
-+ * @addr:  source address
-+ * @data:  data address
-+ * @len: number of shorts to read
-+ */
-+void __raw_writesw(void __iomem *addr, const void *data, int len)
-+{
-+	const short int *src = (short int *)data;
-+	volatile short int *dst = (short int *)addr;
-+
-+	if ((u32)data & 0x1)
-+		panic("unaligned pointer to writesw");
-+
-+	while (len-- > 0)
-+		*dst = *src++;
-+
-+
-+}
-+
-+/*  Pretty sure len is pre-adjusted for the length of the access already */
-+void __raw_readsl(const void __iomem *addr, void *data, int len)
-+{
-+	const volatile long *src = (long *) addr;
-+	long *dst = (long *) data;
-+
-+	if ((u32)data & 0x3)
-+		panic("unaligned pointer to readsl");
-+
-+	while (len-- > 0)
-+		*dst++ = *src;
-+
-+
-+}
-+
-+void __raw_writesl(void __iomem *addr, const void *data, int len)
-+{
-+	const long *src = (long *)data;
-+	volatile long *dst = (long *)addr;
-+
-+	if ((u32)data & 0x3)
-+		panic("unaligned pointer to writesl");
-+
-+	while (len-- > 0)
-+		*dst = *src++;
-+
-+
-+}
++++ b/arch/hexagon/configs/comet_defconfig
+@@ -0,0 +1,85 @@
++CONFIG_SMP=y
++CONFIG_DEFAULT_MMAP_MIN_ADDR=0
++CONFIG_HZ_100=y
++CONFIG_EXPERIMENTAL=y
++CONFIG_CROSS_COMPILE="hexagon-"
++CONFIG_LOCALVERSION="-smp"
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++CONFIG_BSD_PROCESS_ACCT=y
++CONFIG_BSD_PROCESS_ACCT_V3=y
++CONFIG_TASKSTATS=y
++CONFIG_TASK_DELAY_ACCT=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_LOG_BUF_SHIFT=18
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_BLK_DEV_BSG is not set
++CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
++# CONFIG_STANDALONE is not set
++CONFIG_CONNECTOR=y
++CONFIG_BLK_DEV_LOOP=y
++CONFIG_BLK_DEV_NBD=y
++CONFIG_NETDEVICES=y
++CONFIG_MII=y
++CONFIG_PHYLIB=y
++CONFIG_NET_ETHERNET=y
++# CONFIG_NETDEV_1000 is not set
++# CONFIG_NETDEV_10000 is not set
++# CONFIG_INPUT_MOUSEDEV is not set
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_SERIO is not set
++# CONFIG_CONSOLE_TRANSLATIONS is not set
++CONFIG_LEGACY_PTY_COUNT=64
++# CONFIG_DEVKMEM is not set
++# CONFIG_HW_RANDOM is not set
++CONFIG_SPI=y
++CONFIG_SPI_DEBUG=y
++CONFIG_SPI_BITBANG=y
++# CONFIG_HWMON is not set
++# CONFIG_VGA_CONSOLE is not set
++# CONFIG_HID_SUPPORT is not set
++# CONFIG_USB_SUPPORT is not set
++CONFIG_EXT2_FS=y
++CONFIG_EXT2_FS_XATTR=y
++CONFIG_EXT2_FS_POSIX_ACL=y
++CONFIG_EXT2_FS_SECURITY=y
++CONFIG_EXT3_FS=y
++# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set
++CONFIG_EXT3_FS_POSIX_ACL=y
++CONFIG_EXT3_FS_SECURITY=y
++CONFIG_QUOTA=y
++CONFIG_PROC_KCORE=y
++CONFIG_TMPFS=y
++CONFIG_TMPFS_POSIX_ACL=y
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_NFS_FS=y
++CONFIG_NFS_V3=y
++CONFIG_NFS_V3_ACL=y
++# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_INET=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_INET_LRO is not set
++# CONFIG_INET_DIAG is not set
++# CONFIG_IPV6 is not set
++CONFIG_CRYPTO_MD5=y
++# CONFIG_CRYPTO_ANSI_CPRNG is not set
++# CONFIG_CRYPTO_HW is not set
++CONFIG_CRC_CCITT=y
++CONFIG_CRC16=y
++CONFIG_CRC_T10DIF=y
++CONFIG_LIBCRC32C=y
++CONFIG_FRAME_WARN=0
++CONFIG_MAGIC_SYSRQ=y
++CONFIG_DEBUG_FS=y
++# CONFIG_SCHED_DEBUG is not set
++CONFIG_DEBUG_INFO=y
 -- 
 1.7.1
 
