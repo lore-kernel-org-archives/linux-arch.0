@@ -1,35 +1,34 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v5 31/36] Hexagon: kgdb support files
-Date: Tue, 18 Oct 2011 22:45:40 -0500
-Message-ID: <093448$3qutol@wolverine01.qualcomm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:48838 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754431Ab1JSEFl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:41 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v5 27/36] Hexagon: Provide DMA implementation
+Date: Tue, 18 Oct 2011 22:44:09 -0500
+Message-ID: <093448$3qutoa@wolverine01.qualcomm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/kgdb.h |   43 +++++++
- arch/hexagon/kernel/kgdb.c      |  255 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 298 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/kgdb.h
- create mode 100644 arch/hexagon/kernel/kgdb.c
+ arch/hexagon/include/asm/dma-mapping.h |  101 +++++++++++++++
+ arch/hexagon/include/asm/dma.h         |   29 ++++
+ arch/hexagon/kernel/dma.c              |  220 ++++++++++++++++++++++++++++++++
+ 3 files changed, 350 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/dma-mapping.h
+ create mode 100644 arch/hexagon/include/asm/dma.h
+ create mode 100644 arch/hexagon/kernel/dma.c
 
-diff --git a/arch/hexagon/include/asm/kgdb.h b/arch/hexagon/include/asm/kgdb.h
+diff --git a/arch/hexagon/include/asm/dma-mapping.h b/arch/hexagon/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..9e87797
+index 0000000..448b224
 --- /dev/null
-+++ b/arch/hexagon/include/asm/kgdb.h
-@@ -0,0 +1,43 @@
++++ b/arch/hexagon/include/asm/dma-mapping.h
+@@ -0,0 +1,101 @@
 +/*
-+ * arch/hexagon/include/asm/kgdb.h - Hexagon KGDB Support
++ * DMA operations for the Hexagon architecture
 + *
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 and
@@ -46,290 +45,348 @@ index 0000000..9e87797
 + * 02110-1301, USA.
 + */
 +
-+#ifndef __HEXAGON_KGDB_H__
-+#define __HEXAGON_KGDB_H__
++#ifndef _ASM_DMA_MAPPING_H
++#define _ASM_DMA_MAPPING_H
 +
-+#define BREAK_INSTR_SIZE 4
-+#define CACHE_FLUSH_IS_SAFE   1
-+#define BUFMAX       ((NUMREGBYTES * 2) + 512)
++#include <linux/types.h>
++#include <linux/cache.h>
++#include <linux/mm.h>
++#include <linux/scatterlist.h>
++#include <linux/dma-mapping.h>
++#include <linux/dma-debug.h>
++#include <linux/dma-attrs.h>
++#include <asm/io.h>
 +
-+static inline void arch_kgdb_breakpoint(void)
++struct device;
++extern int bad_dma_address;
++
++extern struct dma_map_ops *dma_ops;
++
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
++
++static inline struct dma_map_ops *get_dma_ops(struct device *dev)
 +{
-+	asm("trap0(#0xDB)");
-+}
-+
-+/* Registers:
-+ * 32 gpr + sa0/1 + lc0/1 + m0/1 + gp + ugp + pred + pc = 42 total.
-+ * vm regs = psp+elr+est+badva = 4
-+ * syscall+restart = 2 more
-+ * so 48 = 42 +4 + 2
-+ */
-+#define DBG_USER_REGS 42
-+#define DBG_MAX_REG_NUM (DBG_USER_REGS + 6)
-+#define NUMREGBYTES  (DBG_MAX_REG_NUM*4)
-+
-+#endif /* __HEXAGON_KGDB_H__ */
-diff --git a/arch/hexagon/kernel/kgdb.c b/arch/hexagon/kernel/kgdb.c
-new file mode 100644
-index 0000000..38ab0ea
---- /dev/null
-+++ b/arch/hexagon/kernel/kgdb.c
-@@ -0,0 +1,255 @@
-+/*
-+ * arch/hexagon/kernel/kgdb.c - Hexagon KGDB Support
-+ *
-+ * Copyright (c) 2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/kdebug.h>
-+#include <linux/kgdb.h>
-+
-+/* All registers are 4 bytes, for now */
-+#define GDB_SIZEOF_REG 4
-+
-+/* The register names are used during printing of the regs;
-+ * Keep these at three letters to pretty-print. */
-+struct dbg_reg_def_t dbg_reg_def[DBG_MAX_REG_NUM] = {
-+	{ " r0", GDB_SIZEOF_REG, offsetof(struct pt_regs, r00)},
-+	{ " r1", GDB_SIZEOF_REG, offsetof(struct pt_regs, r01)},
-+	{ " r2", GDB_SIZEOF_REG, offsetof(struct pt_regs, r02)},
-+	{ " r3", GDB_SIZEOF_REG, offsetof(struct pt_regs, r03)},
-+	{ " r4", GDB_SIZEOF_REG, offsetof(struct pt_regs, r04)},
-+	{ " r5", GDB_SIZEOF_REG, offsetof(struct pt_regs, r05)},
-+	{ " r6", GDB_SIZEOF_REG, offsetof(struct pt_regs, r06)},
-+	{ " r7", GDB_SIZEOF_REG, offsetof(struct pt_regs, r07)},
-+	{ " r8", GDB_SIZEOF_REG, offsetof(struct pt_regs, r08)},
-+	{ " r9", GDB_SIZEOF_REG, offsetof(struct pt_regs, r09)},
-+	{ "r10", GDB_SIZEOF_REG, offsetof(struct pt_regs, r10)},
-+	{ "r11", GDB_SIZEOF_REG, offsetof(struct pt_regs, r11)},
-+	{ "r12", GDB_SIZEOF_REG, offsetof(struct pt_regs, r12)},
-+	{ "r13", GDB_SIZEOF_REG, offsetof(struct pt_regs, r13)},
-+	{ "r14", GDB_SIZEOF_REG, offsetof(struct pt_regs, r14)},
-+	{ "r15", GDB_SIZEOF_REG, offsetof(struct pt_regs, r15)},
-+	{ "r16", GDB_SIZEOF_REG, offsetof(struct pt_regs, r16)},
-+	{ "r17", GDB_SIZEOF_REG, offsetof(struct pt_regs, r17)},
-+	{ "r18", GDB_SIZEOF_REG, offsetof(struct pt_regs, r18)},
-+	{ "r19", GDB_SIZEOF_REG, offsetof(struct pt_regs, r19)},
-+	{ "r20", GDB_SIZEOF_REG, offsetof(struct pt_regs, r20)},
-+	{ "r21", GDB_SIZEOF_REG, offsetof(struct pt_regs, r21)},
-+	{ "r22", GDB_SIZEOF_REG, offsetof(struct pt_regs, r22)},
-+	{ "r23", GDB_SIZEOF_REG, offsetof(struct pt_regs, r23)},
-+	{ "r24", GDB_SIZEOF_REG, offsetof(struct pt_regs, r24)},
-+	{ "r25", GDB_SIZEOF_REG, offsetof(struct pt_regs, r25)},
-+	{ "r26", GDB_SIZEOF_REG, offsetof(struct pt_regs, r26)},
-+	{ "r27", GDB_SIZEOF_REG, offsetof(struct pt_regs, r27)},
-+	{ "r28", GDB_SIZEOF_REG, offsetof(struct pt_regs, r28)},
-+	{ "r29", GDB_SIZEOF_REG, offsetof(struct pt_regs, r29)},
-+	{ "r30", GDB_SIZEOF_REG, offsetof(struct pt_regs, r30)},
-+	{ "r31", GDB_SIZEOF_REG, offsetof(struct pt_regs, r31)},
-+
-+	{ "usr", GDB_SIZEOF_REG, offsetof(struct pt_regs, usr)},
-+	{ "preds", GDB_SIZEOF_REG, offsetof(struct pt_regs, preds)},
-+	{ " m0", GDB_SIZEOF_REG, offsetof(struct pt_regs, m0)},
-+	{ " m1", GDB_SIZEOF_REG, offsetof(struct pt_regs, m1)},
-+	{ "sa0", GDB_SIZEOF_REG, offsetof(struct pt_regs, sa0)},
-+	{ "sa1", GDB_SIZEOF_REG, offsetof(struct pt_regs, sa1)},
-+	{ "lc0", GDB_SIZEOF_REG, offsetof(struct pt_regs, lc0)},
-+	{ "lc1", GDB_SIZEOF_REG, offsetof(struct pt_regs, lc1)},
-+	{ " gp", GDB_SIZEOF_REG, offsetof(struct pt_regs, gp)},
-+	{ "ugp", GDB_SIZEOF_REG, offsetof(struct pt_regs, ugp)},
-+	{ "psp", GDB_SIZEOF_REG, offsetof(struct pt_regs, hvmer.vmpsp)},
-+	{ "elr", GDB_SIZEOF_REG, offsetof(struct pt_regs, hvmer.vmel)},
-+	{ "est", GDB_SIZEOF_REG, offsetof(struct pt_regs, hvmer.vmest)},
-+	{ "badva", GDB_SIZEOF_REG, offsetof(struct pt_regs, hvmer.vmbadva)},
-+	{ "restart_r0", GDB_SIZEOF_REG, offsetof(struct pt_regs, restart_r0)},
-+	{ "syscall_nr", GDB_SIZEOF_REG, offsetof(struct pt_regs, syscall_nr)},
-+};
-+
-+struct kgdb_arch arch_kgdb_ops = {
-+	/* trap0(#0xDB) 0x0cdb0054 */
-+	.gdb_bpt_instr = {0x54, 0x00, 0xdb, 0x0c},
-+};
-+
-+char *dbg_get_reg(int regno, void *mem, struct pt_regs *regs)
-+{
-+	if (regno >= DBG_MAX_REG_NUM || regno < 0)
++	if (unlikely(dev == NULL))
 +		return NULL;
 +
-+	*((unsigned long *) mem) = *((unsigned long *) ((void *)regs +
-+		dbg_reg_def[regno].offset));
-+
-+	return dbg_reg_def[regno].name;
++	return dma_ops;
 +}
 +
-+int dbg_set_reg(int regno, void *mem, struct pt_regs *regs)
++extern int dma_supported(struct device *dev, u64 mask);
++extern int dma_set_mask(struct device *dev, u64 mask);
++extern int dma_is_consistent(struct device *dev, dma_addr_t dma_handle);
++extern void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++			   enum dma_data_direction direction);
++
++#include <asm-generic/dma-mapping-common.h>
++
++static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
 +{
-+	if (regno >= DBG_MAX_REG_NUM || regno < 0)
-+		return -EINVAL;
-+
-+	*((unsigned long *) ((void *)regs + dbg_reg_def[regno].offset)) =
-+		*((unsigned long *) mem);
-+
-+	return 0;
-+}
-+
-+void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long pc)
-+{
-+	instruction_pointer(regs) = pc;
-+}
-+
-+#ifdef CONFIG_SMP
-+
-+/**
-+ * kgdb_roundup_cpus - Get other CPUs into a holding pattern
-+ * @flags: Current IRQ state
-+ *
-+ * On SMP systems, we need to get the attention of the other CPUs
-+ * and get them be in a known state.  This should do what is needed
-+ * to get the other CPUs to call kgdb_wait(). Note that on some arches,
-+ * the NMI approach is not used for rounding up all the CPUs. For example,
-+ * in case of MIPS, smp_call_function() is used to roundup CPUs. In
-+ * this case, we have to make sure that interrupts are enabled before
-+ * calling smp_call_function(). The argument to this function is
-+ * the flags that will be used when restoring the interrupts. There is
-+ * local_irq_save() call before kgdb_roundup_cpus().
-+ *
-+ * On non-SMP systems, this is not called.
-+ */
-+
-+static void hexagon_kgdb_nmi_hook(void *ignored)
-+{
-+	kgdb_nmicallback(raw_smp_processor_id(), get_irq_regs());
-+}
-+
-+void kgdb_roundup_cpus(unsigned long flags)
-+{
-+	local_irq_enable();
-+	smp_call_function(hexagon_kgdb_nmi_hook, NULL, 0);
-+	local_irq_disable();
-+}
-+#endif
-+
-+
-+/*  Not yet working  */
-+void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs,
-+				 struct task_struct *task)
-+{
-+	struct pt_regs *thread_regs;
-+
-+	if (task == NULL)
-+		return;
-+
-+	/* Initialize to zero */
-+	memset(gdb_regs, 0, NUMREGBYTES);
-+
-+	/* Otherwise, we have only some registers from switch_to() */
-+	thread_regs = task_pt_regs(task);
-+	gdb_regs[0] = thread_regs->r00;
-+}
-+
-+/**
-+ * kgdb_arch_handle_exception - Handle architecture specific GDB packets.
-+ * @vector: The error vector of the exception that happened.
-+ * @signo: The signal number of the exception that happened.
-+ * @err_code: The error code of the exception that happened.
-+ * @remcom_in_buffer: The buffer of the packet we have read.
-+ * @remcom_out_buffer: The buffer of %BUFMAX bytes to write a packet into.
-+ * @regs: The &struct pt_regs of the current process.
-+ *
-+ * This function MUST handle the 'c' and 's' command packets,
-+ * as well packets to set / remove a hardware breakpoint, if used.
-+ * If there are additional packets which the hardware needs to handle,
-+ * they are handled here.  The code should return -1 if it wants to
-+ * process more packets, and a %0 or %1 if it wants to exit from the
-+ * kgdb callback.
-+ *
-+ * Not yet working.
-+ */
-+int kgdb_arch_handle_exception(int vector, int signo, int err_code,
-+			       char *remcom_in_buffer, char *remcom_out_buffer,
-+			       struct pt_regs *linux_regs)
-+{
-+	switch (remcom_in_buffer[0]) {
-+	case 's':
-+	case 'c':
++	if (!dev->dma_mask)
 +		return 0;
-+	}
-+	/* Stay in the debugger. */
-+	return -1;
++	return addr + size - 1 <= *dev->dma_mask;
 +}
 +
-+static int __kgdb_notify(struct die_args *args, unsigned long cmd)
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 +{
-+	/* cpu roundup */
-+	if (atomic_read(&kgdb_active) != -1) {
-+		kgdb_nmicallback(smp_processor_id(), args->regs);
-+		return NOTIFY_STOP;
-+	}
++	struct dma_map_ops *dma_ops = get_dma_ops(dev);
 +
-+	if (user_mode(args->regs))
-+		return NOTIFY_DONE;
++	if (dma_ops->mapping_error)
++		return dma_ops->mapping_error(dev, dma_addr);
 +
-+	if (kgdb_handle_exception(args->trapnr & 0xff, args->signr, args->err,
-+				    args->regs))
-+		return NOTIFY_DONE;
-+
-+	return NOTIFY_STOP;
++	return (dma_addr == bad_dma_address);
 +}
 +
-+static int
-+kgdb_notify(struct notifier_block *self, unsigned long cmd, void *ptr)
++static inline void *dma_alloc_coherent(struct device *dev, size_t size,
++				       dma_addr_t *dma_handle, gfp_t flag)
 +{
-+	unsigned long flags;
-+	int ret;
++	void *ret;
++	struct dma_map_ops *ops = get_dma_ops(dev);
 +
-+	local_irq_save(flags);
-+	ret = __kgdb_notify(ptr, cmd);
-+	local_irq_restore(flags);
++	BUG_ON(!dma_ops);
++
++	ret = ops->alloc_coherent(dev, size, dma_handle, flag);
++
++	debug_dma_alloc_coherent(dev, size, *dma_handle, ret);
 +
 +	return ret;
 +}
 +
-+static struct notifier_block kgdb_notifier = {
-+	.notifier_call = kgdb_notify,
++static inline void dma_free_coherent(struct device *dev, size_t size,
++				     void *cpu_addr, dma_addr_t dma_handle)
++{
++	struct dma_map_ops *dma_ops = get_dma_ops(dev);
 +
-+	/*
-+	 * Lowest-prio notifier priority, we want to be notified last:
-+	 */
-+	.priority = -INT_MAX,
++	BUG_ON(!dma_ops);
++
++	dma_ops->free_coherent(dev, size, cpu_addr, dma_handle);
++
++	debug_dma_free_coherent(dev, size, cpu_addr, dma_handle);
++}
++
++#endif
+diff --git a/arch/hexagon/include/asm/dma.h b/arch/hexagon/include/asm/dma.h
+new file mode 100644
+index 0000000..da6d2f6
+--- /dev/null
++++ b/arch/hexagon/include/asm/dma.h
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_DMA_H
++#define _ASM_DMA_H
++
++#include <asm/io.h>
++
++#define MAX_DMA_CHANNELS 1
++#define MAX_DMA_ADDRESS  (PAGE_OFFSET)
++
++extern size_t hexagon_coherent_pool_size;
++
++#endif
+diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
+new file mode 100644
+index 0000000..e711ace
+--- /dev/null
++++ b/arch/hexagon/kernel/dma.c
+@@ -0,0 +1,220 @@
++/*
++ * DMA implementation for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/dma-mapping.h>
++#include <linux/bootmem.h>
++#include <linux/genalloc.h>
++#include <asm/dma-mapping.h>
++
++struct dma_map_ops *dma_ops;
++EXPORT_SYMBOL(dma_ops);
++
++int bad_dma_address;  /*  globals are automatically initialized to zero  */
++
++int dma_supported(struct device *dev, u64 mask)
++{
++	if (mask == DMA_BIT_MASK(32))
++		return 1;
++	else
++		return 0;
++}
++EXPORT_SYMBOL(dma_supported);
++
++int dma_set_mask(struct device *dev, u64 mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
++
++	*dev->dma_mask = mask;
++
++	return 0;
++}
++EXPORT_SYMBOL(dma_set_mask);
++
++static struct gen_pool *coherent_pool;
++
++
++/* Allocates from a pool of uncached memory that was reserved at boot time */
++
++void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
++				 dma_addr_t *dma_addr, gfp_t flag)
++{
++	void *ret;
++
++	if (coherent_pool == NULL) {
++		coherent_pool = gen_pool_create(PAGE_SHIFT, -1);
++
++		if (coherent_pool == NULL)
++			panic("Can't create %s() memory pool!", __func__);
++		else
++			gen_pool_add(coherent_pool,
++				(PAGE_OFFSET + (max_low_pfn << PAGE_SHIFT)),
++				hexagon_coherent_pool_size, -1);
++	}
++
++	ret = (void *) gen_pool_alloc(coherent_pool, size);
++
++	if (ret) {
++		memset(ret, 0, size);
++		*dma_addr = (dma_addr_t) (ret - PAGE_OFFSET);
++	} else
++		*dma_addr = ~0;
++
++	return ret;
++}
++
++static void hexagon_free_coherent(struct device *dev, size_t size, void *vaddr,
++				  dma_addr_t dma_addr)
++{
++	gen_pool_free(coherent_pool, (unsigned long) vaddr, size);
++}
++
++static int check_addr(const char *name, struct device *hwdev,
++		      dma_addr_t bus, size_t size)
++{
++	if (hwdev && hwdev->dma_mask && !dma_capable(hwdev, bus, size)) {
++		if (*hwdev->dma_mask >= DMA_BIT_MASK(32))
++			printk(KERN_ERR
++				"%s: overflow %Lx+%zu of device mask %Lx\n",
++				name, (long long)bus, size,
++				(long long)*hwdev->dma_mask);
++		return 0;
++	}
++	return 1;
++}
++
++static int hexagon_map_sg(struct device *hwdev, struct scatterlist *sg,
++			  int nents, enum dma_data_direction dir,
++			  struct dma_attrs *attrs)
++{
++	struct scatterlist *s;
++	int i;
++
++	WARN_ON(nents == 0 || sg[0].length == 0);
++
++	for_each_sg(sg, s, nents, i) {
++		s->dma_address = sg_phys(s);
++		if (!check_addr("map_sg", hwdev, s->dma_address, s->length))
++			return 0;
++
++		s->dma_length = s->length;
++
++		flush_dcache_range(PAGE_OFFSET + s->dma_address,
++				   PAGE_OFFSET + s->dma_address + s->length);
++	}
++
++	return nents;
++}
++
++/*
++ * address is virtual
++ */
++static inline void dma_sync(void *addr, size_t size,
++			    enum dma_data_direction dir)
++{
++	switch (dir) {
++	case DMA_TO_DEVICE:
++		hexagon_clean_dcache_range((unsigned long) addr,
++		(unsigned long) addr + size);
++		break;
++	case DMA_FROM_DEVICE:
++		hexagon_inv_dcache_range((unsigned long) addr,
++		(unsigned long) addr + size);
++		break;
++	case DMA_BIDIRECTIONAL:
++		flush_dcache_range((unsigned long) addr,
++		(unsigned long) addr + size);
++		break;
++	default:
++		BUG();
++	}
++}
++
++static inline void *dma_addr_to_virt(dma_addr_t dma_addr)
++{
++	return phys_to_virt((unsigned long) dma_addr);
++}
++
++/**
++ * hexagon_map_page() - maps an address for device DMA
++ * @dev:	pointer to DMA device
++ * @page:	pointer to page struct of DMA memory
++ * @offset:	offset within page
++ * @size:	size of memory to map
++ * @dir:	transfer direction
++ * @attrs:	pointer to DMA attrs (not used)
++ *
++ * Called to map a memory address to a DMA address prior
++ * to accesses to/from device.
++ *
++ * We don't particularly have many hoops to jump through
++ * so far.  Straight translation between phys and virtual.
++ *
++ * DMA is not cache coherent so sync is necessary; this
++ * seems to be a convenient place to do it.
++ *
++ */
++static dma_addr_t hexagon_map_page(struct device *dev, struct page *page,
++				   unsigned long offset, size_t size,
++				   enum dma_data_direction dir,
++				   struct dma_attrs *attrs)
++{
++	dma_addr_t bus = page_to_phys(page) + offset;
++	WARN_ON(size == 0);
++
++	if (!check_addr("map_single", dev, bus, size))
++		return bad_dma_address;
++
++	dma_sync(dma_addr_to_virt(bus), size, dir);
++
++	return bus;
++}
++
++static void hexagon_sync_single_for_cpu(struct device *dev,
++					dma_addr_t dma_handle, size_t size,
++					enum dma_data_direction dir)
++{
++	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
++}
++
++static void hexagon_sync_single_for_device(struct device *dev,
++					dma_addr_t dma_handle, size_t size,
++					enum dma_data_direction dir)
++{
++	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
++}
++
++struct dma_map_ops hexagon_dma_ops = {
++	.alloc_coherent	= hexagon_dma_alloc_coherent,
++	.free_coherent	= hexagon_free_coherent,
++	.map_sg		= hexagon_map_sg,
++	.map_page	= hexagon_map_page,
++	.sync_single_for_cpu = hexagon_sync_single_for_cpu,
++	.sync_single_for_device = hexagon_sync_single_for_device,
++	.is_phys	= 1,
 +};
 +
-+/**
-+ * kgdb_arch_init - Perform any architecture specific initalization.
-+ *
-+ * This function will handle the initalization of any architecture
-+ * specific callbacks.
-+ */
-+int kgdb_arch_init(void)
++void __init hexagon_dma_init(void)
 +{
-+	return register_die_notifier(&kgdb_notifier);
-+}
++	if (dma_ops)
++		return;
 +
-+/**
-+ * kgdb_arch_exit - Perform any architecture specific uninitalization.
-+ *
-+ * This function will handle the uninitalization of any architecture
-+ * specific callbacks, for dynamic registration and unregistration.
-+ */
-+void kgdb_arch_exit(void)
-+{
-+	unregister_die_notifier(&kgdb_notifier);
++	dma_ops = &hexagon_dma_ops;
 +}
-+
 -- 
 1.7.1
 
