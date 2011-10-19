@@ -1,7 +1,7 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v5 08/36] Hexagon: Add delay functions
-Date: Tue, 18 Oct 2011 22:11:28 -0500
-Message-ID: <093448$3qutjn@wolverine01.qualcomm.com>
+Subject: [PATCH v5 28/36] Hexagon: Add ioremap support
+Date: Tue, 18 Oct 2011 22:44:33 -0500
+Message-ID: <093448$3qutod@wolverine01.qualcomm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
@@ -10,17 +10,19 @@ List-Id: linux-arch.vger.kernel.org
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/delay.h |   28 ++++++++++++++++++++++++++++
- 1 files changed, 28 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/delay.h
+ arch/hexagon/mm/ioremap.c |   56 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 56 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/mm/ioremap.c
 
-diff --git a/arch/hexagon/include/asm/delay.h b/arch/hexagon/include/asm/delay.h
+diff --git a/arch/hexagon/mm/ioremap.c b/arch/hexagon/mm/ioremap.c
 new file mode 100644
-index 0000000..9ab12e9
+index 0000000..3a37bc3
 --- /dev/null
-+++ b/arch/hexagon/include/asm/delay.h
-@@ -0,0 +1,28 @@
++++ b/arch/hexagon/mm/ioremap.c
+@@ -0,0 +1,56 @@
 +/*
++ * I/O remap functions for Hexagon
++ *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -38,16 +40,42 @@ index 0000000..9ab12e9
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_DELAY_H
-+#define _ASM_DELAY_H
++#include <linux/io.h>
++#include <linux/vmalloc.h>
 +
-+#include <asm/param.h>
++void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
++{
++	unsigned long last_addr, addr;
++	unsigned long offset = phys_addr & ~PAGE_MASK;
++	struct vm_struct *area;
 +
-+extern void __udelay(unsigned long usecs);
++	pgprot_t prot = __pgprot(_PAGE_PRESENT|_PAGE_READ|_PAGE_WRITE
++					|(__HEXAGON_C_DEV << 6));
 +
-+#define udelay(usecs) __udelay((usecs))
++	last_addr = phys_addr + size - 1;
 +
-+#endif /* _ASM_DELAY_H */
++	/*  Wrapping not allowed  */
++	if (!size || (last_addr < phys_addr))
++		return NULL;
++
++	/*  Rounds up to next page size, including whole-page offset */
++	size = PAGE_ALIGN(offset + size);
++
++	area = get_vm_area(size, VM_IOREMAP);
++	addr = (unsigned long)area->addr;
++
++	if (ioremap_page_range(addr, addr+size, phys_addr, prot)) {
++		vunmap((void *)addr);
++		return NULL;
++	}
++
++	return (void __iomem *) (offset + addr);
++}
++
++void __iounmap(const volatile void __iomem *addr)
++{
++	vunmap((void *) ((unsigned long) addr & PAGE_MASK));
++}
 -- 
 1.7.1
 
