@@ -1,58 +1,307 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:52511 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754398Ab1JSEFu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:50 -0400
-Message-ID: <e97c6e$3qqv6i@wolverine02.qualcomm.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:35224 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754269Ab1JSEFb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:31 -0400
+Message-ID: <093448$3quto5@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 22:48:27 -0500
-Subject: [PATCH v5 36/36] Add extra arch overrides to asm-generic/checksum.h
+Date: Tue, 18 Oct 2011 22:43:20 -0500
+Subject: [PATCH v5 25/36] Hexagon: Implement basic cache-flush support
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019034827.UxEQ4IjVtCbZ8T3Ab8MS_7L3Yz772ya2h32kBjubCfk@z>
+Message-ID: <20111019034320.FFPmBTQKExeC6liSKCmNVDxqQ4UWZc-WGhERRn-IC2E@z>
 
-There are plausible reasons for architectures to provide their own
-versions of csum_partial_copy_nocheck and csum_tcpudp_magic.
-By protecting these, the architecture can still re-use the
-asm-generic checksum.h, instead of copying it.
-
-Signed-off-by: Linas Vepstas <linas@codeaurora.org>
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/checksum.h |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ arch/hexagon/include/asm/cache.h      |   34 +++++++++
+ arch/hexagon/include/asm/cacheflush.h |   99 +++++++++++++++++++++++++
+ arch/hexagon/mm/cache.c               |  128 +++++++++++++++++++++++++++++++++
+ 3 files changed, 261 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/cache.h
+ create mode 100644 arch/hexagon/include/asm/cacheflush.h
+ create mode 100644 arch/hexagon/mm/cache.c
 
-diff --git a/include/asm-generic/checksum.h b/include/asm-generic/checksum.h
-index 4647c76..c084767 100644
---- a/include/asm-generic/checksum.h
-+++ b/include/asm-generic/checksum.h
-@@ -33,8 +33,10 @@ extern __wsum csum_partial_copy(const void *src, void *dst, int len, __wsum sum)
- extern __wsum csum_partial_copy_from_user(const void __user *src, void *dst,
- 					int len, __wsum sum, int *csum_err);
- 
-+#ifndef csum_partial_copy_nocheck
- #define csum_partial_copy_nocheck(src, dst, len, sum)	\
- 	csum_partial_copy((src), (dst), (len), (sum))
+diff --git a/arch/hexagon/include/asm/cache.h b/arch/hexagon/include/asm/cache.h
+new file mode 100644
+index 0000000..0f01de2
+--- /dev/null
++++ b/arch/hexagon/include/asm/cache.h
+@@ -0,0 +1,34 @@
++/*
++ * Cache definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef __ASM_CACHE_H
++#define __ASM_CACHE_H
++
++/* Bytes per L1 cache line */
++#define L1_CACHE_SHIFT		(5)
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++
++#define __cacheline_aligned	__aligned(L1_CACHE_BYTES)
++#define ____cacheline_aligned	__aligned(L1_CACHE_BYTES)
++
++/* See http://kerneltrap.org/node/15100  */
++#define __read_mostly
++
 +#endif
- 
- /*
-  * This is a version of ip_compute_csum() optimized for IP headers,
-@@ -63,12 +65,14 @@ csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
- 		unsigned short proto, __wsum sum);
- #endif
- 
-+#ifndef csum_tcpudp_magic
- static inline __sum16
- csum_tcpudp_magic(__be32 saddr, __be32 daddr, unsigned short len,
- 		  unsigned short proto, __wsum sum)
- {
- 	return csum_fold(csum_tcpudp_nofold(saddr, daddr, len, proto, sum));
- }
+diff --git a/arch/hexagon/include/asm/cacheflush.h b/arch/hexagon/include/asm/cacheflush.h
+new file mode 100644
+index 0000000..6865c1b
+--- /dev/null
++++ b/arch/hexagon/include/asm/cacheflush.h
+@@ -0,0 +1,99 @@
++/*
++ * Cache flush operations for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_CACHEFLUSH_H
++#define _ASM_CACHEFLUSH_H
++
++#include <linux/cache.h>
++#include <linux/mm.h>
++#include <asm/string.h>
++#include <asm-generic/cacheflush.h>
++
++/* Cache flushing:
++ *
++ *  - flush_cache_all() flushes entire cache
++ *  - flush_cache_mm(mm) flushes the specified mm context's cache lines
++ *  - flush_cache_page(mm, vmaddr, pfn) flushes a single page
++ *  - flush_cache_range(vma, start, end) flushes a range of pages
++ *  - flush_icache_range(start, end) flush a range of instructions
++ *  - flush_dcache_page(pg) flushes(wback&invalidates) a page for dcache
++ *  - flush_icache_page(vma, pg) flushes(invalidates) a page for icache
++ *
++ *  Need to doublecheck which one is really needed for ptrace stuff to work.
++ */
++#define LINESIZE	32
++#define LINEBITS	5
++
++/*
++ * Flush Dcache range through current map.
++ */
++extern void flush_dcache_range(unsigned long start, unsigned long end);
++
++/*
++ * Flush Icache range through current map.
++ */
++#undef flush_icache_range
++extern void flush_icache_range(unsigned long start, unsigned long end);
++
++/*
++ * Memory-management related flushes are there to ensure in non-physically
++ * indexed cache schemes that stale lines belonging to a given ASID aren't
++ * in the cache to confuse things.  The prototype Hexagon Virtual Machine
++ * only uses a single ASID for all user-mode maps, which should
++ * mean that they aren't necessary.  A brute-force, flush-everything
++ * implementation, with the name xxxxx_hexagon() is present in
++ * arch/hexagon/mm/cache.c, but let's not wire it up until we know
++ * it is needed.
++ */
++extern void flush_cache_all_hexagon(void);
++
++/*
++ * This may or may not ever have to be non-null, depending on the
++ * virtual machine MMU.  For a native kernel, it's definitiely  a no-op
++ *
++ * This is also the place where deferred cache coherency stuff seems
++ * to happen, classically...  but instead we do it like ia64 and
++ * clean the cache when the PTE is set.
++ *
++ */
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++					unsigned long address, pte_t *ptep)
++{
++	/*  generic_ptrace_pokedata doesn't wind up here, does it?  */
++}
++
++#undef copy_to_user_page
++static inline void copy_to_user_page(struct vm_area_struct *vma,
++					     struct page *page,
++					     unsigned long vaddr,
++					     void *dst, void *src, int len)
++{
++	memcpy(dst, src, len);
++	if (vma->vm_flags & VM_EXEC) {
++		flush_icache_range((unsigned long) dst,
++		(unsigned long) dst + len);
++	}
++}
++
++
++extern void hexagon_inv_dcache_range(unsigned long start, unsigned long end);
++extern void hexagon_clean_dcache_range(unsigned long start, unsigned long end);
++
 +#endif
- 
- /*
-  * this routine is used for miscellaneous IP-like checksums, mainly
+diff --git a/arch/hexagon/mm/cache.c b/arch/hexagon/mm/cache.c
+new file mode 100644
+index 0000000..c5cf6ee
+--- /dev/null
++++ b/arch/hexagon/mm/cache.c
+@@ -0,0 +1,128 @@
++/*
++ * Cache management functions for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/mm.h>
++#include <asm/cacheflush.h>
++#include <asm/hexagon_vm.h>
++
++#define spanlines(start, end) \
++	(((end - (start & ~(LINESIZE - 1))) >> LINEBITS) + 1)
++
++void flush_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleaninva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++void flush_icache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++			"	dccleana(%0); "
++			"	icinva(%0);	"
++			:
++			: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	__asm__ __volatile__ (
++		"isync"
++	);
++	local_irq_restore(flags);
++}
++
++void hexagon_clean_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dccleana(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++void hexagon_inv_dcache_range(unsigned long start, unsigned long end)
++{
++	unsigned long lines = spanlines(start, end-1);
++	unsigned long i, flags;
++
++	start &= ~(LINESIZE - 1);
++
++	local_irq_save(flags);
++
++	for (i = 0; i < lines; i++) {
++		__asm__ __volatile__ (
++		"	dcinva(%0);	"
++		:
++		: "r" (start)
++		);
++		start += LINESIZE;
++	}
++	local_irq_restore(flags);
++}
++
++
++
++
++/*
++ * This is just really brutal and shouldn't be used anyways,
++ * especially on V2.  Left here just in case.
++ */
++void flush_cache_all_hexagon(void)
++{
++	unsigned long flags;
++	local_irq_save(flags);
++	__vmcache_ickill();
++	__vmcache_dckill();
++	__vmcache_l2kill();
++	local_irq_restore(flags);
++	mb();
++}
 -- 
 1.7.1
 
