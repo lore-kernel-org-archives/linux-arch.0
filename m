@@ -1,7 +1,7 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH v5 28/36] Hexagon: Add ioremap support
-Date: Tue, 18 Oct 2011 22:44:33 -0500
-Message-ID: <093448$3qutod@wolverine01.qualcomm.com>
+Subject: [PATCH v5 35/36] Hexagon: Add self to MAINTAINERS
+Date: Tue, 18 Oct 2011 22:48:06 -0500
+Message-ID: <093448$3qutot@wolverine01.qualcomm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
@@ -10,72 +10,26 @@ List-Id: linux-arch.vger.kernel.org
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/mm/ioremap.c |   56 +++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 56 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/mm/ioremap.c
+ MAINTAINERS |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/arch/hexagon/mm/ioremap.c b/arch/hexagon/mm/ioremap.c
-new file mode 100644
-index 0000000..3a37bc3
---- /dev/null
-+++ b/arch/hexagon/mm/ioremap.c
-@@ -0,0 +1,56 @@
-+/*
-+ * I/O remap functions for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
+diff --git a/MAINTAINERS b/MAINTAINERS
+index ace8f9c..94a73fc 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5288,6 +5288,12 @@ F:	fs/qnx4/
+ F:	include/linux/qnx4_fs.h
+ F:	include/linux/qnxtypes.h
+ 
++QUALCOMM HEXAGON ARCHITECTURE
++M:	Richard Kuo <rkuo@codeaurora.org>
++L:	linux-hexagon@vger.kernel.org
++S:	Supported
++F:	arch/hexagon/
 +
-+#include <linux/io.h>
-+#include <linux/vmalloc.h>
-+
-+void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
-+{
-+	unsigned long last_addr, addr;
-+	unsigned long offset = phys_addr & ~PAGE_MASK;
-+	struct vm_struct *area;
-+
-+	pgprot_t prot = __pgprot(_PAGE_PRESENT|_PAGE_READ|_PAGE_WRITE
-+					|(__HEXAGON_C_DEV << 6));
-+
-+	last_addr = phys_addr + size - 1;
-+
-+	/*  Wrapping not allowed  */
-+	if (!size || (last_addr < phys_addr))
-+		return NULL;
-+
-+	/*  Rounds up to next page size, including whole-page offset */
-+	size = PAGE_ALIGN(offset + size);
-+
-+	area = get_vm_area(size, VM_IOREMAP);
-+	addr = (unsigned long)area->addr;
-+
-+	if (ioremap_page_range(addr, addr+size, phys_addr, prot)) {
-+		vunmap((void *)addr);
-+		return NULL;
-+	}
-+
-+	return (void __iomem *) (offset + addr);
-+}
-+
-+void __iounmap(const volatile void __iomem *addr)
-+{
-+	vunmap((void *) ((unsigned long) addr & PAGE_MASK));
-+}
+ RADOS BLOCK DEVICE (RBD)
+ F:	include/linux/qnxtypes.h
+ M:	Yehuda Sadeh <yehuda@hq.newdream.net>
 -- 
 1.7.1
 
