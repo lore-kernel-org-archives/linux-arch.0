@@ -1,56 +1,53 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] gpio: fix build error in include/asm-generic/gpio.h
-Date: Fri, 21 Oct 2011 13:39:57 +0200
-Message-ID: <201110211339.59280.arnd@arndb.de>
-References: <CAO_0yfOa7B4tB1nJg8c_5a612KjNmPh_aMvS=wHhfU_maAvZAg@mail.gmail.com>
+Subject: Re: [PATCH] compat: sync compat_stats with statfs.
+Date: Thu, 20 Oct 2011 00:28:42 +0200
+Message-ID: <1435724.hJQAMQ2ynm@wuerfel>
+References: <m1r52b4ajh.fsf@fess.ebiederm.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:57403 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:50841 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754246Ab1JULk1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Oct 2011 07:40:27 -0400
-In-Reply-To: <CAO_0yfOa7B4tB1nJg8c_5a612KjNmPh_aMvS=wHhfU_maAvZAg@mail.gmail.com>
+	with ESMTP id S1753442Ab1JUQxr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Oct 2011 12:53:47 -0400
+In-Reply-To: <m1r52b4ajh.fsf@fess.ebiederm.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hamo <hamo.by@gmail.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kyle McMartin <kyle@mcmartin.ca>
 
-On Friday 21 October 2011, Hamo wrote:
-> Should call the platform-specific __gpio_{get,set}_value
-> instead of generic gpio_{get,set}_value
+On Monday 17 October 2011 13:40:02 Eric W. Biederman wrote:
+> This was found by inspection while tracking a similar
+> bug in compat_statfs64, that has been fixed in mainline
+> since decemeber.
 > 
-> Signed-off-by: Yang Bai <hamo.by@gmail.com>
-> ---
->  include/asm-generic/gpio.h |    4 ++--
->  1 files changed, 2 insertions(+), 2 deletions(-)
+> - This fixes a bug where not all of the f_spare fields
+>   were cleared on mips and s390.
+> - Add the f_flags field to struct compat_statfs
+> - Copy f_flags to userspace in case someone cares.
+> - Use __clear_user to copy the f_spare field to userspace
+>   to ensure that all of the elements of f_spare are cleared.
+>   On some architectures f_spare is has 5 ints and on some
+>   architectures f_spare only has 4 ints.  Which makes
+>   the previous technique of clearing each int individually
+>   broken.
+> 
+> I don't expect anyone actually uses the old statfs system
+> call anymore but if they do let them benefit from having
+> the compat and the native version working the same.
+> 
+> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+
+Looks good to me.
 
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Grant, can you put that into the gpio tree?
+Apparently, this could have been worse on tile, which has
+#define compat_statfs statfs, so that the old
+"__put_user(0, &ubuf->f_spare[4]))" was writing beyond the
+end of struct statfs. Fortunately, this never gets called
+on tile, which only provides compat_sys_statfs64 to user space,
+not compat_sys_statfs.
 
-> diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-> index d494001..6acff5d 100644
-> --- a/include/asm-generic/gpio.h
-> +++ b/include/asm-generic/gpio.h
-> @@ -220,13 +220,13 @@ static inline int gpio_cansleep(unsigned gpio)
->  static inline int gpio_get_value_cansleep(unsigned gpio)
->  {
->  	might_sleep();
-> -	return gpio_get_value(gpio);
-> +	return __gpio_get_value(gpio);
->  }
-> 
->  static inline void gpio_set_value_cansleep(unsigned gpio, int value)
->  {
->  	might_sleep();
-> -	gpio_set_value(gpio, value);
-> +	__gpio_set_value(gpio, value);
->  }
-> 
->  #endif /* !CONFIG_GPIOLIB */
-> -- 
-> 1.7.1
-> 
+	Arnd
