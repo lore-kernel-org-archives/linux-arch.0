@@ -1,37 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:35224 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:48838 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754269Ab1JSEFe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:34 -0400
-Message-ID: <093448$3qutoa@wolverine01.qualcomm.com>
+	with ESMTP id S1754428Ab1JSEFk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:40 -0400
+Message-ID: <093448$3qutoj@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 22:44:09 -0500
-Subject: [PATCH v5 27/36] Hexagon: Provide DMA implementation
+Date: Tue, 18 Oct 2011 22:45:15 -0500
+Subject: [PATCH v5 30/36] Hexagon: Add page-fault support.
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019034409.eMWJkWjTgkKLGQg3ob0mw2wVCOPdQi2Q-gERtLwFc9Q@z>
+Message-ID: <20111019034515.gp2rw0LjzpsSVTzS2PHU_xqYe4vxI_hMzyrwtq-V-SI@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Signed-off-by: Linas Vepstas <linas@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/include/asm/dma-mapping.h |  101 +++++++++++++++
- arch/hexagon/include/asm/dma.h         |   29 ++++
- arch/hexagon/kernel/dma.c              |  220 ++++++++++++++++++++++++++++++++
- 3 files changed, 350 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/include/asm/dma-mapping.h
- create mode 100644 arch/hexagon/include/asm/dma.h
- create mode 100644 arch/hexagon/kernel/dma.c
+ arch/hexagon/include/asm/mem-layout.h |  112 +++++++++++++
+ arch/hexagon/include/asm/vm_fault.h   |   26 +++
+ arch/hexagon/mm/init.c                |  276 +++++++++++++++++++++++++++++++++
+ arch/hexagon/mm/vm_fault.c            |  187 ++++++++++++++++++++++
+ 4 files changed, 601 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/mem-layout.h
+ create mode 100644 arch/hexagon/include/asm/vm_fault.h
+ create mode 100644 arch/hexagon/mm/init.c
+ create mode 100644 arch/hexagon/mm/vm_fault.c
 
-diff --git a/arch/hexagon/include/asm/dma-mapping.h b/arch/hexagon/include/asm/dma-mapping.h
+diff --git a/arch/hexagon/include/asm/mem-layout.h b/arch/hexagon/include/asm/mem-layout.h
 new file mode 100644
-index 0000000..448b224
+index 0000000..72e5dcd
 --- /dev/null
-+++ b/arch/hexagon/include/asm/dma-mapping.h
-@@ -0,0 +1,101 @@
++++ b/arch/hexagon/include/asm/mem-layout.h
+@@ -0,0 +1,112 @@
 +/*
-+ * DMA operations for the Hexagon architecture
++ * Memory layout definitions for the Hexagon architecture
 + *
 + * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 + *
@@ -50,347 +52,604 @@ index 0000000..448b224
 + * 02110-1301, USA.
 + */
 +
-+#ifndef _ASM_DMA_MAPPING_H
-+#define _ASM_DMA_MAPPING_H
++#ifndef _ASM_HEXAGON_MEM_LAYOUT_H
++#define _ASM_HEXAGON_MEM_LAYOUT_H
 +
-+#include <linux/types.h>
-+#include <linux/cache.h>
++#include <linux/const.h>
++
++/*
++ * Have to do this for ginormous numbers, else they get printed as
++ * negative numbers, which the linker no likey when you try to
++ * assign it to the location counter.
++ */
++
++#define PAGE_OFFSET			_AC(0xc0000000, UL)
++
++/*
++ * LOAD_ADDRESS is the physical/linear address of where in memory
++ * the kernel gets loaded. The 12 least significant bits must be zero (0)
++ * due to limitations on setting the EVB
++ *
++ */
++
++#ifndef LOAD_ADDRESS
++#define LOAD_ADDRESS			0x00000000
++#endif
++
++#define TASK_SIZE			(PAGE_OFFSET)
++
++/*  not sure how these are used yet  */
++#define STACK_TOP			TASK_SIZE
++#define STACK_TOP_MAX			TASK_SIZE
++
++#ifndef __ASSEMBLY__
++enum fixed_addresses {
++	FIX_KMAP_BEGIN,
++	FIX_KMAP_END,  /*  check for per-cpuism  */
++	__end_of_fixed_addresses
++};
++
++#define MIN_KERNEL_SEG 0x300   /* From 0xc0000000 */
++extern int max_kernel_seg;
++
++/*
++ * Start of vmalloc virtual address space for kernel;
++ * supposed to be based on the amount of physical memory available
++ */
++
++#define VMALLOC_START (PAGE_OFFSET + VMALLOC_OFFSET + \
++	(unsigned long)high_memory)
++
++/* Gap between physical ram and vmalloc space for guard purposes. */
++#define VMALLOC_OFFSET PAGE_SIZE
++
++/*
++ * Create the space between VMALLOC_START and FIXADDR_TOP backwards
++ * from the ... "top".
++ *
++ * Permanent IO mappings will live at 0xfexx_xxxx
++ * Hypervisor occupies the last 16MB page at 0xffxxxxxx
++ */
++
++#define FIXADDR_TOP     0xfe000000
++#define FIXADDR_SIZE    (__end_of_fixed_addresses << PAGE_SHIFT)
++#define FIXADDR_START   (FIXADDR_TOP - FIXADDR_SIZE)
++
++/*
++ * "permanent kernel mappings", defined as long-lasting mappings of
++ * high-memory page frames into the kernel address space.
++ */
++
++#define LAST_PKMAP	PTRS_PER_PTE
++#define LAST_PKMAP_MASK	(LAST_PKMAP - 1)
++#define PKMAP_NR(virt)	((virt - PKMAP_BASE) >> PAGE_SHIFT)
++#define PKMAP_ADDR(nr)	(PKMAP_BASE + ((nr) << PAGE_SHIFT))
++
++/*
++ * To the "left" of the fixed map space is the kmap space
++ *
++ * "Permanent Kernel Mappings"; fancy (or less fancy) PTE table
++ * that looks like it's actually walked.
++ * Need to check the alignment/shift usage; some archs use
++ * PMD_MASK on this value
++ */
++#define PKMAP_BASE (FIXADDR_START-PAGE_SIZE*LAST_PKMAP)
++
++/*
++ * 2 pages of guard gap between where vmalloc area ends
++ * and pkmap_base begins.
++ */
++#define VMALLOC_END (PKMAP_BASE-PAGE_SIZE*2)
++#endif /*  !__ASSEMBLY__  */
++
++
++#endif /* _ASM_HEXAGON_MEM_LAYOUT_H */
+diff --git a/arch/hexagon/include/asm/vm_fault.h b/arch/hexagon/include/asm/vm_fault.h
+new file mode 100644
+index 0000000..cacda36
+--- /dev/null
++++ b/arch/hexagon/include/asm/vm_fault.h
+@@ -0,0 +1,26 @@
++/*
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#ifndef _ASM_HEXAGON_VM_FAULT_H
++#define _ASM_HEXAGON_VM_FAULT_H
++
++extern void execute_protection_fault(struct pt_regs *);
++extern void write_protection_fault(struct pt_regs *);
++extern void read_protection_fault(struct pt_regs *);
++
++#endif
+diff --git a/arch/hexagon/mm/init.c b/arch/hexagon/mm/init.c
+new file mode 100644
+index 0000000..b57d741
+--- /dev/null
++++ b/arch/hexagon/mm/init.c
+@@ -0,0 +1,276 @@
++/*
++ * Memory subsystem initialization for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/init.h>
 +#include <linux/mm.h>
-+#include <linux/scatterlist.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/dma-debug.h>
-+#include <linux/dma-attrs.h>
-+#include <asm/io.h>
-+
-+struct device;
-+extern int bad_dma_address;
-+
-+extern struct dma_map_ops *dma_ops;
-+
-+#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
-+#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
-+
-+static inline struct dma_map_ops *get_dma_ops(struct device *dev)
-+{
-+	if (unlikely(dev == NULL))
-+		return NULL;
-+
-+	return dma_ops;
-+}
-+
-+extern int dma_supported(struct device *dev, u64 mask);
-+extern int dma_set_mask(struct device *dev, u64 mask);
-+extern int dma_is_consistent(struct device *dev, dma_addr_t dma_handle);
-+extern void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
-+			   enum dma_data_direction direction);
-+
-+#include <asm-generic/dma-mapping-common.h>
-+
-+static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t size)
-+{
-+	if (!dev->dma_mask)
-+		return 0;
-+	return addr + size - 1 <= *dev->dma_mask;
-+}
-+
-+static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-+{
-+	struct dma_map_ops *dma_ops = get_dma_ops(dev);
-+
-+	if (dma_ops->mapping_error)
-+		return dma_ops->mapping_error(dev, dma_addr);
-+
-+	return (dma_addr == bad_dma_address);
-+}
-+
-+static inline void *dma_alloc_coherent(struct device *dev, size_t size,
-+				       dma_addr_t *dma_handle, gfp_t flag)
-+{
-+	void *ret;
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+
-+	BUG_ON(!dma_ops);
-+
-+	ret = ops->alloc_coherent(dev, size, dma_handle, flag);
-+
-+	debug_dma_alloc_coherent(dev, size, *dma_handle, ret);
-+
-+	return ret;
-+}
-+
-+static inline void dma_free_coherent(struct device *dev, size_t size,
-+				     void *cpu_addr, dma_addr_t dma_handle)
-+{
-+	struct dma_map_ops *dma_ops = get_dma_ops(dev);
-+
-+	BUG_ON(!dma_ops);
-+
-+	dma_ops->free_coherent(dev, size, cpu_addr, dma_handle);
-+
-+	debug_dma_free_coherent(dev, size, cpu_addr, dma_handle);
-+}
-+
-+#endif
-diff --git a/arch/hexagon/include/asm/dma.h b/arch/hexagon/include/asm/dma.h
-new file mode 100644
-index 0000000..da6d2f6
---- /dev/null
-+++ b/arch/hexagon/include/asm/dma.h
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#ifndef _ASM_DMA_H
-+#define _ASM_DMA_H
-+
-+#include <asm/io.h>
-+
-+#define MAX_DMA_CHANNELS 1
-+#define MAX_DMA_ADDRESS  (PAGE_OFFSET)
-+
-+extern size_t hexagon_coherent_pool_size;
-+
-+#endif
-diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
-new file mode 100644
-index 0000000..e711ace
---- /dev/null
-+++ b/arch/hexagon/kernel/dma.c
-@@ -0,0 +1,220 @@
-+/*
-+ * DMA implementation for Hexagon
-+ *
-+ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 and
-+ * only version 2 as published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-+ * 02110-1301, USA.
-+ */
-+
-+#include <linux/dma-mapping.h>
 +#include <linux/bootmem.h>
-+#include <linux/genalloc.h>
-+#include <asm/dma-mapping.h>
++#include <asm/atomic.h>
++#include <linux/highmem.h>
++#include <asm/tlb.h>
++#include <asm/sections.h>
++#include <asm/vm_mmu.h>
 +
-+struct dma_map_ops *dma_ops;
-+EXPORT_SYMBOL(dma_ops);
++/*
++ * Define a startpg just past the end of the kernel image and a lastpg
++ * that corresponds to the end of real or simulated platform memory.
++ */
++#define bootmem_startpg (PFN_UP(((unsigned long) _end) - PAGE_OFFSET))
 +
-+int bad_dma_address;  /*  globals are automatically initialized to zero  */
++unsigned long bootmem_lastpg;  /*  Should be set by platform code  */
 +
-+int dma_supported(struct device *dev, u64 mask)
++/*  Set as variable to limit PMD copies  */
++int max_kernel_seg = 0x303;
++
++/*  think this should be (page_size-1) the way it's used...*/
++unsigned long zero_page_mask;
++
++/*  indicate pfn's of high memory  */
++unsigned long highstart_pfn, highend_pfn;
++
++/* struct mmu_gather defined in asm-generic.h;  */
++DEFINE_PER_CPU(struct mmu_gather, mmu_gathers);
++
++/* Default cache attribute for newly created page tables */
++unsigned long _dflt_cache_att = CACHEDEF;
++
++/*
++ * The current "generation" of kernel map, which should not roll
++ * over until Hell freezes over.  Actual bound in years needs to be
++ * calculated to confirm.
++ */
++DEFINE_SPINLOCK(kmap_gen_lock);
++
++/*  checkpatch says don't init this to 0.  */
++unsigned long long kmap_generation;
++
++/*
++ * mem_init - initializes memory
++ *
++ * Frees up bootmem
++ * Fixes up more stuff for HIGHMEM
++ * Calculates and displays memory available/used
++ */
++void __init mem_init(void)
 +{
-+	if (mask == DMA_BIT_MASK(32))
-+		return 1;
-+	else
-+		return 0;
++	/*  No idea where this is actually declared.  Seems to evade LXR.  */
++	totalram_pages += free_all_bootmem();
++	num_physpages = bootmem_lastpg;	/*  seriously, what?  */
++
++	printk(KERN_INFO "totalram_pages = %ld\n", totalram_pages);
++
++	/*
++	 *  To-Do:  someone somewhere should wipe out the bootmem map
++	 *  after we're done?
++	 */
++
++	/*
++	 * This can be moved to some more virtual-memory-specific
++	 * initialization hook at some point.  Set the init_mm
++	 * descriptors "context" value to point to the initial
++	 * kernel segment table's physical address.
++	 */
++	init_mm.context.ptbase = __pa(init_mm.pgd);
 +}
-+EXPORT_SYMBOL(dma_supported);
 +
-+int dma_set_mask(struct device *dev, u64 mask)
++/*
++ * free_initmem - frees memory used by stuff declared with __init
++ *
++ * Todo:  free pages between __init_begin and __init_end; possibly
++ * some devtree related stuff as well.
++ */
++void __init_refok free_initmem(void)
 +{
-+	if (!dev->dma_mask || !dma_supported(dev, mask))
-+		return -EIO;
++}
 +
-+	*dev->dma_mask = mask;
++/*
++ * free_initrd_mem - frees...  initrd memory.
++ * @start - start of init memory
++ * @end - end of init memory
++ *
++ * Apparently has to be passed the address of the initrd memory.
++ *
++ * Wrapped by #ifdef CONFIG_BLKDEV_INITRD
++ */
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++}
++
++void sync_icache_dcache(pte_t pte)
++{
++	unsigned long addr;
++	struct page *page;
++
++	page = pte_page(pte);
++	addr = (unsigned long) page_address(page);
++
++	__vmcache_idsync(addr, PAGE_SIZE);
++}
++
++/*
++ * In order to set up page allocator "nodes",
++ * somebody has to call free_area_init() for UMA.
++ *
++ * In this mode, we only have one pg_data_t
++ * structure: contig_mem_data.
++ */
++void __init paging_init(void)
++{
++	unsigned long zones_sizes[MAX_NR_ZONES] = {0, };
++
++	/*
++	 *  This is not particularly well documented anywhere, but
++	 *  give ZONE_NORMAL all the memory, including the big holes
++	 *  left by the kernel+bootmem_map which are already left as reserved
++	 *  in the bootmem_map; free_area_init should see those bits and
++	 *  adjust accordingly.
++	 */
++
++	zones_sizes[ZONE_NORMAL] = max_low_pfn;
++
++	free_area_init(zones_sizes);  /*  sets up the zonelists and mem_map  */
++
++	/*
++	 * Start of high memory area.  Will probably need something more
++	 * fancy if we...  get more fancy.
++	 */
++	high_memory = (void *)((bootmem_lastpg + 1) << PAGE_SHIFT);
++}
++
++#ifndef DMA_RESERVE
++#define DMA_RESERVE		(4)
++#endif
++
++#define DMA_CHUNKSIZE		(1<<22)
++#define DMA_RESERVED_BYTES	(DMA_RESERVE * DMA_CHUNKSIZE)
++
++/*
++ * Pick out the memory size.  We look for mem=size,
++ * where size is "size[KkMm]"
++ */
++static int __init early_mem(char *p)
++{
++	unsigned long size;
++	char *endp;
++
++	size = memparse(p, &endp);
++
++	bootmem_lastpg = PFN_DOWN(size);
 +
 +	return 0;
 +}
-+EXPORT_SYMBOL(dma_set_mask);
++early_param("mem", early_mem);
 +
-+static struct gen_pool *coherent_pool;
++size_t hexagon_coherent_pool_size = (size_t) (DMA_RESERVE << 22);
 +
-+
-+/* Allocates from a pool of uncached memory that was reserved at boot time */
-+
-+void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
-+				 dma_addr_t *dma_addr, gfp_t flag)
++void __init setup_arch_memory(void)
 +{
-+	void *ret;
++	int bootmap_size;
++	/*  XXX Todo: this probably should be cleaned up  */
++	u32 *segtable = (u32 *) &swapper_pg_dir[0];
++	u32 *segtable_end;
 +
-+	if (coherent_pool == NULL) {
-+		coherent_pool = gen_pool_create(PAGE_SHIFT, -1);
++	/*
++	 * Set up boot memory allocator
++	 *
++	 * The Gorman book also talks about these functions.
++	 * This needs to change for highmem setups.
++	 */
 +
-+		if (coherent_pool == NULL)
-+			panic("Can't create %s() memory pool!", __func__);
-+		else
-+			gen_pool_add(coherent_pool,
-+				(PAGE_OFFSET + (max_low_pfn << PAGE_SHIFT)),
-+				hexagon_coherent_pool_size, -1);
++	/* Memory size needs to be a multiple of 16M */
++	bootmem_lastpg = PFN_DOWN((bootmem_lastpg << PAGE_SHIFT) &
++		~((BIG_KERNEL_PAGE_SIZE) - 1));
++
++	/*
++	 * Reserve the top DMA_RESERVE bytes of RAM for DMA (uncached)
++	 * memory allocation
++	 */
++	bootmap_size = init_bootmem(bootmem_startpg, bootmem_lastpg -
++				    PFN_DOWN(DMA_RESERVED_BYTES));
++
++	printk(KERN_INFO "bootmem_startpg:  0x%08lx\n", bootmem_startpg);
++	printk(KERN_INFO "bootmem_lastpg:  0x%08lx\n", bootmem_lastpg);
++	printk(KERN_INFO "bootmap_size:  %d\n", bootmap_size);
++	printk(KERN_INFO "max_low_pfn:  0x%08lx\n", max_low_pfn);
++
++	/*
++	 * The default VM page tables (will be) populated with
++	 * VA=PA+PAGE_OFFSET mapping.  We go in and invalidate entries
++	 * higher than what we have memory for.
++	 */
++
++	/*  this is pointer arithmetic; each entry covers 4MB  */
++	segtable = segtable + (PAGE_OFFSET >> 22);
++
++	/*  this actually only goes to the end of the first gig  */
++	segtable_end = segtable + (1<<(30-22));
++
++	/*  Move forward to the start of empty pages  */
++	segtable += bootmem_lastpg >> (22-PAGE_SHIFT);
++
++	{
++	    int i;
++
++	    for (i = 1 ; i <= DMA_RESERVE ; i++)
++		segtable[-i] = ((segtable[-i] & __HVM_PTE_PGMASK_4MB)
++				| __HVM_PTE_R | __HVM_PTE_W | __HVM_PTE_X
++				| __HEXAGON_C_UNC << 6
++				| __HVM_PDE_S_4MB);
 +	}
 +
-+	ret = (void *) gen_pool_alloc(coherent_pool, size);
++	printk(KERN_INFO "clearing segtable from %p to %p\n", segtable,
++		segtable_end);
++	while (segtable < (segtable_end-8))
++		*(segtable++) = __HVM_PDE_S_INVALID;
++	/* stop the pointer at the device I/O 4MB page  */
 +
-+	if (ret) {
-+		memset(ret, 0, size);
-+		*dma_addr = (dma_addr_t) (ret - PAGE_OFFSET);
-+	} else
-+		*dma_addr = ~0;
++	printk(KERN_INFO "segtable = %p (should be equal to _K_io_map)\n",
++		segtable);
 +
-+	return ret;
++#if 0
++	/*  Other half of the early device table from vm_init_segtable. */
++	printk(KERN_INFO "&_K_init_devicetable = 0x%08x\n",
++		(unsigned long) _K_init_devicetable-PAGE_OFFSET);
++	*segtable = ((u32) (unsigned long) _K_init_devicetable-PAGE_OFFSET) |
++		__HVM_PDE_S_4KB;
++	printk(KERN_INFO "*segtable = 0x%08x\n", *segtable);
++#endif
++
++	/*
++	 * Free all the memory that wasn't taken up by the bootmap, the DMA
++	 * reserve, or kernel itself.
++	 */
++	free_bootmem(PFN_PHYS(bootmem_startpg)+bootmap_size,
++		     PFN_PHYS(bootmem_lastpg - bootmem_startpg) - bootmap_size -
++		     DMA_RESERVED_BYTES);
++
++	/*
++	 *  The bootmem allocator seemingly just lives to feed memory
++	 *  to the paging system
++	 */
++	printk(KERN_INFO "PAGE_SIZE=%lu\n", PAGE_SIZE);
++	paging_init();  /*  See Gorman Book, 2.3  */
++
++	/*
++	 *  At this point, the page allocator is kind of initialized, but
++	 *  apparently no pages are available (just like with the bootmem
++	 *  allocator), and need to be freed themselves via mem_init(),
++	 *  which is called by start_kernel() later on in the process
++	 */
 +}
-+
-+static void hexagon_free_coherent(struct device *dev, size_t size, void *vaddr,
-+				  dma_addr_t dma_addr)
-+{
-+	gen_pool_free(coherent_pool, (unsigned long) vaddr, size);
-+}
-+
-+static int check_addr(const char *name, struct device *hwdev,
-+		      dma_addr_t bus, size_t size)
-+{
-+	if (hwdev && hwdev->dma_mask && !dma_capable(hwdev, bus, size)) {
-+		if (*hwdev->dma_mask >= DMA_BIT_MASK(32))
-+			printk(KERN_ERR
-+				"%s: overflow %Lx+%zu of device mask %Lx\n",
-+				name, (long long)bus, size,
-+				(long long)*hwdev->dma_mask);
-+		return 0;
-+	}
-+	return 1;
-+}
-+
-+static int hexagon_map_sg(struct device *hwdev, struct scatterlist *sg,
-+			  int nents, enum dma_data_direction dir,
-+			  struct dma_attrs *attrs)
-+{
-+	struct scatterlist *s;
-+	int i;
-+
-+	WARN_ON(nents == 0 || sg[0].length == 0);
-+
-+	for_each_sg(sg, s, nents, i) {
-+		s->dma_address = sg_phys(s);
-+		if (!check_addr("map_sg", hwdev, s->dma_address, s->length))
-+			return 0;
-+
-+		s->dma_length = s->length;
-+
-+		flush_dcache_range(PAGE_OFFSET + s->dma_address,
-+				   PAGE_OFFSET + s->dma_address + s->length);
-+	}
-+
-+	return nents;
-+}
+diff --git a/arch/hexagon/mm/vm_fault.c b/arch/hexagon/mm/vm_fault.c
+new file mode 100644
+index 0000000..c10b76f
+--- /dev/null
++++ b/arch/hexagon/mm/vm_fault.c
+@@ -0,0 +1,187 @@
++/*
++ * Memory fault handling for Hexagon
++ *
++ * Copyright (c) 2010-2011 Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
 +
 +/*
-+ * address is virtual
++ * Page fault handling for the Hexagon Virtual Machine.
++ * Can also be called by a native port emulating the HVM
++ * execptions.
 + */
-+static inline void dma_sync(void *addr, size_t size,
-+			    enum dma_data_direction dir)
++
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/uaccess.h>
++#include <linux/mm.h>
++#include <linux/signal.h>
++#include <linux/module.h>
++#include <linux/hardirq.h>
++
++/*
++ * Decode of hardware exception sends us to one of several
++ * entry points.  At each, we generate canonical arguments
++ * for handling by the abstract memory management code.
++ */
++#define FLT_IFETCH     -1
++#define FLT_LOAD        0
++#define FLT_STORE       1
++
++
++/*
++ * Canonical page fault handler
++ */
++void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
 +{
-+	switch (dir) {
-+	case DMA_TO_DEVICE:
-+		hexagon_clean_dcache_range((unsigned long) addr,
-+		(unsigned long) addr + size);
++	struct vm_area_struct *vma;
++	struct mm_struct *mm = current->mm;
++	siginfo_t info;
++	int si_code = SEGV_MAPERR;
++	int fault;
++	const struct exception_table_entry *fixup;
++
++	/*
++	 * If we're in an interrupt or have no user context,
++	 * then must not take the fault.
++	 */
++	if (unlikely(in_interrupt() || !mm))
++		goto no_context;
++
++	local_irq_enable();
++
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++
++	if (vma->vm_start <= address)
++		goto good_area;
++
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++
++	if (expand_stack(vma, address))
++		goto bad_area;
++
++good_area:
++	/* Address space is OK.  Now check access rights. */
++	si_code = SEGV_ACCERR;
++
++	switch (cause) {
++	case FLT_IFETCH:
++		if (!(vma->vm_flags & VM_EXEC))
++			goto bad_area;
 +		break;
-+	case DMA_FROM_DEVICE:
-+		hexagon_inv_dcache_range((unsigned long) addr,
-+		(unsigned long) addr + size);
++	case FLT_LOAD:
++		if (!(vma->vm_flags & VM_READ))
++			goto bad_area;
 +		break;
-+	case DMA_BIDIRECTIONAL:
-+		flush_dcache_range((unsigned long) addr,
-+		(unsigned long) addr + size);
++	case FLT_STORE:
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
 +		break;
-+	default:
-+		BUG();
 +	}
-+}
 +
-+static inline void *dma_addr_to_virt(dma_addr_t dma_addr)
-+{
-+	return phys_to_virt((unsigned long) dma_addr);
-+}
++	fault = handle_mm_fault(mm, vma, address, (cause > 0));
 +
-+/**
-+ * hexagon_map_page() - maps an address for device DMA
-+ * @dev:	pointer to DMA device
-+ * @page:	pointer to page struct of DMA memory
-+ * @offset:	offset within page
-+ * @size:	size of memory to map
-+ * @dir:	transfer direction
-+ * @attrs:	pointer to DMA attrs (not used)
-+ *
-+ * Called to map a memory address to a DMA address prior
-+ * to accesses to/from device.
-+ *
-+ * We don't particularly have many hoops to jump through
-+ * so far.  Straight translation between phys and virtual.
-+ *
-+ * DMA is not cache coherent so sync is necessary; this
-+ * seems to be a convenient place to do it.
-+ *
-+ */
-+static dma_addr_t hexagon_map_page(struct device *dev, struct page *page,
-+				   unsigned long offset, size_t size,
-+				   enum dma_data_direction dir,
-+				   struct dma_attrs *attrs)
-+{
-+	dma_addr_t bus = page_to_phys(page) + offset;
-+	WARN_ON(size == 0);
++	/* The most common case -- we are done. */
++	if (likely(!(fault & VM_FAULT_ERROR))) {
++		if (fault & VM_FAULT_MAJOR)
++			current->maj_flt++;
++		else
++			current->min_flt++;
 +
-+	if (!check_addr("map_single", dev, bus, size))
-+		return bad_dma_address;
-+
-+	dma_sync(dma_addr_to_virt(bus), size, dir);
-+
-+	return bus;
-+}
-+
-+static void hexagon_sync_single_for_cpu(struct device *dev,
-+					dma_addr_t dma_handle, size_t size,
-+					enum dma_data_direction dir)
-+{
-+	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
-+}
-+
-+static void hexagon_sync_single_for_device(struct device *dev,
-+					dma_addr_t dma_handle, size_t size,
-+					enum dma_data_direction dir)
-+{
-+	dma_sync(dma_addr_to_virt(dma_handle), size, dir);
-+}
-+
-+struct dma_map_ops hexagon_dma_ops = {
-+	.alloc_coherent	= hexagon_dma_alloc_coherent,
-+	.free_coherent	= hexagon_free_coherent,
-+	.map_sg		= hexagon_map_sg,
-+	.map_page	= hexagon_map_page,
-+	.sync_single_for_cpu = hexagon_sync_single_for_cpu,
-+	.sync_single_for_device = hexagon_sync_single_for_device,
-+	.is_phys	= 1,
-+};
-+
-+void __init hexagon_dma_init(void)
-+{
-+	if (dma_ops)
++		up_read(&mm->mmap_sem);
 +		return;
++	}
 +
-+	dma_ops = &hexagon_dma_ops;
++	up_read(&mm->mmap_sem);
++
++	/* Handle copyin/out exception cases */
++	if (!user_mode(regs))
++		goto no_context;
++
++	if (fault & VM_FAULT_OOM) {
++		pagefault_out_of_memory();
++		return;
++	}
++
++	/* User-mode address is in the memory map, but we are
++	 * unable to fix up the page fault.
++	 */
++	if (fault & VM_FAULT_SIGBUS) {
++		info.si_signo = SIGBUS;
++		info.si_code = BUS_ADRERR;
++	}
++	/* Address is not in the memory map */
++	else {
++		info.si_signo = SIGSEGV;
++		info.si_code = SEGV_ACCERR;
++	}
++	info.si_errno = 0;
++	info.si_addr = (void __user *)address;
++	force_sig_info(info.si_code, &info, current);
++	return;
++
++bad_area:
++	up_read(&mm->mmap_sem);
++
++	if (user_mode(regs)) {
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		info.si_code = si_code;
++		info.si_addr = (void *)address;
++		force_sig_info(SIGSEGV, &info, current);
++		return;
++	}
++	/* Kernel-mode fault falls through */
++
++no_context:
++	fixup = search_exception_tables(pt_elr(regs));
++	if (fixup) {
++		pt_set_elr(regs, fixup->fixup);
++		return;
++	}
++
++	/* Things are looking very, very bad now */
++	bust_spinlocks(1);
++	printk(KERN_EMERG "Unable to handle kernel paging request at "
++		"virtual address 0x%08lx, regs %p\n", address, regs);
++	die("Bad Kernel VA", regs, SIGKILL);
++}
++
++
++void read_protection_fault(struct pt_regs *regs)
++{
++	unsigned long badvadr = pt_badva(regs);
++
++	do_page_fault(badvadr, FLT_LOAD, regs);
++}
++
++void write_protection_fault(struct pt_regs *regs)
++{
++	unsigned long badvadr = pt_badva(regs);
++
++	do_page_fault(badvadr, FLT_STORE, regs);
++}
++
++void execute_protection_fault(struct pt_regs *regs)
++{
++	unsigned long badvadr = pt_badva(regs);
++
++	do_page_fault(badvadr, FLT_IFETCH, regs);
 +}
 -- 
 1.7.1
