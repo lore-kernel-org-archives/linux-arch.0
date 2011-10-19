@@ -1,341 +1,303 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCH 7/8] ARM: dma-mapping: use alloc, mmap, free from dma_ops
-Date: Tue, 18 Oct 2011 19:19:24 +0200
-Message-ID: <1318958365-19120-8-git-send-email-m.szyprowski@samsung.com>
-References: <1318958365-19120-1-git-send-email-m.szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:14544 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933376Ab1JRRTs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Oct 2011 13:19:48 -0400
-Received: from euspt2 (mailout2.w1.samsung.com [210.118.77.12])
- by mailout2.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0LT900JRLUSVJT@mailout2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 18 Oct 2011 18:19:43 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0LT900EXFUSUQG@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Tue, 18 Oct 2011 18:19:43 +0100 (BST)
-In-reply-to: <1318958365-19120-1-git-send-email-m.szyprowski@samsung.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: [PATCH v5 00/36] Hexagon: Add support for Qualcomm Hexagon architecture
+Date: Tue, 18 Oct 2011 22:53:49 -0500
+Message-ID: <093448$3quthk@wolverine01.qualcomm.com>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This patch converts dma_alloc/free/mmap_{coherent,writecombine}
-functions to use generic alloc/free/mmap methods from dma_map_ops
-structure. A new DMA_ATTR_WRITE_COMBINE DMA attribute have been
-introduced to implement writecombine methods.
 
-TODO: add missing documentation
+This is the fifth version (and hopefully final prior to the merge window) of the 
+patchset to the Linux kernel to support the Qualcomm Hexagon architecture.  It's 
+mostly just minor cleanups, largely in the debugging areas.
 
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
----
- arch/arm/common/dmabounce.c        |    3 +
- arch/arm/include/asm/dma-mapping.h |  107 ++++++++++++++++++++++++++----------
- arch/arm/mm/dma-mapping.c          |   54 ++++++------------
- include/linux/dma-attrs.h          |    1 +
- 4 files changed, 100 insertions(+), 65 deletions(-)
+A brief summary of changes from the last patchset:
+* die():  fixed spinlock issues and added misc debug code to match
+  other architectures
+* fixed getregset/setregset ordering and struct size
+* enable kgdb on kernel oops
+* improved stack trace printing
+* added user.h as part of headers install
+* used correct IO access for timer regs
+* removed IRQF_DISABLED from IPI handler
 
-diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
-index 5e7ba61..739407e 100644
---- a/arch/arm/common/dmabounce.c
-+++ b/arch/arm/common/dmabounce.c
-@@ -449,6 +449,9 @@ static int dmabounce_set_mask(struct device *dev, u64 dma_mask)
- }
- 
- static struct dma_map_ops dmabounce_ops = {
-+	.alloc			= arm_dma_alloc,
-+	.free			= arm_dma_free,
-+	.mmap			= arm_dma_mmap,
- 	.map_page		= dmabounce_map_page,
- 	.unmap_page		= dmabounce_unmap_page,
- 	.sync_single_for_cpu	= dmabounce_sync_for_cpu,
-diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index 2da527e..0799ad5 100644
---- a/arch/arm/include/asm/dma-mapping.h
-+++ b/arch/arm/include/asm/dma-mapping.h
-@@ -5,6 +5,7 @@
- 
- #include <linux/mm_types.h>
- #include <linux/scatterlist.h>
-+#include <linux/dma-attrs.h>
- #include <linux/dma-debug.h>
- 
- #include <asm-generic/dma-coherent.h>
-@@ -108,68 +109,115 @@ static inline void dma_free_noncoherent(struct device *dev, size_t size,
- extern int dma_supported(struct device *dev, u64 mask);
- 
- /**
-- * dma_alloc_coherent - allocate consistent memory for DMA
-+ * arm_dma_alloc - allocate consistent memory for DMA
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @size: required memory size
-  * @handle: bus-specific DMA address
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-- * Allocate some uncached, unbuffered memory for a device for
-- * performing DMA.  This function allocates pages, and will
-- * return the CPU-viewed address, and sets @handle to be the
-- * device-viewed address.
-+ * Allocate some memory for a device for performing DMA.  This function
-+ * allocates pages, and will return the CPU-viewed address, and sets @handle
-+ * to be the device-viewed address.
-  */
--extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
-+extern void *arm_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+			   gfp_t gfp, struct dma_attrs *attrs);
-+
-+#define dma_alloc_coherent(d,s,h,f) dma_alloc_attrs(d,s,h,f,NULL)
-+
-+static inline void *dma_alloc_attrs(struct device *dev, size_t size,
-+				       dma_addr_t *dma_handle, gfp_t flag,
-+				       struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	void *cpu_addr;
-+	BUG_ON(!ops);
-+
-+	cpu_addr = ops->alloc(dev, size, dma_handle, flag, attrs);
-+	debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr);
-+	return cpu_addr;
-+}
- 
- /**
-- * dma_free_coherent - free memory allocated by dma_alloc_coherent
-+ * arm_dma_free - free memory allocated by arm_dma_alloc
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @size: size of memory originally requested in dma_alloc_coherent
-  * @cpu_addr: CPU-view address returned from dma_alloc_coherent
-  * @handle: device-view address returned from dma_alloc_coherent
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-  * Free (and unmap) a DMA buffer previously allocated by
-- * dma_alloc_coherent().
-+ * arm_dma_alloc().
-  *
-  * References to memory and mappings associated with cpu_addr/handle
-  * during and after this call executing are illegal.
-  */
--extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
-+extern void arm_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+			 dma_addr_t handle, struct dma_attrs *attrs);
-+
-+#define dma_free_coherent(d,s,c,h) dma_free_attrs(d,s,c,h,NULL)
-+
-+static inline void dma_free_attrs(struct device *dev, size_t size,
-+				     void *cpu_addr, dma_addr_t dma_handle,
-+				     struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	BUG_ON(!ops);
-+
-+	debug_dma_free_coherent(dev, size, cpu_addr, dma_handle);
-+	ops->free(dev, size, cpu_addr, dma_handle, attrs);
-+}
- 
- /**
-- * dma_mmap_coherent - map a coherent DMA allocation into user space
-+ * arm_dma_mmap - map a coherent DMA allocation into user space
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @vma: vm_area_struct describing requested user mapping
-  * @cpu_addr: kernel CPU-view address returned from dma_alloc_coherent
-  * @handle: device-view address returned from dma_alloc_coherent
-  * @size: size of memory originally requested in dma_alloc_coherent
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-  * Map a coherent DMA buffer previously allocated by dma_alloc_coherent
-  * into user space.  The coherent DMA buffer must not be freed by the
-  * driver until the user space mapping has been released.
-  */
--int dma_mmap_coherent(struct device *, struct vm_area_struct *,
--		void *, dma_addr_t, size_t);
-+extern int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+			void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+			struct dma_attrs *attrs);
- 
-+#define dma_mmap_coherent(d,v,c,h,s) dma_mmap_attrs(d,v,c,h,s,NULL)
- 
--/**
-- * dma_alloc_writecombine - allocate writecombining memory for DMA
-- * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-- * @size: required memory size
-- * @handle: bus-specific DMA address
-- *
-- * Allocate some uncached, buffered memory for a device for
-- * performing DMA.  This function allocates pages, and will
-- * return the CPU-viewed address, and sets @handle to be the
-- * device-viewed address.
-- */
--extern void *dma_alloc_writecombine(struct device *, size_t, dma_addr_t *,
--		gfp_t);
-+static inline int dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma,
-+				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size, struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	BUG_ON(!ops);
-+	return ops->mmap(dev, vma, cpu_addr, dma_addr, size, attrs);
-+}
- 
--#define dma_free_writecombine(dev,size,cpu_addr,handle) \
--	dma_free_coherent(dev,size,cpu_addr,handle)
-+static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
-+				       dma_addr_t *dma_handle, gfp_t flag)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
-+}
- 
--int dma_mmap_writecombine(struct device *, struct vm_area_struct *,
--		void *, dma_addr_t, size_t);
-+static inline void dma_free_writecombine(struct device *dev, size_t size,
-+				     void *cpu_addr, dma_addr_t dma_handle)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
-+}
-+
-+static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
-+		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
-+}
- 
- /*
-  * This can be called during boot to increase the size of the consistent
-@@ -178,7 +226,6 @@ int dma_mmap_writecombine(struct device *, struct vm_area_struct *,
-  */
- extern void __init init_consistent_dma_size(unsigned long size);
- 
--
- /*
-  * For SA-1111, IXP425, and ADI systems  the dma-mapping functions are "magic"
-  * and utilize bounce buffers as needed to work around limited DMA windows.
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 368cb69..eaa7260 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -118,6 +118,9 @@ static void arm_dma_sync_single_for_device(struct device *dev,
- static int arm_dma_set_mask(struct device *dev, u64 dma_mask);
- 
- struct dma_map_ops arm_dma_ops = {
-+	.alloc			= arm_dma_alloc,
-+	.free			= arm_dma_free,
-+	.mmap			= arm_dma_mmap,
- 	.map_page		= arm_dma_map_page,
- 	.unmap_page		= arm_dma_unmap_page,
- 	.map_sg			= arm_dma_map_sg,
-@@ -687,37 +690,34 @@ static void *__dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-  * Allocate DMA-coherent memory space and return both the kernel remapped
-  * virtual and bus address for that space.
-  */
--void *dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle,
--			 gfp_t gfp)
-+void *arm_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+		    gfp_t gfp, struct dma_attrs *attrs)
- {
-+	pgprot_t prot = dma_get_attr(DMA_ATTR_WRITE_COMBINE, attrs) ?
-+			pgprot_writecombine(pgprot_kernel) :
-+			pgprot_dmacoherent(pgprot_kernel);
- 	void *memory;
- 
- 	if (dma_alloc_from_coherent(dev, size, handle, &memory))
- 		return memory;
- 
--	return __dma_alloc(dev, size, handle, gfp,
--			   pgprot_dmacoherent(pgprot_kernel));
-+	return __dma_alloc(dev, size, handle, gfp, prot);
- }
--EXPORT_SYMBOL(dma_alloc_coherent);
- 
- /*
-- * Allocate a writecombining region, in much the same way as
-- * dma_alloc_coherent above.
-+ * Create userspace mapping for the DMA-coherent memory.
-  */
--void *
--dma_alloc_writecombine(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp)
--{
--	return __dma_alloc(dev, size, handle, gfp,
--			   pgprot_writecombine(pgprot_kernel));
--}
--EXPORT_SYMBOL(dma_alloc_writecombine);
--
--static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
--		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+		 void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+		 struct dma_attrs *attrs)
- {
- 	int ret = -ENXIO;
- #ifdef CONFIG_MMU
- 	unsigned long pfn = dma_to_pfn(dev, dma_addr);
-+	vma->vm_page_prot = dma_get_attr(DMA_ATTR_WRITE_COMBINE, attrs) ?
-+			    pgprot_writecombine(vma->vm_page_prot) :
-+			    pgprot_dmacoherent(vma->vm_page_prot);
-+
- 	ret = remap_pfn_range(vma, vma->vm_start,
- 			      pfn + vma->vm_pgoff,
- 			      vma->vm_end - vma->vm_start,
-@@ -727,27 +727,12 @@ static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 	return ret;
- }
- 
--int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
--		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
--{
--	vma->vm_page_prot = pgprot_dmacoherent(vma->vm_page_prot);
--	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
--}
--EXPORT_SYMBOL(dma_mmap_coherent);
--
--int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
--			  void *cpu_addr, dma_addr_t dma_addr, size_t size)
--{
--	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
--	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
--}
--EXPORT_SYMBOL(dma_mmap_writecombine);
--
- 
- /*
-  * Free a buffer as defined by the above mapping.
-  */
--void dma_free_coherent(struct device *dev, size_t size, void *cpu_addr, dma_addr_t handle)
-+void arm_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+		  dma_addr_t handle, struct dma_attrs *attrs)
- {
- 	struct page *page = pfn_to_page(dma_to_pfn(dev, handle));
- 
-@@ -771,7 +756,6 @@ void dma_free_coherent(struct device *dev, size_t size, void *cpu_addr, dma_addr
- 		__free_from_contiguous(dev, page, size);
- 	}
- }
--EXPORT_SYMBOL(dma_free_coherent);
- 
- static void dma_cache_maint_page(struct page *page, unsigned long offset,
- 	size_t size, enum dma_data_direction dir,
-diff --git a/include/linux/dma-attrs.h b/include/linux/dma-attrs.h
-index 71ad34e..ada61e1 100644
---- a/include/linux/dma-attrs.h
-+++ b/include/linux/dma-attrs.h
-@@ -13,6 +13,7 @@
- enum dma_attr {
- 	DMA_ATTR_WRITE_BARRIER,
- 	DMA_ATTR_WEAK_ORDERING,
-+	DMA_ATTR_WRITE_COMBINE,
- 	DMA_ATTR_MAX,
- };
- 
--- 
-1.7.1.569.g6f426
+These patches are available on Code Aurora:
+
+https://www.codeaurora.org/patches/quic/hlk/hexagon-linux-20111018.tar.gz
+
+Thanks to everyone for their feedback!
+
+-Richard Kuo
+
+
+Richard Kuo (36):
+  Hexagon: Add generic headers
+  Hexagon: Core arch-specific header files
+  Hexagon: Add bitops support
+  Hexagon: Add atomic ops support
+  Hexagon: Add syscalls
+  Hexagon: Add processor and system headers
+  Hexagon: Add threadinfo
+  Hexagon: Add delay functions
+  Hexagon: Add checksum functions
+  Hexagon: Add memcpy and memset accelerated functions
+  Hexagon: Add hypervisor interface
+  Hexagon: Export ksyms defined in assembly files.
+  Hexagon: Support dynamic module loading.
+  Hexagon: Add signal functions
+  Hexagon: Add init_task and process functions
+  Hexagon: Add startup code
+  Hexagon: Add interrupts
+  Hexagon: Add time and timer functions
+  Hexagon: Add ptrace support
+  Hexagon: Provide basic debugging and system trap support.
+  Hexagon: Add SMP support
+  Hexagon: Add locking types and functions
+  Hexagon: Add user access functions
+  Hexagon: Provide basic implementation and/or stubs for I/O routines.
+  Hexagon: Implement basic cache-flush support
+  Hexagon: Implement basic TLB management routines for Hexagon.
+  Hexagon: Provide DMA implementation
+  Hexagon: Add ioremap support
+  Hexagon: Add page table header files & etc.
+  Hexagon: Add page-fault support.
+  Hexagon: kgdb support files
+  Hexagon: Comet platform support
+  Hexagon: Add configuration and makefiles for the Hexagon
+    architecture.
+  Hexagon: Add basic stacktrace functionality for Hexagon architecture.
+  Hexagon: Add self to MAINTAINERS
+  Add extra arch overrides to asm-generic/checksum.h
+
+ MAINTAINERS                               |    6 +
+ arch/hexagon/Kconfig                      |  220 ++++++++++++
+ arch/hexagon/Makefile                     |   59 +++
+ arch/hexagon/configs/comet_defconfig      |   85 +++++
+ arch/hexagon/include/asm/Kbuild           |   59 +++
+ arch/hexagon/include/asm/asm-offsets.h    |    1 +
+ arch/hexagon/include/asm/atomic.h         |  164 +++++++++
+ arch/hexagon/include/asm/bitops.h         |  301 ++++++++++++++++
+ arch/hexagon/include/asm/bitsperlong.h    |   26 ++
+ arch/hexagon/include/asm/byteorder.h      |   28 ++
+ arch/hexagon/include/asm/cache.h          |   34 ++
+ arch/hexagon/include/asm/cacheflush.h     |   99 ++++++
+ arch/hexagon/include/asm/checksum.h       |   50 +++
+ arch/hexagon/include/asm/delay.h          |   28 ++
+ arch/hexagon/include/asm/dma-mapping.h    |  101 ++++++
+ arch/hexagon/include/asm/dma.h            |   29 ++
+ arch/hexagon/include/asm/elf.h            |  229 ++++++++++++
+ arch/hexagon/include/asm/fixmap.h         |   73 ++++
+ arch/hexagon/include/asm/fpu.h            |    4 +
+ arch/hexagon/include/asm/futex.h          |  137 ++++++++
+ arch/hexagon/include/asm/hexagon_vm.h     |  281 +++++++++++++++
+ arch/hexagon/include/asm/intrinsics.h     |   26 ++
+ arch/hexagon/include/asm/io.h             |  326 +++++++++++++++++
+ arch/hexagon/include/asm/irq.h            |   36 ++
+ arch/hexagon/include/asm/irqflags.h       |   62 ++++
+ arch/hexagon/include/asm/kgdb.h           |   43 +++
+ arch/hexagon/include/asm/linkage.h        |   25 ++
+ arch/hexagon/include/asm/mem-layout.h     |  112 ++++++
+ arch/hexagon/include/asm/mmu.h            |   37 ++
+ arch/hexagon/include/asm/mmu_context.h    |  100 ++++++
+ arch/hexagon/include/asm/module.h         |   26 ++
+ arch/hexagon/include/asm/mutex.h          |    8 +
+ arch/hexagon/include/asm/page.h           |  157 +++++++++
+ arch/hexagon/include/asm/param.h          |   26 ++
+ arch/hexagon/include/asm/perf_event.h     |   24 ++
+ arch/hexagon/include/asm/pgalloc.h        |  146 ++++++++
+ arch/hexagon/include/asm/pgtable.h        |  518 +++++++++++++++++++++++++++
+ arch/hexagon/include/asm/processor.h      |  123 +++++++
+ arch/hexagon/include/asm/ptrace.h         |   35 ++
+ arch/hexagon/include/asm/registers.h      |  236 +++++++++++++
+ arch/hexagon/include/asm/setup.h          |   29 ++
+ arch/hexagon/include/asm/sigcontext.h     |   33 ++
+ arch/hexagon/include/asm/signal.h         |   26 ++
+ arch/hexagon/include/asm/smp.h            |   44 +++
+ arch/hexagon/include/asm/spinlock.h       |  186 ++++++++++
+ arch/hexagon/include/asm/spinlock_types.h |   42 +++
+ arch/hexagon/include/asm/string.h         |   32 ++
+ arch/hexagon/include/asm/suspend.h        |   27 ++
+ arch/hexagon/include/asm/swab.h           |   24 ++
+ arch/hexagon/include/asm/syscall.h        |   54 +++
+ arch/hexagon/include/asm/system.h         |  126 +++++++
+ arch/hexagon/include/asm/thread_info.h    |  154 ++++++++
+ arch/hexagon/include/asm/time.h           |   29 ++
+ arch/hexagon/include/asm/timer-regs.h     |   39 ++
+ arch/hexagon/include/asm/timex.h          |   37 ++
+ arch/hexagon/include/asm/tlb.h            |   39 ++
+ arch/hexagon/include/asm/tlbflush.h       |   58 +++
+ arch/hexagon/include/asm/traps.h          |   29 ++
+ arch/hexagon/include/asm/uaccess.h        |  116 ++++++
+ arch/hexagon/include/asm/unistd.h         |   36 ++
+ arch/hexagon/include/asm/user.h           |   81 +++++
+ arch/hexagon/include/asm/vdso.h           |   31 ++
+ arch/hexagon/include/asm/vm_fault.h       |   26 ++
+ arch/hexagon/include/asm/vm_mmu.h         |  111 ++++++
+ arch/hexagon/kernel/Makefile              |   19 +
+ arch/hexagon/kernel/asm-offsets.c         |  104 ++++++
+ arch/hexagon/kernel/dma.c                 |  220 ++++++++++++
+ arch/hexagon/kernel/head.S                |  162 +++++++++
+ arch/hexagon/kernel/hexagon_ksyms.c       |   42 +++
+ arch/hexagon/kernel/init_task.c           |   54 +++
+ arch/hexagon/kernel/irq_cpu.c             |   90 +++++
+ arch/hexagon/kernel/kgdb.c                |  255 ++++++++++++++
+ arch/hexagon/kernel/module.c              |  162 +++++++++
+ arch/hexagon/kernel/process.c             |  279 +++++++++++++++
+ arch/hexagon/kernel/ptrace.c              |  180 ++++++++++
+ arch/hexagon/kernel/reset.c               |   38 ++
+ arch/hexagon/kernel/setup.c               |  145 ++++++++
+ arch/hexagon/kernel/signal.c              |  345 ++++++++++++++++++
+ arch/hexagon/kernel/smp.c                 |  276 +++++++++++++++
+ arch/hexagon/kernel/stacktrace.c          |   66 ++++
+ arch/hexagon/kernel/syscall.c             |   90 +++++
+ arch/hexagon/kernel/syscalltab.c          |   32 ++
+ arch/hexagon/kernel/time.c                |  250 +++++++++++++
+ arch/hexagon/kernel/topology.c            |   52 +++
+ arch/hexagon/kernel/trampoline.S          |   35 ++
+ arch/hexagon/kernel/traps.c               |  454 ++++++++++++++++++++++++
+ arch/hexagon/kernel/vdso.c                |  101 ++++++
+ arch/hexagon/kernel/vm_entry.S            |  269 ++++++++++++++
+ arch/hexagon/kernel/vm_events.c           |  101 ++++++
+ arch/hexagon/kernel/vm_init_segtable.S    |  442 +++++++++++++++++++++++
+ arch/hexagon/kernel/vm_ops.S              |  102 ++++++
+ arch/hexagon/kernel/vm_switch.S           |   95 +++++
+ arch/hexagon/kernel/vm_vectors.S          |   50 +++
+ arch/hexagon/kernel/vmlinux.lds.S         |   93 +++++
+ arch/hexagon/lib/Makefile                 |    4 +
+ arch/hexagon/lib/checksum.c               |  203 +++++++++++
+ arch/hexagon/lib/io.c                     |   91 +++++
+ arch/hexagon/lib/memcpy.S                 |  543 +++++++++++++++++++++++++++++
+ arch/hexagon/lib/memset.S                 |  316 +++++++++++++++++
+ arch/hexagon/mm/Makefile                  |    7 +
+ arch/hexagon/mm/cache.c                   |  128 +++++++
+ arch/hexagon/mm/copy_from_user.S          |  114 ++++++
+ arch/hexagon/mm/copy_to_user.S            |   92 +++++
+ arch/hexagon/mm/copy_user_template.S      |  185 ++++++++++
+ arch/hexagon/mm/init.c                    |  276 +++++++++++++++
+ arch/hexagon/mm/ioremap.c                 |   56 +++
+ arch/hexagon/mm/pgalloc.c                 |   25 ++
+ arch/hexagon/mm/strnlen_user.S            |  140 ++++++++
+ arch/hexagon/mm/uaccess.c                 |   59 +++
+ arch/hexagon/mm/vm_fault.c                |  187 ++++++++++
+ arch/hexagon/mm/vm_tlb.c                  |   93 +++++
+ include/asm-generic/checksum.h            |    4 +
+ include/asm-generic/rwsem.h               |  132 +++++++
+ 113 files changed, 12747 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/Kconfig
+ create mode 100644 arch/hexagon/Makefile
+ create mode 100644 arch/hexagon/configs/comet_defconfig
+ create mode 100644 arch/hexagon/include/asm/Kbuild
+ create mode 100644 arch/hexagon/include/asm/asm-offsets.h
+ create mode 100644 arch/hexagon/include/asm/atomic.h
+ create mode 100644 arch/hexagon/include/asm/bitops.h
+ create mode 100644 arch/hexagon/include/asm/bitsperlong.h
+ create mode 100644 arch/hexagon/include/asm/byteorder.h
+ create mode 100644 arch/hexagon/include/asm/cache.h
+ create mode 100644 arch/hexagon/include/asm/cacheflush.h
+ create mode 100644 arch/hexagon/include/asm/checksum.h
+ create mode 100644 arch/hexagon/include/asm/delay.h
+ create mode 100644 arch/hexagon/include/asm/dma-mapping.h
+ create mode 100644 arch/hexagon/include/asm/dma.h
+ create mode 100644 arch/hexagon/include/asm/elf.h
+ create mode 100644 arch/hexagon/include/asm/fixmap.h
+ create mode 100644 arch/hexagon/include/asm/fpu.h
+ create mode 100644 arch/hexagon/include/asm/futex.h
+ create mode 100644 arch/hexagon/include/asm/hexagon_vm.h
+ create mode 100644 arch/hexagon/include/asm/intrinsics.h
+ create mode 100644 arch/hexagon/include/asm/io.h
+ create mode 100644 arch/hexagon/include/asm/irq.h
+ create mode 100644 arch/hexagon/include/asm/irqflags.h
+ create mode 100644 arch/hexagon/include/asm/kgdb.h
+ create mode 100644 arch/hexagon/include/asm/linkage.h
+ create mode 100644 arch/hexagon/include/asm/mem-layout.h
+ create mode 100644 arch/hexagon/include/asm/mmu.h
+ create mode 100644 arch/hexagon/include/asm/mmu_context.h
+ create mode 100644 arch/hexagon/include/asm/module.h
+ create mode 100644 arch/hexagon/include/asm/mutex.h
+ create mode 100644 arch/hexagon/include/asm/page.h
+ create mode 100644 arch/hexagon/include/asm/param.h
+ create mode 100644 arch/hexagon/include/asm/perf_event.h
+ create mode 100644 arch/hexagon/include/asm/pgalloc.h
+ create mode 100644 arch/hexagon/include/asm/pgtable.h
+ create mode 100644 arch/hexagon/include/asm/processor.h
+ create mode 100644 arch/hexagon/include/asm/ptrace.h
+ create mode 100644 arch/hexagon/include/asm/registers.h
+ create mode 100644 arch/hexagon/include/asm/setup.h
+ create mode 100644 arch/hexagon/include/asm/sigcontext.h
+ create mode 100644 arch/hexagon/include/asm/signal.h
+ create mode 100644 arch/hexagon/include/asm/smp.h
+ create mode 100644 arch/hexagon/include/asm/spinlock.h
+ create mode 100644 arch/hexagon/include/asm/spinlock_types.h
+ create mode 100644 arch/hexagon/include/asm/string.h
+ create mode 100644 arch/hexagon/include/asm/suspend.h
+ create mode 100644 arch/hexagon/include/asm/swab.h
+ create mode 100644 arch/hexagon/include/asm/syscall.h
+ create mode 100644 arch/hexagon/include/asm/system.h
+ create mode 100644 arch/hexagon/include/asm/thread_info.h
+ create mode 100644 arch/hexagon/include/asm/time.h
+ create mode 100644 arch/hexagon/include/asm/timer-regs.h
+ create mode 100644 arch/hexagon/include/asm/timex.h
+ create mode 100644 arch/hexagon/include/asm/tlb.h
+ create mode 100644 arch/hexagon/include/asm/tlbflush.h
+ create mode 100644 arch/hexagon/include/asm/traps.h
+ create mode 100644 arch/hexagon/include/asm/uaccess.h
+ create mode 100644 arch/hexagon/include/asm/unistd.h
+ create mode 100644 arch/hexagon/include/asm/user.h
+ create mode 100644 arch/hexagon/include/asm/vdso.h
+ create mode 100644 arch/hexagon/include/asm/vm_fault.h
+ create mode 100644 arch/hexagon/include/asm/vm_mmu.h
+ create mode 100644 arch/hexagon/kernel/Makefile
+ create mode 100644 arch/hexagon/kernel/asm-offsets.c
+ create mode 100644 arch/hexagon/kernel/dma.c
+ create mode 100644 arch/hexagon/kernel/head.S
+ create mode 100644 arch/hexagon/kernel/hexagon_ksyms.c
+ create mode 100644 arch/hexagon/kernel/init_task.c
+ create mode 100644 arch/hexagon/kernel/irq_cpu.c
+ create mode 100644 arch/hexagon/kernel/kgdb.c
+ create mode 100644 arch/hexagon/kernel/module.c
+ create mode 100644 arch/hexagon/kernel/process.c
+ create mode 100644 arch/hexagon/kernel/ptrace.c
+ create mode 100644 arch/hexagon/kernel/reset.c
+ create mode 100644 arch/hexagon/kernel/setup.c
+ create mode 100644 arch/hexagon/kernel/signal.c
+ create mode 100644 arch/hexagon/kernel/smp.c
+ create mode 100644 arch/hexagon/kernel/stacktrace.c
+ create mode 100644 arch/hexagon/kernel/syscall.c
+ create mode 100644 arch/hexagon/kernel/syscalltab.c
+ create mode 100644 arch/hexagon/kernel/time.c
+ create mode 100644 arch/hexagon/kernel/topology.c
+ create mode 100644 arch/hexagon/kernel/trampoline.S
+ create mode 100644 arch/hexagon/kernel/traps.c
+ create mode 100644 arch/hexagon/kernel/vdso.c
+ create mode 100644 arch/hexagon/kernel/vm_entry.S
+ create mode 100644 arch/hexagon/kernel/vm_events.c
+ create mode 100644 arch/hexagon/kernel/vm_init_segtable.S
+ create mode 100644 arch/hexagon/kernel/vm_ops.S
+ create mode 100644 arch/hexagon/kernel/vm_switch.S
+ create mode 100644 arch/hexagon/kernel/vm_vectors.S
+ create mode 100644 arch/hexagon/kernel/vmlinux.lds.S
+ create mode 100644 arch/hexagon/lib/Makefile
+ create mode 100644 arch/hexagon/lib/checksum.c
+ create mode 100644 arch/hexagon/lib/io.c
+ create mode 100644 arch/hexagon/lib/memcpy.S
+ create mode 100644 arch/hexagon/lib/memset.S
+ create mode 100644 arch/hexagon/mm/Makefile
+ create mode 100644 arch/hexagon/mm/cache.c
+ create mode 100644 arch/hexagon/mm/copy_from_user.S
+ create mode 100644 arch/hexagon/mm/copy_to_user.S
+ create mode 100644 arch/hexagon/mm/copy_user_template.S
+ create mode 100644 arch/hexagon/mm/init.c
+ create mode 100644 arch/hexagon/mm/ioremap.c
+ create mode 100644 arch/hexagon/mm/pgalloc.c
+ create mode 100644 arch/hexagon/mm/strnlen_user.S
+ create mode 100644 arch/hexagon/mm/uaccess.c
+ create mode 100644 arch/hexagon/mm/vm_fault.c
+ create mode 100644 arch/hexagon/mm/vm_tlb.c
+ create mode 100644 include/asm-generic/rwsem.h
+
+
+--
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
