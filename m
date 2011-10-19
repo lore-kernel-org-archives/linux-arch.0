@@ -1,115 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:32631 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754452Ab1JSEFn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:43 -0400
-Message-ID: <e97c6e$3qqv6d@wolverine02.qualcomm.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:49486 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754398Ab1JSEFg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 00:05:36 -0400
+Message-ID: <093448$3qutod@wolverine01.qualcomm.com>
 From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 18 Oct 2011 22:46:25 -0500
-Subject: [PATCH v5 32/36] Hexagon: Comet platform support
+Date: Tue, 18 Oct 2011 22:44:33 -0500
+Subject: [PATCH v5 28/36] Hexagon: Add ioremap support
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111019034625.71gC6ARpSwgTbL6sGQw1Sb1UcH8Z8cH7QEGvIgx9doc@z>
+Message-ID: <20111019034433.AwC8QIe8EF-94Vu0i8IbI188uGCxokSTo_VoESBTozA@z>
 
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/hexagon/configs/comet_defconfig |   85 ++++++++++++++++++++++++++++++++++
- 1 files changed, 85 insertions(+), 0 deletions(-)
- create mode 100644 arch/hexagon/configs/comet_defconfig
+ arch/hexagon/mm/ioremap.c |   56 +++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 56 insertions(+), 0 deletions(-)
+ create mode 100644 arch/hexagon/mm/ioremap.c
 
-diff --git a/arch/hexagon/configs/comet_defconfig b/arch/hexagon/configs/comet_defconfig
+diff --git a/arch/hexagon/mm/ioremap.c b/arch/hexagon/mm/ioremap.c
 new file mode 100644
-index 0000000..e324f65
+index 0000000..3a37bc3
 --- /dev/null
-+++ b/arch/hexagon/configs/comet_defconfig
-@@ -0,0 +1,85 @@
-+CONFIG_SMP=y
-+CONFIG_DEFAULT_MMAP_MIN_ADDR=0
-+CONFIG_HZ_100=y
-+CONFIG_EXPERIMENTAL=y
-+CONFIG_CROSS_COMPILE="hexagon-"
-+CONFIG_LOCALVERSION="-smp"
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_TASKSTATS=y
-+CONFIG_TASK_DELAY_ACCT=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_LOG_BUF_SHIFT=18
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_VM_EVENT_COUNTERS is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
-+# CONFIG_STANDALONE is not set
-+CONFIG_CONNECTOR=y
-+CONFIG_BLK_DEV_LOOP=y
-+CONFIG_BLK_DEV_NBD=y
-+CONFIG_NETDEVICES=y
-+CONFIG_MII=y
-+CONFIG_PHYLIB=y
-+CONFIG_NET_ETHERNET=y
-+# CONFIG_NETDEV_1000 is not set
-+# CONFIG_NETDEV_10000 is not set
-+# CONFIG_INPUT_MOUSEDEV is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_SERIO is not set
-+# CONFIG_CONSOLE_TRANSLATIONS is not set
-+CONFIG_LEGACY_PTY_COUNT=64
-+# CONFIG_DEVKMEM is not set
-+# CONFIG_HW_RANDOM is not set
-+CONFIG_SPI=y
-+CONFIG_SPI_DEBUG=y
-+CONFIG_SPI_BITBANG=y
-+# CONFIG_HWMON is not set
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID_SUPPORT is not set
-+# CONFIG_USB_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_EXT2_FS_POSIX_ACL=y
-+CONFIG_EXT2_FS_SECURITY=y
-+CONFIG_EXT3_FS=y
-+# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set
-+CONFIG_EXT3_FS_POSIX_ACL=y
-+CONFIG_EXT3_FS_SECURITY=y
-+CONFIG_QUOTA=y
-+CONFIG_PROC_KCORE=y
-+CONFIG_TMPFS=y
-+CONFIG_TMPFS_POSIX_ACL=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+CONFIG_NFS_V3=y
-+CONFIG_NFS_V3_ACL=y
-+# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_LRO is not set
-+# CONFIG_INET_DIAG is not set
-+# CONFIG_IPV6 is not set
-+CONFIG_CRYPTO_MD5=y
-+# CONFIG_CRYPTO_ANSI_CPRNG is not set
-+# CONFIG_CRYPTO_HW is not set
-+CONFIG_CRC_CCITT=y
-+CONFIG_CRC16=y
-+CONFIG_CRC_T10DIF=y
-+CONFIG_LIBCRC32C=y
-+CONFIG_FRAME_WARN=0
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_DEBUG_FS=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_DEBUG_INFO=y
++++ b/arch/hexagon/mm/ioremap.c
+@@ -0,0 +1,56 @@
++/*
++ * I/O remap functions for Hexagon
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
++
++#include <linux/io.h>
++#include <linux/vmalloc.h>
++
++void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
++{
++	unsigned long last_addr, addr;
++	unsigned long offset = phys_addr & ~PAGE_MASK;
++	struct vm_struct *area;
++
++	pgprot_t prot = __pgprot(_PAGE_PRESENT|_PAGE_READ|_PAGE_WRITE
++					|(__HEXAGON_C_DEV << 6));
++
++	last_addr = phys_addr + size - 1;
++
++	/*  Wrapping not allowed  */
++	if (!size || (last_addr < phys_addr))
++		return NULL;
++
++	/*  Rounds up to next page size, including whole-page offset */
++	size = PAGE_ALIGN(offset + size);
++
++	area = get_vm_area(size, VM_IOREMAP);
++	addr = (unsigned long)area->addr;
++
++	if (ioremap_page_range(addr, addr+size, phys_addr, prot)) {
++		vunmap((void *)addr);
++		return NULL;
++	}
++
++	return (void __iomem *) (offset + addr);
++}
++
++void __iounmap(const volatile void __iomem *addr)
++{
++	vunmap((void *) ((unsigned long) addr & PAGE_MASK));
++}
 -- 
 1.7.1
 
