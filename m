@@ -1,93 +1,55 @@
-From: Stefan Richter <stefanr@s5r6.in-berlin.de>
-Subject: Re: [PATCH] dma-mapping: fix sync_single_range_* DMA debugging
-Date: Wed, 19 Oct 2011 10:59:10 +0200
-Message-ID: <20111019105910.4f79b3a8@stein>
-References: <4DC960B2.40406@ladisch.de>
-	<20110510203826.17d1ad91@stein>
-	<4DCAAEFF.8060907@ladisch.de>
-	<20110517223618.43633eee@stein>
-	<4DD36B16.6040802@ladisch.de>
-	<4E920ABE.8070100@ladisch.de>
-	<20111015171523.434f47c8@stein>
-	<4E99E92B.6020408@ladisch.de>
-	<4E99F69F.1080701@ladisch.de>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: Please include const-sections into linux-next
+Date: Wed, 19 Oct 2011 10:54:23 -0500
+Message-ID: <1319039663.3034.18.camel@dabdike.int.hansenpartnership.com>
+References: <20111013233818.GB26654@one.firstfloor.org>
+	 <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com>
+	 <20111016033514.GC26654@one.firstfloor.org>
+	 <1318799006.2995.1.camel@dabdike.int.hansenpartnership.com>
+	 <0e9ef9174a0089187fde0b3d084672ad.squirrel@www.firstfloor.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from einhorn.in-berlin.de ([192.109.42.8]:60088 "EHLO
-	einhorn.in-berlin.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754747Ab1JSI7i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 04:59:38 -0400
-In-Reply-To: <4E99F69F.1080701@ladisch.de>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:36487 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751711Ab1JSPy0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 19 Oct 2011 11:54:26 -0400
+In-Reply-To: <0e9ef9174a0089187fde0b3d084672ad.squirrel@www.firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Clemens Ladisch <clemens@ladisch.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andi Kleen <andi@firstfloor.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Oct 15 Clemens Ladisch wrote:
-> Commit 5fd75a7850b5 (dma-mapping: remove unnecessary sync_single_range_*
-> in dma_map_ops) unified not only the dma_map_ops but also the
-> corresponding debug_dma_sync_* calls.  This led to spurious WARN()ings
-> like the following because the DMA debug code was no longer able to
-> detect the DMA buffer base address without the separate offset parameter:
+On Sun, 2011-10-16 at 23:57 +0200, Andi Kleen wrote:
+> vate email?
+> >
+> > OK, so after fixing up that one, the next failure is:
+> >
+> > drivers/net/fealnx.c:95: error: version causes a section type conflict
+> > drivers/net/fealnx.c:1944: error: fealnx_pci_tbl causes a section type
+> > conflict
 > 
-> WARNING: at lib/dma-debug.c:911 check_sync+0xce/0x446()
-> firewire_ohci 0000:04:00.0: DMA-API: device driver tries to sync DMA memory it has not allocated [device address=0x00000000cedaa400] [size=1024 bytes]
-> Call Trace: ...
->  [<ffffffff811326a5>] check_sync+0xce/0x446
->  [<ffffffff81132ad9>] debug_dma_sync_single_for_device+0x39/0x3b
->  [<ffffffffa01d6e6a>] ohci_queue_iso+0x4f3/0x77d [firewire_ohci]
->  ...
+> Hmm, this is weird (just like the other error)
+> I wonder if the pa-risc tool chain has some general problems with sections
 > 
-> To fix this, unshare the sync_single_* and sync_single_range_*
-> implementations so that we are able to call the correct debug_dma_sync_*
-> functions.
+> On a successful build with the same config could you send me the output of
 > 
-> Signed-off-by: Clemens Ladisch <clemens@ladisch.de>
+> make drivers/net/fealnx.s
+> and
+> make drivers/net/fealnx.i
 
-Reviewed-by: Stefan Richter <stefanr@s5r6.in-berlin.de>
+> in the same config privately? From that I can see if there's something else
+> in init.rodata that does not match my i386 build.
 
-> ---
->  include/asm-generic/dma-mapping-common.h |   14 ++++++++++++--
->  1 files changed, 12 insertions(+), 2 deletions(-)
-> 
-> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-> index 0c80bb3..9e31514 100644
-> --- a/include/asm-generic/dma-mapping-common.h
-> +++ b/include/asm-generic/dma-mapping-common.h
-> @@ -123,7 +123,12 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
->  						 size_t size,
->  						 enum dma_data_direction dir)
->  {
-> -	dma_sync_single_for_cpu(dev, addr + offset, size, dir);
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
-> +
-> +	BUG_ON(!valid_dma_direction(dir));
-> +	if (ops->sync_single_for_cpu)
-> +		ops->sync_single_for_cpu(dev, addr + offset, size, dir);
-> +	debug_dma_sync_single_range_for_cpu(dev, addr, offset, size, dir);
->  }
-> 
->  static inline void dma_sync_single_range_for_device(struct device *dev,
-> @@ -132,7 +137,12 @@ static inline void dma_sync_single_range_for_device(struct device *dev,
->  						    size_t size,
->  						    enum dma_data_direction dir)
->  {
-> -	dma_sync_single_for_device(dev, addr + offset, size, dir);
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
-> +
-> +	BUG_ON(!valid_dma_direction(dir));
-> +	if (ops->sync_single_for_device)
-> +		ops->sync_single_for_device(dev, addr + offset, size, dir);
-> +	debug_dma_sync_single_range_for_device(dev, addr, offset, size, dir);
->  }
-> 
->  static inline void
+Yes, I'll send under separate cover.
 
+> One alternative to track it down would be to apply the attached
+> patch to the gcc, then gcc would print it out.
 
+I think the basic problem that excites the toolchain somehow is
+sectional annotations.  Can't we just dump them and do it all in a
+linker script?  Linker scripts seem to be much better tested.
 
--- 
-Stefan Richter
--=====-==-== =-=- =--==
-http://arcgraph.de/sr/
+James
