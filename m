@@ -1,53 +1,48 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] compat: sync compat_stats with statfs.
-Date: Thu, 20 Oct 2011 00:28:42 +0200
-Message-ID: <1435724.hJQAMQ2ynm@wuerfel>
-References: <m1r52b4ajh.fsf@fess.ebiederm.org>
+From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+Subject: Re: [PATCH] dma-mapping: fix sync_single_range_* DMA debugging
+Date: Sat, 22 Oct 2011 14:08:49 +0900
+Message-ID: <20111022140751W.fujita.tomonori@lab.ntt.co.jp>
+References: <20111015171523.434f47c8@stein>
+	<4E99E92B.6020408@ladisch.de>
+	<4E99F69F.1080701@ladisch.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:50841 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753442Ab1JUQxr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Oct 2011 12:53:47 -0400
-In-Reply-To: <m1r52b4ajh.fsf@fess.ebiederm.org>
+Received: from sh.osrg.net ([192.16.179.4]:59946 "EHLO sh.osrg.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751878Ab1JVFJZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Oct 2011 01:09:25 -0400
+In-Reply-To: <4E99F69F.1080701@ladisch.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Christoph Hellwig <hch@infradead.org>, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Kyle McMartin <kyle@mcmartin.ca>
+To: clemens@ladisch.de
+Cc: arnd@arndb.de, akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, konrad.wilk@oracle.com, stefanr@s5r6.in-berlin.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Monday 17 October 2011 13:40:02 Eric W. Biederman wrote:
-> This was found by inspection while tracking a similar
-> bug in compat_statfs64, that has been fixed in mainline
-> since decemeber.
+On Sat, 15 Oct 2011 23:09:51 +0200
+Clemens Ladisch <clemens@ladisch.de> wrote:
+
+> Commit 5fd75a7850b5 (dma-mapping: remove unnecessary sync_single_range_*
+> in dma_map_ops) unified not only the dma_map_ops but also the
+> corresponding debug_dma_sync_* calls.  This led to spurious WARN()ings
+> like the following because the DMA debug code was no longer able to
+> detect the DMA buffer base address without the separate offset parameter:
 > 
-> - This fixes a bug where not all of the f_spare fields
->   were cleared on mips and s390.
-> - Add the f_flags field to struct compat_statfs
-> - Copy f_flags to userspace in case someone cares.
-> - Use __clear_user to copy the f_spare field to userspace
->   to ensure that all of the elements of f_spare are cleared.
->   On some architectures f_spare is has 5 ints and on some
->   architectures f_spare only has 4 ints.  Which makes
->   the previous technique of clearing each int individually
->   broken.
+> WARNING: at lib/dma-debug.c:911 check_sync+0xce/0x446()
+> firewire_ohci 0000:04:00.0: DMA-API: device driver tries to sync DMA memory it has not allocated [device address=0x00000000cedaa400] [size=1024 bytes]
+> Call Trace: ...
+>  [<ffffffff811326a5>] check_sync+0xce/0x446
+>  [<ffffffff81132ad9>] debug_dma_sync_single_for_device+0x39/0x3b
+>  [<ffffffffa01d6e6a>] ohci_queue_iso+0x4f3/0x77d [firewire_ohci]
+>  ...
 > 
-> I don't expect anyone actually uses the old statfs system
-> call anymore but if they do let them benefit from having
-> the compat and the native version working the same.
+> To fix this, unshare the sync_single_* and sync_single_range_*
+> implementations so that we are able to call the correct debug_dma_sync_*
+> functions.
 > 
-> Signed-off-by: Eric W. Biederman <ebiederm@xmission.com>
+> Signed-off-by: Clemens Ladisch <clemens@ladisch.de>
+> ---
+>  include/asm-generic/dma-mapping-common.h |   14 ++++++++++++--
+>  1 files changed, 12 insertions(+), 2 deletions(-)
 
-Looks good to me.
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-Apparently, this could have been worse on tile, which has
-#define compat_statfs statfs, so that the old
-"__put_user(0, &ubuf->f_spare[4]))" was writing beyond the
-end of struct statfs. Fortunately, this never gets called
-on tile, which only provides compat_sys_statfs64 to user space,
-not compat_sys_statfs.
-
-	Arnd
+Acked-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
