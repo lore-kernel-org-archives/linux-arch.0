@@ -1,48 +1,31 @@
-From: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
-Subject: Re: [PATCH] dma-mapping: fix sync_single_range_* DMA debugging
-Date: Sat, 22 Oct 2011 14:08:49 +0900
-Message-ID: <20111022140751W.fujita.tomonori@lab.ntt.co.jp>
-References: <20111015171523.434f47c8@stein>
-	<4E99E92B.6020408@ladisch.de>
-	<4E99F69F.1080701@ladisch.de>
+From: =?UTF-8?Q?Western_Union=C2=A9?= <grants@westernunion.com>
+Subject: Congratulation!!!  Money Is Awarded To You
+Date: Sat, 22 Oct 2011 20:46:21 +0100
+Message-ID: <eafa9b904cca71e90f5b5cdc59b10d82@sciug.org>
+Reply-To: <customer.service.western.un@hotmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sh.osrg.net ([192.16.179.4]:59946 "EHLO sh.osrg.net"
+Received: from mail.sciug.org ([41.221.92.236]:40393 "EHLO mail.sciug.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751878Ab1JVFJZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 22 Oct 2011 01:09:25 -0400
-In-Reply-To: <4E99F69F.1080701@ladisch.de>
+	id S1752135Ab1JVVwD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Oct 2011 17:52:03 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: clemens@ladisch.de
-Cc: arnd@arndb.de, akpm@linux-foundation.org, fujita.tomonori@lab.ntt.co.jp, konrad.wilk@oracle.com, stefanr@s5r6.in-berlin.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, 15 Oct 2011 23:09:51 +0200
-Clemens Ladisch <clemens@ladisch.de> wrote:
 
-> Commit 5fd75a7850b5 (dma-mapping: remove unnecessary sync_single_range_*
-> in dma_map_ops) unified not only the dma_map_ops but also the
-> corresponding debug_dma_sync_* calls.  This led to spurious WARN()ings
-> like the following because the DMA debug code was no longer able to
-> detect the DMA buffer base address without the separate offset parameter:
-> 
-> WARNING: at lib/dma-debug.c:911 check_sync+0xce/0x446()
-> firewire_ohci 0000:04:00.0: DMA-API: device driver tries to sync DMA memory it has not allocated [device address=0x00000000cedaa400] [size=1024 bytes]
-> Call Trace: ...
->  [<ffffffff811326a5>] check_sync+0xce/0x446
->  [<ffffffff81132ad9>] debug_dma_sync_single_for_device+0x39/0x3b
->  [<ffffffffa01d6e6a>] ohci_queue_iso+0x4f3/0x77d [firewire_ohci]
->  ...
-> 
-> To fix this, unshare the sync_single_* and sync_single_range_*
-> implementations so that we are able to call the correct debug_dma_sync_*
-> functions.
-> 
-> Signed-off-by: Clemens Ladisch <clemens@ladisch.de>
-> ---
->  include/asm-generic/dma-mapping-common.h |   14 ++++++++++++--
->  1 files changed, 12 insertions(+), 2 deletions(-)
 
-Acked-by: FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>
+--=20
+ Dear Beneficiary,
+
+ The sum of $900,000.00USD has been deposited in your name here in the=20
+ western union office by Ecowas Organisation, you are to contact Mr. To=
+m=20
+ Carlson to collect your money transfer control number (M.T.C.N).
+=20
+ Contact email: customer.service.western.un@hotmail.com
+=20
+ Western Union=C2=A9
+ Customer Service
