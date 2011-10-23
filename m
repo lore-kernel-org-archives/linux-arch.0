@@ -1,48 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([213.235.205.2]:47780 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753200Ab1JSQPk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Oct 2011 12:15:40 -0400
-Date: Wed, 19 Oct 2011 18:15:37 +0200
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: Please include const-sections into linux-next
-Message-ID: <20111019161537.GH15908@one.firstfloor.org>
-References: <20111013233818.GB26654@one.firstfloor.org> <1318631204.3018.101.camel@dabdike.int.hansenpartnership.com> <20111016033514.GC26654@one.firstfloor.org> <1318799006.2995.1.camel@dabdike.int.hansenpartnership.com> <0e9ef9174a0089187fde0b3d084672ad.squirrel@www.firstfloor.org> <1319039663.3034.18.camel@dabdike.int.hansenpartnership.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1319039663.3034.18.camel@dabdike.int.hansenpartnership.com>
+Received: from mail.southpole.se ([193.12.106.18]:34910 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752319Ab1JWKUX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:23 -0400
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH RFC 0/8] Signal: harmonize syscall restart logic
+Date: Sun, 23 Oct 2011 12:19:54 +0200
+Message-ID: <cover.1319364492.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Andi Kleen <andi@firstfloor.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20111019161537.UPyF-B8B20i_For7ZLyNDWdT7V8Ll1L1al2GnjVGgrw@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Message-ID: <20111023101954.ZVkXkKlBnImGcw8UX606CCu4WvZchwo15EcbdScdZYU@z>
 
-On Wed, Oct 19, 2011 at 10:54:23AM -0500, James Bottomley wrote:
-> 
-> > One alternative to track it down would be to apply the attached
-> > patch to the gcc, then gcc would print it out.
-> 
-> I think the basic problem that excites the toolchain somehow is
-> sectional annotations.  Can't we just dump them and do it all in a
 
-We already use these annotations all over. Just currently they mess up
-the 'r' and 'w' bits on the sections because a few (not the majority)
-of declarations mismatch the ro vs rw sections.  My patchkit was just trying
-to fix up those that were wrong
+I've been looking into trying to harmonize the architecture specific
+signal handling code.  With a couple of helper functions to mask some
+of the architecture specific bits, the code for do_signal and handle_signal
+(implemented by essentially everybody) start to look identical across
+all arch's and could likely be made generic.
 
-So you should be already using them.
+The big helper is the one in this series.  This one moves the syscall
+restart logic out to a common helper.  The arch specific bit here is
+the register manipulations required to actually effect the restart;
+this patch series moves those manipulations to the asm/syscall.h header
+which already attempts to define a generic syscall interface for several
+arch's today.
 
-Just need to find out what triggers your toolchain with these changes.
-I suspect it's some kind of toolchain bug.
+Where this series remains an RFC is due to a couple of open questions:
 
-> linker script?  Linker scripts seem to be much better tested.
+i)  ARM (and a few arch's copied from it) does its restart logic in two
+    steps so that a debugger can intervene; is there still value in
+    this approach or would the single step approach in this patch series
+    be sufficient for ARM (and others)?
 
-The linker script just declares the order of the section. 
-The attributes are a union of what the compiler declares.
-To dump them I just use objdump --section-headers or
-readelf -a usually.
+ii) The syscall.h interface requires that the information needed to do
+    the register manipulations be in the pt_regs struct.  This isn't
+    the case for all arch's today.  Are there any issues with putting that
+    info into pt_regs for those arch's?
 
--Andi
+With the rest of the cleanups in this series it currently comes to 64
+patches, so I'm just posting a couple of the syscall restart patches
+now for comment in order not to flood the lists.  I'll post the remainder
+of the series later based on the feedback from this series.
+
+/Jonas
+
+Jonas Bonn (8):
+  signal: introduce generic syscall restart logic
+  blackfin: implement syscall restart generically
+  frv: implement syscall restart generically
+  mips: implement syscall restart generically
+  x86: implement syscall restart generically
+  m68k: implement syscall restart generically
+  ia64: implement syscall restart generically
+  tile: implement syscall restart generically
+
+ arch/blackfin/include/asm/syscall.h |   26 +++++++++-
+ arch/blackfin/kernel/signal.c       |   47 +-----------------
+ arch/frv/include/asm/syscall.h      |   23 ++++++++-
+ arch/frv/kernel/signal.c            |   48 +-----------------
+ arch/ia64/include/asm/syscall.h     |   21 ++++++++
+ arch/ia64/kernel/signal.c           |   54 +--------------------
+ arch/m68k/include/asm/syscall.h     |   87 +++++++++++++++++++++++++++++++++
+ arch/m68k/kernel/signal_mm.c        |   45 +----------------
+ arch/m68k/kernel/signal_no.c        |   46 +----------------
+ arch/mips/include/asm/syscall.h     |   91 +++++++++++++++++++++++++++++++++++
+ arch/mips/kernel/signal.c           |   40 +--------------
+ arch/tile/include/asm/syscall.h     |   28 ++++++++++-
+ arch/tile/kernel/signal.c           |   52 ++------------------
+ arch/x86/include/asm/syscall.h      |   21 ++++++++
+ arch/x86/kernel/signal.c            |   43 +---------------
+ include/asm-generic/syscall.h       |   46 +++++++++++++++++-
+ include/linux/signal.h              |    3 +
+ kernel/signal.c                     |   72 +++++++++++++++++++++++++++-
+ 18 files changed, 435 insertions(+), 358 deletions(-)
+ create mode 100644 arch/m68k/include/asm/syscall.h
+ create mode 100644 arch/mips/include/asm/syscall.h
+
 -- 
-ak@linux.intel.com -- Speaking for myself only.
+1.7.5.4
+
