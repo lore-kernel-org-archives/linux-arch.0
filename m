@@ -1,17 +1,20 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH RFC 4/8] mips: implement syscall restart generically
-Date: Sun, 23 Oct 2011 12:19:58 +0200
-Message-ID: <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
+Subject: [PATCH RFC 7/8] ia64: implement syscall restart generically
+Date: Sun, 23 Oct 2011 12:20:01 +0200
+Message-ID: <673e9c328fc217dd4e36b8fe22db6812e400b98a.1319364492.git.jonas@southpole.se>
 References: <cover.1319364492.git.jonas@southpole.se>
-Return-path: <linux-mips-bounce@linux-mips.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.southpole.se ([193.12.106.18]:34922 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753282Ab1JWKUZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:25 -0400
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
 References: <cover.1319364492.git.jonas@southpole.se>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>, linux-ia64@vger.kernel.org
 
 
 Manipulating task state to effect re-execution of an interrupted syscall
@@ -30,175 +33,134 @@ using the generic syscall restart code by:
 i)  Implementing the register manipulations in asm/syscall.h
 ii) Replacing the restart logic with a call to handle_syscall_restart
 
-Cc: linux-mips@linux-mips.org
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 ---
- arch/mips/include/asm/syscall.h |   91 +++++++++++++++++++++++++++++++++++++++
- arch/mips/kernel/signal.c       |   40 +----------------
- 2 files changed, 94 insertions(+), 37 deletions(-)
- create mode 100644 arch/mips/include/asm/syscall.h
+ arch/ia64/include/asm/syscall.h |   21 +++++++++++++++
+ arch/ia64/kernel/signal.c       |   54 +--------------------------------------
+ 2 files changed, 22 insertions(+), 53 deletions(-)
 
-diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
-new file mode 100644
-index 0000000..7280d95
---- /dev/null
-+++ b/arch/mips/include/asm/syscall.h
-@@ -0,0 +1,91 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * Copyright (C) 2011 Jonas Bonn <jonas@southpole.se>
-+ */
-+
-+#ifndef _ASM_SYSCALL_H
-+#define _ASM_SYSCALL_H
-+
-+#include <linux/err.h>
-+#include <linux/sched.h>
+diff --git a/arch/ia64/include/asm/syscall.h b/arch/ia64/include/asm/syscall.h
+index a7ff1c6..ee18042 100644
+--- a/arch/ia64/include/asm/syscall.h
++++ b/arch/ia64/include/asm/syscall.h
+@@ -15,6 +15,7 @@
+ 
+ #include <linux/sched.h>
+ #include <linux/err.h>
 +#include <asm/unistd.h>
-+
-+static inline int
-+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->regs[0] ?: -1;
-+}
-+
-+static inline void
-+syscall_rollback(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->regs[2] = regs->regs[0];
-+	regs->regs[7] = regs->regs[26];
-+}
-+
+ 
+ static inline long syscall_get_nr(struct task_struct *task,
+ 				  struct pt_regs *regs)
+@@ -31,6 +32,26 @@ static inline void syscall_rollback(struct task_struct *task,
+ 	/* do nothing */
+ }
+ 
 +static inline void
 +syscall_clear(struct task_struct *task, struct pt_regs *regs)
 +{
-+	regs->regs[0] = 0;
++	regs->cr_ifs |= (1UL << 63);
 +}
 +
 +static inline void
 +syscall_restart(struct task_struct *task, struct pt_regs *regs)
 +{
 +	syscall_rollback(task, regs);
-+	regs->cp0_epc -= 4;
++	ia64_decrement_ip(regs);
 +}
 +
 +static inline void
 +syscall_do_restartblock(struct task_struct *task, struct pt_regs *regs)
 +{
-+	regs->regs[2] = current->thread.abi->restart;
-+	regs->regs[7] = regs->regs[26];
-+	regs->cp0_epc -= 4;
++	regs->r15 = __NR_restart_syscall;
++	ia64_decrement_ip(regs);
 +}
 +
-+static inline long
-+syscall_get_error(struct task_struct *task, struct pt_regs *regs)
-+{
-+	/*
-+	 * r7 == 1 if syscall returns error
-+	 * r2 contains _positive_ result
-+	 */
-+	if (regs->regs[7])
-+		return -regs->regs[2];
-+	else
-+		return 0;
-+}
-+
-+static inline long
-+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->gpr[2];
-+}
-+
-+static inline void
-+syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			 int error, long val)
-+{
-+	regs->gpr[2] = (long) error ? -error : val;
-+}
-+
-+static inline void
-+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	/* TODO */
-+}
-+
-+static inline void
-+syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, const unsigned long *args)
-+{
-+	/* TODO */
-+}
-+
-+#endif
-diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
-index dbbe0ce..13f2864 100644
---- a/arch/mips/kernel/signal.c
-+++ b/arch/mips/kernel/signal.c
-@@ -547,27 +547,6 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
- 	struct mips_abi *abi = current->thread.abi;
- 	void *vdso = current->mm->context.vdso;
+ static inline long syscall_get_error(struct task_struct *task,
+ 				     struct pt_regs *regs)
+ {
+diff --git a/arch/ia64/kernel/signal.c b/arch/ia64/kernel/signal.c
+index 7bdafc8..0b8abbc 100644
+--- a/arch/ia64/kernel/signal.c
++++ b/arch/ia64/kernel/signal.c
+@@ -453,8 +453,6 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
+ 	struct k_sigaction ka;
+ 	sigset_t *oldset;
+ 	siginfo_t info;
+-	long restart = in_syscall;
+-	long errno = scr->pt.r8;
  
--	if (regs->regs[0]) {
--		switch(regs->regs[2]) {
--		case ERESTART_RESTARTBLOCK:
--		case ERESTARTNOHAND:
--			regs->regs[2] = EINTR;
--			break;
--		case ERESTARTSYS:
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
--				regs->regs[2] = EINTR;
+ 	/*
+ 	 * In the ia64_leave_kernel code path, we want the common case to go fast, which
+@@ -476,44 +474,11 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
+ 	while (1) {
+ 		int signr = get_signal_to_deliver(&info, &ka, &scr->pt, NULL);
+ 
+-		/*
+-		 * get_signal_to_deliver() may have run a debugger (via notify_parent())
+-		 * and the debugger may have modified the state (e.g., to arrange for an
+-		 * inferior call), thus it's important to check for restarting _after_
+-		 * get_signal_to_deliver().
+-		 */
+-		if ((long) scr->pt.r10 != -1)
+-			/*
+-			 * A system calls has to be restarted only if one of the error codes
+-			 * ERESTARTNOHAND, ERESTARTSYS, or ERESTARTNOINTR is returned.  If r10
+-			 * isn't -1 then r8 doesn't hold an error code and we don't need to
+-			 * restart the syscall, so we can clear the "restart" flag here.
+-			 */
+-			restart = 0;
++		handle_syscall_restart(&scr->pt, &ka, (signr > 0));
+ 
+ 		if (signr <= 0)
+ 			break;
+ 
+-		if (unlikely(restart)) {
+-			switch (errno) {
+-			      case ERESTART_RESTARTBLOCK:
+-			      case ERESTARTNOHAND:
+-				scr->pt.r8 = EINTR;
+-				/* note: scr->pt.r10 is already -1 */
 -				break;
+-
+-			      case ERESTARTSYS:
+-				if ((ka.sa.sa_flags & SA_RESTART) == 0) {
+-					scr->pt.r8 = EINTR;
+-					/* note: scr->pt.r10 is already -1 */
+-					break;
+-				}
+-			      case ERESTARTNOINTR:
+-				ia64_decrement_ip(&scr->pt);
+-				restart = 0; /* don't restart twice if handle_signal() fails... */
 -			}
--		/* fallthrough */
--		case ERESTARTNOINTR:
--			regs->regs[7] = regs->regs[26];
--			regs->regs[2] = regs->regs[0];
--			regs->cp0_epc -= 4;
 -		}
 -
--		regs->regs[0] = 0;		/* Don't deal with this again.  */
--	}
--
- 	if (sig_uses_siginfo(ka))
- 		ret = abi->setup_rt_frame(vdso + abi->rt_signal_return_offset,
- 					  ka, regs, sig, oldset, info);
-@@ -609,6 +588,9 @@ static void do_signal(struct pt_regs *regs)
- 		oldset = &current->blocked;
- 
- 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+
-+	handle_syscall_restart(regs, &ka, (signr > 0));
-+
- 	if (signr > 0) {
- 		/* Whee!  Actually deliver the signal.  */
- 		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
-@@ -625,22 +607,6 @@ static void do_signal(struct pt_regs *regs)
- 		return;
+ 		/*
+ 		 * Whee!  Actually deliver the signal.  If the delivery failed, we need to
+ 		 * continue to iterate in this loop so we can deliver the SIGSEGV...
+@@ -530,23 +495,6 @@ ia64_do_signal (struct sigscratch *scr, long in_syscall)
+ 		}
  	}
  
--	if (regs->regs[0]) {
--		if (regs->regs[2] == ERESTARTNOHAND ||
--		    regs->regs[2] == ERESTARTSYS ||
--		    regs->regs[2] == ERESTARTNOINTR) {
--			regs->regs[2] = regs->regs[0];
--			regs->regs[7] = regs->regs[26];
--			regs->cp0_epc -= 4;
+-	/* Did we come from a system call? */
+-	if (restart) {
+-		/* Restart the system call - no handlers present */
+-		if (errno == ERESTARTNOHAND || errno == ERESTARTSYS || errno == ERESTARTNOINTR
+-		    || errno == ERESTART_RESTARTBLOCK)
+-		{
+-			/*
+-			 * Note: the syscall number is in r15 which is saved in
+-			 * pt_regs so all we need to do here is adjust ip so that
+-			 * the "break" instruction gets re-executed.
+-			 */
+-			ia64_decrement_ip(&scr->pt);
+-			if (errno == ERESTART_RESTARTBLOCK)
+-				scr->pt.r15 = __NR_restart_syscall;
 -		}
--		if (regs->regs[2] == ERESTART_RESTARTBLOCK) {
--			regs->regs[2] = current->thread.abi->restart;
--			regs->regs[7] = regs->regs[26];
--			regs->cp0_epc -= 4;
--		}
--		regs->regs[0] = 0;	/* Don't deal with this again.  */
 -	}
 -
- 	/*
- 	 * If there's no signal to deliver, we just put the saved sigmask
- 	 * back
+ 	/* if there's no signal to deliver, we just put the saved sigmask
+ 	 * back */
+ 	if (current_thread_info()->status & TS_RESTORE_SIGMASK) {
 -- 
 1.7.5.4
