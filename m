@@ -1,83 +1,184 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:34910 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:34923 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752319Ab1JWKUX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:23 -0400
+	with ESMTP id S1753565Ab1JWKU0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:26 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH RFC 0/8] Signal: harmonize syscall restart logic
-Date: Sun, 23 Oct 2011 12:19:54 +0200
-Message-ID: <cover.1319364492.git.jonas@southpole.se>
+Subject: [PATCH RFC 8/8] tile: implement syscall restart generically
+Date: Sun, 23 Oct 2011 12:20:02 +0200
+Message-ID: <e790f266cc75b291d44726cf6bf8641d1bf7af5d.1319364492.git.jonas@southpole.se>
+In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
+References: <cover.1319364492.git.jonas@southpole.se>
+In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
+References: <cover.1319364492.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>
-Message-ID: <20111023101954.ZVkXkKlBnImGcw8UX606CCu4WvZchwo15EcbdScdZYU@z>
+Cc: Jonas Bonn <jonas@southpole.se>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20111023102002.WkKkDfRDFXp7uz2r_jxL83z6L_rhEhpSI7BX4XPBUEc@z>
 
 
-I've been looking into trying to harmonize the architecture specific
-signal handling code.  With a couple of helper functions to mask some
-of the architecture specific bits, the code for do_signal and handle_signal
-(implemented by essentially everybody) start to look identical across
-all arch's and could likely be made generic.
+Manipulating task state to effect re-execution of an interrupted syscall
+used to be purely architecture specific code.  However, as most arch's
+were essentially just making minor adjustments to almost identical logic,
+this code could be moved to a common implementation.
 
-The big helper is the one in this series.  This one moves the syscall
-restart logic out to a common helper.  The arch specific bit here is
-the register manipulations required to actually effect the restart;
-this patch series moves those manipulations to the asm/syscall.h header
-which already attempts to define a generic syscall interface for several
-arch's today.
+The generic variant introduces the function handle_syscall_restart() to be
+called after get_signal_to_deliver().  The architecture specific register
+manipulations required to effect the actual restart are now implemented
+in the generic syscall interface found in asm/syscall.h
 
-Where this series remains an RFC is due to a couple of open questions:
+This patch transitions this architecture's signal handling code over to
+using the generic syscall restart code by:
 
-i)  ARM (and a few arch's copied from it) does its restart logic in two
-    steps so that a debugger can intervene; is there still value in
-    this approach or would the single step approach in this patch series
-    be sufficient for ARM (and others)?
+i)  Implementing the register manipulations in asm/syscall.h
+ii) Replacing the restart logic with a call to handle_syscall_restart
 
-ii) The syscall.h interface requires that the information needed to do
-    the register manipulations be in the pt_regs struct.  This isn't
-    the case for all arch's today.  Are there any issues with putting that
-    info into pt_regs for those arch's?
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ arch/tile/include/asm/syscall.h |   28 ++++++++++++++++++++-
+ arch/tile/kernel/signal.c       |   52 +++------------------------------------
+ 2 files changed, 31 insertions(+), 49 deletions(-)
 
-With the rest of the cleanups in this series it currently comes to 64
-patches, so I'm just posting a couple of the syscall restart patches
-now for comment in order not to flood the lists.  I'll post the remainder
-of the series later based on the feedback from this series.
-
-/Jonas
-
-Jonas Bonn (8):
-  signal: introduce generic syscall restart logic
-  blackfin: implement syscall restart generically
-  frv: implement syscall restart generically
-  mips: implement syscall restart generically
-  x86: implement syscall restart generically
-  m68k: implement syscall restart generically
-  ia64: implement syscall restart generically
-  tile: implement syscall restart generically
-
- arch/blackfin/include/asm/syscall.h |   26 +++++++++-
- arch/blackfin/kernel/signal.c       |   47 +-----------------
- arch/frv/include/asm/syscall.h      |   23 ++++++++-
- arch/frv/kernel/signal.c            |   48 +-----------------
- arch/ia64/include/asm/syscall.h     |   21 ++++++++
- arch/ia64/kernel/signal.c           |   54 +--------------------
- arch/m68k/include/asm/syscall.h     |   87 +++++++++++++++++++++++++++++++++
- arch/m68k/kernel/signal_mm.c        |   45 +----------------
- arch/m68k/kernel/signal_no.c        |   46 +----------------
- arch/mips/include/asm/syscall.h     |   91 +++++++++++++++++++++++++++++++++++
- arch/mips/kernel/signal.c           |   40 +--------------
- arch/tile/include/asm/syscall.h     |   28 ++++++++++-
- arch/tile/kernel/signal.c           |   52 ++------------------
- arch/x86/include/asm/syscall.h      |   21 ++++++++
- arch/x86/kernel/signal.c            |   43 +---------------
- include/asm-generic/syscall.h       |   46 +++++++++++++++++-
- include/linux/signal.h              |    3 +
- kernel/signal.c                     |   72 +++++++++++++++++++++++++++-
- 18 files changed, 435 insertions(+), 358 deletions(-)
- create mode 100644 arch/m68k/include/asm/syscall.h
- create mode 100644 arch/mips/include/asm/syscall.h
-
+diff --git a/arch/tile/include/asm/syscall.h b/arch/tile/include/asm/syscall.h
+index d35e0dc..428e28c 100644
+--- a/arch/tile/include/asm/syscall.h
++++ b/arch/tile/include/asm/syscall.h
+@@ -21,6 +21,7 @@
+ #include <linux/sched.h>
+ #include <linux/err.h>
+ #include <arch/abi.h>
++#include <asm/unistd.h>
+ 
+ /*
+  * Only the low 32 bits of orig_r0 are meaningful, so we return int.
+@@ -29,15 +30,40 @@
+  */
+ static inline int syscall_get_nr(struct task_struct *t, struct pt_regs *regs)
+ {
+-	return regs->regs[TREG_SYSCALL_NR];
++	if (regs->faultnum == INT_SWINT_1)
++		return regs->regs[TREG_SYSCALL_NR];
++	else
++		return -1;
+ }
+ 
+ static inline void syscall_rollback(struct task_struct *task,
+ 				    struct pt_regs *regs)
+ {
++	regs->flags |= PT_FLAGS_CALLER_SAVES;
+ 	regs->regs[0] = regs->orig_r0;
+ }
+ 
++static inline void
++syscall_clear(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->faultnum = INT_SWINT_1_SIGRETURN;
++}
++
++static inline void
++syscall_restart(struct task_struct *task, struct pt_regs *regs)
++{
++	syscall_rollback(task, regs);
++	regs->pc -= 8;
++}
++
++static inline void
++syscall_do_restartblock(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->flags |= PT_FLAGS_CALLER_SAVES;
++	regs->gpr[TREG_SYSCALL_NR] = __NR_restart_syscall;
++	regs->pc -= 8;
++}
++
+ static inline long syscall_get_error(struct task_struct *task,
+ 				     struct pt_regs *regs)
+ {
+diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
+index bedaf4e..ab1f4e7 100644
+--- a/arch/tile/kernel/signal.c
++++ b/arch/tile/kernel/signal.c
+@@ -251,29 +251,6 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
+ {
+ 	int ret;
+ 
+-	/* Are we from a system call? */
+-	if (regs->faultnum == INT_SWINT_1) {
+-		/* If so, check system call restarting.. */
+-		switch (regs->regs[0]) {
+-		case -ERESTART_RESTARTBLOCK:
+-		case -ERESTARTNOHAND:
+-			regs->regs[0] = -EINTR;
+-			break;
+-
+-		case -ERESTARTSYS:
+-			if (!(ka->sa.sa_flags & SA_RESTART)) {
+-				regs->regs[0] = -EINTR;
+-				break;
+-			}
+-			/* fallthrough */
+-		case -ERESTARTNOINTR:
+-			/* Reload caller-saves to restore r0..r5 and r10. */
+-			regs->flags |= PT_FLAGS_CALLER_SAVES;
+-			regs->regs[0] = regs->orig_r0;
+-			regs->pc -= 8;
+-		}
+-	}
+-
+ 	/* Set up the stack frame */
+ #ifdef CONFIG_COMPAT
+ 	if (is_compat_task())
+@@ -323,6 +300,9 @@ void do_signal(struct pt_regs *regs)
+ 		oldset = &current->blocked;
+ 
+ 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++
++	handle_syscall_restart(regs, &ka, (signr > 0));
++
+ 	if (signr > 0) {
+ 		/* Whee! Actually deliver the signal.  */
+ 		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
+@@ -335,27 +315,7 @@ void do_signal(struct pt_regs *regs)
+ 			current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+ 		}
+ 
+-		goto done;
+-	}
+-
+-	/* Did we come from a system call? */
+-	if (regs->faultnum == INT_SWINT_1) {
+-		/* Restart the system call - no handlers present */
+-		switch (regs->regs[0]) {
+-		case -ERESTARTNOHAND:
+-		case -ERESTARTSYS:
+-		case -ERESTARTNOINTR:
+-			regs->flags |= PT_FLAGS_CALLER_SAVES;
+-			regs->regs[0] = regs->orig_r0;
+-			regs->pc -= 8;
+-			break;
+-
+-		case -ERESTART_RESTARTBLOCK:
+-			regs->flags |= PT_FLAGS_CALLER_SAVES;
+-			regs->regs[TREG_SYSCALL_NR] = __NR_restart_syscall;
+-			regs->pc -= 8;
+-			break;
+-		}
++		return;
+ 	}
+ 
+ 	/* If there's no signal to deliver, just put the saved sigmask back. */
+@@ -363,10 +323,6 @@ void do_signal(struct pt_regs *regs)
+ 		current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
+ 		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
+ 	}
+-
+-done:
+-	/* Avoid double syscall restart if there are nested signals. */
+-	regs->faultnum = INT_SWINT_1_SIGRETURN;
+ }
+ 
+ int show_unhandled_signals = 1;
 -- 
 1.7.5.4
 
