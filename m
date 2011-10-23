@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:34923 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:34919 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753565Ab1JWKU0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:26 -0400
+	with ESMTP id S1752992Ab1JWKUZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:25 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH RFC 8/8] tile: implement syscall restart generically
-Date: Sun, 23 Oct 2011 12:20:02 +0200
-Message-ID: <e790f266cc75b291d44726cf6bf8641d1bf7af5d.1319364492.git.jonas@southpole.se>
+Subject: [PATCH RFC 6/8] m68k: implement syscall restart generically
+Date: Sun, 23 Oct 2011 12:20:00 +0200
+Message-ID: <0162c73f2f917141d2210452188f8ed420730a53.1319364492.git.jonas@southpole.se>
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
 References: <cover.1319364492.git.jonas@southpole.se>
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
@@ -14,8 +14,8 @@ References: <cover.1319364492.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20111023102002.WkKkDfRDFXp7uz2r_jxL83z6L_rhEhpSI7BX4XPBUEc@z>
+Cc: Jonas Bonn <jonas@southpole.se>, linux-m68k@lists.linux-m68k.org
+Message-ID: <20111023102000.3FFD9_SC3AW1hNQeN1oakmGSzke-6Ry9QmLg-aJymU0@z>
 
 
 Manipulating task state to effect re-execution of an interrupted syscall
@@ -34,102 +34,164 @@ using the generic syscall restart code by:
 i)  Implementing the register manipulations in asm/syscall.h
 ii) Replacing the restart logic with a call to handle_syscall_restart
 
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-m68k@lists.linux-m68k.org
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 ---
- arch/tile/include/asm/syscall.h |   28 ++++++++++++++++++++-
- arch/tile/kernel/signal.c       |   52 +++------------------------------------
- 2 files changed, 31 insertions(+), 49 deletions(-)
+ arch/m68k/include/asm/syscall.h |   87 +++++++++++++++++++++++++++++++++++++++
+ arch/m68k/kernel/signal_mm.c    |   45 +-------------------
+ arch/m68k/kernel/signal_no.c    |   46 +-------------------
+ 3 files changed, 93 insertions(+), 85 deletions(-)
+ create mode 100644 arch/m68k/include/asm/syscall.h
 
-diff --git a/arch/tile/include/asm/syscall.h b/arch/tile/include/asm/syscall.h
-index d35e0dc..428e28c 100644
---- a/arch/tile/include/asm/syscall.h
-+++ b/arch/tile/include/asm/syscall.h
-@@ -21,6 +21,7 @@
- #include <linux/sched.h>
- #include <linux/err.h>
- #include <arch/abi.h>
+diff --git a/arch/m68k/include/asm/syscall.h b/arch/m68k/include/asm/syscall.h
+new file mode 100644
+index 0000000..a482b7b
+--- /dev/null
++++ b/arch/m68k/include/asm/syscall.h
+@@ -0,0 +1,87 @@
++/*
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * Copyright (C) 2011 Jonas Bonn <jonas@southpole.se>
++ */
++
++#ifndef _M68K_SYSCALL_H
++#define _M68K_SYSCALL_H
++
++#include <linux/err.h>
++#include <linux/sched.h>
 +#include <asm/unistd.h>
- 
- /*
-  * Only the low 32 bits of orig_r0 are meaningful, so we return int.
-@@ -29,15 +30,40 @@
-  */
- static inline int syscall_get_nr(struct task_struct *t, struct pt_regs *regs)
- {
--	return regs->regs[TREG_SYSCALL_NR];
-+	if (regs->faultnum == INT_SWINT_1)
-+		return regs->regs[TREG_SYSCALL_NR];
++
++static inline int
++syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++{
++	if (regs->orig_d0 >= 0)
++		return regs->orig_d0;
 +	else
 +		return -1;
- }
- 
- static inline void syscall_rollback(struct task_struct *task,
- 				    struct pt_regs *regs)
- {
-+	regs->flags |= PT_FLAGS_CALLER_SAVES;
- 	regs->regs[0] = regs->orig_r0;
- }
- 
++}
++
++static inline void
++syscall_rollback(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->d0 = regs->orig_d0;
++}
++
 +static inline void
 +syscall_clear(struct task_struct *task, struct pt_regs *regs)
 +{
-+	regs->faultnum = INT_SWINT_1_SIGRETURN;
++	regs->orig_d0 = -1;
 +}
 +
 +static inline void
 +syscall_restart(struct task_struct *task, struct pt_regs *regs)
 +{
 +	syscall_rollback(task, regs);
-+	regs->pc -= 8;
++	regs->pc -= 2;
 +}
 +
 +static inline void
 +syscall_do_restartblock(struct task_struct *task, struct pt_regs *regs)
 +{
-+	regs->flags |= PT_FLAGS_CALLER_SAVES;
-+	regs->gpr[TREG_SYSCALL_NR] = __NR_restart_syscall;
-+	regs->pc -= 8;
++	regs->d0 = __NR_restart_syscall;
++	regs->pc -= 2;
 +}
 +
- static inline long syscall_get_error(struct task_struct *task,
- 				     struct pt_regs *regs)
- {
-diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
-index bedaf4e..ab1f4e7 100644
---- a/arch/tile/kernel/signal.c
-+++ b/arch/tile/kernel/signal.c
-@@ -251,29 +251,6 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
- {
- 	int ret;
++static inline long
++syscall_get_error(struct task_struct *task, struct pt_regs *regs)
++{
++	return IS_ERR_VALUE(regs->d0) ? regs->d0 : 0;
++}
++
++static inline long
++syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
++{
++	return regs->d0;
++}
++
++static inline void
++syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
++			 int error, long val)
++{
++	regs->d0 = (long) error ?: val;
++}
++
++#if 0
++static inline void
++syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, unsigned long *args)
++{
++	/* TODO */
++}
++
++static inline void
++syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
++		      unsigned int i, unsigned int n, const unsigned long *args)
++{
++	/* TODO */
++}
++#endif
++
++#endif
+diff --git a/arch/m68k/kernel/signal_mm.c b/arch/m68k/kernel/signal_mm.c
+index a0afc23..a8fa041 100644
+--- a/arch/m68k/kernel/signal_mm.c
++++ b/arch/m68k/kernel/signal_mm.c
+@@ -895,39 +895,6 @@ give_sigsegv:
+ 	return err;
+ }
  
--	/* Are we from a system call? */
--	if (regs->faultnum == INT_SWINT_1) {
--		/* If so, check system call restarting.. */
--		switch (regs->regs[0]) {
--		case -ERESTART_RESTARTBLOCK:
--		case -ERESTARTNOHAND:
--			regs->regs[0] = -EINTR;
+-static inline void
+-handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
+-{
+-	switch (regs->d0) {
+-	case -ERESTARTNOHAND:
+-		if (!has_handler)
+-			goto do_restart;
+-		regs->d0 = -EINTR;
+-		break;
+-
+-	case -ERESTART_RESTARTBLOCK:
+-		if (!has_handler) {
+-			regs->d0 = __NR_restart_syscall;
+-			regs->pc -= 2;
 -			break;
--
--		case -ERESTARTSYS:
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
--				regs->regs[0] = -EINTR;
--				break;
--			}
--			/* fallthrough */
--		case -ERESTARTNOINTR:
--			/* Reload caller-saves to restore r0..r5 and r10. */
--			regs->flags |= PT_FLAGS_CALLER_SAVES;
--			regs->regs[0] = regs->orig_r0;
--			regs->pc -= 8;
 -		}
--	}
+-		regs->d0 = -EINTR;
+-		break;
 -
- 	/* Set up the stack frame */
- #ifdef CONFIG_COMPAT
- 	if (is_compat_task())
-@@ -323,6 +300,9 @@ void do_signal(struct pt_regs *regs)
+-	case -ERESTARTSYS:
+-		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
+-			regs->d0 = -EINTR;
+-			break;
+-		}
+-	/* fallthrough */
+-	case -ERESTARTNOINTR:
+-	do_restart:
+-		regs->d0 = regs->orig_d0;
+-		regs->pc -= 2;
+-		break;
+-	}
+-}
+-
+ void ptrace_signal_deliver(struct pt_regs *regs, void *cookie)
+ {
+ 	if (regs->orig_d0 < 0)
+@@ -951,10 +918,6 @@ handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	      sigset_t *oldset, struct pt_regs *regs)
+ {
+ 	int err;
+-	/* are we from a system call? */
+-	if (regs->orig_d0 >= 0)
+-		/* If so, check system call restarting.. */
+-		handle_restart(regs, ka, 1);
+ 
+ 	/* set up the stack frame */
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+@@ -998,17 +961,15 @@ asmlinkage void do_signal(struct pt_regs *regs)
  		oldset = &current->blocked;
  
  	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
@@ -137,48 +199,96 @@ index bedaf4e..ab1f4e7 100644
 +	handle_syscall_restart(regs, &ka, (signr > 0));
 +
  	if (signr > 0) {
- 		/* Whee! Actually deliver the signal.  */
- 		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
-@@ -335,27 +315,7 @@ void do_signal(struct pt_regs *regs)
- 			current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
- 		}
+ 		/* Whee!  Actually deliver the signal.  */
+ 		handle_signal(signr, &ka, &info, oldset, regs);
+ 		return;
+ 	}
  
--		goto done;
--	}
--
 -	/* Did we come from a system call? */
--	if (regs->faultnum == INT_SWINT_1) {
+-	if (regs->orig_d0 >= 0)
 -		/* Restart the system call - no handlers present */
--		switch (regs->regs[0]) {
--		case -ERESTARTNOHAND:
--		case -ERESTARTSYS:
--		case -ERESTARTNOINTR:
--			regs->flags |= PT_FLAGS_CALLER_SAVES;
--			regs->regs[0] = regs->orig_r0;
--			regs->pc -= 8;
--			break;
+-		handle_restart(regs, NULL, 0);
 -
--		case -ERESTART_RESTARTBLOCK:
--			regs->flags |= PT_FLAGS_CALLER_SAVES;
--			regs->regs[TREG_SYSCALL_NR] = __NR_restart_syscall;
--			regs->pc -= 8;
--			break;
--		}
-+		return;
- 	}
- 
- 	/* If there's no signal to deliver, just put the saved sigmask back. */
-@@ -363,10 +323,6 @@ void do_signal(struct pt_regs *regs)
- 		current_thread_info()->status &= ~TS_RESTORE_SIGMASK;
- 		sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
- 	}
--
--done:
--	/* Avoid double syscall restart if there are nested signals. */
--	regs->faultnum = INT_SWINT_1_SIGRETURN;
+ 	/* If there's no signal to deliver, we just restore the saved mask.  */
+ 	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
+ 		clear_thread_flag(TIF_RESTORE_SIGMASK);
+diff --git a/arch/m68k/kernel/signal_no.c b/arch/m68k/kernel/signal_no.c
+index 36a81bb..2fad7c7 100644
+--- a/arch/m68k/kernel/signal_no.c
++++ b/arch/m68k/kernel/signal_no.c
+@@ -653,39 +653,6 @@ give_sigsegv:
+ 	goto adjust_stack;
  }
  
- int show_unhandled_signals = 1;
+-static inline void
+-handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
+-{
+-	switch (regs->d0) {
+-	case -ERESTARTNOHAND:
+-		if (!has_handler)
+-			goto do_restart;
+-		regs->d0 = -EINTR;
+-		break;
+-
+-	case -ERESTART_RESTARTBLOCK:
+-		if (!has_handler) {
+-			regs->d0 = __NR_restart_syscall;
+-			regs->pc -= 2;
+-			break;
+-		}
+-		regs->d0 = -EINTR;
+-		break;
+-
+-	case -ERESTARTSYS:
+-		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
+-			regs->d0 = -EINTR;
+-			break;
+-		}
+-	/* fallthrough */
+-	case -ERESTARTNOINTR:
+-	do_restart:
+-		regs->d0 = regs->orig_d0;
+-		regs->pc -= 2;
+-		break;
+-	}
+-}
+-
+ /*
+  * OK, we're invoking a handler
+  */
+@@ -694,10 +661,6 @@ handle_signal(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	      sigset_t *oldset, struct pt_regs *regs)
+ {
+ 	int err;
+-	/* are we from a system call? */
+-	if (regs->orig_d0 >= 0)
+-		/* If so, check system call restarting.. */
+-		handle_restart(regs, ka, 1);
+ 
+ 	/* set up the stack frame */
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+@@ -745,18 +708,15 @@ asmlinkage void do_signal(struct pt_regs *regs)
+ 		oldset = &current->blocked;
+ 
+ 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++
++	handle_syscall_restart(regs, &ka, (signr > 0));
++
+ 	if (signr > 0) {
+ 		/* Whee!  Actually deliver the signal.  */
+ 		handle_signal(signr, &ka, &info, oldset, regs);
+ 		return;
+ 	}
+ 
+-	/* Did we come from a system call? */
+-	if (regs->orig_d0 >= 0) {
+-		/* Restart the system call - no handlers present */
+-		handle_restart(regs, NULL, 0);
+-	}
+-
+ 	/* If there's no signal to deliver, we just restore the saved mask.  */
+ 	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
+ 		clear_thread_flag(TIF_RESTORE_SIGMASK);
 -- 
 1.7.5.4
 
