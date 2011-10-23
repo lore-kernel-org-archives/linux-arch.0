@@ -1,31 +1,183 @@
-From: =?UTF-8?Q?Western_Union=C2=A9?= <grants@westernunion.com>
-Subject: Congratulation!!!  Money Is Awarded To You
-Date: Sat, 22 Oct 2011 20:46:21 +0100
-Message-ID: <eafa9b904cca71e90f5b5cdc59b10d82@sciug.org>
-Reply-To: <customer.service.western.un@hotmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH RFC 2/8] blackfin: implement syscall restart generically
+Date: Sun, 23 Oct 2011 12:19:56 +0200
+Message-ID: <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
+References: <cover.1319364492.git.jonas@southpole.se>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sciug.org ([41.221.92.236]:40393 "EHLO mail.sciug.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752135Ab1JVVwD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 22 Oct 2011 17:52:03 -0400
+Received: from mail.southpole.se ([193.12.106.18]:34912 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751436Ab1JWKUX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:23 -0400
+In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
+In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
+References: <cover.1319364492.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>, uclinux-dist-devel@blackfin.uclinux.org
 
 
+Manipulating task state to effect re-execution of an interrupted syscall
+used to be purely architecture specific code.  However, as most arch's
+were essentially just making minor adjustments to almost identical logic,
+this code could be moved to a common implementation.
 
---=20
- Dear Beneficiary,
+The generic variant introduces the function handle_syscall_restart() to be
+called after get_signal_to_deliver().  The architecture specific register
+manipulations required to effect the actual restart are now implemented
+in the generic syscall interface found in asm/syscall.h
 
- The sum of $900,000.00USD has been deposited in your name here in the=20
- western union office by Ecowas Organisation, you are to contact Mr. To=
-m=20
- Carlson to collect your money transfer control number (M.T.C.N).
-=20
- Contact email: customer.service.western.un@hotmail.com
-=20
- Western Union=C2=A9
- Customer Service
+This patch transitions this architecture's signal handling code over to
+using the generic syscall restart code by:
+
+i)  Implementing the register manipulations in asm/syscall.h
+ii) Replacing the restart logic with a call to handle_syscall_restart
+
+Cc: uclinux-dist-devel@blackfin.uclinux.org
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ arch/blackfin/include/asm/syscall.h |   26 ++++++++++++++++++-
+ arch/blackfin/kernel/signal.c       |   47 ++--------------------------------
+ 2 files changed, 27 insertions(+), 46 deletions(-)
+
+diff --git a/arch/blackfin/include/asm/syscall.h b/arch/blackfin/include/asm/syscall.h
+index 4921a48..87005c4 100644
+--- a/arch/blackfin/include/asm/syscall.h
++++ b/arch/blackfin/include/asm/syscall.h
+@@ -21,17 +21,39 @@
+ #include <linux/err.h>
+ #include <linux/sched.h>
+ #include <asm/ptrace.h>
++#include <asm/unistd.h>
+ 
+ static inline long
+ syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
+ {
+-	return regs->p0;
++	return regs->orig_p0;
+ }
+ 
+ static inline void
+ syscall_rollback(struct task_struct *task, struct pt_regs *regs)
+ {
+ 	regs->p0 = regs->orig_p0;
++	regs->r0 = regs->orig_r0;
++}
++
++static inline void
++syscall_clear(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->orig_p0 = -1;
++}
++
++static inline void
++syscall_restart(struct task_struct *task, struct pt_regs *regs)
++{
++	syscall_rollback(task, regs);
++	regs->pc -= 2;
++}
++
++static inline void
++syscall_do_restartblock(struct task_struct *task, struct pt_regs *regs)
++{
++	regs->p0 = __NR_restart_syscall;
++	regs->pc -= 2;
+ }
+ 
+ static inline long
+@@ -50,7 +72,7 @@ static inline void
+ syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
+                          int error, long val)
+ {
+-	regs->r0 = error ? -error : val;
++	regs->r0 = error ? error : val;
+ }
+ 
+ /**
+diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
+index d536f35..7fc176a 100644
+--- a/arch/blackfin/kernel/signal.c
++++ b/arch/blackfin/kernel/signal.c
+@@ -219,36 +219,6 @@ setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t * info,
+ 	return -EFAULT;
+ }
+ 
+-static inline void
+-handle_restart(struct pt_regs *regs, struct k_sigaction *ka, int has_handler)
+-{
+-	switch (regs->r0) {
+-	case -ERESTARTNOHAND:
+-		if (!has_handler)
+-			goto do_restart;
+-		regs->r0 = -EINTR;
+-		break;
+-
+-	case -ERESTARTSYS:
+-		if (has_handler && !(ka->sa.sa_flags & SA_RESTART)) {
+-			regs->r0 = -EINTR;
+-			break;
+-		}
+-		/* fallthrough */
+-	case -ERESTARTNOINTR:
+- do_restart:
+-		regs->p0 = regs->orig_p0;
+-		regs->r0 = regs->orig_r0;
+-		regs->pc -= 2;
+-		break;
+-
+-	case -ERESTART_RESTARTBLOCK:
+-		regs->p0 = __NR_restart_syscall;
+-		regs->pc -= 2;
+-		break;
+-	}
+-}
+-
+ /*
+  * OK, we're invoking a handler
+  */
+@@ -258,11 +228,6 @@ handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+ {
+ 	int ret;
+ 
+-	/* are we from a system call? to see pt_regs->orig_p0 */
+-	if (regs->orig_p0 >= 0)
+-		/* If so, check system call restarting.. */
+-		handle_restart(regs, ka, 1);
+-
+ 	/* set up the stack frame */
+ 	ret = setup_rt_frame(sig, ka, info, oldset, regs);
+ 
+@@ -296,15 +261,15 @@ asmlinkage void do_signal(struct pt_regs *regs)
+ 
+ 	current->thread.esp0 = (unsigned long)regs;
+ 
+-	if (try_to_freeze())
+-		goto no_signal;
+-
+ 	if (test_thread_flag(TIF_RESTORE_SIGMASK))
+ 		oldset = &current->saved_sigmask;
+ 	else
+ 		oldset = &current->blocked;
+ 
+ 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++
++	handle_syscall_restart(regs, &ka, (signr > 0));
++
+ 	if (signr > 0) {
+ 		/* Whee!  Actually deliver the signal.  */
+ 		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
+@@ -322,12 +287,6 @@ asmlinkage void do_signal(struct pt_regs *regs)
+ 		return;
+ 	}
+ 
+- no_signal:
+-	/* Did we come from a system call? */
+-	if (regs->orig_p0 >= 0)
+-		/* Restart the system call - no handlers present */
+-		handle_restart(regs, NULL, 0);
+-
+ 	/* if there's no signal to deliver, we just put the saved sigmask
+ 	 * back */
+ 	if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
+-- 
+1.7.5.4
