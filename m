@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:34915 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:34911 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752632Ab1JWKUY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:24 -0400
+	with ESMTP id S1752182Ab1JWKUX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 23 Oct 2011 06:20:23 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH RFC 4/8] mips: implement syscall restart generically
-Date: Sun, 23 Oct 2011 12:19:58 +0200
-Message-ID: <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
+Subject: [PATCH RFC 1/8] signal: introduce generic syscall restart logic
+Date: Sun, 23 Oct 2011 12:19:55 +0200
+Message-ID: <4aa1797d978fe2d45ececceee535257e19374df8.1319364492.git.jonas@southpole.se>
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
 References: <cover.1319364492.git.jonas@southpole.se>
 In-Reply-To: <cover.1319364492.git.jonas@southpole.se>
@@ -14,196 +14,203 @@ References: <cover.1319364492.git.jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Jonas Bonn <jonas@southpole.se>, linux-mips@linux-mips.org
-Message-ID: <20111023101958.F_5kiaMvHBqwWck4PuFNNFTcLCKsrLJvCqrbBr_o5oI@z>
+Cc: Jonas Bonn <jonas@southpole.se>
+Message-ID: <20111023101955.oYD2NFnDZNWR-TxTtzFei514ktRAUXo_UFumcPu-NAI@z>
 
 
-Manipulating task state to effect re-execution of an interrupted syscall
-used to be purely architecture specific code.  However, as most arch's
-were essentially just making minor adjustments to almost identical logic,
-this code could be moved to a common implementation.
+Manipulating the task state so that an interrupted syscall will be
+re-executed after signal handling has historically been purely architecture
+specific logic.  Most architectures, however, are implementing essentially
+the same thing (some incorrectly) with the actual details of the registers
+to be manipulated being the only relevant difference.
 
-The generic variant introduces the function handle_syscall_restart() to be
-called after get_signal_to_deliver().  The architecture specific register
-manipulations required to effect the actual restart are now implemented
-in the generic syscall interface found in asm/syscall.h
+This patch introduces generic code for handling the syscall restart logic
+by:
 
-This patch transitions this architecture's signal handling code over to
-using the generic syscall restart code by:
+i)  introducing methods for doing the actual register manipulations to
+the generic syscall interface in asm/syscall.h
 
-i)  Implementing the register manipulations in asm/syscall.h
-ii) Replacing the restart logic with a call to handle_syscall_restart
+ii) introducing the function handle_syscall_restart to determine the
+actual restart requirements and invoke the required register manipulations;
+this function is designed to be called immediately after invoking the
+function get_signal_to_deliver
 
-Cc: linux-mips@linux-mips.org
+This generic variant is applicable for any architecture that maintains the
+information necessary to effect a syscall restart in its pt_regs struct.
+
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 ---
- arch/mips/include/asm/syscall.h |   91 +++++++++++++++++++++++++++++++++++++++
- arch/mips/kernel/signal.c       |   40 +----------------
- 2 files changed, 94 insertions(+), 37 deletions(-)
- create mode 100644 arch/mips/include/asm/syscall.h
+ include/asm-generic/syscall.h |   46 +++++++++++++++++++++++++-
+ include/linux/signal.h        |    3 ++
+ kernel/signal.c               |   72 ++++++++++++++++++++++++++++++++++++++++-
+ 3 files changed, 119 insertions(+), 2 deletions(-)
 
-diff --git a/arch/mips/include/asm/syscall.h b/arch/mips/include/asm/syscall.h
-new file mode 100644
-index 0000000..7280d95
---- /dev/null
-+++ b/arch/mips/include/asm/syscall.h
-@@ -0,0 +1,91 @@
-+/*
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
+diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
+index 5c122ae..b7b489f 100644
+--- a/include/asm-generic/syscall.h
++++ b/include/asm-generic/syscall.h
+@@ -36,11 +36,55 @@ struct pt_regs;
+  * system call number can be meaningful.  If the actual arch value
+  * is 64 bits, this truncates to 32 bits so 0xffffffff means -1.
+  *
+- * It's only valid to call this when @task is known to be blocked.
++ * It's only valid to call this for the current task or when @task
++ * is known to be blocked.
+  */
+ int syscall_get_nr(struct task_struct *task, struct pt_regs *regs);
+ 
+ /**
++ * syscall_clear - clear the syscall execution state
 + *
-+ * Copyright (C) 2011 Jonas Bonn <jonas@southpole.se>
++ * Clear the syscall execution state of @task so that future invocations
++ * of syscall_get_nr for @task return -1.
++ *
++ * It's only valid to call this for the current task.  This function
++ * is primarily intended for use in the signal handling path; when
++ * signal handling takes over after a syscall then the syscall handling
++ * is effectively finished and the syscall state can be cleared.
++ */
++void syscall_clear(struct task_struct *task, struct pt_regs *regs);
++
++/**
++ * syscall_do_restart - roll back PC and argument regs for syscall restart
++ * @task:	must be current task
++ * @regs:	task_pt_regs() of @task
++ * 
++ * Rolls back the syscall number, arguments, and the instruction pointer
++ * so that the current syscall will be reexecuted upon return to userspace.
++ *
++ * This function is primarily intended for use in the signal handling
++ * code and shouldn't really be used elsewhere.
++ */
++void syscall_restart(struct task_struct *task, struct pt_regs *regs);
++
++/**
++ * syscall_do_restartblock - roll back PC and execute restart_syscall
++ * @task:	must be current task
++ * @regs:	task_pt_regs() of @task
++ * 
++ * Configure @task so that upon return to userspace the restart_syscall
++ * (or equivalent) function is executed to perform syscall restart via a
++ * restart_block.  Since restart_syscall normally doesn't take any arguments,
++ * restoring the syscall arguments can be skipped.  This normally boils
++ * down to rewinding the PC and setting the syscall register to 
++ * __NR_restart_syscall; however, some arch's may do this differently.
++ *
++ * This function is primarily intended for use in the signal handling
++ * code.
++ */
++void syscall_do_restartblock(struct task_struct * taks, struct pt_regs* regs);
++
++/**
+  * syscall_rollback - roll back registers after an aborted system call
+  * @task:	task of interest, must be in system call exit tracing
+  * @regs:	task_pt_regs() of @task
+diff --git a/include/linux/signal.h b/include/linux/signal.h
+index a822300..7ede592 100644
+--- a/include/linux/signal.h
++++ b/include/linux/signal.h
+@@ -256,6 +256,9 @@ extern int show_unhandled_signals;
+ extern int get_signal_to_deliver(siginfo_t *info, struct k_sigaction *return_ka, struct pt_regs *regs, void *cookie);
+ extern void exit_signals(struct task_struct *tsk);
+ 
++void handle_syscall_restart(struct pt_regs *regs, struct k_sigaction *ka,
++			    int has_handler);
++
+ extern struct kmem_cache *sighand_cachep;
+ 
+ int unhandled_signal(struct task_struct *tsk, int sig);
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 291c970..7b3d9a4 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -33,8 +33,8 @@
+ 
+ #include <asm/param.h>
+ #include <asm/uaccess.h>
+-#include <asm/unistd.h>
+ #include <asm/siginfo.h>
++#include <asm/syscall.h>
+ #include "audit.h"	/* audit_signal_info() */
+ 
+ /*
+@@ -2396,6 +2396,76 @@ EXPORT_SYMBOL(sigprocmask);
+ EXPORT_SYMBOL(block_all_signals);
+ EXPORT_SYMBOL(unblock_all_signals);
+ 
++/**
++ * handle_syscall_restart();
++ * @regs: pt_regs for current process
++ * @ka:   k_sigaction struct for current signal handler 
++ * @has_handler: boolean indicating whether there is a handler waiting
++ *               to be invoked for a pending signal
++ *
++ * Prepare the currently executing task to restart an interrupted
++ * syscall.  After completion of this function, the task is effectively
++ * switched from syscall-execution mode to signal-processing mode and
++ * further attempts to manipulate the syscall state will fail.
++ *
++ * If has_handler != 0, then ka must point to a valid sigaction struct.
 + */
 +
-+#ifndef _ASM_SYSCALL_H
-+#define _ASM_SYSCALL_H
-+
-+#include <linux/err.h>
-+#include <linux/sched.h>
-+#include <asm/unistd.h>
-+
-+static inline int
-+syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
++void handle_syscall_restart(struct pt_regs *regs, struct k_sigaction *ka,
++			    int has_handler)
 +{
-+	return regs->regs[0] ?: -1;
-+}
++	/* Are we from a system call? */
++	if (syscall_get_nr(current, regs) >= 0) {
++		int restart = 1;
++		long error;
 +
-+static inline void
-+syscall_rollback(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->regs[2] = regs->regs[0];
-+	regs->regs[7] = regs->regs[26];
-+}
++		error = syscall_get_error(current, regs);
 +
-+static inline void
-+syscall_clear(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->regs[0] = 0;
-+}
++		/* Check if syscall was interrupted. */
++		switch (error) {
++		case -ERESTART_RESTARTBLOCK:
++		case -ERESTARTNOHAND:
++			/* Restart if there is no handler */
++			restart = !has_handler;
++			break;
 +
-+static inline void
-+syscall_restart(struct task_struct *task, struct pt_regs *regs)
-+{
-+	syscall_rollback(task, regs);
-+	regs->cp0_epc -= 4;
-+}
++		case -ERESTARTSYS:
++			/*
++			 * Restart if there is no handler or if the handler
++			 * was registered with SA_RESTART
++			 */
++			restart = !has_handler
++				  || (ka->sa.sa_flags & SA_RESTART);
++			break;
 +
-+static inline void
-+syscall_do_restartblock(struct task_struct *task, struct pt_regs *regs)
-+{
-+	regs->regs[2] = current->thread.abi->restart;
-+	regs->regs[7] = regs->regs[26];
-+	regs->cp0_epc -= 4;
-+}
++		case -ERESTARTNOINTR:
++			/* Restart after signal handler returns */ 
++			restart = 1;
++			break;
 +
-+static inline long
-+syscall_get_error(struct task_struct *task, struct pt_regs *regs)
-+{
-+	/*
-+	 * r7 == 1 if syscall returns error
-+	 * r2 contains _positive_ result
-+	 */
-+	if (regs->regs[7])
-+		return -regs->regs[2];
-+	else
-+		return 0;
-+}
++		default:
++			/* Syscall wasn't interrupted so we're done with it */
++			syscall_clear(current, regs);
++			return;
++		}
 +
-+static inline long
-+syscall_get_return_value(struct task_struct *task, struct pt_regs *regs)
-+{
-+	return regs->gpr[2];
-+}
++		if (restart) {
++			if (error == -ERESTART_RESTARTBLOCK)
++				syscall_do_restartblock(current, regs);
++			else
++				syscall_restart(current, regs);
++		} else {
++			syscall_set_return_value(current, regs, -EINTR, 0);
++		}
 +
-+static inline void
-+syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
-+			 int error, long val)
-+{
-+	regs->gpr[2] = (long) error ? -error : val;
++		/*
++		 * The syscall processing is effectively complete here so
++		 * the syscall state can be cleared to prevent this function
++		 * from triggering again for nested signals.
++		 */
++		syscall_clear(current, regs);
++	}
 +}
-+
-+static inline void
-+syscall_get_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, unsigned long *args)
-+{
-+	/* TODO */
-+}
-+
-+static inline void
-+syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
-+		      unsigned int i, unsigned int n, const unsigned long *args)
-+{
-+	/* TODO */
-+}
-+
-+#endif
-diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
-index dbbe0ce..13f2864 100644
---- a/arch/mips/kernel/signal.c
-+++ b/arch/mips/kernel/signal.c
-@@ -547,27 +547,6 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
- 	struct mips_abi *abi = current->thread.abi;
- 	void *vdso = current->mm->context.vdso;
  
--	if (regs->regs[0]) {
--		switch(regs->regs[2]) {
--		case ERESTART_RESTARTBLOCK:
--		case ERESTARTNOHAND:
--			regs->regs[2] = EINTR;
--			break;
--		case ERESTARTSYS:
--			if (!(ka->sa.sa_flags & SA_RESTART)) {
--				regs->regs[2] = EINTR;
--				break;
--			}
--		/* fallthrough */
--		case ERESTARTNOINTR:
--			regs->regs[7] = regs->regs[26];
--			regs->regs[2] = regs->regs[0];
--			regs->cp0_epc -= 4;
--		}
--
--		regs->regs[0] = 0;		/* Don't deal with this again.  */
--	}
--
- 	if (sig_uses_siginfo(ka))
- 		ret = abi->setup_rt_frame(vdso + abi->rt_signal_return_offset,
- 					  ka, regs, sig, oldset, info);
-@@ -609,6 +588,9 @@ static void do_signal(struct pt_regs *regs)
- 		oldset = &current->blocked;
- 
- 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+
-+	handle_syscall_restart(regs, &ka, (signr > 0));
-+
- 	if (signr > 0) {
- 		/* Whee!  Actually deliver the signal.  */
- 		if (handle_signal(signr, &info, &ka, oldset, regs) == 0) {
-@@ -625,22 +607,6 @@ static void do_signal(struct pt_regs *regs)
- 		return;
- 	}
- 
--	if (regs->regs[0]) {
--		if (regs->regs[2] == ERESTARTNOHAND ||
--		    regs->regs[2] == ERESTARTSYS ||
--		    regs->regs[2] == ERESTARTNOINTR) {
--			regs->regs[2] = regs->regs[0];
--			regs->regs[7] = regs->regs[26];
--			regs->cp0_epc -= 4;
--		}
--		if (regs->regs[2] == ERESTART_RESTARTBLOCK) {
--			regs->regs[2] = current->thread.abi->restart;
--			regs->regs[7] = regs->regs[26];
--			regs->cp0_epc -= 4;
--		}
--		regs->regs[0] = 0;	/* Don't deal with this again.  */
--	}
--
- 	/*
- 	 * If there's no signal to deliver, we just put the saved sigmask
- 	 * back
+ /*
+  * System call entry points.
 -- 
 1.7.5.4
 
