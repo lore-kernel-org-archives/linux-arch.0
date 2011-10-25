@@ -1,32 +1,41 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Tue, 25 Oct 2011 10:39:28 +0200
-Message-ID: <20111025083928.GC31508@opensource.wolfsonmicro.com>
-References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <20111025083301.GD4605@ponder.secretlab.ca>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] gpio: fix build error in include/asm-generic/gpio.h
+Date: Tue, 25 Oct 2011 13:23:44 +0200
+Message-ID: <201110251323.44313.arnd@arndb.de>
+References: <CAO_0yfOa7B4tB1nJg8c_5a612KjNmPh_aMvS=wHhfU_maAvZAg@mail.gmail.com> <201110211339.59280.arnd@arndb.de> <CACxGe6sFrJh+Y5CJVMTPiWH3m=j+J_YUzLP=MiaBbsvDkeA_Jg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:53575 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755294Ab1JYIjd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Oct 2011 04:39:33 -0400
-Content-Disposition: inline
-In-Reply-To: <20111025083301.GD4605@ponder.secretlab.ca>
+Received: from moutng.kundenserver.de ([212.227.17.9]:62569 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755146Ab1JYLXt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 07:23:49 -0400
+In-Reply-To: <CACxGe6sFrJh+Y5CJVMTPiWH3m=j+J_YUzLP=MiaBbsvDkeA_Jg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Hamo <hamo.by@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, Oct 25, 2011 at 10:33:01AM +0200, Grant Likely wrote:
+On Tuesday 25 October 2011, Grant Likely wrote:
+> by: Arnd Bergmann <arnd@arndb.de>
+> >
+> > Grant, can you put that into the gpio tree?
+> 
+> I can.
+> 
+> Hamo, next time make sure you cc: the relevant subsystem maintainer
+> (in this case, me) when submitting patches.  You can find the
+> maintainer by using ./scripts/get_maintainer.pl, or by looking at the
+> MAINTAINERS file.  It is more work for me when I don't receive the
+> patch directly in my inbox.
 
-> (not that I've actually tested this much yet; it should probably go
-> into a separate branch to marinate in linux-next for a bit without
-> impacting the other GPIO patches I've got queued.
+I would assume that this is what Hamo did:
 
-Yes, it should.  I've test built a few configurations covering both
-asm/gpio.h and default implementations and it seems to be doing the
-right thing but I might well have missed something.  I'm hoping to also
-have a further patch to go on top of this which makes _OPTIONAL_GPOILIB
-on by default.
+$ ./scripts/get_maintainer.pl -f include/asm-generic/gpio.h 
+Arnd Bergmann <arnd@arndb.de> (maintainer:GENERIC INCLUDE/A...)
+linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/A...)
+linux-kernel@vger.kernel.org (open list)
+
+	Arnd
