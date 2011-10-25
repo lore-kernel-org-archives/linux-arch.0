@@ -1,51 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:57238 "EHLO
+Received: from oz.csail.mit.edu ([128.30.30.239]:57248 "EHLO
 	ozymandias.localdomain" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752853Ab1JYT0X (ORCPT
+	with ESMTP id S1752879Ab1JYT0X (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 15:26:23 -0400
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/6] Add generic stubs for kvm stop check functions
-Date: Tue, 25 Oct 2011 15:26:17 -0400
-Message-ID: <1319570779-8907-5-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 5/6] Add check for suspended vm in softlockup detector
+Date: Tue, 25 Oct 2011 15:26:18 -0400
+Message-ID: <1319570779-8907-6-git-send-email-emunson@mgebm.net>
 In-Reply-To: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
 References: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: avi@redhat.com
 Cc: mingo@redhat.com, x86@kernel.org, hpa@zytor.com, mtosatti@redhat.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, Eric B Munson <emunson@mgebm.net>
-Message-ID: <20111025192617.aC4y8ocRWsZ0kmLg2bJ0AyCO8bcPcbACyDfSsRlnmwk@z>
+Message-ID: <20111025192618.4QncgM1PVV7WnrAvpVzhRctJ3wQrH2eKl8_mWxxucNw@z>
+
+A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
+watchdog now checks if the kernel knows it was stopped by the host and skips
+the warning if so.
 
 Signed-off-by: Eric B Munson <emunson@mgebm.net>
 ---
- include/asm-generic/pvclock.h |   19 +++++++++++++++++++
- 1 files changed, 19 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/pvclock.h
+ kernel/watchdog.c |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/pvclock.h b/include/asm-generic/pvclock.h
-new file mode 100644
-index 0000000..b42a8eb
---- /dev/null
-+++ b/include/asm-generic/pvclock.h
-@@ -0,0 +1,19 @@
-+#ifndef _ASM_GENERIC_PVCLOCK_H
-+#define _ASM_GENERIC_PVCLOCK_H
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 36491cd..8107ba7 100644
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -25,6 +25,7 @@
+ #include <linux/sysctl.h>
+ 
+ #include <asm/irq_regs.h>
++#include <asm/pvclock.h>
+ #include <linux/perf_event.h>
+ 
+ int watchdog_enabled = 1;
+@@ -292,6 +293,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 	 */
+ 	duration = is_softlockup(touch_ts);
+ 	if (unlikely(duration)) {
++		/*
++		 * If a virtual machine is stopped by the host it can look to
++		 * the watchdog like a soft lockup, check to see if the host
++		 * stopped the vm before we issue the warning
++		 */
++		if (kvm_check_and_clear_host_stopped(smp_processor_id()))
++			return HRTIMER_RESTART;
 +
-+
-+/*
-+ * These functions are used by architectures that support kvm to avoid issuing
-+ * false soft lockup messages.
-+ */
-+static inline bool kvm_check_and_clear_host_stopped(int cpu)
-+{
-+	return false;
-+}
-+
-+static inline void kvm_clear_guest_paused(struct kvm_vcpu *vcpu)
-+{
-+	return;
-+}
-+
-+#endif
+ 		/* only warn once */
+ 		if (__this_cpu_read(soft_watchdog_warn) == true)
+ 			return HRTIMER_RESTART;
 -- 
 1.7.5.4
 
