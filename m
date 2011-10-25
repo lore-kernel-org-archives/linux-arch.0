@@ -1,48 +1,33 @@
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/6] Avoid soft lockup message when KVM is stopped by host
-Date: Tue, 25 Oct 2011 15:26:13 -0400
-Message-ID: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:57209 "EHLO
-	ozymandias.localdomain" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751019Ab1JYT0W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 15:26:22 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 1/6] Add flag to indicate that a vm was stopped by the host
+Date: Tue, 25 Oct 2011 15:26:14 -0400
+Message-ID: <1319570779-8907-2-git-send-email-emunson@mgebm.net>
+References: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
+Sender: linux-kernel-owner@vger.kernel.org
 To: avi@redhat.com
 Cc: mingo@redhat.com, x86@kernel.org, hpa@zytor.com, mtosatti@redhat.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, Eric B Munson <emunson@mgebm.net>
+List-Id: linux-arch.vger.kernel.org
 
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.
 
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
-
-Eric B Munson (6):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVM_GUEST_STOPPED
-  Add generic stubs for kvm stop check functions
-  Add check for suspended vm in softlockup detector
-  Add age out of guest paused flag
-
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+---
  arch/x86/include/asm/pvclock-abi.h |    1 +
- arch/x86/include/asm/pvclock.h     |    7 ++++
- arch/x86/kernel/kvmclock.c         |   55 ++++++++++++++++++++++++++++++++++++
- arch/x86/kvm/x86.c                 |   14 +++++++++
- include/asm-generic/pvclock.h      |   19 ++++++++++++
- include/linux/kvm.h                |    4 ++
- include/linux/kvm_host.h           |    2 +
- kernel/watchdog.c                  |    9 ++++++
- 8 files changed, 111 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/pvclock.h
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
 -- 
 1.7.5.4
