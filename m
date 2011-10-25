@@ -1,56 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:57248 "EHLO
-	ozymandias.localdomain" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752879Ab1JYT0X (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 15:26:23 -0400
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 5/6] Add check for suspended vm in softlockup detector
-Date: Tue, 25 Oct 2011 15:26:18 -0400
-Message-ID: <1319570779-8907-6-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
-References: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:45771 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753339Ab1JYXoe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 19:44:34 -0400
+MIME-Version: 1.0
+In-Reply-To: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Tue, 25 Oct 2011 19:44:14 -0400
+Message-ID: <CAJaTeTp2w85UHnmH-PPMZsQGQMNa-93kw-tjmDxA_wjJXkYQcQ@mail.gmail.com>
+Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: mingo@redhat.com, x86@kernel.org, hpa@zytor.com, mtosatti@redhat.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, Eric B Munson <emunson@mgebm.net>
-Message-ID: <20111025192618.4QncgM1PVV7WnrAvpVzhRctJ3wQrH2eKl8_mWxxucNw@z>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Grant Likely <grant.likely@secretlab.ca>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20111025234414.N7MvtaOzLp384l0S_fhPldyKcumvmmvpVP9t5WgrlwY@z>
 
-A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
-watchdog now checks if the kernel knows it was stopped by the host and skips
-the warning if so.
+On Tue, Oct 25, 2011 at 03:33, Mark Brown wrote:
+> Rather than requiring architectures that use gpiolib but don't have any
+> need to define anything custom to copy an asm/gpio.h provide a Kconfig
+> symbol which architectures must select in order to include gpio.h and
+> for other architectures just provide the trivial implementation directly.
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
----
- kernel/watchdog.c |    9 +++++++++
- 1 files changed, 9 insertions(+), 0 deletions(-)
+i don't think this is generally how asm-generic is handled.  instead, how about:
+ - move the duplicate code to asm-generic/gpio.h
+ - have the arches which merely need asm-generic/gpio.h add "generic-y
++= gpio.h" to their include/asm/Kbuild
+ - for arches which need to override these common funcs in some way,
+add #ifdef protection to the asm-generic/gpio.h
 
-diff --git a/kernel/watchdog.c b/kernel/watchdog.c
-index 36491cd..8107ba7 100644
---- a/kernel/watchdog.c
-+++ b/kernel/watchdog.c
-@@ -25,6 +25,7 @@
- #include <linux/sysctl.h>
- 
- #include <asm/irq_regs.h>
-+#include <asm/pvclock.h>
- #include <linux/perf_event.h>
- 
- int watchdog_enabled = 1;
-@@ -292,6 +293,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 	 */
- 	duration = is_softlockup(touch_ts);
- 	if (unlikely(duration)) {
-+		/*
-+		 * If a virtual machine is stopped by the host it can look to
-+		 * the watchdog like a soft lockup, check to see if the host
-+		 * stopped the vm before we issue the warning
-+		 */
-+		if (kvm_check_and_clear_host_stopped(smp_processor_id()))
-+			return HRTIMER_RESTART;
-+
- 		/* only warn once */
- 		if (__this_cpu_read(soft_watchdog_warn) == true)
- 			return HRTIMER_RESTART;
--- 
-1.7.5.4
+and it seems like with slightly more work, this path allow you to
+merge most of arch/sh/include/asm/gpio.h.  and it has the advantage of
+not needing new Kconfig symbols.
 
+for example, with asm-generic/atomic.h, it does:
+#ifndef atomic_sub_return
+static inline int atomic_sub_return(int i, atomic_t *v)
+{ ... common implementation ... }
+#endif
+
+and then any arch that wants to override it does:
+#define atomic_sub_return atomic_sub_return
+static inline int atomic_sub_return(int i, atomic_t *v) { weirdness }
+#include <asm-generic/atomic.h>
+-mike
