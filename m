@@ -1,7 +1,7 @@
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/6] Add generic stubs for kvm stop check functions
-Date: Tue, 25 Oct 2011 15:26:17 -0400
-Message-ID: <1319570779-8907-5-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 2/6] Add functions to check if the host has stopped the vm
+Date: Tue, 25 Oct 2011 15:26:15 -0400
+Message-ID: <1319570779-8907-3-git-send-email-emunson@mgebm.net>
 References: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
@@ -10,36 +10,58 @@ To: avi@redhat.com
 Cc: mingo@redhat.com, x86@kernel.org, hpa@zytor.com, mtosatti@redhat.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, Eric B Munson <emunson@mgebm.net>
 List-Id: linux-arch.vger.kernel.org
 
+When a host stops or suspends a VM it will set a flag to show this.  The
+watchdog will use these functions to determine if a softlockup is real, or the
+result of a suspended VM.
+
 Signed-off-by: Eric B Munson <emunson@mgebm.net>
 ---
- include/asm-generic/pvclock.h |   19 +++++++++++++++++++
- 1 files changed, 19 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/pvclock.h
+ arch/x86/include/asm/pvclock.h |    2 ++
+ arch/x86/kernel/kvmclock.c     |   19 +++++++++++++++++++
+ 2 files changed, 21 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/pvclock.h b/include/asm-generic/pvclock.h
-new file mode 100644
-index 0000000..b42a8eb
---- /dev/null
-+++ b/include/asm-generic/pvclock.h
-@@ -0,0 +1,19 @@
-+#ifndef _ASM_GENERIC_PVCLOCK_H
-+#define _ASM_GENERIC_PVCLOCK_H
+diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
+index c59cc97..7d3ba41 100644
+--- a/arch/x86/include/asm/pvclock.h
++++ b/arch/x86/include/asm/pvclock.h
+@@ -13,6 +13,8 @@ void pvclock_read_wallclock(struct pvclock_wall_clock *wall,
+ 			    struct timespec *ts);
+ void pvclock_resume(void);
+ 
++bool kvm_check_and_clear_host_stopped(int cpu);
 +
-+
-+/*
-+ * These functions are used by architectures that support kvm to avoid issuing
-+ * false soft lockup messages.
-+ */
-+static inline bool kvm_check_and_clear_host_stopped(int cpu)
+ /*
+  * Scale a 64-bit delta by scaling and multiplying by a 32-bit fraction,
+  * yielding a 64-bit result.
+diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
+index c1a0188..8ddcfaf 100644
+--- a/arch/x86/kernel/kvmclock.c
++++ b/arch/x86/kernel/kvmclock.c
+@@ -113,6 +113,25 @@ static void kvm_get_preset_lpj(void)
+ 	preset_lpj = lpj;
+ }
+ 
++bool kvm_check_and_clear_host_stopped(int cpu)
 +{
-+	return false;
++	bool ret = false;
++	struct pvclock_vcpu_time_info *src;
++
++	/*
++	 * per_cpu() is safe here because this function is only called from
++	 * timer functions where preemption is already disabled.
++	 */
++	WARN_ON(!in_atomic());
++	src = &per_cpu(hv_clock, cpu);
++	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
++		src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
++		ret = true;
++	}
++
++	return ret;
 +}
 +
-+static inline void kvm_clear_guest_paused(struct kvm_vcpu *vcpu)
-+{
-+	return;
-+}
-+
-+#endif
+ static struct clocksource kvm_clock = {
+ 	.name = "kvm-clock",
+ 	.read = kvm_clock_get_cycles,
 -- 
 1.7.5.4
