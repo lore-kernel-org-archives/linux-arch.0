@@ -1,47 +1,48 @@
-From: Mike Frysinger <vapier.adi@gmail.com>
-Subject: Re: [PATCH RFC 2/8] blackfin: implement syscall restart generically
-Date: Tue, 25 Oct 2011 20:01:38 -0400
-Message-ID: <CAMjpGUeQch6_-wPRVrktLGFt5h3UV3usaD6XHu_gn82DFcEh1Q@mail.gmail.com>
-References: <cover.1319364492.git.jonas@southpole.se> <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
+From: Hamo <hamo.by@gmail.com>
+Subject: Re: [PATCH] gpio: fix build error in include/asm-generic/gpio.h
+Date: Wed, 26 Oct 2011 09:36:05 +0800
+Message-ID: <CAO_0yfOc2-ws7N7T9wzRmVG7iw2i0ASwvb6FS2ofk8Wzij0ofg@mail.gmail.com>
+References: <CAO_0yfOa7B4tB1nJg8c_5a612KjNmPh_aMvS=wHhfU_maAvZAg@mail.gmail.com>
+ <201110211339.59280.arnd@arndb.de> <CACxGe6sFrJh+Y5CJVMTPiWH3m=j+J_YUzLP=MiaBbsvDkeA_Jg@mail.gmail.com>
+ <201110251323.44313.arnd@arndb.de> <CACxGe6v9ZsK9KqUyZR76b0n3pTs6ykkQUJ6UtWooH9QvoFi16A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bw0-f46.google.com ([209.85.214.46]:58893 "EHLO
-	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750968Ab1JZACA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 20:02:00 -0400
-In-Reply-To: <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:46506 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754190Ab1JZBg1 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 21:36:27 -0400
+In-Reply-To: <CACxGe6v9ZsK9KqUyZR76b0n3pTs6ykkQUJ6UtWooH9QvoFi16A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sun, Oct 23, 2011 at 06:19, Jonas Bonn <jonas@southpole.se> wrote:
-> --- a/arch/blackfin/include/asm/syscall.h
-> +++ b/arch/blackfin/include/asm/syscall.h
+On Tue, Oct 25, 2011 at 7:41 PM, Grant Likely <grant.likely@secretlab.c=
+a> wrote:
 >
-> =C2=A0static inline long
-> =C2=A0syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
-> =C2=A0{
-> - =C2=A0 =C2=A0 =C2=A0 return regs->p0;
-> + =C2=A0 =C2=A0 =C2=A0 return regs->orig_p0;
-> =C2=A0}
+> On Oct 25, 2011 1:23 PM, "Arnd Bergmann" <arnd@arndb.de> wrote:
+>> I would assume that this is what Hamo did:
+>>
+>> $ ./scripts/get_maintainer.pl -f include/asm-generic/gpio.h
+>> Arnd Bergmann <arnd@arndb.de> (maintainer:GENERIC INCLUDE/A...)
+>> linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/A...)
+>> linux-kernel@vger.kernel.org (open list)
+>
+> Hmmm, looks like MAINTAINERS needs an update. Gpio should have been p=
+icked
+> up.
+>
+> Sorry Hamo.
+>
+> g.
+>
+>>
+>> =A0 =A0 =A0 =A0Arnd
 
-i'm not sure this is correct.  we set the orig_p0 to -1 when forcing
-the syscall to go to restart.  shouldn't syscall_get_nr() still return
-the right value ?
+Just found your emails.  Yes I used the script. I have sent a patch to
+update MAINTAINERS and cc to you Grant.
 
-> =C2=A0syscall_set_return_value(struct task_struct *task, struct pt_re=
-gs *regs,
-> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0int error, long val)
-> =C2=A0{
-> - =C2=A0 =C2=A0 =C2=A0 regs->r0 =3D error ? -error : val;
-> + =C2=A0 =C2=A0 =C2=A0 regs->r0 =3D error ? error : val;
-> =C2=A0}
-
-this fix is unrelated (and unmentioned in the changelog).  i also see
-a bunch of other arches doing this.  so we should pull this change out
-into a dedicated patchset, and fix all the arches at the same time.
--mike
+Thanks,
+Yang
