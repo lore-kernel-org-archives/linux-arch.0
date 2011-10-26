@@ -1,42 +1,47 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Tue, 25 Oct 2011 19:44:14 -0400
-Message-ID: <CAJaTeTp2w85UHnmH-PPMZsQGQMNa-93kw-tjmDxA_wjJXkYQcQ@mail.gmail.com>
-References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+From: Mike Frysinger <vapier.adi@gmail.com>
+Subject: Re: [PATCH RFC 2/8] blackfin: implement syscall restart generically
+Date: Tue, 25 Oct 2011 20:01:38 -0400
+Message-ID: <CAMjpGUeQch6_-wPRVrktLGFt5h3UV3usaD6XHu_gn82DFcEh1Q@mail.gmail.com>
+References: <cover.1319364492.git.jonas@southpole.se> <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Grant Likely <grant.likely@secretlab.ca>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:58893 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750968Ab1JZACA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 20:02:00 -0400
+In-Reply-To: <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
 
-On Tue, Oct 25, 2011 at 03:33, Mark Brown wrote:
-> Rather than requiring architectures that use gpiolib but don't have any
-> need to define anything custom to copy an asm/gpio.h provide a Kconfig
-> symbol which architectures must select in order to include gpio.h and
-> for other architectures just provide the trivial implementation directly.
+On Sun, Oct 23, 2011 at 06:19, Jonas Bonn <jonas@southpole.se> wrote:
+> --- a/arch/blackfin/include/asm/syscall.h
+> +++ b/arch/blackfin/include/asm/syscall.h
+>
+> =C2=A0static inline long
+> =C2=A0syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
+> =C2=A0{
+> - =C2=A0 =C2=A0 =C2=A0 return regs->p0;
+> + =C2=A0 =C2=A0 =C2=A0 return regs->orig_p0;
+> =C2=A0}
 
-i don't think this is generally how asm-generic is handled.  instead, how about:
- - move the duplicate code to asm-generic/gpio.h
- - have the arches which merely need asm-generic/gpio.h add "generic-y
-+= gpio.h" to their include/asm/Kbuild
- - for arches which need to override these common funcs in some way,
-add #ifdef protection to the asm-generic/gpio.h
+i'm not sure this is correct.  we set the orig_p0 to -1 when forcing
+the syscall to go to restart.  shouldn't syscall_get_nr() still return
+the right value ?
 
-and it seems like with slightly more work, this path allow you to
-merge most of arch/sh/include/asm/gpio.h.  and it has the advantage of
-not needing new Kconfig symbols.
+> =C2=A0syscall_set_return_value(struct task_struct *task, struct pt_re=
+gs *regs,
+> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 =C2=A0 =C2=A0int error, long val)
+> =C2=A0{
+> - =C2=A0 =C2=A0 =C2=A0 regs->r0 =3D error ? -error : val;
+> + =C2=A0 =C2=A0 =C2=A0 regs->r0 =3D error ? error : val;
+> =C2=A0}
 
-for example, with asm-generic/atomic.h, it does:
-#ifndef atomic_sub_return
-static inline int atomic_sub_return(int i, atomic_t *v)
-{ ... common implementation ... }
-#endif
-
-and then any arch that wants to override it does:
-#define atomic_sub_return atomic_sub_return
-static inline int atomic_sub_return(int i, atomic_t *v) { weirdness }
-#include <asm-generic/atomic.h>
+this fix is unrelated (and unmentioned in the changelog).  i also see
+a bunch of other arches doing this.  so we should pull this change out
+into a dedicated patchset, and fix all the arches at the same time.
 -mike
