@@ -1,48 +1,61 @@
-From: Hamo <hamo.by@gmail.com>
-Subject: Re: [PATCH] gpio: fix build error in include/asm-generic/gpio.h
-Date: Wed, 26 Oct 2011 09:36:05 +0800
-Message-ID: <CAO_0yfOc2-ws7N7T9wzRmVG7iw2i0ASwvb6FS2ofk8Wzij0ofg@mail.gmail.com>
-References: <CAO_0yfOa7B4tB1nJg8c_5a612KjNmPh_aMvS=wHhfU_maAvZAg@mail.gmail.com>
- <201110211339.59280.arnd@arndb.de> <CACxGe6sFrJh+Y5CJVMTPiWH3m=j+J_YUzLP=MiaBbsvDkeA_Jg@mail.gmail.com>
- <201110251323.44313.arnd@arndb.de> <CACxGe6v9ZsK9KqUyZR76b0n3pTs6ykkQUJ6UtWooH9QvoFi16A@mail.gmail.com>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH RFC 2/8] blackfin: implement syscall restart generically
+Date: Wed, 26 Oct 2011 08:16:41 +0200
+Message-ID: <1319609801.2699.118.camel@satguru>
+References: <cover.1319364492.git.jonas@southpole.se>
+	 <f33d604e18508d766a224f66f0bc9340af00ee89.1319364492.git.jonas@southpole.se>
+	 <CAMjpGUeQch6_-wPRVrktLGFt5h3UV3usaD6XHu_gn82DFcEh1Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:46506 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754190Ab1JZBg1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Oct 2011 21:36:27 -0400
-In-Reply-To: <CACxGe6v9ZsK9KqUyZR76b0n3pTs6ykkQUJ6UtWooH9QvoFi16A@mail.gmail.com>
+Received: from mail.southpole.se ([193.12.106.18]:39381 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751094Ab1JZGQz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Oct 2011 02:16:55 -0400
+In-Reply-To: <CAMjpGUeQch6_-wPRVrktLGFt5h3UV3usaD6XHu_gn82DFcEh1Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Mike Frysinger <vapier.adi@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org
 
-On Tue, Oct 25, 2011 at 7:41 PM, Grant Likely <grant.likely@secretlab.c=
-a> wrote:
->
-> On Oct 25, 2011 1:23 PM, "Arnd Bergmann" <arnd@arndb.de> wrote:
->> I would assume that this is what Hamo did:
->>
->> $ ./scripts/get_maintainer.pl -f include/asm-generic/gpio.h
->> Arnd Bergmann <arnd@arndb.de> (maintainer:GENERIC INCLUDE/A...)
->> linux-arch@vger.kernel.org (open list:GENERIC INCLUDE/A...)
->> linux-kernel@vger.kernel.org (open list)
->
-> Hmmm, looks like MAINTAINERS needs an update. Gpio should have been p=
-icked
-> up.
->
-> Sorry Hamo.
->
-> g.
->
->>
->> =A0 =A0 =A0 =A0Arnd
 
-Just found your emails.  Yes I used the script. I have sent a patch to
-update MAINTAINERS and cc to you Grant.
+On Tue, 2011-10-25 at 20:01 -0400, Mike Frysinger wrote:
+> On Sun, Oct 23, 2011 at 06:19, Jonas Bonn <jonas@southpole.se> wrote:
+> > --- a/arch/blackfin/include/asm/syscall.h
+> > +++ b/arch/blackfin/include/asm/syscall.h
+> >
+> >  static inline long
+> >  syscall_get_nr(struct task_struct *task, struct pt_regs *regs)
+> >  {
+> > -       return regs->p0;
+> > +       return regs->orig_p0;
+> >  }
+> 
+> i'm not sure this is correct.  we set the orig_p0 to -1 when forcing
+> the syscall to go to restart.  shouldn't syscall_get_nr() still return
+> the right value ?
 
-Thanks,
-Yang
+No, syscall_get_nr is only valid while processing a syscall (should
+return -1 otherwise) and the syscall processing is effectively finished
+once you've handled the restart requirements so returning -1 at that
+point makes sense... patch 1/8 relies on that fact.
+
+> 
+> >  syscall_set_return_value(struct task_struct *task, struct pt_regs *regs,
+> >                          int error, long val)
+> >  {
+> > -       regs->r0 = error ? -error : val;
+> > +       regs->r0 = error ? error : val;
+> >  }
+> 
+> this fix is unrelated (and unmentioned in the changelog).  i also see
+> a bunch of other arches doing this.  so we should pull this change out
+> into a dedicated patchset, and fix all the arches at the same time.
+
+Agreed, this should go into a separate patch.  It's true that some
+arches do the negation as above, but those arch's return positive error
+numbers and indicate syscall error by setting a separate flag.  I'll
+prepare a separate patch for this.
+
+/Jonas
