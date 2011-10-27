@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:59681 "EHLO smtp.gentoo.org"
+Received: from smtp.gentoo.org ([140.211.166.183]:46343 "EHLO smtp.gentoo.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752072Ab1J0NCQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Oct 2011 09:02:16 -0400
+	id S1750861Ab1J0Wwj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 27 Oct 2011 18:52:39 -0400
 From: Mike Frysinger <vapier@gentoo.org>
-Subject: [PATCH] asm-generic/gpio.h: merge basic gpiolib wrappers
-Date: Thu, 27 Oct 2011 09:01:43 -0400
-Message-ID: <1319720503-3183-1-git-send-email-vapier@gentoo.org>
-In-Reply-To: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH v2] asm-generic/gpio.h: merge basic gpiolib wrappers
+Date: Thu, 27 Oct 2011 18:52:07 -0400
+Message-ID: <1319755927-749-1-git-send-email-vapier@gentoo.org>
+In-Reply-To: <1319720503-3183-1-git-send-email-vapier@gentoo.org>
+References: <1319720503-3183-1-git-send-email-vapier@gentoo.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Grant Likely <grant.likely@secretlab.ca>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jonas Bonn <jonas@southpole.se>, Paul Mackerras <paulus@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Chris Zankel <chris@zankel.net>, Russell King <linux@arm.linux.org.uk>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Mark Brown <broonie@opensource.wolfsonmicro.com>
 Cc: linux-alpha@vger.kernel.org, linux-arch@vger.kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux@lists.openrisc.net, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, linux-m68k@lists.linux-m68k.org
-Message-ID: <20111027130143.XkLlMxalKO13b6wpKumUAqlYQgQBO-gB9x8PGWdNAJ0@z>
+Message-ID: <20111027225207.puvifdrQmkLrX3LWBCXIUCMJZyI_YG0POUvQrFgyhEA@z>
 
 Rather than requiring architectures that use gpiolib but don't have
 any need to define anything custom to copy an asm/gpio.h, merge this
@@ -24,29 +24,59 @@ a more fine grained per-func approach.
 I've compile tested these guys (with & without GPIOLIB), but don't
 have the hardware to boot:
 	- alpha defconfig
-	- arm defconfig
+	- arm: every defconfig
 	- blackfin defconfig
 	- ia64 defconfig
+	- m68k: multi & m5208evb defconfig
 	- mips: ar7 & ath79 & bcm47xx & bcm63xx & ip22 defconfig
 	- powerpc: mpc85xx & ppc64 defconfig
 	- sh: kfr2r09 defconfig
 	- sparc defconfig
 	- x86_64 defconfig
 
+There is concern for adding code to the arm gpio headers, but since my
+diffstat removes more than it adds, and it only adds when there are funcs
+which need to be customized in the first place, I think this holds to the
+desire to ultimately kill off (when possible) the misc sub gpio headers.
+After all, if you can kill the overridden function, my additional lines
+shouldn't be needed either.
+
 I don't have any toolchains for avr32, microblaze, openrisc, unicore32,
 or xtensa.  So they lose :x.
 
-I don't see m68k supporting gpoilib, so I've just ignored it.
-
 Signed-off-by: Mike Frysinger <vapier@gentoo.org>
 ---
+v2
+	- grub through arm gpio.h headers
+	- add m68k support
+
+note: i've done a full build of all arm defconfigs, and any warnings
+	or build failures appear to be unrelated to my change (sadly, there
+	seem to be way more than there should be ...).  i'll start a 2nd
+	build which compares the binary output to make sure they're the
+	same, but if people see something that needs more attention before
+	that, feel free to highlight it.
+
  arch/alpha/include/asm/Kbuild                   |    2 +
  arch/alpha/include/asm/gpio.h                   |   55 -------------------
- arch/arm/include/asm/gpio.h                     |   13 +++--
+ arch/arm/include/asm/gpio.h                     |   16 ------
+ arch/arm/include/asm/hardware/iop3xx-gpio.h     |   21 ++------
+ arch/arm/mach-davinci/include/mach/gpio.h       |   11 ++--
+ arch/arm/mach-ixp4xx/include/mach/gpio.h        |    8 +--
+ arch/arm/mach-ks8695/include/mach/gpio.h        |    1 +
+ arch/arm/mach-mmp/include/mach/gpio.h           |    2 -
+ arch/arm/mach-pxa/include/mach/gpio.h           |    2 +-
+ arch/arm/mach-sa1100/include/mach/gpio.h        |   13 ++---
+ arch/arm/mach-shmobile/include/mach/gpio.h      |   16 ------
+ arch/arm/mach-w90x900/include/mach/gpio.h       |    1 +
+ arch/arm/plat-mxc/include/mach/irqs.h           |    2 -
+ arch/arm/plat-omap/include/plat/gpio.h          |    4 +-
+ arch/arm/plat-pxa/include/plat/gpio.h           |    6 +--
  arch/avr32/mach-at32ap/include/mach/gpio.h      |   19 +------
  arch/blackfin/include/asm/gpio.h                |   16 ++----
  arch/ia64/include/asm/Kbuild                    |    2 +
  arch/ia64/include/asm/gpio.h                    |   55 -------------------
+ arch/m68k/include/asm/gpio.h                    |    7 +++
  arch/microblaze/include/asm/Kbuild              |    2 +
  arch/microblaze/include/asm/gpio.h              |   53 ------------------
  arch/mips/include/asm/mach-ar7/gpio.h           |    5 --
@@ -70,7 +100,7 @@ Signed-off-by: Mike Frysinger <vapier@gentoo.org>
  arch/xtensa/include/asm/Kbuild                  |    2 +
  arch/xtensa/include/asm/gpio.h                  |   56 -------------------
  include/asm-generic/gpio.h                      |   23 ++++++++
- 30 files changed, 81 insertions(+), 528 deletions(-)
+ 43 files changed, 105 insertions(+), 601 deletions(-)
  delete mode 100644 arch/alpha/include/asm/gpio.h
  delete mode 100644 arch/ia64/include/asm/gpio.h
  delete mode 100644 arch/microblaze/include/asm/gpio.h
@@ -154,18 +184,14 @@ index 7dc6a63..0000000
 -
 -#endif /* _ASM_ALPHA_GPIO_H */
 diff --git a/arch/arm/include/asm/gpio.h b/arch/arm/include/asm/gpio.h
-index 11ad0bf..741efb2 100644
+index 11ad0bf..9818329 100644
 --- a/arch/arm/include/asm/gpio.h
 +++ b/arch/arm/include/asm/gpio.h
-@@ -5,14 +5,15 @@
+@@ -4,23 +4,7 @@
+ /* not all ARM platforms necessarily support this API ... */
  #include <mach/gpio.h>
  
- #ifndef __ARM_GPIOLIB_COMPLEX
-+/* assume the mach has defined this */
-+#ifndef irq_to_gpio
-+#define irq_to_gpio irq_to_gpio
-+#endif
-+
+-#ifndef __ARM_GPIOLIB_COMPLEX
  /* Note: this may rely upon the value of ARCH_NR_GPIOS set in mach/gpio.h */
  #include <asm-generic/gpio.h>
  
@@ -174,17 +200,299 @@ index 11ad0bf..741efb2 100644
 -#define gpio_set_value  __gpio_set_value
 -#define gpio_cansleep   __gpio_cansleep
 -#endif
-+#else
+-
+-/*
+- * Provide a default gpio_to_irq() which should satisfy every case.
+- * However, some platforms want to do this differently, so allow them
+- * to override it.
+- */
+-#ifndef gpio_to_irq
+-#define gpio_to_irq	__gpio_to_irq
+-#endif
+-
+ #endif /* _ARCH_ARM_GPIO_H */
+diff --git a/arch/arm/include/asm/hardware/iop3xx-gpio.h b/arch/arm/include/asm/hardware/iop3xx-gpio.h
+index 9eda7dc..4033b81 100644
+--- a/arch/arm/include/asm/hardware/iop3xx-gpio.h
++++ b/arch/arm/include/asm/hardware/iop3xx-gpio.h
+@@ -25,11 +25,14 @@
+ #ifndef __ASM_ARM_HARDWARE_IOP3XX_GPIO_H
+ #define __ASM_ARM_HARDWARE_IOP3XX_GPIO_H
  
- /*
-  * Provide a default gpio_to_irq() which should satisfy every case.
-@@ -23,4 +24,6 @@
- #define gpio_to_irq	__gpio_to_irq
++/* We implement a few ourself */
++#define gpio_get_value gpio_get_value
++#define gpio_set_value gpio_set_value
++#define gpio_cansleep gpio_cansleep
++
+ #include <mach/hardware.h>
+ #include <asm-generic/gpio.h>
+ 
+-#define __ARM_GPIOLIB_COMPLEX
+-
+ #define IOP3XX_N_GPIOS	8
+ 
+ static inline int gpio_get_value(unsigned gpio)
+@@ -57,19 +60,5 @@ static inline int gpio_cansleep(unsigned gpio)
+ 		return __gpio_cansleep(gpio);
+ }
+ 
+-/*
+- * The GPIOs are not generating any interrupt
+- * Note : manuals are not clear about this
+- */
+-static inline int gpio_to_irq(int gpio)
+-{
+-	return -EINVAL;
+-}
+-
+-static inline int irq_to_gpio(int gpio)
+-{
+-	return -EINVAL;
+-}
+-
  #endif
  
-+#endif
+diff --git a/arch/arm/mach-davinci/include/mach/gpio.h b/arch/arm/mach-davinci/include/mach/gpio.h
+index fbaae47..1604005 100644
+--- a/arch/arm/mach-davinci/include/mach/gpio.h
++++ b/arch/arm/mach-davinci/include/mach/gpio.h
+@@ -13,6 +13,11 @@
+ #ifndef	__DAVINCI_GPIO_H
+ #define	__DAVINCI_GPIO_H
+ 
++/* We implement a few ourself */
++#define gpio_set_value gpio_set_value
++#define gpio_get_value gpio_get_value
++#define gpio_cansleep gpio_cansleep
 +
- #endif /* _ARCH_ARM_GPIO_H */
+ #include <asm-generic/gpio.h>
+ 
+ /* The inline versions use the static inlines in the driver header */
+@@ -77,10 +82,4 @@ static inline int gpio_cansleep(unsigned gpio)
+ 		return __gpio_cansleep(gpio);
+ }
+ 
+-static inline int irq_to_gpio(unsigned irq)
+-{
+-	/* don't support the reverse mapping */
+-	return -ENOSYS;
+-}
+-
+ #endif				/* __DAVINCI_GPIO_H */
+diff --git a/arch/arm/mach-ixp4xx/include/mach/gpio.h b/arch/arm/mach-ixp4xx/include/mach/gpio.h
+index 83d6b4e..7835e31 100644
+--- a/arch/arm/mach-ixp4xx/include/mach/gpio.h
++++ b/arch/arm/mach-ixp4xx/include/mach/gpio.h
+@@ -28,8 +28,6 @@
+ #include <linux/kernel.h>
+ #include <mach/hardware.h>
+ 
+-#define __ARM_GPIOLIB_COMPLEX
+-
+ static inline int gpio_request(unsigned gpio, const char *label)
+ {
+ 	return 0;
+@@ -63,17 +61,17 @@ static inline int gpio_get_value(unsigned gpio)
+ 
+ 	return value;
+ }
++#define gpio_get_value gpio_get_value
+ 
+ static inline void gpio_set_value(unsigned gpio, int value)
+ {
+ 	gpio_line_set(gpio, value);
+ }
+-
+-#include <asm-generic/gpio.h>			/* cansleep wrappers */
++#define gpio_set_value gpio_set_value
+ 
+ extern int gpio_to_irq(int gpio);
+ #define gpio_to_irq gpio_to_irq
+ extern int irq_to_gpio(unsigned int irq);
++#define irq_to_gpio irq_to_gpio
+ 
+ #endif
+-
+diff --git a/arch/arm/mach-ks8695/include/mach/gpio.h b/arch/arm/mach-ks8695/include/mach/gpio.h
+index f5fda36..d81c6f8 100644
+--- a/arch/arm/mach-ks8695/include/mach/gpio.h
++++ b/arch/arm/mach-ks8695/include/mach/gpio.h
+@@ -15,5 +15,6 @@
+  * Map IRQ number to GPIO line.
+  */
+ extern int irq_to_gpio(unsigned int irq);
++#define irq_to_gpio irq_to_gpio
+ 
+ #endif
+diff --git a/arch/arm/mach-mmp/include/mach/gpio.h b/arch/arm/mach-mmp/include/mach/gpio.h
+index 6812623..871b4c8 100644
+--- a/arch/arm/mach-mmp/include/mach/gpio.h
++++ b/arch/arm/mach-mmp/include/mach/gpio.h
+@@ -1,8 +1,6 @@
+ #ifndef __ASM_MACH_GPIO_H
+ #define __ASM_MACH_GPIO_H
+ 
+-#include <asm-generic/gpio.h>
+-
+ #define gpio_to_irq(gpio)	(IRQ_GPIO_START + (gpio))
+ #define irq_to_gpio(irq)	((irq) - IRQ_GPIO_START)
+ 
+diff --git a/arch/arm/mach-pxa/include/mach/gpio.h b/arch/arm/mach-pxa/include/mach/gpio.h
+index 004cade..a28277c 100644
+--- a/arch/arm/mach-pxa/include/mach/gpio.h
++++ b/arch/arm/mach-pxa/include/mach/gpio.h
+@@ -24,7 +24,6 @@
+ #ifndef __ASM_ARCH_PXA_GPIO_H
+ #define __ASM_ARCH_PXA_GPIO_H
+ 
+-#include <asm-generic/gpio.h>
+ /* The defines for the driver are needed for the accelerated accessors */
+ #include "gpio-pxa.h"
+ 
+@@ -43,6 +42,7 @@ static inline int irq_to_gpio(unsigned int irq)
+ 
+ 	return -1;
+ }
++#define irq_to_gpio irq_to_gpio
+ 
+ #include <plat/gpio.h>
+ #endif
+diff --git a/arch/arm/mach-sa1100/include/mach/gpio.h b/arch/arm/mach-sa1100/include/mach/gpio.h
+index 7036318..6198f7a 100644
+--- a/arch/arm/mach-sa1100/include/mach/gpio.h
++++ b/arch/arm/mach-sa1100/include/mach/gpio.h
+@@ -24,12 +24,16 @@
+ #ifndef __ASM_ARCH_SA1100_GPIO_H
+ #define __ASM_ARCH_SA1100_GPIO_H
+ 
++/* We implement a few ourself */
++#define gpio_get_value gpio_get_value
++#define gpio_set_value gpio_set_value
++#define gpio_to_irq(gpio)	((gpio < 11) ? (IRQ_GPIO0 + gpio) : \
++					(IRQ_GPIO11 - 11 + gpio))
++
+ #include <mach/hardware.h>
+ #include <asm/irq.h>
+ #include <asm-generic/gpio.h>
+ 
+-#define __ARM_GPIOLIB_COMPLEX
+-
+ static inline int gpio_get_value(unsigned gpio)
+ {
+ 	if (__builtin_constant_p(gpio) && (gpio <= GPIO_MAX))
+@@ -49,9 +53,4 @@ static inline void gpio_set_value(unsigned gpio, int value)
+ 		__gpio_set_value(gpio, value);
+ }
+ 
+-#define gpio_cansleep	__gpio_cansleep
+-
+-#define gpio_to_irq(gpio)	((gpio < 11) ? (IRQ_GPIO0 + gpio) : \
+-					(IRQ_GPIO11 - 11 + gpio))
+-
+ #endif
+diff --git a/arch/arm/mach-shmobile/include/mach/gpio.h b/arch/arm/mach-shmobile/include/mach/gpio.h
+index 7bf0890..f8a5637 100644
+--- a/arch/arm/mach-shmobile/include/mach/gpio.h
++++ b/arch/arm/mach-shmobile/include/mach/gpio.h
+@@ -10,23 +10,7 @@
+ #ifndef __ASM_ARCH_GPIO_H
+ #define __ASM_ARCH_GPIO_H
+ 
+-#include <linux/kernel.h>
+-#include <linux/errno.h>
+-
+ #define ARCH_NR_GPIOS 1024
+ #include <linux/sh_pfc.h>
+ 
+-#ifdef CONFIG_GPIOLIB
+-
+-static inline int irq_to_gpio(unsigned int irq)
+-{
+-	return -ENOSYS;
+-}
+-
+-#else
+-
+-#define __ARM_GPIOLIB_COMPLEX
+-
+-#endif /* CONFIG_GPIOLIB */
+-
+ #endif /* __ASM_ARCH_GPIO_H */
+diff --git a/arch/arm/mach-w90x900/include/mach/gpio.h b/arch/arm/mach-w90x900/include/mach/gpio.h
+index 5385a42..c905219 100644
+--- a/arch/arm/mach-w90x900/include/mach/gpio.h
++++ b/arch/arm/mach-w90x900/include/mach/gpio.h
+@@ -26,5 +26,6 @@ static inline int irq_to_gpio(unsigned irq)
+ {
+ 	return irq;
+ }
++#define irq_to_gpio irq_to_gpio
+ 
+ #endif
+diff --git a/arch/arm/plat-mxc/include/mach/irqs.h b/arch/arm/plat-mxc/include/mach/irqs.h
+index 00e812b..4589307 100644
+--- a/arch/arm/plat-mxc/include/mach/irqs.h
++++ b/arch/arm/plat-mxc/include/mach/irqs.h
+@@ -11,8 +11,6 @@
+ #ifndef __ASM_ARCH_MXC_IRQS_H__
+ #define __ASM_ARCH_MXC_IRQS_H__
+ 
+-#include <asm-generic/gpio.h>
+-
+ /*
+  * SoCs with TZIC interrupt controller have 128 IRQs, those with AVIC have 64
+  */
+diff --git a/arch/arm/plat-omap/include/plat/gpio.h b/arch/arm/plat-omap/include/plat/gpio.h
+index 9e86ee0..1fd4986 100644
+--- a/arch/arm/plat-omap/include/plat/gpio.h
++++ b/arch/arm/plat-omap/include/plat/gpio.h
+@@ -219,9 +219,6 @@ extern void omap_gpio_restore_context(void);
+  * The original OMAP-specific calls should eventually be removed.
+  */
+ 
+-#include <linux/errno.h>
+-#include <asm-generic/gpio.h>
+-
+ static inline int irq_to_gpio(unsigned irq)
+ {
+ 	int tmp;
+@@ -238,5 +235,6 @@ static inline int irq_to_gpio(unsigned irq)
+ 	/* we don't supply reverse mappings for non-SOC gpios */
+ 	return -EIO;
+ }
++#define irq_to_gpio irq_to_gpio
+ 
+ #endif
+diff --git a/arch/arm/plat-pxa/include/plat/gpio.h b/arch/arm/plat-pxa/include/plat/gpio.h
+index 258f772..4ee329c 100644
+--- a/arch/arm/plat-pxa/include/plat/gpio.h
++++ b/arch/arm/plat-pxa/include/plat/gpio.h
+@@ -1,8 +1,6 @@
+ #ifndef __PLAT_GPIO_H
+ #define __PLAT_GPIO_H
+ 
+-#define __ARM_GPIOLIB_COMPLEX
+-
+ /* The individual machine provides register offsets and NR_BUILTIN_GPIO */
+ #include <mach/gpio-pxa.h>
+ 
+@@ -13,6 +11,7 @@ static inline int gpio_get_value(unsigned gpio)
+ 	else
+ 		return __gpio_get_value(gpio);
+ }
++#define gpio_get_value gpio_get_value
+ 
+ static inline void gpio_set_value(unsigned gpio, int value)
+ {
+@@ -24,7 +23,6 @@ static inline void gpio_set_value(unsigned gpio, int value)
+ 	} else
+ 		__gpio_set_value(gpio, value);
+ }
+-
+-#define gpio_cansleep		__gpio_cansleep
++#define gpio_set_value gpio_set_value
+ 
+ #endif /* __PLAT_GPIO_H */
 diff --git a/arch/avr32/mach-at32ap/include/mach/gpio.h b/arch/avr32/mach-at32ap/include/mach/gpio.h
 index 0180f58..f2ff962 100644
 --- a/arch/avr32/mach-at32ap/include/mach/gpio.h
@@ -326,6 +634,24 @@ index 590a20d..0000000
 -#endif /* CONFIG_GPIOLIB */
 -
 -#endif /* _ASM_IA64_GPIO_H */
+diff --git a/arch/m68k/include/asm/gpio.h b/arch/m68k/include/asm/gpio.h
+index b204683..4544b6a 100644
+--- a/arch/m68k/include/asm/gpio.h
++++ b/arch/m68k/include/asm/gpio.h
+@@ -16,6 +16,13 @@
+ #ifndef coldfire_gpio_h
+ #define coldfire_gpio_h
+ 
++/* We implement a few ourself */
++#define gpio_get_value gpio_get_value
++#define gpio_set_value gpio_set_value
++#define gpio_cansleep gpio_cansleep
++#define gpio_to_irq gpio_to_irq
++#define irq_to_gpio irq_to_gpio
++
+ #include <linux/io.h>
+ #include <asm-generic/gpio.h>
+ #include <asm/coldfire.h>
 diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
 index db5294c..5bf1ca7 100644
 --- a/arch/microblaze/include/asm/Kbuild
