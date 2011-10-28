@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:9865 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:35897 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932828Ab1J1W1E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:04 -0400
-Subject: [PATCH v3 17/34] mips/PCI: convert to pci_scan_root_bus() for correct
-	root bus resources
+	with ESMTP id S933642Ab1J1W1l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:41 -0400
+Subject: [PATCH v3 25/34] powerpc/PCI: split PHB part out of
+	pcibios_map_io_space()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 28 Oct 2011 16:26:57 -0600
-Message-ID: <20111028222657.30729.47680.stgit@bhelgaas.mtv.corp.google.com>
+Date: Fri, 28 Oct 2011 16:27:38 -0600
+Message-ID: <20111028222738.30729.96314.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,66 +16,84 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Deng-Cheng Zhu <dczhu@mips.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20111028222657.hMhrpKN_9ScTIUwW2sp1tmVml01RIUpm2ttrKA6Zgro@z>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20111028222738.tNfKMTV1WFUUVxHCscwJPLrfVGf41Z-HWfrVsrFqvl0@z>
 
-Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
-resource fixups.  This fixes the problem of "early" and "header" quirks
-seeing incorrect root bus resources.
+No functional change.  This is so we can use pcibios_phb_map_io_space()
+before we have a struct pci_bus.
 
-Based on original patch by Deng-Cheng Zhu.
-
-Reference: https://lkml.org/lkml/2011/8/26/89
-CC: Ralf Baechle <ralf@linux-mips.org>
-Signed-off-by: Deng-Cheng Zhu <dczhu@mips.com>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/mips/pci/pci.c |   17 ++++++++++-------
- 1 files changed, 10 insertions(+), 7 deletions(-)
+ arch/powerpc/kernel/pci_64.c |   40 +++++++++++++++++++++-------------------
+ 1 files changed, 21 insertions(+), 19 deletions(-)
 
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index 33bba7b..8152f99 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -80,6 +80,7 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+index ab34046..4401425 100644
+--- a/arch/powerpc/kernel/pci_64.c
++++ b/arch/powerpc/kernel/pci_64.c
+@@ -130,30 +130,13 @@ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
+ 
+ #endif /* CONFIG_HOTPLUG */
+ 
+-int __devinit pcibios_map_io_space(struct pci_bus *bus)
++static int __devinit pcibios_map_phb_io_space(struct pci_controller *hose)
  {
- 	static int next_busno;
- 	static int need_domain_info;
-+	LIST_HEAD(resources);
- 	struct pci_bus *bus;
+ 	struct vm_struct *area;
+ 	unsigned long phys_page;
+ 	unsigned long size_page;
+ 	unsigned long io_virt_offset;
+-	struct pci_controller *hose;
+-
+-	WARN_ON(bus == NULL);
+-
+-	/* If this not a PHB, nothing to do, page tables still exist and
+-	 * thus HPTEs will be faulted in when needed
+-	 */
+-	if (bus->self) {
+-		pr_debug("IO mapping for PCI-PCI bridge %s\n",
+-			 pci_name(bus->self));
+-		pr_debug("  virt=0x%016llx...0x%016llx\n",
+-			 bus->resource[0]->start + _IO_BASE,
+-			 bus->resource[0]->end + _IO_BASE);
+-		return 0;
+-	}
  
- 	if (!hose->iommu)
-@@ -88,7 +89,13 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
- 	if (hose->get_busno && pci_probe_only)
- 		next_busno = (*hose->get_busno)();
+-	/* Get the host bridge */
+-	hose = pci_bus_to_host(bus);
+ 	phys_page = _ALIGN_DOWN(hose->io_base_phys, PAGE_SIZE);
+ 	size_page = _ALIGN_UP(hose->pci_io_size, PAGE_SIZE);
  
--	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
-+	pci_add_resource(&resources, hose->mem_resource);
-+	pci_add_resource(&resources, hose->io_resource);
-+	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-+				&resources);
-+	if (!bus)
-+		pci_free_resource_list(&resources);
+@@ -197,11 +180,30 @@ int __devinit pcibios_map_io_space(struct pci_bus *bus)
+ 
+ 	return 0;
+ }
 +
- 	hose->bus = bus;
++int __devinit pcibios_map_io_space(struct pci_bus *bus)
++{
++	WARN_ON(bus == NULL);
++
++	/* If this not a PHB, nothing to do, page tables still exist and
++	 * thus HPTEs will be faulted in when needed
++	 */
++	if (bus->self) {
++		pr_debug("IO mapping for PCI-PCI bridge %s\n",
++			 pci_name(bus->self));
++		pr_debug("  virt=0x%016llx...0x%016llx\n",
++			 bus->resource[0]->start + _IO_BASE,
++			 bus->resource[0]->end + _IO_BASE);
++		return 0;
++	}
++
++	return pcibios_phb_map_phb_io_space(pci_bus_to_host(bus));
++}
+ EXPORT_SYMBOL_GPL(pcibios_map_io_space);
  
- 	need_domain_info = need_domain_info || hose->index;
-@@ -265,15 +272,11 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
+ void __devinit pcibios_setup_phb_io_space(struct pci_controller *hose)
  {
- 	/* Propagate hose info into the subordinate devices.  */
+-	pcibios_map_io_space(hose->bus);
++	pcibios_map_phb_io_space(hose);
+ }
  
--	struct pci_controller *hose = bus->sysdata;
- 	struct list_head *ln;
- 	struct pci_dev *dev = bus->self;
- 
--	if (!dev) {
--		bus->resource[0] = hose->io_resource;
--		bus->resource[1] = hose->mem_resource;
--	} else if (pci_probe_only &&
--		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
-+	if (pci_probe_only && dev &&
-+	    (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
- 		pci_read_bridge_bases(bus);
- 		pcibios_fixup_device_resources(dev, bus);
- 	}
+ #define IOBASE_BRIDGE_NUMBER	0
 
