@@ -1,42 +1,127 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 11/34] ia64/PCI: use pci_create_bus() instead of
-	pci_scan_bus_parented()
-Date: Fri, 28 Oct 2011 16:26:26 -0600
-Message-ID: <20111028222626.30729.74531.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 12/34] ia64/PCI: convert to pci_create_root_bus() for
+	correct root bus resources
+Date: Fri, 28 Oct 2011 16:26:31 -0600
+Message-ID: <20111028222631.30729.16761.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-out.google.com ([74.125.121.67]:9777 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932663Ab1J1W0h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:26:37 -0400
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>
-List-Id: linux-arch.vger.kernel.org
 
-This doesn't change any functionality, but it makes a subsequent patch
-slightly simpler.
+Convert from pci_create_bus() to pci_create_root_bus().  This way the root
+bus resources are correct immediately.  This fixes the problem of "early"
+and "header" quirks seeing incorrect root bus resources.
+
+We can't use pci_scan_root_bus() because, like x86, ACPI hotplug currently
+requires pci_bus_add_devices() in a separate host bridge .start() method.
 
 CC: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/ia64/pci/pci.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+ arch/ia64/pci/pci.c |   39 ++++++++++++++-------------------------
+ 1 files changed, 14 insertions(+), 25 deletions(-)
 
 diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index aa2533a..a952fce 100644
+index a952fce..a7949b5 100644
 --- a/arch/ia64/pci/pci.c
 +++ b/arch/ia64/pci/pci.c
-@@ -386,8 +386,11 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+@@ -133,6 +133,7 @@ alloc_pci_controller (int seg)
+ struct pci_root_info {
+ 	struct acpi_device *bridge;
+ 	struct pci_controller *controller;
++	struct list_head resources;
+ 	char *name;
+ };
+ 
+@@ -314,24 +315,13 @@ static __devinit acpi_status add_window(struct acpi_resource *res, void *data)
+ 				 &window->resource);
+ 	}
+ 
+-	return AE_OK;
+-}
++	/* HP's firmware has a hack to work around a Windows bug.
++	 * Ignore these tiny memory ranges */
++	if (!((res->flags & IORESOURCE_MEM) &&
++	      (res->end - res->start < 16)))
++		pci_add_resource(&info->resources, &window->resource);
+ 
+-static void __devinit
+-pcibios_setup_root_windows(struct pci_bus *bus, struct pci_controller *ctrl)
+-{
+-	int i;
+-
+-	pci_bus_remove_resources(bus);
+-	for (i = 0; i < ctrl->windows; i++) {
+-		struct resource *res = &ctrl->window[i].resource;
+-		/* HP's firmware has a hack to work around a Windows bug.
+-		 * Ignore these tiny memory ranges */
+-		if ((res->flags & IORESOURCE_MEM) &&
+-		    (res->end - res->start < 16))
+-			continue;
+-		pci_bus_add_resource(bus, res, 0);
+-	}
++	return AE_OK;
+ }
+ 
+ struct pci_bus * __devinit
+@@ -342,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	int bus = root->secondary.start;
+ 	struct pci_controller *controller;
+ 	unsigned int windows = 0;
++	struct pci_root_info info;
+ 	struct pci_bus *pbus;
+ 	char *name;
+ 	int pxm;
+@@ -358,11 +349,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		controller->node = pxm_to_node(pxm);
+ #endif
+ 
++	INIT_LIST_HEAD(&info.resources);
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
+ 			&windows);
+ 	if (windows) {
+-		struct pci_root_info info;
+-
+ 		controller->window =
+ 			kmalloc_node(sizeof(*controller->window) * windows,
+ 				     GFP_KERNEL, controller->node);
+@@ -386,9 +376,12 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
  	 * should handle the case here, but it appears that IA64 hasn't
  	 * such quirk. So we just ignore the case now.
  	 */
--	pbus = pci_scan_bus_parented(NULL, bus, &pci_root_ops, controller);
-+	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller);
-+	if (!pbus)
-+		return NULL;
+-	pbus = pci_create_bus(NULL, bus, &pci_root_ops, controller);
+-	if (!pbus)
++	pbus = pci_create_root_bus(NULL, bus, &pci_root_ops, controller,
++				   &info.resources);
++	if (!pbus) {
++		pci_free_resource_list(&info.resources);
+ 		return NULL;
++	}
  
-+	pbus->subordinate = pci_scan_child_bus(pbus);
+ 	pbus->subordinate = pci_scan_child_bus(pbus);
  	return pbus;
+@@ -506,14 +499,10 @@ pcibios_fixup_bus (struct pci_bus *b)
+ 	if (b->self) {
+ 		pci_read_bridge_bases(b);
+ 		pcibios_fixup_bridge_resources(b->self);
+-	} else {
+-		pcibios_setup_root_windows(b, b->sysdata);
+ 	}
+ 	list_for_each_entry(dev, &b->devices, bus_list)
+ 		pcibios_fixup_device_resources(dev);
+ 	platform_pci_fixup_bus(b);
+-
+-	return;
+ }
  
- out3:
+ void __devinit
