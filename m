@@ -1,94 +1,80 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 04/34] PCI: add pci_scan_root_bus() that accepts resource
-	list
-Date: Fri, 28 Oct 2011 16:25:50 -0600
-Message-ID: <20111028222550.30729.13182.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 05/34] PCI: convert pci_scan_bus() to use
+	pci_create_root_bus()
+Date: Fri, 28 Oct 2011 16:25:55 -0600
+Message-ID: <20111028222555.30729.79880.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:35492 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:35509 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756092Ab1J1WZw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:25:52 -0400
+	with ESMTP id S1756133Ab1J1WZ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:25:57 -0400
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 
-"Early" and "header" quirks often use incorrect bus resources because they
-see the default resources assigned by pci_create_bus(), before the
-architecture fixes them up (typically in pcibios_fixup_bus()).  Regions
-reserved by these quirks end up with the wrong parents.
-
-Here's the standard path for scanning a PCI root bus:
-
-  pci_scan_bus or pci_scan_bus_parented
-    pci_create_bus                     <-- A create with default resources
-    pci_scan_child_bus
-      pci_scan_slot
-        pci_scan_single_device
-          pci_scan_device
-            pci_setup_device
-              pci_fixup_device(early)  <-- B
-          pci_device_add
-            pci_fixup_device(header)   <-- C
-      pcibios_fixup_bus                <-- D fill in correct resources
-
-Early and header quirks at B and C use the default (incorrect) root bus
-resources rather than those filled in at D.
-
-This patch adds a new pci_scan_root_bus() function that sets the bus
-resources correctly from a supplied list of resources.
-
-I intend to remove pci_scan_bus() and pci_scan_bus_parented() after
-fixing all callers.
+I plan to deprecate pci_scan_bus_parented(), so use pci_create_root_bus()
+directly instead.  pci_scan_bus() itself will be removed as soon as all
+callers are gone, so this is just an interim step.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/probe.c |   15 +++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 18 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   18 ++++++++++++++++++
+ include/linux/pci.h |   10 +---------
+ 2 files changed, 19 insertions(+), 9 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index e150d48..f1a1cc1 100644
+index f1a1cc1..246e32c 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1614,6 +1614,21 @@ err_out:
- 	return NULL;
+@@ -1655,6 +1655,24 @@ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
  }
+ EXPORT_SYMBOL(pci_scan_bus_parented);
  
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
-+		struct pci_ops *ops, void *sysdata, struct list_head *resources)
++struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
++					void *sysdata)
 +{
++	LIST_HEAD(resources);
 +	struct pci_bus *b;
 +
-+	b = pci_create_root_bus(parent, bus, ops, sysdata, resources);
-+	if (!b)
-+		return NULL;
-+
-+	b->subordinate = pci_scan_child_bus(b);
-+	pci_bus_add_devices(b);
++	pci_add_resource(&resources, &ioport_resource);
++	pci_add_resource(&resources, &iomem_resource);
++	b = pci_create_root_bus(NULL, bus, ops, sysdata, &resources);
++	if (b) {
++		b->subordinate = pci_scan_child_bus(b);
++		pci_bus_add_devices(b);
++	} else {
++		pci_free_resource_list(&resources);
++	}
 +	return b;
 +}
-+EXPORT_SYMBOL(pci_scan_root_bus);
 +
- struct pci_bus *pci_create_bus(struct device *parent,
- 		int bus, struct pci_ops *ops, void *sysdata)
- {
+ #ifdef CONFIG_HOTPLUG
+ /**
+  * pci_rescan_bus - scan a PCI bus for devices.
 diff --git a/include/linux/pci.h b/include/linux/pci.h
-index bbce214..8de221b 100644
+index 8de221b..e7315c5 100644
 --- a/include/linux/pci.h
 +++ b/include/linux/pci.h
-@@ -671,6 +671,9 @@ static inline struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *o
+@@ -659,15 +659,7 @@ extern struct pci_bus *pci_find_bus(int domain, int busnr);
+ void pci_bus_add_devices(const struct pci_bus *bus);
+ struct pci_bus *pci_scan_bus_parented(struct device *parent, int bus,
+ 				      struct pci_ops *ops, void *sysdata);
+-static inline struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
+-					   void *sysdata)
+-{
+-	struct pci_bus *root_bus;
+-	root_bus = pci_scan_bus_parented(NULL, bus, ops, sysdata);
+-	if (root_bus)
+-		pci_bus_add_devices(root_bus);
+-	return root_bus;
+-}
++struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
  struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
  				    struct pci_ops *ops, void *sysdata,
  				    struct list_head *resources);
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
-+					     struct pci_ops *ops, void *sysdata,
-+					     struct list_head *resources);
- struct pci_bus *pci_create_bus(struct device *parent, int bus,
- 			       struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_add_new_bus(struct pci_bus *parent, struct pci_dev *dev,
