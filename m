@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:9881 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:9896 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932828Ab1J1W1K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:10 -0400
-Subject: [PATCH v3 19/34] parisc/PCI: dino: use pci_create_bus() instead of
-	pci_scan_bus_parented()
+	with ESMTP id S933642Ab1J1W1P (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:15 -0400
+Subject: [PATCH v3 20/34] parisc/PCI: dino: convert to pci_create_root_bus()
+	for correct root bus resources
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 28 Oct 2011 16:27:07 -0600
-Message-ID: <20111028222707.30729.18812.stgit@bhelgaas.mtv.corp.google.com>
+Date: Fri, 28 Oct 2011 16:27:12 -0600
+Message-ID: <20111028222712.30729.63585.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,54 +17,75 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
-Message-ID: <20111028222707.4YR2_PoJIyxGFpAhR79N42ZfNvatWTJ5up2vQF7EWtg@z>
+Message-ID: <20111028222712.O_ezWF9piIVRpKFRZ5RY4vMB-yCymvoGNaa1MV8ZYA8@z>
 
-No functional change here; just converting from pci_scan_bus_parented()
-to pci_create_bus() to make a future patch simpler.
+Supply root bus resources to pci_create_root_bus() so they're correct
+immediately.  This fixes the problem of "early" and "header" quirks seeing
+incorrect root bus resources.
 
 CC: linux-parisc@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/dino.c |   22 ++++++++++++----------
- 1 files changed, 12 insertions(+), 10 deletions(-)
+ drivers/parisc/dino.c |   27 ++++++++++++---------------
+ 1 files changed, 12 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index bcd5d54..90252c0 100644
+index 90252c0..7ff10c1 100644
 --- a/drivers/parisc/dino.c
 +++ b/drivers/parisc/dino.c
-@@ -1007,22 +1007,24 @@ static int __init dino_probe(struct parisc_device *dev)
+@@ -562,19 +562,6 @@ dino_fixup_bus(struct pci_bus *bus)
+ 	/* Firmware doesn't set up card-mode dino, so we have to */
+ 	if (is_card_dino(&dino_dev->hba.dev->id)) {
+ 		dino_card_setup(bus, dino_dev->hba.base_addr);
+-	} else if(bus->parent == NULL) {
+-		/* must have a dino above it, reparent the resources
+-		 * into the dino window */
+-		int i;
+-		struct resource *res = &dino_dev->hba.lmmio_space;
+-
+-		bus->resource[0] = &(dino_dev->hba.io_space);
+-		for(i = 0; i < DINO_MAX_LMMIO_RESOURCES; i++) {
+-			if(res[i].flags == 0)
+-				break;
+-			bus->resource[i+1] = &res[i];
+-		}
+-
+ 	} else if (bus->parent) {
+ 		int i;
+ 
+@@ -927,6 +914,7 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	const char *version = "unknown";
+ 	char *name;
+ 	int is_cujo = 0;
++	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	unsigned long hpa = dev->hpa.start;
+ 
+@@ -1003,15 +991,24 @@ static int __init dino_probe(struct parisc_device *dev)
+ 
+ 	dev->dev.platform_data = dino_dev;
+ 
++	pci_add_resource(&resources, &dino_dev->hba.io_space);
++	if (dino_dev->hba.lmmio_space.flags)
++		pci_add_resource(&resources, &dino_dev->hba.lmmio_space);
++	if (dino_dev->hba.elmmio_space.flags)
++		pci_add_resource(&resources, &dino_dev->hba.elmmio_space);
++	if (dino_dev->hba.gmmio_space.flags)
++		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
++
+ 	/*
  	** It's not used to avoid chicken/egg problems
  	** with configuration accessor functions.
  	*/
--	dino_dev->hba.hba_bus = bus = pci_scan_bus_parented(&dev->dev,
-+	dino_dev->hba.hba_bus = bus = pci_create_bus(&dev->dev,
- 			 dino_current_bus, &dino_cfg_ops, NULL);
--
--	if(bus) {
--		/* This code *depends* on scanning being single threaded
--		 * if it isn't, this global bus number count will fail
--		 */
--		dino_current_bus = bus->subordinate + 1;
--		pci_bus_assign_resources(bus);
--		pci_bus_add_devices(bus);
--	} else {
-+	if (!bus) {
+-	dino_dev->hba.hba_bus = bus = pci_create_bus(&dev->dev,
+-			 dino_current_bus, &dino_cfg_ops, NULL);
++	dino_dev->hba.hba_bus = bus = pci_create_root_bus(&dev->dev,
++			 dino_current_bus, &dino_cfg_ops, NULL, &resources);
+ 	if (!bus) {
  		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
  		       dev_name(&dev->dev), dino_current_bus);
++		pci_free_resource_list(&resources);
  		/* increment the bus number in case of duplicates */
  		dino_current_bus++;
-+		return 0;
- 	}
-+
-+	bus->subordinate = pci_scan_child_bus(bus);
-+
-+	/* This code *depends* on scanning being single threaded
-+	 * if it isn't, this global bus number count will fail
-+	 */
-+	dino_current_bus = bus->subordinate + 1;
-+	pci_bus_assign_resources(bus);
-+	pci_bus_add_devices(bus);
- 	return 0;
- }
- 
+ 		return 0;
 
