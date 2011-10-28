@@ -1,62 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:33637 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755415Ab1J1MPV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 08:15:21 -0400
+Received: from smtp-out.google.com ([216.239.44.51]:35469 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753583Ab1J1WZn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:25:43 -0400
+Subject: [PATCH v3 02/34] PCI: show host bridges and root bus resources
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Fri, 28 Oct 2011 16:25:40 -0600
+Message-ID: <20111028222540.30729.36688.stgit@bhelgaas.mtv.corp.google.com>
+In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
-In-Reply-To: <20111027131124.GK19187@n2100.arm.linux.org.uk>
-References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <1319720503-3183-1-git-send-email-vapier@gentoo.org> <20111027131124.GK19187@n2100.arm.linux.org.uk>
-From: Mike Frysinger <vapier@gentoo.org>
-Date: Fri, 28 Oct 2011 14:15:00 +0200
-Message-ID: <CAJaTeTp71t0BYsEpDu07BE5ox2FBAiH7xEQqjhb=6QadrsQGAQ@mail.gmail.com>
-Subject: Re: [PATCH] asm-generic/gpio.h: merge basic gpiolib wrappers
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@ti.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, davinci-linux-open-source@linux.davincidsp.com
-Message-ID: <20111028121500.YwwNS2aXhpUculb0-nTLbKrgNvgNU0BeunQWQGlC3Zg@z>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Message-ID: <20111028222540.Lj_eZutFdccelio-LHPBxqjGI_QQA2a0bXk8bnt7lqA@z>
 
-On Thu, Oct 27, 2011 at 15:11, Russell King - ARM Linux wrote:
-> This is extremely dangerous.  Consider for example this code
-> (see ARM mach-davinci's gpio.h):
+Show the bus number and resources for every root bus we create.  This
+will become more interesting when we supply the correct resources
+instead of using the defaults (ioport_resource and iomem_resource).
 
-it's interesting you highlight davinci.  if i'm reading things
-correctly, the current davinci code is broken today and my v2 proposed
-patch actually fixes it.
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ drivers/pci/probe.c |   13 ++++++++++++-
+ 1 files changed, 12 insertions(+), 1 deletions(-)
 
-let's see if i have this right:
-arch/arm/include/asm/gpio.h:
-...
-#include <mach/gpio.h>
-#ifndef __ARM_GPIOLIB_COMPLEX
-/* The trivial gpiolib dispatchers */
-#define gpio_get_value  __gpio_get_value
-#define gpio_set_value  __gpio_set_value
-#define gpio_cansleep   __gpio_cansleep
-#endif
-...
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 6ab6bd3..465d302 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1531,9 +1531,10 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
+ struct pci_bus * pci_create_bus(struct device *parent,
+ 		int bus, struct pci_ops *ops, void *sysdata)
+ {
+-	int error;
++	int error, i;
+ 	struct pci_bus *b, *b2;
+ 	struct device *dev;
++	struct resource *res;
+ 
+ 	b = pci_alloc_bus();
+ 	if (!b)
+@@ -1586,6 +1587,16 @@ struct pci_bus * pci_create_bus(struct device *parent,
+ 	b->resource[0] = &ioport_resource;
+ 	b->resource[1] = &iomem_resource;
+ 
++	if (parent)
++		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
++	else
++		printk(KERN_INFO "PCI host bridge to bus %s\n", dev_name(&b->dev));
++
++	pci_bus_for_each_resource(b, res, i) {
++		if (res)
++			dev_info(&b->dev, "root bus resource %pR\n", res);
++	}
++
+ 	return b;
+ 
+ class_dev_reg_err:
 
-arch/arm/mach-davinci/include/mach/gpio.h:
-...
-#include <asm-generic/gpio.h>
-...
-static inline void gpio_set_value(unsigned gpio, int value)
-{
-    if (__builtin_constant_p(value) && gpio < davinci_soc_info.gpio_num) {
-           ... do some SoC checking ...
-    }
-    __gpio_set_value(gpio, value);
-}
-... same thing for gpio_get_value and gpio_cansleep ...
-...
-
-since the davinci code doesn't define __ARM_GPIOLIB_COMPLEX, the
-common arm gpio.h will rewrite these few gpio calls to the gpiolib
-code all the time, and so all the inline funcs in the davinci header
-always get ignored.
-
-i noticed because when comparing the compiled
--mike
