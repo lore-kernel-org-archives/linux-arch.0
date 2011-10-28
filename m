@@ -1,163 +1,103 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 00/34] Create PCI root buses with correct resources
-Date: Fri, 28 Oct 2011 16:25:29 -0600
-Message-ID: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 01/34] PCI: add helpers for building PCI bus resource lists
+Date: Fri, 28 Oct 2011 16:25:35 -0600
+Message-ID: <20111028222535.30729.73281.stgit@bhelgaas.mtv.corp.google.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:35439 "EHLO
+Received: from smtp-out.google.com ([216.239.44.51]:35453 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753583Ab1J1WZd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:25:33 -0400
+	with ESMTP id S1753583Ab1J1WZh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:25:37 -0400
+In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 
-The most generic way to create a PCI root bus is with pci_scan_bus(), but that
-doesn't allow you to specify what resources are available on the bus, i.e.,
-what the host bridge apertures are.  This series fixes the problem by adding
-a new pci_scan_root_bus() interface that takes a list of bus resources.
+We'd like to supply a list of resources when we create a new PCI bus,
+e.g., the root bus under a PCI host bridge.  These are helpers for
+constructing that list.
 
-pci_scan_bus() uses pci_create_bus(), which uses default resources of
-ioport_resource and iomem_resource.  The architecture has to fix them later in
-pcibios_fixup_bus().  Between creation and fixup, we run quirks, and they see
-the wrong bus resources:
+These are exported because the plan is to replace this exported interface:
+    pci_scan_bus_parented()
+with this one:
+    pci_add_resource(resources, ...)
+    pci_scan_root_bus(..., resources)
 
-  pci_scan_bus or pci_scan_bus_parented
-    pci_create_bus                     <-- A create with default resources
-    pci_scan_child_bus
-      pci_scan_slot
-        pci_scan_single_device
-          pci_scan_device
-            pci_setup_device
-              pci_fixup_device(early)  <-- B
-          pci_device_add
-            pci_fixup_device(header)   <-- C
-      pcibios_fixup_bus                <-- D fill in correct resources
-
-Early and header quirks at B and C use the default (incorrect) root
-bus resources rather than those filled in at D.  If they request any
-regions, they get the wrong parent.  quirk_piix4_acpi() tripped over
-this on MIPS and caused a driver to fail with unexpected conflicts
-(http://www.spinics.net/lists/mips/msg41654.html).
-
-A few architectures avoid this problem by using pci_create_bus()
-directly and fixing the root bus resources before scanning the bus.
-But that's ugly and is normally done because the arch needs a different
-bus scanner, such as pci_of_scan_bus().  This series converts those to
-a new pci_create_root_bus(), so they can at least specify the root bus
-resources up front.
-
-
-Changes since V2:
-    - use LIST_HEAD() initializers
-    - callers of pci_create_root_bus() MUST supply resource list (no defaults)
-    - export pci_add_resource(), pci_free_resource_list()
-    - export pci_scan_root_bus() (to replace exported pci_scan_bus_parented())
-    - deprecate & schedule removal of pci_scan_bus_parented()
-    - FRV: leave peer root buses with default resources
-    - sh: pcibios_fixup_bus: remove unused "dev" initialization
-    - x86: move broadcom_bus.c from PCI early quirk to postcore_initcall
-    - x86: fall back to default root bus resources (from amd_bus.c or just
-      ioport_resource and iomem_resource) if _CRS fails
-    - xtensa: fix io_offset application in pci_controller_apertures()
-    - remove pci_create_bus()
-
-Changes since V1:
-    - left existing interfaces unchanged, but deprecated
-    - added pci_create_root_bus() and pci_scan_root_bus()
-    - fixed many more architectures
-
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
+ drivers/pci/bus.c   |   32 +++++++++++++++++++++++++++-----
+ include/linux/pci.h |    2 ++
+ 2 files changed, 29 insertions(+), 5 deletions(-)
 
-Bjorn Helgaas (34):
-      PCI: add helpers for building PCI bus resource lists
-      PCI: show host bridges and root bus resources
-      PCI: add pci_create_root_bus() that accepts resource list
-      PCI: add pci_scan_root_bus() that accepts resource list
-      PCI: convert pci_scan_bus() to use pci_create_root_bus()
-      PCI: convert pci_scan_bus_parented() to use pci_create_root_bus()
-      PCI: deprecate pci_scan_bus_parented()
-      alpha/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      arm/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      frv/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      ia64/PCI: use pci_create_bus() instead of pci_scan_bus_parented()
-      ia64/PCI: convert to pci_create_root_bus() for correct root bus resources
-      microblaze/PCI: fix pci_bus_for_each_resource() usage
-      microblaze/PCI: make pcibios_setup_phb_resources() static
-      microblaze/PCI: convert to pci_create_root_bus() for correct root bus resources
-      microblaze/PCI: use pci_scan_root_bus()
-      mips/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      mn10300/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      parisc/PCI: dino: use pci_create_bus() instead of pci_scan_bus_parented()
-      parisc/PCI: dino: convert to pci_create_root_bus() for correct root bus resources
-      parisc/PCI: lba: deal with LMMIO/PAT overlaps before creating PCI root bus
-      parisc/PCI: lba: use pci_create_bus() instead of pci_scan_bus_parented()
-      parisc/PCI: lba: convert to pci_create_root_bus() for correct root bus resources
-      powerpc/PCI: make pcibios_setup_phb_resources() static
-      powerpc/PCI: split PHB part out of pcibios_map_io_space()
-      powerpc/PCI: convert to pci_create_root_bus()
-      sh/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      sparc/PCI: convert to pci_create_root_bus()
-      sparc32,leon/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      x86/PCI: read Broadcom CNB20LE host bridge info before PCI scan
-      x86/PCI: use pci_scan_bus() instead of pci_scan_bus_parented()
-      x86/PCI: convert to pci_create_root_bus() and pci_scan_root_bus()
-      xtensa/PCI: convert to pci_scan_root_bus() for correct root bus resources
-      PCI: remove pci_create_bus()
-
-
- Documentation/feature-removal-schedule.txt |   12 ++++
- arch/alpha/kernel/pci.c                    |   37 +++++++-----
- arch/arm/common/it8152.c                   |    6 +-
- arch/arm/common/via82c505.c                |    3 +
- arch/arm/include/asm/mach/pci.h            |    2 -
- arch/arm/kernel/bios32.c                   |   27 +++------
- arch/arm/mach-cns3xxx/pcie.c               |    8 +--
- arch/arm/mach-dove/pcie.c                  |    9 +--
- arch/arm/mach-footbridge/dc21285.c         |    8 +--
- arch/arm/mach-integrator/pci_v3.c          |   19 +++---
- arch/arm/mach-iop13xx/pci.c                |   17 +++---
- arch/arm/mach-ixp2000/enp2611.c            |    3 +
- arch/arm/mach-ixp2000/pci.c                |    8 +--
- arch/arm/mach-ixp23xx/pci.c                |    8 +--
- arch/arm/mach-ixp4xx/common-pci.c          |    8 +--
- arch/arm/mach-kirkwood/pcie.c              |    8 +--
- arch/arm/mach-ks8695/pci.c                 |    8 +--
- arch/arm/mach-mv78xx0/pcie.c               |    8 +--
- arch/arm/mach-orion5x/pci.c                |   16 +++--
- arch/arm/mach-sa1100/pci-nanoengine.c      |    9 ++-
- arch/arm/mach-tegra/pcie.c                 |    9 ++-
- arch/arm/mach-versatile/pci.c              |   19 +++---
- arch/arm/plat-iop/pci.c                    |    8 +--
- arch/frv/mb93090-mb00/pci-vdk.c            |   11 ++--
- arch/ia64/pci/pci.c                        |   40 +++++--------
- arch/microblaze/include/asm/pci-bridge.h   |    1 
- arch/microblaze/pci/pci-common.c           |   38 +++++--------
- arch/mips/pci/pci.c                        |   17 +++---
- arch/mn10300/unit-asb2305/pci.c            |   12 ++--
- arch/powerpc/include/asm/pci-bridge.h      |    1 
- arch/powerpc/kernel/pci-common.c           |   25 +++++---
- arch/powerpc/kernel/pci_64.c               |   40 +++++++------
- arch/sh/drivers/pci/pci.c                  |   20 +++----
- arch/sparc/kernel/leon_pci.c               |   25 +++-----
- arch/sparc/kernel/pci.c                    |   17 ++----
- arch/x86/include/asm/topology.h            |    2 -
- arch/x86/pci/acpi.c                        |   28 +++++----
- arch/x86/pci/broadcom_bus.c                |   62 +++++++++++++-------
- arch/x86/pci/bus_numa.c                    |   31 ++++++----
- arch/x86/pci/common.c                      |   19 ++++--
- arch/x86/pci/legacy.c                      |    3 -
- arch/x86/pci/numaq_32.c                    |    2 -
- arch/xtensa/kernel/pci.c                   |   85 ++++++++++++++--------------
- drivers/parisc/dino.c                      |   47 ++++++++-------
- drivers/parisc/lba_pci.c                   |   72 +++++++++++++-----------
- drivers/pci/bus.c                          |   32 +++++++++--
- drivers/pci/probe.c                        |   65 +++++++++++++++++++--
- include/linux/pci.h                        |   20 +++----
- 48 files changed, 530 insertions(+), 445 deletions(-)
-
--- 
-Bjorn
+diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
+index 1e2ad92..398f5d8 100644
+--- a/drivers/pci/bus.c
++++ b/drivers/pci/bus.c
+@@ -18,6 +18,32 @@
+ 
+ #include "pci.h"
+ 
++void pci_add_resource(struct list_head *resources, struct resource *res)
++{
++	struct pci_bus_resource *bus_res;
++
++	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
++	if (!bus_res) {
++		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
++		return;
++	}
++
++	bus_res->res = res;
++	list_add_tail(&bus_res->list, resources);
++}
++EXPORT_SYMBOL(pci_add_resource);
++
++void pci_free_resource_list(struct list_head *resources)
++{
++	struct pci_bus_resource *bus_res, *tmp;
++
++	list_for_each_entry_safe(bus_res, tmp, resources, list) {
++		list_del(&bus_res->list);
++		kfree(bus_res);
++	}
++}
++EXPORT_SYMBOL(pci_free_resource_list);
++
+ void pci_bus_add_resource(struct pci_bus *bus, struct resource *res,
+ 			  unsigned int flags)
+ {
+@@ -52,16 +78,12 @@ EXPORT_SYMBOL_GPL(pci_bus_resource_n);
+ 
+ void pci_bus_remove_resources(struct pci_bus *bus)
+ {
+-	struct pci_bus_resource *bus_res, *tmp;
+ 	int i;
+ 
+ 	for (i = 0; i < PCI_BRIDGE_RESOURCE_NUM; i++)
+ 		bus->resource[i] = NULL;
+ 
+-	list_for_each_entry_safe(bus_res, tmp, &bus->resources, list) {
+-		list_del(&bus_res->list);
+-		kfree(bus_res);
+-	}
++	pci_free_resource_list(&bus->resources);
+ }
+ 
+ /**
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index f1b1ca1..b7d1365 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -909,6 +909,8 @@ int pci_request_selected_regions_exclusive(struct pci_dev *, int, const char *);
+ void pci_release_selected_regions(struct pci_dev *, int);
+ 
+ /* drivers/pci/bus.c */
++void pci_add_resource(struct list_head *resources, struct resource *res);
++void pci_free_resource_list(struct list_head *resources);
+ void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
+ struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
+ void pci_bus_remove_resources(struct pci_bus *bus);
