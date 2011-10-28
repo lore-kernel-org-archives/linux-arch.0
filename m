@@ -1,8 +1,7 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 27/34] sh/PCI: convert to pci_scan_root_bus() for correct
-	root bus resources
-Date: Fri, 28 Oct 2011 16:27:48 -0600
-Message-ID: <20111028222748.30729.8949.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 28/34] sparc/PCI: convert to pci_create_root_bus()
+Date: Fri, 28 Oct 2011 16:27:53 -0600
+Message-ID: <20111028222753.30729.30573.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,64 +10,65 @@ Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>
+Cc: linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
-resource fixups.  This fixes the problem of "early" and "header" quirks
-seeing incorrect root bus resources.
+Convert from pci_create_bus() to pci_create_root_bus().  This way the root
+bus resources are correct immediately.  This patch doesn't fix a problem
+because sparc fixed the resources before scanning the bus, but it makes
+sparc more consistent with other architectures.
 
-CC: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Acked-by: David S. Miller <davem@davemloft.net>
 ---
- arch/sh/drivers/pci/pci.c |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
+ arch/sparc/kernel/pci.c |   17 ++++++-----------
+ 1 files changed, 6 insertions(+), 11 deletions(-)
 
-diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index 194231c..ff48c9e 100644
---- a/arch/sh/drivers/pci/pci.c
-+++ b/arch/sh/drivers/pci/pci.c
-@@ -35,9 +35,15 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index 8aa0d44..b5ae3d0 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -685,23 +685,25 @@ static void __devinit pci_bus_register_of_sysfs(struct pci_bus *bus)
+ struct pci_bus * __devinit pci_scan_one_pbm(struct pci_pbm_info *pbm,
+ 					    struct device *parent)
  {
- 	static int next_busno;
- 	static int need_domain_info;
 +	LIST_HEAD(resources);
-+	int i;
+ 	struct device_node *node = pbm->op->dev.of_node;
  	struct pci_bus *bus;
  
--	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
-+	for (i = 0; i < hose->nr_resources; i++)
-+		pci_add_resource(&resources, hose->resources + i);
-+
-+	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
-+				&resources);
- 	hose->bus = bus;
+ 	printk("PCI: Scanning PBM %s\n", node->full_name);
  
- 	need_domain_info = need_domain_info || hose->index;
-@@ -54,6 +60,8 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
- 		pci_bus_size_bridges(bus);
- 		pci_bus_assign_resources(bus);
- 		pci_enable_bridges(bus);
-+	} else {
+-	bus = pci_create_bus(parent, pbm->pci_first_busno, pbm->pci_ops, pbm);
++	pci_add_resource(&resources, &pbm->io_space);
++	pci_add_resource(&resources, &pbm->mem_space);
++	bus = pci_create_root_bus(parent, pbm->pci_first_busno, pbm->pci_ops,
++				  pbm, resources);
+ 	if (!bus) {
+ 		printk(KERN_ERR "Failed to create bus for %s\n",
+ 		       node->full_name);
 +		pci_free_resource_list(&resources);
+ 		return NULL;
  	}
+ 	bus->secondary = pbm->pci_first_busno;
+ 	bus->subordinate = pbm->pci_last_busno;
+ 
+-	bus->resource[0] = &pbm->io_space;
+-	bus->resource[1] = &pbm->mem_space;
+-
+ 	pci_of_scan_bus(pbm, node, bus);
+ 	pci_bus_add_devices(bus);
+ 	pci_bus_register_of_sysfs(bus);
+@@ -711,13 +713,6 @@ struct pci_bus * __devinit pci_scan_one_pbm(struct pci_pbm_info *pbm,
+ 
+ void __devinit pcibios_fixup_bus(struct pci_bus *pbus)
+ {
+-	struct pci_pbm_info *pbm = pbus->sysdata;
+-
+-	/* Generic PCI bus probing sets these to point at
+-	 * &io{port,mem}_resouce which is wrong for us.
+-	 */
+-	pbus->resource[0] = &pbm->io_space;
+-	pbus->resource[1] = &pbm->mem_space;
  }
  
-@@ -161,16 +169,8 @@ static void pcibios_fixup_device_resources(struct pci_dev *dev,
-  */
- void __devinit pcibios_fixup_bus(struct pci_bus *bus)
- {
--	struct pci_dev *dev = bus->self;
-+	struct pci_dev *dev;
- 	struct list_head *ln;
--	struct pci_channel *hose = bus->sysdata;
--
--	if (!dev) {
--		int i;
--
--		for (i = 0; i < hose->nr_resources; i++)
--			bus->resource[i] = hose->resources + i;
--	}
- 
- 	for (ln = bus->devices.next; ln != &bus->devices; ln = ln->next) {
- 		dev = pci_dev_b(ln);
+ void pcibios_update_irq(struct pci_dev *pdev, int irq)
