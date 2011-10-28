@@ -1,8 +1,7 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 25/34] powerpc/PCI: split PHB part out of
-	pcibios_map_io_space()
-Date: Fri, 28 Oct 2011 16:27:38 -0600
-Message-ID: <20111028222738.30729.96314.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 26/34] powerpc/PCI: convert to pci_create_root_bus()
+Date: Fri, 28 Oct 2011 16:27:43 -0600
+Message-ID: <20111028222743.30729.97632.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -14,80 +13,97 @@ To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-No functional change.  This is so we can use pcibios_phb_map_io_space()
-before we have a struct pci_bus.
+Convert from pci_create_bus() to pci_create_root_bus().  This way the root
+bus resources are correct immediately.  This patch doesn't fix a problem
+because powerpc fixed the resources before scanning the bus, but it makes
+powerpc more consistent with other architectures.
 
 CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/kernel/pci_64.c |   40 +++++++++++++++++++++-------------------
- 1 files changed, 21 insertions(+), 19 deletions(-)
+ arch/powerpc/kernel/pci-common.c |   25 ++++++++++++++-----------
+ 1 files changed, 14 insertions(+), 11 deletions(-)
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index ab34046..4401425 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -130,30 +130,13 @@ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
- 
- #endif /* CONFIG_HOTPLUG */
- 
--int __devinit pcibios_map_io_space(struct pci_bus *bus)
-+static int __devinit pcibios_map_phb_io_space(struct pci_controller *hose)
- {
- 	struct vm_struct *area;
- 	unsigned long phys_page;
- 	unsigned long size_page;
- 	unsigned long io_virt_offset;
--	struct pci_controller *hose;
--
--	WARN_ON(bus == NULL);
--
--	/* If this not a PHB, nothing to do, page tables still exist and
--	 * thus HPTEs will be faulted in when needed
--	 */
--	if (bus->self) {
--		pr_debug("IO mapping for PCI-PCI bridge %s\n",
--			 pci_name(bus->self));
--		pr_debug("  virt=0x%016llx...0x%016llx\n",
--			 bus->resource[0]->start + _IO_BASE,
--			 bus->resource[0]->end + _IO_BASE);
--		return 0;
--	}
- 
--	/* Get the host bridge */
--	hose = pci_bus_to_host(bus);
- 	phys_page = _ALIGN_DOWN(hose->io_base_phys, PAGE_SIZE);
- 	size_page = _ALIGN_UP(hose->pci_io_size, PAGE_SIZE);
- 
-@@ -197,11 +180,30 @@ int __devinit pcibios_map_io_space(struct pci_bus *bus)
- 
- 	return 0;
- }
-+
-+int __devinit pcibios_map_io_space(struct pci_bus *bus)
-+{
-+	WARN_ON(bus == NULL);
-+
-+	/* If this not a PHB, nothing to do, page tables still exist and
-+	 * thus HPTEs will be faulted in when needed
-+	 */
-+	if (bus->self) {
-+		pr_debug("IO mapping for PCI-PCI bridge %s\n",
-+			 pci_name(bus->self));
-+		pr_debug("  virt=0x%016llx...0x%016llx\n",
-+			 bus->resource[0]->start + _IO_BASE,
-+			 bus->resource[0]->end + _IO_BASE);
-+		return 0;
-+	}
-+
-+	return pcibios_phb_map_phb_io_space(pci_bus_to_host(bus));
-+}
- EXPORT_SYMBOL_GPL(pcibios_map_io_space);
- 
- void __devinit pcibios_setup_phb_io_space(struct pci_controller *hose)
- {
--	pcibios_map_io_space(hose->bus);
-+	pcibios_map_phb_io_space(hose);
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 942ced2..8c47c57 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1554,14 +1554,13 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	return pci_enable_resources(dev, mask);
  }
  
- #define IOBASE_BRIDGE_NUMBER	0
+-static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
++static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, struct list_head *resources)
+ {
+-	struct pci_bus *bus = hose->bus;
+ 	struct resource *res;
+ 	int i;
+ 
+ 	/* Hookup PHB IO resource */
+-	bus->resource[0] = res = &hose->io_resource;
++	res = &hose->io_resource;
+ 
+ 	if (!res->flags) {
+ 		printk(KERN_WARNING "PCI: I/O resource not set for host"
+@@ -1579,6 +1578,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ 		 (unsigned long long)res->start,
+ 		 (unsigned long long)res->end,
+ 		 (unsigned long)res->flags);
++	pci_add_resource(resources, res);
+ 
+ 	/* Hookup PHB Memory resources */
+ 	for (i = 0; i < 3; ++i) {
+@@ -1596,12 +1596,12 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+ 			res->flags = IORESOURCE_MEM;
+ #endif /* CONFIG_PPC32 */
+ 		}
+-		bus->resource[i+1] = res;
+ 
+ 		pr_debug("PCI: PHB MEM resource %d = %016llx-%016llx [%lx]\n", i,
+ 			 (unsigned long long)res->start,
+ 			 (unsigned long long)res->end,
+ 			 (unsigned long)res->flags);
++		pci_add_resource(resources, res);
+ 	}
+ 
+ 	pr_debug("PCI: PHB MEM offset     = %016llx\n",
+@@ -1695,6 +1695,7 @@ struct device_node *pcibios_get_phb_of_node(struct pci_bus *bus)
+  */
+ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ {
++	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct device_node *node = hose->dn;
+ 	int mode;
+@@ -1702,22 +1703,24 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ 	pr_debug("PCI: Scanning PHB %s\n",
+ 		 node ? node->full_name : "<NO NAME>");
+ 
++	/* Get some IO space for the new PHB */
++	pcibios_setup_phb_io_space(hose);
++
++	/* Wire up PHB bus resources */
++	pcibios_setup_phb_resources(hose, &resources);
++
+ 	/* Create an empty bus for the toplevel */
+-	bus = pci_create_bus(hose->parent, hose->first_busno, hose->ops, hose);
++	bus = pci_create_root_bus(hose->parent, hose->first_busno,
++				  hose->ops, hose, resources);
+ 	if (bus == NULL) {
+ 		pr_err("Failed to create bus for PCI domain %04x\n",
+ 			hose->global_number);
++		pci_free_resource_list(&resources);
+ 		return;
+ 	}
+ 	bus->secondary = hose->first_busno;
+ 	hose->bus = bus;
+ 
+-	/* Get some IO space for the new PHB */
+-	pcibios_setup_phb_io_space(hose);
+-
+-	/* Wire up PHB bus resources */
+-	pcibios_setup_phb_resources(hose);
+-
+ 	/* Get probe mode and perform scan */
+ 	mode = PCI_PROBE_NORMAL;
+ 	if (node && ppc_md.pci_probe_mode)
