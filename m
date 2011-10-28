@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:35865 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:9865 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933642Ab1J1W1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:24 -0400
-Subject: [PATCH v3 22/34] parisc/PCI: lba: use pci_create_bus() instead of
-	pci_scan_bus_parented()
+	with ESMTP id S932828Ab1J1W1E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:04 -0400
+Subject: [PATCH v3 17/34] mips/PCI: convert to pci_scan_root_bus() for correct
+	root bus resources
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 28 Oct 2011 16:27:22 -0600
-Message-ID: <20111028222722.30729.59772.stgit@bhelgaas.mtv.corp.google.com>
+Date: Fri, 28 Oct 2011 16:26:57 -0600
+Message-ID: <20111028222657.30729.47680.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -16,48 +16,66 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
-Message-ID: <20111028222722.iumABVhF_Mx0MlEnzijbezOj4u6pNB_E9-W2OKtxMuU@z>
+Cc: linux-arch@vger.kernel.org, Deng-Cheng Zhu <dczhu@mips.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20111028222657.hMhrpKN_9ScTIUwW2sp1tmVml01RIUpm2ttrKA6Zgro@z>
 
-No functional change here; just converting from pci_scan_bus_parented()
-to pci_create_bus() to make a future patch simpler.
+Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
+resource fixups.  This fixes the problem of "early" and "header" quirks
+seeing incorrect root bus resources.
 
-CC: linux-parisc@vger.kernel.org
+Based on original patch by Deng-Cheng Zhu.
+
+Reference: https://lkml.org/lkml/2011/8/26/89
+CC: Ralf Baechle <ralf@linux-mips.org>
+Signed-off-by: Deng-Cheng Zhu <dczhu@mips.com>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/parisc/lba_pci.c |   14 ++++++++------
- 1 files changed, 8 insertions(+), 6 deletions(-)
+ arch/mips/pci/pci.c |   17 ++++++++++-------
+ 1 files changed, 10 insertions(+), 7 deletions(-)
 
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index 2c7edf3..e5dfa25 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -1521,8 +1521,12 @@ lba_driver_probe(struct parisc_device *dev)
+diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
+index 33bba7b..8152f99 100644
+--- a/arch/mips/pci/pci.c
++++ b/arch/mips/pci/pci.c
+@@ -80,6 +80,7 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+ {
+ 	static int next_busno;
+ 	static int need_domain_info;
++	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
  
- 	dev->dev.platform_data = lba_dev;
- 	lba_bus = lba_dev->hba.hba_bus =
--		pci_scan_bus_parented(&dev->dev, lba_dev->hba.bus_num.start,
--				cfg_ops, NULL);
-+		pci_create_bus(&dev->dev, lba_dev->hba.bus_num.start,
-+			       cfg_ops, NULL);
-+	if (!lba_bus)
-+		return 0;
+ 	if (!hose->iommu)
+@@ -88,7 +89,13 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+ 	if (hose->get_busno && pci_probe_only)
+ 		next_busno = (*hose->get_busno)();
+ 
+-	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
++	pci_add_resource(&resources, hose->mem_resource);
++	pci_add_resource(&resources, hose->io_resource);
++	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
++				&resources);
++	if (!bus)
++		pci_free_resource_list(&resources);
 +
-+	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
+ 	hose->bus = bus;
  
- 	/* This is in lieu of calling pci_assign_unassigned_resources() */
- 	if (is_pdc_pat()) {
-@@ -1552,10 +1556,8 @@ lba_driver_probe(struct parisc_device *dev)
- 		lba_dev->flags |= LBA_FLAG_SKIP_PROBE;
+ 	need_domain_info = need_domain_info || hose->index;
+@@ -265,15 +272,11 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
+ {
+ 	/* Propagate hose info into the subordinate devices.  */
+ 
+-	struct pci_controller *hose = bus->sysdata;
+ 	struct list_head *ln;
+ 	struct pci_dev *dev = bus->self;
+ 
+-	if (!dev) {
+-		bus->resource[0] = hose->io_resource;
+-		bus->resource[1] = hose->mem_resource;
+-	} else if (pci_probe_only &&
+-		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
++	if (pci_probe_only && dev &&
++	    (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
+ 		pci_read_bridge_bases(bus);
+ 		pcibios_fixup_device_resources(dev, bus);
  	}
- 
--	if (lba_bus) {
--		lba_next_bus = lba_bus->subordinate + 1;
--		pci_bus_add_devices(lba_bus);
--	}
-+	lba_next_bus = lba_bus->subordinate + 1;
-+	pci_bus_add_devices(lba_bus);
- 
- 	/* Whew! Finally done! Tell services we got this one covered. */
- 	return 0;
 
