@@ -1,98 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10810 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754378Ab1J1CYp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 27 Oct 2011 22:24:45 -0400
-Date: Fri, 28 Oct 2011 00:14:58 -0200
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 6/6] Add age out of guest paused flag
-Message-ID: <20111028021458.GB13000@amt.cnet>
-References: <1319570779-8907-1-git-send-email-emunson@mgebm.net>
- <1319570779-8907-7-git-send-email-emunson@mgebm.net>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:33637 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755415Ab1J1MPV convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 08:15:21 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1319570779-8907-7-git-send-email-emunson@mgebm.net>
+In-Reply-To: <20111027131124.GK19187@n2100.arm.linux.org.uk>
+References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <1319720503-3183-1-git-send-email-vapier@gentoo.org> <20111027131124.GK19187@n2100.arm.linux.org.uk>
+From: Mike Frysinger <vapier@gentoo.org>
+Date: Fri, 28 Oct 2011 14:15:00 +0200
+Message-ID: <CAJaTeTp71t0BYsEpDu07BE5ox2FBAiH7xEQqjhb=6QadrsQGAQ@mail.gmail.com>
+Subject: Re: [PATCH] asm-generic/gpio.h: merge basic gpiolib wrappers
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com
-Message-ID: <20111028021458.Yaa8hsL3D-1wa3DUnFV3_eThatajUxICmIWnr1EFLG8@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Sekhar Nori <nsekhar@ti.com>, Kevin Hilman <khilman@ti.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, davinci-linux-open-source@linux.davincidsp.com
+Message-ID: <20111028121500.YwwNS2aXhpUculb0-nTLbKrgNvgNU0BeunQWQGlC3Zg@z>
 
-On Tue, Oct 25, 2011 at 03:26:19PM -0400, Eric B Munson wrote:
-> The KVM_GUEST_PAUSED flag will prevent a guest from compaining about a soft
-> lockup but it can mask real soft lockups if the flag isn't cleared when it is
-> no longer relevant.  This patch adds a kvm ioctl that the hypervisor will use
-> when it resumes a guest to start a timer for aging out the flag.  The time out
-> will be specified by the hypervisor in the ioctl call.
-> 
-> Signed-off-by: Eric B Munson <emunson@mgebm.net>
-> ---
->  arch/x86/include/asm/pvclock.h |    2 ++
->  arch/x86/kernel/kvmclock.c     |   24 ++++++++++++++++++++++++
->  arch/x86/kvm/x86.c             |    9 +++++++++
->  include/linux/kvm.h            |    2 ++
->  include/linux/kvm_host.h       |    2 ++
->  5 files changed, 39 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
-> index 9312814..e8460b9 100644
-> --- a/arch/x86/include/asm/pvclock.h
-> +++ b/arch/x86/include/asm/pvclock.h
-> @@ -18,6 +18,8 @@ void kvm_set_host_stopped(struct kvm_vcpu *vcpu);
->  
->  bool kvm_check_and_clear_host_stopped(int cpu);
->  
-> +void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length);
-> +
->  /*
->   * Scale a 64-bit delta by scaling and multiplying by a 32-bit fraction,
->   * yielding a 64-bit result.
-> diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
-> index f4fff3d..f3f3935 100644
-> --- a/arch/x86/kernel/kvmclock.c
-> +++ b/arch/x86/kernel/kvmclock.c
-> @@ -23,6 +23,8 @@
->  #include <asm/apic.h>
->  #include <linux/percpu.h>
->  #include <linux/kvm_host.h>
-> +#include <linux/kobject.h>
-> +#include <linux/sysfs.h>
->  
->  #include <asm/x86_init.h>
->  #include <asm/reboot.h>
-> @@ -144,6 +146,28 @@ bool kvm_check_and_clear_host_stopped(int cpu)
->  	return ret;
->  }
->  
-> +static void kvm_timer_clear_guest_paused(unsigned long vcpu_addr)
-> +{
-> +	struct kvm_vcpu *vcpu = (struct kvm_vcpu *)vcpu_addr;
-> +	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-> +	src->flags = src->flags & (!PVCLOCK_GUEST_STOPPED);
-> +}
-> +
-> +/*
-> + * Host has resumed the guest, we need to clear the guest paused flag so we
-> + * don't mask any real soft lockups.
-> + */
-> +void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length)
-> +{
-> +	if (!timer_pending(&vcpu->flag_timer))
-> +		setup_timer(&vcpu->flag_timer,
-> +			    kvm_timer_clear_guest_paused,
-> +			    (unsigned long)vcpu);
-> +	mod_timer(&vcpu->flag_timer,
-> +		  jiffies + (length * HZ));
-> +}
-> +EXPORT_SYMBOL_GPL(kvm_clear_guest_paused);
+On Thu, Oct 27, 2011 at 15:11, Russell King - ARM Linux wrote:
+> This is extremely dangerous.  Consider for example this code
+> (see ARM mach-davinci's gpio.h):
 
-So this is why the scheme could become awkward. You can't determine a   
-value for length that will guarantee that _no_ genuine softlockup is    
-omitted.                                                                
+it's interesting you highlight davinci.  if i'm reading things
+correctly, the current davinci code is broken today and my v2 proposed
+patch actually fixes it.
 
-Can you think of a way to achieve this?
+let's see if i have this right:
+arch/arm/include/asm/gpio.h:
+...
+#include <mach/gpio.h>
+#ifndef __ARM_GPIOLIB_COMPLEX
+/* The trivial gpiolib dispatchers */
+#define gpio_get_value  __gpio_get_value
+#define gpio_set_value  __gpio_set_value
+#define gpio_cansleep   __gpio_cansleep
+#endif
+...
 
-Also note, all host code is located in arch/x86/kvm, guest 
-code in arch/x86/kernel/kvmclock.c.
+arch/arm/mach-davinci/include/mach/gpio.h:
+...
+#include <asm-generic/gpio.h>
+...
+static inline void gpio_set_value(unsigned gpio, int value)
+{
+    if (__builtin_constant_p(value) && gpio < davinci_soc_info.gpio_num) {
+           ... do some SoC checking ...
+    }
+    __gpio_set_value(gpio, value);
+}
+... same thing for gpio_get_value and gpio_cansleep ...
+...
 
+since the davinci code doesn't define __ARM_GPIOLIB_COMPLEX, the
+common arm gpio.h will rewrite these few gpio calls to the gpiolib
+code all the time, and so all the inline funcs in the davinci header
+always get ignored.
+
+i noticed because when comparing the compiled
+-mike
