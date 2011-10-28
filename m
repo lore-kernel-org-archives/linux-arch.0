@@ -1,8 +1,8 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 24/34] powerpc/PCI: make pcibios_setup_phb_resources()
-	static
-Date: Fri, 28 Oct 2011 16:27:33 -0600
-Message-ID: <20111028222733.30729.17340.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 27/34] sh/PCI: convert to pci_scan_root_bus() for correct
+	root bus resources
+Date: Fri, 28 Oct 2011 16:27:48 -0600
+Message-ID: <20111028222748.30729.8949.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,38 +11,64 @@ Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>
 List-Id: linux-arch.vger.kernel.org
 
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
+resource fixups.  This fixes the problem of "early" and "header" quirks
+seeing incorrect root bus resources.
+
+CC: Paul Mundt <lethal@linux-sh.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/include/asm/pci-bridge.h |    1 -
- arch/powerpc/kernel/pci-common.c      |    2 +-
- 2 files changed, 1 insertions(+), 2 deletions(-)
+ arch/sh/drivers/pci/pci.c |   20 ++++++++++----------
+ 1 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 56b879a..31bf836 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -222,7 +222,6 @@ extern void pci_process_bridge_OF_ranges(struct pci_controller *hose,
- /* Allocate & free a PCI host bridge structure */
- extern struct pci_controller *pcibios_alloc_controller(struct device_node *dev);
- extern void pcibios_free_controller(struct pci_controller *phb);
--extern void pcibios_setup_phb_resources(struct pci_controller *hose);
+diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
+index 194231c..ff48c9e 100644
+--- a/arch/sh/drivers/pci/pci.c
++++ b/arch/sh/drivers/pci/pci.c
+@@ -35,9 +35,15 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
+ {
+ 	static int next_busno;
+ 	static int need_domain_info;
++	LIST_HEAD(resources);
++	int i;
+ 	struct pci_bus *bus;
  
- #ifdef CONFIG_PCI
- extern int pcibios_vaddr_is_ioport(void __iomem *address);
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 32656f1..942ced2 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1554,7 +1554,7 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
- 	return pci_enable_resources(dev, mask);
+-	bus = pci_scan_bus(next_busno, hose->pci_ops, hose);
++	for (i = 0; i < hose->nr_resources; i++)
++		pci_add_resource(&resources, hose->resources + i);
++
++	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
++				&resources);
+ 	hose->bus = bus;
+ 
+ 	need_domain_info = need_domain_info || hose->index;
+@@ -54,6 +60,8 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
+ 		pci_bus_size_bridges(bus);
+ 		pci_bus_assign_resources(bus);
+ 		pci_enable_bridges(bus);
++	} else {
++		pci_free_resource_list(&resources);
+ 	}
  }
  
--void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
-+static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose)
+@@ -161,16 +169,8 @@ static void pcibios_fixup_device_resources(struct pci_dev *dev,
+  */
+ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
  {
- 	struct pci_bus *bus = hose->bus;
- 	struct resource *res;
+-	struct pci_dev *dev = bus->self;
++	struct pci_dev *dev;
+ 	struct list_head *ln;
+-	struct pci_channel *hose = bus->sysdata;
+-
+-	if (!dev) {
+-		int i;
+-
+-		for (i = 0; i < hose->nr_resources; i++)
+-			bus->resource[i] = hose->resources + i;
+-	}
+ 
+ 	for (ln = bus->devices.next; ln != &bus->devices; ln = ln->next) {
+ 		dev = pci_dev_b(ln);
