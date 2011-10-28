@@ -1,23 +1,17 @@
-From: "Upgrade Team" <info@accountupdate.net>
-Subject: Web News!!!
-Date: Fri, 28 Oct 2011 17:22:43 +0700 (WIT)
-Message-ID: <766c610ed11c5894da16723bd5ecddb4.squirrel@webmail.speedmark.co.id>
-Reply-To: web.support@gala.net
+From: lisa hedstrand <lisa_hedstrand@indiatimes.com>
+Subject: Hi
+Date: Fri, 28 Oct 2011 16:40:36 +0530 (IST)
+Message-ID: <1855663691.934221319800236500.JavaMail.root@tilmb17.indiatimes.com>
+Reply-To: lisa hedstrand <lisahedstrand@yahoo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from speedmark.co.id ([202.51.112.171]:44474 "EHLO
-	mail.fafakids.web.id" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754602Ab1J1Kjm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 06:39:42 -0400
+Received: from trx4.indiatimes.com ([223.165.24.215]:44995 "EHLO
+	trx4.indiatimes.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751706Ab1J1LKa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 07:10:30 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
-Dear Accounts User
-
-Visit the link to update your account:
-https://docs.google.com/spreadsheet/viewform?formkey=dExrUTNRLVhpMENsbUwwLVdWLVlZOUE6MQ&theme=0AX42CRMsmRFbUy1iODQwMzFlYi1iZjJhLTRmNmUtODQ0My1iNjJmYTUzNjQ2ZWE&ifq
-
-
-Thanks & Regards
+My name is Miss Lisa Please accept my apology if my mode of contacting you will in any way offend you. I am compelled to contact you via this medium because i needed a friend from that part of the world. We will get to know each other in details if my proposition accepted. l am a student in UK but originally from USA.
