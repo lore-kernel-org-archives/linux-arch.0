@@ -1,62 +1,88 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 07/34] PCI: deprecate pci_scan_bus_parented()
-Date: Fri, 28 Oct 2011 16:26:05 -0600
-Message-ID: <20111028222605.30729.48907.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 08/34] alpha/PCI: convert to pci_scan_root_bus() for
+	correct root bus resources
+Date: Fri, 28 Oct 2011 16:26:11 -0600
+Message-ID: <20111028222611.30729.46284.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-alpha-owner@vger.kernel.org>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-alpha-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Users of pci_scan_bus_parented() should be converted to use either
-    pci_scan_root_bus() (preferred, but also calls pci_bus_add_devices)
-or
-    pci_create_root_bus()
-    pci_scan_child_bus()
+Convert from pci_scan_bus() to pci_scan_root_bus() and remove root bus
+resource fixups.  This fixes the problem of "early" and "header" quirks
+seeing incorrect root bus resources.
 
-Since pci_scan_bus_parented(), I'm marking it deprecated now and will
-actually remove it later.
-
+CC: linux-alpha@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- Documentation/feature-removal-schedule.txt |   12 ++++++++++++
- drivers/pci/probe.c                        |    1 +
- 2 files changed, 13 insertions(+), 0 deletions(-)
+ arch/alpha/kernel/pci.c |   37 ++++++++++++++++++++-----------------
+ 1 files changed, 20 insertions(+), 17 deletions(-)
 
-diff --git a/Documentation/feature-removal-schedule.txt b/Documentation/feature-removal-schedule.txt
-index d5ac362..d5848d1 100644
---- a/Documentation/feature-removal-schedule.txt
-+++ b/Documentation/feature-removal-schedule.txt
-@@ -609,3 +609,15 @@ When:	3.5
- Why:	The iwlagn module has been renamed iwlwifi.  The alias will be around
- 	for backward compatibility for several cycles and then dropped.
- Who:	Don Fry <donald.h.fry@intel.com>
-+
-+----------------------------
-+
-+What:	pci_scan_bus_parented()
-+When:	3.5
-+Why:	The pci_scan_bus_parented() interface creates a new root bus.  The
-+	bus is created with default resources (ioport_resource and
-+	iomem_resource) that are always wrong, so we rely on arch code to
-+	correct them later.  Callers of pci_scan_bus_parented() should
-+	convert to using pci_scan_root_bus() so they can supply a list of
-+	bus resources when the bus is created.
-+Who:	Bjorn Helgaas <bhelgaas@google.com>
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 72261a7..2863865 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1643,6 +1643,7 @@ struct pci_bus *pci_create_bus(struct device *parent,
- 	return b;
- }
+diff --git a/arch/alpha/kernel/pci.c b/arch/alpha/kernel/pci.c
+index c9ab94e..e9e78a2 100644
+--- a/arch/alpha/kernel/pci.c
++++ b/arch/alpha/kernel/pci.c
+@@ -286,22 +286,7 @@ pcibios_fixup_bus(struct pci_bus *bus)
+ 	struct pci_controller *hose = bus->sysdata;
+ 	struct pci_dev *dev = bus->self;
  
-+/* Deprecated; use pci_scan_root_bus() instead */
- struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
- 		int bus, struct pci_ops *ops, void *sysdata)
+-	if (!dev) {
+-		/* Root bus. */
+-		u32 pci_mem_end;
+-		u32 sg_base = hose->sg_pci ? hose->sg_pci->dma_base : ~0;
+-		unsigned long end;
+-
+-		bus->resource[0] = hose->io_space;
+-		bus->resource[1] = hose->mem_space;
+-
+-		/* Adjust hose mem_space limit to prevent PCI allocations
+-		   in the iommu windows. */
+-		pci_mem_end = min((u32)__direct_map_base, sg_base) - 1;
+-		end = hose->mem_space->start + pci_mem_end;
+-		if (hose->mem_space->end > end)
+-			hose->mem_space->end = end;
+- 	} else if (pci_probe_only &&
++	if (pci_probe_only && dev &&
+  		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
+  		pci_read_bridge_bases(bus);
+  		pcibios_fixup_device_resources(dev, bus);
+@@ -414,13 +399,31 @@ void __init
+ common_init_pci(void)
  {
+ 	struct pci_controller *hose;
++	struct list_head resources;
+ 	struct pci_bus *bus;
+ 	int next_busno;
+ 	int need_domain_info = 0;
++	u32 pci_mem_end;
++	u32 sg_base;
++	unsigned long end;
+ 
+ 	/* Scan all of the recorded PCI controllers.  */
+ 	for (next_busno = 0, hose = hose_head; hose; hose = hose->next) {
+-		bus = pci_scan_bus(next_busno, alpha_mv.pci_ops, hose);
++		sg_base = hose->sg_pci ? hose->sg_pci->dma_base : ~0;
++
++		/* Adjust hose mem_space limit to prevent PCI allocations
++		   in the iommu windows. */
++		pci_mem_end = min((u32)__direct_map_base, sg_base) - 1;
++		end = hose->mem_space->start + pci_mem_end;
++		if (hose->mem_space->end > end)
++			hose->mem_space->end = end;
++
++		INIT_LIST_HEAD(&resources);
++		pci_add_resource(&resources, &hose->io_space);
++		pci_add_resource(&resources, &hose->mem_space);
++
++		bus = pci_scan_root_bus(NULL, next_busno, alpha_mv.pci_ops,
++					hose, &resources);
+ 		hose->bus = bus;
+ 		hose->need_domain_info = need_domain_info;
+ 		next_busno = bus->subordinate + 1;
+
