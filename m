@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([216.239.44.51]:35687 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:9881 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932828Ab1J1W0z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:26:55 -0400
-Subject: [PATCH v3 16/34] microblaze/PCI: use pci_scan_root_bus()
+	with ESMTP id S932828Ab1J1W1K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:27:10 -0400
+Subject: [PATCH v3 19/34] parisc/PCI: dino: use pci_create_bus() instead of
+	pci_scan_bus_parented()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 28 Oct 2011 16:26:52 -0600
-Message-ID: <20111028222651.30729.58763.stgit@bhelgaas.mtv.corp.google.com>
+Date: Fri, 28 Oct 2011 16:27:07 -0600
+Message-ID: <20111028222707.30729.18812.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -15,52 +16,55 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>
-Message-ID: <20111028222652.prPjLkK-vvMQvZqn17wRGgRzhcycYNtURhBCNosfjY8@z>
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
+Message-ID: <20111028222707.4YR2_PoJIyxGFpAhR79N42ZfNvatWTJ5up2vQF7EWtg@z>
 
-Microblaze doesn't need to replace pci_scan_child_bus() or do anything
-special before pci_bus_add_devices(), so we can use the more generic PCI
-path in pci_scan_root_bus().
+No functional change here; just converting from pci_scan_bus_parented()
+to pci_create_bus() to make a future patch simpler.
 
-CC: Michal Simek <monstr@monstr.eu>
+CC: linux-parisc@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/microblaze/pci/pci-common.c |   10 +++-------
- 1 files changed, 3 insertions(+), 7 deletions(-)
+ drivers/parisc/dino.c |   22 ++++++++++++----------
+ 1 files changed, 12 insertions(+), 10 deletions(-)
 
-diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
-index ec80f1e..5df4ca9 100644
---- a/arch/microblaze/pci/pci-common.c
-+++ b/arch/microblaze/pci/pci-common.c
-@@ -1584,9 +1584,8 @@ static void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 
- 	pcibios_setup_phb_resources(hose, &resources);
- 
--	/* Create an empty bus for the toplevel */
--	bus = pci_create_root_bus(hose->parent, hose->first_busno, hose->ops,
--				  hose, &resources);
-+	bus = pci_scan_root_bus(hose->parent, hose->first_busno,
-+				hose->ops, hose, &resources);
- 	if (bus == NULL) {
- 		printk(KERN_ERR "Failed to create bus for PCI domain %04x\n",
- 		       hose->global_number);
-@@ -1596,8 +1595,7 @@ static void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 	bus->secondary = hose->first_busno;
- 	hose->bus = bus;
- 
--	/* Scan children */
--	hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-+	hose->last_busno = bus->subordinate;
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index bcd5d54..90252c0 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -1007,22 +1007,24 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	** It's not used to avoid chicken/egg problems
+ 	** with configuration accessor functions.
+ 	*/
+-	dino_dev->hba.hba_bus = bus = pci_scan_bus_parented(&dev->dev,
++	dino_dev->hba.hba_bus = bus = pci_create_bus(&dev->dev,
+ 			 dino_current_bus, &dino_cfg_ops, NULL);
+-
+-	if(bus) {
+-		/* This code *depends* on scanning being single threaded
+-		 * if it isn't, this global bus number count will fail
+-		 */
+-		dino_current_bus = bus->subordinate + 1;
+-		pci_bus_assign_resources(bus);
+-		pci_bus_add_devices(bus);
+-	} else {
++	if (!bus) {
+ 		printk(KERN_ERR "ERROR: failed to scan PCI bus on %s (duplicate bus number %d?)\n",
+ 		       dev_name(&dev->dev), dino_current_bus);
+ 		/* increment the bus number in case of duplicates */
+ 		dino_current_bus++;
++		return 0;
+ 	}
++
++	bus->subordinate = pci_scan_child_bus(bus);
++
++	/* This code *depends* on scanning being single threaded
++	 * if it isn't, this global bus number count will fail
++	 */
++	dino_current_bus = bus->subordinate + 1;
++	pci_bus_assign_resources(bus);
++	pci_bus_add_devices(bus);
+ 	return 0;
  }
  
- static int __init pcibios_init(void)
-@@ -1611,8 +1609,6 @@ static int __init pcibios_init(void)
- 	list_for_each_entry_safe(hose, tmp, &hose_list, list_node) {
- 		hose->last_busno = 0xff;
- 		pcibios_scan_phb(hose);
--		printk(KERN_INFO "calling pci_bus_add_devices()\n");
--		pci_bus_add_devices(hose->bus);
- 		if (next_busno <= hose->last_busno)
- 			next_busno = hose->last_busno + 1;
- 	}
 
