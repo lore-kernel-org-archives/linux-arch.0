@@ -1,14 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:10104 "EHLO
+Received: from smtp-out.google.com ([74.125.121.67]:10126 "EHLO
 	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933642Ab1J1W2E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:28:04 -0400
-Subject: [PATCH v3 29/34] sparc32,
-	leon/PCI: convert to pci_scan_root_bus() for correct root bus
-	resources
+	with ESMTP id S933642Ab1J1W2M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Oct 2011 18:28:12 -0400
+Subject: [PATCH v3 31/34] x86/PCI: use pci_scan_bus() instead of
+	pci_scan_bus_parented()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 28 Oct 2011 16:27:58 -0600
-Message-ID: <20111028222758.30729.18670.stgit@bhelgaas.mtv.corp.google.com>
+Date: Fri, 28 Oct 2011 16:28:08 -0600
+Message-ID: <20111028222808.30729.5101.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,71 +16,72 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20111028222758.99-f46eXxBoPV-G9fIT-tZFp4IF3hRACAzTPcixF8LU@z>
+Cc: linux-arch@vger.kernel.org
+Message-ID: <20111028222808.ofW9wWN0c-rcergEHoYTPnZxyYDkdC1xDy1e7zo152E@z>
 
-Convert from pci_scan_bus_parented() to pci_scan_root_bus() and remove root
-bus resource fixups.  This fixes the problem of "early" and "header" quirks
-seeing incorrect root bus resources.
+This doesn't change any functionality, but it makes a subsequent patch
+slightly simpler.
 
-pci_scan_root_bus() also includes the pci_bus_add_devices() so we don't
-need to do that separately.
+pci_scan_bus(NULL, ...) and pci_scan_bus_parented() are identical except
+that pci_scan_bus() also calls pci_bus_add_devices():
+
+  pci_scan_bus_parented
+    pci_create_bus
+    pci_scan_child_bus
+
+  pci_scan_bus
+    pci_create_bus
+    pci_scan_child_bus
+    pci_bus_add_devices
+
+All callers of pcibios_scan_root() call pci_bus_add_devices() explicitly,
+and we don't pass a parent device, so we might as well use pci_scan_bus().
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-Acked-by: David S. Miller <davem@davemloft.net>
 ---
- arch/sparc/kernel/leon_pci.c |   25 ++++++++-----------------
- 1 files changed, 8 insertions(+), 17 deletions(-)
+ arch/x86/pci/common.c   |    2 +-
+ arch/x86/pci/legacy.c   |    3 ---
+ arch/x86/pci/numaq_32.c |    2 --
+ 3 files changed, 1 insertions(+), 6 deletions(-)
 
-diff --git a/arch/sparc/kernel/leon_pci.c b/arch/sparc/kernel/leon_pci.c
-index a8a9a27..b288d83 100644
---- a/arch/sparc/kernel/leon_pci.c
-+++ b/arch/sparc/kernel/leon_pci.c
-@@ -18,22 +18,22 @@
-  */
- void leon_pci_init(struct platform_device *ofdev, struct leon_pci_info *info)
- {
-+	LIST_HEAD(resources);
- 	struct pci_bus *root_bus;
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 92df322..b389a2d 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -456,7 +456,7 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	sd->node = get_mp_bus_to_node(busnum);
  
--	root_bus = pci_scan_bus_parented(&ofdev->dev, 0, info->ops, info);
--	if (root_bus) {
--		root_bus->resource[0] = &info->io_space;
--		root_bus->resource[1] = &info->mem_space;
--		root_bus->resource[2] = NULL;
+ 	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	bus = pci_scan_bus_parented(NULL, busnum, &pci_root_ops, sd);
++	bus = pci_scan_bus(busnum, &pci_root_ops, sd);
+ 	if (!bus)
+ 		kfree(sd);
+ 
+diff --git a/arch/x86/pci/legacy.c b/arch/x86/pci/legacy.c
+index c89266b..6e3f26a 100644
+--- a/arch/x86/pci/legacy.c
++++ b/arch/x86/pci/legacy.c
+@@ -30,9 +30,6 @@ int __init pci_legacy_init(void)
+ 
+ 	printk("PCI: Probing PCI hardware\n");
+ 	pci_root_bus = pcibios_scan_root(0);
+-	if (pci_root_bus)
+-		pci_bus_add_devices(pci_root_bus);
 -
--		/* Init all PCI devices into PCI tree */
--		pci_bus_add_devices(root_bus);
-+	pci_add_resource(&resources, &info->io_space);
-+	pci_add_resource(&resources, &info->mem_space);
- 
-+	root_bus = pci_scan_root_bus(&ofdev->dev, 0, info->ops, info,
-+				     &resources);
-+	if (root_bus) {
- 		/* Setup IRQs of all devices using custom routines */
- 		pci_fixup_irqs(pci_common_swizzle, info->map_irq);
- 
- 		/* Assign devices with resources */
- 		pci_assign_unassigned_resources();
-+	} else {
-+		pci_free_resource_list(&resources);
- 	}
+ 	return 0;
  }
  
-@@ -82,15 +82,6 @@ void __devinit pcibios_fixup_bus(struct pci_bus *pbus)
- 	int i, has_io, has_mem;
- 	u16 cmd;
+diff --git a/arch/x86/pci/numaq_32.c b/arch/x86/pci/numaq_32.c
+index 512a88c..2b94aa9 100644
+--- a/arch/x86/pci/numaq_32.c
++++ b/arch/x86/pci/numaq_32.c
+@@ -153,8 +153,6 @@ int __init pci_numaq_init(void)
+ 	raw_pci_ops = &pci_direct_conf1_mq;
  
--	/* Generic PCI bus probing sets these to point at
--	 * &io{port,mem}_resouce which is wrong for us.
--	 */
--	if (pbus->self == NULL) {
--		pbus->resource[0] = &info->io_space;
--		pbus->resource[1] = &info->mem_space;
--		pbus->resource[2] = NULL;
--	}
--
- 	list_for_each_entry(dev, &pbus->devices, bus_list) {
- 		/*
- 		 * We can not rely on that the bootloader has enabled I/O
+ 	pci_root_bus = pcibios_scan_root(0);
+-	if (pci_root_bus)
+-		pci_bus_add_devices(pci_root_bus);
+ 	if (num_online_nodes() > 1)
+ 		for_each_online_node(quad) {
+ 			if (quad == 0)
 
