@@ -1,102 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:47636 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752245Ab1JaUHd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 31 Oct 2011 16:07:33 -0400
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 3/6 V2] Add ioctl for KVM_GUEST_STOPPED
-Date: Mon, 31 Oct 2011 16:07:27 -0400
-Message-ID: <1320091650-24682-4-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1320091650-24682-1-git-send-email-emunson@mgebm.net>
-References: <1320091650-24682-1-git-send-email-emunson@mgebm.net>
+Received: from smtp-out.google.com ([74.125.121.67]:41837 "EHLO
+	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751493Ab1JaXkc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Oct 2011 19:40:32 -0400
+Message-ID: <201110312339.p9VNdu5H032350@hpaq2.eem.corp.google.com>
+Subject: [folded] cross-memory-attach-v4.patch removed from -mm tree
+From: akpm@linux-foundation.org
+Date: Mon, 31 Oct 2011 16:39:55 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: mingo@redhat.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, Eric B Munson <emunson@mgebm.net>
-Message-ID: <20111031200727.PGVYX7O7viorPpMceLkfGg9MDfbC98IqKqMU0MCCip4@z>
+To: cyeoh@au1.ibm.com, arnd@arndb.de, benh@kernel.crashing.org, dhowells@redhat.com, hpa@zytor.com, jmorris@namei.org, linux-arch@vger.kernel.org, linux-man@vger.kernel.org, mingo@elte.hu, paulus@samba.org, tglx@linutronix.de, mm-commits@vger.kernel.org
+Message-ID: <20111031233955.njo7sRLVHbyNnHBWNi5JeTpPCXICB2xQW_PXfqCQ6LY@z>
 
-Now that we have a flag that will tell the guest it was suspended, create an
-interface for that communication using a KVM ioctl.
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
+The patch titled
+     Subject: cross-memory-attach-v4
+has been removed from the -mm tree.  Its filename was
+     cross-memory-attach-v4.patch
+
+This patch was dropped because it was folded into cross-memory-attach-v3.patch
+
+The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+
+------------------------------------------------------
+From: Christopher Yeoh <cyeoh@au1.ibm.com>
+Subject: cross-memory-attach-v4
+
+> You might get some speed benefit by optimising for the small copies
+> here.  Define a local on-stack array of N page*'s and point
+> process_pages at that if the number of pages is <= N.  Saves a
+> malloc/free and is more cache-friendly.  But only if the result is
+> measurable!
+
+I have done some benchmarking on this, and it gains about 5-7% on a
+microbenchmark with 4kb size copies and about a 1% gain with a more
+realistic (but modified for smaller copies) hpcc benchmark. The
+performance gain disappears into the noise by about 64kb sized copies.
+No measurable overhead for larger copies. So I think its worth including
+
+Included below is the patch (based on v4) - for ease of review the first diff
+is just against the latest version of CMA which has been posted here previously.
+The second is the entire CMA patch.
+
+Signed-off-by: Chris Yeoh <cyeoh@au1.ibm.com>
+Cc: Ingo Molnar <mingo@elte.hu>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: James Morris <jmorris@namei.org>
+Cc: <linux-man@vger.kernel.org>
+Cc: <linux-arch@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
 ---
-Changes from V1:
- Add kvm_set_host_stopped to arch/x86/jvm/x86.c instead of kvmclock.c
- Rename KVM_PAUSE_GUEST to KVM_GUEST_PAUSED
 
- arch/x86/include/asm/pvclock.h |    3 +++
- arch/x86/kvm/x86.c             |   16 ++++++++++++++++
- include/linux/kvm.h            |    2 ++
- 3 files changed, 21 insertions(+), 0 deletions(-)
+ mm/process_vm_access.c |   25 +++++++++++++++++--------
+ 1 file changed, 17 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
-index 7d3ba41..9312814 100644
---- a/arch/x86/include/asm/pvclock.h
-+++ b/arch/x86/include/asm/pvclock.h
-@@ -3,6 +3,7 @@
- 
- #include <linux/clocksource.h>
- #include <asm/pvclock-abi.h>
-+#include <linux/kvm_host.h>
- 
- /* some helper functions for xen and kvm pv clock sources */
- cycle_t pvclock_clocksource_read(struct pvclock_vcpu_time_info *src);
-@@ -13,6 +14,8 @@ void pvclock_read_wallclock(struct pvclock_wall_clock *wall,
- 			    struct timespec *ts);
- void pvclock_resume(void);
- 
-+void kvm_set_host_stopped(struct kvm_vcpu *vcpu);
-+
- bool kvm_check_and_clear_host_stopped(int cpu);
- 
- /*
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index c38efd7..592ac3b 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -3295,6 +3295,11 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
- 
- 		goto out;
- 	}
-+	case KVM_GUEST_PAUSED: {
-+		r = 0;
-+		kvm_set_host_stopped(vcpu);
-+		break;
-+	}
- 	default:
- 		r = -EINVAL;
- 	}
-@@ -6117,6 +6122,17 @@ int kvm_task_switch(struct kvm_vcpu *vcpu, u16 tss_selector, int reason,
+diff -puN mm/process_vm_access.c~cross-memory-attach-v4 mm/process_vm_access.c
+--- a/mm/process_vm_access.c~cross-memory-attach-v4
++++ a/mm/process_vm_access.c
+@@ -221,6 +221,10 @@ static int process_vm_rw_single_vec(unsi
+ 	return rc;
  }
- EXPORT_SYMBOL_GPL(kvm_task_switch);
  
-+/*
-+ * kvm_set_host_stopped() indicates to the guest kernel that it has been
-+ * stopped by the hypervisor.  This function will be called from the host only.
-+ */
-+void kvm_set_host_stopped(struct kvm_vcpu *vcpu)
-+{
-+	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-+	src->flags |= PVCLOCK_GUEST_STOPPED;
-+}
-+EXPORT_SYMBOL_GPL(kvm_set_host_stopped);
++/* Maximum number of entries for process pages array
++   which lives on stack */
++#define PVM_MAX_PP_ARRAY_COUNT 16
 +
- int kvm_arch_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
- 				  struct kvm_sregs *sregs)
+ /**
+  * process_vm_rw_core - core of reading/writing pages from task specified
+  * @pid: PID of process to read/write from/to
+@@ -241,7 +245,8 @@ static ssize_t process_vm_rw_core(pid_t 
+ 				  unsigned long flags, int vm_write)
  {
-diff --git a/include/linux/kvm.h b/include/linux/kvm.h
-index f47fcd3..87cab0d 100644
---- a/include/linux/kvm.h
-+++ b/include/linux/kvm.h
-@@ -763,6 +763,8 @@ struct kvm_clock_data {
- #define KVM_CREATE_SPAPR_TCE	  _IOW(KVMIO,  0xa8, struct kvm_create_spapr_tce)
- /* Available with KVM_CAP_RMA */
- #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
-+/* VM is being stopped by host */
-+#define KVM_GUEST_PAUSED	  _IO(KVMIO,   0xaa)
+ 	struct task_struct *task;
+-	struct page **process_pages = NULL;
++	struct page *pp_stack[PVM_MAX_PP_ARRAY_COUNT];
++	struct page **process_pages = pp_stack;
+ 	struct mm_struct *mm;
+ 	unsigned long i;
+ 	ssize_t rc = 0;
+@@ -271,13 +276,16 @@ static ssize_t process_vm_rw_core(pid_t 
+ 	if (nr_pages == 0)
+ 		return 0;
  
- #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
+-	/* For reliability don't try to kmalloc more than 2 pages worth */
+-	process_pages = kmalloc(min_t(size_t, PVM_MAX_KMALLOC_PAGES,
+-				      sizeof(struct pages *)*nr_pages),
+-				GFP_KERNEL);
++	if (nr_pages > PVM_MAX_PP_ARRAY_COUNT) {
++		/* For reliability don't try to kmalloc more than
++		   2 pages worth */
++		process_pages = kmalloc(min_t(size_t, PVM_MAX_KMALLOC_PAGES,
++					      sizeof(struct pages *)*nr_pages),
++					GFP_KERNEL);
  
--- 
-1.7.5.4
+-	if (!process_pages)
+-		return -ENOMEM;
++		if (!process_pages)
++			return -ENOMEM;
++	}
+ 
+ 	/* Get process information */
+ 	rcu_read_lock();
+@@ -331,7 +339,8 @@ put_task_struct:
+ 	put_task_struct(task);
+ 
+ free_proc_pages:
+-	kfree(process_pages);
++	if (process_pages != pp_stack)
++		kfree(process_pages);
+ 	return rc;
+ }
+ 
+_
+
+Patches currently in -mm which might be from cyeoh@au1.ibm.com are
+
+cross-memory-attach-v3.patch
 
