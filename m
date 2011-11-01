@@ -1,29 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:51871 "EHLO mail.mgebm.net"
+Received: from oz.csail.mit.edu ([128.30.30.239]:51911 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752350Ab1KAUHs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 1 Nov 2011 16:07:48 -0400
-Date: Tue, 1 Nov 2011 16:07:46 -0400
+	id S1752105Ab1KAULq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Nov 2011 16:11:46 -0400
+Date: Tue, 1 Nov 2011 16:11:44 -0400
 From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 2/6 V2] Add functions to check if the host has stopped
- the vm
-Message-ID: <20111101200746.GC9852@mgebm.net>
+Subject: Re: [PATCH 3/6 V2] Add ioctl for KVM_GUEST_STOPPED
+Message-ID: <20111101201144.GE9852@mgebm.net>
 References: <1320091650-24682-1-git-send-email-emunson@mgebm.net>
- <1320091650-24682-3-git-send-email-emunson@mgebm.net>
- <4EB0485F.8010406@us.ibm.com>
+ <1320091650-24682-4-git-send-email-emunson@mgebm.net>
+ <4EB04940.2030506@us.ibm.com>
 MIME-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="TYecfFk8j8mZq+dy"
+	protocol="application/pgp-signature"; boundary="imjhCm/Pyz7Rq5F2"
 Content-Disposition: inline
-In-Reply-To: <4EB0485F.8010406@us.ibm.com>
+In-Reply-To: <4EB04940.2030506@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Anthony Liguori <aliguori@us.ibm.com>
 Cc: avi@redhat.com, mingo@redhat.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com
-Message-ID: <20111101200746.4-IW8z4sF79gmJTSkGf1p1HcK_c_NZYlKd79Rsl4joc@z>
+Message-ID: <20111101201144.bmoRYWOYKR4ZK4d_ZMKWOQQsdZnR_kFHCk1efKhCuLQ@z>
 
 
---TYecfFk8j8mZq+dy
+--imjhCm/Pyz7Rq5F2
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
@@ -31,120 +30,133 @@ Content-Transfer-Encoding: quoted-printable
 On Tue, 01 Nov 2011, Anthony Liguori wrote:
 
 > On 10/31/2011 03:07 PM, Eric B Munson wrote:
-> >When a host stops or suspends a VM it will set a flag to show this.  The
-> >watchdog will use these functions to determine if a softlockup is real, =
-or the
-> >result of a suspended VM.
+> >Now that we have a flag that will tell the guest it was suspended, creat=
+e an
+> >interface for that communication using a KVM ioctl.
 > >
 > >Signed-off-by: Eric B Munson<emunson@mgebm.net>
 > >---
-> >  arch/x86/include/asm/pvclock.h |    2 ++
-> >  arch/x86/kernel/kvmclock.c     |   19 +++++++++++++++++++
-> >  2 files changed, 21 insertions(+), 0 deletions(-)
+> >Changes from V1:
+> >  Add kvm_set_host_stopped to arch/x86/jvm/x86.c instead of kvmclock.c
+> >  Rename KVM_PAUSE_GUEST to KVM_GUEST_PAUSED
+> >
+> >  arch/x86/include/asm/pvclock.h |    3 +++
+> >  arch/x86/kvm/x86.c             |   16 ++++++++++++++++
+> >  include/linux/kvm.h            |    2 ++
+> >  3 files changed, 21 insertions(+), 0 deletions(-)
 > >
 > >diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclo=
 ck.h
-> >index c59cc97..7d3ba41 100644
+> >index 7d3ba41..9312814 100644
 > >--- a/arch/x86/include/asm/pvclock.h
 > >+++ b/arch/x86/include/asm/pvclock.h
-> >@@ -13,6 +13,8 @@ void pvclock_read_wallclock(struct pvclock_wall_clock =
+> >@@ -3,6 +3,7 @@
+> >
+> >  #include<linux/clocksource.h>
+> >  #include<asm/pvclock-abi.h>
+> >+#include<linux/kvm_host.h>
+> >
+> >  /* some helper functions for xen and kvm pv clock sources */
+> >  cycle_t pvclock_clocksource_read(struct pvclock_vcpu_time_info *src);
+> >@@ -13,6 +14,8 @@ void pvclock_read_wallclock(struct pvclock_wall_clock =
 *wall,
 > >  			    struct timespec *ts);
 > >  void pvclock_resume(void);
 > >
-> >+bool kvm_check_and_clear_host_stopped(int cpu);
+> >+void kvm_set_host_stopped(struct kvm_vcpu *vcpu);
 >=20
-> A kvm-specific function shouldn't be declared in pvclock.h as this
-> is shared code between KVM and Xen.
-
-I'll move it for V3.
-
+> This can't go in pvclock.h.
 >=20
+
+Will move for V3.
+
 > >+
-> >  /*
-> >   * Scale a 64-bit delta by scaling and multiplying by a 32-bit fractio=
-n,
-> >   * yielding a 64-bit result.
-> >diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
-> >index c1a0188..8ddcfaf 100644
-> >--- a/arch/x86/kernel/kvmclock.c
-> >+++ b/arch/x86/kernel/kvmclock.c
-> >@@ -113,6 +113,25 @@ static void kvm_get_preset_lpj(void)
-> >  	preset_lpj =3D lpj;
-> >  }
+> >  bool kvm_check_and_clear_host_stopped(int cpu);
 > >
-> >+bool kvm_check_and_clear_host_stopped(int cpu)
-> >+{
-> >+	bool ret =3D false;
-> >+	struct pvclock_vcpu_time_info *src;
-> >+
-> >+	/*
-> >+	 * per_cpu() is safe here because this function is only called from
-> >+	 * timer functions where preemption is already disabled.
-> >+	 */
-> >+	WARN_ON(!in_atomic());
-> >+	src =3D&per_cpu(hv_clock, cpu);
-> >+	if ((src->flags&  PVCLOCK_GUEST_STOPPED) !=3D 0) {
-> >+		src->flags =3D src->flags&  (~PVCLOCK_GUEST_STOPPED);
-> >+		ret =3D true;
+> >  /*
+> >diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+> >index c38efd7..592ac3b 100644
+> >--- a/arch/x86/kvm/x86.c
+> >+++ b/arch/x86/kvm/x86.c
+> >@@ -3295,6 +3295,11 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
+> >
+> >  		goto out;
+> >  	}
+> >+	case KVM_GUEST_PAUSED: {
+> >+		r =3D 0;
+> >+		kvm_set_host_stopped(vcpu);
+> >+		break;
 > >+	}
+> >  	default:
+> >  		r =3D -EINVAL;
+> >  	}
+> >@@ -6117,6 +6122,17 @@ int kvm_task_switch(struct kvm_vcpu *vcpu, u16 ts=
+s_selector, int reason,
+> >  }
+> >  EXPORT_SYMBOL_GPL(kvm_task_switch);
+> >
+> >+/*
+> >+ * kvm_set_host_stopped() indicates to the guest kernel that it has been
+> >+ * stopped by the hypervisor.  This function will be called from the ho=
+st only.
+> >+ */
+> >+void kvm_set_host_stopped(struct kvm_vcpu *vcpu)
+> >+{
+> >+	struct pvclock_vcpu_time_info *src =3D&vcpu->arch.hv_clock;
+> >+	src->flags |=3D PVCLOCK_GUEST_STOPPED;
 >=20
-> It would be helpful to separate out the patches for guest enablement
-> from host enablement.  This is a guest function, correct?
+> Shouldn't we throw some sort of error if you're trying to set a flag
+> and kvmclock isn't enabled?
 >=20
-
-Yes, this is guest only.
-
-> Don't you need an atomic getandset here?  Can the host clear this
-> flag or only set it?
-
-I didn't think they needed to be atomic because an over-write of this means=
- that
-a soft lockup message is delayed by the detector's timeout in the worst cas=
-e.
-If you disagree with that assessment, I can move to atomic get/set.
-
->=20
-> It's ashame we don't have a proper pvclock spec in Documentation/.
-> I would suggest at least adding a description of how this bit works
-> in the first patch.
->=20
-
-
-
 > Regards,
 >=20
 > Anthony Liguori
 >=20
-> >+
-> >+	return ret;
+
+Is kvmclock a compile time only option or something set at runtime?
+
 > >+}
+> >+EXPORT_SYMBOL_GPL(kvm_set_host_stopped);
 > >+
-> >  static struct clocksource kvm_clock =3D {
-> >  	.name =3D "kvm-clock",
-> >  	.read =3D kvm_clock_get_cycles,
+> >  int kvm_arch_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
+> >  				  struct kvm_sregs *sregs)
+> >  {
+> >diff --git a/include/linux/kvm.h b/include/linux/kvm.h
+> >index f47fcd3..87cab0d 100644
+> >--- a/include/linux/kvm.h
+> >+++ b/include/linux/kvm.h
+> >@@ -763,6 +763,8 @@ struct kvm_clock_data {
+> >  #define KVM_CREATE_SPAPR_TCE	  _IOW(KVMIO,  0xa8, struct kvm_create_sp=
+apr_tce)
+> >  /* Available with KVM_CAP_RMA */
+> >  #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
+> >+/* VM is being stopped by host */
+> >+#define KVM_GUEST_PAUSED	  _IO(KVMIO,   0xaa)
+> >
+> >  #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1<<  0)
+> >
 >=20
 
---TYecfFk8j8mZq+dy
+--imjhCm/Pyz7Rq5F2
 Content-Type: application/pgp-signature; name="signature.asc"
 Content-Description: Digital signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.11 (GNU/Linux)
 
-iQIcBAEBAgAGBQJOsFGRAAoJEKhG9nGc1bpJUWEQAIWltrob08qVLLYtehS7UA7e
-mtVR/8hWljtowPCw2II3p0ucoVIPBm16IQe4ba+xggH2RRBhP2Dus7tz4izjU2sH
-Cwm7i5xLVuBJ4KrL/MbleDLsGDZ4iI8rNAHKtq3/2L3qmylyhXeLAmMWLjJ+xtFf
-bs9r+essP+NmgWdIDz60fFRgae7UUbuaVH/+YOuZRv0sKCrveY/A3tPJhiZAAN8f
-s9H6qZlBuvyiI/TnNfjnnBq20mcVGo23iMC/vcCqGS6EsLjRpfSf0a1O+FCZ2vE4
-kMThtnw5OuDJljeZGuWc1nMcFjlPCYIvGzEDs6Xa/xQ/JaOPqGDOhpakv9ZCNXD9
-eKOrB7mddhpN22olkRR6esWJDaWHk7+mscOPdQTlIDhmmrieoD1ojYy7oWdNZf0z
-PtcwRCXKIjzuIyTxRzgvDctP0PDDoHThfmD5iJdSGgG+uBHUQeu2QdX2KiND3xyL
-jNAQLHFQAtRV+Sn5TCqPKGIUVrdQGE46nPksSQ7NNsCdO4m3L9pV2XePcHhvFFxi
-P1HaexMIdFLWrLQOJw/al9VC+TIYNHWtKkwPKnv9lp2X1rf+mZMOH9EB+MoPpuXJ
-kbacYW8U8++nYYBBEI7WFdKuw9KscGG6POJTPW9KlO9JHL5nZ6VM9dUuI3SHwiBv
-7YNO5YZVVt51EkN/S5Tv
-=CXjV
+iQIcBAEBAgAGBQJOsFKAAAoJEKhG9nGc1bpJkKkP/R9ixoEQeJGOdjrZJpl4DlqP
+VygkN579YcVsJfg0jfiZP7zn3rBjoyv8ywGBTl1ngZ6v3x7CCMixXm1Xas3pUgpM
+/5SwJN8EFlWXlQwVHa9Nu/CMqlmRgi4Gb4pg/f6OgmTLLFoY2gUEthSyf6f0aPRz
+Clj/v1zeI7E2DliQemYsVBbAh6wJwW+3xFhBUzrHJriwRGTWO+ZLezeSTV5Sj3lo
+1MQhc731Ol96uaGOtrEybB4+1fOeEtIvIgaSx4PIYCeJs7Q9yzbWbBm8CvvLuBM1
+LWts+r9JXDVQ41B/n4bHFqdnptKSqhNbFHmo+1fAIB+mmLThavPVfNyzGmOgARWQ
+CfbfYpEz5M+iwXW/CYRcymREkkU9+JRxokUB8gcM8p/LbXK1MNe5/G6q/1FlXGot
+DSwzCWE92SAgNUU/UlWF4rczzjVuCyswSQnKfUpb2P9jwtUMATx8hz+XSjRofFr+
+qnAgmt8AeOXIqNQvey0scZ1aAEXGMmq5+I5XLAFbcFn6SK7Myp6S0soqF5D2O7xL
+NluY+HgIK9z+X8yEqDVu9NE3js3VYfTXq1EqJXg0ZmoM/HpN3h9AshQ77R/ZfMw+
+8563beQH9IAPJp8jSGtyg5wfrk7pdqevIjLz9lvUCt5czaPX1EDQZ7RfB2qbXkyV
+HGFCkKUM/3kksRaBf0Hf
+=51vE
 -----END PGP SIGNATURE-----
 
---TYecfFk8j8mZq+dy--
+--imjhCm/Pyz7Rq5F2--
