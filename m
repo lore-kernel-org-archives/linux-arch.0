@@ -1,124 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out.google.com ([74.125.121.67]:41837 "EHLO
-	smtp-out.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751493Ab1JaXkc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Oct 2011 19:40:32 -0400
-Message-ID: <201110312339.p9VNdu5H032350@hpaq2.eem.corp.google.com>
-Subject: [folded] cross-memory-attach-v4.patch removed from -mm tree
-From: akpm@linux-foundation.org
-Date: Mon, 31 Oct 2011 16:39:55 -0700
+Received: from e3.ny.us.ibm.com ([32.97.182.143]:45709 "EHLO e3.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750900Ab1KATbB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 Nov 2011 15:31:01 -0400
+Received: from /spool/local
+	by e3.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aliguori@us.ibm.com>;
+	Tue, 1 Nov 2011 15:29:19 -0400
+Message-ID: <4EB0485F.8010406@us.ibm.com>
+Date: Tue, 01 Nov 2011 14:28:31 -0500
+From: Anthony Liguori <aliguori@us.ibm.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 2/6 V2] Add functions to check if the host has stopped
+ the vm
+References: <1320091650-24682-1-git-send-email-emunson@mgebm.net> <1320091650-24682-3-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1320091650-24682-3-git-send-email-emunson@mgebm.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: cyeoh@au1.ibm.com, arnd@arndb.de, benh@kernel.crashing.org, dhowells@redhat.com, hpa@zytor.com, jmorris@namei.org, linux-arch@vger.kernel.org, linux-man@vger.kernel.org, mingo@elte.hu, paulus@samba.org, tglx@linutronix.de, mm-commits@vger.kernel.org
-Message-ID: <20111031233955.njo7sRLVHbyNnHBWNi5JeTpPCXICB2xQW_PXfqCQ6LY@z>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com
+Message-ID: <20111101192831.Hw5MGX4McyroLf8oAPx-7YxhLAVVpGdKTS3VRCsd3ow@z>
 
+On 10/31/2011 03:07 PM, Eric B Munson wrote:
+> When a host stops or suspends a VM it will set a flag to show this.  The
+> watchdog will use these functions to determine if a softlockup is real, or the
+> result of a suspended VM.
+>
+> Signed-off-by: Eric B Munson<emunson@mgebm.net>
+> ---
+>   arch/x86/include/asm/pvclock.h |    2 ++
+>   arch/x86/kernel/kvmclock.c     |   19 +++++++++++++++++++
+>   2 files changed, 21 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/pvclock.h b/arch/x86/include/asm/pvclock.h
+> index c59cc97..7d3ba41 100644
+> --- a/arch/x86/include/asm/pvclock.h
+> +++ b/arch/x86/include/asm/pvclock.h
+> @@ -13,6 +13,8 @@ void pvclock_read_wallclock(struct pvclock_wall_clock *wall,
+>   			    struct timespec *ts);
+>   void pvclock_resume(void);
+>
+> +bool kvm_check_and_clear_host_stopped(int cpu);
 
-The patch titled
-     Subject: cross-memory-attach-v4
-has been removed from the -mm tree.  Its filename was
-     cross-memory-attach-v4.patch
+A kvm-specific function shouldn't be declared in pvclock.h as this is shared 
+code between KVM and Xen.
 
-This patch was dropped because it was folded into cross-memory-attach-v3.patch
+> +
+>   /*
+>    * Scale a 64-bit delta by scaling and multiplying by a 32-bit fraction,
+>    * yielding a 64-bit result.
+> diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
+> index c1a0188..8ddcfaf 100644
+> --- a/arch/x86/kernel/kvmclock.c
+> +++ b/arch/x86/kernel/kvmclock.c
+> @@ -113,6 +113,25 @@ static void kvm_get_preset_lpj(void)
+>   	preset_lpj = lpj;
+>   }
+>
+> +bool kvm_check_and_clear_host_stopped(int cpu)
+> +{
+> +	bool ret = false;
+> +	struct pvclock_vcpu_time_info *src;
+> +
+> +	/*
+> +	 * per_cpu() is safe here because this function is only called from
+> +	 * timer functions where preemption is already disabled.
+> +	 */
+> +	WARN_ON(!in_atomic());
+> +	src =&per_cpu(hv_clock, cpu);
+> +	if ((src->flags&  PVCLOCK_GUEST_STOPPED) != 0) {
+> +		src->flags = src->flags&  (~PVCLOCK_GUEST_STOPPED);
+> +		ret = true;
+> +	}
 
-The current -mm tree may be found at http://userweb.kernel.org/~akpm/mmotm/
+It would be helpful to separate out the patches for guest enablement from host 
+enablement.  This is a guest function, correct?
 
-------------------------------------------------------
-From: Christopher Yeoh <cyeoh@au1.ibm.com>
-Subject: cross-memory-attach-v4
+Don't you need an atomic getandset here?  Can the host clear this flag or only 
+set it?
 
-> You might get some speed benefit by optimising for the small copies
-> here.  Define a local on-stack array of N page*'s and point
-> process_pages at that if the number of pages is <= N.  Saves a
-> malloc/free and is more cache-friendly.  But only if the result is
-> measurable!
+It's ashame we don't have a proper pvclock spec in Documentation/.  I would 
+suggest at least adding a description of how this bit works in the first patch.
 
-I have done some benchmarking on this, and it gains about 5-7% on a
-microbenchmark with 4kb size copies and about a 1% gain with a more
-realistic (but modified for smaller copies) hpcc benchmark. The
-performance gain disappears into the noise by about 64kb sized copies.
-No measurable overhead for larger copies. So I think its worth including
+Regards,
 
-Included below is the patch (based on v4) - for ease of review the first diff
-is just against the latest version of CMA which has been posted here previously.
-The second is the entire CMA patch.
+Anthony Liguori
 
-Signed-off-by: Chris Yeoh <cyeoh@au1.ibm.com>
-Cc: Ingo Molnar <mingo@elte.hu>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: James Morris <jmorris@namei.org>
-Cc: <linux-man@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- mm/process_vm_access.c |   25 +++++++++++++++++--------
- 1 file changed, 17 insertions(+), 8 deletions(-)
-
-diff -puN mm/process_vm_access.c~cross-memory-attach-v4 mm/process_vm_access.c
---- a/mm/process_vm_access.c~cross-memory-attach-v4
-+++ a/mm/process_vm_access.c
-@@ -221,6 +221,10 @@ static int process_vm_rw_single_vec(unsi
- 	return rc;
- }
- 
-+/* Maximum number of entries for process pages array
-+   which lives on stack */
-+#define PVM_MAX_PP_ARRAY_COUNT 16
-+
- /**
-  * process_vm_rw_core - core of reading/writing pages from task specified
-  * @pid: PID of process to read/write from/to
-@@ -241,7 +245,8 @@ static ssize_t process_vm_rw_core(pid_t 
- 				  unsigned long flags, int vm_write)
- {
- 	struct task_struct *task;
--	struct page **process_pages = NULL;
-+	struct page *pp_stack[PVM_MAX_PP_ARRAY_COUNT];
-+	struct page **process_pages = pp_stack;
- 	struct mm_struct *mm;
- 	unsigned long i;
- 	ssize_t rc = 0;
-@@ -271,13 +276,16 @@ static ssize_t process_vm_rw_core(pid_t 
- 	if (nr_pages == 0)
- 		return 0;
- 
--	/* For reliability don't try to kmalloc more than 2 pages worth */
--	process_pages = kmalloc(min_t(size_t, PVM_MAX_KMALLOC_PAGES,
--				      sizeof(struct pages *)*nr_pages),
--				GFP_KERNEL);
-+	if (nr_pages > PVM_MAX_PP_ARRAY_COUNT) {
-+		/* For reliability don't try to kmalloc more than
-+		   2 pages worth */
-+		process_pages = kmalloc(min_t(size_t, PVM_MAX_KMALLOC_PAGES,
-+					      sizeof(struct pages *)*nr_pages),
-+					GFP_KERNEL);
- 
--	if (!process_pages)
--		return -ENOMEM;
-+		if (!process_pages)
-+			return -ENOMEM;
-+	}
- 
- 	/* Get process information */
- 	rcu_read_lock();
-@@ -331,7 +339,8 @@ put_task_struct:
- 	put_task_struct(task);
- 
- free_proc_pages:
--	kfree(process_pages);
-+	if (process_pages != pp_stack)
-+		kfree(process_pages);
- 	return rc;
- }
- 
-_
-
-Patches currently in -mm which might be from cyeoh@au1.ibm.com are
-
-cross-memory-attach-v3.patch
+> +
+> +	return ret;
+> +}
+> +
+>   static struct clocksource kvm_clock = {
+>   	.name = "kvm-clock",
+>   	.read = kvm_clock_get_cycles,
 
