@@ -1,43 +1,51 @@
-From: "OCTOBER PROMO" <info@beam.com>
-Subject: Microsoft is paying you
-Date: Tue, 1 Nov 2011 07:16:09 +0530
-Message-ID: <20111101014607.PVCH1962.viefep16-int.chello.at@edge04.upcmail.net>
-Reply-To: <update60@gra1m.net>
+From: Anthony Liguori <aliguori@us.ibm.com>
+Subject: Re: [PATCH 1/6 V2] Add flag to indicate that a vm was stopped by
+ the host
+Date: Tue, 01 Nov 2011 14:22:33 -0500
+Message-ID: <4EB046F9.7060306@us.ibm.com>
+References: <1320091650-24682-1-git-send-email-emunson@mgebm.net> <1320091650-24682-2-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="Windows-1251"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from fep23.mx.upcmail.net ([62.179.121.43]:63895 "EHLO
-	fep23.mx.upcmail.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752156Ab1KACGT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 31 Oct 2011 22:06:19 -0400
+Received: from e34.co.us.ibm.com ([32.97.110.152]:58153 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755887Ab1KATYb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Nov 2011 15:24:31 -0400
+Received: from /spool/local
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aliguori@us.ibm.com>;
+	Tue, 1 Nov 2011 13:23:43 -0600
+In-Reply-To: <1320091650-24682-2-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, x86@kernel.org, hpa@zytor.com, arnd@arndb.de, linux-kernel@vger.kernel.org, kvm@vger.kernel.org, linux-arch@vger.kernel.org, ryanh@linux.vnet.ibm.com, Jeremy Fitzhardinge <jeremy.fitzhardinge@citrix.com>
 
-Your email have won a consolation prize of the Microsoft Corporation .Your email has won One million pounds sterling
-You have been advised to furnish the following details below to enable the
-immediate processing of your Winning payment ASAP.
-===========================================================
-REQUIRED DATA VERIFICATION FORM TO CLAIM YOUR WINNING PRIZE
-===========================================================
-1. Full Name: ......................
-2. Address: ........................
-3. Marital Status: .................
-4. Occupation: .....................
-5. Age: ............................
-6. Sex: ............................
-7. Nationality: ....................
-8. Tel: ............................
+On 10/31/2011 03:07 PM, Eric B Munson wrote:
+> This flag will be used to check if the vm was stopped by the host when a soft
+> lockup was detected.
+>
+> Signed-off-by: Eric B Munson<emunson@mgebm.net>
 
-Mr. Terry William
-Online Co-ordinator
----------------------------------------------
-NOTICE:
-* This is NOT a SPAM Email
-* The wining Information contained in this e-mail is private and
-confidential.
-* If you are not the intended recipient, note that any review, dissemination
- or copying of this e-mail and information contained herein is prohibited.
-* If you have received this e-mail in error, please immediately notify the
-sender by return e-mail and delete this e-mail from your computer system.
+Adding Jeremy since the pvclock ABI is shared across Xen and KVM.
+
+Regards,
+
+Anthony Liguori
+
+> ---
+>   arch/x86/include/asm/pvclock-abi.h |    1 +
+>   1 files changed, 1 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+> index 35f2d19..6167fd7 100644
+> --- a/arch/x86/include/asm/pvclock-abi.h
+> +++ b/arch/x86/include/asm/pvclock-abi.h
+> @@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+>   } __attribute__((__packed__));
+>
+>   #define PVCLOCK_TSC_STABLE_BIT	(1<<  0)
+> +#define PVCLOCK_GUEST_STOPPED	(1<<  1)
+>   #endif /* __ASSEMBLY__ */
+>   #endif /* _ASM_X86_PVCLOCK_ABI_H */
