@@ -1,37 +1,57 @@
-From: "Boerner, Hunter" <boernerh@cofc.edu>
-Subject: Contact UPS Via {ups_despatch.ng@dgoh.org} For Claims
-Date: Tue, 1 Nov 2011 23:44:16 -0400
-Message-ID: <5352E3E2B5E98F49A2A2DDA0FCD841D1083EB6A8__28026.3854693205$1320208293$gmane$org@EXCHMBX2.COUGARS.INT>
+From: Michael Holzheu <holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Subject: Re: [PATCH v2] kdump: Fix crash_kexec - smp_send_stop race in panic
+Date: Wed, 02 Nov 2011 11:03:59 +0100
+Message-ID: <1320228239.2776.14.camel@br98xy6r>
+References: <1319639649.3321.11.camel@br98xy6r>
+	<20111028161143.e5ebf617.akpm@linux-foundation.org>
+	<1320055036.2796.8.camel@br98xy6r>
+	<20111031033948.a0edb7f3.akpm@linux-foundation.org>
+	<1320064459.2796.26.camel@br98xy6r> <20111101200420.GN17705@redhat.com>
+Reply-To: holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wg2.cofc.edu ([153.9.243.202]:51782 "EHLO WG2.cofc.edu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751187Ab1KBEa6 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Nov 2011 00:30:58 -0400
-Content-class: urn:content-classes:message
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+In-Reply-To: <20111101200420.GN17705-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/kexec>,
+	<mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/kexec/>
+List-Post: <mailto:kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
+List-Help: <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/kexec>,
+	<mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
+Sender: kexec-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Errors-To: kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+To: Don Zickus <dzickus-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Eric W. Biederman" <ebiederm-aS9lmoZGLiVWk0Htik3J/w@public.gmane.org>, schwidefsky-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Vivek Goyal <vgoyal-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Tue, 2011-11-01 at 16:04 -0400, Don Zickus wrote:
+> On Mon, Oct 31, 2011 at 01:34:19PM +0100, Michael Holzheu wrote:
+> > Hello Andrew, hello linux-arch,
+> > 
+> > > Well OK.  Maybe some architectures do have this problem - who would
+> > > notice?  If that is the case, we just made the failure cases much more
+> > > common.  Could you check, please?
+> > 
+> > @linux-arch: 
+> > 
+> > This patch introduces a spinlock to prevent parallel execution of the
+> > panic code. Andrew pointed out that this might be a problem for
+> > architectures that can't do smp_send_stop() on remote CPUs that have
+> > interrupts disabled. When irq-disabled CPUs execute panic() in parallel,
+> > we then would have looping CPUs.
+> 
+> x86 has such problem and I posted a patch recently to fix it
+> 
+> https://lkml.org/lkml/2011/10/13/426
 
-  
- 
-After much attempts to reach you on phone, I deemed it necessary and urgent to contact you via your e-mail and to notify you finally about your outstanding compensation payment.
+Ok good, so with this patch x86 has no problem with the panic spinlock.
+Anybody else?
 
-During our last annual calculation of your banking and Internet activities we realized that you are eligible to receive a compensation payment of $2,811,041.00 USD.This compensation is being made to all of you who have suffered losses as a result of fraud, accident or illness.
+Instead of introducing the panic lock, as an alternative we could move
+smp_send_stop() to the beginning of panic(). Eric told me that the
+function is currently "insufficiently reliable" for that, but perhaps we
+could make it more reliable.
 
-For more information, contact the UPS agent for the delivery of your cashier check ($2,811,041.00 USD).
-
-United Parcel Service (UPS)
-Contact Name: Collins Abah
-Tel:+2348168636983
-E-mail: ups_despatch.ng@dgoh.org <mailto:ups_despatch.ng@dgoh.org> 
-
-Please take note that you will pay a shipping/handling fee of $245.00 USD to UPS.
-
-Thanks for your patience.
-
-Boernar Hunter
-Programme Manager
-United Nations Human Settlements Programme
+Michael
