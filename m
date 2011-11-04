@@ -1,23 +1,14 @@
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 1/6 V3] Add flag to indicate that a vm was stopped by the host
-Date: Fri,  4 Nov 2011 12:55:07 -0400
-Message-ID: <1320425712-5312-2-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 4/6 V3] Add generic stubs for kvm stop check functions
+Date: Fri,  4 Nov 2011 12:55:10 -0400
+Message-ID: <1320425712-5312-5-git-send-email-emunson@mgebm.net>
 References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:35640 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932664Ab1KDQzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Nov 2011 12:55:16 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: avi@redhat.com
 Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-
-This flag will be used to check if the vm was stopped by the host when a soft
-lockup was detected.  The host will set the flag when it stops the guest.  On
-resume, the guest will check this flag if a soft lockup is detected and skip
-issuing the warning.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Eric B Munson <emunson@mgebm.net>
 Cc: mingo@redhat.com
@@ -32,19 +23,29 @@ Cc: linux-arch@vger.kernel.org
 Cc: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
- arch/x86/include/asm/pvclock-abi.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ include/asm-generic/kvm_para.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
 
-diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
-index 35f2d19..6167fd7 100644
---- a/arch/x86/include/asm/pvclock-abi.h
-+++ b/arch/x86/include/asm/pvclock-abi.h
-@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
- } __attribute__((__packed__));
- 
- #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
-+#define PVCLOCK_GUEST_STOPPED	(1 << 1)
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_X86_PVCLOCK_ABI_H */
+diff --git a/include/asm-generic/kvm_para.h b/include/asm-generic/kvm_para.h
+new file mode 100644
+index 0000000..177e1eb
+--- /dev/null
++++ b/include/asm-generic/kvm_para.h
+@@ -0,0 +1,14 @@
++#ifndef _ASM_GENERIC_KVM_PARA_H
++#define _ASM_GENERIC_KVM_PARA_H
++
++
++/*
++ * This function is used by architectures that support kvm to avoid issuing
++ * false soft lockup messages.
++ */
++static inline bool kvm_check_and_clear_guest_paused(int cpu)
++{
++	return false;
++}
++
++#endif
 -- 
 1.7.5.4
