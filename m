@@ -1,46 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from h5.dl5rb.org.uk ([81.2.74.5]:39431 "EHLO linux-mips.org"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752430Ab1KDKOS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Nov 2011 06:14:18 -0400
-Date: Fri, 4 Nov 2011 09:32:22 +0000
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH RFC 4/8] mips: implement syscall restart generically
-Message-ID: <20111104093222.GA1633@linux-mips.org>
-References: <cover.1319364492.git.jonas@southpole.se>
- <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
+Received: from oz.csail.mit.edu ([128.30.30.239]:35646 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932673Ab1KDQzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Nov 2011 12:55:16 -0400
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 2/6 V3] Add functions to check if the host has stopped the vm
+Date: Fri,  4 Nov 2011 12:55:08 -0400
+Message-ID: <1320425712-5312-3-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
+References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-Message-ID: <20111104093222.SgVgFINCWLaZK_exvbQK2ADK5Tcz4k_MlCNQzwc104Q@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111104165508.7U1mI0aED8UagvfacGSsyc-tCBSsH1wpEZCgYsiR_oU@z>
 
-On Sun, Oct 23, 2011 at 12:19:58PM +0200, Jonas Bonn wrote:
+When a host stops or suspends a VM it will set a flag to show this.  The
+watchdog will use these functions to determine if a softlockup is real, or the
+result of a suspended VM.
 
-> Manipulating task state to effect re-execution of an interrupted syscall
-> used to be purely architecture specific code.  However, as most arch's
-> were essentially just making minor adjustments to almost identical logic,
-> this code could be moved to a common implementation.
-> 
-> The generic variant introduces the function handle_syscall_restart() to be
-> called after get_signal_to_deliver().  The architecture specific register
-> manipulations required to effect the actual restart are now implemented
-> in the generic syscall interface found in asm/syscall.h
-> 
-> This patch transitions this architecture's signal handling code over to
-> using the generic syscall restart code by:
-> 
-> i)  Implementing the register manipulations in asm/syscall.h
-> ii) Replacing the restart logic with a call to handle_syscall_restart
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+Changes from V2:
+ Move function definition to kvm_para.h
 
-Nice cleanup.
+ arch/x86/include/asm/kvm_para.h |    1 +
+ arch/x86/kernel/kvmclock.c      |   21 +++++++++++++++++++++
+ 2 files changed, 22 insertions(+), 0 deletions(-)
 
-Any reason why you add empty version of syscall_get_arguments and
-syscall_set_version?  A non-functional version that causes a silent
-failure is way worse than something that fails at compile time.
+diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
+index 734c376..e9d63a6 100644
+--- a/arch/x86/include/asm/kvm_para.h
++++ b/arch/x86/include/asm/kvm_para.h
+@@ -95,6 +95,7 @@ struct kvm_vcpu_pv_apf_data {
+ extern void kvmclock_init(void);
+ extern int kvm_register_clock(char *txt);
+ 
++bool kvm_check_and_clear_guest_paused(int cpu);
+ 
+ /* This instruction is vmcall.  On non-VT architectures, it will generate a
+  * trap that we will then rewrite to the appropriate instruction.
+diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
+index c1a0188..b6e10b1 100644
+--- a/arch/x86/kernel/kvmclock.c
++++ b/arch/x86/kernel/kvmclock.c
+@@ -22,6 +22,7 @@
+ #include <asm/msr.h>
+ #include <asm/apic.h>
+ #include <linux/percpu.h>
++#include <linux/hardirq.h>
+ 
+ #include <asm/x86_init.h>
+ #include <asm/reboot.h>
+@@ -113,6 +114,26 @@ static void kvm_get_preset_lpj(void)
+ 	preset_lpj = lpj;
+ }
+ 
++bool kvm_check_and_clear_guest_paused(int cpu)
++{
++	bool ret = false;
++	struct pvclock_vcpu_time_info *src;
++
++	/*
++	 * per_cpu() is safe here because this function is only called from
++	 * timer functions where preemption is already disabled.
++	 */
++	WARN_ON(!in_atomic());
++	src = &per_cpu(hv_clock, cpu);
++	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
++		src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
++		ret = true;
++	}
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
++
+ static struct clocksource kvm_clock = {
+ 	.name = "kvm-clock",
+ 	.read = kvm_clock_get_cycles,
+-- 
+1.7.5.4
 
-  Ralf
