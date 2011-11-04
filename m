@@ -1,25 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:35646 "EHLO mail.mgebm.net"
+Received: from oz.csail.mit.edu ([128.30.30.239]:35670 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932673Ab1KDQzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Nov 2011 12:55:16 -0400
+	id S932873Ab1KDQzS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Nov 2011 12:55:18 -0400
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 2/6 V3] Add functions to check if the host has stopped the vm
-Date: Fri,  4 Nov 2011 12:55:08 -0400
-Message-ID: <1320425712-5312-3-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
-References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 0/6 V3]  Avoid soft lockup message when KVM is stopped by host
+Date: Fri,  4 Nov 2011 12:55:06 -0400
+Message-ID: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: avi@redhat.com
 Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111104165508.7U1mI0aED8UagvfacGSsyc-tCBSsH1wpEZCgYsiR_oU@z>
+Message-ID: <20111104165506.75SEgWxzIDPCISiFhaSAZtoj5cRCQaKMsPJF1A6XdRY@z>
 
-When a host stops or suspends a VM it will set a flag to show this.  The
-watchdog will use these functions to determine if a softlockup is real, or the
-result of a suspended VM.
+Changes from V2:
+A new kvm functions defined in kvm_para.h, the only change to pvclock is the
+initial flag definition
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Changes from V1:
+(Thanks Marcelo)
+Host code has all been moved to arch/x86/kvm/x86.c
+KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
+
+When a guest kernel is stopped by the host hypervisor it can look like a soft
+lockup to the guest kernel.  This false warning can mask later soft lockup
+warnings which may be real.  This patch series adds a method for a host
+hypervisor to communicate to a guest kernel that it is being stopped.  The
+final patch in the series has the watchdog check this flag when it goes to
+issue a soft lockup warning and skip the warning if the guest knows it was
+stopped.
+
+It was attempted to solve this in Qemu, but the side effects of saving and
+restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+by the amount of time of the pause.  This forces a guest to have ntp running
+in order to keep the wall clock accurate.
+
 Cc: mingo@redhat.com
 Cc: hpa@zytor.com
 Cc: arnd@arndb.de
@@ -31,65 +46,27 @@ Cc: kvm@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org
----
-Changes from V2:
- Move function definition to kvm_para.h
 
- arch/x86/include/asm/kvm_para.h |    1 +
- arch/x86/kernel/kvmclock.c      |   21 +++++++++++++++++++++
- 2 files changed, 22 insertions(+), 0 deletions(-)
+Eric B Munson (6):
+  Add flag to indicate that a vm was stopped by the host
+  Add functions to check if the host has stopped the vm
+  Add ioctl for KVM_GUEST_STOPPED
+  Add generic stubs for kvm stop check functions
+  Add check for suspended vm in softlockup detector
+  Add age out of guest paused flag
 
-diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
-index 734c376..e9d63a6 100644
---- a/arch/x86/include/asm/kvm_para.h
-+++ b/arch/x86/include/asm/kvm_para.h
-@@ -95,6 +95,7 @@ struct kvm_vcpu_pv_apf_data {
- extern void kvmclock_init(void);
- extern int kvm_register_clock(char *txt);
- 
-+bool kvm_check_and_clear_guest_paused(int cpu);
- 
- /* This instruction is vmcall.  On non-VT architectures, it will generate a
-  * trap that we will then rewrite to the appropriate instruction.
-diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
-index c1a0188..b6e10b1 100644
---- a/arch/x86/kernel/kvmclock.c
-+++ b/arch/x86/kernel/kvmclock.c
-@@ -22,6 +22,7 @@
- #include <asm/msr.h>
- #include <asm/apic.h>
- #include <linux/percpu.h>
-+#include <linux/hardirq.h>
- 
- #include <asm/x86_init.h>
- #include <asm/reboot.h>
-@@ -113,6 +114,26 @@ static void kvm_get_preset_lpj(void)
- 	preset_lpj = lpj;
- }
- 
-+bool kvm_check_and_clear_guest_paused(int cpu)
-+{
-+	bool ret = false;
-+	struct pvclock_vcpu_time_info *src;
-+
-+	/*
-+	 * per_cpu() is safe here because this function is only called from
-+	 * timer functions where preemption is already disabled.
-+	 */
-+	WARN_ON(!in_atomic());
-+	src = &per_cpu(hv_clock, cpu);
-+	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
-+		src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
-+		ret = true;
-+	}
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
-+
- static struct clocksource kvm_clock = {
- 	.name = "kvm-clock",
- 	.read = kvm_clock_get_cycles,
+ arch/x86/include/asm/kvm_host.h    |    3 ++
+ arch/x86/include/asm/kvm_para.h    |    1 +
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ arch/x86/kernel/kvmclock.c         |   21 ++++++++++++++
+ arch/x86/kvm/x86.c                 |   52 ++++++++++++++++++++++++++++++++++++
+ include/asm-generic/kvm_para.h     |   14 +++++++++
+ include/linux/kvm.h                |    4 +++
+ include/linux/kvm_host.h           |    2 +
+ kernel/watchdog.c                  |    9 ++++++
+ 9 files changed, 107 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
+
 -- 
 1.7.5.4
 
