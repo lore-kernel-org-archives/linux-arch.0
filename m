@@ -1,41 +1,36 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Jonas Bonn <jonas.bonn@gmail.com>
 Subject: Re: [PATCH RFC 4/8] mips: implement syscall restart generically
-Date: Fri, 4 Nov 2011 09:32:22 +0000
-Message-ID: <20111104093222.GA1633@linux-mips.org>
+Date: Fri, 4 Nov 2011 10:50:44 +0100
+Message-ID: <CACM3HyE09_1GTuHUryNzxLdm5uKGdkVwRmxeg4HBp9_mTWjbRA@mail.gmail.com>
 References: <cover.1319364492.git.jonas@southpole.se>
- <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
+	<04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
+	<20111104093222.GA1633@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-fx0-f46.google.com ([209.85.161.46]:39503 "EHLO
+	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751683Ab1KDJuq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2011 05:50:46 -0400
+In-Reply-To: <20111104093222.GA1633@linux-mips.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 
-On Sun, Oct 23, 2011 at 12:19:58PM +0200, Jonas Bonn wrote:
+On 4 November 2011 10:32, Ralf Baechle <ralf@linux-mips.org> wrote:
+>
+> Nice cleanup.
+>
+> Any reason why you add empty version of syscall_get_arguments and
+> syscall_set_version? =C2=A0A non-functional version that causes a sil=
+ent
+> failure is way worse than something that fails at compile time.
 
-> Manipulating task state to effect re-execution of an interrupted syscall
-> used to be purely architecture specific code.  However, as most arch's
-> were essentially just making minor adjustments to almost identical logic,
-> this code could be moved to a common implementation.
-> 
-> The generic variant introduces the function handle_syscall_restart() to be
-> called after get_signal_to_deliver().  The architecture specific register
-> manipulations required to effect the actual restart are now implemented
-> in the generic syscall interface found in asm/syscall.h
-> 
-> This patch transitions this architecture's signal handling code over to
-> using the generic syscall restart code by:
-> 
-> i)  Implementing the register manipulations in asm/syscall.h
-> ii) Replacing the restart logic with a call to handle_syscall_restart
+Good point... I'll remove those empty functions for this patch series
+and look into doing a proper implementation for them later.
 
-Nice cleanup.
+Thanks for the review.
 
-Any reason why you add empty version of syscall_get_arguments and
-syscall_set_version?  A non-functional version that causes a silent
-failure is way worse than something that fails at compile time.
-
-  Ralf
+/Jonas
