@@ -1,25 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:35659 "EHLO mail.mgebm.net"
+Received: from oz.csail.mit.edu ([128.30.30.239]:35670 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932814Ab1KDQzS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Nov 2011 12:55:18 -0400
+	id S932807Ab1KDQzR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Nov 2011 12:55:17 -0400
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 6/6 V3] Add age out of guest paused flag
-Date: Fri,  4 Nov 2011 12:55:12 -0400
-Message-ID: <1320425712-5312-7-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 5/6 V3] Add check for suspended vm in softlockup detector
+Date: Fri,  4 Nov 2011 12:55:11 -0400
+Message-ID: <1320425712-5312-6-git-send-email-emunson@mgebm.net>
 In-Reply-To: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: avi@redhat.com
 Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111104165512.RghIcpTMcQO-8DxMrExcv2h_Bt1hQTjtw4LstXFrerU@z>
+Message-ID: <20111104165511.YzNiLDt-Y4Tt_2zcu2RYtYff_fo9VrAFCbgVvnbX0No@z>
 
-The KVM_GUEST_PAUSED flag will prevent a guest from compaining about a soft
-lockup but it can mask real soft lockups if the flag isn't cleared when it is
-no longer relevant.  This patch adds a kvm ioctl that the hypervisor will use
-when it resumes a guest to start a timer for aging out the flag.  The time out
-will be specified by the hypervisor in the ioctl call.
+A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
+watchdog now checks if the kernel knows it was stopped by the host and skips
+the warning if so.
 
 Signed-off-by: Eric B Munson <emunson@mgebm.net>
 Cc: mingo@redhat.com
@@ -34,117 +32,36 @@ Cc: linux-arch@vger.kernel.org
 Cc: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org
 ---
-Changes from V2:
- Move function definition to kvm_host.h
+ kernel/watchdog.c |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
 
- arch/x86/include/asm/kvm_host.h |    1 +
- arch/x86/kvm/x86.c              |   32 ++++++++++++++++++++++++++++++++
- include/linux/kvm.h             |    2 ++
- include/linux/kvm_host.h        |    2 ++
- 4 files changed, 37 insertions(+), 0 deletions(-)
-
-diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-index beb94c6..5cec925 100644
---- a/arch/x86/include/asm/kvm_host.h
-+++ b/arch/x86/include/asm/kvm_host.h
-@@ -673,6 +673,7 @@ int kvm_pv_mmu_op(struct kvm_vcpu *vcpu, unsigned long bytes,
- u8 kvm_get_guest_memory_type(struct kvm_vcpu *vcpu, gfn_t gfn);
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 1d7bca7..b5a1c08 100644
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -25,6 +25,7 @@
+ #include <linux/sysctl.h>
  
- int kvm_set_guest_paused(struct kvm_vcpu *vcpu);
-+void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length);
+ #include <asm/irq_regs.h>
++#include <linux/kvm_para.h>
+ #include <linux/perf_event.h>
  
- extern bool tdp_enabled;
- 
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 0127617..ca2187b 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -46,6 +46,7 @@
- #include <linux/hash.h>
- #include <linux/pci.h>
- #include <trace/events/kvm.h>
-+#include <linux/timer.h>
- 
- #define CREATE_TRACE_POINTS
- #include "trace.h"
-@@ -3299,6 +3300,15 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
- 		r = kvm_set_guest_paused(vcpu);
- 		break;
- 	}
-+	case KVM_CLEAR_GUEST_PAUSED: {
-+		unsigned int length;
-+		r = -EFAULT;
-+		if (copy_from_user(&length, argp, sizeof length))
-+			goto out;
-+		r = 0;
-+		kvm_clear_guest_paused(vcpu, length);
-+		break;
-+	}
- 	default:
- 		r = -EINVAL;
- 	}
-@@ -6137,6 +6147,28 @@ int kvm_set_guest_paused(struct kvm_vcpu *vcpu)
- }
- EXPORT_SYMBOL_GPL(kvm_set_guest_paused);
- 
-+static void kvm_timer_clear_guest_paused(unsigned long vcpu_addr)
-+{
-+	struct kvm_vcpu *vcpu = (struct kvm_vcpu *)vcpu_addr;
-+	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-+	src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
-+}
+ int watchdog_enabled = 1;
+@@ -292,6 +293,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 	 */
+ 	duration = is_softlockup(touch_ts);
+ 	if (unlikely(duration)) {
++		/*
++		 * If a virtual machine is stopped by the host it can look to
++		 * the watchdog like a soft lockup, check to see if the host
++		 * stopped the vm before we issue the warning
++		 */
++		if (kvm_check_and_clear_guest_paused(smp_processor_id()))
++			return HRTIMER_RESTART;
 +
-+/*
-+ * Host has resumed the guest, we need to clear the guest paused flag so we
-+ * don't mask any real soft lockups.
-+ */
-+void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length)
-+{
-+	if (!timer_pending(&vcpu->flag_timer))
-+		setup_timer(&vcpu->flag_timer,
-+			    kvm_timer_clear_guest_paused,
-+			    (unsigned long)vcpu);
-+	mod_timer(&vcpu->flag_timer,
-+		  jiffies + (length * HZ));
-+}
-+EXPORT_SYMBOL_GPL(kvm_clear_guest_paused);
-+
- int kvm_arch_vcpu_ioctl_set_sregs(struct kvm_vcpu *vcpu,
- 				  struct kvm_sregs *sregs)
- {
-diff --git a/include/linux/kvm.h b/include/linux/kvm.h
-index 87cab0d..bd9724c 100644
---- a/include/linux/kvm.h
-+++ b/include/linux/kvm.h
-@@ -765,6 +765,8 @@ struct kvm_clock_data {
- #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
- /* VM is being stopped by host */
- #define KVM_GUEST_PAUSED	  _IO(KVMIO,   0xaa)
-+/* Start the timer to clear the paused flag */
-+#define KVM_CLEAR_GUEST_PAUSED	  _IO(KVMIO,   0xab)
- 
- #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
- 
-diff --git a/include/linux/kvm_host.h b/include/linux/kvm_host.h
-index d526231..043af4d 100644
---- a/include/linux/kvm_host.h
-+++ b/include/linux/kvm_host.h
-@@ -19,6 +19,7 @@
- #include <linux/slab.h>
- #include <linux/rcupdate.h>
- #include <linux/ratelimit.h>
-+#include <linux/timer.h>
- #include <asm/signal.h>
- 
- #include <linux/kvm.h>
-@@ -154,6 +155,7 @@ struct kvm_vcpu {
- #endif
- 
- 	struct kvm_vcpu_arch arch;
-+	struct timer_list flag_timer;
- };
- 
- static inline int kvm_vcpu_exiting_guest_mode(struct kvm_vcpu *vcpu)
+ 		/* only warn once */
+ 		if (__this_cpu_read(soft_watchdog_warn) == true)
+ 			return HRTIMER_RESTART;
 -- 
 1.7.5.4
 
