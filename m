@@ -1,36 +1,50 @@
-From: Jonas Bonn <jonas.bonn@gmail.com>
-Subject: Re: [PATCH RFC 4/8] mips: implement syscall restart generically
-Date: Fri, 4 Nov 2011 10:50:44 +0100
-Message-ID: <CACM3HyE09_1GTuHUryNzxLdm5uKGdkVwRmxeg4HBp9_mTWjbRA@mail.gmail.com>
-References: <cover.1319364492.git.jonas@southpole.se>
-	<04ce50ed7e9e9a949a3c0b447c3aec0a8c6face4.1319364492.git.jonas@southpole.se>
-	<20111104093222.GA1633@linux-mips.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/6 V3] Add flag to indicate that a vm was stopped by the host
+Date: Fri,  4 Nov 2011 12:55:07 -0400
+Message-ID: <1320425712-5312-2-git-send-email-emunson@mgebm.net>
+References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fx0-f46.google.com ([209.85.161.46]:39503 "EHLO
-	mail-fx0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751683Ab1KDJuq convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Nov 2011 05:50:46 -0400
-In-Reply-To: <20111104093222.GA1633@linux-mips.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:35640 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932664Ab1KDQzQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Nov 2011 12:55:16 -0400
+In-Reply-To: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 4 November 2011 10:32, Ralf Baechle <ralf@linux-mips.org> wrote:
->
-> Nice cleanup.
->
-> Any reason why you add empty version of syscall_get_arguments and
-> syscall_set_version? =C2=A0A non-functional version that causes a sil=
-ent
-> failure is way worse than something that fails at compile time.
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-Good point... I'll remove those empty functions for this patch series
-and look into doing a proper implementation for them later.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-Thanks for the review.
-
-/Jonas
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
+-- 
+1.7.5.4
