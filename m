@@ -1,24 +1,51 @@
-From: Tony Luck <tony.luck@intel.com>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Tue, 17 Apr 2012 11:49:35 -0700
-Message-ID: <CA+8MBbJGZRKemR+p95B0nZt95TVb3+BxeJPRnP1dJ=EvGxWBXA@mail.gmail.com>
-References: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: Grant Likely <grant@secretlab.ca>, Linus Walleij <linus.walleij@stericsson.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Thomas Meyer <thomas@m3y3r.de>
+Subject: [PATCH 01/10] Hexagon: Use resource_size function
+Date: Tue, 8 Nov 2011 19:49:30 +0100
+Message-ID: <6e201a$5e4isk@wolverine01.qualcomm.com>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 15, 2012 at 2:52 AM, Mark Brown
-<broonie@opensource.wolfsonmicro.com> wrote:
-> Rather than requiring architectures that use gpiolib but don't have any
-> need to define anything custom to copy an asm/gpio.h provide a Kconfig
-> symbol which architectures must select in order to include gpio.h and
-> for other architectures just provide the trivial implementation directly.
+ Use resource_size function on resource object
+ instead of explicit computation.
 
-ia64 parts:
+ The semantic patch that makes this change is available
+ in scripts/coccinelle/api/resource_size.cocci.
 
-Acked-by: Tony Luck <tony.luck@intel.com>
+ More information about semantic patching is available at
+ http://coccinelle.lip6.fr/
+
+Signed-off-by: Thomas Meyer <thomas@m3y3r.de>
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+---
+ arch/hexagon/kernel/time.c |    6 ++----
+ 1 files changed, 2 insertions(+), 4 deletions(-)
+
+diff --git a/arch/hexagon/kernel/time.c b/arch/hexagon/kernel/time.c
+index 6bee15c..ea9e34f 100644
+--- a/arch/hexagon/kernel/time.c
++++ b/arch/hexagon/kernel/time.c
+@@ -200,12 +200,10 @@ void __init time_init_deferred(void)
+ 		resource = rtos_timer_device.resource;
+ 
+ 	/*  ioremap here means this has to run later, after paging init  */
+-	rtos_timer = ioremap(resource->start, resource->end
+-		- resource->start + 1);
++	rtos_timer = ioremap(resource->start, resource_size(resource));
+ 
+ 	if (!rtos_timer) {
+-		release_mem_region(resource->start, resource->end
+-			- resource->start + 1);
++		release_mem_region(resource->start, resource_size(resource));
+ 	}
+ 	clocksource_register_khz(&hexagon_clocksource, pcycle_freq_mhz * 1000);
+ 
+-- 
+1.7.1
+
+
+--
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
