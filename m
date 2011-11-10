@@ -1,128 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18267 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752365Ab1KGKX2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 7 Nov 2011 05:23:28 -0500
-Date: Mon, 7 Nov 2011 08:19:41 -0200
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 6/6 V3] Add age out of guest paused flag
-Message-ID: <20111107101941.GA16218@amt.cnet>
-References: <1320425712-5312-1-git-send-email-emunson@mgebm.net>
- <1320425712-5312-7-git-send-email-emunson@mgebm.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1320425712-5312-7-git-send-email-emunson@mgebm.net>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:39918 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S934282Ab1KJPbR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Nov 2011 10:31:17 -0500
+Subject: Re: [PATCH] kdump: Fix crash_kexec - smp_send_stop race in panic
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+In-Reply-To: <20111109160400.cc2d27d9.akpm@linux-foundation.org>
+References: <1319639649.3321.11.camel@br98xy6r>
+	 <20111028161143.e5ebf617.akpm@linux-foundation.org>
+	 <1320055036.2796.8.camel@br98xy6r>
+	 <20111031033948.a0edb7f3.akpm@linux-foundation.org>
+	 <1320314844.2989.6.camel@br98xy6r>
+	 <20111109160400.cc2d27d9.akpm@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Thu, 10 Nov 2011 09:31:13 -0600
+Message-ID: <1320939073.11745.2.camel@dabdike.int.hansenpartnership.com>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111107101941.Yx2COEPlUIheiVGzxiFmhMW5B5pMKjqoCZ_9jkysFUM@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: holzheu@linux.vnet.ibm.com, heiko.carstens@de.ibm.com, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, "Eric W. Biederman" <ebiederm@xmission.com>, schwidefsky@de.ibm.com, Vivek Goyal <vgoyal@redhat.com>, Don Zickus <dzickus@redhat.com>, "Luck, Tony" <tony.luck@intel.com>, linux-arch@vger.kernel.org
+Message-ID: <20111110153113.xAKQMlYwvvb_xzv1M7fyc0w7XvILlLRyLvglj4cBSC8@z>
 
-On Fri, Nov 04, 2011 at 12:55:12PM -0400, Eric B Munson wrote:
-> The KVM_GUEST_PAUSED flag will prevent a guest from compaining about a soft
-> lockup but it can mask real soft lockups if the flag isn't cleared when it is
-> no longer relevant.  This patch adds a kvm ioctl that the hypervisor will use
-> when it resumes a guest to start a timer for aging out the flag.  The time out
-> will be specified by the hypervisor in the ioctl call.
+On Wed, 2011-11-09 at 16:04 -0800, Andrew Morton wrote:
+> On Thu, 03 Nov 2011 11:07:24 +0100
+> Michael Holzheu <holzheu@linux.vnet.ibm.com> wrote:
 > 
-> Signed-off-by: Eric B Munson <emunson@mgebm.net>
-> Cc: mingo@redhat.com
-> Cc: hpa@zytor.com
-> Cc: arnd@arndb.de
-> Cc: ryanh@linux.vnet.ibm.com
-> Cc: aliguori@us.ibm.com
-> Cc: mtosatti@redhat.com
-> Cc: jeremy.fitzhardinge@citrix.com
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
-> Changes from V2:
->  Move function definition to kvm_host.h
+> > Hello Andrew,
+> > 
+> > On Mon, 2011-10-31 at 03:39 -0700, Andrew Morton wrote:
+> > > On Mon, 31 Oct 2011 10:57:16 +0100 Michael Holzheu <holzheu@linux.vnet.ibm.com> wrote:
+> > > 
+> > > > > Should this be done earlier in the function?  As it stands we'll have
+> > > > > multiple CPUs scribbling on buf[] at the same time and all trying to
+> > > > > print the same thing at the same time, dumping their stacks, etc. 
+> > > > > Perhaps it would be better to single-thread all that stuff
+> > > > 
+> > > > My fist patch took the spinlock at the beginning of panic(). But then
+> > > > Eric asked, if it wouldn't be better to get both panic printk's and I
+> > > > agreed.
+> > > 
+> > > Hm, why?  It will make a big mess.
 > 
->  arch/x86/include/asm/kvm_host.h |    1 +
->  arch/x86/kvm/x86.c              |   32 ++++++++++++++++++++++++++++++++
->  include/linux/kvm.h             |    2 ++
->  include/linux/kvm_host.h        |    2 ++
->  4 files changed, 37 insertions(+), 0 deletions(-)
+> This, please?
 > 
-> diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
-> index beb94c6..5cec925 100644
-> --- a/arch/x86/include/asm/kvm_host.h
-> +++ b/arch/x86/include/asm/kvm_host.h
-> @@ -673,6 +673,7 @@ int kvm_pv_mmu_op(struct kvm_vcpu *vcpu, unsigned long bytes,
->  u8 kvm_get_guest_memory_type(struct kvm_vcpu *vcpu, gfn_t gfn);
->  
->  int kvm_set_guest_paused(struct kvm_vcpu *vcpu);
-> +void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length);
->  
->  extern bool tdp_enabled;
->  
-> diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-> index 0127617..ca2187b 100644
-> --- a/arch/x86/kvm/x86.c
-> +++ b/arch/x86/kvm/x86.c
-> @@ -46,6 +46,7 @@
->  #include <linux/hash.h>
->  #include <linux/pci.h>
->  #include <trace/events/kvm.h>
-> +#include <linux/timer.h>
->  
->  #define CREATE_TRACE_POINTS
->  #include "trace.h"
-> @@ -3299,6 +3300,15 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
->  		r = kvm_set_guest_paused(vcpu);
->  		break;
->  	}
-> +	case KVM_CLEAR_GUEST_PAUSED: {
-> +		unsigned int length;
-> +		r = -EFAULT;
-> +		if (copy_from_user(&length, argp, sizeof length))
-> +			goto out;
-> +		r = 0;
-> +		kvm_clear_guest_paused(vcpu, length);
-> +		break;
-> +	}
->  	default:
->  		r = -EINVAL;
->  	}
-> @@ -6137,6 +6147,28 @@ int kvm_set_guest_paused(struct kvm_vcpu *vcpu)
->  }
->  EXPORT_SYMBOL_GPL(kvm_set_guest_paused);
->  
-> +static void kvm_timer_clear_guest_paused(unsigned long vcpu_addr)
-> +{
-> +	struct kvm_vcpu *vcpu = (struct kvm_vcpu *)vcpu_addr;
-> +	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-> +	src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
-> +}
-> +
-> +/*
-> + * Host has resumed the guest, we need to clear the guest paused flag so we
-> + * don't mask any real soft lockups.
-> + */
-> +void kvm_clear_guest_paused(struct kvm_vcpu *vcpu, unsigned int length)
-> +{
-> +	if (!timer_pending(&vcpu->flag_timer))
-> +		setup_timer(&vcpu->flag_timer,
-> +			    kvm_timer_clear_guest_paused,
-> +			    (unsigned long)vcpu);
-> +	mod_timer(&vcpu->flag_timer,
-> +		  jiffies + (length * HZ));
-> +}
-> +EXPORT_SYMBOL_GPL(kvm_clear_guest_paused);
-> +
+> > > > > Also...  this patch affects all CPU architectures, all configs, etc. 
+> > > > > So we're expecting that every architecture's smp_send_stop() is able to
+> > > > > stop a CPU which is spinning in spin_lock(), possibly with local
+> > > > > interrupts disabled.  Will this work?
+> > > > 
+> > > > At least on s390 it will work. If there are architectures that can't
+> > > > stop disabled CPUs then this problem is already there without this
+> > > > patch.
+> > > > 
+> > > > Example:
+> > > > 
+> > > > 1. 1st CPU gets lock X and panics
+> > > > 2. 2nd CPU is disabled and gets lock X
+> > > 
+> > > (irq-disabled)
+> > > 
+> > > > 3. 1st CPU calls smp_send_stop()
+> > > >    -> 2nd CPU loops disabled and can't be stopped
+> > > 
+> > > Well OK.  Maybe some architectures do have this problem - who would
+> > > notice?  If that is the case, we just made the failure cases much more
+> > > common.
+> > 
+> > Ok, next idea: What, if the CPUs wait irq-enabled in panic until they
+> > get stopped by smp_send_stop()?
+> > 
+> > See patch below:
+> > ---
+> > From: Michael Holzheu <holzheu@linux.vnet.ibm.com>
+> > Subject: kdump: fix crash_kexec()/smp_send_stop() race in panic
+> > 
+> > When two CPUs call panic at the same time there is a possible race
+> > condition that can stop kdump.  The first CPU calls crash_kexec() and the
+> > second CPU calls smp_send_stop() in panic() before crash_kexec() finished
+> > on the first CPU.  So the second CPU stops the first CPU and therefore
+> > kdump fails:
+> > 
+> > 1st CPU:
+> > panic()->crash_kexec()->mutex_trylock(&kexec_mutex)-> do kdump
+> > 
+> > 2nd CPU:
+> > panic()->crash_kexec()->kexec_mutex already held by 1st CPU
+> >        ->smp_send_stop()-> stop 1st CPU (stop kdump)
+> > 
+> > This patch fixes the problem by introducing a spinlock in panic that
+> > allows only one CPU to process crash_kexec() and the subsequent panic
+> > code.
+> > 
+> > Signed-off-by: Michael Holzheu <holzheu@linux.vnet.ibm.com>
+> > ---
+> >  kernel/panic.c |   11 ++++++++++-
+> >  1 file changed, 10 insertions(+), 1 deletion(-)
+> > 
+> > --- a/kernel/panic.c
+> > +++ b/kernel/panic.c
+> > @@ -59,6 +59,7 @@ EXPORT_SYMBOL(panic_blink);
+> >   */
+> >  NORET_TYPE void panic(const char * fmt, ...)
+> >  {
+> > +	static DEFINE_SPINLOCK(panic_lock);
+> >  	static char buf[1024];
+> >  	va_list args;
+> >  	long i, i_next = 0;
+> > @@ -68,8 +69,16 @@ NORET_TYPE void panic(const char * fmt,
+> >  	 * It's possible to come here directly from a panic-assertion and
+> >  	 * not have preempt disabled. Some functions called from here want
+> >  	 * preempt to be disabled. No point enabling it later though...
+> > +	 *
+> > +	 * Only one CPU is allowed to execute the panic code from here. For
+> > +	 * multiple parallel invocations of panic, all other CPUs will wait
+> > +	 * until they are stopped by the 1st CPU with smp_send_stop().
+> >  	 */
+> > -	preempt_disable();
+> > +	if (!spin_trylock(&panic_lock)) {
+> > +		local_irq_enable();
+> > +		while (1)
+> > +			cpu_relax();
+> > +	}
+> 
+> Looks worse ;) Unconditionally enabling interrupts in a panic situation
+> could cause all sorts of havoc, with other interrupts being taken or
+> same interrupts being retaken, etc.
+> 
+> Ho hum, I guess we stick with the original patch. 
 
-How about setting guest stopped flag when the guest is resumed, and
-clearing that flag on the guests watchdog timer interrupt (irrespective
-of whether a softlockup has been detected or not) ?
+By original patch you mean the smp_send_stop() at the beginning of the
+panic one (which isn't on linux-arch)?
 
-Then this timer is not necessary.
+>  It *should* work, as
+> long as all archtectures are doing the expected thing.  But in this
+> situation it is bad of us to just hope that the architectures are doing
+> this.  We should go and find out, rather than waiting for bug reports
+> to come in.  Especially because in this case, bugs will take a very
+> long time indeed to even be noticed.
+> 
+> One way to resolve this would be to ask the various arch maintainers!
 
-Unrelated: patch 3 is missing on the series, and please post functional
-and tested qemu-kvm patches along next time.
+You're assuming we actually know.  On parisc, the IPI_STOP_CPU is
+implemented, it's just it's not something we ever use (not even in the
+shutdown path), so while I can tell you it *should* work (the code in
+the IPI handler looks sane) ... we've never tested it.
 
-Thanks.
+James
+
 
