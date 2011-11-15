@@ -1,86 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:56159 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753959Ab2DRAVT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:19 -0400
-Message-ID: <8675ae$5bugs0@wolverine02.qualcomm.com>
-From: Kautuk Consul <consul.kautuk@gmail.com>
-Date: Tue, 20 Mar 2012 09:23:33 -0400
-Subject: [PATCH 05/10] hexagon/mm/vm_fault.c: Port OOM changes to do_page_fault
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:33305 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753555Ab2DRAVL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:11 -0400
+Message-ID: <6e201a$5e4itm@wolverine01.qualcomm.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Date: Tue, 15 Nov 2011 16:58:11 -0600
+Subject: [PATCH 07/10] Hexagon: misc compile warning/error cleanup due to missing headers
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120320132333.UVWucZc7y6Jv-IlNW_TC6rk6hPhGIrpywaNGz9F_YZM@z>
+Message-ID: <20111115225811.waz9OjlpFtVDyj_riAtebNz5hYxtNpr6UN0h0_xiQg8@z>
 
-Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
-(mm: retry page fault when blocking on disk transfer) and
-commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
-(x86,mm: make pagefault killable)
+Fixed warnings/errors for EXPORT_SYMBOL, linux_binprm, elf related
+defines
 
-The above commits introduced changes into the x86 pagefault handler
-for making the page fault handler retryable as well as killable.
-
-These changes reduce the mmap_sem hold time, which is crucial
-during OOM killer invocation.
-
-Port these changes to hexagon.
-
-Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/hexagon/mm/vm_fault.c |   22 +++++++++++++++++-----
- 1 files changed, 17 insertions(+), 5 deletions(-)
+ arch/hexagon/kernel/dma.c    |    1 +
+ arch/hexagon/kernel/ptrace.c |    1 +
+ arch/hexagon/kernel/time.c   |    1 +
+ arch/hexagon/kernel/vdso.c   |    1 +
+ 4 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/arch/hexagon/mm/vm_fault.c b/arch/hexagon/mm/vm_fault.c
-index c10b76f..06695cc 100644
---- a/arch/hexagon/mm/vm_fault.c
-+++ b/arch/hexagon/mm/vm_fault.c
-@@ -53,6 +53,8 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
- 	int si_code = SEGV_MAPERR;
- 	int fault;
- 	const struct exception_table_entry *fixup;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
-+				 (cause > 0 ? FAULT_FLAG_WRITE : 0);
+diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
+index e8d52cc..2b48751 100644
+--- a/arch/hexagon/kernel/dma.c
++++ b/arch/hexagon/kernel/dma.c
+@@ -22,6 +22,7 @@
+ #include <linux/bootmem.h>
+ #include <linux/genalloc.h>
+ #include <asm/dma-mapping.h>
++#include <linux/module.h>
  
- 	/*
- 	 * If we're in an interrupt or have no user context,
-@@ -63,6 +65,7 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
+ struct dma_map_ops *dma_ops;
+ EXPORT_SYMBOL(dma_ops);
+diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
+index 32342de..96c3b2c 100644
+--- a/arch/hexagon/kernel/ptrace.c
++++ b/arch/hexagon/kernel/ptrace.c
+@@ -28,6 +28,7 @@
+ #include <linux/ptrace.h>
+ #include <linux/regset.h>
+ #include <linux/user.h>
++#include <linux/elf.h>
  
- 	local_irq_enable();
+ #include <asm/user.h>
  
-+retry:
- 	down_read(&mm->mmap_sem);
- 	vma = find_vma(mm, address);
- 	if (!vma)
-@@ -96,14 +99,23 @@ good_area:
- 		break;
- 	}
+diff --git a/arch/hexagon/kernel/time.c b/arch/hexagon/kernel/time.c
+index ea9e34f..36ba641 100644
+--- a/arch/hexagon/kernel/time.c
++++ b/arch/hexagon/kernel/time.c
+@@ -28,6 +28,7 @@
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+ #include <linux/of_irq.h>
++#include <linux/module.h>
  
--	fault = handle_mm_fault(mm, vma, address, (cause > 0));
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-+		return;
+ #include <asm/timer-regs.h>
+ #include <asm/hexagon_vm.h>
+diff --git a/arch/hexagon/kernel/vdso.c b/arch/hexagon/kernel/vdso.c
+index f212a45..5d39f42 100644
+--- a/arch/hexagon/kernel/vdso.c
++++ b/arch/hexagon/kernel/vdso.c
+@@ -21,6 +21,7 @@
+ #include <linux/err.h>
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
++#include <linux/binfmts.h>
  
- 	/* The most common case -- we are done. */
- 	if (likely(!(fault & VM_FAULT_ERROR))) {
--		if (fault & VM_FAULT_MAJOR)
--			current->maj_flt++;
--		else
--			current->min_flt++;
-+		if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+			if (fault & VM_FAULT_MAJOR)
-+				current->maj_flt++;
-+			else
-+				current->min_flt++;
-+			if (fault & VM_FAULT_RETRY) {
-+				flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+				goto retry;
-+			}
-+		}
+ #include <asm/vdso.h>
  
- 		up_read(&mm->mmap_sem);
- 		return;
 -- 
 1.7.1
 
