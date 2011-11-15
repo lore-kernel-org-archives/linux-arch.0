@@ -1,59 +1,98 @@
 From: Richard Kuo <rkuo@codeaurora.org>
-Subject: [PATCH 00/10] Hexagon cleanup and misc patches
-Date: Tue, 17 Apr 2012 18:56:01 -0500
-Message-ID: <6e201a$5e4ium@wolverine01.qualcomm.com>
+Subject: [PATCH 06/10] various Kconfig cleanup and old platform build code removal
+Date: Tue, 15 Nov 2011 16:31:48 -0600
+Message-ID: <8675ae$5bugrc@wolverine02.qualcomm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This is a small collection of patches that I've been sitting on for probably
-too long that I'm getting ready to make a pull request for.  It's largely
-cleanup and fixes from the original Hexagon upstreaming, with a few
-additional enhancements to do_page_fault and SMP startup which have already
-been on the mailing lists for some time.
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
+---
+ arch/hexagon/Kconfig  |   21 ++++-----------------
+ arch/hexagon/Makefile |    5 -----
+ 2 files changed, 4 insertions(+), 22 deletions(-)
 
-Please let me know if there are any issues, and thanks to everyone who sent
-patches.
-
-
-
-Jesper Juhl (1):
-  Remove unneeded include of version.h from
-    arch/hexagon/include/asm/spinlock_types.h
-
-Julia Lawall (1):
-  arch/hexagon/kernel/dma.c: make function static
-
-Kautuk Consul (1):
-  hexagon/mm/vm_fault.c: Port OOM changes to do_page_fault
-
-Paul Bolle (1):
-  hexagon: drop selects of bogus Kconfig symbols
-
-Richard Kuo (4):
-  various Kconfig cleanup and old platform build code removal
-  Hexagon: misc compile warning/error cleanup due to missing headers
-  hexagon:  use renamed tick_nohz_idle_* functions
-  hexagon: add missing cpu.h include
-
-Srivatsa S. Bhat (1):
-  hexagon/CPU hotplug: Add missing call to notify_cpu_starting()
-
-Thomas Meyer (1):
-  Hexagon: Use resource_size function
-
- arch/hexagon/Kconfig                      |   23 ++++-------------------
- arch/hexagon/Makefile                     |    5 -----
- arch/hexagon/include/asm/spinlock_types.h |    2 --
- arch/hexagon/kernel/dma.c                 |    3 ++-
- arch/hexagon/kernel/process.c             |    6 +++---
- arch/hexagon/kernel/ptrace.c              |    1 +
- arch/hexagon/kernel/smp.c                 |    8 +++++++-
- arch/hexagon/kernel/time.c                |    7 +++----
- arch/hexagon/kernel/vdso.c                |    1 +
- arch/hexagon/mm/vm_fault.c                |   22 +++++++++++++++++-----
- 10 files changed, 38 insertions(+), 40 deletions(-)
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 3126fc6..e00d158 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -13,8 +13,8 @@ config HEXAGON
+ 	# select ARCH_REQUIRE_GPIOLIB
+ 	# select HAVE_CLK
+ 	# select IRQ_PER_CPU
+-	select HAVE_IRQ_WORK
+ 	# select GENERIC_PENDING_IRQ if SMP
++	select HAVE_IRQ_WORK
+ 	select GENERIC_ATOMIC64
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_GENERIC_HARDIRQS
+@@ -25,7 +25,7 @@ config HEXAGON
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select NO_IOPORT
+ 	select GENERIC_IOMAP
+-	# mostly generic routines, with some accelerated ones
++	select STACKTRACE_SUPPORT
+ 	---help---
+ 	  Qualcomm Hexagon is a processor architecture designed for high
+ 	  performance and low power across a wide variety of applications.
+@@ -72,15 +72,6 @@ config GENERIC_CSUM
+ config GENERIC_IRQ_PROBE
+ 	def_bool y
+ 
+-#config ZONE_DMA
+-#	bool
+-#	default y
+-
+-config HAS_DMA
+-	bool
+-	select HAVE_DMA_ATTRS
+-	default y
+-
+ config NEED_SG_DMA_LENGTH
+ 	def_bool y
+ 
+@@ -113,14 +104,11 @@ config GENERIC_BUG
+ 	def_bool y
+ 	depends on BUG
+ 
+-config BUG
+-	def_bool y
+-
+ menu "Machine selection"
+ 
+ choice
+ 	prompt "System type"
+-	default HEXAGON_ARCH_V2
++	default HEXAGON_COMET
+ 
+ config HEXAGON_COMET
+ 	bool "Comet Board"
+@@ -193,8 +181,7 @@ source "kernel/Kconfig.hz"
+ source "kernel/time/Kconfig"
+ 
+ config GENERIC_GPIO
+-	bool "Generic GPIO support"
+-	default n
++	def_bool n
+ 
+ endmenu
+ 
+diff --git a/arch/hexagon/Makefile b/arch/hexagon/Makefile
+index 0c4de87..7e32265 100644
+--- a/arch/hexagon/Makefile
++++ b/arch/hexagon/Makefile
+@@ -51,8 +51,3 @@ head-y := arch/hexagon/kernel/head.o \
+ core-y += arch/hexagon/kernel/ \
+ 	arch/hexagon/mm/ \
+ 	arch/hexagon/lib/
+-
+-#	arch/hexagon/platform/common/
+-#
+-#core-$(CONFIG_HEXAGON_COMET)		+= arch/hexagon/platform/comet/
+-#machine-$(CONFIG_HEXAGON_COMET)		:= comet
+-- 
+1.7.1
 
 
 --
