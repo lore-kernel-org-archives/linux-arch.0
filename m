@@ -1,42 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:47981 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755052Ab1KKQk3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Nov 2011 11:40:29 -0500
-Received: by ggnb2 with SMTP id b2so4347385ggn.19
-        for <linux-arch@vger.kernel.org>; Fri, 11 Nov 2011 08:40:28 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <CAErSpo5X00LFs6XUcnqoogZEZhR2H4G7AJvh9+FAsvr3vMHkeA@mail.gmail.com>
-References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com> <CAErSpo5X00LFs6XUcnqoogZEZhR2H4G7AJvh9+FAsvr3vMHkeA@mail.gmail.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 11 Nov 2011 09:40:07 -0700
-Message-ID: <CAErSpo5xAJowmEfLXnGkTXXF-4fbNMW2+JYg=5yPK3e-PZWsrw@mail.gmail.com>
-Subject: Re: [PATCH v3 00/34] Create PCI root buses with correct resources
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mail.linuxfoundation.org ([140.211.169.12]:45634 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752935Ab1KQX5E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Nov 2011 18:57:04 -0500
+Date: Thu, 17 Nov 2011 15:57:03 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and
+ HPAGE_SIZE
+Message-ID: <20111117155703.b8af6be5.akpm@linux-foundation.org>
+In-Reply-To: <4EC59E3C.5070204@gmail.com>
+References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com>
+	<alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
+	<alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
+	<20111117153526.f90ee248.akpm@linux-foundation.org>
+	<alpine.DEB.2.00.1111171538540.13555@chino.kir.corp.google.com>
+	<4EC59E3C.5070204@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <linux@arm.linux.org.uk>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>
-Message-ID: <20111111164007.IKIsCFQ6diS3VWuU0lM7MGd-wjjTS7DXNaARSoNwPIs@z>
+To: David Daney <ddaney.cavm@gmail.com>
+Cc: David Rientjes <rientjes@google.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
+Message-ID: <20111117235703.VD8N6hgRq5X7b13d3HjEJFcHZerSMuRMVPL9AmkuEAI@z>
 
-On Sat, Oct 29, 2011 at 10:25 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Fri, Oct 28, 2011 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->> The most generic way to create a PCI root bus is with pci_scan_bus(), but that
->> doesn't allow you to specify what resources are available on the bus, i.e.,
->> what the host bridge apertures are.  This series fixes the problem by adding
->> a new pci_scan_root_bus() interface that takes a list of bus resources.
->
-> These patches are also available here:
-> git://github.com/bjorn-helgaas/linux.git on
-> the "pci-scan-v3" branch.
+On Thu, 17 Nov 2011 15:52:28 -0800
+David Daney <ddaney.cavm@gmail.com> wrote:
 
-This series touches 13 architectures.  Most of the changes are fairly
-simple, but some (arm, parisc, powerpc) are more involved, so I'd
-appreciate any feedback you have.
+> A counter argument would be:
+> 
+> There are hundreds of places in the kernel where dummy definitions are 
+> selected by !CONFIG_* so that we can do:
+> 
+>     if (test_something()) {
+>        do_one_thing();
+>     } else {
+>        do_the_other_thing();
+>     }
+> 
+> 
+> Rather than:
+> 
+> #ifdef CONFIG_SOMETHING
+>     if (test_something()) {
+>        do_one_thing();
+>     } else
+> #else
+>     {
+>        do_the_other_thing();
+>     }
+> 
+> 
+> 
+> We even do this all over the place with dummy definitions selected by 
+> CONFIG_HUGETLB_PAGE, What exactly makes HPAGE_MASK special and not the 
+> hundreds of other similar situations?
 
-Since the 3.2 merge window is closed, I'm targeting these for 3.3.
-They don't all have to be merged at once, though we can't remove
-pci_create_bus() (patch 34/34) until all the arch patches are in.
+yup.  Look at free_pgtables():
 
-Bjorn
+		if (is_vm_hugetlb_page(vma)) {
+			hugetlb_free_pgd_range(tlb, addr, vma->vm_end,
+				floor, next? next->vm_start: ceiling);
+		} else {
+
+and
+
+#define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling) ({BUG(); 0; })
+
+This is the same thing.
