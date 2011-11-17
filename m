@@ -1,66 +1,62 @@
-From: Richard Kuo <rkuo-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>
-Subject: Re: [PATCH] kdump: Fix crash_kexec - smp_send_stop race in panic
-Date: Fri, 11 Nov 2011 11:45:06 -0600
-Message-ID: <20111111174506.GE459@codeaurora.org>
-References: <1319639649.3321.11.camel@br98xy6r>
- <20111028161143.e5ebf617.akpm@linux-foundation.org>
- <1320055036.2796.8.camel@br98xy6r>
- <20111031033948.a0edb7f3.akpm@linux-foundation.org>
- <1320314844.2989.6.camel@br98xy6r>
- <20111109160400.cc2d27d9.akpm@linux-foundation.org>
- <1320934932.16425.14.camel@br98xy6r> <4EBBE9B4.3040009@tilera.com>
- <1321014494.2745.7.camel@br98xy6r>
+From: David Rientjes <rientjes@google.com>
+Subject: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and
+ HPAGE_SIZE
+Date: Thu, 17 Nov 2011 15:22:53 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
+References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com> <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <1321014494.2745.7.camel@br98xy6r>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/kexec>,
- <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/kexec/>
-List-Post: <mailto:kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
-List-Help: <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/kexec>,
- <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
-Sender: kexec-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-Errors-To: kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-To: Michael Holzheu <holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Cc: Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Chen Liqin <liqin.chen-+XGAvkf1AAHby3iVrkZq2A@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, Lennox Wu <lennox.wu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Hans-Christian Egtvedt <egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org>, Jonas Bonn <jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org>, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>, Hirokazu Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Vivek Goyal <vgoyal-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Haavard Skinnemoen <hskinnemoen-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Don Zickus <dzickus-H+wXaHxf7aJhl2p70BpVqQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:52957 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753142Ab1KQXW4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Nov 2011 18:22:56 -0500
+Received: by ggnb2 with SMTP id b2so1783009ggn.19
+        for <linux-arch@vger.kernel.org>; Thu, 17 Nov 2011 15:22:56 -0800 (PST)
+In-Reply-To: <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Daney <ddaney.cavm@gmail.com>, linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, David Daney <david.daney@cavium.com>, linux-arch@vger.kernel.org, Robin Holt <holt@sgi.com>
 
-On Fri, Nov 11, 2011 at 01:28:14PM +0100, Michael Holzheu wrote:
-> Hello Chris,
-> 
-> On Thu, 2011-11-10 at 10:11 -0500, Chris Metcalf wrote:
-> > On 11/10/2011 9:22 AM, Michael Holzheu wrote:
-> 
-> [snip]
-> 
-> > If a cleaner API seems useful (either for power reasons or restartability 
-> > or whatever), I suppose a standard global function name could be specified 
-> > that's the thing you execute when you get an smp_send_stop IPI (in tile's 
-> > case it's "smp_stop_cpu_interrupt()") and the panic() code could instead 
-> > just do an atomic_inc_return() of a global panic counter, and if it wasn't 
-> > the first panicking cpu, call directly into the smp_stop handler routine to 
-> > quiesce itself.  Then the panicking cpu could finish whatever it needs to 
-> > do and then halt, reboot, etc., all the cpus.
-> 
-> Thanks for the info. So introducing a "weak" function that can stop the
-> CPU it is running on could solve the problem. Every architecture can
-> override the function with something appropriate. E.g. "tile" can use
-> the lower-power "nap" instruction there.
-> 
-> What about the following patch.
+Dummy, non-zero definitions for HPAGE_MASK and HPAGE_SIZE were added in
+51c6f666fceb ("mm: ZAP_BLOCK causes redundant work") to avoid a divide
+by zero in generic kernel code.
 
-Hexagon uses interrupts to send the stop to the other CPU's as well, and
-we also have a stop local cpu operation defined, so I think we're in the same
-boat as tile.  This patch should work for us.
+That code has since been removed, but probably should never have been
+added in the first place: we don't want HPAGE_SIZE to act like PAGE_SIZE
+for code that is working with hugepages, for example, when the dependency
+on CONFIG_HUGETLB_PAGE has not been fulfilled.
 
+Because hugepage size can differ from architecture to architecture, each
+is required to have their own definitions for both HPAGE_MASK and
+HPAGE_SIZE.  This is always done in arch/*/include/asm/page.h.
 
+So, just remove the dummy and dangerous definitions since they are no
+longer needed and reveals the correct dependencies.  Tested on
+architectures using the definitions with allyesconfig: x86 (even with
+thp), hppa, mips, powerpc, s390, sh3, sh4, sparc, and sparc64, and
+with defconfig on ia64.
 
+Cc: Robin Holt <holt@sgi.com>
+Cc: David Daney <david.daney@cavium.com>
+Signed-off-by: David Rientjes <rientjes@google.com>
+---
+ include/linux/hugetlb.h |    5 -----
+ 1 files changed, 0 insertions(+), 5 deletions(-)
 
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
+--- a/include/linux/hugetlb.h
++++ b/include/linux/hugetlb.h
+@@ -110,11 +110,6 @@ static inline void copy_huge_page(struct page *dst, struct page *src)
+ 
+ #define hugetlb_change_protection(vma, address, end, newprot)
+ 
+-#ifndef HPAGE_MASK
+-#define HPAGE_MASK	PAGE_MASK		/* Keep the compiler happy */
+-#define HPAGE_SIZE	PAGE_SIZE
+-#endif
+-
+ #endif /* !CONFIG_HUGETLB_PAGE */
+ 
+ #define HUGETLB_ANON_FILE "anon_hugepage"
