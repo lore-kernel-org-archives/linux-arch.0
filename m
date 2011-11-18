@@ -1,58 +1,50 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and
- HPAGE_SIZE
-Date: Thu, 17 Nov 2011 15:57:50 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1111171553440.13555@chino.kir.corp.google.com>
-References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com> <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com> <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com> <20111117153526.f90ee248.akpm@linux-foundation.org>
- <alpine.DEB.2.00.1111171538540.13555@chino.kir.corp.google.com> <4EC59E3C.5070204@gmail.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4EC59E3C.5070204@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
-List-Id: linux-arch.vger.kernel.org
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: [PATCH RFC 2/5] extable: Skip sorting if sorted at build time.
+Date: Fri, 18 Nov 2011 11:37:45 -0800
+Message-ID: <1321645068-20475-3-git-send-email-ddaney.cavm@gmail.com>
+References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:53846 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751300Ab1KRTiF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Nov 2011 14:38:05 -0500
+In-Reply-To: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, x86@kernel.org
+Cc: David Daney <david.daney@cavium.com>
 
-On Thu, 17 Nov 2011, David Daney wrote:
+From: David Daney <david.daney@cavium.com>
 
-> A counter argument would be:
-> 
-> There are hundreds of places in the kernel where dummy definitions are
-> selected by !CONFIG_* so that we can do:
-> 
->    if (test_something()) {
->       do_one_thing();
->    } else {
->       do_the_other_thing();
->    }
-> 
-> 
-> Rather than:
-> 
-> #ifdef CONFIG_SOMETHING
->    if (test_something()) {
->       do_one_thing();
->    } else
-> #else
->    {
->       do_the_other_thing();
->    }
-> 
-> 
-> 
-> We even do this all over the place with dummy definitions selected by
-> CONFIG_HUGETLB_PAGE, What exactly makes HPAGE_MASK special and not the
-> hundreds of other similar situations?
-> 
+If the build program sortextable has already sorted the exception
+table, don't sort it again.
 
-Dummy functions that return 0 when a feature isn't enabled isn't the 
-problem, that's very convenient.  Definitions of constants are a 
-completely separate story because they can be easily used outside the 
-required context and cause brekage.  What happens if you reference a 
-variable in a function that is declarated in a different function?  Does 
-the compiler put a BUG() in there and let you explode at runtime?  This is 
-just absurd, every other arch has done the necessary declarations in their 
-own header files and everything works fine because there's a clear config 
-dependency on using HPAGE_*.  Adding dummy definitions to panic at runtime 
-is irresponsibly to an extreme.
+Signed-off-by: David Daney <david.daney@cavium.com>
+---
+ kernel/extable.c |    8 +++++++-
+ 1 files changed, 7 insertions(+), 1 deletions(-)
+
+diff --git a/kernel/extable.c b/kernel/extable.c
+index 5339705..fe35a63 100644
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@ -35,10 +35,16 @@ DEFINE_MUTEX(text_mutex);
+ extern struct exception_table_entry __start___ex_table[];
+ extern struct exception_table_entry __stop___ex_table[];
+ 
++/* Cleared by build time tools if the table is already sorted. */
++u32 __initdata main_extable_sort_needed = 1;
++
+ /* Sort the kernel's built-in exception table */
+ void __init sort_main_extable(void)
+ {
+-	sort_extable(__start___ex_table, __stop___ex_table);
++	if (main_extable_sort_needed)
++		sort_extable(__start___ex_table, __stop___ex_table);
++	else
++		pr_notice("__ex_table already sorted, skipping sort\n");
+ }
+ 
+ /* Given an address, look for it in the exception tables. */
+-- 
+1.7.2.3
