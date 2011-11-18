@@ -1,65 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:61443 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754828Ab1KQX5x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Nov 2011 18:57:53 -0500
-Received: by iage36 with SMTP id e36so2882178iag.19
-        for <linux-arch@vger.kernel.org>; Thu, 17 Nov 2011 15:57:53 -0800 (PST)
-Date: Thu, 17 Nov 2011 15:57:50 -0800 (PST)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and
- HPAGE_SIZE
-In-Reply-To: <4EC59E3C.5070204@gmail.com>
-Message-ID: <alpine.DEB.2.00.1111171553440.13555@chino.kir.corp.google.com>
-References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com> <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com> <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com> <20111117153526.f90ee248.akpm@linux-foundation.org>
- <alpine.DEB.2.00.1111171538540.13555@chino.kir.corp.google.com> <4EC59E3C.5070204@gmail.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:53846 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756087Ab1KRTiI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Nov 2011 14:38:08 -0500
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: [PATCH RFC 5/5] x86: Select BUILDTIME_EXTABLE_SORT
+Date: Fri, 18 Nov 2011 11:37:48 -0800
+Message-ID: <1321645068-20475-6-git-send-email-ddaney.cavm@gmail.com>
+In-Reply-To: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com>
+References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
-Message-ID: <20111117235750.zyA4dyI1hAUZwW6M1S59y56yMFdErXx1dvS8-8lVN3E@z>
+To: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, x86@kernel.org
+Cc: David Daney <david.daney@cavium.com>
+Message-ID: <20111118193748.iX9G6ouQE6mrIv1nXM3VNzDk61hcMK8EzY9JEcGFb7Y@z>
 
-On Thu, 17 Nov 2011, David Daney wrote:
+From: David Daney <david.daney@cavium.com>
 
-> A counter argument would be:
-> 
-> There are hundreds of places in the kernel where dummy definitions are
-> selected by !CONFIG_* so that we can do:
-> 
->    if (test_something()) {
->       do_one_thing();
->    } else {
->       do_the_other_thing();
->    }
-> 
-> 
-> Rather than:
-> 
-> #ifdef CONFIG_SOMETHING
->    if (test_something()) {
->       do_one_thing();
->    } else
-> #else
->    {
->       do_the_other_thing();
->    }
-> 
-> 
-> 
-> We even do this all over the place with dummy definitions selected by
-> CONFIG_HUGETLB_PAGE, What exactly makes HPAGE_MASK special and not the
-> hundreds of other similar situations?
-> 
+We can sort the exeception table at build time for x86, so let's do
+it.
 
-Dummy functions that return 0 when a feature isn't enabled isn't the 
-problem, that's very convenient.  Definitions of constants are a 
-completely separate story because they can be easily used outside the 
-required context and cause brekage.  What happens if you reference a 
-variable in a function that is declarated in a different function?  Does 
-the compiler put a BUG() in there and let you explode at runtime?  This is 
-just absurd, every other arch has done the necessary declarations in their 
-own header files and everything works fine because there's a clear config 
-dependency on using HPAGE_*.  Adding dummy definitions to panic at runtime 
-is irresponsibly to an extreme.
+Signed-off-by: David Daney <david.daney@cavium.com>
+---
+ arch/x86/Kconfig |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cb9a104..c6b52a6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -75,6 +75,7 @@ config X86
+ 	select HAVE_BPF_JIT if (X86_64 && NET)
+ 	select CLKEVT_I8253
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
++	select BUILDTIME_EXTABLE_SORT
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool (KPROBES || PERF_EVENTS)
+-- 
+1.7.2.3
+
