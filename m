@@ -1,144 +1,98 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH RFC 1/5] scripts: Add sortextable to sort the kernel's exception table.
-Date: Mon, 21 Nov 2011 15:08:37 -0500
-Message-ID: <201111211508.39398.vapier@gentoo.org>
-References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com> <201111211350.58916.vapier@gentoo.org> <4ECAA374.2040102@gmail.com>
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and HPAGE_SIZE
+Date: Mon, 21 Nov 2011 14:23:36 -0800
+Message-ID: <4ECACF68.3020701@gmail.com>
+References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com> <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com> <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart1759691.6lAoAVt38i";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4ECAA374.2040102@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, x86@kernel.org, David Daney <david.daney@cavium.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:61451 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752645Ab1KUWXj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 17:23:39 -0500
+In-Reply-To: <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, David Daney <david.daney@cavium.com>, linux-arch@vger.kernel.org, Robin Holt <holt@sgi.com>
 
---nextPart1759691.6lAoAVt38i
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+Linus,
 
-On Monday 21 November 2011 14:16:04 David Daney wrote:
-> On 11/21/2011 10:50 AM, Mike Frysinger wrote:
-> > On Monday 21 November 2011 13:25:36 David Daney wrote:
-> >> On 11/20/2011 03:22 PM, Mike Frysinger wrote:
-> >>> On Friday 18 November 2011 14:37:44 David Daney wrote:
-> >>>> +	switch (w2(ehdr->e_machine)) {
-> >>>> +	default:
-> >>>> +		fprintf(stderr, "unrecognized e_machine %d %s\n",
-> >>>> +			w2(ehdr->e_machine), fname);
-> >>>> +		fail_file();
-> >>>> +		break;
-> >>>> +	case EM_386:
-> >>>> +	case EM_MIPS:
-> >>>> +	case EM_X86_64:
-> >>>> +		break;
-> >>>> +	}  /* end switch */
-> >>>=20
-> >>> unlike recordmcount, this file doesn't do anything arch specific.  so
-> >>> let's just delete this and be done.
-> >>=20
-> >> Not really true at this point.  We don't know the size or layout of the
-> >> architecture specific exception table entries, likewise for
-> >> CONFIG_ARCH_HAS_SORT_EXTABLE, we don't even know how to do the
-> >> comparison.
-> >=20
-> > all of your code that i could see is based on "is it 32bit or is it
-> > 64bit". there is no code that says "if it's x86, we need to do XXX".
->=20
-> At this point there is no need.  MIPS, i386 and x86_64 all store the key
-> in the first word of a two word structure.
->=20
-> If there were some architecture that didn't fit this model, we would
-> have to create a special sorting function and select it (and perhaps
-> other parameters as well) in that switch statement.
+It may not have been evident when you committed this (commit 
+a5c86e986f0b2fe779f13cf53ce6e9f467b03950), but there was considerable 
+discussion around this patch.
 
-that's trivial to check:
-	sed -n '/^struct exception_table_entry/,/};/p'\
-		arch/*/include/asm/uaccess* include/asm-generic/uaccess.h=20
+Andrew had taken into his tree a couple of patches to make the 
+definitions that David Rientjes is removing safer:
 
-and indeed, the only arches that don't follow this model are the ones that=
-=20
-define ARCH_HAS_SORT_EXTABLE.
+http://marc.info/?l=linux-kernel&m=132156712623915&w=2
+http://marc.info/?l=linux-kernel&m=132156712523914&w=2
 
-> > when i look in the kernel, we have common code behind
-> > ARCH_HAS_SORT_EXTABLE. so you could easily do the same thing:
-> >=20
-> > scripts/sortextable.c:
-> > 	#ifdef ARCH_HAS_SORT_EXTABLE
-> > =09
-> > 		switch (w2(ehdr->e_machine)) {
-> > 	=09
-> > 		default:
-> > 			fprintf(stderr, "unrecognized e_machine %d %s\n",
-> > 		=09
-> > 				w2(ehdr->e_machine), fname);
-> > 		=09
-> > 			... return a unique exit code like 77 ...
-> > 			break;
-> > 	=09
-> > 		/* add arch sorting info here */
-> > 		}  /* end switch */
-> > =09
-> > 	#endif
-> >=20
-> > kernel/extable.c:
-> > 	#if defined(ARCH_HAS_SORT_EXTABLE)&&  !defined(ARCH_HAS_SORTED_EXTABLE)
-> > 	void __init sort_main_extable(void)
-> > 	{
-> > =09
-> > 		sort_extable(__start___ex_table, __stop___ex_table);
-> > =09
-> > 	}
-> > 	#endif
->=20
-> Yes, I am familiar with that code.  One thing to keep in mind is that
-> the compiler has access to struct exception_table_entry, and can easily
-> figure out both how big the structure is *and* where the insn field is
-> within the structure.
->=20
-> This is not the case for the author of sortextable.  Except for MIPS,
-> MIPS64, i386 and x86_64, I know neither the size of struct
-> exception_table_entry, nor the offset of its insn field.
+David objected, but Andrew wasn't convinced, see all the replies to this 
+patch but especially:
 
-a trivial sed/grep gets you the answer: they're all the same
+http://marc.info/?l=linux-kernel&m=132157428626522&w=2
 
-> > this way all the people not doing unique stuff work out of the box.  on=
-ly
-> > the people who are doing funky stuff need to extend things.
->=20
-> I didn't want to include something like this that I cannot test.  An
-> unsorted (or improperly sorted) exception table is not necessarily
-> something that will be noticeable by simply booting the kernel.  Your
-> only indication may be a panic or OOPS under rarely encountered condition=
-s.
+On 11/17/2011 03:22 PM, David Rientjes wrote:
+> Dummy, non-zero definitions for HPAGE_MASK and HPAGE_SIZE were added in
+> 51c6f666fceb ("mm: ZAP_BLOCK causes redundant work") to avoid a divide
+> by zero in generic kernel code.
+>
+> That code has since been removed, but probably should never have been
+> added in the first place: we don't want HPAGE_SIZE to act like PAGE_SIZE
+> for code that is working with hugepages, for example, when the dependency
+> on CONFIG_HUGETLB_PAGE has not been fulfilled.
+>
+> Because hugepage size can differ from architecture to architecture, each
+> is required to have their own definitions for both HPAGE_MASK and
+> HPAGE_SIZE.  This is always done in arch/*/include/asm/page.h.
+>
+> So, just remove the dummy and dangerous definitions since they are no
+> longer needed and reveals the correct dependencies.  Tested on
+> architectures using the definitions with allyesconfig: x86 (even with
+> thp), hppa, mips, powerpc, s390, sh3, sh4, sparc, and sparc64, and
+> with defconfig on ia64.
+>
 
-this is what linux-next is for :)
-=2Dmike
+This whole comment strikes me as somewhat dishonest, as at the time 
+David Rientjes wrote it, he knew that there were dependencies on these 
+symbols in the linux-next tree.
 
---nextPart1759691.6lAoAVt38i
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+Now we can add these:
++#define HPAGE_SHIFT	({ BUG(); 0; })
++#define HPAGE_SIZE	({ BUG(); 0; })
++#define HPAGE_MASK	({ BUG(); 0; })
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+To the different architecture header files instead of having them in the 
+common include/linux/hugetlb.h
 
-iQIcBAABAgAGBQJOyq/HAAoJEEFjO5/oN/WBoCYP/0UXHxMgqL2/Y6mYI8SWv9j1
-bGpyabcFESLzJ6S0QtiM0LAtDTT8epHa/wBXtN52V7lfTTxhviNeK7WIqhorn4pT
-3GTUA1R4JpcOC9Gnt1hpG/CSugDMuKVwquK69DhlKxp1Cfa8wN1P8dtnh545nHjX
-XedfFYzeeHzCQx6ZO6P+Cc85U5BimRLhGK9FPeqAMKsgerzT+hKsAVffgh4gNmqo
-XsEGOvby34VO9SmOLTtYfxZ91sENewJ1PwiLPjgq0aN5P6fkOpV+Y9668szE+8Pj
-mB9sGuraD4aSsHVgDaf+afEEvxb+JOjVcMuOGNjLkYQcJP6o7DaiuyAPD1mLeSaA
-YQIvuYX/1WYYsDR2sLHHRu/bKa645xILFzn6+VB4tJBs3a+6u4436aS4i72Q6I22
-6h5Nfb/kh2l5WIyj4tsMszyx/XzeKoQ7+7wOkRbHbVvVFExMtuCHlxcCz62w+p18
-kz2o6UjrvYBn+ddbme+9HnU9pgzF7PeZjQuoo0w6bjeCMSX4gM6JbBFRouoEWcrV
-n6sVeNtt7RzzJg3Z89URkgzx1ireAFzb1dvW9qRt4akH1AUpg5bE7dFs1qJ6mK/b
-UJ8zccOnhrhcRT4bvBKva59awy2wG8dstmjVzJqmtDUJWmPkLiVH8Yu45pOUpbw5
-TRFYFyh4xbhEk7KlGWjQ
-=IRxP
------END PGP SIGNATURE-----
+If this is the way Linus wants it, I can live with that.  But it was a 
+little surprising to see that this was merged when there were strong 
+arguments against it.
 
---nextPart1759691.6lAoAVt38i--
+David Daney
+
+> Cc: Robin Holt<holt@sgi.com>
+> Cc: David Daney<david.daney@cavium.com>
+> Signed-off-by: David Rientjes<rientjes@google.com>
+> ---
+>   include/linux/hugetlb.h |    5 -----
+>   1 files changed, 0 insertions(+), 5 deletions(-)
+>
+> diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
+> --- a/include/linux/hugetlb.h
+> +++ b/include/linux/hugetlb.h
+> @@ -110,11 +110,6 @@ static inline void copy_huge_page(struct page *dst, struct page *src)
+>
+>   #define hugetlb_change_protection(vma, address, end, newprot)
+>
+> -#ifndef HPAGE_MASK
+> -#define HPAGE_MASK	PAGE_MASK		/* Keep the compiler happy */
+> -#define HPAGE_SIZE	PAGE_SIZE
+> -#endif
+> -
+>   #endif /* !CONFIG_HUGETLB_PAGE */
+>
+>   #define HUGETLB_ANON_FILE "anon_hugepage"
+>
