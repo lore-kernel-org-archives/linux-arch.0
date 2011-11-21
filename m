@@ -1,63 +1,105 @@
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: Re: [PATCH RFC 1/5] scripts: Add sortextable to sort the kernel's
- exception table.
-Date: Mon, 21 Nov 2011 10:25:36 -0800
-Message-ID: <4ECA97A0.3090005@gmail.com>
-References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com> <1321645068-20475-2-git-send-email-ddaney.cavm@gmail.com> <201111201822.13614.vapier@gentoo.org>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [PATCH RFC 1/5] scripts: Add sortextable to sort the kernel's exception table.
+Date: Mon, 21 Nov 2011 13:50:56 -0500
+Message-ID: <201111211350.58916.vapier@gentoo.org>
+References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com> <201111201822.13614.vapier@gentoo.org> <4ECA97A0.3090005@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Type: multipart/signed;
+  boundary="nextPart18916016.1oOC3NTRBy";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:58191 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751748Ab1KUSZv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 13:25:51 -0500
-In-Reply-To: <201111201822.13614.vapier@gentoo.org>
+Received: from smtp.gentoo.org ([140.211.166.183]:60637 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751623Ab1KUSvA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Nov 2011 13:51:00 -0500
+In-Reply-To: <4ECA97A0.3090005@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>
+To: David Daney <ddaney.cavm@gmail.com>
 Cc: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-embedded@vger.kernel.org, x86@kernel.org, David Daney <david.daney@cavium.com>
 
-On 11/20/2011 03:22 PM, Mike Frysinger wrote:
-> On Friday 18 November 2011 14:37:44 David Daney wrote:
->> --- /dev/null
->> +++ b/scripts/sortextable.c
->>
->> +/*
->> + * sortextable.c: Sort the kernel's exception table
->> + *
->> + * Copyright 2011 Cavium, Inc.
->> + *
->> + * Based on code taken from recortmcount.c which is:
->
-> seems like it'd be nice if the duplicate helper funcs were placed in a common
-> header file rather than copying&  pasting between them.
->
+--nextPart18916016.1oOC3NTRBy
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-Yes, I may try to factor out some common code if we decide to move 
-forward with the patch set.
+On Monday 21 November 2011 13:25:36 David Daney wrote:
+> On 11/20/2011 03:22 PM, Mike Frysinger wrote:
+> > On Friday 18 November 2011 14:37:44 David Daney wrote:
+> >> +	switch (w2(ehdr->e_machine)) {
+> >> +	default:
+> >> +		fprintf(stderr, "unrecognized e_machine %d %s\n",
+> >> +			w2(ehdr->e_machine), fname);
+> >> +		fail_file();
+> >> +		break;
+> >> +	case EM_386:
+> >> +	case EM_MIPS:
+> >> +	case EM_X86_64:
+> >> +		break;
+> >> +	}  /* end switch */
+> >=20
+> > unlike recordmcount, this file doesn't do anything arch specific.  so
+> > let's just delete this and be done.
+>=20
+> Not really true at this point.  We don't know the size or layout of the
+> architecture specific exception table entries, likewise for
+> CONFIG_ARCH_HAS_SORT_EXTABLE, we don't even know how to do the comparison.
 
+all of your code that i could see is based on "is it 32bit or is it 64bit".=
+ =20
+there is no code that says "if it's x86, we need to do XXX".
 
->> +	switch (w2(ehdr->e_machine)) {
->> +	default:
->> +		fprintf(stderr, "unrecognized e_machine %d %s\n",
->> +			w2(ehdr->e_machine), fname);
->> +		fail_file();
->> +		break;
->> +	case EM_386:
->> +	case EM_MIPS:
->> +	case EM_X86_64:
->> +		break;
->> +	}  /* end switch */
->
-> unlike recordmcount, this file doesn't do anything arch specific.  so let's just
-> delete this and be done.
+when i look in the kernel, we have common code behind ARCH_HAS_SORT_EXTABLE=
+=2E =20
+so you could easily do the same thing:
 
-Not really true at this point.  We don't know the size or layout of the 
-architecture specific exception table entries, likewise for 
-CONFIG_ARCH_HAS_SORT_EXTABLE, we don't even know how to do the comparison.
+scripts/sortextable.c:
+	#ifdef ARCH_HAS_SORT_EXTABLE
+		switch (w2(ehdr->e_machine)) {
+		default:
+			fprintf(stderr, "unrecognized e_machine %d %s\n",
+				w2(ehdr->e_machine), fname);
+			... return a unique exit code like 77 ...
+			break;
+		/* add arch sorting info here */
+		}  /* end switch */
+	#endif
 
-I was trying to be a little conservative and only apply the build time 
-sort to configurations that I could test.
+kernel/extable.c:
+	#if defined(ARCH_HAS_SORT_EXTABLE) && !defined(ARCH_HAS_SORTED_EXTABLE)
+	void __init sort_main_extable(void)
+	{
+		sort_extable(__start___ex_table, __stop___ex_table);
+	}
+	#endif
 
-David Daney
+this way all the people not doing unique stuff work out of the box.  only t=
+he=20
+people who are doing funky stuff need to extend things.
+=2Dmike
+
+--nextPart18916016.1oOC3NTRBy
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
+
+iQIcBAABAgAGBQJOyp2SAAoJEEFjO5/oN/WBZg8QAMH4S+K1gxcWKe89lRRxspfJ
+MSXIss+znaNDBr+NoA9eIiO8Q4TpmrL1bCaH1UVwVEqjcMJY7IG4igEnP46Gfn0f
+aI+D6caMRgQLrgM1Peq5XiWU1MTBrz6NnJN/3lbhlugmg+s+xtn/nFIrlutGRmfR
+V/GOVG9jLWiw+qEQ2GphyYd4ggvTigNNKzhqZRN7pC3XOAUBraMnOhxzooMkSW6h
+Q3h3+p0taGrtLHB+T5SYo8MG13PLbH6GFaYJjvVOsQSmdFxPEf1acpb8vaD0orPa
+Rd+d6q2VRJm4zL/WUB0SGxySPmUFPaTLuWqc8PflHeB0MltDxJL4pgFuxuWem8L2
+b1fncRuyFgZPBe60tn84yXJMgbzjKmFFjcBjiHqCElT3kGRcXPIReKY3/TnJUxny
+D0f8VAhPYfLdlhmIALq9fcwrpHHbV8S++8XiNQsXT0hzSn6nm7mcbw9t+v5UJ0he
+W1fZjyjEyL+dAwhWxMzTb/9aHE5t+7GJFEKw0gfbfpjMCdZOhaEOfYnh28FL3T1I
+W+WiCPRo0Nz180xlZy9ia1ac+wm6iLUTzlzmTL9lAXRQMVyydHisbfuJGfNso4aa
+6XL1/Vrgq2kSKMfd2WVhgTc8laxJCTkcNhwclBOPuFbaTZPCadUZjxvPsAEgw04L
+aTty9vZcJoLu1punJLBl
+=ElBK
+-----END PGP SIGNATURE-----
+
+--nextPart18916016.1oOC3NTRBy--
