@@ -1,72 +1,46 @@
-From: David Daney <ddaney@caviumnetworks.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and HPAGE_SIZE
-Date: Mon, 21 Nov 2011 16:48:30 -0800
-Message-ID: <4ECAF15E.1070008@caviumnetworks.com>
-References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com> <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com> <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com> <4ECACF68.3020701@gmail.com> <CA+55aFwZxqHfEOemj+OJNKCj2toqGf3rkK-9iuS39L7iZsoH1Q@mail.gmail.com> <4ECAE314.9060209@gmail.com>  <CA+55aFx==PGGLX9YXv1GOeTja4W0PSW8U4i8zkmtiZwqmFwHFw@mail.gmail.com>
+Date: Mon, 21 Nov 2011 16:55:13 -0800
+Message-ID: <CA+55aFyiV-W_7zOuu26jsUsCDTxHh41z8sEgL0D94xFooAJxFA@mail.gmail.com>
+References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com>
+ <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
+ <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
+ <4ECACF68.3020701@gmail.com> <CA+55aFwZxqHfEOemj+OJNKCj2toqGf3rkK-9iuS39L7iZsoH1Q@mail.gmail.com>
+ <4ECAE314.9060209@gmail.com> <CA+55aFx==PGGLX9YXv1GOeTja4W0PSW8U4i8zkmtiZwqmFwHFw@mail.gmail.com>
+ <4ECAF15E.1070008@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail3.caviumnetworks.com ([12.108.191.235]:14634 "EHLO
-	mail3.caviumnetworks.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753094Ab1KVAsa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 19:48:30 -0500
-In-Reply-To: <CA+55aFx==PGGLX9YXv1GOeTja4W0PSW8U4i8zkmtiZwqmFwHFw@mail.gmail.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:36024 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750898Ab1KVAze (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 19:55:34 -0500
+In-Reply-To: <4ECAF15E.1070008@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
+To: David Daney <ddaney@caviumnetworks.com>
 Cc: David Daney <ddaney.cavm@gmail.com>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
 
-On 11/21/2011 04:37 PM, Linus Torvalds wrote:
-> On Mon, Nov 21, 2011 at 3:47 PM, David Daney<ddaney.cavm@gmail.com>  wrote:
->>
->> These symbols are on dead code paths, so they are eliminated by the
->> compiler's Dead Code Elimination (DCE) optimizations, and the BUG() code
->> never gets emitted to the final executable.
+On Mon, Nov 21, 2011 at 4:48 PM, David Daney <ddaney@caviumnetworks.com> wrote:
 >
-> If you are so damn sure of that, then DON'T MAKE IT A BUG_ON! If you
-> are 100% syre, then you might as well leave out the BUG_ON() entirely.
->
-> Seriously. What's so hard to understand?
+> Really Linus, did you read the other half of the message you quoted?
 
-Really Linus, did you read the other half of the message you quoted?
+Sorry no. It was just an automatic reaction along the lines of "oh
+christ, is this argument still going on"?
 
-The part you quote above explains the reason things are the way they 
-currently are.
+I'm ok with magic gcc function attributes, although I still don't see
+why you need that symbol so badly.
 
-The second part, that I think you may have missed, is the part I had 
-hoped you would read...
+Quite frankly, some MIPS-only patch is *not* important-enough to worry
+about this. I'd rather have the simpler "that symbol doesn't exist,
+and MIPS just needs an #ifdef".
 
->
-> Either you are 100% sure, or you are not. If you are 100% sure, then
-> the BUG_ON() is pointless. And if you are not, then the BUG_ON() is
-> *wrong*.
->
-> Notice? The BUG_ON() is never *ever* valid. You cannot have it both
-> ways. So stop pushing crap, already!
->
-> So what are non-crap solutions?
->
->   - the current one: error out at compile time (early) if somebody uses
-> them in invalid contexts.
->
->     This seems to be a good case, especially since apparently no actual
-> current code wants to use them outside of the existing #ifdef's. And
-> there is no reason to think that some random MIPS-only future code is
-> a good enough reason to re-introduce these things
->
->   - if you really want to use them, but expect the compiler to always
-> compile them away as dead code, use a non-existing function linkage,
-> so that you at least get a static failure at link-time for incorrect
-> code, rather than some random BUG_ON() at run-time that may be
-> impossible to find.
->
-> See? There are real solutions. BUG_ON() is not one of them.
+I realize that we *used* to have code that did that
 
-... because it said exactly what you say above.
+   if (something_that_evaluates_to_zero) {
+       .. use HPAGE_MASK ..
 
-I will send you a patch within the next two hours that shows what may be 
-an acceptable solution.
+but considering that we don't have that any more and people are happy,
+I'm not all that convinced that we need to try to re-introduce it.
 
-Thanks,
-David Daney
+                     Linus
