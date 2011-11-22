@@ -1,8 +1,10 @@
 From: David Daney <ddaney.cavm@gmail.com>
-Subject: [PATCH v2 0/2] Stop some of the abuse of BUG() where compile time checks should be used.
-Date: Tue, 22 Nov 2011 10:14:44 -0800
-Message-ID: <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
+Subject: [PATCH v2 1/2] kernel.h: Add BUILD_BUG() macro.
+Date: Tue, 22 Nov 2011 10:14:45 -0800
+Message-ID: <1321985686-798-2-git-send-email-ddaney.cavm@gmail.com>
+References: <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
@@ -10,39 +12,90 @@ List-Id: linux-arch.vger.kernel.org
 
 From: David Daney <david.daney@cavium.com>
 
-New for v2:
+We can place this in definitions that we expect the compiler to remove
+by dead code elimination.  If this assertion fails, we get a nice
+error message at build time.
 
-As suggested by 'DM', call the macro BUILD_BUG() instead of
-BUILD_BUG_ON_USED().  Linus seemed satisfied with this, so if it still
-looks good, can we put it in some linux-next tree (Perhaps Andrew
-Morton's) to cook for a while?
+The GCC function attribute error("message") was added in version 4.3,
+so we define a new macro __linktime_error(message) to expand to this
+for GCC-4.3 and later.  This will give us an error diagnostic from the
+compiler on the line that fails.  For other compilers
+__linktime_error(message) expands to nothing, and we have to be
+content with a link time error, but at least we will still get a build
+error.
 
-The second patch now covers linux/huge_mm.h too.
+BUILD_BUG() expands to the undefined function __build_bug_failed() and
+will fail at link time if the compiler ever emits code for it.  On
+GCC-4.3 and later, attribute((error())) is used so that the failure
+will be noted at compile time instead.
 
-From v1:
-
-   After some, perhaps justified, reluctance to merge dummy
-   symbol definitions containing BUG() into header files, I propose
-   these patches instead.
-
-   We define a new compile time assertion BUILD_BUG_ON_USED() that can
-   be used in places were we expect the compiler's dead code
-   elimination to get rid of code.  This happens mostly in code
-   dealing with huge pages, but in other places as well.
-
-   The first patch adds BUILD_BUG_ON_USED(), the second gets rid of
-   one of the main abusers of BUG().
-
-David Daney (2):
-  kernel.h: Add BUILD_BUG() macro.
-  hugetlb: Replace BUG() with BUILD_BUG() for dummy definitions.
-
+Signed-off-by: David Daney <david.daney@cavium.com>
+---
  include/linux/compiler-gcc4.h |    1 +
  include/linux/compiler.h      |    4 +++-
- include/linux/huge_mm.h       |    8 ++++----
- include/linux/hugetlb.h       |   14 +++++++-------
  include/linux/kernel.h        |   16 ++++++++++++++++
- 5 files changed, 31 insertions(+), 12 deletions(-)
+ 3 files changed, 20 insertions(+), 1 deletions(-)
 
+diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
+index dfadc96..2f40791 100644
+--- a/include/linux/compiler-gcc4.h
++++ b/include/linux/compiler-gcc4.h
+@@ -29,6 +29,7 @@
+    the kernel context */
+ #define __cold			__attribute__((__cold__))
+ 
++#define __linktime_error(message) __attribute__((__error__(message)))
+ 
+ #if __GNUC_MINOR__ >= 5
+ /*
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 320d6c9..4a24354 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -293,7 +293,9 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ #ifndef __compiletime_error
+ # define __compiletime_error(message)
+ #endif
+-
++#ifndef __linktime_error
++# define __linktime_error(message)
++#endif
+ /*
+  * Prevent the compiler from merging or refetching accesses.  The compiler
+  * is also forbidden from reordering successive instances of ACCESS_ONCE(),
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index b93c66e..e30002f 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -666,6 +666,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
+ #define BUILD_BUG_ON_ZERO(e) (0)
+ #define BUILD_BUG_ON_NULL(e) ((void*)0)
+ #define BUILD_BUG_ON(condition)
++#define BUILD_BUG() (0)
+ #else /* __CHECKER__ */
+ 
+ /* Force a compilation error if a constant expression is not a power of 2 */
+@@ -704,6 +705,21 @@ extern int __build_bug_on_failed;
+ 		if (condition) __build_bug_on_failed = 1;	\
+ 	} while(0)
+ #endif
++
++/**
++ * BUILD_BUG - break compile if used.
++ *
++ * If you have some code that you expect the compiler to eliminate at
++ * build time, you should use BUILD_BUG_ON_USED to detect if it is
++ * unexpectedly used.
++ */
++#define BUILD_BUG()						\
++	do {							\
++		extern void __build_bug_failed(void)		\
++			__linktime_error("BUILD_BUG failed");	\
++		__build_bug_failed();				\
++	} while (0)
++
+ #endif	/* __CHECKER__ */
+ 
+ /* Trap pasters of __FUNCTION__ at compile-time */
 -- 
 1.7.2.3
