@@ -1,71 +1,46 @@
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: [PATCH 2/2] hugetlb: Replace BUG() with BUILD_BUG_ON_USED() for dummy definitions.
-Date: Mon, 21 Nov 2011 17:31:06 -0800
-Message-ID: <1321925466-11280-3-git-send-email-ddaney.cavm@gmail.com>
-References: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
-List-Id: linux-arch.vger.kernel.org
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 1/2] kernel.h: Add BUILD_BUG_ON_USED() macro.
+Date: Mon, 21 Nov 2011 20:35:36 -0800
+Message-ID: <CA+55aFwj1eajCY2cF-xBzUqfnoZz+u1EGzWUsJBDnjWes3qj8g@mail.gmail.com>
+References: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com> <1321925466-11280-2-git-send-email-ddaney.cavm@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ww0-f42.google.com ([74.125.82.42]:59701 "EHLO
+	mail-ww0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752972Ab1KVEf6 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 23:35:58 -0500
+In-Reply-To: <1321925466-11280-2-git-send-email-ddaney.cavm@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Daney <ddaney.cavm@gmail.com>
+Cc: ralf@linux-mips.org, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
 
-From: David Daney <david.daney@cavium.com>
+On Mon, Nov 21, 2011 at 5:31 PM, David Daney <ddaney.cavm@gmail.com> wr=
+ote:
+>
+> The GCC function attribute error("message") was added in version 4.3,
+> so we define a new macro __linktime_error(message) to expand to this
+> for GCC-4.3 and later. =A0This will give us an error diagnostic from =
+the
+> compiler on the line that fails. =A0For other compilers
+> __linktime_error(message) expands to nothing, and we have to be
+> content with a link time error, but at least we will still get a buil=
+d
+> error.
 
-The file linux/hugetlb.h has many places where dummy symbols were
-defined so that the main source code would contain fewer:
+Ok. This looks quite reasonable, and I suspect we could replace some
+of the other cases that currently use link-time errors with this and
+get slightly better error reporting. It also looks like we should use
+this __attribute__((__error__())) approach for our current
+BUILD_BUG_ON() thing, instead of playing with the whole "negative
+array size" thing.
 
-    #ifdef CONFIG_HUGETLBFS
+And it does seem like glibc already uses this thing heavily, so we can
+even expect it to work.
 
-If there were any misuse of these symbols, the only symptom would be
-an OOPS at runtime.  Change the BUG() to BUILD_BUG_ON_USED() to catch
-any such abuse at compile time instead.
+That said, I'm still not comfy actually applying these patches during
+the -rc series. But for the next merge window, no problem.
 
-Signed-off-by: David Daney <david.daney@cavium.com>
----
- include/linux/hugetlb.h |   15 ++++++++-------
- 1 files changed, 8 insertions(+), 7 deletions(-)
-
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index d9d6c86..0067191 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -85,11 +85,11 @@ static inline unsigned long hugetlb_total_pages(void)
- 	return 0;
- }
- 
--#define follow_hugetlb_page(m,v,p,vs,a,b,i,w)	({ BUG(); 0; })
-+#define follow_hugetlb_page(m,v,p,vs,a,b,i,w)	({ BUILD_BUG_ON_USED(); 0; })
- #define follow_huge_addr(mm, addr, write)	ERR_PTR(-EINVAL)
--#define copy_hugetlb_page_range(src, dst, vma)	({ BUG(); 0; })
--#define hugetlb_prefault(mapping, vma)		({ BUG(); 0; })
--#define unmap_hugepage_range(vma, start, end, page)	BUG()
-+#define copy_hugetlb_page_range(src, dst, vma)	({ BUILD_BUG_ON_USED(); 0; })
-+#define hugetlb_prefault(mapping, vma)		({ BUILD_BUG_ON_USED(); 0; })
-+#define unmap_hugepage_range(vma, start, end, page)	BUILD_BUG_ON_USED()
- static inline void hugetlb_report_meminfo(struct seq_file *m)
- {
- }
-@@ -100,8 +100,9 @@ static inline void hugetlb_report_meminfo(struct seq_file *m)
- #define pmd_huge(x)	0
- #define pud_huge(x)	0
- #define is_hugepage_only_range(mm, addr, len)	0
--#define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling) ({BUG(); 0; })
--#define hugetlb_fault(mm, vma, addr, flags)	({ BUG(); 0; })
-+#define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling)	\
-+	({BUILD_BUG_ON_USED(); 0; })
-+#define hugetlb_fault(mm, vma, addr, flags)	({ BUILD_BUG_ON_USED(); 0; })
- #define huge_pte_offset(mm, address)	0
- #define dequeue_hwpoisoned_huge_page(page)	0
- static inline void copy_huge_page(struct page *dst, struct page *src)
-@@ -186,7 +187,7 @@ static inline void set_file_hugepages(struct file *file)
- #else /* !CONFIG_HUGETLBFS */
- 
- #define is_file_hugepages(file)			0
--#define set_file_hugepages(file)		BUG()
-+#define set_file_hugepages(file)		BUILD_BUG_ON_USED()
- static inline struct file *hugetlb_file_setup(const char *name, size_t size,
- 		vm_flags_t acctflag, struct user_struct **user, int creat_flags)
- {
--- 
-1.7.2.3
+                      Linus
