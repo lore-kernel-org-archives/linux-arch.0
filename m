@@ -1,46 +1,106 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and HPAGE_SIZE
-Date: Mon, 21 Nov 2011 16:55:13 -0800
-Message-ID: <CA+55aFyiV-W_7zOuu26jsUsCDTxHh41z8sEgL0D94xFooAJxFA@mail.gmail.com>
-References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com>
- <alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
- <alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
- <4ECACF68.3020701@gmail.com> <CA+55aFwZxqHfEOemj+OJNKCj2toqGf3rkK-9iuS39L7iZsoH1Q@mail.gmail.com>
- <4ECAE314.9060209@gmail.com> <CA+55aFx==PGGLX9YXv1GOeTja4W0PSW8U4i8zkmtiZwqmFwHFw@mail.gmail.com>
- <4ECAF15E.1070008@caviumnetworks.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: [PATCH 1/2] kernel.h: Add BUILD_BUG_ON_USED() macro.
+Date: Mon, 21 Nov 2011 17:31:05 -0800
+Message-ID: <1321925466-11280-2-git-send-email-ddaney.cavm@gmail.com>
+References: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:36024 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750898Ab1KVAze (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 19:55:34 -0500
-In-Reply-To: <4ECAF15E.1070008@caviumnetworks.com>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:52235 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753513Ab1KVBbM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 20:31:12 -0500
+In-Reply-To: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney@caviumnetworks.com>
-Cc: David Daney <ddaney.cavm@gmail.com>, David Rientjes <rientjes@google.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
+To: ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
 
-On Mon, Nov 21, 2011 at 4:48 PM, David Daney <ddaney@caviumnetworks.com> wrote:
->
-> Really Linus, did you read the other half of the message you quoted?
+From: David Daney <david.daney@cavium.com>
 
-Sorry no. It was just an automatic reaction along the lines of "oh
-christ, is this argument still going on"?
+We can place this in definitions that we expect the compiler to remove
+by dead code elimination.  If this assertion fails, we get a nice
+error message at build time.
 
-I'm ok with magic gcc function attributes, although I still don't see
-why you need that symbol so badly.
+The GCC function attribute error("message") was added in version 4.3,
+so we define a new macro __linktime_error(message) to expand to this
+for GCC-4.3 and later.  This will give us an error diagnostic from the
+compiler on the line that fails.  For other compilers
+__linktime_error(message) expands to nothing, and we have to be
+content with a link time error, but at least we will still get a build
+error.
 
-Quite frankly, some MIPS-only patch is *not* important-enough to worry
-about this. I'd rather have the simpler "that symbol doesn't exist,
-and MIPS just needs an #ifdef".
+BUILD_BUG_ON_USED() expands to the undefined function
+__build_bug_on_used_failed() and will fail at link time if the
+compiler ever emits code for it.  On GCC-4.3 and later,
+attribute((error())) is used so that the failure will be noted at compile
+time instead.
 
-I realize that we *used* to have code that did that
+Signed-off-by: David Daney <david.daney@cavium.com>
+---
+ include/linux/compiler-gcc4.h |    1 +
+ include/linux/compiler.h      |    4 +++-
+ include/linux/kernel.h        |   16 ++++++++++++++++
+ 3 files changed, 20 insertions(+), 1 deletions(-)
 
-   if (something_that_evaluates_to_zero) {
-       .. use HPAGE_MASK ..
-
-but considering that we don't have that any more and people are happy,
-I'm not all that convinced that we need to try to re-introduce it.
-
-                     Linus
+diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
+index dfadc96..2f40791 100644
+--- a/include/linux/compiler-gcc4.h
++++ b/include/linux/compiler-gcc4.h
+@@ -29,6 +29,7 @@
+    the kernel context */
+ #define __cold			__attribute__((__cold__))
+ 
++#define __linktime_error(message) __attribute__((__error__(message)))
+ 
+ #if __GNUC_MINOR__ >= 5
+ /*
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 320d6c9..4a24354 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -293,7 +293,9 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ #ifndef __compiletime_error
+ # define __compiletime_error(message)
+ #endif
+-
++#ifndef __linktime_error
++# define __linktime_error(message)
++#endif
+ /*
+  * Prevent the compiler from merging or refetching accesses.  The compiler
+  * is also forbidden from reordering successive instances of ACCESS_ONCE(),
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index b93c66e..ebe54515 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -666,6 +666,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
+ #define BUILD_BUG_ON_ZERO(e) (0)
+ #define BUILD_BUG_ON_NULL(e) ((void*)0)
+ #define BUILD_BUG_ON(condition)
++#define BUILD_BUG_ON_USED() (0)
+ #else /* __CHECKER__ */
+ 
+ /* Force a compilation error if a constant expression is not a power of 2 */
+@@ -704,6 +705,21 @@ extern int __build_bug_on_failed;
+ 		if (condition) __build_bug_on_failed = 1;	\
+ 	} while(0)
+ #endif
++
++/**
++ * BUILD_BUG_ON_USED - break compile if used.
++ *
++ * If you have some code that you expect the compiler to eliminate at
++ * build time, you should use BUILD_BUG_ON_USED to detect if it is
++ * unexpectedly used.
++ */
++#define BUILD_BUG_ON_USED()						\
++	do {								\
++		extern void __build_bug_on_used_failed(void)		\
++			__linktime_error("BUILD_BUG_ON_USED failed");	\
++		__build_bug_on_used_failed();				\
++	} while (0)
++
+ #endif	/* __CHECKER__ */
+ 
+ /* Trap pasters of __FUNCTION__ at compile-time */
+-- 
+1.7.2.3
