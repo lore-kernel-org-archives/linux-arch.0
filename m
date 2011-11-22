@@ -1,50 +1,36 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [patch] hugetlb: remove dummy definitions of HPAGE_MASK and HPAGE_SIZE
-Date: Tue, 22 Nov 2011 12:41:55 -0800
-Message-ID: <m2sjlfvqi4.fsf@firstfloor.org>
-References: <1321567050-13197-1-git-send-email-ddaney.cavm@gmail.com>
-	<alpine.DEB.2.00.1111171520130.20133@chino.kir.corp.google.com>
-	<alpine.DEB.2.00.1111171522131.20133@chino.kir.corp.google.com>
-	<4ECACF68.3020701@gmail.com>
-	<CA+55aFwZxqHfEOemj+OJNKCj2toqGf3rkK-9iuS39L7iZsoH1Q@mail.gmail.com>
-	<4ECADD83.3090108@caviumnetworks.com>
-	<CA+55aFzSNqCOFuvtEc2V1THVOsOVnz6NOa1U_9p5=Y4E=sj6qg@mail.gmail.com>
-	<20111121155024.33b1b881.akpm@linux-foundation.org>
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: Re: [PATCH RFC 3/5] kbuild/extable: Hook up sortextable into the
+ build system.
+Date: Tue, 22 Nov 2011 13:38:37 -0800
+Message-ID: <4ECC165D.60300@gmail.com>
+References: <1321645068-20475-1-git-send-email-ddaney.cavm@gmail.com> <1321645068-20475-4-git-send-email-ddaney.cavm@gmail.com> <4EC9046C.3050708@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:20464 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755826Ab1KVUl4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Nov 2011 15:41:56 -0500
-In-Reply-To: <20111121155024.33b1b881.akpm@linux-foundation.org> (Andrew
-	Morton's message of "Mon, 21 Nov 2011 15:50:24 -0800")
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:34974 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757481Ab1KVVil (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2011 16:38:41 -0500
+In-Reply-To: <4EC9046C.3050708@suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Daney <ddaney@caviumnetworks.com>, David Daney <ddaney.cavm@gmail.com>, David Rientjes <rientjes@google.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, David Daney <david.daney@cavium.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Robin Holt <holt@sgi.com>
+To: Michal Marek <mmarek@suse.cz>
+Cc: David Daney <ddaney.cavm@gmail.com>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-embedded@vger.kernel.org" <linux-embedded@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, David Daney <david.daney@cavium.com>
 
-Andrew Morton <akpm@linux-foundation.org> writes:
->> 
->> I wish people whose code had stuff like that would take a deep look at it.
->> 
+On 11/20/2011 05:45 AM, Michal Marek wrote:
+> On 18.11.2011 20:37, David Daney wrote:
+>> +	$(if $(CONFIG_BUILDTIME_EXTABLE_SORT),				\
+>> +	$(Q)$(if $($(quiet)cmd_sortextable),				\
+>> +	  echo '  $($(quiet)cmd_sortextable)  vmlinux'&&)		\
+>> +	  $(cmd_sortextable)  vmlinux)
 >
-> The original decision way back when was that huge pages shouldn't mess
-> up the core VM too much.  One way in which we addressed that was to
+> Why do you opencode $(call cmd,sortextable) here?
+>
 
-IMHO this decision should really be revisited now.  Originally hugetlb
-was pretty simple, but these days it has most of the functionality of a
-full VM now. In fact with THP we have 3 different VM systems now, all
-subtle different with different issues. And with THP hugetlb will be
-even more widely used than it is today.
+Mostly just mimicking the other code in the vicinity.
 
-On the other hand there are strange gaps now, like shared memory
-doesn't work with THP, but only with hugetlbfs.
+I will try to improve it in the next version of the patch.
 
-It would be far better to think about unifying these three VMs. Then with
-less ifdefs it would also not need hacks like this anymore.
-
--Andi
-
--- 
-ak@linux.intel.com -- Speaking for myself only
+Thanks,
+David Daney
