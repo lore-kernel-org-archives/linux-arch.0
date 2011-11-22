@@ -1,77 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:51474 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754862Ab1KVBbN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Nov 2011 20:31:13 -0500
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:61770 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755656Ab1KVSO5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Nov 2011 13:14:57 -0500
 From: David Daney <ddaney.cavm@gmail.com>
-Subject: [PATCH 2/2] hugetlb: Replace BUG() with BUILD_BUG_ON_USED() for dummy definitions.
-Date: Mon, 21 Nov 2011 17:31:06 -0800
-Message-ID: <1321925466-11280-3-git-send-email-ddaney.cavm@gmail.com>
-In-Reply-To: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
-References: <1321925466-11280-1-git-send-email-ddaney.cavm@gmail.com>
+Subject: [PATCH v2 1/2] kernel.h: Add BUILD_BUG() macro.
+Date: Tue, 22 Nov 2011 10:14:45 -0800
+Message-ID: <1321985686-798-2-git-send-email-ddaney.cavm@gmail.com>
+In-Reply-To: <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
+References: <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>
+To: ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
-Message-ID: <20111122013106._ABP67JA_dMQoPID15ypRoF-9AJ2Rs2xJyBLr4P6DAM@z>
+Message-ID: <20111122181445.cp8_9ahcrzUEhCGMDyv6snIkEsuuGZc9Hwcmy3d9ytA@z>
 
 From: David Daney <david.daney@cavium.com>
 
-The file linux/hugetlb.h has many places where dummy symbols were
-defined so that the main source code would contain fewer:
+We can place this in definitions that we expect the compiler to remove
+by dead code elimination.  If this assertion fails, we get a nice
+error message at build time.
 
-    #ifdef CONFIG_HUGETLBFS
+The GCC function attribute error("message") was added in version 4.3,
+so we define a new macro __linktime_error(message) to expand to this
+for GCC-4.3 and later.  This will give us an error diagnostic from the
+compiler on the line that fails.  For other compilers
+__linktime_error(message) expands to nothing, and we have to be
+content with a link time error, but at least we will still get a build
+error.
 
-If there were any misuse of these symbols, the only symptom would be
-an OOPS at runtime.  Change the BUG() to BUILD_BUG_ON_USED() to catch
-any such abuse at compile time instead.
+BUILD_BUG() expands to the undefined function __build_bug_failed() and
+will fail at link time if the compiler ever emits code for it.  On
+GCC-4.3 and later, attribute((error())) is used so that the failure
+will be noted at compile time instead.
 
 Signed-off-by: David Daney <david.daney@cavium.com>
 ---
- include/linux/hugetlb.h |   15 ++++++++-------
- 1 files changed, 8 insertions(+), 7 deletions(-)
+ include/linux/compiler-gcc4.h |    1 +
+ include/linux/compiler.h      |    4 +++-
+ include/linux/kernel.h        |   16 ++++++++++++++++
+ 3 files changed, 20 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/hugetlb.h b/include/linux/hugetlb.h
-index d9d6c86..0067191 100644
---- a/include/linux/hugetlb.h
-+++ b/include/linux/hugetlb.h
-@@ -85,11 +85,11 @@ static inline unsigned long hugetlb_total_pages(void)
- 	return 0;
- }
+diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
+index dfadc96..2f40791 100644
+--- a/include/linux/compiler-gcc4.h
++++ b/include/linux/compiler-gcc4.h
+@@ -29,6 +29,7 @@
+    the kernel context */
+ #define __cold			__attribute__((__cold__))
  
--#define follow_hugetlb_page(m,v,p,vs,a,b,i,w)	({ BUG(); 0; })
-+#define follow_hugetlb_page(m,v,p,vs,a,b,i,w)	({ BUILD_BUG_ON_USED(); 0; })
- #define follow_huge_addr(mm, addr, write)	ERR_PTR(-EINVAL)
--#define copy_hugetlb_page_range(src, dst, vma)	({ BUG(); 0; })
--#define hugetlb_prefault(mapping, vma)		({ BUG(); 0; })
--#define unmap_hugepage_range(vma, start, end, page)	BUG()
-+#define copy_hugetlb_page_range(src, dst, vma)	({ BUILD_BUG_ON_USED(); 0; })
-+#define hugetlb_prefault(mapping, vma)		({ BUILD_BUG_ON_USED(); 0; })
-+#define unmap_hugepage_range(vma, start, end, page)	BUILD_BUG_ON_USED()
- static inline void hugetlb_report_meminfo(struct seq_file *m)
- {
- }
-@@ -100,8 +100,9 @@ static inline void hugetlb_report_meminfo(struct seq_file *m)
- #define pmd_huge(x)	0
- #define pud_huge(x)	0
- #define is_hugepage_only_range(mm, addr, len)	0
--#define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling) ({BUG(); 0; })
--#define hugetlb_fault(mm, vma, addr, flags)	({ BUG(); 0; })
-+#define hugetlb_free_pgd_range(tlb, addr, end, floor, ceiling)	\
-+	({BUILD_BUG_ON_USED(); 0; })
-+#define hugetlb_fault(mm, vma, addr, flags)	({ BUILD_BUG_ON_USED(); 0; })
- #define huge_pte_offset(mm, address)	0
- #define dequeue_hwpoisoned_huge_page(page)	0
- static inline void copy_huge_page(struct page *dst, struct page *src)
-@@ -186,7 +187,7 @@ static inline void set_file_hugepages(struct file *file)
- #else /* !CONFIG_HUGETLBFS */
++#define __linktime_error(message) __attribute__((__error__(message)))
  
- #define is_file_hugepages(file)			0
--#define set_file_hugepages(file)		BUG()
-+#define set_file_hugepages(file)		BUILD_BUG_ON_USED()
- static inline struct file *hugetlb_file_setup(const char *name, size_t size,
- 		vm_flags_t acctflag, struct user_struct **user, int creat_flags)
- {
+ #if __GNUC_MINOR__ >= 5
+ /*
+diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+index 320d6c9..4a24354 100644
+--- a/include/linux/compiler.h
++++ b/include/linux/compiler.h
+@@ -293,7 +293,9 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+ #ifndef __compiletime_error
+ # define __compiletime_error(message)
+ #endif
+-
++#ifndef __linktime_error
++# define __linktime_error(message)
++#endif
+ /*
+  * Prevent the compiler from merging or refetching accesses.  The compiler
+  * is also forbidden from reordering successive instances of ACCESS_ONCE(),
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index b93c66e..e30002f 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -666,6 +666,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
+ #define BUILD_BUG_ON_ZERO(e) (0)
+ #define BUILD_BUG_ON_NULL(e) ((void*)0)
+ #define BUILD_BUG_ON(condition)
++#define BUILD_BUG() (0)
+ #else /* __CHECKER__ */
+ 
+ /* Force a compilation error if a constant expression is not a power of 2 */
+@@ -704,6 +705,21 @@ extern int __build_bug_on_failed;
+ 		if (condition) __build_bug_on_failed = 1;	\
+ 	} while(0)
+ #endif
++
++/**
++ * BUILD_BUG - break compile if used.
++ *
++ * If you have some code that you expect the compiler to eliminate at
++ * build time, you should use BUILD_BUG_ON_USED to detect if it is
++ * unexpectedly used.
++ */
++#define BUILD_BUG()						\
++	do {							\
++		extern void __build_bug_failed(void)		\
++			__linktime_error("BUILD_BUG failed");	\
++		__build_bug_failed();				\
++	} while (0)
++
+ #endif	/* __CHECKER__ */
+ 
+ /* Trap pasters of __FUNCTION__ at compile-time */
 -- 
 1.7.2.3
 
