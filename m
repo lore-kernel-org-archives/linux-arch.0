@@ -1,14 +1,14 @@
 From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2 1/2] kernel.h: Add BUILD_BUG() macro.
-Date: Wed, 23 Nov 2011 11:11:20 +0000
-Message-ID: <2657.1322046680@redhat.com>
-References: <1321985686-798-2-git-send-email-ddaney.cavm@gmail.com> <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
+Subject: Re: [PATCH v2 2/2] hugetlb: Replace BUG() with BUILD_BUG() for dummy definitions.
+Date: Wed, 23 Nov 2011 11:11:40 +0000
+Message-ID: <2694.1322046700@redhat.com>
+References: <1321985686-798-3-git-send-email-ddaney.cavm@gmail.com> <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:64325 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:35195 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751196Ab1KWLLi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Nov 2011 06:11:38 -0500
-In-Reply-To: <1321985686-798-2-git-send-email-ddaney.cavm@gmail.com>
+	id S1752475Ab1KWLLv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 23 Nov 2011 06:11:51 -0500
+In-Reply-To: <1321985686-798-3-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Daney <ddaney.cavm@gmail.com>
@@ -18,22 +18,18 @@ David Daney <ddaney.cavm@gmail.com> wrote:
 
 > From: David Daney <david.daney@cavium.com>
 > 
-> We can place this in definitions that we expect the compiler to remove
-> by dead code elimination.  If this assertion fails, we get a nice
-> error message at build time.
+> The file linux/hugetlb.h has many places where dummy symbols were
+> defined so that the main source code would contain fewer:
 > 
-> The GCC function attribute error("message") was added in version 4.3,
-> so we define a new macro __linktime_error(message) to expand to this
-> for GCC-4.3 and later.  This will give us an error diagnostic from the
-> compiler on the line that fails.  For other compilers
-> __linktime_error(message) expands to nothing, and we have to be
-> content with a link time error, but at least we will still get a build
-> error.
+>     #ifdef CONFIG_HUGETLBFS
 > 
-> BUILD_BUG() expands to the undefined function __build_bug_failed() and
-> will fail at link time if the compiler ever emits code for it.  On
-> GCC-4.3 and later, attribute((error())) is used so that the failure
-> will be noted at compile time instead.
+> or
+> 
+>     #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> 
+> If there were any misuse of these symbols, the only symptom would be
+> an OOPS at runtime.  Change the BUG() to BUILD_BUG() to catch
+> any such abuse at compile time instead.
 > 
 > Signed-off-by: David Daney <david.daney@cavium.com>
 
