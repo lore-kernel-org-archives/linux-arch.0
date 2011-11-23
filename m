@@ -1,36 +1,22 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v2 2/2] hugetlb: Replace BUG() with BUILD_BUG() for dummy definitions.
-Date: Wed, 23 Nov 2011 11:11:40 +0000
-Message-ID: <2694.1322046700@redhat.com>
-References: <1321985686-798-3-git-send-email-ddaney.cavm@gmail.com> <1321985686-798-1-git-send-email-ddaney.cavm@gmail.com>
+From: VITTORIO FOUNDATION <info@gmf.org>
+Subject: AWARD NOTICE
+Date: Wed, 23 Nov 2011 00:00:59 -1200
+Message-ID: <20111123120058.EFC07184699__13282.308568205$1322054815$gmane$org@posta.adiyaman.edu.tr>
+Reply-To: vdf1999@qatar.io
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35195 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752475Ab1KWLLv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 23 Nov 2011 06:11:51 -0500
-In-Reply-To: <1321985686-798-3-git-send-email-ddaney.cavm@gmail.com>
+Received: from posta.adiyaman.edu.tr ([193.255.110.217]:43310 "EHLO
+	posta.adiyaman.edu.tr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755408Ab1KWN0s convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Nov 2011 08:26:48 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: dhowells@redhat.com, ralf@linux-mips.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Daney <david.daney@cavium.com>
+To: Recipients <info@gmf.org>
 
-David Daney <ddaney.cavm@gmail.com> wrote:
-
-> From: David Daney <david.daney@cavium.com>
-> 
-> The file linux/hugetlb.h has many places where dummy symbols were
-> defined so that the main source code would contain fewer:
-> 
->     #ifdef CONFIG_HUGETLBFS
-> 
-> or
-> 
->     #ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> 
-> If there were any misuse of these symbols, the only symptom would be
-> an OOPS at runtime.  Change the BUG() to BUILD_BUG() to catch
-> any such abuse at compile time instead.
-> 
-> Signed-off-by: David Daney <david.daney@cavium.com>
-
-Acked-by: David Howells <dhowells@redhat.com>
+You have been awarded $100,000,000.00 among  the 5 beneficiaries from the Vittorio Foundation.Qualification numbers (P-333-7858,B-011-67)
+ 
+Email:{vittoriofoundation1@hotmail.com}
+Mr. Jennifer David
