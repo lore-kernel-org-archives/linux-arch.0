@@ -1,22 +1,67 @@
-From: VITTORIO FOUNDATION <info@gmf.org>
-Subject: AWARD NOTICE
-Date: Wed, 23 Nov 2011 00:00:59 -1200
-Message-ID: <20111123120058.EFC07184699__13282.308568205$1322054815$gmane$org@posta.adiyaman.edu.tr>
-Reply-To: vdf1999@qatar.io
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: [PATCH v3 0/2] Stop some of the abuse of BUG() where compile time checks should be used.
+Date: Wed, 23 Nov 2011 15:46:55 -0800
+Message-ID: <1322092017-21471-1-git-send-email-ddaney.cavm@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from posta.adiyaman.edu.tr ([193.255.110.217]:43310 "EHLO
-	posta.adiyaman.edu.tr" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755408Ab1KWN0s convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Nov 2011 08:26:48 -0500
-Content-Description: Mail message body
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:47696 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750777Ab1KWXrH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Nov 2011 18:47:07 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <info@gmf.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>, David Howells <dhowells@redhat.com>, David Daney <david.daney@cavium.com>
 
-You have been awarded $100,000,000.00 among  the 5 beneficiaries from the Vittorio Foundation.Qualification numbers (P-333-7858,B-011-67)
- 
-Email:{vittoriofoundation1@hotmail.com}
-Mr. Jennifer David
+From: David Daney <david.daney@cavium.com>
+
+
+For v3:
+
+No code changes.
+
+Fix comment text in kernel.h to correctly reflect the name
+BUILD_BUG().  Updated patch chanegelogs with slightly better
+descriptions and some Acked-by: headers.
+
+Andrew, since you have version 2 in you tree currently, can you
+replace those patches with this version instead?
+
+Thanks,
+David Daney
+
+From v2:
+
+   As suggested by 'DM', call the macro BUILD_BUG() instead of
+   BUILD_BUG_ON_USED().  Linus seemed satisfied with this, so if it
+   still looks good, can we put it in some linux-next tree (Perhaps
+   Andrew Morton's) to cook for a while?
+
+   The second patch now covers linux/huge_mm.h too.
+
+From v1:
+
+   After some, perhaps justified, reluctance to merge dummy
+   symbol definitions containing BUG() into header files, I propose
+   these patches instead.
+
+   We define a new compile time assertion BUILD_BUG_ON_USED() that can
+   be used in places were we expect the compiler's dead code
+   elimination to get rid of code.  This happens mostly in code
+   dealing with huge pages, but in other places as well.
+
+   The first patch adds BUILD_BUG_ON_USED(), the second gets rid of
+   one of the main abusers of BUG().
+
+David Daney (2):
+  kernel.h: Add BUILD_BUG() macro.
+  hugetlb: Replace BUG() with BUILD_BUG() for dummy definitions.
+
+ include/linux/compiler-gcc4.h |    1 +
+ include/linux/compiler.h      |    4 +++-
+ include/linux/huge_mm.h       |    8 ++++----
+ include/linux/hugetlb.h       |   14 +++++++-------
+ include/linux/kernel.h        |   16 ++++++++++++++++
+ 5 files changed, 31 insertions(+), 12 deletions(-)
+
+-- 
+1.7.2.3
