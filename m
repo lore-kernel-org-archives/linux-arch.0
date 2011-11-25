@@ -1,53 +1,37 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH-RFC 01/10] lib: move GENERIC_IOMAP to lib/Kconfig
-Date: Fri, 25 Nov 2011 09:41:09 +0100
-Message-ID: <20111125084109.GS13937@axis.com>
-References: <cover.1322163031.git.mst@redhat.com> <5aed7b7e1dbc8a50ebd6986245df8054fd05b7cd.1322163031.git.mst@redhat.com>
+From: Anton Vorontsov <cbouatmailru@gmail.com>
+Subject: Re: [PATCH 44/55] power_supply:irq: Remove IRQF_DISABLED
+Date: Sat, 26 Nov 2011 00:35:40 +0400
+Message-ID: <20111125203540.GA21345@oksana.dev.rtsoft.ru>
+References: <1316681962-8217-1-git-send-email-yong.zhang0@gmail.com>
+ <1316681962-8217-45-git-send-email-yong.zhang0@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-        protocol="application/pgp-signature"; boundary="f2QGlHpHGjS2mn6Y"
-Return-path: <linux-mips-bounce@linux-mips.org>
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:58823 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752092Ab1KYUfq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Nov 2011 15:35:46 -0500
 Content-Disposition: inline
-In-Reply-To: <5aed7b7e1dbc8a50ebd6986245df8054fd05b7cd.1322163031.git.mst@redhat.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Paul Mundt <lethal@linux-sh.org>, Da
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1316681962-8217-45-git-send-email-yong.zhang0@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, Tejun Heo <tj@kernel.org>, Marek Vasut <marek.vasut@gmail.com>, Axel Lin <axel.lin@gmail.com>
 
+On Thu, Sep 22, 2011 at 04:59:11PM +0800, Yong Zhang wrote:
+> Since commit [e58aa3d2: genirq: Run irq handlers with interrupts disabled],
+> We run all interrupt handlers with interrupts disabled
+> and we even check and yell when an interrupt handler
+> returns with interrupts enabled (see commit [b738a50a:
+> genirq: Warn when handler enables interrupts]).
+> 
+> So now this flag is a NOOP and can be removed.
+> 
+> Signed-off-by: Yong Zhang <yong.zhang0@gmail.com>
+> ---
 
---f2QGlHpHGjS2mn6Y
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Applied, thanks!
 
-On Thu, Nov 24, 2011 at 09:15:42PM +0100, Michael S. Tsirkin wrote:
-> define GENERIC_IOMAP in a central location
-> instead of all architectures. This will be helpful
-> for the follow-up patch which makes it select
-> other configs. Code is also a bit shorter this way.
->=20
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-
-For the CRIS part:
-
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
-/^JN - Jesper Nilsson
---=20
-               Jesper Nilsson -- jesper.nilsson@axis.com
-
---f2QGlHpHGjS2mn6Y
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-Content-Disposition: inline
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.9 (GNU/Linux)
-
-iEYEARECAAYFAk7PVKUACgkQ31LbvUHyf1e75ACePpPqRaa0/hcY5Pc6jHLp11KX
-g3oAn37y5BAjmjOjjeqo5aGJkxBrHR5C
-=GpXx
------END PGP SIGNATURE-----
-
---f2QGlHpHGjS2mn6Y--
+-- 
+Anton Vorontsov
+Email: cbouatmailru@gmail.com
