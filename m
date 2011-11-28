@@ -1,82 +1,88 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 05/23] memblock: Kill sentinel entries at the end of static region arrays
-Date: Mon, 28 Nov 2011 11:31:07 -0800
-Message-ID: <1322508685-32532-6-git-send-email-tj@kernel.org>
+Subject: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Mon, 28 Nov 2011 11:31:21 -0800
+Message-ID: <1322508685-32532-20-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
-Cc: Tejun Heo <tj@kernel.org>
+Cc: Tejun Heo <tj@kernel.org>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-memblock no longer depends on having one more entry at the end during
-addition making the sentinel entries at the end of region arrays not
-too useful.  Remove the sentinels.  This eases further updates.
+mips used early_node_map[] just to prime free_area_init_nodes().  Now
+memblock can be used for the same purpose and early_node_map[] is
+scheduled to be dropped.  Use memblock instead.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-mips@linux-mips.org
 ---
- include/linux/poison.h |    6 ------
- mm/memblock.c          |   14 ++------------
- 2 files changed, 2 insertions(+), 18 deletions(-)
+ arch/mips/Kconfig                |    3 +++
+ arch/mips/kernel/setup.c         |    3 ++-
+ arch/mips/sgi-ip27/ip27-memory.c |    5 +++--
+ 3 files changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/poison.h b/include/linux/poison.h
-index 79159de..2110a81 100644
---- a/include/linux/poison.h
-+++ b/include/linux/poison.h
-@@ -40,12 +40,6 @@
- #define	RED_INACTIVE	0x09F911029D74E35BULL	/* when obj is inactive */
- #define	RED_ACTIVE	0xD84156C5635688C0ULL	/* when obj is active */
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index d46f1da..b789847 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -25,6 +25,9 @@ config MIPS
+ 	select GENERIC_IRQ_SHOW
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select IRQ_FORCED_THREADING
++	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
++	select ARCH_DISCARD_MEMBLOCK
  
--#ifdef CONFIG_PHYS_ADDR_T_64BIT
--#define MEMBLOCK_INACTIVE	0x3a84fb0144c9e71bULL
--#else
--#define MEMBLOCK_INACTIVE	0x44c9e71bUL
--#endif
--
- #define SLUB_RED_INACTIVE	0xbb
- #define SLUB_RED_ACTIVE		0xcc
+ menu "Machine selection"
  
-diff --git a/mm/memblock.c b/mm/memblock.c
-index 4b80f6f..e808df8 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -24,8 +24,8 @@ struct memblock memblock __initdata_memblock;
+diff --git a/arch/mips/kernel/setup.c b/arch/mips/kernel/setup.c
+index 84af26a..b1cb8f8 100644
+--- a/arch/mips/kernel/setup.c
++++ b/arch/mips/kernel/setup.c
+@@ -14,6 +14,7 @@
+ #include <linux/ioport.h>
+ #include <linux/export.h>
+ #include <linux/screen_info.h>
++#include <linux/memblock.h>
+ #include <linux/bootmem.h>
+ #include <linux/initrd.h>
+ #include <linux/root_dev.h>
+@@ -352,7 +353,7 @@ static void __init bootmem_init(void)
+ 			continue;
+ #endif
  
- int memblock_debug __initdata_memblock;
- int memblock_can_resize __initdata_memblock;
--static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
--static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
-+static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS] __initdata_memblock;
-+static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS] __initdata_memblock;
+-		add_active_range(0, start, end);
++		memblock_add_node(PFN_PHYS(start), PFN_PHYS(end - start), 0);
+ 	}
  
- /* inline so we don't get a warning when pr_debug is compiled out */
- static inline const char *memblock_type_name(struct memblock_type *type)
-@@ -911,12 +911,6 @@ void __init memblock_analyze(void)
- {
- 	int i;
- 
--	/* Check marker in the unused last array entry */
--	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
--		!= MEMBLOCK_INACTIVE);
--	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
--		!= MEMBLOCK_INACTIVE);
--
- 	memblock.memory_size = 0;
- 
- 	for (i = 0; i < memblock.memory.cnt; i++)
-@@ -940,10 +934,6 @@ void __init memblock_init(void)
- 	memblock.reserved.regions	= memblock_reserved_init_regions;
- 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
- 
--	/* Write a marker in the unused last array entry */
--	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = MEMBLOCK_INACTIVE;
--	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = MEMBLOCK_INACTIVE;
--
- 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
- 	 * This simplifies the memblock_add() code below...
- 	 */
+ 	/*
+diff --git a/arch/mips/sgi-ip27/ip27-memory.c b/arch/mips/sgi-ip27/ip27-memory.c
+index bc12971..b105eca 100644
+--- a/arch/mips/sgi-ip27/ip27-memory.c
++++ b/arch/mips/sgi-ip27/ip27-memory.c
+@@ -12,6 +12,7 @@
+  */
+ #include <linux/init.h>
+ #include <linux/kernel.h>
++#include <linux/memblock.h>
+ #include <linux/mm.h>
+ #include <linux/mmzone.h>
+ #include <linux/module.h>
+@@ -381,8 +382,8 @@ static void __init szmem(void)
+ 				continue;
+ 			}
+ 			num_physpages += slot_psize;
+-			add_active_range(node, slot_getbasepfn(node, slot),
+-					 slot_getbasepfn(node, slot) + slot_psize);
++			memblock_add_node(PFN_PHYS(slot_getbasepfn(node, slot)),
++					  PFN_PHYS(slot_psize), node);
+ 		}
+ 	}
+ }
 -- 
 1.7.3.1
