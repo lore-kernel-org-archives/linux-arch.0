@@ -1,67 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:34641 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754311Ab1K1Tbq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:31:46 -0500
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:35679 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754371Ab1K1Tbu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:31:50 -0500
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 04/23] memblock: Add __memblock_dump_all()
-Date: Mon, 28 Nov 2011 11:31:06 -0800
-Message-ID: <1322508685-32532-5-git-send-email-tj@kernel.org>
+Subject: [PATCH 05/23] memblock: Kill sentinel entries at the end of static region arrays
+Date: Mon, 28 Nov 2011 11:31:07 -0800
+Message-ID: <1322508685-32532-6-git-send-email-tj@kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
 Cc: Tejun Heo <tj@kernel.org>
-Message-ID: <20111128193106.Yi0Ac_dPXdeFdrVHF3_VQNaTIq0zP1TNRVs8mwglEx0@z>
+Message-ID: <20111128193107.DrcCB4wIICs-ZdLD_81tNXgBYQCeC_aYOfZ2mVk82pI@z>
 
-Add __memblock_dump_all() which dumps memblock configuration whether
-memblock_debug is enabled or not.
+memblock no longer depends on having one more entry at the end during
+addition making the sentinel entries at the end of region arrays not
+too useful.  Remove the sentinels.  This eases further updates.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    8 +++++++-
- mm/memblock.c            |    5 +----
- 2 files changed, 8 insertions(+), 5 deletions(-)
+ include/linux/poison.h |    6 ------
+ mm/memblock.c          |   14 ++------------
+ 2 files changed, 2 insertions(+), 18 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index 2f8e28f..1a3bee7 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -129,7 +129,13 @@ int memblock_is_region_memory(phys_addr_t base, phys_addr_t size);
- int memblock_is_reserved(phys_addr_t addr);
- int memblock_is_region_reserved(phys_addr_t base, phys_addr_t size);
+diff --git a/include/linux/poison.h b/include/linux/poison.h
+index 79159de..2110a81 100644
+--- a/include/linux/poison.h
++++ b/include/linux/poison.h
+@@ -40,12 +40,6 @@
+ #define	RED_INACTIVE	0x09F911029D74E35BULL	/* when obj is inactive */
+ #define	RED_ACTIVE	0xD84156C5635688C0ULL	/* when obj is active */
  
--void memblock_dump_all(void);
-+extern void __memblock_dump_all(void);
-+
-+static inline void memblock_dump_all(void)
-+{
-+	if (memblock_debug)
-+		__memblock_dump_all();
-+}
+-#ifdef CONFIG_PHYS_ADDR_T_64BIT
+-#define MEMBLOCK_INACTIVE	0x3a84fb0144c9e71bULL
+-#else
+-#define MEMBLOCK_INACTIVE	0x44c9e71bUL
+-#endif
+-
+ #define SLUB_RED_INACTIVE	0xbb
+ #define SLUB_RED_ACTIVE		0xcc
  
- /**
-  * memblock_set_current_limit - Set the current allocation limit to allow
 diff --git a/mm/memblock.c b/mm/memblock.c
-index d050618..4b80f6f 100644
+index 4b80f6f..e808df8 100644
 --- a/mm/memblock.c
 +++ b/mm/memblock.c
-@@ -898,11 +898,8 @@ static void __init_memblock memblock_dump(struct memblock_type *type, char *name
- 	}
- }
+@@ -24,8 +24,8 @@ struct memblock memblock __initdata_memblock;
  
--void __init_memblock memblock_dump_all(void)
-+void __init_memblock __memblock_dump_all(void)
+ int memblock_debug __initdata_memblock;
+ int memblock_can_resize __initdata_memblock;
+-static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
+-static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS + 1] __initdata_memblock;
++static struct memblock_region memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS] __initdata_memblock;
++static struct memblock_region memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS] __initdata_memblock;
+ 
+ /* inline so we don't get a warning when pr_debug is compiled out */
+ static inline const char *memblock_type_name(struct memblock_type *type)
+@@ -911,12 +911,6 @@ void __init memblock_analyze(void)
  {
--	if (!memblock_debug)
--		return;
--
- 	pr_info("MEMBLOCK configuration:\n");
- 	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
+ 	int i;
  
+-	/* Check marker in the unused last array entry */
+-	WARN_ON(memblock_memory_init_regions[INIT_MEMBLOCK_REGIONS].base
+-		!= MEMBLOCK_INACTIVE);
+-	WARN_ON(memblock_reserved_init_regions[INIT_MEMBLOCK_REGIONS].base
+-		!= MEMBLOCK_INACTIVE);
+-
+ 	memblock.memory_size = 0;
+ 
+ 	for (i = 0; i < memblock.memory.cnt; i++)
+@@ -940,10 +934,6 @@ void __init memblock_init(void)
+ 	memblock.reserved.regions	= memblock_reserved_init_regions;
+ 	memblock.reserved.max	= INIT_MEMBLOCK_REGIONS;
+ 
+-	/* Write a marker in the unused last array entry */
+-	memblock.memory.regions[INIT_MEMBLOCK_REGIONS].base = MEMBLOCK_INACTIVE;
+-	memblock.reserved.regions[INIT_MEMBLOCK_REGIONS].base = MEMBLOCK_INACTIVE;
+-
+ 	/* Create a dummy zero size MEMBLOCK which will get coalesced away later.
+ 	 * This simplifies the memblock_add() code below...
+ 	 */
 -- 
 1.7.3.1
 
