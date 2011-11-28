@@ -1,109 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:64346 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750891Ab1KWXrH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Nov 2011 18:47:07 -0500
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: [PATCH v3 1/2] kernel.h: Add BUILD_BUG() macro.
-Date: Wed, 23 Nov 2011 15:46:56 -0800
-Message-ID: <1322092017-21471-2-git-send-email-ddaney.cavm@gmail.com>
-In-Reply-To: <1322092017-21471-1-git-send-email-ddaney.cavm@gmail.com>
-References: <1322092017-21471-1-git-send-email-ddaney.cavm@gmail.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:56461 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753859Ab1K1S6Z convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 13:58:25 -0500
+Received: by wwp14 with SMTP id 14so9570156wwp.1
+        for <linux-arch@vger.kernel.org>; Mon, 28 Nov 2011 10:58:24 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CAErSpo5xAJowmEfLXnGkTXXF-4fbNMW2+JYg=5yPK3e-PZWsrw@mail.gmail.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+ <CAErSpo5X00LFs6XUcnqoogZEZhR2H4G7AJvh9+FAsvr3vMHkeA@mail.gmail.com> <CAErSpo5xAJowmEfLXnGkTXXF-4fbNMW2+JYg=5yPK3e-PZWsrw@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 28 Nov 2011 10:58:02 -0800
+Message-ID: <CAErSpo7Tv-fTngZ0=UiNwo=XOwzN49vygMA8aAd_YH0srJ5cdw@mail.gmail.com>
+Subject: Re: [PATCH v3 00/34] Create PCI root buses with correct resources
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: ralf@linux-mips.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>, David Howells <dhowells@redhat.com>, David Daney <david.daney@cavium.com>
-Message-ID: <20111123234656.9WEtQH3iB5hRODCen_ofTlZOpMfXR-Ctql7c727RUVM@z>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <linux@arm.linux.org.uk>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>
+Message-ID: <20111128185802.sTFE8oJOnUKlPMvauLa2RSd5UCLKFJCTyS2tMH420-U@z>
 
-From: David Daney <david.daney@cavium.com>
+On Fri, Nov 11, 2011 at 8:40 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Sat, Oct 29, 2011 at 10:25 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> On Fri, Oct 28, 2011 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>>> The most generic way to create a PCI root bus is with pci_scan_bus(), but that
+>>> doesn't allow you to specify what resources are available on the bus, i.e.,
+>>> what the host bridge apertures are.  This series fixes the problem by adding
+>>> a new pci_scan_root_bus() interface that takes a list of bus resources.
+>>
+>> These patches are also available here:
+>> git://github.com/bjorn-helgaas/linux.git on
+>> the "pci-scan-v3" branch.
+>
+> This series touches 13 architectures.  Most of the changes are fairly
+> simple, but some (arm, parisc, powerpc) are more involved, so I'd
+> appreciate any feedback you have.
+>
+> Since the 3.2 merge window is closed, I'm targeting these for 3.3.
+> They don't all have to be merged at once, though we can't remove
+> pci_create_bus() (patch 34/34) until all the arch patches are in.
 
-We can place this in definitions that we expect the compiler to remove
-by dead code elimination.  If this assertion fails, we get a nice
-error message at build time.
+Jesse, would you consider putting these in your branch for linux-next?
+ They've been floating in the ether for a month, so it seems like it's
+time for the next step.
 
-The GCC function attribute error("message") was added in version 4.3,
-so we define a new macro __linktime_error(message) to expand to this
-for GCC-4.3 and later.  This will give us an error diagnostic from the
-compiler on the line that fails.  For other compilers
-__linktime_error(message) expands to nothing, and we have to be
-content with a link time error, but at least we will still get a build
-error.
+The "pci-scan-v3" github branch is still current.  Let me know if
+you'd like any updates or rework.
 
-BUILD_BUG() expands to the undefined function __build_bug_failed() and
-will fail at link time if the compiler ever emits code for it.  On
-GCC-4.3 and later, attribute((error())) is used so that the failure
-will be noted at compile time instead.
-
-Acked-by: David Howells <dhowells@redhat.com>
-Acked-by: David Rientjes <rientjes@google.com>
-Signed-off-by: David Daney <david.daney@cavium.com>
----
- include/linux/compiler-gcc4.h |    1 +
- include/linux/compiler.h      |    4 +++-
- include/linux/kernel.h        |   16 ++++++++++++++++
- 3 files changed, 20 insertions(+), 1 deletions(-)
-
-diff --git a/include/linux/compiler-gcc4.h b/include/linux/compiler-gcc4.h
-index dfadc96..2f40791 100644
---- a/include/linux/compiler-gcc4.h
-+++ b/include/linux/compiler-gcc4.h
-@@ -29,6 +29,7 @@
-    the kernel context */
- #define __cold			__attribute__((__cold__))
- 
-+#define __linktime_error(message) __attribute__((__error__(message)))
- 
- #if __GNUC_MINOR__ >= 5
- /*
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 320d6c9..4a24354 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -293,7 +293,9 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
- #ifndef __compiletime_error
- # define __compiletime_error(message)
- #endif
--
-+#ifndef __linktime_error
-+# define __linktime_error(message)
-+#endif
- /*
-  * Prevent the compiler from merging or refetching accesses.  The compiler
-  * is also forbidden from reordering successive instances of ACCESS_ONCE(),
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index b93c66e..723ef1b 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -666,6 +666,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
- #define BUILD_BUG_ON_ZERO(e) (0)
- #define BUILD_BUG_ON_NULL(e) ((void*)0)
- #define BUILD_BUG_ON(condition)
-+#define BUILD_BUG() (0)
- #else /* __CHECKER__ */
- 
- /* Force a compilation error if a constant expression is not a power of 2 */
-@@ -704,6 +705,21 @@ extern int __build_bug_on_failed;
- 		if (condition) __build_bug_on_failed = 1;	\
- 	} while(0)
- #endif
-+
-+/**
-+ * BUILD_BUG - break compile if used.
-+ *
-+ * If you have some code that you expect the compiler to eliminate at
-+ * build time, you should use BUILD_BUG to detect if it is
-+ * unexpectedly used.
-+ */
-+#define BUILD_BUG()						\
-+	do {							\
-+		extern void __build_bug_failed(void)		\
-+			__linktime_error("BUILD_BUG failed");	\
-+		__build_bug_failed();				\
-+	} while (0)
-+
- #endif	/* __CHECKER__ */
- 
- /* Trap pasters of __FUNCTION__ at compile-time */
--- 
-1.7.2.3
-
+Bjorn
