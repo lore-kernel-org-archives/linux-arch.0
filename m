@@ -1,102 +1,155 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 16/23] sparc: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Mon, 28 Nov 2011 11:31:18 -0800
-Message-ID: <1322508685-32532-17-git-send-email-tj@kernel.org>
+Subject: [PATCH 12/23] memblock: Track total size of regions automatically
+Date: Mon, 28 Nov 2011 11:31:14 -0800
+Message-ID: <1322508685-32532-13-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
-Cc: Tejun Heo <tj@kernel.org>, Sam Ravnborg <sam@ravnborg.org>, sparclinux@vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-sparc doesn't access early_node_map[] directly and enabling
-HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
-with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
-enough.
+Total size of memory regions was calculated by memblock_analyze()
+requiring explicitly calling the function between operations which can
+change memory regions and possible users of total size, which is
+cumbersome and fragile.
 
--v2: Use select in Kconfig instead as suggested by Sam Ravnborg.
+This patch makes each memblock_type track total size automatically
+with minor modifications to memblock manipulation functions and remove
+requirements on calling memblock_analyze().  [__]memblock_dump_all()
+now also dumps the total size of reserved regions.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
-Acked-by: "David S. Miller" <davem@davemloft.net>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: sparclinux@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/sparc/Kconfig      |    1 +
- arch/sparc/mm/init_64.c |   24 ++++--------------------
- 2 files changed, 5 insertions(+), 20 deletions(-)
+ include/linux/memblock.h |    2 +-
+ mm/memblock.c            |   27 +++++++++++++--------------
+ 2 files changed, 14 insertions(+), 15 deletions(-)
 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index f92602e..91a6d1e 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -43,6 +43,7 @@ config SPARC64
- 	select HAVE_KPROBES
- 	select HAVE_RCU_TABLE_FREE if SMP
- 	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_SYSCALL_WRAPPERS
- 	select HAVE_DYNAMIC_FTRACE
- 	select HAVE_FTRACE_MCOUNT_RECORD
-diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
-index 29723a2..b3f5e7d 100644
---- a/arch/sparc/mm/init_64.c
-+++ b/arch/sparc/mm/init_64.c
-@@ -816,7 +816,7 @@ static u64 memblock_nid_range(u64 start, u64 end, int *nid)
- #endif
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 6ac91c5..5bb1500 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -30,12 +30,12 @@ struct memblock_region {
+ struct memblock_type {
+ 	unsigned long cnt;	/* number of regions */
+ 	unsigned long max;	/* size of the allocated array */
++	phys_addr_t total_size;	/* size of all regions */
+ 	struct memblock_region *regions;
+ };
  
- /* This must be invoked after performing all of the necessary
-- * add_active_range() calls for 'nid'.  We need to be able to get
-+ * memblock_set_node() calls for 'nid'.  We need to be able to get
-  * correct data from get_pfn_range_for_nid().
-  */
- static void __init allocate_node_data(int nid)
-@@ -987,14 +987,11 @@ static void __init add_node_ranges(void)
+ struct memblock {
+ 	phys_addr_t current_limit;
+-	phys_addr_t memory_size;	/* Updated by memblock_analyze() */
+ 	struct memblock_type memory;
+ 	struct memblock_type reserved;
+ };
+diff --git a/mm/memblock.c b/mm/memblock.c
+index b44875f..f399641 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -179,12 +179,14 @@ int __init_memblock memblock_reserve_reserved_regions(void)
  
- 			this_end = memblock_nid_range(start, end, &nid);
- 
--			numadbg("Adding active range nid[%d] "
-+			numadbg("Setting memblock NUMA node nid[%d] "
- 				"start[%lx] end[%lx]\n",
- 				nid, start, this_end);
- 
--			add_active_range(nid,
--					 start >> PAGE_SHIFT,
--					 this_end >> PAGE_SHIFT);
--
-+			memblock_set_node(start, this_end - start, nid);
- 			start = this_end;
- 		}
- 	}
-@@ -1282,7 +1279,6 @@ static void __init bootmem_init_nonnuma(void)
+ static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
  {
- 	unsigned long top_of_ram = memblock_end_of_DRAM();
- 	unsigned long total_ram = memblock_phys_mem_size();
--	struct memblock_region *reg;
++	type->total_size -= type->regions[r].size;
+ 	memmove(&type->regions[r], &type->regions[r + 1],
+ 		(type->cnt - (r + 1)) * sizeof(type->regions[r]));
+ 	type->cnt--;
  
- 	numadbg("bootmem_init_nonnuma()\n");
- 
-@@ -1292,20 +1288,8 @@ static void __init bootmem_init_nonnuma(void)
- 	       (top_of_ram - total_ram) >> 20);
- 
- 	init_node_masks_nonnuma();
--
--	for_each_memblock(memory, reg) {
--		unsigned long start_pfn, end_pfn;
--
--		if (!reg->size)
--			continue;
--
--		start_pfn = memblock_region_memory_base_pfn(reg);
--		end_pfn = memblock_region_memory_end_pfn(reg);
--		add_active_range(0, start_pfn, end_pfn);
--	}
--
-+	memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
- 	allocate_node_data(0);
--
- 	node_set_online(0);
+ 	/* Special case for empty arrays */
+ 	if (type->cnt == 0) {
++		WARN_ON(type->total_size != 0);
+ 		type->cnt = 1;
+ 		type->regions[0].base = 0;
+ 		type->regions[0].size = 0;
+@@ -314,6 +316,7 @@ static void __init_memblock memblock_insert_region(struct memblock_type *type,
+ 	rgn->size = size;
+ 	memblock_set_region_node(rgn, nid);
+ 	type->cnt++;
++	type->total_size += size;
  }
  
+ /**
+@@ -340,10 +343,11 @@ static int __init_memblock memblock_add_region(struct memblock_type *type,
+ 
+ 	/* special case for empty array */
+ 	if (type->regions[0].size == 0) {
+-		WARN_ON(type->cnt != 1);
++		WARN_ON(type->cnt != 1 || type->total_size);
+ 		type->regions[0].base = base;
+ 		type->regions[0].size = size;
+ 		memblock_set_region_node(&type->regions[0], MAX_NUMNODES);
++		type->total_size = size;
+ 		return 0;
+ 	}
+ repeat:
+@@ -453,7 +457,8 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 			 * to process the next region - the new top half.
+ 			 */
+ 			rgn->base = base;
+-			rgn->size = rend - rgn->base;
++			rgn->size -= base - rbase;
++			type->total_size -= base - rbase;
+ 			memblock_insert_region(type, i, rbase, base - rbase,
+ 					       memblock_get_region_node(rgn));
+ 		} else if (rend > end) {
+@@ -462,7 +467,8 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 			 * current region - the new bottom half.
+ 			 */
+ 			rgn->base = end;
+-			rgn->size = rend - rgn->base;
++			rgn->size -= end - rbase;
++			type->total_size -= end - rbase;
+ 			memblock_insert_region(type, i--, rbase, end - rbase,
+ 					       memblock_get_region_node(rgn));
+ 		} else {
+@@ -784,10 +790,9 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
+  * Remaining API functions
+  */
+ 
+-/* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
+-	return memblock.memory_size;
++	return memblock.memory.total_size;
+ }
+ 
+ /* lowest address */
+@@ -803,7 +808,6 @@ phys_addr_t __init_memblock memblock_end_of_DRAM(void)
+ 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
+ }
+ 
+-/* You must call memblock_analyze() after this. */
+ void __init memblock_enforce_memory_limit(phys_addr_t limit)
+ {
+ 	unsigned long i;
+@@ -906,7 +910,9 @@ static void __init_memblock memblock_dump(struct memblock_type *type, char *name
+ void __init_memblock __memblock_dump_all(void)
+ {
+ 	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
++	pr_info(" memory size = %#llx reserved size = %#llx\n",
++		(unsigned long long)memblock.memory.total_size,
++		(unsigned long long)memblock.reserved.total_size);
+ 
+ 	memblock_dump(&memblock.memory, "memory");
+ 	memblock_dump(&memblock.reserved, "reserved");
+@@ -914,13 +920,6 @@ void __init_memblock __memblock_dump_all(void)
+ 
+ void __init memblock_analyze(void)
+ {
+-	int i;
+-
+-	memblock.memory_size = 0;
+-
+-	for (i = 0; i < memblock.memory.cnt; i++)
+-		memblock.memory_size += memblock.memory.regions[i].size;
+-
+ 	/* We allow resizing from there */
+ 	memblock_can_resize = 1;
+ }
 -- 
 1.7.3.1
