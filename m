@@ -1,74 +1,52 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: [GIT PULL tip/x86/memblock] updated x86/memblock branch
-Date: Mon, 28 Nov 2011 10:22:06 -0800
-Message-ID: <20111128182206.GF18864@google.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v3 00/34] Create PCI root buses with correct resources
+Date: Mon, 28 Nov 2011 10:58:02 -0800
+Message-ID: <CAErSpo7Tv-fTngZ0=UiNwo=XOwzN49vygMA8aAd_YH0srJ5cdw@mail.gmail.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+ <CAErSpo5X00LFs6XUcnqoogZEZhR2H4G7AJvh9+FAsvr3vMHkeA@mail.gmail.com> <CAErSpo5xAJowmEfLXnGkTXXF-4fbNMW2+JYg=5yPK3e-PZWsrw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qy0-f174.google.com ([209.85.216.174]:55110 "EHLO
-	mail-qy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752280Ab1K1SWS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 13:22:18 -0500
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <CAErSpo5xAJowmEfLXnGkTXXF-4fbNMW2+JYg=5yPK3e-PZWsrw@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, James Bottomley <James.Bottomley@hansenpartnership.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Russell King <linux@arm.linux.org.uk>, Deng-Cheng Zhu <dengcheng.zhu@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hello, Ingo, hpa,
+On Fri, Nov 11, 2011 at 8:40 AM, Bjorn Helgaas <bhelgaas@google.com> wr=
+ote:
+> On Sat, Oct 29, 2011 at 10:25 AM, Bjorn Helgaas <bhelgaas@google.com>=
+ wrote:
+>> On Fri, Oct 28, 2011 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com>=
+ wrote:
+>>> The most generic way to create a PCI root bus is with pci_scan_bus(=
+), but that
+>>> doesn't allow you to specify what resources are available on the bu=
+s, i.e.,
+>>> what the host bridge apertures are. =A0This series fixes the proble=
+m by adding
+>>> a new pci_scan_root_bus() interface that takes a list of bus resour=
+ces.
+>>
+>> These patches are also available here:
+>> git://github.com/bjorn-helgaas/linux.git on
+>> the "pci-scan-v3" branch.
+>
+> This series touches 13 architectures. =A0Most of the changes are fair=
+ly
+> simple, but some (arm, parisc, powerpc) are more involved, so I'd
+> appreciate any feedback you have.
+>
+> Since the 3.2 merge window is closed, I'm targeting these for 3.3.
+> They don't all have to be merged at once, though we can't remove
+> pci_create_bus() (patch 34/34) until all the arch patches are in.
 
-For some reason (probably the korg issue played a role), x86/memblock
-got dropped from tip and missed the merge window and I didn't notice
-it either until benh poke me about testing pending patches (thanks a
-lot).  I resurrected the branch and there are some conflicts as
-expected but nothing major.
+Jesse, would you consider putting these in your branch for linux-next?
+ They've been floating in the ether for a month, so it seems like it's
+time for the next step.
 
-I pulled in the current linux/master 401d0069cb "Merge branch
-'fbdev-for-linus' of git://github.com/schandinat/linux-2.6" into
-x86/memblock and resolve all the conflicts.  List of conflicts and
-resolutions follow (also included in the commit message).
+The "pci-scan-v3" github branch is still current.  Let me know if
+you'd like any updates or rework.
 
-    * arch/x86/xen/setup.c
-
-	dc91c728fd "xen: allow extra memory to be in multiple regions"
-	24aa07882b "memblock, x86: Replace memblock_x86_reserve/free..."
-    
-        conflicted on xen_add_extra_mem() updates.  The resolution is
-        trivial as the latter just want to replace
-        memblock_x86_reserve_range() with memblock_reserve().
-
-    * drivers/pci/intel-iommu.c
-
-        166e9278a3f "x86/ia64: intel-iommu: move to drivers/iommu/"
-        5dfe8660a3d "bootmem: Replace work_with_active_regions() with..."
-
-        conflicted as the former moved the file under drivers/iommu/.
-        Resolved by applying the chnages from the latter on the moved
-        file.
-
-    * mm/Kconfig
-
-        6661672053a "memblock: add NO_BOOTMEM config symbol"
-        c378ddd53f9 "memblock, x86: Make ARCH_DISCARD_MEMBLOCK a config option"
-
-        conflicted trivially.  Both added config options.  Just
-        letting both add their own options resolves the conflict.
-
-    * mm/memblock.c
-
-        d1f0ece6cdc "mm/memblock.c: small function definition fixes"
-        ed7b56a799c "memblock: Remove memblock_memory_can_coalesce()"
-
-        confliected.  The former updates function removed by the
-        latter.  Resolution is trivial.
-
-Please pull from
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git x86-memblock
-
-to receive the merged branch.  I'll soon post the pending patches on
-top of the merged branch.
-
-Thank you.
-
--- 
-tejun
+Bjorn
