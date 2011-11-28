@@ -1,71 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-iy0-f174.google.com ([209.85.210.174]:57739 "EHLO
 	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754984Ab1K1TdJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:33:09 -0500
+	with ESMTP id S1754245Ab1K1Tbm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:31:42 -0500
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 20/23] s390: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Mon, 28 Nov 2011 11:31:22 -0800
-Message-ID: <1322508685-32532-21-git-send-email-tj@kernel.org>
+Subject: [PATCH 03/23] memblock: Use memblock_reserve() in memblock internal functions
+Date: Mon, 28 Nov 2011 11:31:05 -0800
+Message-ID: <1322508685-32532-4-git-send-email-tj@kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
-Cc: Tejun Heo <tj@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
-Message-ID: <20111128193122.jO4A3E5kKLNg3GpFHfGFFMVXHrNN7-GAnkfw8cNNLaQ@z>
+Cc: Tejun Heo <tj@kernel.org>
+Message-ID: <20111128193105.WNpdFIa2ga7m8vCBZQpRKGDB3IDJ_jMYoizvUC4Fhr8@z>
 
-s390 used early_node_map[] just to prime free_area_init_nodes().  Now
-memblock can be used for the same purpose and early_node_map[] is
-scheduled to be dropped.  Use memblock instead.
+Make memblock_double_array(), __memblock_alloc_base() and
+memblock_alloc_nid() use memblock_reserve() instead of calling
+memblock_add_region() with reserved array directly.  This eases
+debugging and updates to memblock_add_region().
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
 ---
- arch/s390/Kconfig        |    3 +++
- arch/s390/kernel/setup.c |    4 +++-
- 2 files changed, 6 insertions(+), 1 deletions(-)
+ mm/memblock.c |    9 +++------
+ 1 files changed, 3 insertions(+), 6 deletions(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 373679b..e383caf 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -92,6 +92,9 @@ config S390
- 	select HAVE_ARCH_JUMP_LABEL if !MARCH_G5
- 	select HAVE_RCU_TABLE_FREE if SMP
- 	select ARCH_SAVE_PAGE_KEYS if HIBERNATION
-+	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
-+	select ARCH_DISCARD_MEMBLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK_BH
- 	select ARCH_INLINE_SPIN_LOCK
-diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
-index e58a462..a2850df 100644
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -21,6 +21,7 @@
- #include <linux/module.h>
- #include <linux/sched.h>
- #include <linux/kernel.h>
-+#include <linux/memblock.h>
- #include <linux/mm.h>
- #include <linux/stddef.h>
- #include <linux/unistd.h>
-@@ -820,7 +821,8 @@ setup_memory(void)
- 		end_chunk = min(end_chunk, end_pfn);
- 		if (start_chunk >= end_chunk)
- 			continue;
--		add_active_range(0, start_chunk, end_chunk);
-+		memblock_add_node(PFN_PHYS(start_chunk),
-+				  PFN_PHYS(end_chunk - start_chunk), 0);
- 		pfn = max(start_chunk, start_pfn);
- 		for (; pfn < end_chunk; pfn++)
- 			page_set_storage_key(PFN_PHYS(pfn),
+diff --git a/mm/memblock.c b/mm/memblock.c
+index 9480367..d050618 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -175,9 +175,6 @@ static void __init_memblock memblock_remove_region(struct memblock_type *type, u
+ 	}
+ }
+ 
+-/* Defined below but needed now */
+-static int memblock_add_region(struct memblock_type *type, phys_addr_t base, phys_addr_t size);
+-
+ static int __init_memblock memblock_double_array(struct memblock_type *type)
+ {
+ 	struct memblock_region *new_array, *old_array;
+@@ -235,7 +232,7 @@ static int __init_memblock memblock_double_array(struct memblock_type *type)
+ 		return 0;
+ 
+ 	/* Add the new reserved region now. Should not fail ! */
+-	BUG_ON(memblock_add_region(&memblock.reserved, addr, new_size));
++	BUG_ON(memblock_reserve(addr, new_size));
+ 
+ 	/* If the array wasn't our static init one, then free it. We only do
+ 	 * that before SLAB is available as later on, we don't know whether
+@@ -652,7 +649,7 @@ phys_addr_t __init __memblock_alloc_base(phys_addr_t size, phys_addr_t align, ph
+ 	size = round_up(size, align);
+ 
+ 	found = memblock_find_in_range(0, max_addr, size, align);
+-	if (found && !memblock_add_region(&memblock.reserved, found, size))
++	if (found && !memblock_reserve(found, size))
+ 		return found;
+ 
+ 	return 0;
+@@ -748,7 +745,7 @@ phys_addr_t __init memblock_alloc_nid(phys_addr_t size, phys_addr_t align, int n
+ 
+ 	found = memblock_find_in_range_node(0, MEMBLOCK_ALLOC_ACCESSIBLE,
+ 					    size, align, nid);
+-	if (found && !memblock_add_region(&memblock.reserved, found, size))
++	if (found && !memblock_reserve(found, size))
+ 		return found;
+ 
+ 	return 0;
 -- 
 1.7.3.1
 
