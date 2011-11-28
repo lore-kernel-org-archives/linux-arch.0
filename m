@@ -1,256 +1,171 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH-RFC 02/10 v2] lib: add GENERIC_PCI_IOMAP
-Date: Mon, 28 Nov 2011 21:21:44 +0200
-Message-ID: <20111128192143.GA16459@redhat.com>
-References: <b5a1327dd8bb38f87cba7ae10b308ec3b63de66a.1322163031.git.mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <b5a1327dd8bb38f87cba7ae10b308ec3b63de66a.1322163031.git.mst@redhat.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "John W. Linville" <linville@tuxdriver.com>, Lasse Collin <lasse.collin@tukaani.org>, "Michael S. Tsirkin" <mst@redhat.com>, Arend van Spriel <arend@broadcom.com>, Franky Lin <frankyl@broadcom.com>, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-pci@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Tejun Heo <tj@kernel.org>
+Subject: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[], take 2
+Date: Mon, 28 Nov 2011 11:31:02 -0800
+Message-ID: <1322508685-32532-1-git-send-email-tj@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:57739 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753211Ab1K1Tbd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:31:33 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
 
-Many architectures want a generic pci_iomap but
-not the rest of iomap.c. Split that to a separate .c
-file and add a new config symbol. select automatically
-by GENERIC_IOMAP.
+Hello,
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
+This patchset was posted quite a while ago but got lost during the
+korg disturbance and I forgot about it too.  Thankfully, benh pinged
+me about testing this patchset yesterday, so here's the refreshed
+version.
 
-Here's an updated version (just this one patch was changed).
-Changes from v1:
-	minor tweaks to address comments by Stephen Rothwell 
+Changes from the last take[L] are,
 
+* Rebased on top of updated x86/memblock.
 
- include/asm-generic/io.h        |    4 +-
- include/asm-generic/iomap.h     |    9 ++-----
- include/asm-generic/pci_iomap.h |   25 ++++++++++++++++++++
- lib/Kconfig                     |    4 +++
- lib/Makefile                    |    1 +
- lib/iomap.c                     |   38 +-----------------------------
- lib/pci_iomap.c                 |   48 +++++++++++++++++++++++++++++++++++++++
- 7 files changed, 85 insertions(+), 44 deletions(-)
- create mode 100644 include/asm-generic/pci_iomap.h
- create mode 100644 lib/pci_iomap.c
+* Acked-by's added & updated patches folded into the series.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 9120887..dddc61d 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -19,6 +19,8 @@
- #include <asm-generic/iomap.h>
- #endif
- 
-+#include <asm-generic/pci_iomap.h>
-+
- #ifndef mmiowb
- #define mmiowb() do {} while (0)
- #endif
-@@ -283,9 +285,7 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
- #define __io_virt(x) ((void __force *) (x))
- 
- #ifndef CONFIG_GENERIC_IOMAP
--/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
--extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
- static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
- {
- }
-diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
-index 98dcd76..8a3d4fd 100644
---- a/include/asm-generic/iomap.h
-+++ b/include/asm-generic/iomap.h
-@@ -67,18 +67,15 @@ extern void ioport_unmap(void __iomem *);
- #endif
- 
- #ifdef CONFIG_PCI
--/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
-+/* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
--extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
- extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
- #else
- struct pci_dev;
--static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
--{
--	return NULL;
--}
- static inline void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
- { }
- #endif
- 
-+#include <asm-generic/pci_iomap.h>
-+
- #endif
-diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
-new file mode 100644
-index 0000000..8de4b73
---- /dev/null
-+++ b/include/asm-generic/pci_iomap.h
-@@ -0,0 +1,25 @@
-+/* Generic I/O port emulation, based on MN10300 code
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef __ASM_GENERIC_PCI_IOMAP_H
-+#define __ASM_GENERIC_PCI_IOMAP_H
-+
-+struct pci_dev;
-+#ifdef CONFIG_PCI
-+/* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
-+extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+#else
-+static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
-+{
-+	return NULL;
-+}
-+#endif
-+
-+#endif /* __ASM_GENERIC_IO_H */
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 0058927..36884b4 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -19,8 +19,12 @@ config RATIONAL
- config GENERIC_FIND_FIRST_BIT
- 	bool
- 
-+config GENERIC_PCI_IOMAP
-+	bool
-+
- config GENERIC_IOMAP
- 	bool
-+	select GENERIC_PCI_IOMAP
- 
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
-diff --git a/lib/Makefile b/lib/Makefile
-index a4da283..609b2adc 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -33,6 +33,7 @@ endif
- 
- lib-$(CONFIG_HOTPLUG) += kobject_uevent.o
- obj-$(CONFIG_GENERIC_IOMAP) += iomap.o
-+obj-$(CONFIG_GENERIC_PCI_IOMAP) += pci_iomap.o
- obj-$(CONFIG_HAS_IOMEM) += iomap_copy.o devres.o
- obj-$(CONFIG_CHECK_SIGNATURE) += check_signature.o
- obj-$(CONFIG_DEBUG_LOCKING_API_SELFTESTS) += locking-selftest.o
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 5dbcb4b..ada922a 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -242,45 +242,11 @@ EXPORT_SYMBOL(ioport_unmap);
- #endif /* CONFIG_HAS_IOPORT */
- 
- #ifdef CONFIG_PCI
--/**
-- * pci_iomap - create a virtual mapping cookie for a PCI BAR
-- * @dev: PCI device that owns the BAR
-- * @bar: BAR number
-- * @maxlen: length of the memory to map
-- *
-- * Using this function you will get a __iomem address to your device BAR.
-- * You can access it using ioread*() and iowrite*(). These functions hide
-- * the details if this is a MMIO or PIO address space and will just do what
-- * you expect from them in the correct way.
-- *
-- * @maxlen specifies the maximum length to map. If you want to get access to
-- * the complete BAR without checking for its length first, pass %0 here.
-- * */
--void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
--{
--	resource_size_t start = pci_resource_start(dev, bar);
--	resource_size_t len = pci_resource_len(dev, bar);
--	unsigned long flags = pci_resource_flags(dev, bar);
--
--	if (!len || !start)
--		return NULL;
--	if (maxlen && len > maxlen)
--		len = maxlen;
--	if (flags & IORESOURCE_IO)
--		return ioport_map(start, len);
--	if (flags & IORESOURCE_MEM) {
--		if (flags & IORESOURCE_CACHEABLE)
--			return ioremap(start, len);
--		return ioremap_nocache(start, len);
--	}
--	/* What? */
--	return NULL;
--}
--
-+/* Hide the details if this is a MMIO or PIO address space and just do what
-+ * you expect in the correct way. */
- void pci_iounmap(struct pci_dev *dev, void __iomem * addr)
- {
- 	IO_COND(addr, /* nothing */, iounmap(addr));
- }
--EXPORT_SYMBOL(pci_iomap);
- EXPORT_SYMBOL(pci_iounmap);
- #endif /* CONFIG_PCI */
-diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
-new file mode 100644
-index 0000000..4b0fdc2
---- /dev/null
-+++ b/lib/pci_iomap.c
-@@ -0,0 +1,48 @@
-+/*
-+ * Implement the default iomap interfaces
-+ *
-+ * (C) Copyright 2004 Linus Torvalds
-+ */
-+#include <linux/pci.h>
-+#include <linux/io.h>
-+
-+#include <linux/export.h>
-+
-+#ifdef CONFIG_PCI
-+/**
-+ * pci_iomap - create a virtual mapping cookie for a PCI BAR
-+ * @dev: PCI device that owns the BAR
-+ * @bar: BAR number
-+ * @maxlen: length of the memory to map
-+ *
-+ * Using this function you will get a __iomem address to your device BAR.
-+ * You can access it using ioread*() and iowrite*(). These functions hide
-+ * the details if this is a MMIO or PIO address space and will just do what
-+ * you expect from them in the correct way.
-+ *
-+ * @maxlen specifies the maximum length to map. If you want to get access to
-+ * the complete BAR without checking for its length first, pass %0 here.
-+ * */
-+void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
-+{
-+	resource_size_t start = pci_resource_start(dev, bar);
-+	resource_size_t len = pci_resource_len(dev, bar);
-+	unsigned long flags = pci_resource_flags(dev, bar);
-+
-+	if (!len || !start)
-+		return NULL;
-+	if (maxlen && len > maxlen)
-+		len = maxlen;
-+	if (flags & IORESOURCE_IO)
-+		return ioport_map(start, len);
-+	if (flags & IORESOURCE_MEM) {
-+		if (flags & IORESOURCE_CACHEABLE)
-+			return ioremap(start, len);
-+		return ioremap_nocache(start, len);
-+	}
-+	/* What? */
-+	return NULL;
-+}
-+
-+EXPORT_SYMBOL(pci_iomap);
-+#endif /* CONFIG_PCI */
--- 
-1.7.5.53.gc233e
+* 0001-memblock-Make-memblock_overlaps_region-static.patch:
+  dropped as commit to make the same change is already upstream.
+  (2d7d3eb2ba "mm/memblock.c: quiet sparse noise")
+
+* 0001-memblock-Fix-include-breakages-caused-by-24aa07882b.patch:
+  rolled into the series.  Also updated to handle openrisc.
+
+* 0002-memblock-Make-memblock_-add-remove-free-reserve-retu.patch:
+  trivial update to handle addition of memblock_end_of_DRAM
+  
+* 0005-memblock-Kill-sentinel-entries-at-the-end-of-static-.patch:
+  updated to reflect POISON change by c9d8c3d089 "mm/memblock.c: avoid
+  abuse of RED_INACTIVE"
+
+* 0006-memblock-Kill-memblock_init.patch:
+  updated to include openrisc
+
+* 0013-memblock-s-memblock_analyze-memblock_allow_resize-an.patch:
+  updated to include openrisc
+
+This patchset builds on the previous "memblock, x86: Allow node info
+in memblock and remove x86 specific memblock code" patchset[1], which
+now is in tip:x86/memblock.  This patchset updates memblock so that
+it's easier to use, converts all archs which use early_node_map[] to
+use memblock instead, and kills early_node_map[].
+
+Bootmem allocator is still looming there but this ensures a unified
+way forward where memblock is the universal early memory management
+mechanism.  This cleans up the entanglement between memblock and
+early_node_map[] in the backend but API visible to archs is still a
+bit confusing and can use some cleanup and documentation once things
+settle down a bit.
+
+x86, powerpc and sparc are boot tested in several different
+configurations.  On x86 allmod/noconfigs are compile tested.  On all
+other archs except for score, defconfig + some variations are compile
+tested.
+
+This does touch a lot of archs but except for x86 and powerpc the
+changes are mostly trivial and as bulk of the changes involve updates
+to generic memblock code, it would be great if these can be routed
+through single tree (tip:x86/memblock).
+
+ 0001-memblock-Fix-include-breakages-caused-by-24aa07882b.patch
+ 0002-memblock-Make-memblock_-add-remove-free-reserve-retu.patch
+ 0003-memblock-Use-memblock_reserve-in-memblock-internal-f.patch
+ 0004-memblock-Add-__memblock_dump_all.patch
+ 0005-memblock-Kill-sentinel-entries-at-the-end-of-static-.patch
+ 0006-memblock-Kill-memblock_init.patch
+ 0007-memblock-Separate-out-memblock_isolate_range-from-me.patch
+ 0008-memblock-Reimplement-__memblock_remove-using-membloc.patch
+ 0009-memblock-Make-memblock-functions-handle-overflowing-.patch
+ 0010-memblock-Reimplement-memblock_enforce_memory_limit-u.patch
+ 0011-powerpc-Cleanup-memblock-usage.patch
+ 0012-memblock-Track-total-size-of-regions-automatically.patch
+ 0013-memblock-s-memblock_analyze-memblock_allow_resize-an.patch
+ 0014-memblock-Implement-memblock_add_node.patch
+ 0015-powerpc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0016-sparc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0017-SuperH-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0018-ia64-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0019-mips-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0020-s390-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0021-score-Use-HAVE_MEMBLOCK_NODE_MAP.patch
+ 0022-memblock-Kill-early_node_map.patch
+ 0023-memblock-Reimplement-memblock-allocation-using-rever.patch
+
+0001-0014 clean up and improve generic memblock code (powerpc update
+is to allow updates to generic code) so that it's easier for archs.
+e.g. memblock_init/analyze() are no longer necessary.
+
+0015-0017 convert archs which were using memblock + early_node_map[]
+to use MEMBLOCK_HAVE_NODE_MAP.
+
+0018-0021 convert archs which were using only early_node_map[] to
+MEMBLOCK_HAVE_NODE_MAP.
+
+0022 kills now unused early_node_map[].
+
+0023 reimplements memblock allocator in sane way, which is possible
+with early_node_map[] gone.
+
+This patchset is available in the following git branch.
+
+ git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill-early_node_map
+
+And diffstat follows.
+
+ arch/arm/kernel/setup.c                  |    1 
+ arch/arm/mm/init.c                       |    4 
+ arch/ia64/Kconfig                        |    6 
+ arch/ia64/mm/contig.c                    |    3 
+ arch/ia64/mm/init.c                      |    4 
+ arch/microblaze/include/asm/memblock.h   |   14 
+ arch/microblaze/kernel/prom.c            |    3 
+ arch/mips/Kconfig                        |    6 
+ arch/mips/kernel/setup.c                 |    3 
+ arch/mips/sgi-ip27/ip27-memory.c         |    5 
+ arch/openrisc/include/asm/memblock.h     |   24 -
+ arch/openrisc/kernel/prom.c              |    3 
+ arch/powerpc/Kconfig                     |    4 
+ arch/powerpc/include/asm/memblock.h      |    8 
+ arch/powerpc/kernel/machine_kexec.c      |    3 
+ arch/powerpc/kernel/prom.c               |   20 -
+ arch/powerpc/mm/init_32.c                |    4 
+ arch/powerpc/mm/mem.c                    |    2 
+ arch/powerpc/mm/numa.c                   |   10 
+ arch/powerpc/mm/tlb_nohash.c             |    1 
+ arch/powerpc/platforms/embedded6xx/wii.c |   23 -
+ arch/powerpc/platforms/ps3/mm.c          |    1 
+ arch/s390/Kconfig                        |    6 
+ arch/s390/kernel/setup.c                 |    4 
+ arch/score/Kconfig                       |   12 
+ arch/score/kernel/setup.c                |    4 
+ arch/sh/Kconfig                          |    1 
+ arch/sh/include/asm/memblock.h           |    4 
+ arch/sh/kernel/machine_kexec.c           |    3 
+ arch/sh/kernel/setup.c                   |    3 
+ arch/sh/mm/Kconfig                       |    3 
+ arch/sh/mm/init.c                        |    3 
+ arch/sparc/Kconfig                       |    4 
+ arch/sparc/include/asm/memblock.h        |    8 
+ arch/sparc/mm/init_64.c                  |   28 -
+ arch/unicore32/kernel/setup.c            |    1 
+ arch/unicore32/mm/init.c                 |    4 
+ arch/unicore32/mm/mmu.c                  |    1 
+ arch/x86/Kconfig                         |    3 
+ arch/x86/kernel/e820.c                   |    3 
+ arch/x86/kernel/head32.c                 |    2 
+ arch/x86/kernel/head64.c                 |    2 
+ arch/x86/xen/enlighten.c                 |    2 
+ drivers/iommu/intel-iommu.c              |    1 
+ include/linux/memblock.h                 |  116 +++--
+ include/linux/mm.h                       |   50 --
+ include/linux/mmzone.h                   |    8 
+ include/linux/poison.h                   |    6 
+ mm/memblock.c                            |  603 ++++++++++++++-----------------
+ mm/page_alloc.c                          |  259 -------------
+ 50 files changed, 455 insertions(+), 841 deletions(-)
+
+--
+tejun
+
+[L] http://thread.gmane.org/gmane.linux.kernel.cross-arch/10464
+[1] https://lkml.org/lkml/2011/7/12/95
