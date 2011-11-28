@@ -1,118 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:61090 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754739Ab1K1Tci (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:32:38 -0500
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:57739 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754815Ab1K1Tcl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:32:41 -0500
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 14/23] memblock: Implement memblock_add_node()
-Date: Mon, 28 Nov 2011 11:31:16 -0800
-Message-ID: <1322508685-32532-15-git-send-email-tj@kernel.org>
+Subject: [PATCH 15/23] powerpc: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Mon, 28 Nov 2011 11:31:17 -0800
+Message-ID: <1322508685-32532-16-git-send-email-tj@kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
 Cc: Tejun Heo <tj@kernel.org>
-Message-ID: <20111128193116.3CHxBM9NXfODMLAM61u9WzseAeh4NOiDRkXTOMqU4sY@z>
+Message-ID: <20111128193117.G8uPM48VvCs-Yo4mWS6URC25IiXSEaT3RasXwraCxHw@z>
 
-Implement memblock_add_node() which can add a new memblock memory
-region with specific node ID.
+powerpc doesn't access early_node_map[] directly and enabling
+HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
+with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
+enough.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/memblock.h |    1 +
- mm/memblock.c            |   20 +++++++++++++-------
- 2 files changed, 14 insertions(+), 7 deletions(-)
+ arch/powerpc/Kconfig   |    1 +
+ arch/powerpc/mm/mem.c  |    2 +-
+ arch/powerpc/mm/numa.c |   10 ++++------
+ 3 files changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/include/linux/memblock.h b/include/linux/memblock.h
-index c5b3bbc..c7b68f4 100644
---- a/include/linux/memblock.h
-+++ b/include/linux/memblock.h
-@@ -52,6 +52,7 @@ int memblock_free_reserved_regions(void);
- int memblock_reserve_reserved_regions(void);
- 
- void memblock_allow_resize(void);
-+int memblock_add_node(phys_addr_t base, phys_addr_t size, int nid);
- int memblock_add(phys_addr_t base, phys_addr_t size);
- int memblock_remove(phys_addr_t base, phys_addr_t size);
- int memblock_free(phys_addr_t base, phys_addr_t size);
-diff --git a/mm/memblock.c b/mm/memblock.c
-index a3ca95f3..ef4987b 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -324,6 +324,7 @@ static void __init_memblock memblock_insert_region(struct memblock_type *type,
-  * @type: memblock type to add new region into
-  * @base: base address of the new region
-  * @size: size of the new region
-+ * @nid: nid of the new region
-  *
-  * Add new memblock region [@base,@base+@size) into @type.  The new region
-  * is allowed to overlap with existing ones - overlaps don't affect already
-@@ -334,7 +335,7 @@ static void __init_memblock memblock_insert_region(struct memblock_type *type,
-  * 0 on success, -errno on failure.
-  */
- static int __init_memblock memblock_add_region(struct memblock_type *type,
--					       phys_addr_t base, phys_addr_t size)
-+				phys_addr_t base, phys_addr_t size, int nid)
- {
- 	bool insert = false;
- 	phys_addr_t obase = base;
-@@ -346,7 +347,7 @@ static int __init_memblock memblock_add_region(struct memblock_type *type,
- 		WARN_ON(type->cnt != 1 || type->total_size);
- 		type->regions[0].base = base;
- 		type->regions[0].size = size;
--		memblock_set_region_node(&type->regions[0], MAX_NUMNODES);
-+		memblock_set_region_node(&type->regions[0], nid);
- 		type->total_size = size;
- 		return 0;
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 951e18f..8516477 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -117,6 +117,7 @@ config PPC
+ 	select HAVE_KRETPROBES
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_DMA_API_DEBUG
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 2dd6bdd..8e2eb66 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -199,7 +199,7 @@ void __init do_init_bootmem(void)
+ 		unsigned long start_pfn, end_pfn;
+ 		start_pfn = memblock_region_memory_base_pfn(reg);
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+-		add_active_range(0, start_pfn, end_pfn);
++		memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
  	}
-@@ -376,7 +377,7 @@ repeat:
- 			nr_new++;
- 			if (insert)
- 				memblock_insert_region(type, i++, base,
--						rbase - base, MAX_NUMNODES);
-+						       rbase - base, nid);
+ 
+ 	/* Add all physical memory to the bootmem map, mark each area
+diff --git a/arch/powerpc/mm/numa.c b/arch/powerpc/mm/numa.c
+index 261adbd..e6eea0a 100644
+--- a/arch/powerpc/mm/numa.c
++++ b/arch/powerpc/mm/numa.c
+@@ -690,9 +690,7 @@ static void __init parse_drconf_memory(struct device_node *memory)
+ 			node_set_online(nid);
+ 			sz = numa_enforce_memory_limit(base, size);
+ 			if (sz)
+-				add_active_range(nid, base >> PAGE_SHIFT,
+-						 (base >> PAGE_SHIFT)
+-						 + (sz >> PAGE_SHIFT));
++				memblock_set_node(base, sz, nid);
+ 		} while (--ranges);
+ 	}
+ }
+@@ -782,8 +780,7 @@ new_range:
+ 				continue;
  		}
- 		/* area below @rend is dealt with, forget about it */
- 		base = min(rend, end);
-@@ -386,8 +387,7 @@ repeat:
- 	if (base < end) {
- 		nr_new++;
- 		if (insert)
--			memblock_insert_region(type, i, base, end - base,
--					       MAX_NUMNODES);
-+			memblock_insert_region(type, i, base, end - base, nid);
+ 
+-		add_active_range(nid, start >> PAGE_SHIFT,
+-				(start >> PAGE_SHIFT) + (size >> PAGE_SHIFT));
++		memblock_set_node(start, size, nid);
+ 
+ 		if (--ranges)
+ 			goto new_range;
+@@ -819,7 +816,8 @@ static void __init setup_nonnuma(void)
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+ 
+ 		fake_numa_create_new_node(end_pfn, &nid);
+-		add_active_range(nid, start_pfn, end_pfn);
++		memblock_set_node(PFN_PHYS(start_pfn),
++				  PFN_PHYS(end_pfn - start_pfn), nid);
+ 		node_set_online(nid);
  	}
- 
- 	/*
-@@ -406,9 +406,15 @@ repeat:
- 	}
  }
- 
-+int __init_memblock memblock_add_node(phys_addr_t base, phys_addr_t size,
-+				       int nid)
-+{
-+	return memblock_add_region(&memblock.memory, base, size, nid);
-+}
-+
- int __init_memblock memblock_add(phys_addr_t base, phys_addr_t size)
- {
--	return memblock_add_region(&memblock.memory, base, size);
-+	return memblock_add_region(&memblock.memory, base, size, MAX_NUMNODES);
- }
- 
- /**
-@@ -522,7 +528,7 @@ int __init_memblock memblock_reserve(phys_addr_t base, phys_addr_t size)
- 		     (void *)_RET_IP_);
- 	BUG_ON(0 == size);
- 
--	return memblock_add_region(_rgn, base, size);
-+	return memblock_add_region(_rgn, base, size, MAX_NUMNODES);
- }
- 
- /**
 -- 
 1.7.3.1
 
