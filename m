@@ -1,7 +1,7 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 15/23] powerpc: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Mon, 28 Nov 2011 11:31:17 -0800
-Message-ID: <1322508685-32532-16-git-send-email-tj@kernel.org>
+Subject: [PATCH 09/23] memblock: Make memblock functions handle overflowing range @size
+Date: Mon, 28 Nov 2011 11:31:11 -0800
+Message-ID: <1322508685-32532-10-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
@@ -10,79 +10,72 @@ To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel
 Cc: Tejun Heo <tj@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-powerpc doesn't access early_node_map[] directly and enabling
-HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
-with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
-enough.
+Allow memblock users to specify range where @base + @size overflows
+and automatically cap it at maximum.  This makes the interface more
+robust and specifying till-the-end-of-memory easier.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/powerpc/Kconfig   |    1 +
- arch/powerpc/mm/mem.c  |    2 +-
- arch/powerpc/mm/numa.c |   10 ++++------
- 3 files changed, 6 insertions(+), 7 deletions(-)
+ mm/memblock.c |   15 ++++++++++++---
+ 1 files changed, 12 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 951e18f..8516477 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -117,6 +117,7 @@ config PPC
- 	select HAVE_KRETPROBES
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_MEMBLOCK
-+	select HAVE_MEMBLOCK_NODE_MAP
- 	select HAVE_DMA_ATTRS
- 	select HAVE_DMA_API_DEBUG
- 	select USE_GENERIC_SMP_HELPERS if SMP
-diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
-index 2dd6bdd..8e2eb66 100644
---- a/arch/powerpc/mm/mem.c
-+++ b/arch/powerpc/mm/mem.c
-@@ -199,7 +199,7 @@ void __init do_init_bootmem(void)
- 		unsigned long start_pfn, end_pfn;
- 		start_pfn = memblock_region_memory_base_pfn(reg);
- 		end_pfn = memblock_region_memory_end_pfn(reg);
--		add_active_range(0, start_pfn, end_pfn);
-+		memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
- 	}
- 
- 	/* Add all physical memory to the bootmem map, mark each area
-diff --git a/arch/powerpc/mm/numa.c b/arch/powerpc/mm/numa.c
-index 261adbd..e6eea0a 100644
---- a/arch/powerpc/mm/numa.c
-+++ b/arch/powerpc/mm/numa.c
-@@ -690,9 +690,7 @@ static void __init parse_drconf_memory(struct device_node *memory)
- 			node_set_online(nid);
- 			sz = numa_enforce_memory_limit(base, size);
- 			if (sz)
--				add_active_range(nid, base >> PAGE_SHIFT,
--						 (base >> PAGE_SHIFT)
--						 + (sz >> PAGE_SHIFT));
-+				memblock_set_node(base, sz, nid);
- 		} while (--ranges);
- 	}
+diff --git a/mm/memblock.c b/mm/memblock.c
+index fffe68b..945dc31 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -49,6 +49,12 @@ static inline const char *memblock_type_name(struct memblock_type *type)
+ 		return "unknown";
  }
-@@ -782,8 +780,7 @@ new_range:
- 				continue;
- 		}
  
--		add_active_range(nid, start >> PAGE_SHIFT,
--				(start >> PAGE_SHIFT) + (size >> PAGE_SHIFT));
-+		memblock_set_node(start, size, nid);
++/* adjust *@size so that (@base + *@size) doesn't overflow, return new size */
++static inline phys_addr_t memblock_cap_size(phys_addr_t base, phys_addr_t *size)
++{
++	return *size = min(*size, (phys_addr_t)ULLONG_MAX - base);
++}
++
+ /*
+  * Address comparison utilities
+  */
+@@ -328,7 +334,8 @@ static int __init_memblock memblock_add_region(struct memblock_type *type,
+ 					       phys_addr_t base, phys_addr_t size)
+ {
+ 	bool insert = false;
+-	phys_addr_t obase = base, end = base + size;
++	phys_addr_t obase = base;
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 	int i, nr_new;
  
- 		if (--ranges)
- 			goto new_range;
-@@ -819,7 +816,8 @@ static void __init setup_nonnuma(void)
- 		end_pfn = memblock_region_memory_end_pfn(reg);
+ 	/* special case for empty array */
+@@ -420,7 +427,7 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 					phys_addr_t base, phys_addr_t size,
+ 					int *start_rgn, int *end_rgn)
+ {
+-	phys_addr_t end = base + size;
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 	int i;
  
- 		fake_numa_create_new_node(end_pfn, &nid);
--		add_active_range(nid, start_pfn, end_pfn);
-+		memblock_set_node(PFN_PHYS(start_pfn),
-+				  PFN_PHYS(end_pfn - start_pfn), nid);
- 		node_set_online(nid);
- 	}
+ 	*start_rgn = *end_rgn = 0;
+@@ -868,16 +875,18 @@ int __init_memblock memblock_is_memory(phys_addr_t addr)
+ int __init_memblock memblock_is_region_memory(phys_addr_t base, phys_addr_t size)
+ {
+ 	int idx = memblock_search(&memblock.memory, base);
++	phys_addr_t end = base + memblock_cap_size(base, &size);
+ 
+ 	if (idx == -1)
+ 		return 0;
+ 	return memblock.memory.regions[idx].base <= base &&
+ 		(memblock.memory.regions[idx].base +
+-		 memblock.memory.regions[idx].size) >= (base + size);
++		 memblock.memory.regions[idx].size) >= end;
  }
+ 
+ int __init_memblock memblock_is_region_reserved(phys_addr_t base, phys_addr_t size)
+ {
++	memblock_cap_size(base, &size);
+ 	return memblock_overlaps_region(&memblock.reserved, base, size) >= 0;
+ }
+ 
 -- 
 1.7.3.1
