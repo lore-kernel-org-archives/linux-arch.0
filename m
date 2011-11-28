@@ -1,7 +1,7 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 08/23] memblock: Reimplement __memblock_remove() using memblock_isolate_range()
-Date: Mon, 28 Nov 2011 11:31:10 -0800
-Message-ID: <1322508685-32532-9-git-send-email-tj@kernel.org>
+Subject: [PATCH 15/23] powerpc: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Mon, 28 Nov 2011 11:31:17 -0800
+Message-ID: <1322508685-32532-16-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
@@ -10,117 +10,79 @@ To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel
 Cc: Tejun Heo <tj@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-__memblock_remove()'s open coded region manipulation can be trivially
-replaced with memblock_islate_range().  This increases code sharing
-and eases improving region tracking.
-
-This pulls memblock_isolate_range() out of HAVE_MEMBLOCK_NODE_MAP.
-Make it use memblock_get_region_node() instead of assuming rgn->nid is
-available.
-
--v2: Fixed build failure on !HAVE_MEMBLOCK_NODE_MAP caused by direct
-     rgn->nid access.
+powerpc doesn't access early_node_map[] directly and enabling
+HAVE_MEMBLOCK_NODE_MAP is trivial - replacing add_active_range() calls
+with memblock_set_node() and selecting HAVE_MEMBLOCK_NODE_MAP is
+enough.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- mm/memblock.c |   56 +++++++++-----------------------------------------------
- 1 files changed, 9 insertions(+), 47 deletions(-)
+ arch/powerpc/Kconfig   |    1 +
+ arch/powerpc/mm/mem.c  |    2 +-
+ arch/powerpc/mm/numa.c |   10 ++++------
+ 3 files changed, 6 insertions(+), 7 deletions(-)
 
-diff --git a/mm/memblock.c b/mm/memblock.c
-index a1e96a0..fffe68b 100644
---- a/mm/memblock.c
-+++ b/mm/memblock.c
-@@ -400,7 +400,6 @@ int __init_memblock memblock_add(phys_addr_t base, phys_addr_t size)
- 	return memblock_add_region(&memblock.memory, base, size);
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 951e18f..8516477 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -117,6 +117,7 @@ config PPC
+ 	select HAVE_KRETPROBES
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_MEMBLOCK
++	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_DMA_API_DEBUG
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+diff --git a/arch/powerpc/mm/mem.c b/arch/powerpc/mm/mem.c
+index 2dd6bdd..8e2eb66 100644
+--- a/arch/powerpc/mm/mem.c
++++ b/arch/powerpc/mm/mem.c
+@@ -199,7 +199,7 @@ void __init do_init_bootmem(void)
+ 		unsigned long start_pfn, end_pfn;
+ 		start_pfn = memblock_region_memory_base_pfn(reg);
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+-		add_active_range(0, start_pfn, end_pfn);
++		memblock_set_node(0, (phys_addr_t)ULLONG_MAX, 0);
+ 	}
+ 
+ 	/* Add all physical memory to the bootmem map, mark each area
+diff --git a/arch/powerpc/mm/numa.c b/arch/powerpc/mm/numa.c
+index 261adbd..e6eea0a 100644
+--- a/arch/powerpc/mm/numa.c
++++ b/arch/powerpc/mm/numa.c
+@@ -690,9 +690,7 @@ static void __init parse_drconf_memory(struct device_node *memory)
+ 			node_set_online(nid);
+ 			sz = numa_enforce_memory_limit(base, size);
+ 			if (sz)
+-				add_active_range(nid, base >> PAGE_SHIFT,
+-						 (base >> PAGE_SHIFT)
+-						 + (sz >> PAGE_SHIFT));
++				memblock_set_node(base, sz, nid);
+ 		} while (--ranges);
+ 	}
  }
+@@ -782,8 +780,7 @@ new_range:
+ 				continue;
+ 		}
  
--#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
- /**
-  * memblock_isolate_range - isolate given range into disjoint memblocks
-  * @type: memblock type to isolate range for
-@@ -449,7 +448,7 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
- 			rgn->base = base;
- 			rgn->size = rend - rgn->base;
- 			memblock_insert_region(type, i, rbase, base - rbase,
--					       rgn->nid);
-+					       memblock_get_region_node(rgn));
- 		} else if (rend > end) {
- 			/*
- 			 * @rgn intersects from above.  Split and redo the
-@@ -458,7 +457,7 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
- 			rgn->base = end;
- 			rgn->size = rend - rgn->base;
- 			memblock_insert_region(type, i--, rbase, end - rbase,
--					       rgn->nid);
-+					       memblock_get_region_node(rgn));
- 		} else {
- 			/* @rgn is fully contained, record it */
- 			if (!*end_rgn)
-@@ -469,56 +468,19 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+-		add_active_range(nid, start >> PAGE_SHIFT,
+-				(start >> PAGE_SHIFT) + (size >> PAGE_SHIFT));
++		memblock_set_node(start, size, nid);
  
- 	return 0;
+ 		if (--ranges)
+ 			goto new_range;
+@@ -819,7 +816,8 @@ static void __init setup_nonnuma(void)
+ 		end_pfn = memblock_region_memory_end_pfn(reg);
+ 
+ 		fake_numa_create_new_node(end_pfn, &nid);
+-		add_active_range(nid, start_pfn, end_pfn);
++		memblock_set_node(PFN_PHYS(start_pfn),
++				  PFN_PHYS(end_pfn - start_pfn), nid);
+ 		node_set_online(nid);
+ 	}
  }
--#endif
- 
- static int __init_memblock __memblock_remove(struct memblock_type *type,
- 					     phys_addr_t base, phys_addr_t size)
- {
--	phys_addr_t end = base + size;
--	int i;
--
--	/* Walk through the array for collisions */
--	for (i = 0; i < type->cnt; i++) {
--		struct memblock_region *rgn = &type->regions[i];
--		phys_addr_t rend = rgn->base + rgn->size;
--
--		/* Nothing more to do, exit */
--		if (rgn->base > end || rgn->size == 0)
--			break;
--
--		/* If we fully enclose the block, drop it */
--		if (base <= rgn->base && end >= rend) {
--			memblock_remove_region(type, i--);
--			continue;
--		}
--
--		/* If we are fully enclosed within a block
--		 * then we need to split it and we are done
--		 */
--		if (base > rgn->base && end < rend) {
--			rgn->size = base - rgn->base;
--			if (!memblock_add_region(type, end, rend - end))
--				return 0;
--			/* Failure to split is bad, we at least
--			 * restore the block before erroring
--			 */
--			rgn->size = rend - rgn->base;
--			WARN_ON(1);
--			return -1;
--		}
--
--		/* Check if we need to trim the bottom of a block */
--		if (rgn->base < end && rend > end) {
--			rgn->size -= end - rgn->base;
--			rgn->base = end;
--			break;
--		}
-+	int start_rgn, end_rgn;
-+	int i, ret;
- 
--		/* And check if we need to trim the top of a block */
--		if (base < rend)
--			rgn->size -= rend - base;
-+	ret = memblock_isolate_range(type, base, size, &start_rgn, &end_rgn);
-+	if (ret)
-+		return ret;
- 
--	}
-+	for (i = end_rgn - 1; i >= start_rgn; i--)
-+		memblock_remove_region(type, i);
- 	return 0;
- }
- 
 -- 
 1.7.3.1
