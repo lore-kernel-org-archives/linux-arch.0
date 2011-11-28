@@ -1,120 +1,161 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:47578 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753122Ab1K1TcY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:32:24 -0500
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:50227 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753122Ab1K1Tc3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:32:29 -0500
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 11/23] powerpc: Cleanup memblock usage
-Date: Mon, 28 Nov 2011 11:31:13 -0800
-Message-ID: <1322508685-32532-12-git-send-email-tj@kernel.org>
+Subject: [PATCH 12/23] memblock: Track total size of regions automatically
+Date: Mon, 28 Nov 2011 11:31:14 -0800
+Message-ID: <1322508685-32532-13-git-send-email-tj@kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
 Cc: Tejun Heo <tj@kernel.org>
-Message-ID: <20111128193113.hdAEiCueVj-b5qNysfkbkDrTRuAgHW2dBa2AreUpST8@z>
+Message-ID: <20111128193114.gEH45nx0dFAXHmBgi_30n-8nXD9DvQ9M3WOM69BKWig@z>
 
-* early_init_devtree(): Total memory size is aligned to PAGE_SIZE;
-  however, alignment isn't enforced if memory_limit is explicitly
-  specified.  Simplify the logic and always apply PAGE_SIZE alignment.
+Total size of memory regions was calculated by memblock_analyze()
+requiring explicitly calling the function between operations which can
+change memory regions and possible users of total size, which is
+cumbersome and fragile.
 
-* MMU_init(): memblock regions is truncated by directly modifying
-  memblock.memory.cnt.  This is incomplete (reserved array is not
-  truncated) and unnecessarily low level hindering further memblock
-  improvments.  Use memblock_enforce_memory_limit() instead.
-
-* wii_memory_fixups(): Unnecessarily low level direct manipulation of
-  memblock regions.  The same result can be achieved using properly
-  abstracted operations.  Reimplement using memblock API.
+This patch makes each memblock_type track total size automatically
+with minor modifications to memblock manipulation functions and remove
+requirements on calling memblock_analyze().  [__]memblock_dump_all()
+now also dumps the total size of reserved regions.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/powerpc/kernel/prom.c               |   17 ++++++-----------
- arch/powerpc/mm/init_32.c                |    2 +-
- arch/powerpc/platforms/embedded6xx/wii.c |   22 +++++++++-------------
- 3 files changed, 16 insertions(+), 25 deletions(-)
+ include/linux/memblock.h |    2 +-
+ mm/memblock.c            |   27 +++++++++++++--------------
+ 2 files changed, 14 insertions(+), 15 deletions(-)
 
-diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
-index a7ee83e..28500d4 100644
---- a/arch/powerpc/kernel/prom.c
-+++ b/arch/powerpc/kernel/prom.c
-@@ -754,17 +754,12 @@ void __init early_init_devtree(void *params)
- 	early_reserve_mem();
- 	phyp_dump_reserve_mem();
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index 6ac91c5..5bb1500 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -30,12 +30,12 @@ struct memblock_region {
+ struct memblock_type {
+ 	unsigned long cnt;	/* number of regions */
+ 	unsigned long max;	/* size of the allocated array */
++	phys_addr_t total_size;	/* size of all regions */
+ 	struct memblock_region *regions;
+ };
  
--	limit = memory_limit;
--	if (! limit) {
--		phys_addr_t memsize;
+ struct memblock {
+ 	phys_addr_t current_limit;
+-	phys_addr_t memory_size;	/* Updated by memblock_analyze() */
+ 	struct memblock_type memory;
+ 	struct memblock_type reserved;
+ };
+diff --git a/mm/memblock.c b/mm/memblock.c
+index b44875f..f399641 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -179,12 +179,14 @@ int __init_memblock memblock_reserve_reserved_regions(void)
+ 
+ static void __init_memblock memblock_remove_region(struct memblock_type *type, unsigned long r)
+ {
++	type->total_size -= type->regions[r].size;
+ 	memmove(&type->regions[r], &type->regions[r + 1],
+ 		(type->cnt - (r + 1)) * sizeof(type->regions[r]));
+ 	type->cnt--;
+ 
+ 	/* Special case for empty arrays */
+ 	if (type->cnt == 0) {
++		WARN_ON(type->total_size != 0);
+ 		type->cnt = 1;
+ 		type->regions[0].base = 0;
+ 		type->regions[0].size = 0;
+@@ -314,6 +316,7 @@ static void __init_memblock memblock_insert_region(struct memblock_type *type,
+ 	rgn->size = size;
+ 	memblock_set_region_node(rgn, nid);
+ 	type->cnt++;
++	type->total_size += size;
+ }
+ 
+ /**
+@@ -340,10 +343,11 @@ static int __init_memblock memblock_add_region(struct memblock_type *type,
+ 
+ 	/* special case for empty array */
+ 	if (type->regions[0].size == 0) {
+-		WARN_ON(type->cnt != 1);
++		WARN_ON(type->cnt != 1 || type->total_size);
+ 		type->regions[0].base = base;
+ 		type->regions[0].size = size;
+ 		memblock_set_region_node(&type->regions[0], MAX_NUMNODES);
++		type->total_size = size;
+ 		return 0;
+ 	}
+ repeat:
+@@ -453,7 +457,8 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 			 * to process the next region - the new top half.
+ 			 */
+ 			rgn->base = base;
+-			rgn->size = rend - rgn->base;
++			rgn->size -= base - rbase;
++			type->total_size -= base - rbase;
+ 			memblock_insert_region(type, i, rbase, base - rbase,
+ 					       memblock_get_region_node(rgn));
+ 		} else if (rend > end) {
+@@ -462,7 +467,8 @@ static int __init_memblock memblock_isolate_range(struct memblock_type *type,
+ 			 * current region - the new bottom half.
+ 			 */
+ 			rgn->base = end;
+-			rgn->size = rend - rgn->base;
++			rgn->size -= end - rbase;
++			type->total_size -= end - rbase;
+ 			memblock_insert_region(type, i--, rbase, end - rbase,
+ 					       memblock_get_region_node(rgn));
+ 		} else {
+@@ -784,10 +790,9 @@ phys_addr_t __init memblock_alloc_try_nid(phys_addr_t size, phys_addr_t align, i
+  * Remaining API functions
+  */
+ 
+-/* You must call memblock_analyze() before this. */
+ phys_addr_t __init memblock_phys_mem_size(void)
+ {
+-	return memblock.memory_size;
++	return memblock.memory.total_size;
+ }
+ 
+ /* lowest address */
+@@ -803,7 +808,6 @@ phys_addr_t __init_memblock memblock_end_of_DRAM(void)
+ 	return (memblock.memory.regions[idx].base + memblock.memory.regions[idx].size);
+ }
+ 
+-/* You must call memblock_analyze() after this. */
+ void __init memblock_enforce_memory_limit(phys_addr_t limit)
+ {
+ 	unsigned long i;
+@@ -906,7 +910,9 @@ static void __init_memblock memblock_dump(struct memblock_type *type, char *name
+ void __init_memblock __memblock_dump_all(void)
+ {
+ 	pr_info("MEMBLOCK configuration:\n");
+-	pr_info(" memory size = 0x%llx\n", (unsigned long long)memblock.memory_size);
++	pr_info(" memory size = %#llx reserved size = %#llx\n",
++		(unsigned long long)memblock.memory.total_size,
++		(unsigned long long)memblock.reserved.total_size);
+ 
+ 	memblock_dump(&memblock.memory, "memory");
+ 	memblock_dump(&memblock.reserved, "reserved");
+@@ -914,13 +920,6 @@ void __init_memblock __memblock_dump_all(void)
+ 
+ void __init memblock_analyze(void)
+ {
+-	int i;
 -
--		/* Ensure that total memory size is page-aligned, because
--		 * otherwise mark_bootmem() gets upset. */
--		memblock_analyze();
--		memsize = memblock_phys_mem_size();
--		if ((memsize & PAGE_MASK) != memsize)
--			limit = memsize & PAGE_MASK;
--	}
-+	/*
-+	 * Ensure that total memory size is page-aligned, because otherwise
-+	 * mark_bootmem() gets upset.
-+	 */
-+	memblock_analyze();
-+	limit = ALIGN(memory_limit ?: memblock_phys_mem_size(), PAGE_SIZE);
- 	memblock_enforce_memory_limit(limit);
- 
- 	memblock_analyze();
-diff --git a/arch/powerpc/mm/init_32.c b/arch/powerpc/mm/init_32.c
-index 161cefd..12bb528 100644
---- a/arch/powerpc/mm/init_32.c
-+++ b/arch/powerpc/mm/init_32.c
-@@ -134,7 +134,7 @@ void __init MMU_init(void)
- 
- 	if (memblock.memory.cnt > 1) {
- #ifndef CONFIG_WII
--		memblock.memory.cnt = 1;
-+		memblock_enforce_memory_limit(memblock.memory.regions[0].size);
- 		memblock_analyze();
- 		printk(KERN_WARNING "Only using first contiguous memory region");
- #else
-diff --git a/arch/powerpc/platforms/embedded6xx/wii.c b/arch/powerpc/platforms/embedded6xx/wii.c
-index 1b5dc1a..1cbe9d3 100644
---- a/arch/powerpc/platforms/embedded6xx/wii.c
-+++ b/arch/powerpc/platforms/embedded6xx/wii.c
-@@ -79,23 +79,19 @@ void __init wii_memory_fixups(void)
- 	BUG_ON(memblock.memory.cnt != 2);
- 	BUG_ON(!page_aligned(p[0].base) || !page_aligned(p[1].base));
- 
--	p[0].size = _ALIGN_DOWN(p[0].size, PAGE_SIZE);
--	p[1].size = _ALIGN_DOWN(p[1].size, PAGE_SIZE);
-+	/* trim unaligned tail */
-+	memblock_remove(ALIGN(p[1].base + p[1].size, PAGE_SIZE),
-+			(phys_addr_t)ULLONG_MAX);
- 
--	wii_hole_start = p[0].base + p[0].size;
-+	/* determine hole, add & reserve them */
-+	wii_hole_start = ALIGN(p[0].base + p[0].size, PAGE_SIZE);
- 	wii_hole_size = p[1].base - wii_hole_start;
+-	memblock.memory_size = 0;
 -
--	pr_info("MEM1: <%08llx %08llx>\n", p[0].base, p[0].size);
--	pr_info("HOLE: <%08lx %08lx>\n", wii_hole_start, wii_hole_size);
--	pr_info("MEM2: <%08llx %08llx>\n", p[1].base, p[1].size);
+-	for (i = 0; i < memblock.memory.cnt; i++)
+-		memblock.memory_size += memblock.memory.regions[i].size;
 -
--	p[0].size += wii_hole_size + p[1].size;
--
--	memblock.memory.cnt = 1;
-+	memblock_add(wii_hole_start, wii_hole_size);
-+	memblock_reserve(wii_hole_start, wii_hole_size);
- 	memblock_analyze();
- 
--	/* reserve the hole */
--	memblock_reserve(wii_hole_start, wii_hole_size);
-+	BUG_ON(memblock.memory.cnt != 1);
-+	__memblock_dump_all();
- 
- 	/* allow ioremapping the address space in the hole */
- 	__allow_ioremap_reserved = 1;
+ 	/* We allow resizing from there */
+ 	memblock_can_resize = 1;
+ }
 -- 
 1.7.3.1
 
