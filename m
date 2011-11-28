@@ -1,171 +1,208 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[], take 2
-Date: Mon, 28 Nov 2011 11:31:02 -0800
-Message-ID: <1322508685-32532-1-git-send-email-tj@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:57739 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753211Ab1K1Tbd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Nov 2011 14:31:33 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 01/23] memblock: Fix include breakages caused by 24aa07882b
+Date: Mon, 28 Nov 2011 11:31:03 -0800
+Message-ID: <1322508685-32532-2-git-send-email-tj@kernel.org>
+References: <1322508685-32532-1-git-send-email-tj@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
+Cc: Tejun Heo <tj@kernel.org>, Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+24aa07882b (memblock, x86: Replace memblock_x86_reserve/free_range()
+with generic ones) removed arch/x86/include/asm/memblock.h and dropped
+its inclusion from include/linux/memblock.h which breaks other
+architectures which depended on the generic memblock.h pulling in the
+arch specific one.
 
-This patchset was posted quite a while ago but got lost during the
-korg disturbance and I forgot about it too.  Thankfully, benh pinged
-me about testing this patchset yesterday, so here's the refreshed
-version.
+However, the proper fix isn't adding back the asm inclusion.  memblock
+doesn't have any arch dependent part and doesn't need arch specific
+header file and asm/memblock.h files are either practically empty or
+contain mostly unrelated arch specific stuff.
 
-Changes from the last take[L] are,
+* In microblaze, sh, powerpc, sparc and openrisc, asm/memblock.h is
+  either empty or just contains unused MEMBLOCK_DBG() macro.  Remove
+  them.
 
-* Rebased on top of updated x86/memblock.
+* In arm and unicore32, asm/memblock.h contains arch specific stuff.
+  Include it directly from its users.  It might be a good idea to
+  rename the header file to avoid confusion.
 
-* Acked-by's added & updated patches folded into the series.
+Signed-off-by: Tejun Heo <tj@kernel.org>
+Reported-by: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Yinghai Lu <yinghai@kernel.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+---
+ arch/arm/kernel/setup.c                |    1 +
+ arch/arm/mm/init.c                     |    1 +
+ arch/microblaze/include/asm/memblock.h |   14 --------------
+ arch/openrisc/include/asm/memblock.h   |   24 ------------------------
+ arch/powerpc/include/asm/memblock.h    |    8 --------
+ arch/sh/include/asm/memblock.h         |    4 ----
+ arch/sparc/include/asm/memblock.h      |    8 --------
+ arch/unicore32/kernel/setup.c          |    1 +
+ arch/unicore32/mm/init.c               |    1 +
+ arch/unicore32/mm/mmu.c                |    1 +
+ 10 files changed, 5 insertions(+), 58 deletions(-)
+ delete mode 100644 arch/microblaze/include/asm/memblock.h
+ delete mode 100644 arch/openrisc/include/asm/memblock.h
+ delete mode 100644 arch/powerpc/include/asm/memblock.h
+ delete mode 100644 arch/sh/include/asm/memblock.h
+ delete mode 100644 arch/sparc/include/asm/memblock.h
 
-* 0001-memblock-Make-memblock_overlaps_region-static.patch:
-  dropped as commit to make the same change is already upstream.
-  (2d7d3eb2ba "mm/memblock.c: quiet sparse noise")
-
-* 0001-memblock-Fix-include-breakages-caused-by-24aa07882b.patch:
-  rolled into the series.  Also updated to handle openrisc.
-
-* 0002-memblock-Make-memblock_-add-remove-free-reserve-retu.patch:
-  trivial update to handle addition of memblock_end_of_DRAM
-  
-* 0005-memblock-Kill-sentinel-entries-at-the-end-of-static-.patch:
-  updated to reflect POISON change by c9d8c3d089 "mm/memblock.c: avoid
-  abuse of RED_INACTIVE"
-
-* 0006-memblock-Kill-memblock_init.patch:
-  updated to include openrisc
-
-* 0013-memblock-s-memblock_analyze-memblock_allow_resize-an.patch:
-  updated to include openrisc
-
-This patchset builds on the previous "memblock, x86: Allow node info
-in memblock and remove x86 specific memblock code" patchset[1], which
-now is in tip:x86/memblock.  This patchset updates memblock so that
-it's easier to use, converts all archs which use early_node_map[] to
-use memblock instead, and kills early_node_map[].
-
-Bootmem allocator is still looming there but this ensures a unified
-way forward where memblock is the universal early memory management
-mechanism.  This cleans up the entanglement between memblock and
-early_node_map[] in the backend but API visible to archs is still a
-bit confusing and can use some cleanup and documentation once things
-settle down a bit.
-
-x86, powerpc and sparc are boot tested in several different
-configurations.  On x86 allmod/noconfigs are compile tested.  On all
-other archs except for score, defconfig + some variations are compile
-tested.
-
-This does touch a lot of archs but except for x86 and powerpc the
-changes are mostly trivial and as bulk of the changes involve updates
-to generic memblock code, it would be great if these can be routed
-through single tree (tip:x86/memblock).
-
- 0001-memblock-Fix-include-breakages-caused-by-24aa07882b.patch
- 0002-memblock-Make-memblock_-add-remove-free-reserve-retu.patch
- 0003-memblock-Use-memblock_reserve-in-memblock-internal-f.patch
- 0004-memblock-Add-__memblock_dump_all.patch
- 0005-memblock-Kill-sentinel-entries-at-the-end-of-static-.patch
- 0006-memblock-Kill-memblock_init.patch
- 0007-memblock-Separate-out-memblock_isolate_range-from-me.patch
- 0008-memblock-Reimplement-__memblock_remove-using-membloc.patch
- 0009-memblock-Make-memblock-functions-handle-overflowing-.patch
- 0010-memblock-Reimplement-memblock_enforce_memory_limit-u.patch
- 0011-powerpc-Cleanup-memblock-usage.patch
- 0012-memblock-Track-total-size-of-regions-automatically.patch
- 0013-memblock-s-memblock_analyze-memblock_allow_resize-an.patch
- 0014-memblock-Implement-memblock_add_node.patch
- 0015-powerpc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0016-sparc-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0017-SuperH-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0018-ia64-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0019-mips-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0020-s390-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0021-score-Use-HAVE_MEMBLOCK_NODE_MAP.patch
- 0022-memblock-Kill-early_node_map.patch
- 0023-memblock-Reimplement-memblock-allocation-using-rever.patch
-
-0001-0014 clean up and improve generic memblock code (powerpc update
-is to allow updates to generic code) so that it's easier for archs.
-e.g. memblock_init/analyze() are no longer necessary.
-
-0015-0017 convert archs which were using memblock + early_node_map[]
-to use MEMBLOCK_HAVE_NODE_MAP.
-
-0018-0021 convert archs which were using only early_node_map[] to
-MEMBLOCK_HAVE_NODE_MAP.
-
-0022 kills now unused early_node_map[].
-
-0023 reimplements memblock allocator in sane way, which is possible
-with early_node_map[] gone.
-
-This patchset is available in the following git branch.
-
- git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill-early_node_map
-
-And diffstat follows.
-
- arch/arm/kernel/setup.c                  |    1 
- arch/arm/mm/init.c                       |    4 
- arch/ia64/Kconfig                        |    6 
- arch/ia64/mm/contig.c                    |    3 
- arch/ia64/mm/init.c                      |    4 
- arch/microblaze/include/asm/memblock.h   |   14 
- arch/microblaze/kernel/prom.c            |    3 
- arch/mips/Kconfig                        |    6 
- arch/mips/kernel/setup.c                 |    3 
- arch/mips/sgi-ip27/ip27-memory.c         |    5 
- arch/openrisc/include/asm/memblock.h     |   24 -
- arch/openrisc/kernel/prom.c              |    3 
- arch/powerpc/Kconfig                     |    4 
- arch/powerpc/include/asm/memblock.h      |    8 
- arch/powerpc/kernel/machine_kexec.c      |    3 
- arch/powerpc/kernel/prom.c               |   20 -
- arch/powerpc/mm/init_32.c                |    4 
- arch/powerpc/mm/mem.c                    |    2 
- arch/powerpc/mm/numa.c                   |   10 
- arch/powerpc/mm/tlb_nohash.c             |    1 
- arch/powerpc/platforms/embedded6xx/wii.c |   23 -
- arch/powerpc/platforms/ps3/mm.c          |    1 
- arch/s390/Kconfig                        |    6 
- arch/s390/kernel/setup.c                 |    4 
- arch/score/Kconfig                       |   12 
- arch/score/kernel/setup.c                |    4 
- arch/sh/Kconfig                          |    1 
- arch/sh/include/asm/memblock.h           |    4 
- arch/sh/kernel/machine_kexec.c           |    3 
- arch/sh/kernel/setup.c                   |    3 
- arch/sh/mm/Kconfig                       |    3 
- arch/sh/mm/init.c                        |    3 
- arch/sparc/Kconfig                       |    4 
- arch/sparc/include/asm/memblock.h        |    8 
- arch/sparc/mm/init_64.c                  |   28 -
- arch/unicore32/kernel/setup.c            |    1 
- arch/unicore32/mm/init.c                 |    4 
- arch/unicore32/mm/mmu.c                  |    1 
- arch/x86/Kconfig                         |    3 
- arch/x86/kernel/e820.c                   |    3 
- arch/x86/kernel/head32.c                 |    2 
- arch/x86/kernel/head64.c                 |    2 
- arch/x86/xen/enlighten.c                 |    2 
- drivers/iommu/intel-iommu.c              |    1 
- include/linux/memblock.h                 |  116 +++--
- include/linux/mm.h                       |   50 --
- include/linux/mmzone.h                   |    8 
- include/linux/poison.h                   |    6 
- mm/memblock.c                            |  603 ++++++++++++++-----------------
- mm/page_alloc.c                          |  259 -------------
- 50 files changed, 455 insertions(+), 841 deletions(-)
-
---
-tejun
-
-[L] http://thread.gmane.org/gmane.linux.kernel.cross-arch/10464
-[1] https://lkml.org/lkml/2011/7/12/95
+diff --git a/arch/arm/kernel/setup.c b/arch/arm/kernel/setup.c
+index 3448a3f..6701ba9 100644
+--- a/arch/arm/kernel/setup.c
++++ b/arch/arm/kernel/setup.c
+@@ -52,6 +52,7 @@
+ #include <asm/mach/time.h>
+ #include <asm/traps.h>
+ #include <asm/unwind.h>
++#include <asm/memblock.h>
+ 
+ #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
+ #include "compat.h"
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index fbdd12e..9863f03 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -32,6 +32,7 @@
+ 
+ #include <asm/mach/arch.h>
+ #include <asm/mach/map.h>
++#include <asm/memblock.h>
+ 
+ #include "mm.h"
+ 
+diff --git a/arch/microblaze/include/asm/memblock.h b/arch/microblaze/include/asm/memblock.h
+deleted file mode 100644
+index 20a8e25..0000000
+--- a/arch/microblaze/include/asm/memblock.h
++++ /dev/null
+@@ -1,14 +0,0 @@
+-/*
+- * Copyright (C) 2008 Michal Simek <monstr@monstr.eu>
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License. See the file "COPYING" in the main directory of this archive
+- * for more details.
+- */
+-
+-#ifndef _ASM_MICROBLAZE_MEMBLOCK_H
+-#define _ASM_MICROBLAZE_MEMBLOCK_H
+-
+-#endif /* _ASM_MICROBLAZE_MEMBLOCK_H */
+-
+-
+diff --git a/arch/openrisc/include/asm/memblock.h b/arch/openrisc/include/asm/memblock.h
+deleted file mode 100644
+index bbe5a1c..0000000
+--- a/arch/openrisc/include/asm/memblock.h
++++ /dev/null
+@@ -1,24 +0,0 @@
+-/*
+- * OpenRISC Linux
+- *
+- * Linux architectural port borrowing liberally from similar works of
+- * others.  All original copyrights apply as per the original source
+- * declaration.
+- *
+- * OpenRISC implementation:
+- * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
+- * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
+- * et al.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License as published by
+- * the Free Software Foundation; either version 2 of the License, or
+- * (at your option) any later version.
+- */
+-
+-#ifndef __ASM_OPENRISC_MEMBLOCK_H
+-#define __ASM_OPENRISC_MEMBLOCK_H
+-
+-/* empty */
+-
+-#endif /* __ASM_OPENRISC_MEMBLOCK_H */
+diff --git a/arch/powerpc/include/asm/memblock.h b/arch/powerpc/include/asm/memblock.h
+deleted file mode 100644
+index 43efc34..0000000
+--- a/arch/powerpc/include/asm/memblock.h
++++ /dev/null
+@@ -1,8 +0,0 @@
+-#ifndef _ASM_POWERPC_MEMBLOCK_H
+-#define _ASM_POWERPC_MEMBLOCK_H
+-
+-#include <asm/udbg.h>
+-
+-#define MEMBLOCK_DBG(fmt...) udbg_printf(fmt)
+-
+-#endif /* _ASM_POWERPC_MEMBLOCK_H */
+diff --git a/arch/sh/include/asm/memblock.h b/arch/sh/include/asm/memblock.h
+deleted file mode 100644
+index e87063f..0000000
+--- a/arch/sh/include/asm/memblock.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __ASM_SH_MEMBLOCK_H
+-#define __ASM_SH_MEMBLOCK_H
+-
+-#endif /* __ASM_SH_MEMBLOCK_H */
+diff --git a/arch/sparc/include/asm/memblock.h b/arch/sparc/include/asm/memblock.h
+deleted file mode 100644
+index c67b047..0000000
+--- a/arch/sparc/include/asm/memblock.h
++++ /dev/null
+@@ -1,8 +0,0 @@
+-#ifndef _SPARC64_MEMBLOCK_H
+-#define _SPARC64_MEMBLOCK_H
+-
+-#include <asm/oplib.h>
+-
+-#define MEMBLOCK_DBG(fmt...) prom_printf(fmt)
+-
+-#endif /* !(_SPARC64_MEMBLOCK_H) */
+diff --git a/arch/unicore32/kernel/setup.c b/arch/unicore32/kernel/setup.c
+index 471b6bc..673d7a8 100644
+--- a/arch/unicore32/kernel/setup.c
++++ b/arch/unicore32/kernel/setup.c
+@@ -37,6 +37,7 @@
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
+ #include <asm/traps.h>
++#include <asm/memblock.h>
+ 
+ #include "setup.h"
+ 
+diff --git a/arch/unicore32/mm/init.c b/arch/unicore32/mm/init.c
+index 3b379cd..5fb09e2 100644
+--- a/arch/unicore32/mm/init.c
++++ b/arch/unicore32/mm/init.c
+@@ -26,6 +26,7 @@
+ #include <asm/setup.h>
+ #include <asm/sizes.h>
+ #include <asm/tlb.h>
++#include <asm/memblock.h>
+ #include <mach/map.h>
+ 
+ #include "mm.h"
+diff --git a/arch/unicore32/mm/mmu.c b/arch/unicore32/mm/mmu.c
+index 3e5c3e5..43c20b4 100644
+--- a/arch/unicore32/mm/mmu.c
++++ b/arch/unicore32/mm/mmu.c
+@@ -25,6 +25,7 @@
+ #include <asm/setup.h>
+ #include <asm/sizes.h>
+ #include <asm/tlb.h>
++#include <asm/memblock.h>
+ 
+ #include <mach/map.h>
+ 
+-- 
+1.7.3.1
