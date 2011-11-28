@@ -1,65 +1,72 @@
 From: Tejun Heo <tj@kernel.org>
-Subject: [PATCH 20/23] s390: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Mon, 28 Nov 2011 11:31:22 -0800
-Message-ID: <1322508685-32532-21-git-send-email-tj@kernel.org>
+Subject: [PATCH 21/23] score: Use HAVE_MEMBLOCK_NODE_MAP
+Date: Mon, 28 Nov 2011 11:31:23 -0800
+Message-ID: <1322508685-32532-22-git-send-email-tj@kernel.org>
 References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
-Cc: Tejun Heo <tj@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-s390@vger.kernel.org
+Cc: Tejun Heo <tj@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-s390 used early_node_map[] just to prime free_area_init_nodes().  Now
+score used early_node_map[] just to prime free_area_init_nodes().  Now
 memblock can be used for the same purpose and early_node_map[] is
 scheduled to be dropped.  Use memblock instead.
+
+While at it, replace 7 space indentations w/ tabs.
 
 Signed-off-by: Tejun Heo <tj@kernel.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
 ---
- arch/s390/Kconfig        |    3 +++
- arch/s390/kernel/setup.c |    4 +++-
- 2 files changed, 6 insertions(+), 1 deletions(-)
+ arch/score/Kconfig        |    9 ++++++---
+ arch/score/kernel/setup.c |    4 +++-
+ 2 files changed, 9 insertions(+), 4 deletions(-)
 
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 373679b..e383caf 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -92,6 +92,9 @@ config S390
- 	select HAVE_ARCH_JUMP_LABEL if !MARCH_G5
- 	select HAVE_RCU_TABLE_FREE if SMP
- 	select ARCH_SAVE_PAGE_KEYS if HIBERNATION
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index df169e8..5f8743b 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -1,9 +1,12 @@
+ menu "Machine selection"
+ 
+ config SCORE
+-       def_bool y
+-       select HAVE_GENERIC_HARDIRQS
+-       select GENERIC_IRQ_SHOW
++	def_bool y
++	select HAVE_GENERIC_HARDIRQS
++	select GENERIC_IRQ_SHOW
 +	select HAVE_MEMBLOCK
 +	select HAVE_MEMBLOCK_NODE_MAP
 +	select ARCH_DISCARD_MEMBLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK
- 	select ARCH_INLINE_SPIN_TRYLOCK_BH
- 	select ARCH_INLINE_SPIN_LOCK
-diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
-index e58a462..a2850df 100644
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -21,6 +21,7 @@
- #include <linux/module.h>
- #include <linux/sched.h>
- #include <linux/kernel.h>
+ 
+ choice
+ 	prompt "System type"
+diff --git a/arch/score/kernel/setup.c b/arch/score/kernel/setup.c
+index 6f898c0..b48459a 100644
+--- a/arch/score/kernel/setup.c
++++ b/arch/score/kernel/setup.c
+@@ -26,6 +26,7 @@
+ #include <linux/bootmem.h>
+ #include <linux/initrd.h>
+ #include <linux/ioport.h>
 +#include <linux/memblock.h>
  #include <linux/mm.h>
- #include <linux/stddef.h>
- #include <linux/unistd.h>
-@@ -820,7 +821,8 @@ setup_memory(void)
- 		end_chunk = min(end_chunk, end_pfn);
- 		if (start_chunk >= end_chunk)
- 			continue;
--		add_active_range(0, start_chunk, end_chunk);
-+		memblock_add_node(PFN_PHYS(start_chunk),
-+				  PFN_PHYS(end_chunk - start_chunk), 0);
- 		pfn = max(start_chunk, start_pfn);
- 		for (; pfn < end_chunk; pfn++)
- 			page_set_storage_key(PFN_PHYS(pfn),
+ #include <linux/seq_file.h>
+ #include <linux/screen_info.h>
+@@ -54,7 +55,8 @@ static void __init bootmem_init(void)
+ 	/* Initialize the boot-time allocator with low memory only. */
+ 	bootmap_size = init_bootmem_node(NODE_DATA(0), start_pfn,
+ 					 min_low_pfn, max_low_pfn);
+-	add_active_range(0, min_low_pfn, max_low_pfn);
++	memblock_add_node(PFN_PHYS(min_low_pfn),
++			  PFN_PHYS(max_low_pfn - min_low_pfn), 0);
+ 
+ 	free_bootmem(PFN_PHYS(start_pfn),
+ 		     (max_low_pfn - start_pfn) << PAGE_SHIFT);
 -- 
 1.7.3.1
