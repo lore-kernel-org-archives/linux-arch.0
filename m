@@ -1,29 +1,39 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH-RFC 0/2] tile: switch to generic pci_iomap
-Date: Tue, 29 Nov 2011 20:54:05 +0200
-Message-ID: <cover.1322592494.git.mst@redhat.com>
+Subject: [PATCH-RFC 1/2] tile: don't panic on iomap
+Date: Tue, 29 Nov 2011 20:54:15 +0200
+Message-ID: <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
+References: <cover.1322592494.git.mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31195 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752605Ab1K2Swl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Nov 2011 13:52:41 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <cover.1322592494.git.mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 Cc: Chris Metcalf <cmetcalf@tilera.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-Here's a completely untested patch to switch tile
-over to the new pci_iomap (in -mm).
+I think panic on iomap is there just for debugging.
+If we return NULL instead, the generic pci_iomap will
+DTRT so we don't need to roll our own.
 
-This is on top of pci: use generic pci_iomap in most architectures,
-and converts just the tile architecture.
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+---
+ arch/tile/include/asm/io.h |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-Seems straightforward enough but completely untested - could someone
-with access to appropriate systems respond and say whether
-the first patch in the series is OK?
-The second one should then be trivial.
-
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+index c9ea165..be6090d 100644
+--- a/arch/tile/include/asm/io.h
++++ b/arch/tile/include/asm/io.h
+@@ -204,7 +204,8 @@ static inline long ioport_panic(void)
+ 
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
+ {
+-	return (void __iomem *) ioport_panic();
++	pr_info("Trying to map an IO resource - it does not exit on tile.\n");
++	return NULL;
+ }
+ 
+ static inline void ioport_unmap(void __iomem *addr)
 -- 
 1.7.5.53.gc233e
