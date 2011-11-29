@@ -1,49 +1,72 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
-Date: Tue, 29 Nov 2011 13:04:12 -0800
-Message-ID: <CAErSpo4N8drqe5bHVjzXy_h0HTC8Reye4+8viN4c6TtmwFheXA@mail.gmail.com>
-References: <cover.1322592494.git.mst@redhat.com> <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 0/5 V4]  Avoid soft lockup message when KVM is stopped by host
+Date: Tue, 29 Nov 2011 16:35:34 -0500
+Message-ID: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:41183 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756501Ab1K2Vft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Nov 2011 16:35:49 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, Nov 29, 2011 at 10:54 AM, Michael S. Tsirkin <mst@redhat.com> w=
-rote:
-> I think panic on iomap is there just for debugging.
-> If we return NULL instead, the generic pci_iomap will
-> DTRT so we don't need to roll our own.
+Changes from V3:
+Include CC's on patch 3
+Drop clear flag ioctl and have the watchdog clear the flag when it is reset
 
-Just to be explicit about what "doing the right thing" means, here's
-what I think is changing (I think the new behavior is OK, but it *is*
-different):
+Changes from V2:
+A new kvm functions defined in kvm_para.h, the only change to pvclock is the
+initial flag definition
 
-Old behavior: Caller calls pci_iomap(), which panics in ioport_map().
+Changes from V1:
+(Thanks Marcelo)
+Host code has all been moved to arch/x86/kvm/x86.c
+KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
 
-New behavior: Caller calls pci_iomap(), ioport_map() returns NULL,
-pci_iomap() returns NULL (failure), caller may check for failure.  If
-caller does not check for failure and passes the NULL to
-ioread()/iowrite(), we WARN in bad_io_access().
+When a guest kernel is stopped by the host hypervisor it can look like a soft
+lockup to the guest kernel.  This false warning can mask later soft lockup
+warnings which may be real.  This patch series adds a method for a host
+hypervisor to communicate to a guest kernel that it is being stopped.  The
+final patch in the series has the watchdog check this flag when it goes to
+issue a soft lockup warning and skip the warning if the guest knows it was
+stopped.
 
-> =A0static inline void __iomem *ioport_map(unsigned long port, unsigne=
-d int len)
-> =A0{
-> - =A0 =A0 =A0 return (void __iomem *) ioport_panic();
-> + =A0 =A0 =A0 pr_info("Trying to map an IO resource - it does not exi=
-t on tile.\n");
-> + =A0 =A0 =A0 return NULL;
+It was attempted to solve this in Qemu, but the side effects of saving and
+restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+by the amount of time of the pause.  This forces a guest to have ntp running
+in order to keep the wall clock accurate.
 
-s/exit/exist/
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 
-Since we only expect to see this message during debugging, maybe it
-could be more informative, e.g., use dump_stack() to identify the
-offending driver?  I don't think either the "Trying to map" message or
-the "Bad IO access" message is enough to actually make progress in
-debugging.
+Eric B Munson (5):
+  Add flag to indicate that a vm was stopped by the host
+  Add functions to check if the host has stopped the vm
+  Add ioctl for KVM_GUEST_STOPPED
+  Add generic stubs for kvm stop check functions
+  Add check for suspended vm in softlockup detector
 
-Bjorn
+ arch/x86/include/asm/kvm_host.h    |    2 ++
+ arch/x86/include/asm/kvm_para.h    |    1 +
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ arch/x86/kernel/kvmclock.c         |   21 +++++++++++++++++++++
+ arch/x86/kvm/x86.c                 |   20 ++++++++++++++++++++
+ include/asm-generic/kvm_para.h     |   14 ++++++++++++++
+ include/linux/kvm.h                |    2 ++
+ kernel/watchdog.c                  |   12 ++++++++++++
+ 8 files changed, 73 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
+
+-- 
+1.7.5.4
