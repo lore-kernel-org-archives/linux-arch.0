@@ -1,92 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:41208 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756501Ab1K2Vfy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Nov 2011 16:35:54 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 2/5 V4] Add functions to check if the host has stopped the vm
-Date: Tue, 29 Nov 2011 16:35:36 -0500
-Message-ID: <1322602539-27004-3-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
-References: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
+Received: from moutng.kundenserver.de ([212.227.17.9]:51776 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755099Ab1K2WFb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Nov 2011 17:05:31 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
+Date: Tue, 29 Nov 2011 22:05:11 +0000
+References: <cover.1322592494.git.mst@redhat.com> <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
+In-Reply-To: <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201111292205.11544.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111129213536.d0v-UM624Ycj98pwrtIYcb12WrOxu8U3jAJeyuLncuY@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>
+Cc: Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20111129220511.kCBHTK3KWhbulQ6bo79HejWsSs8vCapcSTweRxSzODo@z>
 
-When a host stops or suspends a VM it will set a flag to show this.  The
-watchdog will use these functions to determine if a softlockup is real, or the
-result of a suspended VM.
+On Tuesday 29 November 2011, Michael S. Tsirkin wrote:
+> diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+> index c9ea165..be6090d 100644
+> --- a/arch/tile/include/asm/io.h
+> +++ b/arch/tile/include/asm/io.h
+> @@ -204,7 +204,8 @@ static inline long ioport_panic(void)
+>  
+>  static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
+>  {
+> -       return (void __iomem *) ioport_panic();
+> +       pr_info("Trying to map an IO resource - it does not exit on tile.\n");
+> +       return NULL;
+>  }
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: arnd@arndb.de
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/x86/include/asm/kvm_para.h |    1 +
- arch/x86/kernel/kvmclock.c      |   21 +++++++++++++++++++++
- 2 files changed, 22 insertions(+), 0 deletions(-)
+Why not just set CONFIG_NO_IOPORT and make this unavailable at compile time?
 
-diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
-index 734c376..e9d63a6 100644
---- a/arch/x86/include/asm/kvm_para.h
-+++ b/arch/x86/include/asm/kvm_para.h
-@@ -95,6 +95,7 @@ struct kvm_vcpu_pv_apf_data {
- extern void kvmclock_init(void);
- extern int kvm_register_clock(char *txt);
- 
-+bool kvm_check_and_clear_guest_paused(int cpu);
- 
- /* This instruction is vmcall.  On non-VT architectures, it will generate a
-  * trap that we will then rewrite to the appropriate instruction.
-diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
-index 44842d7..f0c0599 100644
---- a/arch/x86/kernel/kvmclock.c
-+++ b/arch/x86/kernel/kvmclock.c
-@@ -22,6 +22,7 @@
- #include <asm/msr.h>
- #include <asm/apic.h>
- #include <linux/percpu.h>
-+#include <linux/hardirq.h>
- 
- #include <asm/x86_init.h>
- #include <asm/reboot.h>
-@@ -114,6 +115,26 @@ static void kvm_get_preset_lpj(void)
- 	preset_lpj = lpj;
- }
- 
-+bool kvm_check_and_clear_guest_paused(int cpu)
-+{
-+	bool ret = false;
-+	struct pvclock_vcpu_time_info *src;
-+
-+	/*
-+	 * per_cpu() is safe here because this function is only called from
-+	 * timer functions where preemption is already disabled.
-+	 */
-+	WARN_ON(!in_atomic());
-+	src = &per_cpu(hv_clock, cpu);
-+	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
-+		src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
-+		ret = true;
-+	}
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
-+
- static struct clocksource kvm_clock = {
- 	.name = "kvm-clock",
- 	.read = kvm_clock_get_cycles,
--- 
-1.7.5.4
-
+	Arnd
