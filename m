@@ -1,32 +1,29 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH-RFC 01/10] lib: move GENERIC_IOMAP to lib/Kconfig
-Date: Mon, 28 Nov 2011 14:12:26 -0600
-Message-ID: <20111128201226.GA4296@codeaurora.org>
-References: <cover.1322163031.git.mst@redhat.com>
- <5aed7b7e1dbc8a50ebd6986245df8054fd05b7cd.1322163031.git.mst@redhat.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH-RFC 0/2] tile: switch to generic pci_iomap
+Date: Tue, 29 Nov 2011 20:54:05 +0200
+Message-ID: <cover.1322592494.git.mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:31195 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752605Ab1K2Swl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Nov 2011 13:52:41 -0500
 Content-Disposition: inline
-In-Reply-To: <5aed7b7e1dbc8a50ebd6986245df8054fd05b7cd.1322163031.git.mst@redhat.com>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Jonas Bonn <jonas@southpole.se>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Paul Mundt <lethal@linux-sh.org>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: Chris Metcalf <cmetcalf@tilera.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Thu, Nov 24, 2011 at 10:15:42PM +0200, Michael S. Tsirkin wrote:
-> define GENERIC_IOMAP in a central location
-> instead of all architectures. This will be helpful
-> for the follow-up patch which makes it select
-> other configs. Code is also a bit shorter this way.
+Here's a completely untested patch to switch tile
+over to the new pci_iomap (in -mm).
 
-For the Hexagon config,
+This is on top of pci: use generic pci_iomap in most architectures,
+and converts just the tile architecture.
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
-
+Seems straightforward enough but completely untested - could someone
+with access to appropriate systems respond and say whether
+the first patch in the series is OK?
+The second one should then be trivial.
 
 -- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+1.7.5.53.gc233e
