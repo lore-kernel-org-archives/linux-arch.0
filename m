@@ -1,127 +1,24 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH-RFC v2] frv: switch to GENERIC_PCI_IOMAP
-Date: Tue, 29 Nov 2011 21:35:05 +0200
-Message-ID: <20111129193503.GA2960@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+Date: Tue, 29 Nov 2011 11:38:40 -0800
+Message-ID: <CA+55aFxsomMUqgyseZVunbbOUMXtfHGm1jkGhfeCd29zUrABsQ@mail.gmail.com>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain> <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48159 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756224Ab1K2Td1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 29 Nov 2011 14:33:27 -0500
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>, linux-pci@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-frv uses a version of pci_iomap that simply
-casts and returns back the start address.
-Looking closely, both ioremap and ioport_map seem to
-do this on this platform, so the generic pci_iomap
-will DTRT automatically.
+On Tue, Nov 29, 2011 at 11:29 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Dammit, the emulation is just bad.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
+Btw, wasn't the "crazy random thiscpu ops" one of the topics at the
+KS? I thought we agreed to clean these things up and remove most of
+them? Did it just get dropped, or is it pending somwhere?
 
-Changes from v1:
-	add a missing include for asm-generic/pci_iomap.h
-	in asm/io.h
-
-This is a completely untested patch to switch frv
-over to the new pci_iomap (in -mm).
-
-This is on top of pci: use generic pci_iomap in most architectures,
-and converts just the frvc architecture.
-
-
-
- arch/frv/Kconfig                  |    1 +
- arch/frv/include/asm/io.h         |    2 +-
- arch/frv/mb93090-mb00/Makefile    |    2 +-
- arch/frv/mb93090-mb00/pci-iomap.c |   29 -----------------------------
- 4 files changed, 3 insertions(+), 31 deletions(-)
- delete mode 100644 arch/frv/mb93090-mb00/pci-iomap.c
-
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index bad27a6..dfde78b 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -317,6 +317,7 @@ config PCI
- 	bool "Use PCI"
- 	depends on MB93090_MB00
- 	default y
-+	select GENERIC_PCI_IOMAP
- 	help
- 	  Some FR-V systems (such as the MB93090-MB00 VDK) have PCI
- 	  onboard. If you have one of these boards and you wish to use the PCI
-diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
-index ca7475e..8cb50a2 100644
---- a/arch/frv/include/asm/io.h
-+++ b/arch/frv/include/asm/io.h
-@@ -21,6 +21,7 @@
- #include <asm/virtconvert.h>
- #include <asm/string.h>
- #include <asm/mb-regs.h>
-+#include <asm-generic/pci_iomap.h>
- #include <linux/delay.h>
- 
- /*
-@@ -370,7 +371,6 @@ static inline void iowrite32_rep(void __iomem *p, const void *src, unsigned long
- 
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
--extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
- static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
- {
- }
-diff --git a/arch/frv/mb93090-mb00/Makefile b/arch/frv/mb93090-mb00/Makefile
-index b73b542..21f1df1 100644
---- a/arch/frv/mb93090-mb00/Makefile
-+++ b/arch/frv/mb93090-mb00/Makefile
-@@ -3,7 +3,7 @@
- #
- 
- ifeq "$(CONFIG_PCI)" "y"
--obj-y := pci-frv.o pci-irq.o pci-vdk.o pci-iomap.o
-+obj-y := pci-frv.o pci-irq.o pci-vdk.o
- 
- ifeq "$(CONFIG_MMU)" "y"
- obj-y += pci-dma.o
-diff --git a/arch/frv/mb93090-mb00/pci-iomap.c b/arch/frv/mb93090-mb00/pci-iomap.c
-deleted file mode 100644
-index 35f6df2..0000000
---- a/arch/frv/mb93090-mb00/pci-iomap.c
-+++ /dev/null
-@@ -1,29 +0,0 @@
--/* pci-iomap.c: description
-- *
-- * Copyright (C) 2006 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
--#include <linux/pci.h>
--#include <linux/module.h>
--
--void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
--{
--	resource_size_t start = pci_resource_start(dev, bar);
--	resource_size_t len = pci_resource_len(dev, bar);
--	unsigned long flags = pci_resource_flags(dev, bar);
--
--	if (!len || !start)
--		return NULL;
--
--	if ((flags & IORESOURCE_IO) || (flags & IORESOURCE_MEM))
--		return (void __iomem *) start;
--
--	return NULL;
--}
--
--EXPORT_SYMBOL(pci_iomap);
--- 
-1.7.5.53.gc233e
+              Linus
