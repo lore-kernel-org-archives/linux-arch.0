@@ -1,106 +1,178 @@
-From: Michael Holzheu <holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: [PATCH v3] kdump: Fix crash_kexec - smp_send_stop race in panic
-Date: Tue, 29 Nov 2011 09:58:52 +0100
-Message-ID: <1322557132.2751.6.camel@br98xy6r>
-References: <1319639649.3321.11.camel@br98xy6r>
- <20111028161143.e5ebf617.akpm@linux-foundation.org>
- <1320055036.2796.8.camel@br98xy6r>
- <20111031033948.a0edb7f3.akpm@linux-foundation.org>
- <1320314844.2989.6.camel@br98xy6r>
- <20111109160400.cc2d27d9.akpm@linux-foundation.org>
- <1320934932.16425.14.camel@br98xy6r> <4EBBE9B4.3040009@tilera.com>
- <1321014494.2745.7.camel@br98xy6r> <4EBD5536.7010806@tilera.com>
-Reply-To: holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
-In-Reply-To: <4EBD5536.7010806-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/kexec>,
- <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/kexec/>
-List-Post: <mailto:kexec-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>
-List-Help: <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/kexec>,
- <mailto:kexec-request-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org?subject=subscribe>
-Sender: kexec-bounces-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-Errors-To: kexec-bounces+glkk-kexec=m.gmane.org-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Fenghua Yu <fenghua.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Chen Liqin <liqin.chen-+XGAvkf1AAHby3iVrkZq2A@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, "H.
- Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Guan Xuetao <gxt-TG0Ac1+ktVePQbnJrJN+5g@public.gmane.org>, Lennox Wu <lennox.wu-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Hans-Christian Egtvedt <egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org>, Jonas Bonn <jonas-A9uVI2HLR7kOP4wsBPIw7w@public.gmane.org>, Jesper Nilsson <jesper.nilsson-VrBV9hrLPhE@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>, Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>, "James
- E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Vivek Goyal <vgoyal-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Haavard Skinnemoen <hskinnemoen-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Don Zickus <dzickus-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: Richard Kuo <rkuo@qualcomm.com>
+Subject: [PATCH] powerpc:  use rwsem.h from generic location
+Date: Tue, 29 Nov 2011 12:28:20 -0600
+Message-ID: <7f5671$45bi2l@wolverine02.qualcomm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:34316 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751820Ab1K3G6c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 01:58:32 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
 
-From: Michael Holzheu <holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: kdump: Fix crash_kexec()/smp_send_stop() race in panic
+As of commit dd472da38, rwsem.h was moved into asm-generic.
+This patch removes the arch file and points the build at
+its new location.
 
-When two CPUs call panic at the same time there is a possible race
-condition that can stop kdump.  The first CPU calls crash_kexec() and the
-second CPU calls smp_send_stop() in panic() before crash_kexec() finished
-on the first CPU.  So the second CPU stops the first CPU and therefore
-kdump fails:
-
-1st CPU:
-panic()->crash_kexec()->mutex_trylock(&kexec_mutex)-> do kdump
-
-2nd CPU:
-panic()->crash_kexec()->kexec_mutex already held by 1st CPU
-       ->smp_send_stop()-> stop 1st CPU (stop kdump)
-
-This patch fixes the problem by introducing a spinlock in panic that
-allows only one CPU to process crash_kexec() and the subsequent panic
-code.
-
-All other CPUs call the weak function panic_smp_self_stop() that stops
-the CPU itself. This function can be overloaded by architecture code.
-For example "tile" can use their lower-power "nap" instruction for
-that.
-
-Acked-by: Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>
-Signed-off-by: Michael Holzheu <holzheu-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- kernel/panic.c |   18 +++++++++++++++++-
- 1 file changed, 17 insertions(+), 1 deletion(-)
+ arch/powerpc/include/asm/Kbuild  |    2 +
+ arch/powerpc/include/asm/rwsem.h |  132 --------------------------------------
+ 2 files changed, 2 insertions(+), 132 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/rwsem.h
 
---- a/kernel/panic.c
-+++ b/kernel/panic.c
-@@ -49,6 +49,15 @@ static long no_blink(int state)
- long (*panic_blink)(int state);
- EXPORT_SYMBOL(panic_blink);
- 
-+/*
-+ * Stop ourself in panic -- architecture code may override this
-+ */
-+void __weak panic_smp_self_stop(void)
-+{
-+	while (1)
-+		cpu_relax();
-+}
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index d51df17..7e313f1 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -34,3 +34,5 @@ header-y += termios.h
+ header-y += types.h
+ header-y += ucontext.h
+ header-y += unistd.h
 +
- /**
-  *	panic - halt the system
-  *	@fmt: The text string to print
-@@ -59,6 +68,7 @@ EXPORT_SYMBOL(panic_blink);
-  */
- NORET_TYPE void panic(const char * fmt, ...)
- {
-+	static DEFINE_SPINLOCK(panic_lock);
- 	static char buf[1024];
- 	va_list args;
- 	long i, i_next = 0;
-@@ -68,8 +78,14 @@ NORET_TYPE void panic(const char * fmt,
- 	 * It's possible to come here directly from a panic-assertion and
- 	 * not have preempt disabled. Some functions called from here want
- 	 * preempt to be disabled. No point enabling it later though...
-+	 *
-+	 * Only one CPU is allowed to execute the panic code from here. For
-+	 * multiple parallel invocations of panic, all other CPUs either
-+	 * stop themself or will wait until they are stopped by the 1st CPU
-+	 * with smp_send_stop().
- 	 */
--	preempt_disable();
-+	if (!spin_trylock(&panic_lock))
-+		panic_smp_self_stop();
- 
- 	console_verbose();
- 	bust_spinlocks(1);
++generic-y += rwsem.h
+diff --git a/arch/powerpc/include/asm/rwsem.h b/arch/powerpc/include/asm/rwsem.h
+deleted file mode 100644
+index bb1e2cd..0000000
+--- a/arch/powerpc/include/asm/rwsem.h
++++ /dev/null
+@@ -1,132 +0,0 @@
+-#ifndef _ASM_POWERPC_RWSEM_H
+-#define _ASM_POWERPC_RWSEM_H
+-
+-#ifndef _LINUX_RWSEM_H
+-#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
+-#endif
+-
+-#ifdef __KERNEL__
+-
+-/*
+- * R/W semaphores for PPC using the stuff in lib/rwsem.c.
+- * Adapted largely from include/asm-i386/rwsem.h
+- * by Paul Mackerras <paulus@samba.org>.
+- */
+-
+-/*
+- * the semaphore definition
+- */
+-#ifdef CONFIG_PPC64
+-# define RWSEM_ACTIVE_MASK		0xffffffffL
+-#else
+-# define RWSEM_ACTIVE_MASK		0x0000ffffL
+-#endif
+-
+-#define RWSEM_UNLOCKED_VALUE		0x00000000L
+-#define RWSEM_ACTIVE_BIAS		0x00000001L
+-#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
+-#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
+-#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
+-
+-/*
+- * lock for reading
+- */
+-static inline void __down_read(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
+-		rwsem_down_read_failed(sem);
+-}
+-
+-static inline int __down_read_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	while ((tmp = sem->count) >= 0) {
+-		if (tmp == cmpxchg(&sem->count, tmp,
+-				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
+-			return 1;
+-		}
+-	}
+-	return 0;
+-}
+-
+-/*
+- * lock for writing
+- */
+-static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
+-{
+-	long tmp;
+-
+-	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
+-				     (atomic_long_t *)&sem->count);
+-	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
+-		rwsem_down_write_failed(sem);
+-}
+-
+-static inline void __down_write(struct rw_semaphore *sem)
+-{
+-	__down_write_nested(sem, 0);
+-}
+-
+-static inline int __down_write_trylock(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
+-		      RWSEM_ACTIVE_WRITE_BIAS);
+-	return tmp == RWSEM_UNLOCKED_VALUE;
+-}
+-
+-/*
+- * unlock after reading
+- */
+-static inline void __up_read(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
+-	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * unlock after writing
+- */
+-static inline void __up_write(struct rw_semaphore *sem)
+-{
+-	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
+-				 (atomic_long_t *)&sem->count) < 0))
+-		rwsem_wake(sem);
+-}
+-
+-/*
+- * implement atomic add functionality
+- */
+-static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
+-{
+-	atomic_long_add(delta, (atomic_long_t *)&sem->count);
+-}
+-
+-/*
+- * downgrade write lock to read lock
+- */
+-static inline void __downgrade_write(struct rw_semaphore *sem)
+-{
+-	long tmp;
+-
+-	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
+-				     (atomic_long_t *)&sem->count);
+-	if (tmp < 0)
+-		rwsem_downgrade_wake(sem);
+-}
+-
+-/*
+- * implement exchange and add functionality
+- */
+-static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
+-{
+-	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
+-}
+-
+-#endif	/* __KERNEL__ */
+-#endif	/* _ASM_POWERPC_RWSEM_H */
+-- 
+1.7.3
+-- 
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
