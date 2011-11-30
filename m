@@ -1,51 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37954 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757165Ab1K3JHM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Nov 2011 04:07:12 -0500
-Date: Wed, 30 Nov 2011 11:08:40 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH-RFC 1/2 v2] tile: don't panic on iomap
-Message-ID: <20111130090839.GA20062@redhat.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:55514 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756459Ab1K3JJe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 04:09:34 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
+Date: Wed, 30 Nov 2011 09:09:18 +0000
+References: <cover.1322592494.git.mst@redhat.com> <201111292205.11544.arnd@arndb.de> <20111130071321.GB17781@redhat.com>
+In-Reply-To: <20111130071321.GB17781@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201111300909.18431.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>
-Message-ID: <20111130090840.65BXvyFGRmn42m_qs5qGWd1KaG53oHXUEp7T0XdBpK8@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20111130090918.Q77OpUQYkO8gBI6CVqldwnbr09uXaGDICTsFyLNBBa8@z>
 
-I think panic on iomap is there just for debugging.
-If we return NULL instead, the generic pci_iomap will
-do the same thing as the custom one that tile currently has
-(that is, return NULL on an IO BAR)
-so tile won't need to roll its own anymore.
+On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
+> 
+> On Tue, Nov 29, 2011 at 10:05:11PM +0000, Arnd Bergmann wrote:
+> > On Tuesday 29 November 2011, Michael S. Tsirkin wrote:
+> > > diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+> > > index c9ea165..be6090d 100644
+> > > --- a/arch/tile/include/asm/io.h
+> > > +++ b/arch/tile/include/asm/io.h
+> > > @@ -204,7 +204,8 @@ static inline long ioport_panic(void)
+> > >  
+> > >  static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
+> > >  {
+> > > -       return (void __iomem *) ioport_panic();
+> > > +       pr_info("Trying to map an IO resource - it does not exit on tile.\n");
+> > > +       return NULL;
+> > >  }
+> > 
+> > Why not just set CONFIG_NO_IOPORT and make this unavailable at compile time?
+> > 
+> >       Arnd
+> 
+> Well I think CONFIG_NO_IOPORT only has effect if you pull in asm-generic/io.h.
+> This might work but I have no idea.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
+NO_IOPORT ha nothing to do with asm-generic, it just makes lib/iomap.c leave out
+the calls to ioport_map, and prevent all drivers that call ioport_map from being
+built.
 
-Note: the other patch in the series is unchanged.
-Changes from v1:
-  - tweaked pr_info message
+> Presumably whoever wrote that architecture considered and discarded setting GENERIC_IOMAP.
 
- arch/tile/include/asm/io.h |    3 ++-
- 1 files changed, 2 insertions(+), 1 deletions(-)
+The tile PCI controller is apparently special in that it does not map the
+PIO region into MMIO space, or make it available in any other way, so generic
+iomap with IOCOND is pointless. Setting NO_IPORT will still mean that drivers
+using ioport_map will not be built. This mostly impacts the legacy (non-AHCI)
+ATA controllers, which I assume are not used on tile anyway.
 
-diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
-index c9ea165..d2152de 100644
---- a/arch/tile/include/asm/io.h
-+++ b/arch/tile/include/asm/io.h
-@@ -204,7 +204,8 @@ static inline long ioport_panic(void)
- 
- static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
- {
--	return (void __iomem *) ioport_panic();
-+	pr_info("ioport_map: mapping IO resources is unsupported on tile.\n");
-+	return NULL;
- }
- 
- static inline void ioport_unmap(void __iomem *addr)
--- 
-1.7.5.53.gc233e
+	Arnd
