@@ -1,50 +1,60 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
-Date: Wed, 30 Nov 2011 18:32:11 +0000
-Message-ID: <201111301832.11578.arnd@arndb.de>
-References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <20111130155925.GA25812@redhat.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH-RFC 1/2 v2] tile: don't panic on iomap
+Date: Wed, 30 Nov 2011 14:23:43 -0500
+Message-ID: <4ED682BF.200@tilera.com>
+References: <V0IAN#zrMHA.5780@exchange1.tad.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20111130155925.GA25812@redhat.com>
-Sender: linux-pci-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([206.83.70.75]:19801 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751039Ab1K3TXo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 14:23:44 -0500
+In-Reply-To: <V0IAN#zrMHA.5780@exchange1.tad.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>
 
-On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
-> On Wed, Nov 30, 2011 at 03:49:57PM +0000, Arnd Bergmann wrote:
-> > On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
-> > > On Wed, Nov 30, 2011 at 02:04:41PM +0000, Arnd Bergmann wrote:
-> > >
-> > > > Ah, right. I didn't realize that the generic pci_iomap still attempts
-> > > > to call ioport_map(). It would probably make sense to enclose
-> > > > the ioport_map() call in pci_iomap() inside of #ifdef CONFIG_HAS_IOPORT.
-> > > > It's not exactly beautiful, but probably the most correct solution
-> > > > so that we can make any call to ioport_map() a build-time error on
-> > > > architectures that set CONFIG_NO_IOPORT.
-> > > 
-> > > I'm not sure why do you want to do that.
-> > > 
-> > 
-> > The problem is that any definition of ioport_map on architectures
-> > that can't do it is potentially harmful. Calling panic() is
-> > bad style as you pointed out, but simply returning NULL can
-> > also be harmful because it's likely that some drivers are written
-> > under the (false) assumption that ioport_map can never fail.
-> > Getting a build-time error would be more helpful here IMHO.
-> 
-> Yes but uglifying these users is also bad, ifdefs in code are incredibly
-> fragile. Isn't it enough to declare ioport_map __must_check?
+On 11/30/2011 4:08 AM, Michael S. Tsirkin wrote:
+> I think panic on iomap is there just for debugging.
+> If we return NULL instead, the generic pci_iomap will
+> do the same thing as the custom one that tile currently has
+> (that is, return NULL on an IO BAR)
+> so tile won't need to roll its own anymore.
+>
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
+>
+> Note: the other patch in the series is unchanged.
+> Changes from v1:
+>   - tweaked pr_info message
+>
+>  arch/tile/include/asm/io.h |    3 ++-
+>  1 files changed, 2 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+> index c9ea165..d2152de 100644
+> --- a/arch/tile/include/asm/io.h
+> +++ b/arch/tile/include/asm/io.h
+> @@ -204,7 +204,8 @@ static inline long ioport_panic(void)
+>  
+>  static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
+>  {
+> -	return (void __iomem *) ioport_panic();
+> +	pr_info("ioport_map: mapping IO resources is unsupported on tile.\n");
+> +	return NULL;
+>  }
+>  
+>  static inline void ioport_unmap(void __iomem *addr)
 
-I guess we already wasted too many electrons over this triviality,
-I don't actually care all that much, and will probably have to
-touch the same code again when I get to submit my patch to make
-inb/outb optional for architectures. Just pick any solution (including
-your original one). I'll revisit this when I'm bothered by the
-presence of the ioport_map function and will keep you in the loop
-on those patches.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-	Arnd
+I agree with Arnd that this isn't necessarily the best solution (build-time
+failures are always preferable) but given that he's planning some more
+ambitious work, this seems reasonable to me.
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
