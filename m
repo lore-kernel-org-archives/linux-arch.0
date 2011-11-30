@@ -1,80 +1,46 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
-Date: Wed, 30 Nov 2011 09:04:17 +0200
-Message-ID: <20111130070417.GA17781@redhat.com>
+Date: Wed, 30 Nov 2011 09:13:21 +0200
+Message-ID: <20111130071321.GB17781@redhat.com>
 References: <cover.1322592494.git.mst@redhat.com>
  <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
- <CAErSpo4N8drqe5bHVjzXy_h0HTC8Reye4+8viN4c6TtmwFheXA@mail.gmail.com>
+ <201111292205.11544.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:4642 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:23014 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753406Ab1K3HCv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Nov 2011 02:02:51 -0500
+	id S1750809Ab1K3HLz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Nov 2011 02:11:55 -0500
 Content-Disposition: inline
-In-Reply-To: <CAErSpo4N8drqe5bHVjzXy_h0HTC8Reye4+8viN4c6TtmwFheXA@mail.gmail.com>
+In-Reply-To: <201111292205.11544.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
+To: Arnd Bergmann <arnd@arndb.de>
 Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Tue, Nov 29, 2011 at 01:04:12PM -0800, Bjorn Helgaas wrote:
-> On Tue, Nov 29, 2011 at 10:54 AM, Michael S. Tsirkin <mst@redhat.com>=
- wrote:
-> > I think panic on iomap is there just for debugging.
-> > If we return NULL instead, the generic pci_iomap will
-> > DTRT so we don't need to roll our own.
->=20
-> Just to be explicit about what "doing the right thing" means, here's
-> what I think is changing (I think the new behavior is OK, but it *is*
-> different):
+On Tue, Nov 29, 2011 at 10:05:11PM +0000, Arnd Bergmann wrote:
+> On Tuesday 29 November 2011, Michael S. Tsirkin wrote:
+> > diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+> > index c9ea165..be6090d 100644
+> > --- a/arch/tile/include/asm/io.h
+> > +++ b/arch/tile/include/asm/io.h
+> > @@ -204,7 +204,8 @@ static inline long ioport_panic(void)
+> >  
+> >  static inline void __iomem *ioport_map(unsigned long port, unsigned int len)
+> >  {
+> > -       return (void __iomem *) ioport_panic();
+> > +       pr_info("Trying to map an IO resource - it does not exit on tile.\n");
+> > +       return NULL;
+> >  }
+> 
+> Why not just set CONFIG_NO_IOPORT and make this unavailable at compile time?
+> 
+> 	Arnd
 
-I think the change is that anyone calling ioport_map *directly*
-will fail. pci_iomap callers are mostly unaffected.
+Well I think CONFIG_NO_IOPORT only has effect if you pull in asm-generic/io.h.
+This might work but I have no idea. Presumably whoever wrote that architecture
+considered and discarded setting GENERIC_IOMAP.
 
->=20
-> Old behavior: Caller calls pci_iomap(), which panics in ioport_map().
-
-Not really, the old pci_iomap simply returned NULL in this case, it
-did not call ioport_map.
-
-> New behavior: Caller calls pci_iomap(), ioport_map() returns NULL,
-> pci_iomap() returns NULL (failure), caller may check for failure.  If
-> caller does not check for failure and passes the NULL to
-> ioread()/iowrite(), we WARN in bad_io_access().
->=20
-> > =A0static inline void __iomem *ioport_map(unsigned long port, unsig=
-ned int len)
-> > =A0{
-> > - =A0 =A0 =A0 return (void __iomem *) ioport_panic();
-> > + =A0 =A0 =A0 pr_info("Trying to map an IO resource - it does not e=
-xit on tile.\n");
-> > + =A0 =A0 =A0 return NULL;
->=20
-> s/exit/exist/
->=20
-> Since we only expect to see this message during debugging, maybe it
-> could be more informative, e.g., use dump_stack() to identify the
-> offending driver?  I don't think either the "Trying to map" message o=
-r
-> the "Bad IO access" message is enough to actually make progress in
-> debugging.
->=20
-> Bjorn
-
-As explained above, only direct callers of ioport_map get a changed
-behaviour. If we start dumping stack there we will hurt users of
-pci_iomap which used to get a graceful failure and will start getting
-scary messages. Is does not seem to be worth doing to simplify debuggin=
-g, right?
-How about sticking the function name in the pr_info message?
-A simple grep for ioport_map will then get you the culprit ...
-Like this:
-+ =A0 =A0 =A0 pr_info("ioport_map: mapping IO resources is unsupported =
-on tile.\n");
-?
-
---=20
+-- 
 MST
