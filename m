@@ -1,42 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:59922 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:62909 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751522Ab1K3OFQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 09:05:16 -0500
+	with ESMTP id S1751151Ab1K3ScS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 13:32:18 -0500
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
-Date: Wed, 30 Nov 2011 14:04:41 +0000
-References: <cover.1322592494.git.mst@redhat.com> <201111300909.18431.arnd@arndb.de> <20111130115956.GA21413@redhat.com>
-In-Reply-To: <20111130115956.GA21413@redhat.com>
+Date: Wed, 30 Nov 2011 18:32:11 +0000
+References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <20111130155925.GA25812@redhat.com>
+In-Reply-To: <20111130155925.GA25812@redhat.com>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201111301404.41544.arnd@arndb.de>
+Message-ID: <201111301832.11578.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
 Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20111130140441.QIsGnHaqAxuGXf3Ud1KfGZUdlHEj0R7YkEJgwhDn7yw@z>
+Message-ID: <20111130183211.7Hvzzn5RWoKSsuHIzQ9Jgd1MCjYigV_CvvUgTRXHgGo@z>
 
 On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
-> > > Presumably whoever wrote that architecture considered and discarded setting GENERIC_IOMAP.
+> On Wed, Nov 30, 2011 at 03:49:57PM +0000, Arnd Bergmann wrote:
+> > On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
+> > > On Wed, Nov 30, 2011 at 02:04:41PM +0000, Arnd Bergmann wrote:
+> > >
+> > > > Ah, right. I didn't realize that the generic pci_iomap still attempts
+> > > > to call ioport_map(). It would probably make sense to enclose
+> > > > the ioport_map() call in pci_iomap() inside of #ifdef CONFIG_HAS_IOPORT.
+> > > > It's not exactly beautiful, but probably the most correct solution
+> > > > so that we can make any call to ioport_map() a build-time error on
+> > > > architectures that set CONFIG_NO_IOPORT.
+> > > 
+> > > I'm not sure why do you want to do that.
+> > > 
 > > 
-> > The tile PCI controller is apparently special in that it does not map the
-> > PIO region into MMIO space, or make it available in any other way, so generic
-> > iomap with IOCOND is pointless. Setting NO_IPORT will still mean that drivers
-> > using ioport_map will not be built. This mostly impacts the legacy (non-AHCI)
-> > ATA controllers, which I assume are not used on tile anyway.
+> > The problem is that any definition of ioport_map on architectures
+> > that can't do it is potentially harmful. Calling panic() is
+> > bad style as you pointed out, but simply returning NULL can
+> > also be harmful because it's likely that some drivers are written
+> > under the (false) assumption that ioport_map can never fail.
+> > Getting a build-time error would be more helpful here IMHO.
 > 
-> I don't object to setting NO_IPORT at all, but this won't help address
-> the problem this patch is fixing, which is to use a generic pci_iomap
-> on tile.
+> Yes but uglifying these users is also bad, ifdefs in code are incredibly
+> fragile. Isn't it enough to declare ioport_map __must_check?
 
-Ah, right. I didn't realize that the generic pci_iomap still attempts
-to call ioport_map(). It would probably make sense to enclose
-the ioport_map() call in pci_iomap() inside of #ifdef CONFIG_HAS_IOPORT.
-It's not exactly beautiful, but probably the most correct solution
-so that we can make any call to ioport_map() a build-time error on
-architectures that set CONFIG_NO_IOPORT.
+I guess we already wasted too many electrons over this triviality,
+I don't actually care all that much, and will probably have to
+touch the same code again when I get to submit my patch to make
+inb/outb optional for architectures. Just pick any solution (including
+your original one). I'll revisit this when I'm bothered by the
+presence of the ioport_map function and will keep you in the loop
+on those patches.
 
 	Arnd
