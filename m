@@ -1,178 +1,80 @@
-From: Richard Kuo <rkuo@qualcomm.com>
-Subject: [PATCH] powerpc:  use rwsem.h from generic location
-Date: Tue, 29 Nov 2011 12:28:20 -0600
-Message-ID: <7f5671$45bi2l@wolverine02.qualcomm.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
+Date: Wed, 30 Nov 2011 09:04:17 +0200
+Message-ID: <20111130070417.GA17781@redhat.com>
+References: <cover.1322592494.git.mst@redhat.com>
+ <a3bc9cb56040258dabc7b466ea217f4515b68b7d.1322592495.git.mst@redhat.com>
+ <CAErSpo4N8drqe5bHVjzXy_h0HTC8Reye4+8viN4c6TtmwFheXA@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:34316 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751820Ab1K3G6c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 01:58:32 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:4642 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753406Ab1K3HCv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Nov 2011 02:02:51 -0500
+Content-Disposition: inline
+In-Reply-To: <CAErSpo4N8drqe5bHVjzXy_h0HTC8Reye4+8viN4c6TtmwFheXA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org, paulus@samba.org, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-As of commit dd472da38, rwsem.h was moved into asm-generic.
-This patch removes the arch file and points the build at
-its new location.
+On Tue, Nov 29, 2011 at 01:04:12PM -0800, Bjorn Helgaas wrote:
+> On Tue, Nov 29, 2011 at 10:54 AM, Michael S. Tsirkin <mst@redhat.com>=
+ wrote:
+> > I think panic on iomap is there just for debugging.
+> > If we return NULL instead, the generic pci_iomap will
+> > DTRT so we don't need to roll our own.
+>=20
+> Just to be explicit about what "doing the right thing" means, here's
+> what I think is changing (I think the new behavior is OK, but it *is*
+> different):
 
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
----
- arch/powerpc/include/asm/Kbuild  |    2 +
- arch/powerpc/include/asm/rwsem.h |  132 --------------------------------------
- 2 files changed, 2 insertions(+), 132 deletions(-)
- delete mode 100644 arch/powerpc/include/asm/rwsem.h
+I think the change is that anyone calling ioport_map *directly*
+will fail. pci_iomap callers are mostly unaffected.
 
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index d51df17..7e313f1 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -34,3 +34,5 @@ header-y += termios.h
- header-y += types.h
- header-y += ucontext.h
- header-y += unistd.h
-+
-+generic-y += rwsem.h
-diff --git a/arch/powerpc/include/asm/rwsem.h b/arch/powerpc/include/asm/rwsem.h
-deleted file mode 100644
-index bb1e2cd..0000000
---- a/arch/powerpc/include/asm/rwsem.h
-+++ /dev/null
-@@ -1,132 +0,0 @@
--#ifndef _ASM_POWERPC_RWSEM_H
--#define _ASM_POWERPC_RWSEM_H
--
--#ifndef _LINUX_RWSEM_H
--#error "Please don't include <asm/rwsem.h> directly, use <linux/rwsem.h> instead."
--#endif
--
--#ifdef __KERNEL__
--
--/*
-- * R/W semaphores for PPC using the stuff in lib/rwsem.c.
-- * Adapted largely from include/asm-i386/rwsem.h
-- * by Paul Mackerras <paulus@samba.org>.
-- */
--
--/*
-- * the semaphore definition
-- */
--#ifdef CONFIG_PPC64
--# define RWSEM_ACTIVE_MASK		0xffffffffL
--#else
--# define RWSEM_ACTIVE_MASK		0x0000ffffL
--#endif
--
--#define RWSEM_UNLOCKED_VALUE		0x00000000L
--#define RWSEM_ACTIVE_BIAS		0x00000001L
--#define RWSEM_WAITING_BIAS		(-RWSEM_ACTIVE_MASK-1)
--#define RWSEM_ACTIVE_READ_BIAS		RWSEM_ACTIVE_BIAS
--#define RWSEM_ACTIVE_WRITE_BIAS		(RWSEM_WAITING_BIAS + RWSEM_ACTIVE_BIAS)
--
--/*
-- * lock for reading
-- */
--static inline void __down_read(struct rw_semaphore *sem)
--{
--	if (unlikely(atomic_long_inc_return((atomic_long_t *)&sem->count) <= 0))
--		rwsem_down_read_failed(sem);
--}
--
--static inline int __down_read_trylock(struct rw_semaphore *sem)
--{
--	long tmp;
--
--	while ((tmp = sem->count) >= 0) {
--		if (tmp == cmpxchg(&sem->count, tmp,
--				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			return 1;
--		}
--	}
--	return 0;
--}
--
--/*
-- * lock for writing
-- */
--static inline void __down_write_nested(struct rw_semaphore *sem, int subclass)
--{
--	long tmp;
--
--	tmp = atomic_long_add_return(RWSEM_ACTIVE_WRITE_BIAS,
--				     (atomic_long_t *)&sem->count);
--	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
--		rwsem_down_write_failed(sem);
--}
--
--static inline void __down_write(struct rw_semaphore *sem)
--{
--	__down_write_nested(sem, 0);
--}
--
--static inline int __down_write_trylock(struct rw_semaphore *sem)
--{
--	long tmp;
--
--	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
--		      RWSEM_ACTIVE_WRITE_BIAS);
--	return tmp == RWSEM_UNLOCKED_VALUE;
--}
--
--/*
-- * unlock after reading
-- */
--static inline void __up_read(struct rw_semaphore *sem)
--{
--	long tmp;
--
--	tmp = atomic_long_dec_return((atomic_long_t *)&sem->count);
--	if (unlikely(tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0))
--		rwsem_wake(sem);
--}
--
--/*
-- * unlock after writing
-- */
--static inline void __up_write(struct rw_semaphore *sem)
--{
--	if (unlikely(atomic_long_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
--				 (atomic_long_t *)&sem->count) < 0))
--		rwsem_wake(sem);
--}
--
--/*
-- * implement atomic add functionality
-- */
--static inline void rwsem_atomic_add(long delta, struct rw_semaphore *sem)
--{
--	atomic_long_add(delta, (atomic_long_t *)&sem->count);
--}
--
--/*
-- * downgrade write lock to read lock
-- */
--static inline void __downgrade_write(struct rw_semaphore *sem)
--{
--	long tmp;
--
--	tmp = atomic_long_add_return(-RWSEM_WAITING_BIAS,
--				     (atomic_long_t *)&sem->count);
--	if (tmp < 0)
--		rwsem_downgrade_wake(sem);
--}
--
--/*
-- * implement exchange and add functionality
-- */
--static inline long rwsem_atomic_update(long delta, struct rw_semaphore *sem)
--{
--	return atomic_long_add_return(delta, (atomic_long_t *)&sem->count);
--}
--
--#endif	/* __KERNEL__ */
--#endif	/* _ASM_POWERPC_RWSEM_H */
--- 
-1.7.3
--- 
+>=20
+> Old behavior: Caller calls pci_iomap(), which panics in ioport_map().
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Not really, the old pci_iomap simply returned NULL in this case, it
+did not call ioport_map.
+
+> New behavior: Caller calls pci_iomap(), ioport_map() returns NULL,
+> pci_iomap() returns NULL (failure), caller may check for failure.  If
+> caller does not check for failure and passes the NULL to
+> ioread()/iowrite(), we WARN in bad_io_access().
+>=20
+> > =A0static inline void __iomem *ioport_map(unsigned long port, unsig=
+ned int len)
+> > =A0{
+> > - =A0 =A0 =A0 return (void __iomem *) ioport_panic();
+> > + =A0 =A0 =A0 pr_info("Trying to map an IO resource - it does not e=
+xit on tile.\n");
+> > + =A0 =A0 =A0 return NULL;
+>=20
+> s/exit/exist/
+>=20
+> Since we only expect to see this message during debugging, maybe it
+> could be more informative, e.g., use dump_stack() to identify the
+> offending driver?  I don't think either the "Trying to map" message o=
+r
+> the "Bad IO access" message is enough to actually make progress in
+> debugging.
+>=20
+> Bjorn
+
+As explained above, only direct callers of ioport_map get a changed
+behaviour. If we start dumping stack there we will hurt users of
+pci_iomap which used to get a graceful failure and will start getting
+scary messages. Is does not seem to be worth doing to simplify debuggin=
+g, right?
+How about sticking the function name in the pr_info message?
+A simple grep for ioport_map will then get you the culprit ...
+Like this:
++ =A0 =A0 =A0 pr_info("ioport_map: mapping IO resources is unsupported =
+on tile.\n");
+?
+
+--=20
+MST
