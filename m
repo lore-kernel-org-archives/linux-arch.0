@@ -1,31 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:55134 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753437Ab1LASot (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 13:44:49 -0500
-Date: Thu, 1 Dec 2011 10:44:42 -0800
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
- PCI
-Message-ID: <20111201184442.GA13173@google.com>
-References: <cover.1322592494.git.mst@redhat.com>
- <201111301404.41544.arnd@arndb.de>
- <20111130143122.GC21413@redhat.com>
- <201111301549.57430.arnd@arndb.de>
- <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Received: from moutng.kundenserver.de ([212.227.126.187]:55468 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755024Ab1LAWsk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 17:48:40 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
+Date: Thu, 01 Dec 2011 23:47:43 +0100
+Message-ID: <1616727.0BYPKXtoA0@wuerfel>
 In-Reply-To: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20111201184442.9BYb2k2FPSZjcubIVyfkCVDDbY3NxXc6j2XdQ684W3U@z>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20111201224743.eywKTHpkmuf7QSvqRYcwmL7pU3uowZjdavSfu6hB8Bs@z>
 
-Hello,
-
-On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
+On Thursday 01 December 2011 12:59:19 Chris Metcalf wrote:
 > The tile architecture does not support IOPORT, but it does support
 > PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
 > was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
@@ -35,12 +28,28 @@ On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
 > 
 > Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
-  Acked-by: Tejun Heo <tj@kernel.org>
+Hmm, I'm sure that Al Viro intentionally did it the way it is, but I'm
+not sure exactly why that would be.
 
-Please feel free to route the change through tile.  If not, Andrew,
-can you please pick this up?
+Any driver using the functions you now expose for NO_IOPORT is probably
+prepared to handle both MMIO and PIO BARs on PCI, which you can consider
+broken in the case where a card actually requires PIO.
 
-Thanks.
+On tile, it would be just as broken as other drivers that directly use
+inb/outb to do the port access, but on platforms that actually have
+PIO but are not able to map them (like arm/mach-rpc), you would now
+enable people to write silently broken drivers.
 
--- 
-tejun
+However, assuming they check the return value of the *iomap, the
+drivers could still easily detect this case at runtime. Also, at
+least on tile, you already provide a pci_iomap function, which
+has the exact same problem as the devres functions.
+
+One area where your patch might actually break existing code is
+architectures that allow the devres functions to be built *and*
+have PCI support but don't provide a pci_iomap function, because
+they do not support mapping the PIO range into addresses. I'm
+not sure if that's actually still the case anywhere after Michael's
+recent patches, but it used to be the case on RPC and probably others.
+
+	Arnd
