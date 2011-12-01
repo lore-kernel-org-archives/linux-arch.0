@@ -1,62 +1,41 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
-Date: Thu, 1 Dec 2011 12:59:19 -0500
-Message-ID: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
-References: <cover.1322592494.git.mst@redhat.com> <201111301404.41544.arnd@arndb.de> <20111130143122.GC21413@redhat.com> <201111301549.57430.arnd@arndb.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201111301549.57430.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
+ PCI
+Date: Thu, 1 Dec 2011 10:44:42 -0800
+Message-ID: <20111201184442.GA13173@google.com>
+References: <cover.1322592494.git.mst@redhat.com>
+ <201111301404.41544.arnd@arndb.de>
+ <20111130143122.GC21413@redhat.com>
+ <201111301549.57430.arnd@arndb.de>
+ <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-pci-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-The tile architecture does not support IOPORT, but it does support
-PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
-was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
-that are needed to not get provided.  Moving the #ifdef fixes this
-so that those functions and some related ones are now always provided
-if CONFIG_PCI is true.
+Hello,
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
-This commit was inspired by the recent linux-arch discussion about
-what to do with ioport_map on architectures that can't do it, so I went
-back to figure out why I hadn't set NO_IOPORT in the first place.
-I'm willing to take this into the tile tree if the PCI folks are OK
-with it, or if someone else can pick it up, that's fine too.
+On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
+> The tile architecture does not support IOPORT, but it does support
+> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+> that are needed to not get provided.  Moving the #ifdef fixes this
+> so that those functions and some related ones are now always provided
+> if CONFIG_PCI is true.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
- arch/tile/Kconfig |    2 +-
- lib/devres.c      |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+  Acked-by: Tejun Heo <tj@kernel.org>
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 70a0de4..e7b1e07 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -333,7 +333,7 @@ config NO_IOMEM
- 	def_bool !PCI
- 
- config NO_IOPORT
--	def_bool !PCI
-+	def_bool y
- 
- source "drivers/pci/Kconfig"
- 
-diff --git a/lib/devres.c b/lib/devres.c
-index 7c0e953..5f36cfd 100644
---- a/lib/devres.c
-+++ b/lib/devres.c
-@@ -144,6 +144,7 @@ void devm_ioport_unmap(struct device *dev, void __iomem *addr)
- 			       devm_ioport_map_match, (void *)addr));
- }
- EXPORT_SYMBOL(devm_ioport_unmap);
-+#endif
- 
- #ifdef CONFIG_PCI
- /*
-@@ -349,4 +350,3 @@ void pcim_iounmap_regions(struct pci_dev *pdev, u16 mask)
- }
- EXPORT_SYMBOL(pcim_iounmap_regions);
- #endif
--#endif
+Please feel free to route the change through tile.  If not, Andrew,
+can you please pick this up?
+
+Thanks.
+
 -- 
-1.6.5.2
+tejun
