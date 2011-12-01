@@ -1,41 +1,43 @@
-From: Tejun Heo <tj@kernel.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
 Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
  PCI
-Date: Thu, 1 Dec 2011 10:44:42 -0800
-Message-ID: <20111201184442.GA13173@google.com>
-References: <cover.1322592494.git.mst@redhat.com>
- <201111301404.41544.arnd@arndb.de>
- <20111130143122.GC21413@redhat.com>
- <201111301549.57430.arnd@arndb.de>
- <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+Date: Thu, 1 Dec 2011 13:48:10 -0500
+Message-ID: <4ED7CBEA.6060005@tilera.com>
+References: <cover.1322592494.git.mst@redhat.com> <201111301404.41544.arnd@arndb.de> <20111130143122.GC21413@redhat.com> <201111301549.57430.arnd@arndb.de> <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com> <20111201184442.GA13173@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Chris Metcalf <cmetcalf@tilera.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([206.83.70.75]:13864 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755566Ab1LASsM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 13:48:12 -0500
+In-Reply-To: <20111201184442.GA13173@google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
 Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On 12/1/2011 1:44 PM, Tejun Heo wrote:
+> Hello,
+>
+> On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
+>> The tile architecture does not support IOPORT, but it does support
+>> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+>> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+>> that are needed to not get provided.  Moving the #ifdef fixes this
+>> so that those functions and some related ones are now always provided
+>> if CONFIG_PCI is true.
+>>
+>> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+>   Acked-by: Tejun Heo <tj@kernel.org>
+>
+> Please feel free to route the change through tile.  If not, Andrew,
+> can you please pick this up?
 
-On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
-> The tile architecture does not support IOPORT, but it does support
-> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
-> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
-> that are needed to not get provided.  Moving the #ifdef fixes this
-> so that those functions and some related ones are now always provided
-> if CONFIG_PCI is true.
-> 
-> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
-
-  Acked-by: Tejun Heo <tj@kernel.org>
-
-Please feel free to route the change through tile.  If not, Andrew,
-can you please pick this up?
-
-Thanks.
+Thanks.  I'll plan to push this to Linus through the tile tree with your
+Acked-by.
 
 -- 
-tejun
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
