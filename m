@@ -1,48 +1,50 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/5 V4]  Avoid soft lockup message when KVM is stopped by
- host
-Date: Thu, 1 Dec 2011 19:25:58 -0200
-Message-ID: <20111201212558.GC25290@amt.cnet>
-References: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
+Date: Thu, 01 Dec 2011 23:47:43 +0100
+Message-ID: <1616727.0BYPKXtoA0@wuerfel>
+References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16774 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754243Ab1LAV1O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Dec 2011 16:27:14 -0500
-Content-Disposition: inline
-In-Reply-To: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 29, 2011 at 04:35:34PM -0500, Eric B Munson wrote:
-> Changes from V3:
-> Include CC's on patch 3
-> Drop clear flag ioctl and have the watchdog clear the flag when it is reset
+On Thursday 01 December 2011 12:59:19 Chris Metcalf wrote:
+> The tile architecture does not support IOPORT, but it does support
+> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+> that are needed to not get provided.  Moving the #ifdef fixes this
+> so that those functions and some related ones are now always provided
+> if CONFIG_PCI is true.
 > 
-> Changes from V2:
-> A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-> initial flag definition
-> 
-> Changes from V1:
-> (Thanks Marcelo)
-> Host code has all been moved to arch/x86/kvm/x86.c
-> KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-> 
-> When a guest kernel is stopped by the host hypervisor it can look like a soft
-> lockup to the guest kernel.  This false warning can mask later soft lockup
-> warnings which may be real.  This patch series adds a method for a host
-> hypervisor to communicate to a guest kernel that it is being stopped.  The
-> final patch in the series has the watchdog check this flag when it goes to
-> issue a soft lockup warning and skip the warning if the guest knows it was
-> stopped.
-> 
-> It was attempted to solve this in Qemu, but the side effects of saving and
-> restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-> by the amount of time of the pause.  This forces a guest to have ntp running
-> in order to keep the wall clock accurate.
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
-Looks good to me.
+Hmm, I'm sure that Al Viro intentionally did it the way it is, but I'm
+not sure exactly why that would be.
+
+Any driver using the functions you now expose for NO_IOPORT is probably
+prepared to handle both MMIO and PIO BARs on PCI, which you can consider
+broken in the case where a card actually requires PIO.
+
+On tile, it would be just as broken as other drivers that directly use
+inb/outb to do the port access, but on platforms that actually have
+PIO but are not able to map them (like arm/mach-rpc), you would now
+enable people to write silently broken drivers.
+
+However, assuming they check the return value of the *iomap, the
+drivers could still easily detect this case at runtime. Also, at
+least on tile, you already provide a pci_iomap function, which
+has the exact same problem as the devres functions.
+
+One area where your patch might actually break existing code is
+architectures that allow the devres functions to be built *and*
+have PCI support but don't provide a pci_iomap function, because
+they do not support mapping the PIO range into addresses. I'm
+not sure if that's actually still the case anywhere after Michael's
+recent patches, but it used to be the case on RPC and probably others.
+
+	Arnd
