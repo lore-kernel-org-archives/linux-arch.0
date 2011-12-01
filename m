@@ -1,55 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:62909 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751151Ab1K3ScS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 13:32:18 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH-RFC 1/2] tile: don't panic on iomap
-Date: Wed, 30 Nov 2011 18:32:11 +0000
-References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <20111130155925.GA25812@redhat.com>
-In-Reply-To: <20111130155925.GA25812@redhat.com>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201111301832.11578.arnd@arndb.de>
+Received: from 206.83.70.73.ptr.us.xo.net ([206.83.70.73]:15105 "EHLO
+	king.tilera.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756016Ab1LAS3Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 13:29:25 -0500
+Message-ID: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Date: Thu, 1 Dec 2011 12:59:19 -0500
+Subject: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
+References: <cover.1322592494.git.mst@redhat.com> <201111301404.41544.arnd@arndb.de> <20111130143122.GC21413@redhat.com> <201111301549.57430.arnd@arndb.de>
+In-Reply-To: <201111301549.57430.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Chris Metcalf <cmetcalf@tilera.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20111130183211.7Hvzzn5RWoKSsuHIzQ9Jgd1MCjYigV_CvvUgTRXHgGo@z>
+To: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20111201175919.BrdRK751dghQoYcuLOZVJPV-eVoM_uTQBIvD4dt2298@z>
 
-On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
-> On Wed, Nov 30, 2011 at 03:49:57PM +0000, Arnd Bergmann wrote:
-> > On Wednesday 30 November 2011, Michael S. Tsirkin wrote:
-> > > On Wed, Nov 30, 2011 at 02:04:41PM +0000, Arnd Bergmann wrote:
-> > >
-> > > > Ah, right. I didn't realize that the generic pci_iomap still attempts
-> > > > to call ioport_map(). It would probably make sense to enclose
-> > > > the ioport_map() call in pci_iomap() inside of #ifdef CONFIG_HAS_IOPORT.
-> > > > It's not exactly beautiful, but probably the most correct solution
-> > > > so that we can make any call to ioport_map() a build-time error on
-> > > > architectures that set CONFIG_NO_IOPORT.
-> > > 
-> > > I'm not sure why do you want to do that.
-> > > 
-> > 
-> > The problem is that any definition of ioport_map on architectures
-> > that can't do it is potentially harmful. Calling panic() is
-> > bad style as you pointed out, but simply returning NULL can
-> > also be harmful because it's likely that some drivers are written
-> > under the (false) assumption that ioport_map can never fail.
-> > Getting a build-time error would be more helpful here IMHO.
-> 
-> Yes but uglifying these users is also bad, ifdefs in code are incredibly
-> fragile. Isn't it enough to declare ioport_map __must_check?
+The tile architecture does not support IOPORT, but it does support
+PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+that are needed to not get provided.  Moving the #ifdef fixes this
+so that those functions and some related ones are now always provided
+if CONFIG_PCI is true.
 
-I guess we already wasted too many electrons over this triviality,
-I don't actually care all that much, and will probably have to
-touch the same code again when I get to submit my patch to make
-inb/outb optional for architectures. Just pick any solution (including
-your original one). I'll revisit this when I'm bothered by the
-presence of the ioport_map function and will keep you in the loop
-on those patches.
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+This commit was inspired by the recent linux-arch discussion about
+what to do with ioport_map on architectures that can't do it, so I went
+back to figure out why I hadn't set NO_IOPORT in the first place.
+I'm willing to take this into the tile tree if the PCI folks are OK
+with it, or if someone else can pick it up, that's fine too.
 
-	Arnd
+ arch/tile/Kconfig |    2 +-
+ lib/devres.c      |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 70a0de4..e7b1e07 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -333,7 +333,7 @@ config NO_IOMEM
+ 	def_bool !PCI
+ 
+ config NO_IOPORT
+-	def_bool !PCI
++	def_bool y
+ 
+ source "drivers/pci/Kconfig"
+ 
+diff --git a/lib/devres.c b/lib/devres.c
+index 7c0e953..5f36cfd 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -144,6 +144,7 @@ void devm_ioport_unmap(struct device *dev, void __iomem *addr)
+ 			       devm_ioport_map_match, (void *)addr));
+ }
+ EXPORT_SYMBOL(devm_ioport_unmap);
++#endif
+ 
+ #ifdef CONFIG_PCI
+ /*
+@@ -349,4 +350,3 @@ void pcim_iounmap_regions(struct pci_dev *pdev, u16 mask)
+ }
+ EXPORT_SYMBOL(pcim_iounmap_regions);
+ #endif
+-#endif
+-- 
+1.6.5.2
+
