@@ -1,60 +1,62 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] asm-generic/unistd.h: support new process_vm_{readv,write} syscalls
-Date: Thu, 1 Dec 2011 12:54:31 -0500
-Message-ID: <201112011815.pB1IFACw004908@farm-0002.internal.tilera.com>
+Subject: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
+Date: Thu, 1 Dec 2011 12:59:19 -0500
+Message-ID: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+References: <cover.1322592494.git.mst@redhat.com> <201111301404.41544.arnd@arndb.de> <20111130143122.GC21413@redhat.com> <201111301549.57430.arnd@arndb.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201111301549.57430.arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "J. Bruce Fields" <bfields@redhat.com>, NeilBrown <neilb@suse.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-Also prototype the "compat" functions so they can be referenced
-from C code.
+The tile architecture does not support IOPORT, but it does support
+PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+that are needed to not get provided.  Moving the #ifdef fixes this
+so that those functions and some related ones are now always provided
+if CONFIG_PCI is true.
 
 Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 ---
- include/asm-generic/unistd.h |    8 +++++++-
- include/linux/compat.h       |    9 +++++++++
- 2 files changed, 16 insertions(+), 1 deletions(-)
+This commit was inspired by the recent linux-arch discussion about
+what to do with ioport_map on architectures that can't do it, so I went
+back to figure out why I hadn't set NO_IOPORT in the first place.
+I'm willing to take this into the tile tree if the PCI folks are OK
+with it, or if someone else can pick it up, that's fine too.
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index f4c38d8..2292d1a 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -685,9 +685,15 @@ __SYSCALL(__NR_syncfs, sys_syncfs)
- __SYSCALL(__NR_setns, sys_setns)
- #define __NR_sendmmsg 269
- __SC_COMP(__NR_sendmmsg, sys_sendmmsg, compat_sys_sendmmsg)
-+#define __NR_process_vm_readv 270
-+__SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
-+          compat_sys_process_vm_readv)
-+#define __NR_process_vm_writev 271
-+__SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
-+          compat_sys_process_vm_writev)
+ arch/tile/Kconfig |    2 +-
+ lib/devres.c      |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 70a0de4..e7b1e07 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -333,7 +333,7 @@ config NO_IOMEM
+ 	def_bool !PCI
  
- #undef __NR_syscalls
--#define __NR_syscalls 270
-+#define __NR_syscalls 272
+ config NO_IOPORT
+-	def_bool !PCI
++	def_bool y
  
+ source "drivers/pci/Kconfig"
+ 
+diff --git a/lib/devres.c b/lib/devres.c
+index 7c0e953..5f36cfd 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -144,6 +144,7 @@ void devm_ioport_unmap(struct device *dev, void __iomem *addr)
+ 			       devm_ioport_map_match, (void *)addr));
+ }
+ EXPORT_SYMBOL(devm_ioport_unmap);
++#endif
+ 
+ #ifdef CONFIG_PCI
  /*
-  * All syscalls below here should go away really,
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 154bf56..66ed067 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -552,5 +552,14 @@ extern ssize_t compat_rw_copy_check_uvector(int type,
- 
- extern void __user *compat_alloc_user_space(unsigned long len);
- 
-+asmlinkage ssize_t compat_sys_process_vm_readv(compat_pid_t pid,
-+		const struct compat_iovec __user *lvec,
-+		unsigned long liovcnt, const struct compat_iovec __user *rvec,
-+		unsigned long riovcnt, unsigned long flags);
-+asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
-+		const struct compat_iovec __user *lvec,
-+		unsigned long liovcnt, const struct compat_iovec __user *rvec,
-+		unsigned long riovcnt, unsigned long flags);
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
+@@ -349,4 +350,3 @@ void pcim_iounmap_regions(struct pci_dev *pdev, u16 mask)
+ }
+ EXPORT_SYMBOL(pcim_iounmap_regions);
+ #endif
+-#endif
 -- 
 1.6.5.2
