@@ -1,66 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 206.83.70.73.ptr.us.xo.net ([206.83.70.73]:15105 "EHLO
-	king.tilera.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756124Ab1LAS30 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 13:29:26 -0500
-Message-ID: <201112011815.pB1IFACw004908@farm-0002.internal.tilera.com>
-From: Chris Metcalf <cmetcalf@tilera.com>
-Date: Thu, 1 Dec 2011 12:54:31 -0500
-Subject: [PATCH] asm-generic/unistd.h: support new process_vm_{readv,write} syscalls
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:55134 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753437Ab1LASot (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Dec 2011 13:44:49 -0500
+Date: Thu, 1 Dec 2011 10:44:42 -0800
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
+ PCI
+Message-ID: <20111201184442.GA13173@google.com>
+References: <cover.1322592494.git.mst@redhat.com>
+ <201111301404.41544.arnd@arndb.de>
+ <20111130143122.GC21413@redhat.com>
+ <201111301549.57430.arnd@arndb.de>
+ <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "J. Bruce Fields" <bfields@redhat.com>, NeilBrown <neilb@suse.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org
-Message-ID: <20111201175431.ehudr6ds3uXAl5hDxBWrW-9W0s6-GhpESDv5aK1q1tk@z>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20111201184442.9BYb2k2FPSZjcubIVyfkCVDDbY3NxXc6j2XdQ684W3U@z>
 
-Also prototype the "compat" functions so they can be referenced
-from C code.
+Hello,
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
- include/asm-generic/unistd.h |    8 +++++++-
- include/linux/compat.h       |    9 +++++++++
- 2 files changed, 16 insertions(+), 1 deletions(-)
+On Thu, Dec 01, 2011 at 12:59:19PM -0500, Chris Metcalf wrote:
+> The tile architecture does not support IOPORT, but it does support
+> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
+> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
+> that are needed to not get provided.  Moving the #ifdef fixes this
+> so that those functions and some related ones are now always provided
+> if CONFIG_PCI is true.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index f4c38d8..2292d1a 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -685,9 +685,15 @@ __SYSCALL(__NR_syncfs, sys_syncfs)
- __SYSCALL(__NR_setns, sys_setns)
- #define __NR_sendmmsg 269
- __SC_COMP(__NR_sendmmsg, sys_sendmmsg, compat_sys_sendmmsg)
-+#define __NR_process_vm_readv 270
-+__SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
-+          compat_sys_process_vm_readv)
-+#define __NR_process_vm_writev 271
-+__SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
-+          compat_sys_process_vm_writev)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 270
-+#define __NR_syscalls 272
- 
- /*
-  * All syscalls below here should go away really,
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 154bf56..66ed067 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -552,5 +552,14 @@ extern ssize_t compat_rw_copy_check_uvector(int type,
- 
- extern void __user *compat_alloc_user_space(unsigned long len);
- 
-+asmlinkage ssize_t compat_sys_process_vm_readv(compat_pid_t pid,
-+		const struct compat_iovec __user *lvec,
-+		unsigned long liovcnt, const struct compat_iovec __user *rvec,
-+		unsigned long riovcnt, unsigned long flags);
-+asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
-+		const struct compat_iovec __user *lvec,
-+		unsigned long liovcnt, const struct compat_iovec __user *rvec,
-+		unsigned long riovcnt, unsigned long flags);
-+
- #endif /* CONFIG_COMPAT */
- #endif /* _LINUX_COMPAT_H */
+  Acked-by: Tejun Heo <tj@kernel.org>
+
+Please feel free to route the change through tile.  If not, Andrew,
+can you please pick this up?
+
+Thanks.
+
 -- 
-1.6.5.2
-
+tejun
