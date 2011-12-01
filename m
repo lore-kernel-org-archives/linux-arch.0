@@ -1,38 +1,60 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH-RFC 2/2] tile: switch to GENERIC_PCI_IOMAP
-Date: Wed, 30 Nov 2011 16:19:16 -0500
-Message-ID: <4ED69DD4.3060403@tilera.com>
-References: <cover.1322592494.git.mst@redhat.com> <c5893cb30ae99a7e3c48b3fd209c770cd55c87ef.1322592495.git.mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.75]:8811 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751493Ab1K3VTS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Nov 2011 16:19:18 -0500
-In-Reply-To: <c5893cb30ae99a7e3c48b3fd209c770cd55c87ef.1322592495.git.mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Subject: [PATCH] asm-generic/unistd.h: support new process_vm_{readv,write} syscalls
+Date: Thu, 1 Dec 2011 12:54:31 -0500
+Message-ID: <201112011815.pB1IFACw004908@farm-0002.internal.tilera.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "J. Bruce Fields" <bfields@redhat.com>, NeilBrown <neilb@suse.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 11/29/2011 1:54 PM, Michael S. Tsirkin wrote:
-> tile now has working stubs for ioport_map and ioremap
-> such that the generic pci_iomap will DTRT: cast to
-> pointer on memory and return NULL and log message on IO map.
->
-> Switch it over to GENERIC_PCI_IOMAP.
->
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> ---
->  arch/tile/Kconfig           |    1 +
->  arch/tile/include/asm/pci.h |    2 +-
->  arch/tile/kernel/pci.c      |   21 ---------------------
->  3 files changed, 2 insertions(+), 22 deletions(-)
+Also prototype the "compat" functions so they can be referenced
+from C code.
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+ include/asm-generic/unistd.h |    8 +++++++-
+ include/linux/compat.h       |    9 +++++++++
+ 2 files changed, 16 insertions(+), 1 deletions(-)
 
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index f4c38d8..2292d1a 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -685,9 +685,15 @@ __SYSCALL(__NR_syncfs, sys_syncfs)
+ __SYSCALL(__NR_setns, sys_setns)
+ #define __NR_sendmmsg 269
+ __SC_COMP(__NR_sendmmsg, sys_sendmmsg, compat_sys_sendmmsg)
++#define __NR_process_vm_readv 270
++__SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
++          compat_sys_process_vm_readv)
++#define __NR_process_vm_writev 271
++__SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
++          compat_sys_process_vm_writev)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 270
++#define __NR_syscalls 272
+ 
+ /*
+  * All syscalls below here should go away really,
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 154bf56..66ed067 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -552,5 +552,14 @@ extern ssize_t compat_rw_copy_check_uvector(int type,
+ 
+ extern void __user *compat_alloc_user_space(unsigned long len);
+ 
++asmlinkage ssize_t compat_sys_process_vm_readv(compat_pid_t pid,
++		const struct compat_iovec __user *lvec,
++		unsigned long liovcnt, const struct compat_iovec __user *rvec,
++		unsigned long riovcnt, unsigned long flags);
++asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
++		const struct compat_iovec __user *lvec,
++		unsigned long liovcnt, const struct compat_iovec __user *rvec,
++		unsigned long riovcnt, unsigned long flags);
++
+ #endif /* CONFIG_COMPAT */
+ #endif /* _LINUX_COMPAT_H */
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+1.6.5.2
