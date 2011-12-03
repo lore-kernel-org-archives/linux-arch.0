@@ -1,68 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.75]:40546 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754810Ab1LBSsz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Dec 2011 13:48:55 -0500
-Message-ID: <4ED91D95.6040601@tilera.com>
-Date: Fri, 2 Dec 2011 13:48:53 -0500
-From: Chris Metcalf <cmetcalf@tilera.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:59008 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753894Ab1LCS4K convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Dec 2011 13:56:10 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
- PCI
-References: <cover.1322592494.git.mst@redhat.com> <201111301549.57430.arnd@arndb.de> <201112011815.pB1IFGZe004948@farm-0002.internal.tilera.com> <1616727.0BYPKXtoA0@wuerfel>
-In-Reply-To: <1616727.0BYPKXtoA0@wuerfel>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20111202232243.6af6f1e2@lxorguk.ukuu.org.uk>
+References: <20111110151852.GA7465@oksana.dev.rtsoft.ru>
+	<20111110152606.GB3207@oksana.dev.rtsoft.ru>
+	<20111110153816.239af1d7@lxorguk.ukuu.org.uk>
+	<20111110162859.GA7088@oksana.dev.rtsoft.ru>
+	<20111202191917.GB3037@localhost.localdomain>
+	<20111202232243.6af6f1e2@lxorguk.ukuu.org.uk>
+Date: Sat, 3 Dec 2011 19:56:08 +0100
+Message-ID: <CAMuHMdXvwJ4f6a5Y2+TXn1X3CAg2Ok51f2+n4ye0uTfAVgBC1Q@mail.gmail.com>
+Subject: Re: [PATCH] ata: Don't use NO_IRQ in pata_of_platform driver
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20111202184853.eaewd8GpYFfo9jOKVDhzGsOpD4lPEdlKEABGfL_lnMQ@z>
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Dave Martin <dave.martin@linaro.org>, Anton Vorontsov <cbouatmailru@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, devicetree-discuss@lists.ozlabs.org, LKML <linux-kernel@vger.kernel.org>, linux-ide@vger.kernel.org, Randy Dunlap <rdunlap@xenotime.net>, linux-next@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jgarzik@redhat.com>, linux-arch@vger.kernel.org
+Message-ID: <20111203185608.mj0Qq8jm5maaxJxxT6W1yORCrQuGm5CedVegyW2JRuw@z>
 
-On 12/1/2011 5:47 PM, Arnd Bergmann wrote:
-> On Thursday 01 December 2011 12:59:19 Chris Metcalf wrote:
->> The tile architecture does not support IOPORT, but it does support
->> PCI and IOMEM.  We were not specifying NO_IOPORT, though, because it
->> was causing a couple of functions (pcim_iomap_regions and pcim_iomap_table)
->> that are needed to not get provided.  Moving the #ifdef fixes this
->> so that those functions and some related ones are now always provided
->> if CONFIG_PCI is true.
->>
->> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
-> Hmm, I'm sure that Al Viro intentionally did it the way it is, but I'm
-> not sure exactly why that would be.
+On Sat, Dec 3, 2011 at 00:22, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
+>> This is now broken on ARM where, for good or bad, NO_IRQ currently is
+>> used and is -1.
 >
-> Any driver using the functions you now expose for NO_IOPORT is probably
-> prepared to handle both MMIO and PIO BARs on PCI, which you can consider
-> broken in the case where a card actually requires PIO.
+> Good.
 >
-> On tile, it would be just as broken as other drivers that directly use
-> inb/outb to do the port access, but on platforms that actually have
-> PIO but are not able to map them (like arm/mach-rpc), you would now
-> enable people to write silently broken drivers.
+> ARM developers have been told to change this for several years. The nice
+> approach hasn't worked, the patient approach hasn't worked so now finally
+> ARM is going to be dragged kicking and screaming into doing the work
+> everyone else did several years ago.
 >
-> However, assuming they check the return value of the *iomap, the
-> drivers could still easily detect this case at runtime. Also, at
-> least on tile, you already provide a pci_iomap function, which
-> has the exact same problem as the devres functions.
+> I have so little sympathy over this that you'll need a quantum physicist
+> to measure it.
 >
-> One area where your patch might actually break existing code is
-> architectures that allow the devres functions to be built *and*
-> have PCI support but don't provide a pci_iomap function, because
-> they do not support mapping the PIO range into addresses. I'm
-> not sure if that's actually still the case anywhere after Michael's
-> recent patches, but it used to be the case on RPC and probably others.
+>> Half-removing NO_IRQ is going to be problematic, though...
+>> I really don't care whether the "no irq" value is 0 or -1, but it is
+>> abundantly clear that choosing different values to mean the same thing
+>> on opposite sides of an interface does not work.
+>
+> You've had years to fix it. If I were you I'd delete NO_IRQ from your
+> tree, type make and get it done. It's not even a big job to clean it out.
+>
+> At that point various other drivers will also start working properly on
+> ARM because they use 0 for polled mode.
 
-Sounds sufficiently subtle that I'll plan to drop the patch unless someone
-else (maybe Al Viro, now cc'ed) wants to weigh in.  For tile this just
-means we'll continue not to set NO_IOPORT, at the cost of a few hundred
-bytes of dead code; no big deal.
+Not just ARM:
 
-The specific issue I saw was calls to pcim_iomap_{regions,table} from
-drivers/ata/libata-sff.c and drivers/ata/sata_sil24.c; we use the
-sata_sil24 in one of our platforms (TILEmpower).
+arch/arm/include/asm/irq.h:#ifndef
+NO_IRQarch/arm/include/asm/irq.h:#define NO_IRQ       ((unsigned
+int)(-1))arch/microblaze/include/asm/irq.h:#define NO_IRQ
+(-1)arch/mn10300/include/asm/irq.h:#define NO_IRQ
+INT_MAXarch/openrisc/include/asm/irq.h:#define NO_IRQ
+(-1)arch/parisc/include/asm/irq.h:#define NO_IRQ
+(-1)arch/powerpc/include/asm/irq.h:#define NO_IRQ
+(0)arch/powerpc/include/asm/machdep.h:     /* Return an irq, or NO_IRQ
+to indicate arch/powerpc/include/asm/parport.h:             if (virq
+== NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq !=
+NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq !=
+NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq !=
+NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq !=
+NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq ==
+NO_IRQ)arch/powerpc/include/asm/qe_ic.h:       if (cascade_irq !=
+NO_IRQ)arch/sparc/include/asm/irq_32.h:#define NO_IRQ
+0xffffffffarch/sparc/include/asm/irq_64.h:#define NO_IRQ
+0xffffffff
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+And it's not just definitions of NO_IRQ. These are easy to find.
+On some archs (notably ARM) zero still seems to be a valid IRQ number,
+e.g. IRQ_LOCOMO_KEY and IRQ_DMA0C0.
 
+Also, UML has TIMER_IRQ being zero.
+
+A quick grep found many more IRQ definitions being zero, but
+surprisingly the few
+I looked into were definitions without users (e.g. SE7343_FPGA_IRQ_MRSHPC0,
+ROUTE_VIA_IRQ0 aka IRQ_MB93493_VDC_ROUTE).
+
+Perhaps request_irq() should just reject zero to find all of them?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
