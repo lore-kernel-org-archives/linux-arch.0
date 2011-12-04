@@ -1,99 +1,89 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] ata: Don't use NO_IRQ in pata_of_platform driver
-Date: Sat, 3 Dec 2011 19:56:08 +0100
-Message-ID: <CAMuHMdXvwJ4f6a5Y2+TXn1X3CAg2Ok51f2+n4ye0uTfAVgBC1Q@mail.gmail.com>
-References: <20111110151852.GA7465@oksana.dev.rtsoft.ru>
-	<20111110152606.GB3207@oksana.dev.rtsoft.ru>
-	<20111110153816.239af1d7@lxorguk.ukuu.org.uk>
-	<20111110162859.GA7088@oksana.dev.rtsoft.ru>
-	<20111202191917.GB3037@localhost.localdomain>
-	<20111202232243.6af6f1e2@lxorguk.ukuu.org.uk>
+Subject: Re: Cross Memory Attach v3
+Date: Sun, 4 Dec 2011 15:19:44 +0100
+Message-ID: <CAMuHMdXfWoHx4GA3L8T6-6PFw9fdCVbooayR3La2Woe-0V2koA@mail.gmail.com>
+References: <20110719003537.16b189ae@lilo>
+	<CAMuHMdWAhn7M8o0qY4pz3W1tyyKEcNY_YQL_6JuAPCcjL5vS1A@mail.gmail.com>
+	<20111121104313.63c7f796@cyeoh-System-Product-Name>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-ide-owner@vger.kernel.org>
-In-Reply-To: <20111202232243.6af6f1e2@lxorguk.ukuu.org.uk>
-Sender: linux-ide-owner@vger.kernel.org
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Dave Martin <dave.martin@linaro.org>, Anton Vorontsov <cbouatmailru@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, devicetree-discuss@lists.ozlabs.org, LKML <linux-kernel@vger.kernel.org>, linux-ide@vger.kernel.org, Randy Dunlap <rdunlap@xenotime.net>, linux-next@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Linus Torvalds <torvalds@linux-foundation.org>, Jeff Garzik <jgarzik@redhat.com>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bw0-f46.google.com ([209.85.214.46]:48333 "EHLO
+	mail-bw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753533Ab1LDOTq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Dec 2011 09:19:46 -0500
+In-Reply-To: <20111121104313.63c7f796@cyeoh-System-Product-Name>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christopher Yeoh <cyeoh@au1.ibm.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-man@vger.kernel.org, linux-arch@vger.kernel.org, Linux/m68k <linux-m68k@vger.kernel.org>, Debian m68k <debian-68k@lists.debian.org>
 
-On Sat, Dec 3, 2011 at 00:22, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote=
-:
->> This is now broken on ARM where, for good or bad, NO_IRQ currently i=
-s
->> used and is -1.
+Hi Christopher,
+
+On Mon, Nov 21, 2011 at 01:13, Christopher Yeoh <cyeoh@au1.ibm.com> wro=
+te:
+> On Sun, 20 Nov 2011 11:16:17 +0100
+> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>> On Mon, Jul 18, 2011 at 17:05, Christopher Yeoh <cyeoh@au1.ibm.com>
+>> wrote:
+>> > For arch maintainers there are some simple tests to be able to
+>> > quickly verify that the syscalls are working correctly here:
+>>
+>> I'm wiring up these new syscalls on m68k.
+>>
+>> On m68k (ARAnyM), the first and third test succeed. The second one
+>> fails, though:
+>>
+>> # Setting up target with num iovecs 10, test buffer size 100000
+>> Target process is setup
+>> Run the following to test:
+>> ./t_process_vm_readv_iovec 1574 10 0x800030b0 89 0x80003110 38302
+>> 0x8000c6b8 22423 0x80011e58 18864 0x80016810 583 0x80016a60 8054
+>> 0x800189e0 3417 0x80019740 368 0x800198b8 897 0x80019c40 7003
+>>
+>> and in the other window:
+>>
+>> # ./t_process_vm_readv_iovec 1574 10 0x800030b0 89 0x80003110 38302
+>> 0x8000c6b8 22423 0x80011e58 18864 0x80016810 583 0x80016a60 8054
+>> 0x800189e0 3417 0x80019740 368 0x800198b8 897 0x80019c40 7003
+>> copy_from_process failed: Invalid argument
 >
-> Good.
+> That should say process_vm_readv instead of copy_from_process. The
+> error message is fixed in the just updated test.
 >
-> ARM developers have been told to change this for several years. The n=
-ice
-> approach hasn't worked, the patient approach hasn't worked so now fin=
-ally
-> ARM is going to be dragged kicking and screaming into doing the work
-> everyone else did several years ago.
+>> error code: 29
+>> #
+>>
+>> Any suggestions?
 >
-> I have so little sympathy over this that you'll need a quantum physic=
-ist
-> to measure it.
+> Given that the first and third tests succeed, I think the problem is
+> with the iovec parameters. The -EINVAL is most likely coming from
+> rw_copy_check_uvector. Any chance that something bad is
+> happening to lvec/liovcnt or rvec/riovcnt in the wireup?
 >
->> Half-removing NO_IRQ is going to be problematic, though...
->> I really don't care whether the "no irq" value is 0 or -1, but it is
->> abundantly clear that choosing different values to mean the same thi=
-ng
->> on opposite sides of an interface does not work.
+> The iovecs are checked in process_vm_rw before the core of the
+> process_vm_readv/writev code is called so should be easy to confirm i=
+f
+> this is the problem.
 >
-> You've had years to fix it. If I were you I'd delete NO_IRQ from your
-> tree, type make and get it done. It's not even a big job to clean it =
-out.
->
-> At that point various other drivers will also start working properly =
-on
-> ARM because they use 0 for polled mode.
+> The other couple of places where it could possibly come from is that
+> for some reason the flags parameter ends up being non zero or when
+> looking up the task the mm is NULL. But given that the first and seco=
+nd
+> tests succeed I think its unlikely that either of these is the cause.
 
-Not just ARM:
+It turned out the flags parameter was non-zero, due to syscall() only s=
+upporting
+up to 5 parameters in the glibc I was using for testing.
 
-arch/arm/include/asm/irq.h:#ifndef
-NO_IRQarch/arm/include/asm/irq.h:#define NO_IRQ =C2=A0 =C2=A0 =C2=A0 ((=
-unsigned
-int)(-1))arch/microblaze/include/asm/irq.h:#define NO_IRQ
-(-1)arch/mn10300/include/asm/irq.h:#define NO_IRQ
-INT_MAXarch/openrisc/include/asm/irq.h:#define NO_IRQ
-(-1)arch/parisc/include/asm/irq.h:#define NO_IRQ
-(-1)arch/powerpc/include/asm/irq.h:#define NO_IRQ
-(0)arch/powerpc/include/asm/machdep.h: =C2=A0 =C2=A0 /* Return an irq, =
-or NO_IRQ
-to indicate=C2=A0arch/powerpc/include/asm/parport.h: =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 if (virq
-=3D=3D NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if=
- (cascade_irq !=3D
-NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if (casca=
-de_irq !=3D
-NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if (casca=
-de_irq !=3D
-NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if (casca=
-de_irq !=3D
-NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if (casca=
-de_irq =3D=3D
-NO_IRQ)arch/powerpc/include/asm/qe_ic.h: =C2=A0 =C2=A0 =C2=A0 if (casca=
-de_irq !=3D
-NO_IRQ)arch/sparc/include/asm/irq_32.h:#define NO_IRQ
-0xffffffffarch/sparc/include/asm/irq_64.h:#define NO_IRQ
-0xffffffff
+I checked the eglibc sources (2.11.1-0ubuntu7.8), and it's still not
+fixed there,
+although I could find a fix for a similar issue in klibc
+(http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=3D334917).
 
-And it's not just definitions of NO_IRQ. These are easy to find.
-On some archs (notably ARM) zero still seems to be a valid IRQ number,
-e.g. IRQ_LOCOMO_KEY and IRQ_DMA0C0.
-
-Also, UML has TIMER_IRQ being zero.
-
-A quick grep found many more IRQ definitions being zero, but
-surprisingly the few
-I looked into were definitions without users (e.g. SE7343_FPGA_IRQ_MRSH=
-PC0,
-ROUTE_VIA_IRQ0 aka IRQ_MB93493_VDC_ROUTE).
-
-Perhaps request_irq() should just reject zero to find all of them?
+When forcing flags to zero, it works ;-)
+So sorry for bothering you.
 
 Gr{oetje,eeting}s,
 
