@@ -1,67 +1,71 @@
-From: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Subject: Re: [PATCHv5] atomic: add *_dec_not_zero
-Date: Sun, 4 Dec 2011 21:33:16 +0000
-Message-ID: <20111204213316.GB14542@n2100.arm.linux.org.uk>
-References: <1323013369-29691-1-git-send-email-sven@narfation.org>
-Reply-To: The list for a Better Approach To Mobile Ad-hoc Networking
-	<b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
+From: Sven Eckelmann <sven@narfation.org>
+Subject: Re: Re: [PATCHv5] atomic: add *_dec_not_zero
+Date: Sun, 04 Dec 2011 22:49:10 +0100
+Message-ID: <1699880.NTdz2k3W9O@sven-laptop.home.narfation.org>
+References: <1323013369-29691-1-git-send-email-sven@narfation.org> <20111204213316.GB14542@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <1323013369-29691-1-git-send-email-sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
-List-Unsubscribe: <https://lists.open-mesh.org/mm/options/b.a.t.m.a.n>,
-	<mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.open-mesh.org/pipermail/b.a.t.m.a.n>
-List-Post: <mailto:b.a.t.m.a.n-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org>
-List-Help: <mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.open-mesh.org/mm/listinfo/b.a.t.m.a.n>,
-	<mailto:b.a.t.m.a.n-request-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org?subject=subscribe>
-Sender: b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
-Errors-To: b.a.t.m.a.n-bounces-ZwoEplunGu2X36UT3dwllkB+6BGkLq7r@public.gmane.org
-To: Sven Eckelmann <sven-KaDOiPu9UxWEi8DpZVb4nw@public.gmane.org>
-Cc: linux-m32r-ja-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Heiko Carstens <heiko.carstens-tA70FqPdS9bQT0dZR+AlfA@public.gmane.org>, Randy Dunlap <rdunlap-/UHa2rfvQTnk1uMJSBkQmQ@public.gmane.org>, Paul Mackerras <paulus-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Helge Deller <deller-Mmb7MZpHnFY@public.gmane.org>, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-hexagon-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, Richard Weinberger <richard-/L3Ra7n9ekc@public.gmane.org>, Hirokazu Takata <takata-TMSiXQfHlQjsTix1lMzHGQ@public.gmane.org>, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, "James E.J. Bottomley" <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Matt Turner <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Fenghua Yu <fenghua.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Jeff Dike <jdike-OPE4K8JWMJJBDgjK7y7TUQ@public.gmane.org>, Chris Metcalf <cmetcalf-kv+TWInifGbQT0dZR+AlfA@public.gmane.org>, linux-m32r-rQhvJZKUsGBRYuoOT4C5/9i2O/JbrIOy@public.gmane.org, Iv
+Content-Type: multipart/signed; boundary="nextPart4938203.Qb6ixptZZ3"; micalg="pgp-sha512"; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <20111204213316.GB14542@n2100.arm.linux.org.uk>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, b.a.t.m.a.n@lists.open-mesh.org, Randy Dunlap <rdunlap@xenotime.net>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, "David S. Miller" <davem@davemloft.net>, Chris
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Dec 04, 2011 at 04:42:49PM +0100, Sven Eckelmann wrote:
-> diff --git a/arch/alpha/include/asm/atomic.h b/arch/alpha/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1LL, 0LL)
-> diff --git a/arch/ia64/include/asm/atomic.h b/arch/ia64/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/mips/include/asm/atomic.h b/arch/mips/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/parisc/include/asm/atomic.h b/arch/parisc/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/s390/include/asm/atomic.h b/arch/s390/include/asm/atomic.h
-> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/sparc/include/asm/atomic_64.h b/arch/sparc/include/asm/atomic_64.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
-> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1LL, 0LL)
-> diff --git a/arch/tile/include/asm/atomic_64.h b/arch/tile/include/asm/atomic_64.h
-> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1, 0)
-> diff --git a/arch/x86/include/asm/atomic64_64.h b/arch/x86/include/asm/atomic64_64.h
-> +#define atomic64_dec_not_zero(v) atomic64_add_unless((v), -1, 0)
-> diff --git a/include/asm-generic/atomic64.h b/include/asm-generic/atomic64.h
-> +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1LL, 0LL)
 
-I think this is rather silly - all these definitions are very similar to
-each other.  Is there really no way to put this into include/linux/atomic.h,
-maybe as something like:
+--nextPart4938203.Qb6ixptZZ3
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 
-#ifndef atomic64_dec_not_zero
-#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1, 0)
-#endif
+On Sunday 04 December 2011 21:33:16 Russell King - ARM Linux wrote:
+[...]
+> > +#define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1LL, 0LL)
+> 
+> I think this is rather silly - all these definitions are very similar to
+> each other.  Is there really no way to put this into include/linux/atomic.h,
+> maybe as something like:
+> 
+> #ifndef atomic64_dec_not_zero
+> #define atomic64_dec_not_zero(v)	atomic64_add_unless((v), -1, 0)
+> #endif
+> 
+> and avoid having to add essentially the same definition to 12 individual
+> files?
+> 
+> Architectures which want to override it can do by the following:
+> 
+> #define atomic64_dec_not_zero		atomic64_dec_not_zero
+> 
+> which won't have any effect on C nor asm code.
 
-and avoid having to add essentially the same definition to 12 individual
-files?
+ * https://lkml.org/lkml/2011/5/8/15
+ * https://lkml.org/lkml/2011/5/8/16
+ * https://lkml.org/lkml/2011/5/8/321
 
-Architectures which want to override it can do by the following:
+Kind regards,
+	Sven
+--nextPart4938203.Qb6ixptZZ3
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
 
-#define atomic64_dec_not_zero		atomic64_dec_not_zero
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
 
-which won't have any effect on C nor asm code.
+iQIcBAABCgAGBQJO2+rWAAoJEF2HCgfBJntGGaoP/1cME9u1tSkxi9MYlM/Ss2sw
+Du85XnWWOFnV+CRwZ7+QCkgr10dzf/Qf7ekcxzM/7wapAawu0FmBbehfNW+06uW0
+4XrIxUDaZy0xgHusju96MVJav0msORD/2RXM3rQxwkjR2FhmfbVntuIu/5EqEHFv
+jIzksziGDgrHx6/HMjrEiX8p2tPPBfQ7MGa1Cvj+kLgDhPAPCOUKfpwgdj35MYHe
+2D+zXMr6aHi/JtDkYK2BV9u9nAGx91fcPdOO4/SyyxVg4DLrUnuRgWhNF9UCXd7R
+IDkz2SAlkqP5RXKa9XMxnS1n1zjkpmc1wfRL4rPHmk7Fg9IgidnlZ8TsXKuDjoVR
+JtIuXmj1FQ5nuHnzKnzhIfHMlu395tL0PVHeWi1+dPZGfUCLX+T4jdlTRaShY3d1
+UUzpbfKuc2dy8uX5BNfJ5kQl4PSx8w97Kn+8vRbb3U627FIpdkK8RQNEGgB7wpIR
+rCqnxvsjPiiyQA9ckXmL/S0d9xlrPcrB1Tu4kUgXYTr6llV/xKWuYtl801IFP6lr
+kFqvPd5St69DP66x5bMMC4NalTEfCIx7HOx+xd3xQC+9qsJVLomz95bvMZHxeI8K
+Ae736/5KDqONzVPOKW2J+UJIJLqIZPuSbNVRY9lkTZXjii1U25WY03PGAGwa4LLP
+mGvc5Y2WUfdr8CtFrvVL
+=T3Oo
+-----END PGP SIGNATURE-----
+
+--nextPart4938203.Qb6ixptZZ3--
