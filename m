@@ -1,47 +1,93 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: linux-next: inclusion request for temporary memblock testing branch
-Date: Mon, 5 Dec 2011 13:04:05 -0800
-Message-ID: <20111205210405.GK627@google.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: linux-next: inclusion request for temporary memblock testing
+ branch
+Date: Tue, 6 Dec 2011 08:59:19 +1100
+Message-ID: <20111206085919.c9bf7e6a196774f6860d3699@canb.auug.org.au>
+References: <20111205210405.GK627@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:46456 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932358Ab1LEVEW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 16:04:22 -0500
-Content-Disposition: inline
+Received: from calzone.tip.net.au ([203.10.76.15]:47586 "EHLO
+	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932372Ab1LEV7j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 16:59:39 -0500
+In-Reply-To: <20111205210405.GK627@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: sfr@canb.auug.org.au
+To: Tejun Heo <tj@kernel.org>
 Cc: mingo@elte.hu, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com, benh@kernel.crashing.org
 
-Hello, Stephen.
+--Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Can you please include the following branch into linux-next?
+Hi Tejun,
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill-early_node_map
+On Mon, 5 Dec 2011 13:04:05 -0800 Tejun Heo <tj@kernel.org> wrote:
+>
+> Can you please include the following branch into linux-next?
+>=20
+>   git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill=
+-early_node_map
 
-This eventually will go through tip/ but Ingo wants it to be tested a
-bit before proceeding.
+OK, I have added that from today.
 
-  http://thread.gmane.org/gmane.linux.kernel.cross-arch/11566/focus=1224459
+Thanks for adding your subsystem tree as a participant of linux-next.  As
+you may know, this is not a judgment of your code.  The purpose of
+linux-next is for integration testing and to lower the impact of
+conflicts between subsystems in the next merge window.=20
 
-Pulling it into linux-next creates conflicts in three files -
-arch/arm/mm/init.c, arch/mips/Kconfig, arch/score/Kconfig.  All
-conflicts are trivial.  Both parties try to add something and
-combination of the two work fine.  The following branch contains
-merged branch for reference.
+You will need to ensure that the patches/commits in your tree/series have
+been:
+     * submitted under GPL v2 (or later) and include the Contributor's
+	Signed-off-by,
+     * posted to the relevant mailing list,
+     * reviewed by you (or another maintainer of your subsystem tree),
+     * successfully unit tested, and=20
+     * destined for the current or next Linux merge window.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill-early_node_map-next
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
 
-allno/modconfig on x86 compile tested.  My randomish test kernel seems
-to work fine too.  I tested building on different archs on good part
-of the archs on first posting but my cross build setup is sorta
-screwed now and couldn't get much done this time but there hasn't been
-any substantial change since the first posting.  I'm planning on
-getting the cross build env back up soonish once moving is complete.
+--=20
+Cheers,
+Stephen Rothwell=20
+sfr@canb.auug.org.au
 
-Thank you.
+Legal Stuff:
+By participating in linux-next, your subsystem tree contributions are
+public and will be included in the linux-next trees.  You may be sent
+e-mail messages indicating errors or other issues when the
+patches/commits from your subsystem tree are merged and tested in
+linux-next.  These messages may also be cross-posted to the linux-next
+mailing list, the linux-kernel mailing list, etc.  The linux-next tree
+project and IBM (my employer) make no warranties regarding the linux-next
+project, the testing procedures, the results, the e-mails, etc.  If you
+don't agree to these ground rules, let me know and I'll remove your tree
+from participation in linux-next.
 
--- 
-tejun
+--Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJO3T63AAoJEECxmPOUX5FE3tAP/i3wQ+YE+tkTBXGilbWF1iNo
+F+X35xbzuT9/ScMTd6qBUTS0H76P8cxAHzm6OEBDEgw43rGWm/Nqlk0E9/fZCHEB
+9+iKEeFG9usuaKg0wHm4Q64AvF8FuoMHDro8/0zpA8oXnvA+Qu7v1/fJUh/itxA2
+mWpeWF9EV3mWim12nic3M3gzhcrj8yezhyWJTEbNa/nMsXHuQ0H1kFLW3VWJDvgj
+SWmSSz13x0E44B66vmlYaHSL8tQB6xSk8K0fqt5tn70sB5wM7HYAHBlRPz2x7RXX
+nxUjxMv95m00EBnDK2T4+EBxhHti79rQbOIHzlrDPBoZvdgLY5Q/rZqVaAdkWL77
+YMGNGKtq1b1Zytqy0k6w58/LuXoaX/SFMnvu/vIHZcLVwQ+0IhM9LffYT+2qMzBQ
+Nj5nHVgFmjozdUXf/rjjWDUK+fB6b+v80ul6C2Zwsl1IDRWfPC9a+zS7IX/3ACJ0
+eFiQ47iQmmuETXvEqoIk3U4PMEBTzdIga2IF9WG50XfLaCFiltw1Sm+OUGTtzoRH
+ls3ZtOGIx+ire4Noa0Xt/l6Xm+rGIPiCpGT03dx7iZl0DJgu8FobrJE3OtBvcbfz
+xmtqbqASQKOLNCbatoo1HTLzZuIDtYKWBubtlC7bzdvkRjbQL+KnX+x80V4uzady
+pGPuAym5abcDfHgLTCjn
+=xgpa
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA--
