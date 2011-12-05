@@ -1,44 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([206.83.70.75]:32490 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756163Ab1LEUIo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 15:08:44 -0500
-Message-ID: <4EDD24CA.2020906@tilera.com>
-Date: Mon, 5 Dec 2011 15:08:42 -0500
-From: Chris Metcalf <cmetcalf@tilera.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
- PCI
-References: <cover.1322592494.git.mst@redhat.com> <1616727.0BYPKXtoA0@wuerfel> <4ED91D95.6040601@tilera.com> <201112051514.02360.arnd@arndb.de>
-In-Reply-To: <201112051514.02360.arnd@arndb.de>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from oz.csail.mit.edu ([128.30.30.239]:34662 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932147Ab1LEUTH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Dec 2011 15:19:07 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/5 V5] Add flag to indicate that a vm was stopped by the host
+Date: Mon,  5 Dec 2011 15:19:00 -0500
+Message-ID: <1323116344-17911-2-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20111205200842.ccyUmyRbAlHXpcpmG1TwJfmZELCLfgMux-IIvWLZ7Bw@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111205201900.KW9VVjTl1J9wY9aucEKDenvGEO6LNbmp7FPxdUsQHlk@z>
 
-On 12/5/2011 10:14 AM, Arnd Bergmann wrote:
-> On Friday 02 December 2011, Chris Metcalf wrote:
->> The specific issue I saw was calls to pcim_iomap_{regions,table} from
->> drivers/ata/libata-sff.c and drivers/ata/sata_sil24.c; we use the
->> sata_sil24 in one of our platforms (TILEmpower).
-> Hmm, so sata_sil24 does not actually use PIO, so we can probably find a
-> way to make that work.
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-OK, that would be good.  I'm not familiar enough with the driver (or indeed
-the devres stuff) to really take an effective swing at this myself, though.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: levinsasha928@gmail.com
+Cc: Jan Kiszka <jan.kiszka@siemens.com>
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-> Why do you have to build libata-sff? Shouldn't
-> that only be needed if you actually have an sff-type controller?
-
-Yes, I think this is an accidental legacy of the original development work
-for PCI root complex three years ago.  I disabled ATA_SFF and booted up a
-number of our inhouse platforms, and all the devices appear to work fine
-without it.  I've now turned it off in our standard configuration.
-
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+1.7.5.4
 
