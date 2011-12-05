@@ -1,56 +1,44 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: Re: Re: [PATCHv5] atomic: add *_dec_not_zero
-Date: Mon, 05 Dec 2011 19:26:55 +1100
-Message-ID: <1323073615.660.11.camel@pasglop>
-References: <1323013369-29691-1-git-send-email-sven@narfation.org>
-         <20111204221850.GC14542@n2100.arm.linux.org.uk>
-         <1323038515.11728.26.camel@pasglop>
-         <3836467.I5Tqg6MFf9@sven-laptop.home.narfation.org>
+From: "David Laight" <David.Laight@ACULAB.COM>
+Subject: RE: Re: [PATCHv5] atomic: add *_dec_not_zero
+Date: Mon, 5 Dec 2011 11:44:10 -0000
+Message-ID: <AE90C24D6B3A694183C094C60CF0A2F6D8AEFE@saturn3.aculab.com>
+References: <20111204221850.GC14542@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <3836467.I5Tqg6MFf9@sven-laptop.home.narfation.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: Sven Eckelmann <sven@narfation.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-m32r-ja@ml.linux-m32r.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Randy Dunlap <rdunlap@xenotime.net>, Paul Mackerras <paulus@samba.org>, Helge Deller <deller@gmx.de>, sparclinux@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, Richard Weinberger <richard@nod.at>, Hirokazu Takata <takata@linux-m32r.org>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Matt Turner <mattst88@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Arnd
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-class: urn:content-classes:message
+In-Reply-To: <20111204221850.GC14542@n2100.arm.linux.org.uk>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Sven Eckelmann <sven@narfation.org>
+Cc: linux-m32r-ja@ml.linux-m32r.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Randy Dunlap <rdunlap@xenotime.net>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Matt Turner <mattst88@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergma nn <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, linux-alpha@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Tony Luck <tony.luck@intel.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@li
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2011-12-05 at 08:57 +0100, Sven Eckelmann wrote:
-> On Monday 05 December 2011 09:41:55 Benjamin Herrenschmidt wrote:
-> > On Sun, 2011-12-04 at 22:18 +0000, Russell King - ARM Linux wrote:
-> > 
-> >  .../...
-> > 
-> > > And really, I believe it would be a good cleanup if all the standard
-> > > definitions for atomic64 ops (like atomic64_add_negative) were also
-> > > defined in include/linux/atomic.h rather than individually in every
-> > > atomic*.h header throughout the kernel source, except where an arch
-> > > wants to explicitly override it.  Yet again, virtually all architectures
-> > > define these in exactly the same way.
-> > > 
-> > > We have more than enough code in arch/ for any architecture to worry
-> > > about, we don't need schemes to add more when there's simple and
-> > > practical solutions to avoiding doing so if the right design were
-> > > chosen (preferably from the outset.)
-> > > 
-> > > So, I'm not going to offer my ack for a change which I don't believe
-> > > is the correct approach.
-> > 
-> > I agree with Russell, his approach is a lot easier to maintain long run,
-> > we should even consider converting existing definitions.
-> 
-> I would rather go with "the existing definitions have to converted" and this 
-> means "not by this patch".
+Looking at this:
 
-Right. I didn't suggest -you- had to do it as a pre-req to your patch.
+> #ifndef atomic_inc_unless_negative
+> static inline int atomic_inc_unless_negative(atomic_t *p)
+> {
+>         int v, v1;
+>         for (v = 0; v >= 0; v = v1) {
+>                 v1 = atomic_cmpxchg(p, v, v + 1);
+>                 if (likely(v1 == v))
+>                         return 1;
+>         }
+>         return 0;
+> }
+> #endif
 
->  At the moment, the atomic64 stuff exist only as 
-> separate generic or arch specific implementation. It is fine that Russell King 
-> noticed that people like Arun Sharma did a lot of work to made it true for 
-> atomic_t, but atomic64_t is a little bit different right now (at least as I 
-> understand it).
+why is it optimised for '*p' being zero??
+I'd have though the initial assignment to 'v' should
+be made by reading '*p' without any memory barriers (etc).
 
-Cheers,
-Ben.
+	David
