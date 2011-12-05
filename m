@@ -1,41 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fallback.mail.elte.hu ([157.181.151.13]:45520 "EHLO
-	fallback.mail.elte.hu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754506Ab1LEQnl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 11:43:41 -0500
-Date: Mon, 5 Dec 2011 17:31:48 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[],
- take 2
-Message-ID: <20111205163148.GA25909@elte.hu>
-References: <1322508685-32532-1-git-send-email-tj@kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:33932 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932523Ab1LESAN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Dec 2011 13:00:13 -0500
+Date: Mon, 5 Dec 2011 13:00:09 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: Re: [PATCH 3/5 V4] Add ioctl for KVM_GUEST_STOPPED
+Message-ID: <20111205180009.GB5673@mgebm.net>
+References: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
+ <1322602539-27004-4-git-send-email-emunson@mgebm.net>
+ <1322903774.3782.1.camel@lappy>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="LpQ9ahxlCli8rRTG"
 Content-Disposition: inline
-In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
+In-Reply-To: <1322903774.3782.1.camel@lappy>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
-Message-ID: <20111205163148.NhDjlrKRD8ePDwl304eAGgkzSDsbFYxjfAeYyObEsWs@z>
+To: Sasha Levin <levinsasha928@gmail.com>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111205180009.w8_DHkpgY0fjq7gwU1mhryerV0fiDM0vFyJ6n4yyfG8@z>
 
 
-* Tejun Heo <tj@kernel.org> wrote:
+--LpQ9ahxlCli8rRTG
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Hello,
-> 
-> This patchset was posted quite a while ago but got lost during the
-> korg disturbance and I forgot about it too.  Thankfully, benh pinged
-> me about testing this patchset yesterday, so here's the refreshed
-> version.
+On Sat, 03 Dec 2011, Sasha Levin wrote:
 
-A bit scary - you should get it into linux-next i suspect - if 
-that works out then we could then put it into tip:core/memblock 
-if there are no objections from anyone.
+> On Tue, 2011-11-29 at 16:35 -0500, Eric B Munson wrote:
+> >=20
+> > Now that we have a flag that will tell the guest it was suspended,
+> > create an interface for that communication using a KVM ioctl.
+> >=20
+> > Signed-off-by: Eric B Munson <emunson@mgebm.net>=20
+>=20
+> Can it be documented in api.txt as well?
+>=20
+> --=20
+>=20
+> Sasha.
+>=20
 
-It's not really an x86 tree and most of the changes are 
-affecting non-x86 architectures, right?
+Thanks for the review, will do for V5.
 
-Thanks,
+Eric
 
-	Ingo
+--LpQ9ahxlCli8rRTG
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBAgAGBQJO3QapAAoJEKhG9nGc1bpJ3A0P/RfiqRh6Ly6rKOo2ewzKWMEm
+FJLapLn9BxfLNK/lz8NVHtom+G71f8v6WKdDIKOO9eY5mC2oeGnEeRhmk/9bzR99
+XV6oWJXZctjIcndCnb45FF5u4yFn2ZITOXlVe+w1laEXEgFVlXyY2CvgoTmS83KL
+G/KscskafTlA0TD9gZv3CQEbqly+BaRxcsw8+VIi42TosEveiTsyJ002GAeO7OuO
+mp2Z9d8CaP43jAm5MBvQd6lZlLjXTsci0UrRUT3zkVZJoB+X7pNuekDJNPINRuSm
++bb78Y3ekKKz53NUx7sEyh5Gzqu6GjMDOSEzF54uviXhPnPd2lLAmRg9gwlpP+cd
+ksXv0QCcCS1PsZG7cdqjXLpqorno5ll3hjL/hM5vkofgnR03r0So8uuOEBe3YKwj
+nEEDp6cX3p9Z9VrAIgiO+Gg48bAiadLBGcj3aFKtcY03426HPAlnAtOHrUlug5TT
+9Iw1c5lFmDyPIDC9K3f5xEqAoT0G+ulv2K9a5tNjS6LUUMgsn95PgSnJSTcnUSF1
+Z15pJoC611gI79Vt+Ee+q8mcBHDFhbJwiWw/R9yv0u6XB/kX9TW1ANyVK/FBguRR
+lv3p025qiLWQ7O2fJdwPFcxmPMYyc8E4/4NJZtycBbfCdWaU7FvGzz7/ao2QQfrq
+y9EkoyqcKFn8ZQwCa0c9
+=rXcR
+-----END PGP SIGNATURE-----
+
+--LpQ9ahxlCli8rRTG--
