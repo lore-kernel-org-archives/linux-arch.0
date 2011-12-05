@@ -1,53 +1,43 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/5 V5] Add generic stubs for kvm stop check functions
-Date: Mon,  5 Dec 2011 15:19:03 -0500
-Message-ID: <1323116344-17911-5-git-send-email-emunson@mgebm.net>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[],
+ take 2
+Date: Tue, 06 Dec 2011 07:26:53 +1100
+Message-ID: <1323116813.660.20.camel@pasglop>
+References: <1322508685-32532-1-git-send-email-tj@kernel.org>
+	 <20111205163148.GA25909@elte.hu>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:38489 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932174Ab1LEU2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Dec 2011 15:28:03 -0500
+In-Reply-To: <20111205163148.GA25909@elte.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@elte.hu>
+Cc: Tejun Heo <tj@kernel.org>, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: arnd@arndb.de
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: levinsasha928@gmail.com
-Cc: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- include/asm-generic/kvm_para.h |   14 ++++++++++++++
- 1 files changed, 14 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
+On Mon, 2011-12-05 at 17:31 +0100, Ingo Molnar wrote:
+> * Tejun Heo <tj@kernel.org> wrote:
+> 
+> > Hello,
+> > 
+> > This patchset was posted quite a while ago but got lost during the
+> > korg disturbance and I forgot about it too.  Thankfully, benh pinged
+> > me about testing this patchset yesterday, so here's the refreshed
+> > version.
+> 
+> A bit scary - you should get it into linux-next i suspect - if 
+> that works out then we could then put it into tip:core/memblock 
+> if there are no objections from anyone.
+> 
+> It's not really an x86 tree and most of the changes are 
+> affecting non-x86 architectures, right?
 
-diff --git a/include/asm-generic/kvm_para.h b/include/asm-generic/kvm_para.h
-new file mode 100644
-index 0000000..177e1eb
---- /dev/null
-+++ b/include/asm-generic/kvm_para.h
-@@ -0,0 +1,14 @@
-+#ifndef _ASM_GENERIC_KVM_PARA_H
-+#define _ASM_GENERIC_KVM_PARA_H
-+
-+
-+/*
-+ * This function is used by architectures that support kvm to avoid issuing
-+ * false soft lockup messages.
-+ */
-+static inline bool kvm_check_and_clear_guest_paused(int cpu)
-+{
-+	return false;
-+}
-+
-+#endif
--- 
-1.7.5.4
+They do look nice tho. I've asked some folks familiar with NUMA stuff
+here at IBM to give them a spin on power, haven't heard back yet.
+
+Cheers,
+Ben.
