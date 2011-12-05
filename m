@@ -1,30 +1,36 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
-Date: Mon, 5 Dec 2011 15:14:02 +0000
-Message-ID: <201112051514.02360.arnd@arndb.de>
-References: <cover.1322592494.git.mst@redhat.com> <1616727.0BYPKXtoA0@wuerfel> <4ED91D95.6040601@tilera.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCHSET tip:x86/memblock] memblock: Kill early_node_map[],
+ take 2
+Date: Mon, 5 Dec 2011 17:31:48 +0100
+Message-ID: <20111205163148.GA25909@elte.hu>
+References: <1322508685-32532-1-git-send-email-tj@kernel.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:59602 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932349Ab1LEPPe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 10:15:34 -0500
-In-Reply-To: <4ED91D95.6040601@tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1322508685-32532-1-git-send-email-tj@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Tejun Heo <tj@kernel.org>
+Cc: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 02 December 2011, Chris Metcalf wrote:
-> The specific issue I saw was calls to pcim_iomap_{regions,table} from
-> drivers/ata/libata-sff.c and drivers/ata/sata_sil24.c; we use the
-> sata_sil24 in one of our platforms (TILEmpower).
 
-Hmm, so sata_sil24 does not actually use PIO, so we can probably find a
-way to make that work. Why do you have to build libata-sff? Shouldn't
-that only be needed if you actually have an sff-type controller?
+* Tejun Heo <tj@kernel.org> wrote:
 
-	Arnd
+> Hello,
+> 
+> This patchset was posted quite a while ago but got lost during the
+> korg disturbance and I forgot about it too.  Thankfully, benh pinged
+> me about testing this patchset yesterday, so here's the refreshed
+> version.
+
+A bit scary - you should get it into linux-next i suspect - if 
+that works out then we could then put it into tip:core/memblock 
+if there are no objections from anyone.
+
+It's not really an x86 tree and most of the changes are 
+affecting non-x86 architectures, right?
+
+Thanks,
+
+	Ingo
