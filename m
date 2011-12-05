@@ -1,67 +1,71 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 3/5 V4] Add ioctl for KVM_GUEST_STOPPED
-Date: Mon, 5 Dec 2011 13:00:09 -0500
-Message-ID: <20111205180009.GB5673@mgebm.net>
-References: <1322602539-27004-1-git-send-email-emunson@mgebm.net>
- <1322602539-27004-4-git-send-email-emunson@mgebm.net>
- <1322903774.3782.1.camel@lappy>
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH v3 01/34] PCI: add helpers for building PCI bus resource
+ lists
+Date: Mon, 5 Dec 2011 11:54:54 -0800
+Message-ID: <20111205115454.2429d34b@jbarnes-desktop>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+	<20111028222535.30729.73281.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="LpQ9ahxlCli8rRTG"
-Return-path: <kvm-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1322903774.3782.1.camel@lappy>
-Sender: kvm-owner@vger.kernel.org
-To: Sasha Levin <levinsasha928@gmail.com>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=PGP-SHA1;
+ boundary="Sig_/KW3pHAloar8sRfja/wCKDpJ"; protocol="application/pgp-signature"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oproxy9.bluehost.com ([69.89.24.6]:46593 "HELO
+	oproxy9.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S932287Ab1LETwU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 14:52:20 -0500
+In-Reply-To: <20111028222535.30729.73281.stgit@bhelgaas.mtv.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-
---LpQ9ahxlCli8rRTG
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+--Sig_/KW3pHAloar8sRfja/wCKDpJ
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: quoted-printable
 
-On Sat, 03 Dec 2011, Sasha Levin wrote:
+On Fri, 28 Oct 2011 16:25:35 -0600
+Bjorn Helgaas <bhelgaas@google.com> wrote:
 
-> On Tue, 2011-11-29 at 16:35 -0500, Eric B Munson wrote:
-> >=20
-> > Now that we have a flag that will tell the guest it was suspended,
-> > create an interface for that communication using a KVM ioctl.
-> >=20
-> > Signed-off-by: Eric B Munson <emunson@mgebm.net>=20
+> We'd like to supply a list of resources when we create a new PCI bus,
+> e.g., the root bus under a PCI host bridge.  These are helpers for
+> constructing that list.
 >=20
-> Can it be documented in api.txt as well?
+> These are exported because the plan is to replace this exported interface:
+>     pci_scan_bus_parented()
+> with this one:
+>     pci_add_resource(resources, ...)
+>     pci_scan_root_bus(..., resources)
 >=20
-> --=20
->=20
-> Sasha.
->=20
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> ---
 
-Thanks for the review, will do for V5.
+Applied this series.  Arch maintainers, please check these out and give
+a shout if there's an issue.  Current bits are in my linux-next branch.
 
-Eric
+Thanks,
+--=20
+Jesse Barnes, Intel Open Source Technology Center
 
---LpQ9ahxlCli8rRTG
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+--Sig_/KW3pHAloar8sRfja/wCKDpJ
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Disposition: attachment; filename=signature.asc
 
 -----BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+Version: GnuPG v1.4.10 (GNU/Linux)
 
-iQIcBAEBAgAGBQJO3QapAAoJEKhG9nGc1bpJ3A0P/RfiqRh6Ly6rKOo2ewzKWMEm
-FJLapLn9BxfLNK/lz8NVHtom+G71f8v6WKdDIKOO9eY5mC2oeGnEeRhmk/9bzR99
-XV6oWJXZctjIcndCnb45FF5u4yFn2ZITOXlVe+w1laEXEgFVlXyY2CvgoTmS83KL
-G/KscskafTlA0TD9gZv3CQEbqly+BaRxcsw8+VIi42TosEveiTsyJ002GAeO7OuO
-mp2Z9d8CaP43jAm5MBvQd6lZlLjXTsci0UrRUT3zkVZJoB+X7pNuekDJNPINRuSm
-+bb78Y3ekKKz53NUx7sEyh5Gzqu6GjMDOSEzF54uviXhPnPd2lLAmRg9gwlpP+cd
-ksXv0QCcCS1PsZG7cdqjXLpqorno5ll3hjL/hM5vkofgnR03r0So8uuOEBe3YKwj
-nEEDp6cX3p9Z9VrAIgiO+Gg48bAiadLBGcj3aFKtcY03426HPAlnAtOHrUlug5TT
-9Iw1c5lFmDyPIDC9K3f5xEqAoT0G+ulv2K9a5tNjS6LUUMgsn95PgSnJSTcnUSF1
-Z15pJoC611gI79Vt+Ee+q8mcBHDFhbJwiWw/R9yv0u6XB/kX9TW1ANyVK/FBguRR
-lv3p025qiLWQ7O2fJdwPFcxmPMYyc8E4/4NJZtycBbfCdWaU7FvGzz7/ao2QQfrq
-y9EkoyqcKFn8ZQwCa0c9
-=rXcR
+iQIcBAEBAgAGBQJO3SGOAAoJEIEoDkX4Qk9hNCYQAIG/RErpLKguaMr5M3PNfR4v
+KNXZhiNflUuR52JBTerQn2bczRWl8+cK9HbtfNqOI2poo48Bvqx4ky3kpIo+tFGa
+brIEaNCqHetdGSCRGdvglGOYR3XdChuws8TQkzhRlf2qkqnMGkGBQxT1VNtmvyKd
+4AX5GWQBZIvYIVR6z5gUrovjQ8Tp5/3CmI2Gcg2HT49Metw3QPpC3UDtzbOKdP5Y
+jHKq9nMO64DtHbW2m67AtnBHR74IOjch3Jy53oE9zUQweyomJnOjlCKtCDjdq8TY
+5yY5djsPVabeWRh3FEMRp2ixFwLVXnGOzDe4v0k9mhJhEnn4dghJ9ihPqiQ9MdSx
+kEL8QCUYAV/KnY7KAZXkTTWfWEa5C03MdKmNzQ7opNNFGnyhLRyRJ82IIwWABMCn
+GkvLqYN3cFMd1k7v+sUfBfmAe2omeQN4E+yIY0rDtnLsZhyDPErdC8E1AWJ87wHZ
+JyFC1ldQFjiKJVWoO8w9EGftdGM9Bd1bb69ohkg74Soo62d4uy7KcaUQAuTlEZjb
+yvPWfVjipIAUnX3dCQsyy9HcvzxrdejRIBH/ft88XusQorsO2mFdPKNiTn7ppyFR
+fWIHTx2zvZWXyA4lRge1WhlHE7FJDyopzrGACOERQVk/LyMOh/PvKjQwo+6KrFuD
+O5TVA3CjIyZZ7yUFPwVD
+=M7yo
 -----END PGP SIGNATURE-----
 
---LpQ9ahxlCli8rRTG--
+--Sig_/KW3pHAloar8sRfja/wCKDpJ--
