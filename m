@@ -1,44 +1,30 @@
-From: "David Laight" <David.Laight@ACULAB.COM>
-Subject: RE: Re: [PATCHv5] atomic: add *_dec_not_zero
-Date: Mon, 5 Dec 2011 11:44:10 -0000
-Message-ID: <AE90C24D6B3A694183C094C60CF0A2F6D8AEFE@saturn3.aculab.com>
-References: <20111204221850.GC14542@n2100.arm.linux.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using PCI
+Date: Mon, 5 Dec 2011 15:14:02 +0000
+Message-ID: <201112051514.02360.arnd@arndb.de>
+References: <cover.1322592494.git.mst@redhat.com> <1616727.0BYPKXtoA0@wuerfel> <4ED91D95.6040601@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-Content-class: urn:content-classes:message
-In-Reply-To: <20111204221850.GC14542@n2100.arm.linux.org.uk>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Sven Eckelmann <sven@narfation.org>
-Cc: linux-m32r-ja@ml.linux-m32r.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-doc@vger.kernel.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Randy Dunlap <rdunlap@xenotime.net>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, linux-hexagon@vger.kernel.org, Helge Deller <deller@gmx.de>, x86@kernel.org, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ingo Molnar <mingo@redhat.com>, Matt Turner <mattst88@gmail.com>, Fenghua Yu <fenghua.yu@intel.com>, Arnd Bergma nn <arnd@arndb.de>, Jeff Dike <jdike@addtoit.com>, linux-alpha@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>, Tony Luck <tony.luck@intel.com>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@li
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:59602 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932349Ab1LEPPe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 10:15:34 -0500
+In-Reply-To: <4ED91D95.6040601@tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>
 
-Looking at this:
+On Friday 02 December 2011, Chris Metcalf wrote:
+> The specific issue I saw was calls to pcim_iomap_{regions,table} from
+> drivers/ata/libata-sff.c and drivers/ata/sata_sil24.c; we use the
+> sata_sil24 in one of our platforms (TILEmpower).
 
-> #ifndef atomic_inc_unless_negative
-> static inline int atomic_inc_unless_negative(atomic_t *p)
-> {
->         int v, v1;
->         for (v = 0; v >= 0; v = v1) {
->                 v1 = atomic_cmpxchg(p, v, v + 1);
->                 if (likely(v1 == v))
->                         return 1;
->         }
->         return 0;
-> }
-> #endif
+Hmm, so sata_sil24 does not actually use PIO, so we can probably find a
+way to make that work. Why do you have to build libata-sff? Shouldn't
+that only be needed if you actually have an sff-type controller?
 
-why is it optimised for '*p' being zero??
-I'd have though the initial assignment to 'v' should
-be made by reading '*p' without any memory barriers (etc).
-
-	David
+	Arnd
