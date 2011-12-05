@@ -1,71 +1,38 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH v3 01/34] PCI: add helpers for building PCI bus resource
- lists
-Date: Mon, 5 Dec 2011 11:54:54 -0800
-Message-ID: <20111205115454.2429d34b@jbarnes-desktop>
-References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
-	<20111028222535.30729.73281.stgit@bhelgaas.mtv.corp.google.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] lib/devres.c: allow specifying NO_IOPORT while using
+ PCI
+Date: Mon, 5 Dec 2011 15:08:42 -0500
+Message-ID: <4EDD24CA.2020906@tilera.com>
+References: <cover.1322592494.git.mst@redhat.com> <1616727.0BYPKXtoA0@wuerfel> <4ED91D95.6040601@tilera.com> <201112051514.02360.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=PGP-SHA1;
- boundary="Sig_/KW3pHAloar8sRfja/wCKDpJ"; protocol="application/pgp-signature"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oproxy9.bluehost.com ([69.89.24.6]:46593 "HELO
-	oproxy9.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S932287Ab1LETwU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 14:52:20 -0500
-In-Reply-To: <20111028222535.30729.73281.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <201112051514.02360.arnd@arndb.de>
+Sender: linux-pci-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Rolf Eike Beer <eike-kernel@sf-tec.de>, Andrew Morton <akpm@linux-foundation.org>, "Maxin B. John" <maxin.john@gmail.com>, Tejun Heo <tj@kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, "David S. Miller" <davem@davemloft.net>, Al Viro <viro@zeniv.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
---Sig_/KW3pHAloar8sRfja/wCKDpJ
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On 12/5/2011 10:14 AM, Arnd Bergmann wrote:
+> On Friday 02 December 2011, Chris Metcalf wrote:
+>> The specific issue I saw was calls to pcim_iomap_{regions,table} from
+>> drivers/ata/libata-sff.c and drivers/ata/sata_sil24.c; we use the
+>> sata_sil24 in one of our platforms (TILEmpower).
+> Hmm, so sata_sil24 does not actually use PIO, so we can probably find a
+> way to make that work.
 
-On Fri, 28 Oct 2011 16:25:35 -0600
-Bjorn Helgaas <bhelgaas@google.com> wrote:
+OK, that would be good.  I'm not familiar enough with the driver (or indeed
+the devres stuff) to really take an effective swing at this myself, though.
 
-> We'd like to supply a list of resources when we create a new PCI bus,
-> e.g., the root bus under a PCI host bridge.  These are helpers for
-> constructing that list.
->=20
-> These are exported because the plan is to replace this exported interface:
->     pci_scan_bus_parented()
-> with this one:
->     pci_add_resource(resources, ...)
->     pci_scan_root_bus(..., resources)
->=20
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
+> Why do you have to build libata-sff? Shouldn't
+> that only be needed if you actually have an sff-type controller?
 
-Applied this series.  Arch maintainers, please check these out and give
-a shout if there's an issue.  Current bits are in my linux-next branch.
+Yes, I think this is an accidental legacy of the original development work
+for PCI root complex three years ago.  I disabled ATA_SFF and booted up a
+number of our inhouse platforms, and all the devices appear to work fine
+without it.  I've now turned it off in our standard configuration.
 
-Thanks,
---=20
-Jesse Barnes, Intel Open Source Technology Center
-
---Sig_/KW3pHAloar8sRfja/wCKDpJ
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.10 (GNU/Linux)
-
-iQIcBAEBAgAGBQJO3SGOAAoJEIEoDkX4Qk9hNCYQAIG/RErpLKguaMr5M3PNfR4v
-KNXZhiNflUuR52JBTerQn2bczRWl8+cK9HbtfNqOI2poo48Bvqx4ky3kpIo+tFGa
-brIEaNCqHetdGSCRGdvglGOYR3XdChuws8TQkzhRlf2qkqnMGkGBQxT1VNtmvyKd
-4AX5GWQBZIvYIVR6z5gUrovjQ8Tp5/3CmI2Gcg2HT49Metw3QPpC3UDtzbOKdP5Y
-jHKq9nMO64DtHbW2m67AtnBHR74IOjch3Jy53oE9zUQweyomJnOjlCKtCDjdq8TY
-5yY5djsPVabeWRh3FEMRp2ixFwLVXnGOzDe4v0k9mhJhEnn4dghJ9ihPqiQ9MdSx
-kEL8QCUYAV/KnY7KAZXkTTWfWEa5C03MdKmNzQ7opNNFGnyhLRyRJ82IIwWABMCn
-GkvLqYN3cFMd1k7v+sUfBfmAe2omeQN4E+yIY0rDtnLsZhyDPErdC8E1AWJ87wHZ
-JyFC1ldQFjiKJVWoO8w9EGftdGM9Bd1bb69ohkg74Soo62d4uy7KcaUQAuTlEZjb
-yvPWfVjipIAUnX3dCQsyy9HcvzxrdejRIBH/ft88XusQorsO2mFdPKNiTn7ppyFR
-fWIHTx2zvZWXyA4lRge1WhlHE7FJDyopzrGACOERQVk/LyMOh/PvKjQwo+6KrFuD
-O5TVA3CjIyZZ7yUFPwVD
-=M7yo
------END PGP SIGNATURE-----
-
---Sig_/KW3pHAloar8sRfja/wCKDpJ--
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
