@@ -1,93 +1,159 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: linux-next: inclusion request for temporary memblock testing
- branch
-Date: Tue, 6 Dec 2011 08:59:19 +1100
-Message-ID: <20111206085919.c9bf7e6a196774f6860d3699@canb.auug.org.au>
-References: <20111205210405.GK627@google.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v3 25/34] powerpc/PCI: split PHB part out of pcibios_map_io_space()
+Date: Tue, 6 Dec 2011 11:07:16 -0700
+Message-ID: <CAErSpo5MAN5V5EznrDDMgL-WDeHCbQpn7wQU3A7oxckzJhCkAg@mail.gmail.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com> <20111028222738.30729.96314.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA"
+Content-Type: multipart/mixed; boundary=00151744868681944804b3704fb0
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from calzone.tip.net.au ([203.10.76.15]:47586 "EHLO
-	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932372Ab1LEV7j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Dec 2011 16:59:39 -0500
-In-Reply-To: <20111205210405.GK627@google.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:43883 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752333Ab1LFSHk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Dec 2011 13:07:40 -0500
+Received: by wgbdr13 with SMTP id dr13so6658020wgb.1
+        for <linux-arch@vger.kernel.org>; Tue, 06 Dec 2011 10:07:38 -0800 (PST)
+In-Reply-To: <20111028222738.30729.96314.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: mingo@elte.hu, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, ralf@linux-mips.org, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com, benh@kernel.crashing.org
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
---Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
+--00151744868681944804b3704fb0
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: quoted-printable
 
-Hi Tejun,
-
-On Mon, 5 Dec 2011 13:04:05 -0800 Tejun Heo <tj@kernel.org> wrote:
+On Fri, Oct 28, 2011 at 4:27 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> No functional change. =A0This is so we can use pcibios_phb_map_io_space()
+> before we have a struct pci_bus.
 >
-> Can you please include the following branch into linux-next?
->=20
->   git://git.kernel.org/pub/scm/linux/kernel/git/tj/misc.git memblock-kill=
--early_node_map
+> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> ---
+> =A0arch/powerpc/kernel/pci_64.c | =A0 40 +++++++++++++++++++++-----------=
+--------
+> =A01 files changed, 21 insertions(+), 19 deletions(-)
+>
+> diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
+> index ab34046..4401425 100644
+> --- a/arch/powerpc/kernel/pci_64.c
+> +++ b/arch/powerpc/kernel/pci_64.c
+> @@ -130,30 +130,13 @@ EXPORT_SYMBOL_GPL(pcibios_unmap_io_space);
+>
+> =A0#endif /* CONFIG_HOTPLUG */
+>
+> -int __devinit pcibios_map_io_space(struct pci_bus *bus)
+> +static int __devinit pcibios_map_phb_io_space(struct pci_controller *hos=
+e)
+> =A0{
+> =A0 =A0 =A0 =A0struct vm_struct *area;
+> =A0 =A0 =A0 =A0unsigned long phys_page;
+> =A0 =A0 =A0 =A0unsigned long size_page;
+> =A0 =A0 =A0 =A0unsigned long io_virt_offset;
+> - =A0 =A0 =A0 struct pci_controller *hose;
+> -
+> - =A0 =A0 =A0 WARN_ON(bus =3D=3D NULL);
+> -
+> - =A0 =A0 =A0 /* If this not a PHB, nothing to do, page tables still exis=
+t and
+> - =A0 =A0 =A0 =A0* thus HPTEs will be faulted in when needed
+> - =A0 =A0 =A0 =A0*/
+> - =A0 =A0 =A0 if (bus->self) {
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 pr_debug("IO mapping for PCI-PCI bridge %s\=
+n",
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0pci_name(bus->self));
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 pr_debug(" =A0virt=3D0x%016llx...0x%016llx\=
+n",
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0bus->resource[0]->start =
++ _IO_BASE,
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0bus->resource[0]->end + =
+_IO_BASE);
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 return 0;
+> - =A0 =A0 =A0 }
+>
+> - =A0 =A0 =A0 /* Get the host bridge */
+> - =A0 =A0 =A0 hose =3D pci_bus_to_host(bus);
+> =A0 =A0 =A0 =A0phys_page =3D _ALIGN_DOWN(hose->io_base_phys, PAGE_SIZE);
+> =A0 =A0 =A0 =A0size_page =3D _ALIGN_UP(hose->pci_io_size, PAGE_SIZE);
+>
+> @@ -197,11 +180,30 @@ int __devinit pcibios_map_io_space(struct pci_bus *=
+bus)
+>
+> =A0 =A0 =A0 =A0return 0;
+> =A0}
+> +
+> +int __devinit pcibios_map_io_space(struct pci_bus *bus)
+> +{
+> + =A0 =A0 =A0 WARN_ON(bus =3D=3D NULL);
+> +
+> + =A0 =A0 =A0 /* If this not a PHB, nothing to do, page tables still exis=
+t and
+> + =A0 =A0 =A0 =A0* thus HPTEs will be faulted in when needed
+> + =A0 =A0 =A0 =A0*/
+> + =A0 =A0 =A0 if (bus->self) {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pr_debug("IO mapping for PCI-PCI bridge %s\=
+n",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0pci_name(bus->self));
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pr_debug(" =A0virt=3D0x%016llx...0x%016llx\=
+n",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0bus->resource[0]->start =
++ _IO_BASE,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0bus->resource[0]->end + =
+_IO_BASE);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return 0;
+> + =A0 =A0 =A0 }
+> +
+> + =A0 =A0 =A0 return pcibios_phb_map_phb_io_space(pci_bus_to_host(bus));
 
-OK, I have added that from today.
+Typo here broke the build, corrected patch attached.  (Also available
+at git://github.com/bjorn-helgaas/linux.git on the "pci-scan-v4"
+branch as b6550f8d5a6470dd113249c00eacc922f9062450)
 
-Thanks for adding your subsystem tree as a participant of linux-next.  As
-you may know, this is not a judgment of your code.  The purpose of
-linux-next is for integration testing and to lower the impact of
-conflicts between subsystems in the next merge window.=20
+--00151744868681944804b3704fb0
+Content-Type: application/octet-stream; name="patch.split-phb-part-out"
+Content-Disposition: attachment; filename="patch.split-phb-part-out"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_gvv812dh0
 
-You will need to ensure that the patches/commits in your tree/series have
-been:
-     * submitted under GPL v2 (or later) and include the Contributor's
-	Signed-off-by,
-     * posted to the relevant mailing list,
-     * reviewed by you (or another maintainer of your subsystem tree),
-     * successfully unit tested, and=20
-     * destined for the current or next Linux merge window.
-
-Basically, this should be just what you would send to Linus (or ask him
-to fetch).  It is allowed to be rebased if you deem it necessary.
-
---=20
-Cheers,
-Stephen Rothwell=20
-sfr@canb.auug.org.au
-
-Legal Stuff:
-By participating in linux-next, your subsystem tree contributions are
-public and will be included in the linux-next trees.  You may be sent
-e-mail messages indicating errors or other issues when the
-patches/commits from your subsystem tree are merged and tested in
-linux-next.  These messages may also be cross-posted to the linux-next
-mailing list, the linux-kernel mailing list, etc.  The linux-next tree
-project and IBM (my employer) make no warranties regarding the linux-next
-project, the testing procedures, the results, the e-mails, etc.  If you
-don't agree to these ground rules, let me know and I'll remove your tree
-from participation in linux-next.
-
---Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBCAAGBQJO3T63AAoJEECxmPOUX5FE3tAP/i3wQ+YE+tkTBXGilbWF1iNo
-F+X35xbzuT9/ScMTd6qBUTS0H76P8cxAHzm6OEBDEgw43rGWm/Nqlk0E9/fZCHEB
-9+iKEeFG9usuaKg0wHm4Q64AvF8FuoMHDro8/0zpA8oXnvA+Qu7v1/fJUh/itxA2
-mWpeWF9EV3mWim12nic3M3gzhcrj8yezhyWJTEbNa/nMsXHuQ0H1kFLW3VWJDvgj
-SWmSSz13x0E44B66vmlYaHSL8tQB6xSk8K0fqt5tn70sB5wM7HYAHBlRPz2x7RXX
-nxUjxMv95m00EBnDK2T4+EBxhHti79rQbOIHzlrDPBoZvdgLY5Q/rZqVaAdkWL77
-YMGNGKtq1b1Zytqy0k6w58/LuXoaX/SFMnvu/vIHZcLVwQ+0IhM9LffYT+2qMzBQ
-Nj5nHVgFmjozdUXf/rjjWDUK+fB6b+v80ul6C2Zwsl1IDRWfPC9a+zS7IX/3ACJ0
-eFiQ47iQmmuETXvEqoIk3U4PMEBTzdIga2IF9WG50XfLaCFiltw1Sm+OUGTtzoRH
-ls3ZtOGIx+ire4Noa0Xt/l6Xm+rGIPiCpGT03dx7iZl0DJgu8FobrJE3OtBvcbfz
-xmtqbqASQKOLNCbatoo1HTLzZuIDtYKWBubtlC7bzdvkRjbQL+KnX+x80V4uzady
-pGPuAym5abcDfHgLTCjn
-=xgpa
------END PGP SIGNATURE-----
-
---Signature=_Tue__6_Dec_2011_08_59_19_+1100_3./VYubN1Bu1=/pA--
+Y29tbWl0IGI2NTUwZjhkNWE2NDcwZGQxMTMyNDljMDBlYWNjOTIyZjkwNjI0NTAKQXV0aG9yOiBC
+am9ybiBIZWxnYWFzIDxiaGVsZ2Fhc0Bnb29nbGUuY29tPgpEYXRlOiAgIE1vbiBPY3QgMTAgMTY6
+MTc6MjMgMjAxMSAtMDYwMAoKICAgIHBvd2VycGMvUENJOiBzcGxpdCBQSEIgcGFydCBvdXQgb2Yg
+cGNpYmlvc19tYXBfaW9fc3BhY2UoKQogICAgCiAgICBObyBmdW5jdGlvbmFsIGNoYW5nZS4gIFRo
+aXMgaXMgc28gd2UgY2FuIHVzZSBwY2liaW9zX3BoYl9tYXBfaW9fc3BhY2UoKQogICAgYmVmb3Jl
+IHdlIGhhdmUgYSBzdHJ1Y3QgcGNpX2J1cy4KICAgIAogICAgQ0M6IEJlbmphbWluIEhlcnJlbnNj
+aG1pZHQgPGJlbmhAa2VybmVsLmNyYXNoaW5nLm9yZz4KICAgIFNpZ25lZC1vZmYtYnk6IEJqb3Ju
+IEhlbGdhYXMgPGJoZWxnYWFzQGdvb2dsZS5jb20+CgpkaWZmIC0tZ2l0IGEvYXJjaC9wb3dlcnBj
+L2tlcm5lbC9wY2lfNjQuYyBiL2FyY2gvcG93ZXJwYy9rZXJuZWwvcGNpXzY0LmMKaW5kZXggYmNm
+NGJmOS4uMzMxOGQzOSAxMDA2NDQKLS0tIGEvYXJjaC9wb3dlcnBjL2tlcm5lbC9wY2lfNjQuYwor
+KysgYi9hcmNoL3Bvd2VycGMva2VybmVsL3BjaV82NC5jCkBAIC0xMzEsMzAgKzEzMSwxMyBAQCBF
+WFBPUlRfU1lNQk9MX0dQTChwY2liaW9zX3VubWFwX2lvX3NwYWNlKTsKIAogI2VuZGlmIC8qIENP
+TkZJR19IT1RQTFVHICovCiAKLWludCBfX2RldmluaXQgcGNpYmlvc19tYXBfaW9fc3BhY2Uoc3Ry
+dWN0IHBjaV9idXMgKmJ1cykKK3N0YXRpYyBpbnQgX19kZXZpbml0IHBjaWJpb3NfbWFwX3BoYl9p
+b19zcGFjZShzdHJ1Y3QgcGNpX2NvbnRyb2xsZXIgKmhvc2UpCiB7CiAJc3RydWN0IHZtX3N0cnVj
+dCAqYXJlYTsKIAl1bnNpZ25lZCBsb25nIHBoeXNfcGFnZTsKIAl1bnNpZ25lZCBsb25nIHNpemVf
+cGFnZTsKIAl1bnNpZ25lZCBsb25nIGlvX3ZpcnRfb2Zmc2V0OwotCXN0cnVjdCBwY2lfY29udHJv
+bGxlciAqaG9zZTsKLQotCVdBUk5fT04oYnVzID09IE5VTEwpOwotCi0JLyogSWYgdGhpcyBub3Qg
+YSBQSEIsIG5vdGhpbmcgdG8gZG8sIHBhZ2UgdGFibGVzIHN0aWxsIGV4aXN0IGFuZAotCSAqIHRo
+dXMgSFBURXMgd2lsbCBiZSBmYXVsdGVkIGluIHdoZW4gbmVlZGVkCi0JICovCi0JaWYgKGJ1cy0+
+c2VsZikgewotCQlwcl9kZWJ1ZygiSU8gbWFwcGluZyBmb3IgUENJLVBDSSBicmlkZ2UgJXNcbiIs
+Ci0JCQkgcGNpX25hbWUoYnVzLT5zZWxmKSk7Ci0JCXByX2RlYnVnKCIgIHZpcnQ9MHglMDE2bGx4
+Li4uMHglMDE2bGx4XG4iLAotCQkJIGJ1cy0+cmVzb3VyY2VbMF0tPnN0YXJ0ICsgX0lPX0JBU0Us
+Ci0JCQkgYnVzLT5yZXNvdXJjZVswXS0+ZW5kICsgX0lPX0JBU0UpOwotCQlyZXR1cm4gMDsKLQl9
+CiAKLQkvKiBHZXQgdGhlIGhvc3QgYnJpZGdlICovCi0JaG9zZSA9IHBjaV9idXNfdG9faG9zdChi
+dXMpOwogCXBoeXNfcGFnZSA9IF9BTElHTl9ET1dOKGhvc2UtPmlvX2Jhc2VfcGh5cywgUEFHRV9T
+SVpFKTsKIAlzaXplX3BhZ2UgPSBfQUxJR05fVVAoaG9zZS0+cGNpX2lvX3NpemUsIFBBR0VfU0la
+RSk7CiAKQEAgLTE5OCwxMSArMTgxLDMwIEBAIGludCBfX2RldmluaXQgcGNpYmlvc19tYXBfaW9f
+c3BhY2Uoc3RydWN0IHBjaV9idXMgKmJ1cykKIAogCXJldHVybiAwOwogfQorCitpbnQgX19kZXZp
+bml0IHBjaWJpb3NfbWFwX2lvX3NwYWNlKHN0cnVjdCBwY2lfYnVzICpidXMpCit7CisJV0FSTl9P
+TihidXMgPT0gTlVMTCk7CisKKwkvKiBJZiB0aGlzIG5vdCBhIFBIQiwgbm90aGluZyB0byBkbywg
+cGFnZSB0YWJsZXMgc3RpbGwgZXhpc3QgYW5kCisJICogdGh1cyBIUFRFcyB3aWxsIGJlIGZhdWx0
+ZWQgaW4gd2hlbiBuZWVkZWQKKwkgKi8KKwlpZiAoYnVzLT5zZWxmKSB7CisJCXByX2RlYnVnKCJJ
+TyBtYXBwaW5nIGZvciBQQ0ktUENJIGJyaWRnZSAlc1xuIiwKKwkJCSBwY2lfbmFtZShidXMtPnNl
+bGYpKTsKKwkJcHJfZGVidWcoIiAgdmlydD0weCUwMTZsbHguLi4weCUwMTZsbHhcbiIsCisJCQkg
+YnVzLT5yZXNvdXJjZVswXS0+c3RhcnQgKyBfSU9fQkFTRSwKKwkJCSBidXMtPnJlc291cmNlWzBd
+LT5lbmQgKyBfSU9fQkFTRSk7CisJCXJldHVybiAwOworCX0KKworCXJldHVybiBwY2liaW9zX21h
+cF9waGJfaW9fc3BhY2UocGNpX2J1c190b19ob3N0KGJ1cykpOworfQogRVhQT1JUX1NZTUJPTF9H
+UEwocGNpYmlvc19tYXBfaW9fc3BhY2UpOwogCiB2b2lkIF9fZGV2aW5pdCBwY2liaW9zX3NldHVw
+X3BoYl9pb19zcGFjZShzdHJ1Y3QgcGNpX2NvbnRyb2xsZXIgKmhvc2UpCiB7Ci0JcGNpYmlvc19t
+YXBfaW9fc3BhY2UoaG9zZS0+YnVzKTsKKwlwY2liaW9zX21hcF9waGJfaW9fc3BhY2UoaG9zZSk7
+CiB9CiAKICNkZWZpbmUgSU9CQVNFX0JSSURHRV9OVU1CRVIJMAo=
+--00151744868681944804b3704fb0--
