@@ -1,60 +1,42 @@
 From: Avi Kivity <avi@redhat.com>
-Subject: Re: [PATCH 2/5 V5] Add functions to check if the host has stopped
- the vm
-Date: Wed, 07 Dec 2011 16:31:33 +0200
-Message-ID: <4EDF78C5.8060908@redhat.com>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <1323116344-17911-3-git-send-email-emunson@mgebm.net>
+Subject: Re: [PATCH 3/5 V5] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Wed, 07 Dec 2011 16:34:08 +0200
+Message-ID: <4EDF7960.4080104@redhat.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <1323116344-17911-4-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59086 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:62109 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756019Ab1LGObt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Dec 2011 09:31:49 -0500
-In-Reply-To: <1323116344-17911-3-git-send-email-emunson@mgebm.net>
+	id S1755955Ab1LGOeY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Dec 2011 09:34:24 -0500
+In-Reply-To: <1323116344-17911-4-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Eric B Munson <emunson@mgebm.net>
 Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
 On 12/05/2011 10:19 PM, Eric B Munson wrote:
-> When a host stops or suspends a VM it will set a flag to show this.  The
-> watchdog will use these functions to determine if a softlockup is real, or the
-> result of a suspended VM.
+> Now that we have a flag that will tell the guest it was suspended, create an
+> interface for that communication using a KVM ioctl.
+>
+> @@ -3295,6 +3295,10 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
 >  
-> +bool kvm_check_and_clear_guest_paused(int cpu)
-> +{
-> +	bool ret = false;
-> +	struct pvclock_vcpu_time_info *src;
-> +
-> +	/*
-> +	 * per_cpu() is safe here because this function is only called from
-> +	 * timer functions where preemption is already disabled.
-> +	 */
-> +	WARN_ON(!in_atomic());
-> +	src = &per_cpu(hv_clock, cpu);
-
-__get_cpu_var(); drop the cpu argument
-
-> +	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
-> +		src->flags = src->flags & (~PVCLOCK_GUEST_STOPPED);
-
-Isn't this racy?  Between reading and writing src->flags, we can exit to
-the hypervisor and add/remove new flags.  The write then overrides those
-new flags.
-
-> +		ret = true;
+>  		goto out;
+>  	}
+> +	case KVMCLOCK_GUEST_PAUSED: {
+> +		r = kvm_set_guest_paused(vcpu);
+> +		break;
 > +	}
-> +
-> +	return ret;
-> +}
-> +EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
-> +
->  static struct clocksource kvm_clock = {
->  	.name = "kvm-clock",
->  	.read = kvm_clock_get_cycles,
+>  	default:
+>  		r = -EINVAL;
+>  	}
+>
 
+You could also do this purely from userspace by reading the kvmclock msr
+and updating it.  However, it's better to do this in the kernel to avoid
+distributing responsibility for kvmclock across too many cooks.
 
 -- 
 error compiling committee.c: too many arguments to function
