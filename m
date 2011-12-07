@@ -1,31 +1,38 @@
-From: "Mr.Vincent Cheng" <pdiego@der.uned.es>
-Subject: Indicate Your Interest
-Date: Tue, 6 Dec 2011 23:49:41 +0100
-Message-ID: <1de6bd43c7d61d445bc70e9bb70ec765.squirrel@correo.uned.es>
-Reply-To: vincentcheng048@yahoo.co.jp
+From: "ustc.mail" <backyes@mail.ustc.edu.cn>
+Subject: =?UTF-8?Q?=E3=80=90Question=E3=80=91Whether_it=27s_legal_to_enable_same_phys?=
+	=?UTF-8?Q?ical_DMA_memory_mapped_for_different_NIC_device=3F?=
+Date: Wed, 7 Dec 2011 22:16:40 +0800
+Message-ID: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes-cuatro.uned.es ([62.204.192.104]:18774 "EHLO
-	hermes-cuatro.uned.es" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752199Ab1LFWzo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Dec 2011 17:55:44 -0500
+Received: from smtp2.ustc.edu.cn ([202.38.64.46]:36745 "HELO ustc.edu.cn"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+	id S1755798Ab1LGOQw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Dec 2011 09:16:52 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
+Dear all,
 
+In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
+packet data,  we have statically allocated huge DMA memory buffer ring
+at once instead of calling dma_map_single() per packet.  Considering
+to further reduce the copy overhead between different NIC(port) ring
+while forwarding, one packet from a input NIC(port) will be
+transferred to output NIC(port) with no any copy action.
 
+To satisfy this requirement, the packet memory should be mapped into
+input port and unmapped when leaving input port, then mapped into
+output port and unmapped later.
 
-I am Mr.Vincent Cheng, GBS, JP Chairman of the Hong Kong and Shanghai
-BankingCorporation Limited. I have a business proposal of USD
-$10,500,000.00. Your
-earliest response to this letter will be appreciated, upon the confirmation
-of your response all further details and document will be issued to you.
+Whether it's legal to map the same DMA memory into input and output
+port simultaneously? If it's not, then the zero-copy for packet
+forwarding is not feasible?
 
-Endeavour to let me know your decision rather than keep me waiting
+Hope PCI expert to post your suggestion.
 
-Email:vincentcheng048@yahoo.co.jp
+Thanks!
 
-Best Regards,
-Mr.Vincent Cheng
+--Yanfei
