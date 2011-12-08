@@ -1,106 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:47342 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750870Ab1LHPXL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Dec 2011 10:23:11 -0500
-Date: Thu, 8 Dec 2011 10:23:10 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 2/5 V5] Add functions to check if the host has stopped
- the vm
-Message-ID: <20111208152310.GB6301@mgebm.net>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
- <1323116344-17911-3-git-send-email-emunson@mgebm.net>
- <4EDF78C5.8060908@redhat.com>
+Received: from h5.dl5rb.org.uk ([81.2.74.5]:43956 "EHLO linux-mips.org"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751790Ab1LHQYf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Dec 2011 11:24:35 -0500
+Date: Thu, 8 Dec 2011 16:19:31 +0000
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
+Message-ID: <20111208161931.GA17864@linux-mips.org>
+References: <1322508685-32532-1-git-send-email-tj@kernel.org>
+ <1322508685-32532-20-git-send-email-tj@kernel.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="Bn2rw/3z4jIqBvZU"
-Content-Disposition: inline
-In-Reply-To: <4EDF78C5.8060908@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@redhat.com>
-Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111208152310.i2k2v6XWQkQz0ZHZBJsK-sGNlPeVjhlG9r52IgsEIgc@z>
-
-
---Bn2rw/3z4jIqBvZU
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1322508685-32532-20-git-send-email-tj@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tejun Heo <tj@kernel.org>
+Cc: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com, linux-mips@linux-mips.org
+Message-ID: <20111208161931.lInDQkDRawJ4AwTEIftk_D64bIy1uWXfkvFdk8gg200@z>
 
-On Wed, 07 Dec 2011, Avi Kivity wrote:
+On Mon, Nov 28, 2011 at 11:31:21AM -0800, Tejun Heo wrote:
 
-> On 12/05/2011 10:19 PM, Eric B Munson wrote:
-> > When a host stops or suspends a VM it will set a flag to show this.  The
-> > watchdog will use these functions to determine if a softlockup is real,=
- or the
-> > result of a suspended VM.
-> > =20
-> > +bool kvm_check_and_clear_guest_paused(int cpu)
-> > +{
-> > +	bool ret =3D false;
-> > +	struct pvclock_vcpu_time_info *src;
-> > +
-> > +	/*
-> > +	 * per_cpu() is safe here because this function is only called from
-> > +	 * timer functions where preemption is already disabled.
-> > +	 */
-> > +	WARN_ON(!in_atomic());
-> > +	src =3D &per_cpu(hv_clock, cpu);
->=20
-> __get_cpu_var(); drop the cpu argument
->=20
+> mips used early_node_map[] just to prime free_area_init_nodes().  Now
+> memblock can be used for the same purpose and early_node_map[] is
+> scheduled to be dropped.  Use memblock instead.
 
-Will change for V6.
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
 
-> > +	if ((src->flags & PVCLOCK_GUEST_STOPPED) !=3D 0) {
-> > +		src->flags =3D src->flags & (~PVCLOCK_GUEST_STOPPED);
->=20
-> Isn't this racy?  Between reading and writing src->flags, we can exit to
-> the hypervisor and add/remove new flags.  The write then overrides those
-> new flags.
->=20
+Thanks,
 
-If I understand (please correct me if this is wrong) because this is only
-called from the watchdog, which disables preemption, we should be protected
-=66rom something else writing to these flags.
-
-> > +		ret =3D true;
-> > +	}
-> > +
-> > +	return ret;
-> > +}
-> > +EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
-> > +
-> >  static struct clocksource kvm_clock =3D {
-> >  	.name =3D "kvm-clock",
-> >  	.read =3D kvm_clock_get_cycles,
->=20
->=20
-> --=20
-> error compiling committee.c: too many arguments to function
->=20
-
---Bn2rw/3z4jIqBvZU
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJO4NZeAAoJEKhG9nGc1bpJ0ncQAKH8Zc3Lu/kJ1AnQ4LnKs8/o
-xpPAbifL6fuJjFdlPAkd75oN4F9NToY7RetXxByHFrKsb+V5ut6F+2lMRKj2DMhK
-SohZUpjyRLJPf0taZD4tfK97XX407+oeR+NstgwI4PWXcZsiSIwY6FKfcziFrvyy
-LPVBbkpYSXEYxe1tsqdBeBjNy76tyJon+kmi9dRumZHG8/sei/jR0rdhou+oSZ/x
-0EcLaPX9zHDrizab0ipOiJf4ybGOPLobyaal/dLvSmz0vDPrftH32A5yqOfSSQad
-fWxICy1GR4G/p30uIO30QiSTHVI4eZOb2yr7EaasMskm15SJuiSpE1auByb4CQgg
-RYbPf0hSEvtrB54hEE0KbWwiRvva1C+Cyz7Pru6mTuBNunhUQublZ+AHBY9VVG6X
-y5jOawxv0nTF2dqjYCxuD7cSm7hbLHrO7XNDoTTn53WySgyP7x0452EOOz9PI+gv
-ije1tRd5IGhBm6AabftfzFg3HzyBxf23wuNkS80akmnL9RkpLRabL74Yt4o0pUb9
-aAbns5YMN9NVR0f22sX8KdgLE37hO+ssR3gENzOnvC6Qt5y2o2Q2phQKqTdpBv45
-u28P8FS0j5Cm+lPLSHt4hdAhOHbSiNHdHSnexQ9FOUY3M4cUou6xYzRZr9JJWQ5o
-wFL2MDiwQXVCH/24ELz4
-=Cbq2
------END PGP SIGNATURE-----
-
---Bn2rw/3z4jIqBvZU--
+  Ralf
