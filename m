@@ -1,28 +1,50 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 19/23] mips: Use HAVE_MEMBLOCK_NODE_MAP
-Date: Thu, 8 Dec 2011 16:19:31 +0000
-Message-ID: <20111208161931.GA17864@linux-mips.org>
-References: <1322508685-32532-1-git-send-email-tj@kernel.org>
- <1322508685-32532-20-git-send-email-tj@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-mips-bounce@linux-mips.org>
-Content-Disposition: inline
-In-Reply-To: <1322508685-32532-20-git-send-email-tj@kernel.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: Tejun Heo <tj@kernel.org>
-Cc: benh@kernel.crashing.org, yinghai@kernel.org, hpa@zytor.com, tony.luck@intel.com, schwidefsky@de.ibm.com, liqin.chen@sunplusct.com, lethal@linux-sh.org, davem@davemloft.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@redhat.com, jonas@southpole.se, lennox.wu@gmail.com, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V6] Add flag to indicate that a vm was stopped by the host
+Date: Thu,  8 Dec 2011 16:22:56 -0500
+Message-ID: <1323379379-6529-2-git-send-email-emunson@mgebm.net>
+References: <1323379379-6529-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:48451 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751290Ab1LHVXI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Dec 2011 16:23:08 -0500
+In-Reply-To: <1323379379-6529-1-git-send-email-emunson@mgebm.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Nov 28, 2011 at 11:31:21AM -0800, Tejun Heo wrote:
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-> mips used early_node_map[] just to prime free_area_init_nodes().  Now
-> memblock can be used for the same purpose and early_node_map[] is
-> scheduled to be dropped.  Use memblock instead.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
-
-Thanks,
-
-  Ralf
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
+-- 
+1.7.5.4
