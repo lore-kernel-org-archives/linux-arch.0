@@ -1,90 +1,219 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:48483 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752256Ab1LHVXJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Dec 2011 16:23:09 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/4 V6] Avoid soft lockup message when KVM is stopped by host
-Date: Thu,  8 Dec 2011 16:22:55 -0500
-Message-ID: <1323379379-6529-1-git-send-email-emunson@mgebm.net>
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:41807 "EHLO
+	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751174Ab1LIQkK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Dec 2011 11:40:10 -0500
+Date: Fri, 09 Dec 2011 17:39:51 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH 1/8] ARM: dma-mapping: remove offset parameter to prepare for
+ generic dma_ops
+In-reply-to: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
+Message-ID: <1323448798-18184-2-git-send-email-m.szyprowski@samsung.com>
+MIME-version: 1.0
+Content-type: TEXT/PLAIN
+Content-transfer-encoding: 7BIT
+References: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111208212255.p4AIrJ8r6xBIF3XeEKaJjsubXgs-22SpJxJk4TgQEYw@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20111209163951._WSlEAjBZwcrEbg688jUQWGTl7Gj42jR4pGIVIqkpFk@z>
 
-Changes from V5:
-Collapse generic check_and_clear_guest_stopped into patch 2
-Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
- cpuid arg.
-Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
+This patch removes the need for offset parameter in dma bounce
+functions. This is required to let dma-mapping framework on ARM
+architecture use common, generic dma-mapping helpers.
 
-Changes from V4:
-Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
+Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+---
+ arch/arm/common/dmabounce.c        |   13 +++++--
+ arch/arm/include/asm/dma-mapping.h |   67 +++++++++++++++++------------------
+ arch/arm/mm/dma-mapping.c          |    4 +-
+ 3 files changed, 45 insertions(+), 39 deletions(-)
 
-Changes from V3:
-Include CC's on patch 3
-Drop clear flag ioctl and have the watchdog clear the flag when it is reset
-
-Changes from V2:
-A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-initial flag definition
-
-Changes from V1:
-(Thanks Marcelo)
-Host code has all been moved to arch/x86/kvm/x86.c
-KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
-
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
-
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: arnd@arndb.de
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: levinsasha928@gmail.com
-Cc: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Eric B Munson (4):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVMCLOCK_GUEST_STOPPED
-  Add check for suspended vm in softlockup detector
-
- Documentation/virtual/kvm/api.txt   |   12 ++++++++++++
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_host.h     |    2 ++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/include/asm/pvclock-abi.h  |    1 +
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- arch/x86/kvm/x86.c                  |   20 ++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- include/linux/kvm.h                 |    2 ++
- kernel/watchdog.c                   |   12 ++++++++++++
- 12 files changed, 107 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
-
+diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
+index 595ecd2..46b4b8d 100644
+--- a/arch/arm/common/dmabounce.c
++++ b/arch/arm/common/dmabounce.c
+@@ -173,7 +173,8 @@ find_safe_buffer(struct dmabounce_device_info *device_info, dma_addr_t safe_dma_
+ 	read_lock_irqsave(&device_info->lock, flags);
+ 
+ 	list_for_each_entry(b, &device_info->safe_buffers, node)
+-		if (b->safe_dma_addr == safe_dma_addr) {
++		if (b->safe_dma_addr <= safe_dma_addr &&
++		    b->safe_dma_addr + b->size > safe_dma_addr) {
+ 			rb = b;
+ 			break;
+ 		}
+@@ -362,9 +363,10 @@ void __dma_unmap_page(struct device *dev, dma_addr_t dma_addr, size_t size,
+ EXPORT_SYMBOL(__dma_unmap_page);
+ 
+ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+-		unsigned long off, size_t sz, enum dma_data_direction dir)
++		size_t sz, enum dma_data_direction dir)
+ {
+ 	struct safe_buffer *buf;
++	unsigned long off;
+ 
+ 	dev_dbg(dev, "%s(dma=%#x,off=%#lx,sz=%zx,dir=%x)\n",
+ 		__func__, addr, off, sz, dir);
+@@ -373,6 +375,8 @@ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+ 	if (!buf)
+ 		return 1;
+ 
++	off = addr - buf->safe_dma_addr;
++
+ 	BUG_ON(buf->direction != dir);
+ 
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+@@ -391,9 +395,10 @@ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+ EXPORT_SYMBOL(dmabounce_sync_for_cpu);
+ 
+ int dmabounce_sync_for_device(struct device *dev, dma_addr_t addr,
+-		unsigned long off, size_t sz, enum dma_data_direction dir)
++		size_t sz, enum dma_data_direction dir)
+ {
+ 	struct safe_buffer *buf;
++	unsigned long off;
+ 
+ 	dev_dbg(dev, "%s(dma=%#x,off=%#lx,sz=%zx,dir=%x)\n",
+ 		__func__, addr, off, sz, dir);
+@@ -402,6 +407,8 @@ int dmabounce_sync_for_device(struct device *dev, dma_addr_t addr,
+ 	if (!buf)
+ 		return 1;
+ 
++	off = addr - buf->safe_dma_addr;
++
+ 	BUG_ON(buf->direction != dir);
+ 
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+index cb3b7c9..6bc056c 100644
+--- a/arch/arm/include/asm/dma-mapping.h
++++ b/arch/arm/include/asm/dma-mapping.h
+@@ -264,19 +264,17 @@ extern void __dma_unmap_page(struct device *, dma_addr_t, size_t,
+ /*
+  * Private functions
+  */
+-int dmabounce_sync_for_cpu(struct device *, dma_addr_t, unsigned long,
+-		size_t, enum dma_data_direction);
+-int dmabounce_sync_for_device(struct device *, dma_addr_t, unsigned long,
+-		size_t, enum dma_data_direction);
++int dmabounce_sync_for_cpu(struct device *, dma_addr_t, size_t, enum dma_data_direction);
++int dmabounce_sync_for_device(struct device *, dma_addr_t, size_t, enum dma_data_direction);
+ #else
+ static inline int dmabounce_sync_for_cpu(struct device *d, dma_addr_t addr,
+-	unsigned long offset, size_t size, enum dma_data_direction dir)
++	size_t size, enum dma_data_direction dir)
+ {
+ 	return 1;
+ }
+ 
+ static inline int dmabounce_sync_for_device(struct device *d, dma_addr_t addr,
+-	unsigned long offset, size_t size, enum dma_data_direction dir)
++	size_t size, enum dma_data_direction dir)
+ {
+ 	return 1;
+ }
+@@ -399,6 +397,33 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
+ 	__dma_unmap_page(dev, handle, size, dir);
+ }
+ 
++
++static inline void dma_sync_single_for_cpu(struct device *dev,
++		dma_addr_t handle, size_t size, enum dma_data_direction dir)
++{
++	BUG_ON(!valid_dma_direction(dir));
++
++	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
++
++	if (!dmabounce_sync_for_cpu(dev, handle, size, dir))
++		return;
++
++	__dma_single_dev_to_cpu(dma_to_virt(dev, handle), size, dir);
++}
++
++static inline void dma_sync_single_for_device(struct device *dev,
++		dma_addr_t handle, size_t size, enum dma_data_direction dir)
++{
++	BUG_ON(!valid_dma_direction(dir));
++
++	debug_dma_sync_single_for_device(dev, handle, size, dir);
++
++	if (!dmabounce_sync_for_device(dev, handle, size, dir))
++		return;
++
++	__dma_single_cpu_to_dev(dma_to_virt(dev, handle), size, dir);
++}
++
+ /**
+  * dma_sync_single_range_for_cpu
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+@@ -421,40 +446,14 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ 		dma_addr_t handle, unsigned long offset, size_t size,
+ 		enum dma_data_direction dir)
+ {
+-	BUG_ON(!valid_dma_direction(dir));
+-
+-	debug_dma_sync_single_for_cpu(dev, handle + offset, size, dir);
+-
+-	if (!dmabounce_sync_for_cpu(dev, handle, offset, size, dir))
+-		return;
+-
+-	__dma_single_dev_to_cpu(dma_to_virt(dev, handle) + offset, size, dir);
++	dma_sync_single_for_cpu(dev, handle + offset, size, dir);
+ }
+ 
+ static inline void dma_sync_single_range_for_device(struct device *dev,
+ 		dma_addr_t handle, unsigned long offset, size_t size,
+ 		enum dma_data_direction dir)
+ {
+-	BUG_ON(!valid_dma_direction(dir));
+-
+-	debug_dma_sync_single_for_device(dev, handle + offset, size, dir);
+-
+-	if (!dmabounce_sync_for_device(dev, handle, offset, size, dir))
+-		return;
+-
+-	__dma_single_cpu_to_dev(dma_to_virt(dev, handle) + offset, size, dir);
+-}
+-
+-static inline void dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	dma_sync_single_range_for_cpu(dev, handle, 0, size, dir);
+-}
+-
+-static inline void dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	dma_sync_single_range_for_device(dev, handle, 0, size, dir);
++	dma_sync_single_for_device(dev, handle + offset, size, dir);
+ }
+ 
+ /*
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 1aa664a..a5ab8bf 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -654,7 +654,7 @@ void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 	int i;
+ 
+ 	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s), 0,
++		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
+ 					    sg_dma_len(s), dir))
+ 			continue;
+ 
+@@ -680,7 +680,7 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	int i;
+ 
+ 	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_device(dev, sg_dma_address(s), 0,
++		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
+ 					sg_dma_len(s), dir))
+ 			continue;
+ 
 -- 
-1.7.5.4
+1.7.1.569.g6f426
 
