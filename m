@@ -1,84 +1,95 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/4 V6] Avoid soft lockup message when KVM is stopped by host
-Date: Thu,  8 Dec 2011 16:22:55 -0500
-Message-ID: <1323379379-6529-1-git-send-email-emunson@mgebm.net>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH 0/8 v4] ARM: DMA-mapping framework redesign
+Date: Fri, 09 Dec 2011 17:39:50 +0100
+Message-ID: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-Changes from V5:
-Collapse generic check_and_clear_guest_stopped into patch 2
-Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
- cpuid arg.
-Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
+Hello,
 
-Changes from V4:
-Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
+This is another update on my attempt on DMA-mapping framework redesign
+for ARM architecture. It includes a few minor changes since last
+version. We have focused mainly on IOMMU mapper, keeping the DMA-mapping
+redesign patches almost unchanged.
 
-Changes from V3:
-Include CC's on patch 3
-Drop clear flag ioctl and have the watchdog clear the flag when it is reset
+All patches have been now rebased onto v3.2-rc4 kernel + IOMMU/next
+branch to include latest changes from IOMMU kernel tree.
 
-Changes from V2:
-A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-initial flag definition
+This series also contains support for mapping with pages larger than
+4KiB using new, extended IOMMU API. This code has been provided by
+Andrzej Pietrasiewicz.
 
-Changes from V1:
-(Thanks Marcelo)
-Host code has all been moved to arch/x86/kvm/x86.c
-KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
+All the code has been tested on Samsung Exynos4 'UniversalC210' board
+with IOMMU driver posted by KyongHo Cho.
 
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
+GIT tree will all the patches (including some Samsung Exynos4 stuff):
+http://git.infradead.org/users/kmpark/linux-samsung/shortlog/refs/heads/3.2-rc4-dma-v5-samsung
+git://git.infradead.org/users/kmpark/linux-samsung 3.2-rc4-dma-v5-samsung
 
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
+History:
 
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: arnd@arndb.de
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: levinsasha928@gmail.com
-Cc: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
+Initial version of the DMA-mapping redesign patches:
+http://www.spinics.net/lists/linux-mm/msg21241.html
 
-Eric B Munson (4):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVMCLOCK_GUEST_STOPPED
-  Add check for suspended vm in softlockup detector
+Second version of the patches:
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000571.html
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000577.html
 
- Documentation/virtual/kvm/api.txt   |   12 ++++++++++++
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_host.h     |    2 ++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/include/asm/pvclock-abi.h  |    1 +
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- arch/x86/kvm/x86.c                  |   20 ++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- include/linux/kvm.h                 |    2 ++
- kernel/watchdog.c                   |   12 ++++++++++++
- 12 files changed, 107 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
+Third version of the patches:
+http://www.spinics.net/lists/linux-mm/msg25490.html
+
+TODO:
+- start the discussion about chaning alloc_coherent into alloc_attrs in
+dma_map_ops structure.
+- start the discussion about dma_mmap function
+- provide documentation for the new dma attributes
+
+Best regards
+--
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+Patch summary:
+
+Marek Szyprowski (8):
+  ARM: dma-mapping: remove offset parameter to prepare for generic
+    dma_ops
+  ARM: dma-mapping: use asm-generic/dma-mapping-common.h
+  ARM: dma-mapping: implement dma sg methods on top of any generic dma
+    ops
+  ARM: dma-mapping: move all dma bounce code to separate dma ops
+    structure
+  ARM: dma-mapping: remove redundant code and cleanup
+  common: dma-mapping: change alloc/free_coherent method to more
+    generic alloc/free_attrs
+  ARM: dma-mapping: use alloc, mmap, free from dma_ops
+  ARM: initial proof-of-concept IOMMU mapper for DMA-mapping
+
+ arch/arm/Kconfig                   |    9 +
+ arch/arm/common/dmabounce.c        |   78 +++-
+ arch/arm/include/asm/device.h      |    4 +
+ arch/arm/include/asm/dma-iommu.h   |   36 ++
+ arch/arm/include/asm/dma-mapping.h |  404 +++++------------
+ arch/arm/mm/dma-mapping.c          |  899 ++++++++++++++++++++++++++++++------
+ arch/arm/mm/vmregion.h             |    2 +-
+ include/linux/dma-attrs.h          |    1 +
+ include/linux/dma-mapping.h        |   13 +-
+ 9 files changed, 994 insertions(+), 452 deletions(-)
+ create mode 100644 arch/arm/include/asm/dma-iommu.h
 
 -- 
-1.7.5.4
+1.7.1.569.g6f426
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
