@@ -1,123 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:41807 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751375Ab1LIQkM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Dec 2011 11:40:12 -0500
-Date: Fri, 09 Dec 2011 17:39:53 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCH 3/8] ARM: dma-mapping: implement dma sg methods on top of any
- generic dma ops
-In-reply-to: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <1323448798-18184-4-git-send-email-m.szyprowski@samsung.com>
-MIME-version: 1.0
-Content-type: TEXT/PLAIN
-Content-transfer-encoding: 7BIT
+Received: from calzone.tip.net.au ([203.10.76.15]:60611 "EHLO
+	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752421Ab1LKWqQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Dec 2011 17:46:16 -0500
+Date: Mon, 12 Dec 2011 09:45:59 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 6/8] common: dma-mapping: change alloc/free_coherent
+ method to more generic alloc/free_attrs
+Message-ID: <20111212094559.e4af7c0ab6633de400487fde@canb.auug.org.au>
+In-Reply-To: <1323448798-18184-7-git-send-email-m.szyprowski@samsung.com>
 References: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
+	<1323448798-18184-7-git-send-email-m.szyprowski@samsung.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Mon__12_Dec_2011_09_45_59_+1100_WVzuTZ1dmc23zb5p"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20111209163953.V5cbJ7TMuetAcl3oztYbJznOyLj8liDRM1Iolc4Z-JY@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20111211224559.ZJ6W-4JHn9RyJ7ZoC-LLcI8wO_vPeg8T95ozvNRb138@z>
 
-This patch converts all dma_sg methods to be generic (independent of the
-current DMA mapping implementation for ARM architecture). All dma sg
-operations are now implemented on top of respective
-dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
+--Signature=_Mon__12_Dec_2011_09_45_59_+1100_WVzuTZ1dmc23zb5p
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
----
- arch/arm/mm/dma-mapping.c |   35 +++++++++++++++--------------------
- 1 files changed, 15 insertions(+), 20 deletions(-)
+Hi Marek,
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 91fe436..31ff699 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -635,12 +635,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
- int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 		enum dma_data_direction dir, struct dma_attrs *attrs)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i, j;
- 
- 	for_each_sg(sg, s, nents, i) {
--		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
--						s->length, dir);
-+		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
-+						s->length, dir, attrs);
- 		if (dma_mapping_error(dev, s->dma_address))
- 			goto bad_mapping;
- 	}
-@@ -648,7 +649,7 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 
-  bad_mapping:
- 	for_each_sg(sg, s, i, j)
--		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-+		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
- 	return 0;
- }
- 
-@@ -665,11 +666,13 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
- 		enum dma_data_direction dir, struct dma_attrs *attrs)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
-+
- 	int i;
- 
- 	for_each_sg(sg, s, nents, i)
--		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-+		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
- }
- 
- /**
-@@ -682,17 +685,13 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
- void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- 			int nents, enum dma_data_direction dir)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i;
- 
--	for_each_sg(sg, s, nents, i) {
--		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
--					    sg_dma_len(s), dir))
--			continue;
--
--		__dma_page_dev_to_cpu(sg_page(s), s->offset,
--				      s->length, dir);
--	}
-+	for_each_sg(sg, s, nents, i)
-+		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
-+					 dir);
- }
- 
- /**
-@@ -705,17 +704,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- 			int nents, enum dma_data_direction dir)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i;
- 
--	for_each_sg(sg, s, nents, i) {
--		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
--					sg_dma_len(s), dir))
--			continue;
--
--		__dma_page_cpu_to_dev(sg_page(s), s->offset,
--				      s->length, dir);
--	}
-+	for_each_sg(sg, s, nents, i)
-+		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
-+					    dir);
- }
- 
- /*
--- 
-1.7.1.569.g6f426
+On Fri, 09 Dec 2011 17:39:56 +0100 Marek Szyprowski <m.szyprowski@samsung.c=
+om> wrote:
+>
+> Introduce new alloc/free/mmap methods that take attributes argument.
+> alloc/free_coherent can be implemented on top of the new alloc/free
+> calls with NULL attributes. dma_alloc_non_coherent can be implemented
+> using DMA_ATTR_NONCOHERENT attribute, dma_alloc_writecombine can also
+> use separate DMA_ATTR_WRITECOMBINE attribute. This way the drivers will
+> get more generic, platform independent way of allocating dma memory
+> buffers with specific parameters.
+>=20
+> One more attribute can be usefull: DMA_ATTR_NOKERNELVADDR. Buffers with
+> such attribute will not have valid kernel virtual address. They might be
+> usefull for drivers that only exports the DMA buffers to userspace (like
+> for example V4L2 or ALSA).
+>=20
+> mmap method is introduced to let the drivers create a user space mapping
+> for a DMA buffer in generic, architecture independent way.
+>=20
+> TODO: update all dma_map_ops clients for all architectures
 
+To give everyone some chance, you should come up with a transition plan
+rather than this "attempt to fix everyone at once" approach.  You could
+(for example) just add the new methods now and only remove them in the
+following merge window when all the architectures have had a chance to
+migrate.
+
+And, in fact, (as I presume you know) this patch just breaks everyone
+with no attempt to cope.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Mon__12_Dec_2011_09_45_59_+1100_WVzuTZ1dmc23zb5p
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJO5TKnAAoJEECxmPOUX5FEDhYQAIIFT6ARFw14dmermAXdDmoU
+2ZoHCPA2xb7XojK7ObZ8rhc0dL3QR29rQ5X16xLPzaCD5nLJ/eUupMUU8fJfkjHh
+WMnOhZYIxeTO1Ek93+mbdHWXiaBwBHYIIwfelTkhEDXzZLYwZxcy/1f38fXo2QZO
+Xv3PoWy9KDYw+NFArm9lQmJMsIN6wit1+RGv+l5XKvHmbp/I65LO98b2LWGz0Ve7
+m9q9JAtA9uThM1/EyyymlZNXxBjbOW8N8lrPBmq+eGAnsd51BbcZfZVH8c1wcdHh
+ZQG2XI1V7JrpVjK3N1OcFsrsdyuZPh+AoEjwnMXc+cpzjV1UZQhHLO5UFOoH4ZMv
+Asz38rIvPYKLYb9j6F1nBnvI7iN18+Fl1Jj5FpadTskOEPWtOr6vQFRnUbTVbbRO
+0MVPEA8OdKdyxdUZfBnm9hIU2TMLeolM8qjaDUTHh68rdZEIcaMczGjjLzjVOeu4
+yDc0K/OGX9BkYyuUrA6D73yb0wJrfrahLDnBACFMJHWlU9N6aOBOIsgq4JDb3jZB
+kR48QHcBX9mO6Tu0lil3ckuakbX6pXF5xtPbaMTURDvneHQ8t02hL0T2T3tVx47R
+JZ8SK5gnxgJUSnK4imCzrLtAwK2qzMJLtCKP8vc7tk0Wy/Z1SiPHtf4YZsbVlEBY
+QjKzi1wpQiluTnvuqPgR
+=F3zl
+-----END PGP SIGNATURE-----
+
+--Signature=_Mon__12_Dec_2011_09_45_59_+1100_WVzuTZ1dmc23zb5p--
