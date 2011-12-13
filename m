@@ -1,47 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from warthog.procyon.org.uk ([90.155.74.18]:52109 "EHLO
+Received: from warthog.procyon.org.uk ([90.155.74.18]:52116 "EHLO
 	warthog.procyon.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751372Ab1LMKjD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:39:03 -0500
+	with ESMTP id S1754207Ab1LMKjm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:39:42 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/17] UAPI: Guard linux/pmu.h
-Date: Tue, 13 Dec 2011 10:04:06 +0000
-Message-ID: <1323770653-19177-11-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 16/17] UAPI: Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h
+Date: Tue, 13 Dec 2011 10:04:12 +0000
+Message-ID: <1323770653-19177-17-git-send-email-dhowells@redhat.com>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
 Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20111213100406.c7gsOhRJ_4XaJLqRs0m349EeEOT4tJEGD_JaA-hfEco@z>
+Message-ID: <20111213100412.w1sd2yk4cFreiJ_HTUqLvRPSWT7pGsv5B8HXH1zBWQ8@z>
 
-Place reinclusion guards on linux/pmu.h otherwise the UAPI splitter won't
-insert the #include to include the UAPI header from the kernel header.
+Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h to make
+parsing easier.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
- include/linux/pmu.h |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ include/linux/soundcard.h |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/pmu.h b/include/linux/pmu.h
-index cafe98d..84e6a55 100644
---- a/include/linux/pmu.h
-+++ b/include/linux/pmu.h
-@@ -6,6 +6,8 @@
-  * Copyright (C) 1998 Paul Mackerras.
-  */
- 
-+#ifndef _LINUX_PMU_H
-+#define _LINUX_PMU_H
- 
- #define PMU_DRIVER_VERSION	2
- 
-@@ -207,3 +209,5 @@ extern int pmu_sys_suspended;
+diff --git a/include/linux/soundcard.h b/include/linux/soundcard.h
+index fe204fe..dfcf86f 100644
+--- a/include/linux/soundcard.h
++++ b/include/linux/soundcard.h
+@@ -198,7 +198,8 @@ typedef struct seq_event_rec {
+ #  else
+ #    error "could not determine byte order"
+ #  endif
+-#elif defined(__BYTE_ORDER)
++#else
++# if defined(__BYTE_ORDER)
+ #  if __BYTE_ORDER == __BIG_ENDIAN
+ #    define AFMT_S16_NE AFMT_S16_BE
+ #  elif __BYTE_ORDER == __LITTLE_ENDIAN
+@@ -206,6 +207,7 @@ typedef struct seq_event_rec {
+ #  else
+ #    error "could not determine byte order"
+ #  endif
++# endif
  #endif
  
- #endif	/* __KERNEL__ */
-+
-+#endif /* _LINUX_PMU_H */
+ /*
 -- 
 1.7.7.4
 
