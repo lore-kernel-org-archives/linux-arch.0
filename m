@@ -1,76 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from warthog.procyon.org.uk ([90.155.74.18]:52178 "EHLO
 	warthog.procyon.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754106Ab1LMKkP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:40:15 -0500
+	with ESMTP id S1754220Ab1LMKkJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:40:09 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 03/17] UAPI: elf_read_implies_exec() is a kernel-only feature - so hide from userspace
-Date: Tue, 13 Dec 2011 10:03:59 +0000
-Message-ID: <1323770653-19177-4-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 04/17] UAPI: Make MN10300 use asm-generic/param.h
+Date: Tue, 13 Dec 2011 10:04:00 +0000
+Message-ID: <1323770653-19177-5-git-send-email-dhowells@redhat.com>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
 Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20111213100359.OIPyQ2Ofra9phugutjFzhTLv1p2WNodEq-seTiJe-I0@z>
+Message-ID: <20111213100400.i_ranHcQb5-8Ff6sS69ziv_5RaclWOZHa43OoZIjknA@z>
 
-elf_read_implies_exec() is a kernel-only feature as the second parameter is a
-constant that isn't exported to userspace.  Not only that, but the
-arch-specific overrides are not exported either.
+Make MN10300 use the generic settings to be found in asm-generic/param.h
+rather than defining its own as they're exactly the same.
 
-So hide the macro from userspace.
-
-Similarly, struct file should not be predeclared in userspace.
+This sorts out a problem with HZ being redefined after the UAPI split.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
- include/linux/elf.h |   18 +++++++++---------
- 1 files changed, 9 insertions(+), 9 deletions(-)
+ arch/mn10300/include/asm/param.h |   18 +-----------------
+ 1 files changed, 1 insertions(+), 17 deletions(-)
 
-diff --git a/include/linux/elf.h b/include/linux/elf.h
-index 31f0508..999b4f5 100644
---- a/include/linux/elf.h
-+++ b/include/linux/elf.h
-@@ -7,15 +7,6 @@
- #include <asm/elf.h>
- #endif
+diff --git a/arch/mn10300/include/asm/param.h b/arch/mn10300/include/asm/param.h
+index 789b1df..02a0ca6 100644
+--- a/arch/mn10300/include/asm/param.h
++++ b/arch/mn10300/include/asm/param.h
+@@ -11,24 +11,8 @@
+ #ifndef _ASM_PARAM_H
+ #define _ASM_PARAM_H
  
--struct file;
--
--#ifndef elf_read_implies_exec
--  /* Executables for which elf_read_implies_exec() returns TRUE will
--     have the READ_IMPLIES_EXEC personality flag set automatically.
--     Override in asm/elf.h as needed.  */
--# define elf_read_implies_exec(ex, have_pt_gnu_stack)	0
+-#ifdef __KERNEL__
+-#define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
+-#define USER_HZ		100		/* .. some user interfaces are in
+-					 * "ticks" */
+-#define CLOCKS_PER_SEC	(USER_HZ)	/* like times() */
+-#endif
++#include <asm-generic/param.h>
+ 
+-#ifndef HZ
+-#define HZ		100
 -#endif
 -
- /* 32-bit ELF base types. */
- typedef __u32	Elf32_Addr;
- typedef __u16	Elf32_Half;
-@@ -414,6 +405,13 @@ typedef struct elf64_note {
- } Elf64_Nhdr;
+-#define EXEC_PAGESIZE	4096
+-
+-#ifndef NOGROUP
+-#define NOGROUP		(-1)
+-#endif
+-
+-#define MAXHOSTNAMELEN	64	/* max length of hostname */
+ #define COMMAND_LINE_SIZE 256
  
- #ifdef __KERNEL__
-+#ifndef elf_read_implies_exec
-+  /* Executables for which elf_read_implies_exec() returns TRUE will
-+     have the READ_IMPLIES_EXEC personality flag set automatically.
-+     Override in asm/elf.h as needed.  */
-+# define elf_read_implies_exec(ex, have_pt_gnu_stack)	0
-+#endif
-+
- #if ELF_CLASS == ELFCLASS32
- 
- extern Elf32_Dyn _DYNAMIC [];
-@@ -437,6 +435,8 @@ extern Elf64_Dyn _DYNAMIC [];
- #endif
- 
- /* Optional callbacks to write extra ELF notes. */
-+struct file;
-+
- #ifndef ARCH_HAVE_EXTRA_ELF_NOTES
- static inline int elf_coredump_extra_notes_size(void) { return 0; }
- static inline int elf_coredump_extra_notes_write(struct file *file,
+ #endif /* _ASM_PARAM_H */
 -- 
 1.7.7.4
 
