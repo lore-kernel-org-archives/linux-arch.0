@@ -1,46 +1,35 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 11/17] UAPI: Guard linux/cuda.h
-Date: Tue, 13 Dec 2011 10:04:07 +0000
-Message-ID: <1323770653-19177-12-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 01/17] UAPI: Fix arch/mips/include/asm/Kbuild to have separate header-y lines
+Date: Tue, 13 Dec 2011 10:03:57 +0000
+Message-ID: <1323770653-19177-2-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from warthog.procyon.org.uk ([90.155.74.18]:52116 "EHLO
-	warthog.procyon.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754163Ab1LMKjf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:39:35 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
 Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Place reinclusion guards on linux/cuda.h otherwise the UAPI splitter script
-won't insert a #include to make the kernel header include the UAPI header.
+Fix arch/mips/include/asm/Kbuild to have a separate header-y line for each
+header to make them easier to relocate individually as part of the UAPI header
+split.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
 ---
- include/linux/cuda.h |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+ arch/mips/include/asm/Kbuild |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-diff --git a/include/linux/cuda.h b/include/linux/cuda.h
-index 6a3e638..9f9865f 100644
---- a/include/linux/cuda.h
-+++ b/include/linux/cuda.h
-@@ -5,6 +5,9 @@
-  * Copyright (C) 1996 Paul Mackerras.
-  */
+diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
+index 7897f05..f53f9ca 100644
+--- a/arch/mips/include/asm/Kbuild
++++ b/arch/mips/include/asm/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
  
-+#ifndef _LINUX_CUDA_H
-+#define _LINUX_CUDA_H
-+
- /* CUDA commands (2nd byte) */
- #define CUDA_WARM_START		0
- #define CUDA_AUTOPOLL		1
-@@ -34,3 +37,5 @@ extern int cuda_request(struct adb_request *req,
- extern void cuda_poll(void);
- 
- #endif	/* __KERNEL */
-+
-+#endif /* _LINUX_CUDA_H */
+-header-y += cachectl.h sgidefs.h sysmips.h
++header-y += cachectl.h
++header-y += sgidefs.h
++header-y += sysmips.h
 -- 
 1.7.7.4
