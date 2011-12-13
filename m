@@ -1,56 +1,65 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 07/17] UAPI: Rearrange definition of HZ in asm-generic/param.h
-Date: Tue, 13 Dec 2011 10:04:03 +0000
-Message-ID: <1323770653-19177-8-git-send-email-dhowells@redhat.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 14/17] UAPI: Make linux/patchkey.h easier to parse
+Date: Tue, 13 Dec 2011 23:57:14 +1100
+Message-ID: <20111213235714.8e1c456786e60acc691b899e@canb.auug.org.au>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
-Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+	<1323770653-19177-15-git-send-email-dhowells@redhat.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__13_Dec_2011_23_57_14_+1100_+jiGkaspZ3Ik/jZq"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from calzone.tip.net.au ([203.10.76.15]:41768 "EHLO
+	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753179Ab1LMM51 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 07:57:27 -0500
+In-Reply-To: <1323770653-19177-15-git-send-email-dhowells@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@linux-foundation.org, arnd@arndb.de, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Rearrange the definition of HZ in asm-generic/param.h so that the user-specific
-is declared before the kernel-specific one.  We then explicitly #undef the
-userspace HZ value and replace it with the kernel HZ value.
+--Signature=_Tue__13_Dec_2011_23_57_14_+1100_+jiGkaspZ3Ik/jZq
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-This allows the userspace params to be excised into a separate header as part
-of the UAPI header split.
+Hi David,
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/param.h |   13 +++++++------
- 1 files changed, 7 insertions(+), 6 deletions(-)
+On Tue, 13 Dec 2011 10:04:10 +0000 David Howells <dhowells@redhat.com> wrot=
+e:
+>
+> Make linux/patchkey.h easier to parse by:
+>=20
+>  (1) Switching the reinclusion guard and the indirect-inclusion checks in
+>      linux/patchkey.h to put the guard around the outside.
 
-diff --git a/include/asm-generic/param.h b/include/asm-generic/param.h
-index cdf8251..835632a 100644
---- a/include/asm-generic/param.h
-+++ b/include/asm-generic/param.h
-@@ -1,12 +1,6 @@
- #ifndef __ASM_GENERIC_PARAM_H
- #define __ASM_GENERIC_PARAM_H
- 
--#ifdef __KERNEL__
--# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
--# define USER_HZ	100		/* some user interfaces are */
--# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
--#endif
--
- #ifndef HZ
- #define HZ 100
- #endif
-@@ -21,4 +15,11 @@
- 
- #define MAXHOSTNAMELEN	64	/* max length of hostname */
- 
-+#ifdef __KERNEL__
-+# undef HZ
-+# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
-+# define USER_HZ	100		/* some user interfaces are */
-+# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
-+#endif
-+
- #endif /* __ASM_GENERIC_PARAM_H */
--- 
-1.7.7.4
+Is this part missing, or no longer needed?
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+http://www.canb.auug.org.au/~sfr/
+
+--Signature=_Tue__13_Dec_2011_23_57_14_+1100_+jiGkaspZ3Ik/jZq
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJO50uqAAoJEECxmPOUX5FEEU0P+gNvfLUBHoB88/U1M/MZaCRl
+zKxca6V+ECeYxkT9dDdQ9k3/2/L+ulPfGfo2aswk6jO4X/faVGDun4yH7zQil7/x
+OX7FmTJKzMdk3T/3tKWzksvMM/1X2a5CegzxP6KCHlw7BvGCsVzYQdUvnAesPyRO
+OKPi5CINFM40E3ZSa0OPiL1X8gxAkn22zdqJMcaCbh+gDTpLlsDRBJVCBH5ejvfJ
+XS8Dt3pjYC68mns4jN4KwVk5HmUg0JxcG0WBSiDSjgxCwTW4u+pFl4z3qBSlPy0h
+ZlBcRETuRKnd/9810vk72C4Ii6r8wMbfRlkvL8YcK/7+4rdv/7kf3Xh5y09ADea0
+5XhOPPUk4zC6eYhGRKJbei3yPnoT+4s5jFylKhxFfYpyjX7TpkISNbqK9HOjZkwx
+fEHP0T91Nty77T8tq1FEJ1bIPSL92c1CWZxinrOcpuhda68PAMqlPJN7AL8ndowZ
+Ke94rHfcdEzOEkI4SHvZOUzP30Ro2o551DHjzj3ArfqAzOUHZl7O0SQs893YC3bb
+tHNKa9s0ZxC2PBeR8bKyQ6AHnfFQ0qp+ALEZIEppG1PYsZflhtN14ZvEWnFHDwLF
+N17DHKwkbrpFQI9rRMBz/3RBdL9o6C2yWL6X8qp9ZYFjEumxp35FL4nnSbKyGnoj
+BMKIcYB8Y1yWNfZU3HZn
+=uubS
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__13_Dec_2011_23_57_14_+1100_+jiGkaspZ3Ik/jZq--
