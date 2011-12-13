@@ -1,75 +1,300 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 14/17] UAPI: Make linux/patchkey.h easier to parse
-Date: Wed, 14 Dec 2011 01:51:07 +1100
-Message-ID: <20111214015107.340d6f5c9b7bb886ec51a840@canb.auug.org.au>
-References: <11863.1323784204@redhat.com>
-	<20111213235714.8e1c456786e60acc691b899e@canb.auug.org.au>
-	<1323770653-19177-1-git-send-email-dhowells@redhat.com>
-	<1323770653-19177-15-git-send-email-dhowells@redhat.com>
-	<12078.1323784677@redhat.com>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
+Date: Tue, 13 Dec 2011 14:56:54 +0000
+Message-ID: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Wed__14_Dec_2011_01_51_07_+1100_gyyjr_pCd7k9uJtp"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from calzone.tip.net.au ([203.10.76.15]:53173 "EHLO
-	calzone.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751372Ab1LMOvR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 09:51:17 -0500
-In-Reply-To: <12078.1323784677@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:43139 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753324Ab1LMO5H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Dec 2011 09:57:07 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@linux-foundation.org, arnd@arndb.de, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: tglx@linutronix.de, mingo@redhat.com
+Cc: x86@kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>
 
---Signature=_Wed__14_Dec_2011_01_51_07_+1100_gyyjr_pCd7k9uJtp
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+fls(N), ffs(N) and fls64(N) can be optimised on x86_64.  Currently they use a
+CMOV instruction after the BSR/BSF to set the destination register to -1 if the
+value to be scanned was 0 (in which case BSR/BSF set the Z flag).
 
-Hi David,
+Instead, according to the AMD64 specification, we can make use of the fact that
+BSR/BSF doesn't modify its output register if its input is 0.  By preloading
+the output with -1 and incrementing the result, we achieve the desired result
+without the need for a conditional check.
 
-On Tue, 13 Dec 2011 13:57:57 +0000 David Howells <dhowells@redhat.com> wrot=
-e:
->
-> Actually, it doesn't seem to be necessary.  The header splitter managed t=
-o cope
-> without it and did the right thing.  I think what happened was that the
-> splitter didn't recognise the _LINUX_PATCHKEY_H_INDIRECT thing as a reinc=
-lusion
-> guard, so it just tossed that into the UAPI header, then recognised the
-> _LINUX_PATCHKEY_H thing as the reinclusion guard and proceeded from there.
->=20
-> Would you prefer that I remove that from the comments or would you prefer=
- that
-> I leave things unchanged?
+The Intel x86_64 specification, however, says that the result of BSR/BSF in
+such a case is undefined.  That said, when queried, one of the Intel CPU
+architects said that the behaviour on all Intel CPUs is that:
 
-Well, the comments should really reflect the patch, right?
+ (1) with BSRQ/BSFQ, the 64-bit destination register is written with its
+     original value if the source is 0, thus, in essence, giving the effect we
+     want.  And,
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
+ (2) with BSRL/BSFL, the lower half of the 64-bit destination register is
+     written with its original value if the source is 0, and the upper half is
+     cleared, thus giving us the effect we want (we return a 4-byte int).
 
---Signature=_Wed__14_Dec_2011_01_51_07_+1100_gyyjr_pCd7k9uJtp
-Content-Type: application/pgp-signature
+Further, it was indicated that they (Intel) are unlikely to get away with
+changing the behaviour.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
 
-iQIcBAEBCAAGBQJO52ZbAAoJEECxmPOUX5FExEAP/2JDpoNEWo1Zl2ziNdLDljI2
-UKyNMwBzzi2bQzSTLXI+x6vCTGUwFeUilTK76Nrkbfmvkq6W8Zufq9UOpnwTn2ZK
-qgSKgyZv2pIf1/z4FFcK58JZNE2pFIZwqPoxVkjcRZmWQk0lR5wv2OvJMhoLGV4B
-LHnVAVseIN7tRBDdPksBOGT+gxh+IXQ3TNYcVITlw4feW5xvRc/fkQrg8xdnlcF3
-qH0ITl2hmIzkc0vKCLxDE1VRHOOAbsVxJUv0RJOTXkMujpiBjw1ER812dLde0aS4
-WkDCl8Er2XOd0ViQNRFpXDKWwaFNKJn6Z93CIcOng/zWftcLYROhCGLyybgc5wea
-dhAhs+bNCWNCMhw1lmMrD2kMl03jseYRub3XZT3ZanJPwiRt+40PuJVKx0cB/rNA
-AMsOGDee7v91Pkcvtd44IWr60wOgJ46HXv7ps1DpuAcg8eNQ0Ti+V11/ly08SMHF
-oPBXB//U8RQQfGg/wsnOc/XcxKFc/7PiuhUgftIeOHkoqV9HR+zGj6KQHGj8O45B
-MKphPzaIMaJyXE8Cmb6N9KHsDskQMP3ipEJb/pv+oC3eL3woPyEHJaDBUjrXO6vt
-jxcOnulzSH5ZE6RuS1zZkw9vu/MH+T1gQBi0tqe8WkPFDvklwDxty9LpM0ENPEGe
-bLxSxDtEHVg1EPTQG8cn
-=oZbY
------END PGP SIGNATURE-----
+It might be possible to optimise the 32-bit versions of these functions, but
+there's a lot more variation, and so the effective non-destructive property of
+BSRL/BSRF cannot be relied on.
 
---Signature=_Wed__14_Dec_2011_01_51_07_+1100_gyyjr_pCd7k9uJtp--
+
+I have benchmarked these functions on my Core2 Duo test machine using the
+following program:
+
+	#include <stdlib.h>
+	#include <stdio.h>
+
+	#ifndef __x86_64__
+	#error
+	#endif
+
+	#define PAGE_SHIFT 12
+
+	typedef unsigned long long __u64, u64;
+	typedef unsigned int __u32, u32;
+	#define noinline	__attribute__((noinline))
+
+	static __always_inline int fls64(__u64 x)
+	{
+		long bitpos = -1;
+
+		asm("bsrq %1,%0"
+		    : "+r" (bitpos)
+		    : "rm" (x));
+		return bitpos + 1;
+	}
+
+	static inline unsigned long __fls(unsigned long word)
+	{
+		asm("bsr %1,%0"
+		    : "=r" (word)
+		    : "rm" (word));
+		return word;
+	}
+	static __always_inline int old_fls64(__u64 x)
+	{
+		if (x == 0)
+			return 0;
+		return __fls(x) + 1;
+	}
+
+	static noinline // __attribute__((const))
+	int old_get_order(unsigned long size)
+	{
+		int order;
+
+		size = (size - 1) >> (PAGE_SHIFT - 1);
+		order = -1;
+		do {
+			size >>= 1;
+			order++;
+		} while (size);
+		return order;
+	}
+
+	static inline __attribute__((const))
+	int get_order_old_fls64(unsigned long size)
+	{
+		int order;
+		size--;
+		size >>= PAGE_SHIFT;
+		order = old_fls64(size);
+		return order;
+	}
+
+	static inline __attribute__((const))
+	int get_order(unsigned long size)
+	{
+		int order;
+		size--;
+		size >>= PAGE_SHIFT;
+		order = fls64(size);
+		return order;
+	}
+
+	unsigned long prevent_optimise_out;
+
+	static noinline unsigned long test_old_get_order(void)
+	{
+		unsigned long n, total = 0;
+		long rep, loop;
+
+		for (rep = 1000000; rep > 0; rep--) {
+			for (loop = 0; loop <= 16384; loop += 4) {
+				n = 1UL << loop;
+				total += old_get_order(n);
+			}
+		}
+		return total;
+	}
+
+	static noinline unsigned long test_get_order_old_fls64(void)
+	{
+		unsigned long n, total = 0;
+		long rep, loop;
+
+		for (rep = 1000000; rep > 0; rep--) {
+			for (loop = 0; loop <= 16384; loop += 4) {
+				n = 1UL << loop;
+				total += get_order_old_fls64(n);
+			}
+		}
+		return total;
+	}
+
+	static noinline unsigned long test_get_order(void)
+	{
+		unsigned long n, total = 0;
+		long rep, loop;
+
+		for (rep = 1000000; rep > 0; rep--) {
+			for (loop = 0; loop <= 16384; loop += 4) {
+				n = 1UL << loop;
+				total += get_order(n);
+			}
+		}
+		return total;
+	}
+
+	int main(int argc, char **argv)
+	{
+		unsigned long total;
+
+		switch (argc) {
+		case 1:  total = test_old_get_order();		break;
+		case 2:  total = test_get_order_old_fls64();	break;
+		default: total = test_get_order();		break;
+		}
+		prevent_optimise_out = total;
+		return 0;
+	}
+
+This allows me to test the use of the old fls64() implementation and the new
+fls64() implementation and also to contrast these to the out-of-line loop-based
+implementation of get_order().  The results were:
+
+	warthog>time ./get_order
+	real    1m37.191s
+	user    1m36.313s
+	sys     0m0.861s
+	warthog>time ./get_order x
+	real    0m16.892s
+	user    0m16.586s
+	sys     0m0.287s
+	warthog>time ./get_order x x
+	real    0m7.731s
+	user    0m7.727s
+	sys     0m0.002s
+
+Using the current upstream fls64() as a basis for an inlined get_order() [the
+second result above] is much faster than using the current out-of-line
+loop-based get_order() [the first result above].
+
+Using my optimised inline fls64()-based get_order() [the third result above]
+is even faster still.
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
+
+ arch/x86/include/asm/bitops.h |   57 +++++++++++++++++++++++++++++++++++++++--
+ 1 files changed, 54 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index 1775d6e..9558432 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -395,10 +395,21 @@ static inline unsigned long __fls(unsigned long word)
+ static inline int ffs(int x)
+ {
+ 	int r;
+-#ifdef CONFIG_X86_CMOV
++
++#if BITS_PER_LONG == 64
++	/* AMD64 says BSFL won't clobber the dest reg if x==0; Intel64 says the
++	 * dest reg is undefined if x==0, but their CPU architect says its
++	 * value is written to set it to the same as before, except that the
++	 * top 32-bits will be cleared.
++	 */
++	long tmp = -1;
++	asm("bsfl %1,%0"
++	    : "=r" (r)
++	    : "rm" (x), "0" (tmp));
++#elif defined(CONFIG_X86_CMOV)
+ 	asm("bsfl %1,%0\n\t"
+ 	    "cmovzl %2,%0"
+-	    : "=r" (r) : "rm" (x), "r" (-1));
++	    : "=&r" (r) : "rm" (x), "r" (-1));
+ #else
+ 	asm("bsfl %1,%0\n\t"
+ 	    "jnz 1f\n\t"
+@@ -422,7 +433,18 @@ static inline int ffs(int x)
+ static inline int fls(int x)
+ {
+ 	int r;
+-#ifdef CONFIG_X86_CMOV
++
++#if BITS_PER_LONG == 64
++	/* AMD64 says BSRL won't clobber the dest reg if x==0; Intel64 says the
++	 * dest reg is undefined if x==0, but their CPU architect says its
++	 * value is written to set it to the same as before, except that the
++	 * top 32-bits will be cleared.
++	 */
++	long tmp = -1;
++	asm("bsrl %1,%0"
++	    : "=r" (r)
++	    : "rm" (x), "0" (tmp));
++#elif defined(CONFIG_X86_CMOV)
+ 	asm("bsrl %1,%0\n\t"
+ 	    "cmovzl %2,%0"
+ 	    : "=&r" (r) : "rm" (x), "rm" (-1));
+@@ -434,6 +456,33 @@ static inline int fls(int x)
+ #endif
+ 	return r + 1;
+ }
++
++/**
++ * fls64 - find last set bit in a 64-bit word
++ * @x: the word to search
++ *
++ * This is defined in a similar way as the libc and compiler builtin
++ * ffsll, but returns the position of the most significant set bit.
++ *
++ * fls64(value) returns 0 if value is 0 or the position of the last
++ * set bit if value is nonzero. The last (most significant) bit is
++ * at position 64.
++ */
++#if BITS_PER_LONG == 64
++static __always_inline int fls64(__u64 x)
++{
++	long bitpos = -1;
++
++	/* AMD64 says BSRQ won't clobber the dest reg if x==0; Intel64 says the
++	 * dest reg is undefined if x==0, but their CPU architect says its
++	 * value is written to set it to the same as before.
++	 */
++	asm("bsrq %1,%0"
++	    : "+r" (bitpos)
++	    : "rm" (x));
++	return bitpos + 1;
++}
++#endif
+ #endif /* __KERNEL__ */
+ 
+ #undef ADDR
+@@ -452,7 +501,9 @@ static inline int fls(int x)
+ 
+ #endif /* __KERNEL__ */
+ 
++#if BITS_PER_LONG == 32
+ #include <asm-generic/bitops/fls64.h>
++#endif
+ 
+ #ifdef __KERNEL__
+ 
