@@ -1,45 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from warthog.procyon.org.uk ([90.155.74.18]:52178 "EHLO
 	warthog.procyon.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754760Ab1LMKka (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:40:30 -0500
+	with ESMTP id S1754546Ab1LMKkM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:40:12 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 02/17] UAPI: Don't include linux/compat.h in sparc's asm/siginfo.h
-Date: Tue, 13 Dec 2011 10:03:58 +0000
-Message-ID: <1323770653-19177-3-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 07/17] UAPI: Rearrange definition of HZ in asm-generic/param.h
+Date: Tue, 13 Dec 2011 10:04:03 +0000
+Message-ID: <1323770653-19177-8-git-send-email-dhowells@redhat.com>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
-Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20111213100358.HMIWTL_ngjJ8lUOT_jI8zaueHK2_FOF8Gi9JxqpwT8s@z>
+Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20111213100403.04z0A95cibPFgX51QVE7_HIM0QTQC1U0dbyIq9VIKmU@z>
 
-Don't include linux/compat.h in sparc's asm/siginfo.h as it leads to a circular
-dependency:
+Rearrange the definition of HZ in asm-generic/param.h so that the user-specific
+is declared before the kernel-specific one.  We then explicitly #undef the
+userspace HZ value and replace it with the kernel HZ value.
 
-	asm/siginfo.h -> linux/compat.h -> asm/siginfo.h
+This allows the userspace params to be excised into a separate header as part
+of the UAPI header split.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: David S. Miller <davem@davemloft.net>
-cc: sparclinux@vger.kernel.org
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/sparc/include/asm/siginfo.h |    2 --
- 1 files changed, 0 insertions(+), 2 deletions(-)
+ include/asm-generic/param.h |   13 +++++++------
+ 1 files changed, 7 insertions(+), 6 deletions(-)
 
-diff --git a/arch/sparc/include/asm/siginfo.h b/arch/sparc/include/asm/siginfo.h
-index 988e5d8..215900f 100644
---- a/arch/sparc/include/asm/siginfo.h
-+++ b/arch/sparc/include/asm/siginfo.h
-@@ -16,8 +16,6 @@
+diff --git a/include/asm-generic/param.h b/include/asm-generic/param.h
+index cdf8251..835632a 100644
+--- a/include/asm-generic/param.h
++++ b/include/asm-generic/param.h
+@@ -1,12 +1,6 @@
+ #ifndef __ASM_GENERIC_PARAM_H
+ #define __ASM_GENERIC_PARAM_H
  
- #ifdef __KERNEL__
- 
--#include <linux/compat.h>
+-#ifdef __KERNEL__
+-# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
+-# define USER_HZ	100		/* some user interfaces are */
+-# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
+-#endif
 -
- #ifdef CONFIG_COMPAT
+ #ifndef HZ
+ #define HZ 100
+ #endif
+@@ -21,4 +15,11 @@
  
- struct compat_siginfo;
+ #define MAXHOSTNAMELEN	64	/* max length of hostname */
+ 
++#ifdef __KERNEL__
++# undef HZ
++# define HZ		CONFIG_HZ	/* Internal kernel timer frequency */
++# define USER_HZ	100		/* some user interfaces are */
++# define CLOCKS_PER_SEC	(USER_HZ)       /* in "ticks" like times() */
++#endif
++
+ #endif /* __ASM_GENERIC_PARAM_H */
 -- 
 1.7.7.4
 
