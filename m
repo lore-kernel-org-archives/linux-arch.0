@@ -1,50 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from warthog.procyon.org.uk ([90.155.74.18]:52116 "EHLO
+Received: from warthog.procyon.org.uk ([90.155.74.18]:52178 "EHLO
 	warthog.procyon.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754207Ab1LMKjm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:39:42 -0500
+	with ESMTP id S1754429Ab1LMKkA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Dec 2011 05:40:00 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 16/17] UAPI: Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h
-Date: Tue, 13 Dec 2011 10:04:12 +0000
-Message-ID: <1323770653-19177-17-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 12/17] UAPI: Alter the S390 asm include guards to be recognisable by the UAPI splitter
+Date: Tue, 13 Dec 2011 10:04:08 +0000
+Message-ID: <1323770653-19177-13-git-send-email-dhowells@redhat.com>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
 Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20111213100412.w1sd2yk4cFreiJ_HTUqLvRPSWT7pGsv5B8HXH1zBWQ8@z>
+Message-ID: <20111213100408.Gpce89adQiwK1z0_kTixUm9ZOnTJUO1V6ai6BZXTltY@z>
 
-Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h to make
-parsing easier.
+Alter some of the S390 asm include guards to fit a pattern that the UAPI
+splitter recognises.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
- include/linux/soundcard.h |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
+ arch/s390/include/asm/chpid.h |    2 +-
+ arch/s390/include/asm/itcw.h  |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/soundcard.h b/include/linux/soundcard.h
-index fe204fe..dfcf86f 100644
---- a/include/linux/soundcard.h
-+++ b/include/linux/soundcard.h
-@@ -198,7 +198,8 @@ typedef struct seq_event_rec {
- #  else
- #    error "could not determine byte order"
- #  endif
--#elif defined(__BYTE_ORDER)
-+#else
-+# if defined(__BYTE_ORDER)
- #  if __BYTE_ORDER == __BIG_ENDIAN
- #    define AFMT_S16_NE AFMT_S16_BE
- #  elif __BYTE_ORDER == __LITTLE_ENDIAN
-@@ -206,6 +207,7 @@ typedef struct seq_event_rec {
- #  else
- #    error "could not determine byte order"
- #  endif
-+# endif
- #endif
+diff --git a/arch/s390/include/asm/chpid.h b/arch/s390/include/asm/chpid.h
+index fc71d8a..8e88e22 100644
+--- a/arch/s390/include/asm/chpid.h
++++ b/arch/s390/include/asm/chpid.h
+@@ -6,7 +6,7 @@
+  */
  
- /*
+ #ifndef _ASM_S390_CHPID_H
+-#define _ASM_S390_CHPID_H _ASM_S390_CHPID_H
++#define _ASM_S390_CHPID_H
+ 
+ #include <linux/string.h>
+ #include <linux/types.h>
+diff --git a/arch/s390/include/asm/itcw.h b/arch/s390/include/asm/itcw.h
+index a9bc5c3..fb1bedd 100644
+--- a/arch/s390/include/asm/itcw.h
++++ b/arch/s390/include/asm/itcw.h
+@@ -6,7 +6,7 @@
+  */
+ 
+ #ifndef _ASM_S390_ITCW_H
+-#define _ASM_S390_ITCW_H _ASM_S390_ITCW_H
++#define _ASM_S390_ITCW_H
+ 
+ #include <linux/types.h>
+ #include <asm/fcx.h>
 -- 
 1.7.7.4
 
