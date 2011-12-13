@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/17] UAPI: Guard linux/pmu.h
-Date: Tue, 13 Dec 2011 10:04:06 +0000
-Message-ID: <1323770653-19177-11-git-send-email-dhowells@redhat.com>
+Subject: [PATCH 13/17] UAPI: Fix nested __KERNEL__ guards in video/edid.h
+Date: Tue, 13 Dec 2011 10:04:09 +0000
+Message-ID: <1323770653-19177-14-git-send-email-dhowells@redhat.com>
 References: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1323770653-19177-1-git-send-email-dhowells@redhat.com>
@@ -10,32 +10,35 @@ To: sfr@canb.auug.org.au, torvalds@linux-foundation.org
 Cc: arnd@arndb.de, dhowells@redhat.com, alan@lxorguk.ukuu.org.uk, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Place reinclusion guards on linux/pmu.h otherwise the UAPI splitter won't
-insert the #include to include the UAPI header from the kernel header.
+Fix nested __KERNEL__ guards in video/edid.h to make parsing easier.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
- include/linux/pmu.h |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ include/video/edid.h |    6 ++----
+ 1 files changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/pmu.h b/include/linux/pmu.h
-index cafe98d..84e6a55 100644
---- a/include/linux/pmu.h
-+++ b/include/linux/pmu.h
-@@ -6,6 +6,8 @@
-  * Copyright (C) 1998 Paul Mackerras.
-  */
+diff --git a/include/video/edid.h b/include/video/edid.h
+index 928c342..c5f1987 100644
+--- a/include/video/edid.h
++++ b/include/video/edid.h
+@@ -1,16 +1,14 @@
+ #ifndef __linux_video_edid_h__
+ #define __linux_video_edid_h__
  
-+#ifndef _LINUX_PMU_H
-+#define _LINUX_PMU_H
+-#if !defined(__KERNEL__) || defined(CONFIG_X86)
+-
+ struct edid_info {
+ 	unsigned char dummy[128];
+ };
  
- #define PMU_DRIVER_VERSION	2
- 
-@@ -207,3 +209,5 @@ extern int pmu_sys_suspended;
+ #ifdef __KERNEL__
++#ifdef CONFIG_X86
+ extern struct edid_info edid_info;
+-#endif /* __KERNEL__ */
+-
++#endif
  #endif
  
- #endif	/* __KERNEL__ */
-+
-+#endif /* _LINUX_PMU_H */
+ #endif /* __linux_video_edid_h__ */
 -- 
 1.7.7.4
