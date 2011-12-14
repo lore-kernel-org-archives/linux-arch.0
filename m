@@ -1,34 +1,49 @@
-From: Avi Kivity <avi@redhat.com>
+From: Anthony Liguori <aliguori@us.ibm.com>
 Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped
  by host
-Date: Wed, 14 Dec 2011 16:39:56 +0200
-Message-ID: <4EE8B53C.6070502@redhat.com>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <4EDF7B0D.4060001@redhat.com> <20111214121622.GB18317@amt.cnet>
+Date: Wed, 14 Dec 2011 08:49:51 -0600
+Message-ID: <4EE8B78F.9090104@us.ibm.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>	<4EDF7B0D.4060001@redhat.com> <20111214121622.GB18317@amt.cnet> <4EE8B53C.6070502@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20111214121622.GB18317@amt.cnet>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e5.ny.us.ibm.com ([32.97.182.145]:60413 "EHLO e5.ny.us.ibm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751974Ab1LNOuo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Dec 2011 09:50:44 -0500
+Received: from /spool/local
+	by e5.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <aliguori@us.ibm.com>;
+	Wed, 14 Dec 2011 09:50:43 -0500
+In-Reply-To: <4EE8B53C.6070502@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Avi Kivity <avi@redhat.com>
+Cc: Marcelo Tosatti <mtosatti@redhat.com>, Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 12/14/2011 02:16 PM, Marcelo Tosatti wrote:
-> > Having this controlled from userspace means it doesn't work for SIGSTOP
-> > or for long scheduling delays.  What about doing this automatically
-> > based on preempt notifiers?
+On 12/14/2011 08:39 AM, Avi Kivity wrote:
+> On 12/14/2011 02:16 PM, Marcelo Tosatti wrote:
+>>> Having this controlled from userspace means it doesn't work for SIGSTOP
+>>> or for long scheduling delays.  What about doing this automatically
+>>> based on preempt notifiers?
+>>
+>> Long scheduling delays should be considered hangups from the guest
+>> perspective.
 >
-> Long scheduling delays should be considered hangups from the guest
-> perspective.
+> Why?  To the guest it looks like slow hardware, but it will interpret it
+> as a softlockup.
+>
+>> About SIGSTOP, that is a corner case. Unsure if its even properly supported
+>> by QEMU.
+>
+> It works from my experience.
 
-Why?  To the guest it looks like slow hardware, but it will interpret it
-as a softlockup.
+We don't adjust vm_clock's offset on SIGSTOP/SIGCONT so while it may appear to 
+work okay, QEMU isn't exhibiting the behavior it is supposed to.
 
-> About SIGSTOP, that is a corner case. Unsure if its even properly supported 
-> by QEMU.
+Regards,
 
-It works from my experience.
+Anthony Liguori
 
--- 
-error compiling committee.c: too many arguments to function
+>
