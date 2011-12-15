@@ -1,38 +1,25 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
-Date: Wed, 14 Dec 2011 16:03:04 -0800
-Message-ID: <CA+55aFzanrQU2DQHxkE7cWBOwT7Xb=+LfmSNWoatDL-oiV6opA@mail.gmail.com>
-References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Date: Thu, 15 Dec 2011 00:35:32 +0000
+Message-ID: <24705.1323909332@redhat.com>
+References: <CA+55aFzanrQU2DQHxkE7cWBOwT7Xb=+LfmSNWoatDL-oiV6opA@mail.gmail.com> <20111213145654.14362.39868.stgit@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:62231 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758321Ab1LOAD0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Dec 2011 19:03:26 -0500
-Received: by wgbdr13 with SMTP id dr13so2693568wgb.1
-        for <linux-arch@vger.kernel.org>; Wed, 14 Dec 2011 16:03:25 -0800 (PST)
-In-Reply-To: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:44942 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755396Ab1LOAfn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Dec 2011 19:35:43 -0500
+In-Reply-To: <CA+55aFzanrQU2DQHxkE7cWBOwT7Xb=+LfmSNWoatDL-oiV6opA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Dec 13, 2011 at 6:56 AM, David Howells <dhowells@redhat.com> wrote:
->
-> It might be possible to optimise the 32-bit versions of these functions, but
-> there's a lot more variation, and so the effective non-destructive property of
-> BSRL/BSRF cannot be relied on.
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-I'm pretty sure that we had some chips that actually do write random
-stuff to the destination register when the input is zero.
+> I'm nervous about making this change even on x86-64 unless we add big
+> comments about the old 32-bit change.
 
-We relied on the "doesn't change the destination" at some point *long*
-ago, and it turned out not to work, but I can't remember what chip it
-was.
+Are you happy with patches 2 and 3?  I can always split the set into two as
+the 2nd and 3rd are really independent of the 1st.
 
-I'm nervous about making this change even on x86-64 unless we add big
-comments about the old 32-bit change. Can somebody find the historic
-thing and a comment about which chip it was?
-
-                     Linus
+David
