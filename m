@@ -1,102 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:40786 "EHLO mail.mgebm.net"
+Received: from oz.csail.mit.edu ([128.30.30.239]:45810 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756258Ab1LNR6q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Dec 2011 12:58:46 -0500
-Date: Wed, 14 Dec 2011 12:58:44 -0500
+	id S1759380Ab1LOTmL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Dec 2011 14:42:11 -0500
 From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped by
- host
-Message-ID: <20111214175844.GD4075@mgebm.net>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
- <4EDF7B0D.4060001@redhat.com>
- <20111208151929.GA6301@mgebm.net>
- <4EE8BBF4.8070108@redhat.com>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="DiL7RhKs8rK9YGuF"
-Content-Disposition: inline
-In-Reply-To: <4EE8BBF4.8070108@redhat.com>
+Subject: [PATCH 2/4 V7] Add functions to check if the host has stopped the vm
+Date: Thu, 15 Dec 2011 14:42:04 -0500
+Message-ID: <1323978126-13222-3-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
+References: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@redhat.com>
-Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111214175844.o14I-nYuEvx-Lnt3g8xhkwd_cetRyO5VrjcugyBC8hY@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111215194204.5c1HPjC9Ysz6oEJ-55aa3d3f7vZo3g4gnfDwI0DMcHA@z>
 
+When a host stops or suspends a VM it will set a flag to show this.  The
+watchdog will use these functions to determine if a softlockup is real, or the
+result of a suspended VM.
 
---DiL7RhKs8rK9YGuF
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+Changes from V6:
+ Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
 
-On Wed, 14 Dec 2011, Avi Kivity wrote:
+Changes from V5:
+ Collapse generic stubs into this patch
+ check_and_clear_guest_stopped() takes no args and uses __get_cpu_var()
+ Include individual definitions in ia64, s390, and powerpc
 
-> On 12/08/2011 05:19 PM, Eric B Munson wrote:
-> > > error compiling committee.c: too many arguments to function
-> > >=20
-> > My concern for preempt notifiers is masking real soft lockup warnings. =
- If the
-> > flag is set every time the vm is preempted, it becomes more likely that=
- we will
-> > mask real warnings.  The ioctl was choosen because it sets the flag onl=
-y when
-> > the guest is being paused deliberately.
-> >
-> > AFAIK, SIGSTOP is not a supported way to stop a qemu vm so a soft lockup
->=20
-> This is a kvm patch, not a qemu patch.  In general we try to address
-> general requirements, not just those that are specific to one userspace,
-> even if it is near to our hearts.
->=20
-> > warning would be working as designed there.  If that isn't the case, or=
- if it
-> > ever changes, we could always install a signal handler for SIGCONT that=
- set the
-> > flag before resuming the vm.
-> >
-> > Scheduling delays are also beyond the scope of this problem and I see t=
-he soft
-> > lockup warning as appropriate in that case.
->=20
-> I don't think you should see a guest softlockup if the host is
-> overloaded.  Nor should you see it due to a long live migration pause,
-> or STOP/CONT.  You should see a guest softlockup if it is spinning due
-> to a guest bug, and not for any other reason.
->=20
-> I think we need a mix of the ioctl (for STOP/CONT and voluntary pauses,
-> like live migration or qemu stop/cont) and preempt notifiers (together
-> with a check for TASK_RUNNING/TASK_UNINTERRUPTIBLE, for scheduling or
-> swap delays)
->=20
-> --=20
-> error compiling committee.c: too many arguments to function
->=20
+ arch/ia64/include/asm/kvm_para.h    |    5 +++++
+ arch/powerpc/include/asm/kvm_para.h |    5 +++++
+ arch/s390/include/asm/kvm_para.h    |    5 +++++
+ arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+ arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+ include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+ 6 files changed, 58 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
 
-Do you want the preemption notifier work in before you will consider merging
-this set, or can that be a follow on?
+diff --git a/arch/ia64/include/asm/kvm_para.h b/arch/ia64/include/asm/kvm_para.h
+index 1588aee..2019cb9 100644
+--- a/arch/ia64/include/asm/kvm_para.h
++++ b/arch/ia64/include/asm/kvm_para.h
+@@ -26,6 +26,11 @@ static inline unsigned int kvm_arch_para_features(void)
+ 	return 0;
+ }
+ 
++static inline bool kvm_check_and_clear_guest_paused(void)
++{
++	return false;
++}
++
+ #endif
+ 
+ #endif
+diff --git a/arch/powerpc/include/asm/kvm_para.h b/arch/powerpc/include/asm/kvm_para.h
+index 50533f9..1f80293 100644
+--- a/arch/powerpc/include/asm/kvm_para.h
++++ b/arch/powerpc/include/asm/kvm_para.h
+@@ -169,6 +169,11 @@ static inline unsigned int kvm_arch_para_features(void)
+ 	return r;
+ }
+ 
++static inline bool kvm_check_and_clear_guest_paused(void)
++{
++	return false;
++}
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __POWERPC_KVM_PARA_H__ */
+diff --git a/arch/s390/include/asm/kvm_para.h b/arch/s390/include/asm/kvm_para.h
+index 6964db2..a988329 100644
+--- a/arch/s390/include/asm/kvm_para.h
++++ b/arch/s390/include/asm/kvm_para.h
+@@ -149,6 +149,11 @@ static inline unsigned int kvm_arch_para_features(void)
+ 	return 0;
+ }
+ 
++static inline bool kvm_check_and_clear_guest_paused(void)
++{
++	return false;
++}
++
+ #endif
+ 
+ #endif /* __S390_KVM_PARA_H */
+diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
+index 734c376..99c4bbe 100644
+--- a/arch/x86/include/asm/kvm_para.h
++++ b/arch/x86/include/asm/kvm_para.h
+@@ -95,6 +95,14 @@ struct kvm_vcpu_pv_apf_data {
+ extern void kvmclock_init(void);
+ extern int kvm_register_clock(char *txt);
+ 
++#ifdef CONFIG_KVM_CLOCK
++bool kvm_check_and_clear_guest_paused(void);
++#else
++static inline bool kvm_check_and_clear_guest_paused(void)
++{
++	return false;
++}
++#endif /* CONFIG_KVMCLOCK */
+ 
+ /* This instruction is vmcall.  On non-VT architectures, it will generate a
+  * trap that we will then rewrite to the appropriate instruction.
+diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
+index 44842d7..bdf6423 100644
+--- a/arch/x86/kernel/kvmclock.c
++++ b/arch/x86/kernel/kvmclock.c
+@@ -22,6 +22,7 @@
+ #include <asm/msr.h>
+ #include <asm/apic.h>
+ #include <linux/percpu.h>
++#include <linux/hardirq.h>
+ 
+ #include <asm/x86_init.h>
+ #include <asm/reboot.h>
+@@ -114,6 +115,26 @@ static void kvm_get_preset_lpj(void)
+ 	preset_lpj = lpj;
+ }
+ 
++bool kvm_check_and_clear_guest_paused(void)
++{
++	bool ret = false;
++	struct pvclock_vcpu_time_info *src;
++
++	/*
++	 * per_cpu() is safe here because this function is only called from
++	 * timer functions where preemption is already disabled.
++	 */
++	WARN_ON(!in_atomic());
++	src = &__get_cpu_var(hv_clock);
++	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
++		__this_cpu_and(hv_clock.flags, ~PVCLOCK_GUEST_STOPPED);
++		ret = true;
++	}
++
++	return ret;
++}
++EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
++
+ static struct clocksource kvm_clock = {
+ 	.name = "kvm-clock",
+ 	.read = kvm_clock_get_cycles,
+diff --git a/include/asm-generic/kvm_para.h b/include/asm-generic/kvm_para.h
+new file mode 100644
+index 0000000..05ef7e7
+--- /dev/null
++++ b/include/asm-generic/kvm_para.h
+@@ -0,0 +1,14 @@
++#ifndef _ASM_GENERIC_KVM_PARA_H
++#define _ASM_GENERIC_KVM_PARA_H
++
++
++/*
++ * This function is used by architectures that support kvm to avoid issuing
++ * false soft lockup messages.
++ */
++static inline bool kvm_check_and_clear_guest_paused(void)
++{
++	return false;
++}
++
++#endif
+-- 
+1.7.5.4
 
-Eric
-
---DiL7RhKs8rK9YGuF
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJO6OPUAAoJEKhG9nGc1bpJfh0P/27rntQ0sjv9E711ZQm01dhK
-7K+sev5s2I0VtZHgNICjQ31D8Ct0PSSOhwvmrs3Fe8SMb+WU18B/NWN8NCX3AFN8
-EjRL8846AGfrzAqdKZyezCbEq+q4gDoESst8bH2kXWiKfpeRu7v/K+trALpheS/B
-HM0B5pJ25hqqy6c18e2mX873WK0gvX2ZnRvitgChnnTGyC29yDh26Xc74mYC5iqP
-RJ2QYVb99Qc0L7E6263NHoaZOKsGntUNcCBE3H8g487ZEwGaGXL37Cc2+tszAo1x
-iu38AdVJwMvNlMlIXykHKA2bxhPSIYB4huooCTCy9oRApxV73Sn/N6IVFjN1loHi
-frDrI5LRHWiSE1lwYQhH5h6C5RGnBIRljjpOqAa5P4lrwbkuf6UV2zJj00m3M+Qz
-ynk216/CeHQfVtXHurHUK5i2L7D3K9DzM/DogaNCqwbd1jGHAIhaIiRtTzoMeqm0
-MgdzqonV0xY6+Xe2MVAJpKL/gitnqIV1We7OAp0BjquQHM3nvNoyhPSrPwR1LEng
-gNbgQJ32qCPs4ydzS76KJRum7BUi0ai8dE7vu0EdBnUrrPBignEjt8v1EZinmjCl
-KHlQC7RW6VBjyre7mfOdPHPBCTw+gQ/4nq+u5qA4NqiEmLKmXaiEQ6MqqhTBFJDK
-gvFdAUa4KV6IToBMkm2T
-=FWT7
------END PGP SIGNATURE-----
-
---DiL7RhKs8rK9YGuF--
