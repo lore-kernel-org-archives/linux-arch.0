@@ -1,90 +1,75 @@
 From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped by
- host
-Date: Thu, 15 Dec 2011 13:53:46 -0500
-Message-ID: <20111215185346.GA2829@mgebm.net>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
- <4EDF7B0D.4060001@redhat.com>
- <20111208151929.GA6301@mgebm.net>
- <4EE8BBF4.8070108@redhat.com>
- <20111214175844.GD4075@mgebm.net>
- <4EE9C274.3030603@redhat.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="Dxnq1zWXvFF0Q93v"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:45597 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759239Ab1LOSxs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Dec 2011 13:53:48 -0500
-Content-Disposition: inline
-In-Reply-To: <4EE9C274.3030603@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@redhat.com>
-Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Subject: [PATCH 4/4 V7] Add check for suspended vm in softlockup detector
+Date: Thu, 15 Dec 2011 14:42:06 -0500
+Message-ID: <1323978126-13222-5-git-send-email-emunson@mgebm.net>
+References: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
+watchdog now checks if the kernel knows it was stopped by the host and skips
+the warning if so.  When the watchdog is reset successfully, clear the guest
+paused flag.
 
---Dxnq1zWXvFF0Q93v
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: arnd@arndb.de
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+Changes from V3:
+ Clear the PAUSED flag when the watchdog is reset
 
-On Thu, 15 Dec 2011, Avi Kivity wrote:
+ kernel/watchdog.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-> On 12/14/2011 07:58 PM, Eric B Munson wrote:
-> > > I don't think you should see a guest softlockup if the host is
-> > > overloaded.  Nor should you see it due to a long live migration pause,
-> > > or STOP/CONT.  You should see a guest softlockup if it is spinning due
-> > > to a guest bug, and not for any other reason.
-> > >=20
-> > > I think we need a mix of the ioctl (for STOP/CONT and voluntary pause=
-s,
-> > > like live migration or qemu stop/cont) and preempt notifiers (together
-> > > with a check for TASK_RUNNING/TASK_UNINTERRUPTIBLE, for scheduling or
-> > > swap delays)
-> > >=20
-> >
-> > Do you want the preemption notifier work in before you will consider me=
-rging
-> > this set, or can that be a follow on?
->=20
-> Yes please.
->=20
-> --=20
-> error compiling committee.c: too many arguments to function
->=20
-
-I am working on V7 to incorporate the __this_cpu_and suggestion, would you
-consider that for inclusion and we can continue discussing the need for the
-preemption notification work?  I think that having a guest complain when the
-host is so loaded that the guest watchdog threads can't make any progress is
-desirable behavior, it may be the only notification that an admin gets that=
- a
-particular host is over loaded.
-
-Eric
-
---Dxnq1zWXvFF0Q93v
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJO6kI6AAoJEKhG9nGc1bpJIbUP/3G9PFXfFMlQ1URaJG5PAGHT
-0UNQ1DYgJhHhh4nZ8Xvvbu3KFpgtTI7ZLt+tFHyVy4dUv13P4M7w995zUgVPMwzO
-IxTRtTpCNDou2bQv6iZSQpBqQ2EPniWt0ST3Rm+OztAwedX5govi0uYHJKhh5fJA
-9E8FmfhpyYYrM/UPDL9l1OtMMfIrdNBT1u7IjCKfSB/8hmOoCFtJocHVdqDhGia4
-RGPgjEy+KfPBaqE6MkUWEgyWrVw72vmP7aMRE6sLEywjjR4jbD5LVeNl9q6b6whY
-Oinqb6GavyttXHn2aVIxZw5DfGPsfzrh8VLDc9fV8SItKnqNm6quvWO5eLgUPxPL
-5b6KsjMMm8m9c4UK6qZHOVS7AXxUx5HSzGIQJlqUS/piLBFuzFQNi91EHRic+4cq
-nXKojyqUOqg67gimibBJMGSijs+BdB9RuNciqi65eMp6Yspk51p1WtPCZzXaH1hY
-cuSUGXf5E+GNHOrAxLfRGErs3t4tuYaZl+osqyFfJuYFzP8NMWVdvN5vTirxd6C7
-XPVeGzWdDGGtUD5jt0A2ZaNuiu8ZUAj23GWGkEebL1hr2glPQT6eNGOzMdQfHDUl
-ss7BbxJBUlXgn0GmmDKw2qZyiP68CA1tnjC4/JdJmH/oq4jc/hrhkaPpJyf/Ln+r
-gmgDTEKoMJNlzwE+GBvF
-=Ifx8
------END PGP SIGNATURE-----
-
---Dxnq1zWXvFF0Q93v--
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 1d7bca7..91485e5 100644
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -25,6 +25,7 @@
+ #include <linux/sysctl.h>
+ 
+ #include <asm/irq_regs.h>
++#include <linux/kvm_para.h>
+ #include <linux/perf_event.h>
+ 
+ int watchdog_enabled = 1;
+@@ -280,6 +281,9 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 			__this_cpu_write(softlockup_touch_sync, false);
+ 			sched_clock_tick();
+ 		}
++
++		/* Clear the guest paused flag on watchdog reset */
++		kvm_check_and_clear_guest_paused();
+ 		__touch_watchdog();
+ 		return HRTIMER_RESTART;
+ 	}
+@@ -292,6 +296,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 	 */
+ 	duration = is_softlockup(touch_ts);
+ 	if (unlikely(duration)) {
++		/*
++		 * If a virtual machine is stopped by the host it can look to
++		 * the watchdog like a soft lockup, check to see if the host
++		 * stopped the vm before we issue the warning
++		 */
++		if (kvm_check_and_clear_guest_paused())
++			return HRTIMER_RESTART;
++
+ 		/* only warn once */
+ 		if (__this_cpu_read(soft_watchdog_warn) == true)
+ 			return HRTIMER_RESTART;
+-- 
+1.7.5.4
