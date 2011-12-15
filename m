@@ -1,41 +1,39 @@
 From: Avi Kivity <avi@redhat.com>
 Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped
  by host
-Date: Thu, 15 Dec 2011 12:21:16 +0200
-Message-ID: <4EE9CA1C.3010801@redhat.com>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <4EDF7B0D.4060001@redhat.com> <20111214121622.GB18317@amt.cnet> <4EE8B53C.6070502@redhat.com> <20111214182101.GB21945@amt.cnet>
+Date: Thu, 15 Dec 2011 13:55:15 +0200
+Message-ID: <4EE9E023.4000904@redhat.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <20111208113422.GA27919@amit-x200.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:61312 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:1026 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751990Ab1LOKVf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Dec 2011 05:21:35 -0500
-In-Reply-To: <20111214182101.GB21945@amt.cnet>
+	id S1751367Ab1LOLzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Dec 2011 06:55:35 -0500
+In-Reply-To: <20111208113422.GA27919@amit-x200.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marcelo Tosatti <mtosatti@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: Amit Shah <amit.shah@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 12/14/2011 08:21 PM, Marcelo Tosatti wrote:
-> On Wed, Dec 14, 2011 at 04:39:56PM +0200, Avi Kivity wrote:
-> > On 12/14/2011 02:16 PM, Marcelo Tosatti wrote:
-> > > > Having this controlled from userspace means it doesn't work for SIGSTOP
-> > > > or for long scheduling delays.  What about doing this automatically
-> > > > based on preempt notifiers?
-> > >
-> > > Long scheduling delays should be considered hangups from the guest
-> > > perspective.
-> > 
-> > Why?  To the guest it looks like slow hardware, but it will interpret it
-> > as a softlockup.
+On 12/08/2011 01:34 PM, Amit Shah wrote:
+> On (Mon) 05 Dec 2011 [15:18:59], Eric B Munson wrote:
+> > When a guest kernel is stopped by the host hypervisor it can look like a soft
+> > lockup to the guest kernel.  This false warning can mask later soft lockup
+> > warnings which may be real.  This patch series adds a method for a host
+> > hypervisor to communicate to a guest kernel that it is being stopped.  The
+> > final patch in the series has the watchdog check this flag when it goes to
+> > issue a soft lockup warning and skip the warning if the guest knows it was
+> > stopped.
 >
-> Slow enough that progress of the watchdog thread is unable to keep up
-> with timer interrupt processing. This is considered a hang and
-> should be reported.
+> Guest S4 would need similar treatment, and I think the code in the two
+> approaches can be shared.  Just something to consider.
+>
 
-It's not a guest hang though!
+Why does S4 need any treatment?  The guest is aware that it's sleeping,
+unlike the other cases treated here.
 
 -- 
 error compiling committee.c: too many arguments to function
