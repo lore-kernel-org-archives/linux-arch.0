@@ -1,39 +1,36 @@
-From: Avi Kivity <avi@redhat.com>
-Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped
- by host
-Date: Thu, 15 Dec 2011 13:55:15 +0200
-Message-ID: <4EE9E023.4000904@redhat.com>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <20111208113422.GA27919@amit-x200.redhat.com>
+From: "H. Peter Anvin" <hpa@kernel.org>
+Subject: Re: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
+Date: Thu, 15 Dec 2011 10:12:21 -0800
+Message-ID: <4EEA3885.5050401@kernel.org>
+References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <CA+55aFzanrQU2DQHxkE7cWBOwT7Xb=+LfmSNWoatDL-oiV6opA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1026 "EHLO mx1.redhat.com"
+Received: from terminus.zytor.com ([198.137.202.10]:41396 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751367Ab1LOLzf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Dec 2011 06:55:35 -0500
-In-Reply-To: <20111208113422.GA27919@amit-x200.redhat.com>
+	id S1759245Ab1LOSMf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Dec 2011 13:12:35 -0500
+In-Reply-To: <CA+55aFzanrQU2DQHxkE7cWBOwT7Xb=+LfmSNWoatDL-oiV6opA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Amit Shah <amit.shah@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
 
-On 12/08/2011 01:34 PM, Amit Shah wrote:
-> On (Mon) 05 Dec 2011 [15:18:59], Eric B Munson wrote:
-> > When a guest kernel is stopped by the host hypervisor it can look like a soft
-> > lockup to the guest kernel.  This false warning can mask later soft lockup
-> > warnings which may be real.  This patch series adds a method for a host
-> > hypervisor to communicate to a guest kernel that it is being stopped.  The
-> > final patch in the series has the watchdog check this flag when it goes to
-> > issue a soft lockup warning and skip the warning if the guest knows it was
-> > stopped.
->
-> Guest S4 would need similar treatment, and I think the code in the two
-> approaches can be shared.  Just something to consider.
->
+On 12/14/2011 04:03 PM, Linus Torvalds wrote:
+> 
+> I'm pretty sure that we had some chips that actually do write random
+> stuff to the destination register when the input is zero.
+> 
+> We relied on the "doesn't change the destination" at some point *long*
+> ago, and it turned out not to work, but I can't remember what chip it
+> was.
+> 
+> I'm nervous about making this change even on x86-64 unless we add big
+> comments about the old 32-bit change. Can somebody find the historic
+> thing and a comment about which chip it was?
+> 
 
-Why does S4 need any treatment?  The guest is aware that it's sleeping,
-unlike the other cases treated here.
+The ones I know of are some steppings of the 486.
 
--- 
-error compiling committee.c: too many arguments to function
+	-hpa
