@@ -1,43 +1,53 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
-Date: Thu, 15 Dec 2011 15:58:46 -0800
-Message-ID: <4EEA89B6.7030204@zytor.com>
-References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <4EEA66A3.4010205@zytor.com> <5476903.m0O6cTqH9B@wuerfel>
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped by
+ host
+Date: Fri, 16 Dec 2011 07:31:49 -0200
+Message-ID: <20111216093149.GA26982@amt.cnet>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
+ <4EDF7B0D.4060001@redhat.com>
+ <20111214121622.GB18317@amt.cnet>
+ <4EE8B53C.6070502@redhat.com>
+ <20111214182101.GB21945@amt.cnet>
+ <4EE9CA1C.3010801@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:43964 "EHLO mail.zytor.com"
+Received: from mx1.redhat.com ([209.132.183.28]:28736 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751958Ab1LOX7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Dec 2011 18:59:00 -0500
-In-Reply-To: <5476903.m0O6cTqH9B@wuerfel>
+	id S1756156Ab1LPLGg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Dec 2011 06:06:36 -0500
+Content-Disposition: inline
+In-Reply-To: <4EE9CA1C.3010801@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: Avi Kivity <avi@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 12/15/2011 02:43 PM, Arnd Bergmann wrote:
-> On Thursday 15 December 2011 13:29:07 H. Peter Anvin wrote:
->> On 12/13/2011 06:56 AM, David Howells wrote:
->>>  
->>> +#if BITS_PER_LONG == 32
->>>  #include <asm-generic/bitops/fls64.h>
->>> +#endif
->>>  
->>
->> This is outside __KERNEL__, and thus ends up changing what is exported
->> to userspace (specifically, fls64.h won't be included for 64-bit
->> non-__KERNEL__ anymore.)  Is this a bug?
+On Thu, Dec 15, 2011 at 12:21:16PM +0200, Avi Kivity wrote:
+> On 12/14/2011 08:21 PM, Marcelo Tosatti wrote:
+> > On Wed, Dec 14, 2011 at 04:39:56PM +0200, Avi Kivity wrote:
+> > > On 12/14/2011 02:16 PM, Marcelo Tosatti wrote:
+> > > > > Having this controlled from userspace means it doesn't work for SIGSTOP
+> > > > > or for long scheduling delays.  What about doing this automatically
+> > > > > based on preempt notifiers?
+> > > >
+> > > > Long scheduling delays should be considered hangups from the guest
+> > > > perspective.
+> > > 
+> > > Why?  To the guest it looks like slow hardware, but it will interpret it
+> > > as a softlockup.
+> >
+> > Slow enough that progress of the watchdog thread is unable to keep up
+> > with timer interrupt processing. This is considered a hang and
+> > should be reported.
 > 
-> Not sure, but I think it's a bug to use BITS_PER_LONG rather than
-> __BITS_PER_LONG outside of __KERNEL__.
-> 
+> It's not a guest hang though!
 
-Yes, it's one of many issues with this stuff.  After tracking down
-things a bit further it looks like this was simply a conversion error in
-checkin:
+No, but your host system is in such a load state that for the sake of
+system usability you better print out a warning message.
 
-d57594c203b1 bitops: use __fls for fls64 on 64-bit archs
+I don't see the advantage of preempt notifiers over the simple, paravirt
+solution proposed? Note kvmclock is already paravirt.
 
-	-hpa
+What do you want to be done in preempt notifiers? Measure what to
+consider setting this flag?
