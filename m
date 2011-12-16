@@ -1,52 +1,246 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:45797 "EHLO mail.mgebm.net"
+Received: from mx1.redhat.com ([209.132.183.28]:11545 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759375Ab1LOTmK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Dec 2011 14:42:10 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 1/4 V7] Add flag to indicate that a vm was stopped by the host
-Date: Thu, 15 Dec 2011 14:42:03 -0500
-Message-ID: <1323978126-13222-2-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
-References: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
+	id S1759520Ab1LPOO0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Dec 2011 09:14:26 -0500
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 3/7] Add assertion checking macros
+Date: Fri, 16 Dec 2011 14:14:17 +0000
+Message-ID: <20111216141417.24668.15693.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
+References: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111215194203.dPoot1mPa2gWNR3_MQL9b2WxWzkfEIZX2MaVlCrCRyM@z>
+To: linux-arch@vger.kernel.org, mingo@elte.hu
+Cc: linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
+Message-ID: <20111216141417.KQnNhW3nTOI6lH8dYlO8gRxtBx_ArayYY8DaRPv4qfA@z>
 
-This flag will be used to check if the vm was stopped by the host when a soft
-lockup was detected.  The host will set the flag when it stops the guest.  On
-resume, the guest will check this flag if a soft lockup is detected and skip
-issuing the warning.
+Add a range of ASSERT* macros to linux/assert.h for performing runtime
+assertions.  These will use ANNOTATED_BUG() to create an annotated oops if the
+check fails.
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: arnd@arndb.de
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
+All but the first macro will display the values and condition(s) involved in
+the failed check as these are very useful for working out the cause of the
+problem and may not necessarily be easily determinable from the register and
+stack dumps.
+
+The checks are only enabled under two circumstances:
+
+ (1) CONFIG_DEBUG_ENABLE_ASSERTIONS=y
+
+ (2) ENABLE_ASSERTIONS is defined prior to the #inclusion of <linux/assert.h>
+
+There are five macros provided:
+
+ (a) ASSERT(X)
+
+     Issue an assertion failure error if X is false.  In other words, require
+     the expression X to be true.  For example:
+
+	ASSERT(val != 0);
+
+     There is no need to display val here in the case the expression fails
+     since it can only be 0.  If this fails, it produces an error like the
+     following:
+
+	------------[ cut here ]------------
+	kernel BUG at fs/fscache/main.c:109!
+	ASSERTION FAILED
+	invalid opcode: 0000 [#1] SMP
+
+ (b) ASSERTCMP(X, OP, Y)
+
+     Issue an assertion failure error if the expression X OP Y is false.  For
+     example:
+
+	ASSERTCMP(x, >, 12)
+
+     If an oops is produced, then the values of X and Y will be displayed in
+     hex, along with OP:
+
+	------------[ cut here ]------------
+	kernel BUG at fs/fscache/main.c:109!
+	ASSERTION FAILED: 2 > c is false
+	invalid opcode: 0000 [#1] SMP
+
+ (c) ASSERTRANGE(X, OP, Y, OP2, Z)
+
+     Issue an assertion failure error if the expression X OP Y or if the
+     expression Y OP2 Z is false.  Typically OP and OP2 would be < or <=,
+     looking something like:
+
+	ASSERTRANGE(11, <, x, <=, 13);
+
+     and giving the following error:
+
+	------------[ cut here ]------------
+	kernel BUG at fs/fscache/main.c:109!
+	ASSERTION FAILED: b < 2 <= d is false
+	invalid opcode: 0000 [#1] SMP
+
+and for compactness, where an assertion should only apply under certain
+circumstances:
+
+ (d) ASSERTIF(C, X)
+
+     If condition C is true, issue an assertion failure error if X is false.
+     For example:
+
+	ASSERTIF(test_bit(FSCACHE_OP_EXCLUSIVE, &op->flags),
+		 object->n_exclusive != 0);
+
+ (e) ASSERTIFCMP(C, X, OP, Y)
+
+     This is a combination of ASSERTIF and ASSERTCMP.  For example:
+
+	ASSERTIFCMP(test_bit(FSCACHE_OP_EXCLUSIVE, &op->flags),
+		    object->n_exclusive, >, 0);
+
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
- arch/x86/include/asm/pvclock-abi.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
-index 35f2d19..6167fd7 100644
---- a/arch/x86/include/asm/pvclock-abi.h
-+++ b/arch/x86/include/asm/pvclock-abi.h
-@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
- } __attribute__((__packed__));
+ include/linux/assert.h |  111 ++++++++++++++++++++++++++++++++++++++++++++++++
+ lib/Kconfig.debug      |    8 +++
+ 2 files changed, 119 insertions(+), 0 deletions(-)
+ create mode 100644 include/linux/assert.h
+
+diff --git a/include/linux/assert.h b/include/linux/assert.h
+new file mode 100644
+index 0000000..e1e9264
+--- /dev/null
++++ b/include/linux/assert.h
+@@ -0,0 +1,111 @@
++/* Assertion checking
++ *
++ * Copyright (C) 2011 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells@redhat.com)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
++ */
++
++#ifndef _LINUX_ASSERT_H
++#define _LINUX_ASSERT_H
++
++#include <linux/bug.h>
++
++/*
++ * ENABLE_ASSERTIONS can be set by an individual module to override the global
++ * setting and turn assertions on for just that module.
++ */
++#if defined(CONFIG_DEBUG_ENABLE_ASSERTIONS) || defined(ENABLE_ASSERTIONS)
++
++#define cond_assertion_failed(FMT, ...)					\
++	do {								\
++		ANNOTATED_BUG("ASSERTION FAILED" FMT, ## __VA_ARGS__); \
++	} while (0)
++
++#else
++
++#define cond_assertion_failed(FMT, ...)		\
++	do {					\
++		no_printk("ASSERTION FAILED" FMT, ## __VA_ARGS__);	\
++	} while (0)
++
++#endif
++
++/**
++ * ASSERT - Oops if the given expression is not true
++ * X: The expression to check
++ */
++#define ASSERT(X)							\
++do {									\
++	if (unlikely(!(X)))						\
++		cond_assertion_failed("");				\
++} while (0)
++
++/**
++ * ASSERTCMP - Oops if the specified check fails
++ * X: The value to check
++ * OP: The operator to use for comparison
++ * Y: The value to compare against
++ *
++ * The two values are displayed in the oops report if the assertion fails.
++ */
++#define ASSERTCMP(X, OP, Y)						\
++do {									\
++	if (unlikely(!((X) OP (Y))))					\
++		cond_assertion_failed(": %lx " #OP " %lx is false\n", \
++				      (unsigned long)(X),		\
++				      (unsigned long)(Y));		\
++} while (0)
++
++/**
++ * ASSERTIF - If condition is true, oops if the given expression is not true
++ * C: The condition under which to perform the check
++ * X: The expression to check
++ */
++#define ASSERTIF(C, X)							\
++do {									\
++	if (unlikely((C) && !(X)))					\
++		cond_assertion_failed("");				\
++} while (0)
++
++/**
++ * ASSERTIFCMP - If condition is true, oops if the specified check fails
++ * C: The condition under which to perform the check
++ * X: The value to check
++ * OP: The operator to use for comparison
++ * Y: The value to compare against
++ *
++ * The two values are displayed in the oops report if the assertion fails.
++ */
++#define ASSERTIFCMP(C, X, OP, Y)					\
++do {									\
++	if (unlikely((C) && !((X) OP (Y))))				\
++		cond_assertion_failed(": %lx " #OP " %lx is false\n",	\
++				      (unsigned long)(X),		\
++				      (unsigned long)(Y));		\
++} while (0)
++
++/**
++ * ASSERTCMP - Oops if the value is outside of the specified range
++ * X: The lower bound
++ * OP: The operator to use to check against the lower bound (< or <=)
++ * Y: The value to check
++ * OP2: The operator to use to check against the upper bound (< or <=)
++ * Z: The upper bound
++ *
++ * The three values are displayed in the oops report if the assertion fails.
++ */
++#define ASSERTRANGE(X, OP, Y, OP2, Z)					\
++do {									\
++	if (unlikely(!((X) OP (Y)) || !((Y) OP2 (Z))))			\
++		cond_assertion_failed(": %lx " #OP " %lx " #OP2		\
++				      " %lx is false\n",		\
++				      (unsigned long)(X),		\
++				      (unsigned long)(Y),		\
++				      (unsigned long)(Z));		\
++} while(0)
++
++#endif /* _LINUX_ASSERT_H */
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 82928f5..b14acf9 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -149,6 +149,14 @@ config DEBUG_KERNEL
+ 	  Say Y here if you are developing drivers or trying to debug and
+ 	  identify kernel problems.
  
- #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
-+#define PVCLOCK_GUEST_STOPPED	(1 << 1)
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_X86_PVCLOCK_ABI_H */
--- 
-1.7.5.4
++config DEBUG_ENABLE_ASSERTIONS
++	bool "Enable assertion checks"
++	depends on BUG
++	help
++	  Say Y here to globally enable checks made by the ASSERT*() macros.
++	  If such a check fails, BUG() processing will be invoked and an
++	  annotated oops will be emitted.
++
+ config DEBUG_SHIRQ
+ 	bool "Debug shared IRQ handlers"
+ 	depends on DEBUG_KERNEL && GENERIC_HARDIRQS
 
