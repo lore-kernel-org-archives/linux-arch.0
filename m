@@ -1,39 +1,41 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
-Date: Fri, 16 Dec 2011 07:27:25 -0800
-Message-ID: <4EEB635D.2050508@zytor.com>
-References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <5476903.m0O6cTqH9B@wuerfel> <4EEA89B6.7030204@zytor.com> <201112161357.14463.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/4 V7] Avoid soft lockup message when KVM is stopped by host
+Date: Fri, 16 Dec 2011 16:08:57 +0000
+Message-ID: <201112161608.57532.arnd@arndb.de>
+References: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49019 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759872Ab1LPP1o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Dec 2011 10:27:44 -0500
-In-Reply-To: <201112161357.14463.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.17.9]:58666 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752068Ab1LPQJK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Dec 2011 11:09:10 -0500
+In-Reply-To: <1323978126-13222-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 12/16/2011 05:57 AM, Arnd Bergmann wrote:
->>
->> Yes, it's one of many issues with this stuff.  After tracking down
->> things a bit further it looks like this was simply a conversion error in
->> checkin:
->>
->> d57594c203b1 bitops: use __fls for fls64 on 64-bit archs
-> 
-> Hmm, I also looked a bit closer and noticed that we don't actually
-> export any bitops headers to user space, so any use of __KERNEL__ in
-> those headers is bogus, but I don't think there is an actual bug here.
-> 
+On Thursday 15 December 2011, Eric B Munson wrote:
+>  Documentation/virtual/kvm/api.txt   |   12 ++++++++++++
+>  arch/ia64/include/asm/kvm_para.h    |    5 +++++
+>  arch/powerpc/include/asm/kvm_para.h |    5 +++++
+>  arch/s390/include/asm/kvm_para.h    |    5 +++++
+>  arch/x86/include/asm/kvm_host.h     |    2 ++
+>  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+>  arch/x86/include/asm/pvclock-abi.h  |    1 +
+>  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+>  arch/x86/kvm/x86.c                  |   20 ++++++++++++++++++++
+>  include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+>  include/linux/kvm.h                 |    2 ++
+>  kernel/watchdog.c                   |   12 ++++++++++++
+>  12 files changed, 107 insertions(+), 0 deletions(-)
+>  create mode 100644 include/asm-generic/kvm_para.h
 
-That whole thing probably wants to be cleaned up, then.
+asm-generic changes Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-	-hpa
+but please remove me from the cc-list for the other patches.
 
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+	Arnd
