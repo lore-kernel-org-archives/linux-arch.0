@@ -1,112 +1,39 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 7/7] RxRPC: Use new core assertion macros
-Date: Fri, 16 Dec 2011 14:14:59 +0000
-Message-ID: <20111216141459.24668.91001.stgit@warthog.procyon.org.uk>
-References: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 1/3] X86_64: Optimise fls(), ffs() and fls64()
+Date: Fri, 16 Dec 2011 07:27:25 -0800
+Message-ID: <4EEB635D.2050508@zytor.com>
+References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <5476903.m0O6cTqH9B@wuerfel> <4EEA89B6.7030204@zytor.com> <201112161357.14463.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, mingo@elte.hu
-Cc: linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:49019 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759872Ab1LPP1o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Dec 2011 10:27:44 -0500
+In-Reply-To: <201112161357.14463.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
 
-Make RxRPC use the new core assertion macros in place of its own.
+On 12/16/2011 05:57 AM, Arnd Bergmann wrote:
+>>
+>> Yes, it's one of many issues with this stuff.  After tracking down
+>> things a bit further it looks like this was simply a conversion error in
+>> checkin:
+>>
+>> d57594c203b1 bitops: use __fls for fls64 on 64-bit archs
+> 
+> Hmm, I also looked a bit closer and noticed that we don't actually
+> export any bitops headers to user space, so any use of __KERNEL__ in
+> those headers is bogus, but I don't think there is an actual bug here.
+> 
 
-Signed-off-by: David Howells <dhowells@redhat.com>
----
+That whole thing probably wants to be cleaned up, then.
 
- net/rxrpc/ar-internal.h |   71 +----------------------------------------------
- 1 files changed, 2 insertions(+), 69 deletions(-)
+	-hpa
 
-diff --git a/net/rxrpc/ar-internal.h b/net/rxrpc/ar-internal.h
-index 8e22bd3..b86fe78 100644
---- a/net/rxrpc/ar-internal.h
-+++ b/net/rxrpc/ar-internal.h
-@@ -10,6 +10,8 @@
-  */
- 
- #include <rxrpc/packet.h>
-+#define ENABLE_ASSERTIONS
-+#include <linux/assert.h>
- 
- #if 0
- #define CHECK_SLAB_OKAY(X)				     \
-@@ -657,75 +659,6 @@ do {							\
- #endif
- 
- /*
-- * debug assertion checking
-- */
--#if 1 // defined(__KDEBUGALL)
--
--#define ASSERT(X)						\
--do {								\
--	if (unlikely(!(X))) {					\
--		printk(KERN_ERR "\n");				\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");	\
--		BUG();						\
--	}							\
--} while(0)
--
--#define ASSERTCMP(X, OP, Y)						\
--do {									\
--	if (unlikely(!((X) OP (Y)))) {					\
--		printk(KERN_ERR "\n");					\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");		\
--		printk(KERN_ERR "%lu " #OP " %lu is false\n",		\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		printk(KERN_ERR "0x%lx " #OP " 0x%lx is false\n",	\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		BUG();							\
--	}								\
--} while(0)
--
--#define ASSERTIF(C, X)						\
--do {								\
--	if (unlikely((C) && !(X))) {				\
--		printk(KERN_ERR "\n");				\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");	\
--		BUG();						\
--	}							\
--} while(0)
--
--#define ASSERTIFCMP(C, X, OP, Y)					\
--do {									\
--	if (unlikely((C) && !((X) OP (Y)))) {				\
--		printk(KERN_ERR "\n");					\
--		printk(KERN_ERR "RxRPC: Assertion failed\n");		\
--		printk(KERN_ERR "%lu " #OP " %lu is false\n",		\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		printk(KERN_ERR "0x%lx " #OP " 0x%lx is false\n",	\
--		       (unsigned long)(X), (unsigned long)(Y));		\
--		BUG();							\
--	}								\
--} while(0)
--
--#else
--
--#define ASSERT(X)				\
--do {						\
--} while(0)
--
--#define ASSERTCMP(X, OP, Y)			\
--do {						\
--} while(0)
--
--#define ASSERTIF(C, X)				\
--do {						\
--} while(0)
--
--#define ASSERTIFCMP(C, X, OP, Y)		\
--do {						\
--} while(0)
--
--#endif /* __KDEBUGALL */
--
--/*
-  * socket buffer accounting / leak finding
-  */
- static inline void __rxrpc_new_skb(struct sk_buff *skb, const char *fn)
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
