@@ -1,52 +1,93 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: Re: [PATCH 3/7] Add assertion checking macros
-Date: Fri, 16 Dec 2011 13:36:53 -0800
-Message-ID: <m21us4qjuy.fsf@firstfloor.org>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [PATCH 1/7] Add conditional oopsing with annotation
+Date: Sat, 17 Dec 2011 14:15:55 -0500
+Message-ID: <201112171415.57601.vapier@gentoo.org>
 References: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
-	<20111216141417.24668.15693.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([143.182.124.21]:7139 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760837Ab1LPVia (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Dec 2011 16:38:30 -0500
-In-Reply-To: <20111216141417.24668.15693.stgit@warthog.procyon.org.uk> (David
-	Howells's message of "Fri, 16 Dec 2011 14:14:17 +0000")
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: multipart/signed;
+  boundary="nextPart2035331.fz8ENegvqb";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
 To: David Howells <dhowells@redhat.com>
 Cc: linux-arch@vger.kernel.org, mingo@elte.hu, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-David Howells <dhowells@redhat.com> writes:
->
->      There is no need to display val here in the case the expression fails
->      since it can only be 0.  If this fails, it produces an error like the
->      following:
->
-> 	------------[ cut here ]------------
-> 	kernel BUG at fs/fscache/main.c:109!
-> 	ASSERTION FAILED
+--nextPart2035331.fz8ENegvqb
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-It would be nice to display the expression here like an user space
-assert. While it can be looked up in the source it would
-make quick eyeballing easier. 
+On Friday 16 December 2011 09:13:57 David Howells wrote:
+> --- a/arch/x86/include/asm/bug.h
+> +++ b/arch/x86/include/asm/bug.h
+>=20
+> +extern const void __arch_annotated_bug;
+> +#define arch_annotated_bug(desc)				\
+> +	do {							\
+> +		asm volatile(".globl __arch_annotated_bug\n"	\
+> +			     "__arch_annotated_bug:\n"		\
+> +			     "	ud2\n"				\
+> +			     : : "d" (desc));			\
+> +		unreachable();					\
+> +	} while (0)
+> +
+> +#define is_arch_annotated_bug(regs)					\
+> +	({ ((const void *)regs->ip =3D=3D &__arch_annotated_bug) ?		\
+> +			(struct annotated_bug *)regs->dx : NULL; })
 
-Probably wouldn't cost too much additional text size?
+seems like this is making arches duplicate a bit of logic they shouldn't ha=
+ve=20
+to ... you could have asm-generic/bug.h do:
 
->
->  (e) ASSERTIFCMP(C, X, OP, Y)
->
->      This is a combination of ASSERTIF and ASSERTCMP.  For example:
->
-> 	ASSERTIFCMP(test_bit(FSCACHE_OP_EXCLUSIVE, &op->flags),
-> 		    object->n_exclusive, >, 0);
+#ifdef arch_annotated_bug_fail
 
-You probably want a checkpatch rule with those to only allow a few
-selected functions like test_bit. Otherwise people will put real side
-effects in there.
+extern const void __arch_annotated_bug;
+# define ARCH_ANNOTATED_SYM_STR CONFIG_SYMBOL_PREFIX"__arch_annotated_bug"
 
--Andi
+# define arch_annotated_bug(desc) \
+	do { \
+		asm volatile(".globl " ARCH_ANNOTATED_SYM ";\n" \
+			ARCH_ANNOTATED_SYM_STR":\n"); \
+		arch_annotated_bug_fail(desc) ; \
+		unreachable(); \
+	} while (0)
 
--- 
-ak@linux.intel.com -- Speaking for myself only
+# define is_arch_annotated_bug(regs) \
+	({ (instruction_pointer(regs) =3D=3D &__arch_annotated_bug) ? \
+		(struct annotated_bug *)arch_annotated_bug_struct(regs) : \
+		NULL; })
+
+#endif
+
+so now arches have to define two small bits.  in the x86 case:
+#define arch_annotated_bug_fail(desc) asm volatile("ud2;" : : "d" (desc))
+#define arch_annotated_bug_struct(regs) (regs)->dx
+=2Dmike
+
+--nextPart2035331.fz8ENegvqb
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
+
+iQIcBAABAgAGBQJO7OptAAoJEEFjO5/oN/WB0JAP/A7DhFNB2RDD55RMMK6i6uWd
+YsGd446EQ+4Pw8l6sUYA4x8JahFQcBCujCYXzfhbY/uW80DVAAnD2x/Hmw06uEv2
+z9fPsA/cZNxkUXqHqb0mTdZwI7Nck3AFZJe0k7172vJBuNUpED84ej5uY0kBo/QG
+gOp4OZq6jTs1qmAGHYgV4rko6c8kVeVvSRgcCLtTNyXF4GMM0wR51XKjcXzx148E
+XbPvvIkVnzFSHpUIc+tsvCnUCNpsgag+KWhEh8lljhk9Ntcz0tbnII+B6JI21E4m
+TdF4XCHQ/PFbODQ/QWlmgt276k///qRIPaNNiCq7D5x3gtKZVN9iPgGbc321MaZ6
+3Kozx6qVwvszSz+zRrOYF+zxX47XQvzCW3156aXd/3ytQoIgYUDKbjUEN+KFllqh
+Os4eIB02wGznCBPL1MfUvpU+eoPaOM46exycgH2ax6uquDIlXtIrsv6Ie7ZK9rpt
+DQ9fSQUIwkFgVJJBh3K3Gcy8kc7B+F4+UtOjzPs/vbAssE6N9bw0HfgKy/YZ29WX
+L6wJ8lepL1V4pB6dtt/vsJO5lhXEidoEKKXaEAWIu2ZBh5RZp7G5/Dov5Vuisnt1
+nUX0WTsXYDcextlKQnLhC4gdi7rc+ZP2flaUPxPKG4T1wLmFal23gOPJrhHDYKoc
+EJkPdvfqh5m4ql8Mubac
+=XUpS
+-----END PGP SIGNATURE-----
+
+--nextPart2035331.fz8ENegvqb--
