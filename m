@@ -1,93 +1,72 @@
-From: Mike Frysinger <vapier@gentoo.org>
+From: Ingo Molnar <mingo@elte.hu>
 Subject: Re: [PATCH 1/7] Add conditional oopsing with annotation
-Date: Sat, 17 Dec 2011 14:15:55 -0500
-Message-ID: <201112171415.57601.vapier@gentoo.org>
+Date: Sun, 18 Dec 2011 09:02:05 +0100
+Message-ID: <20111218080205.GA4144@elte.hu>
 References: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart2035331.fz8ENegvqb";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx3.mail.elte.hu ([157.181.1.138]:56515 "EHLO mx3.mail.elte.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751224Ab1LRIDy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 18 Dec 2011 03:03:54 -0500
+Content-Disposition: inline
 In-Reply-To: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, mingo@elte.hu, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
---nextPart2035331.fz8ENegvqb
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Friday 16 December 2011 09:13:57 David Howells wrote:
-> --- a/arch/x86/include/asm/bug.h
-> +++ b/arch/x86/include/asm/bug.h
->=20
-> +extern const void __arch_annotated_bug;
-> +#define arch_annotated_bug(desc)				\
-> +	do {							\
-> +		asm volatile(".globl __arch_annotated_bug\n"	\
-> +			     "__arch_annotated_bug:\n"		\
-> +			     "	ud2\n"				\
-> +			     : : "d" (desc));			\
-> +		unreachable();					\
-> +	} while (0)
-> +
-> +#define is_arch_annotated_bug(regs)					\
-> +	({ ((const void *)regs->ip =3D=3D &__arch_annotated_bug) ?		\
-> +			(struct annotated_bug *)regs->dx : NULL; })
+* David Howells <dhowells@redhat.com> wrote:
 
-seems like this is making arches duplicate a bit of logic they shouldn't ha=
-ve=20
-to ... you could have asm-generic/bug.h do:
+> This facility can be made use of by one of:
+> 
+> 	ANNOTATED_BUG(const char *fmt, ...);
+> 	ANNOTATED_BUG_ON(bool condition, const char *fmt, ...);
 
-#ifdef arch_annotated_bug_fail
+Hm, what about WARN_ON()s?
 
-extern const void __arch_annotated_bug;
-# define ARCH_ANNOTATED_SYM_STR CONFIG_SYMBOL_PREFIX"__arch_annotated_bug"
+WARN_ON() and WARN_ON_ONCE() covers like 99% of the *actual* 
+bugreports we get: we are actively getting rid of BUG()s that do 
+trigger and are asking all new patches to come with WARN_ON()s.
 
-# define arch_annotated_bug(desc) \
-	do { \
-		asm volatile(".globl " ARCH_ANNOTATED_SYM ";\n" \
-			ARCH_ANNOTATED_SYM_STR":\n"); \
-		arch_annotated_bug_fail(desc) ; \
-		unreachable(); \
-	} while (0)
+BUG()s are generally a poor way of reporting bugs.
 
-# define is_arch_annotated_bug(regs) \
-	({ (instruction_pointer(regs) =3D=3D &__arch_annotated_bug) ? \
-		(struct annotated_bug *)arch_annotated_bug_struct(regs) : \
-		NULL; })
+Another, much bigger issue is the actual syntax:
 
-#endif
+> -       BUG_ON(atomic_read(&cookie->usage) <= 0);
+> +       ASSERTCMP(atomic_read(&cookie->usage), >, 0);
 
-so now arches have to define two small bits.  in the x86 case:
-#define arch_annotated_bug_fail(desc) asm volatile("ud2;" : : "d" (desc))
-#define arch_annotated_bug_struct(regs) (regs)->dx
-=2Dmike
+NAK on that concept on two grounds!
 
---nextPart2035331.fz8ENegvqb
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+1) BUG_ON() is a well-known pattern. Changing it to the inverted
+   assert() braindamage is going to cause confusion years down
+   the road. Years ago we've settled on using BUG*() and WARN*()
+   assertions to include conditions that check the 'bad'
+   condition'. assert() covers the negated 'good' condition -
+   which works but the two are truly awful when mixed.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+2) The '>,0' syntax is ugly.
 
-iQIcBAABAgAGBQJO7OptAAoJEEFjO5/oN/WB0JAP/A7DhFNB2RDD55RMMK6i6uWd
-YsGd446EQ+4Pw8l6sUYA4x8JahFQcBCujCYXzfhbY/uW80DVAAnD2x/Hmw06uEv2
-z9fPsA/cZNxkUXqHqb0mTdZwI7Nck3AFZJe0k7172vJBuNUpED84ej5uY0kBo/QG
-gOp4OZq6jTs1qmAGHYgV4rko6c8kVeVvSRgcCLtTNyXF4GMM0wR51XKjcXzx148E
-XbPvvIkVnzFSHpUIc+tsvCnUCNpsgag+KWhEh8lljhk9Ntcz0tbnII+B6JI21E4m
-TdF4XCHQ/PFbODQ/QWlmgt276k///qRIPaNNiCq7D5x3gtKZVN9iPgGbc321MaZ6
-3Kozx6qVwvszSz+zRrOYF+zxX47XQvzCW3156aXd/3ytQoIgYUDKbjUEN+KFllqh
-Os4eIB02wGznCBPL1MfUvpU+eoPaOM46exycgH2ax6uquDIlXtIrsv6Ie7ZK9rpt
-DQ9fSQUIwkFgVJJBh3K3Gcy8kc7B+F4+UtOjzPs/vbAssE6N9bw0HfgKy/YZ29WX
-L6wJ8lepL1V4pB6dtt/vsJO5lhXEidoEKKXaEAWIu2ZBh5RZp7G5/Dov5Vuisnt1
-nUX0WTsXYDcextlKQnLhC4gdi7rc+ZP2flaUPxPKG4T1wLmFal23gOPJrhHDYKoc
-EJkPdvfqh5m4ql8Mubac
-=XUpS
------END PGP SIGNATURE-----
+Why don't we simply extend the *existing* primitives with a 
+'verbose' variant that saves the text string of the macro using 
+the '#param' syntax, intead of modifying the usage sites with a 
+pointless splitting along logical ops?
 
---nextPart2035331.fz8ENegvqb--
+Doing that would also remove the rather pointess ANNOTATED_() 
+prefix, which is like totally uninteresting in the actual usage 
+sites. WARN()s want to be as short, obvious and low-profile as 
+possible.
+
+So the whole schizophrenic split between BUG_ON()/WARN_ON() and 
+the assert() world is nonsensical and confusing - we should 
+settle on *one* logical variant to make code reading easier. And 
+i thought in the kernel we already settled on one of these 
+variants and are using it almost exclusively ...
+
+So this series does not look good enough to me yet.
+
+Thanks,
+
+	Ingo
