@@ -1,98 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:42354 "EHLO smtp.gentoo.org"
+Received: from mx1.redhat.com ([209.132.183.28]:40101 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752404Ab1LQTP6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 17 Dec 2011 14:15:58 -0500
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH 1/7] Add conditional oopsing with annotation
-Date: Sat, 17 Dec 2011 14:15:55 -0500
-References: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
+	id S1752322Ab1LSMwg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 19 Dec 2011 07:52:36 -0500
+Date: Mon, 19 Dec 2011 18:22:17 +0530
+From: Amit Shah <amit.shah@redhat.com>
+Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped by
+ host
+Message-ID: <20111219125217.GC3139@amit-x200.redhat.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
+ <20111208113422.GA27919@amit-x200.redhat.com>
+ <4EE9E023.4000904@redhat.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart2035331.fz8ENegvqb";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
-Message-ID: <201112171415.57601.vapier@gentoo.org>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4EE9E023.4000904@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, mingo@elte.hu, linux-kernel@vger.kernel.org
-Message-ID: <20111217191555.IQoH2EAuPcpkunL4cEosFyj5w3nF8JjgVbHvNP3R6Ik@z>
+To: Avi Kivity <avi@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20111219125217.I34PYhwh0fXHbXi3KkzSx7quE48Ui3WGqaUxPk1Ve4o@z>
 
---nextPart2035331.fz8ENegvqb
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+On (Thu) 15 Dec 2011 [13:55:15], Avi Kivity wrote:
+> On 12/08/2011 01:34 PM, Amit Shah wrote:
+> > On (Mon) 05 Dec 2011 [15:18:59], Eric B Munson wrote:
+> > > When a guest kernel is stopped by the host hypervisor it can look like a soft
+> > > lockup to the guest kernel.  This false warning can mask later soft lockup
+> > > warnings which may be real.  This patch series adds a method for a host
+> > > hypervisor to communicate to a guest kernel that it is being stopped.  The
+> > > final patch in the series has the watchdog check this flag when it goes to
+> > > issue a soft lockup warning and skip the warning if the guest knows it was
+> > > stopped.
+> >
+> > Guest S4 would need similar treatment, and I think the code in the two
+> > approaches can be shared.  Just something to consider.
+> >
+> 
+> Why does S4 need any treatment?  The guest is aware that it's sleeping,
+> unlike the other cases treated here.
 
-On Friday 16 December 2011 09:13:57 David Howells wrote:
-> --- a/arch/x86/include/asm/bug.h
-> +++ b/arch/x86/include/asm/bug.h
->=20
-> +extern const void __arch_annotated_bug;
-> +#define arch_annotated_bug(desc)				\
-> +	do {							\
-> +		asm volatile(".globl __arch_annotated_bug\n"	\
-> +			     "__arch_annotated_bug:\n"		\
-> +			     "	ud2\n"				\
-> +			     : : "d" (desc));			\
-> +		unreachable();					\
-> +	} while (0)
-> +
-> +#define is_arch_annotated_bug(regs)					\
-> +	({ ((const void *)regs->ip =3D=3D &__arch_annotated_bug) ?		\
-> +			(struct annotated_bug *)regs->dx : NULL; })
+Er, right.
 
-seems like this is making arches duplicate a bit of logic they shouldn't ha=
-ve=20
-to ... you could have asm-generic/bug.h do:
+S4 needs some treatment, though, as resume after s4 doesn't work with
+kvmclock enabled.  I didn't realise this series was only handling the
+soft lockup case.
 
-#ifdef arch_annotated_bug_fail
-
-extern const void __arch_annotated_bug;
-# define ARCH_ANNOTATED_SYM_STR CONFIG_SYMBOL_PREFIX"__arch_annotated_bug"
-
-# define arch_annotated_bug(desc) \
-	do { \
-		asm volatile(".globl " ARCH_ANNOTATED_SYM ";\n" \
-			ARCH_ANNOTATED_SYM_STR":\n"); \
-		arch_annotated_bug_fail(desc) ; \
-		unreachable(); \
-	} while (0)
-
-# define is_arch_annotated_bug(regs) \
-	({ (instruction_pointer(regs) =3D=3D &__arch_annotated_bug) ? \
-		(struct annotated_bug *)arch_annotated_bug_struct(regs) : \
-		NULL; })
-
-#endif
-
-so now arches have to define two small bits.  in the x86 case:
-#define arch_annotated_bug_fail(desc) asm volatile("ud2;" : : "d" (desc))
-#define arch_annotated_bug_struct(regs) (regs)->dx
-=2Dmike
-
---nextPart2035331.fz8ENegvqb
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
-
-iQIcBAABAgAGBQJO7OptAAoJEEFjO5/oN/WB0JAP/A7DhFNB2RDD55RMMK6i6uWd
-YsGd446EQ+4Pw8l6sUYA4x8JahFQcBCujCYXzfhbY/uW80DVAAnD2x/Hmw06uEv2
-z9fPsA/cZNxkUXqHqb0mTdZwI7Nck3AFZJe0k7172vJBuNUpED84ej5uY0kBo/QG
-gOp4OZq6jTs1qmAGHYgV4rko6c8kVeVvSRgcCLtTNyXF4GMM0wR51XKjcXzx148E
-XbPvvIkVnzFSHpUIc+tsvCnUCNpsgag+KWhEh8lljhk9Ntcz0tbnII+B6JI21E4m
-TdF4XCHQ/PFbODQ/QWlmgt276k///qRIPaNNiCq7D5x3gtKZVN9iPgGbc321MaZ6
-3Kozx6qVwvszSz+zRrOYF+zxX47XQvzCW3156aXd/3ytQoIgYUDKbjUEN+KFllqh
-Os4eIB02wGznCBPL1MfUvpU+eoPaOM46exycgH2ax6uquDIlXtIrsv6Ie7ZK9rpt
-DQ9fSQUIwkFgVJJBh3K3Gcy8kc7B+F4+UtOjzPs/vbAssE6N9bw0HfgKy/YZ29WX
-L6wJ8lepL1V4pB6dtt/vsJO5lhXEidoEKKXaEAWIu2ZBh5RZp7G5/Dov5Vuisnt1
-nUX0WTsXYDcextlKQnLhC4gdi7rc+ZP2flaUPxPKG4T1wLmFal23gOPJrhHDYKoc
-EJkPdvfqh5m4ql8Mubac
-=XUpS
------END PGP SIGNATURE-----
-
---nextPart2035331.fz8ENegvqb--
+		Amit
