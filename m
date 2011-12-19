@@ -1,50 +1,36 @@
 From: Avi Kivity <avi@redhat.com>
 Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped
  by host
-Date: Mon, 19 Dec 2011 14:59:36 +0200
-Message-ID: <4EEF3538.9060808@redhat.com>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <20111208113422.GA27919@amit-x200.redhat.com> <4EE9E023.4000904@redhat.com> <20111219125217.GC3139@amit-x200.redhat.com>
+Date: Mon, 19 Dec 2011 15:01:41 +0200
+Message-ID: <4EEF35B5.2090005@redhat.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <4EDF7B0D.4060001@redhat.com> <20111208151929.GA6301@mgebm.net> <4EE8BBF4.8070108@redhat.com> <20111214175844.GD4075@mgebm.net> <4EE9C274.3030603@redhat.com> <20111215185346.GA2829@mgebm.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:11191 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752478Ab1LSM7v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 Dec 2011 07:59:51 -0500
-In-Reply-To: <20111219125217.GC3139@amit-x200.redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Amit Shah <amit.shah@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20111215185346.GA2829@mgebm.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 12/19/2011 02:52 PM, Amit Shah wrote:
-> On (Thu) 15 Dec 2011 [13:55:15], Avi Kivity wrote:
-> > On 12/08/2011 01:34 PM, Amit Shah wrote:
-> > > On (Mon) 05 Dec 2011 [15:18:59], Eric B Munson wrote:
-> > > > When a guest kernel is stopped by the host hypervisor it can look like a soft
-> > > > lockup to the guest kernel.  This false warning can mask later soft lockup
-> > > > warnings which may be real.  This patch series adds a method for a host
-> > > > hypervisor to communicate to a guest kernel that it is being stopped.  The
-> > > > final patch in the series has the watchdog check this flag when it goes to
-> > > > issue a soft lockup warning and skip the warning if the guest knows it was
-> > > > stopped.
-> > >
-> > > Guest S4 would need similar treatment, and I think the code in the two
-> > > approaches can be shared.  Just something to consider.
-> > >
-> > 
-> > Why does S4 need any treatment?  The guest is aware that it's sleeping,
-> > unlike the other cases treated here.
->
-> Er, right.
->
-> S4 needs some treatment, though, as resume after s4 doesn't work with
-> kvmclock enabled.  I didn't realise this series was only handling the
-> soft lockup case.
->
+On 12/15/2011 08:53 PM, Eric B Munson wrote:
+> I am working on V7 to incorporate the __this_cpu_and suggestion, would you
+> consider that for inclusion and we can continue discussing the need for the
+> preemption notification work?  
 
-What's the issue there?
+Okay.
+
+> I think that having a guest complain when the
+> host is so loaded that the guest watchdog threads can't make any progress is
+> desirable behavior, it may be the only notification that an admin gets that a
+> particular host is over loaded.
+
+It's the wrong admin, consider a cloud scenario where the host admin and
+guest admin are different people.
+
+Notification on host overload (to initiate migration, say) is a good
+idea, but it would be a different mechanism.
 
 -- 
 error compiling committee.c: too many arguments to function
