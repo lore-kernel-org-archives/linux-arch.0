@@ -1,34 +1,71 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/3] Adjust the comment on get_order() to describe the size==0 case
-Date: Tue, 20 Dec 2011 15:09:21 +0000
-Message-ID: <201112201509.21334.arnd@arndb.de>
-References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <20111213145704.14362.62471.stgit@warthog.procyon.org.uk> <4EEF8652.5060201@zytor.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 1/7] Add conditional oopsing with annotation
+Date: Tue, 20 Dec 2011 15:34:43 +0000
+Message-ID: <14686.1324395283@redhat.com>
+References: <20111218080205.GA4144@elte.hu> <20111216141357.24668.49793.stgit@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:56509 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752326Ab1LTPJb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Dec 2011 10:09:31 -0500
-In-Reply-To: <4EEF8652.5060201@zytor.com>
+Received: from mx1.redhat.com ([209.132.183.28]:43201 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750880Ab1LTPfB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Dec 2011 10:35:01 -0500
+In-Reply-To: <20111218080205.GA4144@elte.hu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: Ingo Molnar <mingo@elte.hu>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Monday 19 December 2011, H. Peter Anvin wrote:
-> Hi Arnd,
-> 
-> Do you want to take the 2/3 and 3/3 patches in this series (since they
-> are asm-generic) or should I?
-> 
+Ingo Molnar <mingo@elte.hu> wrote:
 
-I generally prefer asm-generic patches to go through the trees that are
-most interested in them (with my ack), which keeps the series close together
-and lets me not maintain a separate tree for asm-generic most of the time.
+> Hm, what about WARN_ON()s?
 
-Please put the entire series into -tip.
+Good point.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+> BUG()s are generally a poor way of reporting bugs.
+
+Sometimes you can't continue, and there's no way you can know how to clean up
+- after all, if you see values you don't expect, how can you handle them?
+
+> 1) BUG_ON() is a well-known pattern. Changing it to the inverted
+>    assert() braindamage is going to cause confusion years down
+>    the road.
+
+In my opinion, BUG_ON() is usually inverted from what it should be.
+Frequently, it seems to be bugging on an inverted condition.
+
+assert() is generally well known from userspace.  You lay out your
+expectations with asserts.  An assert says "I expect this value to comply with
+this condition" - such as a value being in a specific range.  Generally I
+would turn them on whilst debugging stuff, and suppressing them at other
+times, but I'd leave BUG[_ON]() and WARN[_ON]() enabled.
+
+> 2) The '>,0' syntax is ugly.
+
+And works rather well.  I've been using it for a while now in the kernel quite
+successfully.
+
+> Why don't we simply extend the *existing* primitives with a 
+> 'verbose' variant that saves the text string of the macro using 
+> the '#param' syntax, intead of modifying the usage sites with a 
+> pointless splitting along logical ops?
+
+You've completely missed the point.  Go back and re-read the description.
+
+> Doing that would also remove the rather pointess ANNOTATED_() 
+> prefix, which is like totally uninteresting in the actual usage 
+> sites. WARN()s want to be as short, obvious and low-profile as 
+> possible.
+
+You need to distinguish annotated errors/warnings from non-annotated ones...
+unless you're planning on completely converting all the BUG/WARN calls in one
+patch?
+
+You could call it BUG_ON_VERBOSE() - but verbose BUG_ON already exists as a
+concept within the kernel, so I chose a different name.
+
+
+Note that my preferred mechanism would be to permit the cut-here line to be
+emitted early, and have the one that's emitted by the BUG handler then
+suppressed, but Linus doesn't like that.  I think it would be preferable to
+trying to pass a va_list argument through the exception handler.
+
+David
