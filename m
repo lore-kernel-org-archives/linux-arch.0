@@ -1,67 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:37782 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751614Ab1LTP4Q convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Dec 2011 10:56:16 -0500
-Received: by werm1 with SMTP id m1so2084217wer.19
-        for <linux-arch@vger.kernel.org>; Tue, 20 Dec 2011 07:56:14 -0800 (PST)
+Received: from smtp109.prem.mail.ac4.yahoo.com ([76.13.13.92]:30219 "HELO
+	smtp109.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1751407Ab1LTQdY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Dec 2011 11:33:24 -0500
+Date: Tue, 20 Dec 2011 10:26:39 -0600 (CST)
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+In-Reply-To: <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
+Message-ID: <alpine.DEB.2.00.1112201016380.21231@router.home>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain> <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com> <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
-References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
- <1318605254.3018.20.camel@dabdike.int.hansenpartnership.com>
- <CAErSpo7d3hHeJU87zYo=yJoG3eqOZ4QggkOyNnu7xuJe8oG9Qg@mail.gmail.com> <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Tue, 20 Dec 2011 08:55:53 -0700
-Message-ID: <CAErSpo7yoWOg8P1NAi70HJX=OMyO6XUwnUBxVq3P0YK87eP5tw@mail.gmail.com>
-Subject: Re: [PATCH v2 00/29] Create PCI root buses with correct resources
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111220155553.Z9fjWzq0bYe3yk3dtMjTyX_kd0auch9h-mQxiWvL0KA@z>
+To: Pekka Enberg <penberg@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20111220162639.ndFgQ77vxOdKA0raIsgs50o71_1lHeSP2mk7xiljuu4@z>
 
-On Fri, Oct 14, 2011 at 9:45 AM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Fri, 2011-10-14 at 09:33 -0600, Bjorn Helgaas wrote:
->> On Fri, Oct 14, 2011 at 9:14 AM, James Bottomley
->> <James.Bottomley@hansenpartnership.com> wrote:
->> > On Thu, 2011-10-13 at 22:27 -0600, Bjorn Helgaas wrote:
->> >> The most generic way to create a PCI root bus is with pci_scan_bus(), but
->> >> that doesn't allow you to specify what resources are available on the bus,
->> >> i.e., what the host bridge apertures are.
->> >
->> > Do you have an actual tree for this?  The PARISC pieces look a bit
->> > non-trivial and I'd like to test them out on the various sba/astro/dino
->> > systems.
->>
->> I don't yet, but it'd be great if you were willing to test them out,
->> so I'll set one up.
->>
->> While this is on your mind, I'm dubious about the pci_enable_bridges()
->> call in lba_driver_probe() and the pci_bus_assign_resources() call in
->> dino_probe().  These stand out as exceptions because no other arches
->> do that.
->>
->> If they weren't there, both places could use pci_scan_root_bus() like
->> most other arches.
+On Tue, 20 Dec 2011, Pekka Enberg wrote:
+
+> To illustrate the issue, for "per cpu add" we have:
 >
-> Right, the dino code actually has to rearrange some of the PCI resources
-> to make sure we get our apertures correct.  That's the specific bit I
-> was planning to test.  I think it's only relevant for dino SBA cards
-> where the bridge doesn't set up the card correctly so we have to do it
-> after the fact.
+> __this_cpu_add()
+> this_cpu_add()
+> irqsafe_cpu_add()
+> percpu_add()
+>
+> Why do we need all of them?
 
-This series has been in linux-next for a while now (via Jesse's PCI
-tree), so this would be a good time to try it out if you haven't
-already.
+These are all operations that frequently occur in hot paths of the OS.
 
-I know ia64 has been exercised a bit (thanks, Tony), but I haven't
-heard anything about arm, mips, parisc, powerpc, sparc, etc.
+On x86 all variants map to the same instruction. These will be issueing
+exactly one ASM instruction that is therefore irqsafe and preempt safe.
+The single instruction will perform the relocation of the pointer relative
+to the current cpu area and then perform the RMV operation without the
+cost of an atomic operation.
 
-There is one outstanding bug fix for alpha that Jesse hasn't
-integrated yet, but as far as I know, everything else is in good
-shape.
+For non-x86 we have the issue that typically separate instruction have to
+be used to perform the relocation relative to the current per cpu area and
+the RMW operation. The problem is that an interrupt or reschedule
+operation can occur between the address calculation and the RMW operation.
+The RMW operation may occur on the wrong processors per cpu
+data. So we need some way of preventing the change of processors or
+interrupts.
 
-Bjorn
+The __this_cpu_add() variant simply does nothing to prevent this. Just
+assumes that the caller has taken a lock or disabling interrupts that
+provides sufficient measures to prevent the rescheduling on a different
+processor.
+
+The this_cpu_add() variant disables preemption, then does the operations
+and then reenables preemption. This is usually sufficient since most per
+cpu data is not accessed from an interrupt context.
+
+The irqsafe_cpu_add() variant disables interrupts, does the operations and
+then reenabled interrupts. It is needed if counters etc are modified from
+an interrupt context.
+
+percpu_add() is an older variant of the per cpu operations that is (or
+was?) x86 specific. this_cpu_xxx() operations are used in core code.
