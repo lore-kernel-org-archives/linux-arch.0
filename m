@@ -1,93 +1,34 @@
-From: Pekka Enberg <penberg@kernel.org>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
-Date: Tue, 20 Dec 2011 11:47:26 +0200
-Message-ID: <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
-References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
-	<CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 2/3] Adjust the comment on get_order() to describe the size==0 case
+Date: Tue, 20 Dec 2011 15:09:21 +0000
+Message-ID: <201112201509.21334.arnd@arndb.de>
+References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <20111213145704.14362.62471.stgit@warthog.procyon.org.uk> <4EEF8652.5060201@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:47778 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751914Ab1LTJr1 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Dec 2011 04:47:27 -0500
-In-Reply-To: <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.17.9]:56509 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752326Ab1LTPJb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Dec 2011 10:09:31 -0500
+In-Reply-To: <4EEF8652.5060201@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
 
-Hi,
+On Monday 19 December 2011, H. Peter Anvin wrote:
+> Hi Arnd,
+> 
+> Do you want to take the 2/3 and 3/3 patches in this series (since they
+> are asm-generic) or should I?
+> 
 
-(I'm CC'ing Tejun and Thomas.)
+I generally prefer asm-generic patches to go through the trees that are
+most interested in them (with my ack), which keeps the series close together
+and lets me not maintain a separate tree for asm-generic most of the time.
 
-On Tue, Nov 29, 2011 at 10:02 AM, Pekka Enberg <penberg@kernel.org> wro=
-te:
->> The most important ones are from Christoph Lameter and Eric Dumazet =
-that fix
->> stability issues on non-x86 architectures.
->>
->> Christoph Lameter (1):
->> =A0 =A0 =A0slub: use irqsafe_cpu_cmpxchg for put_cpu_partial
+Please put the entire series into -tip.
 
-On Tue, Nov 29, 2011 at 9:29 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
-> Quite frankly, I think "this_cpu_cmpxchg()" is pure crap, and this fi=
-x
-> was wrong, wrong, WRONG.
->
-> Dammit, the emulation is just bad.
->
-> The *only* architecture that implements "this_cpu_cmpxchg()" speciall=
-y
-> seems to be x86.
->
-> So every other architecture uses the emulated one, AND THE EMULATED
-> ONE DOES NOT MATCH THE X86 SEMANTICS!
->
-> Sorry for shouting, but that's just *incredibly* stupid.
->
-> What's extra stupid is that s390 actually separately implements the
-> irq-safe version, and does it with code that seems to be generic, and
-> actually uses "cmpxchg()" like the regular "this_cpu_cmpxchg()" name
-> implies!
->
-> In other words, I would suggest that:
->
-> =A0- we get rid of that totally crazy idiotic "irqsafe" crap. The nor=
-mal
-> one should be irq-safe. It's named "cmpxchg", for chrissake!
->
-> =A0- we make the non-arch-specific "this_cpu_cmpxchg()" use the corre=
-ct
-> s390 routines instead of the pure and utter *shit* it uses now.
->
-> Yes, I'm upset. This "random percpu crap for SLUB" has been going on
-> too f*cking long, and it has been *continually* plagued by just pure
-> sh*t like this.
->
-> Seriously. Stop taking patches from Christoph in this area until they
-> have been vetted for sanity and completeness. This kind of ugly "let'=
-s
-> mis-name our functions in really subtle ways so that they work on x86
-> but nowhere else" needs to stop.
-
-So, I actually looked into doing something like this and wasn't
-actually able to understand the purpose of the various percpu
-variants. It seems rather obvious that we can just drop the
-non-irqsafe cmpxchg() variant but what about the rest of the percpu
-ops? Why do we have preempt safe, irqsafe, and unsafe variants? How
-are they supposed to be used?
-
-To illustrate the issue, for "per cpu add" we have:
-
-__this_cpu_add()
-this_cpu_add()
-irqsafe_cpu_add()
-percpu_add()
-
-Why do we need all of them?
-
-                        Pekka
+Acked-by: Arnd Bergmann <arnd@arndb.de>
