@@ -1,44 +1,79 @@
-From: "hpanvin@gmail.com" <hpa@zytor.com>
-Subject: Re: [PATCH 2/3] Adjust the comment on get_order() to describe the size==0 case
-Date: Tue, 20 Dec 2011 08:09:57 -0800
-Message-ID: <b52569fd-d175-48a7-a7e6-905821d89402@email.android.com>
-References: <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <20111213145704.14362.62471.stgit@warthog.procyon.org.uk> <4EEF8652.5060201@zytor.com> <201112201509.21334.arnd@arndb.de>
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+Date: Tue, 20 Dec 2011 08:23:15 -0800
+Message-ID: <20111220162315.GC10752@google.com>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
+ <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+ <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:55257 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750865Ab1LTQKL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Dec 2011 11:10:11 -0500
-In-Reply-To: <201112201509.21334.arnd@arndb.de>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:34604 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751196Ab1LTQXW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Dec 2011 11:23:22 -0500
+Content-Disposition: inline
+In-Reply-To: <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: David Howells <dhowells@redhat.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: Pekka Enberg <penberg@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-Will do.
+Hello, Pekka.
 
-Arnd Bergmann <arnd@arndb.de> wrote:
+On Tue, Dec 20, 2011 at 11:47:26AM +0200, Pekka Enberg wrote:
+> So, I actually looked into doing something like this and wasn't
+> actually able to understand the purpose of the various percpu
+> variants. It seems rather obvious that we can just drop the
+> non-irqsafe cmpxchg() variant but what about the rest of the percpu
+> ops? Why do we have preempt safe, irqsafe, and unsafe variants? How
+> are they supposed to be used?
+> 
+> To illustrate the issue, for "per cpu add" we have:
+> 
+> __this_cpu_add()
+> this_cpu_add()
+> irqsafe_cpu_add()
 
->On Monday 19 December 2011, H. Peter Anvin wrote:
->> Hi Arnd,
->> 
->> Do you want to take the 2/3 and 3/3 patches in this series (since
->they
->> are asm-generic) or should I?
->> 
->
->I generally prefer asm-generic patches to go through the trees that are
->most interested in them (with my ack), which keeps the series close
->together
->and lets me not maintain a separate tree for asm-generic most of the
->time.
->
->Please put the entire series into -tip.
->
->Acked-by: Arnd Bergmann <arnd@arndb.de>
+Description for 7340a0b152 "this_cpu: Introduce this_cpu_ptr() and
+generic this_cpu_* operations" should explain the above three.  In
+short,
+
+  __this_cpu_add()	: synchronization is caller's responsibility
+  this_cpu_add()	: protected against preemption
+  irqsafe_cpu_add()	: protected against irq
+
+> percpu_add()
+
+This is __this_cpu_add() + preemption disabled check.  Should be
+removed.  Christoph, is there a use case where __this_cpu_XXX() is
+used without preemption disabled?  Why doesn't it have preemption
+check?
+
+> Why do we need all of them?
+
+It would great if we can drop the preempt safe one.  For x86, it
+doesn't make any difference.  For archs which can't do it in single
+instruction && irq on/off is expensive, it can be bad.  I don't know
+how bad tho.
+
+percpu API needs to be cleaned up.  There are quite a few duplicates -
+some are from the days when static and dynamic percpu memories were
+different, some got added during the this_cpu_*() stuff.  It has been
+on the todo list for a while now but I never got around to do it.
+
+If I'm not missing something, all we need are,
+
+* per_cpu_ptr()
+
+* get_cpu_var(), put_cpu_var() - it would be more consistent if
+  they're get_cpu_ptr() and put_cpu_ptr().
+
+* [__]this_cpu_ptr()
+
+* Hopefully, smaller subset of this_cpu_XXX() ops.
+
+Thanks.
 
 -- 
-Sent from my Android phone with K-9 Mail. Please excuse my brevity.
+tejun
