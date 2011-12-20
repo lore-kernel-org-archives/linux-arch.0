@@ -1,52 +1,93 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped by
- host
-Date: Mon, 19 Dec 2011 14:11:08 -0200
-Message-ID: <20111219161108.GA15848@amt.cnet>
-References: <1323116344-17911-1-git-send-email-emunson@mgebm.net>
- <4EDF7B0D.4060001@redhat.com>
- <20111214121622.GB18317@amt.cnet>
- <4EE8B53C.6070502@redhat.com>
- <20111214182101.GB21945@amt.cnet>
- <4EE9CA1C.3010801@redhat.com>
- <20111216093149.GA26982@amt.cnet>
- <4EEF351E.8040002@redhat.com>
+From: Pekka Enberg <penberg@kernel.org>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+Date: Tue, 20 Dec 2011 11:47:26 +0200
+Message-ID: <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
+	<CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <4EEF351E.8040002@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Avi Kivity <avi@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:47778 "EHLO
+	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751914Ab1LTJr1 convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Dec 2011 04:47:27 -0500
+In-Reply-To: <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, Christoph Lameter <cl@linux.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Tejun Heo <tj@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On Mon, Dec 19, 2011 at 02:59:10PM +0200, Avi Kivity wrote:
-> On 12/16/2011 11:31 AM, Marcelo Tosatti wrote:
-> > > >
-> > > > Slow enough that progress of the watchdog thread is unable to keep up
-> > > > with timer interrupt processing. This is considered a hang and
-> > > > should be reported.
-> > > 
-> > > It's not a guest hang though!
-> >
-> > No, but your host system is in such a load state that for the sake of
-> > system usability you better print out a warning message.
-> 
-> What's the point in printing it in the guest?  The guest can't observe
-> host conditions.
+Hi,
+
+(I'm CC'ing Tejun and Thomas.)
+
+On Tue, Nov 29, 2011 at 10:02 AM, Pekka Enberg <penberg@kernel.org> wro=
+te:
+>> The most important ones are from Christoph Lameter and Eric Dumazet =
+that fix
+>> stability issues on non-x86 architectures.
+>>
+>> Christoph Lameter (1):
+>> =A0 =A0 =A0slub: use irqsafe_cpu_cmpxchg for put_cpu_partial
+
+On Tue, Nov 29, 2011 at 9:29 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+> Quite frankly, I think "this_cpu_cmpxchg()" is pure crap, and this fi=
+x
+> was wrong, wrong, WRONG.
 >
-> > I don't see the advantage of preempt notifiers over the simple, paravirt
-> > solution proposed? Note kvmclock is already paravirt.
-> 
-> Right.
-> 
-> > What do you want to be done in preempt notifiers? Measure what to
-> > consider setting this flag?
-> 
-> Preemption while TASK_RUNNING or TASK_UNINTERRUPTIBLE.
+> Dammit, the emulation is just bad.
+>
+> The *only* architecture that implements "this_cpu_cmpxchg()" speciall=
+y
+> seems to be x86.
+>
+> So every other architecture uses the emulated one, AND THE EMULATED
+> ONE DOES NOT MATCH THE X86 SEMANTICS!
+>
+> Sorry for shouting, but that's just *incredibly* stupid.
+>
+> What's extra stupid is that s390 actually separately implements the
+> irq-safe version, and does it with code that seems to be generic, and
+> actually uses "cmpxchg()" like the regular "this_cpu_cmpxchg()" name
+> implies!
+>
+> In other words, I would suggest that:
+>
+> =A0- we get rid of that totally crazy idiotic "irqsafe" crap. The nor=
+mal
+> one should be irq-safe. It's named "cmpxchg", for chrissake!
+>
+> =A0- we make the non-arch-specific "this_cpu_cmpxchg()" use the corre=
+ct
+> s390 routines instead of the pure and utter *shit* it uses now.
+>
+> Yes, I'm upset. This "random percpu crap for SLUB" has been going on
+> too f*cking long, and it has been *continually* plagued by just pure
+> sh*t like this.
+>
+> Seriously. Stop taking patches from Christoph in this area until they
+> have been vetted for sanity and completeness. This kind of ugly "let'=
+s
+> mis-name our functions in really subtle ways so that they work on x86
+> but nowhere else" needs to stop.
 
-Maybe it is good (not sure), need to look into schedstats and think of
-cases that would break legitimate guest hangs. And it probably also
-affects the position of clearing the flag on the guest side as its 
-currently done in Eric's patchset.
+So, I actually looked into doing something like this and wasn't
+actually able to understand the purpose of the various percpu
+variants. It seems rather obvious that we can just drop the
+non-irqsafe cmpxchg() variant but what about the rest of the percpu
+ops? Why do we have preempt safe, irqsafe, and unsafe variants? How
+are they supposed to be used?
+
+To illustrate the issue, for "per cpu add" we have:
+
+__this_cpu_add()
+this_cpu_add()
+irqsafe_cpu_add()
+percpu_add()
+
+Why do we need all of them?
+
+                        Pekka
