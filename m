@@ -1,26 +1,72 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 2/3] Adjust the comment on get_order() to describe the size==0 case
-Date: Tue, 20 Dec 2011 15:39:25 +0000
-Message-ID: <14925.1324395565@redhat.com>
-References: <201112201509.21334.arnd@arndb.de> <20111213145654.14362.39868.stgit@warthog.procyon.org.uk> <20111213145704.14362.62471.stgit@warthog.procyon.org.uk> <4EEF8652.5060201@zytor.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63497 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751414Ab1LTPjg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Dec 2011 10:39:36 -0500
-In-Reply-To: <201112201509.21334.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: dhowells@redhat.com, "H. Peter Anvin" <hpa@zytor.com>, tglx@linutronix.de, mingo@redhat.com, x86@kernel.org, linux-arch@vger.kernel.org
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v2 00/29] Create PCI root buses with correct resources
+Date: Tue, 20 Dec 2011 08:55:53 -0700
+Message-ID: <CAErSpo7yoWOg8P1NAi70HJX=OMyO6XUwnUBxVq3P0YK87eP5tw@mail.gmail.com>
+References: <20111014042142.23504.70417.stgit@bhelgaas.mtv.corp.google.com>
+ <1318605254.3018.20.camel@dabdike.int.hansenpartnership.com>
+ <CAErSpo7d3hHeJU87zYo=yJoG3eqOZ4QggkOyNnu7xuJe8oG9Qg@mail.gmail.com> <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Arnd Bergmann <arnd@arndb.de> wrote:
+On Fri, Oct 14, 2011 at 9:45 AM, James Bottomley
+<James.Bottomley@hansenpartnership.com> wrote:
+> On Fri, 2011-10-14 at 09:33 -0600, Bjorn Helgaas wrote:
+>> On Fri, Oct 14, 2011 at 9:14 AM, James Bottomley
+>> <James.Bottomley@hansenpartnership.com> wrote:
+>> > On Thu, 2011-10-13 at 22:27 -0600, Bjorn Helgaas wrote:
+>> >> The most generic way to create a PCI root bus is with pci_scan_bu=
+s(), but
+>> >> that doesn't allow you to specify what resources are available on=
+ the bus,
+>> >> i.e., what the host bridge apertures are.
+>> >
+>> > Do you have an actual tree for this? =A0The PARISC pieces look a b=
+it
+>> > non-trivial and I'd like to test them out on the various sba/astro=
+/dino
+>> > systems.
+>>
+>> I don't yet, but it'd be great if you were willing to test them out,
+>> so I'll set one up.
+>>
+>> While this is on your mind, I'm dubious about the pci_enable_bridges=
+()
+>> call in lba_driver_probe() and the pci_bus_assign_resources() call i=
+n
+>> dino_probe(). =A0These stand out as exceptions because no other arch=
+es
+>> do that.
+>>
+>> If they weren't there, both places could use pci_scan_root_bus() lik=
+e
+>> most other arches.
+>
+> Right, the dino code actually has to rearrange some of the PCI resour=
+ces
+> to make sure we get our apertures correct. =A0That's the specific bit=
+ I
+> was planning to test. =A0I think it's only relevant for dino SBA card=
+s
+> where the bridge doesn't set up the card correctly so we have to do i=
+t
+> after the fact.
 
-> I generally prefer asm-generic patches to go through the trees that are
-> most interested in them (with my ack), which keeps the series close together
-> and lets me not maintain a separate tree for asm-generic most of the time.
+This series has been in linux-next for a while now (via Jesse's PCI
+tree), so this would be a good time to try it out if you haven't
+already.
 
-Should I resubmit the latter two patches detached from the first with the
-Acked-bys added?
+I know ia64 has been exercised a bit (thanks, Tony), but I haven't
+heard anything about arm, mips, parisc, powerpc, sparc, etc.
 
-David
+There is one outstanding bug fix for alpha that Jesse hasn't
+integrated yet, but as far as I know, everything else is in good
+shape.
+
+Bjorn
