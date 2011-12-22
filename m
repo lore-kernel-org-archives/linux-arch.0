@@ -1,53 +1,39 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
-Date: Wed, 21 Dec 2011 18:19:34 -0800
-Message-ID: <CA+55aFyr69__vsorCXKZ7UezvXkCkZaot3=5b5xSHaYBEJ2ZKQ@mail.gmail.com>
-References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
- <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
- <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
- <20111220162315.GC10752@google.com> <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com>
- <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home>
- <20111221170535.GB9213@google.com>
+From: Dor Laor <dlaor@redhat.com>
+Subject: Re: [PATCH 0/5 V5] Avoid soft lockup message when KVM is stopped
+ by host
+Date: Thu, 22 Dec 2011 11:18:51 +0200
+Message-ID: <4EF2F5FB.1030200@redhat.com>
+References: <1323116344-17911-1-git-send-email-emunson@mgebm.net> <20111208113422.GA27919@amit-x200.redhat.com> <4EE9E023.4000904@redhat.com> <20111219125217.GC3139@amit-x200.redhat.com> <4EEF3538.9060808@redhat.com> <20111219175921.GA4668@amit-x200.redhat.com>
+Reply-To: dlaor@redhat.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:37626 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751850Ab1LVCT4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Dec 2011 21:19:56 -0500
-In-Reply-To: <20111221170535.GB9213@google.com>
+Received: from mx1.redhat.com ([209.132.183.28]:10153 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752476Ab1LVJTJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Dec 2011 04:19:09 -0500
+In-Reply-To: <20111219175921.GA4668@amit-x200.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tejun Heo <tj@kernel.org>
-Cc: Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+To: Amit Shah <amit.shah@redhat.com>
+Cc: Avi Kivity <avi@redhat.com>, Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Dec 21, 2011 at 9:05 AM, Tejun Heo <tj@kernel.org> wrote:
+On 12/19/2011 07:59 PM, Amit Shah wrote:
+> On (Mon) 19 Dec 2011 [14:59:36], Avi Kivity wrote:
+>> On 12/19/2011 02:52 PM, Amit Shah wrote:
 >
-> machines. =A0(cc'ing arch) Does anyone have better insight here? =A0H=
-ow
-> much more expensive are local irq save/restore compared to inc/dec'in=
-g
-> preempt count on various archs?
+> (snip)
+>
+>>> S4 needs some treatment, though, as resume after s4 doesn't work with
+>>> kvmclock enabled.  I didn't realise this series was only handling the
+>>> soft lockup case.
+>>>
+>>
+>> What's the issue there?
+>
+> Not sure yet; after resume, the VM freezes while bringing the 2nd vcpu
+> up.  Maybe it's just sitting there spinning, maybe the delta needs
+> adjusting.  Haven't poked at it yet.
 
-I think powerpc does sw irq disable, so it's pretty much the same.
-
-However, on *most* architectures, if the stupid generic "disable
-interrupts and then do the op" is too expensive, they could easily
-just do an architecture-specific "safe" version. Especially if they
-only need to do cmpxchg and add.
-
-Many architectures can do those safely with load-locked,
-store-conditional (ie atomic_add), and do so quickly. Sure, there are
-broken cases wher ethat is really slow (original alpha is an example
-of that), but I think it's fairly rare.
-
-So both arm (in v6+) and powerpc should be able to just use the
-"atomic_add" version, with no real downside.
-
-So I really suspect that we could just say: "make the irq-safe version
-be the *only* version", and no architecture will really care. Sure, it
-can be more expensive, but it usually isn't. Only when done badly and
-stupidly is it nasty.
-
-                  Linus
+Bug 694801 - Guest fail to resume from S4 if guest using kvmclock
