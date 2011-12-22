@@ -1,45 +1,36 @@
-From: Tejun Heo <tj@kernel.org>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
-Date: Thu, 22 Dec 2011 10:47:10 -0800
-Message-ID: <20111222184710.GJ17084@google.com>
-References: <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
- <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
- <20111220162315.GC10752@google.com>
- <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com>
- <20111220202854.GH10752@google.com>
- <alpine.DEB.2.00.1112210851230.9601@router.home>
- <20111221170535.GB9213@google.com>
- <alpine.DEB.2.00.1112220854440.31315@router.home>
- <20111222160822.GE17084@google.com>
- <alpine.DEB.2.00.1112221154380.11787@router.home>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2 00/29] Create PCI root buses with correct resources
+Date: Thu, 22 Dec 2011 13:59:11 -0500 (EST)
+Message-ID: <20111222.135911.584309149966835644.davem@davemloft.net>
+References: <CAErSpo7d3hHeJU87zYo=yJoG3eqOZ4QggkOyNnu7xuJe8oG9Qg@mail.gmail.com>
+	<1318607132.3018.30.camel@dabdike.int.hansenpartnership.com>
+	<CAErSpo7yoWOg8P1NAi70HJX=OMyO6XUwnUBxVq3P0YK87eP5tw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:55938 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751998Ab1LVSrQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Dec 2011 13:47:16 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1112221154380.11787@router.home>
+Received: from shards.monkeyblade.net ([198.137.202.13]:37056 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753113Ab1LVS7R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Dec 2011 13:59:17 -0500
+In-Reply-To: <CAErSpo7yoWOg8P1NAi70HJX=OMyO6XUwnUBxVq3P0YK87eP5tw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+To: bhelgaas@google.com
+Cc: James.Bottomley@hansenpartnership.com, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Dec 22, 2011 at 11:58:51AM -0600, Christoph Lameter wrote:
-> Subject: [percpu] Remove irqsafe_cpu_xxx variants
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Tue, 20 Dec 2011 08:55:53 -0700
+
+> This series has been in linux-next for a while now (via Jesse's PCI
+> tree), so this would be a good time to try it out if you haven't
+> already.
 > 
-> We simply say that regular this_cpu use must be safe regardless of preemption
-> and interrupt state. That has no material change for x86 and s390 implementations
-> of this_cpu operations. However, arches that do not provide their own implementation
-> for this_cpu operations will now get code generated that disables interrupts
-> instead of preemption.
+> I know ia64 has been exercised a bit (thanks, Tony), but I haven't
+> heard anything about arm, mips, parisc, powerpc, sparc, etc.
 > 
-> Signed-off-by: Christoph Lameter <cl@linux.com>
+> There is one outstanding bug fix for alpha that Jesse hasn't
+> integrated yet, but as far as I know, everything else is in good
+> shape.
 
-Applied to wq/for-3.3.
-
-Thanks.
-
--- 
-tejun
+I'll give it a quick test on sparc64 today.
