@@ -1,76 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33974 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753374Ab1LVKLQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 22 Dec 2011 05:11:16 -0500
-Message-ID: <4EF30236.1040204@redhat.com>
-Date: Thu, 22 Dec 2011 12:11:02 +0200
-From: Avi Kivity <avi@redhat.com>
+Received: from smtp105.prem.mail.ac4.yahoo.com ([76.13.13.44]:30166 "HELO
+	smtp105.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1753431Ab1LVO6r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 22 Dec 2011 09:58:47 -0500
+Date: Thu, 22 Dec 2011 08:58:43 -0600 (CST)
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+In-Reply-To: <20111221170535.GB9213@google.com>
+Message-ID: <alpine.DEB.2.00.1112220854440.31315@router.home>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain> <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com> <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com> <20111220162315.GC10752@google.com>
+ <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com> <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home> <20111221170535.GB9213@google.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 3/4 V7] Add ioctl for KVMCLOCK_GUEST_STOPPED
-References: <1323978126-13222-1-git-send-email-emunson@mgebm.net> <1323978126-13222-4-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1323978126-13222-4-git-send-email-emunson@mgebm.net>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111222101102.hTrr3WjcMGJC0kvb4XSZpeItHRR97sZmwtsIomia7IA@z>
+To: Tejun Heo <tj@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20111222145843.tYamO8H-KOo5DTYjJ2sO7TPMiC8FT6nEpdqb7LYBGCg@z>
 
-On 12/15/2011 09:42 PM, Eric B Munson wrote:
-> Now that we have a flag that will tell the guest it was suspended, create an
-> interface for that communication using a KVM ioctl.
+On Wed, 21 Dec 2011, Tejun Heo wrote:
+
+> The thing is that irqsafe ones are the "complete" ones.  We can use
+> irqsafe ones instead of preempt safe ones but not the other way.  This
+> matters only if flipping irq is noticeably more expensive than
+> inc/dec'ing preempt count but I suspect there are enough such
+> machines.  (cc'ing arch) Does anyone have better insight here?  How
+> much more expensive are local irq save/restore compared to inc/dec'ing
+> preempt count on various archs?
+
+Well that would be a pretty nice simplification of the API.
+Replace the fallback code for the preempt safe ones with the
+irqsafe fallbacks, then drop the irqsafe variants from percpu.h.
+
+> > The way that the cmpxchg things are used is also similar to transactional
+> > memory that is becoming available in the next generation of processors by
+> > Intel and that is already available in the current generation of powerpc
+> > processors by IBM. It is a way to avoid locking overhead.
 >
->  
-> +int kvm_set_guest_paused(struct kvm_vcpu *vcpu);
+> Hmmm... how about removing the ones which aren't currently in use?
 
-Please avoid the needless forward declaration.
+Yep. Could easily be done. We can resurrect the stuff as needed when other
+variants become necessary. In particular the _and and _or etc stuff was
+just added to be backward compatible with the old per cpu and local_t
+interfaces. There may be no use cases left.
 
-> +
->  extern bool tdp_enabled;
->  
->  u64 vcpu_tsc_khz(struct kvm_vcpu *vcpu);
-> diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-> index c38efd7..1dab5fd 100644
-> --- a/arch/x86/kvm/x86.c
-> +++ b/arch/x86/kvm/x86.c
-> @@ -3295,6 +3295,10 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
->  
->  		goto out;
->  	}
-> +	case KVMCLOCK_GUEST_PAUSED: {
-> +		r = kvm_set_guest_paused(vcpu);
-> +		break;
-> +	}
->  	default:
->  		r = -EINVAL;
->  	}
-> @@ -6117,6 +6121,22 @@ int kvm_task_switch(struct kvm_vcpu *vcpu, u16 tss_selector, int reason,
->  }
->  EXPORT_SYMBOL_GPL(kvm_task_switch);
->  
-> +/*
-> + * kvm_set_guest_paused() indicates to the guest kernel that it has been
-> + * stopped by the hypervisor.  This function will be called from the host only.
-> + * EINVAL is returned when the host attempts to set the flag for a guest that
-> + * does not support pv clocks.
-> + */
-> +int kvm_set_guest_paused(struct kvm_vcpu *vcpu)
-> +{
-> +	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-> +	if (!vcpu->arch.time_page)
-> +		return -EINVAL;
-> +	src->flags |= PVCLOCK_GUEST_STOPPED;
-> +	return 0;
-> +}
-> +EXPORT_SYMBOL_GPL(kvm_set_guest_paused);
-> +
->
-
-You're writing to a page without mark_page_dirty(), this breaks live
-migration.
-
--- 
-error compiling committee.c: too many arguments to function
 
