@@ -1,100 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
-Date: Fri, 23 Dec 2011 12:54:12 -0800
-Message-ID: <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
-References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
- <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
- <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
- <20111220162315.GC10752@google.com> <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com>
- <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home>
- <20111221170535.GB9213@google.com> <alpine.DEB.2.00.1112220854440.31315@router.home>
- <20111222160822.GE17084@google.com> <alpine.DEB.2.00.1112221154380.11787@router.home>
- <CA+55aFzY_6QYVyjAmP+w8D0Xy1Pq++XEUaBJRcCN9SbDE-pOhw@mail.gmail.com> <alpine.DEB.2.00.1112231031001.3482@router.home>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 00/14] DMA-mapping framework redesign preparation
+Date: Sat, 24 Dec 2011 18:00:14 +1100
+Message-ID: <1324710014.6632.23.camel@pasglop>
+References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+	 <20111223163516.GO20129@parisc-linux.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:62119 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757694Ab1LWUye (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Dec 2011 15:54:34 -0500
-In-Reply-To: <alpine.DEB.2.00.1112231031001.3482@router.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20111223163516.GO20129@parisc-linux.org>
+Sender: owner-linux-mm@kvack.org
+To: Matthew Wilcox <matthew@wil.cx>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 23, 2011 at 8:55 AM, Christoph Lameter <cl@linux.com> wrote:
->
-> There is an #ifndef CONFIG_M386 around the implementation of these for
-> x86. Use on i386 will not generate an xadd instructions but fallback to a
-> generic implementation.
+On Fri, 2011-12-23 at 09:35 -0700, Matthew Wilcox wrote:
+> I really think this wants to be a separate function.
+> dma_alloc_coherent
+> is for allocating memory to be shared between the kernel and a driver;
+> we already have dma_map_sg for mapping userspace I/O as an alternative
+> interface.  This feels like it's something different again rather than
+> an option to dma_alloc_coherent. 
 
-Ok, good. It's not the really right thing to do, but it will at least work.
+Depends. There can be some interesting issues with some of the ARM stuff
+out there (and to a lesser extent older ppc embedded stuff).
 
-> The add_return stuff was already available with the earlier per cpu apis
-> (local_t and percpu) that this_cpu replaces and is still available through
-> the atomic operations.
+For example, some devices really want a physically contiguous chunk, and
+are not cache coherent. In that case, you can't keep the linear mapping
+around. But you also don't waste your precious kernel virtual space
+creating a separate non-cachable mapping for those.
 
-Sure. The "atomic_op_return()" form actually *makes*sense*. It has
-atomicity guarantees, and the return value is meaningful.
+In general, dma mapping attributes as a generic feature make sense,
+whether this specific attribute does or not though. And we probably want
+space for platform specific attributes, for example, FSL embedded
+iommu's have "interesting" features for directing data toward a specific
+core cache etc... that we might want to expose using such attributes.
 
-The same IS SIMPLY NOT TRUE of the "this_cpu" versions.
+Cheers,
+Ben.
 
-> If one wants to exploit the per cpu atomicity then one may want to know
-> what the result was.
 
-No. You're blathering and doing "magical thinking" instead of actually
-thinking things through.
-
-Think about the semantics. What does it mean to get a result of the op
-on a percpu variable?
-
-You have two cases:
-
-Case 1: you actually know what CPU you are on, and the number may have
-some meaning. But in that case you are also *pinned* to that CPU, and
-there is no difference between
-
-   x = percpu_value;
-   x += y;
-   percpu_value = x;
-   .. look at 'x' .. to see what you did
-
-and
-
-    percpu_value += x;
-   ..look at percpu_value to see what you did ..
-
-and
-
-    x = xadd percpu_value,y
-
-so there are no "atomicity advantages" - xadd is the same as
-open-coding it. You are pinned to the CPU, all three ways are 100%
-equivalent.
-
-The other case is:
-
-Case 2: you're not pinned to the CPU, and you just do statistics and
-add some value to memory. BUT NOW THE RESULT HAS ABSOLUTELY NO
-MEANING!
-
-Now "xadd" would possibly give different results from "add and read
-the result", since you migth be moving around between cpu's, but there
-is absolutely no way you could ever care, sine the value you read back
-is meaningless regardless of whether it's the return value of xadd, or
-the value from some other CPU. There are other cpu's with the same
-percpu variable, and they are all equivalent as far as you are
-concerned, because you're not pinned to one of them.
-
-See? xadd buys you *nothing* from a semantic standpoint. And anybody
-who *thinks* it buys you something is just confused and just
-introduced a bug.
-
-So the "thiscpu_op_return" functions are broken-by-design! They have
-no meaning. They are completely crazy.
-
-That's why they should be removed. Anybody who thinks they add value
-has not thought through what they actually do or mean.
-
-                            Linus
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
