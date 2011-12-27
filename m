@@ -1,180 +1,87 @@
-From: Michael S Tsirkin <mst@redhat.com>
-Subject: [PATCHv2 RFC] pci: add pci_iomap_range
-Date: Mon, 26 Dec 2011 16:05:55 +0200
-Message-ID: <20111226140449.GA18077@redhat.com>
-References: <87wr9xp9cr.fsf@rustcorp.com.au>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCH 00/14] DMA-mapping framework redesign preparation
+Date: Tue, 27 Dec 2011 09:25:25 +0100
+Message-ID: <000901ccc471$15db8bc0$4192a340$%szyprowski@samsung.com>
+References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+ <20111223163516.GO20129@parisc-linux.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58173 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754317Ab1LZOED (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Dec 2011 09:04:03 -0500
-Content-Disposition: inline
-In-Reply-To: <87wr9xp9cr.fsf@rustcorp.com.au>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, Rusty Russell <rusty@rustcorp.com.au>, "Michael S. Tsirkin" <mst@redhat.com>, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Jesse Barnes <jbarnes@virtuousgeek.org>
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-reply-to: <20111223163516.GO20129@parisc-linux.org>
+Content-language: pl
+Sender: linux-alpha-owner@vger.kernel.org
+To: 'Matthew Wilcox' <matthew@wil.cx>
+Cc: linux-kernel@vger.kernel.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-Virtio drivers should map the part of the range they need, not necessarily
-all of it. They also need non-cacheable mapping even for
-prefetchable BARs.
+Hello,
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-Signed-off-by: Rusty Russell <rusty@rustcorp.com.au>
----
+On Friday, December 23, 2011 5:35 PM Matthew Wilcox wrote:
 
->Rusty Russell wrote:
->> I think that we should add a forcenocache flag.
->> This will let devices put the cap structure in
->> the prefetcheable BAR. That has an advantage that
->> it can be located anywhere in the 2^64 space,
->> while non-prefetcheable BARs are limited to lower 4G
->> for devices behind a PCI-to-PCI bridge.
->OK, want to respin that patch (or patch on top and I'll fold?)
+> On Fri, Dec 23, 2011 at 01:27:19PM +0100, Marek Szyprowski wrote:
+> > The first issue we identified is the fact that on some platform (again,
+> > mainly ARM) there are several functions for allocating DMA buffers:
+> > dma_alloc_coherent, dma_alloc_writecombine and dma_alloc_noncoherent
+> 
+> Is this write-combining from the point of view of the device (ie iommu),
+> or from the point of view of the CPU, or both?
 
-Here comes (warning - untested). This is on top of master.
-As I'm moving this function for portability into
-a separate file, it might be a good idea for this
-to be rebased on top of my linux-next tree?
+It is about write-combining from the CPU point of view. Right now there are
+no devices with such advanced memory interface to do write combining on the
+DMA side, but I believe that they might appear at some point in the future 
+as well.
 
-The whole mmio rework is not 3.3 material yes, is it?
+> > The next step in dma mapping framework update is the introduction of
+> > dma_mmap/dma_mmap_attrs() function. There are a number of drivers
+> > (mainly V4L2 and ALSA) that only exports the DMA buffers to user space.
+> > Creating a userspace mapping with correct page attributes is not an easy
+> > task for the driver. Also the DMA-mapping framework is the only place
+> > where the complete information about the allocated pages is available,
+> > especially if the implementation uses IOMMU controller to provide a
+> > contiguous buffer in DMA address space which is scattered in physical
+> > memory space.
+> 
+> Surely we only need a helper which drivrs can call from their mmap routine
+> to solve this?
 
- include/asm-generic/io.h    |    5 ++++
- include/asm-generic/iomap.h |   13 ++++++++++++
- lib/iomap.c                 |   46 +++++++++++++++++++++++++++++++++++++-----
- 3 files changed, 58 insertions(+), 6 deletions(-)
+On ARM architecture it is already implemented this way and a bunch of drivers
+use dma_mmap_coherent/dma_mmap_writecombine calls. We would like to standardize
+these calls across all architectures.
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 9120887..78aa159 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -286,6 +286,11 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
- extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+				     unsigned offset,
-+				     unsigned long minlen,
-+				     unsigned long maxlen,
-+				     bool force_nocache);
- static inline void pci_iounmap(struct pci_dev *dev, void __iomem *p)
- {
- }
-diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
-index 98dcd76..584a2b6 100644
---- a/include/asm-generic/iomap.h
-+++ b/include/asm-generic/iomap.h
-@@ -70,8 +70,21 @@ extern void ioport_unmap(void __iomem *);
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
- extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-+extern void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+				     unsigned offset,
-+				     unsigned long minlen,
-+				     unsigned long maxlen,
-+				     bool force_nocache);
- extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
- #else
-+static inline void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+					    unsigned offset,
-+					    unsigned long minlen,
-+					    unsigned long maxlen,
-+					    bool force_nocache);
-+{
-+	return NULL;
-+}
- struct pci_dev;
- static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
- {
-diff --git a/lib/iomap.c b/lib/iomap.c
-index 5dbcb4b..efa7c29 100644
---- a/lib/iomap.c
-+++ b/lib/iomap.c
-@@ -243,33 +243,47 @@ EXPORT_SYMBOL(ioport_unmap);
- 
- #ifdef CONFIG_PCI
- /**
-- * pci_iomap - create a virtual mapping cookie for a PCI BAR
-+ * pci_iomap_range - create a virtual mapping cookie for a PCI BAR
-  * @dev: PCI device that owns the BAR
-  * @bar: BAR number
-- * @maxlen: length of the memory to map
-+ * @offset: map memory at the given offset in BAR
-+ * @minlen: min length of the memory to map
-+ * @maxlen: max length of the memory to map
-  *
-  * Using this function you will get a __iomem address to your device BAR.
-  * You can access it using ioread*() and iowrite*(). These functions hide
-  * the details if this is a MMIO or PIO address space and will just do what
-  * you expect from them in the correct way.
-  *
-+ * @minlen specifies the minimum length to map. We check that BAR is
-+ * large enough.
-  * @maxlen specifies the maximum length to map. If you want to get access to
-- * the complete BAR without checking for its length first, pass %0 here.
-+ * the complete BAR from offset to the end, pass %0 here.
-+ * @force_nocache makes the mapping noncacheable even if the BAR
-+ * is prefetcheable. It has no effect otherwise.
-  * */
--void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
-+void __iomem *pci_iomap_range(struct pci_dev *dev, int bar,
-+			      unsigned offset,
-+			      unsigned long minlen,
-+			      unsigned long maxlen,
-+			      bool force_nocache)
- {
- 	resource_size_t start = pci_resource_start(dev, bar);
- 	resource_size_t len = pci_resource_len(dev, bar);
- 	unsigned long flags = pci_resource_flags(dev, bar);
- 
--	if (!len || !start)
-+	if (len <= offset || !start)
-+		return NULL;
-+	len -= offset;
-+	start += offset;
-+	if (len < minlen)
- 		return NULL;
- 	if (maxlen && len > maxlen)
- 		len = maxlen;
- 	if (flags & IORESOURCE_IO)
- 		return ioport_map(start, len);
- 	if (flags & IORESOURCE_MEM) {
--		if (flags & IORESOURCE_CACHEABLE)
-+		if (!force_nocache && (flags & IORESOURCE_CACHEABLE))
- 			return ioremap(start, len);
- 		return ioremap_nocache(start, len);
- 	}
-@@ -277,10 +291,30 @@ void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
- 	return NULL;
- }
- 
-+/**
-+ * pci_iomap - create a virtual mapping cookie for a PCI BAR
-+ * @dev: PCI device that owns the BAR
-+ * @bar: BAR number
-+ * @maxlen: length of the memory to map
-+ *
-+ * Using this function you will get a __iomem address to your device BAR.
-+ * You can access it using ioread*() and iowrite*(). These functions hide
-+ * the details if this is a MMIO or PIO address space and will just do what
-+ * you expect from them in the correct way.
-+ *
-+ * @maxlen specifies the maximum length to map. If you want to get access to
-+ * the complete BAR without checking for its length first, pass %0 here.
-+ * */
-+void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long maxlen)
-+{
-+	return pci_iomap_range(dev, bar, 0, 0, maxlen, false);
-+}
-+
- void pci_iounmap(struct pci_dev *dev, void __iomem * addr)
- {
- 	IO_COND(addr, /* nothing */, iounmap(addr));
- }
- EXPORT_SYMBOL(pci_iomap);
-+EXPORT_SYMBOL(pci_iomap_range);
- EXPORT_SYMBOL(pci_iounmap);
- #endif /* CONFIG_PCI */
+> > Usually these drivers don't touch the buffer data at all, so the mapping
+> > in kernel virtual address space is not needed. We can introduce
+> > DMA_ATTRIB_NO_KERNEL_MAPPING attribute which lets kernel to skip/ignore
+> > creation of kernel virtual mapping. This way we can save previous
+> > vmalloc area and simply some mapping operation on a few architectures.
+> 
+> I really think this wants to be a separate function.  dma_alloc_coherent
+> is for allocating memory to be shared between the kernel and a driver;
+> we already have dma_map_sg for mapping userspace I/O as an alternative
+> interface.  This feels like it's something different again rather than
+> an option to dma_alloc_coherent.
+
+That is just a starting point for the discussion. 
+
+I thought about this API a bit and came to conclusion that there is no much
+difference between a dma_alloc_coherent which creates a mapping in kernel
+virtual space and the one that does not. It is just a hint from the driver
+that it will not use that mapping at all. Of course this attribute makes sense
+only together with adding a dma_mmap_attrs() call, because otherwise drivers
+won't be able to get access to the buffer data.
+
+On coherent architectures where dma_alloc_coherent is just a simple wrapper
+around alloc_pages_exact() such attribute can be simply ignored without any
+impact on the drivers (that's the main idea behind dma attributes!).
+However such hint will help a lot on non-coherent architectures where 
+additional work need to be done to provide a cohenent mapping in kernel 
+address space. It also saves some precious kernel resources like vmalloc
+address range.
+
+Best regards
 -- 
-1.7.8.382.g3daff
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+
