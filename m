@@ -1,47 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:43131 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753539Ab1LXHBR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 24 Dec 2011 02:01:17 -0500
-Message-ID: <1324710014.6632.23.camel@pasglop>
-Subject: Re: [PATCH 00/14] DMA-mapping framework redesign preparation
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Sat, 24 Dec 2011 18:00:14 +1100
-In-Reply-To: <20111223163516.GO20129@parisc-linux.org>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:29386 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752158Ab1L0IZl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Dec 2011 03:25:41 -0500
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: text/plain; charset=us-ascii
+Date: Tue, 27 Dec 2011 09:25:25 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCH 00/14] DMA-mapping framework redesign preparation
+In-reply-to: <20111223163516.GO20129@parisc-linux.org>
+Message-ID: <000901ccc471$15db8bc0$4192a340$%szyprowski@samsung.com>
+Content-language: pl
 References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
-	 <20111223163516.GO20129@parisc-linux.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+ <20111223163516.GO20129@parisc-linux.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <matthew@wil.cx>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-Message-ID: <20111224070014.MLMzBmmh35XGA6afe26NxIVL2ssbFMXv95MpFx9CSEc@z>
+To: 'Matthew Wilcox' <matthew@wil.cx>
+Cc: linux-kernel@vger.kernel.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+Message-ID: <20111227082525.PgMZq-upbyN0y_RA-5ExV8C4Yvv_9bZpjc2Q6hD5lYI@z>
 
-On Fri, 2011-12-23 at 09:35 -0700, Matthew Wilcox wrote:
-> I really think this wants to be a separate function.
-> dma_alloc_coherent
+Hello,
+
+On Friday, December 23, 2011 5:35 PM Matthew Wilcox wrote:
+
+> On Fri, Dec 23, 2011 at 01:27:19PM +0100, Marek Szyprowski wrote:
+> > The first issue we identified is the fact that on some platform (again,
+> > mainly ARM) there are several functions for allocating DMA buffers:
+> > dma_alloc_coherent, dma_alloc_writecombine and dma_alloc_noncoherent
+> 
+> Is this write-combining from the point of view of the device (ie iommu),
+> or from the point of view of the CPU, or both?
+
+It is about write-combining from the CPU point of view. Right now there are
+no devices with such advanced memory interface to do write combining on the
+DMA side, but I believe that they might appear at some point in the future 
+as well.
+
+> > The next step in dma mapping framework update is the introduction of
+> > dma_mmap/dma_mmap_attrs() function. There are a number of drivers
+> > (mainly V4L2 and ALSA) that only exports the DMA buffers to user space.
+> > Creating a userspace mapping with correct page attributes is not an easy
+> > task for the driver. Also the DMA-mapping framework is the only place
+> > where the complete information about the allocated pages is available,
+> > especially if the implementation uses IOMMU controller to provide a
+> > contiguous buffer in DMA address space which is scattered in physical
+> > memory space.
+> 
+> Surely we only need a helper which drivrs can call from their mmap routine
+> to solve this?
+
+On ARM architecture it is already implemented this way and a bunch of drivers
+use dma_mmap_coherent/dma_mmap_writecombine calls. We would like to standardize
+these calls across all architectures.
+
+> > Usually these drivers don't touch the buffer data at all, so the mapping
+> > in kernel virtual address space is not needed. We can introduce
+> > DMA_ATTRIB_NO_KERNEL_MAPPING attribute which lets kernel to skip/ignore
+> > creation of kernel virtual mapping. This way we can save previous
+> > vmalloc area and simply some mapping operation on a few architectures.
+> 
+> I really think this wants to be a separate function.  dma_alloc_coherent
 > is for allocating memory to be shared between the kernel and a driver;
 > we already have dma_map_sg for mapping userspace I/O as an alternative
 > interface.  This feels like it's something different again rather than
-> an option to dma_alloc_coherent. 
+> an option to dma_alloc_coherent.
 
-Depends. There can be some interesting issues with some of the ARM stuff
-out there (and to a lesser extent older ppc embedded stuff).
+That is just a starting point for the discussion. 
 
-For example, some devices really want a physically contiguous chunk, and
-are not cache coherent. In that case, you can't keep the linear mapping
-around. But you also don't waste your precious kernel virtual space
-creating a separate non-cachable mapping for those.
+I thought about this API a bit and came to conclusion that there is no much
+difference between a dma_alloc_coherent which creates a mapping in kernel
+virtual space and the one that does not. It is just a hint from the driver
+that it will not use that mapping at all. Of course this attribute makes sense
+only together with adding a dma_mmap_attrs() call, because otherwise drivers
+won't be able to get access to the buffer data.
 
-In general, dma mapping attributes as a generic feature make sense,
-whether this specific attribute does or not though. And we probably want
-space for platform specific attributes, for example, FSL embedded
-iommu's have "interesting" features for directing data toward a specific
-core cache etc... that we might want to expose using such attributes.
+On coherent architectures where dma_alloc_coherent is just a simple wrapper
+around alloc_pages_exact() such attribute can be simply ignored without any
+impact on the drivers (that's the main idea behind dma attributes!).
+However such hint will help a lot on non-coherent architectures where 
+additional work need to be done to provide a cohenent mapping in kernel 
+address space. It also saves some precious kernel resources like vmalloc
+address range.
 
-Cheers,
-Ben.
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
+
 
 
