@@ -1,33 +1,33 @@
-From: "RICHARD TANG" <tagnrichard@yahoo.com.hk>
-Subject: MAIL
-Date: Wed, 28 Dec 2011 17:20:48 +0200
-Message-ID: <20111228172048.85034h4z6k1c5jv4@82.137.248.25>
-Reply-To: tangrichad@yahoo.cn
+From: "uninet.net.id" <asmpdps@inaport1.co.id>
+Subject: WARNING! REPLY TO UPGRADE YOUR webmail ACCOUNT
+Date: Tue, 03 Jan 2012 04:30:11 +0700 (WIT)
+Message-ID: <54d991c8-d2ec-4d3d-a614-4a4169db30be@mail-server>
+Reply-To: upgradingacc1@hotmail.com
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset=ISO-8859-1;
-	DelSp="Yes";
-	format="flowed"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mgw06.190.sy ([82.137.248.25]:57253 "EHLO smtp6.190.sy"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1753011Ab1L1QFO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Dec 2011 11:05:14 -0500
-Content-Disposition: inline
+Received: from ns2.gghost.indo.net.id ([202.53.253.80]:43442 "EHLO
+	smtp-1.indo.net.id" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753004Ab2ABWSn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jan 2012 17:18:43 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
+We are currently upgrading our Message Centre database. We are deleting all unused webmail accounts to create more space for new ones. In other for your account not to be suspended or deleted, you will have to update your account by providing the information listed below:
 
 
-Mail From Tang.
+Confirm Your webmail Account Details.
 
-I work with the hang seng Bank Hong Kong.I have a business proposition  
-for you involving a trade in my bank which I know we will be of mutual  
-benefit to both of us, If interested mail me at:tangrichad@yahoo.cn
 
-Regards,
-Richard Tang.
+Email Address:
+Username:
+Password:
+Confirm Password:
 
-----------------------------------------------------------------
-This message was sent using IMP, the Internet Messaging Program.
+
+Please send your details to: upgradingacc1@hotmail.com
+
+
+webmail  HelpDesk.
+Warning!!! Account owner(s) who refuses to update his or her account within seven days of receiving this notice ends up being suspended permanently
