@@ -1,74 +1,81 @@
-From: Yanfei Wang <backyes@mail.ustc.edu.cn>
-Subject: =?UTF-8?Q?Re=3A_=E3=80=90Question=E3=80=91Whether_it=27s_legal_to_enable_same_?=
-	=?UTF-8?Q?physical_DMA_memory_mapped_for_different_NIC_device=3F?=
-Date: Wed, 4 Jan 2012 10:44:11 +0800
-Message-ID: <CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-	<20120103203357.GD17472@phenom.dumpdata.com>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+Date: Wed, 4 Jan 2012 09:30:59 -0600 (CST)
+Message-ID: <alpine.DEB.2.00.1201040906090.27157@router.home>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain> <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com> <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com> <20111220162315.GC10752@google.com>
+ <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com> <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home> <20111221170535.GB9213@google.com> <alpine.DEB.2.00.1112220854440.31315@router.home>
+ <20111222160822.GE17084@google.com> <alpine.DEB.2.00.1112221154380.11787@router.home> <CA+55aFzY_6QYVyjAmP+w8D0Xy1Pq++XEUaBJRcCN9SbDE-pOhw@mail.gmail.com> <alpine.DEB.2.00.1112231031001.3482@router.home>
+ <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp2.ustc.edu.cn ([202.38.64.46]:49687 "HELO ustc.edu.cn"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
-	id S1753880Ab2ADCoW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jan 2012 21:44:22 -0500
-In-Reply-To: <20120103203357.GD17472@phenom.dumpdata.com>
+Received: from smtp109.prem.mail.ac4.yahoo.com ([76.13.13.92]:45779 "HELO
+	smtp109.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with SMTP id S1750711Ab2ADPbE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 10:31:04 -0500
+In-Reply-To: <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Tejun Heo <tj@kernel.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
-<konrad.wilk@oracle.com> wrote:
-> On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
->> Dear all,
->>
->> In NIC driver, to eliminate the =A0overhead of dma_map_single() for =
-DMA
->> packet data, =A0we have statically allocated huge DMA memory buffer =
-ring
->> at once instead of calling dma_map_single() per packet. =A0Consideri=
-ng
->> to further reduce the copy overhead between different NIC(port) ring
->> while forwarding, one packet from a input NIC(port) will be
->> transferred to output NIC(port) with no any copy action.
->>
->> To satisfy this requirement, the packet memory should be mapped into
->> input port and unmapped when leaving input port, then mapped into
->> output port and unmapped later.
->>
->> Whether it's legal to map the same DMA memory into input and output
->> port simultaneously? If it's not, then the zero-copy for packet
->> forwarding is not feasible?
->>
->
-> Did you ever a get a response about this?
-No.
->
-> Is the output/input port on a seperate device function? Or is it
-> just a specific MMIO BAR in your PCI device?
->
-Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
-82599NIC(two ports per NIC card);
-=46unction: Forwarding packets between different ports.
-Targets: Forwarding packets with Zero-Overhead, despite other obstacles=
-=2E
+On Fri, 23 Dec 2011, Linus Torvalds wrote:
 
---Yanfei
->> Hope PCI expert to post your suggestion.
->>
->> Thanks!
->>
->> --Yanfei
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-pci"=
- in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch"=
- in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
+> You have two cases:
+>
+> Case 1: you actually know what CPU you are on, and the number may have
+> some meaning. But in that case you are also *pinned* to that CPU, and
+> there is no difference between
+>
+>    x = percpu_value;
+>    x += y;
+>    percpu_value = x;
+>    .. look at 'x' .. to see what you did
+>
+> and
+>
+>     percpu_value += x;
+>    ..look at percpu_value to see what you did ..
+>
+> and
+>
+>     x = xadd percpu_value,y
+>
+> so there are no "atomicity advantages" - xadd is the same as
+> open-coding it. You are pinned to the CPU, all three ways are 100%
+> equivalent.
+
+As mentioned before the main point of the use of these operations (in the
+form of __this_cpu_op_return) when the cpu is pinned is to reduce the
+number of instructions. __this_cpu_add_return allows replacing ~ 5
+instructions with one.
+
+These operations are used in f.e. in vm statististics that have to scale
+well and have the lightest possible impact on the rest of the vm code.
+
+"atomicity advantages" were never claimed to exist for the __this_cpu_xx
+operations.
+
+>> The other case is:
+>
+> Case 2: you're not pinned to the CPU, and you just do statistics and
+> add some value to memory. BUT NOW THE RESULT HAS ABSOLUTELY NO
+> MEANING!
+>
+> Now "xadd" would possibly give different results from "add and read
+> the result", since you migth be moving around between cpu's, but there
+> is absolutely no way you could ever care, sine the value you read back
+> is meaningless regardless of whether it's the return value of xadd, or
+> the value from some other CPU. There are other cpu's with the same
+> percpu variable, and they are all equivalent as far as you are
+> concerned, because you're not pinned to one of them.
+
+You would care if you had special actions that have to be triggered on all
+processors if for example a threshold was breached on a single processors
+counters (and one would fold all differentials into a global counter) or a
+per cpu counter reaches zero (and one would need to replenish lists of
+objects or some such thing). In that case it matters that the operational
+result be checked later regardless of the cpu we are on right now.
+
+There are no use cases of the this_cpu_xx_return operations as far as I
+can see so we could remove those.
