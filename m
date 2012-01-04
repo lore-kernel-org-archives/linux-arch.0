@@ -1,64 +1,60 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
-Date: Wed, 4 Jan 2012 11:00:34 -0600 (CST)
-Message-ID: <alpine.DEB.2.00.1201041046290.29775@router.home>
-References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain> <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com> <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com> <20111220162315.GC10752@google.com>
- <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com> <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home> <20111221170535.GB9213@google.com> <alpine.DEB.2.00.1112220854440.31315@router.home>
- <20111222160822.GE17084@google.com> <alpine.DEB.2.00.1112221154380.11787@router.home> <CA+55aFzY_6QYVyjAmP+w8D0Xy1Pq++XEUaBJRcCN9SbDE-pOhw@mail.gmail.com> <alpine.DEB.2.00.1112231031001.3482@router.home> <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
- <alpine.DEB.2.00.1201040906090.27157@router.home> <CA+55aFwOp1UbeexKSdQC6YwrA9pS-J5qdqs-68=H8T1GS4Nr1A@mail.gmail.com>
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH v3 09/34] arm/PCI: convert to pci_scan_root_bus() for
+ correct root bus resources
+Date: Wed, 4 Jan 2012 09:28:04 -0800
+Message-ID: <20120104092804.686d17d3@jbarnes-desktop>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+	<20111028222616.30729.96687.stgit@bhelgaas.mtv.corp.google.com>
+	<CAErSpo4MEYHUVsHywnRfYFU18Ly=48gFRZJK_35v=WMj0HHqHw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp101.prem.mail.ac4.yahoo.com ([76.13.13.40]:40739 "HELO
-	smtp101.prem.mail.ac4.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1755316Ab2ADRAi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 12:00:38 -0500
-In-Reply-To: <CA+55aFwOp1UbeexKSdQC6YwrA9pS-J5qdqs-68=H8T1GS4Nr1A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Tejun Heo <tj@kernel.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: multipart/signed; micalg=PGP-SHA1;
+ boundary="Sig_/+4_6H_bowoh+IbGhEEpWUpC"; protocol="application/pgp-signature"
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <CAErSpo4MEYHUVsHywnRfYFU18Ly=48gFRZJK_35v=WMj0HHqHw@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 4 Jan 2012, Linus Torvalds wrote:
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-> On Wed, Jan 4, 2012 at 7:30 AM, Christoph Lameter <cl@linux.com> wrote:
-> >
-> > As mentioned before the main point of the use of these operations (in the
-> > form of __this_cpu_op_return) when the cpu is pinned is to reduce the
-> > number of instructions. __this_cpu_add_return allows replacing ~ 5
-> > instructions with one.
->
-> And that's fine if it's something really core, and something *so*
-> important that you can tell the difference between one instruction and
-> three.
->
-> Which isn't the case here. In fact, on many (most?) x86
-> microarchitectures xadd is actually slower than a regular
-> add-from-memory-and-store - the big advantage of it is that with the
-> "lock" prefix you do get special atomicity guarantees, and some
-> algorithms (is semaphores) do want to know the value of the add
-> atomically in order to know if there were other things going on.
+On Thu, 22 Dec 2011 18:10:43 -0700
+Bjorn Helgaas <bhelgaas@google.com> wrote:
 
-xadd is 3 cycles. add is one cycle.
+> Working through this with a cross-compiler, I found a build bug in
+> this patch.  Updated patch and incremental patch (from commit
+> 9a1d98b3a0d8621 in your linux-next branch) attached.
+>=20
+> My cross-compiler can only build about half of the ARM configs, but
+> better than nothing, I guess.
 
-What we are doing here is also the use of a segment override to allow us
-to relocate the per cpu address to the current cpu. So we are already
-getting two additions for the price of one xadd. If we manually calcualte
-the address then we have another memory reference to get the per cpu
-offset for this processor (otherwise we get it from the segment register).
-And then we need to store the results. We use registers etc etc.
+Merged this into the existing ARM patch, thanks.
 
-Cannot imagine that this would be the same speed.
+--=20
+Jesse Barnes, Intel Open Source Technology Center
 
-The thing is, I care about maintainability and not having
-> cross-architecture problems etc. And right now many of the cpulocal
-> things are *much* more of a maintainability headache than they are
-> worth.
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Disposition: attachment; filename=signature.asc
 
-The cpu local things and xadd support have been around for a pretty long
-time in various forms and they work reliably. I have tried to add onto
-this by adding the cmpxchg/cmpxchg_double functionalty which caused some
-issues because of the fallback stuff. That seems to have been addressed
-though since we were willing now to make the preempt/irq tradeoff that we
-were not able to get agreement on during the cleanup of the old APIs a
-year or so ago.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iQIcBAEBAgAGBQJPBIwkAAoJEIEoDkX4Qk9h1JwP/jvvIUYx9/UFx2xOY0A1ozPO
+q/HkkCR4XVRi11wWlILhBF/fJuGVkGO4/aR+hCbDe583bGt0AzahwwFYYLs/bVgA
+xCskeRvZJVEXshz5jMoGfJHrmDyLv3XCkkL/nljP3yd+EbLMYcoUCGysb+dyGxqJ
+X+4z3GVtfYPMJS2wRTotTqExhswNvBaR4SXyC4MW/s76Lt+8vb73DWSQ13XooJUK
+wKSoXlNUfpWr0CMuKVcouJIXsTgoNI6+TCLN8xjo5FzxHOZHNo+os8SHozbMfXMH
+O3PeLNgpn/T+df6Vd4sp4HP6xNmt2Tj5E0ZhqxY/nzHadYfSVGtvg2Dksnng3d71
+GL9b+Rp5tJlqAklyZcKHRp4+e+ukMSCunVddPKah2Y8IzzNYvIkyHvdq5363jqlf
+0HAaufwS5tkA5fbkhgplyN9u7kQ8eX6CCjLS//A+aFOVmStkAAcTIMqJL72zRPdD
+/G4N5DXtKbMQFrJ8fL8DKecHXBrotype4Ip0gE9HcirTAs///5NUH83f01NgEH8c
+Ajny7iHslqtyGkBOAtQ9BCj3+FwqQqnz9cX9MhrzffF9OKZl5+XQAtoXfG4mfhjh
+rP52/t3L5qj3g4AcF3rFFjO99KYqIqayyZ504z9ZbPYQB28zr3IVmtcymvJfd9aC
+PUyyO8IquPotpMF9zyA0
+=GVXY
+-----END PGP SIGNATURE-----
+
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC--
