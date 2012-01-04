@@ -1,76 +1,51 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: =?UTF-8?Q?=E3=80=90Question=E3=80=91Whether?= it's legal to
- enable same physical DMA memory mapped for different NIC device?
-Date: Wed, 04 Jan 2012 09:59:26 -0600
-Message-ID: <1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-	 <20120103203357.GD17472@phenom.dumpdata.com>
-	 <CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+Date: Wed, 4 Jan 2012 08:07:48 -0800
+Message-ID: <CA+55aFwOp1UbeexKSdQC6YwrA9pS-J5qdqs-68=H8T1GS4Nr1A@mail.gmail.com>
+References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
+ <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
+ <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
+ <20111220162315.GC10752@google.com> <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com>
+ <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home>
+ <20111221170535.GB9213@google.com> <alpine.DEB.2.00.1112220854440.31315@router.home>
+ <20111222160822.GE17084@google.com> <alpine.DEB.2.00.1112221154380.11787@router.home>
+ <CA+55aFzY_6QYVyjAmP+w8D0Xy1Pq++XEUaBJRcCN9SbDE-pOhw@mail.gmail.com>
+ <alpine.DEB.2.00.1112231031001.3482@router.home> <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
+ <alpine.DEB.2.00.1201040906090.27157@router.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:44025 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755918Ab2ADP72 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 10:59:28 -0500
-In-Reply-To: <CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:52371 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755462Ab2ADQIL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 11:08:11 -0500
+In-Reply-To: <alpine.DEB.2.00.1201040906090.27157@router.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yanfei Wang <backyes@mail.ustc.edu.cn>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: Tejun Heo <tj@kernel.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
 
-On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
-> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
-> <konrad.wilk@oracle.com> wrote:
-> > On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
-> >> Dear all,
-> >>
-> >> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
-> >> packet data,  we have statically allocated huge DMA memory buffer ring
-> >> at once instead of calling dma_map_single() per packet.  Considering
-> >> to further reduce the copy overhead between different NIC(port) ring
-> >> while forwarding, one packet from a input NIC(port) will be
-> >> transferred to output NIC(port) with no any copy action.
-> >>
-> >> To satisfy this requirement, the packet memory should be mapped into
-> >> input port and unmapped when leaving input port, then mapped into
-> >> output port and unmapped later.
-> >>
-> >> Whether it's legal to map the same DMA memory into input and output
-> >> port simultaneously? If it's not, then the zero-copy for packet
-> >> forwarding is not feasible?
-> >>
-> >
-> > Did you ever a get a response about this?
-> No.
+On Wed, Jan 4, 2012 at 7:30 AM, Christoph Lameter <cl@linux.com> wrote:
+>
+> As mentioned before the main point of the use of these operations (in the
+> form of __this_cpu_op_return) when the cpu is pinned is to reduce the
+> number of instructions. __this_cpu_add_return allows replacing ~ 5
+> instructions with one.
 
-This is probably because no-one really understands what you're asking.
-As far as mapping memory to PCI devices goes, it's the job of the bridge
-(or the iommu which may or may not be part of the bridge).  A standard
-iommu tends not to care about devices and functions, so a range once
-mapped is available to everything behind the bridge.  A more secure
-virtualisation based iommu (like the on in VT-D) does, and tends to map
-ranges per device.  I know of none that map per device and function, but
-maybe there are.
+And that's fine if it's something really core, and something *so*
+important that you can tell the difference between one instruction and
+three.
 
-Your question reads like you have a range of memory mapped to a PCI
-device that you want to use for two different purposes, can you do this?
-to which the answer is that a standard PCI bridge really doesn't care
-and it all depends on the mechanics of the actual device.  The only
-wrinkle might be if the two different purposes are on two separate PCI
-functions of the device and the iommu does care.
+Which isn't the case here. In fact, on many (most?) x86
+microarchitectures xadd is actually slower than a regular
+add-from-memory-and-store - the big advantage of it is that with the
+"lock" prefix you do get special atomicity guarantees, and some
+algorithms (is semaphores) do want to know the value of the add
+atomically in order to know if there were other things going on.
 
-> >
-> > Is the output/input port on a seperate device function? Or is it
-> > just a specific MMIO BAR in your PCI device?
-> >
-> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
-> 82599NIC(two ports per NIC card);
-> Function: Forwarding packets between different ports.
-> Targets: Forwarding packets with Zero-Overhead, despite other obstacles.
+The thing is, I care about maintainability and not having
+cross-architecture problems etc. And right now many of the cpulocal
+things are *much* more of a maintainability headache than they are
+worth.
 
-This still doesn't really provide the information needed to elucidate
-the question.
-
-James
+                     Linus
