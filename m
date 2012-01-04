@@ -1,56 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:47356 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751189Ab2ACUfp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jan 2012 15:35:45 -0500
-Date: Tue, 3 Jan 2012 15:33:57 -0500
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: =?utf-8?B?44CQUXVlc3Rpb27jgJFXaGV0aGVy?=
- =?utf-8?Q?_it's_legal_to_enabl?= =?utf-8?Q?e?= same physical DMA memory
- mapped for different NIC device?
-Message-ID: <20120103203357.GD17472@phenom.dumpdata.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
+Received: from oproxy4-pub.bluehost.com ([69.89.21.11]:43558 "HELO
+	oproxy4-pub.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1756611Ab2ADR2L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 12:28:11 -0500
+Date: Wed, 4 Jan 2012 09:28:04 -0800
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH v3 09/34] arm/PCI: convert to pci_scan_root_bus() for
+ correct root bus resources
+Message-ID: <20120104092804.686d17d3@jbarnes-desktop>
+In-Reply-To: <CAErSpo4MEYHUVsHywnRfYFU18Ly=48gFRZJK_35v=WMj0HHqHw@mail.gmail.com>
+References: <20111028222432.30729.8431.stgit@bhelgaas.mtv.corp.google.com>
+	<20111028222616.30729.96687.stgit@bhelgaas.mtv.corp.google.com>
+	<CAErSpo4MEYHUVsHywnRfYFU18Ly=48gFRZJK_35v=WMj0HHqHw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=PGP-SHA1;
+ boundary="Sig_/+4_6H_bowoh+IbGhEEpWUpC"; protocol="application/pgp-signature"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "ustc.mail" <backyes@mail.ustc.edu.cn>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120103203357.aFCOTdG_nx283nsz9ptDFLLqpywCqRk2jDi_gBiGuvQ@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20120104172804.crc22BEK5GWaqWjIpNFbLImpZSxjOzji2eUNxrdKQbY@z>
 
-On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
-> Dear all,
-> 
-> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
-> packet data,  we have statically allocated huge DMA memory buffer ring
-> at once instead of calling dma_map_single() per packet.  Considering
-> to further reduce the copy overhead between different NIC(port) ring
-> while forwarding, one packet from a input NIC(port) will be
-> transferred to output NIC(port) with no any copy action.
-> 
-> To satisfy this requirement, the packet memory should be mapped into
-> input port and unmapped when leaving input port, then mapped into
-> output port and unmapped later.
-> 
-> Whether it's legal to map the same DMA memory into input and output
-> port simultaneously? If it's not, then the zero-copy for packet
-> forwarding is not feasible?
-> 
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-Did you ever a get a response about this?
+On Thu, 22 Dec 2011 18:10:43 -0700
+Bjorn Helgaas <bhelgaas@google.com> wrote:
 
-Is the output/input port on a seperate device function? Or is it
-just a specific MMIO BAR in your PCI device?
+> Working through this with a cross-compiler, I found a build bug in
+> this patch.  Updated patch and incremental patch (from commit
+> 9a1d98b3a0d8621 in your linux-next branch) attached.
+>=20
+> My cross-compiler can only build about half of the ARM configs, but
+> better than nothing, I guess.
 
-> Hope PCI expert to post your suggestion.
-> 
-> Thanks!
-> 
-> --Yanfei
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Merged this into the existing ARM patch, thanks.
+
+--=20
+Jesse Barnes, Intel Open Source Technology Center
+
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC
+Content-Type: application/pgp-signature; name=signature.asc
+Content-Disposition: attachment; filename=signature.asc
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iQIcBAEBAgAGBQJPBIwkAAoJEIEoDkX4Qk9h1JwP/jvvIUYx9/UFx2xOY0A1ozPO
+q/HkkCR4XVRi11wWlILhBF/fJuGVkGO4/aR+hCbDe583bGt0AzahwwFYYLs/bVgA
+xCskeRvZJVEXshz5jMoGfJHrmDyLv3XCkkL/nljP3yd+EbLMYcoUCGysb+dyGxqJ
+X+4z3GVtfYPMJS2wRTotTqExhswNvBaR4SXyC4MW/s76Lt+8vb73DWSQ13XooJUK
+wKSoXlNUfpWr0CMuKVcouJIXsTgoNI6+TCLN8xjo5FzxHOZHNo+os8SHozbMfXMH
+O3PeLNgpn/T+df6Vd4sp4HP6xNmt2Tj5E0ZhqxY/nzHadYfSVGtvg2Dksnng3d71
+GL9b+Rp5tJlqAklyZcKHRp4+e+ukMSCunVddPKah2Y8IzzNYvIkyHvdq5363jqlf
+0HAaufwS5tkA5fbkhgplyN9u7kQ8eX6CCjLS//A+aFOVmStkAAcTIMqJL72zRPdD
+/G4N5DXtKbMQFrJ8fL8DKecHXBrotype4Ip0gE9HcirTAs///5NUH83f01NgEH8c
+Ajny7iHslqtyGkBOAtQ9BCj3+FwqQqnz9cX9MhrzffF9OKZl5+XQAtoXfG4mfhjh
+rP52/t3L5qj3g4AcF3rFFjO99KYqIqayyZ504z9ZbPYQB28zr3IVmtcymvJfd9aC
+PUyyO8IquPotpMF9zyA0
+=GVXY
+-----END PGP SIGNATURE-----
+
+--Sig_/+4_6H_bowoh+IbGhEEpWUpC--
