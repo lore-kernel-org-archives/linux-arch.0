@@ -1,81 +1,78 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: =?UTF-8?Q?=E3=80=90Question=E3=80=91Whether?= it's legal to
- enable same physical DMA memory mapped for different NIC device?
-Date: Thu, 05 Jan 2012 08:20:17 -0800
-Message-ID: <1325780417.2775.6.camel@dabdike.Larkspurhotels.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-	 <20120103203357.GD17472@phenom.dumpdata.com>
-	 <CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
-	 <1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
-	 <CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
+From: Don Dutile <ddutile@redhat.com>
+Subject: Re: =?UTF-8?B?44CQUXVlc3Rpb27jgJFXaGV0aGVyIGl0J3MgbGVnYWwgdG8gZW4=?=
+ =?UTF-8?B?YWJsZSBzYW1lIHBoeXNpY2FsIERNQSBtZW1vcnkgbWFwcGVkIGZvciBkaWZmZXI=?=
+ =?UTF-8?B?ZW50IE5JQyBkZXZpY2U/?=
+Date: Thu, 05 Jan 2012 13:48:19 -0500
+Message-ID: <4F05F073.2050209@redhat.com>
+References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>	<20120103203357.GD17472@phenom.dumpdata.com>	<CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>	<1325692766.2758.22.camel@dabdike.int.hansenpartnership.com> <CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:46657 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757613Ab2AEQUS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jan 2012 11:20:18 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:39264 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756535Ab2AESsZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Jan 2012 13:48:25 -0500
 In-Reply-To: <CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yanfei Wang <backyes@gmail.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, 2012-01-05 at 20:40 +0800, Yanfei Wang wrote:
+On 01/05/2012 07:40 AM, Yanfei Wang wrote:
 > On Wed, Jan 4, 2012 at 11:59 PM, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
-> >> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
-> >> <konrad.wilk@oracle.com> wrote:
-> >> > On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
-> >> >> Dear all,
-> >> >>
-> >> >> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
-> >> >> packet data,  we have statically allocated huge DMA memory buffer ring
-> >> >> at once instead of calling dma_map_single() per packet.  Considering
-> >> >> to further reduce the copy overhead between different NIC(port) ring
-> >> >> while forwarding, one packet from a input NIC(port) will be
-> >> >> transferred to output NIC(port) with no any copy action.
-> >> >>
-> >> >> To satisfy this requirement, the packet memory should be mapped into
-> >> >> input port and unmapped when leaving input port, then mapped into
-> >> >> output port and unmapped later.
-> >> >>
-> >> >> Whether it's legal to map the same DMA memory into input and output
-> >> >> port simultaneously? If it's not, then the zero-copy for packet
-> >> >> forwarding is not feasible?
-> >> >>
-> >> >
-> >> > Did you ever a get a response about this?
-> >> No.
-> >
-> > This is probably because no-one really understands what you're asking.
-> > As far as mapping memory to PCI devices goes, it's the job of the bridge
-> > (or the iommu which may or may not be part of the bridge).  A standard
-> > iommu tends not to care about devices and functions, so a range once
-> > mapped is available to everything behind the bridge.  A more secure
-> > virtualisation based iommu (like the on in VT-D) does, and tends to map
-> > ranges per device.  I know of none that map per device and function, but
-> > maybe there are.
-> >
-> > Your question reads like you have a range of memory mapped to a PCI
-> > device that you want to use for two different purposes, can you do this?
-> > to which the answer is that a standard PCI bridge really doesn't care
-> > and it all depends on the mechanics of the actual device.  The only
-> > wrinkle might be if the two different purposes are on two separate PCI
-> > functions of the device and the iommu does care.
-> >
-> >> >
-> >> > Is the output/input port on a seperate device function? Or is it
-> >> > just a specific MMIO BAR in your PCI device?
-> >> >
-> >> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
-> >> 82599NIC(two ports per NIC card);
-> >> Function: Forwarding packets between different ports.
-> >> Targets: Forwarding packets with Zero-Overhead, despite other obstacles.
+> <James.Bottomley@hansenpartnership.com>  wrote:
+>> On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
+>>> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
+>>> <konrad.wilk@oracle.com>  wrote:
+>>>> On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
+>>>>> Dear all,
+>>>>>
+>>>>> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
+>>>>> packet data,  we have statically allocated huge DMA memory buffer ring
+>>>>> at once instead of calling dma_map_single() per packet.  Considering
+>>>>> to further reduce the copy overhead between different NIC(port) ring
+>>>>> while forwarding, one packet from a input NIC(port) will be
+>>>>> transferred to output NIC(port) with no any copy action.
+>>>>>
+>>>>> To satisfy this requirement, the packet memory should be mapped into
+>>>>> input port and unmapped when leaving input port, then mapped into
+>>>>> output port and unmapped later.
+>>>>>
+>>>>> Whether it's legal to map the same DMA memory into input and output
+>>>>> port simultaneously? If it's not, then the zero-copy for packet
+>>>>> forwarding is not feasible?
+>>>>>
+>>>>
+>>>> Did you ever a get a response about this?
+>>> No.
+>>
+>> This is probably because no-one really understands what you're asking.
+>> As far as mapping memory to PCI devices goes, it's the job of the bridge
+>> (or the iommu which may or may not be part of the bridge).  A standard
+>> iommu tends not to care about devices and functions, so a range once
+>> mapped is available to everything behind the bridge.  A more secure
+>> virtualisation based iommu (like the on in VT-D) does, and tends to map
+>> ranges per device.  I know of none that map per device and function, but
+>> maybe there are.
+>>
+>> Your question reads like you have a range of memory mapped to a PCI
+>> device that you want to use for two different purposes, can you do this?
+>> to which the answer is that a standard PCI bridge really doesn't care
+>> and it all depends on the mechanics of the actual device.  The only
+>> wrinkle might be if the two different purposes are on two separate PCI
+>> functions of the device and the iommu does care.
+>>
+>>>>
+>>>> Is the output/input port on a seperate device function? Or is it
+>>>> just a specific MMIO BAR in your PCI device?
+>>>>
+>>> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
+>>> 82599NIC(two ports per NIC card);
+>>> Function: Forwarding packets between different ports.
+>>> Targets: Forwarding packets with Zero-Overhead, despite other obstacles.
 > Besides hardware and OS presented above, more detailed descriptions as follows,
-> 
+>
 > When IXGBE driver do initialization, DMA Descriptors Ring Buffers are
 > allocated statically and mapped as cache coherent. Instead of
 > dynamically allocating skb buffers for packet data, to reduce the huge
@@ -96,14 +93,30 @@ On Thu, 2012-01-05 at 20:40 +0800, Yanfei Wang wrote:
 > operation, so one packet DMA buffer should be mapped to A device(NIC
 > port) as well as B device simultaneously.
 > Q: Can this come to ture? Is it legal for mmaping operation at this platform?
+>
+> Thanks.
+>
+> Yanfei
+>
+>
+not if the two different devices (82599 VFs or PFs) are in different domains
+(assigned to different ((kvm; Konrad:xen?) virtualization guests).
+otherwise, I don't see why two devices can't have the same memory page
+mapped for DMA use -- a mere matter of multi-device, shared memory utilization! ;-)
 
-But you still haven't answered the question upon which all this depends.
-Let me make it simple.  In PCI terms are A and B
 
-     I. Same Device, Same Function
-    II. Same Device, Different Function
-   III. Different Devices
-
-?
-
-James
+>>
+>> This still doesn't really provide the information needed to elucidate
+>> the question.
+>>
+>> James
+>>
+>>
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
