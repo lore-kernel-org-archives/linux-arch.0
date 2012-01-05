@@ -1,131 +1,122 @@
-From: Yanfei Wang <backyes@gmail.com>
-Subject: =?UTF-8?Q?Re=3A_=E3=80=90Question=E3=80=91Whether_it=27s_legal_to_enable_same_?=
-	=?UTF-8?Q?physical_DMA_memory_mapped_for_different_NIC_device=3F?=
-Date: Thu, 5 Jan 2012 20:40:47 +0800
-Message-ID: <CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-	<20120103203357.GD17472@phenom.dumpdata.com>
-	<CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
-	<1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [GIT PULL] use generic pci_iomap on all architectures
+Date: Thu, 5 Jan 2012 16:58:36 +0200
+Message-ID: <20120105145836.GA2751@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f46.google.com ([209.85.212.46]:33066 "EHLO
-	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751277Ab2AEMks convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jan 2012 07:40:48 -0500
-In-Reply-To: <1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
+Received: from mx1.redhat.com ([209.132.183.28]:1026 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753933Ab2AEO4g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Jan 2012 09:56:36 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jesse Barnes <jbarnes@virtuousgeek.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Wed, Jan 4, 2012 at 11:59 PM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
->> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
->> <konrad.wilk@oracle.com> wrote:
->> > On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
->> >> Dear all,
->> >>
->> >> In NIC driver, to eliminate the =A0overhead of dma_map_single() f=
-or DMA
->> >> packet data, =A0we have statically allocated huge DMA memory buff=
-er ring
->> >> at once instead of calling dma_map_single() per packet. =A0Consid=
-ering
->> >> to further reduce the copy overhead between different NIC(port) r=
-ing
->> >> while forwarding, one packet from a input NIC(port) will be
->> >> transferred to output NIC(port) with no any copy action.
->> >>
->> >> To satisfy this requirement, the packet memory should be mapped i=
-nto
->> >> input port and unmapped when leaving input port, then mapped into
->> >> output port and unmapped later.
->> >>
->> >> Whether it's legal to map the same DMA memory into input and outp=
-ut
->> >> port simultaneously? If it's not, then the zero-copy for packet
->> >> forwarding is not feasible?
->> >>
->> >
->> > Did you ever a get a response about this?
->> No.
->
-> This is probably because no-one really understands what you're asking=
-=2E
-> As far as mapping memory to PCI devices goes, it's the job of the bri=
-dge
-> (or the iommu which may or may not be part of the bridge). =A0A stand=
-ard
-> iommu tends not to care about devices and functions, so a range once
-> mapped is available to everything behind the bridge. =A0A more secure
-> virtualisation based iommu (like the on in VT-D) does, and tends to m=
-ap
-> ranges per device. =A0I know of none that map per device and function=
-, but
-> maybe there are.
->
-> Your question reads like you have a range of memory mapped to a PCI
-> device that you want to use for two different purposes, can you do th=
-is?
-> to which the answer is that a standard PCI bridge really doesn't care
-> and it all depends on the mechanics of the actual device. =A0The only
-> wrinkle might be if the two different purposes are on two separate PC=
-I
-> functions of the device and the iommu does care.
->
->> >
->> > Is the output/input port on a seperate device function? Or is it
->> > just a specific MMIO BAR in your PCI device?
->> >
->> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
->> 82599NIC(two ports per NIC card);
->> Function: Forwarding packets between different ports.
->> Targets: Forwarding packets with Zero-Overhead, despite other obstac=
-les.
-Besides hardware and OS presented above, more detailed descriptions as =
-follows,
+Linus, please pull the following changes for 3.3, thanks a lot!
 
-When IXGBE driver do initialization, DMA Descriptors Ring Buffers are
-allocated statically and mapped as cache coherent. Instead of
-dynamically allocating skb buffers for packet data, to reduce the huge
-overhead from skb memory allocation, huge Packet data buffers are
-pre-allocated and mapped  when driver is loaded. The same strategy  is
-done for RX end and TX end.
-=46or simple packet forwarding application, one packet from RX should b=
-e
-replicated from kernel space to userspace, then copied TX end. Here,
-One packet at least, should be copied twice to accomplish forwarding.
-When doing high performance network application,  the copy action want
-to be reduced. If Zero-copy can be done, that's better. (May be you
-will find that Zero-copy will bring other obstacles, such as memory
-management overhead with high performance. We do not care about it
-temporally.)
-To achieve this goal, a alternative approach is that,  unmapping the
-packets buffer after receiving it from A device, then mapping this
-packet buffer to B device. We hope to reduce the two mapping
-operation, so one packet DMA buffer should be mapped to A device(NIC
-port) as well as B device simultaneously.
-Q: Can this come to ture? Is it legal for mmaping operation at this pla=
-tform?
+These changes have been on linux-next for a while now.
+They touch a lot of arches and have interdependencies, so merging
+separately seems to make sense, I think.
 
-Thanks.
+The following changes since commit 805a6af8dba5dfdd35ec35dc52ec0122400b2610:
 
-Yanfei
+  Linux 3.2 (2012-01-04 15:55:44 -0800)
 
+are available in the git repository at:
 
->
-> This still doesn't really provide the information needed to elucidate
-> the question.
->
-> James
->
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch"=
- in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
+  git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git for-linus
+
+for you to fetch changes up to 193a667fba76b3df482cbf865228e26ee246e889:
+
+  alpha: drop pci_iomap/pci_iounmap from pci-noop.c (2011-12-04 16:00:19 +0200)
+
+----------------------------------------------------------------
+lib: use generic pci_iomap on all architectures
+
+Many architectures don't want to pull in iomap.c,
+so they ended up duplicating pci_iomap from that file.
+That function isn't trivial, and we are going to modify it
+https://lkml.org/lkml/2011/11/14/183
+so the duplication hurts.
+
+This reduces the scope of the problem significantly,
+by moving pci_iomap to a separate file and
+referencing that from all architectures.
+
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+
+----------------------------------------------------------------
+Michael S. Tsirkin (16):
+      lib: move GENERIC_IOMAP to lib/Kconfig
+      lib: add GENERIC_PCI_IOMAP
+      alpha: switch to GENERIC_PCI_IOMAP
+      arm: switch to GENERIC_PCI_IOMAP
+      microblaze: switch to GENERIC_PCI_IOMAP
+      mips: switch to GENERIC_PCI_IOMAP
+      parisc: switch to GENERIC_PCI_IOMAP
+      powerpc: switch to GENERIC_PCI_IOMAP
+      sh: switch to GENERIC_PCI_IOMAP
+      sparc: switch to GENERIC_PCI_IOMAP
+      tile: don't panic on iomap
+      tile: switch to GENERIC_PCI_IOMAP
+      frv: switch to GENERIC_PCI_IOMAP
+      mn10300: add missing __iomap markers
+      mn10300: switch to GENERIC_PCI_IOMAP
+      alpha: drop pci_iomap/pci_iounmap from pci-noop.c
+
+ arch/alpha/Kconfig                    |    5 +---
+ arch/alpha/kernel/pci-noop.c          |   12 --------
+ arch/alpha/kernel/pci.c               |   26 +-----------------
+ arch/arm/Kconfig                      |    1 +
+ arch/arm/include/asm/io.h             |    2 +-
+ arch/arm/mm/iomap.c                   |   21 --------------
+ arch/cris/Kconfig                     |    5 +---
+ arch/frv/Kconfig                      |    1 +
+ arch/frv/include/asm/io.h             |    2 +-
+ arch/frv/mb93090-mb00/Makefile        |    2 +-
+ arch/frv/mb93090-mb00/pci-iomap.c     |   29 --------------------
+ arch/hexagon/Kconfig                  |    4 +--
+ arch/ia64/Kconfig                     |    5 +---
+ arch/m68k/Kconfig                     |    4 +--
+ arch/microblaze/Kconfig               |    1 +
+ arch/microblaze/pci/iomap.c           |   19 -------------
+ arch/mips/Kconfig                     |    1 +
+ arch/mips/lib/iomap-pci.c             |   26 ------------------
+ arch/mn10300/Kconfig                  |    1 +
+ arch/mn10300/include/asm/io.h         |   17 +++++------
+ arch/mn10300/unit-asb2305/Makefile    |    2 +-
+ arch/mn10300/unit-asb2305/pci-iomap.c |   31 ---------------------
+ arch/openrisc/Kconfig                 |    3 --
+ arch/parisc/Kconfig                   |    1 +
+ arch/parisc/lib/iomap.c               |   23 ---------------
+ arch/powerpc/Kconfig                  |    1 +
+ arch/powerpc/kernel/iomap.c           |   19 -------------
+ arch/powerpc/platforms/Kconfig        |    3 --
+ arch/score/Kconfig                    |    4 +--
+ arch/sh/Kconfig                       |    4 +--
+ arch/sh/drivers/pci/pci.c             |   23 ---------------
+ arch/sparc/Kconfig                    |    1 +
+ arch/sparc/include/asm/io_32.h        |    2 +-
+ arch/sparc/include/asm/io_64.h        |    2 +-
+ arch/sparc/lib/iomap.c                |   23 ---------------
+ arch/tile/Kconfig                     |    1 +
+ arch/tile/include/asm/io.h            |    3 +-
+ arch/tile/include/asm/pci.h           |    2 +-
+ arch/tile/kernel/pci.c                |   21 --------------
+ arch/unicore32/Kconfig                |    4 +--
+ arch/x86/Kconfig                      |    4 +--
+ include/asm-generic/io.h              |    4 +-
+ include/asm-generic/iomap.h           |    9 ++----
+ include/asm-generic/pci_iomap.h       |   25 +++++++++++++++++
+ lib/Kconfig                           |    7 +++++
+ lib/Makefile                          |    1 +
+ lib/iomap.c                           |   38 +------------------------
+ lib/pci_iomap.c                       |   48 +++++++++++++++++++++++++++++++++
+ 48 files changed, 124 insertions(+), 369 deletions(-)
+ delete mode 100644 arch/frv/mb93090-mb00/pci-iomap.c
+ delete mode 100644 arch/mn10300/unit-asb2305/pci-iomap.c
+ create mode 100644 include/asm-generic/pci_iomap.h
+ create mode 100644 lib/pci_iomap.c
