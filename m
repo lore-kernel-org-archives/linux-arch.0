@@ -1,91 +1,93 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [GIT PULL] User-API header split preliminary patches
-Date: Fri, 06 Jan 2012 22:02:03 +0000
-Message-ID: <19981.1325887323@redhat.com>
+From: Greg KH <gregkh@suse.de>
+Subject: Re: [GIT PATCH] driver core merge for 3.3
+Date: Fri, 6 Jan 2012 14:06:08 -0800
+Message-ID: <20120106220608.GA20623@suse.de>
+References: <20120106201126.GA7239@kroah.com>
+ <CAMuHMdVdTcJFePA2tf-jqnLGW_2i7rJLqAX521SM+rz0YzXJNg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:24367 "EHLO mx1.redhat.com"
+Received: from cantor2.suse.de ([195.135.220.15]:38776 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759164Ab2AFWCU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Jan 2012 17:02:20 -0500
+	id S1758810Ab2AFWGV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 6 Jan 2012 17:06:21 -0500
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdVdTcJFePA2tf-jqnLGW_2i7rJLqAX521SM+rz0YzXJNg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: dhowells@redhat.com, arnd@arndb.de, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ben Hutchings <ben@decadent.org.uk>, Linux-Arch <linux-arch@vger.kernel.org>
 
+On Fri, Jan 06, 2012 at 10:38:41PM +0100, Geert Uytterhoeven wrote:
+> On Fri, Jan 6, 2012 at 21:11, Greg KH <gregkh@suse.de> wrote:
+> > Ben Hutchings (1):
+> > =A0 =A0 =A0topology: Provide CPU topology in sysfs in !SMP configur=
+ations
+>=20
+> FWIW, as reported before, I can confirm that 3.2.0-next-20120106 cras=
+hes
+> on m68k during boot:
+>=20
+> Console: switching to colour frame buffer device 80x30
+> fb0: frame buffer device, using 304K of video memory
+> Non-volatile memory driver v1.3
+> Unable to handle kernel NULL pointer dereference at virtual address 0=
+0000020
+> Oops: 00000000
+> Modules linked in:
+> PC: [<000c3f72>] internal_create_group+0x20/0x1ba
+> SR: 2304  SP: 00c07f10  a2: 00c05c00
+> d0: 00000000    d1: fffff24b    d2: 00000000    d3: 00000000
+> d4: 00000000    d5: 002f0a28    a0: 00000008    a1: 002e306e
+> Process swapper (pid: 1, task=3D00c05c00)
+> Frame format=3D7 eff addr=3D00000020 ssw=3D0505 faddr=3D00000020
+> wb 1 stat/addr/data: 0000 00000000 00000000
+> wb 2 stat/addr/data: 0000 00000000 00000000
+> wb 3 stat/addr/data: 0000 00000020 00000000
+> push data: 00000000 00000000 00000000 00000000
+> Stack from 00c07f78:
+>         00000000 00000000 00000000 00000000 00000000 0033d5f0 0033641=
+e 00326632
+>         00000000 002e1ff8 000c4130 00000008 00000000 002f0a28 0033643=
+6 00000008
+>         002f0a28 00000000 0000210c 00000000 00000000 00000000 0000000=
+0 00000000
+>         00000000 0033d5f0 00002008 00326632 0031dae2 0033641e 0031da6=
+6 000249b6
+>         00002f04 00000000
+> Call Trace: [<0033641e>] topology_sysfs_init+0x0/0x1e
+>  [<00326632>] __alloc_bootmem+0x0/0x1a
+>  [<000c4130>] sysfs_create_group+0xe/0x14
+>  [<00336436>] topology_sysfs_init+0x18/0x1e
+>  [<0000210c>] do_one_initcall+0x104/0x19a
+>  [<00002008>] do_one_initcall+0x0/0x19a
+>  [<00326632>] __alloc_bootmem+0x0/0x1a
+>  [<0031dae2>] kernel_init+0x7c/0x11c
+>  [<0033641e>] topology_sysfs_init+0x0/0x1e
+>  [<0031da66>] kernel_init+0x0/0x11c
+>  [<000249b6>] printk+0x0/0x1a
+>  [<00002f04>] kernel_thread+0x3a/0x4e
+>=20
+> Code: 2a2e 0010 4a86 6700 0162 4a84 660a 2046 <4aa8> 0018 6700 0154
+> 4a84 6600 0122 2045 2010 6700 0128 486e fffc 2f00 2f06 61ff
+> Disabling lock debugging due to kernel taint
+> Kernel panic - not syncing: Attempted to kill init!
+>=20
+> Reverting the above commit (ccbc60d3e19a1b6ae66ca0d89b3da02dde62088b)
+> fixes it.
+>=20
+> So to preserve bisectability, you may want to drop this ommit until t=
+he
+> UP-only archs have been fixed.
 
-Hi Linus,
+Ick, sorry for missing that report, you are right.
 
-Can you pull these patches from my GIT repository please?
+Ben, I thought this patch was for UP systems, how did this work on your
+testing?
 
-They prepare the way for splitting out the User API definitions from the
-standard kernel internal headers into their own header file directories (there
-will be arch-specific directories as well as the common ones).
+Linus, can you revert this, or I can if you want me to.
 
-They have been in linux-next for roughly three weeks.
+thanks,
 
-I have audited them from my initial patch submission to get rid of patches
-that are no longer necessary.
-
-I have also built allyesconfig with all the cross-compilers I can create on
-the full patch spectrum (on the uapi-split branch in the same tree) and
-eliminated the problems created.
-
-Can you please consider pulling the further patchset that actually performs
-the split at the end of the merge window.  It *will* need regenerating
-whenever it is pulled, but is mostly scripted.
-
-Thanks,
-David
----
-The following changes since commit dc47ce90c3a822cd7c9e9339fe4d5f61dcb26b50:
-
-  Linux 3.2-rc5 (2011-12-09 15:09:32 -0800)
-
-are available in the git repository at:
-  git://git.infradead.org/users/dhowells/linux-headers.git for-next
-
-David Howells (17):
-      UAPI: Fix arch/mips/include/asm/Kbuild to have separate header-y lines
-      UAPI: Don't include linux/compat.h in sparc's asm/siginfo.h
-      UAPI: elf_read_implies_exec() is a kernel-only feature - so hide from userspace
-      UAPI: Make MN10300 use asm-generic/param.h
-      UAPI: Make M32R use asm-generic/param.h
-      UAPI: Make FRV use asm-generic/param.h
-      UAPI: Rearrange definition of HZ in asm-generic/param.h
-      UAPI: Guard linux/sound.h
-      UAPI: Guard linux/isdn_divertif.h
-      UAPI: Guard linux/pmu.h
-      UAPI: Guard linux/cuda.h
-      UAPI: Alter the S390 asm include guards to be recognisable by the UAPI splitter
-      UAPI: Fix nested __KERNEL__ guards in video/edid.h
-      UAPI: Make linux/patchkey.h easier to parse
-      UAPI: Fix AHZ multiple inclusion when __KERNEL__ is removed
-      UAPI: Don't have a #elif clause in a __KERNEL__ guard in linux/soundcard.h
-      UAPI: Split trivial #if defined(__KERNEL__) && X conditionals
-
- arch/arm/include/asm/hwcap.h       |    4 +++-
- arch/arm/include/asm/swab.h        |    7 +++++--
- arch/arm/include/asm/unistd.h      |    4 +++-
- arch/frv/include/asm/param.h       |   16 +---------------
- arch/ia64/include/asm/intrinsics.h |   21 +++++++++++++--------
- arch/m32r/include/asm/param.h      |   18 +-----------------
- arch/mips/include/asm/Kbuild       |    4 +++-
- arch/mips/include/asm/types.h      |   10 +++++++---
- arch/mn10300/include/asm/param.h   |   18 +-----------------
- arch/s390/include/asm/chpid.h      |    2 +-
- arch/s390/include/asm/itcw.h       |    2 +-
- arch/s390/include/asm/mman.h       |    4 +++-
- arch/sparc/include/asm/siginfo.h   |    2 --
- arch/tile/include/asm/signal.h     |    4 +++-
- include/asm-generic/param.h        |   13 +++++++------
- include/linux/acct.h               |    3 +++
- include/linux/cuda.h               |    5 +++++
- include/linux/elf.h                |   18 +++++++++---------
- include/linux/isdn_divertif.h      |    4 ++++
- include/linux/mroute6.h            |    4 +++-
- include/linux/patchkey.h           |    4 +++-
- include/linux/pmu.h                |    4 ++++
- include/linux/sound.h              |    4 ++++
- include/linux/soundcard.h          |    4 +++-
- include/video/edid.h               |    6 ++----
- 25 files changed, 92 insertions(+), 93 deletions(-)
+greg k-h
