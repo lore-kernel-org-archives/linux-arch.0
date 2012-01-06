@@ -1,131 +1,94 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: =?UTF-8?Q?=E3=80=90Question=E3=80=91Whether?= it's legal to
- enable same physical DMA memory mapped for different NIC device?
-Date: Fri, 06 Jan 2012 08:00:40 -0800
-Message-ID: <1325865640.2775.54.camel@dabdike.Larkspurhotels.com>
-References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
-	 <20120103203357.GD17472@phenom.dumpdata.com>
-	 <CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
-	 <1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
-	 <CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
-	 <1325780417.2775.6.camel@dabdike.Larkspurhotels.com>
-	 <CAJULonhqBMLFRLLizhVB1SxR=sWUPTTHFu2=KhEX2sf2GFdV0g@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [GIT PATCH] driver core merge for 3.3
+Date: Fri, 6 Jan 2012 22:38:41 +0100
+Message-ID: <CAMuHMdVdTcJFePA2tf-jqnLGW_2i7rJLqAX521SM+rz0YzXJNg@mail.gmail.com>
+References: <20120106201126.GA7239@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:49407 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1030320Ab2AFQAm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jan 2012 11:00:42 -0500
-In-Reply-To: <CAJULonhqBMLFRLLizhVB1SxR=sWUPTTHFu2=KhEX2sf2GFdV0g@mail.gmail.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:60755 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751714Ab2AFVim convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jan 2012 16:38:42 -0500
+In-Reply-To: <20120106201126.GA7239@kroah.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yanfei Wang <backyes@mail.ustc.edu.cn>
-Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Greg KH <gregkh@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Ben Hutchings <ben@decadent.org.uk>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Fri, 2012-01-06 at 10:05 +0800, Yanfei Wang wrote:
-> On Fri, Jan 6, 2012 at 12:20 AM, James Bottomley
-> <James.Bottomley@hansenpartnership.com> wrote:
-> > On Thu, 2012-01-05 at 20:40 +0800, Yanfei Wang wrote:
-> >> On Wed, Jan 4, 2012 at 11:59 PM, James Bottomley
-> >> <James.Bottomley@hansenpartnership.com> wrote:
-> >> > On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
-> >> >> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
-> >> >> <konrad.wilk@oracle.com> wrote:
-> >> >> > On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
-> >> >> >> Dear all,
-> >> >> >>
-> >> >> >> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
-> >> >> >> packet data,  we have statically allocated huge DMA memory buffer ring
-> >> >> >> at once instead of calling dma_map_single() per packet.  Considering
-> >> >> >> to further reduce the copy overhead between different NIC(port) ring
-> >> >> >> while forwarding, one packet from a input NIC(port) will be
-> >> >> >> transferred to output NIC(port) with no any copy action.
-> >> >> >>
-> >> >> >> To satisfy this requirement, the packet memory should be mapped into
-> >> >> >> input port and unmapped when leaving input port, then mapped into
-> >> >> >> output port and unmapped later.
-> >> >> >>
-> >> >> >> Whether it's legal to map the same DMA memory into input and output
-> >> >> >> port simultaneously? If it's not, then the zero-copy for packet
-> >> >> >> forwarding is not feasible?
-> >> >> >>
-> >> >> >
-> >> >> > Did you ever a get a response about this?
-> >> >> No.
-> >> >
-> >> > This is probably because no-one really understands what you're asking.
-> >> > As far as mapping memory to PCI devices goes, it's the job of the bridge
-> >> > (or the iommu which may or may not be part of the bridge).  A standard
-> >> > iommu tends not to care about devices and functions, so a range once
-> >> > mapped is available to everything behind the bridge.  A more secure
-> >> > virtualisation based iommu (like the on in VT-D) does, and tends to map
-> >> > ranges per device.  I know of none that map per device and function, but
-> >> > maybe there are.
-> >> >
-> >> > Your question reads like you have a range of memory mapped to a PCI
-> >> > device that you want to use for two different purposes, can you do this?
-> >> > to which the answer is that a standard PCI bridge really doesn't care
-> >> > and it all depends on the mechanics of the actual device.  The only
-> >> > wrinkle might be if the two different purposes are on two separate PCI
-> >> > functions of the device and the iommu does care.
-> >> >
-> >> >> >
-> >> >> > Is the output/input port on a seperate device function? Or is it
-> >> >> > just a specific MMIO BAR in your PCI device?
-> >> >> >
-> >> >> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
-> >> >> 82599NIC(two ports per NIC card);
-> >> >> Function: Forwarding packets between different ports.
-> >> >> Targets: Forwarding packets with Zero-Overhead, despite other obstacles.
-> >> Besides hardware and OS presented above, more detailed descriptions as follows,
-> >>
-> >> When IXGBE driver do initialization, DMA Descriptors Ring Buffers are
-> >> allocated statically and mapped as cache coherent. Instead of
-> >> dynamically allocating skb buffers for packet data, to reduce the huge
-> >> overhead from skb memory allocation, huge Packet data buffers are
-> >> pre-allocated and mapped  when driver is loaded. The same strategy  is
-> >> done for RX end and TX end.
-> >> For simple packet forwarding application, one packet from RX should be
-> >> replicated from kernel space to userspace, then copied TX end. Here,
-> >> One packet at least, should be copied twice to accomplish forwarding.
-> >> When doing high performance network application,  the copy action want
-> >> to be reduced. If Zero-copy can be done, that's better. (May be you
-> >> will find that Zero-copy will bring other obstacles, such as memory
-> >> management overhead with high performance. We do not care about it
-> >> temporally.)
-> >> To achieve this goal, a alternative approach is that,  unmapping the
-> >> packets buffer after receiving it from A device, then mapping this
-> >> packet buffer to B device. We hope to reduce the two mapping
-> >> operation, so one packet DMA buffer should be mapped to A device(NIC
-> >> port) as well as B device simultaneously.
-> >> Q: Can this come to ture? Is it legal for mmaping operation at this platform?
-> >
-> > But you still haven't answered the question upon which all this depends.
-> > Let me make it simple.  In PCI terms are A and B
-> >
-> >     I. Same Device, Same Function
-> >    II. Same Device, Different Function
-> >   III. Different Devices
-> $lspci
-> 09:00.0 Ethernet controller: Intel Corporation 82599EB 10-Gigabit
-> Network Connection (rev 01)
-> 09:00.1 Ethernet controller: Intel Corporation 82599EB 10-Gigabit
-> Network Connection (rev 01)
-> Here, only one physical 10G NIC device, which contains two 10G ports.
-> So, the information list above shows that one port correspond one
-> function.
-> If forwarding packet between two ports, then A,B are different functions.
-> Otherwise, A,B are different devices if forwarding packets between two
-> physical NIC device. Is it right?
-> The OS is built on bare-metal hardware, no kvm, no xen, no VT.
+On Fri, Jan 6, 2012 at 21:11, Greg KH <gregkh@suse.de> wrote:
+> Ben Hutchings (1):
+> =C2=A0 =C2=A0 =C2=A0topology: Provide CPU topology in sysfs in !SMP c=
+onfigurations
 
-OK, so we already gave you your answer:  for same device different
-function there's unlikely to be a platform problem (even with IOVA
-devices, it would be the device causing the problem, not the platform).
-For different devices, whether it works is platform dependent.  The
-problem platforms will mostly be those designed for virtualisation which
-use iommus for isolation.
+=46WIW, as reported before, I can confirm that 3.2.0-next-20120106 cras=
+hes
+on m68k during boot:
 
-James
+Console: switching to colour frame buffer device 80x30
+fb0: frame buffer device, using 304K of video memory
+Non-volatile memory driver v1.3
+Unable to handle kernel NULL pointer dereference at virtual address 000=
+00020
+Oops: 00000000
+Modules linked in:
+PC: [<000c3f72>] internal_create_group+0x20/0x1ba
+SR: 2304  SP: 00c07f10  a2: 00c05c00
+d0: 00000000    d1: fffff24b    d2: 00000000    d3: 00000000
+d4: 00000000    d5: 002f0a28    a0: 00000008    a1: 002e306e
+Process swapper (pid: 1, task=3D00c05c00)
+=46rame format=3D7 eff addr=3D00000020 ssw=3D0505 faddr=3D00000020
+wb 1 stat/addr/data: 0000 00000000 00000000
+wb 2 stat/addr/data: 0000 00000000 00000000
+wb 3 stat/addr/data: 0000 00000020 00000000
+push data: 00000000 00000000 00000000 00000000
+Stack from 00c07f78:
+        00000000 00000000 00000000 00000000 00000000 0033d5f0 0033641e =
+00326632
+        00000000 002e1ff8 000c4130 00000008 00000000 002f0a28 00336436 =
+00000008
+        002f0a28 00000000 0000210c 00000000 00000000 00000000 00000000 =
+00000000
+        00000000 0033d5f0 00002008 00326632 0031dae2 0033641e 0031da66 =
+000249b6
+        00002f04 00000000
+Call Trace: [<0033641e>] topology_sysfs_init+0x0/0x1e
+ [<00326632>] __alloc_bootmem+0x0/0x1a
+ [<000c4130>] sysfs_create_group+0xe/0x14
+ [<00336436>] topology_sysfs_init+0x18/0x1e
+ [<0000210c>] do_one_initcall+0x104/0x19a
+ [<00002008>] do_one_initcall+0x0/0x19a
+ [<00326632>] __alloc_bootmem+0x0/0x1a
+ [<0031dae2>] kernel_init+0x7c/0x11c
+ [<0033641e>] topology_sysfs_init+0x0/0x1e
+ [<0031da66>] kernel_init+0x0/0x11c
+ [<000249b6>] printk+0x0/0x1a
+ [<00002f04>] kernel_thread+0x3a/0x4e
+
+Code: 2a2e 0010 4a86 6700 0162 4a84 660a 2046 <4aa8> 0018 6700 0154
+4a84 6600 0122 2045 2010 6700 0128 486e fffc 2f00 2f06 61ff
+Disabling lock debugging due to kernel taint
+Kernel panic - not syncing: Attempted to kill init!
+
+Reverting the above commit (ccbc60d3e19a1b6ae66ca0d89b3da02dde62088b)
+fixes it.
+
+So to preserve bisectability, you may want to drop this ommit until the
+UP-only archs have been fixed.
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
