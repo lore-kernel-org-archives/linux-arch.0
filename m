@@ -1,48 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:48507 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757313Ab2ADXKo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jan 2012 18:10:44 -0500
+Received: from smtp2.ustc.edu.cn ([202.38.64.46]:32967 "HELO ustc.edu.cn"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with SMTP
+	id S1758531Ab2AFCMG convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jan 2012 21:12:06 -0500
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.00.1201041046290.29775@router.home>
-References: <alpine.LFD.2.02.1111292001420.4019@tux.localdomain>
- <CA+55aFz23nN4EALZKf1uptn3a+LKU8wehEnxXO7WA8J5WAyPAQ@mail.gmail.com>
- <CAOJsxLEHT4D4rfMvWe5iPFpunOaLWZD9fJxbOJ6_qMwt_rd7eg@mail.gmail.com>
- <20111220162315.GC10752@google.com> <CA+55aFwwjAtiiM5V3LfebmtKAOzxZXk-VzJ3U7PJAc1VjxK69Q@mail.gmail.com>
- <20111220202854.GH10752@google.com> <alpine.DEB.2.00.1112210851230.9601@router.home>
- <20111221170535.GB9213@google.com> <alpine.DEB.2.00.1112220854440.31315@router.home>
- <20111222160822.GE17084@google.com> <alpine.DEB.2.00.1112221154380.11787@router.home>
- <CA+55aFzY_6QYVyjAmP+w8D0Xy1Pq++XEUaBJRcCN9SbDE-pOhw@mail.gmail.com>
- <alpine.DEB.2.00.1112231031001.3482@router.home> <CA+55aFzCY7TyEgkWFn6wxUMjBBaKGcx0hdV6gTdta5u8eK=Ymg@mail.gmail.com>
- <alpine.DEB.2.00.1201040906090.27157@router.home> <CA+55aFwOp1UbeexKSdQC6YwrA9pS-J5qdqs-68=H8T1GS4Nr1A@mail.gmail.com>
- <alpine.DEB.2.00.1201041046290.29775@router.home>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Wed, 4 Jan 2012 15:10:22 -0800
-Message-ID: <CA+55aFwgN4QGowU1+5NO0QWr4nT9KDyk8opiVgzmULJG-2eKzg@mail.gmail.com>
-Subject: Re: [GIT PULL] slab fixes for 3.2-rc4
+In-Reply-To: <4F05F073.2050209@redhat.com>
+References: <CAJULonj9rFDKNCzpEXj2r3XjkYojy-CGYpVQ1RF8SxwLVrXqAA@mail.gmail.com>
+	<20120103203357.GD17472@phenom.dumpdata.com>
+	<CAJULongKix3QXmcoUcraQxCyLN0wz6oe6p5Efg2A7S_r3nO6Fg@mail.gmail.com>
+	<1325692766.2758.22.camel@dabdike.int.hansenpartnership.com>
+	<CAJULoniAdLbyNUyrCYWbxOWAdB-Re-BxSNb0xfuFD8w6pDETWA@mail.gmail.com>
+	<4F05F073.2050209@redhat.com>
+Date: Fri, 6 Jan 2012 10:11:58 +0800
+Message-ID: <CAJULonggD94tzTvhO-7A0w-Sji07su8wLEvj15xto=rxyjW3Qg@mail.gmail.com>
+Subject: =?UTF-8?Q?Re=3A_=E3=80=90Question=E3=80=91Whether_it=27s_legal_to_enable_same_?=
+	=?UTF-8?Q?physical_DMA_memory_mapped_for_different_NIC_device=3F?=
+From: Yanfei Wang <backyes@mail.ustc.edu.cn>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Lameter <cl@linux.com>
-Cc: Tejun Heo <tj@kernel.org>, Pekka Enberg <penberg@kernel.org>, Ingo Molnar <mingo@elte.hu>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20120104231022.f6a2vhhafLiZmvLs8nnzb5lGAEFtJytVUUJHvDwYhAA@z>
+To: Don Dutile <ddutile@redhat.com>
+Cc: James Bottomley <James.Bottomley@hansenpartnership.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120106021158.Hd2h_ZP9yQMYcT1FbHXRi1aEeY5SR7WTDkTo9Hh0354@z>
 
-On Wed, Jan 4, 2012 at 9:00 AM, Christoph Lameter <cl@linux.com> wrote:
+On Fri, Jan 6, 2012 at 2:48 AM, Don Dutile <ddutile@redhat.com> wrote:
+> On 01/05/2012 07:40 AM, Yanfei Wang wrote:
+>>
+>> On Wed, Jan 4, 2012 at 11:59 PM, James Bottomley
+>> <James.Bottomley@hansenpartnership.com>  wrote:
+>>>
+>>> On Wed, 2012-01-04 at 10:44 +0800, Yanfei Wang wrote:
+>>>>
+>>>> On Wed, Jan 4, 2012 at 4:33 AM, Konrad Rzeszutek Wilk
+>>>> <konrad.wilk@oracle.com>  wrote:
+>>>>>
+>>>>> On Wed, Dec 07, 2011 at 10:16:40PM +0800, ustc.mail wrote:
+>>>>>>
+>>>>>> Dear all,
+>>>>>>
+>>>>>> In NIC driver, to eliminate the  overhead of dma_map_single() for DMA
+>>>>>> packet data,  we have statically allocated huge DMA memory buffer ring
+>>>>>> at once instead of calling dma_map_single() per packet.  Considering
+>>>>>> to further reduce the copy overhead between different NIC(port) ring
+>>>>>> while forwarding, one packet from a input NIC(port) will be
+>>>>>> transferred to output NIC(port) with no any copy action.
+>>>>>>
+>>>>>> To satisfy this requirement, the packet memory should be mapped into
+>>>>>> input port and unmapped when leaving input port, then mapped into
+>>>>>> output port and unmapped later.
+>>>>>>
+>>>>>> Whether it's legal to map the same DMA memory into input and output
+>>>>>> port simultaneously? If it's not, then the zero-copy for packet
+>>>>>> forwarding is not feasible?
+>>>>>>
+>>>>>
+>>>>> Did you ever a get a response about this?
+>>>>
+>>>> No.
+>>>
+>>>
+>>> This is probably because no-one really understands what you're asking.
+>>> As far as mapping memory to PCI devices goes, it's the job of the bridge
+>>> (or the iommu which may or may not be part of the bridge).  A standard
+>>> iommu tends not to care about devices and functions, so a range once
+>>> mapped is available to everything behind the bridge.  A more secure
+>>> virtualisation based iommu (like the on in VT-D) does, and tends to map
+>>> ranges per device.  I know of none that map per device and function, but
+>>> maybe there are.
+>>>
+>>> Your question reads like you have a range of memory mapped to a PCI
+>>> device that you want to use for two different purposes, can you do this?
+>>> to which the answer is that a standard PCI bridge really doesn't care
+>>> and it all depends on the mechanics of the actual device.  The only
+>>> wrinkle might be if the two different purposes are on two separate PCI
+>>> functions of the device and the iommu does care.
+>>>
+>>>>>
+>>>>> Is the output/input port on a seperate device function? Or is it
+>>>>> just a specific MMIO BAR in your PCI device?
+>>>>>
+>>>> Platform: x86, intel nehalem 8Core NUMA, linux 2.6.39, 10G
+>>>> 82599NIC(two ports per NIC card);
+>>>> Function: Forwarding packets between different ports.
+>>>> Targets: Forwarding packets with Zero-Overhead, despite other obstacles.
+>>
+>> Besides hardware and OS presented above, more detailed descriptions as
+>> follows,
+>>
+>> When IXGBE driver do initialization, DMA Descriptors Ring Buffers are
+>> allocated statically and mapped as cache coherent. Instead of
+>> dynamically allocating skb buffers for packet data, to reduce the huge
+>> overhead from skb memory allocation, huge Packet data buffers are
+>> pre-allocated and mapped  when driver is loaded. The same strategy  is
+>> done for RX end and TX end.
+>> For simple packet forwarding application, one packet from RX should be
+>> replicated from kernel space to userspace, then copied TX end. Here,
+>> One packet at least, should be copied twice to accomplish forwarding.
+>> When doing high performance network application,  the copy action want
+>> to be reduced. If Zero-copy can be done, that's better. (May be you
+>> will find that Zero-copy will bring other obstacles, such as memory
+>> management overhead with high performance. We do not care about it
+>> temporally.)
+>> To achieve this goal, a alternative approach is that,  unmapping the
+>> packets buffer after receiving it from A device, then mapping this
+>> packet buffer to B device. We hope to reduce the two mapping
+>> operation, so one packet DMA buffer should be mapped to A device(NIC
+>> port) as well as B device simultaneously.
+>> Q: Can this come to ture? Is it legal for mmaping operation at this
+>> platform?
+>>
+>> Thanks.
+>>
+>> Yanfei
+>>
+>>
+> not if the two different devices (82599 VFs or PFs) are in different domains
+> (assigned to different ((kvm; Konrad:xen?) virtualization guests).
+> otherwise, I don't see why two devices can't have the same memory page
+> mapped for DMA use -- a mere matter of multi-device, shared memory
+> utilization! ;-)
 >
-> xadd is 3 cycles. add is one cycle.
+OS is based on directly hardware, no kvm, xen, VT, exsit. That's to
+say, it's legal to map same physical DMA buffer into different  PCIe
+functions(devices) to eliminate the per-packet-map action.
 
-On some uarchs. On new uarchs it can be a single cycle, I think, and
-on some uarchs it will even be microcoded and/or only go in one pipe
-because it has that odd behavior that it writes both to memory and a
-register, and thus doesn't fit the normal fastpaths.
+Thanks
+>
+>>>
+>>> This still doesn't really provide the information needed to elucidate
+>>> the question.
+>>>
+>>> James
+>>>
+>>>
+>>> --
+>>> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+>>> the body of a message to majordomo@vger.kernel.org
+>>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>>
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe linux-pci" in
+>>
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+>
 
-The point is, xadd isn't actually any faster than just doing the
-regular "add and read". It's *slower*.
-
-There really isn't ever any reason to use xadd on percpu variables.
-That's my point. You claimed that there was a performance advantage.
-There really isn't.
-
-So why are you still arguing?
-
-                           Linus
