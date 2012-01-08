@@ -1,64 +1,50 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v2 2/2] msm: DMAEngine: Add DMAEngine driver based on
-	old MSM DMA APIs
-Date: Sun, 8 Jan 2012 00:21:04 +0000
-Message-ID: <20120108002104.GC13181@n2100.arm.linux.org.uk>
-References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org> <1325854052-21402-3-git-send-email-kumarrav@codeaurora.org> <1325901569.10425.14.camel@m0nster> <20120107185443.GA19216@codeaurora.org> <20120107192112.GB13181@n2100.arm.linux.org.uk> <1325981636.16037.6.camel@m0nster>
+From: Ben Hutchings <ben@decadent.org.uk>
+Subject: [PATCH 1/2] topology: Check for missing CPU devices
+Date: Sun, 08 Jan 2012 20:48:34 +0000
+Message-ID: <1326055714.13595.309.camel@deadeye>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:35541 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752451Ab2AHAVy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Jan 2012 19:21:54 -0500
-Content-Disposition: inline
-In-Reply-To: <1325981636.16037.6.camel@m0nster>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Walker <dwalker@fifo99.com>
-Cc: David Brown <davidb@codeaurora.org>, Ravi Kumar V <kumarrav@codeaurora.org>, vinod.koul@intel.com, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, bryanh@codeaurora.org, tsoni@qualcomm.com, johlstei@qualcomm.com, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Nicolas Ferre <nicolas.ferre@atmel.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-m68k-owner@vger.kernel.org>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Greg Kroah-Hartman <gregkh@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jan 07, 2012 at 04:13:56PM -0800, Daniel Walker wrote:
-> On Sat, 2012-01-07 at 19:21 +0000, Russell King - ARM Linux wrote:
-> > Please refer to the DMA engine documentation, found here:
-> > 
-> > Documentation/dmaengine.txt
-> > 
-> > section 3:
-> > 
-> >    Note:
-> >         Although the async_tx API specifies that completion callback
-> >         routines cannot submit any new operations, this is not the
-> >         case for slave/cyclic DMA.
-> > 
-> >         For slave DMA, the subsequent transaction may not be available
-> >         for submission prior to callback function being invoked, so
-> >         slave DMA callbacks are permitted to prepare and submit a new
-> >         transaction.
-> > 
-> >         For cyclic DMA, a callback function may wish to terminate the
-> >         DMA via dmaengine_terminate_all().
-> > 
-> > *       Therefore, it is important that DMA engine drivers drop any
-> > *       locks before calling the callback function which may cause a
-> > *       deadlock.
-> 
-> Here's the comment from at_hdmac.c .
-> 
->                 /*
->                  * The API requires that no submissions are done from a
->                  * callback, so we don't need to drop the lock here
->                  */
->                 if (callback)
->                         callback(param);
-> 
-> I don't know much about the DMA engine, but maybe there is some special
-> case here that makes this ok.. (CC'ed Nicolas Ferre)
+Commit ccbc60d3e19a1b6ae66ca0d89b3da02dde62088b ('topology: Provide
+CPU topology in sysfs in !SMP configurations') causes a crash at boot
+on a several architectures.  The topology sysfs code assumes that
+there is a CPU device for each online CPU whereas some architectures
+that do not support SMP or cpufreq do not register any CPU devices.
+Check for this before trying to use a device.
 
-If you read the note fully, you'll notice that there's a difference
-between the async_tx API and the slave/cyclic DMA API (it's covered
-in the first paragraph.)
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ drivers/base/topology.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-Plus that documentation was written by me, reviewed by Dan and Vinod
-and accepted.  You can treat it as authoritive, and take from it that
-at_hdmac.c is buggy.
+diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+index ae989c5..4467c85 100644
+--- a/drivers/base/topology.c
++++ b/drivers/base/topology.c
+@@ -147,6 +147,8 @@ static int __cpuinit topology_add_dev(unsigned int cpu)
+ {
+ 	struct device *dev = get_cpu_device(cpu);
+ 
++	if (!dev)
++		return -ENODEV;
+ 	return sysfs_create_group(&dev->kobj, &topology_attr_group);
+ }
+ 
+@@ -154,7 +156,8 @@ static void __cpuinit topology_remove_dev(unsigned int cpu)
+ {
+ 	struct device *dev = get_cpu_device(cpu);
+ 
+-	sysfs_remove_group(&dev->kobj, &topology_attr_group);
++	if (dev)
++		sysfs_remove_group(&dev->kobj, &topology_attr_group);
+ }
+ 
+ static int __cpuinit topology_cpu_callback(struct notifier_block *nfb,
+-- 
+1.7.8.2
