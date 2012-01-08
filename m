@@ -1,79 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:6806 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752752Ab2AGSyp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Jan 2012 13:54:45 -0500
-Date: Sat, 7 Jan 2012 10:54:43 -0800
-From: David Brown <davidb@codeaurora.org>
-Subject: Re: [PATCH v2 2/2] msm: DMAEngine: Add DMAEngine driver based on old
- MSM DMA APIs
-Message-ID: <20120107185443.GA19216@codeaurora.org>
-References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
- <1325854052-21402-3-git-send-email-kumarrav@codeaurora.org>
- <1325901569.10425.14.camel@m0nster>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1325901569.10425.14.camel@m0nster>
+Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:50774 "EHLO
+	shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754492Ab2AHUsq convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 8 Jan 2012 15:48:46 -0500
+Message-ID: <1326055714.13595.309.camel@deadeye>
+Subject: [PATCH 1/2] topology: Check for missing CPU devices
+From: Ben Hutchings <ben@decadent.org.uk>
+Date: Sun, 08 Jan 2012 20:48:34 +0000
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8BIT
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Walker <dwalker@fifo99.com>
-Cc: Ravi Kumar V <kumarrav@codeaurora.org>, vinod.koul@intel.com, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, bryanh@codeaurora.org, linux@arm.linux.org.uk, tsoni@qualcomm.com, johlstei@qualcomm.com, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120107185443.gu6mKohgZX_MrqaBaX8GUMpLFnMJDKoCxaxwaNtk6_s@z>
+To: Greg Kroah-Hartman <gregkh@suse.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org
+Message-ID: <20120108204834.zldwS8sE6aCztiJe1k-nSBwg5it17e581UVzchVU40U@z>
 
-On Fri, Jan 06, 2012 at 05:59:29PM -0800, Daniel Walker wrote:
+Commit ccbc60d3e19a1b6ae66ca0d89b3da02dde62088b ('topology: Provide
+CPU topology in sysfs in !SMP configurations') causes a crash at boot
+on a several architectures.  The topology sysfs code assumes that
+there is a CPU device for each online CPU whereas some architectures
+that do not support SMP or cpufreq do not register any CPU devices.
+Check for this before trying to use a device.
 
-> > diff --git a/drivers/dma/msm-dma.c b/drivers/dma/msm-dma.c
-> > new file mode 100644
-> > index 0000000..51d9a2b
-> > --- /dev/null
-> > +++ b/drivers/dma/msm-dma.c
-> > ...
-> > +static void msm_chan_desc_cleanup(struct msm_dma_chan *chan)
-> > +{
-> > +	struct msm_dma_desc_sw *desc, *_desc;
-> > +	unsigned long flags;
-> > +
-> > +	dev_dbg(chan->dev, "Cleaning completed descriptor of channel %d\n",
-> > +							chan->chan_id);
-> > +	spin_lock_irqsave(&chan->lock, flags);
-> > +
-> > +	list_for_each_entry_safe(desc, _desc, &chan->active_list, node) {
-> > +		dma_async_tx_callback callback;
-> > +		void *callback_param;
-> > +
-> > +		if (msm_dma_desc_status(chan, desc) == DMA_IN_PROGRESS)
-> > +			break;
-> > +
-> > +		/* Remove from the list of running transactions */
-> > +		list_del(&desc->node);
-> > +
-> > +		/* Run the link descriptor callback function */
-> > +		callback = desc->async_tx.callback;
-> > +		callback_param = desc->async_tx.callback_param;
-> > +		if (callback) {
-> > +			spin_unlock_irqrestore(&chan->lock, flags);
-> > +			callback(callback_param);
-> 
-> Are you sure unlocking here is safe? at_hdmac.c holds the lock the
-> entire time, and fsldma.c deletes the entire list, then runs the
-> operations.
+Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+---
+ drivers/base/topology.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-Good catch.
-
-According to a comment in at_hdmac.c, it is safe to hold the lock
-while calling the callbacks, so that's probably the easiest solution.
-I suspect that you've got something in another driver expecting the
-lock to be released, and that might have to be changed.
-
-I do think the way fsldma.c does it is cleaner, though, since it
-allows the lock to be released for longer periods of times.
-
-In either case, it can't be releasing a lock in the middle of a loop
-like this.
-
-David
-
+diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+index ae989c5..4467c85 100644
+--- a/drivers/base/topology.c
++++ b/drivers/base/topology.c
+@@ -147,6 +147,8 @@ static int __cpuinit topology_add_dev(unsigned int cpu)
+ {
+ 	struct device *dev = get_cpu_device(cpu);
+ 
++	if (!dev)
++		return -ENODEV;
+ 	return sysfs_create_group(&dev->kobj, &topology_attr_group);
+ }
+ 
+@@ -154,7 +156,8 @@ static void __cpuinit topology_remove_dev(unsigned int cpu)
+ {
+ 	struct device *dev = get_cpu_device(cpu);
+ 
+-	sysfs_remove_group(&dev->kobj, &topology_attr_group);
++	if (dev)
++		sysfs_remove_group(&dev->kobj, &topology_attr_group);
+ }
+ 
+ static int __cpuinit topology_cpu_callback(struct notifier_block *nfb,
 -- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+1.7.8.2
+
+
+
