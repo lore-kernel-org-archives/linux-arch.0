@@ -1,61 +1,25 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 2/2] cpu: Register a generic CPU device on architectures
- that currently do not
-Date: Mon, 9 Jan 2012 21:14:44 +0100
-Message-ID: <CAMuHMdWM128G+TK+Y=FQ_Hhw7XTrYyDERCDN1MrknXDmbOofcA@mail.gmail.com>
+Subject: Re: [PATCH 1/2] topology: Check for missing CPU devices
+Date: Mon, 9 Jan 2012 21:15:55 +0100
+Message-ID: <CAMuHMdWrj5qGvnwaXL62btSuSJF1OD3gjiyRD1KVc2bWWgD4uw@mail.gmail.com>
 References: <1326055714.13595.309.camel@deadeye>
-	<1326056146.13595.315.camel@deadeye>
+	<CA+55aFwwnJPpVY++Vgr6p3s47YjdYWV3sgLZzvCtiJp6DEu78Q@mail.gmail.com>
+	<CAFLxGvwJWrSRSNxHE620XZkc4w0ayzeqqxZOR1efkh1V+VBO1w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:51140 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933292Ab2AIUOp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2012 15:14:45 -0500
-In-Reply-To: <1326056146.13595.315.camel@deadeye>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ben Hutchings <ben@decadent.org.uk>
-Cc: Greg Kroah-Hartman <gregkh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAFLxGvwJWrSRSNxHE620XZkc4w0ayzeqqxZOR1efkh1V+VBO1w@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: richard -rw- weinberger <richard.weinberger@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ben Hutchings <ben@decadent.org.uk>, Greg Kroah-Hartman <gregkh@suse.de>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 8, 2012 at 21:55, Ben Hutchings <ben@decadent.org.uk> wrote=
-:
-> frv, h8300, microblaze, openrisc, score and xtensa currently do not
+On Mon, Jan 9, 2012 at 02:06, richard -rw- weinberger
+<richard.weinberger@gmail.com> wrote:
+> Instead of testing kernels I really should read more LKML. ;-)
 
-m68k is also handled in your patch.
-um is still missing.
-
-> register a CPU device. =C2=A0Add the config option GENERIC_CPU_DEVICE=
-S which
-> causes a generic CPU device to be registered for each present CPU, an=
-d
-> make all these architectures select it.
->
-> Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
-
-Thanks!
-On m68k, it works on its own or combined with "[PATCH 1/2] topology:
-Check for missing CPU devices."
-
-It adds
-
-/sys/devices/system/cpu/cpu0
-|-- subsystem -> ../../../../bus/cpu
-|-- topology
-|   |-- core_id
-|   |-- core_siblings
-|   |-- core_siblings_list
-|   |-- physical_package_id
-|   |-- thread_siblings
-|   `-- thread_siblings_list
-`-- uevent
-
-and
-
-/sys/bus/cpu/devices/cpu0 -> ../../../devices/system/cpu/cpu0
-
-Tested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+As an architecture maintainer, you want to read at least linux-arch.
 
 Gr{oetje,eeting}s,
 
