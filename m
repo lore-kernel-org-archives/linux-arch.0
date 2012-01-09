@@ -1,199 +1,80 @@
-From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCH 2/2] cpu: Register a generic CPU device on architectures
- that currently do not
-Date: Sun, 08 Jan 2012 20:55:46 +0000
-Message-ID: <1326056146.13595.315.camel@deadeye>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 1/2] topology: Check for missing CPU devices
+Date: Sun, 8 Jan 2012 16:18:41 -0800
+Message-ID: <CA+55aFwwnJPpVY++Vgr6p3s47YjdYWV3sgLZzvCtiJp6DEu78Q@mail.gmail.com>
 References: <1326055714.13595.309.camel@deadeye>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:50825 "EHLO
-	shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754492Ab2AHUzu convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 Jan 2012 15:55:50 -0500
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-m68k-owner@vger.kernel.org>
 In-Reply-To: <1326055714.13595.309.camel@deadeye>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@suse.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Ben Hutchings <ben@decadent.org.uk>
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org
+List-Id: linux-arch.vger.kernel.org
 
-frv, h8300, microblaze, openrisc, score and xtensa currently do not
-register a CPU device.  Add the config option GENERIC_CPU_DEVICES which
-causes a generic CPU device to be registered for each present CPU, and
-make all these architectures select it.
+Ok, both of the patches look sane to me, but it would really be nice
+to hear from somebody with the actual affected architectures, and get
+a tested-by.
 
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
-This is untested on any of the affected architectures.  However, I
-bodged x86 to use this option rather than registering CPU devices, and
-the resulting kernel booted and showed the expected things in sysfs.
+Testing it on hacked-up x86 sounds fine, but doesn't quite have the
+same kind of "yes, this fixes the actual problem" feel to it.
 
-There are several other architectures that could be changed to use this
-option, but I don't want to combine that change with this.
+Also, can you clarify: does the second patch make the first patch just
+an "irrelevant safety net", or are there possible callers of
+topology_add_dev() that could cause problems? I'm just wondering
+whether maybe the safety net ends up then possibly hiding some future
+bug where we (once more) don't register a cpu and then never really
+notice?
 
-Ben.
+Or am I just being difficult?
 
- arch/frv/Kconfig        |    1 +
- arch/h8300/Kconfig      |    1 +
- arch/m68k/Kconfig       |    1 +
- arch/microblaze/Kconfig |    1 +
- arch/openrisc/Kconfig   |    1 +
- arch/score/Kconfig      |    1 +
- arch/xtensa/Kconfig     |    1 +
- drivers/base/Kconfig    |    4 ++++
- drivers/base/cpu.c      |   26 +++++++++++++++++++++++++-
- 9 files changed, 36 insertions(+), 1 deletions(-)
+                     Linus
 
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index bad27a6..70554ba 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -8,6 +8,7 @@ config FRV
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-+	select GENERIC_CPU_DEVICES
- 
- config ZONE_DMA
- 	bool
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index d1f377f..56e890d 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -4,6 +4,7 @@ config H8300
- 	select HAVE_IDE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 
- config SYMBOL_PREFIX
- 	string
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 81fdaa7..f755ecf 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -6,6 +6,7 @@ config M68K
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
-+	select GENERIC_CPU_DEVICES
- 
- config RWSEM_GENERIC_SPINLOCK
- 	bool
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index e446bab..16ca257 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -17,6 +17,7 @@ config MICROBLAZE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 
- config SWAP
- 	def_bool n
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index e518a5a..978e0bd 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -15,6 +15,7 @@ config OPENRISC
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IOMAP
-+	select GENERIC_CPU_DEVICES
- 
- config MMU
- 	def_bool y
-diff --git a/arch/score/Kconfig b/arch/score/Kconfig
-index 8b0c946..51cbf1e 100644
---- a/arch/score/Kconfig
-+++ b/arch/score/Kconfig
-@@ -7,6 +7,7 @@ config SCORE
-        select HAVE_MEMBLOCK
-        select HAVE_MEMBLOCK_NODE_MAP
-        select ARCH_DISCARD_MEMBLOCK
-+       select GENERIC_CPU_DEVICES
- 
- choice
- 	prompt "System type"
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index c346ccd..8a3f835 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -9,6 +9,7 @@ config XTENSA
- 	select HAVE_IDE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 	help
- 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
- 	  primarily for embedded systems.  These processors are both
-diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
-index 21cf46f..4ebc5d3 100644
---- a/drivers/base/Kconfig
-+++ b/drivers/base/Kconfig
-@@ -172,6 +172,10 @@ config SYS_HYPERVISOR
- 	bool
- 	default n
- 
-+config GENERIC_CPU_DEVICES
-+	bool
-+	default n
-+
- source "drivers/base/regmap/Kconfig"
- 
- endmenu
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index 9a5578e..246f3b3 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -10,6 +10,7 @@
- #include <linux/device.h>
- #include <linux/node.h>
- #include <linux/gfp.h>
-+#include <linux/slab.h>
- 
- #include "base.h"
- 
-@@ -274,6 +275,26 @@ bool cpu_is_hotpluggable(unsigned cpu)
- }
- EXPORT_SYMBOL_GPL(cpu_is_hotpluggable);
- 
-+static int cpu_dev_register_generic(void)
-+{
-+#ifdef CONFIG_GENERIC_CPU_DEVICES
-+	struct cpu *cpu_devices;
-+	int err;
-+	int i;
-+
-+	cpu_devices = kcalloc(nr_cpu_ids, sizeof(cpu_devices[0]), GFP_KERNEL);
-+	if (!cpu_devices)
-+		return -ENOMEM;
-+
-+	for_each_possible_cpu(i) {
-+		err = register_cpu(&cpu_devices[i], i);
-+		if (err)
-+			return err;
-+	}
-+#endif
-+	return 0;
-+}
-+
- int __init cpu_dev_init(void)
- {
- 	int err;
-@@ -284,6 +305,9 @@ int __init cpu_dev_init(void)
- 
- #if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
- 	err = sched_create_sysfs_power_savings_entries(cpu_subsys.dev_root);
-+	if (err)
-+		return err;
- #endif
--	return err;
-+
-+	return cpu_dev_register_generic();
- }
--- 
-1.7.8.2
+On Sun, Jan 8, 2012 at 12:48 PM, Ben Hutchings <ben@decadent.org.uk> wr=
+ote:
+> Commit ccbc60d3e19a1b6ae66ca0d89b3da02dde62088b ('topology: Provide
+> CPU topology in sysfs in !SMP configurations') causes a crash at boot
+> on a several architectures. =A0The topology sysfs code assumes that
+> there is a CPU device for each online CPU whereas some architectures
+> that do not support SMP or cpufreq do not register any CPU devices.
+> Check for this before trying to use a device.
+>
+> Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
+> ---
+> =A0drivers/base/topology.c | =A0 =A05 ++++-
+> =A01 files changed, 4 insertions(+), 1 deletions(-)
+>
+> diff --git a/drivers/base/topology.c b/drivers/base/topology.c
+> index ae989c5..4467c85 100644
+> --- a/drivers/base/topology.c
+> +++ b/drivers/base/topology.c
+> @@ -147,6 +147,8 @@ static int __cpuinit topology_add_dev(unsigned in=
+t cpu)
+> =A0{
+> =A0 =A0 =A0 =A0struct device *dev =3D get_cpu_device(cpu);
+>
+> + =A0 =A0 =A0 if (!dev)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -ENODEV;
+> =A0 =A0 =A0 =A0return sysfs_create_group(&dev->kobj, &topology_attr_g=
+roup);
+> =A0}
+>
+> @@ -154,7 +156,8 @@ static void __cpuinit topology_remove_dev(unsigne=
+d int cpu)
+> =A0{
+> =A0 =A0 =A0 =A0struct device *dev =3D get_cpu_device(cpu);
+>
+> - =A0 =A0 =A0 sysfs_remove_group(&dev->kobj, &topology_attr_group);
+> + =A0 =A0 =A0 if (dev)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 sysfs_remove_group(&dev->kobj, &topolog=
+y_attr_group);
+> =A0}
+>
+> =A0static int __cpuinit topology_cpu_callback(struct notifier_block *=
+nfb,
+> --
+> 1.7.8.2
+>
+>
+>
