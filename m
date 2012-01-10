@@ -1,35 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:48208 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933370Ab2AIUX1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jan 2012 15:23:27 -0500
-MIME-Version: 1.0
-In-Reply-To: <1326077816.4097.8.camel@deadeye>
-References: <1326055714.13595.309.camel@deadeye> <CA+55aFwwnJPpVY++Vgr6p3s47YjdYWV3sgLZzvCtiJp6DEu78Q@mail.gmail.com>
- <1326077272.4097.3.camel@deadeye> <1326077816.4097.8.camel@deadeye>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Mon, 9 Jan 2012 12:23:04 -0800
-Message-ID: <CA+55aFzz3FUsKRQ33NiDghkA3ugV65sBrc+N-h8NLuDRUSBAHQ@mail.gmail.com>
-Subject: Re: [PATCH 1/2] topology: Check for missing CPU devices
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:41004 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754209Ab2AJIme (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jan 2012 03:42:34 -0500
+Date: Tue, 10 Jan 2012 09:42:28 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCH 00/14] DMA-mapping framework redesign preparation
+In-reply-to: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+Message-ID: <012501cccf73$c90246a0$5b06d3e0$%szyprowski@samsung.com>
+MIME-version: 1.0
+Content-type: text/plain; charset=us-ascii
+Content-language: pl
+Content-transfer-encoding: 7BIT
+References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ben Hutchings <ben@decadent.org.uk>
-Cc: Greg Kroah-Hartman <gregkh@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org
-Message-ID: <20120109202304.6UmzpQCYIE9JHekd2g3YOm1xpRXV-4947HGUvsRMqUo@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org
+Cc: 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+Message-ID: <20120110084228.Fyqb8VGv2WAsELfRs2c8V_gULZ7NCfzbktNm2kDqx1E@z>
 
-On Sun, Jan 8, 2012 at 6:56 PM, Ben Hutchings <ben@decadent.org.uk> wrote:
->
-> I mean to say that we could have no CPU devices after the *second*
-> patch.  So the first patch is an extra defence against that.  (Though we
-> could just as well panic if register_cpu() fails at boot time.)
+Hello,
 
-I think I'd rather just panic - if you have allocation issues during
-early boot, the machine is hosed anyway - and then get rid of the
-first patch?
+To help everyone in testing and adapting our patches for his hardware 
+platform I've rebased our patches onto the latest v3.2 Linux kernel and
+prepared a few GIT branches in our public repository. These branches
+contain our memory management related patches posted in the following
+threads:
 
-Willing to send out a new patch along those lines (and with UML added)?
+"[PATCHv18 0/11] Contiguous Memory Allocator":
+http://www.spinics.net/lists/linux-mm/msg28125.html
+later called CMAv18,
 
-Thanks,
-                  Linus
+"[PATCH 00/14] DMA-mapping framework redesign preparation":
+http://www.spinics.net/lists/linux-sh/msg09777.html
+and
+"[PATCH 0/8 v4] ARM: DMA-mapping framework redesign":
+http://www.spinics.net/lists/arm-kernel/msg151147.html
+with the following update:
+http://www.spinics.net/lists/arm-kernel/msg154889.html
+later called DMAv5.
+
+These branches are available in our public GIT repository:
+
+git://git.infradead.org/users/kmpark/linux-samsung
+http://git.infradead.org/users/kmpark/linux-samsung/
+
+The following branches are available:
+
+1) 3.2-cma-v18
+Vanilla Linux v3.2 with fixed CMA v18 patches (first patch replaced
+with the one from v17 to fix SMP issues, see the respective thread).
+
+2) 3.2-dma-v5
+Vanilla Linux v3.2 + iommu/next (IOMMU maintainer's patches) branch
+with DMA-preparation and DMA-mapping framework redesign patches.
+
+3) 3.2-cma-v18-dma-v5
+Previous two branches merged together (DMA-mapping on top of CMA)
+
+4) 3.2-cma-v18-dma-v5-exynos
+Previous branch rebased on top of iommu/next + kgene/for-next (Samsung
+SoC platform maintainer's patches) with new Exynos4 IOMMU driver by 
+KyongHo Cho and relevant glue code.
+
+5) 3.2-dma-v5-exynos
+Branch from point 2 rebased on top of iommu/next + kgene/for-next 
+(Samsung SoC maintainer's patches) with new Exynos4 IOMMU driver by 
+KyongHo Cho and relevant glue code.
+
+I hope everyone will find a branch that suits his needs. :)
+
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+
