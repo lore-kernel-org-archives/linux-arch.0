@@ -1,18 +1,22 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH 00/14] DMA-mapping framework redesign preparation
-Date: Tue, 10 Jan 2012 09:42:28 +0100
-Message-ID: <012501cccf73$c90246a0$5b06d3e0$%szyprowski@samsung.com>
-References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+Subject: RE: [PATCH 0/8 v4] ARM: DMA-mapping framework redesign
+Date: Tue, 10 Jan 2012 09:42:37 +0100
+Message-ID: <012601cccf73$ce09a8f0$6a1cfad0$%szyprowski@samsung.com>
+References: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7BIT
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:23802 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755179Ab2AJImn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jan 2012 03:42:43 -0500
+In-reply-to: <1323448798-18184-1-git-send-email-m.szyprowski@samsung.com>
 Content-language: pl
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org
-Cc: 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Kukjin Kim' <kgene.kim@samsung.com>'KyongHo Cho' <pullip.cho@samsung.com>
 
 Hello,
 
@@ -69,12 +73,3 @@ Best regards
 -- 
 Marek Szyprowski
 Samsung Poland R&D Center
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
