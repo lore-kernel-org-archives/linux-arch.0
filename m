@@ -1,204 +1,80 @@
-From: Ben Hutchings <ben@decadent.org.uk>
-Subject: [PATCHv2 2/2] cpu: Register a generic CPU device on architectures
- that currently do not
-Date: Tue, 10 Jan 2012 03:04:32 +0000
-Message-ID: <1326164672.3432.34.camel@deadeye>
-References: <1326164389.3432.29.camel@deadeye>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCH 00/14] DMA-mapping framework redesign preparation
+Date: Tue, 10 Jan 2012 09:42:28 +0100
+Message-ID: <012501cccf73$c90246a0$5b06d3e0$%szyprowski@samsung.com>
+References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shadbolt.e.decadent.org.uk ([88.96.1.126]:34635 "EHLO
-	shadbolt.e.decadent.org.uk" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755975Ab2AJDEi convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 9 Jan 2012 22:04:38 -0500
-In-Reply-To: <1326164389.3432.29.camel@deadeye>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Greg Kroah-Hartman <gregkh@suse.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Thorsten Glaser <tg@mirbsd.de>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org, Richard Weinberger <richard@nod.at>
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7BIT
+Return-path: <owner-linux-mm@kvack.org>
+In-reply-to: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+Content-language: pl
+Sender: owner-linux-mm@kvack.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org
+Cc: 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-frv, h8300, m68k, microblaze, openrisc, score, um and xtensa currently
-do not register a CPU device.  Add the config option
-GENERIC_CPU_DEVICES which causes a generic CPU device to be registered
-for each present CPU, and make all these architectures select it.
+Hello,
 
-Richard Weinberger <richard@nod.at> covered UML and suggested using
-per_cpu.
+To help everyone in testing and adapting our patches for his hardware 
+platform I've rebased our patches onto the latest v3.2 Linux kernel and
+prepared a few GIT branches in our public repository. These branches
+contain our memory management related patches posted in the following
+threads:
 
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
----
-This is a combination of the previous version with Richard's patch for
-UML.  I also changed the error path to use panic() so that nothing else
-has to check for missing CPU devices.
+"[PATCHv18 0/11] Contiguous Memory Allocator":
+http://www.spinics.net/lists/linux-mm/msg28125.html
+later called CMAv18,
 
-Ben.
+"[PATCH 00/14] DMA-mapping framework redesign preparation":
+http://www.spinics.net/lists/linux-sh/msg09777.html
+and
+"[PATCH 0/8 v4] ARM: DMA-mapping framework redesign":
+http://www.spinics.net/lists/arm-kernel/msg151147.html
+with the following update:
+http://www.spinics.net/lists/arm-kernel/msg154889.html
+later called DMAv5.
 
- arch/frv/Kconfig        |    1 +
- arch/h8300/Kconfig      |    1 +
- arch/m68k/Kconfig       |    1 +
- arch/microblaze/Kconfig |    1 +
- arch/openrisc/Kconfig   |    1 +
- arch/score/Kconfig      |    1 +
- arch/um/Kconfig.common  |    1 +
- arch/xtensa/Kconfig     |    1 +
- drivers/base/Kconfig    |    4 ++++
- drivers/base/cpu.c      |   19 +++++++++++++++++++
- 10 files changed, 31 insertions(+), 0 deletions(-)
+These branches are available in our public GIT repository:
 
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index bad27a6..70554ba 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -8,6 +8,7 @@ config FRV
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-+	select GENERIC_CPU_DEVICES
- 
- config ZONE_DMA
- 	bool
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index d1f377f..56e890d 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -4,6 +4,7 @@ config H8300
- 	select HAVE_IDE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 
- config SYMBOL_PREFIX
- 	string
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 81fdaa7..f755ecf 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -6,6 +6,7 @@ config M68K
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
-+	select GENERIC_CPU_DEVICES
- 
- config RWSEM_GENERIC_SPINLOCK
- 	bool
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index e446bab..16ca257 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -17,6 +17,7 @@ config MICROBLAZE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 
- config SWAP
- 	def_bool n
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index e518a5a..978e0bd 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -15,6 +15,7 @@ config OPENRISC
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
- 	select GENERIC_IOMAP
-+	select GENERIC_CPU_DEVICES
- 
- config MMU
- 	def_bool y
-diff --git a/arch/score/Kconfig b/arch/score/Kconfig
-index 8b0c946..51cbf1e 100644
---- a/arch/score/Kconfig
-+++ b/arch/score/Kconfig
-@@ -7,6 +7,7 @@ config SCORE
-        select HAVE_MEMBLOCK
-        select HAVE_MEMBLOCK_NODE_MAP
-        select ARCH_DISCARD_MEMBLOCK
-+       select GENERIC_CPU_DEVICES
- 
- choice
- 	prompt "System type"
-diff --git a/arch/um/Kconfig.common b/arch/um/Kconfig.common
-index a923483..b37ae70 100644
---- a/arch/um/Kconfig.common
-+++ b/arch/um/Kconfig.common
-@@ -8,6 +8,7 @@ config UML
- 	default y
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 
- config MMU
- 	bool
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index c346ccd..8a3f835 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -9,6 +9,7 @@ config XTENSA
- 	select HAVE_IDE
- 	select HAVE_GENERIC_HARDIRQS
- 	select GENERIC_IRQ_SHOW
-+	select GENERIC_CPU_DEVICES
- 	help
- 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
- 	  primarily for embedded systems.  These processors are both
-diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
-index 21cf46f..4ebc5d3 100644
---- a/drivers/base/Kconfig
-+++ b/drivers/base/Kconfig
-@@ -172,6 +172,10 @@ config SYS_HYPERVISOR
- 	bool
- 	default n
- 
-+config GENERIC_CPU_DEVICES
-+	bool
-+	default n
-+
- source "drivers/base/regmap/Kconfig"
- 
- endmenu
-diff --git a/drivers/base/cpu.c b/drivers/base/cpu.c
-index bba70d0..db87e78 100644
---- a/drivers/base/cpu.c
-+++ b/drivers/base/cpu.c
-@@ -11,6 +11,7 @@
- #include <linux/device.h>
- #include <linux/node.h>
- #include <linux/gfp.h>
-+#include <linux/percpu.h>
- 
- #include "base.h"
- 
-@@ -275,11 +276,29 @@ bool cpu_is_hotpluggable(unsigned cpu)
- }
- EXPORT_SYMBOL_GPL(cpu_is_hotpluggable);
- 
-+#ifdef CONFIG_GENERIC_CPU_DEVICES
-+static DEFINE_PER_CPU(struct cpu, cpu_devices);
-+#endif
-+
-+static void __init cpu_dev_register_generic(void)
-+{
-+#ifdef CONFIG_GENERIC_CPU_DEVICES
-+	int i;
-+
-+	for_each_possible_cpu(i) {
-+		if (register_cpu(&per_cpu(cpu_devices, i), i))
-+			panic("Failed to register CPU device");
-+	}
-+#endif
-+}
-+
- void __init cpu_dev_init(void)
- {
- 	if (subsys_system_register(&cpu_subsys, cpu_root_attr_groups))
- 		panic("Failed to register CPU subsystem");
- 
-+	cpu_dev_register_generic();
-+
- #if defined(CONFIG_SCHED_MC) || defined(CONFIG_SCHED_SMT)
- 	sched_create_sysfs_power_savings_entries(cpu_subsys.dev_root);
- #endif
+git://git.infradead.org/users/kmpark/linux-samsung
+http://git.infradead.org/users/kmpark/linux-samsung/
+
+The following branches are available:
+
+1) 3.2-cma-v18
+Vanilla Linux v3.2 with fixed CMA v18 patches (first patch replaced
+with the one from v17 to fix SMP issues, see the respective thread).
+
+2) 3.2-dma-v5
+Vanilla Linux v3.2 + iommu/next (IOMMU maintainer's patches) branch
+with DMA-preparation and DMA-mapping framework redesign patches.
+
+3) 3.2-cma-v18-dma-v5
+Previous two branches merged together (DMA-mapping on top of CMA)
+
+4) 3.2-cma-v18-dma-v5-exynos
+Previous branch rebased on top of iommu/next + kgene/for-next (Samsung
+SoC platform maintainer's patches) with new Exynos4 IOMMU driver by 
+KyongHo Cho and relevant glue code.
+
+5) 3.2-dma-v5-exynos
+Branch from point 2 rebased on top of iommu/next + kgene/for-next 
+(Samsung SoC maintainer's patches) with new Exynos4 IOMMU driver by 
+KyongHo Cho and relevant glue code.
+
+I hope everyone will find a branch that suits his needs. :)
+
+Best regards
 -- 
-1.7.8.2
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
