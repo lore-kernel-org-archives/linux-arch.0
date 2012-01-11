@@ -1,30 +1,61 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: why doesn't x86_32 have the accept4() syscall?
-Date: Tue, 10 Jan 2012 12:07:24 -0800 (PST)
-Message-ID: <20120110.120724.178373558788579377.davem@davemloft.net>
-References: <CA+8MBbLe5uC4gMg9vySTWYUsNv=P-9spnNbKsFAZqQCT_Wk+YQ@mail.gmail.com>
-	<20120109.133640.1785167474272651414.davem@davemloft.net>
-	<20120110160317.GC7180@jl-vm1.vm.bytemark.co.uk>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [GIT PULL] use generic pci_iomap on all architectures
+Date: Tue, 10 Jan 2012 17:51:07 -0800
+Message-ID: <CA+55aFwXj2ELrTDSgFfSC2Usz99-24uFSznAP34feJiCttwayQ@mail.gmail.com>
+References: <20120105145836.GA2751@redhat.com> <20120106083141.9c14a8d2d09539c6a6c0db75@canb.auug.org.au>
+ <20120106083916.9588034bde22a6803e327aa9@canb.auug.org.au> <20120106084701.8f704542754db826deda318a@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:45313 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751222Ab2AJUHd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jan 2012 15:07:33 -0500
-In-Reply-To: <20120110160317.GC7180@jl-vm1.vm.bytemark.co.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: jamie@shareable.org
-Cc: tony.luck@intel.com, linux-arch@vger.kernel.org
+Content-Type: multipart/mixed; boundary=20cf303f6aeabca73b04b636dee7
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120106084701.8f704542754db826deda318a@canb.auug.org.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>, Junio C Hamano <gitster@pobox.com>, Git Mailing List <git@vger.kernel.org>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jesse Barnes <jbarnes@virtuousgeek.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Jamie Lokier <jamie@shareable.org>
-Date: Tue, 10 Jan 2012 16:03:17 +0000
+--20cf303f6aeabca73b04b636dee7
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: quoted-printable
 
-> Is there any reason why it was added via sys_socketcall() - isn't that
-> just a waste of a few cycles and kernel size, compared with a direct
-> pointer in the syscall table?
+On Thu, Jan 5, 2012 at 1:47 PM, Stephen Rothwell <sfr@canb.auug.org.au> wro=
+te:
+> On Fri, 6 Jan 2012 08:39:16 +1100 Stephen Rothwell <sfr@canb.auug.org.au>=
+ wrote:
+>>
+>> So why does you pull request refer to "commit
+>> 805a6af8dba5dfdd35ec35dc52ec0122400b2610", I wonder? =A0Is that just wha=
+t
+>> "git request-pull" produced?
+>
+> I see, "git request-pull" just puts in whatever you specify on the
+> command line rather than the merge-base ...
 
-Looks like an oversight, but one for which I don't think is worth
-correcting.
+.. and that is a fairly silly misfeature, since it makes the "since
+commit xyz" largely meaningless.
+
+I suspect we really should make "git request-pull" show the merge
+base(s) as the "since commit", because that way the output of git
+request-pull is "stable", and doesn't depend on what particular random
+state you've synced up to since.
+
+Junio, I think the patch would be as simple as the attached - totally
+untested - one-liner? Comments?
+
+                            Linus
+
+--20cf303f6aeabca73b04b636dee7
+Content-Type: text/x-patch; charset=US-ASCII; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_gx9oxpud1
+
+IGdpdC1yZXF1ZXN0LXB1bGwuc2ggfCAgICAyICstCiAxIGZpbGVzIGNoYW5nZWQsIDEgaW5zZXJ0
+aW9ucygrKSwgMSBkZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9naXQtcmVxdWVzdC1wdWxsLnNo
+IGIvZ2l0LXJlcXVlc3QtcHVsbC5zaAppbmRleCBkN2JhMTE3OGFlNzUuLjY0OTYwZDY1YTFjMiAx
+MDA3NTUKLS0tIGEvZ2l0LXJlcXVlc3QtcHVsbC5zaAorKysgYi9naXQtcmVxdWVzdC1wdWxsLnNo
+CkBAIC05Niw3ICs5Niw3IEBAIGdpdCBzaG93IC1zIC0tZm9ybWF0PSdUaGUgZm9sbG93aW5nIGNo
+YW5nZXMgc2luY2UgY29tbWl0ICVIOgogICAlcyAoJWNpKQogCiBhcmUgYXZhaWxhYmxlIGluIHRo
+ZSBnaXQgcmVwb3NpdG9yeSBhdDoKLScgJGJhc2VyZXYgJiYKKycgJG1lcmdlX2Jhc2UgJiYKIGVj
+aG8gIiAgJHVybCR7cmVmKyAkcmVmfSIgJiYKIGdpdCBzaG93IC1zIC0tZm9ybWF0PScKIGZvciB5
+b3UgdG8gZmV0Y2ggY2hhbmdlcyB1cCB0byAlSDoK
+--20cf303f6aeabca73b04b636dee7--
