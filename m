@@ -1,66 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:64394 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754463Ab2AKBv3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jan 2012 20:51:29 -0500
-MIME-Version: 1.0
-In-Reply-To: <20120106084701.8f704542754db826deda318a@canb.auug.org.au>
-References: <20120105145836.GA2751@redhat.com> <20120106083141.9c14a8d2d09539c6a6c0db75@canb.auug.org.au>
- <20120106083916.9588034bde22a6803e327aa9@canb.auug.org.au> <20120106084701.8f704542754db826deda318a@canb.auug.org.au>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Tue, 10 Jan 2012 17:51:07 -0800
-Message-ID: <CA+55aFwXj2ELrTDSgFfSC2Usz99-24uFSznAP34feJiCttwayQ@mail.gmail.com>
-Subject: Re: [GIT PULL] use generic pci_iomap on all architectures
-Content-Type: multipart/mixed; boundary=20cf303f6aeabca73b04b636dee7
+Received: from oz.csail.mit.edu ([128.30.30.239]:40111 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933507Ab2AKSQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jan 2012 13:16:50 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V8] Add flag to indicate that a vm was stopped by the host
+Date: Wed, 11 Jan 2012 13:16:37 -0500
+Message-ID: <1326305800-25228-2-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
+References: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>, Junio C Hamano <gitster@pobox.com>, Git Mailing List <git@vger.kernel.org>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jesse Barnes <jbarnes@virtuousgeek.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20120111015107.5_xhpTtGi1G97Ch-PaeDTYzhgHeXSlgQ85l15OkPKPU@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120111181637.3bodUado7zTPMtWNyazWAwoooynQf31dXEKyjBw-NFE@z>
 
---20cf303f6aeabca73b04b636dee7
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-On Thu, Jan 5, 2012 at 1:47 PM, Stephen Rothwell <sfr@canb.auug.org.au> wro=
-te:
-> On Fri, 6 Jan 2012 08:39:16 +1100 Stephen Rothwell <sfr@canb.auug.org.au>=
- wrote:
->>
->> So why does you pull request refer to "commit
->> 805a6af8dba5dfdd35ec35dc52ec0122400b2610", I wonder? =A0Is that just wha=
-t
->> "git request-pull" produced?
->
-> I see, "git request-pull" just puts in whatever you specify on the
-> command line rather than the merge-base ...
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-.. and that is a fairly silly misfeature, since it makes the "since
-commit xyz" largely meaningless.
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
+-- 
+1.7.5.4
 
-I suspect we really should make "git request-pull" show the merge
-base(s) as the "since commit", because that way the output of git
-request-pull is "stable", and doesn't depend on what particular random
-state you've synced up to since.
-
-Junio, I think the patch would be as simple as the attached - totally
-untested - one-liner? Comments?
-
-                            Linus
-
---20cf303f6aeabca73b04b636dee7
-Content-Type: text/x-patch; charset=US-ASCII; name="patch.diff"
-Content-Disposition: attachment; filename="patch.diff"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_gx9oxpud1
-
-IGdpdC1yZXF1ZXN0LXB1bGwuc2ggfCAgICAyICstCiAxIGZpbGVzIGNoYW5nZWQsIDEgaW5zZXJ0
-aW9ucygrKSwgMSBkZWxldGlvbnMoLSkKCmRpZmYgLS1naXQgYS9naXQtcmVxdWVzdC1wdWxsLnNo
-IGIvZ2l0LXJlcXVlc3QtcHVsbC5zaAppbmRleCBkN2JhMTE3OGFlNzUuLjY0OTYwZDY1YTFjMiAx
-MDA3NTUKLS0tIGEvZ2l0LXJlcXVlc3QtcHVsbC5zaAorKysgYi9naXQtcmVxdWVzdC1wdWxsLnNo
-CkBAIC05Niw3ICs5Niw3IEBAIGdpdCBzaG93IC1zIC0tZm9ybWF0PSdUaGUgZm9sbG93aW5nIGNo
-YW5nZXMgc2luY2UgY29tbWl0ICVIOgogICAlcyAoJWNpKQogCiBhcmUgYXZhaWxhYmxlIGluIHRo
-ZSBnaXQgcmVwb3NpdG9yeSBhdDoKLScgJGJhc2VyZXYgJiYKKycgJG1lcmdlX2Jhc2UgJiYKIGVj
-aG8gIiAgJHVybCR7cmVmKyAkcmVmfSIgJiYKIGdpdCBzaG93IC1zIC0tZm9ybWF0PScKIGZvciB5
-b3UgdG8gZmV0Y2ggY2hhbmdlcyB1cCB0byAlSDoK
---20cf303f6aeabca73b04b636dee7--
