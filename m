@@ -1,51 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:40111 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933507Ab2AKSQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jan 2012 13:16:50 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 1/4 V8] Add flag to indicate that a vm was stopped by the host
-Date: Wed, 11 Jan 2012 13:16:37 -0500
-Message-ID: <1326305800-25228-2-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
-References: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:44888 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933986Ab2AKV5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jan 2012 16:57:43 -0500
+Received: by yhjj63 with SMTP id j63so596051yhj.19
+        for <linux-arch@vger.kernel.org>; Wed, 11 Jan 2012 13:57:43 -0800 (PST)
+Date: Wed, 11 Jan 2012 13:57:36 -0800 (PST)
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+Message-ID: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120111181637.3bodUado7zTPMtWNyazWAwoooynQf31dXEKyjBw-NFE@z>
+To: Andrew Jones <drjones@redhat.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Message-ID: <20120111215736.IjU5l-JDe13S9GIRbpBFjGvEY25gaUv2UE_HBpUKGVE@z>
 
-This flag will be used to check if the vm was stopped by the host when a soft
-lockup was detected.  The host will set the flag when it stops the guest.  On
-resume, the guest will check this flag if a soft lockup is detected and skip
-issuing the warning.
+On Wed, 11 Jan 2012, Andrew Jones wrote:
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/x86/include/asm/pvclock-abi.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
+> justification that EMBEDDED was being used with a broader scope. It was
+> no longer just being used to expose standard options to embedded kernel
+> configs for tweaking, but rather for all "non-standard" kernel configs.
+> This is nice, because now developers have a way to clean up the config
+> menu by adding 'if EXPERT' to all entries in their Kconfig files that
+> should rarely have a non-default value selected (hint1: it would be nice
+> if developers would do this, hint2: it would also be nice if developers
+> would do this rather than making these types of options silent, and thus
+> impossible to override).
+> 
+> Unfortunately, EMBEDDED was also being used to modify the defaults of
+> some of these options to selections more appropriate for embedded
+> kernels. Since the renaming was a simple global search-replace, if
+> developers were to follow hints 1 and 2 above for non-embedded kernels,
+> then they may find unexpected changes in their configs after turning on
+> EXPERT.
+> 
 
-diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
-index 35f2d19..6167fd7 100644
---- a/arch/x86/include/asm/pvclock-abi.h
-+++ b/arch/x86/include/asm/pvclock-abi.h
-@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
- } __attribute__((__packed__));
- 
- #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
-+#define PVCLOCK_GUEST_STOPPED	(1 << 1)
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_X86_PVCLOCK_ABI_H */
--- 
-1.7.5.4
+We discussed this when the patch was made to change EMBEDDED to EXPERT and 
+we knew that things like CONFIG_SLOB exist that would only make sense on a 
+platform with a very small memory footprint.  So what criteria are you 
+using to determine what makes sense for EMBEDDED or not and what would be 
+generally useful for platforms with very small memory footprints?
 
+I would think that something like CONFIG_SMALLMEM would identify those 
+candidates (for things like SLOB) and then you could separate the rest 
+based on the platform they exist for since you're essentially introducing 
+a new config symbol here that existed in the past but are now using it 
+with different semantics.
