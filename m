@@ -1,138 +1,46 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 3/4 V8] Add ioctl for KVMCLOCK_GUEST_STOPPED
-Date: Wed, 11 Jan 2012 13:16:39 -0500
-Message-ID: <1326305800-25228-4-git-send-email-emunson@mgebm.net>
-References: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:40121 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933559Ab2AKSQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jan 2012 13:16:50 -0500
-In-Reply-To: <1326305800-25228-1-git-send-email-emunson@mgebm.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Date: Wed, 11 Jan 2012 13:57:36 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Jones <drjones@redhat.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+List-Id: linux-arch.vger.kernel.org
 
-Now that we have a flag that will tell the guest it was suspended, create an
-interface for that communication using a KVM ioctl.
+On Wed, 11 Jan 2012, Andrew Jones wrote:
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
+> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
+> justification that EMBEDDED was being used with a broader scope. It was
+> no longer just being used to expose standard options to embedded kernel
+> configs for tweaking, but rather for all "non-standard" kernel configs.
+> This is nice, because now developers have a way to clean up the config
+> menu by adding 'if EXPERT' to all entries in their Kconfig files that
+> should rarely have a non-default value selected (hint1: it would be nice
+> if developers would do this, hint2: it would also be nice if developers
+> would do this rather than making these types of options silent, and thus
+> impossible to override).
+> 
+> Unfortunately, EMBEDDED was also being used to modify the defaults of
+> some of these options to selections more appropriate for embedded
+> kernels. Since the renaming was a simple global search-replace, if
+> developers were to follow hints 1 and 2 above for non-embedded kernels,
+> then they may find unexpected changes in their configs after turning on
+> EXPERT.
+> 
 
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: jeremy.fitzhardinge@citrix.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from V7:
- Define KVM_CAP_GUEST_PAUSED and support check
- Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
+We discussed this when the patch was made to change EMBEDDED to EXPERT and 
+we knew that things like CONFIG_SLOB exist that would only make sense on a 
+platform with a very small memory footprint.  So what criteria are you 
+using to determine what makes sense for EMBEDDED or not and what would be 
+generally useful for platforms with very small memory footprints?
 
-Changes from V4:
- Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
- Add new ioctl description to api.txt
-
- Documentation/virtual/kvm/api.txt |   13 +++++++++++++
- arch/x86/kvm/x86.c                |   21 +++++++++++++++++++++
- include/linux/kvm.h               |    3 +++
- 3 files changed, 37 insertions(+), 0 deletions(-)
-
-diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
-index e1d94bf..1931e5c 100644
---- a/Documentation/virtual/kvm/api.txt
-+++ b/Documentation/virtual/kvm/api.txt
-@@ -1491,6 +1491,19 @@ following algorithm:
- Some guests configure the LINT1 NMI input to cause a panic, aiding in
- debugging.
- 
-+4.65 KVMCLOCK_GUEST_PAUSED
-+
-+Capability: KVM_CAP_GUEST_PAUSED
-+Architechtures: Any that implement pvclocks (currently x86 only)
-+Type: vcpu ioctl
-+Parameters: None
-+Returns: 0 on success, -1 on error
-+
-+This signals to the host kernel that the specified guest is being paused by
-+userspace.  The host will set a flag in the pvclock structure that is checked
-+from the soft lockup watchdog.  This ioctl can be called during pause or
-+unpause.
-+
- 5. The kvm_run structure
- 
- Application code obtains a pointer to the kvm_run structure by
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index 1171def..b0b51cb 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -2056,6 +2056,7 @@ int kvm_dev_ioctl_check_extension(long ext)
- 	case KVM_CAP_X86_ROBUST_SINGLESTEP:
- 	case KVM_CAP_XSAVE:
- 	case KVM_CAP_ASYNC_PF:
-+	case KVM_CAP_GUEST_PAUSED:
- 	case KVM_CAP_GET_TSC_KHZ:
- 		r = 1;
- 		break;
-@@ -2503,6 +2504,22 @@ static int kvm_vcpu_ioctl_x86_set_xcrs(struct kvm_vcpu *vcpu,
- 	return r;
- }
- 
-+/*
-+ * kvm_set_guest_paused() indicates to the guest kernel that it has been
-+ * stopped by the hypervisor.  This function will be called from the host only.
-+ * EINVAL is returned when the host attempts to set the flag for a guest that
-+ * does not support pv clocks.
-+ */
-+static int kvm_set_guest_paused(struct kvm_vcpu *vcpu)
-+{
-+	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
-+	if (!vcpu->arch.time_page)
-+		return -EINVAL;
-+	src->flags |= PVCLOCK_GUEST_STOPPED;
-+	mark_page_dirty(vcpu->kvm, vcpu->arch.time >> PAGE_SHIFT);
-+	return 0;
-+}
-+
- long kvm_arch_vcpu_ioctl(struct file *filp,
- 			 unsigned int ioctl, unsigned long arg)
- {
-@@ -2784,6 +2801,10 @@ long kvm_arch_vcpu_ioctl(struct file *filp,
- 
- 		goto out;
- 	}
-+	case KVMCLOCK_GUEST_PAUSED: {
-+		r = kvm_set_guest_paused(vcpu);
-+		break;
-+	}
- 	default:
- 		r = -EINVAL;
- 	}
-diff --git a/include/linux/kvm.h b/include/linux/kvm.h
-index 68e67e5..4ffe0df 100644
---- a/include/linux/kvm.h
-+++ b/include/linux/kvm.h
-@@ -558,6 +558,7 @@ struct kvm_ppc_pvinfo {
- #define KVM_CAP_PPC_PAPR 68
- #define KVM_CAP_S390_GMAP 71
- #define KVM_CAP_TSC_DEADLINE_TIMER 72
-+#define KVM_CAP_GUEST_PAUSED 73
- 
- #ifdef KVM_CAP_IRQ_ROUTING
- 
-@@ -763,6 +764,8 @@ struct kvm_clock_data {
- #define KVM_CREATE_SPAPR_TCE	  _IOW(KVMIO,  0xa8, struct kvm_create_spapr_tce)
- /* Available with KVM_CAP_RMA */
- #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
-+/* VM is being stopped by host */
-+#define KVMCLOCK_GUEST_PAUSED	  _IO(KVMIO,   0xaa)
- 
- #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
- 
--- 
-1.7.5.4
+I would think that something like CONFIG_SMALLMEM would identify those 
+candidates (for things like SLOB) and then you could separate the rest 
+based on the platform they exist for since you're essentially introducing 
+a new config symbol here that existed in the past but are now using it 
+with different semantics.
