@@ -1,53 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:44888 "EHLO
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:40405 "EHLO
 	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933986Ab2AKV5n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jan 2012 16:57:43 -0500
-Received: by yhjj63 with SMTP id j63so596051yhj.19
-        for <linux-arch@vger.kernel.org>; Wed, 11 Jan 2012 13:57:43 -0800 (PST)
-Date: Wed, 11 Jan 2012 13:57:36 -0800 (PST)
+	with ESMTP id S1755643Ab2ALU7L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2012 15:59:11 -0500
+Received: by yhjj63 with SMTP id j63so1193515yhj.19
+        for <linux-arch@vger.kernel.org>; Thu, 12 Jan 2012 12:59:11 -0800 (PST)
+Date: Thu, 12 Jan 2012 12:59:04 -0800 (PST)
 From: David Rientjes <rientjes@google.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
-Message-ID: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+In-Reply-To: <201201120918.53026.arnd@arndb.de>
+Message-ID: <alpine.DEB.2.00.1201121255310.17287@chino.kir.corp.google.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Jones <drjones@redhat.com>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
-Message-ID: <20120111215736.IjU5l-JDe13S9GIRbpBFjGvEY25gaUv2UE_HBpUKGVE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Jones <drjones@redhat.com>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Message-ID: <20120112205904.TuipG_OZHqn_9T2STygYLf1OTAYMRmjHvxNCdFFA39o@z>
 
-On Wed, 11 Jan 2012, Andrew Jones wrote:
+On Thu, 12 Jan 2012, Arnd Bergmann wrote:
 
-> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
-> justification that EMBEDDED was being used with a broader scope. It was
-> no longer just being used to expose standard options to embedded kernel
-> configs for tweaking, but rather for all "non-standard" kernel configs.
-> This is nice, because now developers have a way to clean up the config
-> menu by adding 'if EXPERT' to all entries in their Kconfig files that
-> should rarely have a non-default value selected (hint1: it would be nice
-> if developers would do this, hint2: it would also be nice if developers
-> would do this rather than making these types of options silent, and thus
-> impossible to override).
+> > I would think that something like CONFIG_SMALLMEM would identify those 
+> > candidates (for things like SLOB) and then you could separate the rest 
+> > based on the platform they exist for since you're essentially introducing 
+> > a new config symbol here that existed in the past but are now using it 
+> > with different semantics.
 > 
-> Unfortunately, EMBEDDED was also being used to modify the defaults of
-> some of these options to selections more appropriate for embedded
-> kernels. Since the renaming was a simple global search-replace, if
-> developers were to follow hints 1 and 2 above for non-embedded kernels,
-> then they may find unexpected changes in their configs after turning on
-> EXPERT.
+> The CONFIG_SMALLMEM would also require people to know what they are doing,
+> beyond what we expect the average person building a kernel to, which is
+> just what CONFIG_EXPERT means, and the same reason why we ended up renaming
+> CONFIG_EMBEDDED to CONFIG_EXPERT. People have a very different understanding
+> of what "embedded" actually means, and not all of those require small
+> memory footprint or even a custom kernel. Let's just stay with CONFIG_EXPERT.
 > 
 
-We discussed this when the patch was made to change EMBEDDED to EXPERT and 
-we knew that things like CONFIG_SLOB exist that would only make sense on a 
-platform with a very small memory footprint.  So what criteria are you 
-using to determine what makes sense for EMBEDDED or not and what would be 
-generally useful for platforms with very small memory footprints?
-
-I would think that something like CONFIG_SMALLMEM would identify those 
-candidates (for things like SLOB) and then you could separate the rest 
-based on the platform they exist for since you're essentially introducing 
-a new config symbol here that existed in the past but are now using it 
-with different semantics.
+I think the intention here, correct me if I'm wrong, is to aid those who 
+are configuring the kernel to prefer certain options over others for 
+special devices such as embedded devices that require a low memory 
+footprint.  So if a CONFIG_SMALLMEM were to exist with helpful text 
+associated with it, then it could be chosen to enable things like 
+CONFIG_SLOB that the user may not previously have looked for or understood 
+and wouldn't make sense without CONFIG_SMALLMEM unless debugging.
