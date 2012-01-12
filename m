@@ -1,48 +1,41 @@
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: why doesn't x86_32 have the accept4() syscall?
-Date: Thu, 12 Jan 2012 13:33:37 +1300
-Message-ID: <4F0E2A61.1090609@orcon.net.nz>
-References: <CA+8MBbLe5uC4gMg9vySTWYUsNv=P-9spnNbKsFAZqQCT_Wk+YQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Date: Thu, 12 Jan 2012 09:18:52 +0000
+Message-ID: <201201120918.53026.arnd@arndb.de>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nctlincom02.orcon.net.nz ([60.234.4.75]:37108 "EHLO
-	nctlincom02.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751612Ab2ALAne (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jan 2012 19:43:34 -0500
-Received: from mx4.orcon.net.nz (mx4.orcon.net.nz [219.88.242.54])
-	by nctlincom02.orcon.net.nz (8.14.3/8.14.3/Debian-9.4) with ESMTP id q0C0Xg7M009019
-	for <linux-arch@vger.kernel.org>; Thu, 12 Jan 2012 13:33:42 +1300
-Received: from Debian-exim by mx4.orcon.net.nz with local (Exim 4.69)
-	(envelope-from <mcree@orcon.net.nz>)
-	id 1Rl8bp-0000lR-E0
-	for linux-arch@vger.kernel.org; Thu, 12 Jan 2012 13:33:37 +1300
-In-Reply-To: <CA+8MBbLe5uC4gMg9vySTWYUsNv=P-9spnNbKsFAZqQCT_Wk+YQ@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:61812 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753135Ab2ALJT6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Jan 2012 04:19:58 -0500
+In-Reply-To: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org
+To: David Rientjes <rientjes@google.com>
+Cc: Andrew Jones <drjones@redhat.com>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On 10/01/12 10:26, Tony Luck wrote:
-> I've been using the warnings from scripts/checksyscalls.sh to let me know
-> when some new system calls are added, so I can add them to ia64. But
-> it was recently brought to my attention that I didn't have accept4(). I missed
-> it because I didn't see a warning, which was because this script just compares
-> against the 32-bit x86 list.
+On Wednesday 11 January 2012, David Rientjes wrote:
+> We discussed this when the patch was made to change EMBEDDED to EXPERT and 
+> we knew that things like CONFIG_SLOB exist that would only make sense on a 
+> platform with a very small memory footprint.  So what criteria are you 
+> using to determine what makes sense for EMBEDDED or not and what would be 
+> generally useful for platforms with very small memory footprints?
 > 
-> A casual grep shows that:
-> alpha, arm, microblaze, mips, parisc, powerpc, sh and sparc
-> managed to add accept4 without getting the "warning syscall
-> .... not implemented"
+> I would think that something like CONFIG_SMALLMEM would identify those 
+> candidates (for things like SLOB) and then you could separate the rest 
+> based on the platform they exist for since you're essentially introducing 
+> a new config symbol here that existed in the past but are now using it 
+> with different semantics.
 
-A search of the git log would reveal that on Alpha we only very recently
-added accept4 because we had also missed it!  We were badly bit by the
-latest udev needing accept4.
+The CONFIG_SMALLMEM would also require people to know what they are doing,
+beyond what we expect the average person building a kernel to, which is
+just what CONFIG_EXPERT means, and the same reason why we ended up renaming
+CONFIG_EMBEDDED to CONFIG_EXPERT. People have a very different understanding
+of what "embedded" actually means, and not all of those require small
+memory footprint or even a custom kernel. Let's just stay with CONFIG_EXPERT.
 
-The question that I think would be more pertinent is: How do we know
-that we have implemented all relevant syscalls when the checksyscalls.sh
-script is not a sufficient check?
-
-Cheers
-Michael.
+	Arnd
