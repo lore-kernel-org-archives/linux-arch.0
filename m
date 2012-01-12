@@ -1,46 +1,48 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Wed, 11 Jan 2012 13:57:36 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+From: Michael Cree <mcree@orcon.net.nz>
+Subject: Re: why doesn't x86_32 have the accept4() syscall?
+Date: Thu, 12 Jan 2012 13:33:37 +1300
+Message-ID: <4F0E2A61.1090609@orcon.net.nz>
+References: <CA+8MBbLe5uC4gMg9vySTWYUsNv=P-9spnNbKsFAZqQCT_Wk+YQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Jones <drjones@redhat.com>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from nctlincom02.orcon.net.nz ([60.234.4.75]:37108 "EHLO
+	nctlincom02.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751612Ab2ALAne (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jan 2012 19:43:34 -0500
+Received: from mx4.orcon.net.nz (mx4.orcon.net.nz [219.88.242.54])
+	by nctlincom02.orcon.net.nz (8.14.3/8.14.3/Debian-9.4) with ESMTP id q0C0Xg7M009019
+	for <linux-arch@vger.kernel.org>; Thu, 12 Jan 2012 13:33:42 +1300
+Received: from Debian-exim by mx4.orcon.net.nz with local (Exim 4.69)
+	(envelope-from <mcree@orcon.net.nz>)
+	id 1Rl8bp-0000lR-E0
+	for linux-arch@vger.kernel.org; Thu, 12 Jan 2012 13:33:37 +1300
+In-Reply-To: <CA+8MBbLe5uC4gMg9vySTWYUsNv=P-9spnNbKsFAZqQCT_Wk+YQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tony Luck <tony.luck@intel.com>
+Cc: linux-arch@vger.kernel.org
 
-On Wed, 11 Jan 2012, Andrew Jones wrote:
-
-> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
-> justification that EMBEDDED was being used with a broader scope. It was
-> no longer just being used to expose standard options to embedded kernel
-> configs for tweaking, but rather for all "non-standard" kernel configs.
-> This is nice, because now developers have a way to clean up the config
-> menu by adding 'if EXPERT' to all entries in their Kconfig files that
-> should rarely have a non-default value selected (hint1: it would be nice
-> if developers would do this, hint2: it would also be nice if developers
-> would do this rather than making these types of options silent, and thus
-> impossible to override).
+On 10/01/12 10:26, Tony Luck wrote:
+> I've been using the warnings from scripts/checksyscalls.sh to let me know
+> when some new system calls are added, so I can add them to ia64. But
+> it was recently brought to my attention that I didn't have accept4(). I missed
+> it because I didn't see a warning, which was because this script just compares
+> against the 32-bit x86 list.
 > 
-> Unfortunately, EMBEDDED was also being used to modify the defaults of
-> some of these options to selections more appropriate for embedded
-> kernels. Since the renaming was a simple global search-replace, if
-> developers were to follow hints 1 and 2 above for non-embedded kernels,
-> then they may find unexpected changes in their configs after turning on
-> EXPERT.
-> 
+> A casual grep shows that:
+> alpha, arm, microblaze, mips, parisc, powerpc, sh and sparc
+> managed to add accept4 without getting the "warning syscall
+> .... not implemented"
 
-We discussed this when the patch was made to change EMBEDDED to EXPERT and 
-we knew that things like CONFIG_SLOB exist that would only make sense on a 
-platform with a very small memory footprint.  So what criteria are you 
-using to determine what makes sense for EMBEDDED or not and what would be 
-generally useful for platforms with very small memory footprints?
+A search of the git log would reveal that on Alpha we only very recently
+added accept4 because we had also missed it!  We were badly bit by the
+latest udev needing accept4.
 
-I would think that something like CONFIG_SMALLMEM would identify those 
-candidates (for things like SLOB) and then you could separate the rest 
-based on the platform they exist for since you're essentially introducing 
-a new config symbol here that existed in the past but are now using it 
-with different semantics.
+The question that I think would be more pertinent is: How do we know
+that we have implemented all relevant syscalls when the checksyscalls.sh
+script is not a sufficient check?
+
+Cheers
+Michael.
