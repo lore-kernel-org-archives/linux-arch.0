@@ -1,118 +1,103 @@
-From: David Rientjes <rientjes@google.com>
+From: Andrew Jones <drjones@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Fri, 13 Jan 2012 02:53:27 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
+Date: Fri, 13 Jan 2012 13:22:03 +0100
+Message-ID: <20120113122202.GB2452@turtle.usersys.redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+ <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
+ <201201120918.53026.arnd@arndb.de>
+ <20120112101805.GA2375@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
  <20120113085125.GA2452@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120113085125.GA2452@turtle.usersys.redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Jones <drjones@redhat.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:50585 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753134Ab2AMMYr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Jan 2012 07:24:47 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
 Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
-List-Id: linux-arch.vger.kernel.org
 
-On Fri, 13 Jan 2012, Andrew Jones wrote:
+On Fri, Jan 13, 2012 at 02:53:27AM -0800, David Rientjes wrote:
+> What would be helpful is if CONFIG_EMBEDDED actually meant what it 
+> implies, i.e. for config options that only make sense on embedded devices 
+> (similar to CONFIG_SMALLMEM I mentioned earlier, but more focused).
 
-> We seem to be talking about two different time periods where the semantics
-> changed, or didn't change. I'm stating that this patch reverts the
-> semantics for EMBEDDED back to the way they were at 6a108a14fa35^, i.e.
-> not inventing a new meaning, just reverting to the old one. Thus, relative
-> to that time, there is no change.
+Agreed, but it's not the problem that this patch is attempting to solve.
+You and I are looking at this patch (and its predecessor 6a108a14fa35)
+from two different sides. I want CONFIG_EXPERT to work, and you want
+CONFIG_EMBEDDED to mean what it should. I'm saying that fixing EXPERT now,
+by reverting EMBEDDED back a bit, and then eventually fixing that later,
+is the better way to go. You're saying you don't want me to touch
+EMBEDDED, and thus far you've ignored the problem I'm attempting to solve.
 
-That's the insanity that we're trying to avoid.  EMBEDDED prior to 
-6a108a14fa35 wasn't sane in any way since it didn't represent anything 
-even remotely related to embedded devices.  It was hijacked to be a config 
-option that users would set so that they could disable (or, in some cases, 
-enable) options that would be considered standard.  This isn't something 
-that is restricted only to the embedded world and that's why a new config 
-symbol, CONFIG_EXPERT, was introduced to take its place.
+> why it currently selects EXPERT, but we'd like to be able to separate 
+> those out so they can make more sane decisions and introduce things like 
+> "depends on EXPERT || EMBEDDED".
 
-> You are stating that there is a
-> semantics change relative to the way it is now, HEAD, which is true.
-> The impact of that change isn't so much though. If you look at the patch
-> you'll see EMBEDDED is only used around 30 times on the default value
-> manipulations. EXPERT is still the only config option exposing symbol.
-> 
+This patch is actually attempting to make progress in the separation of
+the semantics for EXPERT and the old, insane EMBEDDED, which had the very
+loose semantics. That's why it's called "untangle EXPERT and EMBEDDED".
 
-What would be helpful is if CONFIG_EMBEDDED actually meant what it 
-implies, i.e. for config options that only make sense on embedded devices 
-(similar to CONFIG_SMALLMEM I mentioned earlier, but more focused).
+> Don't think of 6a108a14fa35 as renaming CONFIG_EMBEDDED to CONFIG_EXPERT, 
+> think of it as adding CONFIG_EXPERT which is what it really does and frees 
 
-> Considering part of the motivation for 6a108a14fa35 was to restore EMBEDDED's
-> semantics to the way they were long ago, then I can see why this reversion
-> (however small it is) isn't overly welcomed. Naturally, 6a108a14fa35
-> succeeds at this goal of restoring EMBEDDED's original semantics, because
-> it pushed the mess onto a new symbol name, thus freeing itself to be
-> redefined.
+I do think of 6a108a14fa35 as adding CONFIG_EXPERT, and I like
+CONFIG_EXPERT, but I also think of it as adding CONFIG_EXPERT incorrectly.
 
-We were tired of adding new config symbols under the illusion that 
-CONFIG_EMBEDDED actually made any sense.  I wanted to make CONFIG_ZONE_DMA 
-configurable on x86 like it was on other archs, and the only way to do 
-that sanely would be to make it part of a non-standard kernel.  It was 
-proposed to rename EMBEDDED to EXPERT at that time since users should only 
-enable EXPERT, and be able to configure parts of the kernel (such as 
-ZONE_DMA) that are considered standard.  You need prior knowledge before 
-disabling such a config option, and that's why it's named EXPERT.  It has 
-_nothing_ to do with the embedded world.  The embedded world will 
-naturally want to disable options that are considered standard, and that's 
-why it currently selects EXPERT, but we'd like to be able to separate 
-those out so they can make more sane decisions and introduce things like 
-"depends on EXPERT || EMBEDDED".
+> That's bogus, config EMBEDDED was used to select the new EXPERT so there 
+> was no backwards compatibility issue.  I'd agree with you that your patch 
+> would be backwards compatible and doesn't suddenly, and silently, lose 
+> config options that were previously enabled when running make oldconfig if 
+> everybody in the world used defconfigs.  That's not the case, which is why 
+> this is a non-starter.
 
-> However, 6a108a14fa35 also claims a second motivation as well,
-> which is to offer the wider kernel a symbol that can be used to hide
-> standard config options in menus. On this goal 6a108a14fa35 fails.
-> CONFIG_EXPERT, as it stands, is useless to all users except the original
-> users of CONFIG_EMBEDDED at time 6a108a14fa35^.
-> 
+The fact that this patch breaks backward compatibility is unfortunate, but
+the only way to fix the problem that it's attempting to fix, without that
+breakage, is to introduce yet another config option (EXPERT2 or
+REALLY_EXPERT?). If I'm not mistaken and config variable backward
+compliance isn't required, then I'd say breaking it makes much more sense
+then adding something like REALLY_EXPERT and all the mess that'll come
+with it.
 
-Um, no, you can enable CONFIG_EXPERT without CONFIG_EMBEDDED which allows 
-the latter to become a subset that actually makes sense semantically.  We 
-want a CONFIG_EMBEDDED to open up configuring things like slab allocators 
-for a small memory footprint but not everything that CONFIG_EXPERT offers.  
-That's the direction that CONFIG_EMBEDDED is moving.
+It's not clear to me, that it's clear to everyone else, what this patch is
+really trying to fix. Below is a fun way to try and express it. It's done
+in dialog form. Hopefully it'll be entertaining as well as get the point
+across.
 
-> Ideally EMBEDDED would have been tidied up more before its renaming (in
-> order to avoid advertising a useless symbol in the first place).
+Developers Alice and Bob work on subcomponent XYZ and are chatting
 
-Don't think of 6a108a14fa35 as renaming CONFIG_EMBEDDED to CONFIG_EXPERT, 
-think of it as adding CONFIG_EXPERT which is what it really does and frees 
-up CONFIG_EMBEDDED to return to its logical semantics by becoming a subset 
-of CONFIG_EXPERT.
+Alice> hey Bob, I think we need a new symbol to compile out some
+code that not all of our customers want
+Bob> really? Ugh, The XYZ config menu already has tons of options,
+and most have defaults that should really never be touched anyway.
+I sure hate adding yet another...
+Alice> hmm... Oh, I remember there's this nifty CONFIG_EXPERT that
+some options use in order to hide from the standard configmenu.
+The options are only available to experts that turn on EXPERT
+Bob> oh, that sounds cool. We can clean up our whole menu by adding
+that to the options nobody should be touching. Then for those
+special customers we can turn CONFIG_EXPERT on and override the
+default of that new option to off
+Alice> OK, Kconfigs updated, new config with CONFIG_EXPERT=y and
+CONFIG_XYZ_SPECIAL=n created, load, cock, fire, release the code
+to QA!
 
-> However,
-> in the absence of ideal patches, we always have reversions to patches and
-> then new patches. This patch is that first (partial) reversion step, but
-> the additional patches that will eventually reclaim EMBEDDED's long lost,
-> ideal semantics are outside its scope.
-> 
+...some time later...
 
-Then nack, but you're more than welcome to help speed up the usefulness of 
-CONFIG_EMBEDDED by identifying config options that only make sense on 
-embedded devices and then perhaps someday it might not need to select all 
-of CONFIG_EXPERT and can be generally useful by adding the appropriate 
-"depends on EXPERT || EMBEDDED".
+QA person> HEY! Why is the kernel missing important features from
+other subcomponents?
+Alice+Bob> err.. We don't know. Last update we did was only to
+XYZ's Kconfig files. Oh, and we turned on that nifty CONFIG_EXPERT,
+but that shouldn't do anything...
 
-> > You're ignoring backwards compatibility for users who have already enabled 
-> > CONFIG_EXPERT and have not enabled CONFIG_EMBEDDED (EXPERT does not select 
-> > EMBEDDED, EMBEDDED selects EXPERT).  So if you're losing options that are 
-> > currently configurable with CONFIG_EXPERT unless those users now enable 
-> > CONFIG_EMBEDDED again, it's a non-starter.
-> 
-> While, afaik, backward compatibility of kernel config symbols isn't
-> guaranteed (I've seen non-backward compatible changes in the past), I
-> still didn't ignore it. Part of the reason to go back to using EMBEDDED
-> again was to address it (EMBEDDED was already used for this before). Also,
-> while it naturally doesn't address configs outside the kernel source, the
-> patch does update all defconfig files appropriately to add EMBEDDED
-> wherever EXPERT was.
-> 
+...Alice and Bob take a closer look...
 
-That's bogus, config EMBEDDED was used to select the new EXPERT so there 
-was no backwards compatibility issue.  I'd agree with you that your patch 
-would be backwards compatible and doesn't suddenly, and silently, lose 
-config options that were previously enabled when running make oldconfig if 
-everybody in the world used defconfigs.  That's not the case, which is why 
-this is a non-starter.
+Alice> CRAP! CONFIG_EXPERT doesn't just expose config options, it
+actually turns stuff off too!!
+Bob> Ugh, CONFIG_EXPERT is junk
