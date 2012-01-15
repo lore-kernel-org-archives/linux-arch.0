@@ -1,74 +1,34 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Fri, 13 Jan 2012 13:27:35 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
- <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com>
+From: "Tai Bei" <bei@optusnet.com.au>
+Subject: Please Help.
+Date: Mon, 16 Jan 2012 06:25:25 +0700 (WIT)
+Message-ID: <5e5567e835a72f1b56c5015c61c678e9.squirrel__15455.038395203$1326689780$gmane$org@webmail.speedmark.co.id>
+Reply-To: mr.tai@9.cn
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:54042 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753875Ab2AMV1l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Jan 2012 16:27:41 -0500
-Received: by mail-iy0-f174.google.com with SMTP id z25so4879729iab.19
-        for <linux-arch@vger.kernel.org>; Fri, 13 Jan 2012 13:27:41 -0800 (PST)
-In-Reply-To: <20120113122202.GB2452@turtle.usersys.redhat.com>
+Received: from speedmark.co.id ([202.51.112.171]:49712 "EHLO
+	mail.fafakids.web.id" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753232Ab2APEzf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jan 2012 23:55:35 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Jones <drjones@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Fri, 13 Jan 2012, Andrew Jones wrote:
+It is understandable that you might be a little bit apprehensive because
+you do not know me but I have a lucrative business proposal of mutual
+interest to share with you. I got your reference in my search for someone
+who suits my proposed business relationship. I am Mr. Tai Bei bank officer
+with the International bank of Taipei. I will need you to assist me in
+executing a business project from Taiwan to your country. It involves the
+transfer of money. Everything concerning this transaction shall be legally
+done without hitch.
 
-> > What would be helpful is if CONFIG_EMBEDDED actually meant what it 
-> > implies, i.e. for config options that only make sense on embedded devices 
-> > (similar to CONFIG_SMALLMEM I mentioned earlier, but more focused).
-> 
-> Agreed, but it's not the problem that this patch is attempting to solve.
-> You and I are looking at this patch (and its predecessor 6a108a14fa35)
-> from two different sides. I want CONFIG_EXPERT to work, and you want
-> CONFIG_EMBEDDED to mean what it should. I'm saying that fixing EXPERT now,
-> by reverting EMBEDDED back a bit, and then eventually fixing that later,
-> is the better way to go. You're saying you don't want me to touch
-> EMBEDDED, and thus far you've ignored the problem I'm attempting to solve.
-> 
 
-CONFIG_EXPERT does work, there haven't been problems reported with it in 
-the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
-to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
-is pretty useless other than setting CONFIG_EXPERT but that could easily 
-be extended if someone wants to spend the time to separate options out 
-from CONFIG_EXPERT that don't make any sense for embedded devices.  I'm 
-not from the embedded world, so I don't know the problems they face when 
-configuring the kernel.
+Once the funds have been successfully transferred into your account, we
+shall share in the ratio to be agreed by both of us. Contact me for more
+information about this operation immediately I receive a positive response
+from you.
 
-> This patch is actually attempting to make progress in the separation of
-> the semantics for EXPERT and the old, insane EMBEDDED, which had the very
-> loose semantics. That's why it's called "untangle EXPERT and EMBEDDED".
-> 
 
-You can't responsibly untangle EXPERT and EMBEDDED without making EMBEDDED 
-not select EXPERT and instead replace config options that should be 
-configurable only on embedded devices to do "depends on EXPERT || 
-EMBEDDED".  That's not what your patch does.
-
-> > That's bogus, config EMBEDDED was used to select the new EXPERT so there 
-> > was no backwards compatibility issue.  I'd agree with you that your patch 
-> > would be backwards compatible and doesn't suddenly, and silently, lose 
-> > config options that were previously enabled when running make oldconfig if 
-> > everybody in the world used defconfigs.  That's not the case, which is why 
-> > this is a non-starter.
-> 
-> The fact that this patch breaks backward compatibility is unfortunate, but
-> the only way to fix the problem that it's attempting to fix, without that
-> breakage, is to introduce yet another config option (EXPERT2 or
-> REALLY_EXPERT?). If I'm not mistaken and config variable backward
-> compliance isn't required, then I'd say breaking it makes much more sense
-> then adding something like REALLY_EXPERT and all the mess that'll come
-> with it.
-> 
-
-Breaking backwards compatibility for users who aren't defconfigs is a 
-non-starter, as I've said.  Admitting that your patch does it is almost 
-like nacking your own patch.
+Kind Regards,
+Mr. Tai Bei
