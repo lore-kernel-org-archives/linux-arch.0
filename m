@@ -1,69 +1,85 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
+From: David Rientjes <rientjes@google.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Mon, 16 Jan 2012 18:34:44 +0100
-Message-ID: <CAMuHMdV=yhacfyS691kdzXNOTcOEWi-AxPcUDquYci3=J3AhMQ@mail.gmail.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
-	<4F1444FF.60205@redhat.com>
-	<20120116155004.GA6999@turtle.usersys.redhat.com>
+Date: Mon, 16 Jan 2012 15:28:02 -0800 (PST)
+Message-ID: <alpine.DEB.2.00.1201161521240.16270@chino.kir.corp.google.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
+ <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
+ <20120116091832.GA2401@turtle.usersys.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:40639 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755610Ab2APReu convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jan 2012 12:34:50 -0500
-In-Reply-To: <20120116155004.GA6999@turtle.usersys.redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120116091832.GA2401@turtle.usersys.redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Andrew Jones <drjones@redhat.com>
-Cc: Jerome Marchand <jmarchan@redhat.com>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 16, 2012 at 16:50, Andrew Jones <drjones@redhat.com> wrote:
-> On Mon, Jan 16, 2012 at 04:40:47PM +0100, Jerome Marchand wrote:
->> > @@ -1259,8 +1259,7 @@ config SLUB
->> > =C2=A0 =C2=A0 =C2=A0 =C2=A0a slab allocator.
->> >
->> > =C2=A0config SLOB
->> > - =C2=A0 depends on EXPERT
->> > - =C2=A0 bool "SLOB (Simple Allocator)"
->> > + =C2=A0 bool "SLOB (Simple Allocator)" if EXPERT
->> > =C2=A0 =C2=A0 help
->> > =C2=A0 =C2=A0 =C2=A0 =C2=A0SLOB replaces the stock allocator with =
-a drastically simpler
->> > =C2=A0 =C2=A0 =C2=A0 =C2=A0allocator. SLOB is generally more space=
- efficient but
->>
->> Am I missing something or this particular chunk does not actually ch=
-ange
->> anything?
->
-> No, you're correct. There's no actual change, so the hunk could be du=
-bbed
-> as an unnecessary cleanup. I made the change in order to give it the =
-same
-> general format as the rest of the expert options in that file.
+On Mon, 16 Jan 2012, Andrew Jones wrote:
 
-There _is_ a difference:
-  - "depends on EXPERT" means the option cannot be enabled by the user.
-    "select SLOB" will still override that, but kconf will print a warn=
-ing.
-  - "bool ... if EXPERT" means the question will only be asked if EXPER=
-T.
-    Other Kconfig logic can still "select SLOB" if it wants to.
+> > CONFIG_EXPERT does work, there haven't been problems reported with it in 
+> > the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
+> > to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
+> > is pretty useless other than setting CONFIG_EXPERT but that could easily 
+> 
+> Um? Isn't the whole point of me sending a patch because there's a problem?
+> Thus THIS is problem report. Who else besides a kernel developer would
+> even notice this problem? As you say, EMBEDDED does nothing more than
+> select EXPERT, which does exactly the same thing as EMBEDDED did.
 
-Gr{oetje,eeting}s,
+Except now it can be extended for its original semantics, as I've 
+explained to you multiple times.
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
+> Therefore to people using EMBEDDED there has been no change.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
+And that was intended to ensure backwards compatibility so users don't 
+lose previously set config options if they aren't using a defconfig, which 
+you've totally ignored.
 
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+> But what new
+> users of EXPERT will there ever be as long EXPERT twists default config
+> options?
+> 
+
+You may be underestimating how popular CONFIG_EXPERT is.
+
+> > You can't responsibly untangle EXPERT and EMBEDDED without making EMBEDDED 
+> > not select EXPERT and instead replace config options that should be 
+> > configurable only on embedded devices to do "depends on EXPERT || 
+> > EMBEDDED".  That's not what your patch does.
+> 
+> What? A dependency (or in this case a reverse dependency using select)
+> does not mean the semantics of the options are tangled. EXPERT should be
+> free of those old EMBEDDED semantics and do only one thing, expose expert
+> options.
+
+You're wrong, otherwise you BREAK OTHER PEOPLE'S CONFIGURATIONS SILENTLY.  
+It's a non-starter.
+
+> EMBEDDED can then select it or not, I don't care. As for your
+> example "depends on EXPERT || EMBEDDED", that doesn't matter to me either.
+
+That's the only way you can extend CONFIG_EMBEDDED to actually mean 
+something and is exactly what we wanted to do when the patch was merged: 
+allow it to identify options that embedded users will want to configure 
+without exposing all of CONFIG_EXPERT.
+
+> > Breaking backwards compatibility for users who aren't defconfigs is a 
+> > non-starter, as I've said.  Admitting that your patch does it is almost 
+> > like nacking your own patch.
+> 
+> Like I said (twice), afaik config options aren't in the ABI that we must
+> maintain. They're internal to the kernel. While it's nice to keep them the
+> same, in order to save people some effort, it's not required.
+
+It's concerning that you choose to hack on the kernel and have such a 
+reckless attitude for users who choose not to use defconfigs and its even 
+more concerning that you don't care that they'll now silently lose config 
+options next time they run make oldconfig with your patch.
+
+> This is a trivial patch for an obvious problem. In all the emails that
+> we've exchanged you haven't told me anything I didn't know before posting.
+
+If you knew you were breaking users, then you're just reckless and I want 
+no part of it.
+
+Nacked-by: David Rientjes <rientjes@google.com>
