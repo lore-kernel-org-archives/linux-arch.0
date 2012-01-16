@@ -1,63 +1,86 @@
 From: Jerome Marchand <jmarchan@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Mon, 16 Jan 2012 16:31:17 +0100
-Message-ID: <4F1442C5.70500@redhat.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com> <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
+Date: Mon, 16 Jan 2012 16:40:47 +0100
+Message-ID: <4F1444FF.60205@redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:50862 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:13647 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754637Ab2APPdv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Jan 2012 10:33:51 -0500
-In-Reply-To: <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
+	id S1754943Ab2APPmv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Jan 2012 10:42:51 -0500
+In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+To: Andrew Jones <drjones@redhat.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On 01/13/2012 10:27 PM, David Rientjes wrote:
-> CONFIG_EXPERT does work, there haven't been problems reported with it in 
-> the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
-> to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
-> is pretty useless other than setting CONFIG_EXPERT but that could easily 
-> be extended if someone wants to spend the time to separate options out 
-> from CONFIG_EXPERT that don't make any sense for embedded devices.  I'm 
-> not from the embedded world, so I don't know the problems they face when 
-> configuring the kernel.
-
-I don't see what your objections to this patch are. It actually does not
-change anything to CONFIG_EMBEDDED and 6a108a14fa35 didn't either.
-CONFIG_EMBEDDED still exposes the same options and set the same default
-values as it did before or after 6a108a14fa35 was applied.
-
-This patch just makes EXPERT exposes config option as advertised by its
-description without changing any default value.
-For instance, Why would CONFIG_EXPERT disable by default some HID devices?
-I could understand why it is done for CONFIG_EMBEDDED, but certainly not
-for an general EXPERT option.
-
+On 01/11/2012 04:16 PM, Andrew Jones wrote:
+> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
+> justification that EMBEDDED was being used with a broader scope. It was
+> no longer just being used to expose standard options to embedded kernel
+> configs for tweaking, but rather for all "non-standard" kernel configs.
+> This is nice, because now developers have a way to clean up the config
+> menu by adding 'if EXPERT' to all entries in their Kconfig files that
+> should rarely have a non-default value selected (hint1: it would be nice
+> if developers would do this, hint2: it would also be nice if developers
+> would do this rather than making these types of options silent, and thus
+> impossible to override).
 > 
->> This patch is actually attempting to make progress in the separation of
->> the semantics for EXPERT and the old, insane EMBEDDED, which had the very
->> loose semantics. That's why it's called "untangle EXPERT and EMBEDDED".
->>
-
-If EMBEDDED was insane before 6a108a14fa35, then it still was after, since
-nothing changed. EMBEDDED was just renamed EXPERT, and the "new" EMBEDDED
-option just selects EXPERT.
-
+> Unfortunately, EMBEDDED was also being used to modify the defaults of
+> some of these options to selections more appropriate for embedded
+> kernels. Since the renaming was a simple global search-replace, if
+> developers were to follow hints 1 and 2 above for non-embedded kernels,
+> then they may find unexpected changes in their configs after turning on
+> EXPERT.
 > 
-> Breaking backwards compatibility for users who aren't defconfigs is a 
-> non-starter, as I've said.  Admitting that your patch does it is almost 
-> like nacking your own patch.
+> This patch attempts to untangle these two, making EXPERT true to its
+> purpose, which is to only expose standard options for tweaking, and
+> EMBEDDED to resume use as a default option modifier. The patch was made
+> with the following four steps, which could not be split into separate
+> patches without breaking configs
+> 
+> 1. Make sure EMBEDDED does nothing, i.e. s/EMBEDDED/EXPERT/. There were
+> only three places EMBEDDED was used.
+> 
+> 2. Add CONFIG_EXPERT=y to all configs that had CONFIG_EMBEDDED=y (and
+> not CONFIG_EXPERT=y already) to make sure step1 has no effect. This step
+> isn't strictly necessary since EMBEDDED selects EXPERT, but I wanted the
+> configs expressing the new need explicitly. Only 13 *_defconfig files.
+> 
+> 3. Move all side effects (default changes) from EXPERT to EMBEDDED
+> 
+> 4. Add CONFIG_EMBEDDED=y to all configs that had CONFIG_EXPERT=y (and
+> not CONFIG_EMBEDDED=y already) to make sure step3 has no effect.
+> 
+> I certainly didn't test this for every touched config. However, I did
+> test it for one config and got the expected results;
+>     Before patch:
+>         1. diff config.orig orig.EXPERT   -- shows many changes
+>         2. diff config.orig orig.EMBEDDED -- shows same changes as (1)
+>                                              plus EMBEDDED on
+>     After patch:
+>         3. diff config.orig config.new    -- no change
+>         4. diff config.orig new.EXPERT    -- only 1 change, EXPERT on
+>         5. diff config.orig new.EMBEDDED  -- shows same changes as (2)
+> 
+> Signed-off-by: Andrew Jones <drjones@redhat.com>
+> ---
 
-If people use CONFIG_EXPERT while expecting it to change some default value
-useful for embedded device, while at all time there was a CONFIG_EMBEDDED
-available that is according to its description made for this purpose, then
-the shame on them...
-If CONFIG_EMBEDDED is broken, it has to be fixed. As Andrew already said,
-this is out of the scope of this patch.
+> @@ -1259,8 +1259,7 @@ config SLUB
+>  	   a slab allocator.
+>  
+>  config SLOB
+> -	depends on EXPERT
+> -	bool "SLOB (Simple Allocator)"
+> +	bool "SLOB (Simple Allocator)" if EXPERT
+>  	help
+>  	   SLOB replaces the stock allocator with a drastically simpler
+>  	   allocator. SLOB is generally more space efficient but
+
+Am I missing something or this particular chunk does not actually change
+anything?
 
 Jerome
