@@ -1,86 +1,42 @@
-From: Jerome Marchand <jmarchan@redhat.com>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Mon, 16 Jan 2012 16:40:47 +0100
-Message-ID: <4F1444FF.60205@redhat.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Pulling the rest of the User-API header split patches
+Date: Mon, 16 Jan 2012 15:50:02 +0000
+Message-ID: <10234.1326729002@redhat.com>
+References: <19981.1325887323@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:13647 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:58261 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754943Ab2APPmv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Jan 2012 10:42:51 -0500
-In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+	id S1755203Ab2APPuS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Jan 2012 10:50:18 -0500
+In-Reply-To: <19981.1325887323@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Jones <drjones@redhat.com>
-Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+To: torvalds@linux-foundation.org
+Cc: dhowells@redhat.com, arnd@arndb.de, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@redhat.com
 
-On 01/11/2012 04:16 PM, Andrew Jones wrote:
-> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
-> justification that EMBEDDED was being used with a broader scope. It was
-> no longer just being used to expose standard options to embedded kernel
-> configs for tweaking, but rather for all "non-standard" kernel configs.
-> This is nice, because now developers have a way to clean up the config
-> menu by adding 'if EXPERT' to all entries in their Kconfig files that
-> should rarely have a non-default value selected (hint1: it would be nice
-> if developers would do this, hint2: it would also be nice if developers
-> would do this rather than making these types of options silent, and thus
-> impossible to override).
-> 
-> Unfortunately, EMBEDDED was also being used to modify the defaults of
-> some of these options to selections more appropriate for embedded
-> kernels. Since the renaming was a simple global search-replace, if
-> developers were to follow hints 1 and 2 above for non-embedded kernels,
-> then they may find unexpected changes in their configs after turning on
-> EXPERT.
-> 
-> This patch attempts to untangle these two, making EXPERT true to its
-> purpose, which is to only expose standard options for tweaking, and
-> EMBEDDED to resume use as a default option modifier. The patch was made
-> with the following four steps, which could not be split into separate
-> patches without breaking configs
-> 
-> 1. Make sure EMBEDDED does nothing, i.e. s/EMBEDDED/EXPERT/. There were
-> only three places EMBEDDED was used.
-> 
-> 2. Add CONFIG_EXPERT=y to all configs that had CONFIG_EMBEDDED=y (and
-> not CONFIG_EXPERT=y already) to make sure step1 has no effect. This step
-> isn't strictly necessary since EMBEDDED selects EXPERT, but I wanted the
-> configs expressing the new need explicitly. Only 13 *_defconfig files.
-> 
-> 3. Move all side effects (default changes) from EXPERT to EMBEDDED
-> 
-> 4. Add CONFIG_EMBEDDED=y to all configs that had CONFIG_EXPERT=y (and
-> not CONFIG_EMBEDDED=y already) to make sure step3 has no effect.
-> 
-> I certainly didn't test this for every touched config. However, I did
-> test it for one config and got the expected results;
->     Before patch:
->         1. diff config.orig orig.EXPERT   -- shows many changes
->         2. diff config.orig orig.EMBEDDED -- shows same changes as (1)
->                                              plus EMBEDDED on
->     After patch:
->         3. diff config.orig config.new    -- no change
->         4. diff config.orig new.EXPERT    -- only 1 change, EXPERT on
->         5. diff config.orig new.EMBEDDED  -- shows same changes as (2)
-> 
-> Signed-off-by: Andrew Jones <drjones@redhat.com>
-> ---
 
-> @@ -1259,8 +1259,7 @@ config SLUB
->  	   a slab allocator.
->  
->  config SLOB
-> -	depends on EXPERT
-> -	bool "SLOB (Simple Allocator)"
-> +	bool "SLOB (Simple Allocator)" if EXPERT
->  	help
->  	   SLOB replaces the stock allocator with a drastically simpler
->  	   allocator. SLOB is generally more space efficient but
+Hi Linus,
 
-Am I missing something or this particular chunk does not actually change
-anything?
+Thanks for pulling the User-API header split preliminary patches.
 
-Jerome
+Will you be pulling the rest of the patches to actually perform the split at
+the end of this merge window?  If so, as previously mentioned, I'll need to
+regenerate them before you do.
+
+However, for the moment, I dropped the preliminary patches from my tree and
+regenerated the rest based on the tree I saw this morning:
+
+http://git.infradead.org/users/dhowells/linux-headers.git/shortlog/refs/heads/uapi-split
+
+I've made 'make allyesconfig' build again on x86_64.  arch/x86/lib/insn.c is
+compiled for use in both userspace and kernelspace, necessitating a bit of
+#include adjustment, but that was the only necessary change.  I've also had
+Dave Airlie review the preparatory DRM patches and those have been adjusted.
+
+An opinion, if I may: I have been checking the scripts into the GIT tree (with
+the intention to delete them later) so that a record of them is retained - but
+I wonder if I should bother...  Hopefully, once the scripts are run and the
+results applied, it won't be necessary to retain the scripts.
+
+Thanks,
+David
