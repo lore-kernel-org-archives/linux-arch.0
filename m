@@ -1,40 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:52720 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([209.132.183.28]:57697 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754396Ab2APLwT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Jan 2012 06:52:19 -0500
-Date: Mon, 16 Jan 2012 19:09:40 +1100
-From: David Gibson <david@gibson.dropbear.id.au>
-Subject: Re: [PATCH 04/14] PowerPC: adapt for dma_map_ops changes
-Message-ID: <20120116080940.GF4512@truffala.fritz.box>
-References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
- <1324643253-3024-5-git-send-email-m.szyprowski@samsung.com>
+	id S1755293Ab2APPwU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Jan 2012 10:52:20 -0500
+Date: Mon, 16 Jan 2012 16:50:17 +0100
+From: Andrew Jones <drjones@redhat.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Message-ID: <20120116155004.GA6999@turtle.usersys.redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+ <4F1444FF.60205@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1324643253-3024-5-git-send-email-m.szyprowski@samsung.com>
+In-Reply-To: <4F1444FF.60205@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-Message-ID: <20120116080940.vDk9Wsmr2gyuzwRfx0m-qGOvqZvA2JE3XtZ0ODscorA@z>
+To: Jerome Marchand <jmarchan@redhat.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Message-ID: <20120116155017.9_lk50qCQ3wzsYgXHKmPlRww__zv4GPToJdHejRRzQQ@z>
 
-On Fri, Dec 23, 2011 at 01:27:23PM +0100, Marek Szyprowski wrote:
-> From: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+On Mon, Jan 16, 2012 at 04:40:47PM +0100, Jerome Marchand wrote:
+> > @@ -1259,8 +1259,7 @@ config SLUB
+> >  	   a slab allocator.
+> >  
+> >  config SLOB
+> > -	depends on EXPERT
+> > -	bool "SLOB (Simple Allocator)"
+> > +	bool "SLOB (Simple Allocator)" if EXPERT
+> >  	help
+> >  	   SLOB replaces the stock allocator with a drastically simpler
+> >  	   allocator. SLOB is generally more space efficient but
 > 
-> Adapt core PowerPC architecture code for dma_map_ops changes: replace
-> alloc/free_coherent with generic alloc/free methods.
+> Am I missing something or this particular chunk does not actually change
+> anything?
 > 
-> Signed-off-by: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
 
-Looks sane.
+No, you're correct. There's no actual change, so the hunk could be dubbed
+as an unnecessary cleanup. I made the change in order to give it the same
+general format as the rest of the expert options in that file.
 
-Reviewed-by: David Gibson <david@gibson.dropbear.id.au>
-
--- 
-David Gibson			| I'll have my music baroque, and my code
-david AT gibson.dropbear.id.au	| minimalist, thank you.  NOT _the_ _other_
-				| _way_ _around_!
-http://www.ozlabs.org/~dgibson
+Drew
