@@ -1,46 +1,63 @@
-From: David Gibson <david@gibson.dropbear.id.au>
-Subject: Re: [PATCH 01/14] common: dma-mapping: introduce alloc_attrs and
- free_attrs methods
-Date: Mon, 16 Jan 2012 12:57:10 +1100
-Message-ID: <20120116015710.GD4512@truffala.fritz.box>
-References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
- <1324643253-3024-2-git-send-email-m.szyprowski@samsung.com>
+From: Jerome Marchand <jmarchan@redhat.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Date: Mon, 16 Jan 2012 16:31:17 +0100
+Message-ID: <4F1442C5.70500@redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com> <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1324643253-3024-2-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:50862 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754637Ab2APPdv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Jan 2012 10:33:51 -0500
+In-Reply-To: <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Fri, Dec 23, 2011 at 01:27:20PM +0100, Marek Szyprowski wrote:
-> Introduce new generic alloc and free methods with attributes argument.
+On 01/13/2012 10:27 PM, David Rientjes wrote:
+> CONFIG_EXPERT does work, there haven't been problems reported with it in 
+> the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
+> to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
+> is pretty useless other than setting CONFIG_EXPERT but that could easily 
+> be extended if someone wants to spend the time to separate options out 
+> from CONFIG_EXPERT that don't make any sense for embedded devices.  I'm 
+> not from the embedded world, so I don't know the problems they face when 
+> configuring the kernel.
+
+I don't see what your objections to this patch are. It actually does not
+change anything to CONFIG_EMBEDDED and 6a108a14fa35 didn't either.
+CONFIG_EMBEDDED still exposes the same options and set the same default
+values as it did before or after 6a108a14fa35 was applied.
+
+This patch just makes EXPERT exposes config option as advertised by its
+description without changing any default value.
+For instance, Why would CONFIG_EXPERT disable by default some HID devices?
+I could understand why it is done for CONFIG_EMBEDDED, but certainly not
+for an general EXPERT option.
+
 > 
-> Existing alloc_coherent and free_coherent can be implemented on top of the
-> new calls with NULL attributes argument. Later also dma_alloc_non_coherent
-> can be implemented using DMA_ATTR_NONCOHERENT attribute as well as
-> dma_alloc_writecombine with separate DMA_ATTR_WRITECOMBINE attribute.
+>> This patch is actually attempting to make progress in the separation of
+>> the semantics for EXPERT and the old, insane EMBEDDED, which had the very
+>> loose semantics. That's why it's called "untangle EXPERT and EMBEDDED".
+>>
+
+If EMBEDDED was insane before 6a108a14fa35, then it still was after, since
+nothing changed. EMBEDDED was just renamed EXPERT, and the "new" EMBEDDED
+option just selects EXPERT.
+
 > 
-> This way the drivers will get more generic, platform independent way of
-> allocating dma buffers with specific parameters.
-> 
-> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
+> Breaking backwards compatibility for users who aren't defconfigs is a 
+> non-starter, as I've said.  Admitting that your patch does it is almost 
+> like nacking your own patch.
 
-Looks sensible to me.
+If people use CONFIG_EXPERT while expecting it to change some default value
+useful for embedded device, while at all time there was a CONFIG_EMBEDDED
+available that is according to its description made for this purpose, then
+the shame on them...
+If CONFIG_EMBEDDED is broken, it has to be fixed. As Andrew already said,
+this is out of the scope of this patch.
 
-Reviewed-by: David Gibson <david@gibson.dropbear.ud.au>
--- 
-David Gibson			| I'll have my music baroque, and my code
-david AT gibson.dropbear.id.au	| minimalist, thank you.  NOT _the_ _other_
-				| _way_ _around_!
-http://www.ozlabs.org/~dgibson
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Jerome
