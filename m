@@ -1,34 +1,107 @@
-From: "Tai Bei" <bei@optusnet.com.au>
-Subject: Please Help.
-Date: Mon, 16 Jan 2012 06:25:25 +0700 (WIT)
-Message-ID: <5e5567e835a72f1b56c5015c61c678e9.squirrel__15455.038395203$1326689780$gmane$org@webmail.speedmark.co.id>
-Reply-To: mr.tai@9.cn
+From: Andrew Jones <drjones@redhat.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Date: Mon, 16 Jan 2012 10:20:50 +0100
+Message-ID: <20120116091832.GA2401@turtle.usersys.redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+ <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
+ <201201120918.53026.arnd@arndb.de>
+ <20120112101805.GA2375@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
+ <20120113085125.GA2452@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
+ <20120113122202.GB2452@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from speedmark.co.id ([202.51.112.171]:49712 "EHLO
-	mail.fafakids.web.id" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753232Ab2APEzf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Jan 2012 23:55:35 -0500
+Received: from mx1.redhat.com ([209.132.183.28]:15179 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753694Ab2APJXi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Jan 2012 04:23:38 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-It is understandable that you might be a little bit apprehensive because
-you do not know me but I have a lucrative business proposal of mutual
-interest to share with you. I got your reference in my search for someone
-who suits my proposed business relationship. I am Mr. Tai Bei bank officer
-with the International bank of Taipei. I will need you to assist me in
-executing a business project from Taiwan to your country. It involves the
-transfer of money. Everything concerning this transaction shall be legally
-done without hitch.
+On Fri, Jan 13, 2012 at 01:27:35PM -0800, David Rientjes wrote:
+> CONFIG_EXPERT does work, there haven't been problems reported with it in 
+> the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
+> to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
+> is pretty useless other than setting CONFIG_EXPERT but that could easily 
 
+Um? Isn't the whole point of me sending a patch because there's a problem?
+Thus THIS is problem report. Who else besides a kernel developer would
+even notice this problem? As you say, EMBEDDED does nothing more than
+select EXPERT, which does exactly the same thing as EMBEDDED did.
+Therefore to people using EMBEDDED there has been no change. But what new
+users of EXPERT will there ever be as long EXPERT twists default config
+options?
 
-Once the funds have been successfully transferred into your account, we
-shall share in the ratio to be agreed by both of us. Contact me for more
-information about this operation immediately I receive a positive response
-from you.
+> You can't responsibly untangle EXPERT and EMBEDDED without making EMBEDDED 
+> not select EXPERT and instead replace config options that should be 
+> configurable only on embedded devices to do "depends on EXPERT || 
+> EMBEDDED".  That's not what your patch does.
 
+What? A dependency (or in this case a reverse dependency using select)
+does not mean the semantics of the options are tangled. EXPERT should be
+free of those old EMBEDDED semantics and do only one thing, expose expert
+options. EMBEDDED can then select it or not, I don't care. As for your
+example "depends on EXPERT || EMBEDDED", that doesn't matter to me either.
+I don't care if EMBEDDED just selects EXPERT, or if somebody sprinkles
+around something like that for particular options. If you actually did
+know what my patch does, then you'd see what I care about is getting rid
+of "default !EXPERT".
 
-Kind Regards,
-Mr. Tai Bei
+As I've said several times, cleaning up EMBEDDED's semantics, or doing
+anything at all with EMBEDDED, is outside the scope of this patch. This
+patch fixes EXPERT. It reverts EMBEDDED's side effects back onto itself.
+Additional patches can tackle EMBEDDED later, but for starters let's just
+make EXPERT something useful. And yes, until somebody does something with
+EMBEDDED, it is now required that it selects EXPERT, but, hey, it already
+does.
+
+> Breaking backwards compatibility for users who aren't defconfigs is a 
+> non-starter, as I've said.  Admitting that your patch does it is almost 
+> like nacking your own patch.
+
+Like I said (twice), afaik config options aren't in the ABI that we must
+maintain. They're internal to the kernel. While it's nice to keep them the
+same, in order to save people some effort, it's not required. If people
+are compiling kernels, then they can (and should) select their options
+each time they grab a new release. Oh, and guess what? It would be really
+cool if the kconfig help accurately described what the option does that
+they're debating over enabling/disabling, wouldn't it? Where does it say
+for EXPERT that some defaults will be automatically changed? It says
+
+          This option allows certain base kernel options and settings
+          to be disabled or tweaked. This is for specialized
+          environments which can tolerate a "non-standard" kernel.
+          Only use this if you really know what you are doing.
+
+See the word _allows_. It shouldn't actually disable anything, or if it
+does (which it shouldn't), then it should state it as such, preferably
+with a big WARNING in front of it.
+
+I say break the compatibility and fix it now, rather than letting the mess
+last any longer. The impact should be small since the patch is only a
+year old, it's only used by a handful of people that are ok with the
+defaults being flipped automatically, and I've updated the defconfigs,
+which should help alert those that base their configs off of them that
+they need to make a change. The alternative of adding a new EXPERT
+(EXPERT2), which only exposes config options and doesn't have side
+effects, just in order to preserve backward compatibility, would be
+silly.
+
+This is a trivial patch for an obvious problem. In all the emails that
+we've exchanged you haven't told me anything I didn't know before posting.
+I've now explained this patch in several ways (I thought for sure the
+dialog idea would make it 100% obvious). If you still don't understand it,
+then please try asking specific questions, rather than reiterating the
+motivation for 6a108a14fa35. BTW, by your standpoint of config options
+being required to be backward compatible, then what was the motivation for
+6a108a14fa35? If you can never change EMBEDDED's semantics, in order to
+maintain backward compatibility, then you can never stop selecting EXPERT,
+and EXPERT can never lose its side effects. So 6a108a14fa35 achieved
+nothing other than wasting a potentially useful config option name.
