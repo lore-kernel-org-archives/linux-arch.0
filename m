@@ -1,42 +1,37 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Pulling the rest of the User-API header split patches
-Date: Mon, 16 Jan 2012 15:50:02 +0000
-Message-ID: <10234.1326729002@redhat.com>
-References: <19981.1325887323@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58261 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755203Ab2APPuS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Jan 2012 10:50:18 -0500
-In-Reply-To: <19981.1325887323@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: dhowells@redhat.com, arnd@arndb.de, alan@lxorguk.ukuu.org.uk, hpa@zytor.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, airlied@redhat.com
+From: Andrew Jones <drjones@redhat.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+Date: Mon, 16 Jan 2012 16:50:17 +0100
+Message-ID: <20120116155004.GA6999@turtle.usersys.redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
+ <4F1444FF.60205@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4F1444FF.60205@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Jerome Marchand <jmarchan@redhat.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+List-Id: linux-arch.vger.kernel.org
 
+On Mon, Jan 16, 2012 at 04:40:47PM +0100, Jerome Marchand wrote:
+> > @@ -1259,8 +1259,7 @@ config SLUB
+> >  	   a slab allocator.
+> >  
+> >  config SLOB
+> > -	depends on EXPERT
+> > -	bool "SLOB (Simple Allocator)"
+> > +	bool "SLOB (Simple Allocator)" if EXPERT
+> >  	help
+> >  	   SLOB replaces the stock allocator with a drastically simpler
+> >  	   allocator. SLOB is generally more space efficient but
+> 
+> Am I missing something or this particular chunk does not actually change
+> anything?
+> 
 
-Hi Linus,
+No, you're correct. There's no actual change, so the hunk could be dubbed
+as an unnecessary cleanup. I made the change in order to give it the same
+general format as the rest of the expert options in that file.
 
-Thanks for pulling the User-API header split preliminary patches.
-
-Will you be pulling the rest of the patches to actually perform the split at
-the end of this merge window?  If so, as previously mentioned, I'll need to
-regenerate them before you do.
-
-However, for the moment, I dropped the preliminary patches from my tree and
-regenerated the rest based on the tree I saw this morning:
-
-http://git.infradead.org/users/dhowells/linux-headers.git/shortlog/refs/heads/uapi-split
-
-I've made 'make allyesconfig' build again on x86_64.  arch/x86/lib/insn.c is
-compiled for use in both userspace and kernelspace, necessitating a bit of
-#include adjustment, but that was the only necessary change.  I've also had
-Dave Airlie review the preparatory DRM patches and those have been adjusted.
-
-An opinion, if I may: I have been checking the scripts into the GIT tree (with
-the intention to delete them later) so that a record of them is retained - but
-I wonder if I should bother...  Hopefully, once the scripts are run and the
-results applied, it won't be necessary to retain the scripts.
-
-Thanks,
-David
+Drew
