@@ -1,71 +1,92 @@
-From: Andrew Jones <drjones@redhat.com>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Tue, 17 Jan 2012 15:46:44 +0100
-Message-ID: <20120117144644.GC3188@turtle.usersys.redhat.com>
-References: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com>
- <201201120918.53026.arnd@arndb.de>
- <20120112101805.GA2375@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
- <20120113085125.GA2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
- <20120113122202.GB2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
- <4F1442C5.70500@redhat.com>
- <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:65326 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753475Ab2AQOst (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Jan 2012 09:48:49 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Jerome Marchand <jmarchan@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 0/4 V9] Avoid soft lockup message when KVM is stopped by host
+Date: Tue, 17 Jan 2012 13:04:44 -0500
+Message-ID: <1326823488-11413-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, levinsasha928@gmail.com, Jan Kiszka <jan.kiszka@siemens.com>, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 16, 2012 at 03:37:01PM -0800, David Rientjes wrote:
-> > For instance, Why would CONFIG_EXPERT disable by default some HID devices?
-> > I could understand why it is done for CONFIG_EMBEDDED, but certainly not
-> > for an general EXPERT option.
-> > 
-> 
-> Then this is a prime example that you've identified were it would make 
-> sense to have the default value be dependant on EMBEDDED rather than 
-> EXPERT.  Feel free to send a patch to the HID maintainers.
-> 
+Changes from V8:
+Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
 
-How would you propose to write this patch? You say the default value
-should be dependant on EMBEDDED, instead of EXPERT? So maybe something
-like
+Changes from V7:
+Define KVM_CAP_GUEST_PAUSED and support check
+Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
 
-diff --git a/drivers/hid/Kconfig b/drivers/hid/Kconfig
-index a421abd..73c2d39 100644
---- a/drivers/hid/Kconfig
-+++ b/drivers/hid/Kconfig
-@@ -63,7 +63,7 @@ menu "Special HID drivers"
- config HID_A4TECH
-        tristate "A4 tech mice" if EXPERT
-        depends on USB_HID
--       default !EXPERT
-+       default !EMBEDDED
-        ---help---
-        Support for A4 tech X5 and WOP-35 / Trust 450L mice.
+Changes from V6:
+Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
 
-and the other HID drivers...
+Changes from V5:
+Collapse generic check_and_clear_guest_stopped into patch 2
+Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
+Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
+ cpuid arg.
+Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
 
-I guess it could be changed to 'if EXPERT || EMBEDDED', but at the moment
-EMBEDDED selects EXPERT, so that's not currently necessary. I guess what's
-above should be sufficient then. Oh, wait! That's exactly what this patch
-does! And anybody who actually read it would have seen that.
+Changes from V4:
+Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
+Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
 
-I'm sorry if my writing style is starting to become a bit sarcastic. I
-tend to get that way when I'm overly irritated. And I tend to get
-irritated when people nack patches without reading them.
+Changes from V3:
+Include CC's on patch 3
+Drop clear flag ioctl and have the watchdog clear the flag when it is reset
 
-BTW, the HID maintainer, Jiri Kosina, is already on cc, since I cc'ed
-every maintainer of the files that this patch touches.
+Changes from V2:
+A new kvm functions defined in kvm_para.h, the only change to pvclock is the
+initial flag definition
 
-Drew
+Changes from V1:
+(Thanks Marcelo)
+Host code has all been moved to arch/x86/kvm/x86.c
+KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
+
+When a guest kernel is stopped by the host hypervisor it can look like a soft
+lockup to the guest kernel.  This false warning can mask later soft lockup
+warnings which may be real.  This patch series adds a method for a host
+hypervisor to communicate to a guest kernel that it is being stopped.  The
+final patch in the series has the watchdog check this flag when it goes to
+issue a soft lockup warning and skip the warning if the guest knows it was
+stopped.
+
+It was attempted to solve this in Qemu, but the side effects of saving and
+restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+by the amount of time of the pause.  This forces a guest to have ntp running
+in order to keep the wall clock accurate.
+
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: jeremy.fitzhardinge@citrix.com
+Cc: levinsasha928@gmail.com
+Cc: Jan Kiszka <jan.kiszka@siemens.com>
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+
+Eric B Munson (4):
+  Add flag to indicate that a vm was stopped by the host
+  Add functions to check if the host has stopped the vm
+  Add ioctl for KVMCLOCK_GUEST_STOPPED
+  Add check for suspended vm in softlockup detector
+
+ Documentation/virtual/kvm/api.txt   |   13 +++++++++++++
+ arch/ia64/include/asm/kvm_para.h    |    5 +++++
+ arch/powerpc/include/asm/kvm_para.h |    5 +++++
+ arch/s390/include/asm/kvm_para.h    |    5 +++++
+ arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+ arch/x86/include/asm/pvclock-abi.h  |    1 +
+ arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+ arch/x86/kvm/x86.c                  |   26 ++++++++++++++++++++++++++
+ include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+ include/linux/kvm.h                 |    3 +++
+ kernel/watchdog.c                   |   12 ++++++++++++
+ 11 files changed, 113 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
+
+-- 
+1.7.5.4
