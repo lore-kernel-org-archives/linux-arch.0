@@ -1,31 +1,38 @@
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Subject: Re: [PATCH] mips: remove custom BUILD_BUG()
-Date: Tue, 17 Jan 2012 09:34:34 +0100
-Message-ID: <1326789274.2564.55.camel@edumazet-laptop>
-References: <1322092017-21471-1-git-send-email-ddaney.cavm@gmail.com>
-	 <1322092017-21471-2-git-send-email-ddaney.cavm@gmail.com>
-	 <1326779572.2564.47.camel@edumazet-laptop>
-	 <20120117082841.GA15499@linux-mips.org>
+From: Vinod Koul <vinod.koul@intel.com>
+Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
+Date: Tue, 17 Jan 2012 19:15:02 +0530
+Message-ID: <1326807902.1540.116.camel@vkoul-udesk3>
+References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:42535 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752179Ab2AQIej (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jan 2012 03:34:39 -0500
-In-Reply-To: <20120117082841.GA15499@linux-mips.org>
+Received: from mga01.intel.com ([192.55.52.88]:11161 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753399Ab2AQNoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Jan 2012 08:44:21 -0500
+In-Reply-To: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Daney <ddaney.cavm@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>, David Howells <dhowells@redhat.com>, David Daney <david.daney@cavium.com>
+To: Ravi Kumar V <kumarrav@codeaurora.org>
+Cc: dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, davidb@codeaurora.org, dwalker@fifo99.com, bryanh@codeaurora.org, linux@arm.linux.org.uk, tsoni@qualcomm.com, johlstei@qualcomm.com, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-Le mardi 17 janvier 2012 =C3=A0 09:28 +0100, Ralf Baechle a =C3=A9crit =
-:
+On Fri, 2012-01-06 at 18:17 +0530, Ravi Kumar V wrote:
+<sorry for delayed review, was on vacation and now traveling >
+> 
+> As our ADM Scatter-gather hardware needs
+> -32-bit command configuration parameter
+>  apart from 
+> -32-bit source address
+> -32-bit destination address
+> -16-bit length
+> 
+> So,we have added new parameter in struct scatterlist to support xfer
+> descriptor
+> specific private data, and for supporting ADM Box mode DMA we added
+> new
+> API and data structure. 
+what do you mean by "ADM Box mode"?
 
-> See 63e9c4fd1c86e894e62aa3737427163d5fb01056 [MIPS: Remove temporary =
-kludge
-> from <asm/page.h>] in linux-next.
->=20
-
-Good, thanks !
+-- 
+~Vinod
