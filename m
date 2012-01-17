@@ -1,92 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:43713 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751587Ab2APX2K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Jan 2012 18:28:10 -0500
-Received: by ggdk6 with SMTP id k6so2881087ggd.19
-        for <linux-arch@vger.kernel.org>; Mon, 16 Jan 2012 15:28:09 -0800 (PST)
-Date: Mon, 16 Jan 2012 15:28:02 -0800 (PST)
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-In-Reply-To: <20120116091832.GA2401@turtle.usersys.redhat.com>
-Message-ID: <alpine.DEB.2.00.1201161521240.16270@chino.kir.corp.google.com>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
- <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
- <20120116091832.GA2401@turtle.usersys.redhat.com>
+Received: from eddie.linux-mips.org ([78.24.191.182]:37441 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752413Ab2AQIzN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jan 2012 03:55:13 -0500
+Received: from localhost.localdomain ([127.0.0.1]:35163 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S1903618Ab2AQI24 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Tue, 17 Jan 2012 09:28:56 +0100
+Date: Tue, 17 Jan 2012 09:28:41 +0100
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] mips: remove custom BUILD_BUG()
+Message-ID: <20120117082841.GA15499@linux-mips.org>
+References: <1322092017-21471-1-git-send-email-ddaney.cavm@gmail.com>
+ <1322092017-21471-2-git-send-email-ddaney.cavm@gmail.com>
+ <1326779572.2564.47.camel@edumazet-laptop>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1326779572.2564.47.camel@edumazet-laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Jones <drjones@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
-Message-ID: <20120116232802.9cmFWluQx8eve0wjZXPqSaO0qjoTV8Ce9qjXP2JGGsk@z>
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: David Daney <ddaney.cavm@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM <dm.n9107@gmail.com>, David Howells <dhowells@redhat.com>, David Daney <david.daney@cavium.com>
+Message-ID: <20120117082841.b1Z9BZUPjAop3DXc_u4dPHBM-FIRbgMxL5gf-nwvxQA@z>
 
-On Mon, 16 Jan 2012, Andrew Jones wrote:
-
-> > CONFIG_EXPERT does work, there haven't been problems reported with it in 
-> > the year that it has been in the kernel, and CONFIG_EMBEDDED is available 
-> > to be extended to have its logical semantics.  Right now, CONFIG_EMBEDDED 
-> > is pretty useless other than setting CONFIG_EXPERT but that could easily 
+On Tue, Jan 17, 2012 at 06:52:52AM +0100, Eric Dumazet wrote:
+> Date:   Tue, 17 Jan 2012 06:52:52 +0100
+> From: Eric Dumazet <eric.dumazet@gmail.com>
+> To: David Daney <ddaney.cavm@gmail.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>, ralf@linux-mips.org,
+>  linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds
+>  <torvalds@linux-foundation.org>, David Rientjes <rientjes@google.com>, DM
+>  <dm.n9107@gmail.com>, David Howells <dhowells@redhat.com>, David Daney
+>  <david.daney@cavium.com>
+> Subject: [PATCH] mips: remove custom BUILD_BUG()
+> Content-Type: text/plain; charset="UTF-8"
 > 
-> Um? Isn't the whole point of me sending a patch because there's a problem?
-> Thus THIS is problem report. Who else besides a kernel developer would
-> even notice this problem? As you say, EMBEDDED does nothing more than
-> select EXPERT, which does exactly the same thing as EMBEDDED did.
-
-Except now it can be extended for its original semantics, as I've 
-explained to you multiple times.
-
-> Therefore to people using EMBEDDED there has been no change.
-
-And that was intended to ensure backwards compatibility so users don't 
-lose previously set config options if they aren't using a defconfig, which 
-you've totally ignored.
-
-> But what new
-> users of EXPERT will there ever be as long EXPERT twists default config
-> options?
+> Commit 1399ff86f2a2b (kernel.h: add BUILD_BUG() macro) broke mips build
 > 
-
-You may be underestimating how popular CONFIG_EXPERT is.
-
-> > You can't responsibly untangle EXPERT and EMBEDDED without making EMBEDDED 
-> > not select EXPERT and instead replace config options that should be 
-> > configurable only on embedded devices to do "depends on EXPERT || 
-> > EMBEDDED".  That's not what your patch does.
+> In file included from /opt/src/linux/arch/mips/include/asm/io.h:16:0,
+>                  from /opt/src/linux/arch/mips/include/asm/page.h:54,
+>                  from include/linux/serial.h:16,
+>                  from include/linux/serial_core.h:23,
+>                  from include/linux/serial_8250.h:14,
+>                  from arch/mips/mti-malta/malta-platform.c:25:
+> include/linux/kernel.h:717:0: error: "BUILD_BUG" redefined [-Werror]
+> /opt/src/linux/arch/mips/include/asm/page.h:43:0: note: this is the
+> location of the previous definition
+> cc1: all warnings being treated as errors
 > 
-> What? A dependency (or in this case a reverse dependency using select)
-> does not mean the semantics of the options are tangled. EXPERT should be
-> free of those old EMBEDDED semantics and do only one thing, expose expert
-> options.
+> Remove the conflicting mips macro.
 
-You're wrong, otherwise you BREAK OTHER PEOPLE'S CONFIGURATIONS SILENTLY.  
-It's a non-starter.
+See 63e9c4fd1c86e894e62aa3737427163d5fb01056 [MIPS: Remove temporary kludge
+from <asm/page.h>] in linux-next.
 
-> EMBEDDED can then select it or not, I don't care. As for your
-> example "depends on EXPERT || EMBEDDED", that doesn't matter to me either.
-
-That's the only way you can extend CONFIG_EMBEDDED to actually mean 
-something and is exactly what we wanted to do when the patch was merged: 
-allow it to identify options that embedded users will want to configure 
-without exposing all of CONFIG_EXPERT.
-
-> > Breaking backwards compatibility for users who aren't defconfigs is a 
-> > non-starter, as I've said.  Admitting that your patch does it is almost 
-> > like nacking your own patch.
-> 
-> Like I said (twice), afaik config options aren't in the ABI that we must
-> maintain. They're internal to the kernel. While it's nice to keep them the
-> same, in order to save people some effort, it's not required.
-
-It's concerning that you choose to hack on the kernel and have such a 
-reckless attitude for users who choose not to use defconfigs and its even 
-more concerning that you don't care that they'll now silently lose config 
-options next time they run make oldconfig with your patch.
-
-> This is a trivial patch for an obvious problem. In all the emails that
-> we've exchanged you haven't told me anything I didn't know before posting.
-
-If you knew you were breaking users, then you're just reckless and I want 
-no part of it.
-
-Nacked-by: David Rientjes <rientjes@google.com>
+  Ralf
