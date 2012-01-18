@@ -1,10 +1,8 @@
 From: Andrew Jones <drjones@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Wed, 18 Jan 2012 10:38:19 +0100
-Message-ID: <20120118093818.GC2317@turtle.usersys.redhat.com>
-References: <20120112101805.GA2375@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
- <20120113085125.GA2452@turtle.usersys.redhat.com>
+Date: Wed, 18 Jan 2012 10:54:28 +0100
+Message-ID: <20120118095427.GD2317@turtle.usersys.redhat.com>
+References: <20120113085125.GA2452@turtle.usersys.redhat.com>
  <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
  <20120113122202.GB2452@turtle.usersys.redhat.com>
  <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
@@ -12,57 +10,39 @@ References: <20120112101805.GA2375@turtle.usersys.redhat.com>
  <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com>
  <20120117144644.GC3188@turtle.usersys.redhat.com>
  <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
+ <20120118085620.GB2317@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201180119550.19730@chino.kir.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:9313 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:10606 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757104Ab2ARJkX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2012 04:40:23 -0500
+	id S1756308Ab2ARJ4c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jan 2012 04:56:32 -0500
 Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
+In-Reply-To: <alpine.DEB.2.00.1201180119550.19730@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Rientjes <rientjes@google.com>
 Cc: Jerome Marchand <jmarchan@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Tue, Jan 17, 2012 at 12:54:01PM -0800, David Rientjes wrote:
-> When it's configurable only for CONFIG_EMBEDDED, then you can propose that 
-> to the HID maintainers.  If they agree, then we don't care if users 
-> currently with CONFIG_EXPERT=y and CONFIG_EMBEDDED=n lose the option, but 
-> that needs to be handled on a case-by-case basis when breaking backwards 
-> compatibility.
-> 
+On Wed, Jan 18, 2012 at 01:31:30AM -0800, David Rientjes wrote:
+> CONFIG_EXPERT isn't an invitation to be able to configure everything in 
+> the kernel.
 
-Ah, I think I may have just gotten to the bottom of this long, useless
-thread. Based on your last email and by rereading what you wrote above.
-You seem to believe a patch like
+Correct. It definitely shouldn't. It actually shouldn't configure *ANYTHING*
+in the kernel. Stopping it from doing so is exactly what this patch does.
+It should only expose expert options, and it can expose *ALL* expert
+options, including EMBEDDED and FOOBAR options. Which defaults people want
+for those is not in the scope of this patch. However, using EMBEDDED to
+fix EXPERT is the best choice for precisely the reason you state
 
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 82928f5..ec1023d 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -771,7 +771,7 @@ config DEBUG_WRITECOUNT
+> I think it's fine to break backwards compatibility for options that are
+> currently configurable for CONFIG_EXPERT when it only makes sense for
+> embedded systems and use CONFIG_EMBEDDED instead.  They better already
+> have it enabled and my patch a year ago didn't break it for them.
 
- config DEBUG_MEMORY_INIT
-        bool "Debug memory initialisation" if EXPERT
--       default !EXPERT
-+       default !EMBEDDED
-        help
-          Enable this for additional checks during memory initialisation.
-          The sanity checks verify aspects of the VM such as the memory
-model
-
-means that configs with CONFIG_EXPERT=y and CONFIG_EMBEDDED=n would then
-generate kernels that no longer have the additional memory checks. Those
-checks are generally a good thing, and in fact the config help for that
-option says "If unsure, say Y". So a general kernel, using the general
-kernel option, EXPERT, but not the specific option, EMBEDDED, would be
-upset when losing that option.
-
-Your problem is that your logic is backwards. The kernel right now has
-precisely that issue, due to 6a108a14fa35. If EXPERT is on, then you'll
-lose DEBUG_MEMORY_INIT. That, and all the other silently changed defaults,
-is exactly what this patch fixes.
-
-Please review the logic and the entire patch again.
+While EMBEDDED may not be appropriate for all those default changes now,
+EXPERT *CERTAINLY* isn't appropriate. Let's fix EXPERT now and then
+EMBEDDED later. Anybody who cared about those things was using EMBEDDED
+before, let them keep using it now.
