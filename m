@@ -1,84 +1,68 @@
-From: David Rientjes <rientjes@google.com>
+From: Andrew Jones <drjones@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Wed, 18 Jan 2012 01:31:30 -0800 (PST)
-Message-ID: <alpine.DEB.2.00.1201180119550.19730@chino.kir.corp.google.com>
-References: <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com> <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
- <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com> <4F1442C5.70500@redhat.com> <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com> <20120117144644.GC3188@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com> <20120118085620.GB2317@turtle.usersys.redhat.com>
+Date: Wed, 18 Jan 2012 10:38:19 +0100
+Message-ID: <20120118093818.GC2317@turtle.usersys.redhat.com>
+References: <20120112101805.GA2375@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
+ <20120113085125.GA2452@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
+ <20120113122202.GB2452@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
+ <4F1442C5.70500@redhat.com>
+ <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com>
+ <20120117144644.GC3188@turtle.usersys.redhat.com>
+ <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:48125 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757197Ab2ARJbh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2012 04:31:37 -0500
-Received: by obcva7 with SMTP id va7so6963436obc.19
-        for <linux-arch@vger.kernel.org>; Wed, 18 Jan 2012 01:31:37 -0800 (PST)
-In-Reply-To: <20120118085620.GB2317@turtle.usersys.redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:9313 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757104Ab2ARJkX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jan 2012 04:40:23 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Jones <drjones@redhat.com>
+To: David Rientjes <rientjes@google.com>
 Cc: Jerome Marchand <jmarchan@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Wed, 18 Jan 2012, Andrew Jones wrote:
-
-> > > diff --git a/drivers/hid/Kconfig b/drivers/hid/Kconfig
-> > > index a421abd..73c2d39 100644
-> > > --- a/drivers/hid/Kconfig
-> > > +++ b/drivers/hid/Kconfig
-> > > @@ -63,7 +63,7 @@ menu "Special HID drivers"
-> > >  config HID_A4TECH
-> > >         tristate "A4 tech mice" if EXPERT
-> > >         depends on USB_HID
-> > > -       default !EXPERT
-> > > +       default !EMBEDDED
-> > >         ---help---
-> > >         Support for A4 tech X5 and WOP-35 / Trust 450L mice.
-> > > 
-> > > and the other HID drivers...
-> > > 
-> > 
-> > Um, no, HID_A4TECH is still only configurable for CONFIG_EXPERT with this 
-> > patch.  Jerome's premise is that this should be configurable for 
-> > CONFIG_EMBEDDED instead.  Please read what he wrote.
-> 
-> Yes, you still need EXPERT to expose the option, but then EMBEDDED will
-> switch the default. You only need to set EMBEDDED=y to do that though,
-> that's what this little thing called "select" does.
+On Tue, Jan 17, 2012 at 12:54:01PM -0800, David Rientjes wrote:
+> When it's configurable only for CONFIG_EMBEDDED, then you can propose that 
+> to the HID maintainers.  If they agree, then we don't care if users 
+> currently with CONFIG_EXPERT=y and CONFIG_EMBEDDED=n lose the option, but 
+> that needs to be handled on a case-by-case basis when breaking backwards 
+> compatibility.
 > 
 
-Until such time as EMBEDDED is decoupled from EXPERT.  So to preserve the 
-eventual goal of separating EMBEDDED and EXPERT entirely, this would need 
-to be a tristate if EXPERT || EMBEDDED.  I'll leave the determination of 
-the default to the HID maintainers, it's not my area.
+Ah, I think I may have just gotten to the bottom of this long, useless
+thread. Based on your last email and by rereading what you wrote above.
+You seem to believe a patch like
 
-This isn't the first time that Jiri will have had to deal with 
-CONFIG_EXPERT usage in this subsystem.
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 82928f5..ec1023d 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -771,7 +771,7 @@ config DEBUG_WRITECOUNT
 
-There're other examples of this for x86 for things like serio drivers or 
-keyboard drivers.
+ config DEBUG_MEMORY_INIT
+        bool "Debug memory initialisation" if EXPERT
+-       default !EXPERT
++       default !EMBEDDED
+        help
+          Enable this for additional checks during memory initialisation.
+          The sanity checks verify aspects of the VM such as the memory
+model
 
-> Oh, so now we can break backwards compatibility for some cases? What is
-> the criteria for those cases? Let me guess at a few;
-> 
+means that configs with CONFIG_EXPERT=y and CONFIG_EMBEDDED=n would then
+generate kernels that no longer have the additional memory checks. Those
+checks are generally a good thing, and in fact the config help for that
+option says "If unsure, say Y". So a general kernel, using the general
+kernel option, EXPERT, but not the specific option, EMBEDDED, would be
+upset when losing that option.
 
-I think it's fine to break backwards compatibility for options that are 
-currently configurable for CONFIG_EXPERT when it only makes sense for 
-embedded systems and use CONFIG_EMBEDDED instead.  They better already 
-have it enabled and my patch a year ago didn't break it for them.
+Your problem is that your logic is backwards. The kernel right now has
+precisely that issue, due to 6a108a14fa35. If EXPERT is on, then you'll
+lose DEBUG_MEMORY_INIT. That, and all the other silently changed defaults,
+is exactly what this patch fixes.
 
-CONFIG_EXPERT isn't an invitation to be able to configure everything in 
-the kernel.
-
-> What do you mean you've considered not reading this pointless thread? You
-> wrote it! All the nonsense comes from you. Besides the patch submission,
-> which fixes a real problem, this thread HAS been pointless, and wasted a
-> lot of my time.
-> 
-
-I'm trying to clue you into how we don't break existing configs for users 
-who would run make oldconfig on a kernel with your patch.  That's why it's 
-nacked and nobody would sanely apply such a patch.
-
-I'll leave the remainder of the thread to you now, thanks.
+Please review the logic and the entire patch again.
