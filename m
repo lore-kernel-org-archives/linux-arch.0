@@ -1,59 +1,33 @@
-From: Andrew Jones <drjones@redhat.com>
+From: Jerome Marchand <jmarchan@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Wed, 18 Jan 2012 09:14:55 +0100
-Message-ID: <20120118081455.GA2317@turtle.usersys.redhat.com>
-References: <20120112101805.GA2375@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com>
- <20120113085125.GA2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
- <20120113122202.GB2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
- <20120116091832.GA2401@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201161521240.16270@chino.kir.corp.google.com>
- <20120117142738.GB3188@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201171240070.2595@chino.kir.corp.google.com>
+Date: Wed, 18 Jan 2012 09:51:57 +0100
+Message-ID: <4F16882D.10403@redhat.com>
+References: <alpine.DEB.2.00.1201111353330.21755@chino.kir.corp.google.com> <201201120918.53026.arnd@arndb.de> <20120112101805.GA2375@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201121259270.17287@chino.kir.corp.google.com> <20120113085125.GA2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com> <20120113122202.GB2452@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com> <4F1442C5.70500@redhat.com> <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com> <20120117144644.GC3188@turtle.usersys.redhat.com> <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:3144 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:17110 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752947Ab2ARIRJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2012 03:17:09 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1201171240070.2595@chino.kir.corp.google.com>
+	id S1756165Ab2ARIyN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jan 2012 03:54:13 -0500
+In-Reply-To: <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Rientjes <rientjes@google.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Cc: Andrew Jones <drjones@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Tue, Jan 17, 2012 at 12:46:01PM -0800, David Rientjes wrote:
-> On Tue, 17 Jan 2012, Andrew Jones wrote:
-> 
-> > Now changing it, i.e. making it conform more closely to its name and only
-> > affect embedded related options, you can't do. If you were to do so, then
-> > you would lose backward compatibility. How do you know there aren't users
-> > that started using EMBEDDED for the non-embedded side effects?
-> 
-> That's why they're now using EXPERT.
+On 01/17/2012 09:54 PM, David Rientjes wrote:
 
-How do you know they've all switched?
+>>>> For instance, Why would CONFIG_EXPERT disable by default some HID devices?
+>>>> I could understand why it is done for CONFIG_EMBEDDED, but certainly not
+>>>> for an general EXPERT option.
 
-> 
-> > If EMBEDDED
-> > is ever corrected, and then stops selecting EXPERT, then you risk causing
-> > them problems.
-> > 
-> 
-> No, because they've already enabled EXPERT.  You can't have EMBEDDED=y and 
-> EXPERT=n.  That's what this little thing called "select" does.  After a 
-> sufficient amount of time passes and all options that are important only 
-> for embedded users have been either extended for EMBEDDED or replaced only 
-> be EMBEDDED, you can get rid of the "select" without losing backwards 
-> compatibility.
+> Um, no, HID_A4TECH is still only configurable for CONFIG_EXPERT with this 
+> patch.  Jerome's premise is that this should be configurable for 
+> CONFIG_EMBEDDED instead.  Please read what he wrote.
 
-How do you define a sufficient amount of time? How do you know everyone
-else agrees with that definition? OIOW, where is it documented? If it is
-documented, then how do you know everyone will read it and comply to it?
+No it's not! I wrote that CONFIG_EXPERT should not change the default value.
+I wrote nothing about that option being configurable or not.
 
-Those are rhetorical questions. Please don't try to answer them. You'd
-only embarrass yourself further.
+Jerome
