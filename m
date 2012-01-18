@@ -1,48 +1,98 @@
 From: Andrew Jones <drjones@redhat.com>
 Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Date: Wed, 18 Jan 2012 10:54:28 +0100
-Message-ID: <20120118095427.GD2317@turtle.usersys.redhat.com>
-References: <20120113085125.GA2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201130230320.15417@chino.kir.corp.google.com>
- <20120113122202.GB2452@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201131318340.24089@chino.kir.corp.google.com>
- <4F1442C5.70500@redhat.com>
- <alpine.DEB.2.00.1201161530170.16270@chino.kir.corp.google.com>
- <20120117144644.GC3188@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201171246280.2595@chino.kir.corp.google.com>
- <20120118085620.GB2317@turtle.usersys.redhat.com>
- <alpine.DEB.2.00.1201180119550.19730@chino.kir.corp.google.com>
+Date: Wed, 18 Jan 2012 06:08:30 -0500 (EST)
+Message-ID: <b6315f9b-0ead-4de4-a8f5-ed619f852c6c@zmail13.collab.prod.int.phx2.redhat.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10606 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756308Ab2ARJ4c (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jan 2012 04:56:32 -0500
-Content-Disposition: inline
-In-Reply-To: <alpine.DEB.2.00.1201180119550.19730@chino.kir.corp.google.com>
+Received: from mx4-phx2.redhat.com ([209.132.183.25]:46350 "EHLO
+	mx4-phx2.redhat.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751192Ab2ARLK2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jan 2012 06:10:28 -0500
+In-Reply-To: <1326295008-29795-1-git-send-email-drjones@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Rientjes <rientjes@google.com>
-Cc: Jerome Marchand <jmarchan@redhat.com>, Arnd Bergmann <arnd@arndb.de>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, mingo@elte.hu, david.woodhouse@intel.com, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake.koichi@jp.panasonic.com, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+To: drjones@redhat.com
+Cc: linux-kernel@vger.kernel.org, rientjes@google.com, akpm@linux-foundation.org, mingo@elte.hu, david woodhouse <david.woodhouse@intel.com>, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper nilsson <jesper.nilsson@axis.com>, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake koichi <yasutake.koichi@jp.panasonic.com>, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
 
-On Wed, Jan 18, 2012 at 01:31:30AM -0800, David Rientjes wrote:
-> CONFIG_EXPERT isn't an invitation to be able to configure everything in 
-> the kernel.
 
-Correct. It definitely shouldn't. It actually shouldn't configure *ANYTHING*
-in the kernel. Stopping it from doing so is exactly what this patch does.
-It should only expose expert options, and it can expose *ALL* expert
-options, including EMBEDDED and FOOBAR options. Which defaults people want
-for those is not in the scope of this patch. However, using EMBEDDED to
-fix EXPERT is the best choice for precisely the reason you state
 
-> I think it's fine to break backwards compatibility for options that are
-> currently configurable for CONFIG_EXPERT when it only makes sense for
-> embedded systems and use CONFIG_EMBEDDED instead.  They better already
-> have it enabled and my patch a year ago didn't break it for them.
+----- Original Message -----
+> Commit 6a108a14fa35 renamed CONFIG_EMBEDDED to CONFIG_EXPERT with the
+> justification that EMBEDDED was being used with a broader scope. It
+> was
+> no longer just being used to expose standard options to embedded
+> kernel
+> configs for tweaking, but rather for all "non-standard" kernel
+> configs.
+> This is nice, because now developers have a way to clean up the
+> config
+> menu by adding 'if EXPERT' to all entries in their Kconfig files that
+> should rarely have a non-default value selected (hint1: it would be
+> nice
+> if developers would do this, hint2: it would also be nice if
+> developers
+> would do this rather than making these types of options silent, and
+> thus
+> impossible to override).
+> 
+> Unfortunately, EMBEDDED was also being used to modify the defaults of
+> some of these options to selections more appropriate for embedded
+> kernels. Since the renaming was a simple global search-replace, if
+> developers were to follow hints 1 and 2 above for non-embedded
+> kernels,
+> then they may find unexpected changes in their configs after turning
+> on
+> EXPERT.
+> 
+> This patch attempts to untangle these two, making EXPERT true to its
+> purpose, which is to only expose standard options for tweaking, and
+> EMBEDDED to resume use as a default option modifier. The patch was
+> made
+> with the following four steps, which could not be split into separate
+> patches without breaking configs
+> 
+> 1. Make sure EMBEDDED does nothing, i.e. s/EMBEDDED/EXPERT/. There
+> were
+> only three places EMBEDDED was used.
+> 
+> 2. Add CONFIG_EXPERT=y to all configs that had CONFIG_EMBEDDED=y (and
+> not CONFIG_EXPERT=y already) to make sure step1 has no effect. This
+> step
+> isn't strictly necessary since EMBEDDED selects EXPERT, but I wanted
+> the
+> configs expressing the new need explicitly. Only 13 *_defconfig
+> files.
+> 
+> 3. Move all side effects (default changes) from EXPERT to EMBEDDED
+> 
+> 4. Add CONFIG_EMBEDDED=y to all configs that had CONFIG_EXPERT=y (and
+> not CONFIG_EMBEDDED=y already) to make sure step3 has no effect.
+> 
+> I certainly didn't test this for every touched config. However, I did
+> test it for one config and got the expected results;
+>     Before patch:
+>         1. diff config.orig orig.EXPERT   -- shows many changes
+>         2. diff config.orig orig.EMBEDDED -- shows same changes as
+>         (1)
+>                                              plus EMBEDDED on
+>     After patch:
+>         3. diff config.orig config.new    -- no change
+>         4. diff config.orig new.EXPERT    -- only 1 change, EXPERT on
+>         5. diff config.orig new.EMBEDDED  -- shows same changes as
+>         (2)
+> 
+> Signed-off-by: Andrew Jones <drjones@redhat.com>
+> ---
 
-While EMBEDDED may not be appropriate for all those default changes now,
-EXPERT *CERTAINLY* isn't appropriate. Let's fix EXPERT now and then
-EMBEDDED later. Anybody who cared about those things was using EMBEDDED
-before, let them keep using it now.
+This patch is effectively a partial revert of 6a108a14fa35, and has now
+been nacked by David Rientjes (author of 6a108a14fa35). However, IMO,
+there hasn't been a sufficient technical explanation for why. I've now
+added Ingo Molnar and David Woodhouse to the 'To:', in order to try and
+bring the patch to their attention. Both are listed as having reviewed or
+acked 6a108a14fa35, so I would appreciate their opinions on this patch as
+well.
+
+Drew
