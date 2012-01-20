@@ -1,31 +1,112 @@
-From: Ravi Kumar V <kumarrav@codeaurora.org>
-Subject: Re: [PATCH v2 2/2] msm: DMAEngine: Add DMAEngine driver based on
- old MSM DMA APIs
-Date: Fri, 20 Jan 2012 18:17:26 +0530
-Message-ID: <4F19625E.2070103@codeaurora.org>
-References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org> <1325854052-21402-3-git-send-email-kumarrav@codeaurora.org> <1325901569.10425.14.camel@m0nster> <1326810935.1540.162.camel@vkoul-udesk3>
+From: Vinod Koul <vinod.koul@intel.com>
+Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
+Date: Fri, 20 Jan 2012 19:01:27 +0530
+Message-ID: <1327066287.517.4.camel@vkoul-udesk3>
+References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
+	 <1326807902.1540.116.camel@vkoul-udesk3>  <4F195E4C.6080805@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-msm-owner@vger.kernel.org>
-In-Reply-To: <1326810935.1540.162.camel@vkoul-udesk3>
+In-Reply-To: <4F195E4C.6080805@codeaurora.org>
 Sender: linux-arm-msm-owner@vger.kernel.org
-To: Vinod Koul <vinod.koul@intel.com>
-Cc: Daniel Walker <dwalker@fifo99.com>, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, arnd@arndb.de, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, bryanh@codeaurora.org, tsoni@qualcomm.com, dan.j.williams@intel.com, davidb@codeaurora.org, linux-arm-kernel@lists.infradead.org, johlstei@qualcomm.com
+To: Ravi Kumar V <kumarrav@codeaurora.org>
+Cc: dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, davidb@codeaurora.org, dwalker@fifo99.com, bryanh@codeaurora.org, linux@arm.linux.org.uk, tsoni@qualcomm.com, johlstei@qualcomm.com, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On 1/17/2012 8:05 PM, Vinod Koul wrote:
-> On Fri, 2012-01-06 at 17:59 -0800, Daniel Walker wrote:
->>> +
->>> +#define FORCED_FLUSH         0
->>> +#define GRACEFUL_FLUSH          1
->>
->> Could be an enum ..
-> Along with proper namespace...
-I will update in next patch release
->
+On Fri, 2012-01-20 at 18:00 +0530, Ravi Kumar V wrote:
+> On 1/17/2012 7:15 PM, Vinod Koul wrote:
+> > On Fri, 2012-01-06 at 18:17 +0530, Ravi Kumar V wrote:
+> > <sorry for delayed review, was on vacation and now traveling>
+> >>
+> >> As our ADM Scatter-gather hardware needs
+> >> -32-bit command configuration parameter
+> >>   apart from
+> >> -32-bit source address
+> >> -32-bit destination address
+> >> -16-bit length
+> >>
+> >> So,we have added new parameter in struct scatterlist to support xfer
+> >> descriptor
+> >> specific private data, and for supporting ADM Box mode DMA we added
+> >> new
+> >> API and data structure.
+> > what do you mean by "ADM Box mode"?
+> >
+> 
+> ADM Box mode is a interleaved type of DMA where data from rows of equal 
+> length and equal distance(bytes) between each other are transferred to 
+> similar pattern of rows.
+> Each row length and distance between each row in destination pattern may 
+> not be equal to source pattern.
+> Distance between beginning of any two rows are always greater than row 
+> length.
+> Example:
+> If 4 rows of 16 bytes each are arranged such that distance between 
+> beginning of any two rows are 32 bytes.
+> Now they can be transferred using BOX mode to destination pattern 
+> arranged in 2 rows of 32 bytes each and distance between them can be any 
+> lets say 128 bytes.
+> 
+> Source pattern:
+> 4 data rows starts address 0th byte.
+> 
+> 0-----16-bytes-data-----15
+> 16    16 bytes void     31
+> 32---------data---------47
+> 48         void         63
+> 64---------data---------79
+> 80         void         95
+> 96---------data--------111
+> 
+> Transferred to destination
+> Destination pattern:
+> 2 rows
+> 0----------32-bytes-data----------31
+> 32         96 bytes void         127
+> 128-------------data-------------159
+> 
+Sounds like you should be using interleaved API
+
+Please see this and read the patch history, which has nice details about
+this
+
+/**
+ * struct dma_interleaved_template - Template to convey DMAC the
+transfer pattern
+ *       and attributes.
+ * @src_start: Bus address of source for the first chunk.
+ * @dst_start: Bus address of destination for the first chunk.
+ * @dir: Specifies the type of Source and Destination.
+ * @src_inc: If the source address increments after reading from it.
+ * @dst_inc: If the destination address increments after writing to it.
+ * @src_sgl: If the 'icg' of sgl[] applies to Source (scattered read).
+ *              Otherwise, source is read contiguously (icg ignored).
+ *              Ignored if src_inc is false.
+ * @dst_sgl: If the 'icg' of sgl[] applies to Destination (scattered write).
+ *              Otherwise, destination is filled contiguously (icg ignored).
+ *              Ignored if dst_inc is false.
+ * @numf: Number of frames in this template.
+ * @frame_size: Number of chunks in a frame i.e, size of sgl[].
+ * @sgl: Array of {chunk,icg} pairs that make up a frame.
+ */
+struct dma_interleaved_template {
+        dma_addr_t src_start;
+        dma_addr_t dst_start;
+        enum dma_transfer_direction dir;
+        bool src_inc;
+        bool dst_inc;
+        bool src_sgl;
+        bool dst_sgl;
+        size_t numf;
+        size_t frame_size;
+        struct data_chunk sgl[0];
+};
+using the interleaved API:
+        struct dma_async_tx_descriptor *(*device_prep_interleaved_dma)(
+                struct dma_chan *chan, struct dma_interleaved_template *xt,
+                unsigned long flags);
 
 
 -- 
-Sent by a consultant of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+~Vinod
