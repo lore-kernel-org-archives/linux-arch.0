@@ -1,41 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:59108 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753551Ab2ARWOo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jan 2012 17:14:44 -0500
-Date: Wed, 18 Jan 2012 22:13:54 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
-Message-ID: <20120118221354.GR1068@n2100.arm.linux.org.uk>
-References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <b6315f9b-0ead-4de4-a8f5-ed619f852c6c@zmail13.collab.prod.int.phx2.redhat.com> <20120118122830.037f1e29.akpm@linux-foundation.org> <1326923285.9412.21.camel@x61.thuisdomein> <20120118135559.568252e9.akpm@linux-foundation.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:1144 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751820Ab2ATMaL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Jan 2012 07:30:11 -0500
+Message-ID: <4F195E4C.6080805@codeaurora.org>
+Date: Fri, 20 Jan 2012 18:00:04 +0530
+From: Ravi Kumar V <kumarrav@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120118135559.568252e9.akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
+References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org> <1326807902.1540.116.camel@vkoul-udesk3>
+In-Reply-To: <1326807902.1540.116.camel@vkoul-udesk3>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Paul Bolle <pebolle@tiscali.nl>, Andrew Jones <drjones@redhat.com>, rientjes@google.com, mingo@elte.hu, david.woodhouse@intel.com, linux-kernel@vger.kernel.org, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper nilsson <jesper.nilsson@axis.com>, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake koichi <yasutake.koichi@jp.panasonic.com>, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
-Message-ID: <20120118221354.6EM-JTJsj8-1m4sLVJ8HAA2x7GK6GeCeiLYphwNucDg@z>
+To: Vinod Koul <vinod.koul@intel.com>
+Cc: dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, davidb@codeaurora.org, dwalker@fifo99.com, bryanh@codeaurora.org, linux@arm.linux.org.uk, tsoni@qualcomm.com, johlstei@qualcomm.com, linux-kernel@vger.kernel.org, linux-arm-msm@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20120120123004.TU8aAHc8bcnt8ZuWIQPfR0krJbK4heTOeUOoaGpBYKM@z>
 
-On Wed, Jan 18, 2012 at 01:55:59PM -0800, Andrew Morton wrote:
-> I think there's some value in telling people "this feature might blow
-> up".  But perhaps doing this via Kconfig dependencies wasn't the
-> correct implementation.  It would be better to make the feature
-> available, but highlight it in somme manner.  Show it in a different
-> colour, append the text "this feature might blow up", etc.
+On 1/17/2012 7:15 PM, Vinod Koul wrote:
+> On Fri, 2012-01-06 at 18:17 +0530, Ravi Kumar V wrote:
+> <sorry for delayed review, was on vacation and now traveling>
+>>
+>> As our ADM Scatter-gather hardware needs
+>> -32-bit command configuration parameter
+>>   apart from
+>> -32-bit source address
+>> -32-bit destination address
+>> -16-bit length
+>>
+>> So,we have added new parameter in struct scatterlist to support xfer
+>> descriptor
+>> specific private data, and for supporting ADM Box mode DMA we added
+>> new
+>> API and data structure.
+> what do you mean by "ADM Box mode"?
+>
 
-Well, in theory all "experimental" options should depend on EXPERIMENTAL
-_and_ have (EXPERIMENTAL) at the end of the option text.
+ADM Box mode is a interleaved type of DMA where data from rows of equal 
+length and equal distance(bytes) between each other are transferred to 
+similar pattern of rows.
+Each row length and distance between each row in destination pattern may 
+not be equal to source pattern.
+Distance between beginning of any two rows are always greater than row 
+length.
+Example:
+If 4 rows of 16 bytes each are arranged such that distance between 
+beginning of any two rows are 32 bytes.
+Now they can be transferred using BOX mode to destination pattern 
+arranged in 2 rows of 32 bytes each and distance between them can be any 
+lets say 128 bytes.
 
-In reality, people forget to add (EXPERIMENTAL).  People also forget about
-the option and never remove this status.
+Source pattern:
+4 data rows starts address 0th byte.
 
-I don't think any solution (such as different colouring) would solve that -
-because those of us who are in theory supposed to sort this out are the
-ones who don't use the configuration tools!  (which is probably why they
-get forgotten in the first place.)
+0-----16-bytes-data-----15
+16    16 bytes void     31
+32---------data---------47
+48         void         63
+64---------data---------79
+80         void         95
+96---------data--------111
 
-There's one telling thing though: there is not one ARM defconfig which
-has EXPERIMENTAL unset...  Across all architectures, there's 16 which
-have it unset and 361 which the option is set.
+Transferred to destination
+Destination pattern:
+2 rows
+0----------32-bytes-data----------31
+32         96 bytes void         127
+128-------------data-------------159
+
+-- 
+Sent by a consultant of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
