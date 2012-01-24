@@ -1,102 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:37195 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754741Ab2AWXHW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2012 18:07:22 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 3/4] PCI: kill pci_fixup_parent_subordinate_busnr()
-Date: Mon, 23 Jan 2012 15:06:57 -0800
-Message-ID: <1327360018-10929-4-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1327360018-10929-1-git-send-email-yinghai@kernel.org>
-References: <1327360018-10929-1-git-send-email-yinghai@kernel.org>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:47068 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753382Ab2AXAna (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jan 2012 19:43:30 -0500
+Received: by ggnb1 with SMTP id b1so1710582ggn.19
+        for <linux-arch@vger.kernel.org>; Mon, 23 Jan 2012 16:43:29 -0800 (PST)
+Date: Mon, 23 Jan 2012 16:43:22 -0800 (PST)
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH] kconfig: untangle EXPERT and EMBEDDED
+In-Reply-To: <20120123134632.GA8235@turtle.usersys.redhat.com>
+Message-ID: <alpine.DEB.2.00.1201231641380.19019@chino.kir.corp.google.com>
+References: <1326295008-29795-1-git-send-email-drjones@redhat.com> <b6315f9b-0ead-4de4-a8f5-ed619f852c6c@zmail13.collab.prod.int.phx2.redhat.com> <20120118122830.037f1e29.akpm@linux-foundation.org> <20120123134632.GA8235@turtle.usersys.redhat.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120123230657.ya4BXr77mz0OkayayVHcONWDC7avVHsj-LVzUHhHqvs@z>
+To: Andrew Jones <drjones@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, mingo@elte.hu, david.woodhouse@intel.com, linux-kernel@vger.kernel.org, gregkh@suse.de, davem@davemloft.net, axboe@kernel.dk, arnd@arndb.de, holt@sgi.com, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, hskinnemoen@gmail.com, egtvedt@samfundet.no, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper nilsson <jesper.nilsson@axis.com>, dhowells@redhat.com, takata@linux-m32r.org, geert@linux-m68k.org, yasutake koichi <yasutake.koichi@jp.panasonic.com>, jonas@southpole.se, kyle@mcmartin.ca, deller@gmx.de, jejb@parisc-linux.org, chris@zankel.net, greg@kroah.com, davej@redhat.com, airlied@linux.ie, jkosina@suse.cz, mchehab@infradead.org, johannes@sipsolutions.net, linville@tuxdriver.com
+Message-ID: <20120124004322.A6oDMz7Y2RCvgD5w4rO_S8Sn8u3AHB0yj4_mqcAe2ag@z>
 
-Now we can safely extend parent top and shrink them according iobusn_resource tree.
+On Mon, 23 Jan 2012, Andrew Jones wrote:
 
-Don't need that any more.
+> I thought EXPERT was the best way to manage the visibility of expert
+> options, but probably not, since it's prone to silent default changing.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/probe.c |   45 +++++++++------------------------------------
- 1 files changed, 9 insertions(+), 36 deletions(-)
-
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index f58164d..d078a58 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -608,22 +608,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
- 	return child;
- }
- 
--static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
--{
--	struct pci_bus *parent = child->parent;
--
--	/* Attempts to fix that up are really dangerous unless
--	   we're going to re-assign all bus numbers. */
--	if (!pcibios_assign_all_busses())
--		return;
--
--	while (parent->parent && parent->subordinate < max) {
--		parent->subordinate = max;
--		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
--		parent = parent->parent;
--	}
--}
--
- static void __devinit pci_bus_extend_top(struct pci_bus *parent,
- 		 resource_size_t size, struct resource *parent_res)
- {
-@@ -925,6 +909,13 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 		/* Clear errors */
- 		pci_write_config_word(dev, PCI_STATUS, 0xffff);
- 
-+		/*
-+		 * For CardBus bridges, we leave 4 bus numbers
-+		 * as cards with a PCI-to-PCI bridge can be
-+		 * inserted later.
-+		 * other just allocate 8 bus to avoid we fall into
-+		 *  small hole in the middle.
-+		 */
- 		ret = pci_bridge_probe_busn_res(bus, dev, &busn_res,
- 				is_cardbus ? (CARDBUS_RESERVE_BUSNR + 1) : 8,
- 				&parent_res);
-@@ -963,29 +954,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 
- 		if (!is_cardbus) {
- 			child->bridge_ctl = bctl;
--			/*
--			 * Adjust subordinate busnr in parent buses.
--			 * We do this before scanning for children because
--			 * some devices may not be detected if the bios
--			 * was lazy.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
-+
- 			/* Now we can scan all subordinate buses... */
- 			max = pci_scan_child_bus(child);
--			/*
--			 * now fix it up again since we have found
--			 * the real value of max.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
--
--		} else {
--			/*
--			 * For CardBus bridges, we leave 4 bus numbers
--			 * as cards with a PCI-to-PCI bridge can be
--			 * inserted later.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
- 		}
-+
- 		/*
- 		 * Set the subordinate bus number to its real value.
- 		 */
--- 
-1.7.7
-
+Why not propose patches to subsystem maintainers to erradicate "default 
+EXPERT" or "default !EXPERT"?
