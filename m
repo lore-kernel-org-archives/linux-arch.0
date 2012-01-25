@@ -1,122 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34437 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752615Ab2AYM7o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jan 2012 07:59:44 -0500
-Date: Wed, 25 Jan 2012 12:59:16 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 8/8 RESEND] ARM: dma-mapping: add support for IOMMU
-	mapper
-Message-ID: <20120125125916.GE1068@n2100.arm.linux.org.uk>
-References: <1323448798-18184-9-git-send-email-m.szyprowski@samsung.com> <1326124161-2220-1-git-send-email-m.szyprowski@samsung.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:11472 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751357Ab2AYNLe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jan 2012 08:11:34 -0500
+Message-ID: <4F1FFF7E.3000802@codeaurora.org>
+Date: Wed, 25 Jan 2012 18:41:26 +0530
+From: Ravi Kumar V <kumarrav@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1326124161-2220-1-git-send-email-m.szyprowski@samsung.com>
+Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
+References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>  <1326807902.1540.116.camel@vkoul-udesk3>  <4F195E4C.6080805@codeaurora.org>  <1327066287.517.4.camel@vkoul-udesk3>  <4F1D4052.3070701@codeaurora.org> <1327326713.517.32.camel@vkoul-udesk3>
+In-Reply-To: <1327326713.517.32.camel@vkoul-udesk3>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20120125125916.Ujsx_zB0kV_3EPpKZqLmumE2N2D-teYr40re1LvxcCw@z>
+To: Vinod Koul <vinod.koul@intel.com>
+Cc: linux-arch@vger.kernel.org, linux@arm.linux.org.uk, arnd@arndb.de, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, bryanh@codeaurora.org, tsoni@codeaurora.org, Daniel Walker <dwalker@fifo99.com>, dan.j.williams@intel.com, davidb@codeaurora.org, linux-arm-kernel@lists.infradead.org, johlstei@codeaurora.org
+Message-ID: <20120125131126.qUvVMuSymlknK5FDv-ychXr7tuRVns7ifXZk-DawQ7E@z>
 
-On Mon, Jan 09, 2012 at 04:49:21PM +0100, Marek Szyprowski wrote:
-> This patch add a complete implementation of DMA-mapping API for
-> devices that have IOMMU support. All DMA-mapping calls are supported.
-> 
-> This patch contains some of the code kindly provided by Krishna Reddy
-> <vdumpa@nvidia.com> and Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-> 
-> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
-> 
-> ---
-> 
-> Hello,
-> 
-> This is the corrected version of the previous patch from the "[PATCH 0/8
-> v4] ARM: DMA-mapping framework redesign" thread which can be found here:
-> http://www.spinics.net/lists/linux-mm/msg27382.html
-> 
-> Previous version had very nasty bug which causes memory trashing if
-> DMA-mapping managed to allocate pages larger than 4KiB. The problem was
-> in __iommu_alloc_buffer() function which did not check how many pages
-> has been left to allocate.
+On 1/23/2012 7:21 PM, Vinod Koul wrote:
+> On Mon, 2012-01-23 at 16:41 +0530, Ravi Kumar V wrote:
+>>
+>> If some changes are made in interleave API then it can support our BOX
+>> mode. Here in interleaved template he is assuming destination pattern as
+>> can be contiguous or same as source pattern, but in our case destination
+>> pattern is different from source pattern.
+>> So if a new parameter destination data chunk is added in "struct
+>> dma_interleaved_template" structure then it can support different
+>> destination pattern.
+> do you mean you have cases where you are doing a "memcpy" from one
+> interleaved memory to another?
+> Can you provide me with a scenario where this maybe helpful?
 
-This patch seems to be incomplete.
+Presently we are transferring data from interleaved memory tho 
+contagious memory and vice-verse.
+We can use the interleaved API for present scenario, but it will 
+restrict the HW capability of transferring data from one interleaved 
+pattern to other interleaved pattern.
 
-If the standard DMA API is used (the one which exists in current kernels)
-and NEED_SG_DMA_LENGTH is enabled, then where do we set the DMA length
-in the scatterlist?
+>
+> The reason why the API was designed like this was to give ability to
+> take these kind of interleaved memory and copy them to peripheral
+> (constant addr) or memory (typically contagious).
+>
+> In case it is just a pattern I wonder why it cannot be described in
+> standard scatter gather definitions as you can split the block further
+> down to copy from one respective block to somewhere else in memory.
 
-> diff --git a/arch/arm/include/asm/dma-iommu.h b/arch/arm/include/asm/dma-iommu.h
-> new file mode 100644
-> index 0000000..6668b41
-> --- /dev/null
-> +++ b/arch/arm/include/asm/dma-iommu.h
-> @@ -0,0 +1,36 @@
-> +#ifndef ASMARM_DMA_IOMMU_H
-> +#define ASMARM_DMA_IOMMU_H
-> +
-> +#ifdef __KERNEL__
-> +
-> +#include <linux/mm_types.h>
-> +#include <linux/scatterlist.h>
-> +#include <linux/dma-debug.h>
-> +#include <linux/kmemcheck.h>
-> +
-> +#include <asm/memory.h>
+We can use scatter gather but it will be extra burden on software to 
+create those many SG list unlike in box mode just a single command 
+serves the purpose.
 
-I can't see anything in here which needs asm/memory.h - if files which
-include this need it, please include it in there so we can see why it's
-needed.
+>> Also it will good if you can provide another parameter for passing
+>> private data to dma driver.
+> 1. what does this parameter do?
 
-> +
-> +struct dma_iommu_mapping {
-> +	/* iommu specific data */
-> +	struct iommu_domain	*domain;
-> +
-> +	void			*bitmap;
-> +	size_t			bits;
-> +	unsigned int		order;
-> +	dma_addr_t		base;
-> +
-> +	spinlock_t		lock;
-> +	struct kref		kref;
-> +};
-> +
-> +struct dma_iommu_mapping *
-> +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
-> +			 int order);
-> +
-> +void arm_iommu_release_mapping(struct dma_iommu_mapping *mapping);
-> +
-> +int arm_iommu_attach_device(struct device *dev,
-> +					struct dma_iommu_mapping *mapping);
-> +
-> +#endif /* __KERNEL__ */
-> +#endif
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index 4845c09..2287b01 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -27,6 +27,9 @@
->  #include <asm/sizes.h>
->  #include <asm/mach/arch.h>
->  
-> +#include <linux/iommu.h>
+Private parameter in our case will be command configuration parameter 
+where we are passing information to HW like endianness, synchronization 
+& acknowledge mechanism between DMA HW and peripherals running with 
+different clock than DMA.
 
-linux/ includes should be grouped together.
+> 2. is this parameter static for a channel or it changes per transfer?
+>
+This parameter changes per each transfer.
 
-> diff --git a/arch/arm/mm/vmregion.h b/arch/arm/mm/vmregion.h
-> index 15e9f04..6bbc402 100644
-> --- a/arch/arm/mm/vmregion.h
-> +++ b/arch/arm/mm/vmregion.h
-> @@ -17,7 +17,7 @@ struct arm_vmregion {
->  	struct list_head	vm_list;
->  	unsigned long		vm_start;
->  	unsigned long		vm_end;
-> -	struct page		*vm_pages;
-> +	void			*priv;
+We can see these possibilities to implement our DMA driver but still 
+have to add new parameter in "scatterlist" & "interleaved template" for 
+supporting per transfer private data like our command configuration 
+parameter.
 
-I want to think about that - I may wish to export the vm_pages via
-the new dma-mappings file to provide additional information.
+1.We have to add new parameter "struct data_chunk" in 
+"interleaved_template" for supporting different destination pattern.
+It helps a lot for implementing our total HW capability.
+
+2.We have to use present API's for box mode.
+--scatter gather API for different interleaved source & destination 
+patterns.
+--interleaved API for interleaved source pattern to destination 
+contiguous pattern/vice-verse.
+It causes some extra burden on our software to create sglist.
+
+3.Implement New API for BOX mode.
+
+I feel if we can go with first option then it helps a lot.
+
+Please can you suggest a better way to solve our problem.
+
+Thanks,
+Ravi Kumar
+
+-- 
+Sent by a consultant of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
