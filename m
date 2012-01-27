@@ -1,37 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:53263 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753907Ab2AZVwH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 26 Jan 2012 16:52:07 -0500
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:60698 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751301Ab2A0Ba4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jan 2012 20:30:56 -0500
 MIME-Version: 1.0
-Date: Thu, 26 Jan 2012 22:52:05 +0100
-Message-ID: <CAFLxGvw85fWdsAodBn1Z0vFYZx0U+vYg6hgsBYbmfuyaFTgznA@mail.gmail.com>
-Subject: /sys/class/tty/tty0/active?
-From: richard -rw- weinberger <richard.weinberger@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+In-Reply-To: <20120127010838.GA27899@suse.de>
+References: <CAFLxGvw85fWdsAodBn1Z0vFYZx0U+vYg6hgsBYbmfuyaFTgznA@mail.gmail.com>
+ <58311.79.160.186.248.1327615864.squirrel@www.nlc.no> <CAFLxGvzsg71gtyPEtOAVnS-DtozYzqgoGNK-ZJRvBfq1mf3Oug@mail.gmail.com>
+ <CAFLxGvzffs=uSjxogdWtk_gqoJHPnmgQSLw9WaZRr_be=J5cgw@mail.gmail.com> <20120127010838.GA27899@suse.de>
+From: Kay Sievers <kay.sievers@vrfy.org>
+Date: Fri, 27 Jan 2012 02:30:33 +0100
+Message-ID: <CAPXgP12Bj1K3j5HL1=GTj=xEC+oWgB7VFeQL_Pg23fCevTQAcw@mail.gmail.com>
+Subject: Re: [uml-devel] /sys/class/tty/tty0/active?
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Greg KH <gregkh@suse.de>, Linux-Arch <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20120126215205.SV9BDQiAs2Q6c5j9yTu92ZHXXSpLvwqj6Qz7pNuRoQ8@z>
+To: Greg KH <gregkh@suse.de>
+Cc: richard -rw- weinberger <richard.weinberger@gmail.com>, stian@nixia.no, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
+Message-ID: <20120127013033.1t3wxG4-V-nmapwYyuu7nIae_0o1z8jHYgfaC7h47MY@z>
 
-Hi!
+On Fri, Jan 27, 2012 at 02:08, Greg KH <gregkh@suse.de> wrote:
+> On Thu, Jan 26, 2012 at 11:56:50PM +0100, richard -rw- weinberger wrote:
+>> On Thu, Jan 26, 2012 at 11:12 PM, richard -rw- weinberger
+>> <richard.weinberger@gmail.com> wrote:
+>> > On Thu, Jan 26, 2012 at 11:11 PM,  <stian@nixia.no> wrote:
+>> >>> Hi!
+>> >>>
+>> >>> systemd goes nuts on UML.
+>> >>> While hunting down all issues I found out that systemd wants to read from
+>> >>> /sys/class/tty/tty0/active.
+>> >>
+>> >> Kernel version?
+>> >
+>> > Linus' tree as of today.
+>>
+>> Hmm, fbc92a34 introduced it.
+>> But it depends on CONFIG_VT. :-\
+>
+> Is that a problem for UML somehow?
 
-systemd goes nuts on UML.
-While hunting down all issues I found out that systemd wants to read from
-/sys/class/tty/tty0/active.
+In general, the "crippled" environments might not really the right
+thing too run full-blown user login managers like logind.
 
-On UML this directory does not have this "active" file.
-[1] indicates that it has something to do with /dev/tty0.
-Of course, UML has a /dev/tty0, it's the default console.
+The main systemd 'init' will not have any problems with that, but
+running logind might not really work out under UML.
 
-But where comes "active" from?
-Is there any black magic hidden register API to get this file? ;-)
+Depending how far full-OS support in UML should go, logind should
+either not run inside UML, or if, UML should provide the needed bits
+for in virtual consoles.
 
-[1]
-http://lists.freedesktop.org/archives/systemd-devel/2011-December/004096.html
+If it is not to be solved otherwise, maybe logind needs more
+VT-avoiding logic like this:
+  http://cgit.freedesktop.org/systemd/systemd/commit/?id=addedec48ba0ffc4472ef6d3b5a45c9d4239f1cd
 
--- 
-Thanks,
-//richard
+Kay
