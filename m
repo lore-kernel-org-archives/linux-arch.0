@@ -1,118 +1,174 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 0/4 V10] Avoid soft lockup message when KVM is stopped by
- host
-Date: Fri, 27 Jan 2012 15:45:54 -0500
-Message-ID: <20120127204554.GA5784@mgebm.net>
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net>
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
+Subject: Re: [uml-devel] /sys/class/tty/tty0/active?
+Date: Sat, 28 Jan 2012 00:55:45 +0100
+Message-ID: <CAFLxGvzD3E3wDAWYObUbsKaDKZo3qmP=z7XxwyjPm2+5xnS=0g@mail.gmail.com>
+References: <CAFLxGvw85fWdsAodBn1Z0vFYZx0U+vYg6hgsBYbmfuyaFTgznA@mail.gmail.com>
+	<58311.79.160.186.248.1327615864.squirrel@www.nlc.no>
+	<CAFLxGvzsg71gtyPEtOAVnS-DtozYzqgoGNK-ZJRvBfq1mf3Oug@mail.gmail.com>
+	<CAFLxGvzffs=uSjxogdWtk_gqoJHPnmgQSLw9WaZRr_be=J5cgw@mail.gmail.com>
+	<20120127010838.GA27899@suse.de>
+	<CAPXgP12Bj1K3j5HL1=GTj=xEC+oWgB7VFeQL_Pg23fCevTQAcw@mail.gmail.com>
+	<CAFLxGvzth1m=iUmXbU2WyGrw0i8441d2nKLjH=mY_f1O-hkKPQ@mail.gmail.com>
+	<20120127115143.1943336b@pyramind.ukuu.org.uk>
+	<CAFLxGvwA3jjsbZ_-VN2oNUzmRzf01=2MN=SHCqv=u+57=T3Y7w@mail.gmail.com>
+	<20120127140240.6b52c906@pyramind.ukuu.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="VbJkn9YxBvnuCH5J"
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:41828 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752153Ab2A0Up4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jan 2012 15:45:56 -0500
-Content-Disposition: inline
-In-Reply-To: <1326825641-15765-1-git-send-email-emunson@mgebm.net>
+Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:60462 "EHLO
+	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751521Ab2A0Xzq convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jan 2012 18:55:46 -0500
+In-Reply-To: <20120127140240.6b52c906@pyramind.ukuu.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Kay Sievers <kay.sievers@vrfy.org>, Greg KH <gregkh@suse.de>, stian@nixia.no, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
 
+On Fri, Jan 27, 2012 at 3:02 PM, Alan Cox <alan@lxorguk.ukuu.org.uk> wr=
+ote:
+> On Fri, 27 Jan 2012 13:04:37 +0100
+> richard -rw- weinberger <richard.weinberger@gmail.com> wrote:
+>
+>> On Fri, Jan 27, 2012 at 12:51 PM, Alan Cox <alan@lxorguk.ukuu.org.uk=
+> wrote:
+>> >> UML's console driver (arch/um/drivers/line.c) implements tty_oper=
+ations.
+>> >> The crash happens because the tty subsystem calls the driver's cl=
+ose()
+>> >> function and later
+>> >> write_room() or chars_in_buffer().
+>> >>
+>> >> write_room() and chars_in_buffer() fail badly because close() alr=
+eady
+>> >> cleaned up the driver's private data...
+>> >
+>> > You don't want to do that.
+>>
+>> That's what i thought.
+>>
+>> >> Greg, is UML's assumption wrong that after closing the tty no cal=
+l to
+>> >> write_room() or chars_in_buffer() can happen?
+>> >> I have no idea why systemd is able to trigger this, UML's console
+>> >> driver is old and has always worked quite well.
+>> >
+>> > It's always been untrue but it's even more untrue nowdays. The tty=
+ layer
+>> > objects are refcounted, and the code has had significant rewrites.=
+ line.c
+>> > hidden away in uml hasn't been updated.
+>> >
+>> > I added a comment about 3 years ago pointing out another older cha=
+nge
+>> > that was needed and that wasn't acted on either..
+>> >
+>> > Take a look at how all the other tty drivers use tty_port, how the=
+ ioctls
+>> > have been supposed to work for the past few years and the callback
+>> > changes, then use them.
+>>
+>> Can you recommend a well-written driver?
+>
+> drivers/mmc/card/sdio_uart.c
+>
+> uses just about all the features including handling hotplug and stuff=
+ you
+> don't need.
+>
+> drivers/usb/serial/usb-serial.c
+>
+> may also be handy as it provides the interface but then calls into ot=
+her
+> driver code to do the work.
+>
+> Basically though you want a struct tty_port in your private data, eit=
+her
+> created at open, or usually more cleanly for the physical port lifeti=
+me
+>
+> =A0 =A0 =A0 =A0tty_port_init()
+>
+> Sets it up, then set the port ops
+>
+> =A0 =A0 =A0 =A0tty_port_open()
+> =A0 =A0 =A0 =A0tty_port_close()
+> =A0 =A0 =A0 =A0tty_port_hangup()
+>
+> do almost all of the rest of the work for you. They call back to your
+> activate and shutdown port methods, they serialize them, they call th=
+em
+> on first open/last close in matching pairs.
+>
+> For the tty itself
+>
+> =A0 =A0 =A0 =A0tty_port_tty_get()
+>
+> gets you a reference to the tty from the port (or NULL) - so handles =
+a
+> close/hangup racing with data arrival
+>
+> =A0 =A0 =A0 =A0tty_kref_put()
+>
+> releases a reference
+>
+> and
+> =A0 =A0 =A0 =A0tty->ops->cleanup()
+>
+> is called on the final destruction of the tty object (ie its where yo=
+u
+> can free tty lifetime data in tty->private_data)
+>
+> So for a simple non pluggable tty it tends to look like
+>
+> =A0 =A0 =A0 =A0int my_tty_open(struct tty_struct *tty, struct file *f=
+ilp)
+> =A0 =A0 =A0 =A0{
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0tty->driver_data =3D &my_port;
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0return tty_port_open(&my_port, tty, fi=
+lp);
+> =A0 =A0 =A0 =A0}
+>
+> =A0 =A0 =A0 =A0void my_tty_close(struct tty_struct *tty, struct file =
+*filp)
+> =A0 =A0 =A0 =A0{
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct my_tty *m =3D tty->driver_data;
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (m =3D=3D NULL)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0return;
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0tty_port_close(&m->port, tty, filp);
+> =A0 =A0 =A0 =A0}
+>
+> =A0 =A0 =A0 =A0void my_tty_hangup(struct tty_struct *tty)
+> =A0 =A0 =A0 =A0{
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct my_tty *m =3D tty->driver_data;
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0tty_port_hangup(&m->port);
+> =A0 =A0 =A0 =A0}
+>
+> provide the needed callbacks and it'll do the locking and the like fo=
+r
+> you.
+>
+> On the ioctl side as far as I can see you should simply get rid of th=
+e
+> method entirely.
+>
+> For buffer_data you might want to allocate the buffer sanely at open =
+time
+> (tty_port has a function for this too) so it can't fail weirdly
+>
+> And your termios method is a bit odd but makes sense if you are just
+> pretending anything works and is supported.
 
---VbJkn9YxBvnuCH5J
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Thanks for your help!
+tty_port makes sense and I think I understood it.
 
-On Tue, 17 Jan 2012, Eric B Munson wrote:
+But after modifying the driver to use tty_port the kernel crashes in
+tty_io.c:__tty_fasync() because filp->f_path.dentry is NULL.
 
-> Changes from V9:
-> Use kvm_for_each_vcpu to iterate online vcpu's
->=20
-> Changes from V8:
-> Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
->=20
-> Changes from V7:
-> Define KVM_CAP_GUEST_PAUSED and support check
-> Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
->=20
-> Changes from V6:
-> Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
->=20
-> Changes from V5:
-> Collapse generic check_and_clear_guest_stopped into patch 2
-> Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-> Change check_and_clear_guest_stopped to use __get_cpu_var instead of taki=
-ng the
->  cpuid arg.
-> Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK c=
-heck
->=20
-> Changes from V4:
-> Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-> Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
->=20
-> Changes from V3:
-> Include CC's on patch 3
-> Drop clear flag ioctl and have the watchdog clear the flag when it is res=
-et
->=20
-> Changes from V2:
-> A new kvm functions defined in kvm_para.h, the only change to pvclock is =
-the
-> initial flag definition
->=20
-> Changes from V1:
-> (Thanks Marcelo)
-> Host code has all been moved to arch/x86/kvm/x86.c
-> KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
->=20
-> Eric B Munson (4):
->   Add flag to indicate that a vm was stopped by the host
->   Add functions to check if the host has stopped the vm
->   Add ioctl for KVMCLOCK_GUEST_STOPPED
->   Add check for suspended vm in softlockup detector
->=20
->  Documentation/virtual/kvm/api.txt   |   13 +++++++++++++
->  arch/ia64/include/asm/kvm_para.h    |    5 +++++
->  arch/powerpc/include/asm/kvm_para.h |    5 +++++
->  arch/s390/include/asm/kvm_para.h    |    5 +++++
->  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
->  arch/x86/include/asm/pvclock-abi.h  |    1 +
->  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
->  arch/x86/kvm/x86.c                  |   25 +++++++++++++++++++++++++
->  include/asm-generic/kvm_para.h      |   14 ++++++++++++++
->  include/linux/kvm.h                 |    3 +++
->  kernel/watchdog.c                   |   12 ++++++++++++
->  11 files changed, 112 insertions(+), 0 deletions(-)
->  create mode 100644 include/asm-generic/kvm_para.h
->=20
+Any idea which kind of error can cause this?
 
-Just poking to make sure this set hasn't fallen through the cracks.
-
-Eric
-
---VbJkn9YxBvnuCH5J
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJPIw0CAAoJEKhG9nGc1bpJAVoP/RhEZIRMAg1cuSaa2mJNtbvD
-dbQBlgIfzE3xnGhru2iRkgycTwVzD4+2vxqcI2a+TI/lJb2PnhyusGWK33P+EHox
-TcighNqCBLp6LmpDz+OvoKFHwcj/qWblIV1PjPxWZ56NadgADPzNkzjoOiu+0g6m
-HOamLimQDakiS6feGB01+zjvCaUQcd4RmL7a/ybM6JRn46obAM0rZyMc5kn+AOM1
-I0NscqFncf+NGe8hEZ+8nAn7sdx7C+5O8jOdqNDaDTWQky3IwLyAWmY2DCvuIdbP
-O3fz2zyuJ895s/Lz6RNjfggtMnL80wAQiKxzwecLugT8BDdCqOCjt+4WvamsozEE
-LKN//GuH2Oju9p8O66oZZ/Saw5Cmvc5NVCT06JvhfV268DsQ5o2ColwIFdJDFzbI
-VcPXfWvda7Cl5DlQ5dOc7FjrPDltgqNeNUczlhyYKoYnCkhoZO128DYbIv+ftqde
-joF1dOJXZFA2L7C+akvXYRruBdbeKpPWXPlOuKczNjxtO9kgJSAmud7Go58r1lFd
-CQIdNEK1DXh0GZ0bchnNQPjUY9+aREcpsb92kAfTFpqI8XTWHOpOQiCzaEyfs08Q
-DW4MvaNSxqY+MwBQ/F3A9BtumrdStLDsjeCJAs38MAOqzdX3xtf6yUAN7d89NmeA
-0YITBpqF7jxn3OcuhD/q
-=mtVO
------END PGP SIGNATURE-----
-
---VbJkn9YxBvnuCH5J--
+--=20
+Thanks,
+//richard
