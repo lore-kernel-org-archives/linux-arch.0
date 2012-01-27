@@ -1,52 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.mail.elte.hu ([157.181.151.9]:41061 "EHLO mx2.mail.elte.hu"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753457Ab2A0LwI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Jan 2012 06:52:08 -0500
-Date: Fri, 27 Jan 2012 12:51:36 +0100
-From: Ingo Molnar <mingo@elte.hu>
-Subject: Re: [PATCH 1/7] x86: relocate get/set debugreg fcns to
- include/asm/debugreg.
-Message-ID: <20120127115136.GA26228@elte.hu>
-References: <1327632272-12928-1-git-send-email-paul.gortmaker@windriver.com>
- <1327632272-12928-2-git-send-email-paul.gortmaker@windriver.com>
+Received: from static-87-79-237-121.netcologne.de ([87.79.237.121]:14972 "EHLO
+	herc.mirbsd.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751181Ab2A0QrD convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 11:47:03 -0500
+Date: Fri, 27 Jan 2012 16:34:24 +0000 (UTC)
+From: Thorsten Glaser <tg@debian.org>
+Subject: Re: [PATCHv2 1/2] cpu: Do not return errors from cpu_dev_init()
+ which will be ignored; [PATCHv2 2/2] cpu: Register a generic CPU device on
+ architectures that currently do not
+In-Reply-To: <1326164672.3432.34.camel@deadeye>
+Message-ID: <Pine.BSM.4.64L.1201271632120.25139@herc.mirbsd.org>
+References: <1326164389.3432.29.camel@deadeye> <1326164672.3432.34.camel@deadeye>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1327632272-12928-2-git-send-email-paul.gortmaker@windriver.com>
+Content-Type: TEXT/PLAIN; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, gregkh@suse.de, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20120127115136.dXmFykxnmhM8mU09NYBHOymD4idZnF7KIJ3ymMBKB00@z>
+To: linux-kernel@vger.kernel.org
+Cc: Greg Kroah-Hartman <gregkh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org, Richard Weinberger <richard@nod.at>
+Message-ID: <20120127163424.4PP1QWTl9uf3-gppMxyseC9ZaQ2zqmgRV9eydYZQgy0@z>
 
+Ben Hutchings dixit:
 
-* Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+>cpu_dev_init() is only called from driver_init(), which does not check
+[…]
 
-> Since we already have a debugreg.h header file, move the
-> assoc. get/set functions to it.  In addition to it being the
-> logical home for them, it has a secondary advantage.  The
-> functions that are moved use BUG().  So we really need to
-> have linux/bug.h in scope.  But asm/processor.h is used about
-> 600 times, vs. only about 15 for debugreg.h -- so adding bug.h
-> to the latter reduces the amount of time we'll be processing
-> it during a compile.
-> 
-> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> CC: Thomas Gleixner <tglx@linutronix.de>
-> CC: Ingo Molnar <mingo@redhat.com>
-> CC: "H. Peter Anvin" <hpa@zytor.com>
-> ---
->  arch/x86/include/asm/debugreg.h  |   67 ++++++++++++++++++++++++++++++++++++++
->  arch/x86/include/asm/processor.h |   63 -----------------------------------
->  arch/x86/kernel/cpu/common.c     |    1 +
->  3 files changed, 68 insertions(+), 63 deletions(-)
+= and =
 
-Acked-by: Ingo Molnar <mingo@elte.hu>
+>frv, h8300, m68k, microblaze, openrisc, score, um and xtensa currently
+>do not register a CPU device.  Add the config option
+>GENERIC_CPU_DEVICES which causes a generic CPU device to be registered
+[…]
 
-I suspect you'd like to carry this in your tree, so that all 
-these patches are together?
+Now that these are in the Debian Linux kernel package and a build has
+been done, I can confirm the result boots on ARAnyM (m68k).
 
-Thanks,
+Tested-by: Thorsten Glaser <tg@debian.org>
 
-	Ingo
+bye,
+//mirabilos
+-- 
+I believe no one can invent an algorithm. One just happens to hit upon it
+when God enlightens him. Or only God invents algorithms, we merely copy them.
+If you don't believe in God, just consider God as Nature if you won't deny
+existence.		-- Coywolf Qi Hunt
