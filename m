@@ -1,187 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.windriver.com ([147.11.1.11]:53784 "EHLO
-	mail.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751735Ab2A0CpD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jan 2012 21:45:03 -0500
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: [PATCH 6/7] bug: consolidate BUILD_BUG_ON with other bug code
-Date: Thu, 26 Jan 2012 21:44:31 -0500
-Message-ID: <1327632272-12928-7-git-send-email-paul.gortmaker@windriver.com>
+Received: from chilli.pcug.org.au ([203.10.76.44]:56495 "EHLO smtps.tip.net.au"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752313Ab2A0F7w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Jan 2012 00:59:52 -0500
+Date: Fri, 27 Jan 2012 16:52:45 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [RFC - PATCH 0/7] consolidation of BUG support code.
+Message-ID: <20120127165245.263bd8f7259ea629d8f7df31@canb.auug.org.au>
 In-Reply-To: <1327632272-12928-1-git-send-email-paul.gortmaker@windriver.com>
 References: <1327632272-12928-1-git-send-email-paul.gortmaker@windriver.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Fri__27_Jan_2012_16_52_45_+1100_lPa_iHIceHXncyG/"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org, akpm@linux-foundation.org, gregkh@suse.de, rmk+kernel@arm.linux.org.uk
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Gortmaker <paul.gortmaker@windriver.com>
-Message-ID: <20120127024431.tSjBU1tY3Pc3xSumojMX_Px0bG1UG10XBor7ypAYab4@z>
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, gregkh@suse.de, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120127055245.-bt1YOXhBH7Vdpnzz6GEr3B_OhfepguP0HnrDFsQCVM@z>
 
-The support for BUILD_BUG in linux/kernel.h predates the
-addition of linux/bug.h -- with this chunk off separate,
-you can run into situations where a person gets a compile
-fail even when they've included linux/bug.h, like this:
+--Signature=_Fri__27_Jan_2012_16_52_45_+1100_lPa_iHIceHXncyG/
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-    CC      lib/string.o
-  lib/string.c: In function 'strlcat':
-  lib/string.c:225:2: error: implicit declaration of function 'BUILD_BUG_ON'
-  make[2]: *** [lib/string.o] Error 1
-  $
-  $ grep linux/bug.h lib/string.c
-  #include <linux/bug.h>
-  $
+Hi Paul,
 
-Since the above violates the principle of least surprise, move
-the BUG chunks from kernel.h to bug.h so it is all together.
+On Thu, 26 Jan 2012 21:44:25 -0500 Paul Gortmaker <paul.gortmaker@windriver=
+.com> wrote:
+>
+> The changes shown here are to unify linux's BUG support under
+> the one <linux/bug.h> file.  Due to historical reasons, we have
+> some BUG code in bug.h and some in kernel.h -- i.e. the support for
+> BUILD_BUG in linux/kernel.h predates the addition of linux/bug.h,
+> but old code in kernel.h wasn't moved to bug.h at that time.  As
+> a band-aid, kernel.h was including <asm/bug.h> to pseudo link them.
+> With the above in mind, the goals of this changeset are:
+>=20
+> 1) find and fix any include/*.h files that were relying on the
+>    implicit presence of BUG code.
+> 2) find and fix any C files that were consuming kernel.h and
+>    hence relying on implicitly getting some/all BUG code.
+> 3) Move the BUG related code living in kernel.h to <linux/bug.h>
+> 4) remove the asm/bug.h from kernel.h to finally break the chain.
+>=20
+> During development, the order was more like 3-4, build-test, 1-2.
+> But to ensure that git history for bisect doesn't get needless
+> build failures introduced, the commits have been reorderd to fix
+> the problem areas in advance.
 
-Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
----
- include/linux/bug.h    |   61 ++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/kernel.h |   61 ------------------------------------------------
- 2 files changed, 61 insertions(+), 61 deletions(-)
+I have expressed reservations with these tree wide include file cleanups
+in the past (there was going pain for me and others during the module.h
+split up for example).  So, have you considered the following alternate
+method of achieving most (if not all) of the gains:
 
-diff --git a/include/linux/bug.h b/include/linux/bug.h
-index d276b55..72961c3 100644
---- a/include/linux/bug.h
-+++ b/include/linux/bug.h
-@@ -11,6 +11,67 @@ enum bug_trap_type {
- 
- struct pt_regs;
- 
-+#ifdef __CHECKER__
-+#define BUILD_BUG_ON_NOT_POWER_OF_2(n)
-+#define BUILD_BUG_ON_ZERO(e) (0)
-+#define BUILD_BUG_ON_NULL(e) ((void*)0)
-+#define BUILD_BUG_ON(condition)
-+#define BUILD_BUG() (0)
-+#else /* __CHECKER__ */
-+
-+/* Force a compilation error if a constant expression is not a power of 2 */
-+#define BUILD_BUG_ON_NOT_POWER_OF_2(n)			\
-+	BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))
-+
-+/* Force a compilation error if condition is true, but also produce a
-+   result (of value 0 and type size_t), so the expression can be used
-+   e.g. in a structure initializer (or where-ever else comma expressions
-+   aren't permitted). */
-+#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
-+#define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:-!!(e); }))
-+
-+/**
-+ * BUILD_BUG_ON - break compile if a condition is true.
-+ * @condition: the condition which the compiler should know is false.
-+ *
-+ * If you have some code which relies on certain constants being equal, or
-+ * other compile-time-evaluated condition, you should use BUILD_BUG_ON to
-+ * detect if someone changes it.
-+ *
-+ * The implementation uses gcc's reluctance to create a negative array, but
-+ * gcc (as of 4.4) only emits that error for obvious cases (eg. not arguments
-+ * to inline functions).  So as a fallback we use the optimizer; if it can't
-+ * prove the condition is false, it will cause a link error on the undefined
-+ * "__build_bug_on_failed".  This error message can be harder to track down
-+ * though, hence the two different methods.
-+ */
-+#ifndef __OPTIMIZE__
-+#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
-+#else
-+extern int __build_bug_on_failed;
-+#define BUILD_BUG_ON(condition)					\
-+	do {							\
-+		((void)sizeof(char[1 - 2*!!(condition)]));	\
-+		if (condition) __build_bug_on_failed = 1;	\
-+	} while(0)
-+#endif
-+
-+/**
-+ * BUILD_BUG - break compile if used.
-+ *
-+ * If you have some code that you expect the compiler to eliminate at
-+ * build time, you should use BUILD_BUG to detect if it is
-+ * unexpectedly used.
-+ */
-+#define BUILD_BUG()						\
-+	do {							\
-+		extern void __build_bug_failed(void)		\
-+			__linktime_error("BUILD_BUG failed");	\
-+		__build_bug_failed();				\
-+	} while (0)
-+
-+#endif	/* __CHECKER__ */
-+
- #ifdef CONFIG_GENERIC_BUG
- #include <asm-generic/bug.h>
- 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index e834342..5dba983 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -662,67 +662,6 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
- 	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
- 	(type *)( (char *)__mptr - offsetof(type,member) );})
- 
--#ifdef __CHECKER__
--#define BUILD_BUG_ON_NOT_POWER_OF_2(n)
--#define BUILD_BUG_ON_ZERO(e) (0)
--#define BUILD_BUG_ON_NULL(e) ((void*)0)
--#define BUILD_BUG_ON(condition)
--#define BUILD_BUG() (0)
--#else /* __CHECKER__ */
--
--/* Force a compilation error if a constant expression is not a power of 2 */
--#define BUILD_BUG_ON_NOT_POWER_OF_2(n)			\
--	BUILD_BUG_ON((n) == 0 || (((n) & ((n) - 1)) != 0))
--
--/* Force a compilation error if condition is true, but also produce a
--   result (of value 0 and type size_t), so the expression can be used
--   e.g. in a structure initializer (or where-ever else comma expressions
--   aren't permitted). */
--#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
--#define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:-!!(e); }))
--
--/**
-- * BUILD_BUG_ON - break compile if a condition is true.
-- * @condition: the condition which the compiler should know is false.
-- *
-- * If you have some code which relies on certain constants being equal, or
-- * other compile-time-evaluated condition, you should use BUILD_BUG_ON to
-- * detect if someone changes it.
-- *
-- * The implementation uses gcc's reluctance to create a negative array, but
-- * gcc (as of 4.4) only emits that error for obvious cases (eg. not arguments
-- * to inline functions).  So as a fallback we use the optimizer; if it can't
-- * prove the condition is false, it will cause a link error on the undefined
-- * "__build_bug_on_failed".  This error message can be harder to track down
-- * though, hence the two different methods.
-- */
--#ifndef __OPTIMIZE__
--#define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
--#else
--extern int __build_bug_on_failed;
--#define BUILD_BUG_ON(condition)					\
--	do {							\
--		((void)sizeof(char[1 - 2*!!(condition)]));	\
--		if (condition) __build_bug_on_failed = 1;	\
--	} while(0)
--#endif
--
--/**
-- * BUILD_BUG - break compile if used.
-- *
-- * If you have some code that you expect the compiler to eliminate at
-- * build time, you should use BUILD_BUG to detect if it is
-- * unexpectedly used.
-- */
--#define BUILD_BUG()						\
--	do {							\
--		extern void __build_bug_failed(void)		\
--			__linktime_error("BUILD_BUG failed");	\
--		__build_bug_failed();				\
--	} while (0)
--
--#endif	/* __CHECKER__ */
--
- /* Trap pasters of __FUNCTION__ at compile-time */
- #define __FUNCTION__ (__func__)
- 
--- 
-1.7.7.2
+First a patch that moves the BUG related stuff from kernel.h to
+linux/bug.h and replacing the include of asm/bug.h with linux/bug.h in
+kernel.h.  This should essentially be a noop (bar some strange
+interesting bugs).
 
+The trick is to convince Linus that this patch is OK for the current RC ser=
+ies ...
+
+Then you can (at your leisure) fix all the files that need linux/bug.h
+included - farming them out as required.  And we could add a check in
+checkpatch.pl.
+
+Then (either after 3.4-rc1 or in the 3.5 merge window) we can remove the
+include of linux/bug.h from linux/kernel.h and fix any left over build
+problems.
+
+I have not thought about this too hard, so there may be large holes in
+this plan.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Fri__27_Jan_2012_16_52_45_+1100_lPa_iHIceHXncyG/
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJPIjutAAoJEECxmPOUX5FERhsP+QEY/NRp9glh41m/LafiWRy2
+lj22NE7gC/yGpm4KsrWfdDqy+vZfdhoex9w6VBLGXn+DhsBxMdD6jpTDlfjwV3Uh
+Y8yNuUT/rl+wfTRQbi/veZpNUVv2fch0/O1bFVX8zSl9gbcgDpl0xerg1jdmyY+I
+B9r/1HNayOKqU/Tdm6WL3H4q3stRiZr1IxSKw52FfSauq+hFOpv7iZC1NXus/mve
+jjeg/wswf9EnzK9RIOlruQEpDv9hgP1KQ3pMJObMnaqkbaui31ItK+SJxi8E1zsT
+au/bbdZ0QScXoDq+M95M5tH9fj+ceScEfaGl+Pa6qZhWSjlGdf3RFWJtJo3AWa9B
+Xh6XcV1ECuBa5F83X6G9h0tBweWR7dB/WUJdnuC50rfh3mYNjS2gmUVLLFsF1m+l
+R8BgUwEMCSPuNTgkKWF+wckjPuKdCD5XamV+O2e1K0Rs+ws3NqZllXif7ueGJZsH
+JGZslQJ0sHZ41RNndnHW9+e610bSC1MmHEiUksla+mSZcsB+QKT5F0ttEhCdL8ap
+SpdF6qtCuVkDi/i24tpcvVOy3JYbHa2B+lvPVYA1Of6PAumtmAUjHVAZMFptjj4J
+kwdrslyx6l0d7xVMcu6MynZDbfdrvAuq/hLEo/YDdrtNHyT/qGehcC90Lzgfe0VZ
+u/DgnoUjJXuVUfXbuPEa
+=wvI4
+-----END PGP SIGNATURE-----
+
+--Signature=_Fri__27_Jan_2012_16_52_45_+1100_lPa_iHIceHXncyG/--
