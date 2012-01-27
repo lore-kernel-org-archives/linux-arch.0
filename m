@@ -1,54 +1,47 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [uml-devel] /sys/class/tty/tty0/active?
-Date: Fri, 27 Jan 2012 11:51:43 +0000
-Message-ID: <20120127115143.1943336b@pyramind.ukuu.org.uk>
-References: <CAFLxGvw85fWdsAodBn1Z0vFYZx0U+vYg6hgsBYbmfuyaFTgznA@mail.gmail.com>
-	<58311.79.160.186.248.1327615864.squirrel@www.nlc.no>
-	<CAFLxGvzsg71gtyPEtOAVnS-DtozYzqgoGNK-ZJRvBfq1mf3Oug@mail.gmail.com>
-	<CAFLxGvzffs=uSjxogdWtk_gqoJHPnmgQSLw9WaZRr_be=J5cgw@mail.gmail.com>
-	<20120127010838.GA27899@suse.de>
-	<CAPXgP12Bj1K3j5HL1=GTj=xEC+oWgB7VFeQL_Pg23fCevTQAcw@mail.gmail.com>
-	<CAFLxGvzth1m=iUmXbU2WyGrw0i8441d2nKLjH=mY_f1O-hkKPQ@mail.gmail.com>
+From: Ingo Molnar <mingo@elte.hu>
+Subject: Re: [PATCH 1/7] x86: relocate get/set debugreg fcns to
+ include/asm/debugreg.
+Date: Fri, 27 Jan 2012 12:51:36 +0100
+Message-ID: <20120127115136.GA26228@elte.hu>
+References: <1327632272-12928-1-git-send-email-paul.gortmaker@windriver.com>
+ <1327632272-12928-2-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:45669 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753457Ab2A0Lue (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 06:50:34 -0500
-In-Reply-To: <CAFLxGvzth1m=iUmXbU2WyGrw0i8441d2nKLjH=mY_f1O-hkKPQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: richard -rw- weinberger <richard.weinberger@gmail.com>
-Cc: Kay Sievers <kay.sievers@vrfy.org>, Greg KH <gregkh@suse.de>, stian@nixia.no, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1327632272-12928-2-git-send-email-paul.gortmaker@windriver.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: torvalds@linux-foundation.org, akpm@linux-foundation.org, gregkh@suse.de, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
+List-Id: linux-arch.vger.kernel.org
 
-> UML's console driver (arch/um/drivers/line.c) implements tty_operations.
-> The crash happens because the tty subsystem calls the driver's close()
-> function and later
-> write_room() or chars_in_buffer().
+
+* Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+
+> Since we already have a debugreg.h header file, move the
+> assoc. get/set functions to it.  In addition to it being the
+> logical home for them, it has a secondary advantage.  The
+> functions that are moved use BUG().  So we really need to
+> have linux/bug.h in scope.  But asm/processor.h is used about
+> 600 times, vs. only about 15 for debugreg.h -- so adding bug.h
+> to the latter reduces the amount of time we'll be processing
+> it during a compile.
 > 
-> write_room() and chars_in_buffer() fail badly because close() already
-> cleaned up the driver's private data...
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
+> CC: Thomas Gleixner <tglx@linutronix.de>
+> CC: Ingo Molnar <mingo@redhat.com>
+> CC: "H. Peter Anvin" <hpa@zytor.com>
+> ---
+>  arch/x86/include/asm/debugreg.h  |   67 ++++++++++++++++++++++++++++++++++++++
+>  arch/x86/include/asm/processor.h |   63 -----------------------------------
+>  arch/x86/kernel/cpu/common.c     |    1 +
+>  3 files changed, 68 insertions(+), 63 deletions(-)
 
-You don't want to do that.
+Acked-by: Ingo Molnar <mingo@elte.hu>
 
-> Greg, is UML's assumption wrong that after closing the tty no call to
-> write_room() or chars_in_buffer() can happen?
-> I have no idea why systemd is able to trigger this, UML's console
-> driver is old and has always worked quite well.
+I suspect you'd like to carry this in your tree, so that all 
+these patches are together?
 
-It's always been untrue but it's even more untrue nowdays. The tty layer
-objects are refcounted, and the code has had significant rewrites. line.c
-hidden away in uml hasn't been updated.
+Thanks,
 
-I added a comment about 3 years ago pointing out another older change
-that was needed and that wasn't acted on either..
-
-Take a look at how all the other tty drivers use tty_port, how the ioctls
-have been supposed to work for the past few years and the callback
-changes, then use them.
-
-tty_port will actually do most of the hard work for you.
-
-Alan
+	Ingo
