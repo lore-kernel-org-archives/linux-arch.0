@@ -1,46 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from static-87-79-237-121.netcologne.de ([87.79.237.121]:14972 "EHLO
-	herc.mirbsd.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751181Ab2A0QrD convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 11:47:03 -0500
-Date: Fri, 27 Jan 2012 16:34:24 +0000 (UTC)
-From: Thorsten Glaser <tg@debian.org>
-Subject: Re: [PATCHv2 1/2] cpu: Do not return errors from cpu_dev_init()
- which will be ignored; [PATCHv2 2/2] cpu: Register a generic CPU device on
- architectures that currently do not
-In-Reply-To: <1326164672.3432.34.camel@deadeye>
-Message-ID: <Pine.BSM.4.64L.1201271632120.25139@herc.mirbsd.org>
-References: <1326164389.3432.29.camel@deadeye> <1326164672.3432.34.camel@deadeye>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26475 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752582Ab2A1Ctz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 21:49:55 -0500
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v2 0/13] PCI: allocate pci bus num range for unassigned bridge busn
+Date: Fri, 27 Jan 2012 18:49:18 -0800
+Message-ID: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@suse.de>, Linus Torvalds <torvalds@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Debian kernel team <debian-kernel@lists.debian.org>, linux-m68k@vger.kernel.org, debian-68k@lists.debian.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20120127163424.4PP1QWTl9uf3-gppMxyseC9ZaQ2zqmgRV9eydYZQgy0@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120128024918.2ipapYcBAa-LV_c3NhWenemiq31atNzAIp0QNTosnhI@z>
 
-Ben Hutchings dixit:
+82b166c: PCI: Seperate child bus scanning to two passes overall
+dd174b3: PCI: kill pci_fixup_parent_subordinate_busnr()
+6184c18: PCI: Allocate bus range instead of use max blindly
+11525b2: PCI: Strict checking of valid range for bridge
+05c754e: PCI: Probe safe range that we can use for unassigned bridge.
+8bb27f2: PCI: Add pci_bus_extend/shrink_top()
+76bb4b4: PCI, parisc: Register busn_res for root buses
+36042e6: PCI, powerpc: Register busn_res for root buses
+53472fe: PCI, ia64: Register busn_res for root buses
+740a84d: PCI, x86: Register busn_res for root buses
+a5ddf08: PCI: Add busn_res tracking in core
+3810f01: PCI: Add busn_res operation functions
+bd3ab8d: PCI: Add iobusn_resource
 
->cpu_dev_init() is only called from driver_init(), which does not check
-[…]
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-= and =
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
->frv, h8300, m68k, microblaze, openrisc, score, um and xtensa currently
->do not register a CPU device.  Add the config option
->GENERIC_CPU_DEVICES which causes a generic CPU device to be registered
-[…]
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
 
-Now that these are in the Debian Linux kernel package and a build has
-been done, I can confirm the result boots on ARAnyM (m68k).
+-v2: according to Jesse, split to more small patches.
 
-Tested-by: Thorsten Glaser <tg@debian.org>
+Thanks
 
-bye,
-//mirabilos
--- 
-I believe no one can invent an algorithm. One just happens to hit upon it
-when God enlightens him. Or only God invents algorithms, we merely copy them.
-If you don't believe in God, just consider God as Nature if you won't deny
-existence.		-- Coywolf Qi Hunt
+Yinghai
+
+ arch/ia64/pci/pci.c              |    2 +
+ arch/powerpc/kernel/pci-common.c |    7 +-
+ arch/x86/include/asm/topology.h  |    3 +-
+ arch/x86/pci/acpi.c              |    8 +-
+ arch/x86/pci/bus_numa.c          |    8 +-
+ arch/x86/pci/common.c            |   11 +-
+ drivers/parisc/dino.c            |    2 +
+ drivers/parisc/lba_pci.c         |    3 +
+ drivers/pci/probe.c              |  427 ++++++++++++++++++++++++++++++--------
+ drivers/pci/remove.c             |    1 +
+ include/linux/ioport.h           |    1 +
+ include/linux/pci.h              |    8 +
+ kernel/resource.c                |    8 +
+ 13 files changed, 395 insertions(+), 94 deletions(-)
+
