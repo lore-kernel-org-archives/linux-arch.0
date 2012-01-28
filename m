@@ -1,97 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:59208 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753646Ab2A1Ct6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 21:49:58 -0500
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26529 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753810Ab2A1CuB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 21:50:01 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/13] PCI: Add busn_res operation functions
-Date: Fri, 27 Jan 2012 18:49:20 -0800
-Message-ID: <1327718971-9598-3-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 12/13] PCI: kill pci_fixup_parent_subordinate_busnr()
+Date: Fri, 27 Jan 2012 18:49:30 -0800
+Message-ID: <1327718971-9598-13-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
 References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120128024920.1oQujQTg4_mLMXzV7WMoONs-uqAqeW5KPkCS_l9VuS8@z>
+Message-ID: <20120128024930.wmtJ9kdZlQXMAgeHluN33FRHaIXpz4j5YhFW_djJ_Ds@z>
 
-will use them insert/update busn res in pci_bus
+Now we can safely extend parent top and shrink them according iobusn_resource tree.
+
+Don't need that any more.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 47 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   45 +++++++++------------------------------------
+ 1 files changed, 9 insertions(+), 36 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index a114173..71261da 100644
+index 23c2f0d..54615a9 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1622,6 +1622,50 @@ err_out:
- 	return NULL;
+@@ -608,22 +608,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
+ 	return child;
  }
  
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource *parent_res = &iobusn_resource;
-+	int ret;
-+
-+	res->start = (pci_domain_nr(b) << 8) | bus;
-+	res->end = (pci_domain_nr(b) << 8) | bus_max;
-+	res->flags = IORESOURCE_BUS;
-+
-+	if (!pci_is_root_bus(b))
-+		parent_res = &b->parent->busn_res;
-+
-+	ret = insert_resource(parent_res, res);
-+
-+	dev_printk(KERN_DEBUG, &b->dev,
-+	 "busn_res: %06llx-%06llx %s inserted under %06llx-%06llx\n",
-+			(unsigned long long)res->start,
-+			(unsigned long long)res->end,
-+			 ret ? "can not be" : "is",
-+			(unsigned long long)parent_res->start,
-+			(unsigned long long)parent_res->end);
-+}
-+
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	unsigned long long old_end = res->end;
-+
-+	res->end &= ~0xff;
-+	res->end |= bus_max;
-+	dev_printk(KERN_DEBUG, &b->dev,
-+		 "busn_res: %06llx-%06llx end updated to %06llx-%06llx\n",
-+			(unsigned long long)res->start,
-+			old_end,
-+			(unsigned long long)res->start,
-+			(unsigned long long)res->end);
-+}
-+
-+void pci_bus_release_busn_res(struct pci_bus *b)
-+{
-+	release_resource(&b->busn_res);
-+}
-+
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+-static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+-{
+-	struct pci_bus *parent = child->parent;
+-
+-	/* Attempts to fix that up are really dangerous unless
+-	   we're going to re-assign all bus numbers. */
+-	if (!pcibios_assign_all_busses())
+-		return;
+-
+-	while (parent->parent && parent->subordinate < max) {
+-		parent->subordinate = max;
+-		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
+-		parent = parent->parent;
+-	}
+-}
+-
+ static void __devinit pci_bus_extend_top(struct pci_bus *parent,
+ 		 resource_size_t size, struct resource *parent_res)
  {
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 94ad468..3da935c 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -665,6 +665,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-+void pci_bus_release_busn_res(struct pci_bus *b);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
+@@ -925,6 +909,13 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 		/* Clear errors */
+ 		pci_write_config_word(dev, PCI_STATUS, 0xffff);
+ 
++		/*
++		 * For CardBus bridges, we leave 4 bus numbers
++		 * as cards with a PCI-to-PCI bridge can be
++		 * inserted later.
++		 * other just allocate 8 bus to avoid we fall into
++		 *  small hole in the middle.
++		 */
+ 		ret = pci_bridge_probe_busn_res(bus, dev, &busn_res,
+ 				is_cardbus ? (CARDBUS_RESERVE_BUSNR + 1) : 8,
+ 				&parent_res);
+@@ -963,29 +954,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 
+ 		if (!is_cardbus) {
+ 			child->bridge_ctl = bctl;
+-			/*
+-			 * Adjust subordinate busnr in parent buses.
+-			 * We do this before scanning for children because
+-			 * some devices may not be detected if the bios
+-			 * was lazy.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
++
+ 			/* Now we can scan all subordinate buses... */
+ 			max = pci_scan_child_bus(child);
+-			/*
+-			 * now fix it up again since we have found
+-			 * the real value of max.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+-
+-		} else {
+-			/*
+-			 * For CardBus bridges, we leave 4 bus numbers
+-			 * as cards with a PCI-to-PCI bridge can be
+-			 * inserted later.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+ 		}
++
+ 		/*
+ 		 * Set the subordinate bus number to its real value.
+ 		 */
 -- 
 1.7.7
 
