@@ -1,96 +1,51 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/13] PCI: kill pci_fixup_parent_subordinate_busnr()
-Date: Fri, 27 Jan 2012 18:49:30 -0800
-Message-ID: <1327718971-9598-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/13] PCI, parisc: Register busn_res for root buses
+Date: Fri, 27 Jan 2012 18:49:25 -0800
+Message-ID: <1327718971-9598-8-git-send-email-yinghai@kernel.org>
 References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Now we can safely extend parent top and shrink them according iobusn_resource tree.
-
-Don't need that any more.
-
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 ---
- drivers/pci/probe.c |   45 +++++++++------------------------------------
- 1 files changed, 9 insertions(+), 36 deletions(-)
+ drivers/parisc/dino.c    |    2 ++
+ drivers/parisc/lba_pci.c |    3 +++
+ 2 files changed, 5 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 23c2f0d..54615a9 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -608,22 +608,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
- 	return child;
- }
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 7ff10c1..3f2e203 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -1014,7 +1014,9 @@ static int __init dino_probe(struct parisc_device *dev)
+ 		return 0;
+ 	}
  
--static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
--{
--	struct pci_bus *parent = child->parent;
--
--	/* Attempts to fix that up are really dangerous unless
--	   we're going to re-assign all bus numbers. */
--	if (!pcibios_assign_all_busses())
--		return;
--
--	while (parent->parent && parent->subordinate < max) {
--		parent->subordinate = max;
--		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
--		parent = parent->parent;
--	}
--}
--
- static void __devinit pci_bus_extend_top(struct pci_bus *parent,
- 		 resource_size_t size, struct resource *parent_res)
- {
-@@ -925,6 +909,13 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 		/* Clear errors */
- 		pci_write_config_word(dev, PCI_STATUS, 0xffff);
++	pci_bus_insert_busn_res(bus, dino_current_bus, 255);
+ 	bus->subordinate = pci_scan_child_bus(bus);
++	pci_bus_update_busn_res_end(bus, bus->subordinate);
  
-+		/*
-+		 * For CardBus bridges, we leave 4 bus numbers
-+		 * as cards with a PCI-to-PCI bridge can be
-+		 * inserted later.
-+		 * other just allocate 8 bus to avoid we fall into
-+		 *  small hole in the middle.
-+		 */
- 		ret = pci_bridge_probe_busn_res(bus, dev, &busn_res,
- 				is_cardbus ? (CARDBUS_RESERVE_BUSNR + 1) : 8,
- 				&parent_res);
-@@ -963,29 +954,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	/* This code *depends* on scanning being single threaded
+ 	 * if it isn't, this global bus number count will fail
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index d5f3d75..b58bf8b 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1531,6 +1531,9 @@ lba_driver_probe(struct parisc_device *dev)
+ 		return 0;
+ 	}
  
- 		if (!is_cardbus) {
- 			child->bridge_ctl = bctl;
--			/*
--			 * Adjust subordinate busnr in parent buses.
--			 * We do this before scanning for children because
--			 * some devices may not be detected if the bios
--			 * was lazy.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
++	pci_bus_insert_busn_res(lba_bus, lba_dev->hba.bus_num.start,
++				lba_dev->hba.bus_num.end);
 +
- 			/* Now we can scan all subordinate buses... */
- 			max = pci_scan_child_bus(child);
--			/*
--			 * now fix it up again since we have found
--			 * the real value of max.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
--
--		} else {
--			/*
--			 * For CardBus bridges, we leave 4 bus numbers
--			 * as cards with a PCI-to-PCI bridge can be
--			 * inserted later.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
- 		}
-+
- 		/*
- 		 * Set the subordinate bus number to its real value.
- 		 */
+ 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
+ 
+ 	/* This is in lieu of calling pci_assign_unassigned_resources() */
 -- 
 1.7.7
