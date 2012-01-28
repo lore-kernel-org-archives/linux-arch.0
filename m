@@ -1,72 +1,84 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 01/13] PCI: Add iobusn_resource
-Date: Fri, 27 Jan 2012 18:49:19 -0800
-Message-ID: <1327718971-9598-2-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 08/13] PCI: Add pci_bus_extend/shrink_top()
+Date: Fri, 27 Jan 2012 18:49:26 -0800
+Message-ID: <1327718971-9598-9-git-send-email-yinghai@kernel.org>
 References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26479 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752611Ab2A1Ct4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jan 2012 21:49:56 -0500
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-also add busn_res into struct pci_bus.
+extend or shrink bus and parent buses top (subordinate)
 
-will use them to have bus number resource tree.
+extended range is verified safe range, and stop at recorded parent_res.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- include/linux/ioport.h |    1 +
- include/linux/pci.h    |    1 +
- kernel/resource.c      |    8 ++++++++
- 3 files changed, 10 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 50 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index e885ba2..6fe9e19 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -136,6 +136,7 @@ struct resource {
- /* PC/ISA/whatever - the normal PC address spaces: IO and memory */
- extern struct resource ioport_resource;
- extern struct resource iomem_resource;
-+extern struct resource iobusn_resource;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 55404c3..3e62f45 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -624,6 +624,56 @@ static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+ 	}
+ }
  
- extern struct resource *request_resource_conflict(struct resource *root, struct resource *new);
- extern int request_resource(struct resource *root, struct resource *new);
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index f8caaab..94ad468 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -419,6 +419,7 @@ struct pci_bus {
- 	struct list_head slots;		/* list of slots on this bus */
- 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
- 	struct list_head resources;	/* address space routed to this bus */
-+	struct resource busn_res;	/* track registered bus num range */
- 
- 	struct pci_ops	*ops;		/* configuration access functions */
- 	void		*sysdata;	/* hook for sys-specific extension */
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 7640b3a..53b42f0 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -38,6 +38,14 @@ struct resource iomem_resource = {
- };
- EXPORT_SYMBOL(iomem_resource);
- 
-+struct resource iobusn_resource = {
-+	.name	= "PCI busn",
-+	.start	= 0,
-+	.end	= 0xffffff,
-+	.flags	= IORESOURCE_BUS,
-+};
-+EXPORT_SYMBOL(iobusn_resource);
++static void __devinit pci_bus_extend_top(struct pci_bus *parent,
++		 resource_size_t size, struct resource *parent_res)
++{
++	struct resource *res;
 +
- /* constraints to be met while allocating resources */
- struct resource_constraint {
- 	resource_size_t min, max, align;
++	if (!size)
++		return;
++
++	while (parent) {
++		res = &parent->busn_res;
++		if (res == parent_res)
++			break;
++		res->end += size;
++		parent->subordinate += size;
++		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
++					 parent->subordinate);
++		dev_printk(KERN_DEBUG, &parent->dev,
++				"busn_res: extended %02llx to %06llx-%06llx\n",
++				(unsigned long long)size,
++				(unsigned long long)res->start,
++				(unsigned long long)res->end);
++		parent = parent->parent;
++	}
++}
++
++static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
++		 resource_size_t size, struct resource *parent_res)
++{
++	struct resource *res;
++
++	if (!size)
++		return;
++
++	while (parent) {
++		res = &parent->busn_res;
++		if (res == parent_res)
++			break;
++		res->end -= size;
++		parent->subordinate -= size;
++		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
++					 parent->subordinate);
++		dev_printk(KERN_DEBUG, &parent->dev,
++				"busn_res: shrunk %02llx to %06llx-%06llx\n",
++				(unsigned long long)size,
++				(unsigned long long)res->start,
++				(unsigned long long)res->end);
++		parent = parent->parent;
++	}
++}
++
+ /*
+  * If it's a bridge, configure it and scan the bus behind it.
+  * For CardBus bridges, we don't scan behind as the devices will
 -- 
 1.7.7
