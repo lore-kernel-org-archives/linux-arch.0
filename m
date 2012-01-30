@@ -1,149 +1,72 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [RFC PATCH v1 06/18] alpha/PCI: get rid of device resource fixups
-Date: Mon, 30 Jan 2012 09:57:39 -0700
-Message-ID: <20120130165739.3231.90160.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [RFC PATCH v1 08/18] ia64/PCI: SN: convert to pci_scan_root_bus() for
+	correct root bus resources
+Date: Mon, 30 Jan 2012 09:57:50 -0700
+Message-ID: <20120130165750.3231.60283.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qy0-f202.google.com ([209.85.216.202]:48145 "EHLO
+	mail-qy0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753155Ab2A3Q5v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:57:51 -0500
+Received: by mail-qy0-f202.google.com with SMTP id d17so399024qcs.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 08:57:50 -0800 (PST)
 In-Reply-To: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-alpha-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, Jack Steiner <steiner@sgi.com>
 
-Tell the PCI core about host bridge address translation so it can take
-care of bus-to-resource conversion for us.
+Convert from pci_scan_bus() to pci_scan_root_bus().  Supply the root
+bus resources from bussoft.  When we move the resource adjustment from
+pcibios_fixup_resources() to the PCI core, it will be important to have
+the root bus resources correct from the beginning.
 
-CC: linux-alpha@vger.kernel.org
+CC: Tony Luck <tony.luck@intel.com>
+CC: Jack Steiner <steiner@sgi.com>
 ---
- arch/alpha/include/asm/pci.h |    6 +---
- arch/alpha/kernel/pci.c      |   71 ++----------------------------------------
- 2 files changed, 5 insertions(+), 72 deletions(-)
+ arch/ia64/sn/kernel/io_init.c |   14 +++++++++-----
+ 1 files changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/arch/alpha/include/asm/pci.h b/arch/alpha/include/asm/pci.h
-index 28d0497..dace435 100644
---- a/arch/alpha/include/asm/pci.h
-+++ b/arch/alpha/include/asm/pci.h
-@@ -99,11 +99,7 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- 	return channel ? 15 : 14;
- }
+diff --git a/arch/ia64/sn/kernel/io_init.c b/arch/ia64/sn/kernel/io_init.c
+index 0a36f08..c99c2ca 100644
+--- a/arch/ia64/sn/kernel/io_init.c
++++ b/arch/ia64/sn/kernel/io_init.c
+@@ -297,7 +297,8 @@ sn_pci_controller_fixup(int segment, int busnum, struct pci_bus *bus)
+ 	s64 status = 0;
+ 	struct pci_controller *controller;
+ 	struct pcibus_bussoft *prom_bussoft_ptr;
+-
++	LIST_HEAD(resources);
++	int i;
  
--extern void pcibios_resource_to_bus(struct pci_dev *, struct pci_bus_region *,
--				    struct resource *);
--
--extern void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--				    struct pci_bus_region *region);
-+#define ARCH_HAS_GENERIC_PCI_OFFSETS
+  	status = sal_get_pcibus_info((u64) segment, (u64) busnum,
+  				     (u64) ia64_tpa(&prom_bussoft_ptr));
+@@ -315,7 +316,13 @@ sn_pci_controller_fixup(int segment, int busnum, struct pci_bus *bus)
+ 	 */
+ 	controller->platform_data = prom_bussoft_ptr;
  
- #define pci_domain_nr(bus) ((struct pci_controller *)(bus)->sysdata)->index
+-	bus = pci_scan_bus(busnum, &pci_root_ops, controller);
++	sn_legacy_pci_window_fixup(controller,
++				   prom_bussoft_ptr->bs_legacy_io,
++				   prom_bussoft_ptr->bs_legacy_mem);
++	for (i = 0; i < controller->windows; i++)
++		pci_add_resource(&resources, &controller->window[i].resource);
++	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, controller,
++				&resources);
+  	if (bus == NULL)
+  		goto error_return; /* error, or bus already scanned */
  
-diff --git a/arch/alpha/kernel/pci.c b/arch/alpha/kernel/pci.c
-index 8c723c1..ee74503 100644
---- a/arch/alpha/kernel/pci.c
-+++ b/arch/alpha/kernel/pci.c
-@@ -253,32 +253,6 @@ pci_restore_srm_config(void)
- #endif
- 
- void __devinit
--pcibios_fixup_resource(struct resource *res, struct resource *root)
--{
--	res->start += root->start;
--	res->end += root->start;
--}
--
--void __devinit
--pcibios_fixup_device_resources(struct pci_dev *dev, struct pci_bus *bus)
--{
--	/* Update device resources.  */
--	struct pci_controller *hose = (struct pci_controller *)bus->sysdata;
--	int i;
--
--	for (i = 0; i < PCI_NUM_RESOURCES; i++) {
--		if (!dev->resource[i].start)
--			continue;
--		if (dev->resource[i].flags & IORESOURCE_IO)
--			pcibios_fixup_resource(&dev->resource[i],
--					       hose->io_space);
--		else if (dev->resource[i].flags & IORESOURCE_MEM)
--			pcibios_fixup_resource(&dev->resource[i],
--					       hose->mem_space);
--	}
--}
--
--void __devinit
- pcibios_fixup_bus(struct pci_bus *bus)
- {
- 	struct pci_dev *dev = bus->self;
-@@ -286,13 +260,10 @@ pcibios_fixup_bus(struct pci_bus *bus)
- 	if (pci_probe_only && dev &&
-  		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
-  		pci_read_bridge_bases(bus);
-- 		pcibios_fixup_device_resources(dev, bus);
- 	} 
- 
- 	list_for_each_entry(dev, &bus->devices, bus_list) {
- 		pdev_save_srm_config(dev);
--		if ((dev->class >> 8) != PCI_CLASS_BRIDGE_PCI)
--			pcibios_fixup_device_resources(dev, bus);
- 	}
- }
- 
-@@ -302,42 +273,6 @@ pcibios_update_irq(struct pci_dev *dev, int irq)
- 	pci_write_config_byte(dev, PCI_INTERRUPT_LINE, irq);
- }
- 
--void
--pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			 struct resource *res)
--{
--	struct pci_controller *hose = (struct pci_controller *)dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_space->start;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_space->start;
--
--	region->start = res->start - offset;
--	region->end = res->end - offset;
--}
--
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
--{
--	struct pci_controller *hose = (struct pci_controller *)dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_space->start;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_space->start;
--
--	res->start = region->start + offset;
--	res->end = region->end + offset;
--}
--
--#ifdef CONFIG_HOTPLUG
--EXPORT_SYMBOL(pcibios_resource_to_bus);
--EXPORT_SYMBOL(pcibios_bus_to_resource);
--#endif
--
- int
- pcibios_enable_device(struct pci_dev *dev, int mask)
- {
-@@ -416,8 +351,10 @@ common_init_pci(void)
- 			hose->mem_space->end = end;
- 
- 		INIT_LIST_HEAD(&resources);
--		pci_add_resource(&resources, hose->io_space);
--		pci_add_resource(&resources, hose->mem_space);
-+		pci_add_resource_offset(&resources, hose->io_space,
-+					hose->io_space->start);
-+		pci_add_resource_offset(&resources, hose->mem_space,
-+					hose->mem_space->start);
- 
- 		bus = pci_scan_root_bus(NULL, next_busno, alpha_mv.pci_ops,
- 					hose, &resources);
-
+@@ -348,9 +355,6 @@ sn_bus_fixup(struct pci_bus *bus)
+ 			return;
+ 		}
+ 		sn_common_bus_fixup(bus, prom_bussoft_ptr);
+-		sn_legacy_pci_window_fixup(PCI_CONTROLLER(bus),
+-					   prom_bussoft_ptr->bs_legacy_io,
+-					   prom_bussoft_ptr->bs_legacy_mem);
+         }
+         list_for_each_entry(pci_dev, &bus->devices, bus_list) {
+                 sn_io_slot_fixup(pci_dev);
