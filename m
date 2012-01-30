@@ -1,64 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:64430 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753756Ab2A3QKN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:10:13 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/3] arch: fix ioport mapping on mips,sh
-Date: Mon, 30 Jan 2012 16:09:55 +0000
-References: <cover.1327877053.git.mst@redhat.com>
-In-Reply-To: <cover.1327877053.git.mst@redhat.com>
+Received: from david.siemens.de ([192.35.17.14]:18862 "EHLO david.siemens.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754492Ab2A3QTT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 11:19:19 -0500
+Message-ID: <4F26C2EC.5070303@siemens.com>
+Date: Mon, 30 Jan 2012 17:18:52 +0100
+From: Jan Kiszka <jan.kiszka@siemens.com>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
+References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com>
+In-Reply-To: <4F26B220.9050101@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Message-ID: <201201301609.56105.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130160955.fSKexRbAKQVHV6zzPLAQMJcgLZtFXuW5OsBNDeM8B70@z>
+To: Avi Kivity <avi@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120130161852.gEv5mGbWgBifem7-SyoYUxzXW-9mDaTb-Xs1HqiFvg4@z>
 
-On Monday 30 January 2012, Michael S. Tsirkin wrote:
-> Kevin Cernekee reported that recent cleanup
-> that replaced pci_iomap with a generic function
-> failed to take into account the differences
-> in io port handling on mips and sh architectures.
+On 2012-01-30 16:07, Avi Kivity wrote:
+> On 01/17/2012 08:40 PM, Eric B Munson wrote:
+>> Now that we have a flag that will tell the guest it was suspended, create an
+>> interface for that communication using a KVM ioctl.
+>>
+>>
+>> diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
+>> index e1d94bf..1931e5c 100644
+>> --- a/Documentation/virtual/kvm/api.txt
+>> +++ b/Documentation/virtual/kvm/api.txt
+>> @@ -1491,6 +1491,19 @@ following algorithm:
+>>  Some guests configure the LINT1 NMI input to cause a panic, aiding in
+>>  debugging.
+>>  
+>> +4.65 KVMCLOCK_GUEST_PAUSED
+>> +
+>> +Capability: KVM_CAP_GUEST_PAUSED
+>> +Architechtures: Any that implement pvclocks (currently x86 only)
+>> +Type: vcpu ioctl
 > 
-> Rather than revert the changes reintroducing the
-> code duplication, this patchset fixes this
-> by adding ability for architectures to override
-> ioport mapping for pci devices.
+> vm ioctl.
 > 
-> I put this in my tree that feeds into linux-next
-> and intend to ask Linus to pull this fix if this
-> doesn't cause any issues and there are no objections.
+>> +Parameters: None
+>> +Returns: 0 on success, -1 on error
+>> +
+>> +This signals to the host kernel that the specified guest is being paused by
+>> +userspace.  The host will set a flag in the pvclock structure that is checked
+>> +from the soft lockup watchdog.  This ioctl can be called during pause or
+>> +unpause.
+>> +
+>>  5. The kvm_run structure
+>>  
+>>  
+>> +/*
+>> + * kvm_set_guest_paused() indicates to the guest kernel that it has been
+>> + * stopped by the hypervisor.  This function will be called from the host only.
+>> + */
+>> +static int kvm_set_guest_paused(struct kvm *kvm)
+>> +{
+>> +	struct kvm_vcpu *vcpu;
+>> +	struct pvclock_vcpu_time_info *src;
+>> +	int i;
+>> +
+>> +	kvm_for_each_vcpu(i, vcpu, kvm) {
+>> +		if (!vcpu->arch.time_page)
+>> +			continue;
+>> +		src = &vcpu->arch.hv_clock;
+>> +		src->flags |= PVCLOCK_GUEST_STOPPED;
 > 
-> The patches were tested on x86 and compiled on mips and sh.
-> Would appreciate reviews/acks/testing reports.
+> This looks racy.  The vcpu can remove its kvmclock concurrently with
+> this access, and src will be NULL.
 
-Looks good to me, except for the one detail I've commented
-on in the third patch.
+There is no race here (src is member of the vcpu), but arch.time might
+have become invalid. KVM_REQ_CLOCK_UPDATE instead of mark_page_dirty
+would indeed be the way to go. Trivial solution, I would say.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+However, the concept of "guest stopped" has VM, not VCPU scope. That
+makes the call more appropriate as a VM ioctl. If that thing should
+really become per-vcpu, at least call it KVMCLOCK_VCPU_STOPPED.
 
-I do wonder if the sh and mips implementations are robust enough however
-(independent of your work): It seems that an ioport number is treated
-differently in pci_iomap than it is using ioport_map and inb/outb,
-the assumption being that the port number is a local index per PCI domain.
-This would mean that any port access other than pci_iomap would only
-work on the primary PCI domain. There are two IMHO better solutions that
-I've seen on other architectures:
+Jan
 
-1. create a larger (e.g. 1MB) io port mapping range in virtual memory
-that is split into 64kb per domain, and use the domain number to
-find the per domain range when setting the resources. Port numbers will
-be larger than 65535 this way, but PCI will ignore the upper address
-bits for any access so it works fine.
-
-2. split the 64kb io port range into subsections per domain (on page
-granularity, e.g. 2 domains with 32kb or at most 16 domains with 4kb)
-and map them virtually contiguous, then reassign all io port resources
-so that only the correct region for each domain is used.
-
-	Arnd
+-- 
+Siemens AG, Corporate Technology, CT T DE IT 1
+Corporate Competence Center Embedded Linux
