@@ -1,88 +1,80 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
-Date: Mon, 30 Jan 2012 18:18:19 +0200
-Message-ID: <20120130161818.GA9345@redhat.com>
-References: <cover.1327877053.git.mst@redhat.com>
- <d78d91d0166651700cf662a50c87d84da4bdab88.1327877053.git.mst@redhat.com>
- <201201301551.46907.arnd@arndb.de>
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Mon, 30 Jan 2012 17:18:52 +0100
+Message-ID: <4F26C2EC.5070303@siemens.com>
+References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55324 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751742Ab2A3QQ1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 11:16:27 -0500
-Content-Disposition: inline
-In-Reply-To: <201201301551.46907.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <kvm-owner@vger.kernel.org>
+In-Reply-To: <4F26B220.9050101@redhat.com>
+Sender: kvm-owner@vger.kernel.org
+To: Avi Kivity <avi@redhat.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 30, 2012 at 03:51:46PM +0000, Arnd Bergmann wrote:
-> On Monday 30 January 2012, Michael S. Tsirkin wrote:
-> > --- a/include/asm-generic/pci_iomap.h
-> > +++ b/include/asm-generic/pci_iomap.h
-> > @@ -15,6 +15,11 @@ struct pci_dev;
-> >  #ifdef CONFIG_PCI
-> >  /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
-> >  extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
-> > +/* Create a virtual mapping cookie for a port on a given PCI device.
-> > + * Do not call this directly, it exists to make it easier for architectures
-> > + * to override. */
-> > +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
-> > +                                     unsigned int nr);
-> >  #else
-> >  static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
-> >  {
-> > index 4b0fdc2..1dfda29 100644
-> > --- a/lib/pci_iomap.c
-> > +++ b/lib/pci_iomap.c
-> > @@ -9,6 +9,16 @@
-> >  #include <linux/export.h>
-> >  
-> >  #ifdef CONFIG_PCI
-> > +#ifndef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
-> > +/* Architectures can override ioport mapping while
-> > + * still using the rest of the generic infrastructure. */
-> > +void __iomem *__pci_ioport_map(struct pci_dev *dev,
-> > +                              unsigned long port,
-> > +                              unsigned int nr)
-> > +{
-> > +       return ioport_map(port, nr);
-> > +}
-> > +#endif
-> >  /**
-> >   * pci_iomap - create a virtual mapping cookie for a PCI BAR
-> >   * @dev: PCI device that owns the BAR
+On 2012-01-30 16:07, Avi Kivity wrote:
+> On 01/17/2012 08:40 PM, Eric B Munson wrote:
+>> Now that we have a flag that will tell the guest it was suspended, create an
+>> interface for that communication using a KVM ioctl.
+>>
+>>
+>> diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
+>> index e1d94bf..1931e5c 100644
+>> --- a/Documentation/virtual/kvm/api.txt
+>> +++ b/Documentation/virtual/kvm/api.txt
+>> @@ -1491,6 +1491,19 @@ following algorithm:
+>>  Some guests configure the LINT1 NMI input to cause a panic, aiding in
+>>  debugging.
+>>  
+>> +4.65 KVMCLOCK_GUEST_PAUSED
+>> +
+>> +Capability: KVM_CAP_GUEST_PAUSED
+>> +Architechtures: Any that implement pvclocks (currently x86 only)
+>> +Type: vcpu ioctl
 > 
-> This looks correct, but it would be nicer to express this with an inline
-> function and keeping the new #ifdef to the header file, like
+> vm ioctl.
 > 
-> +/*
-> + * Create a virtual mapping cookie for a port on a given PCI device.
-> + * Do not call this directly, it exists to make it easier for architectures
-> + * to override.
-> + */
-> +#ifdef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
-> +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
-> +                                     unsigned int nr);
-> +#else
-> +static inline void __iomem *__pci_ioport_map(struct pci_dev *dev,
-> +                              unsigned long port, unsigned int nr)
-> +{
-> +       return ioport_map(port, nr);
-> +}
-> +#endif
+>> +Parameters: None
+>> +Returns: 0 on success, -1 on error
+>> +
+>> +This signals to the host kernel that the specified guest is being paused by
+>> +userspace.  The host will set a flag in the pvclock structure that is checked
+>> +from the soft lockup watchdog.  This ioctl can be called during pause or
+>> +unpause.
+>> +
+>>  5. The kvm_run structure
+>>  
+>>  
+>> +/*
+>> + * kvm_set_guest_paused() indicates to the guest kernel that it has been
+>> + * stopped by the hypervisor.  This function will be called from the host only.
+>> + */
+>> +static int kvm_set_guest_paused(struct kvm *kvm)
+>> +{
+>> +	struct kvm_vcpu *vcpu;
+>> +	struct pvclock_vcpu_time_info *src;
+>> +	int i;
+>> +
+>> +	kvm_for_each_vcpu(i, vcpu, kvm) {
+>> +		if (!vcpu->arch.time_page)
+>> +			continue;
+>> +		src = &vcpu->arch.hv_clock;
+>> +		src->flags |= PVCLOCK_GUEST_STOPPED;
 > 
-> 	Arnd
+> This looks racy.  The vcpu can remove its kvmclock concurrently with
+> this access, and src will be NULL.
 
-It would be nicer in that it would
-make the kernel a bit smaller for generic architectures
-but this would need to go into a separate header:
-it depends on io.h and io.h depends on pci_iomap.h.
+There is no race here (src is member of the vcpu), but arch.time might
+have become invalid. KVM_REQ_CLOCK_UPDATE instead of mark_page_dirty
+would indeed be the way to go. Trivial solution, I would say.
 
-Worth it?
+However, the concept of "guest stopped" has VM, not VCPU scope. That
+makes the call more appropriate as a VM ioctl. If that thing should
+really become per-vcpu, at least call it KVMCLOCK_VCPU_STOPPED.
+
+Jan
 
 -- 
-MST
+Siemens AG, Corporate Technology, CT T DE IT 1
+Corporate Competence Center Embedded Linux
