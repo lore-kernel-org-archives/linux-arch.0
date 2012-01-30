@@ -1,85 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from david.siemens.de ([192.35.17.14]:18862 "EHLO david.siemens.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754492Ab2A3QTT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 11:19:19 -0500
-Message-ID: <4F26C2EC.5070303@siemens.com>
-Date: Mon, 30 Jan 2012 17:18:52 +0100
-From: Jan Kiszka <jan.kiszka@siemens.com>
+Received: from mail-yw0-f74.google.com ([209.85.213.74]:60066 "EHLO
+	mail-yw0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753230Ab2A3Q5K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:57:10 -0500
+Received: by yhjj52 with SMTP id j52so395207yhj.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 08:57:09 -0800 (PST)
+Subject: [RFC PATCH v1 00/18] add PCI bus-to-resource offset support in core
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 30 Jan 2012 09:57:09 -0700
+Message-ID: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com>
-In-Reply-To: <4F26B220.9050101@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Avi Kivity <avi@redhat.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120130161852.gEv5mGbWgBifem7-SyoYUxzXW-9mDaTb-Xs1HqiFvg4@z>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Message-ID: <20120130165709.mr1Ye816IC9smhfxSC3VY7se8OpMeoigO4YiVfOMQzM@z>
 
-On 2012-01-30 16:07, Avi Kivity wrote:
-> On 01/17/2012 08:40 PM, Eric B Munson wrote:
->> Now that we have a flag that will tell the guest it was suspended, create an
->> interface for that communication using a KVM ioctl.
->>
->>
->> diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
->> index e1d94bf..1931e5c 100644
->> --- a/Documentation/virtual/kvm/api.txt
->> +++ b/Documentation/virtual/kvm/api.txt
->> @@ -1491,6 +1491,19 @@ following algorithm:
->>  Some guests configure the LINT1 NMI input to cause a panic, aiding in
->>  debugging.
->>  
->> +4.65 KVMCLOCK_GUEST_PAUSED
->> +
->> +Capability: KVM_CAP_GUEST_PAUSED
->> +Architechtures: Any that implement pvclocks (currently x86 only)
->> +Type: vcpu ioctl
-> 
-> vm ioctl.
-> 
->> +Parameters: None
->> +Returns: 0 on success, -1 on error
->> +
->> +This signals to the host kernel that the specified guest is being paused by
->> +userspace.  The host will set a flag in the pvclock structure that is checked
->> +from the soft lockup watchdog.  This ioctl can be called during pause or
->> +unpause.
->> +
->>  5. The kvm_run structure
->>  
->>  
->> +/*
->> + * kvm_set_guest_paused() indicates to the guest kernel that it has been
->> + * stopped by the hypervisor.  This function will be called from the host only.
->> + */
->> +static int kvm_set_guest_paused(struct kvm *kvm)
->> +{
->> +	struct kvm_vcpu *vcpu;
->> +	struct pvclock_vcpu_time_info *src;
->> +	int i;
->> +
->> +	kvm_for_each_vcpu(i, vcpu, kvm) {
->> +		if (!vcpu->arch.time_page)
->> +			continue;
->> +		src = &vcpu->arch.hv_clock;
->> +		src->flags |= PVCLOCK_GUEST_STOPPED;
-> 
-> This looks racy.  The vcpu can remove its kvmclock concurrently with
-> this access, and src will be NULL.
+There's a lot of PCI-related code under arch/, but much of it is not actually
+architecture-specific.  This series removes some of that code by moving most
+of the bus-to-resource conversions into the core.
 
-There is no race here (src is member of the vcpu), but arch.time might
-have become invalid. KVM_REQ_CLOCK_UPDATE instead of mark_page_dirty
-would indeed be the way to go. Trivial solution, I would say.
+This removes an opportunity for bugs (some PCI fixups currently see bus
+addresses in struct pci_dev resources when they're expecting CPU addresses),
+but the main reason to do this is to make our PCI resource handling simpler
+and more uniform.
 
-However, the concept of "guest stopped" has VM, not VCPU scope. That
-makes the call more appropriate as a VM ioctl. If that thing should
-really become per-vcpu, at least call it KVMCLOCK_VCPU_STOPPED.
+We currently read PCI bus addresses from BARs in the core (pci_setup_device()).
+Then every arch is responsible for converting those bus addresses to CPU
+resources, usually in pcibios_fixup_bus().
 
-Jan
+We already have a way for architectures to tell the core what the windows
+through a host bridge are:
+
+    LIST_HEAD(resources);
+    pci_add_resource(&resources, io_space);
+    pci_add_resource(&resources, mem_space);
+    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+
+This series extends that so the arch can also tell the core about address
+translation performed by the host bridge:
+
+    LIST_HEAD(resources);
+    pci_add_resource_offset(&resources, io_space, io_offset);
+    pci_add_resource_offset(&resources, mem_space, mem_offset);
+    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+
+Given that offset (the difference between bus address and CPU address for
+each aperture), the core can do the bus-to-resource conversion immediately
+when it reads the BARs.
+
+I've built most of the architectures I touched, but unfortunately my only
+test machines are x86, which don't do any address translation, so I haven't
+been able to test the most interesting changes.
+
+These patches are also in this git repo:
+    git://github.com/bjorn-helgaas/linux.git pci-offset-v1-9a9b9533de00
+
+Or you can browse them here:
+    https://github.com/bjorn-helgaas/linux/compare/master...pci-offset-v1-9a9b9533de00
+
+---
+
+Bjorn Helgaas (18):
+      PCI: don't publish new root bus until it's fully initialized
+      PCI: add struct pci_host_bridge and a list of all bridges found
+      PCI: add struct pci_host_bridge_window with CPU/bus address offset
+      PCI: convert bus addresses to resource when reading BARs
+      PCI: add generic pcibios_resource_to_bus()
+      alpha/PCI: get rid of device resource fixups
+      arm/PCI: get rid of device resource fixups
+      ia64/PCI: SN: convert to pci_scan_root_bus() for correct root bus resources
+      ia64/PCI: get rid of device resource fixups
+      microblaze/PCI: get rid of device resource fixups
+      mips/PCI: get rid of device resource fixups
+      mn10300/PCI: get rid of device resource fixups
+      parisc/PCI: get rid of device resource fixups
+      powerpc/PCI: get rid of device resource fixups
+      sh/PCI: get rid of device resource fixups
+      sparc/PCI: get rid of device resource fixups
+      xtensa/PCI: get rid of device resource fixups
+      PCI: collapse pcibios_resource_to_bus
+
+
+ arch/alpha/include/asm/pci.h          |    6 -
+ arch/alpha/kernel/pci.c               |   71 +-----------
+ arch/arm/common/it8152.c              |    4 -
+ arch/arm/include/asm/pci.h            |    8 -
+ arch/arm/kernel/bios32.c              |   69 +----------
+ arch/arm/mach-cns3xxx/pcie.c          |    4 -
+ arch/arm/mach-dove/pcie.c             |    4 -
+ arch/arm/mach-footbridge/dc21285.c    |    8 +
+ arch/arm/mach-integrator/pci_v3.c     |    7 +
+ arch/arm/mach-iop13xx/pci.c           |    4 -
+ arch/arm/mach-ixp2000/pci.c           |    6 +
+ arch/arm/mach-ixp23xx/pci.c           |    6 +
+ arch/arm/mach-ixp4xx/common-pci.c     |    4 -
+ arch/arm/mach-kirkwood/pcie.c         |    4 -
+ arch/arm/mach-ks8695/pci.c            |    4 -
+ arch/arm/mach-mv78xx0/pcie.c          |    4 -
+ arch/arm/mach-orion5x/pci.c           |   14 +-
+ arch/arm/mach-sa1100/pci-nanoengine.c |    8 +
+ arch/arm/mach-tegra/pcie.c            |    6 -
+ arch/arm/mach-versatile/pci.c         |    6 -
+ arch/arm/plat-iop/pci.c               |    4 -
+ arch/ia64/include/asm/pci.h           |    6 -
+ arch/ia64/pci/pci.c                   |   55 ---------
+ arch/ia64/sn/kernel/io_init.c         |   16 ++-
+ arch/microblaze/include/asm/pci.h     |    8 -
+ arch/microblaze/pci/pci-common.c      |   69 -----------
+ arch/mips/include/asm/pci.h           |    6 -
+ arch/mips/pci/pci.c                   |   70 -----------
+ arch/mn10300/include/asm/pci.h        |   16 ---
+ arch/mn10300/unit-asb2305/pci.c       |   62 +---------
+ arch/parisc/include/asm/pci.h         |   38 ------
+ arch/parisc/kernel/pci.c              |   52 --------
+ arch/powerpc/include/asm/pci.h        |    8 -
+ arch/powerpc/kernel/pci-common.c      |   79 +------------
+ arch/sh/drivers/pci/pci.c             |   75 ++----------
+ arch/sh/include/asm/pci.h             |    6 -
+ arch/sparc/include/asm/pci_32.h       |    8 -
+ arch/sparc/include/asm/pci_64.h       |    8 -
+ arch/sparc/kernel/leon_pci.c          |   47 +-------
+ arch/sparc/kernel/pci.c               |   46 +-------
+ arch/xtensa/kernel/pci.c              |   17 ---
+ drivers/parisc/dino.c                 |   27 +---
+ drivers/parisc/lba_pci.c              |   31 +----
+ drivers/pci/bus.c                     |   30 +++--
+ drivers/pci/probe.c                   |  202 ++++++++++++++++++++++++++-------
+ include/asm-generic/pci.h             |   24 ----
+ include/linux/pci.h                   |   18 +++
+ 47 files changed, 324 insertions(+), 951 deletions(-)
 
 -- 
-Siemens AG, Corporate Technology, CT T DE IT 1
-Corporate Competence Center Embedded Linux
+Bjorn
