@@ -1,80 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:52408 "EHLO mga01.intel.com"
+Received: from mx1.redhat.com ([209.132.183.28]:20156 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754567Ab2A3IOG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 03:14:06 -0500
-Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
-From: Vinod Koul <vinod.koul@intel.com>
-In-Reply-To: <4F1FFF7E.3000802@codeaurora.org>
-References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
-	 <1326807902.1540.116.camel@vkoul-udesk3> <4F195E4C.6080805@codeaurora.org>
-	  <1327066287.517.4.camel@vkoul-udesk3> <4F1D4052.3070701@codeaurora.org>
-	 <1327326713.517.32.camel@vkoul-udesk3> <4F1FFF7E.3000802@codeaurora.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Mon, 30 Jan 2012 13:45:15 +0530
-Message-ID: <1327911315.1527.8.camel@vkoul-udesk3>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	id S1752363Ab2A3MQ3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 07:16:29 -0500
+Date: Mon, 30 Jan 2012 14:18:25 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH 0/3] arch: fix ioport mapping on mips,sh
+Message-ID: <cover.1327877053.git.mst@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ravi Kumar V <kumarrav@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux@arm.linux.org.uk, arnd@arndb.de, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, bryanh@codeaurora.org, tsoni@codeaurora.org, Daniel Walker <dwalker@fifo99.com>, dan.j.williams@intel.com, davidb@codeaurora.org, linux-arm-kernel@lists.infradead.org, johlstei@codeaurora.org
-Message-ID: <20120130081515.9lQm4kL01HwZKCxj521s4uz7AyN-D436oqzXIl3ujQo@z>
+To: Kevin Cernekee <cernekee@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Arnd Bergmann <arnd@arndb.de>, "Michael S. Tsirkin" <mst@redhat.com>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120130121825.A5DhSS-d__oicYkS4U1SwPcXcZoVCXiRpSSOSj8Nu_U@z>
 
-On Wed, 2012-01-25 at 18:41 +0530, Ravi Kumar V wrote:
-> On 1/23/2012 7:21 PM, Vinod Koul wrote:
-> > On Mon, 2012-01-23 at 16:41 +0530, Ravi Kumar V wrote:
-> >>
-> >> If some changes are made in interleave API then it can support our BOX
-> >> mode. Here in interleaved template he is assuming destination pattern as
-> >> can be contiguous or same as source pattern, but in our case destination
-> >> pattern is different from source pattern.
-> >> So if a new parameter destination data chunk is added in "struct
-> >> dma_interleaved_template" structure then it can support different
-> >> destination pattern.
-> > do you mean you have cases where you are doing a "memcpy" from one
-> > interleaved memory to another?
-> > Can you provide me with a scenario where this maybe helpful?
-> 
-> Presently we are transferring data from interleaved memory tho 
-> contagious memory and vice-verse.
-> We can use the interleaved API for present scenario, but it will 
-> restrict the HW capability of transferring data from one interleaved 
-> pattern to other interleaved pattern.
-That's interesting capability.
-My question still unanswered is whats the real work usage of this
-capability. Helps to understand what this would be used for and
-providing optimal solution
-> 
-> >
-> > The reason why the API was designed like this was to give ability to
-> > take these kind of interleaved memory and copy them to peripheral
-> > (constant addr) or memory (typically contagious).
-> >
-> > In case it is just a pattern I wonder why it cannot be described in
-> > standard scatter gather definitions as you can split the block further
-> > down to copy from one respective block to somewhere else in memory.
-> 
-> We can use scatter gather but it will be extra burden on software to 
-> create those many SG list unlike in box mode just a single command 
-> serves the purpose.
-> 
-> >> Also it will good if you can provide another parameter for passing
-> >> private data to dma driver.
-> > 1. what does this parameter do?
-> 
-> Private parameter in our case will be command configuration parameter 
-> where we are passing information to HW like endianness, synchronization 
-> & acknowledge mechanism between DMA HW and peripherals running with 
-> different clock than DMA.
-This is a separate discussion. We had similar talk on need to pass
-controller/subsystem specific parameters [1] sometime back during RIO
-patches. Alexandre has posted a new RFC [2] which should be extended to
-whatever API you finally end up using
+Kevin Cernekee reported that recent cleanup
+that replaced pci_iomap with a generic function
+failed to take into account the differences
+in io port handling on mips and sh architectures.
 
-[1]: https://lkml.org/lkml/2011/10/24/275 
-[2]: https://lkml.org/lkml/2012/1/26/405
+Rather than revert the changes reintroducing the
+code duplication, this patchset fixes this
+by adding ability for architectures to override
+ioport mapping for pci devices.
+
+I put this in my tree that feeds into linux-next
+and intend to ask Linus to pull this fix if this
+doesn't cause any issues and there are no objections.
+
+The patches were tested on x86 and compiled on mips and sh.
+Would appreciate reviews/acks/testing reports.
+
+Michael S. Tsirkin (3):
+  lib: add NO_GENERIC_PCI_IOPORT_MAP
+  mips: use the the PCI controller's io_map_base
+  sh: use the the PCI channels's io_map_base
+
+ arch/mips/Kconfig               |    1 +
+ arch/mips/lib/iomap-pci.c       |    4 ++--
+ arch/sh/Kconfig                 |    1 +
+ arch/sh/drivers/pci/pci.c       |    4 ++--
+ include/asm-generic/pci_iomap.h |    5 +++++
+ lib/Kconfig                     |    3 +++
+ lib/pci_iomap.c                 |   12 +++++++++++-
+ 7 files changed, 25 insertions(+), 5 deletions(-)
 
 -- 
-~Vinod
-
+1.7.8.2.325.g247f9
