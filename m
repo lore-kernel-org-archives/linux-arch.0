@@ -1,117 +1,72 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 08/13] PCI: Add pci_bus_extend/shrink_top()
-Date: Mon, 30 Jan 2012 07:50:17 -0800
-Message-ID: <CAErSpo6dihCWme3bgVV0AjHXnKd78BskLVj2LZqHocoAp83h+Q@mail.gmail.com>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-9-git-send-email-yinghai@kernel.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
+Date: Mon, 30 Jan 2012 15:51:46 +0000
+Message-ID: <201201301551.46907.arnd@arndb.de>
+References: <cover.1327877053.git.mst@redhat.com> <d78d91d0166651700cf662a50c87d84da4bdab88.1327877053.git.mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:46185 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753086Ab2A3Pui convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 10:50:38 -0500
-Received: by wics10 with SMTP id s10so3549676wic.19
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 07:50:37 -0800 (PST)
-In-Reply-To: <1327718971-9598-9-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <d78d91d0166651700cf662a50c87d84da4bdab88.1327877053.git.mst@redhat.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> extend or shrink bus and parent buses top (subordinate)
->
-> extended range is verified safe range, and stop at recorded parent_re=
-s.
->
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
-> =A0drivers/pci/probe.c | =A0 50 +++++++++++++++++++++++++++++++++++++=
-+++++++++++++
-> =A01 files changed, 50 insertions(+), 0 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index 55404c3..3e62f45 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -624,6 +624,56 @@ static void pci_fixup_parent_subordinate_busnr(s=
-truct pci_bus *child, int max)
-> =A0 =A0 =A0 =A0}
-> =A0}
->
-> +static void __devinit pci_bus_extend_top(struct pci_bus *parent,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0resource_size_t size, struct resourc=
-e *parent_res)
+On Monday 30 January 2012, Michael S. Tsirkin wrote:
+> --- a/include/asm-generic/pci_iomap.h
+> +++ b/include/asm-generic/pci_iomap.h
+> @@ -15,6 +15,11 @@ struct pci_dev;
+>  #ifdef CONFIG_PCI
+>  /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+>  extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
+> +/* Create a virtual mapping cookie for a port on a given PCI device.
+> + * Do not call this directly, it exists to make it easier for architectures
+> + * to override. */
+> +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
+> +                                     unsigned int nr);
+>  #else
+>  static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
+>  {
+> index 4b0fdc2..1dfda29 100644
+> --- a/lib/pci_iomap.c
+> +++ b/lib/pci_iomap.c
+> @@ -9,6 +9,16 @@
+>  #include <linux/export.h>
+>  
+>  #ifdef CONFIG_PCI
+> +#ifndef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
+> +/* Architectures can override ioport mapping while
+> + * still using the rest of the generic infrastructure. */
+> +void __iomem *__pci_ioport_map(struct pci_dev *dev,
+> +                              unsigned long port,
+> +                              unsigned int nr)
 > +{
-> + =A0 =A0 =A0 struct resource *res;
-> +
-> + =A0 =A0 =A0 if (!size)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return;
-> +
-> + =A0 =A0 =A0 while (parent) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res =3D &parent->busn_res;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res =3D=3D parent_res)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res->end +=3D size;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent->subordinate +=3D size;
-
-This makes me nervous for the same reason as
-pci_bus_update_busn_res_end() -- we're changing res->end for resources
-already in a tree.  How do we know the tree remains consistent?
-
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_write_config_byte(parent->self, PCI=
-_SUBORDINATE_BUS,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0parent->subordinate);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &parent->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "busn_r=
-es: extended %02llx to %06llx-%06llx\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)size,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)res->start,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)res->end);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent =3D parent->parent;
-> + =A0 =A0 =A0 }
+> +       return ioport_map(port, nr);
 > +}
-> +
-> +static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0resource_size_t size, struct resourc=
-e *parent_res)
-> +{
-> + =A0 =A0 =A0 struct resource *res;
-> +
-> + =A0 =A0 =A0 if (!size)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return;
-> +
-> + =A0 =A0 =A0 while (parent) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res =3D &parent->busn_res;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res =3D=3D parent_res)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res->end -=3D size;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent->subordinate -=3D size;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_write_config_byte(parent->self, PCI=
-_SUBORDINATE_BUS,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0parent->subordinate);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &parent->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "busn_r=
-es: shrunk %02llx to %06llx-%06llx\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)size,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)res->start,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)res->end);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent =3D parent->parent;
-> + =A0 =A0 =A0 }
-> +}
-> +
-> =A0/*
-> =A0* If it's a bridge, configure it and scan the bus behind it.
-> =A0* For CardBus bridges, we don't scan behind as the devices will
-> --
-> 1.7.7
->
+> +#endif
+>  /**
+>   * pci_iomap - create a virtual mapping cookie for a PCI BAR
+>   * @dev: PCI device that owns the BAR
+
+This looks correct, but it would be nicer to express this with an inline
+function and keeping the new #ifdef to the header file, like
+
++/*
++ * Create a virtual mapping cookie for a port on a given PCI device.
++ * Do not call this directly, it exists to make it easier for architectures
++ * to override.
++ */
++#ifdef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
++extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
++                                     unsigned int nr);
++#else
++static inline void __iomem *__pci_ioport_map(struct pci_dev *dev,
++                              unsigned long port, unsigned int nr)
++{
++       return ioport_map(port, nr);
++}
++#endif
+
+	Arnd
