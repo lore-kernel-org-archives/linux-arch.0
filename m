@@ -1,51 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:62094 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752415Ab2A3Vq4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 16:46:56 -0500
-Received: by wics10 with SMTP id s10so3873152wic.19
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 13:46:55 -0800 (PST)
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:37151 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752526Ab2A3WAX convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 17:00:23 -0500
+Received: by wgbed3 with SMTP id ed3so5189218wgb.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 14:00:22 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <1327956544.28487.47.camel@pasglop>
+In-Reply-To: <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
 References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
- <20120130165820.3231.9878.stgit@bhelgaas.mtv.corp.google.com> <1327956544.28487.47.camel@pasglop>
+ <20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com> <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 30 Jan 2012 13:46:35 -0800
-Message-ID: <CAErSpo7qV084bxjfds=oaZ45xDB4=u78T6UmjpmbDWd3yBcCmA@mail.gmail.com>
-Subject: Re: [RFC PATCH v1 14/18] powerpc/PCI: get rid of device resource fixups
+Date: Mon, 30 Jan 2012 14:00:02 -0800
+Message-ID: <CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 02/18] PCI: add struct pci_host_bridge and a list
+ of all bridges found
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Yinghai Lu <yinghai@kernel.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130214635.QPRCQ5PR-1k9-mlj7JospxR_xsb8YNdZJCCdQsaQ49E@z>
+Message-ID: <20120130220002.SkEVqfDmiQhLiGeo9rn4vmf_2W5mpPQjEfn746-potQ@z>
 
-On Mon, Jan 30, 2012 at 12:49 PM, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
-> On Mon, 2012-01-30 at 09:58 -0700, Bjorn Helgaas wrote:
->> Tell the PCI core about host bridge address translation so it can take
->> care of bus-to-resource conversion for us.
+On Mon, Jan 30, 2012 at 12:52 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Mon, Jan 30, 2012 at 8:57 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> This adds a list of all PCI host bridges we find and a way to look up
+>> the host bridge from a pci_dev.
+>> ---
+>>  drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
+>>  include/linux/pci.h |    5 +++++
+>>  2 files changed, 39 insertions(+), 5 deletions(-)
 >>
->> N.B. powerpc used a 32-bit mask when converting IO addresses.  If we
->> figure out the right offset, I think simple addition should do the
->> same thing, but I might not have it exactly right yet.
+>> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+>> index da0d655..2ffe8a3 100644
+>> --- a/drivers/pci/probe.c
+>> +++ b/drivers/pci/probe.c
+>> @@ -15,6 +15,8 @@
+>>  #define CARDBUS_LATENCY_TIMER  176     /* secondary latency timer */
+>>  #define CARDBUS_RESERVE_BUSNR  3
+>>
+>> +static LIST_HEAD(pci_host_bridges);
+>> +
+>>  /* Ugh.  Need to stop exporting this to modules. */
+>>  LIST_HEAD(pci_root_buses);
+>>  EXPORT_SYMBOL(pci_root_buses);
+>> @@ -42,6 +44,23 @@ int no_pci_devices(void)
+>>  }
+>>  EXPORT_SYMBOL(no_pci_devices);
+>>
+>> +static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
+>> +{
+>> +       struct pci_bus *bus;
+>> +       struct pci_host_bridge *bridge;
+>> +
+>> +       bus = dev->bus;
+>> +       while (bus->parent)
+>> +               bus = bus->parent;
+>> +
+>> +       list_for_each_entry(bridge, &pci_host_bridges, list) {
+>> +               if (bridge->bus == bus)
+>> +                       return bridge;
+>> +       }
+>> +
+>> +       return NULL;
+>> +}
+>> +
+>>  /*
+>>  * PCI Bus Class
+>>  */
+>> @@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>>                struct pci_ops *ops, void *sysdata, struct list_head *resources)
+>>  {
+>>        int error, i;
+>> +       struct pci_host_bridge *bridge;
+>>        struct pci_bus *b, *b2;
+>>        struct device *dev;
+>>        struct pci_bus_resource *bus_res, *n;
+>>        struct resource *res;
+>>
+>> +       bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
+>> +       if (!bridge)
+>> +               return NULL;
+>> +
+>>        b = pci_alloc_bus();
+>>        if (!b)
+>> -               return NULL;
+>> +               goto err_bus;
+>>
+>>        dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+>> -       if (!dev) {
+>> -               kfree(b);
+>> -               return NULL;
+>> -       }
+>> +       if (!dev)
+>> +               goto err_dev;
+>>
+>>        b->sysdata = sysdata;
+>>        b->ops = ops;
+>> @@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>>
+>>        b->number = b->secondary = bus;
+>>
+>> +       bridge->bus = b;
+>> +
+>>        /* Add initial resources to the bus */
+>>        list_for_each_entry_safe(bus_res, n, resources, list)
+>>                list_move_tail(&bus_res->list, &b->resources);
+>> @@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>>        }
+>>
+>>        down_write(&pci_bus_sem);
+>> +       list_add_tail(&bridge->list, &pci_host_bridges);
+>>        list_add_tail(&b->node, &pci_root_buses);
+>>        up_write(&pci_bus_sem);
 >
-> Wow that's going to be a big change :-) A quick look... seems like you
-> do a per-resource offset right ? I will need that (was about to change
-> powerpc) as we have hardware that provides us with two different windows
-> to MMIO space with different offsets unfortunately.
+> we already have list for root_bus. So there will be two lists.
 
-Exactly ... the offset is per-aperture.
+Yeah, I'm not sure we need both either.  If we do end up adding a
+struct pci_host_bridge, then I think it makes sense to keep a list of
+*those* (and possibly remove the root_bus list), since that's a
+slightly higher-level abstraction than root_bus is.
 
-> One thing I also want to generalize is the whole "REASSIGN_ALL_RSRC"
-> flag, ie, avoid reading & printing all those resources we know we are
-> just going to kill off.
->
-> I'll try to test your stuff asap (I'm doing 3 things at once right now
-> so it might take a few days unless I find somebody to look at it).
+> wonder if we can overload bus->self point to struct host_bridge.
 
-Thanks!  No particular rush on my side; I'm expecting to have to
-iterate a few times to get this right.
+pci_bus->self points to a struct pci_dev.  A host bridge is not a
+pci_dev.  I don't think it's a good idea to simply reuse "self" to
+point to something of a different type, but maybe you have something
+different in mind.
+
+> or just do not add host_bridge , and instead only add another field
+> like struct list_head windows in pci_sysdata?
+
+The pci_sysdata I see is an x86-specific thing, so I don't see how
+that would help.
 
 Bjorn
