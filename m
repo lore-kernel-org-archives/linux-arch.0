@@ -1,140 +1,45 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
+From: Yinghai Lu <yinghai@kernel.org>
 Subject: Re: [RFC PATCH v1 02/18] PCI: add struct pci_host_bridge and a list
  of all bridges found
-Date: Mon, 30 Jan 2012 14:00:02 -0800
-Message-ID: <CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
+Date: Mon, 30 Jan 2012 14:29:50 -0800
+Message-ID: <CAE9FiQUUvdG4R=sg3R6K_ZxPGT2WwWJj6ZvPSwvkyHh=ApFAuw@mail.gmail.com>
 References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
- <20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com> <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
+	<20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
+	<CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
+	<CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
+In-Reply-To: <CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
 Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 30, 2012 at 12:52 PM, Yinghai Lu <yinghai@kernel.org> wrote=
-:
-> On Mon, Jan 30, 2012 at 8:57 AM, Bjorn Helgaas <bhelgaas@google.com> =
-wrote:
->> This adds a list of all PCI host bridges we find and a way to look u=
-p
->> the host bridge from a pci_dev.
->> ---
->> =A0drivers/pci/probe.c | =A0 39 ++++++++++++++++++++++++++++++++++--=
----
->> =A0include/linux/pci.h | =A0 =A05 +++++
->> =A02 files changed, 39 insertions(+), 5 deletions(-)
+On Mon, Jan 30, 2012 at 2:00 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
+ote:
+
 >>
->> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
->> index da0d655..2ffe8a3 100644
->> --- a/drivers/pci/probe.c
->> +++ b/drivers/pci/probe.c
->> @@ -15,6 +15,8 @@
->> =A0#define CARDBUS_LATENCY_TIMER =A0176 =A0 =A0 /* secondary latency=
- timer */
->> =A0#define CARDBUS_RESERVE_BUSNR =A03
->>
->> +static LIST_HEAD(pci_host_bridges);
->> +
->> =A0/* Ugh. =A0Need to stop exporting this to modules. */
->> =A0LIST_HEAD(pci_root_buses);
->> =A0EXPORT_SYMBOL(pci_root_buses);
->> @@ -42,6 +44,23 @@ int no_pci_devices(void)
->> =A0}
->> =A0EXPORT_SYMBOL(no_pci_devices);
->>
->> +static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
->> +{
->> + =A0 =A0 =A0 struct pci_bus *bus;
->> + =A0 =A0 =A0 struct pci_host_bridge *bridge;
->> +
->> + =A0 =A0 =A0 bus =3D dev->bus;
->> + =A0 =A0 =A0 while (bus->parent)
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 bus =3D bus->parent;
->> +
->> + =A0 =A0 =A0 list_for_each_entry(bridge, &pci_host_bridges, list) {
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (bridge->bus =3D=3D bus)
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return bridge;
->> + =A0 =A0 =A0 }
->> +
->> + =A0 =A0 =A0 return NULL;
->> +}
->> +
->> =A0/*
->> =A0* PCI Bus Class
->> =A0*/
->> @@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct d=
-evice *parent, int bus,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct pci_ops *ops, void *sysdata, s=
-truct list_head *resources)
->> =A0{
->> =A0 =A0 =A0 =A0int error, i;
->> + =A0 =A0 =A0 struct pci_host_bridge *bridge;
->> =A0 =A0 =A0 =A0struct pci_bus *b, *b2;
->> =A0 =A0 =A0 =A0struct device *dev;
->> =A0 =A0 =A0 =A0struct pci_bus_resource *bus_res, *n;
->> =A0 =A0 =A0 =A0struct resource *res;
->>
->> + =A0 =A0 =A0 bridge =3D kzalloc(sizeof(*bridge), GFP_KERNEL);
->> + =A0 =A0 =A0 if (!bridge)
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
->> +
->> =A0 =A0 =A0 =A0b =3D pci_alloc_bus();
->> =A0 =A0 =A0 =A0if (!b)
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto err_bus;
->>
->> =A0 =A0 =A0 =A0dev =3D kzalloc(sizeof(*dev), GFP_KERNEL);
->> - =A0 =A0 =A0 if (!dev) {
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 kfree(b);
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
->> - =A0 =A0 =A0 }
->> + =A0 =A0 =A0 if (!dev)
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto err_dev;
->>
->> =A0 =A0 =A0 =A0b->sysdata =3D sysdata;
->> =A0 =A0 =A0 =A0b->ops =3D ops;
->> @@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct dev=
-ice *parent, int bus,
->>
->> =A0 =A0 =A0 =A0b->number =3D b->secondary =3D bus;
->>
->> + =A0 =A0 =A0 bridge->bus =3D b;
->> +
->> =A0 =A0 =A0 =A0/* Add initial resources to the bus */
->> =A0 =A0 =A0 =A0list_for_each_entry_safe(bus_res, n, resources, list)
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0list_move_tail(&bus_res->list, &b->re=
-sources);
->> @@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct dev=
-ice *parent, int bus,
->> =A0 =A0 =A0 =A0}
->>
->> =A0 =A0 =A0 =A0down_write(&pci_bus_sem);
->> + =A0 =A0 =A0 list_add_tail(&bridge->list, &pci_host_bridges);
->> =A0 =A0 =A0 =A0list_add_tail(&b->node, &pci_root_buses);
->> =A0 =A0 =A0 =A0up_write(&pci_bus_sem);
 >
-> we already have list for root_bus. So there will be two lists.
+> pci_bus->self points to a struct pci_dev. =A0A host bridge is not a
+> pci_dev. =A0I don't think it's a good idea to simply reuse "self" to
+> point to something of a different type, but maybe you have something
+> different in mind.
 
-Yeah, I'm not sure we need both either.  If we do end up adding a
-struct pci_host_bridge, then I think it makes sense to keep a list of
-*those* (and possibly remove the root_bus list), since that's a
-slightly higher-level abstraction than root_bus is.
+oh, maybe some root bus will not self to null. (that is why
+is_pci_root_bus() is checking parent).
 
-> wonder if we can overload bus->self point to struct host_bridge.
+>
+>> or just do not add host_bridge , and instead only add another field
+>> like struct list_head windows in pci_sysdata?
+>
+> The pci_sysdata I see is an x86-specific thing, so I don't see how
+> that would help.
 
-pci_bus->self points to a struct pci_dev.  A host bridge is not a
-pci_dev.  I don't think it's a good idea to simply reuse "self" to
-point to something of a different type, but maybe you have something
-different in mind.
+then expand it.
 
-> or just do not add host_bridge , and instead only add another field
-> like struct list_head windows in pci_sysdata?
+after that you don't need to go over up to find root bus for one pci
+dev and compare root bus with hostbridge list to find out hostbridge.
 
-The pci_sysdata I see is an x86-specific thing, so I don't see how
-that would help.
-
-Bjorn
+Yinghai
