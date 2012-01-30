@@ -1,55 +1,70 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
-Date: Mon, 30 Jan 2012 20:04:32 +0000
-Message-ID: <201201302004.33083.arnd@arndb.de>
-References: <cover.1327877053.git.mst@redhat.com> <201201301551.46907.arnd@arndb.de> <20120130161818.GA9345@redhat.com>
+From: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Subject: Re: [PATCH] fix compile break caused by iomap: make IOPORT/PCI mapping functions conditional
+Date: Mon, 30 Jan 2012 21:10:45 +0100
+Message-ID: <1539148.qFWsuy2OOI@eto>
+References: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63041 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752627Ab2A3UFB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 15:05:01 -0500
-In-Reply-To: <20120130161818.GA9345@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; boundary="nextPart1645417.cUTOy9pxfp"; micalg="pgp-sha1"; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Randy Dunlap <rdunlap@xenotime.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 30 January 2012, Michael S. Tsirkin wrote:
-> > 
-> > +/*
-> > + * Create a virtual mapping cookie for a port on a given PCI device.
-> > + * Do not call this directly, it exists to make it easier for architectures
-> > + * to override.
-> > + */
-> > +#ifdef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
-> > +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
-> > +                                     unsigned int nr);
-> > +#else
-> > +static inline void __iomem *__pci_ioport_map(struct pci_dev *dev,
-> > +                              unsigned long port, unsigned int nr)
-> > +{
-> > +       return ioport_map(port, nr);
-> > +}
-> > +#endif
-> > 
-> >       Arnd
+
+--nextPart1645417.cUTOy9pxfp
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
+
+Am Montag 30 Januar 2012, 10:40:47 schrieb James Bottomley:
+> The problem in
 > 
-> It would be nicer in that it would
-> make the kernel a bit smaller for generic architectures
-> but this would need to go into a separate header:
-> it depends on io.h and io.h depends on pci_iomap.h.
+> commit fea80311a939a746533a6d7e7c3183729d6a3faf
+> Author: Randy Dunlap <rdunlap@xenotime.net>
+> Date:   Sun Jul 24 11:39:14 2011 -0700
+> 
+>     iomap: make IOPORT/PCI mapping functions conditional
+> 
+> 
+> is that if your architecture supplies pci_iomap/pci_iounmap, it expects
+> always to supply them.  Adding empty body defitions in the !CONFIG_PCI
+> case, which is what this patch does, breaks the parisc compile because
+> the functions become doubly defined.  It took us a while to spot this,
+> because we don't actually build !CONFIG_PCI very often (only if someone
+> is brave enough to test the snake/asp machines).
+> 
+> Since the note in the commit log says this is to fix a
+> CONFIG_GENERIC_IOMAP issue (which it does because CONFIG_GENERIC_IOMAP
+> supplies pci_iounmap only if CONFIG_PCI is set), there should actually
+> have been a condition upon this.  This should make sure no other
+> architecture's !CONFIG_PCI compile breaks in the same way as parisc.
+> 
+> The fix had to be updated to take account of the GENERIC_PCI_IOMAP
+> separation.
 
-Adding extra dependencies is not good here, I agree.
-Maybe  a better solution is to use a macro instead of an inline
-function then:
+So this means we end up still building the PA-RISC PCI code even if the config 
+says no PCI. That doesn't really sound consistent to me. I really would have 
+expected that we do not build any non-void PCI code then.
 
-#define  __pci_ioport_map(dev, port, nr) ioport_map(port, nr)
+> Reported-by: Rolf Eike Beer <eike@sf-mail.de>
 
-In general, macros should be avoided, but I think it's the
-best tradeoff in this case.
+I used the wrong email account when sending out the last patch where you took 
+that from, please change that to the address used in this mail.
 
-	Arnd
+Eike
+--nextPart1645417.cUTOy9pxfp
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.18 (GNU/Linux)
+
+iEYEABECAAYFAk8m+UwACgkQXKSJPmm5/E7FrgCaA2uVI5Xy5j0ck//kZHPWB9oZ
+DT4AnjagwQ8gBcNGVtWV3ECQEKKMF26r
+=O17p
+-----END PGP SIGNATURE-----
+
+--nextPart1645417.cUTOy9pxfp--
+
