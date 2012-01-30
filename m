@@ -1,47 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:29226 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753597Ab2A3PuC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 10:50:02 -0500
-Message-ID: <4F26BC1A.8060002@redhat.com>
-Date: Mon, 30 Jan 2012 17:49:46 +0200
-From: Avi Kivity <avi@redhat.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:53383 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751742Ab2A3PwM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 10:52:12 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
+Date: Mon, 30 Jan 2012 15:51:46 +0000
+References: <cover.1327877053.git.mst@redhat.com> <d78d91d0166651700cf662a50c87d84da4bdab88.1327877053.git.mst@redhat.com>
+In-Reply-To: <d78d91d0166651700cf662a50c87d84da4bdab88.1327877053.git.mst@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com> <20120130153244.GA6875@mgebm.net>
-In-Reply-To: <20120130153244.GA6875@mgebm.net>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201201301551.46907.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Jan Kiszka <jan.kiszka@web.de>
-Message-ID: <20120130154946.2H5vaThhTpFUi7o2mGNlOt-u9JM95M6VHFAJcpBvtuo@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120130155146.RWcG4DiIe8hSgJKAujv9TghczH8HZy07eHwtRKhCXFM@z>
 
-On 01/30/2012 05:32 PM, Eric B Munson wrote:
-> > 
-> > Can you point me to the discussion that moved this to be a vm ioctl?  In
-> > general vm ioctls that do things for all vcpus are racy, like here. 
-> > You're accessing variables that are protected by the vcpu mutex, and not
-> > taking the mutex (nor can you, since it is held while the guest is
-> > running, unlike most kernel mutexes).
-> > 
->
-> Jan Kiszka suggested that becuase there isn't a use case for notifying
-> individual vcpus (can vcpu's be paused individually?
+On Monday 30 January 2012, Michael S. Tsirkin wrote:
+> --- a/include/asm-generic/pci_iomap.h
+> +++ b/include/asm-generic/pci_iomap.h
+> @@ -15,6 +15,11 @@ struct pci_dev;
+>  #ifdef CONFIG_PCI
+>  /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
+>  extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
+> +/* Create a virtual mapping cookie for a port on a given PCI device.
+> + * Do not call this directly, it exists to make it easier for architectures
+> + * to override. */
+> +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
+> +                                     unsigned int nr);
+>  #else
+>  static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
+>  {
+> index 4b0fdc2..1dfda29 100644
+> --- a/lib/pci_iomap.c
+> +++ b/lib/pci_iomap.c
+> @@ -9,6 +9,16 @@
+>  #include <linux/export.h>
+>  
+>  #ifdef CONFIG_PCI
+> +#ifndef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
+> +/* Architectures can override ioport mapping while
+> + * still using the rest of the generic infrastructure. */
+> +void __iomem *__pci_ioport_map(struct pci_dev *dev,
+> +                              unsigned long port,
+> +                              unsigned int nr)
+> +{
+> +       return ioport_map(port, nr);
+> +}
+> +#endif
+>  /**
+>   * pci_iomap - create a virtual mapping cookie for a PCI BAR
+>   * @dev: PCI device that owns the BAR
 
-They can, though the guest will grind to a halt very soon.
+This looks correct, but it would be nicer to express this with an inline
+function and keeping the new #ifdef to the header file, like
 
-> ) that it makes more sense
-> to have a vm ioctl.
->
-> http://thread.gmane.org/gmane.comp.emulators.qemu/131624
->
-> If the per vcpu ioctl is the right choice I can resend those patches.
++/*
++ * Create a virtual mapping cookie for a port on a given PCI device.
++ * Do not call this directly, it exists to make it easier for architectures
++ * to override.
++ */
++#ifdef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
++extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
++                                     unsigned int nr);
++#else
++static inline void __iomem *__pci_ioport_map(struct pci_dev *dev,
++                              unsigned long port, unsigned int nr)
++{
++       return ioport_map(port, nr);
++}
++#endif
 
-The races are solvable but I think it's easier in userspace.  It's also
-more flexible, though I don't really see a use for this flexibility.
-
--- 
-error compiling committee.c: too many arguments to function
-
+	Arnd
