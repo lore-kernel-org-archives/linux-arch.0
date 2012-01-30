@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:35746 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752185Ab2A3SmB convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 13:42:01 -0500
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:53240 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752283Ab2A3Svb convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 13:51:31 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo6dihCWme3bgVV0AjHXnKd78BskLVj2LZqHocoAp83h+Q@mail.gmail.com>
+In-Reply-To: <CAErSpo5QYvx6dtL4NqW4Pu29HXbS-kcTq-GKvpJO8AJ6vRYeBw@mail.gmail.com>
 References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-	<1327718971-9598-9-git-send-email-yinghai@kernel.org>
-	<CAErSpo6dihCWme3bgVV0AjHXnKd78BskLVj2LZqHocoAp83h+Q@mail.gmail.com>
-Date: Mon, 30 Jan 2012 10:42:01 -0800
-Message-ID: <CAE9FiQX1=U=ysmvRY4Kwx8MAR1KWxn3JaD32xjdCSnbWXT7V2A@mail.gmail.com>
-Subject: Re: [PATCH 08/13] PCI: Add pci_bus_extend/shrink_top()
+	<1327718971-9598-10-git-send-email-yinghai@kernel.org>
+	<CAErSpo5QYvx6dtL4NqW4Pu29HXbS-kcTq-GKvpJO8AJ6vRYeBw@mail.gmail.com>
+Date: Mon, 30 Jan 2012 10:51:30 -0800
+Message-ID: <CAE9FiQWLRvXXyeEhvW+n55_Q+P88xyfgLCKwyK8d4tg679-8gg@mail.gmail.com>
+Subject: Re: [PATCH 09/13] PCI: Probe safe range that we can use for
+ unassigned bridge.
 From: Yinghai Lu <yinghai@kernel.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
@@ -18,20 +19,43 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130184201.ORkKkKZUMd1uvQ5tTlYtEwGPN8Cl1ZTxBMdrmau_10Y@z>
+Message-ID: <20120130185130.SuH08GJtPMn48jf-0bjD9XcLBsBXU3xrRJOROErwO1Q@z>
 
-On Mon, Jan 30, 2012 at 7:50 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+On Mon, Jan 30, 2012 at 7:59 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
 > On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> extend or shrink bus and parent buses top (subordinate)
+>> Try to allocate from parent bus busn_res. if can not find any big enough, will try
+>> to extend parent bus top. even the extending is through allocating, after allocating
+>> will pad the range to parent buses top.
 >>
->> extended range is verified safe range, and stop at recorded parent_res.
-...
-> This makes me nervous for the same reason as
-> pci_bus_update_busn_res_end() -- we're changing res->end for resources
-> already in a tree.  How do we know the tree remains consistent?
+>> When extending happens, We will record the parent_res, so could use it as stopper
+>> for really extend/shrink top later.
+>>
+..
 >
+> I think what this does is "find the largest available area in 'res'."
+> That *sounds* sort of useful (and like something that could go
+> somewhere more generic than drivers/pci/probe.c), but there's no
+> locking, so we don't have any assurance that the area we find will
+> *remain* available.
 
-Yes, we already try to allocate near the top and later pad the top. So
-it is safe to just adjust top.
+two usages:
+1. init booting : should be safe, that is sequential scanning
+2. hotplug: we should have overall lock somewhere for it?
+
+>
+> Since the caller should deal with failure anyway (if the largest
+> available area is no longer available by the time it gets around to
+> allocating it), it seems like it'd be better to fold this into the
+> caller somehow.
+
+
+
+>> +               if (ret == 0) {
+>> +                       /* release busn_res */
+>
+> Comments like this that repeat exactly what the next line of code does
+> without adding any useful information are unnecessary and distracting.
+
+ok, will remove them.
 
 Yinghai
