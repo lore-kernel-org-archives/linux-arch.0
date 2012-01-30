@@ -1,211 +1,87 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 09/13] PCI: Probe safe range that we can use for
- unassigned bridge.
-Date: Mon, 30 Jan 2012 07:59:57 -0800
-Message-ID: <CAErSpo5QYvx6dtL4NqW4Pu29HXbS-kcTq-GKvpJO8AJ6vRYeBw@mail.gmail.com>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-10-git-send-email-yinghai@kernel.org>
+From: Eric B Munson <emunson@mgebm.net>
+Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Mon, 30 Jan 2012 11:01:55 -0500
+Message-ID: <20120130160155.GC6875@mgebm.net>
+References: <1326825641-15765-1-git-send-email-emunson@mgebm.net>
+ <1326825641-15765-4-git-send-email-emunson@mgebm.net>
+ <4F26B220.9050101@redhat.com>
+ <20120130153244.GA6875@mgebm.net>
+ <4F26BC1A.8060002@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="da4uJneut+ArUgXk"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:36549 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753505Ab2A3QAT convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:00:19 -0500
-Received: by wgbed3 with SMTP id ed3so4801840wgb.1
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 08:00:18 -0800 (PST)
-In-Reply-To: <1327718971-9598-10-git-send-email-yinghai@kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:47789 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753769Ab2A3QB4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 11:01:56 -0500
+Content-Disposition: inline
+In-Reply-To: <4F26BC1A.8060002@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Avi Kivity <avi@redhat.com>
+Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Jan Kiszka <jan.kiszka@web.de>
 
-On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> Try to allocate from parent bus busn_res. if can not find any big eno=
-ugh, will try
-> to extend parent bus top. even the extending is through allocating, a=
-fter allocating
-> will pad the range to parent buses top.
->
-> When extending happens, We will record the parent_res, so could use i=
-t as stopper
-> for really extend/shrink top later.
->
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
-> =A0drivers/pci/probe.c | =A0117 +++++++++++++++++++++++++++++++++++++=
-++++++++++++++
-> =A01 files changed, 117 insertions(+), 0 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index 3e62f45..83df3fb 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -674,6 +674,123 @@ static void __devinit pci_bus_shrink_top(struct=
- pci_bus *parent,
-> =A0 =A0 =A0 =A0}
-> =A0}
->
-> +static resource_size_t __devinit find_res_top_free_size(struct resou=
-rce *res)
 
-I think what this does is "find the largest available area in 'res'."
-That *sounds* sort of useful (and like something that could go
-somewhere more generic than drivers/pci/probe.c), but there's no
-locking, so we don't have any assurance that the area we find will
-*remain* available.
+--da4uJneut+ArUgXk
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Since the caller should deal with failure anyway (if the largest
-available area is no longer available by the time it gets around to
-allocating it), it seems like it'd be better to fold this into the
-caller somehow.
+On Mon, 30 Jan 2012, Avi Kivity wrote:
 
-> +{
-> + =A0 =A0 =A0 int ret =3D -ENOMEM;
-> + =A0 =A0 =A0 resource_size_t n_size;
-> + =A0 =A0 =A0 struct resource tmp_res;
-> +
-> + =A0 =A0 =A0 /*
-> + =A0 =A0 =A0 =A0* =A0 find out number below res->end, that we can us=
-e at first
-> + =A0 =A0 =A0 =A0* =A0 =A0 =A0res->start can not be used.
-> + =A0 =A0 =A0 =A0*/
-> + =A0 =A0 =A0 n_size =3D resource_size(res) - 1;
-> + =A0 =A0 =A0 memset(&tmp_res, 0, sizeof(struct resource));
-> + =A0 =A0 =A0 while (n_size > 0) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D allocate_resource(res, &tmp_res=
-, n_size,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 res->end - n_size + 1, =
-res->end,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 1, NULL, NULL);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (ret =3D=3D 0) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 /* release busn_res */
+> On 01/30/2012 05:32 PM, Eric B Munson wrote:
+> > >=20
+> > > Can you point me to the discussion that moved this to be a vm ioctl? =
+ In
+> > > general vm ioctls that do things for all vcpus are racy, like here.=
+=20
+> > > You're accessing variables that are protected by the vcpu mutex, and =
+not
+> > > taking the mutex (nor can you, since it is held while the guest is
+> > > running, unlike most kernel mutexes).
+> > >=20
+> >
+> > Jan Kiszka suggested that becuase there isn't a use case for notifying
+> > individual vcpus (can vcpu's be paused individually?
+>=20
+> They can, though the guest will grind to a halt very soon.
+>=20
+> > ) that it makes more sense
+> > to have a vm ioctl.
+> >
+> > http://thread.gmane.org/gmane.comp.emulators.qemu/131624
+> >
+> > If the per vcpu ioctl is the right choice I can resend those patches.
+>=20
+> The races are solvable but I think it's easier in userspace.  It's also
+> more flexible, though I don't really see a use for this flexibility.
+>=20
 
-Comments like this that repeat exactly what the next line of code does
-without adding any useful information are unnecessary and distracting.
+Okay, I will rebase the per vcpu patches and resend those.
 
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 release_resource(&tmp_r=
-es);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 n_size--;
-> + =A0 =A0 =A0 }
-> +
-> + =A0 =A0 =A0 return n_size;
-> +}
-> +
-> +static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct pci_dev *dev,=
- struct resource *busn_res,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0resource_size_t need=
-ed_size, struct resource **p)
-> +{
-> + =A0 =A0 =A0 int ret =3D -ENOMEM;
-> + =A0 =A0 =A0 resource_size_t n_size;
-> + =A0 =A0 =A0 struct pci_bus *parent;
-> + =A0 =A0 =A0 struct resource *parent_res;
-> + =A0 =A0 =A0 resource_size_t tmp =3D bus->busn_res.end + 1;
-> + =A0 =A0 =A0 int free_sz =3D -1;
-> +
-> + =A0 =A0 =A0 parent_res =3D NULL;
-> +
-> +again:
-> + =A0 =A0 =A0 /*
-> + =A0 =A0 =A0 =A0* find bigest range in bus->busn_res that we can use=
- in the middle
-> + =A0 =A0 =A0 =A0* =A0and we can not use bus->busn_res.start.
-> + =A0 =A0 =A0 =A0*/
-> + =A0 =A0 =A0 n_size =3D resource_size(&bus->busn_res) - 1;
-> + =A0 =A0 =A0 memset(busn_res, 0, sizeof(struct resource));
-> + =A0 =A0 =A0 dev_printk(KERN_DEBUG, &dev->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "find free busn in busn=
-_res: %06llx-%06llx\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)bus=
-->busn_res.start,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)bus=
-->busn_res.end);
-> + =A0 =A0 =A0 while (n_size >=3D needed_size) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D allocate_resource(&bus->busn_re=
-s, busn_res, n_size,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 bus->bu=
-sn_res.start + 1, bus->busn_res.end,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 1, NULL=
-, NULL);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (ret =3D=3D 0) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 /* release res */
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 release_resource(busn_r=
-es);
-> +
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return ret;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 n_size--;
-> + =A0 =A0 =A0 }
-> +
-> + =A0 =A0 =A0 /* try extend the top of parent buss */
-> + =A0 =A0 =A0 if (free_sz < 0) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 free_sz =3D find_res_top_free_size(&bus=
-->busn_res);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &dev->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "found free busn %d in =
-busn_res: %06llx-%06llx top\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 free_sz=
-,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)bus->busn_res.start,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsign=
-ed long long)bus->busn_res.end);
-> + =A0 =A0 =A0 }
-> + =A0 =A0 =A0 n_size =3D free_sz;
-> +
-> + =A0 =A0 =A0 /* check if extend could cross domain boundary */
-> + =A0 =A0 =A0 if ((bus->busn_res.end & 0xff) =3D=3D 0xff)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto reduce_needed_size;
-> + =A0 =A0 =A0 if ((0x100 - (tmp & 0xff)) < (needed_size - n_size))
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto reduce_needed_size;
-> +
-> + =A0 =A0 =A0 /* find exteded range */
-> + =A0 =A0 =A0 memset(busn_res, 0, sizeof(struct resource));
-> + =A0 =A0 =A0 parent =3D bus->parent;
-> + =A0 =A0 =A0 while (parent) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D allocate_resource(&parent->busn=
-_res, busn_res,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0needed_size - n_size=
-,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0tmp, tmp + needed_si=
-ze - n_size - 1,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A01, NULL, NULL);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (ret =3D=3D 0)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent =3D parent->parent;
-> + =A0 =A0 =A0 }
-> +
-> +reduce_needed_size:
-> + =A0 =A0 =A0 if (ret !=3D 0) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 needed_size--;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (!needed_size)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return ret;
-> +
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto again;
-> + =A0 =A0 =A0 }
-> +
-> + =A0 =A0 =A0 /* save parent_res, we need it as stopper later */
-> + =A0 =A0 =A0 parent_res =3D busn_res->parent;
-> + =A0 =A0 =A0 /* release busn_res */
-> + =A0 =A0 =A0 release_resource(busn_res);
-> + =A0 =A0 =A0 busn_res->start -=3D n_size;
-> +
-> + =A0 =A0 =A0 /* extend parent bus top*/
-> + =A0 =A0 =A0 pci_bus_extend_top(bus, needed_size - n_size, parent_re=
-s);
-> +
-> + =A0 =A0 =A0 *p =3D parent_res;
-> +
-> + =A0 =A0 =A0 return ret;
-> +}
-> +
-> =A0/*
-> =A0* If it's a bridge, configure it and scan the bus behind it.
-> =A0* For CardBus bridges, we don't scan behind as the devices will
-> --
-> 1.7.7
->
+Eric
+
+--da4uJneut+ArUgXk
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBAgAGBQJPJr7yAAoJEKhG9nGc1bpJQhsP/RkU11sX0jurHXtYNTRWpHtS
+I3L784GLjY3FMOIE5Ox12+m0MMzTXXlnr5cA7wYB0MNYwp6jf6RazIOwv6j6LrKJ
+d1a3AWwluQ5ZZ6a8B223m4BXVz5aDifIhcUGQZFzcpdQVQFvn6i8O961u0zRxwCi
+IGezhs16e18KgJywKt02DUnfZvbZiok2LXFRtFwdu4gOGUmIhF0D5kGqBTUdZwnF
+Mtim2ibSZT3Ccp1PzoZnFIWuwhmqbXV/ozm+/SA29Wj7M1LSgiYIer/M3XkaSvE6
+hE16Fr7IKPZjRX/SbGJRUnMk/UKPyo8UfJyGlbkF5cBt4/zC354elKqPru67vuSe
+SpCMeWqQDTYDyFmd+g/uUyCm/lmyxdtvrLgLtZN2K0jhjglrN4zdSd4dphchAIFn
+FmJLcs+ygP58ViLGacU+jriSmYomNKoP1CbtV6i5fQaP9Ob1xpjH3CyPlY/o1lDE
+JN8ilRDdTYNrIg1mwuJFZX02aMMnthSF2WvbhLVPPabYArNHVQHkhEqZ/Vkx0WzW
+0MgSQMhAo/zW4K2lgqAIIJmeGld9aIG/RJkQJVrVCdu1JoiEL4b5oDM0Njrghdi0
+mKWzgepBep6pxpSurOzQcgJ0VTuJ5c7tjt3Nz5WI0UmxRIEX80QLhz3l2VbQkAjq
+70N4vkfD35GeHruWGLS/
+=geGP
+-----END PGP SIGNATURE-----
+
+--da4uJneut+ArUgXk--
