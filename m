@@ -1,44 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40567 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752570Ab2A3RMF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 12:12:05 -0500
-Message-ID: <4F26CF3D.4070001@redhat.com>
-Date: Mon, 30 Jan 2012 19:11:25 +0200
-From: Avi Kivity <avi@redhat.com>
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:59449 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751932Ab2A3ScK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 13:32:10 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com> <4F26C2EC.5070303@siemens.com>
-In-Reply-To: <4F26C2EC.5070303@siemens.com>
+In-Reply-To: <CAErSpo7ji9R3azc7Xiu8K-=QXm26w=0oSWmcBh=j8dy=MttEvg@mail.gmail.com>
+References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
+	<1327718971-9598-3-git-send-email-yinghai@kernel.org>
+	<CAErSpo7ji9R3azc7Xiu8K-=QXm26w=0oSWmcBh=j8dy=MttEvg@mail.gmail.com>
+Date: Mon, 30 Jan 2012 10:32:09 -0800
+Message-ID: <CAE9FiQVDaA-aO6tFq0gmmDZRydUF6oLrAsARQWH6OOAEqFhRbQ@mail.gmail.com>
+Subject: Re: [PATCH 02/13] PCI: Add busn_res operation functions
+From: Yinghai Lu <yinghai@kernel.org>
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120130171125.sL0EqTdlzufP9JdiWGa75MiagfLR9G9prBK7tQqJCbw@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120130183209.apSU7CN6uUn4sSK-DhkmXnMqlkSF2tUESESJcLNG1TI@z>
 
-On 01/30/2012 06:18 PM, Jan Kiszka wrote:
-> > 
-> > This looks racy.  The vcpu can remove its kvmclock concurrently with
-> > this access, and src will be NULL.
+On Mon, Jan 30, 2012 at 7:28 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>> will use them insert/update busn res in pci_bus
+>>
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> ---
+>>  drivers/pci/probe.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+>>  include/linux/pci.h |    3 +++
+>>  2 files changed, 47 insertions(+), 0 deletions(-)
+>>
+>> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+>> index a114173..71261da 100644
+>> --- a/drivers/pci/probe.c
+>> +++ b/drivers/pci/probe.c
+>> @@ -1622,6 +1622,50 @@ err_out:
+>>        return NULL;
+>>  }
+>>
+>> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
+>> +{
+>> +       struct resource *res = &b->busn_res;
+>> +       struct resource *parent_res = &iobusn_resource;
+>> +       int ret;
+>> +
+>> +       res->start = (pci_domain_nr(b) << 8) | bus;
+>> +       res->end = (pci_domain_nr(b) << 8) | bus_max;
+>> +       res->flags = IORESOURCE_BUS;
+>> +
+>> +       if (!pci_is_root_bus(b))
+>> +               parent_res = &b->parent->busn_res;
+>> +
+>> +       ret = insert_resource(parent_res, res);
+>> +
+>> +       dev_printk(KERN_DEBUG, &b->dev,
+>> +        "busn_res: %06llx-%06llx %s inserted under %06llx-%06llx\n",
+>> +                       (unsigned long long)res->start,
+>> +                       (unsigned long long)res->end,
+>> +                        ret ? "can not be" : "is",
+>> +                       (unsigned long long)parent_res->start,
+>> +                       (unsigned long long)parent_res->end);
 >
-> There is no race here (src is member of the vcpu), but arch.time might
-> have become invalid. KVM_REQ_CLOCK_UPDATE instead of mark_page_dirty
-> would indeed be the way to go. Trivial solution, I would say.
+> Please update the %pR implementation so you can use it instead of
+> having to fiddle around with start/end separately and casts.
+
+ok, will check that. to make it support extra domain number there.
+
 >
-> However, the concept of "guest stopped" has VM, not VCPU scope. 
-
-We're not stopping the guest here, just setting a flag in kvmclock,
-which certainly is a per-vcpu thing.
-
-> That
-> makes the call more appropriate as a VM ioctl. If that thing should
-> really become per-vcpu, at least call it KVMCLOCK_VCPU_STOPPED.
+>> +}
+>> +
+>> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+>> +{
+>> +       struct resource *res = &b->busn_res;
+>> +       unsigned long long old_end = res->end;
+>> +
+>> +       res->end &= ~0xff;
+>> +       res->end |= bus_max;
 >
+> This updates a resource in place, without removing it from the
+> resource tree and re-inserting it.  Doesn't this make it possible to
+> corrupt the resource tree?  For example, let's say you have this tree:
+>
+>    00-3f : host bridge A
+>      00-1f : P2P bridge B
+>    40-7f : host bridge C
+>
+> Now you use pci_bus_update_busn_res_end() to update the resource for
+> P2P bridge B,  setting its end to 5f.  I think the resource tree is
+> now corrupted.
 
-All current ioctls start with KVM_. Maybe KVM_KVMCLOCK_CTRL?
+for expanding, We will make sure expanded range is safe and verified.
 
--- 
-error compiling committee.c: too many arguments to function
+another use case is for unknown peer root buses that can not tell end
+before scanning,
+will assume we are handing those kind of peer root bus for low to high.
 
+Yinghai
