@@ -1,69 +1,41 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 06/13] PCI, powerpc: Register busn_res for root buses
-Date: Mon, 30 Jan 2012 07:44:04 -0800
-Message-ID: <CAErSpo44qjFk5SQ+VWD=Y+Fg_xyykmh-ZOdFsfN-nELE29YP-A@mail.gmail.com>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-7-git-send-email-yinghai@kernel.org>
+From: Avi Kivity <avi@redhat.com>
+Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Mon, 30 Jan 2012 17:49:46 +0200
+Message-ID: <4F26BC1A.8060002@redhat.com>
+References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com> <20120130153244.GA6875@mgebm.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1327718971-9598-7-git-send-email-yinghai@kernel.org>
+In-Reply-To: <20120130153244.GA6875@mgebm.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, Jan Kiszka <jan.kiszka@web.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: linuxppc-dev@lists.ozlabs.org
-> ---
-> =A0arch/powerpc/kernel/pci-common.c | =A0 =A07 ++++++-
-> =A01 files changed, 6 insertions(+), 1 deletions(-)
+On 01/30/2012 05:32 PM, Eric B Munson wrote:
+> > 
+> > Can you point me to the discussion that moved this to be a vm ioctl?  In
+> > general vm ioctls that do things for all vcpus are racy, like here. 
+> > You're accessing variables that are protected by the vcpu mutex, and not
+> > taking the mutex (nor can you, since it is held while the guest is
+> > running, unlike most kernel mutexes).
+> > 
 >
-> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/p=
-ci-common.c
-> index cce98d7..501f29b 100644
-> --- a/arch/powerpc/kernel/pci-common.c
-> +++ b/arch/powerpc/kernel/pci-common.c
-> @@ -1732,6 +1732,8 @@ void __devinit pcibios_scan_phb(struct pci_cont=
-roller *hose)
-> =A0 =A0 =A0 =A0bus->secondary =3D hose->first_busno;
-> =A0 =A0 =A0 =A0hose->bus =3D bus;
->
-> + =A0 =A0 =A0 pci_bus_insert_busn_res(bus, hose->first_busno, hose->l=
-ast_busno);
+> Jan Kiszka suggested that becuase there isn't a use case for notifying
+> individual vcpus (can vcpu's be paused individually?
 
-The pci_create_root_bus() call is a few lines above this.  So this is
-a case of "create the root bus" followed by "fix something that's
-wrong with the bus we just created."  I'm trying to get rid of that
-pattern because it's just an opportunity for bugs.  I'd rather create
-the root bus with all the information it needs up front.
+They can, though the guest will grind to a halt very soon.
 
-And pci_bus_insert_busn_res() is not really architecture-specific, so
-I'd like this better if that call were done in the PCI core somewhere.
+> ) that it makes more sense
+> to have a vm ioctl.
+>
+> http://thread.gmane.org/gmane.comp.emulators.qemu/131624
+>
+> If the per vcpu ioctl is the right choice I can resend those patches.
 
-> =A0 =A0 =A0 =A0/* Get probe mode and perform scan */
-> =A0 =A0 =A0 =A0mode =3D PCI_PROBE_NORMAL;
-> =A0 =A0 =A0 =A0if (node && ppc_md.pci_probe_mode)
-> @@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_con=
-troller *hose)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0of_scan_bus(node, bus);
-> =A0 =A0 =A0 =A0}
->
-> - =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL)
-> + =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, 255);
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0hose->last_busno =3D bus->subordinate =
-=3D pci_scan_child_bus(bus);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, bus->s=
-ubordinate);
-> + =A0 =A0 =A0 }
->
-> =A0 =A0 =A0 =A0/* Platform gets a chance to do some global fixups bef=
-ore
-> =A0 =A0 =A0 =A0 * we proceed to resource allocation
-> --
-> 1.7.7
->
+The races are solvable but I think it's easier in userspace.  It's also
+more flexible, though I don't really see a use for this flexibility.
+
+-- 
+error compiling committee.c: too many arguments to function
