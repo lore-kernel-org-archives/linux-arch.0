@@ -1,117 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:64224 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753215Ab2A3P3S convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 10:29:18 -0500
-Received: by wgbed3 with SMTP id ed3so4763200wgb.1
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 07:29:16 -0800 (PST)
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:42461 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752860Ab2A3Pfp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 10:35:45 -0500
+Received: by wics10 with SMTP id s10so3534986wic.19
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 07:35:44 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <1327718971-9598-3-git-send-email-yinghai@kernel.org>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-3-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1327718971-9598-4-git-send-email-yinghai@kernel.org>
+References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-4-git-send-email-yinghai@kernel.org>
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 30 Jan 2012 07:28:56 -0800
-Message-ID: <CAErSpo7ji9R3azc7Xiu8K-=QXm26w=0oSWmcBh=j8dy=MttEvg@mail.gmail.com>
-Subject: Re: [PATCH 02/13] PCI: Add busn_res operation functions
+Date: Mon, 30 Jan 2012 07:35:24 -0800
+Message-ID: <CAErSpo4d=HW9Lk+O8Kz6BzQZY1DpF1OEuD37RwABgT3m03LB3Q@mail.gmail.com>
+Subject: Re: [PATCH 03/13] PCI: Add busn_res tracking in core
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130152856.9OPiYqEIOurkSluaYmNKSTrCZUp-Ka4z2uTNqIF0wYo@z>
+Message-ID: <20120130153524.flQywLGS63mDyf0uhWNvA0NyV-um_2GRDRukUlIJqZc@z>
 
 On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> will use them insert/update busn res in pci_bus
+> update pci_scan_root_bus, and pci_scan_bus to insert root bus busn into
+> iobusn_resource tree.
 >
 > Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 > ---
->  drivers/pci/probe.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/pci.h |    3 +++
->  2 files changed, 47 insertions(+), 0 deletions(-)
+>  drivers/pci/probe.c  |   30 ++++++++++++++++++++++++++----
+>  drivers/pci/remove.c |    1 +
+>  include/linux/pci.h  |    4 ++++
+>  3 files changed, 31 insertions(+), 4 deletions(-)
 >
 > diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index a114173..71261da 100644
+> index 71261da..55404c3 100644
 > --- a/drivers/pci/probe.c
 > +++ b/drivers/pci/probe.c
-> @@ -1622,6 +1622,50 @@ err_out:
->        return NULL;
+> @@ -1666,8 +1666,9 @@ void pci_bus_release_busn_res(struct pci_bus *b)
+>        release_resource(&b->busn_res);
 >  }
 >
-> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-> +{
-> +       struct resource *res = &b->busn_res;
-> +       struct resource *parent_res = &iobusn_resource;
-> +       int ret;
-> +
-> +       res->start = (pci_domain_nr(b) << 8) | bus;
-> +       res->end = (pci_domain_nr(b) << 8) | bus_max;
-> +       res->flags = IORESOURCE_BUS;
-> +
-> +       if (!pci_is_root_bus(b))
-> +               parent_res = &b->parent->busn_res;
-> +
-> +       ret = insert_resource(parent_res, res);
-> +
-> +       dev_printk(KERN_DEBUG, &b->dev,
-> +        "busn_res: %06llx-%06llx %s inserted under %06llx-%06llx\n",
-> +                       (unsigned long long)res->start,
-> +                       (unsigned long long)res->end,
-> +                        ret ? "can not be" : "is",
-> +                       (unsigned long long)parent_res->start,
-> +                       (unsigned long long)parent_res->end);
+> -struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+> -               struct pci_ops *ops, void *sysdata, struct list_head *resources)
+> +struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
+> +               int bus_max, struct pci_ops *ops, void *sysdata,
+> +               struct list_head *resources)
 
-Please update the %pR implementation so you can use it instead of
-having to fiddle around with start/end separately and casts.
+We are adding "scan root bus" interfaces at an alarming rate (I'm
+responsible for most of them, so I'm not blaming you :)).  Could we
+get away without adding this one by just adding a bus number resource
+to the "resources" list?  For example, then an arch could do:
 
-> +}
-> +
-> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-> +{
-> +       struct resource *res = &b->busn_res;
-> +       unsigned long long old_end = res->end;
-> +
-> +       res->end &= ~0xff;
-> +       res->end |= bus_max;
+    LIST_HEAD(resources);
+    pci_add_resource(resources, bus_window);
+    pci_add_resource(resources, mem_window);
+    pci_add_resource(resources, io_window);
+    pci_scan_root_bus(..., resources);
 
-This updates a resource in place, without removing it from the
-resource tree and re-inserting it.  Doesn't this make it possible to
-corrupt the resource tree?  For example, let's say you have this tree:
+If pci_scan_root_bus() didn't find a bus number resource in the list,
+it could fall back to a default max_bus of 255.
 
-    00-3f : host bridge A
-      00-1f : P2P bridge B
-    40-7f : host bridge C
-
-Now you use pci_bus_update_busn_res_end() to update the resource for
-P2P bridge B,  setting its end to 5f.  I think the resource tree is
-now corrupted.
-
-> +       dev_printk(KERN_DEBUG, &b->dev,
-> +                "busn_res: %06llx-%06llx end updated to %06llx-%06llx\n",
-> +                       (unsigned long long)res->start,
-> +                       old_end,
-> +                       (unsigned long long)res->start,
-> +                       (unsigned long long)res->end);
-> +}
-> +
-> +void pci_bus_release_busn_res(struct pci_bus *b)
-> +{
-> +       release_resource(&b->busn_res);
-> +}
-> +
->  struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
->                struct pci_ops *ops, void *sysdata, struct list_head *resources)
 >  {
+>        struct pci_bus *b;
+>
+> @@ -1675,10 +1676,26 @@ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+>        if (!b)
+>                return NULL;
+>
+> +       pci_bus_insert_busn_res(b, bus, bus_max);
+>        b->subordinate = pci_scan_child_bus(b);
+>        pci_bus_add_devices(b);
+>        return b;
+>  }
+> +EXPORT_SYMBOL(pci_scan_root_bus_max);
+> +
+> +struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+> +               struct pci_ops *ops, void *sysdata,
+> +               struct list_head *resources)
+> +{
+> +       struct pci_bus *b;
+> +
+> +       b = pci_scan_root_bus_max(parent, bus, 255, ops, sysdata, resources);
+> +
+> +       if (b)
+> +               pci_bus_update_busn_res_end(b, b->subordinate);
+> +
+> +       return b;
+> +}
+>  EXPORT_SYMBOL(pci_scan_root_bus);
+>
+>  /* Deprecated; use pci_scan_root_bus() instead */
+> @@ -1691,9 +1708,11 @@ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
+>        pci_add_resource(&resources, &ioport_resource);
+>        pci_add_resource(&resources, &iomem_resource);
+>        b = pci_create_root_bus(parent, bus, ops, sysdata, &resources);
+> -       if (b)
+> +       if (b) {
+> +               pci_bus_insert_busn_res(b, bus, 255);
+>                b->subordinate = pci_scan_child_bus(b);
+> -       else
+> +               pci_bus_update_busn_res_end(b, b->subordinate);
+> +       } else
+>                pci_free_resource_list(&resources);
+>        return b;
+>  }
+> @@ -1709,7 +1728,10 @@ struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
+>        pci_add_resource(&resources, &iomem_resource);
+>        b = pci_create_root_bus(NULL, bus, ops, sysdata, &resources);
+>        if (b) {
+> +               pci_bus_insert_busn_res(b, bus, 255);
+>                b->subordinate = pci_scan_child_bus(b);
+> +               pci_bus_update_busn_res_end(b, b->subordinate);
+> +
+>                pci_bus_add_devices(b);
+>        } else {
+>                pci_free_resource_list(&resources);
+> diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
+> index bd70f23..8056e6a 100644
+> --- a/drivers/pci/remove.c
+> +++ b/drivers/pci/remove.c
+> @@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
+>
+>        down_write(&pci_bus_sem);
+>        list_del(&pci_bus->node);
+> +       pci_bus_release_busn_res(pci_bus);
+>        up_write(&pci_bus_sem);
+>        if (!pci_bus->is_added)
+>                return;
 > diff --git a/include/linux/pci.h b/include/linux/pci.h
-> index 94ad468..3da935c 100644
+> index 3da935c..d5b6786 100644
 > --- a/include/linux/pci.h
 > +++ b/include/linux/pci.h
-> @@ -665,6 +665,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
->  struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->                                    struct pci_ops *ops, void *sysdata,
->                                    struct list_head *resources);
-> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-> +void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-> +void pci_bus_release_busn_res(struct pci_bus *b);
+> @@ -668,6 +668,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>  void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
+>  void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
+>  void pci_bus_release_busn_res(struct pci_bus *b);
+> +struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
+> +                                            int busmax, struct pci_ops *ops,
+> +                                            void *sysdata,
+> +                                            struct list_head *resources);
 >  struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
 >                                             struct pci_ops *ops, void *sysdata,
 >                                             struct list_head *resources);
