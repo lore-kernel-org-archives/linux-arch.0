@@ -1,49 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:35580 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752724Ab2A3W3u convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 17:29:50 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-	<20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
-	<CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
-	<CAErSpo6WqUa5AcEBNwa1g4O1M+MvKwr9RXhVSo04APDLncp+tA@mail.gmail.com>
-Date: Mon, 30 Jan 2012 14:29:50 -0800
-Message-ID: <CAE9FiQUUvdG4R=sg3R6K_ZxPGT2WwWJj6ZvPSwvkyHh=ApFAuw@mail.gmail.com>
-Subject: Re: [RFC PATCH v1 02/18] PCI: add struct pci_host_bridge and a list
- of all bridges found
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:53069 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752760Ab2A3WpY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 17:45:24 -0500
+Message-ID: <1327963522.21193.92.camel@dabdike.int.hansenpartnership.com>
+Subject: Re: [PATCH] fix compile break caused by iomap: make IOPORT/PCI
+ mapping functions conditional
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Mon, 30 Jan 2012 16:45:22 -0600
+In-Reply-To: <1539148.qFWsuy2OOI@eto>
+References: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
+	 <1539148.qFWsuy2OOI@eto>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130222950.Gcl4OxMSn7KSje8bj7wf7022XfoQ3YQSgVY7Udr2wys@z>
+To: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Cc: Randy Dunlap <rdunlap@xenotime.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20120130224522.CuBIBsRnMdcUfmoJfIwgoxzRiuY_4rb9N5sg-tumy6E@z>
 
-On Mon, Jan 30, 2012 at 2:00 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+On Mon, 2012-01-30 at 21:10 +0100, Rolf Eike Beer wrote:
+> Am Montag 30 Januar 2012, 10:40:47 schrieb James Bottomley:
+> > The problem in
+> > 
+> > commit fea80311a939a746533a6d7e7c3183729d6a3faf
+> > Author: Randy Dunlap <rdunlap@xenotime.net>
+> > Date:   Sun Jul 24 11:39:14 2011 -0700
+> > 
+> >     iomap: make IOPORT/PCI mapping functions conditional
+> > 
+> > 
+> > is that if your architecture supplies pci_iomap/pci_iounmap, it expects
+> > always to supply them.  Adding empty body defitions in the !CONFIG_PCI
+> > case, which is what this patch does, breaks the parisc compile because
+> > the functions become doubly defined.  It took us a while to spot this,
+> > because we don't actually build !CONFIG_PCI very often (only if someone
+> > is brave enough to test the snake/asp machines).
+> > 
+> > Since the note in the commit log says this is to fix a
+> > CONFIG_GENERIC_IOMAP issue (which it does because CONFIG_GENERIC_IOMAP
+> > supplies pci_iounmap only if CONFIG_PCI is set), there should actually
+> > have been a condition upon this.  This should make sure no other
+> > architecture's !CONFIG_PCI compile breaks in the same way as parisc.
+> > 
+> > The fix had to be updated to take account of the GENERIC_PCI_IOMAP
+> > separation.
+> 
+> So this means we end up still building the PA-RISC PCI code even if the config 
+> says no PCI. That doesn't really sound consistent to me. I really would have 
+> expected that we do not build any non-void PCI code then.
 
->>
->
-> pci_bus->self points to a struct pci_dev.  A host bridge is not a
-> pci_dev.  I don't think it's a good idea to simply reuse "self" to
-> point to something of a different type, but maybe you have something
-> different in mind.
+The first object is to fix the build breakage which likely affects more
+than just parisc. Having a non-stub for the pci functions is just a few
+spurious bytes in a kernel that's megabytes big (and it's what we were
+doing previously).
 
-oh, maybe some root bus will not self to null. (that is why
-is_pci_root_bus() is checking parent).
+James
 
->
->> or just do not add host_bridge , and instead only add another field
->> like struct list_head windows in pci_sysdata?
->
-> The pci_sysdata I see is an x86-specific thing, so I don't see how
-> that would help.
 
-then expand it.
-
-after that you don't need to go over up to find root bus for one pci
-dev and compare root bus with hostbridge list to find out hostbridge.
-
-Yinghai
