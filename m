@@ -1,64 +1,135 @@
-From: Avi Kivity <avi@redhat.com>
-Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
-Date: Mon, 30 Jan 2012 17:11:25 +0200
-Message-ID: <4F26B31D.3070407@redhat.com>
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 02/13] PCI: Add busn_res operation functions
+Date: Mon, 30 Jan 2012 07:28:56 -0800
+Message-ID: <CAErSpo7ji9R3azc7Xiu8K-=QXm26w=0oSWmcBh=j8dy=MttEvg@mail.gmail.com>
+References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-3-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63259 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752727Ab2A3PLk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 10:11:40 -0500
-In-Reply-To: <4F26B220.9050101@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1327718971-9598-3-git-send-email-yinghai@kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 01/30/2012 05:07 PM, Avi Kivity wrote:
-> > +Parameters: None
-> > +Returns: 0 on success, -1 on error
-> > +
-> > +This signals to the host kernel that the specified guest is being paused by
-> > +userspace.  The host will set a flag in the pvclock structure that is checked
-> > +from the soft lockup watchdog.  This ioctl can be called during pause or
-> > +unpause.
-> > +
-> >  5. The kvm_run structure
-> >  
-> >  
-> > +/*
-> > + * kvm_set_guest_paused() indicates to the guest kernel that it has been
-> > + * stopped by the hypervisor.  This function will be called from the host only.
-> > + */
-> > +static int kvm_set_guest_paused(struct kvm *kvm)
-> > +{
-> > +	struct kvm_vcpu *vcpu;
-> > +	struct pvclock_vcpu_time_info *src;
-> > +	int i;
-> > +
-> > +	kvm_for_each_vcpu(i, vcpu, kvm) {
-> > +		if (!vcpu->arch.time_page)
-> > +			continue;
-> > +		src = &vcpu->arch.hv_clock;
-> > +		src->flags |= PVCLOCK_GUEST_STOPPED;
+On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> will use them insert/update busn res in pci_bus
 >
-> This looks racy.  The vcpu can remove its kvmclock concurrently with
-> this access, and src will be NULL.
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+> =A0drivers/pci/probe.c | =A0 44 +++++++++++++++++++++++++++++++++++++=
++++++++
+> =A0include/linux/pci.h | =A0 =A03 +++
+> =A02 files changed, 47 insertions(+), 0 deletions(-)
 >
-> Can you point me to the discussion that moved this to be a vm ioctl?  In
-> general vm ioctls that do things for all vcpus are racy, like here. 
-> You're accessing variables that are protected by the vcpu mutex, and not
-> taking the mutex (nor can you, since it is held while the guest is
-> running, unlike most kernel mutexes).
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index a114173..71261da 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -1622,6 +1622,50 @@ err_out:
+> =A0 =A0 =A0 =A0return NULL;
+> =A0}
 >
+> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max=
+)
+> +{
+> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
+> + =A0 =A0 =A0 struct resource *parent_res =3D &iobusn_resource;
+> + =A0 =A0 =A0 int ret;
+> +
+> + =A0 =A0 =A0 res->start =3D (pci_domain_nr(b) << 8) | bus;
+> + =A0 =A0 =A0 res->end =3D (pci_domain_nr(b) << 8) | bus_max;
+> + =A0 =A0 =A0 res->flags =3D IORESOURCE_BUS;
+> +
+> + =A0 =A0 =A0 if (!pci_is_root_bus(b))
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent_res =3D &b->parent->busn_res;
+> +
+> + =A0 =A0 =A0 ret =3D insert_resource(parent_res, res);
+> +
+> + =A0 =A0 =A0 dev_printk(KERN_DEBUG, &b->dev,
+> + =A0 =A0 =A0 =A0"busn_res: %06llx-%06llx %s inserted under %06llx-%0=
+6llx\n",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)res=
+->start,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)res=
+->end,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0ret ? "can not be" :=
+ "is",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)par=
+ent_res->start,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)par=
+ent_res->end);
 
-Note, the standard way to fix this race is to
-kvm_make_request(KVM_REQ_KVMCLOCK_STOP) and kvm_vcpu_kick(vcpu), and do
-the update in vcpu_enter_guest().  But I think this is needless
-complexity and want to understand what motivated the move to a vm ioctl.
+Please update the %pR implementation so you can use it instead of
+having to fiddle around with start/end separately and casts.
 
--- 
-error compiling committee.c: too many arguments to function
+> +}
+> +
+> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+> +{
+> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
+> + =A0 =A0 =A0 unsigned long long old_end =3D res->end;
+> +
+> + =A0 =A0 =A0 res->end &=3D ~0xff;
+> + =A0 =A0 =A0 res->end |=3D bus_max;
+
+This updates a resource in place, without removing it from the
+resource tree and re-inserting it.  Doesn't this make it possible to
+corrupt the resource tree?  For example, let's say you have this tree:
+
+    00-3f : host bridge A
+      00-1f : P2P bridge B
+    40-7f : host bridge C
+
+Now you use pci_bus_update_busn_res_end() to update the resource for
+P2P bridge B,  setting its end to 5f.  I think the resource tree is
+now corrupted.
+
+> + =A0 =A0 =A0 dev_printk(KERN_DEBUG, &b->dev,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0"busn_res: %06llx-%06llx end updated=
+ to %06llx-%06llx\n",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)res=
+->start,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 old_end,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)res=
+->start,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (unsigned long long)res=
+->end);
+> +}
+> +
+> +void pci_bus_release_busn_res(struct pci_bus *b)
+> +{
+> + =A0 =A0 =A0 release_resource(&b->busn_res);
+> +}
+> +
+> =A0struct pci_bus * __devinit pci_scan_root_bus(struct device *parent=
+, int bus,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct pci_ops *ops, void *sysdata, st=
+ruct list_head *resources)
+> =A0{
+> diff --git a/include/linux/pci.h b/include/linux/pci.h
+> index 94ad468..3da935c 100644
+> --- a/include/linux/pci.h
+> +++ b/include/linux/pci.h
+> @@ -665,6 +665,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_=
+ops *ops, void *sysdata);
+> =A0struct pci_bus *pci_create_root_bus(struct device *parent, int bus=
+,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+struct pci_ops *ops, void *sysdata,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+struct list_head *resources);
+> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax)=
+;
+> +void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
+> +void pci_bus_release_busn_res(struct pci_bus *b);
+> =A0struct pci_bus * __devinit pci_scan_root_bus(struct device *parent=
+, int bus,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ =A0 =A0 =A0 =A0 struct pci_ops *ops, void *sysdata,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ =A0 =A0 =A0 =A0 struct list_head *resources);
+> --
+> 1.7.7
+>
