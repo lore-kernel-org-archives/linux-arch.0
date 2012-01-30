@@ -1,75 +1,39 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: [PATCH] fix compile break caused by iomap: make IOPORT/PCI mapping
- functions conditional
-Date: Mon, 30 Jan 2012 10:40:47 -0600
-Message-ID: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
+From: Sergei Shtylyov <sshtylyov@mvista.com>
+Subject: Re: [PATCH 2/3] mips: use the the PCI controller's io_map_base
+Date: Mon, 30 Jan 2012 20:49:09 +0300
+Message-ID: <4F26D815.3040105@mvista.com>
+References: <cover.1327877053.git.mst@redhat.com> <dd3dab360f11d4f8829854891d04bf838bc50e5e.1327877053.git.mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:51788 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753744Ab2A3Qkt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 11:40:49 -0500
+Received: from mail-bk0-f46.google.com ([209.85.214.46]:42313 "EHLO
+	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752524Ab2A3Qtq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:49:46 -0500
+In-Reply-To: <dd3dab360f11d4f8829854891d04bf838bc50e5e.1327877053.git.mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Randy Dunlap <rdunlap@xenotime.net>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>, Rolf Eike Beer <eike@sf-mail.de>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Arnd Bergmann <arnd@arndb.de>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
 
-The problem in
+Hello.
 
-commit fea80311a939a746533a6d7e7c3183729d6a3faf
-Author: Randy Dunlap <rdunlap@xenotime.net>
-Date:   Sun Jul 24 11:39:14 2011 -0700
+On 01/30/2012 03:18 PM, Michael S. Tsirkin wrote:
 
-    iomap: make IOPORT/PCI mapping functions conditional
+> commit eab90291d35438bcebf7c3dc85be66d0f24e3002
 
+    Please add that commit's summary in parens.
 
-is that if your architecture supplies pci_iomap/pci_iounmap, it expects
-always to supply them.  Adding empty body defitions in the !CONFIG_PCI
-case, which is what this patch does, breaks the parisc compile because
-the functions become doubly defined.  It took us a while to spot this,
-because we don't actually build !CONFIG_PCI very often (only if someone
-is brave enough to test the snake/asp machines).
+> failed to take into account the PCI controller's
+> io_map_base for mapping IO BARs.
+> This also caused a new warning on mips.
 
-Since the note in the commit log says this is to fix a
-CONFIG_GENERIC_IOMAP issue (which it does because CONFIG_GENERIC_IOMAP
-supplies pci_iounmap only if CONFIG_PCI is set), there should actually
-have been a condition upon this.  This should make sure no other
-architecture's !CONFIG_PCI compile breaks in the same way as parisc.
+> Fix this, without re-introducing code duplication,
+> by setting NO_GENERIC_PCI_IOPORT_MAP
+> and supplying a mips-specific __pci_ioport_map.
 
-The fix had to be updated to take account of the GENERIC_PCI_IOMAP
-separation.
+> Reported-by: Kevin Cernekee <cernekee@gmail.com>
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 
-Reported-by: Rolf Eike Beer <eike@sf-mail.de>
-Signed-off-by: James Bottomley <JBottomley@Parallels.com>
-
----
-
-diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
-index 8a3d4fd..6afd7d6 100644
---- a/include/asm-generic/iomap.h
-+++ b/include/asm-generic/iomap.h
-@@ -70,7 +70,7 @@ extern void ioport_unmap(void __iomem *);
- /* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
- struct pci_dev;
- extern void pci_iounmap(struct pci_dev *dev, void __iomem *);
--#else
-+#elif defined(CONFIG_GENERIC_IOMAP)
- struct pci_dev;
- static inline void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
- { }
-diff --git a/include/asm-generic/pci_iomap.h b/include/asm-generic/pci_iomap.h
-index 8de4b73..217eb3d 100644
---- a/include/asm-generic/pci_iomap.h
-+++ b/include/asm-generic/pci_iomap.h
-@@ -15,7 +15,7 @@ struct pci_dev;
- #ifdef CONFIG_PCI
- /* Create a virtual mapping cookie for a PCI BAR (memory or IO) */
- extern void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max);
--#else
-+#elif defined(CONFIG_GENERIC_PCI_IOMAP)
- static inline void __iomem *pci_iomap(struct pci_dev *dev, int bar, unsigned long max)
- {
- 	return NULL;
+WBR, Sergei
