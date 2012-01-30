@@ -1,161 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:48838 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753410Ab2A1OL7 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 Jan 2012 09:11:59 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAFLxGvzD3E3wDAWYObUbsKaDKZo3qmP=z7XxwyjPm2+5xnS=0g@mail.gmail.com>
-References: <CAFLxGvw85fWdsAodBn1Z0vFYZx0U+vYg6hgsBYbmfuyaFTgznA@mail.gmail.com>
-	<58311.79.160.186.248.1327615864.squirrel@www.nlc.no>
-	<CAFLxGvzsg71gtyPEtOAVnS-DtozYzqgoGNK-ZJRvBfq1mf3Oug@mail.gmail.com>
-	<CAFLxGvzffs=uSjxogdWtk_gqoJHPnmgQSLw9WaZRr_be=J5cgw@mail.gmail.com>
-	<20120127010838.GA27899@suse.de>
-	<CAPXgP12Bj1K3j5HL1=GTj=xEC+oWgB7VFeQL_Pg23fCevTQAcw@mail.gmail.com>
-	<CAFLxGvzth1m=iUmXbU2WyGrw0i8441d2nKLjH=mY_f1O-hkKPQ@mail.gmail.com>
-	<20120127115143.1943336b@pyramind.ukuu.org.uk>
-	<CAFLxGvwA3jjsbZ_-VN2oNUzmRzf01=2MN=SHCqv=u+57=T3Y7w@mail.gmail.com>
-	<20120127140240.6b52c906@pyramind.ukuu.org.uk>
-	<CAFLxGvzD3E3wDAWYObUbsKaDKZo3qmP=z7XxwyjPm2+5xnS=0g@mail.gmail.com>
-Date: Sat, 28 Jan 2012 15:11:58 +0100
-Message-ID: <CAFLxGvy3G6ZWgwsm8=Y6EWz4TdwknCeSmSkeoHTer-ty9hxYYA@mail.gmail.com>
-Subject: Re: [uml-devel] /sys/class/tty/tty0/active?
-From: richard -rw- weinberger <richard.weinberger@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mga01.intel.com ([192.55.52.88]:52408 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754567Ab2A3IOG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 03:14:06 -0500
+Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
+From: Vinod Koul <vinod.koul@intel.com>
+In-Reply-To: <4F1FFF7E.3000802@codeaurora.org>
+References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>
+	 <1326807902.1540.116.camel@vkoul-udesk3> <4F195E4C.6080805@codeaurora.org>
+	  <1327066287.517.4.camel@vkoul-udesk3> <4F1D4052.3070701@codeaurora.org>
+	 <1327326713.517.32.camel@vkoul-udesk3> <4F1FFF7E.3000802@codeaurora.org>
+Content-Type: text/plain; charset="UTF-8"
+Date: Mon, 30 Jan 2012 13:45:15 +0530
+Message-ID: <1327911315.1527.8.camel@vkoul-udesk3>
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Kay Sievers <kay.sievers@vrfy.org>, Greg KH <gregkh@suse.de>, stian@nixia.no, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, user-mode-linux-devel@lists.sourceforge.net
-Message-ID: <20120128141158.DdpxJB2Ez38xP4jWX0LjP0umUqJPuxCwctLAXWEHalM@z>
+To: Ravi Kumar V <kumarrav@codeaurora.org>
+Cc: linux-arch@vger.kernel.org, linux@arm.linux.org.uk, arnd@arndb.de, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, bryanh@codeaurora.org, tsoni@codeaurora.org, Daniel Walker <dwalker@fifo99.com>, dan.j.williams@intel.com, davidb@codeaurora.org, linux-arm-kernel@lists.infradead.org, johlstei@codeaurora.org
+Message-ID: <20120130081515.9lQm4kL01HwZKCxj521s4uz7AyN-D436oqzXIl3ujQo@z>
 
-On Sat, Jan 28, 2012 at 12:55 AM, richard -rw- weinberger
-<richard.weinberger@gmail.com> wrote:
-> On Fri, Jan 27, 2012 at 3:02 PM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
->> On Fri, 27 Jan 2012 13:04:37 +0100
->> richard -rw- weinberger <richard.weinberger@gmail.com> wrote:
->>
->>> On Fri, Jan 27, 2012 at 12:51 PM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
->>> >> UML's console driver (arch/um/drivers/line.c) implements tty_operations.
->>> >> The crash happens because the tty subsystem calls the driver's close()
->>> >> function and later
->>> >> write_room() or chars_in_buffer().
->>> >>
->>> >> write_room() and chars_in_buffer() fail badly because close() already
->>> >> cleaned up the driver's private data...
->>> >
->>> > You don't want to do that.
->>>
->>> That's what i thought.
->>>
->>> >> Greg, is UML's assumption wrong that after closing the tty no call to
->>> >> write_room() or chars_in_buffer() can happen?
->>> >> I have no idea why systemd is able to trigger this, UML's console
->>> >> driver is old and has always worked quite well.
->>> >
->>> > It's always been untrue but it's even more untrue nowdays. The tty layer
->>> > objects are refcounted, and the code has had significant rewrites. line.c
->>> > hidden away in uml hasn't been updated.
->>> >
->>> > I added a comment about 3 years ago pointing out another older change
->>> > that was needed and that wasn't acted on either..
->>> >
->>> > Take a look at how all the other tty drivers use tty_port, how the ioctls
->>> > have been supposed to work for the past few years and the callback
->>> > changes, then use them.
->>>
->>> Can you recommend a well-written driver?
->>
->> drivers/mmc/card/sdio_uart.c
->>
->> uses just about all the features including handling hotplug and stuff you
->> don't need.
->>
->> drivers/usb/serial/usb-serial.c
->>
->> may also be handy as it provides the interface but then calls into other
->> driver code to do the work.
->>
->> Basically though you want a struct tty_port in your private data, either
->> created at open, or usually more cleanly for the physical port lifetime
->>
->>        tty_port_init()
->>
->> Sets it up, then set the port ops
->>
->>        tty_port_open()
->>        tty_port_close()
->>        tty_port_hangup()
->>
->> do almost all of the rest of the work for you. They call back to your
->> activate and shutdown port methods, they serialize them, they call them
->> on first open/last close in matching pairs.
->>
->> For the tty itself
->>
->>        tty_port_tty_get()
->>
->> gets you a reference to the tty from the port (or NULL) - so handles a
->> close/hangup racing with data arrival
->>
->>        tty_kref_put()
->>
->> releases a reference
->>
->> and
->>        tty->ops->cleanup()
->>
->> is called on the final destruction of the tty object (ie its where you
->> can free tty lifetime data in tty->private_data)
->>
->> So for a simple non pluggable tty it tends to look like
->>
->>        int my_tty_open(struct tty_struct *tty, struct file *filp)
->>        {
->>                tty->driver_data = &my_port;
->>                return tty_port_open(&my_port, tty, filp);
->>        }
->>
->>        void my_tty_close(struct tty_struct *tty, struct file *filp)
->>        {
->>                struct my_tty *m = tty->driver_data;
->>                if (m == NULL)
->>                        return;
->>                tty_port_close(&m->port, tty, filp);
->>        }
->>
->>        void my_tty_hangup(struct tty_struct *tty)
->>        {
->>                struct my_tty *m = tty->driver_data;
->>                tty_port_hangup(&m->port);
->>        }
->>
->> provide the needed callbacks and it'll do the locking and the like for
->> you.
->>
->> On the ioctl side as far as I can see you should simply get rid of the
->> method entirely.
->>
->> For buffer_data you might want to allocate the buffer sanely at open time
->> (tty_port has a function for this too) so it can't fail weirdly
->>
->> And your termios method is a bit odd but makes sense if you are just
->> pretending anything works and is supported.
->
-> Thanks for your help!
-> tty_port makes sense and I think I understood it.
->
-> But after modifying the driver to use tty_port the kernel crashes in
-> tty_io.c:__tty_fasync() because filp->f_path.dentry is NULL.
->
-> Any idea which kind of error can cause this?
+On Wed, 2012-01-25 at 18:41 +0530, Ravi Kumar V wrote:
+> On 1/23/2012 7:21 PM, Vinod Koul wrote:
+> > On Mon, 2012-01-23 at 16:41 +0530, Ravi Kumar V wrote:
+> >>
+> >> If some changes are made in interleave API then it can support our BOX
+> >> mode. Here in interleaved template he is assuming destination pattern as
+> >> can be contiguous or same as source pattern, but in our case destination
+> >> pattern is different from source pattern.
+> >> So if a new parameter destination data chunk is added in "struct
+> >> dma_interleaved_template" structure then it can support different
+> >> destination pattern.
+> > do you mean you have cases where you are doing a "memcpy" from one
+> > interleaved memory to another?
+> > Can you provide me with a scenario where this maybe helpful?
+> 
+> Presently we are transferring data from interleaved memory tho 
+> contagious memory and vice-verse.
+> We can use the interleaved API for present scenario, but it will 
+> restrict the HW capability of transferring data from one interleaved 
+> pattern to other interleaved pattern.
+That's interesting capability.
+My question still unanswered is whats the real work usage of this
+capability. Helps to understand what this would be used for and
+providing optimal solution
+> 
+> >
+> > The reason why the API was designed like this was to give ability to
+> > take these kind of interleaved memory and copy them to peripheral
+> > (constant addr) or memory (typically contagious).
+> >
+> > In case it is just a pattern I wonder why it cannot be described in
+> > standard scatter gather definitions as you can split the block further
+> > down to copy from one respective block to somewhere else in memory.
+> 
+> We can use scatter gather but it will be extra burden on software to 
+> create those many SG list unlike in box mode just a single command 
+> serves the purpose.
+> 
+> >> Also it will good if you can provide another parameter for passing
+> >> private data to dma driver.
+> > 1. what does this parameter do?
+> 
+> Private parameter in our case will be command configuration parameter 
+> where we are passing information to HW like endianness, synchronization 
+> & acknowledge mechanism between DMA HW and peripherals running with 
+> different clock than DMA.
+This is a separate discussion. We had similar talk on need to pass
+controller/subsystem specific parameters [1] sometime back during RIO
+patches. Alexandre has posted a new RFC [2] which should be extended to
+whatever API you finally end up using
 
-Never mind. :-)
-
-UML's line driver works fine now.
-But it needs some more cleanups.
-Especially the serial line and management console code.
+[1]: https://lkml.org/lkml/2011/10/24/275 
+[2]: https://lkml.org/lkml/2012/1/26/405
 
 -- 
-Thanks,
-//richard
+~Vinod
+
