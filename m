@@ -1,30 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22022 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753429Ab2A3PIO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 10:08:14 -0500
-Message-ID: <4F26B250.4050602@redhat.com>
-Date: Mon, 30 Jan 2012 17:08:00 +0200
-From: Avi Kivity <avi@redhat.com>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:64224 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753215Ab2A3P3S convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 10:29:18 -0500
+Received: by wgbed3 with SMTP id ed3so4763200wgb.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 07:29:16 -0800 (PST)
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/4 V10] Avoid soft lockup message when KVM is stopped
- by host
-References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <20120127204554.GA5784@mgebm.net>
-In-Reply-To: <20120127204554.GA5784@mgebm.net>
+In-Reply-To: <1327718971-9598-3-git-send-email-yinghai@kernel.org>
+References: <1327718971-9598-1-git-send-email-yinghai@kernel.org> <1327718971-9598-3-git-send-email-yinghai@kernel.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 30 Jan 2012 07:28:56 -0800
+Message-ID: <CAErSpo7ji9R3azc7Xiu8K-=QXm26w=0oSWmcBh=j8dy=MttEvg@mail.gmail.com>
+Subject: Re: [PATCH 02/13] PCI: Add busn_res operation functions
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120130150800.82DBOJJ6J9zZqtImwToQrqE-yARxyNIYEAbg4LcYtes@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120130152856.9OPiYqEIOurkSluaYmNKSTrCZUp-Ka4z2uTNqIF0wYo@z>
 
-On 01/27/2012 10:45 PM, Eric B Munson wrote:
-> Just poking to make sure this set hasn't fallen through the cracks.
+On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> will use them insert/update busn res in pci_bus
 >
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+>  drivers/pci/probe.c |   44 ++++++++++++++++++++++++++++++++++++++++++++
+>  include/linux/pci.h |    3 +++
+>  2 files changed, 47 insertions(+), 0 deletions(-)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index a114173..71261da 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -1622,6 +1622,50 @@ err_out:
+>        return NULL;
+>  }
+>
+> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
+> +{
+> +       struct resource *res = &b->busn_res;
+> +       struct resource *parent_res = &iobusn_resource;
+> +       int ret;
+> +
+> +       res->start = (pci_domain_nr(b) << 8) | bus;
+> +       res->end = (pci_domain_nr(b) << 8) | bus_max;
+> +       res->flags = IORESOURCE_BUS;
+> +
+> +       if (!pci_is_root_bus(b))
+> +               parent_res = &b->parent->busn_res;
+> +
+> +       ret = insert_resource(parent_res, res);
+> +
+> +       dev_printk(KERN_DEBUG, &b->dev,
+> +        "busn_res: %06llx-%06llx %s inserted under %06llx-%06llx\n",
+> +                       (unsigned long long)res->start,
+> +                       (unsigned long long)res->end,
+> +                        ret ? "can not be" : "is",
+> +                       (unsigned long long)parent_res->start,
+> +                       (unsigned long long)parent_res->end);
 
-Sorry, was on vacation and am still recovering.
+Please update the %pR implementation so you can use it instead of
+having to fiddle around with start/end separately and casts.
 
--- 
-error compiling committee.c: too many arguments to function
+> +}
+> +
+> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+> +{
+> +       struct resource *res = &b->busn_res;
+> +       unsigned long long old_end = res->end;
+> +
+> +       res->end &= ~0xff;
+> +       res->end |= bus_max;
 
+This updates a resource in place, without removing it from the
+resource tree and re-inserting it.  Doesn't this make it possible to
+corrupt the resource tree?  For example, let's say you have this tree:
+
+    00-3f : host bridge A
+      00-1f : P2P bridge B
+    40-7f : host bridge C
+
+Now you use pci_bus_update_busn_res_end() to update the resource for
+P2P bridge B,  setting its end to 5f.  I think the resource tree is
+now corrupted.
+
+> +       dev_printk(KERN_DEBUG, &b->dev,
+> +                "busn_res: %06llx-%06llx end updated to %06llx-%06llx\n",
+> +                       (unsigned long long)res->start,
+> +                       old_end,
+> +                       (unsigned long long)res->start,
+> +                       (unsigned long long)res->end);
+> +}
+> +
+> +void pci_bus_release_busn_res(struct pci_bus *b)
+> +{
+> +       release_resource(&b->busn_res);
+> +}
+> +
+>  struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+>                struct pci_ops *ops, void *sysdata, struct list_head *resources)
+>  {
+> diff --git a/include/linux/pci.h b/include/linux/pci.h
+> index 94ad468..3da935c 100644
+> --- a/include/linux/pci.h
+> +++ b/include/linux/pci.h
+> @@ -665,6 +665,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
+>  struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>                                    struct pci_ops *ops, void *sysdata,
+>                                    struct list_head *resources);
+> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
+> +void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
+> +void pci_bus_release_busn_res(struct pci_bus *b);
+>  struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+>                                             struct pci_ops *ops, void *sysdata,
+>                                             struct list_head *resources);
+> --
+> 1.7.7
+>
