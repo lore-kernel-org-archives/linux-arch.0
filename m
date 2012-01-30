@@ -1,84 +1,55 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 10/13] PCI: Strict checking of valid range for bridge
-Date: Mon, 30 Jan 2012 10:52:52 -0800
-Message-ID: <CAE9FiQU64Ev66D+044m+ZLn+tWSVtnZWXnyaNjkaM+aQD_1CQw@mail.gmail.com>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-	<1327718971-9598-11-git-send-email-yinghai@kernel.org>
-	<CAErSpo7RsR+2gDJvWic4ta-_SWfUwECaVxRrCVnTFZyFG5RCkw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
+Date: Mon, 30 Jan 2012 20:04:32 +0000
+Message-ID: <201201302004.33083.arnd@arndb.de>
+References: <cover.1327877053.git.mst@redhat.com> <201201301551.46907.arnd@arndb.de> <20120130161818.GA9345@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:63451 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751890Ab2A3Swx convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 13:52:53 -0500
-In-Reply-To: <CAErSpo7RsR+2gDJvWic4ta-_SWfUwECaVxRrCVnTFZyFG5RCkw@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.126.187]:63041 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752627Ab2A3UFB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 15:05:01 -0500
+In-Reply-To: <20120130161818.GA9345@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Jan 30, 2012 at 8:04 AM, Bjorn Helgaas <bhelgaas@google.com> wr=
-ote:
-> On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrot=
-e:
->> children bridges busn range should be able to be allocated from pare=
-nt bus range.
->>
->> to avoid overlapping between sibling bridges on same bus.
->>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> ---
->> =A0drivers/pci/probe.c | =A0 27 +++++++++++++++++++++++++++
->> =A01 files changed, 27 insertions(+), 0 deletions(-)
->>
->> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
->> index 83df3fb..e12f65f0 100644
->> --- a/drivers/pci/probe.c
->> +++ b/drivers/pci/probe.c
->> @@ -791,6 +791,33 @@ reduce_needed_size:
->> =A0 =A0 =A0 =A0return ret;
->> =A0}
->>
->> +static int __devinit pci_bridge_check_busn_res(struct pci_bus *bus,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct=
- pci_dev *dev,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 int se=
-condary, int subordinate)
->
-> This function returns a boolean, but the function name doesn't give
-> any clue about what a true/false return means. =A0Something like
-> "busn_valid" would make the callers more readable.
+On Monday 30 January 2012, Michael S. Tsirkin wrote:
+> > 
+> > +/*
+> > + * Create a virtual mapping cookie for a port on a given PCI device.
+> > + * Do not call this directly, it exists to make it easier for architectures
+> > + * to override.
+> > + */
+> > +#ifdef CONFIG_NO_GENERIC_PCI_IOPORT_MAP
+> > +extern void __iomem *__pci_ioport_map(struct pci_dev *dev, unsigned long port,
+> > +                                     unsigned int nr);
+> > +#else
+> > +static inline void __iomem *__pci_ioport_map(struct pci_dev *dev,
+> > +                              unsigned long port, unsigned int nr)
+> > +{
+> > +       return ioport_map(port, nr);
+> > +}
+> > +#endif
+> > 
+> >       Arnd
+> 
+> It would be nicer in that it would
+> make the kernel a bit smaller for generic architectures
+> but this would need to go into a separate header:
+> it depends on io.h and io.h depends on pci_iomap.h.
 
-ok
+Adding extra dependencies is not good here, I agree.
+Maybe  a better solution is to use a macro instead of an inline
+function then:
 
->
->> +{
->> + =A0 =A0 =A0 int broken =3D 0;
->> +
->> + =A0 =A0 =A0 struct resource busn_res;
->> + =A0 =A0 =A0 int ret;
->> +
->> + =A0 =A0 =A0 memset(&busn_res, 0, sizeof(struct resource));
->> + =A0 =A0 =A0 dev_printk(KERN_DEBUG, &dev->dev,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0"check if busn %02x-%02x is in busn=
-_res: %06llx-%06llx\n",
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0secondary, subordinate,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(unsigned long long)bus->busn_res.s=
-tart,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(unsigned long long)bus->busn_res.e=
-nd);
->> + =A0 =A0 =A0 ret =3D allocate_resource(&bus->busn_res, &busn_res,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(subordinate - seco=
-ndary + 1),
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(pci_domain_nr(bus)=
-<<8) | secondary,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(pci_domain_nr(bus)=
-<<8) | subordinate,
->
-> I think this "(pci_domain_nr(bus)<<8) | secondary" stuff needs to be =
-a
-> macro or something.
+#define  __pci_ioport_map(dev, port, nr) ioport_map(port, nr)
 
-maybe.
+In general, macros should be avoided, but I think it's the
+best tradeoff in this case.
+
+	Arnd
