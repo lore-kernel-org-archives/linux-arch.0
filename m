@@ -1,126 +1,50 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [RFC PATCH v1 02/18] PCI: add struct pci_host_bridge and a list
- of all bridges found
-Date: Mon, 30 Jan 2012 12:52:24 -0800
-Message-ID: <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [RFC PATCH v1 14/18] powerpc/PCI: get rid of device resource fixups
+Date: Mon, 30 Jan 2012 13:46:35 -0800
+Message-ID: <CAErSpo7qV084bxjfds=oaZ45xDB4=u78T6UmjpmbDWd3yBcCmA@mail.gmail.com>
 References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-	<20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
+ <20120130165820.3231.9878.stgit@bhelgaas.mtv.corp.google.com> <1327956544.28487.47.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
+In-Reply-To: <1327956544.28487.47.camel@pasglop>
 Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 30, 2012 at 8:57 AM, Bjorn Helgaas <bhelgaas@google.com> wr=
-ote:
-> This adds a list of all PCI host bridges we find and a way to look up
-> the host bridge from a pci_dev.
-> ---
-> =A0drivers/pci/probe.c | =A0 39 ++++++++++++++++++++++++++++++++++---=
---
-> =A0include/linux/pci.h | =A0 =A05 +++++
-> =A02 files changed, 39 insertions(+), 5 deletions(-)
+On Mon, Jan 30, 2012 at 12:49 PM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Mon, 2012-01-30 at 09:58 -0700, Bjorn Helgaas wrote:
+>> Tell the PCI core about host bridge address translation so it can ta=
+ke
+>> care of bus-to-resource conversion for us.
+>>
+>> N.B. powerpc used a 32-bit mask when converting IO addresses. =A0If =
+we
+>> figure out the right offset, I think simple addition should do the
+>> same thing, but I might not have it exactly right yet.
 >
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index da0d655..2ffe8a3 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -15,6 +15,8 @@
-> =A0#define CARDBUS_LATENCY_TIMER =A0176 =A0 =A0 /* secondary latency =
-timer */
-> =A0#define CARDBUS_RESERVE_BUSNR =A03
->
-> +static LIST_HEAD(pci_host_bridges);
-> +
-> =A0/* Ugh. =A0Need to stop exporting this to modules. */
-> =A0LIST_HEAD(pci_root_buses);
-> =A0EXPORT_SYMBOL(pci_root_buses);
-> @@ -42,6 +44,23 @@ int no_pci_devices(void)
-> =A0}
-> =A0EXPORT_SYMBOL(no_pci_devices);
->
-> +static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-> +{
-> + =A0 =A0 =A0 struct pci_bus *bus;
-> + =A0 =A0 =A0 struct pci_host_bridge *bridge;
-> +
-> + =A0 =A0 =A0 bus =3D dev->bus;
-> + =A0 =A0 =A0 while (bus->parent)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 bus =3D bus->parent;
-> +
-> + =A0 =A0 =A0 list_for_each_entry(bridge, &pci_host_bridges, list) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (bridge->bus =3D=3D bus)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return bridge;
-> + =A0 =A0 =A0 }
-> +
-> + =A0 =A0 =A0 return NULL;
-> +}
-> +
-> =A0/*
-> =A0* PCI Bus Class
-> =A0*/
-> @@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct de=
-vice *parent, int bus,
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0struct pci_ops *ops, void *sysdata, st=
-ruct list_head *resources)
-> =A0{
-> =A0 =A0 =A0 =A0int error, i;
-> + =A0 =A0 =A0 struct pci_host_bridge *bridge;
-> =A0 =A0 =A0 =A0struct pci_bus *b, *b2;
-> =A0 =A0 =A0 =A0struct device *dev;
-> =A0 =A0 =A0 =A0struct pci_bus_resource *bus_res, *n;
-> =A0 =A0 =A0 =A0struct resource *res;
->
-> + =A0 =A0 =A0 bridge =3D kzalloc(sizeof(*bridge), GFP_KERNEL);
-> + =A0 =A0 =A0 if (!bridge)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
-> +
-> =A0 =A0 =A0 =A0b =3D pci_alloc_bus();
-> =A0 =A0 =A0 =A0if (!b)
-> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto err_bus;
->
-> =A0 =A0 =A0 =A0dev =3D kzalloc(sizeof(*dev), GFP_KERNEL);
-> - =A0 =A0 =A0 if (!dev) {
-> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 kfree(b);
-> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
-> - =A0 =A0 =A0 }
-> + =A0 =A0 =A0 if (!dev)
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto err_dev;
->
-> =A0 =A0 =A0 =A0b->sysdata =3D sysdata;
-> =A0 =A0 =A0 =A0b->ops =3D ops;
-> @@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct devi=
-ce *parent, int bus,
->
-> =A0 =A0 =A0 =A0b->number =3D b->secondary =3D bus;
->
-> + =A0 =A0 =A0 bridge->bus =3D b;
-> +
-> =A0 =A0 =A0 =A0/* Add initial resources to the bus */
-> =A0 =A0 =A0 =A0list_for_each_entry_safe(bus_res, n, resources, list)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0list_move_tail(&bus_res->list, &b->res=
-ources);
-> @@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct devi=
-ce *parent, int bus,
-> =A0 =A0 =A0 =A0}
->
-> =A0 =A0 =A0 =A0down_write(&pci_bus_sem);
-> + =A0 =A0 =A0 list_add_tail(&bridge->list, &pci_host_bridges);
-> =A0 =A0 =A0 =A0list_add_tail(&b->node, &pci_root_buses);
-> =A0 =A0 =A0 =A0up_write(&pci_bus_sem);
+> Wow that's going to be a big change :-) A quick look... seems like yo=
+u
+> do a per-resource offset right ? I will need that (was about to chang=
+e
+> powerpc) as we have hardware that provides us with two different wind=
+ows
+> to MMIO space with different offsets unfortunately.
 
-we already have list for root_bus. So there will be two lists.
+Exactly ... the offset is per-aperture.
 
-wonder if we can overload bus->self point to struct host_bridge.
+> One thing I also want to generalize is the whole "REASSIGN_ALL_RSRC"
+> flag, ie, avoid reading & printing all those resources we know we are
+> just going to kill off.
+>
+> I'll try to test your stuff asap (I'm doing 3 things at once right no=
+w
+> so it might take a few days unless I find somebody to look at it).
 
-or just do not add host_bridge , and instead only add another field
-like struct list_head windows in pci_sysdata?
+Thanks!  No particular rush on my side; I'm expecting to have to
+iterate a few times to get this right.
 
-Thanks
-
-Yinghai
+Bjorn
