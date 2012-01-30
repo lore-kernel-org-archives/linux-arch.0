@@ -1,61 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:53240 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752283Ab2A3Svb convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 13:51:31 -0500
+Received: from mail.sf-mail.de ([62.27.20.61]:51147 "EHLO www.sf-tec.de"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752994Ab2A3ULV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 15:11:21 -0500
+From: Rolf Eike Beer <eike-kernel@sf-tec.de>
+Subject: Re: [PATCH] fix compile break caused by iomap: make IOPORT/PCI mapping functions conditional
+Date: Mon, 30 Jan 2012 21:10:45 +0100
+Message-ID: <1539148.qFWsuy2OOI@eto>
+In-Reply-To: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
+References: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo5QYvx6dtL4NqW4Pu29HXbS-kcTq-GKvpJO8AJ6vRYeBw@mail.gmail.com>
-References: <1327718971-9598-1-git-send-email-yinghai@kernel.org>
-	<1327718971-9598-10-git-send-email-yinghai@kernel.org>
-	<CAErSpo5QYvx6dtL4NqW4Pu29HXbS-kcTq-GKvpJO8AJ6vRYeBw@mail.gmail.com>
-Date: Mon, 30 Jan 2012 10:51:30 -0800
-Message-ID: <CAE9FiQWLRvXXyeEhvW+n55_Q+P88xyfgLCKwyK8d4tg679-8gg@mail.gmail.com>
-Subject: Re: [PATCH 09/13] PCI: Probe safe range that we can use for
- unassigned bridge.
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: multipart/signed; boundary="nextPart1645417.cUTOy9pxfp"; micalg="pgp-sha1"; protocol="application/pgp-signature"
+Content-Transfer-Encoding: 7Bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120130185130.SuH08GJtPMn48jf-0bjD9XcLBsBXU3xrRJOROErwO1Q@z>
-
-On Mon, Jan 30, 2012 at 7:59 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Fri, Jan 27, 2012 at 6:49 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> Try to allocate from parent bus busn_res. if can not find any big enough, will try
->> to extend parent bus top. even the extending is through allocating, after allocating
->> will pad the range to parent buses top.
->>
->> When extending happens, We will record the parent_res, so could use it as stopper
->> for really extend/shrink top later.
->>
-..
->
-> I think what this does is "find the largest available area in 'res'."
-> That *sounds* sort of useful (and like something that could go
-> somewhere more generic than drivers/pci/probe.c), but there's no
-> locking, so we don't have any assurance that the area we find will
-> *remain* available.
-
-two usages:
-1. init booting : should be safe, that is sequential scanning
-2. hotplug: we should have overall lock somewhere for it?
-
->
-> Since the caller should deal with failure anyway (if the largest
-> available area is no longer available by the time it gets around to
-> allocating it), it seems like it'd be better to fold this into the
-> caller somehow.
+To: James Bottomley <James.Bottomley@hansenpartnership.com>
+Cc: Randy Dunlap <rdunlap@xenotime.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+Message-ID: <20120130201045.cP4a8-Pj1THXydHgtOp6jgIOiY28g1nGI0z9AISOL3E@z>
 
 
+--nextPart1645417.cUTOy9pxfp
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 
->> +               if (ret == 0) {
->> +                       /* release busn_res */
->
-> Comments like this that repeat exactly what the next line of code does
-> without adding any useful information are unnecessary and distracting.
+Am Montag 30 Januar 2012, 10:40:47 schrieb James Bottomley:
+> The problem in
+> 
+> commit fea80311a939a746533a6d7e7c3183729d6a3faf
+> Author: Randy Dunlap <rdunlap@xenotime.net>
+> Date:   Sun Jul 24 11:39:14 2011 -0700
+> 
+>     iomap: make IOPORT/PCI mapping functions conditional
+> 
+> 
+> is that if your architecture supplies pci_iomap/pci_iounmap, it expects
+> always to supply them.  Adding empty body defitions in the !CONFIG_PCI
+> case, which is what this patch does, breaks the parisc compile because
+> the functions become doubly defined.  It took us a while to spot this,
+> because we don't actually build !CONFIG_PCI very often (only if someone
+> is brave enough to test the snake/asp machines).
+> 
+> Since the note in the commit log says this is to fix a
+> CONFIG_GENERIC_IOMAP issue (which it does because CONFIG_GENERIC_IOMAP
+> supplies pci_iounmap only if CONFIG_PCI is set), there should actually
+> have been a condition upon this.  This should make sure no other
+> architecture's !CONFIG_PCI compile breaks in the same way as parisc.
+> 
+> The fix had to be updated to take account of the GENERIC_PCI_IOMAP
+> separation.
 
-ok, will remove them.
+So this means we end up still building the PA-RISC PCI code even if the config 
+says no PCI. That doesn't really sound consistent to me. I really would have 
+expected that we do not build any non-void PCI code then.
 
-Yinghai
+> Reported-by: Rolf Eike Beer <eike@sf-mail.de>
+
+I used the wrong email account when sending out the last patch where you took 
+that from, please change that to the address used in this mail.
+
+Eike
+--nextPart1645417.cUTOy9pxfp
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part.
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.18 (GNU/Linux)
+
+iEYEABECAAYFAk8m+UwACgkQXKSJPmm5/E7FrgCaA2uVI5Xy5j0ck//kZHPWB9oZ
+DT4AnjagwQ8gBcNGVtWV3ECQEKKMF26r
+=O17p
+-----END PGP SIGNATURE-----
+
+--nextPart1645417.cUTOy9pxfp--
+
