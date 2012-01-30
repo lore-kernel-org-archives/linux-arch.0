@@ -1,69 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f74.google.com ([209.85.213.74]:33619 "EHLO
-	mail-yw0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753593Ab2A3Q6h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 11:58:37 -0500
-Received: by mail-yw0-f74.google.com with SMTP id j52so395333yhj.1
-        for <linux-arch@vger.kernel.org>; Mon, 30 Jan 2012 08:58:36 -0800 (PST)
-Subject: [RFC PATCH v1 17/18] xtensa/PCI: get rid of device resource fixups
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 30 Jan 2012 09:58:36 -0700
-Message-ID: <20120130165836.3231.1159.stgit@bhelgaas.mtv.corp.google.com>
-In-Reply-To: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
+Received: from mx1.redhat.com ([209.132.183.28]:40567 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752570Ab2A3RMF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Jan 2012 12:12:05 -0500
+Message-ID: <4F26CF3D.4070001@redhat.com>
+Date: Mon, 30 Jan 2012 19:11:25 +0200
+From: Avi Kivity <avi@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Subject: Re: [PATCH 3/4 V10] Add ioctl for KVMCLOCK_GUEST_STOPPED
+References: <1326825641-15765-1-git-send-email-emunson@mgebm.net> <1326825641-15765-4-git-send-email-emunson@mgebm.net> <4F26B220.9050101@redhat.com> <4F26C2EC.5070303@siemens.com>
+In-Reply-To: <4F26C2EC.5070303@siemens.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>
-Message-ID: <20120130165836.hvMlGn6eX5NeOSVgJRVaVe3O4SpD9eosDr0xIxSga80@z>
+To: Jan Kiszka <jan.kiszka@siemens.com>
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, jeremy.fitzhardinge@citrix.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120130171125.sL0EqTdlzufP9JdiWGa75MiagfLR9G9prBK7tQqJCbw@z>
 
-Tell the PCI core about host bridge address translation so it can take
-care of bus-to-resource conversion for us.
+On 01/30/2012 06:18 PM, Jan Kiszka wrote:
+> > 
+> > This looks racy.  The vcpu can remove its kvmclock concurrently with
+> > this access, and src will be NULL.
+>
+> There is no race here (src is member of the vcpu), but arch.time might
+> have become invalid. KVM_REQ_CLOCK_UPDATE instead of mark_page_dirty
+> would indeed be the way to go. Trivial solution, I would say.
+>
+> However, the concept of "guest stopped" has VM, not VCPU scope. 
 
-CC: Chris Zankel <chris@zankel.net>
----
- arch/xtensa/kernel/pci.c |   17 +----------------
- 1 files changed, 1 insertions(+), 16 deletions(-)
+We're not stopping the guest here, just setting a flag in kvmclock,
+which certainly is a per-vcpu thing.
 
-diff --git a/arch/xtensa/kernel/pci.c b/arch/xtensa/kernel/pci.c
-index 61045c1..eb30e35 100644
---- a/arch/xtensa/kernel/pci.c
-+++ b/arch/xtensa/kernel/pci.c
-@@ -153,7 +153,7 @@ static void __init pci_controller_apertures(struct pci_controller *pci_ctrl,
- 	}
- 	res->start += io_offset;
- 	res->end += io_offset;
--	pci_add_resource(resources, res);
-+	pci_add_resource_offset(resources, res, io_offset);
- 
- 	for (i = 0; i < 3; i++) {
- 		res = &pci_ctrl->mem_resources[i];
-@@ -200,24 +200,9 @@ subsys_initcall(pcibios_init);
- 
- void __init pcibios_fixup_bus(struct pci_bus *bus)
- {
--	struct pci_controller *pci_ctrl = bus->sysdata;
--	struct resource *res;
--	unsigned long io_offset;
--	int i;
--
--	io_offset = (unsigned long)pci_ctrl->io_space.base;
- 	if (bus->parent) {
- 		/* This is a subordinate bridge */
- 		pci_read_bridge_bases(bus);
--
--		for (i = 0; i < 4; i++) {
--			if ((res = bus->resource[i]) == NULL || !res->flags)
--				continue;
--			if (io_offset && (res->flags & IORESOURCE_IO)) {
--				res->start += io_offset;
--				res->end += io_offset;
--			}
--		}
- 	}
- }
- 
+> That
+> makes the call more appropriate as a VM ioctl. If that thing should
+> really become per-vcpu, at least call it KVMCLOCK_VCPU_STOPPED.
+>
+
+All current ioctls start with KVM_. Maybe KVM_KVMCLOCK_CTRL?
+
+-- 
+error compiling committee.c: too many arguments to function
 
