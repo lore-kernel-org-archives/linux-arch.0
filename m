@@ -1,75 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sf-mail.de ([62.27.20.61]:51147 "EHLO www.sf-tec.de"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752994Ab2A3ULV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Jan 2012 15:11:21 -0500
-From: Rolf Eike Beer <eike-kernel@sf-tec.de>
-Subject: Re: [PATCH] fix compile break caused by iomap: make IOPORT/PCI mapping functions conditional
-Date: Mon, 30 Jan 2012 21:10:45 +0100
-Message-ID: <1539148.qFWsuy2OOI@eto>
-In-Reply-To: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
-References: <1327941647.21193.53.camel@dabdike.int.hansenpartnership.com>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:65292 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752318Ab2A3UwZ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Jan 2012 15:52:25 -0500
 MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="nextPart1645417.cUTOy9pxfp"; micalg="pgp-sha1"; protocol="application/pgp-signature"
-Content-Transfer-Encoding: 7Bit
+In-Reply-To: <20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
+	<20120130165719.3231.43751.stgit@bhelgaas.mtv.corp.google.com>
+Date: Mon, 30 Jan 2012 12:52:24 -0800
+Message-ID: <CAE9FiQUXjjk=twgwWVB01JMD9GokEVjOoiRLYZYRTPSPXHYfFw@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 02/18] PCI: add struct pci_host_bridge and a list
+ of all bridges found
+From: Yinghai Lu <yinghai@kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Randy Dunlap <rdunlap@xenotime.net>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20120130201045.cP4a8-Pj1THXydHgtOp6jgIOiY28g1nGI0z9AISOL3E@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120130205224.eeLw8ze5T8_5aLE4-ep9J736Ls72XCFELaM7bNEM9YU@z>
 
+On Mon, Jan 30, 2012 at 8:57 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> This adds a list of all PCI host bridges we find and a way to look up
+> the host bridge from a pci_dev.
+> ---
+>  drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
+>  include/linux/pci.h |    5 +++++
+>  2 files changed, 39 insertions(+), 5 deletions(-)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index da0d655..2ffe8a3 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -15,6 +15,8 @@
+>  #define CARDBUS_LATENCY_TIMER  176     /* secondary latency timer */
+>  #define CARDBUS_RESERVE_BUSNR  3
+>
+> +static LIST_HEAD(pci_host_bridges);
+> +
+>  /* Ugh.  Need to stop exporting this to modules. */
+>  LIST_HEAD(pci_root_buses);
+>  EXPORT_SYMBOL(pci_root_buses);
+> @@ -42,6 +44,23 @@ int no_pci_devices(void)
+>  }
+>  EXPORT_SYMBOL(no_pci_devices);
+>
+> +static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
+> +{
+> +       struct pci_bus *bus;
+> +       struct pci_host_bridge *bridge;
+> +
+> +       bus = dev->bus;
+> +       while (bus->parent)
+> +               bus = bus->parent;
+> +
+> +       list_for_each_entry(bridge, &pci_host_bridges, list) {
+> +               if (bridge->bus == bus)
+> +                       return bridge;
+> +       }
+> +
+> +       return NULL;
+> +}
+> +
+>  /*
+>  * PCI Bus Class
+>  */
+> @@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>                struct pci_ops *ops, void *sysdata, struct list_head *resources)
+>  {
+>        int error, i;
+> +       struct pci_host_bridge *bridge;
+>        struct pci_bus *b, *b2;
+>        struct device *dev;
+>        struct pci_bus_resource *bus_res, *n;
+>        struct resource *res;
+>
+> +       bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
+> +       if (!bridge)
+> +               return NULL;
+> +
+>        b = pci_alloc_bus();
+>        if (!b)
+> -               return NULL;
+> +               goto err_bus;
+>
+>        dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+> -       if (!dev) {
+> -               kfree(b);
+> -               return NULL;
+> -       }
+> +       if (!dev)
+> +               goto err_dev;
+>
+>        b->sysdata = sysdata;
+>        b->ops = ops;
+> @@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>
+>        b->number = b->secondary = bus;
+>
+> +       bridge->bus = b;
+> +
+>        /* Add initial resources to the bus */
+>        list_for_each_entry_safe(bus_res, n, resources, list)
+>                list_move_tail(&bus_res->list, &b->resources);
+> @@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+>        }
+>
+>        down_write(&pci_bus_sem);
+> +       list_add_tail(&bridge->list, &pci_host_bridges);
+>        list_add_tail(&b->node, &pci_root_buses);
+>        up_write(&pci_bus_sem);
 
---nextPart1645417.cUTOy9pxfp
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+we already have list for root_bus. So there will be two lists.
 
-Am Montag 30 Januar 2012, 10:40:47 schrieb James Bottomley:
-> The problem in
-> 
-> commit fea80311a939a746533a6d7e7c3183729d6a3faf
-> Author: Randy Dunlap <rdunlap@xenotime.net>
-> Date:   Sun Jul 24 11:39:14 2011 -0700
-> 
->     iomap: make IOPORT/PCI mapping functions conditional
-> 
-> 
-> is that if your architecture supplies pci_iomap/pci_iounmap, it expects
-> always to supply them.  Adding empty body defitions in the !CONFIG_PCI
-> case, which is what this patch does, breaks the parisc compile because
-> the functions become doubly defined.  It took us a while to spot this,
-> because we don't actually build !CONFIG_PCI very often (only if someone
-> is brave enough to test the snake/asp machines).
-> 
-> Since the note in the commit log says this is to fix a
-> CONFIG_GENERIC_IOMAP issue (which it does because CONFIG_GENERIC_IOMAP
-> supplies pci_iounmap only if CONFIG_PCI is set), there should actually
-> have been a condition upon this.  This should make sure no other
-> architecture's !CONFIG_PCI compile breaks in the same way as parisc.
-> 
-> The fix had to be updated to take account of the GENERIC_PCI_IOMAP
-> separation.
+wonder if we can overload bus->self point to struct host_bridge.
 
-So this means we end up still building the PA-RISC PCI code even if the config 
-says no PCI. That doesn't really sound consistent to me. I really would have 
-expected that we do not build any non-void PCI code then.
+or just do not add host_bridge , and instead only add another field
+like struct list_head windows in pci_sysdata?
 
-> Reported-by: Rolf Eike Beer <eike@sf-mail.de>
+Thanks
 
-I used the wrong email account when sending out the last patch where you took 
-that from, please change that to the address used in this mail.
-
-Eike
---nextPart1645417.cUTOy9pxfp
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part.
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.18 (GNU/Linux)
-
-iEYEABECAAYFAk8m+UwACgkQXKSJPmm5/E7FrgCaA2uVI5Xy5j0ck//kZHPWB9oZ
-DT4AnjagwQ8gBcNGVtWV3ECQEKKMF26r
-=O17p
------END PGP SIGNATURE-----
-
---nextPart1645417.cUTOy9pxfp--
-
+Yinghai
