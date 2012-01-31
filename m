@@ -1,79 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:52536 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753685Ab2AaPfk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 31 Jan 2012 10:35:40 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/4 V11] Add check for suspended vm in softlockup detector
-Date: Tue, 31 Jan 2012 10:35:32 -0500
-Message-ID: <1328024132-7687-5-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
-References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
+Received: from moutng.kundenserver.de ([212.227.17.8]:50076 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753368Ab2AaP7t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2012 10:59:49 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
+Date: Tue, 31 Jan 2012 15:59:25 +0000
+References: <cover.1327877053.git.mst@redhat.com> <201201302004.33083.arnd@arndb.de> <20120131002203.GA14344@redhat.com>
+In-Reply-To: <20120131002203.GA14344@redhat.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201201311559.26050.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120131153532.Gw6XxXaxsgLG2qat9-SvmMexhlwPfISqb8bIf3ng074@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120131155925.IBYQLXEIcK_Pv3_D6VbKxkZiqXVL8OIUp_o42L0_nW8@z>
 
-A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
-watchdog now checks if the kernel knows it was stopped by the host and skips
-the warning if so.  When the watchdog is reset successfully, clear the guest
-paused flag.
+On Tuesday 31 January 2012, Michael S. Tsirkin wrote:
+> I have an idea: we can make the generic one inline
+> if we keep it in the .c file. So something like
+> the below on top of my patch will probably work.
+> Ack?
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from V3:
- Clear the PAUSED flag when the watchdog is reset
+IMHO this is still worse than the macro, because it breaks common practice.
+The common way to do this is #ifdef/#else/#endif in the header file to
+provide either an extern or a macro/inline definition, while having the
+inline definition in a separate place makes it harder to understand
+what's going on. E.g. a frequent review comment is to not put extern
+declarations inside of #ifdef, but if someone tries that here, it would
+break.
 
- kernel/watchdog.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
+You also still need the #ifdef in the implementation file, which we
+try to avoid normally just like we try to avoid macros where possible.
 
-diff --git a/kernel/watchdog.c b/kernel/watchdog.c
-index 1d7bca7..91485e5 100644
---- a/kernel/watchdog.c
-+++ b/kernel/watchdog.c
-@@ -25,6 +25,7 @@
- #include <linux/sysctl.h>
- 
- #include <asm/irq_regs.h>
-+#include <linux/kvm_para.h>
- #include <linux/perf_event.h>
- 
- int watchdog_enabled = 1;
-@@ -280,6 +281,9 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 			__this_cpu_write(softlockup_touch_sync, false);
- 			sched_clock_tick();
- 		}
-+
-+		/* Clear the guest paused flag on watchdog reset */
-+		kvm_check_and_clear_guest_paused();
- 		__touch_watchdog();
- 		return HRTIMER_RESTART;
- 	}
-@@ -292,6 +296,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 	 */
- 	duration = is_softlockup(touch_ts);
- 	if (unlikely(duration)) {
-+		/*
-+		 * If a virtual machine is stopped by the host it can look to
-+		 * the watchdog like a soft lockup, check to see if the host
-+		 * stopped the vm before we issue the warning
-+		 */
-+		if (kvm_check_and_clear_guest_paused())
-+			return HRTIMER_RESTART;
-+
- 		/* only warn once */
- 		if (__this_cpu_read(soft_watchdog_warn) == true)
- 			return HRTIMER_RESTART;
--- 
-1.7.5.4
-
+	Arnd
