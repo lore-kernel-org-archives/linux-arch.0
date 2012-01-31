@@ -1,57 +1,73 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v3 0/14] PCI: allocate pci bus num range for unassigned bridge busn
-Date: Mon, 30 Jan 2012 23:42:38 -0800
-Message-ID: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 4/4 V11] Add check for suspended vm in softlockup detector
+Date: Tue, 31 Jan 2012 10:35:32 -0500
+Message-ID: <1328024132-7687-5-git-send-email-emunson@mgebm.net>
+References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-25b9b3c: PCI: Seperate child bus scanning to two passes overall
-58fe568: PCI: kill pci_fixup_parent_subordinate_busnr()
-72a276a: PCI: Allocate bus range instead of use max blindly
-3e65251: PCI: Strict checking of valid range for bridge
-a06b7d3: PCI: Probe safe range that we can use for unassigned bridge.
-f7d1b3e: PCI: Add pci_bus_extend/shrink_top()
-941553d: PCI, parisc: Register busn_res for root buses
-44ade6c: PCI, powerpc: Register busn_res for root buses
-c96df0d: PCI, ia64: Register busn_res for root buses
-370ff8b: PCI, x86: Register busn_res for root buses
-12aa505: PCI: Add busn_res tracking in core
-5729f35: PCI: Add busn_res operation functions
-b7283c2: PCI: Add iobusn_resource
-443e84a: Make %pR could handle bus resource with domain
+A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
+watchdog now checks if the kernel knows it was stopped by the host and skips
+the warning if so.  When the watchdog is reset successfully, clear the guest
+paused flag.
 
-Set up iobusn_resource tree, and register bus number range to it.
-Later when need to find bus range, will try to allocate from the tree
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+Changes from V3:
+ Clear the PAUSED flag when the watchdog is reset
 
-Need to test on arches other than x86. esp for ia64 and powerpc that support
-  more than on peer root buses.
+ kernel/watchdog.c |   12 ++++++++++++
+ 1 files changed, 12 insertions(+), 0 deletions(-)
 
-could be found at:
-	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
-
--v2: according to Jesse, split to more small patches.
--v3: address some request from Bjorn. like make use %pR for busn_res debug print
-	out, and move the comment change with code change.
-
-Thanks
-
-Yinghai
-
- arch/ia64/pci/pci.c              |    2 +
- arch/powerpc/kernel/pci-common.c |    7 +-
- arch/x86/include/asm/topology.h  |    3 +-
- arch/x86/pci/acpi.c              |    8 +-
- arch/x86/pci/bus_numa.c          |    8 +-
- arch/x86/pci/common.c            |   11 +-
- drivers/parisc/dino.c            |    2 +
- drivers/parisc/lba_pci.c         |    3 +
- drivers/pci/probe.c              |  410 ++++++++++++++++++++++++++++++--------
- drivers/pci/remove.c             |    1 +
- include/linux/ioport.h           |    1 +
- include/linux/pci.h              |    8 +
- kernel/resource.c                |    8 +
- lib/vsprintf.c                   |   28 +++-
- 14 files changed, 402 insertions(+), 98 deletions(-)
+diff --git a/kernel/watchdog.c b/kernel/watchdog.c
+index 1d7bca7..91485e5 100644
+--- a/kernel/watchdog.c
++++ b/kernel/watchdog.c
+@@ -25,6 +25,7 @@
+ #include <linux/sysctl.h>
+ 
+ #include <asm/irq_regs.h>
++#include <linux/kvm_para.h>
+ #include <linux/perf_event.h>
+ 
+ int watchdog_enabled = 1;
+@@ -280,6 +281,9 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 			__this_cpu_write(softlockup_touch_sync, false);
+ 			sched_clock_tick();
+ 		}
++
++		/* Clear the guest paused flag on watchdog reset */
++		kvm_check_and_clear_guest_paused();
+ 		__touch_watchdog();
+ 		return HRTIMER_RESTART;
+ 	}
+@@ -292,6 +296,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
+ 	 */
+ 	duration = is_softlockup(touch_ts);
+ 	if (unlikely(duration)) {
++		/*
++		 * If a virtual machine is stopped by the host it can look to
++		 * the watchdog like a soft lockup, check to see if the host
++		 * stopped the vm before we issue the warning
++		 */
++		if (kvm_check_and_clear_guest_paused())
++			return HRTIMER_RESTART;
++
+ 		/* only warn once */
+ 		if (__this_cpu_read(soft_watchdog_warn) == true)
+ 			return HRTIMER_RESTART;
+-- 
+1.7.5.4
