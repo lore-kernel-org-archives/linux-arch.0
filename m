@@ -1,34 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
-Date: Tue, 31 Jan 2012 15:59:25 +0000
-Message-ID: <201201311559.26050.arnd@arndb.de>
-References: <cover.1327877053.git.mst@redhat.com> <201201302004.33083.arnd@arndb.de> <20120131002203.GA14344@redhat.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH -v3 0/14] PCI: allocate pci bus num range for unassigned
+ bridge busn
+Date: Tue, 31 Jan 2012 09:49:34 -0800
+Message-ID: <CAErSpo54k=pL1P1z7OetC1qJbsH9LH0GY4QFy-=PPKR0vF14SA@mail.gmail.com>
+References: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120131002203.GA14344@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:53299 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753230Ab2AaRt4 convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Jan 2012 12:49:56 -0500
+Received: by lagu2 with SMTP id u2so159760lag.19
+        for <linux-arch@vger.kernel.org>; Tue, 31 Jan 2012 09:49:54 -0800 (PST)
+In-Reply-To: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tuesday 31 January 2012, Michael S. Tsirkin wrote:
-> I have an idea: we can make the generic one inline
-> if we keep it in the .c file. So something like
-> the below on top of my patch will probably work.
-> Ack?
+On Mon, Jan 30, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote=
+:
+> could be found at:
+> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/=
+linux-yinghai.git for-pci-busn-alloc
+>
+> -v2: according to Jesse, split to more small patches.
+> -v3: address some request from Bjorn. like make use %pR for busn_res =
+debug print
+> =A0 =A0 =A0 =A0out, and move the comment change with code change.
 
-IMHO this is still worse than the macro, because it breaks common practice.
-The common way to do this is #ifdef/#else/#endif in the header file to
-provide either an extern or a macro/inline definition, while having the
-inline definition in a separate place makes it harder to understand
-what's going on. E.g. a frequent review comment is to not put extern
-declarations inside of #ifdef, but if someone tries that here, it would
-break.
-
-You also still need the #ifdef in the implementation file, which we
-try to avoid normally just like we try to avoid macros where possible.
-
-	Arnd
+I don't see v3 in that git tree; maybe it needs to be pushed?
