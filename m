@@ -1,157 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:47190 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753052Ab2AaHnb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2012 02:43:31 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/14] PCI: Probe safe range that we can use for unassigned bridge.
-Date: Mon, 30 Jan 2012 23:42:48 -0800
-Message-ID: <1327995772-11388-11-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
-References: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:52543 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753506Ab2AaPfk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 31 Jan 2012 10:35:40 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V11] Add flag to indicate that a vm was stopped by the host
+Date: Tue, 31 Jan 2012 10:35:29 -0500
+Message-ID: <1328024132-7687-2-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
+References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120131074248.ih2r6rbwB2RaeJITIudp_NJx_ZPX2uDz19LGr7tVb0o@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120131153529.g3piYSBanFncrT6JmXqUaYQ-li8Gb6Wr1yYdVWXTQqI@z>
 
-Try to allocate from parent bus busn_res. if can not find any big enough, will try
-to extend parent bus top. even the extending is through allocating, after allocating
-will pad the range to parent buses top.
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-When extending happens, We will record the parent_res, so could use it as stopper
-for really extend/shrink top later.
-
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- drivers/pci/probe.c |  114 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 114 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 91fdaec..10aa6d1 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -670,6 +670,120 @@ static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
- 	}
- }
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
  
-+static resource_size_t __devinit find_res_top_free_size(struct resource *res)
-+{
-+	int ret = -ENOMEM;
-+	resource_size_t n_size;
-+	struct resource tmp_res;
-+
-+	/*
-+	 *   find out number below res->end, that we can use at first
-+	 *	res->start can not be used.
-+	 */
-+	n_size = resource_size(res) - 1;
-+	memset(&tmp_res, 0, sizeof(struct resource));
-+	while (n_size > 0) {
-+		ret = allocate_resource(res, &tmp_res, n_size,
-+			res->end - n_size + 1, res->end,
-+			1, NULL, NULL);
-+		if (ret == 0) {
-+			/* release busn_res */
-+			release_resource(&tmp_res);
-+			break;
-+		}
-+		n_size--;
-+	}
-+
-+	return n_size;
-+}
-+
-+static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
-+			 struct pci_dev *dev, struct resource *busn_res,
-+			 resource_size_t needed_size, struct resource **p)
-+{
-+	int ret = -ENOMEM;
-+	resource_size_t n_size;
-+	struct pci_bus *parent;
-+	struct resource *parent_res;
-+	resource_size_t tmp = bus->busn_res.end + 1;
-+	int free_sz = -1;
-+
-+	parent_res = NULL;
-+
-+again:
-+	/*
-+	 * find bigest range in bus->busn_res that we can use in the middle
-+	 *  and we can not use bus->busn_res.start.
-+	 */
-+	n_size = resource_size(&bus->busn_res) - 1;
-+	memset(busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+			"find free busn in busn_res: %pR\n", &bus->busn_res);
-+	while (n_size >= needed_size) {
-+		ret = allocate_resource(&bus->busn_res, busn_res, n_size,
-+				bus->busn_res.start + 1, bus->busn_res.end,
-+				1, NULL, NULL);
-+		if (ret == 0) {
-+			/* found one, prepare to return */
-+			release_resource(busn_res);
-+
-+			return ret;
-+		}
-+		n_size--;
-+	}
-+
-+	/* try extend the top of parent buss */
-+	if (free_sz < 0) {
-+		free_sz = find_res_top_free_size(&bus->busn_res);
-+		dev_printk(KERN_DEBUG, &dev->dev,
-+			"found free busn %d in busn_res: %pR top\n",
-+				free_sz, &bus->busn_res);
-+	}
-+	n_size = free_sz;
-+
-+	/* check if extend could cross domain boundary */
-+	if ((bus->busn_res.end & 0xff) == 0xff)
-+		goto reduce_needed_size;
-+	if ((0x100 - (tmp & 0xff)) < (needed_size - n_size))
-+		goto reduce_needed_size;
-+
-+	/* find exteded range */
-+	memset(busn_res, 0, sizeof(struct resource));
-+	parent = bus->parent;
-+	while (parent) {
-+		ret = allocate_resource(&parent->busn_res, busn_res,
-+			 needed_size - n_size,
-+			 tmp, tmp + needed_size - n_size - 1,
-+			 1, NULL, NULL);
-+		if (ret == 0)
-+			break;
-+		parent = parent->parent;
-+	}
-+
-+reduce_needed_size:
-+	if (ret != 0) {
-+		needed_size--;
-+		if (!needed_size)
-+			return ret;
-+
-+		goto again;
-+	}
-+
-+	/* save parent_res, we need it as stopper later */
-+	parent_res = busn_res->parent;
-+
-+	/* prepare busn_res for return */
-+	release_resource(busn_res);
-+	busn_res->start -= n_size;
-+
-+	/* extend parent bus top*/
-+	pci_bus_extend_top(bus, needed_size - n_size, parent_res);
-+
-+	*p = parent_res;
-+
-+	return ret;
-+}
-+
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
 -- 
-1.7.7
+1.7.5.4
 
