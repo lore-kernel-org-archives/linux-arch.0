@@ -1,44 +1,34 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 1/4 V11] Add flag to indicate that a vm was stopped by the host
-Date: Tue, 31 Jan 2012 10:35:29 -0500
-Message-ID: <1328024132-7687-2-git-send-email-emunson@mgebm.net>
-References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/3] lib: add NO_GENERIC_PCI_IOPORT_MAP
+Date: Tue, 31 Jan 2012 15:59:25 +0000
+Message-ID: <201201311559.26050.arnd@arndb.de>
+References: <cover.1327877053.git.mst@redhat.com> <201201302004.33083.arnd@arndb.de> <20120131002203.GA14344@redhat.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
+In-Reply-To: <20120131002203.GA14344@redhat.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Kevin Cernekee <cernekee@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Myron Stowe <myron.stowe@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Lucas De Marchi <lucas.demarchi@profusion.mobi>, Dmitry Kasatkin <dmitry.kasatkin@intel.com>, James Morris <jmorris@namei.org>, "John W. Linville" <linville@tuxdriver.com>, Michael Witten <mfwitten@gmail.com>, linux-mips@linux-mips.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This flag will be used to check if the vm was stopped by the host when a soft
-lockup was detected.  The host will set the flag when it stops the guest.  On
-resume, the guest will check this flag if a soft lockup is detected and skip
-issuing the warning.
+On Tuesday 31 January 2012, Michael S. Tsirkin wrote:
+> I have an idea: we can make the generic one inline
+> if we keep it in the .c file. So something like
+> the below on top of my patch will probably work.
+> Ack?
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/x86/include/asm/pvclock-abi.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+IMHO this is still worse than the macro, because it breaks common practice.
+The common way to do this is #ifdef/#else/#endif in the header file to
+provide either an extern or a macro/inline definition, while having the
+inline definition in a separate place makes it harder to understand
+what's going on. E.g. a frequent review comment is to not put extern
+declarations inside of #ifdef, but if someone tries that here, it would
+break.
 
-diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
-index 35f2d19..6167fd7 100644
---- a/arch/x86/include/asm/pvclock-abi.h
-+++ b/arch/x86/include/asm/pvclock-abi.h
-@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
- } __attribute__((__packed__));
- 
- #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
-+#define PVCLOCK_GUEST_STOPPED	(1 << 1)
- #endif /* __ASSEMBLY__ */
- #endif /* _ASM_X86_PVCLOCK_ABI_H */
--- 
-1.7.5.4
+You also still need the #ifdef in the implementation file, which we
+try to avoid normally just like we try to avoid macros where possible.
+
+	Arnd
