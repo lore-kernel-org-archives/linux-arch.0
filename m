@@ -1,125 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:47103 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752887Ab2AaHnV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2012 02:43:21 -0500
+Received: from rcsinet15.oracle.com ([148.87.113.117]:59563 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752500Ab2AaHnU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Jan 2012 02:43:20 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/14] PCI: Add busn_res tracking in core
-Date: Mon, 30 Jan 2012 23:42:42 -0800
-Message-ID: <1327995772-11388-5-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
-References: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v3 0/14] PCI: allocate pci bus num range for unassigned bridge busn
+Date: Mon, 30 Jan 2012 23:42:38 -0800
+Message-ID: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120131074242.U0zGs_a9WlQPrkcYjMdVS0Lh-SamJltolUsRkkBXGgM@z>
+Message-ID: <20120131074238.kj21pi3UkmGc-QqxYGEZ0uGAvCrNhCAnSwLPgxkYpZM@z>
 
-update pci_scan_root_bus, and pci_scan_bus to insert root bus busn into
-iobusn_resource tree.
+25b9b3c: PCI: Seperate child bus scanning to two passes overall
+58fe568: PCI: kill pci_fixup_parent_subordinate_busnr()
+72a276a: PCI: Allocate bus range instead of use max blindly
+3e65251: PCI: Strict checking of valid range for bridge
+a06b7d3: PCI: Probe safe range that we can use for unassigned bridge.
+f7d1b3e: PCI: Add pci_bus_extend/shrink_top()
+941553d: PCI, parisc: Register busn_res for root buses
+44ade6c: PCI, powerpc: Register busn_res for root buses
+c96df0d: PCI, ia64: Register busn_res for root buses
+370ff8b: PCI, x86: Register busn_res for root buses
+12aa505: PCI: Add busn_res tracking in core
+5729f35: PCI: Add busn_res operation functions
+b7283c2: PCI: Add iobusn_resource
+443e84a: Make %pR could handle bus resource with domain
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/probe.c  |   30 ++++++++++++++++++++++++++----
- drivers/pci/remove.c |    1 +
- include/linux/pci.h  |    4 ++++
- 3 files changed, 31 insertions(+), 4 deletions(-)
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 957c2bc..79de0dd 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1658,8 +1658,9 @@ void pci_bus_release_busn_res(struct pci_bus *b)
- 	release_resource(&b->busn_res);
- }
- 
--struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
--		struct pci_ops *ops, void *sysdata, struct list_head *resources)
-+struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
-+		int bus_max, struct pci_ops *ops, void *sysdata,
-+		struct list_head *resources)
- {
- 	struct pci_bus *b;
- 
-@@ -1667,10 +1668,26 @@ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 	if (!b)
- 		return NULL;
- 
-+	pci_bus_insert_busn_res(b, bus, bus_max);
- 	b->subordinate = pci_scan_child_bus(b);
- 	pci_bus_add_devices(b);
- 	return b;
- }
-+EXPORT_SYMBOL(pci_scan_root_bus_max);
-+
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
-+		struct pci_ops *ops, void *sysdata,
-+		struct list_head *resources)
-+{
-+	struct pci_bus *b;
-+
-+	b = pci_scan_root_bus_max(parent, bus, 255, ops, sysdata, resources);
-+
-+	if (b)
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+
-+	return b;
-+}
- EXPORT_SYMBOL(pci_scan_root_bus);
- 
- /* Deprecated; use pci_scan_root_bus() instead */
-@@ -1683,9 +1700,11 @@ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
- 	pci_add_resource(&resources, &ioport_resource);
- 	pci_add_resource(&resources, &iomem_resource);
- 	b = pci_create_root_bus(parent, bus, ops, sysdata, &resources);
--	if (b)
-+	if (b) {
-+		pci_bus_insert_busn_res(b, bus, 255);
- 		b->subordinate = pci_scan_child_bus(b);
--	else
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+	} else
- 		pci_free_resource_list(&resources);
- 	return b;
- }
-@@ -1701,7 +1720,10 @@ struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
- 	pci_add_resource(&resources, &iomem_resource);
- 	b = pci_create_root_bus(NULL, bus, ops, sysdata, &resources);
- 	if (b) {
-+		pci_bus_insert_busn_res(b, bus, 255);
- 		b->subordinate = pci_scan_child_bus(b);
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+
- 		pci_bus_add_devices(b);
- 	} else {
- 		pci_free_resource_list(&resources);
-diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
-index bd70f23..8056e6a 100644
---- a/drivers/pci/remove.c
-+++ b/drivers/pci/remove.c
-@@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
- 
- 	down_write(&pci_bus_sem);
- 	list_del(&pci_bus->node);
-+	pci_bus_release_busn_res(pci_bus);
- 	up_write(&pci_bus_sem);
- 	if (!pci_bus->is_added)
- 		return;
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 3da935c..d5b6786 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -668,6 +668,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
- void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
- void pci_bus_release_busn_res(struct pci_bus *b);
-+struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
-+					     int busmax, struct pci_ops *ops,
-+					     void *sysdata,
-+					     struct list_head *resources);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
--- 
-1.7.7
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
+
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+	out, and move the comment change with code change.
+
+Thanks
+
+Yinghai
+
+ arch/ia64/pci/pci.c              |    2 +
+ arch/powerpc/kernel/pci-common.c |    7 +-
+ arch/x86/include/asm/topology.h  |    3 +-
+ arch/x86/pci/acpi.c              |    8 +-
+ arch/x86/pci/bus_numa.c          |    8 +-
+ arch/x86/pci/common.c            |   11 +-
+ drivers/parisc/dino.c            |    2 +
+ drivers/parisc/lba_pci.c         |    3 +
+ drivers/pci/probe.c              |  410 ++++++++++++++++++++++++++++++--------
+ drivers/pci/remove.c             |    1 +
+ include/linux/ioport.h           |    1 +
+ include/linux/pci.h              |    8 +
+ kernel/resource.c                |    8 +
+ lib/vsprintf.c                   |   28 +++-
+ 14 files changed, 402 insertions(+), 98 deletions(-)
