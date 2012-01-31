@@ -1,59 +1,68 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/14] PCI, powerpc: Register busn_res for root buses
-Date: Mon, 30 Jan 2012 23:42:45 -0800
-Message-ID: <1327995772-11388-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/14] PCI: Add iobusn_resource
+Date: Mon, 30 Jan 2012 23:42:40 -0800
+Message-ID: <1327995772-11388-3-git-send-email-yinghai@kernel.org>
 References: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
----
- arch/powerpc/kernel/pci-common.c |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
+also add busn_res into struct pci_bus.
 
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index cce98d7..501f29b 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1732,6 +1732,8 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 	bus->secondary = hose->first_busno;
- 	hose->bus = bus;
+will use them to have bus number resource tree.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ include/linux/ioport.h |    1 +
+ include/linux/pci.h    |    1 +
+ kernel/resource.c      |    8 ++++++++
+ 3 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+index e885ba2..6fe9e19 100644
+--- a/include/linux/ioport.h
++++ b/include/linux/ioport.h
+@@ -136,6 +136,7 @@ struct resource {
+ /* PC/ISA/whatever - the normal PC address spaces: IO and memory */
+ extern struct resource ioport_resource;
+ extern struct resource iomem_resource;
++extern struct resource iobusn_resource;
  
-+	pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
+ extern struct resource *request_resource_conflict(struct resource *root, struct resource *new);
+ extern int request_resource(struct resource *root, struct resource *new);
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index f8caaab..94ad468 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -419,6 +419,7 @@ struct pci_bus {
+ 	struct list_head slots;		/* list of slots on this bus */
+ 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+ 	struct list_head resources;	/* address space routed to this bus */
++	struct resource busn_res;	/* track registered bus num range */
+ 
+ 	struct pci_ops	*ops;		/* configuration access functions */
+ 	void		*sysdata;	/* hook for sys-specific extension */
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 7640b3a..53b42f0 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -38,6 +38,14 @@ struct resource iomem_resource = {
+ };
+ EXPORT_SYMBOL(iomem_resource);
+ 
++struct resource iobusn_resource = {
++	.name	= "PCI busn",
++	.start	= 0,
++	.end	= 0xffffff,
++	.flags	= IORESOURCE_BUS,
++};
++EXPORT_SYMBOL(iobusn_resource);
 +
- 	/* Get probe mode and perform scan */
- 	mode = PCI_PROBE_NORMAL;
- 	if (node && ppc_md.pci_probe_mode)
-@@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 		of_scan_bus(node, bus);
- 	}
- 
--	if (mode == PCI_PROBE_NORMAL)
-+	if (mode == PCI_PROBE_NORMAL) {
-+		pci_bus_update_busn_res_end(bus, 255);
- 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-+		pci_bus_update_busn_res_end(bus, bus->subordinate);
-+	}
- 
- 	/* Platform gets a chance to do some global fixups before
- 	 * we proceed to resource allocation
+ /* constraints to be met while allocating resources */
+ struct resource_constraint {
+ 	resource_size_t min, max, align;
 -- 
 1.7.7
