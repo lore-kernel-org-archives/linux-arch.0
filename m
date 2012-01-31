@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/14] PCI: Add busn_res tracking in core
-Date: Mon, 30 Jan 2012 23:42:42 -0800
-Message-ID: <1327995772-11388-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 10/14] PCI: Probe safe range that we can use for unassigned bridge.
+Date: Mon, 30 Jan 2012 23:42:48 -0800
+Message-ID: <1327995772-11388-11-git-send-email-yinghai@kernel.org>
 References: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1327995772-11388-1-git-send-email-yinghai@kernel.org>
@@ -10,110 +10,142 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-update pci_scan_root_bus, and pci_scan_bus to insert root bus busn into
-iobusn_resource tree.
+Try to allocate from parent bus busn_res. if can not find any big enough, will try
+to extend parent bus top. even the extending is through allocating, after allocating
+will pad the range to parent buses top.
+
+When extending happens, We will record the parent_res, so could use it as stopper
+for really extend/shrink top later.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c  |   30 ++++++++++++++++++++++++++----
- drivers/pci/remove.c |    1 +
- include/linux/pci.h  |    4 ++++
- 3 files changed, 31 insertions(+), 4 deletions(-)
+ drivers/pci/probe.c |  114 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 114 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 957c2bc..79de0dd 100644
+index 91fdaec..10aa6d1 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1658,8 +1658,9 @@ void pci_bus_release_busn_res(struct pci_bus *b)
- 	release_resource(&b->busn_res);
+@@ -670,6 +670,120 @@ static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
+ 	}
  }
  
--struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
--		struct pci_ops *ops, void *sysdata, struct list_head *resources)
-+struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
-+		int bus_max, struct pci_ops *ops, void *sysdata,
-+		struct list_head *resources)
- {
- 	struct pci_bus *b;
- 
-@@ -1667,10 +1668,26 @@ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 	if (!b)
- 		return NULL;
- 
-+	pci_bus_insert_busn_res(b, bus, bus_max);
- 	b->subordinate = pci_scan_child_bus(b);
- 	pci_bus_add_devices(b);
- 	return b;
- }
-+EXPORT_SYMBOL(pci_scan_root_bus_max);
-+
-+struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
-+		struct pci_ops *ops, void *sysdata,
-+		struct list_head *resources)
++static resource_size_t __devinit find_res_top_free_size(struct resource *res)
 +{
-+	struct pci_bus *b;
++	int ret = -ENOMEM;
++	resource_size_t n_size;
++	struct resource tmp_res;
 +
-+	b = pci_scan_root_bus_max(parent, bus, 255, ops, sysdata, resources);
++	/*
++	 *   find out number below res->end, that we can use at first
++	 *	res->start can not be used.
++	 */
++	n_size = resource_size(res) - 1;
++	memset(&tmp_res, 0, sizeof(struct resource));
++	while (n_size > 0) {
++		ret = allocate_resource(res, &tmp_res, n_size,
++			res->end - n_size + 1, res->end,
++			1, NULL, NULL);
++		if (ret == 0) {
++			/* release busn_res */
++			release_resource(&tmp_res);
++			break;
++		}
++		n_size--;
++	}
 +
-+	if (b)
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+
-+	return b;
++	return n_size;
 +}
- EXPORT_SYMBOL(pci_scan_root_bus);
- 
- /* Deprecated; use pci_scan_root_bus() instead */
-@@ -1683,9 +1700,11 @@ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
- 	pci_add_resource(&resources, &ioport_resource);
- 	pci_add_resource(&resources, &iomem_resource);
- 	b = pci_create_root_bus(parent, bus, ops, sysdata, &resources);
--	if (b)
-+	if (b) {
-+		pci_bus_insert_busn_res(b, bus, 255);
- 		b->subordinate = pci_scan_child_bus(b);
--	else
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+	} else
- 		pci_free_resource_list(&resources);
- 	return b;
- }
-@@ -1701,7 +1720,10 @@ struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
- 	pci_add_resource(&resources, &iomem_resource);
- 	b = pci_create_root_bus(NULL, bus, ops, sysdata, &resources);
- 	if (b) {
-+		pci_bus_insert_busn_res(b, bus, 255);
- 		b->subordinate = pci_scan_child_bus(b);
-+		pci_bus_update_busn_res_end(b, b->subordinate);
 +
- 		pci_bus_add_devices(b);
- 	} else {
- 		pci_free_resource_list(&resources);
-diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
-index bd70f23..8056e6a 100644
---- a/drivers/pci/remove.c
-+++ b/drivers/pci/remove.c
-@@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
- 
- 	down_write(&pci_bus_sem);
- 	list_del(&pci_bus->node);
-+	pci_bus_release_busn_res(pci_bus);
- 	up_write(&pci_bus_sem);
- 	if (!pci_bus->is_added)
- 		return;
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 3da935c..d5b6786 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -668,6 +668,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
- void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
- void pci_bus_release_busn_res(struct pci_bus *b);
-+struct pci_bus * __devinit pci_scan_root_bus_max(struct device *parent, int bus,
-+					     int busmax, struct pci_ops *ops,
-+					     void *sysdata,
-+					     struct list_head *resources);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
++static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
++			 struct pci_dev *dev, struct resource *busn_res,
++			 resource_size_t needed_size, struct resource **p)
++{
++	int ret = -ENOMEM;
++	resource_size_t n_size;
++	struct pci_bus *parent;
++	struct resource *parent_res;
++	resource_size_t tmp = bus->busn_res.end + 1;
++	int free_sz = -1;
++
++	parent_res = NULL;
++
++again:
++	/*
++	 * find bigest range in bus->busn_res that we can use in the middle
++	 *  and we can not use bus->busn_res.start.
++	 */
++	n_size = resource_size(&bus->busn_res) - 1;
++	memset(busn_res, 0, sizeof(struct resource));
++	dev_printk(KERN_DEBUG, &dev->dev,
++			"find free busn in busn_res: %pR\n", &bus->busn_res);
++	while (n_size >= needed_size) {
++		ret = allocate_resource(&bus->busn_res, busn_res, n_size,
++				bus->busn_res.start + 1, bus->busn_res.end,
++				1, NULL, NULL);
++		if (ret == 0) {
++			/* found one, prepare to return */
++			release_resource(busn_res);
++
++			return ret;
++		}
++		n_size--;
++	}
++
++	/* try extend the top of parent buss */
++	if (free_sz < 0) {
++		free_sz = find_res_top_free_size(&bus->busn_res);
++		dev_printk(KERN_DEBUG, &dev->dev,
++			"found free busn %d in busn_res: %pR top\n",
++				free_sz, &bus->busn_res);
++	}
++	n_size = free_sz;
++
++	/* check if extend could cross domain boundary */
++	if ((bus->busn_res.end & 0xff) == 0xff)
++		goto reduce_needed_size;
++	if ((0x100 - (tmp & 0xff)) < (needed_size - n_size))
++		goto reduce_needed_size;
++
++	/* find exteded range */
++	memset(busn_res, 0, sizeof(struct resource));
++	parent = bus->parent;
++	while (parent) {
++		ret = allocate_resource(&parent->busn_res, busn_res,
++			 needed_size - n_size,
++			 tmp, tmp + needed_size - n_size - 1,
++			 1, NULL, NULL);
++		if (ret == 0)
++			break;
++		parent = parent->parent;
++	}
++
++reduce_needed_size:
++	if (ret != 0) {
++		needed_size--;
++		if (!needed_size)
++			return ret;
++
++		goto again;
++	}
++
++	/* save parent_res, we need it as stopper later */
++	parent_res = busn_res->parent;
++
++	/* prepare busn_res for return */
++	release_resource(busn_res);
++	busn_res->start -= n_size;
++
++	/* extend parent bus top*/
++	pci_bus_extend_top(bus, needed_size - n_size, parent_res);
++
++	*p = parent_res;
++
++	return ret;
++}
++
+ /*
+  * If it's a bridge, configure it and scan the bus behind it.
+  * For CardBus bridges, we don't scan behind as the devices will
 -- 
 1.7.7
