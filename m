@@ -1,128 +1,205 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:33961 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933185Ab2BAWpC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 17:45:02 -0500
+Received: from rcsinet15.oracle.com ([148.87.113.117]:48676 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757697Ab2BAWop (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 17:44:45 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/15] pcmcia: remove workaround for fixing pci parent bus subordinate
-Date: Wed,  1 Feb 2012 14:44:02 -0800
-Message-ID: <1328136242-17725-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 12/15] PCI: Allocate bus range instead of use max blindly
+Date: Wed,  1 Feb 2012 14:43:59 -0800
+Message-ID: <1328136242-17725-13-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Mauro Carvalho Chehab <mchehab@redhat.com>, Bernhard Kaindl <bk@suse.de>, linux-pcmcia@lists.infradead.org
-Message-ID: <20120201224402.cYGTd8pXFK3eFm8A246R5xickeyRQMstR0Ee4aGtQRQ@z>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120201224359.QH46f6wE5C2EViVRoEzbxiSGwM1pOLfy0X552PlyxaI@z>
 
-Now pci busn allocation code is there, and it will preallocate bus number and it
-will make sure parent buses subordinate is right.
+every bus have extra busn_res, and linked them toghter to iobusn_resource.
 
-So remove workaround here.
+when need to find usable bus number range, try probe from iobusn_resource tree.
+
+To avoid falling to small hole in the middle, we try from 8 spare bus.
+if can not find 8 or more in the middle, will try to append 8 on top later.
+then if can not append, will try to find 7 from the middle, then will try to append 7 on top.
+then if can not append, will try to find 6 from the middle...
+
+for cardbus will only find 4 spare.
+
+if extend from top, at last will shrink back to really needed range...
+
+-v4: fix checking with pci rescan. Found by Bjorn.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: Bernhard Kaindl <bk@suse.de>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: linux-pcmcia@lists.infradead.org
 ---
- drivers/pcmcia/yenta_socket.c |   75 -----------------------------------------
- 1 files changed, 0 insertions(+), 75 deletions(-)
+ drivers/pci/probe.c |  101 ++++++++++++++++++++++++++++++---------------------
+ 1 files changed, 60 insertions(+), 41 deletions(-)
 
-diff --git a/drivers/pcmcia/yenta_socket.c b/drivers/pcmcia/yenta_socket.c
-index 849c0c1..5757cae 100644
---- a/drivers/pcmcia/yenta_socket.c
-+++ b/drivers/pcmcia/yenta_socket.c
-@@ -1064,79 +1064,6 @@ static void yenta_config_init(struct yenta_socket *socket)
- 	config_writew(socket, CB_BRIDGE_CONTROL, bridge);
- }
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index b9459c5..97100a9 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -823,10 +823,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ {
+ 	struct pci_bus *child;
+ 	int is_cardbus = (dev->hdr_type == PCI_HEADER_TYPE_CARDBUS);
+-	u32 buses, i, j = 0;
++	u32 buses;
+ 	u16 bctl;
+ 	u8 primary, secondary, subordinate;
+ 	int broken = 0;
++	struct resource *parent_res = NULL;
  
--/**
-- * yenta_fixup_parent_bridge - Fix subordinate bus# of the parent bridge
-- * @cardbus_bridge: The PCI bus which the CardBus bridge bridges to
-- *
-- * Checks if devices on the bus which the CardBus bridge bridges to would be
-- * invisible during PCI scans because of a misconfigured subordinate number
-- * of the parent brige - some BIOSes seem to be too lazy to set it right.
-- * Does the fixup carefully by checking how far it can go without conflicts.
-- * See http://bugzilla.kernel.org/show_bug.cgi?id=2944 for more information.
-- */
--static void yenta_fixup_parent_bridge(struct pci_bus *cardbus_bridge)
--{
--	struct list_head *tmp;
--	unsigned char upper_limit;
--	/*
--	 * We only check and fix the parent bridge: All systems which need
--	 * this fixup that have been reviewed are laptops and the only bridge
--	 * which needed fixing was the parent bridge of the CardBus bridge:
--	 */
--	struct pci_bus *bridge_to_fix = cardbus_bridge->parent;
--
--	/* Check bus numbers are already set up correctly: */
--	if (bridge_to_fix->subordinate >= cardbus_bridge->subordinate)
--		return; /* The subordinate number is ok, nothing to do */
--
--	if (!bridge_to_fix->parent)
--		return; /* Root bridges are ok */
--
--	/* stay within the limits of the bus range of the parent: */
--	upper_limit = bridge_to_fix->parent->subordinate;
--
--	/* check the bus ranges of all silbling bridges to prevent overlap */
--	list_for_each(tmp, &bridge_to_fix->parent->children) {
--		struct pci_bus *silbling = pci_bus_b(tmp);
--		/*
--		 * If the silbling has a higher secondary bus number
--		 * and it's secondary is equal or smaller than our
--		 * current upper limit, set the new upper limit to
--		 * the bus number below the silbling's range:
--		 */
--		if (silbling->secondary > bridge_to_fix->subordinate
--		    && silbling->secondary <= upper_limit)
--			upper_limit = silbling->secondary - 1;
--	}
--
--	/* Show that the wanted subordinate number is not possible: */
--	if (cardbus_bridge->subordinate > upper_limit)
--		dev_printk(KERN_WARNING, &cardbus_bridge->dev,
--			   "Upper limit for fixing this "
--			   "bridge's parent bridge: #%02x\n", upper_limit);
--
--	/* If we have room to increase the bridge's subordinate number, */
--	if (bridge_to_fix->subordinate < upper_limit) {
--
--		/* use the highest number of the hidden bus, within limits */
--		unsigned char subordinate_to_assign =
--			min(cardbus_bridge->subordinate, upper_limit);
--
--		dev_printk(KERN_INFO, &bridge_to_fix->dev,
--			   "Raising subordinate bus# of parent "
--			   "bus (#%02x) from #%02x to #%02x\n",
--			   bridge_to_fix->number,
--			   bridge_to_fix->subordinate, subordinate_to_assign);
--
--		/* Save the new subordinate in the bus struct of the bridge */
--		bridge_to_fix->subordinate = subordinate_to_assign;
--
--		/* and update the PCI config space with the new subordinate */
--		pci_write_config_byte(bridge_to_fix->self,
--			PCI_SUBORDINATE_BUS, bridge_to_fix->subordinate);
--	}
--}
--
- /*
-  * Initialize a cardbus controller. Make sure we have a usable
-  * interrupt, and that we can map the cardbus area. Fill in the
-@@ -1257,8 +1184,6 @@ static int __devinit yenta_probe(struct pci_dev *dev, const struct pci_device_id
- 	dev_printk(KERN_INFO, &dev->dev,
- 		   "Socket status: %08x\n", cb_readl(socket, CB_SOCKET_STATE));
+ 	pci_read_config_dword(dev, PCI_PRIMARY_BUS, &buses);
+ 	primary = buses & 0xFF;
+@@ -838,10 +839,16 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
  
--	yenta_fixup_parent_bridge(dev->subordinate);
--
- 	/* Register it with the pcmcia layer.. */
- 	ret = pcmcia_register_socket(&socket->socket);
- 	if (ret == 0) {
+ 	/* Check if setup is sensible at all */
+ 	if (!pass &&
+-	    (primary != bus->number || secondary <= bus->number)) {
+-		dev_dbg(&dev->dev, "bus configuration invalid, reconfiguring\n");
++	    (primary != bus->number || secondary <= bus->number))
+ 		broken = 1;
+-	}
++
++	/* more strict checking */
++	if (!pass && !broken && !dev->subordinate)
++		broken = pci_bridge_check_busn_broken(bus, dev,
++						   secondary, subordinate);
++
++	if (broken)
++		dev_dbg(&dev->dev, "bus configuration invalid, reconfiguring\n");
+ 
+ 	/* Disable MasterAbortMode during probing to avoid reporting
+ 	   of bus errors (in some architectures) */ 
+@@ -874,6 +881,8 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 			child->primary = primary;
+ 			child->subordinate = subordinate;
+ 			child->bridge_ctl = bctl;
++
++			pci_bus_insert_busn_res(child, secondary, subordinate);
+ 		}
+ 
+ 		cmax = pci_scan_child_bus(child);
+@@ -886,6 +895,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 		 * We need to assign a number to this bus which we always
+ 		 * do in the second pass.
+ 		 */
++		resource_size_t shrink_size;
++		struct resource busn_res;
++		int ret = -ENOMEM;
++		int old_max = max;
++
+ 		if (!pass) {
+ 			if (pcibios_assign_all_busses() || broken)
+ 				/* Temporarily disable forwarding of the
+@@ -902,20 +916,44 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 		/* Clear errors */
+ 		pci_write_config_word(dev, PCI_STATUS, 0xffff);
+ 
+-		/* Prevent assigning a bus number that already exists.
+-		 * This can happen when a bridge is hot-plugged, so in
+-		 * this case we only re-scan this bus. */
+-		child = pci_find_bus(pci_domain_nr(bus), max+1);
+-		if (!child) {
+-			child = pci_add_new_bus(bus, dev, ++max);
+-			if (!child)
+-				goto out;
++		if (dev->subordinate) {
++			/* We get here only for cardbus */
++			child = dev->subordinate;
++			if  (!is_cardbus)
++				dev_warn(&dev->dev,
++				 "rescan scaned bridge as broken one again ?");
++
++			goto out;
+ 		}
++		/*
++		 * For CardBus bridges, we leave 4 bus numbers
++		 * as cards with a PCI-to-PCI bridge can be
++		 * inserted later.
++		 * other just allocate 8 bus to avoid we fall into
++		 *  small hole in the middle.
++		 */
++		ret = pci_bridge_probe_busn_res(bus, dev, &busn_res,
++				is_cardbus ? (CARDBUS_RESERVE_BUSNR + 1) : 8,
++				&parent_res);
++
++		if (ret != 0)
++			goto out;
++
++		child = pci_add_new_bus(bus, dev, busn_res.start & 0xff);
++		if (!child)
++			goto out;
++
++		child->subordinate = busn_res.end & 0xff;
++		pci_bus_insert_busn_res(child, busn_res.start & 0xff,
++					busn_res.end & 0xff);
++
+ 		buses = (buses & 0xff000000)
+ 		      | ((unsigned int)(child->primary)     <<  0)
+ 		      | ((unsigned int)(child->secondary)   <<  8)
+ 		      | ((unsigned int)(child->subordinate) << 16);
+ 
++		max = child->subordinate;
++
+ 		/*
+ 		 * yenta.c forces a secondary latency timer of 176.
+ 		 * Copy that behaviour here.
+@@ -946,43 +984,24 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 			 * the real value of max.
+ 			 */
+ 			pci_fixup_parent_subordinate_busnr(child, max);
++
+ 		} else {
+-			/*
+-			 * For CardBus bridges, we leave 4 bus numbers
+-			 * as cards with a PCI-to-PCI bridge can be
+-			 * inserted later.
+-			 */
+-			for (i=0; i<CARDBUS_RESERVE_BUSNR; i++) {
+-				struct pci_bus *parent = bus;
+-				if (pci_find_bus(pci_domain_nr(bus),
+-							max+i+1))
+-					break;
+-				while (parent->parent) {
+-					if ((!pcibios_assign_all_busses()) &&
+-					    (parent->subordinate > max) &&
+-					    (parent->subordinate <= max+i)) {
+-						j = 1;
+-					}
+-					parent = parent->parent;
+-				}
+-				if (j) {
+-					/*
+-					 * Often, there are two cardbus bridges
+-					 * -- try to leave one valid bus number
+-					 * for each one.
+-					 */
+-					i /= 2;
+-					break;
+-				}
+-			}
+-			max += i;
+ 			pci_fixup_parent_subordinate_busnr(child, max);
+ 		}
+ 		/*
+ 		 * Set the subordinate bus number to its real value.
+ 		 */
++		shrink_size = child->subordinate - max;
+ 		child->subordinate = max;
+ 		pci_write_config_byte(dev, PCI_SUBORDINATE_BUS, max);
++		pci_bus_update_busn_res_end(child, max);
++
++		/* shrink some back, if we extend top before */
++		if (!is_cardbus && (shrink_size > 0) && parent_res)
++			pci_bus_shrink_top(bus, shrink_size, parent_res);
++
++		if (old_max > max)
++			max = old_max;
+ 	}
+ 
+ 	sprintf(child->name,
 -- 
 1.7.7
 
