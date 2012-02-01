@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/15] PCI: Strict checking of valid range for bridge
-Date: Wed,  1 Feb 2012 14:43:58 -0800
-Message-ID: <1328136242-17725-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/15] Make %pR could handle bus resource with domain
+Date: Wed,  1 Feb 2012 14:43:48 -0800
+Message-ID: <1328136242-17725-2-git-send-email-yinghai@kernel.org>
 References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
@@ -10,50 +10,60 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-children bridges busn range should be able to be allocated from parent bus range.
-
-to avoid overlapping between sibling bridges on same bus.
+So could use %pR for busn_res with domain nr in start/end
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- drivers/pci/probe.c |   25 +++++++++++++++++++++++++
- 1 files changed, 25 insertions(+), 0 deletions(-)
+ lib/vsprintf.c |   28 ++++++++++++++++++++++++----
+ 1 files changed, 24 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 10aa6d1..b9459c5 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -784,6 +784,31 @@ reduce_needed_size:
- 	return ret;
- }
- 
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
-+{
-+	int broken = 0;
+diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+index 8e75003..b34eeea 100644
+--- a/lib/vsprintf.c
++++ b/lib/vsprintf.c
+@@ -451,6 +451,12 @@ char *resource_string(char *buf, char *end, struct resource *res,
+ 		.precision = -1,
+ 		.flags = SPECIAL | SMALL | ZEROPAD,
+ 	};
++	static const struct printf_spec domain_spec = {
++		.base = 16,
++		.field_width = 4,
++		.precision = -1,
++		.flags = SMALL | ZEROPAD,
++	};
+ 	static const struct printf_spec bus_spec = {
+ 		.base = 16,
+ 		.field_width = 2,
+@@ -507,11 +513,25 @@ char *resource_string(char *buf, char *end, struct resource *res,
+ 		specp = &mem_spec;
+ 		decode = 0;
+ 	}
+-	p = number(p, pend, res->start, *specp);
+-	if (res->start != res->end) {
+-		*p++ = '-';
+-		p = number(p, pend, res->end, *specp);
 +
-+	struct resource busn_res;
-+	int ret;
++	if (res->flags & IORESOURCE_BUS && res->end >> 8) {
++		p = number(p, pend, res->start >> 8, domain_spec);
++		*p++ = ':';
++		p = number(p, pend, res->start & 0xff, *specp);
++		if (res->start != res->end) {
++			*p++ = '-';
++			p = number(p, pend, res->end >> 8, domain_spec);
++			*p++ = ':';
++			p = number(p, pend, res->end & 0xff, *specp);
++		}
++	} else {
++		p = number(p, pend, res->start, *specp);
++		if (res->start != res->end) {
++			*p++ = '-';
++			p = number(p, pend, res->end, *specp);
++		}
+ 	}
 +
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 (pci_domain_nr(bus)<<8) | secondary,
-+			 (pci_domain_nr(bus)<<8) | subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
-+}
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
+ 	if (decode) {
+ 		if (res->flags & IORESOURCE_MEM_64)
+ 			p = string(p, pend, " 64bit", str_spec);
 -- 
 1.7.7
