@@ -1,51 +1,122 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 08/15] PCI, parisc: Register busn_res for root buses
-Date: Wed,  1 Feb 2012 14:43:55 -0800
-Message-ID: <1328136242-17725-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/15] pcmcia: remove workaround for fixing pci parent bus subordinate
+Date: Wed,  1 Feb 2012 14:44:02 -0800
+Message-ID: <1328136242-17725-16-git-send-email-yinghai@kernel.org>
 References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Mauro Carvalho Chehab <mchehab@redhat.com>, Bernhard Kaindl <bk@suse.de>, linux-pcmcia@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
----
- drivers/parisc/dino.c    |    2 ++
- drivers/parisc/lba_pci.c |    3 +++
- 2 files changed, 5 insertions(+), 0 deletions(-)
+Now pci busn allocation code is there, and it will preallocate bus number and it
+will make sure parent buses subordinate is right.
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index 7ff10c1..3f2e203 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -1014,7 +1014,9 @@ static int __init dino_probe(struct parisc_device *dev)
- 		return 0;
- 	}
+So remove workaround here.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
+Cc: Bernhard Kaindl <bk@suse.de>
+Cc: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: linux-pcmcia@lists.infradead.org
+---
+ drivers/pcmcia/yenta_socket.c |   75 -----------------------------------------
+ 1 files changed, 0 insertions(+), 75 deletions(-)
+
+diff --git a/drivers/pcmcia/yenta_socket.c b/drivers/pcmcia/yenta_socket.c
+index 849c0c1..5757cae 100644
+--- a/drivers/pcmcia/yenta_socket.c
++++ b/drivers/pcmcia/yenta_socket.c
+@@ -1064,79 +1064,6 @@ static void yenta_config_init(struct yenta_socket *socket)
+ 	config_writew(socket, CB_BRIDGE_CONTROL, bridge);
+ }
  
-+	pci_bus_insert_busn_res(bus, dino_current_bus, 255);
- 	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_update_busn_res_end(bus, bus->subordinate);
+-/**
+- * yenta_fixup_parent_bridge - Fix subordinate bus# of the parent bridge
+- * @cardbus_bridge: The PCI bus which the CardBus bridge bridges to
+- *
+- * Checks if devices on the bus which the CardBus bridge bridges to would be
+- * invisible during PCI scans because of a misconfigured subordinate number
+- * of the parent brige - some BIOSes seem to be too lazy to set it right.
+- * Does the fixup carefully by checking how far it can go without conflicts.
+- * See http://bugzilla.kernel.org/show_bug.cgi?id=2944 for more information.
+- */
+-static void yenta_fixup_parent_bridge(struct pci_bus *cardbus_bridge)
+-{
+-	struct list_head *tmp;
+-	unsigned char upper_limit;
+-	/*
+-	 * We only check and fix the parent bridge: All systems which need
+-	 * this fixup that have been reviewed are laptops and the only bridge
+-	 * which needed fixing was the parent bridge of the CardBus bridge:
+-	 */
+-	struct pci_bus *bridge_to_fix = cardbus_bridge->parent;
+-
+-	/* Check bus numbers are already set up correctly: */
+-	if (bridge_to_fix->subordinate >= cardbus_bridge->subordinate)
+-		return; /* The subordinate number is ok, nothing to do */
+-
+-	if (!bridge_to_fix->parent)
+-		return; /* Root bridges are ok */
+-
+-	/* stay within the limits of the bus range of the parent: */
+-	upper_limit = bridge_to_fix->parent->subordinate;
+-
+-	/* check the bus ranges of all silbling bridges to prevent overlap */
+-	list_for_each(tmp, &bridge_to_fix->parent->children) {
+-		struct pci_bus *silbling = pci_bus_b(tmp);
+-		/*
+-		 * If the silbling has a higher secondary bus number
+-		 * and it's secondary is equal or smaller than our
+-		 * current upper limit, set the new upper limit to
+-		 * the bus number below the silbling's range:
+-		 */
+-		if (silbling->secondary > bridge_to_fix->subordinate
+-		    && silbling->secondary <= upper_limit)
+-			upper_limit = silbling->secondary - 1;
+-	}
+-
+-	/* Show that the wanted subordinate number is not possible: */
+-	if (cardbus_bridge->subordinate > upper_limit)
+-		dev_printk(KERN_WARNING, &cardbus_bridge->dev,
+-			   "Upper limit for fixing this "
+-			   "bridge's parent bridge: #%02x\n", upper_limit);
+-
+-	/* If we have room to increase the bridge's subordinate number, */
+-	if (bridge_to_fix->subordinate < upper_limit) {
+-
+-		/* use the highest number of the hidden bus, within limits */
+-		unsigned char subordinate_to_assign =
+-			min(cardbus_bridge->subordinate, upper_limit);
+-
+-		dev_printk(KERN_INFO, &bridge_to_fix->dev,
+-			   "Raising subordinate bus# of parent "
+-			   "bus (#%02x) from #%02x to #%02x\n",
+-			   bridge_to_fix->number,
+-			   bridge_to_fix->subordinate, subordinate_to_assign);
+-
+-		/* Save the new subordinate in the bus struct of the bridge */
+-		bridge_to_fix->subordinate = subordinate_to_assign;
+-
+-		/* and update the PCI config space with the new subordinate */
+-		pci_write_config_byte(bridge_to_fix->self,
+-			PCI_SUBORDINATE_BUS, bridge_to_fix->subordinate);
+-	}
+-}
+-
+ /*
+  * Initialize a cardbus controller. Make sure we have a usable
+  * interrupt, and that we can map the cardbus area. Fill in the
+@@ -1257,8 +1184,6 @@ static int __devinit yenta_probe(struct pci_dev *dev, const struct pci_device_id
+ 	dev_printk(KERN_INFO, &dev->dev,
+ 		   "Socket status: %08x\n", cb_readl(socket, CB_SOCKET_STATE));
  
- 	/* This code *depends* on scanning being single threaded
- 	 * if it isn't, this global bus number count will fail
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index d5f3d75..b58bf8b 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -1531,6 +1531,9 @@ lba_driver_probe(struct parisc_device *dev)
- 		return 0;
- 	}
- 
-+	pci_bus_insert_busn_res(lba_bus, lba_dev->hba.bus_num.start,
-+				lba_dev->hba.bus_num.end);
-+
- 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
- 
- 	/* This is in lieu of calling pci_assign_unassigned_resources() */
+-	yenta_fixup_parent_bridge(dev->subordinate);
+-
+ 	/* Register it with the pcmcia layer.. */
+ 	ret = pcmcia_register_socket(&socket->socket);
+ 	if (ret == 0) {
 -- 
 1.7.7
