@@ -1,72 +1,60 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/15] PCI: Add iobusn_resource
-Date: Wed,  1 Feb 2012 14:43:49 -0800
-Message-ID: <1328136242-17725-3-git-send-email-yinghai@kernel.org>
-References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:33753 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757677Ab2BAWo3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 17:44:29 -0500
-In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH -v4 0/15] PCI: allocate pci bus num range for unassigned bridge busn
+Date: Wed,  1 Feb 2012 14:43:47 -0800
+Message-ID: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-also add busn_res into struct pci_bus.
+676b367: pcmcia: remove workaround for fixing pci parent bus subordinate
+ddbc547: PCI: Seperate child bus scanning to two passes overall
+c82fe6d: PCI: kill pci_fixup_parent_subordinate_busnr()
+7bf1ff4: PCI: Allocate bus range instead of use max blindly
+1e511be: PCI: Strict checking of valid range for bridge
+a433d03: PCI: Probe safe range that we can use for unassigned bridge.
+7f45e65: PCI: Add pci_bus_extend/shrink_top()
+6e8d9f1: PCI, parisc: Register busn_res for root buses
+aadaf33: PCI, powerpc: Register busn_res for root buses
+10ba93b: PCI, ia64: Register busn_res for root buses
+6663d7a: PCI, x86: Register busn_res for root buses
+f283aa2: PCI: Add busn_res tracking in core
+d20c7d9: PCI: Add busn_res operation functions
+196dcc6: PCI: Add iobusn_resource
+634a14b: Make %pR could handle bus resource with domain
 
-will use them to have bus number resource tree.
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- include/linux/ioport.h |    1 +
- include/linux/pci.h    |    1 +
- kernel/resource.c      |    8 ++++++++
- 3 files changed, 10 insertions(+), 0 deletions(-)
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index e885ba2..6fe9e19 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -136,6 +136,7 @@ struct resource {
- /* PC/ISA/whatever - the normal PC address spaces: IO and memory */
- extern struct resource ioport_resource;
- extern struct resource iomem_resource;
-+extern struct resource iobusn_resource;
- 
- extern struct resource *request_resource_conflict(struct resource *root, struct resource *new);
- extern int request_resource(struct resource *root, struct resource *new);
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index f8caaab..94ad468 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -419,6 +419,7 @@ struct pci_bus {
- 	struct list_head slots;		/* list of slots on this bus */
- 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
- 	struct list_head resources;	/* address space routed to this bus */
-+	struct resource busn_res;	/* track registered bus num range */
- 
- 	struct pci_ops	*ops;		/* configuration access functions */
- 	void		*sysdata;	/* hook for sys-specific extension */
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 7640b3a..53b42f0 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -38,6 +38,14 @@ struct resource iomem_resource = {
- };
- EXPORT_SYMBOL(iomem_resource);
- 
-+struct resource iobusn_resource = {
-+	.name	= "PCI busn",
-+	.start	= 0,
-+	.end	= 0xffffff,
-+	.flags	= IORESOURCE_BUS,
-+};
-+EXPORT_SYMBOL(iobusn_resource);
-+
- /* constraints to be met while allocating resources */
- struct resource_constraint {
- 	resource_size_t min, max, align;
--- 
-1.7.7
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
+
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+	out, and move the comment change with code change.
+-v4: fixes the problem about rescan that Bjorn found.
+
+Thanks
+
+Yinghai
+
+ arch/ia64/pci/pci.c              |    2 +
+ arch/powerpc/kernel/pci-common.c |    7 +-
+ arch/x86/include/asm/topology.h  |    3 +-
+ arch/x86/pci/acpi.c              |    8 +-
+ arch/x86/pci/bus_numa.c          |    8 +-
+ arch/x86/pci/common.c            |   11 +-
+ drivers/parisc/dino.c            |    2 +
+ drivers/parisc/lba_pci.c         |    3 +
+ drivers/pci/probe.c              |  417 ++++++++++++++++++++++++++++++--------
+ drivers/pci/remove.c             |    1 +
+ drivers/pcmcia/yenta_socket.c    |   75 -------
+ include/linux/ioport.h           |    1 +
+ include/linux/pci.h              |    8 +
+ kernel/resource.c                |    8 +
+ lib/vsprintf.c                   |   28 +++-
+ 15 files changed, 410 insertions(+), 172 deletions(-)
