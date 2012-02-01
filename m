@@ -1,42 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:63358 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751322Ab2BAGQK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 01:16:10 -0500
-Message-ID: <4F28D8A2.9050605@codeaurora.org>
-Date: Wed, 01 Feb 2012 11:46:02 +0530
-From: Ravi Kumar V <kumarrav@codeaurora.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH v2 0/2] Add Qualcomm MSM ADM DMAEngine driver
-References: <1325854052-21402-1-git-send-email-kumarrav@codeaurora.org>  <1326807902.1540.116.camel@vkoul-udesk3> <4F195E4C.6080805@codeaurora.org>  <1327066287.517.4.camel@vkoul-udesk3> <4F1D4052.3070701@codeaurora.org>  <1327326713.517.32.camel@vkoul-udesk3> <4F1FFF7E.3000802@codeaurora.org>  <1327911315.1527.8.camel@vkoul-udesk3>  <4F278341.4020600@codeaurora.org> <1327990151.1527.80.camel@vkoul-udesk3>
-In-Reply-To: <1327990151.1527.80.camel@vkoul-udesk3>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from rcsinet15.oracle.com ([148.87.113.117]:48709 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933187Ab2BAWow (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 17:44:52 -0500
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 08/15] PCI, parisc: Register busn_res for root buses
+Date: Wed,  1 Feb 2012 14:43:55 -0800
+Message-ID: <1328136242-17725-9-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
+References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vinod Koul <vinod.koul@intel.com>
-Cc: linux-arch@vger.kernel.org, tsoni@codeaurora.org, linux@arm.linux.org.uk, arnd@arndb.de, linux-arm-msm@vger.kernel.org, linux-kernel@vger.kernel.org, bryanh@codeaurora.org, johlstei@codeaurora.org, Daniel Walker <dwalker@fifo99.com>, dan.j.williams@intel.com, davidb@codeaurora.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120201061602.VqscgUtnpXl1XLcu10hNKSaQELkb5UKlkhtGvNqn3mU@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Message-ID: <20120201224355.fRSH_5PQ3O1QVpjpnOaaz1OMzAnNM4bnrXNu4xY5Pa4@z>
 
-On 1/31/2012 11:39 AM, Vinod Koul wrote:
-> On Tue, 2012-01-31 at 11:29 +0530, Ravi Kumar V wrote:
->>> [1]: https://lkml.org/lkml/2011/10/24/275
->>> [2]: https://lkml.org/lkml/2012/1/26/405
->>>
->>
->> Yes if we follow the above RFC and add extra context parameter also
->> in
->> device_prep_dma_sg()&  device_prep_interleaved_dma() then it supports
->> our hardware and our work will be completed.
->>
->> can we follow above RFC and implement our driver.
->> Is above RFC finalized and included in mainline?
-> Alexandre will post an updated one soon, but the idea is same
->
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
+---
+ drivers/parisc/dino.c    |    2 ++
+ drivers/parisc/lba_pci.c |    3 +++
+ 2 files changed, 5 insertions(+), 0 deletions(-)
 
-Can we add extra parameter context to device_prep_dma_sg() & 
-device_prep_interleaved_dma() API's and implement our driver.
-
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 7ff10c1..3f2e203 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -1014,7 +1014,9 @@ static int __init dino_probe(struct parisc_device *dev)
+ 		return 0;
+ 	}
+ 
++	pci_bus_insert_busn_res(bus, dino_current_bus, 255);
+ 	bus->subordinate = pci_scan_child_bus(bus);
++	pci_bus_update_busn_res_end(bus, bus->subordinate);
+ 
+ 	/* This code *depends* on scanning being single threaded
+ 	 * if it isn't, this global bus number count will fail
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index d5f3d75..b58bf8b 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1531,6 +1531,9 @@ lba_driver_probe(struct parisc_device *dev)
+ 		return 0;
+ 	}
+ 
++	pci_bus_insert_busn_res(lba_bus, lba_dev->hba.bus_num.start,
++				lba_dev->hba.bus_num.end);
++
+ 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
+ 
+ 	/* This is in lieu of calling pci_assign_unassigned_resources() */
 -- 
-Sent by a consultant of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+1.7.7
+
