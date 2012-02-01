@@ -1,62 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:48650 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757714Ab2BAWom (ORCPT
+Received: from acsinet15.oracle.com ([141.146.126.227]:33866 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757712Ab2BAWom (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Feb 2012 17:44:42 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/15] PCI: Strict checking of valid range for bridge
-Date: Wed,  1 Feb 2012 14:43:58 -0800
-Message-ID: <1328136242-17725-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/15] PCI: Add pci_bus_extend/shrink_top()
+Date: Wed,  1 Feb 2012 14:43:56 -0800
+Message-ID: <1328136242-17725-10-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120201224358.ce3hBy_XAuWHM6guSrZ4JG4wwYPk5OzCCLzd5Lt_H6k@z>
+Message-ID: <20120201224356.yslH4_eLAtpgnqq71h8SKfERF6tUcuewFRi4awWJ3xE@z>
 
-children bridges busn range should be able to be allocated from parent bus range.
+extend or shrink bus and parent buses top (subordinate)
 
-to avoid overlapping between sibling bridges on same bus.
+extended range is verified safe range, and stop at recorded parent_res.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   25 +++++++++++++++++++++++++
- 1 files changed, 25 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   46 ++++++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 46 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 10aa6d1..b9459c5 100644
+index 79de0dd..91fdaec 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -784,6 +784,31 @@ reduce_needed_size:
- 	return ret;
+@@ -624,6 +624,52 @@ static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+ 	}
  }
  
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
++static void __devinit pci_bus_extend_top(struct pci_bus *parent,
++		 resource_size_t size, struct resource *parent_res)
 +{
-+	int broken = 0;
++	struct resource *res;
 +
-+	struct resource busn_res;
-+	int ret;
++	if (!size)
++		return;
 +
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 (pci_domain_nr(bus)<<8) | secondary,
-+			 (pci_domain_nr(bus)<<8) | subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
++	while (parent) {
++		res = &parent->busn_res;
++		if (res == parent_res)
++			break;
++		res->end += size;
++		parent->subordinate += size;
++		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
++					 parent->subordinate);
++		dev_printk(KERN_DEBUG, &parent->dev,
++				"busn_res: extended %02llx to %pR\n",
++				(unsigned long long)size, res);
++		parent = parent->parent;
++	}
 +}
++
++static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
++		 resource_size_t size, struct resource *parent_res)
++{
++	struct resource *res;
++
++	if (!size)
++		return;
++
++	while (parent) {
++		res = &parent->busn_res;
++		if (res == parent_res)
++			break;
++		res->end -= size;
++		parent->subordinate -= size;
++		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
++					 parent->subordinate);
++		dev_printk(KERN_DEBUG, &parent->dev,
++				"busn_res: shrunk %02llx to %pR\n",
++				(unsigned long long)size, res);
++		parent = parent->parent;
++	}
++}
++
  /*
   * If it's a bridge, configure it and scan the bus behind it.
   * For CardBus bridges, we don't scan behind as the devices will
