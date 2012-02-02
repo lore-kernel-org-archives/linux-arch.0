@@ -1,16 +1,16 @@
 From: "UBS Investment Bank" <clopez-rey@cervera.uned.es>
 Subject: Investment funds of $8,500,000.00
-Date: Thu, 2 Feb 2012 23:04:41 +0100
-Message-ID: <dd57674dc4e214d8702288e8969075e8.squirrel@correo.uned.es>
+Date: Thu, 2 Feb 2012 22:59:29 +0100
+Message-ID: <6d81a3c0a879f886ef1cc1c3cf79cd2a.squirrel@correo.uned.es>
 Reply-To: mrrolando05@yahoo.co.jp
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-seis.uned.es ([62.204.192.120]:61162 "EHLO
+Received: from smtp-out-seis.uned.es ([62.204.192.120]:49972 "EHLO
 	smtp-out-seis.uned.es" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753653Ab2BBWEq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2012 17:04:46 -0500
+	with ESMTP id S1753653Ab2BBWLI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2012 17:11:08 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 
