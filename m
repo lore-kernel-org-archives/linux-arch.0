@@ -1,19 +1,31 @@
-From: David Barker <dbarker44@att.net>
-Subject: Ref: Information about Your late Relation/Family member-Final Notice.
-Date: Thu, 2 Feb 2012 17:20:02 +0100
-Message-ID: <201202021620.q12GK2Va012998@houlin04.farm.elogic.it>
-Reply-To: consult4444@aol.co.uk
+From: "UBS Investment Bank" <clopez-rey@cervera.uned.es>
+Subject: Investment funds of $8,500,000.00
+Date: Thu, 2 Feb 2012 23:04:41 +0100
+Message-ID: <dd57674dc4e214d8702288e8969075e8.squirrel@correo.uned.es>
+Reply-To: mrrolando05@yahoo.co.jp
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ip245.net-a.elogic.it ([213.92.102.245]:54437 "EHLO
-	houlin04.farm.elogic.it" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751913Ab2BBQUE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2012 11:20:04 -0500
-Received: from houlin04.farm.elogic.it (localhost [127.0.0.1])
-	by houlin04.farm.elogic.it (8.14.3/8.14.3/Debian-5+lenny1) with ESMTP id q12GK2hI012999
-	for <linux-arch@vger.kernel.org>; Thu, 2 Feb 2012 17:20:02 +0100
+Received: from smtp-out-seis.uned.es ([62.204.192.120]:61162 "EHLO
+	smtp-out-seis.uned.es" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753653Ab2BBWEq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2012 17:04:46 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+
+
+
+
+Good Day,
+
+I have a business proposal of USD $8,500,000.00 only for you to transact
+with me from my bank to your country. All confirmable documents to back up
+the claims will be made available to you prior to your acceptance. Reply if
+you are interested so that we can commence the transation which will
+take less than 5 days.
+
+Best Regards,
+Mr. Rolando Biscocho Castillo.
+Investment consultant,
+UBS Investment Bank, Philippines
