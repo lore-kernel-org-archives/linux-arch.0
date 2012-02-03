@@ -1,83 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:60193 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753592Ab2BCRXp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 12:23:45 -0500
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:53792 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755199Ab2BCXQs convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 18:16:48 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo6sdsV_ZEkfLq-tGxY4GvyWSz99h31XqS62RjFvthvJhw@mail.gmail.com>
-References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
-	<1328136242-17725-2-git-send-email-yinghai@kernel.org>
-	<CAErSpo6sdsV_ZEkfLq-tGxY4GvyWSz99h31XqS62RjFvthvJhw@mail.gmail.com>
-Date: Fri, 3 Feb 2012 09:23:44 -0800
-Message-ID: <CAE9FiQUqLwgXMOH-oAf4o-9O_cyLaRs1h8Abg+U-4iu3CRipfA@mail.gmail.com>
-Subject: Re: [PATCH 01/15] Make %pR could handle bus resource with domain
-From: Yinghai Lu <yinghai@kernel.org>
+In-Reply-To: <20111026073348.GB2915@opensource.wolfsonmicro.com>
+References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <CAJaTeTp2w85UHnmH-PPMZsQGQMNa-93kw-tjmDxA_wjJXkYQcQ@mail.gmail.com> <20111026073348.GB2915@opensource.wolfsonmicro.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Date: Fri, 3 Feb 2012 16:16:28 -0700
+Message-ID: <CACxGe6sbwy8z+U8=5rtvjyDrt3SZD2N33GiGHwPOMUAxt_BXTA@mail.gmail.com>
+Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120203172344.Hvgck2BYYABwNHGunOLzWQ5uim4Ti6Txj45kKAWlp1c@z>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Mike Frysinger <vapier@gentoo.org>, Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120203231628.2GcY5dvmliWNiybh0AxAgOpmSyYng3N8EIFT6HMlkTI@z>
 
-On Fri, Feb 3, 2012 at 8:26 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Wed, Feb 1, 2012 at 2:43 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> So could use %pR for busn_res with domain nr in start/end
->>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> ---
->>  lib/vsprintf.c |   28 ++++++++++++++++++++++++----
->>  1 files changed, 24 insertions(+), 4 deletions(-)
->>
->> diff --git a/lib/vsprintf.c b/lib/vsprintf.c
->> index 8e75003..b34eeea 100644
->> --- a/lib/vsprintf.c
->> +++ b/lib/vsprintf.c
->> @@ -451,6 +451,12 @@ char *resource_string(char *buf, char *end, struct resource *res,
->>                .precision = -1,
->>                .flags = SPECIAL | SMALL | ZEROPAD,
->>        };
->> +       static const struct printf_spec domain_spec = {
->> +               .base = 16,
->> +               .field_width = 4,
->> +               .precision = -1,
->> +               .flags = SMALL | ZEROPAD,
->> +       };
->>        static const struct printf_spec bus_spec = {
->>                .base = 16,
->>                .field_width = 2,
->> @@ -507,11 +513,25 @@ char *resource_string(char *buf, char *end, struct resource *res,
->>                specp = &mem_spec;
->>                decode = 0;
->>        }
->> -       p = number(p, pend, res->start, *specp);
->> -       if (res->start != res->end) {
->> -               *p++ = '-';
->> -               p = number(p, pend, res->end, *specp);
->> +
->> +       if (res->flags & IORESOURCE_BUS && res->end >> 8) {
->> +               p = number(p, pend, res->start >> 8, domain_spec);
->> +               *p++ = ':';
->> +               p = number(p, pend, res->start & 0xff, *specp);
->> +               if (res->start != res->end) {
->> +                       *p++ = '-';
->> +                       p = number(p, pend, res->end >> 8, domain_spec);
->> +                       *p++ = ':';
->> +                       p = number(p, pend, res->end & 0xff, *specp);
+On Wed, Oct 26, 2011 at 1:33 AM, Mark Brown
+<broonie@opensource.wolfsonmicro.com> wrote:
+> On Tue, Oct 25, 2011 at 07:44:14PM -0400, Mike Frysinger wrote:
 >
-> The "<< 8", ">>8", and "& 0xff" patterns are used frequently in these
-> patches.  I think it's worth adding macros or inline functions to make
-> it clear that all these places are connected.
+>> i don't think this is generally how asm-generic is handled.  instead, how about:
+>>  - move the duplicate code to asm-generic/gpio.h
+>>  - have the arches which merely need asm-generic/gpio.h add "generic-y
+>> += gpio.h" to their include/asm/Kbuild
+>>  - for arches which need to override these common funcs in some way,
+>> add #ifdef protection to the asm-generic/gpio.h
+>
+>> and it seems like with slightly more work, this path allow you to
+>> merge most of arch/sh/include/asm/gpio.h.  and it has the advantage of
+>> not needing new Kconfig symbols.
+>
+> That's really not how gpiolib is currently handled, unfortunately -
+> trying to transition over to that model in one patch would be way too
+> much.
+>
+> The goal here from that point of view is to make transitioning to
+> something more sensible easier by getting rid of the boilerplate code,
+> it makes doing the more invasive changes like you're suggesting much
+> easier as we're only dealing with the architectures that are actually
+> doing something.  It also means that we're able to immediately work on
+> turning on gpiolib on random architectures which is a definite win.
 
-ok will check if can use
+I had picked up this patch, but I've dropped again from gpio/next
+since there are still a lot of drivers including asm/gpio.h.  It
+caused build breakage on linux-next with allmodconfig.
 
-busn_domain_nr(res): res->end >> 8
-busn_bus_nr(res): res->end & 0xff;
-busn_val(domain_nr, bus_nr)
+g.
 
-instead.
 
-Thanks
-
-Yinghai
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
