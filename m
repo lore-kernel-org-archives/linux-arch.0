@@ -1,31 +1,23 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH v1 10/18] microblaze/PCI: get rid of device resource
- fixups
-Date: Fri, 03 Feb 2012 22:46:19 +1100
-Message-ID: <1328269579.30631.2.camel@pasglop>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-	 <20120130165800.3231.42814.stgit@bhelgaas.mtv.corp.google.com>
-	 <4F2A6A87.6020308@monstr.eu>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [RFC PATCH v1 07/18] arm/PCI: get rid of device resource fixups
+Date: Fri, 3 Feb 2012 16:01:46 +0000
+Message-ID: <20120203160146.GM889@n2100.arm.linux.org.uk>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com> <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <4F2A6A87.6020308@monstr.eu>
+Content-Disposition: inline
+In-Reply-To: <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-pci-owner@vger.kernel.org
-To: monstr@monstr.eu
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2012-02-02 at 11:50 +0100, Michal Simek wrote:
+On Mon, Jan 30, 2012 at 09:57:45AM -0700, Bjorn Helgaas wrote:
+> Tell the PCI core about host bridge address translation so it can take
+> care of bus-to-resource conversion for us.
 
-> I don't have any pci board for testing this. The most of things come from ppc.
-> We share pci IPs with xilinx ppc405/440.
-> 
-> Sorry that I can't help you with it and I have no problem with unification patches.
-> If someone has any problem with it can be bisected and solved in future.
+Are the rest of these patches (in particular whereever is introduced
+the generic versions) available somewhere?
 
-Yeah I'll have to test that one :-) Give me a few more days to sort out
-some other stuff and I'll give this series a good go.
-
-Cheers,
-Ben.
+Thanks.
