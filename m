@@ -1,36 +1,89 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [RFC PATCH v1 07/18] arm/PCI: get rid of device resource fixups
-Date: Fri, 3 Feb 2012 08:12:02 -0800
-Message-ID: <CAErSpo6Ytx06f0yMW5q=YQBTcLxRdbBbB6EzSAFWNG82t=Qe4g@mail.gmail.com>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
- <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com> <20120203160146.GM889@n2100.arm.linux.org.uk>
+Subject: Re: [PATCH 01/15] Make %pR could handle bus resource with domain
+Date: Fri, 3 Feb 2012 08:26:37 -0800
+Message-ID: <CAErSpo6sdsV_ZEkfLq-tGxY4GvyWSz99h31XqS62RjFvthvJhw@mail.gmail.com>
+References: <1328136242-17725-1-git-send-email-yinghai@kernel.org> <1328136242-17725-2-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:57447 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754019Ab2BCQMX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 11:12:23 -0500
-Received: by wics10 with SMTP id s10so2727898wic.19
-        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2012 08:12:22 -0800 (PST)
-In-Reply-To: <20120203160146.GM889@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1328136242-17725-2-git-send-email-yinghai@kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 3, 2012 at 8:01 AM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Mon, Jan 30, 2012 at 09:57:45AM -0700, Bjorn Helgaas wrote:
->> Tell the PCI core about host bridge address translation so it can take
->> care of bus-to-resource conversion for us.
+On Wed, Feb 1, 2012 at 2:43 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> So could use %pR for busn_res with domain nr in start/end
 >
-> Are the rest of these patches (in particular whereever is introduced
-> the generic versions) available somewhere?
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> ---
+> =A0lib/vsprintf.c | =A0 28 ++++++++++++++++++++++++----
+> =A01 files changed, 24 insertions(+), 4 deletions(-)
+>
+> diff --git a/lib/vsprintf.c b/lib/vsprintf.c
+> index 8e75003..b34eeea 100644
+> --- a/lib/vsprintf.c
+> +++ b/lib/vsprintf.c
+> @@ -451,6 +451,12 @@ char *resource_string(char *buf, char *end, stru=
+ct resource *res,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.precision =3D -1,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.flags =3D SPECIAL | SMALL | ZEROPAD,
+> =A0 =A0 =A0 =A0};
+> + =A0 =A0 =A0 static const struct printf_spec domain_spec =3D {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .base =3D 16,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .field_width =3D 4,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .precision =3D -1,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .flags =3D SMALL | ZEROPAD,
+> + =A0 =A0 =A0 };
+> =A0 =A0 =A0 =A0static const struct printf_spec bus_spec =3D {
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.base =3D 16,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.field_width =3D 2,
+> @@ -507,11 +513,25 @@ char *resource_string(char *buf, char *end, str=
+uct resource *res,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0specp =3D &mem_spec;
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0decode =3D 0;
+> =A0 =A0 =A0 =A0}
+> - =A0 =A0 =A0 p =3D number(p, pend, res->start, *specp);
+> - =A0 =A0 =A0 if (res->start !=3D res->end) {
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D '-';
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->end, *specp)=
+;
+> +
+> + =A0 =A0 =A0 if (res->flags & IORESOURCE_BUS && res->end >> 8) {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->start >> 8, =
+domain_spec);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D ':';
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->start & 0xff=
+, *specp);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res->start !=3D res->end) {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D '-';
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, r=
+es->end >> 8, domain_spec);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D ':';
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, r=
+es->end & 0xff, *specp);
 
-Oh, sorry, this doesn't mean much without the context.  Here's a
-pointer to the overview, with a git tree and so on:
+The "<< 8", ">>8", and "& 0xff" patterns are used frequently in these
+patches.  I think it's worth adding macros or inline functions to make
+it clear that all these places are connected.
 
-http://marc.info/?l=linux-arch&m=132794281821723&w=2
-
-Bjorn
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
+> + =A0 =A0 =A0 } else {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->start, *spec=
+p);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res->start !=3D res->end) {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D '-';
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, r=
+es->end, *specp);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
+> =A0 =A0 =A0 =A0}
+> +
+> =A0 =A0 =A0 =A0if (decode) {
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (res->flags & IORESOURCE_MEM_64)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0p =3D string(p, pend, =
+" 64bit", str_spec);
+> --
+> 1.7.7
+>
