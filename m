@@ -1,81 +1,58 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [RFC PATCH v1 07/18] arm/PCI: get rid of device resource fixups
-Date: Fri, 3 Feb 2012 09:51:04 -0800
-Message-ID: <CAErSpo6d82dKHffEZT9JUQw5fbGRadb5BRN7+sybqKqenQNnBg@mail.gmail.com>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
- <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
- <20120203160146.GM889@n2100.arm.linux.org.uk> <CAErSpo6Ytx06f0yMW5q=YQBTcLxRdbBbB6EzSAFWNG82t=Qe4g@mail.gmail.com>
- <20120203165543.GP889@n2100.arm.linux.org.uk>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
+Date: Fri, 3 Feb 2012 16:16:28 -0700
+Message-ID: <CACxGe6sbwy8z+U8=5rtvjyDrt3SZD2N33GiGHwPOMUAxt_BXTA@mail.gmail.com>
+References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <CAJaTeTp2w85UHnmH-PPMZsQGQMNa-93kw-tjmDxA_wjJXkYQcQ@mail.gmail.com> <20111026073348.GB2915@opensource.wolfsonmicro.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:46885 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932147Ab2BCRvZ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 12:51:25 -0500
-Received: by wics10 with SMTP id s10so2803935wic.19
-        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2012 09:51:24 -0800 (PST)
-In-Reply-To: <20120203165543.GP889@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20111026073348.GB2915@opensource.wolfsonmicro.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Mike Frysinger <vapier@gentoo.org>, Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 3, 2012 at 8:55 AM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Fri, Feb 03, 2012 at 08:12:02AM -0800, Bjorn Helgaas wrote:
->> On Fri, Feb 3, 2012 at 8:01 AM, Russell King - ARM Linux
->> <linux@arm.linux.org.uk> wrote:
->> > On Mon, Jan 30, 2012 at 09:57:45AM -0700, Bjorn Helgaas wrote:
->> >> Tell the PCI core about host bridge address translation so it can=
- take
->> >> care of bus-to-resource conversion for us.
->> >
->> > Are the rest of these patches (in particular whereever is introduc=
-ed
->> > the generic versions) available somewhere?
->>
->> Oh, sorry, this doesn't mean much without the context. =A0Here's a
->> pointer to the overview, with a git tree and so on:
->>
->> http://marc.info/?l=3Dlinux-arch&m=3D132794281821723&w=3D2
+On Wed, Oct 26, 2011 at 1:33 AM, Mark Brown
+<broonie@opensource.wolfsonmicro.com> wrote:
+> On Tue, Oct 25, 2011 at 07:44:14PM -0400, Mike Frysinger wrote:
 >
-> Trying to read github in elinks isn't very nice. =A0But from what I c=
-ould
-> see it looks fine. =A0When I get around to pulling my private patchse=
-ts
-> forward, I'll try to remember to give this a test.
-
-Thanks for taking a look.  Let me know if you find issues.
-
-> The thing which was concerning me is that I have been carrying the
-> following patches for the last 10 years or more in various forms to
-> make PCMCIA work on a couple of platforms I have here. =A0It's more
-> or less the same problem, and it uses the bus_to_resource stuff to
-> fix it for Yenta.
+>> i don't think this is generally how asm-generic is handled. =A0inste=
+ad, how about:
+>> =A0- move the duplicate code to asm-generic/gpio.h
+>> =A0- have the arches which merely need asm-generic/gpio.h add "gener=
+ic-y
+>> +=3D gpio.h" to their include/asm/Kbuild
+>> =A0- for arches which need to override these common funcs in some wa=
+y,
+>> add #ifdef protection to the asm-generic/gpio.h
 >
-> These patches address PCMCIA's idea of 'lowmem' windows always being
-> at the low 640K of _CPU_ memory rather than the low 640K of _bus_
-> memory. =A0When your bus starts at an offset of more than 640K in CPU
-> memory, the resource handling doesn't work as well.
+>> and it seems like with slightly more work, this path allow you to
+>> merge most of arch/sh/include/asm/gpio.h. =A0and it has the advantag=
+e of
+>> not needing new Kconfig symbols.
+>
+> That's really not how gpiolib is currently handled, unfortunately -
+> trying to transition over to that model in one patch would be way too
+> much.
+>
+> The goal here from that point of view is to make transitioning to
+> something more sensible easier by getting rid of the boilerplate code=
+,
+> it makes doing the more invasive changes like you're suggesting much
+> easier as we're only dealing with the architectures that are actually
+> doing something. =A0It also means that we're able to immediately work=
+ on
+> turning on gpiolib on random architectures which is a definite win.
 
-My patches only affect devices below a PCI host bridge, and from the
-device's point of view, it should see no difference -- the values in
-its BARs shouldn't change.
+I had picked up this patch, but I've dropped again from gpio/next
+since there are still a lot of drivers including asm/gpio.h.  It
+caused build breakage on linux-next with allmodconfig.
 
-I know very little about PCMCIA.  The dependency on the CPU addresses
-is interesting.   I would think such a dependency would mean we're
-missing a bus/resource conversion somewhere, but it must be more
-complicated than that.
+g.
 
-But in any event, my *intent* is that neither CPU addresses nor bus
-addresses should change.  If they do change, that's a bug in my
-series.
 
-> I've never pushed these upstream because I'm not entirely sure why
-> PCMCIA deals with lowmem windows on a card-by-card basis, rather than
-> a socket basis (surely its more to do with the capabilities of the
-> socket interface than the card itself...)
-
-Bjorn
+--=20
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
