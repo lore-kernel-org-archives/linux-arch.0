@@ -1,38 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:39511 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752196Ab2BCLq2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Feb 2012 06:46:28 -0500
-Message-ID: <1328269579.30631.2.camel@pasglop>
-Subject: Re: [RFC PATCH v1 10/18] microblaze/PCI: get rid of device resource
- fixups
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Fri, 03 Feb 2012 22:46:19 +1100
-In-Reply-To: <4F2A6A87.6020308@monstr.eu>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
-	 <20120130165800.3231.42814.stgit@bhelgaas.mtv.corp.google.com>
-	 <4F2A6A87.6020308@monstr.eu>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:35942 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754783Ab2BCQB6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 11:01:58 -0500
+Date: Fri, 3 Feb 2012 16:01:46 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [RFC PATCH v1 07/18] arm/PCI: get rid of device resource fixups
+Message-ID: <20120203160146.GM889@n2100.arm.linux.org.uk>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com> <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: monstr@monstr.eu
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120203114619.S6x3C4-SyGchxuYWnvQj3pUdpbHGN8FlTENMYVIuxcE@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120203160146.1xuJzjwM1fqVwfPbiBbRcVfwIkQMuwLwvTpyR7fGQPU@z>
 
-On Thu, 2012-02-02 at 11:50 +0100, Michal Simek wrote:
+On Mon, Jan 30, 2012 at 09:57:45AM -0700, Bjorn Helgaas wrote:
+> Tell the PCI core about host bridge address translation so it can take
+> care of bus-to-resource conversion for us.
 
-> I don't have any pci board for testing this. The most of things come from ppc.
-> We share pci IPs with xilinx ppc405/440.
-> 
-> Sorry that I can't help you with it and I have no problem with unification patches.
-> If someone has any problem with it can be bisected and solved in future.
+Are the rest of these patches (in particular whereever is introduced
+the generic versions) available somewhere?
 
-Yeah I'll have to test that one :-) Give me a few more days to sort out
-some other stuff and I'll give this series a good go.
-
-Cheers,
-Ben.
-
-
+Thanks.
