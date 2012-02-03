@@ -1,58 +1,102 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Fri, 3 Feb 2012 16:16:28 -0700
-Message-ID: <CACxGe6sbwy8z+U8=5rtvjyDrt3SZD2N33GiGHwPOMUAxt_BXTA@mail.gmail.com>
-References: <1319528012-19006-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <CAJaTeTp2w85UHnmH-PPMZsQGQMNa-93kw-tjmDxA_wjJXkYQcQ@mail.gmail.com> <20111026073348.GB2915@opensource.wolfsonmicro.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 02/15] PCI: Add iobusn_resource
+Date: Sat, 04 Feb 2012 10:38:12 +1100
+Message-ID: <1328312292.30631.5.camel@pasglop>
+References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
+	 <1328136242-17725-3-git-send-email-yinghai@kernel.org>
+	 <CAErSpo44bef-Vj4LPB0QJ8HRjWxqRFK_=kpMq8hYEe=4t58zGQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <20111026073348.GB2915@opensource.wolfsonmicro.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: Mike Frysinger <vapier@gentoo.org>, Russell King <linux@arm.linux.org.uk>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:36736 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755261Ab2BCXij (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Feb 2012 18:38:39 -0500
+In-Reply-To: <CAErSpo44bef-Vj4LPB0QJ8HRjWxqRFK_=kpMq8hYEe=4t58zGQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Yinghai Lu <yinghai@kernel.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, Oct 26, 2011 at 1:33 AM, Mark Brown
-<broonie@opensource.wolfsonmicro.com> wrote:
-> On Tue, Oct 25, 2011 at 07:44:14PM -0400, Mike Frysinger wrote:
->
->> i don't think this is generally how asm-generic is handled. =A0inste=
-ad, how about:
->> =A0- move the duplicate code to asm-generic/gpio.h
->> =A0- have the arches which merely need asm-generic/gpio.h add "gener=
-ic-y
->> +=3D gpio.h" to their include/asm/Kbuild
->> =A0- for arches which need to override these common funcs in some wa=
-y,
->> add #ifdef protection to the asm-generic/gpio.h
->
->> and it seems like with slightly more work, this path allow you to
->> merge most of arch/sh/include/asm/gpio.h. =A0and it has the advantag=
-e of
->> not needing new Kconfig symbols.
->
-> That's really not how gpiolib is currently handled, unfortunately -
-> trying to transition over to that model in one patch would be way too
-> much.
->
-> The goal here from that point of view is to make transitioning to
-> something more sensible easier by getting rid of the boilerplate code=
-,
-> it makes doing the more invasive changes like you're suggesting much
-> easier as we're only dealing with the architectures that are actually
-> doing something. =A0It also means that we're able to immediately work=
- on
-> turning on gpiolib on random architectures which is a definite win.
+On Fri, 2012-02-03 at 08:36 -0800, Bjorn Helgaas wrote:
+> On Wed, Feb 1, 2012 at 2:43 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> > also add busn_res into struct pci_bus.
+> >
+> > will use them to have bus number resource tree.
+> 
+> Will you make this tree visible in /proc?  Seems like that would be
+> useful for debugging and for symmetry with /proc/iomem and
+> /proc/ioports.
 
-I had picked up this patch, but I've dropped again from gpio/next
-since there are still a lot of drivers including asm/gpio.h.  It
-caused build breakage on linux-next with allmodconfig.
+To be honest that whole business with bus numbers in struct resource
+seems like gratuituous bloat & over engineering to me ...
 
-g.
+Does it actually solve a specific problem or serve a purpose ?
 
+Cheers,
+Ben.
 
---=20
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+> 
+> > Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> > ---
+> >  include/linux/ioport.h |    1 +
+> >  include/linux/pci.h    |    1 +
+> >  kernel/resource.c      |    8 ++++++++
+> >  3 files changed, 10 insertions(+), 0 deletions(-)
+> >
+> > diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+> > index e885ba2..6fe9e19 100644
+> > --- a/include/linux/ioport.h
+> > +++ b/include/linux/ioport.h
+> > @@ -136,6 +136,7 @@ struct resource {
+> >  /* PC/ISA/whatever - the normal PC address spaces: IO and memory */
+> >  extern struct resource ioport_resource;
+> >  extern struct resource iomem_resource;
+> > +extern struct resource iobusn_resource;
+> >
+> >  extern struct resource *request_resource_conflict(struct resource *root, struct resource *new);
+> >  extern int request_resource(struct resource *root, struct resource *new);
+> > diff --git a/include/linux/pci.h b/include/linux/pci.h
+> > index f8caaab..94ad468 100644
+> > --- a/include/linux/pci.h
+> > +++ b/include/linux/pci.h
+> > @@ -419,6 +419,7 @@ struct pci_bus {
+> >        struct list_head slots;         /* list of slots on this bus */
+> >        struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+> >        struct list_head resources;     /* address space routed to this bus */
+> > +       struct resource busn_res;       /* track registered bus num range */
+> 
+> Is this different from bus.secondary and bus.subordinate?  Do we need
+> both busn_res and secondary/subordinate?  If we need both, in what
+> circumstance with they contain different information?
+> 
+> >        struct pci_ops  *ops;           /* configuration access functions */
+> >        void            *sysdata;       /* hook for sys-specific extension */
+> > diff --git a/kernel/resource.c b/kernel/resource.c
+> > index 7640b3a..53b42f0 100644
+> > --- a/kernel/resource.c
+> > +++ b/kernel/resource.c
+> > @@ -38,6 +38,14 @@ struct resource iomem_resource = {
+> >  };
+> >  EXPORT_SYMBOL(iomem_resource);
+> >
+> > +struct resource iobusn_resource = {
+> > +       .name   = "PCI busn",
+> > +       .start  = 0,
+> > +       .end    = 0xffffff,
+> > +       .flags  = IORESOURCE_BUS,
+> > +};
+> > +EXPORT_SYMBOL(iobusn_resource);
+> > +
+> >  /* constraints to be met while allocating resources */
+> >  struct resource_constraint {
+> >        resource_size_t min, max, align;
+> > --
+> > 1.7.7
+> >
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
