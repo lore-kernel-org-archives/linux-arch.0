@@ -1,88 +1,81 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 01/15] Make %pR could handle bus resource with domain
-Date: Fri, 3 Feb 2012 09:23:44 -0800
-Message-ID: <CAE9FiQUqLwgXMOH-oAf4o-9O_cyLaRs1h8Abg+U-4iu3CRipfA@mail.gmail.com>
-References: <1328136242-17725-1-git-send-email-yinghai@kernel.org>
-	<1328136242-17725-2-git-send-email-yinghai@kernel.org>
-	<CAErSpo6sdsV_ZEkfLq-tGxY4GvyWSz99h31XqS62RjFvthvJhw@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [RFC PATCH v1 07/18] arm/PCI: get rid of device resource fixups
+Date: Fri, 3 Feb 2012 09:51:04 -0800
+Message-ID: <CAErSpo6d82dKHffEZT9JUQw5fbGRadb5BRN7+sybqKqenQNnBg@mail.gmail.com>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
+ <20120130165745.3231.37109.stgit@bhelgaas.mtv.corp.google.com>
+ <20120203160146.GM889@n2100.arm.linux.org.uk> <CAErSpo6Ytx06f0yMW5q=YQBTcLxRdbBbB6EzSAFWNG82t=Qe4g@mail.gmail.com>
+ <20120203165543.GP889@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo6sdsV_ZEkfLq-tGxY4GvyWSz99h31XqS62RjFvthvJhw@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:46885 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932147Ab2BCRvZ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Feb 2012 12:51:25 -0500
+Received: by wics10 with SMTP id s10so2803935wic.19
+        for <linux-arch@vger.kernel.org>; Fri, 03 Feb 2012 09:51:24 -0800 (PST)
+In-Reply-To: <20120203165543.GP889@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Feb 3, 2012 at 8:26 AM, Bjorn Helgaas <bhelgaas@google.com> wro=
-te:
-> On Wed, Feb 1, 2012 at 2:43 PM, Yinghai Lu <yinghai@kernel.org> wrote=
-:
->> So could use %pR for busn_res with domain nr in start/end
+On Fri, Feb 3, 2012 at 8:55 AM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
+> On Fri, Feb 03, 2012 at 08:12:02AM -0800, Bjorn Helgaas wrote:
+>> On Fri, Feb 3, 2012 at 8:01 AM, Russell King - ARM Linux
+>> <linux@arm.linux.org.uk> wrote:
+>> > On Mon, Jan 30, 2012 at 09:57:45AM -0700, Bjorn Helgaas wrote:
+>> >> Tell the PCI core about host bridge address translation so it can=
+ take
+>> >> care of bus-to-resource conversion for us.
+>> >
+>> > Are the rest of these patches (in particular whereever is introduc=
+ed
+>> > the generic versions) available somewhere?
 >>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> Cc: Andrew Morton <akpm@linux-foundation.org>
->> ---
->> =A0lib/vsprintf.c | =A0 28 ++++++++++++++++++++++++----
->> =A01 files changed, 24 insertions(+), 4 deletions(-)
+>> Oh, sorry, this doesn't mean much without the context. =A0Here's a
+>> pointer to the overview, with a git tree and so on:
 >>
->> diff --git a/lib/vsprintf.c b/lib/vsprintf.c
->> index 8e75003..b34eeea 100644
->> --- a/lib/vsprintf.c
->> +++ b/lib/vsprintf.c
->> @@ -451,6 +451,12 @@ char *resource_string(char *buf, char *end, str=
-uct resource *res,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.precision =3D -1,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.flags =3D SPECIAL | SMALL | ZEROPAD,
->> =A0 =A0 =A0 =A0};
->> + =A0 =A0 =A0 static const struct printf_spec domain_spec =3D {
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .base =3D 16,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .field_width =3D 4,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .precision =3D -1,
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 .flags =3D SMALL | ZEROPAD,
->> + =A0 =A0 =A0 };
->> =A0 =A0 =A0 =A0static const struct printf_spec bus_spec =3D {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.base =3D 16,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0.field_width =3D 2,
->> @@ -507,11 +513,25 @@ char *resource_string(char *buf, char *end, st=
-ruct resource *res,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0specp =3D &mem_spec;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0decode =3D 0;
->> =A0 =A0 =A0 =A0}
->> - =A0 =A0 =A0 p =3D number(p, pend, res->start, *specp);
->> - =A0 =A0 =A0 if (res->start !=3D res->end) {
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D '-';
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->end, *specp=
-);
->> +
->> + =A0 =A0 =A0 if (res->flags & IORESOURCE_BUS && res->end >> 8) {
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->start >> 8,=
- domain_spec);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D ':';
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, res->start & 0xf=
-f, *specp);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res->start !=3D res->end) {
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D '-';
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, =
-res->end >> 8, domain_spec);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 *p++ =3D ':';
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 p =3D number(p, pend, =
-res->end & 0xff, *specp);
+>> http://marc.info/?l=3Dlinux-arch&m=3D132794281821723&w=3D2
 >
-> The "<< 8", ">>8", and "& 0xff" patterns are used frequently in these
-> patches. =A0I think it's worth adding macros or inline functions to m=
-ake
-> it clear that all these places are connected.
+> Trying to read github in elinks isn't very nice. =A0But from what I c=
+ould
+> see it looks fine. =A0When I get around to pulling my private patchse=
+ts
+> forward, I'll try to remember to give this a test.
 
-ok will check if can use
+Thanks for taking a look.  Let me know if you find issues.
 
-busn_domain_nr(res): res->end >> 8
-busn_bus_nr(res): res->end & 0xff;
-busn_val(domain_nr, bus_nr)
+> The thing which was concerning me is that I have been carrying the
+> following patches for the last 10 years or more in various forms to
+> make PCMCIA work on a couple of platforms I have here. =A0It's more
+> or less the same problem, and it uses the bus_to_resource stuff to
+> fix it for Yenta.
+>
+> These patches address PCMCIA's idea of 'lowmem' windows always being
+> at the low 640K of _CPU_ memory rather than the low 640K of _bus_
+> memory. =A0When your bus starts at an offset of more than 640K in CPU
+> memory, the resource handling doesn't work as well.
 
-instead.
+My patches only affect devices below a PCI host bridge, and from the
+device's point of view, it should see no difference -- the values in
+its BARs shouldn't change.
 
-Thanks
+I know very little about PCMCIA.  The dependency on the CPU addresses
+is interesting.   I would think such a dependency would mean we're
+missing a bus/resource conversion somewhere, but it must be more
+complicated than that.
 
-Yinghai
+But in any event, my *intent* is that neither CPU addresses nor bus
+addresses should change.  If they do change, that's a bug in my
+series.
+
+> I've never pushed these upstream because I'm not entirely sure why
+> PCMCIA deals with lowmem windows on a card-by-card basis, rather than
+> a socket basis (surely its more to do with the capabilities of the
+> socket interface than the card itself...)
+
+Bjorn
