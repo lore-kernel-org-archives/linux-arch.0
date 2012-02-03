@@ -1,31 +1,31 @@
-From: "UBS Investment Bank" <clopez-rey@cervera.uned.es>
-Subject: Investment funds of $8,500,000.00
-Date: Thu, 2 Feb 2012 22:59:29 +0100
-Message-ID: <6d81a3c0a879f886ef1cc1c3cf79cd2a.squirrel@correo.uned.es>
-Reply-To: mrrolando05@yahoo.co.jp
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH v1 10/18] microblaze/PCI: get rid of device resource
+ fixups
+Date: Fri, 03 Feb 2012 22:46:19 +1100
+Message-ID: <1328269579.30631.2.camel@pasglop>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
+	 <20120130165800.3231.42814.stgit@bhelgaas.mtv.corp.google.com>
+	 <4F2A6A87.6020308@monstr.eu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-seis.uned.es ([62.204.192.120]:49972 "EHLO
-	smtp-out-seis.uned.es" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753653Ab2BBWLI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Feb 2012 17:11:08 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <4F2A6A87.6020308@monstr.eu>
+Sender: linux-pci-owner@vger.kernel.org
+To: monstr@monstr.eu
+Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+On Thu, 2012-02-02 at 11:50 +0100, Michal Simek wrote:
 
+> I don't have any pci board for testing this. The most of things come from ppc.
+> We share pci IPs with xilinx ppc405/440.
+> 
+> Sorry that I can't help you with it and I have no problem with unification patches.
+> If someone has any problem with it can be bisected and solved in future.
 
+Yeah I'll have to test that one :-) Give me a few more days to sort out
+some other stuff and I'll give this series a good go.
 
-Good Day,
-
-I have a business proposal of USD $8,500,000.00 only for you to transact
-with me from my bank to your country. All confirmable documents to back up
-the claims will be made available to you prior to your acceptance. Reply if
-you are interested so that we can commence the transation which will
-take less than 5 days.
-
-Best Regards,
-Mr. Rolando Biscocho Castillo.
-Investment consultant,
-UBS Investment Bank, Philippines
+Cheers,
+Ben.
