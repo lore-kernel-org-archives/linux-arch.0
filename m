@@ -1,64 +1,68 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Sat, 4 Feb 2012 17:21:19 +0000
-Message-ID: <20120204172119.GF8042@opensource.wolfsonmicro.com>
-References: <1328370879-18523-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <20120204170632.GA3615@merkur.ravnborg.org>
+Date: Sat, 4 Feb 2012 17:41:15 +0000
+Message-ID: <20120204174115.GX889@n2100.arm.linux.org.uk>
+References: <1328370879-18523-1-git-send-email-broonie@opensource.wolfsonmicro.com> <20120204170632.GA3615@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="bGR76rFJjkSxVeRa"
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34665 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753558Ab2BDRmM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Feb 2012 12:42:12 -0500
 Content-Disposition: inline
 In-Reply-To: <20120204170632.GA3615@merkur.ravnborg.org>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Mike Frysinger <vapier@gentoo.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
-
-
---bGR76rFJjkSxVeRa
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Mike Frysinger <vapier@gentoo.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org
 
 On Sat, Feb 04, 2012 at 06:06:32PM +0100, Sam Ravnborg wrote:
-
+> On Sat, Feb 04, 2012 at 03:54:39PM +0000, Mark Brown wrote:
+> > Rather than requiring architectures that use gpiolib but don't have any
+> > need to define anything custom to copy an asm/gpio.h provide a Kconfig
+> > symbol which architectures must select in order to include gpio.h and
+> > for other architectures just provide the trivial implementation directly.
+> 
+> Hi Mark.
+> 
 > There is an even simpler solution.
-
+> 
 > For each arch that uses asm-generic/gpio.h add a line
 > to arch/$ARCH/include/asm/Kbuild like this:
-
+> 
+> 
 >     generic-y += gpio.h
-
+> 
 > This will then make this arch pick up the asm-generic version when
 > you do #include <asm/gpio.h>.
 
-> And you avoid the kconfig games.
+You're assuming that asm-generic/gpio.h was invented to be a replacement
+for an architecture asm/gpio.h.  Unfortunately, things aren't that
+simple.
 
-Hrm, that would work but it does mean we still need to go round and
-manually enable GPIO support on all architectures which is what I had
-been trying to get away from.  It is a lot simpler though so it should
-be much easier to persuade the architecture maintainers to do that.
+It would have been a lot better if asm-generic/gpio.h was tacked on the
+bottom of linux/gpio.h - because that's what it really is.  It's core
+code features, not platform stuff.
 
---bGR76rFJjkSxVeRa
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+What's platform specific about asm/gpio.h is the number of GPIOs in
+the system, and whether it wants to intercept the gpio_xxx() functions
+to provide fast access to on-chip GPIOs.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+What I'd suggest is moving asm-generic/gpio.h to linux/gpiolib.h, and
+making asm-generic/gpio.h include that as a patch until stuff is fixed
+for its new location.  That should result in a proper asm-generic/gpio.h
+being:
 
-iQIcBAEBAgAGBQJPLWkJAAoJEBus8iNuMP3dTScP/i6Yc7ptakuyKbKi5j+iVa1s
-i6ySBMtkLmgcj1bHdwDBjfFp93c7IMqhKRXFNw4zYcud5dOkOPLEMajOQhv1Tlag
-Mdc1QNjxW7DFCLYAwcWi3aMrWRglq+fYz0iqz+EhMeDstFK3kZLYpDPyYH8dAGSY
-uifbi4XIil4sLtWvKy8WDcccxhOAdZt443XatGY6VekmsiNBvEvbrW27cQbR6QOV
-Zw21nrqMIHF1t2MWsMWCFpQX5ZAeg4CFb/E3csaKWwc0QE6f717P/28TQUO704L1
-Gvv8Jpt4cpxTJkd590jW2VVg9mCWTi2DynTBMEO0yyvtwIGtK2NeFjwZTi5Nqgh2
-0bihITOW3xTYaJYDnpydNI1tpIr+mqxlEi8WDEnnCdB5T9MUPSmB0QdVJyoTO2eg
-tBghAVG1YyjVamsRtZAnMO70ysEsphvQK+h086z8+8veyzl76+iMQryr8onRYO9O
-gzqD7NZyT2/c+XKBnwOrDbBUWho3HmZtMp2maoYwOwX+Eg6pXA/QoRBvMadReY+D
-BvoCgXpT1R2YPfsTE4SOerW911chlqkwwgR/5NPOMieIY3z3L/ITNVzC61A5JajU
-r1tzEwzhRwSNUPNZcMx1lPsXq72WvJbA3jH4yJ+XF37xpITVDp9x5WDkFET72CAp
-nrOiab4BJ8JUs/fRUlTM
-=oVcL
------END PGP SIGNATURE-----
+/* The trivial gpiolib dispatchers */
+#define gpio_get_value  __gpio_get_value
+#define gpio_set_value  __gpio_set_value
+#define gpio_cansleep   __gpio_cansleep
+#define gpio_to_irq     __gpio_to_irq
 
---bGR76rFJjkSxVeRa--
+and nothing else.
+
+Alternatively, instead of linux/gpiolib.h, put it in linux/gpio.h instead,
+but that gets more icky because of the mess of asm/gpio.h includes (which
+I've been banging on for years about in ARM patches and they're _still_
+coming.)
