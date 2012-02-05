@@ -1,68 +1,79 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Sat, 4 Feb 2012 17:41:15 +0000
-Message-ID: <20120204174115.GX889@n2100.arm.linux.org.uk>
-References: <1328370879-18523-1-git-send-email-broonie@opensource.wolfsonmicro.com> <20120204170632.GA3615@merkur.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:34665 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753558Ab2BDRmM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Feb 2012 12:42:12 -0500
-Content-Disposition: inline
-In-Reply-To: <20120204170632.GA3615@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Mike Frysinger <vapier@gentoo.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v5 0/24] PCI: allocate pci bus num range for unassigned bridge busn + pci rescan cleanup
+Date: Sat,  4 Feb 2012 22:57:44 -0800
+Message-ID: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Feb 04, 2012 at 06:06:32PM +0100, Sam Ravnborg wrote:
-> On Sat, Feb 04, 2012 at 03:54:39PM +0000, Mark Brown wrote:
-> > Rather than requiring architectures that use gpiolib but don't have any
-> > need to define anything custom to copy an asm/gpio.h provide a Kconfig
-> > symbol which architectures must select in order to include gpio.h and
-> > for other architectures just provide the trivial implementation directly.
-> 
-> Hi Mark.
-> 
-> There is an even simpler solution.
-> 
-> For each arch that uses asm-generic/gpio.h add a line
-> to arch/$ARCH/include/asm/Kbuild like this:
-> 
-> 
->     generic-y += gpio.h
-> 
-> This will then make this arch pick up the asm-generic version when
-> you do #include <asm/gpio.h>.
+cdef5a1: PCI: clean up rescan_bus_bridge_resize
+7b6deb4: PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+876bd4a: PCI: Add pci_bus_add_single_device()
+6e5f346: PCI, sysfs: create rescan_bridge under /sys/.../pci/devices/... for pci bridges
+3c92113: PCI, sys: Use device_type and attr_groups with pci dev
+e6d3c54: PCI, pciehp: Remove not needed bus number range checking
+2306e31: PCI: Double checking setting for bus register and bus struct.
+daddc90: pcmcia: remove workaround for fixing pci parent bus subordinate
+6a88939: PCI: Seperate child bus scanning to two passes overall
+60c7d94: PCI: kill pci_fixup_parent_subordinate_busnr()
+e9e72be: PCI: Allocate bus range instead of use max blindly
+f22af7f: PCI: Strict checking of valid range for bridge
+8656ea6: PCI: Probe safe range that we can use for unassigned bridge.
+4023fc3: PCI: Add pci_bus_extend/shrink_top()
+a066c95: PCI, parisc: Register busn_res for root buses
+d069fbb: PCI, powerpc: Register busn_res for root buses
+f00e514: PCI, ia64: Register busn_res for root buses
+1a203f1: PCI, x86: Register busn_res for root buses
+8b1b01b: PCI: Add busn_res tracking in core
+a9ccca7: PCI: add /proc/iobusn
+ec1cdb3: PCI: Add busn_res operation functions
+2a09fbd: Make %pR could handle bus resource with domain
+9c83a59: PCI: add busn inline helper
+b18cd6a: PCI: Add iobusn_resource
 
-You're assuming that asm-generic/gpio.h was invented to be a replacement
-for an architecture asm/gpio.h.  Unfortunately, things aren't that
-simple.
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-It would have been a lot better if asm-generic/gpio.h was tacked on the
-bottom of linux/gpio.h - because that's what it really is.  It's core
-code features, not platform stuff.
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-What's platform specific about asm/gpio.h is the number of GPIOs in
-the system, and whether it wants to intercept the gpio_xxx() functions
-to provide fast access to on-chip GPIOs.
+last five patches are rescan cleanup that make use busn alloc.
 
-What I'd suggest is moving asm-generic/gpio.h to linux/gpiolib.h, and
-making asm-generic/gpio.h include that as a patch until stuff is fixed
-for its new location.  That should result in a proper asm-generic/gpio.h
-being:
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
 
-/* The trivial gpiolib dispatchers */
-#define gpio_get_value  __gpio_get_value
-#define gpio_set_value  __gpio_set_value
-#define gpio_cansleep   __gpio_cansleep
-#define gpio_to_irq     __gpio_to_irq
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+	out, and move the comment change with code change.
+-v4: fixes the problem about rescan that Bjorn found.
+-v5: add /proc/iobusn that is requested by Bjorn.
+     remove old workaround from pciehp.
+     add rescan_bridge for pci bridge in /sys
 
-and nothing else.
+Thanks
 
-Alternatively, instead of linux/gpiolib.h, put it in linux/gpio.h instead,
-but that gets more icky because of the mess of asm/gpio.h includes (which
-I've been banging on for years about in ARM patches and they're _still_
-coming.)
+Yinghai
+
+ Documentation/ABI/testing/sysfs-bus-pci |   10 +
+ arch/ia64/pci/pci.c                     |    2 +
+ arch/powerpc/kernel/pci-common.c        |    7 +-
+ arch/x86/include/asm/topology.h         |    3 +-
+ arch/x86/pci/acpi.c                     |    8 +-
+ arch/x86/pci/bus_numa.c                 |    8 +-
+ arch/x86/pci/common.c                   |   11 +-
+ drivers/parisc/dino.c                   |    2 +
+ drivers/parisc/lba_pci.c                |    3 +
+ drivers/pci/bus.c                       |   40 +++
+ drivers/pci/hotplug/pciehp_pci.c        |   12 +-
+ drivers/pci/pci-sysfs.c                 |   59 ++++-
+ drivers/pci/pci.h                       |    1 +
+ drivers/pci/probe.c                     |  460 +++++++++++++++++++++++++------
+ drivers/pci/remove.c                    |    1 +
+ drivers/pcmcia/yenta_socket.c           |   75 -----
+ include/linux/ioport.h                  |   18 ++
+ include/linux/pci.h                     |    9 +
+ kernel/resource.c                       |   50 ++++
+ lib/vsprintf.c                          |   29 ++-
+ 20 files changed, 617 insertions(+), 191 deletions(-)
