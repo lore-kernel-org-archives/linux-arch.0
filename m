@@ -1,105 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:61847 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755103Ab2BEHAj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2012 02:00:39 -0500
+Received: from acsinet15.oracle.com ([141.146.126.227]:41820 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753064Ab2BEG7A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2012 01:59:00 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 20/24] PCI, sys: Use device_type and attr_groups with pci dev
-Date: Sat,  4 Feb 2012 22:58:04 -0800
-Message-ID: <1328425088-6562-21-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/24] PCI: add busn inline helper
+Date: Sat,  4 Feb 2012 22:57:46 -0800
+Message-ID: <1328425088-6562-3-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120205065804.jkWT1bCQ2vnBV1h_dKT-0IM8cGhxBkBNktzo7dXJqZc@z>
+Message-ID: <20120205065746.Vc8bkdPr4Hq11rNzQoGKknQL9n8u8FVwPo4TArkgZ0s@z>
 
-We want to create rescan in sys only for pci bridge instead of all pci dev.
-
-We could use attribute_groups/is_visible method to do that.
-
-Now pci dev does not use device type yet. So add pci_dev_type to take
-attr_groups with it.
-
-Add pci_dev_bridge_attrs_are_visible() to control attr_bridge_group only create
-attr for bridge.
-
-This is the framework related change, later could attr to bridge_attr_group,
-to make those attr only show up on pci bridge device.
-
-Also We could add more attr groups with is_visible to reduce messness in
-	pci_create_sysfs_dev_files. ( at least for boot_vga one )
+convert back and forth with busn and domain_nr/bus_nr
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- drivers/pci/pci-sysfs.c |   30 ++++++++++++++++++++++++++++++
- drivers/pci/pci.h       |    1 +
- drivers/pci/probe.c     |    1 +
- 3 files changed, 32 insertions(+), 0 deletions(-)
+ include/linux/ioport.h |   17 +++++++++++++++++
+ 1 files changed, 17 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index d972303..124e826 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -1335,3 +1335,33 @@ static int __init pci_sysfs_init(void)
- }
+diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+index 6fe9e19..f80c0cc 100644
+--- a/include/linux/ioport.h
++++ b/include/linux/ioport.h
+@@ -138,6 +138,23 @@ extern struct resource ioport_resource;
+ extern struct resource iomem_resource;
+ extern struct resource iobusn_resource;
  
- late_initcall(pci_sysfs_init);
-+
-+static struct attribute *pci_dev_bridge_attrs[] = {
-+	NULL,
-+};
-+
-+static umode_t pci_dev_bridge_attrs_are_visible(struct kobject *kobj,
-+						struct attribute *a, int n)
++static inline int busn_domain_nr(resource_size_t busn)
 +{
-+	struct device *dev = container_of(kobj, struct device, kobj);
-+	struct pci_dev *pdev = to_pci_dev(dev);
-+
-+	if (!pdev->subordinate)
-+		return 0;
-+
-+	return a->mode;
++	return busn >> 8;
++}
++static inline int busn_bus_nr(resource_size_t busn)
++{
++	return busn & 0xff;
++}
++static inline resource_size_t busn_update_bus_nr(resource_size_t busn, int b_nr)
++{
++	return (busn & ~0xff) | (b_nr & 0xff);
++}
++static inline resource_size_t busn(int d_nr, int b_nr)
++{
++	return  ((d_nr & 0xffff) << 8) | (b_nr & 0xff);
 +}
 +
-+static struct attribute_group pci_dev_bridge_attr_group = {
-+	.attrs = pci_dev_bridge_attrs,
-+	.is_visible = pci_dev_bridge_attrs_are_visible,
-+};
-+
-+static const struct attribute_group *pci_dev_attr_groups[] = {
-+	&pci_dev_bridge_attr_group,
-+	NULL,
-+};
-+
-+struct device_type pci_dev_type = {
-+	.groups = pci_dev_attr_groups,
-+};
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index f862a5a..8d17a1c 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -161,6 +161,7 @@ static inline int pci_no_d1d2(struct pci_dev *dev)
- }
- extern struct device_attribute pci_dev_attrs[];
- extern struct device_attribute pcibus_dev_attrs[];
-+extern struct device_type pci_dev_type;
- #ifdef CONFIG_HOTPLUG
- extern struct bus_attribute pci_bus_attrs[];
- #else
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index b0c2aa1..61df44d 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1102,6 +1102,7 @@ int pci_setup_device(struct pci_dev *dev)
- 	dev->sysdata = dev->bus->sysdata;
- 	dev->dev.parent = dev->bus->bridge;
- 	dev->dev.bus = &pci_bus_type;
-+	dev->dev.type = &pci_dev_type;
- 	dev->hdr_type = hdr_type & 0x7f;
- 	dev->multifunction = !!(hdr_type & 0x80);
- 	dev->error_state = pci_channel_io_normal;
+ extern struct resource *request_resource_conflict(struct resource *root, struct resource *new);
+ extern int request_resource(struct resource *root, struct resource *new);
+ extern int release_resource(struct resource *new);
 -- 
 1.7.7
 
