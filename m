@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/24] PCI: clean up rescan_bus_bridge_resize
-Date: Sat,  4 Feb 2012 22:58:08 -0800
-Message-ID: <1328425088-6562-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/24] PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+Date: Sat,  4 Feb 2012 22:58:07 -0800
+Message-ID: <1328425088-6562-24-git-send-email-yinghai@kernel.org>
 References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
@@ -10,40 +10,43 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Should only use it with bridge instead of bus.
-it could get new subordinate. so can not use it with reguar bus.
+So after remove all children and then using setpci change bus register and rescan
+bridge could use new set bus number.
 
-in that case, use may need to make all children devices get removed already.
+Otherwise need to rescan parent bus, it would have too much overhead.
+
+also need to use pci_bus_add_single_device to make sure new change bus have directory
+ /sys/../.../pci_bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/pci-sysfs.c |    7 ++-----
- 1 files changed, 2 insertions(+), 5 deletions(-)
+ drivers/pci/probe.c |   10 ++++++----
+ 1 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 68caf29..a3fa64e 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -337,7 +337,7 @@ dev_bridge_rescan_store(struct device *dev, struct device_attribute *attr,
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 61df44d..e85b823 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1972,14 +1972,16 @@ EXPORT_SYMBOL(pci_scan_bus);
+  */
+ unsigned int __ref pci_rescan_bus_bridge_resize(struct pci_dev *bridge)
+ {
+-	unsigned int max;
+-	struct pci_bus *bus = bridge->subordinate;
++	unsigned int max = 0;
++	int pass;
++	struct pci_bus *bus = bridge->bus;
  
- 	if (val) {
- 		mutex_lock(&pci_remove_rescan_mutex);
--		pci_rescan_bus(pdev->subordinate);
-+		pci_rescan_bus_bridge_resize(pdev);
- 		mutex_unlock(&pci_remove_rescan_mutex);
- 	}
- 	return count;
-@@ -387,10 +387,7 @@ dev_bus_rescan_store(struct device *dev, struct device_attribute *attr,
+-	max = pci_scan_child_bus(bus);
++	for (pass = 0; pass < 2; pass++)
++		max = pci_scan_bridge(bus, bridge, max, pass);
  
- 	if (val) {
- 		mutex_lock(&pci_remove_rescan_mutex);
--		if (!pci_is_root_bus(bus) && list_empty(&bus->devices))
--			pci_rescan_bus_bridge_resize(bus->self);
--		else
--			pci_rescan_bus(bus);
-+		pci_rescan_bus(bus);
- 		mutex_unlock(&pci_remove_rescan_mutex);
- 	}
- 	return count;
+ 	pci_assign_unassigned_bridge_resources(bridge);
+ 
+-	pci_bus_add_devices(bus);
++	pci_bus_add_single_device(bridge);
+ 
+ 	return max;
+ }
 -- 
 1.7.7
