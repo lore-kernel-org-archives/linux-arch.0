@@ -1,92 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:61855 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:61847 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755140Ab2BEHAm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2012 02:00:42 -0500
+	with ESMTP id S1755103Ab2BEHAj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2012 02:00:39 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 22/24] PCI: Add pci_bus_add_single_device()
-Date: Sat,  4 Feb 2012 22:58:06 -0800
-Message-ID: <1328425088-6562-23-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/24] PCI, sys: Use device_type and attr_groups with pci dev
+Date: Sat,  4 Feb 2012 22:58:04 -0800
+Message-ID: <1328425088-6562-21-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120205065806.HDPlJFwzbFZEXzoJDQKTG-58oDaq87JKs1lThH9Qt38@z>
+Message-ID: <20120205065804.jkWT1bCQ2vnBV1h_dKT-0IM8cGhxBkBNktzo7dXJqZc@z>
 
-will use it to pci_bus_bridge_scan_resize(0 to make bridge will
-have pci_bus directory created.
+We want to create rescan in sys only for pci bridge instead of all pci dev.
+
+We could use attribute_groups/is_visible method to do that.
+
+Now pci dev does not use device type yet. So add pci_dev_type to take
+attr_groups with it.
+
+Add pci_dev_bridge_attrs_are_visible() to control attr_bridge_group only create
+attr for bridge.
+
+This is the framework related change, later could attr to bridge_attr_group,
+to make those attr only show up on pci bridge device.
+
+Also We could add more attr groups with is_visible to reduce messness in
+	pci_create_sysfs_dev_files. ( at least for boot_vga one )
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/bus.c   |   40 ++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    1 +
- 2 files changed, 41 insertions(+), 0 deletions(-)
+ drivers/pci/pci-sysfs.c |   30 ++++++++++++++++++++++++++++++
+ drivers/pci/pci.h       |    1 +
+ drivers/pci/probe.c     |    1 +
+ 3 files changed, 32 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-index 398f5d8..7b2ae85 100644
---- a/drivers/pci/bus.c
-+++ b/drivers/pci/bus.c
-@@ -247,6 +247,46 @@ void pci_bus_add_devices(const struct pci_bus *bus)
- 	}
+diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
+index d972303..124e826 100644
+--- a/drivers/pci/pci-sysfs.c
++++ b/drivers/pci/pci-sysfs.c
+@@ -1335,3 +1335,33 @@ static int __init pci_sysfs_init(void)
  }
  
-+void pci_bus_add_single_device(struct pci_dev *dev)
+ late_initcall(pci_sysfs_init);
++
++static struct attribute *pci_dev_bridge_attrs[] = {
++	NULL,
++};
++
++static umode_t pci_dev_bridge_attrs_are_visible(struct kobject *kobj,
++						struct attribute *a, int n)
 +{
-+	struct pci_bus *child;
-+	int retval;
++	struct device *dev = container_of(kobj, struct device, kobj);
++	struct pci_dev *pdev = to_pci_dev(dev);
 +
-+	/* Skip already-added devices */
-+	if (!dev->is_added) {
-+		retval = pci_bus_add_device(dev);
-+		if (retval)
-+			dev_err(&dev->dev, "Error adding device, continuing\n");
-+	}
++	if (!pdev->subordinate)
++		return 0;
 +
-+	BUG_ON(!dev->is_added);
-+
-+	child = dev->subordinate;
-+	/*
-+	 * If there is an unattached subordinate bus, attach
-+	 * it and then scan for unattached PCI devices.
-+	 */
-+	if (child) {
-+		if (list_empty(&child->node)) {
-+			down_write(&pci_bus_sem);
-+			list_add_tail(&child->node, &dev->bus->children);
-+			up_write(&pci_bus_sem);
-+		}
-+		pci_bus_add_devices(child);
-+
-+		/*
-+		 * register the bus with sysfs as the parent is now
-+		 * properly registered.
-+		 */
-+		if (!child->is_added) {
-+			retval = pci_bus_add_child(child);
-+			if (retval)
-+				dev_err(&dev->dev, "Error adding bus, continuing\n");
-+		}
-+	}
++	return a->mode;
 +}
 +
++static struct attribute_group pci_dev_bridge_attr_group = {
++	.attrs = pci_dev_bridge_attrs,
++	.is_visible = pci_dev_bridge_attrs_are_visible,
++};
 +
- void pci_enable_bridges(struct pci_bus *bus)
- {
- 	struct pci_dev *dev;
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index d5b6786..8061031 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -659,6 +659,7 @@ void pci_fixup_cardbus(struct pci_bus *);
- void pcibios_scan_specific_bus(int busn);
- extern struct pci_bus *pci_find_bus(int domain, int busnr);
- void pci_bus_add_devices(const struct pci_bus *bus);
-+void pci_bus_add_single_device(struct pci_dev *dev);
- struct pci_bus *pci_scan_bus_parented(struct device *parent, int bus,
- 				      struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
++static const struct attribute_group *pci_dev_attr_groups[] = {
++	&pci_dev_bridge_attr_group,
++	NULL,
++};
++
++struct device_type pci_dev_type = {
++	.groups = pci_dev_attr_groups,
++};
+diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
+index f862a5a..8d17a1c 100644
+--- a/drivers/pci/pci.h
++++ b/drivers/pci/pci.h
+@@ -161,6 +161,7 @@ static inline int pci_no_d1d2(struct pci_dev *dev)
+ }
+ extern struct device_attribute pci_dev_attrs[];
+ extern struct device_attribute pcibus_dev_attrs[];
++extern struct device_type pci_dev_type;
+ #ifdef CONFIG_HOTPLUG
+ extern struct bus_attribute pci_bus_attrs[];
+ #else
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index b0c2aa1..61df44d 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1102,6 +1102,7 @@ int pci_setup_device(struct pci_dev *dev)
+ 	dev->sysdata = dev->bus->sysdata;
+ 	dev->dev.parent = dev->bus->bridge;
+ 	dev->dev.bus = &pci_bus_type;
++	dev->dev.type = &pci_dev_type;
+ 	dev->hdr_type = hdr_type & 0x7f;
+ 	dev->multifunction = !!(hdr_type & 0x80);
+ 	dev->error_state = pci_channel_io_normal;
 -- 
 1.7.7
 
