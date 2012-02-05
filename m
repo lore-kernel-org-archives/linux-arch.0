@@ -1,69 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:43744 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1750897Ab2BDRVY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 4 Feb 2012 12:21:24 -0500
-Date: Sat, 4 Feb 2012 17:21:19 +0000
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Message-ID: <20120204172119.GF8042@opensource.wolfsonmicro.com>
-References: <1328370879-18523-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <20120204170632.GA3615@merkur.ravnborg.org>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="bGR76rFJjkSxVeRa"
-Content-Disposition: inline
-In-Reply-To: <20120204170632.GA3615@merkur.ravnborg.org>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:61351 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751799Ab2BEG6k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Feb 2012 01:58:40 -0500
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v5 0/24] PCI: allocate pci bus num range for unassigned bridge busn + pci rescan cleanup
+Date: Sat,  4 Feb 2012 22:57:44 -0800
+Message-ID: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>, Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Mike Frysinger <vapier@gentoo.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, uclinux-dist-devel@blackfin.uclinux.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org
-Message-ID: <20120204172119.0SmE_SLU-wY6MlOu0ejNEwqzg-CgnUEkP6-QoW1xRBY@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120205065744.05IdjIk34mva53_l93CGmFWICPZvSW5GT-ApW45rk78@z>
 
+cdef5a1: PCI: clean up rescan_bus_bridge_resize
+7b6deb4: PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+876bd4a: PCI: Add pci_bus_add_single_device()
+6e5f346: PCI, sysfs: create rescan_bridge under /sys/.../pci/devices/... for pci bridges
+3c92113: PCI, sys: Use device_type and attr_groups with pci dev
+e6d3c54: PCI, pciehp: Remove not needed bus number range checking
+2306e31: PCI: Double checking setting for bus register and bus struct.
+daddc90: pcmcia: remove workaround for fixing pci parent bus subordinate
+6a88939: PCI: Seperate child bus scanning to two passes overall
+60c7d94: PCI: kill pci_fixup_parent_subordinate_busnr()
+e9e72be: PCI: Allocate bus range instead of use max blindly
+f22af7f: PCI: Strict checking of valid range for bridge
+8656ea6: PCI: Probe safe range that we can use for unassigned bridge.
+4023fc3: PCI: Add pci_bus_extend/shrink_top()
+a066c95: PCI, parisc: Register busn_res for root buses
+d069fbb: PCI, powerpc: Register busn_res for root buses
+f00e514: PCI, ia64: Register busn_res for root buses
+1a203f1: PCI, x86: Register busn_res for root buses
+8b1b01b: PCI: Add busn_res tracking in core
+a9ccca7: PCI: add /proc/iobusn
+ec1cdb3: PCI: Add busn_res operation functions
+2a09fbd: Make %pR could handle bus resource with domain
+9c83a59: PCI: add busn inline helper
+b18cd6a: PCI: Add iobusn_resource
 
---bGR76rFJjkSxVeRa
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-On Sat, Feb 04, 2012 at 06:06:32PM +0100, Sam Ravnborg wrote:
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-> There is an even simpler solution.
+last five patches are rescan cleanup that make use busn alloc.
 
-> For each arch that uses asm-generic/gpio.h add a line
-> to arch/$ARCH/include/asm/Kbuild like this:
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
 
->     generic-y += gpio.h
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+	out, and move the comment change with code change.
+-v4: fixes the problem about rescan that Bjorn found.
+-v5: add /proc/iobusn that is requested by Bjorn.
+     remove old workaround from pciehp.
+     add rescan_bridge for pci bridge in /sys
 
-> This will then make this arch pick up the asm-generic version when
-> you do #include <asm/gpio.h>.
+Thanks
 
-> And you avoid the kconfig games.
+Yinghai
 
-Hrm, that would work but it does mean we still need to go round and
-manually enable GPIO support on all architectures which is what I had
-been trying to get away from.  It is a lot simpler though so it should
-be much easier to persuade the architecture maintainers to do that.
+ Documentation/ABI/testing/sysfs-bus-pci |   10 +
+ arch/ia64/pci/pci.c                     |    2 +
+ arch/powerpc/kernel/pci-common.c        |    7 +-
+ arch/x86/include/asm/topology.h         |    3 +-
+ arch/x86/pci/acpi.c                     |    8 +-
+ arch/x86/pci/bus_numa.c                 |    8 +-
+ arch/x86/pci/common.c                   |   11 +-
+ drivers/parisc/dino.c                   |    2 +
+ drivers/parisc/lba_pci.c                |    3 +
+ drivers/pci/bus.c                       |   40 +++
+ drivers/pci/hotplug/pciehp_pci.c        |   12 +-
+ drivers/pci/pci-sysfs.c                 |   59 ++++-
+ drivers/pci/pci.h                       |    1 +
+ drivers/pci/probe.c                     |  460 +++++++++++++++++++++++++------
+ drivers/pci/remove.c                    |    1 +
+ drivers/pcmcia/yenta_socket.c           |   75 -----
+ include/linux/ioport.h                  |   18 ++
+ include/linux/pci.h                     |    9 +
+ kernel/resource.c                       |   50 ++++
+ lib/vsprintf.c                          |   29 ++-
+ 20 files changed, 617 insertions(+), 191 deletions(-)
 
---bGR76rFJjkSxVeRa
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJPLWkJAAoJEBus8iNuMP3dTScP/i6Yc7ptakuyKbKi5j+iVa1s
-i6ySBMtkLmgcj1bHdwDBjfFp93c7IMqhKRXFNw4zYcud5dOkOPLEMajOQhv1Tlag
-Mdc1QNjxW7DFCLYAwcWi3aMrWRglq+fYz0iqz+EhMeDstFK3kZLYpDPyYH8dAGSY
-uifbi4XIil4sLtWvKy8WDcccxhOAdZt443XatGY6VekmsiNBvEvbrW27cQbR6QOV
-Zw21nrqMIHF1t2MWsMWCFpQX5ZAeg4CFb/E3csaKWwc0QE6f717P/28TQUO704L1
-Gvv8Jpt4cpxTJkd590jW2VVg9mCWTi2DynTBMEO0yyvtwIGtK2NeFjwZTi5Nqgh2
-0bihITOW3xTYaJYDnpydNI1tpIr+mqxlEi8WDEnnCdB5T9MUPSmB0QdVJyoTO2eg
-tBghAVG1YyjVamsRtZAnMO70ysEsphvQK+h086z8+8veyzl76+iMQryr8onRYO9O
-gzqD7NZyT2/c+XKBnwOrDbBUWho3HmZtMp2maoYwOwX+Eg6pXA/QoRBvMadReY+D
-BvoCgXpT1R2YPfsTE4SOerW911chlqkwwgR/5NPOMieIY3z3L/ITNVzC61A5JajU
-r1tzEwzhRwSNUPNZcMx1lPsXq72WvJbA3jH4yJ+XF37xpITVDp9x5WDkFET72CAp
-nrOiab4BJ8JUs/fRUlTM
-=oVcL
------END PGP SIGNATURE-----
-
---bGR76rFJjkSxVeRa--
