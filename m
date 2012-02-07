@@ -1,138 +1,123 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay05.akamai.com ([96.6.114.97]:57285 "EHLO
-	prod-mail-xrelay05.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752276Ab2BGSAD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2012 13:00:03 -0500
-Message-ID: <4F3164BC.4080005@akamai.com>
-Date: Tue, 07 Feb 2012 11:51:56 -0600
-From: Josh Hunt <johunt@akamai.com>
+Received: from mx1.redhat.com ([209.132.183.28]:21489 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756536Ab2BGTJ6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Feb 2012 14:09:58 -0500
+Date: Tue, 7 Feb 2012 16:59:03 -0200
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 3/4 V11] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Message-ID: <20120207185903.GB19800@amt.cnet>
+References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
+ <1328024132-7687-4-git-send-email-emunson@mgebm.net>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH] poll() in 32-bit applications does not handle timeout
- of -1 properly on 64-bit kernels
-Content-Type: multipart/mixed;
- boundary="------------040602070607000404020709"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1328024132-7687-4-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20120207175156.itqcLjq_-W2dd427Lol99yHHAO5I0BEVZ-rLDQYG-sU@z>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120207185903.uBOAazjqPpZSFwe_5jedBuWZhAfIr4NaPeSa_H8Xfgk@z>
 
-This is a multi-part message in MIME format.
---------------040602070607000404020709
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-
-On 02/06/2012 06:38 PM, Al Viro wrote:
-> On Mon, Feb 06, 2012 at 06:05:30PM -0600, Josh Hunt wrote:
->> We've hit an issue where our 32-bit applications, when running on a
->> 64-bit kernel, using poll() and passing in a value of -1 for the timeout
->> return after ~49 days (2^32 msec). Instead of waiting indefinitely as it
->> is stated they should. Reproducing the issue is trivial. I've
->> instrumented the kernel and found we are hitting the case where poll()
->> believes we've passed in a positive number and thus creates a timespec,
->> etc. Currently poll() is defined in userspace as:
->>
->> int poll(struct pollfd *ufds, nfds_t nfds, int timeout);
->>
->> but in the kernel timeout is of type long.
->>
->> I can think of a few ways to solve this. One, which is the patch I've
->> attached, is to change the type of timeout to int in the kernel. I'm not
->> certain the ramifications this may have since it's changing a syscall's
->> arguments which may be a big no-no :) Another way I am proposing is by
->> bounds checking. Currently we do the following:
->>
->> if (timeout_msecs >= 0) {
->>         to = &end_time;
->>         poll_select_set_timeout(to, timeout_msecs / MSEC_PER_SEC,
->>                         NSEC_PER_MSEC * (timeout_msecs % MSEC_PER_SEC));
->> }
->>
->> We could add an upper bound on timeout_msecs to say < 0xffffffff. I'm
->> not sure if either is acceptable though.
+On Tue, Jan 31, 2012 at 10:35:31AM -0500, Eric B Munson wrote:
+> Now that we have a flag that will tell the guest it was suspended, create an
+> interface for that communication using a KVM ioctl.
 > 
-> Or just add compat_sys_poll() with that argument being int and have it call
-> sys_poll().  The value will be sign-extended...
+> Signed-off-by: Eric B Munson <emunson@mgebm.net>
+> 
+> Cc: mingo@redhat.com
+> Cc: hpa@zytor.com
+> Cc: ryanh@linux.vnet.ibm.com
+> Cc: aliguori@us.ibm.com
+> Cc: mtosatti@redhat.com
+> Cc: kvm@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> ---
+> Changes from V10:
+>  Return the ioctl to per vcpu instead of per vm
+> Changes from V9:
+>  Use kvm_for_each_vcpu to iterate online vcpu's
+> Changes from V8:
+>  Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
+> Changes from V7:
+>  Define KVM_CAP_GUEST_PAUSED and support check
+>  Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
+> Changes from V4:
+>  Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
+>  Add new ioctl description to api.txt
+> 
+>  Documentation/virtual/kvm/api.txt |   13 +++++++++++++
+>  arch/x86/kvm/x86.c                |   21 +++++++++++++++++++++
+>  include/linux/kvm.h               |    3 +++
+>  3 files changed, 37 insertions(+), 0 deletions(-)
+> 
+> diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
+> index e1d94bf..1931e5c 100644
+> --- a/Documentation/virtual/kvm/api.txt
+> +++ b/Documentation/virtual/kvm/api.txt
+> @@ -1491,6 +1491,19 @@ following algorithm:
+>  Some guests configure the LINT1 NMI input to cause a panic, aiding in
+>  debugging.
+>  
+> +4.65 KVMCLOCK_GUEST_PAUSED
+> +
+> +Capability: KVM_CAP_GUEST_PAUSED
+> +Architechtures: Any that implement pvclocks (currently x86 only)
 
-Al
-
-I've implemented what you suggested by adding compat_sys_poll() with
-an int argument for timeout allowing it to do the sign extension. I
-wanted to point out there was an almost identical patch submitted last
-year, which appears to have gotten lost in the wash:
-https://lkml.org/lkml/2011/9/18/19
-
-I am guessing there are other architectures affected by this bug. This
-patch only fixes x86.
-
-Josh
+typo: Architectures.
 
 
---------------040602070607000404020709
-Content-Type: text/x-patch;
- name="compat-sys-poll.patch"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment;
- filename="compat-sys-poll.patch"
+> +Type: vcpu ioctl
+> +Parameters: None
+> +Returns: 0 on success, -1 on error
+> +
+> +This signals to the host kernel that the specified guest is being paused by
+> +userspace.  The host will set a flag in the pvclock structure that is checked
+> +from the soft lockup watchdog.  This ioctl can be called during pause or
+> +unpause.
+> +
+>  5. The kvm_run structure
+>  
+>  Application code obtains a pointer to the kvm_run structure by
+> diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+> index 14d6cad..c9cabba 100644
+> --- a/arch/x86/kvm/x86.c
+> +++ b/arch/x86/kvm/x86.c
+> @@ -2056,6 +2056,7 @@ int kvm_dev_ioctl_check_extension(long ext)
+>  	case KVM_CAP_X86_ROBUST_SINGLESTEP:
+>  	case KVM_CAP_XSAVE:
+>  	case KVM_CAP_ASYNC_PF:
+> +	case KVM_CAP_GUEST_PAUSED:
+>  	case KVM_CAP_GET_TSC_KHZ:
+>  		r = 1;
+>  		break;
+> @@ -2503,6 +2504,22 @@ static int kvm_vcpu_ioctl_x86_set_xcrs(struct kvm_vcpu *vcpu,
+>  	return r;
+>  }
+>  
+> +/*
+> + * kvm_set_guest_paused() indicates to the guest kernel that it has been
+> + * stopped by the hypervisor.  This function will be called from the host only.
+> + * EINVAL is returned when the host attempts to set the flag for a guest that
+> + * does not support pv clocks.
+> + */
+> +static int kvm_set_guest_paused(struct kvm_vcpu *vcpu)
+> +{
+> +	struct pvclock_vcpu_time_info *src = &vcpu->arch.hv_clock;
+> +	if (!vcpu->arch.time_page)
+> +		return -EINVAL;
+> +	src->flags |= PVCLOCK_GUEST_STOPPED;
+> +	mark_page_dirty(vcpu->kvm, vcpu->arch.time >> PAGE_SHIFT);
+> +	return 0;
+> +}
 
-commit cde9eb901ccb3b5af3e501b018b90f16c53942c2
-Author: Josh Hunt <johunt@akamai.com>
-Date:   Mon Feb 6 20:51:31 2012 -0800
+It should also call kvm_make_request(KVM_REQ_CLOCK_UPDATE, vcpu), so
+that the hv_clock is written to guest memory as soon as possible.
 
-    compat: poll() in 32-bit applications does not handle negative timeout values properly on 64-bit kernels
+Please fix the comments and rebase as soon as possible, it is annoying 
+that this feature is taking so long to be integrated.
 
-    We have observed our 32-bit applications running on 64-bit kernels do not
-    wait infinitely when passed a negative value for the timeout argument.
-    Instead we see poll() returning in ~49 days or 2^32 msecs, because the
-    timeout argument is not getting sign-extended. Implementing
-    compat_sys_poll() to handle this case.
+Thanks
 
-    Reported-by: Phil Lisiecki <lisiecki@akamai.com>
-    Signed-off-by: Josh Hunt <johunt@akamai.com>
-    Cc: <stable@vger.kernel.org>
-
-diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
-index ce98e28..8407150 100644
---- a/arch/x86/syscalls/syscall_32.tbl
-+++ b/arch/x86/syscalls/syscall_32.tbl
-@@ -174,7 +174,7 @@
- 165	i386	getresuid		sys_getresuid16
- 166	i386	vm86			ptregs_vm86			sys32_vm86_warning
- 167	i386	query_module
--168	i386	poll			sys_poll
-+168	i386	poll			sys_poll			compat_sys_poll
- 169	i386	nfsservctl
- 170	i386	setresgid		sys_setresgid16
- 171	i386	getresgid		sys_getresgid16
-diff --git a/fs/compat.c b/fs/compat.c
-index fa9d721..77bd50e 100644
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -1611,6 +1611,12 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
- 				 sigsetsize);
- }
- 
-+asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
-+	int timeout_msecs)
-+{
-+	return sys_poll(ufds, nfds, timeout_msecs);
-+}
-+
- asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
- 	unsigned int nfds, struct compat_timespec __user *tsp,
- 	const compat_sigset_t __user *sigmask, compat_size_t sigsetsize)
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 41c9f65..66e61e0 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -433,6 +433,8 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
- 				    compat_ulong_t __user *exp,
- 				    struct compat_timespec __user *tsp,
- 				    void __user *sig);
-+asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
-+				int timeout_msecs);
- asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
- 				 unsigned int nfds,
- 				 struct compat_timespec __user *tsp,
-
---------------040602070607000404020709--
