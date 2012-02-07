@@ -1,51 +1,48 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 2/4 V11] Add functions to check if the host has stopped
- the vm
-Date: Tue, 7 Feb 2012 16:56:14 -0200
-Message-ID: <20120207185614.GA19800@amt.cnet>
-References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
- <1328024132-7687-3-git-send-email-emunson@mgebm.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1328024132-7687-3-git-send-email-emunson@mgebm.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V12] Add flag to indicate that a vm was stopped by the host
+Date: Tue,  7 Feb 2012 16:28:17 -0500
+Message-ID: <1328650100-19521-2-git-send-email-emunson@mgebm.net>
+References: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:53258 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755343Ab2BGV2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Feb 2012 16:28:25 -0500
+In-Reply-To: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, Jan 31, 2012 at 10:35:30AM -0500, Eric B Munson wrote:
-> When a host stops or suspends a VM it will set a flag to show this.  The
-> watchdog will use these functions to determine if a softlockup is real, or the
-> result of a suspended VM.
-> 
-> Signed-off-by: Eric B Munson <emunson@mgebm.net>
-> asm-generic changes Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: mingo@redhat.com
-> Cc: hpa@zytor.com
-> Cc: ryanh@linux.vnet.ibm.com
-> Cc: aliguori@us.ibm.com
-> Cc: mtosatti@redhat.com
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
-> Changes from V6:
->  Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-> Changes from V5:
->  Collapse generic stubs into this patch
->  check_and_clear_guest_stopped() takes no args and uses __get_cpu_var()
->  Include individual definitions in ia64, s390, and powerpc
-> 
->  arch/ia64/include/asm/kvm_para.h    |    5 +++++
->  arch/powerpc/include/asm/kvm_para.h |    5 +++++
->  arch/s390/include/asm/kvm_para.h    |    5 +++++
->  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
->  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
->  5 files changed, 44 insertions(+), 0 deletions(-)
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-Where is the check_and_clear_guest_stopped() stub in
-asm-generic/kvm_para.h? I think it is necessary for 
-other architectures.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
+-- 
+1.7.5.4
