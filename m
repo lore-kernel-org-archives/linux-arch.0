@@ -1,70 +1,19 @@
 From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/4 V12] Avoid soft lockup message when KVM is stopped by host
-Date: Tue,  7 Feb 2012 16:28:16 -0500
-Message-ID: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
+Subject: [PATCH 3/4 V12] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Tue,  7 Feb 2012 16:28:19 -0500
+Message-ID: <1328650100-19521-4-git-send-email-emunson@mgebm.net>
+References: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
 Sender: linux-kernel-owner@vger.kernel.org
 To: avi@redhat.com
 Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Changes from V11:
-Re-add asm-generic stub
-Correct api.txt typo
-add kvm_make_request() call after setting PVCLOCK_GUEST_STOPPED
+Now that we have a flag that will tell the guest it was suspended, create an
+interface for that communication using a KVM ioctl.
 
-Changes from V10:
-Return ioctl to per vcpu instead of per vm
-
-Changes from V9:
-Use kvm_for_each_vcpu to iterate online vcpu's
-
-Changes from V8:
-Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
-
-Changes from V7:
-Define KVM_CAP_GUEST_PAUSED and support check
-Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
-
-Changes from V6:
-Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-
-Changes from V5:
-Collapse generic check_and_clear_guest_stopped into patch 2
-Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
- cpuid arg.
-Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
-
-Changes from V4:
-Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
-
-Changes from V3:
-Include CC's on patch 3
-Drop clear flag ioctl and have the watchdog clear the flag when it is reset
-
-Changes from V2:
-A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-initial flag definition
-
-Changes from V1:
-(Thanks Marcelo)
-Host code has all been moved to arch/x86/kvm/x86.c
-KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
-
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
 
 Cc: mingo@redhat.com
 Cc: hpa@zytor.com
@@ -75,24 +24,46 @@ Cc: kvm@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: x86@kernel.org
 Cc: linux-kernel@vger.kernel.org
+---
+Changes from V11:
+ Correct typo in api.txt
+ Add kvm_make_request(KVM_REQ_CLOCK_UPDATE, vcpu) call to kvm_set_guest_paused()
+Changes from V10:
+ Return the ioctl to per vcpu instead of per vm
+Changes from V9:
+ Use kvm_for_each_vcpu to iterate online vcpu's
+Changes from V8:
+ Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
+Changes from V7:
+ Define KVM_CAP_GUEST_PAUSED and support check
+ Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
+Changes from V4:
+ Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
+ Add new ioctl description to api.txt
 
-Eric B Munson (4):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVMCLOCK_GUEST_STOPPED
-  Add check for suspended vm in softlockup detector
+ include/linux/kvm.h |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/include/asm/pvclock-abi.h  |    1 +
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- include/linux/kvm.h                 |    3 +++
- kernel/watchdog.c                   |   12 ++++++++++++
- 9 files changed, 74 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
-
+diff --git a/include/linux/kvm.h b/include/linux/kvm.h
+index c3892fc..dbfc4f8 100644
+--- a/include/linux/kvm.h
++++ b/include/linux/kvm.h
+@@ -557,6 +557,7 @@ struct kvm_ppc_pvinfo {
+ #define KVM_CAP_MAX_VCPUS 66       /* returns max vcpus per vm */
+ #define KVM_CAP_PPC_PAPR 68
+ #define KVM_CAP_S390_GMAP 71
++#define KVM_CAP_GUEST_PAUSED 72
+ 
+ #ifdef KVM_CAP_IRQ_ROUTING
+ 
+@@ -762,6 +763,8 @@ struct kvm_clock_data {
+ #define KVM_CREATE_SPAPR_TCE	  _IOW(KVMIO,  0xa8, struct kvm_create_spapr_tce)
+ /* Available with KVM_CAP_RMA */
+ #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
++/* VM is being stopped by host */
++#define KVMCLOCK_GUEST_PAUSED    _IO(KVMIO,   0xaa)
+ 
+ #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
+ 
 -- 
 1.7.5.4
