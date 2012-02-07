@@ -1,58 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38205 "EHLO mx1.redhat.com"
+Received: from oz.csail.mit.edu ([128.30.30.239]:53259 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756610Ab2BGTKT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Feb 2012 14:10:19 -0500
-Date: Tue, 7 Feb 2012 16:56:14 -0200
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 2/4 V11] Add functions to check if the host has stopped
- the vm
-Message-ID: <20120207185614.GA19800@amt.cnet>
-References: <1328024132-7687-1-git-send-email-emunson@mgebm.net>
- <1328024132-7687-3-git-send-email-emunson@mgebm.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1328024132-7687-3-git-send-email-emunson@mgebm.net>
+	id S1756533Ab2BGV2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Feb 2012 16:28:25 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 3/4 V12] Add ioctl for KVMCLOCK_GUEST_STOPPED
+Date: Tue,  7 Feb 2012 16:28:19 -0500
+Message-ID: <1328650100-19521-4-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
+References: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120207185614.n3fKEgCKzt7FMzIVXMjmeBQgE6fBzoGQ1WPcBR85It8@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120207212819.qPQ3jcavuSEBBXwZqTX1bSIQlijIsJJ0FBGvSFm5TQ0@z>
 
-On Tue, Jan 31, 2012 at 10:35:30AM -0500, Eric B Munson wrote:
-> When a host stops or suspends a VM it will set a flag to show this.  The
-> watchdog will use these functions to determine if a softlockup is real, or the
-> result of a suspended VM.
-> 
-> Signed-off-by: Eric B Munson <emunson@mgebm.net>
-> asm-generic changes Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: mingo@redhat.com
-> Cc: hpa@zytor.com
-> Cc: ryanh@linux.vnet.ibm.com
-> Cc: aliguori@us.ibm.com
-> Cc: mtosatti@redhat.com
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> ---
-> Changes from V6:
->  Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-> Changes from V5:
->  Collapse generic stubs into this patch
->  check_and_clear_guest_stopped() takes no args and uses __get_cpu_var()
->  Include individual definitions in ia64, s390, and powerpc
-> 
->  arch/ia64/include/asm/kvm_para.h    |    5 +++++
->  arch/powerpc/include/asm/kvm_para.h |    5 +++++
->  arch/s390/include/asm/kvm_para.h    |    5 +++++
->  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
->  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
->  5 files changed, 44 insertions(+), 0 deletions(-)
+Now that we have a flag that will tell the guest it was suspended, create an
+interface for that communication using a KVM ioctl.
 
-Where is the check_and_clear_guest_stopped() stub in
-asm-generic/kvm_para.h? I think it is necessary for 
-other architectures.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
 
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+Changes from V11:
+ Correct typo in api.txt
+ Add kvm_make_request(KVM_REQ_CLOCK_UPDATE, vcpu) call to kvm_set_guest_paused()
+Changes from V10:
+ Return the ioctl to per vcpu instead of per vm
+Changes from V9:
+ Use kvm_for_each_vcpu to iterate online vcpu's
+Changes from V8:
+ Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
+Changes from V7:
+ Define KVM_CAP_GUEST_PAUSED and support check
+ Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
+Changes from V4:
+ Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
+ Add new ioctl description to api.txt
+
+ include/linux/kvm.h |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/kvm.h b/include/linux/kvm.h
+index c3892fc..dbfc4f8 100644
+--- a/include/linux/kvm.h
++++ b/include/linux/kvm.h
+@@ -557,6 +557,7 @@ struct kvm_ppc_pvinfo {
+ #define KVM_CAP_MAX_VCPUS 66       /* returns max vcpus per vm */
+ #define KVM_CAP_PPC_PAPR 68
+ #define KVM_CAP_S390_GMAP 71
++#define KVM_CAP_GUEST_PAUSED 72
+ 
+ #ifdef KVM_CAP_IRQ_ROUTING
+ 
+@@ -762,6 +763,8 @@ struct kvm_clock_data {
+ #define KVM_CREATE_SPAPR_TCE	  _IOW(KVMIO,  0xa8, struct kvm_create_spapr_tce)
+ /* Available with KVM_CAP_RMA */
+ #define KVM_ALLOCATE_RMA	  _IOR(KVMIO,  0xa9, struct kvm_allocate_rma)
++/* VM is being stopped by host */
++#define KVMCLOCK_GUEST_PAUSED    _IO(KVMIO,   0xaa)
+ 
+ #define KVM_DEV_ASSIGN_ENABLE_IOMMU	(1 << 0)
+ 
+-- 
+1.7.5.4
 
