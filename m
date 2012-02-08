@@ -1,18 +1,16 @@
 From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: [PATCH 00/21] RFC: Make all arches use <asm-generic/posix_types.h>
 Date: Tue,  7 Feb 2012 21:08:44 -0800
-Message-ID: <1328677745-20121-1-git-send-email-hpa@zytor.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60040 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754711Ab2BJDLm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Feb 2012 22:11:42 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Message-ID: <201202080729.q187TrXq022494@tazenda.hos.anvin.org>
+References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-[Cc: list trimmed to avoid vger filters]
+[Trying again to actually get this through vger]
 
 This patchset changes all architectures that don't already use
 <asm-generic/posix_types.h> to do so.  The purpose this threefold:
