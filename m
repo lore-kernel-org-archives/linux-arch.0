@@ -1,197 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44009 "EHLO mail.zytor.com"
+Received: from oz.csail.mit.edu ([128.30.30.239]:56095 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751015Ab2BHFJm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 00:09:42 -0500
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 18/21] sparc: Use generic posix_types.h
-Date: Tue,  7 Feb 2012 21:09:02 -0800
-Message-ID: <1328677745-20121-19-git-send-email-hpa@zytor.com>
-In-Reply-To: <1328677745-20121-1-git-send-email-hpa@zytor.com>
-References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+	id S1755318Ab2BHPHt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Feb 2012 10:07:49 -0500
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V13] Add flag to indicate that a vm was stopped by the host
+Date: Wed,  8 Feb 2012 10:07:43 -0500
+Message-ID: <1328713666-11424-2-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+References: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20120208050902.PVw0DpPnVY6R-8TzxZDYRR53HpYy07PhgdTif2zTAQc@z>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120208150743.mcseX_-AEHTMekkg1MDB8o5y72LwSgSh9eQVN-IM9H8@z>
 
-From: "H. Peter Anvin" <hpa@zytor.com>
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-Change the sparc architecture to use <asm-generic/posix_types.h>.
-
-Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
 ---
- arch/sparc/include/asm/posix_types.h |  133 +++++-----------------------------
- 1 files changed, 17 insertions(+), 116 deletions(-)
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/arch/sparc/include/asm/posix_types.h b/arch/sparc/include/asm/posix_types.h
-index dbfc1a3..3070f25 100644
---- a/arch/sparc/include/asm/posix_types.h
-+++ b/arch/sparc/include/asm/posix_types.h
-@@ -9,35 +9,16 @@
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
  
- #if defined(__sparc__) && defined(__arch64__)
- /* sparc 64 bit */
--typedef unsigned long          __kernel_size_t;
--typedef long                   __kernel_ssize_t;
--typedef long                   __kernel_ptrdiff_t;
--typedef long                   __kernel_time_t;
--typedef long                   __kernel_clock_t;
--typedef int                    __kernel_pid_t;
--typedef int                    __kernel_ipc_pid_t;
--typedef unsigned int           __kernel_uid_t;
--typedef unsigned int           __kernel_gid_t;
--typedef unsigned long          __kernel_ino_t;
--typedef unsigned int           __kernel_mode_t;
- typedef unsigned int           __kernel_nlink_t;
--typedef int                    __kernel_daddr_t;
--typedef long                   __kernel_off_t;
--typedef char *                 __kernel_caddr_t;
--typedef unsigned short	       __kernel_uid16_t;
--typedef unsigned short	       __kernel_gid16_t;
--typedef int                    __kernel_clockid_t;
--typedef int                    __kernel_timer_t;
-+#define __kernel_nlink_t __kernel_nlink_t
- 
- typedef unsigned short 	       __kernel_old_uid_t;
- typedef unsigned short         __kernel_old_gid_t;
--typedef __kernel_uid_t	       __kernel_uid32_t;
--typedef __kernel_gid_t	       __kernel_gid32_t;
--
--typedef unsigned int	       __kernel_old_dev_t;
-+#define __kernel_old_uid_t __kernel_old_uid_t
- 
- /* Note this piece of asymmetry from the v9 ABI.  */
- typedef int		       __kernel_suseconds_t;
-+#define __kernel_suseconds_t __kernel_suseconds_t
- 
- #else
- /* sparc 32 bit */
-@@ -45,109 +26,29 @@ typedef int		       __kernel_suseconds_t;
- typedef unsigned int           __kernel_size_t;
- typedef int                    __kernel_ssize_t;
- typedef long int               __kernel_ptrdiff_t;
--typedef long                   __kernel_time_t;
--typedef long		       __kernel_suseconds_t;
--typedef long                   __kernel_clock_t;
--typedef int                    __kernel_pid_t;
-+#define __kernel_size_t __kernel_size_t
-+
- typedef unsigned short         __kernel_ipc_pid_t;
-+#define __kernel_ipc_pid_t __kernel_ipc_pid_t
-+
- typedef unsigned short         __kernel_uid_t;
- typedef unsigned short         __kernel_gid_t;
--typedef unsigned long          __kernel_ino_t;
-+#define __kernel_uid_t __kernel_uid_t
-+
- typedef unsigned short         __kernel_mode_t;
-+#define __kernel_mode_t __kernel_mode_t
-+
- typedef short                  __kernel_nlink_t;
-+#define __kernel_nlink_t __kernel_nlink_t
-+
- typedef long                   __kernel_daddr_t;
--typedef long                   __kernel_off_t;
--typedef char *                 __kernel_caddr_t;
--typedef unsigned short	       __kernel_uid16_t;
--typedef unsigned short	       __kernel_gid16_t;
--typedef unsigned int	       __kernel_uid32_t;
--typedef unsigned int	       __kernel_gid32_t;
--typedef unsigned short	       __kernel_old_uid_t;
--typedef unsigned short	       __kernel_old_gid_t;
-+#define __kernel_daddr_t __kernel_daddr_t
-+
- typedef unsigned short	       __kernel_old_dev_t;
--typedef int                    __kernel_clockid_t;
--typedef int                    __kernel_timer_t;
-+#define __kernel_old_dev_t __kernel_old_dev_t
- 
- #endif /* defined(__sparc__) && defined(__arch64__) */
- 
--#ifdef __GNUC__
--typedef long long              __kernel_loff_t;
--#endif
--
--typedef struct {
--	int	val[2];
--} __kernel_fsid_t;
--
--#ifdef __KERNEL__
--
--#undef __FD_SET
--static inline void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
--{
--	unsigned long _tmp = fd / __NFDBITS;
--	unsigned long _rem = fd % __NFDBITS;
--	fdsetp->fds_bits[_tmp] |= (1UL<<_rem);
--}
--
--#undef __FD_CLR
--static inline void __FD_CLR(unsigned long fd, __kernel_fd_set *fdsetp)
--{
--	unsigned long _tmp = fd / __NFDBITS;
--	unsigned long _rem = fd % __NFDBITS;
--	fdsetp->fds_bits[_tmp] &= ~(1UL<<_rem);
--}
--
--#undef __FD_ISSET
--static inline int __FD_ISSET(unsigned long fd, __const__ __kernel_fd_set *p)
--{
--	unsigned long _tmp = fd / __NFDBITS;
--	unsigned long _rem = fd % __NFDBITS;
--	return (p->fds_bits[_tmp] & (1UL<<_rem)) != 0;
--}
--
--/*
-- * This will unroll the loop for the normal constant cases (8 or 32 longs,
-- * for 256 and 1024-bit fd_sets respectively)
-- */
--#undef __FD_ZERO
--static inline void __FD_ZERO(__kernel_fd_set *p)
--{
--	unsigned long *tmp = p->fds_bits;
--	int i;
--
--	if (__builtin_constant_p(__FDSET_LONGS)) {
--		switch (__FDSET_LONGS) {
--			case 32:
--			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
--			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
--			  tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
--			  tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
--			  tmp[16] = 0; tmp[17] = 0; tmp[18] = 0; tmp[19] = 0;
--			  tmp[20] = 0; tmp[21] = 0; tmp[22] = 0; tmp[23] = 0;
--			  tmp[24] = 0; tmp[25] = 0; tmp[26] = 0; tmp[27] = 0;
--			  tmp[28] = 0; tmp[29] = 0; tmp[30] = 0; tmp[31] = 0;
--			  return;
--			case 16:
--			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
--			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
--			  tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
--			  tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
--			  return;
--			case 8:
--			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
--			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
--			  return;
--			case 4:
--			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
--			  return;
--		}
--	}
--	i = __FDSET_LONGS;
--	while (i) {
--		i--;
--		*tmp = 0;
--		tmp++;
--	}
--}
-+#include <asm-generic/posix_types.h>
- 
--#endif /* __KERNEL__ */
- #endif /* __SPARC_POSIX_TYPES_H */
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
 -- 
-1.7.6.5
+1.7.5.4
 
