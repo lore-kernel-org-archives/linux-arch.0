@@ -1,34 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:30427 "EHLO mx1.redhat.com"
+Received: from terminus.zytor.com ([198.137.202.10]:49893 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757475Ab2BHVYc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 16:24:32 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <4F32A98F.7030400@zytor.com>
-References: <4F32A98F.7030400@zytor.com> <1328677745-20121-22-git-send-email-hpa@zytor.com> <1328677745-20121-1-git-send-email-hpa@zytor.com> <8328.1328703626@redhat.com>
+	id S1756342Ab2BHVbG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Feb 2012 16:31:06 -0500
+Message-ID: <4F32E98F.2090909@zytor.com>
+Date: Wed, 08 Feb 2012 13:30:55 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
 Subject: Re: [PATCH 21/21] posix_types: Remove fd_set macros
-Date: Wed, 08 Feb 2012 21:24:22 +0000
-Message-ID: <16325.1328736262@redhat.com>
+References: <4F32A98F.7030400@zytor.com> <1328677745-20121-22-git-send-email-hpa@zytor.com> <1328677745-20121-1-git-send-email-hpa@zytor.com> <8328.1328703626@redhat.com> <16325.1328736262@redhat.com>
+In-Reply-To: <16325.1328736262@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120208212422.vizf8NikpjlBMgGOUWWcaxIcNH4vNJQ5-oXgYirTGUk@z>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20120208213055.VFBsh4uFzi4GwBEbILYKl3qQJC12efsRCvvemRvGxvk@z>
 
-H. Peter Anvin <hpa@zytor.com> wrote:
+On 02/08/2012 01:24 PM, David Howells wrote:
+> H. Peter Anvin<hpa@zytor.com>  wrote:
+>
+>> Anyway, select() paraphernalia goes in<sys/time.h>  (as opposed to
+>> <time.h>), poll() paraphernalia goes in<sys/poll.h>, and the linux/*
+>> files mimics that.
+>
+> That doesn't seem to be so - at least not for my copy of glibc:
+>
+> /usr/include/sys/select.h:/* fd_set for select and pselect.  */
+> /usr/include/sys/select.h:  } fd_set;
+> /usr/include/sys/select.h:#define       FD_ISSET(fd, fdsetp)    __FD_ISSET (fd, fdsetp)
+>
+> Besides, this is inside the kernel.  The I/O polling architecture definitions
+> (which includes select) ought to be in one place there, not spread out all
+> over the place.
+>
 
-> Anyway, select() paraphernalia goes in <sys/time.h> (as opposed to
-> <time.h>), poll() paraphernalia goes in <sys/poll.h>, and the linux/*
-> files mimics that.
+I think <sys/select.h> is more recent, but anyway, look at the existing 
+<linux/time.h> and you see why it's there.
 
-That doesn't seem to be so - at least not for my copy of glibc:
+It's fine to say it shouldn't be, but then ALL the definitions should 
+move (and that should be a separate change from this patchset)... but do 
+note that some of those macro definitions (which I did NOT change) are 
+exported to user space so make those changes with care.
 
-/usr/include/sys/select.h:/* fd_set for select and pselect.  */
-/usr/include/sys/select.h:  } fd_set;
-/usr/include/sys/select.h:#define       FD_ISSET(fd, fdsetp)    __FD_ISSET (fd, fdsetp)
+	-hpa
 
-Besides, this is inside the kernel.  The I/O polling architecture definitions
-(which includes select) ought to be in one place there, not spread out all
-over the place.
 
-David
