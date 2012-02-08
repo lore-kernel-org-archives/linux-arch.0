@@ -1,111 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:56103 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755518Ab2BHPHu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 10:07:50 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by host
-Date: Wed,  8 Feb 2012 10:07:42 -0500
-Message-ID: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:55345 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756138Ab2BHP7m convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Feb 2012 10:59:42 -0500
+Received: by werb13 with SMTP id b13so477522wer.19
+        for <linux-arch@vger.kernel.org>; Wed, 08 Feb 2012 07:59:41 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <1328425088-6562-10-git-send-email-yinghai@kernel.org>
+References: <1328425088-6562-1-git-send-email-yinghai@kernel.org> <1328425088-6562-10-git-send-email-yinghai@kernel.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Wed, 8 Feb 2012 07:58:21 -0800
+Message-ID: <CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
+Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120208150742.LXOvwll5ltHJtmlTgI3oDcq0LnxvHYa85f15J7Q8Yqc@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20120208155821.2LUO2tTXqi5UEuNPRORCtNubqtN5eCFr1RTbn2yq4L0@z>
 
-Changes from V12:
-Re-add missing kvm.c code after rebase
-Rename CAP to KVM_CAP_KVMCLOCK_CTRL
-Rename ioctl to KVM_KVMCLOCK_CTRL
+On Sat, Feb 4, 2012 at 10:57 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Paul Mackerras <paulus@samba.org>
+> Cc: linuxppc-dev@lists.ozlabs.org
+> ---
+>  arch/powerpc/kernel/pci-common.c |    7 ++++++-
+>  1 files changed, 6 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+> index cce98d7..501f29b 100644
+> --- a/arch/powerpc/kernel/pci-common.c
+> +++ b/arch/powerpc/kernel/pci-common.c
+> @@ -1732,6 +1732,8 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+>        bus->secondary = hose->first_busno;
+>        hose->bus = bus;
+>
+> +       pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
+> +
+>        /* Get probe mode and perform scan */
+>        mode = PCI_PROBE_NORMAL;
+>        if (node && ppc_md.pci_probe_mode)
+> @@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+>                of_scan_bus(node, bus);
+>        }
+>
+> -       if (mode == PCI_PROBE_NORMAL)
+> +       if (mode == PCI_PROBE_NORMAL) {
+> +               pci_bus_update_busn_res_end(bus, 255);
+>                hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
+> +               pci_bus_update_busn_res_end(bus, bus->subordinate);
+> +       }
 
-Changes from V11:
-Re-add asm-generic stub
-Correct api.txt typo
-add kvm_make_request() call after setting PVCLOCK_GUEST_STOPPED
+The only architecture-specific thing here is discovering the range of
+bus numbers below a host bridge.  The architecture should not have to
+mess around with pci_bus_update_busn_res_end() like this.  It should
+be able to say "here's my bus number range" (and of course the PCI
+core can default to 0-255 if the arch doesn't supply a range) and the
+core should take care of the rest.
 
-Changes from V10:
-Return ioctl to per vcpu instead of per vm
-
-Changes from V9:
-Use kvm_for_each_vcpu to iterate online vcpu's
-
-Changes from V8:
-Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
-
-Changes from V7:
-Define KVM_CAP_GUEST_PAUSED and support check
-Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
-
-Changes from V6:
-Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-
-Changes from V5:
-Collapse generic check_and_clear_guest_stopped into patch 2
-Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
- cpuid arg.
-Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
-
-Changes from V4:
-Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
-
-Changes from V3:
-Include CC's on patch 3
-Drop clear flag ioctl and have the watchdog clear the flag when it is reset
-
-Changes from V2:
-A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-initial flag definition
-
-Changes from V1:
-(Thanks Marcelo)
-Host code has all been moved to arch/x86/kvm/x86.c
-KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
-
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
-
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Eric B Munson (4):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVM_KVMCLOCK_CTRL
-  Add check for suspended vm in softlockup detector
-
- Documentation/virtual/kvm/api.txt   |   13 +++++++++++++
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/include/asm/pvclock-abi.h  |    1 +
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- arch/x86/kvm/x86.c                  |   22 ++++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- include/linux/kvm.h                 |    3 +++
- kernel/watchdog.c                   |   12 ++++++++++++
- 11 files changed, 109 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
-
--- 
-1.7.5.4
-
+Bjorn
