@@ -1,104 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:53269 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756913Ab2BGV2Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Feb 2012 16:28:25 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 0/4 V12] Avoid soft lockup message when KVM is stopped by host
-Date: Tue,  7 Feb 2012 16:28:16 -0500
-Message-ID: <1328650100-19521-1-git-send-email-emunson@mgebm.net>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:47815 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757235Ab2BHC5H convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Feb 2012 21:57:07 -0500
+Received: by werb13 with SMTP id b13so52652wer.19
+        for <linux-arch@vger.kernel.org>; Tue, 07 Feb 2012 18:57:06 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CAErSpo7xUL++rqnJug7=Wd_nfvaUDOewGjz1C2Fp-oQrkxO2yg@mail.gmail.com>
+References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
+ <20120130165805.3231.99160.stgit@bhelgaas.mtv.corp.google.com>
+ <20120131114250.b0e6af10.yuasa@linux-mips.org> <CAErSpo7xUL++rqnJug7=Wd_nfvaUDOewGjz1C2Fp-oQrkxO2yg@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Tue, 7 Feb 2012 18:56:46 -0800
+Message-ID: <CAErSpo7ry8piDCTpgkdr01=Kd7=G6HTNwDAQAockPgXtyhJvuw@mail.gmail.com>
+Subject: Re: [RFC PATCH v1 11/18] mips/PCI: get rid of device resource fixups
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120207212816.xnUvMkVq2889mmJG92dDmog0b4G2KASxgM7fn_OmqeI@z>
+To: Yoichi Yuasa <yuasa@linux-mips.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20120208025646.R3mykNuxeIhHALxSdWqh0Fp7ptSId8pP_Kc03wrHCTg@z>
 
-Changes from V11:
-Re-add asm-generic stub
-Correct api.txt typo
-add kvm_make_request() call after setting PVCLOCK_GUEST_STOPPED
+On Mon, Jan 30, 2012 at 7:54 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Mon, Jan 30, 2012 at 6:42 PM, Yoichi Yuasa <yuasa@linux-mips.org> wrote:
+>> Hi,
+>>
+>> On Mon, 30 Jan 2012 09:58:05 -0700
+>> Bjorn Helgaas <bhelgaas@google.com> wrote:
+>>
+>>> Tell the PCI core about host bridge address translation so it can take
+>>> care of bus-to-resource conversion for us.
+>>>
+>>> N.B. cobalt_legacy_ide_fixup() does scary things with resources, but I
+>>> *think* it will still work because we're still making the same adjustments,
+>>> just in the opposite order.  Here are the legacy IDE resource.start
+>>> values I expect:
+>>>
+>>>          current                                        new
+>>>
+>>>            0x1f0   (pci_setup_device)                 0x1f0
+>>>                    (pci_bus_to_resource)       + 0xf0000000
+>>>     - 0xf0000000   (cobalt_legacy_ide_fixup)   - 0xf0000000
+>>>     + 0xf0000000   (pcibios_fixup_bus)
+>>>     ------------                               ------------
+>>>            0x1f0    final value                       0x1f0
+>>
+>> It seems to be unable to handle the offset correctly.
+>>
+>> failed on Cobalt:
+>>
+>> pata_via 0000:00:09.1: BAR 0: can't reserve [io  0x100001f0-0x100001f7]
+>> pata_via 0000:00:09.1: failed to request/iomap BARs for port 0 (errno=-16)
+>> pata_via 0000:00:09.1: BAR 2: can't reserve [io  0x10000170-0x10000177]
+>> pata_via 0000:00:09.1: failed to request/iomap BARs for port 1 (errno=-16)
+>> pata_via 0000:00:09.1: no available native port
+>
+> Thank you very much for testing this.  Could you collect the complete
+> dmesg and /proc/ioport contents, before and after my patches?
 
-Changes from V10:
-Return ioctl to per vcpu instead of per vm
+Ping :)  I'll try to figure this out, but it would be easier if I had
+the info mentioned above.  Thanks!
 
-Changes from V9:
-Use kvm_for_each_vcpu to iterate online vcpu's
-
-Changes from V8:
-Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
-
-Changes from V7:
-Define KVM_CAP_GUEST_PAUSED and support check
-Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
-
-Changes from V6:
-Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-
-Changes from V5:
-Collapse generic check_and_clear_guest_stopped into patch 2
-Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
- cpuid arg.
-Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
-
-Changes from V4:
-Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
-
-Changes from V3:
-Include CC's on patch 3
-Drop clear flag ioctl and have the watchdog clear the flag when it is reset
-
-Changes from V2:
-A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-initial flag definition
-
-Changes from V1:
-(Thanks Marcelo)
-Host code has all been moved to arch/x86/kvm/x86.c
-KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-
-When a guest kernel is stopped by the host hypervisor it can look like a soft
-lockup to the guest kernel.  This false warning can mask later soft lockup
-warnings which may be real.  This patch series adds a method for a host
-hypervisor to communicate to a guest kernel that it is being stopped.  The
-final patch in the series has the watchdog check this flag when it goes to
-issue a soft lockup warning and skip the warning if the guest knows it was
-stopped.
-
-It was attempted to solve this in Qemu, but the side effects of saving and
-restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-by the amount of time of the pause.  This forces a guest to have ntp running
-in order to keep the wall clock accurate.
-
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
-
-Eric B Munson (4):
-  Add flag to indicate that a vm was stopped by the host
-  Add functions to check if the host has stopped the vm
-  Add ioctl for KVMCLOCK_GUEST_STOPPED
-  Add check for suspended vm in softlockup detector
-
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/include/asm/pvclock-abi.h  |    1 +
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- include/linux/kvm.h                 |    3 +++
- kernel/watchdog.c                   |   12 ++++++++++++
- 9 files changed, 74 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
-
--- 
-1.7.5.4
-
+Bjorn
