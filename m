@@ -1,36 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44037 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:44044 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751199Ab2BHFJv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 00:09:51 -0500
+	id S1751203Ab2BHFJy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Feb 2012 00:09:54 -0500
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 13/21] mn10300: Use generic posix_types.h
-Date: Tue,  7 Feb 2012 21:08:57 -0800
-Message-ID: <1328677745-20121-14-git-send-email-hpa@zytor.com>
+Subject: [PATCH 10/21] m32r: Use generic posix_types.h
+Date: Tue,  7 Feb 2012 21:08:54 -0800
+Message-ID: <1328677745-20121-11-git-send-email-hpa@zytor.com>
 In-Reply-To: <1328677745-20121-1-git-send-email-hpa@zytor.com>
 References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-Message-ID: <20120208050857.tKCV5XwgdcTZ9lBJd404N9hg_ZoYN0Jv-AL3mNkang0@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Hirokazu Takata <takata@linux-m32r.org>
+Message-ID: <20120208050854.VepcIOurON1bjlf1T6HmpLHn12Y6teasdExq9ly3fok@z>
 
 From: "H. Peter Anvin" <hpa@zytor.com>
 
-Change the mn10300 architecture to use <asm-generic/posix_types.h>.
+Change the m32r architecture to use <asm-generic/posix_types.h>.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 ---
- arch/mn10300/include/asm/posix_types.h |  111 +++----------------------------
- 1 files changed, 11 insertions(+), 100 deletions(-)
+ arch/m32r/include/asm/posix_types.h |  108 +++--------------------------------
+ 1 files changed, 9 insertions(+), 99 deletions(-)
 
-diff --git a/arch/mn10300/include/asm/posix_types.h b/arch/mn10300/include/asm/posix_types.h
-index 56ffbc1..ab50618 100644
---- a/arch/mn10300/include/asm/posix_types.h
-+++ b/arch/mn10300/include/asm/posix_types.h
-@@ -17,14 +17,19 @@
+diff --git a/arch/m32r/include/asm/posix_types.h b/arch/m32r/include/asm/posix_types.h
+index b309c58..0195850 100644
+--- a/arch/m32r/include/asm/posix_types.h
++++ b/arch/m32r/include/asm/posix_types.h
+@@ -7,112 +7,22 @@
   * assume GCC is being used.
   */
  
@@ -48,15 +47,9 @@ index 56ffbc1..ab50618 100644
 +
  typedef unsigned short	__kernel_uid_t;
  typedef unsigned short	__kernel_gid_t;
-+#define __kernel_uid_t __kernel_uid_t
-+
- #if __GNUC__ == 4
- typedef unsigned int	__kernel_size_t;
- typedef signed int	__kernel_ssize_t;
-@@ -33,105 +38,11 @@ typedef unsigned long	__kernel_size_t;
- typedef signed long	__kernel_ssize_t;
- #endif
- typedef int		__kernel_ptrdiff_t;
+-typedef unsigned int	__kernel_size_t;
+-typedef int		__kernel_ssize_t;
+-typedef int		__kernel_ptrdiff_t;
 -typedef long		__kernel_time_t;
 -typedef long		__kernel_suseconds_t;
 -typedef long		__kernel_clock_t;
@@ -68,7 +61,7 @@ index 56ffbc1..ab50618 100644
 -typedef unsigned short	__kernel_gid16_t;
 -typedef unsigned int	__kernel_uid32_t;
 -typedef unsigned int	__kernel_gid32_t;
-+#define __kernel_size_t __kernel_size_t
++#define __kernel_uid_t __kernel_uid_t
  
 -typedef unsigned short	__kernel_old_uid_t;
 -typedef unsigned short	__kernel_old_gid_t;
@@ -80,17 +73,13 @@ index 56ffbc1..ab50618 100644
 -#endif
 -
 -typedef struct {
--#if defined(__KERNEL__) || defined(__USE_ALL)
 -	int	val[2];
--#else /* !defined(__KERNEL__) && !defined(__USE_ALL) */
--	int	__val[2];
--#endif /* !defined(__KERNEL__) && !defined(__USE_ALL) */
 -} __kernel_fsid_t;
 -
--#if defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2)
+-#if defined(__KERNEL__)
 -
 -#undef	__FD_SET
--static inline void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
+-static __inline__ void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
 -{
 -	unsigned long __tmp = __fd / __NFDBITS;
 -	unsigned long __rem = __fd % __NFDBITS;
@@ -98,7 +87,7 @@ index 56ffbc1..ab50618 100644
 -}
 -
 -#undef	__FD_CLR
--static inline void __FD_CLR(unsigned long __fd, __kernel_fd_set *__fdsetp)
+-static __inline__ void __FD_CLR(unsigned long __fd, __kernel_fd_set *__fdsetp)
 -{
 -	unsigned long __tmp = __fd / __NFDBITS;
 -	unsigned long __rem = __fd % __NFDBITS;
@@ -107,7 +96,7 @@ index 56ffbc1..ab50618 100644
 -
 -
 -#undef	__FD_ISSET
--static inline int __FD_ISSET(unsigned long __fd, const __kernel_fd_set *__p)
+-static __inline__ int __FD_ISSET(unsigned long __fd, const __kernel_fd_set *__p)
 -{
 -	unsigned long __tmp = __fd / __NFDBITS;
 -	unsigned long __rem = __fd % __NFDBITS;
@@ -119,7 +108,7 @@ index 56ffbc1..ab50618 100644
 - * for a 256-bit fd_set)
 - */
 -#undef	__FD_ZERO
--static inline void __FD_ZERO(__kernel_fd_set *__p)
+-static __inline__ void __FD_ZERO(__kernel_fd_set *__p)
 -{
 -	unsigned long *__tmp = __p->fds_bits;
 -	int __i;
@@ -158,10 +147,10 @@ index 56ffbc1..ab50618 100644
 -	}
 -}
 -
--#endif /* defined(__KERNEL__) || !defined(__GLIBC__) || (__GLIBC__ < 2) */
+-#endif /* defined(__KERNEL__) */
 +#include <asm-generic/posix_types.h>
  
- #endif /* _ASM_POSIX_TYPES_H */
+ #endif  /* _ASM_M32R_POSIX_TYPES_H */
 -- 
 1.7.6.5
 
