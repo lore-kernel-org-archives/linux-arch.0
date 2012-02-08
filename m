@@ -1,102 +1,127 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44072 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:44009 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751254Ab2BHFKR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 00:10:17 -0500
+	id S1751015Ab2BHFJm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Feb 2012 00:09:42 -0500
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 15/21] powerpc: Use generic posix_types.h
-Date: Tue,  7 Feb 2012 21:08:59 -0800
-Message-ID: <1328677745-20121-16-git-send-email-hpa@zytor.com>
+Subject: [PATCH 18/21] sparc: Use generic posix_types.h
+Date: Tue,  7 Feb 2012 21:09:02 -0800
+Message-ID: <1328677745-20121-19-git-send-email-hpa@zytor.com>
 In-Reply-To: <1328677745-20121-1-git-send-email-hpa@zytor.com>
 References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20120208050859.jiEySEmQ9alSaCPlKM5bUMk7FgX15miDeG9eJt8jd3g@z>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20120208050902.PVw0DpPnVY6R-8TzxZDYRR53HpYy07PhgdTif2zTAQc@z>
 
 From: "H. Peter Anvin" <hpa@zytor.com>
 
-Change the powerpc architecture to use <asm-generic/posix_types.h>.
+Change the sparc architecture to use <asm-generic/posix_types.h>.
 
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- arch/powerpc/include/asm/posix_types.h |  120 +++-----------------------------
- 1 files changed, 10 insertions(+), 110 deletions(-)
+ arch/sparc/include/asm/posix_types.h |  133 +++++-----------------------------
+ 1 files changed, 17 insertions(+), 116 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/posix_types.h b/arch/powerpc/include/asm/posix_types.h
-index c4e396b..1fbe027f 100644
---- a/arch/powerpc/include/asm/posix_types.h
-+++ b/arch/powerpc/include/asm/posix_types.h
-@@ -7,122 +7,22 @@
-  * assume GCC is being used.
-  */
+diff --git a/arch/sparc/include/asm/posix_types.h b/arch/sparc/include/asm/posix_types.h
+index dbfc1a3..3070f25 100644
+--- a/arch/sparc/include/asm/posix_types.h
++++ b/arch/sparc/include/asm/posix_types.h
+@@ -9,35 +9,16 @@
  
--typedef unsigned long	__kernel_ino_t;
--typedef unsigned int	__kernel_mode_t;
--typedef long		__kernel_off_t;
--typedef int		__kernel_pid_t;
--typedef unsigned int	__kernel_uid_t;
--typedef unsigned int	__kernel_gid_t;
--typedef long		__kernel_ptrdiff_t;
--typedef long		__kernel_time_t;
--typedef long		__kernel_clock_t;
--typedef int		__kernel_timer_t;
--typedef int		__kernel_clockid_t;
--typedef long		__kernel_suseconds_t;
--typedef int		__kernel_daddr_t;
--typedef char *		__kernel_caddr_t;
--typedef unsigned short	__kernel_uid16_t;
--typedef unsigned short	__kernel_gid16_t;
--typedef unsigned int	__kernel_uid32_t;
--typedef unsigned int	__kernel_gid32_t;
--typedef unsigned int	__kernel_old_uid_t;
--typedef unsigned int	__kernel_old_gid_t;
+ #if defined(__sparc__) && defined(__arch64__)
+ /* sparc 64 bit */
+-typedef unsigned long          __kernel_size_t;
+-typedef long                   __kernel_ssize_t;
+-typedef long                   __kernel_ptrdiff_t;
+-typedef long                   __kernel_time_t;
+-typedef long                   __kernel_clock_t;
+-typedef int                    __kernel_pid_t;
+-typedef int                    __kernel_ipc_pid_t;
+-typedef unsigned int           __kernel_uid_t;
+-typedef unsigned int           __kernel_gid_t;
+-typedef unsigned long          __kernel_ino_t;
+-typedef unsigned int           __kernel_mode_t;
+ typedef unsigned int           __kernel_nlink_t;
+-typedef int                    __kernel_daddr_t;
+-typedef long                   __kernel_off_t;
+-typedef char *                 __kernel_caddr_t;
+-typedef unsigned short	       __kernel_uid16_t;
+-typedef unsigned short	       __kernel_gid16_t;
+-typedef int                    __kernel_clockid_t;
+-typedef int                    __kernel_timer_t;
++#define __kernel_nlink_t __kernel_nlink_t
+ 
+ typedef unsigned short 	       __kernel_old_uid_t;
+ typedef unsigned short         __kernel_old_gid_t;
+-typedef __kernel_uid_t	       __kernel_uid32_t;
+-typedef __kernel_gid_t	       __kernel_gid32_t;
 -
- #ifdef __powerpc64__
--typedef unsigned long  	__kernel_nlink_t;
--typedef int             __kernel_ipc_pid_t;
--typedef unsigned long	__kernel_size_t;
--typedef long		__kernel_ssize_t;
- typedef unsigned long	__kernel_old_dev_t;
-+#define __kernel_old_dev_t __kernel_old_dev_t
+-typedef unsigned int	       __kernel_old_dev_t;
++#define __kernel_old_uid_t __kernel_old_uid_t
+ 
+ /* Note this piece of asymmetry from the v9 ABI.  */
+ typedef int		       __kernel_suseconds_t;
++#define __kernel_suseconds_t __kernel_suseconds_t
+ 
  #else
--typedef unsigned short	__kernel_nlink_t;
--typedef short		__kernel_ipc_pid_t;
- typedef unsigned int	__kernel_size_t;
--typedef int		__kernel_ssize_t;
--typedef unsigned int	__kernel_old_dev_t;
--#endif
--
--#ifdef __powerpc64__
--typedef long long	__kernel_loff_t;
--#else
+ /* sparc 32 bit */
+@@ -45,109 +26,29 @@ typedef int		       __kernel_suseconds_t;
+ typedef unsigned int           __kernel_size_t;
+ typedef int                    __kernel_ssize_t;
+ typedef long int               __kernel_ptrdiff_t;
+-typedef long                   __kernel_time_t;
+-typedef long		       __kernel_suseconds_t;
+-typedef long                   __kernel_clock_t;
+-typedef int                    __kernel_pid_t;
++#define __kernel_size_t __kernel_size_t
++
+ typedef unsigned short         __kernel_ipc_pid_t;
++#define __kernel_ipc_pid_t __kernel_ipc_pid_t
++
+ typedef unsigned short         __kernel_uid_t;
+ typedef unsigned short         __kernel_gid_t;
+-typedef unsigned long          __kernel_ino_t;
++#define __kernel_uid_t __kernel_uid_t
++
+ typedef unsigned short         __kernel_mode_t;
++#define __kernel_mode_t __kernel_mode_t
++
+ typedef short                  __kernel_nlink_t;
++#define __kernel_nlink_t __kernel_nlink_t
++
+ typedef long                   __kernel_daddr_t;
+-typedef long                   __kernel_off_t;
+-typedef char *                 __kernel_caddr_t;
+-typedef unsigned short	       __kernel_uid16_t;
+-typedef unsigned short	       __kernel_gid16_t;
+-typedef unsigned int	       __kernel_uid32_t;
+-typedef unsigned int	       __kernel_gid32_t;
+-typedef unsigned short	       __kernel_old_uid_t;
+-typedef unsigned short	       __kernel_old_gid_t;
++#define __kernel_daddr_t __kernel_daddr_t
++
+ typedef unsigned short	       __kernel_old_dev_t;
+-typedef int                    __kernel_clockid_t;
+-typedef int                    __kernel_timer_t;
++#define __kernel_old_dev_t __kernel_old_dev_t
+ 
+ #endif /* defined(__sparc__) && defined(__arch64__) */
+ 
 -#ifdef __GNUC__
--typedef long long	__kernel_loff_t;
--#endif
+-typedef long long              __kernel_loff_t;
 -#endif
 -
 -typedef struct {
 -	int	val[2];
 -} __kernel_fsid_t;
 -
--#ifndef __GNUC__
--
--#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
--#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
--#define	__FD_ISSET(d, set)	(((set)->fds_bits[__FDELT(d)] & __FDMASK(d)) != 0)
--#define	__FD_ZERO(set)	\
--  ((void) memset ((void *) (set), 0, sizeof (__kernel_fd_set)))
--
--#else /* __GNUC__ */
--
--#if defined(__KERNEL__)
--/* With GNU C, use inline functions instead so args are evaluated only once: */
+-#ifdef __KERNEL__
 -
 -#undef __FD_SET
--static __inline__ void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
+-static inline void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
 -{
 -	unsigned long _tmp = fd / __NFDBITS;
 -	unsigned long _rem = fd % __NFDBITS;
@@ -104,7 +129,7 @@ index c4e396b..1fbe027f 100644
 -}
 -
 -#undef __FD_CLR
--static __inline__ void __FD_CLR(unsigned long fd, __kernel_fd_set *fdsetp)
+-static inline void __FD_CLR(unsigned long fd, __kernel_fd_set *fdsetp)
 -{
 -	unsigned long _tmp = fd / __NFDBITS;
 -	unsigned long _rem = fd % __NFDBITS;
@@ -112,43 +137,48 @@ index c4e396b..1fbe027f 100644
 -}
 -
 -#undef __FD_ISSET
--static __inline__ int __FD_ISSET(unsigned long fd, __kernel_fd_set *p)
--{ 
+-static inline int __FD_ISSET(unsigned long fd, __const__ __kernel_fd_set *p)
+-{
 -	unsigned long _tmp = fd / __NFDBITS;
 -	unsigned long _rem = fd % __NFDBITS;
 -	return (p->fds_bits[_tmp] & (1UL<<_rem)) != 0;
 -}
 -
 -/*
-- * This will unroll the loop for the normal constant case (8 ints,
-- * for a 256-bit fd_set)
+- * This will unroll the loop for the normal constant cases (8 or 32 longs,
+- * for 256 and 1024-bit fd_sets respectively)
 - */
 -#undef __FD_ZERO
--static __inline__ void __FD_ZERO(__kernel_fd_set *p)
+-static inline void __FD_ZERO(__kernel_fd_set *p)
 -{
--	unsigned long *tmp = (unsigned long *)p->fds_bits;
+-	unsigned long *tmp = p->fds_bits;
 -	int i;
-+typedef int		__kernel_size_t;
-+typedef long		__kernel_ptrdiff_t;
-+#define __kernel_size_t __kernel_size_t
- 
+-
 -	if (__builtin_constant_p(__FDSET_LONGS)) {
 -		switch (__FDSET_LONGS) {
--		      case 16:
--			tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
--			tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
-+typedef unsigned short	__kernel_nlink_t;
-+#define __kernel_nlink_t __kernel_nlink_t
- 
--		      case 8:
--			tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
-+typedef short		__kernel_ipc_pid_t;
-+#define __kernel_ipc_pid_t __kernel_ipc_pid_t
-+#endif
- 
--		      case 4:
--			tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
--			return;
+-			case 32:
+-			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
+-			  tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
+-			  tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
+-			  tmp[16] = 0; tmp[17] = 0; tmp[18] = 0; tmp[19] = 0;
+-			  tmp[20] = 0; tmp[21] = 0; tmp[22] = 0; tmp[23] = 0;
+-			  tmp[24] = 0; tmp[25] = 0; tmp[26] = 0; tmp[27] = 0;
+-			  tmp[28] = 0; tmp[29] = 0; tmp[30] = 0; tmp[31] = 0;
+-			  return;
+-			case 16:
+-			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
+-			  tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
+-			  tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
+-			  return;
+-			case 8:
+-			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			  tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
+-			  return;
+-			case 4:
+-			  tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			  return;
 -		}
 -	}
 -	i = __FDSET_LONGS;
@@ -160,9 +190,8 @@ index c4e396b..1fbe027f 100644
 -}
 +#include <asm-generic/posix_types.h>
  
--#endif /* defined(__KERNEL__) */
--#endif /* __GNUC__ */
- #endif /* _ASM_POWERPC_POSIX_TYPES_H */
+-#endif /* __KERNEL__ */
+ #endif /* __SPARC_POSIX_TYPES_H */
 -- 
 1.7.6.5
 
