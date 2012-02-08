@@ -1,74 +1,159 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [RFC PATCH v1 11/18] mips/PCI: get rid of device resource fixups
-Date: Tue, 7 Feb 2012 18:56:46 -0800
-Message-ID: <CAErSpo7ry8piDCTpgkdr01=Kd7=G6HTNwDAQAockPgXtyhJvuw@mail.gmail.com>
-References: <20120130165430.3231.97740.stgit@bhelgaas.mtv.corp.google.com>
- <20120130165805.3231.99160.stgit@bhelgaas.mtv.corp.google.com>
- <20120131114250.b0e6af10.yuasa@linux-mips.org> <CAErSpo7xUL++rqnJug7=Wd_nfvaUDOewGjz1C2Fp-oQrkxO2yg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo7xUL++rqnJug7=Wd_nfvaUDOewGjz1C2Fp-oQrkxO2yg@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yoichi Yuasa <yuasa@linux-mips.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 09/21] ia64: Use generic posix_types.h
+Date: Tue,  7 Feb 2012 21:08:53 -0800
+Message-ID: <1328677745-20121-10-git-send-email-hpa@zytor.com>
+References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 30, 2012 at 7:54 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
-ote:
-> On Mon, Jan 30, 2012 at 6:42 PM, Yoichi Yuasa <yuasa@linux-mips.org> =
-wrote:
->> Hi,
->>
->> On Mon, 30 Jan 2012 09:58:05 -0700
->> Bjorn Helgaas <bhelgaas@google.com> wrote:
->>
->>> Tell the PCI core about host bridge address translation so it can t=
-ake
->>> care of bus-to-resource conversion for us.
->>>
->>> N.B. cobalt_legacy_ide_fixup() does scary things with resources, bu=
-t I
->>> *think* it will still work because we're still making the same adju=
-stments,
->>> just in the opposite order. =A0Here are the legacy IDE resource.sta=
-rt
->>> values I expect:
->>>
->>> =A0 =A0 =A0 =A0 =A0current =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =
-=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0new
->>>
->>> =A0 =A0 =A0 =A0 =A0 =A00x1f0 =A0 (pci_setup_device) =A0 =A0 =A0 =A0=
- =A0 =A0 =A0 =A0 0x1f0
->>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0(pci_bus_to_resource) =A0 =A0=
- =A0 + 0xf0000000
->>> =A0 =A0 - 0xf0000000 =A0 (cobalt_legacy_ide_fixup) =A0 - 0xf0000000
->>> =A0 =A0 + 0xf0000000 =A0 (pcibios_fixup_bus)
->>> =A0 =A0 ------------ =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0 ------------
->>> =A0 =A0 =A0 =A0 =A0 =A00x1f0 =A0 =A0final value =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0 =A0 =A0 =A0 0x1f0
->>
->> It seems to be unable to handle the offset correctly.
->>
->> failed on Cobalt:
->>
->> pata_via 0000:00:09.1: BAR 0: can't reserve [io =A00x100001f0-0x1000=
-01f7]
->> pata_via 0000:00:09.1: failed to request/iomap BARs for port 0 (errn=
-o=3D-16)
->> pata_via 0000:00:09.1: BAR 2: can't reserve [io =A00x10000170-0x1000=
-0177]
->> pata_via 0000:00:09.1: failed to request/iomap BARs for port 1 (errn=
-o=3D-16)
->> pata_via 0000:00:09.1: no available native port
->
-> Thank you very much for testing this. =A0Could you collect the comple=
-te
-> dmesg and /proc/ioport contents, before and after my patches?
+From: "H. Peter Anvin" <hpa@zytor.com>
 
-Ping :)  I'll try to figure this out, but it would be easier if I had
-the info mentioned above.  Thanks!
+Change the ia64 architecture to use <asm-generic/posix_types.h>.
 
-Bjorn
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+---
+ arch/ia64/include/asm/posix_types.h |  121 +----------------------------------
+ 1 files changed, 3 insertions(+), 118 deletions(-)
+
+diff --git a/arch/ia64/include/asm/posix_types.h b/arch/ia64/include/asm/posix_types.h
+index 1788556..7323ab9 100644
+--- a/arch/ia64/include/asm/posix_types.h
++++ b/arch/ia64/include/asm/posix_types.h
+@@ -1,126 +1,11 @@
+ #ifndef _ASM_IA64_POSIX_TYPES_H
+ #define _ASM_IA64_POSIX_TYPES_H
+ 
+-/*
+- * This file is generally used by user-level software, so you need to
+- * be a little careful about namespace pollution etc.  Also, we cannot
+- * assume GCC is being used.
+- *
+- * Based on <asm-alpha/posix_types.h>.
+- *
+- * Modified 1998-2000, 2003
+- *	David Mosberger-Tang <davidm@hpl.hp.com>, Hewlett-Packard Co
+- */
+-
+-typedef unsigned long	__kernel_ino_t;
+-typedef unsigned int	__kernel_mode_t;
+ typedef unsigned int	__kernel_nlink_t;
+-typedef long		__kernel_off_t;
+-typedef long long	__kernel_loff_t;
+-typedef int		__kernel_pid_t;
+-typedef int		__kernel_ipc_pid_t;
+-typedef unsigned int	__kernel_uid_t;
+-typedef unsigned int	__kernel_gid_t;
+-typedef unsigned long	__kernel_size_t;
+-typedef long		__kernel_ssize_t;
+-typedef long		__kernel_ptrdiff_t;
+-typedef long		__kernel_time_t;
+-typedef long		__kernel_suseconds_t;
+-typedef long		__kernel_clock_t;
+-typedef int		__kernel_timer_t;
+-typedef int		__kernel_clockid_t;
+-typedef int		__kernel_daddr_t;
+-typedef char *		__kernel_caddr_t;
+-typedef unsigned long	__kernel_sigset_t;	/* at least 32 bits */
+-typedef unsigned short	__kernel_uid16_t;
+-typedef unsigned short	__kernel_gid16_t;
+-
+-typedef struct {
+-	int	val[2];
+-} __kernel_fsid_t;
+-
+-typedef __kernel_uid_t __kernel_old_uid_t;
+-typedef __kernel_gid_t __kernel_old_gid_t;
+-typedef __kernel_uid_t __kernel_uid32_t;
+-typedef __kernel_gid_t __kernel_gid32_t;
+-
+-typedef unsigned int	__kernel_old_dev_t;
+-
+-# ifdef __KERNEL__
+-
+-#  ifndef __GNUC__
+-
+-#define	__FD_SET(d, set)	((set)->fds_bits[__FDELT(d)] |= __FDMASK(d))
+-#define	__FD_CLR(d, set)	((set)->fds_bits[__FDELT(d)] &= ~__FDMASK(d))
+-#define	__FD_ISSET(d, set)	(((set)->fds_bits[__FDELT(d)] & __FDMASK(d)) != 0)
+-#define	__FD_ZERO(set)	\
+-  ((void) memset ((void *) (set), 0, sizeof (__kernel_fd_set)))
++#define __kernel_nlink_t __kernel_nlink_t
+ 
+-#  else /* !__GNUC__ */
+-
+-/* With GNU C, use inline functions instead so args are evaluated only once: */
+-
+-#undef __FD_SET
+-static __inline__ void __FD_SET(unsigned long fd, __kernel_fd_set *fdsetp)
+-{
+-	unsigned long _tmp = fd / __NFDBITS;
+-	unsigned long _rem = fd % __NFDBITS;
+-	fdsetp->fds_bits[_tmp] |= (1UL<<_rem);
+-}
+-
+-#undef __FD_CLR
+-static __inline__ void __FD_CLR(unsigned long fd, __kernel_fd_set *fdsetp)
+-{
+-	unsigned long _tmp = fd / __NFDBITS;
+-	unsigned long _rem = fd % __NFDBITS;
+-	fdsetp->fds_bits[_tmp] &= ~(1UL<<_rem);
+-}
+-
+-#undef __FD_ISSET
+-static __inline__ int __FD_ISSET(unsigned long fd, const __kernel_fd_set *p)
+-{ 
+-	unsigned long _tmp = fd / __NFDBITS;
+-	unsigned long _rem = fd % __NFDBITS;
+-	return (p->fds_bits[_tmp] & (1UL<<_rem)) != 0;
+-}
+-
+-/*
+- * This will unroll the loop for the normal constant case (8 ints,
+- * for a 256-bit fd_set)
+- */
+-#undef __FD_ZERO
+-static __inline__ void __FD_ZERO(__kernel_fd_set *p)
+-{
+-	unsigned long *tmp = p->fds_bits;
+-	int i;
+-
+-	if (__builtin_constant_p(__FDSET_LONGS)) {
+-		switch (__FDSET_LONGS) {
+-		      case 16:
+-			tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
+-			tmp[ 8] = 0; tmp[ 9] = 0; tmp[10] = 0; tmp[11] = 0;
+-			tmp[12] = 0; tmp[13] = 0; tmp[14] = 0; tmp[15] = 0;
+-			return;
+-
+-		      case 8:
+-			tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			tmp[ 4] = 0; tmp[ 5] = 0; tmp[ 6] = 0; tmp[ 7] = 0;
+-			return;
++typedef unsigned long	__kernel_sigset_t;	/* at least 32 bits */
+ 
+-		      case 4:
+-			tmp[ 0] = 0; tmp[ 1] = 0; tmp[ 2] = 0; tmp[ 3] = 0;
+-			return;
+-		}
+-	}
+-	i = __FDSET_LONGS;
+-	while (i) {
+-		i--;
+-		*tmp = 0;
+-		tmp++;
+-	}
+-}
++#include <asm-generic/posix_types.h>
+ 
+-#  endif /* !__GNUC__ */
+-# endif /* __KERNEL__ */
+ #endif /* _ASM_IA64_POSIX_TYPES_H */
+-- 
+1.7.6.5
