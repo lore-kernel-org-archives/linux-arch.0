@@ -1,33 +1,106 @@
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 06/21] cris: Use generic posix_types.h
-Date: Wed, 8 Feb 2012 14:21:25 +0100
-Message-ID: <20120208132125.GY8176@axis.com>
-References: <1328677745-20121-1-git-send-email-hpa@zytor.com> <1328677745-20121-7-git-send-email-hpa@zytor.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:57373 "EHLO ra.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756007Ab2BHNa7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 08:30:59 -0500
-Content-Disposition: inline
-In-Reply-To: <1328677745-20121-7-git-send-email-hpa@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Mikael Starvik <starvik@axis.com>
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by host
+Date: Wed,  8 Feb 2012 10:07:42 -0500
+Message-ID: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+Return-path: <kvm-owner@vger.kernel.org>
+Sender: kvm-owner@vger.kernel.org
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 08, 2012 at 06:08:50AM +0100, H. Peter Anvin wrote:
-> From: "H. Peter Anvin" <hpa@zytor.com>
-> 
-> Change the cris architecture to use <asm-generic/posix_types.h>.
-> 
-> Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Changes from V12:
+Re-add missing kvm.c code after rebase
+Rename CAP to KVM_CAP_KVMCLOCK_CTRL
+Rename ioctl to KVM_KVMCLOCK_CTRL
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Changes from V11:
+Re-add asm-generic stub
+Correct api.txt typo
+add kvm_make_request() call after setting PVCLOCK_GUEST_STOPPED
 
-/^JN - Jesper Nilsson
+Changes from V10:
+Return ioctl to per vcpu instead of per vm
+
+Changes from V9:
+Use kvm_for_each_vcpu to iterate online vcpu's
+
+Changes from V8:
+Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
+
+Changes from V7:
+Define KVM_CAP_GUEST_PAUSED and support check
+Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
+
+Changes from V6:
+Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
+
+Changes from V5:
+Collapse generic check_and_clear_guest_stopped into patch 2
+Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
+Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
+ cpuid arg.
+Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
+
+Changes from V4:
+Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
+Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
+
+Changes from V3:
+Include CC's on patch 3
+Drop clear flag ioctl and have the watchdog clear the flag when it is reset
+
+Changes from V2:
+A new kvm functions defined in kvm_para.h, the only change to pvclock is the
+initial flag definition
+
+Changes from V1:
+(Thanks Marcelo)
+Host code has all been moved to arch/x86/kvm/x86.c
+KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
+
+When a guest kernel is stopped by the host hypervisor it can look like a soft
+lockup to the guest kernel.  This false warning can mask later soft lockup
+warnings which may be real.  This patch series adds a method for a host
+hypervisor to communicate to a guest kernel that it is being stopped.  The
+final patch in the series has the watchdog check this flag when it goes to
+issue a soft lockup warning and skip the warning if the guest knows it was
+stopped.
+
+It was attempted to solve this in Qemu, but the side effects of saving and
+restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+by the amount of time of the pause.  This forces a guest to have ntp running
+in order to keep the wall clock accurate.
+
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+
+Eric B Munson (4):
+  Add flag to indicate that a vm was stopped by the host
+  Add functions to check if the host has stopped the vm
+  Add ioctl for KVM_KVMCLOCK_CTRL
+  Add check for suspended vm in softlockup detector
+
+ Documentation/virtual/kvm/api.txt   |   13 +++++++++++++
+ arch/ia64/include/asm/kvm_para.h    |    5 +++++
+ arch/powerpc/include/asm/kvm_para.h |    5 +++++
+ arch/s390/include/asm/kvm_para.h    |    5 +++++
+ arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+ arch/x86/include/asm/pvclock-abi.h  |    1 +
+ arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+ arch/x86/kvm/x86.c                  |   22 ++++++++++++++++++++++
+ include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+ include/linux/kvm.h                 |    3 +++
+ kernel/watchdog.c                   |   12 ++++++++++++
+ 11 files changed, 109 insertions(+), 0 deletions(-)
+ create mode 100644 include/asm-generic/kvm_para.h
+
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+1.7.5.4
+
