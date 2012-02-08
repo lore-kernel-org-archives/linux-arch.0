@@ -1,94 +1,67 @@
-From: Jamie Lokier <jamie@shareable.org>
-Subject: Re: on memory barriers and cachelines
-Date: Fri, 10 Feb 2012 02:51:29 +0000
-Message-ID: <20120210025129.GA9135@jl-vm1.vm.bytemark.co.uk>
-References: <1328088838.2760.21.camel@laptop>
- <20120201142218.GF2488@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 00/21] RFC: Make all arches use <asm-generic/posix_types.h>
+Date: Tue,  7 Feb 2012 21:08:44 -0800
+Message-ID: <1328677745-20121-1-git-send-email-hpa@zytor.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.shareable.org ([80.68.89.115]:47021 "EHLO
-	mail2.shareable.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932381Ab2BJCvi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:51:38 -0500
-Content-Disposition: inline
-In-Reply-To: <20120201142218.GF2488@linux.vnet.ibm.com>
+Received: from terminus.zytor.com ([198.137.202.10]:60040 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754711Ab2BJDLm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Feb 2012 22:11:42 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, benh <benh@kernel.crashing.org>, davem <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, dhowells <dhowells@redhat.com>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Arnd Bergmann <arnd@arndb.de>
 
-Paul E. McKenney wrote:
-> On Wed, Feb 01, 2012 at 10:33:58AM +0100, Peter Zijlstra wrote:
-> > Hi all,
-> > 
-> > So I was talking to Paul yesterday and he mentioned how the SRCU sync
-> > primitive has to use extra synchronize_sched() calls in order to avoid
-> > smp_rmb() calls in the srcu_read_{un,}lock() calls.
-> > 
-> > Now memory barriers are usually explained as observable order between
-> > two (or more) unrelated variables, as Documentation/memory-barriers.txt
-> > does in great detail.
-> > 
-> > What I couldn't find in there though, is what happens when both
-> > variables are on the same cacheline. The "The effects of the CPU cache"
-> > and "Cache coherency" sections are closest but leave me wanting on this
-> > point.
-> > 
-> > Can we get some implicit behaviour from being on the same cacheline? Or
-> > can this memory access queue still totally wreck the game?
-> 
-> I don't know of any guarantees in this area, but am checking with
-> hardware architects for a couple of architectures.
+[Cc: list trimmed to avoid vger filters]
 
-On a related note:
+This patchset changes all architectures that don't already use
+<asm-generic/posix_types.h> to do so.  The purpose this threefold:
 
-   - What's to stop the compiler optimising away a data dependency,
-     converting it to a speculative control dependency?  Here's a
-     contrived example:
+1. There is a dramatic amount of code removal.
+2. New types can now be added in one place rather than having to go
+   through most of the architectures.
+3. Removal of a bunch of old cruft.
 
-         ORIGINAL:
+The first two patches in the series tweak <asm-generic/posix_types.h>
+to be more generally useful: the __kernel_[ug]id32_t types should
+logically default to unsigned int instead of being mirrors of
+__kernel_[ug]id_t, and the __kernel_fsid_t type is made overridable.
 
-             int func(int *p)
-             {
-                 int index = p[0], first = p[1];
-                 read_barrier_depends(); /* do..while(0) on most archs */
-		 return max(first, p[index]);
-             }
+Patches 3-20 are patches for individual architectures; I would greatly
+appreciate it if architecture maintainers would review their
+respective architectures and verify that the transformation is
+correct.  These patches also remove the per-architecture fd_set
+macros.
 
-         OPTIMISED:
+Patch 21, finally, removes the asm-generic version of the fd_set
+macros.  These macros were once upon a time exported to user space,
+but that is now historic.  Nowadays, they are nothing more than a
+re-implementation of the bitops that we already have in the kernel, so
+this final patch just replaces those with the appropriate standard
+bitops.
 
-             int func(int *p)
-             {
-                 int index = p[0], val = p[1];
-                 if (index != 1)
-                     val = max(val, p[index]);
-                 return val;
-             }
+Total diffstat:
 
-     A quick search of the GCC manual for "speculation" and
-     "speculative" comes up with quite a few hits.  I've no idea if
-     they are relevant.
-
-   - If I understood correctly, IA64 has explicit special registers to
-     assist data-memory speculation by the compiler.  These would be
-     the ALAT registers.  I don't know if they are used in a way that
-     affects RCU, but they do appear in the GCC machine description,
-     and in the manual some kinds of "data speculative scheduling" are
-     enabled by default.  But read_barrier_depends() is a do {} while
-     on IA64.
-
-   - The GCC manual mentions data speculation in conjunction with
-     Blackfin as well.  I have no idea if it's relevant, but Blackfin
-     does at least define read_barrier_depends() in an interesting way,
-     sometimes.
-
-   - I read that ARM can do speculative memory loads these days.  It
-     complicates DMA.  But are they implemented by speculative
-     preloading into the cache, or by speculatively executing load
-     instructions whose results are predicated on a control path
-     taken?  If the latter, is an empty read_barrier_depends() still
-     ok on ARM?
-
-Thanks,
--- Jamie
+ arch/alpha/include/asm/posix_types.h   |  113 +--------------------------
+ arch/arm/include/asm/posix_types.h     |   55 ++-----------
+ arch/avr32/include/asm/posix_types.h   |  107 +++-----------------------
+ arch/cris/include/asm/posix_types.h    |   50 +++----------
+ arch/frv/include/asm/posix_types.h     |   53 +++----------
+ arch/h8300/include/asm/posix_types.h   |   49 ++----------
+ arch/ia64/include/asm/posix_types.h    |  121 +----------------------------
+ arch/m32r/include/asm/posix_types.h    |  108 ++------------------------
+ arch/m68k/include/asm/posix_types.h    |   53 +++----------
+ arch/mips/include/asm/posix_types.h    |  117 ++--------------------------
+ arch/mn10300/include/asm/posix_types.h |  111 +++------------------------
+ arch/parisc/include/asm/posix_types.h  |  119 ++--------------------------
+ arch/powerpc/include/asm/posix_types.h |  120 +++--------------------------
+ arch/s390/include/asm/posix_types.h    |   70 +++--------------
+ arch/sh/include/asm/posix_types_32.h   |    5 -
+ arch/sh/include/asm/posix_types_64.h   |    4 -
+ arch/sparc/include/asm/posix_types.h   |  133 ++++----------------------------
+ arch/x86/include/asm/posix_types_32.h  |   75 ++----------------
+ arch/x86/include/asm/posix_types_64.h  |  106 +------------------------
+ arch/xtensa/include/asm/posix_types.h  |   97 ++---------------------
+ include/asm-generic/posix_types.h      |   86 ++-------------------
+ include/linux/time.h                   |   23 ++++++
+ 22 files changed, 190 insertions(+), 1585 deletions(-)
