@@ -1,39 +1,64 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 15/21] powerpc: Use generic posix_types.h
-Date: Thu, 09 Feb 2012 17:14:23 +1100
-Message-ID: <1328768063.2903.70.camel@pasglop>
-References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
-	 <1328677745-20121-16-git-send-email-hpa@zytor.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
+Date: Thu, 9 Feb 2012 11:24:45 -0800
+Message-ID: <CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
+References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
+ <1328425088-6562-10-git-send-email-yinghai@kernel.org> <CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
+ <1328738567.2903.45.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:44524 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750751Ab2BIGOc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Feb 2012 01:14:32 -0500
-In-Reply-To: <1328677745-20121-16-git-send-email-hpa@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Paul Mackerras <paulus@samba.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1328738567.2903.45.camel@pasglop>
+Sender: linux-pci-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Yinghai Lu <yinghai@kernel.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2012-02-07 at 21:08 -0800, H. Peter Anvin wrote:
+On Wed, Feb 8, 2012 at 2:02 PM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Wed, 2012-02-08 at 07:58 -0800, Bjorn Helgaas wrote:
+>> The only architecture-specific thing here is discovering the range o=
+f
+>> bus numbers below a host bridge. =A0The architecture should not have=
+ to
+>> mess around with pci_bus_update_busn_res_end() like this. =A0It shou=
+ld
+>> be able to say "here's my bus number range" (and of course the PCI
+>> core can default to 0-255 if the arch doesn't supply a range) and th=
+e
+>> core should take care of the rest.
+>
+> So it's a bit messy in here because we deal with several things.
+>
+> What the firmware gives us is the range it assigned, but that isn't
+> necessarily the HW limits (almost never is in fact).
+>
+> In some cases we honor it, for example when in "probe only" mode wher=
+e
+> we prevent any reassigning, and in some case, we ignore it and let th=
+e
+> PCI core renumber things (typically because the FW "forgot" to set as=
+ide
+> bus numbers for a cardbus slot for example, that sort of things).
+>
+> So it's a bit of a tricky situation.
+>
+> Off the top of my head, I'm pretty sure that most if not all of our P=
+CI
+> host bridges simply support a full 0...255 range and there is no shar=
+ing
+> between bridges like on x86, they are just different domains.
 
- .../...
+My point is that the interface between the arch and the PCI core
+should be simply the arch telling the core "this is the range of bus
+numbers you can use."  If the firmware doesn't give you the HW limits,
+that's the arch's problem.  If you want to assume 0..255 are
+available, again, that's the arch's decision.
 
->  #else
-> -typedef unsigned short	__kernel_nlink_t;
-> -typedef short		__kernel_ipc_pid_t;
->  typedef unsigned int	__kernel_size_t;
+But the answer to the question "what bus numbers are available to me"
+depends only on the host bridge HW configuration.  It does not depend
+on what pci_scan_child_bus() found.  Therefore, I think we can come up
+with a design where pci_bus_update_busn_res_end() is unnecessary.
 
-This followed later by ...
-
-> +typedef int		__kernel_size_t;
-
-This, I suspect the second one wanted to be ssize_t :-)
-
-The rest looks ok, I'll try to build tomorrow.
-
-Cheers,
-Ben.
+Bjorn
