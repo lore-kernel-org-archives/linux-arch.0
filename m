@@ -1,49 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49893 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756342Ab2BHVbG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Feb 2012 16:31:06 -0500
-Message-ID: <4F32E98F.2090909@zytor.com>
-Date: Wed, 08 Feb 2012 13:30:55 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 21/21] posix_types: Remove fd_set macros
-References: <4F32A98F.7030400@zytor.com> <1328677745-20121-22-git-send-email-hpa@zytor.com> <1328677745-20121-1-git-send-email-hpa@zytor.com> <8328.1328703626@redhat.com> <16325.1328736262@redhat.com>
-In-Reply-To: <16325.1328736262@redhat.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from shards.monkeyblade.net ([198.137.202.13]:49946 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750863Ab2BIB1r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Feb 2012 20:27:47 -0500
+Date: Wed, 08 Feb 2012 20:27:43 -0500 (EST)
+Message-ID: <20120208.202743.1911103749916770081.davem@davemloft.net>
+Subject: Re: [PATCH 18/21] sparc: Use generic posix_types.h
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1328677745-20121-19-git-send-email-hpa@zytor.com>
+References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
+	<1328677745-20121-19-git-send-email-hpa@zytor.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120208213055.VFBsh4uFzi4GwBEbILYKl3qQJC12efsRCvvemRvGxvk@z>
+To: hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Message-ID: <20120209012743.0yNuynLldTTXBEIU3YlicWi3_m-R-HJrW02jTnoiHi4@z>
 
-On 02/08/2012 01:24 PM, David Howells wrote:
-> H. Peter Anvin<hpa@zytor.com>  wrote:
->
->> Anyway, select() paraphernalia goes in<sys/time.h>  (as opposed to
->> <time.h>), poll() paraphernalia goes in<sys/poll.h>, and the linux/*
->> files mimics that.
->
-> That doesn't seem to be so - at least not for my copy of glibc:
->
-> /usr/include/sys/select.h:/* fd_set for select and pselect.  */
-> /usr/include/sys/select.h:  } fd_set;
-> /usr/include/sys/select.h:#define       FD_ISSET(fd, fdsetp)    __FD_ISSET (fd, fdsetp)
->
-> Besides, this is inside the kernel.  The I/O polling architecture definitions
-> (which includes select) ought to be in one place there, not spread out all
-> over the place.
->
+From: "H. Peter Anvin" <hpa@zytor.com>
+Date: Tue,  7 Feb 2012 21:09:02 -0800
 
-I think <sys/select.h> is more recent, but anyway, look at the existing 
-<linux/time.h> and you see why it's there.
+> From: "H. Peter Anvin" <hpa@zytor.com>
+> 
+> Change the sparc architecture to use <asm-generic/posix_types.h>.
+> 
+> Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+> Cc: "David S. Miller" <davem@davemloft.net>
 
-It's fine to say it shouldn't be, but then ALL the definitions should 
-move (and that should be a separate change from this patchset)... but do 
-note that some of those macro definitions (which I did NOT change) are 
-exported to user space so make those changes with care.
-
-	-hpa
-
-
+Acked-by: David S. Miller <davem@davemloft.net>
