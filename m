@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f202.google.com ([209.85.160.202]:60268 "EHLO
-	mail-gy0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932129Ab2BJChT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:37:19 -0500
-Received: by ghrr17 with SMTP id r17so253095ghr.1
-        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:37:18 -0800 (PST)
-Subject: [PATCH v2 11/18] mips/PCI: get rid of device resource fixups
+Received: from mail-gx0-f202.google.com ([209.85.161.202]:39809 "EHLO
+	mail-gx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932256Ab2BJCh2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:37:28 -0500
+Received: by ggnp1 with SMTP id p1so258961ggn.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:37:28 -0800 (PST)
+Subject: [PATCH v2 13/18] parisc/PCI: get rid of device resource fixups
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 09 Feb 2012 19:37:17 -0700
-Message-ID: <20120210023717.10311.37310.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 09 Feb 2012 19:37:27 -0700
+Message-ID: <20120210023727.10311.47277.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,252 +17,259 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Yoichi Yuasa <yuasa@linux-mips.org>
-Message-ID: <20120210023717.2-sjkqaUGgTSXcoVeAAPL_d9ddLTrrOLliGZPOwktc4@z>
+Cc: linux-arch@vger.kernel.org, linux-parisc@vger.kernel.org
+Message-ID: <20120210023727.lUzGDqHVXSFNNcHRhjHCQFgaA9GOUrtl-Lke2NclruY@z>
 
 Tell the PCI core about host bridge address translation so it can take
 care of bus-to-resource conversion for us.
 
-Here's the wrinkle on Cobalt: we can't generate normal I/O port addresses
-on PCI because the GT-64111 doesn't do any address translation, so we have
-this:
-
-  CPU I/O port addresses		[io 0x0000-0xffffff]
-  PCI bus I/O port addresses	[io 0x10000000-0x10ffffff]
-
-Legacy-mode IDE controllers start out with the legacy bus addresses, e.g.,
-0x1f0, assigned by pci_setup_device().  These are outside the range of
-addresses GT-64111 can generate on PCI, but pcibios_fixup_device_resources()
-converted them to CPU addresses anyway by adding io_offset.  Therefore, we
-had to pre-adjust them in cobalt_legacy_ide_fixup().
-
-With io_offset = 0xf0000000, we had this:
-
-  res->start = 0x1f0	initialized in pci_setup_device()
-  res->start = 0x100001f0	-= io_offset in cobalt_legacy_ide_fixup()
-  res->start = 0x1f0	+= io_offset in pcibios_fixup_device_resources()
-
-The difference after this patch is that the generic pci_bus_to_resource()
-only adds the offset if the bus address is inside a host bridge window.
-Since 0x1f0 is not a valid bus address and is not inside any windows, it is
-unaffected, so we now have this:
-
-  region->start = 0x1f0	initialized in pci_setup_device()
-  res->start = 0x1f0	no offset by pci_bus_to_resource()
-
-That means we can remove both pcibios_fixup_device_resources() and
-cobalt_legacy_ide_fixup().
-
-I would *rather* set the host bridge offset to zero (which corresponds
-to what the GT-64111 actually does), and have both CPU and PCI addresses
-of [io 0x10000000-0x10ffffff].  However, that would require changes to
-generic code that assumes legacy I/O addresses, such as pic1_io_resource
-([io 0x0020-0x00021]), and we'd have to keep a Cobalt IDE fixup.
-
-Of course, none of this changes the fact that references to I/O port
-0x1f0 actually go to port 0x100001f0, not 0x1f0, on the Cobalt PCI bus.
-Fortunately the VT82C586 IDE controller only decodes the low 24 address
-bits, so it does work.
-
-CC: Ralf Baechle <ralf@linux-mips.org>
-CC: Yoichi Yuasa <yuasa@linux-mips.org>
+CC: linux-parisc@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/mips/include/asm/pci.h  |    6 +---
- arch/mips/pci/fixup-cobalt.c |   61 -------------------------------------
- arch/mips/pci/pci.c          |   70 ++----------------------------------------
- 3 files changed, 4 insertions(+), 133 deletions(-)
+ arch/parisc/include/asm/pci.h |   38 +-----------------------------
+ arch/parisc/kernel/pci.c      |   52 -----------------------------------------
+ drivers/parisc/dino.c         |   27 +++++----------------
+ drivers/parisc/lba_pci.c      |   31 +++++-------------------
+ 4 files changed, 13 insertions(+), 135 deletions(-)
 
-diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
-index 576397c..2be0c69 100644
---- a/arch/mips/include/asm/pci.h
-+++ b/arch/mips/include/asm/pci.h
-@@ -112,11 +112,7 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
+diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
+index 2242a5c..a8b591f 100644
+--- a/arch/parisc/include/asm/pci.h
++++ b/arch/parisc/include/asm/pci.h
+@@ -82,38 +82,8 @@ struct pci_hba_data {
+ 
+ #ifdef CONFIG_64BIT
+ #define PCI_F_EXTEND		0xffffffff00000000UL
+-#define PCI_IS_LMMIO(hba,a)	pci_is_lmmio(hba,a)
+-
+-/* We need to know if an address is LMMMIO or GMMIO.
+- * LMMIO requires mangling and GMMIO we must use as-is.
+- */
+-static __inline__  int pci_is_lmmio(struct pci_hba_data *hba, unsigned long a)
+-{
+-	return(((a) & PCI_F_EXTEND) == PCI_F_EXTEND);
+-}
+-
+-/*
+-** Convert between PCI (IO_VIEW) addresses and processor (PA_VIEW) addresses.
+-** See pci.c for more conversions used by Generic PCI code.
+-**
+-** Platform characteristics/firmware guarantee that
+-**	(1) PA_VIEW - IO_VIEW = lmmio_offset for both LMMIO and ELMMIO
+-**	(2) PA_VIEW == IO_VIEW for GMMIO
+-*/
+-#define PCI_BUS_ADDR(hba,a)	(PCI_IS_LMMIO(hba,a)	\
+-		?  ((a) - hba->lmmio_space_offset)	/* mangle LMMIO */ \
+-		: (a))					/* GMMIO */
+-#define PCI_HOST_ADDR(hba,a)	(((a) & PCI_F_EXTEND) == 0 \
+-		? (a) + hba->lmmio_space_offset \
+-		: (a))
+-
+ #else	/* !CONFIG_64BIT */
+-
+-#define PCI_BUS_ADDR(hba,a)	(a)
+-#define PCI_HOST_ADDR(hba,a)	(a)
+ #define PCI_F_EXTEND		0UL
+-#define PCI_IS_LMMIO(hba,a)	(1)	/* 32-bit doesn't support GMMIO */
+-
+ #endif /* !CONFIG_64BIT */
+ 
+ /*
+@@ -245,13 +215,7 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
  }
  #endif
  
--extern void pcibios_resource_to_bus(struct pci_dev *dev,
--	struct pci_bus_region *region, struct resource *res);
+-extern void
+-pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+-			 struct resource *res);
 -
--extern void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--				    struct pci_bus_region *region);
+-extern void
+-pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+-			struct pci_bus_region *region);
 +#define ARCH_HAS_GENERIC_PCI_OFFSETS
  
- #define pci_domain_nr(bus) ((struct pci_controller *)(bus)->sysdata)->index
- 
-diff --git a/arch/mips/pci/fixup-cobalt.c b/arch/mips/pci/fixup-cobalt.c
-index acacd14..9553b14 100644
---- a/arch/mips/pci/fixup-cobalt.c
-+++ b/arch/mips/pci/fixup-cobalt.c
-@@ -51,67 +51,6 @@ static void qube_raq_galileo_early_fixup(struct pci_dev *dev)
- DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_MARVELL, PCI_DEVICE_ID_MARVELL_GT64111,
- 	 qube_raq_galileo_early_fixup);
- 
--static void __devinit cobalt_legacy_ide_resource_fixup(struct pci_dev *dev,
--						       struct resource *res)
--{
--	struct pci_controller *hose = (struct pci_controller *)dev->sysdata;
--	unsigned long offset = hose->io_offset;
--	struct resource orig = *res;
--
--	if (!(res->flags & IORESOURCE_IO) ||
--	    !(res->flags & IORESOURCE_PCI_FIXED))
--		return;
--
--	res->start -= offset;
--	res->end -= offset;
--	dev_printk(KERN_DEBUG, &dev->dev, "converted legacy %pR to bus %pR\n",
--		   &orig, res);
--}
--
--static void __devinit cobalt_legacy_ide_fixup(struct pci_dev *dev)
--{
--	u32 class;
--	u8 progif;
--
--	/*
--	 * If the IDE controller is in legacy mode, pci_setup_device() fills in
--	 * the resources with the legacy addresses that normally appear on the
--	 * PCI bus, just as if we had read them from a BAR.
--	 *
--	 * However, with the GT-64111, those legacy addresses, e.g., 0x1f0,
--	 * will never appear on the PCI bus because it converts memory accesses
--	 * in the PCI I/O region (which is never at address zero) into I/O port
--	 * accesses with no address translation.
--	 *
--	 * For example, if GT_DEF_PCI0_IO_BASE is 0x10000000, a load or store
--	 * to physical address 0x100001f0 will become a PCI access to I/O port
--	 * 0x100001f0.  There's no way to generate an access to I/O port 0x1f0,
--	 * but the VT82C586 IDE controller does respond at 0x100001f0 because
--	 * it only decodes the low 24 bits of the address.
--	 *
--	 * When this quirk runs, the pci_dev resources should contain bus
--	 * addresses, not Linux I/O port numbers, so convert legacy addresses
--	 * like 0x1f0 to bus addresses like 0x100001f0.  Later, we'll convert
--	 * them back with pcibios_fixup_bus() or pcibios_bus_to_resource().
--	 */
--	class = dev->class >> 8;
--	if (class != PCI_CLASS_STORAGE_IDE)
--		return;
--
--	pci_read_config_byte(dev, PCI_CLASS_PROG, &progif);
--	if ((progif & 1) == 0) {
--		cobalt_legacy_ide_resource_fixup(dev, &dev->resource[0]);
--		cobalt_legacy_ide_resource_fixup(dev, &dev->resource[1]);
--	}
--	if ((progif & 4) == 0) {
--		cobalt_legacy_ide_resource_fixup(dev, &dev->resource[2]);
--		cobalt_legacy_ide_resource_fixup(dev, &dev->resource[3]);
--	}
--}
--
--DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_VIA, PCI_DEVICE_ID_VIA_82C586_1,
--	  cobalt_legacy_ide_fixup);
--
- static void qube_raq_via_bmIDE_fixup(struct pci_dev *dev)
+ static inline void pcibios_penalize_isa_irq(int irq, int active)
  {
- 	unsigned short cfgword;
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index aec2b11..cab58e6 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -95,8 +95,9 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
- 	if (hose->get_busno && pci_probe_only)
- 		next_busno = (*hose->get_busno)();
- 
--	pci_add_resource(&resources, hose->mem_resource);
--	pci_add_resource(&resources, hose->io_resource);
-+	pci_add_resource_offset(&resources,
-+				hose->mem_resource, hose->mem_offset);
-+	pci_add_resource_offset(&resources, hose->io_resource, hose->io_offset);
- 	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
- 				&resources);
- 	if (!bus)
-@@ -254,45 +255,13 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
- 	return pcibios_plat_dev_init(dev);
+diff --git a/arch/parisc/kernel/pci.c b/arch/parisc/kernel/pci.c
+index 9efd974..74d544b 100644
+--- a/arch/parisc/kernel/pci.c
++++ b/arch/parisc/kernel/pci.c
+@@ -195,58 +195,6 @@ void __init pcibios_init_bus(struct pci_bus *bus)
+ 	pci_write_config_word(dev, PCI_BRIDGE_CONTROL, bridge_ctl);
  }
  
--static void pcibios_fixup_device_resources(struct pci_dev *dev,
--	struct pci_bus *bus)
+-/* called by drivers/pci/setup-bus.c:pci_setup_bridge().  */
+-void __devinit pcibios_resource_to_bus(struct pci_dev *dev,
+-		struct pci_bus_region *region, struct resource *res)
 -{
--	/* Update device resources.  */
--	struct pci_controller *hose = (struct pci_controller *)bus->sysdata;
--	unsigned long offset = 0;
--	int i;
+-#ifdef CONFIG_64BIT
+-	struct pci_hba_data *hba = HBA_DATA(dev->bus->bridge->platform_data);
+-#endif
 -
--	for (i = 0; i < PCI_NUM_RESOURCES; i++) {
--		if (!dev->resource[i].start)
--			continue;
--		if (dev->resource[i].flags & IORESOURCE_IO)
--			offset = hose->io_offset;
--		else if (dev->resource[i].flags & IORESOURCE_MEM)
--			offset = hose->mem_offset;
+-	if (res->flags & IORESOURCE_IO) {
+-		/*
+-		** I/O space may see busnumbers here. Something
+-		** in the form of 0xbbxxxx where bb is the bus num
+-		** and xxxx is the I/O port space address.
+-		** Remaining address translation are done in the
+-		** PCI Host adapter specific code - ie dino_out8.
+-		*/
+-		region->start = PCI_PORT_ADDR(res->start);
+-		region->end   = PCI_PORT_ADDR(res->end);
+-	} else if (res->flags & IORESOURCE_MEM) {
+-		/* Convert MMIO addr to PCI addr (undo global virtualization) */
+-		region->start = PCI_BUS_ADDR(hba, res->start);
+-		region->end   = PCI_BUS_ADDR(hba, res->end);
+-	}
 -
--		dev->resource[i].start += offset;
--		dev->resource[i].end += offset;
+-	DBG_RES("pcibios_resource_to_bus(%02x %s [%lx,%lx])\n",
+-		dev->bus->number, res->flags & IORESOURCE_IO ? "IO" : "MEM",
+-		region->start, region->end);
+-}
+-
+-void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+-			      struct pci_bus_region *region)
+-{
+-#ifdef CONFIG_64BIT
+-	struct pci_hba_data *hba = HBA_DATA(dev->bus->bridge->platform_data);
+-#endif
+-
+-	if (res->flags & IORESOURCE_MEM) {
+-		res->start = PCI_HOST_ADDR(hba, region->start);
+-		res->end = PCI_HOST_ADDR(hba, region->end);
+-	}
+-
+-	if (res->flags & IORESOURCE_IO) {
+-		res->start = region->start;
+-		res->end = region->end;
 -	}
 -}
 -
- void __devinit pcibios_fixup_bus(struct pci_bus *bus)
- {
--	/* Propagate hose info into the subordinate devices.  */
--
--	struct list_head *ln;
- 	struct pci_dev *dev = bus->self;
- 
- 	if (pci_probe_only && dev &&
- 	    (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
- 		pci_read_bridge_bases(bus);
--		pcibios_fixup_device_resources(dev, bus);
--	}
--
--	for (ln = bus->devices.next; ln != &bus->devices; ln = ln->next) {
--		dev = pci_dev_b(ln);
--
--		if ((dev->class >> 8) != PCI_CLASS_BRIDGE_PCI)
--			pcibios_fixup_device_resources(dev, bus);
- 	}
- }
- 
-@@ -302,40 +271,7 @@ pcibios_update_irq(struct pci_dev *dev, int irq)
- 	pci_write_config_byte(dev, PCI_INTERRUPT_LINE, irq);
- }
- 
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			 struct resource *res)
--{
--	struct pci_controller *hose = (struct pci_controller *)dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_offset;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_offset;
--
--	region->start = res->start - offset;
--	region->end = res->end - offset;
--}
--
--void __devinit
--pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			struct pci_bus_region *region)
--{
--	struct pci_controller *hose = (struct pci_controller *)dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_offset;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_offset;
--
--	res->start = region->start + offset;
--	res->end = region->end + offset;
--}
--
- #ifdef CONFIG_HOTPLUG
+-#ifdef CONFIG_HOTPLUG
 -EXPORT_SYMBOL(pcibios_resource_to_bus);
 -EXPORT_SYMBOL(pcibios_bus_to_resource);
- EXPORT_SYMBOL(PCIBIOS_MIN_IO);
- EXPORT_SYMBOL(PCIBIOS_MIN_MEM);
+-#endif
+-
+ /*
+  * pcibios align resources() is called every time generic PCI code
+  * wants to generate a new address. The process of looking for
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 7ff10c1..0610e91 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -553,7 +553,6 @@ dino_fixup_bus(struct pci_bus *bus)
+ 	struct list_head *ln;
+         struct pci_dev *dev;
+         struct dino_device *dino_dev = DINO_DEV(parisc_walk_tree(bus->bridge));
+-	int port_base = HBA_PORT_BASE(dino_dev->hba.hba_num);
+ 
+ 	DBG(KERN_WARNING "%s(0x%p) bus %d platform_data 0x%p\n",
+ 	    __func__, bus, bus->secondary,
+@@ -599,8 +598,6 @@ dino_fixup_bus(struct pci_bus *bus)
+ 
+ 
+ 	list_for_each(ln, &bus->devices) {
+-		int i;
+-
+ 		dev = pci_dev_b(ln);
+ 		if (is_card_dino(&dino_dev->hba.dev->id))
+ 			dino_card_fixup(dev);
+@@ -612,21 +609,6 @@ dino_fixup_bus(struct pci_bus *bus)
+ 		if ((dev->class >> 8) == PCI_CLASS_BRIDGE_PCI)
+ 			continue;
+ 
+-		/* Adjust the I/O Port space addresses */
+-		for (i = 0; i < PCI_NUM_RESOURCES; i++) {
+-			struct resource *res = &dev->resource[i];
+-			if (res->flags & IORESOURCE_IO) {
+-				res->start |= port_base;
+-				res->end |= port_base;
+-			}
+-#ifdef __LP64__
+-			/* Sign Extend MMIO addresses */
+-			else if (res->flags & IORESOURCE_MEM) {
+-				res->start |= F_EXTEND(0UL);
+-				res->end   |= F_EXTEND(0UL);
+-			}
+-#endif
+-		}
+ 		/* null out the ROM resource if there is one (we don't
+ 		 * care about an expansion rom on parisc, since it
+ 		 * usually contains (x86) bios code) */
+@@ -991,11 +973,14 @@ static int __init dino_probe(struct parisc_device *dev)
+ 
+ 	dev->dev.platform_data = dino_dev;
+ 
+-	pci_add_resource(&resources, &dino_dev->hba.io_space);
++	pci_add_resource_offset(&resources, &dino_dev->hba.io_space,
++				HBA_PORT_BASE(dino_dev->hba.hba_num));
+ 	if (dino_dev->hba.lmmio_space.flags)
+-		pci_add_resource(&resources, &dino_dev->hba.lmmio_space);
++		pci_add_resource_offset(&resources, &dino_dev->hba.lmmio_space,
++					dino_dev->hba.lmmio_space_offset);
+ 	if (dino_dev->hba.elmmio_space.flags)
+-		pci_add_resource(&resources, &dino_dev->hba.elmmio_space);
++		pci_add_resource_offset(&resources, &dino_dev->hba.elmmio_space,
++					dino_dev->hba.lmmio_space_offset);
+ 	if (dino_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
+ 
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index d5f3d75..e885764 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -635,7 +635,6 @@ lba_fixup_bus(struct pci_bus *bus)
+ 	u16 status;
  #endif
+ 	struct lba_device *ldev = LBA_DEV(parisc_walk_tree(bus->bridge));
+-	int lba_portbase = HBA_PORT_BASE(ldev->hba.hba_num);
+ 
+ 	DBG("lba_fixup_bus(0x%p) bus %d platform_data 0x%p\n",
+ 		bus, bus->secondary, bus->bridge->platform_data);
+@@ -726,27 +725,6 @@ lba_fixup_bus(struct pci_bus *bus)
+ 			if (!res->start)
+ 				continue;
+ 
+-			if (res->flags & IORESOURCE_IO) {
+-				DBG("lba_fixup_bus() I/O Ports [%lx/%lx] -> ",
+-					res->start, res->end);
+-				res->start |= lba_portbase;
+-				res->end   |= lba_portbase;
+-				DBG("[%lx/%lx]\n", res->start, res->end);
+-			} else if (res->flags & IORESOURCE_MEM) {
+-				/*
+-				** Convert PCI (IO_VIEW) addresses to
+-				** processor (PA_VIEW) addresses
+-				 */
+-				DBG("lba_fixup_bus() MMIO [%lx/%lx] -> ",
+-					res->start, res->end);
+-				res->start = PCI_HOST_ADDR(HBA_DATA(ldev), res->start);
+-				res->end   = PCI_HOST_ADDR(HBA_DATA(ldev), res->end);
+-				DBG("[%lx/%lx]\n", res->start, res->end);
+-			} else {
+-				DBG("lba_fixup_bus() WTF? 0x%lx [%lx/%lx] XXX",
+-					res->flags, res->start, res->end);
+-			}
+-
+ 			/*
+ 			** FIXME: this will result in whinging for devices
+ 			** that share expansion ROMs (think quad tulip), but
+@@ -1514,11 +1492,14 @@ lba_driver_probe(struct parisc_device *dev)
+ 		lba_dev->hba.lmmio_space.flags = 0;
+ 	}
+ 
+-	pci_add_resource(&resources, &lba_dev->hba.io_space);
++	pci_add_resource_offset(&resources, &lba_dev->hba.io_space,
++				HBA_PORT_BASE(lba_dev->hba.hba_num));
+ 	if (lba_dev->hba.elmmio_space.start)
+-		pci_add_resource(&resources, &lba_dev->hba.elmmio_space);
++		pci_add_resource_offset(&resources, &lba_dev->hba.elmmio_space,
++					lba_dev->hba.lmmio_space_offset);
+ 	if (lba_dev->hba.lmmio_space.flags)
+-		pci_add_resource(&resources, &lba_dev->hba.lmmio_space);
++		pci_add_resource_offset(&resources, &lba_dev->hba.lmmio_space,
++					lba_dev->hba.lmmio_space_offset);
+ 	if (lba_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
+ 
 
