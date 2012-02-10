@@ -1,48 +1,83 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: on memory barriers and cachelines
-Date: Fri, 10 Feb 2012 10:47:22 -0800
-Message-ID: <20120210184722.GM2458@linux.vnet.ibm.com>
-References: <1328088838.2760.21.camel@laptop>
- <20120201142218.GF2488@linux.vnet.ibm.com>
- <20120210025129.GA9135@jl-vm1.vm.bytemark.co.uk>
- <20120210163252.GG2458@linux.vnet.ibm.com>
- <1328897589.25989.30.camel@laptop>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv6 0/7] ARM: DMA-mapping framework redesign
+Date: Fri, 10 Feb 2012 19:58:37 +0100
+Message-ID: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:52601 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751384Ab2BJSrd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 13:47:33 -0500
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 10 Feb 2012 11:47:32 -0700
-Received: from d03relay02.boulder.ibm.com (d03relay02.boulder.ibm.com [9.17.195.227])
-	by d03dlp03.boulder.ibm.com (Postfix) with ESMTP id B96E419D804C
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 11:47:23 -0700 (MST)
-Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
-	by d03relay02.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id q1AIlOjM182920
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 11:47:25 -0700
-Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av01.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id q1AIlNR7019316
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 11:47:24 -0700
-Content-Disposition: inline
-In-Reply-To: <1328897589.25989.30.camel@laptop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Jamie Lokier <jamie@shareable.org>, Linus Torvalds <torvalds@linux-foundation.org>, benh <benh@kernel.crashing.org>, davem <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, dhowells <dhowells@redhat.com>
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 10, 2012 at 07:13:09PM +0100, Peter Zijlstra wrote:
-> On Fri, 2012-02-10 at 08:32 -0800, Paul E. McKenney wrote:
-> > 
-> > Are there SMP blackfin systems now?  There were not last I checked,
-> > and these issues matter only on SMP. 
-> 
-> Those are not cache coherent and a total trainwreck.
+Hello,
 
-Indeed, I was ignoring the cache-incoherent "SMP" blackfin systems.  ;-)
+This is another update on my works DMA-mapping framework redesign for
+ARM architecture. It includes a few minor cleanup and fixes since the
+last version posted by the end of December 2011. This patch series is
+now based on the generic, cross-arch dma-mapping redesign patches posted
+in the "[PATCH 00/14] DMA-mapping framework redesign preparation"
+thread: http://www.spinics.net/lists/linux-sh/msg09777.html
 
-							Thanx, Paul
+All patches have been now rebased onto v3.3-rc2 kernel.
+
+All the code has been tested on Samsung Exynos4 'UniversalC210' board
+with IOMMU driver posted by KyongHo Cho.
+
+
+History of the development:
+
+v1: (initial version of the DMA-mapping redesign patches):
+http://www.spinics.net/lists/linux-mm/msg21241.html
+
+v2:
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000571.html
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000577.html
+
+v3:
+http://www.spinics.net/lists/linux-mm/msg25490.html
+
+v4 and v5:
+http://www.spinics.net/lists/arm-kernel/msg151147.html
+http://www.spinics.net/lists/arm-kernel/msg154889.html
+
+Best regards
+--
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+Patch summary:
+
+Marek Szyprowski (7):
+  ARM: dma-mapping: remove offset parameter to prepare for generic
+    dma_ops
+  ARM: dma-mapping: use asm-generic/dma-mapping-common.h
+  ARM: dma-mapping: implement dma sg methods on top of any generic dma
+    ops
+  ARM: dma-mapping: move all dma bounce code to separate dma ops
+    structure
+  ARM: dma-mapping: remove redundant code and cleanup
+  ARM: dma-mapping: use alloc, mmap, free from dma_ops
+  ARM: dma-mapping: add support for IOMMU mapper
+
+ arch/arm/Kconfig                   |    9 +
+ arch/arm/common/dmabounce.c        |   78 +++-
+ arch/arm/include/asm/device.h      |    4 +
+ arch/arm/include/asm/dma-iommu.h   |   34 ++
+ arch/arm/include/asm/dma-mapping.h |  404 +++++------------
+ arch/arm/mm/dma-mapping.c          |  897 ++++++++++++++++++++++++++++++------
+ arch/arm/mm/vmregion.h             |    2 +-
+ 7 files changed, 980 insertions(+), 448 deletions(-)
+ create mode 100644 arch/arm/include/asm/dma-iommu.h
+
+-- 
+1.7.1.569.g6f426
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
