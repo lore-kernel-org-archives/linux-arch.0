@@ -1,146 +1,60 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 02/18] PCI: add struct pci_host_bridge and a list of all
-	bridges found
-Date: Thu, 09 Feb 2012 19:36:31 -0700
-Message-ID: <20120210023631.10311.37307.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 01/18] PCI: don't publish new root bus until it's fully
+	initialized
+Date: Thu, 09 Feb 2012 19:36:26 -0700
+Message-ID: <20120210023626.10311.44633.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f74.google.com ([74.125.83.74]:55163 "EHLO
+Received: from mail-ee0-f74.google.com ([74.125.83.74]:57575 "EHLO
 	mail-ee0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758114Ab2BJCgc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:36:32 -0500
-Received: by mail-ee0-f74.google.com with SMTP id b15so75582eek.1
-        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:36:32 -0800 (PST)
+	with ESMTP id S1758114Ab2BJCg2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:36:28 -0500
+Received: by eekb15 with SMTP id b15so75583eek.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:36:27 -0800 (PST)
 In-Reply-To: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 
-This adds a list of all PCI host bridges we find and a way to look up
-the host bridge from a pci_dev.
+When pci_create_root_bus() adds the new struct pci_bus to the global
+pci_root_buses list, the bus becomes visible to other parts of the
+kernel, so it should be fully initialized.
+
+This patch delays adding the bus to the pci_root_buses list until after
+all the struct pci_bus initialization is finished.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
- include/linux/pci.h |    5 +++++
- 2 files changed, 39 insertions(+), 5 deletions(-)
+ drivers/pci/probe.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index da0d655..2ffe8a3 100644
+index 7cc9e2f..da0d655 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -15,6 +15,8 @@
- #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
- #define CARDBUS_RESERVE_BUSNR	3
- 
-+static LIST_HEAD(pci_host_bridges);
-+
- /* Ugh.  Need to stop exporting this to modules. */
- LIST_HEAD(pci_root_buses);
- EXPORT_SYMBOL(pci_root_buses);
-@@ -42,6 +44,23 @@ int no_pci_devices(void)
- }
- EXPORT_SYMBOL(no_pci_devices);
- 
-+static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+{
-+	struct pci_bus *bus;
-+	struct pci_host_bridge *bridge;
-+
-+	bus = dev->bus;
-+	while (bus->parent)
-+		bus = bus->parent;
-+
-+	list_for_each_entry(bridge, &pci_host_bridges, list) {
-+		if (bridge->bus == bus)
-+			return bridge;
-+	}
-+
-+	return NULL;
-+}
-+
- /*
-  * PCI Bus Class
-  */
-@@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
- 	int error, i;
-+	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
- 	struct device *dev;
- 	struct pci_bus_resource *bus_res, *n;
- 	struct resource *res;
- 
-+	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-+	if (!bridge)
-+		return NULL;
-+
- 	b = pci_alloc_bus();
- 	if (!b)
--		return NULL;
-+		goto err_bus;
- 
- 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
--	if (!dev) {
--		kfree(b);
--		return NULL;
--	}
-+	if (!dev)
-+		goto err_dev;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
-@@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	b->number = b->secondary = bus;
- 
-+	bridge->bus = b;
-+
- 	/* Add initial resources to the bus */
- 	list_for_each_entry_safe(bus_res, n, resources, list)
- 		list_move_tail(&bus_res->list, &b->resources);
-@@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+@@ -1551,10 +1551,6 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 		goto err_out;
  	}
  
- 	down_write(&pci_bus_sem);
-+	list_add_tail(&bridge->list, &pci_host_bridges);
- 	list_add_tail(&b->node, &pci_root_buses);
- 	up_write(&pci_bus_sem);
+-	down_write(&pci_bus_sem);
+-	list_add_tail(&b->node, &pci_root_buses);
+-	up_write(&pci_bus_sem);
+-
+ 	dev->parent = parent;
+ 	dev->release = pci_release_bus_bridge_dev;
+ 	dev_set_name(dev, "pci%04x:%02x", pci_domain_nr(b), bus);
+@@ -1594,6 +1590,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 			dev_info(&b->dev, "root bus resource %pR\n", res);
+ 	}
  
-@@ -1600,11 +1625,15 @@ class_dev_reg_err:
- 	device_unregister(dev);
- dev_reg_err:
- 	down_write(&pci_bus_sem);
-+	list_del(&bridge->list);
- 	list_del(&b->node);
- 	up_write(&pci_bus_sem);
- err_out:
- 	kfree(dev);
-+err_dev:
- 	kfree(b);
-+err_bus:
-+	kfree(bridge);
- 	return NULL;
- }
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index a16b1df..dfb2b64 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -388,6 +388,11 @@ static inline void pci_add_saved_cap(struct pci_dev *pci_dev,
- 	hlist_add_head(&new_cap->next, &pci_dev->saved_cap_space);
- }
- 
-+struct pci_host_bridge {
-+	struct list_head list;
-+	struct pci_bus *bus;		/* root bus */
-+};
++	down_write(&pci_bus_sem);
++	list_add_tail(&b->node, &pci_root_buses);
++	up_write(&pci_bus_sem);
 +
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
-  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
+ 	return b;
+ 
+ class_dev_reg_err:
