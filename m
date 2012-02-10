@@ -1,153 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:59244 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758246Ab2BJDrB convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 22:47:01 -0500
-MIME-Version: 1.0
-In-Reply-To: <20120210023631.10311.37307.stgit@bhelgaas.mtv.corp.google.com>
-References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
-	<20120210023631.10311.37307.stgit@bhelgaas.mtv.corp.google.com>
-Date: Thu, 9 Feb 2012 19:47:00 -0800
-Message-ID: <CAE9FiQXtYfcqjSKLxiYqgtMfqZts2kvM8G1M5Kw0VemmtvTBPA@mail.gmail.com>
-Subject: Re: [PATCH v2 02/18] PCI: add struct pci_host_bridge and a list of
- all bridges found
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:20498 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758351Ab2BJScj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 13:32:39 -0500
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: TEXT/PLAIN
+Date: Fri, 10 Feb 2012 19:32:17 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PULL REQUEST] DMA-mapping framework redesign preparation patches
+Message-ID: <1328898737-15854-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120210034700.92NkkSPP28bk7EIp4ycFYsj1Z8hD7i4ibzWB11lLQWY@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+Message-ID: <20120210183217.5D0DUr7bwRT_JuXa7WdKLYMsl28F4NZ0ZyQhixyFNiU@z>
 
-On Thu, Feb 9, 2012 at 6:36 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> This adds a list of all PCI host bridges we find and a way to look up
-> the host bridge from a pci_dev.
->
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
->  drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
->  include/linux/pci.h |    5 +++++
->  2 files changed, 39 insertions(+), 5 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index da0d655..2ffe8a3 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -15,6 +15,8 @@
->  #define CARDBUS_LATENCY_TIMER  176     /* secondary latency timer */
->  #define CARDBUS_RESERVE_BUSNR  3
->
-> +static LIST_HEAD(pci_host_bridges);
-> +
->  /* Ugh.  Need to stop exporting this to modules. */
->  LIST_HEAD(pci_root_buses);
->  EXPORT_SYMBOL(pci_root_buses);
-> @@ -42,6 +44,23 @@ int no_pci_devices(void)
->  }
->  EXPORT_SYMBOL(no_pci_devices);
->
-> +static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-> +{
-> +       struct pci_bus *bus;
-> +       struct pci_host_bridge *bridge;
-> +
-> +       bus = dev->bus;
-> +       while (bus->parent)
-> +               bus = bus->parent;
-> +
-> +       list_for_each_entry(bridge, &pci_host_bridges, list) {
-> +               if (bridge->bus == bus)
-> +                       return bridge;
-> +       }
-> +
-> +       return NULL;
-> +}
-> +
+Hi Stephen,
 
-so pci_host_bridge(dev) still is expensive.
+Our patches with DMA-mapping framework redesign proposal have been
+hanging for over a month with just a few comments. We would like to go
+further in the development, but first I would like to ask You to give
+them a try in the linux-next kernel.
 
+For everyone interested in this patch series, here is the relevant
+thread: https://lkml.org/lkml/2011/12/23/97
 
+If there are any problems with our git tree, please contact Marek 
+Szyprowski <m.szyprowski@samsung.com> or alternatively Kyungmin Park
+<kyungmin.park@samsung.com>.
 
->  /*
->  * PCI Bus Class
->  */
-> @@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->                struct pci_ops *ops, void *sysdata, struct list_head *resources)
->  {
->        int error, i;
-> +       struct pci_host_bridge *bridge;
->        struct pci_bus *b, *b2;
->        struct device *dev;
->        struct pci_bus_resource *bus_res, *n;
->        struct resource *res;
->
-> +       bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-> +       if (!bridge)
-> +               return NULL;
-> +
->        b = pci_alloc_bus();
->        if (!b)
-> -               return NULL;
-> +               goto err_bus;
->
->        dev = kzalloc(sizeof(*dev), GFP_KERNEL);
-> -       if (!dev) {
-> -               kfree(b);
-> -               return NULL;
-> -       }
-> +       if (!dev)
-> +               goto err_dev;
->
->        b->sysdata = sysdata;
->        b->ops = ops;
-> @@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->
->        b->number = b->secondary = bus;
->
-> +       bridge->bus = b;
-> +
->        /* Add initial resources to the bus */
->        list_for_each_entry_safe(bus_res, n, resources, list)
->                list_move_tail(&bus_res->list, &b->resources);
-> @@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
->        }
->
->        down_write(&pci_bus_sem);
-> +       list_add_tail(&bridge->list, &pci_host_bridges);
->        list_add_tail(&b->node, &pci_root_buses);
->        up_write(&pci_bus_sem);
->
-> @@ -1600,11 +1625,15 @@ class_dev_reg_err:
->        device_unregister(dev);
->  dev_reg_err:
->        down_write(&pci_bus_sem);
-> +       list_del(&bridge->list);
->        list_del(&b->node);
->        up_write(&pci_bus_sem);
->  err_out:
->        kfree(dev);
-> +err_dev:
->        kfree(b);
-> +err_bus:
-> +       kfree(bridge);
->        return NULL;
->  }
->
-> diff --git a/include/linux/pci.h b/include/linux/pci.h
-> index a16b1df..dfb2b64 100644
-> --- a/include/linux/pci.h
-> +++ b/include/linux/pci.h
-> @@ -388,6 +388,11 @@ static inline void pci_add_saved_cap(struct pci_dev *pci_dev,
->        hlist_add_head(&new_cap->next, &pci_dev->saved_cap_space);
->  }
->
-> +struct pci_host_bridge {
-> +       struct list_head list;
-> +       struct pci_bus *bus;            /* root bus */
-> +};
-> +
+The following changes since commit 62aa2b537c6f5957afd98e29f96897419ed5ebab:
 
-also still have two list: one for host bridges and one for root buses.
+  Linux 3.3-rc2 (2012-01-31 13:31:54 -0800)
 
-Yinghai
+are available in the git repository at:
+  git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
+
+Andrzej Pietrasiewicz (9):
+      X86: adapt for dma_map_ops changes
+      MIPS: adapt for dma_map_ops changes
+      PowerPC: adapt for dma_map_ops changes
+      IA64: adapt for dma_map_ops changes
+      SPARC: adapt for dma_map_ops changes
+      Alpha: adapt for dma_map_ops changes
+      SH: adapt for dma_map_ops changes
+      Microblaze: adapt for dma_map_ops changes
+      Unicore32: adapt for dma_map_ops changes
+
+Marek Szyprowski (5):
+      common: dma-mapping: introduce alloc_attrs and free_attrs methods
+      common: dma-mapping: remove old alloc_coherent and free_coherent methods
+      common: dma-mapping: introduce mmap method
+      common: DMA-mapping: add WRITE_COMBINE attribute
+      common: DMA-mapping: add NON-CONSISTENT attribute
+
+ Documentation/DMA-attributes.txt          |   19 +++++++++++++++++++
+ arch/alpha/include/asm/dma-mapping.h      |   18 ++++++++++++------
+ arch/alpha/kernel/pci-noop.c              |   10 ++++++----
+ arch/alpha/kernel/pci_iommu.c             |   10 ++++++----
+ arch/ia64/hp/common/sba_iommu.c           |   11 ++++++-----
+ arch/ia64/include/asm/dma-mapping.h       |   18 ++++++++++++------
+ arch/ia64/kernel/pci-swiotlb.c            |    9 +++++----
+ arch/ia64/sn/pci/pci_dma.c                |    9 +++++----
+ arch/microblaze/include/asm/dma-mapping.h |   18 ++++++++++++------
+ arch/microblaze/kernel/dma.c              |   10 ++++++----
+ arch/mips/include/asm/dma-mapping.h       |   18 ++++++++++++------
+ arch/mips/mm/dma-default.c                |    8 ++++----
+ arch/powerpc/include/asm/dma-mapping.h    |   24 ++++++++++++++++--------
+ arch/powerpc/kernel/dma-iommu.c           |   10 ++++++----
+ arch/powerpc/kernel/dma-swiotlb.c         |    4 ++--
+ arch/powerpc/kernel/dma.c                 |   10 ++++++----
+ arch/powerpc/kernel/ibmebus.c             |   10 ++++++----
+ arch/powerpc/platforms/cell/iommu.c       |   16 +++++++++-------
+ arch/powerpc/platforms/ps3/system-bus.c   |   13 +++++++------
+ arch/sh/include/asm/dma-mapping.h         |   28 ++++++++++++++++++----------
+ arch/sh/kernel/dma-nommu.c                |    4 ++--
+ arch/sh/mm/consistent.c                   |    6 ++++--
+ arch/sparc/include/asm/dma-mapping.h      |   18 ++++++++++++------
+ arch/sparc/kernel/iommu.c                 |   10 ++++++----
+ arch/sparc/kernel/ioport.c                |   18 ++++++++++--------
+ arch/sparc/kernel/pci_sun4v.c             |    9 +++++----
+ arch/unicore32/include/asm/dma-mapping.h  |   18 ++++++++++++------
+ arch/unicore32/mm/dma-swiotlb.c           |    4 ++--
+ arch/x86/include/asm/dma-mapping.h        |   26 ++++++++++++++++----------
+ arch/x86/kernel/amd_gart_64.c             |   11 ++++++-----
+ arch/x86/kernel/pci-calgary_64.c          |    9 +++++----
+ arch/x86/kernel/pci-dma.c                 |    3 ++-
+ arch/x86/kernel/pci-nommu.c               |    6 +++---
+ arch/x86/kernel/pci-swiotlb.c             |   12 +++++++-----
+ arch/x86/xen/pci-swiotlb-xen.c            |    4 ++--
+ drivers/iommu/amd_iommu.c                 |   10 ++++++----
+ drivers/iommu/intel-iommu.c               |    9 +++++----
+ drivers/xen/swiotlb-xen.c                 |    5 +++--
+ include/linux/dma-attrs.h                 |    2 ++
+ include/linux/dma-mapping.h               |   13 +++++++++----
+ include/linux/swiotlb.h                   |    6 ++++--
+ include/xen/swiotlb-xen.h                 |    6 ++++--
+ lib/swiotlb.c                             |    5 +++--
+ 43 files changed, 305 insertions(+), 182 deletions(-)
+
+Best regards
+Marek Szyprowski
+Samsung Poland R&D Center
+
