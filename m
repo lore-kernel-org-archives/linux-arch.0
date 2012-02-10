@@ -1,7 +1,7 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 14/18] powerpc/PCI: get rid of device resource fixups
-Date: Thu, 09 Feb 2012 19:37:32 -0700
-Message-ID: <20120210023732.10311.2622.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 16/18] sparc/PCI: get rid of device resource fixups
+Date: Thu, 09 Feb 2012 19:37:43 -0700
+Message-ID: <20120210023743.10311.96138.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,168 +10,200 @@ Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-pci-owner@vger.kernel.org
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
 Tell the PCI core about host bridge address translation so it can take
 care of bus-to-resource conversion for us.
 
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+N.B. Leon apparently never uses initial BAR values, so it didn't matter
+that we never fixed up the I/O resources from bus address to CPU addresses.
+
+Other sparc uses pci_of_scan_bus(), which sets device resources directly
+to CPU addresses, not bus addresses, so it didn't need pcibios_fixup_bus()
+either.  But by telling the core about the offsets, we can nuke
+pcibios_resource_to_bus().
+
+CC: "David S. Miller" <davem@davemloft.net>
+CC: sparclinux@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/include/asm/pci.h   |    8 ----
- arch/powerpc/kernel/pci-common.c |   79 ++------------------------------------
- 2 files changed, 6 insertions(+), 81 deletions(-)
+ arch/sparc/include/asm/pci_32.h |    8 +------
+ arch/sparc/include/asm/pci_64.h |    8 +------
+ arch/sparc/kernel/leon_pci.c    |   47 ++++++---------------------------------
+ arch/sparc/kernel/pci.c         |   46 +++-----------------------------------
+ 4 files changed, 13 insertions(+), 96 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
-index f54b3d2..839178b 100644
---- a/arch/powerpc/include/asm/pci.h
-+++ b/arch/powerpc/include/asm/pci.h
-@@ -154,13 +154,7 @@ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
+diff --git a/arch/sparc/include/asm/pci_32.h b/arch/sparc/include/asm/pci_32.h
+index 6de7f7b..6384f30 100644
+--- a/arch/sparc/include/asm/pci_32.h
++++ b/arch/sparc/include/asm/pci_32.h
+@@ -52,13 +52,7 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
+  * 64Kbytes by the Host controller.
+  */
  
- #endif /* CONFIG_PPC64 */
- 
--extern void pcibios_resource_to_bus(struct pci_dev *dev,
--			struct pci_bus_region *region,
+-extern void
+-pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
 -			struct resource *res);
 -
--extern void pcibios_bus_to_resource(struct pci_dev *dev,
--			struct resource *res,
+-extern void
+-pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
 -			struct pci_bus_region *region);
 +#define ARCH_HAS_GENERIC_PCI_OFFSETS
  
- extern void pcibios_claim_one_bus(struct pci_bus *b);
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
+diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_64.h
+index 755a4bb..2918bd1 100644
+--- a/arch/sparc/include/asm/pci_64.h
++++ b/arch/sparc/include/asm/pci_64.h
+@@ -73,13 +73,7 @@ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ 			       enum pci_mmap_state mmap_state,
+ 			       int write_combine);
  
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index cce98d7..f0084c9 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -849,60 +849,6 @@ int pci_proc_domain(struct pci_bus *bus)
- 	return 1;
+-extern void
+-pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+-			struct resource *res);
+-
+-extern void
+-pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+-			struct pci_bus_region *region);
++#define ARCH_HAS_GENERIC_PCI_OFFSETS
+ 
+ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ {
+diff --git a/arch/sparc/kernel/leon_pci.c b/arch/sparc/kernel/leon_pci.c
+index c7bec25..aba6b95 100644
+--- a/arch/sparc/kernel/leon_pci.c
++++ b/arch/sparc/kernel/leon_pci.c
+@@ -15,14 +15,19 @@
+ 
+ /* The LEON architecture does not rely on a BIOS or bootloader to setup
+  * PCI for us. The Linux generic routines are used to setup resources,
+- * reset values of confuration-space registers settings ae preseved.
++ * reset values of configuration-space register settings are preserved.
++ *
++ * PCI Memory and Prefetchable Memory is direct-mapped. However I/O Space is
++ * accessed through a Window which is translated to low 64KB in PCI space, the
++ * first 4KB is not used so 60KB is available.
+  */
+ void leon_pci_init(struct platform_device *ofdev, struct leon_pci_info *info)
+ {
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *root_bus;
+ 
+-	pci_add_resource(&resources, &info->io_space);
++	pci_add_resource_offset(&resources, &info->io_space,
++				info->io_space.start - 0x1000);
+ 	pci_add_resource(&resources, &info->mem_space);
+ 
+ 	root_bus = pci_scan_root_bus(&ofdev->dev, 0, info->ops, info,
+@@ -38,44 +43,6 @@ void leon_pci_init(struct platform_device *ofdev, struct leon_pci_info *info)
+ 	}
  }
  
+-/* PCI Memory and Prefetchable Memory is direct-mapped. However I/O Space is
+- * accessed through a Window which is translated to low 64KB in PCI space, the
+- * first 4KB is not used so 60KB is available.
+- *
+- * This function is used by generic code to translate resource addresses into
+- * PCI addresses.
+- */
 -void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
 -			     struct resource *res)
 -{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
+-	struct leon_pci_info *info = dev->bus->sysdata;
 -
--	if (!hose)
--		return;
+-	region->start = res->start;
+-	region->end = res->end;
+-
 -	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--
--	region->start = (res->start - offset) & mask;
--	region->end = (res->end - offset) & mask;
+-		region->start -= (info->io_space.start - 0x1000);
+-		region->end -= (info->io_space.start - 0x1000);
+-	}
 -}
 -EXPORT_SYMBOL(pcibios_resource_to_bus);
 -
+-/* see pcibios_resource_to_bus() comment */
 -void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
 -			     struct pci_bus_region *region)
 -{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
+-	struct leon_pci_info *info = dev->bus->sysdata;
 -
--	if (!hose)
--		return;
+-	res->start = region->start;
+-	res->end = region->end;
+-
 -	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--	res->start = (region->start + offset) & mask;
--	res->end = (region->end + offset) & mask;
+-		res->start += (info->io_space.start - 0x1000);
+-		res->end += (info->io_space.start - 0x1000);
+-	}
 -}
 -EXPORT_SYMBOL(pcibios_bus_to_resource);
 -
--/* Fixup a bus resource into a linux resource */
--static void __devinit fixup_resource(struct resource *res, struct pci_dev *dev)
--{
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--
--	res->start = (res->start + offset) & mask;
--	res->end = (res->end + offset) & mask;
--}
--
--
- /* This header fixup will do the resource fixup for all devices as they are
-  * probed, but not for bridge ranges
-  */
-@@ -942,18 +888,11 @@ static void __devinit pcibios_fixup_resources(struct pci_dev *dev)
- 			continue;
- 		}
+ void __devinit pcibios_fixup_bus(struct pci_bus *pbus)
+ {
+ 	struct leon_pci_info *info = pbus->sysdata;
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index bb8bc2e..253e8ac 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -691,8 +691,10 @@ struct pci_bus * __devinit pci_scan_one_pbm(struct pci_pbm_info *pbm,
  
--		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x] fixup...\n",
-+		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x]\n",
- 			 pci_name(dev), i,
- 			 (unsigned long long)res->start,\
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
--
--		fixup_resource(res, dev);
--
--		pr_debug("PCI:%s            %016llx-%016llx\n",
--			 pci_name(dev),
--			 (unsigned long long)res->start,
--			 (unsigned long long)res->end);
- 	}
+ 	printk("PCI: Scanning PBM %s\n", node->full_name);
  
- 	/* Call machine specific resource fixup */
-@@ -1055,27 +994,18 @@ static void __devinit pcibios_fixup_bridge(struct pci_bus *bus)
- 			continue;
- 		}
- 
--		pr_debug("PCI:%s Bus rsrc %d %016llx-%016llx [%x] fixup...\n",
-+		pr_debug("PCI:%s Bus rsrc %d %016llx-%016llx [%x]\n",
- 			 pci_name(dev), i,
- 			 (unsigned long long)res->start,\
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
- 
--		/* Perform fixup */
--		fixup_resource(res, dev);
--
- 		/* Try to detect uninitialized P2P bridge resources,
- 		 * and clear them out so they get re-assigned later
- 		 */
- 		if (pcibios_uninitialized_bridge_resource(bus, res)) {
- 			res->flags = 0;
- 			pr_debug("PCI:%s            (unassigned)\n", pci_name(dev));
--		} else {
--
--			pr_debug("PCI:%s            %016llx-%016llx\n",
--				 pci_name(dev),
--				 (unsigned long long)res->start,
--				 (unsigned long long)res->end);
- 		}
- 	}
+-	pci_add_resource(&resources, &pbm->io_space);
+-	pci_add_resource(&resources, &pbm->mem_space);
++	pci_add_resource_offset(&resources, &pbm->io_space,
++				pbm->io_space.start);
++	pci_add_resource_offset(&resources, &pbm->mem_space,
++				pbm->mem_space.start);
+ 	bus = pci_create_root_bus(parent, pbm->pci_first_busno, pbm->pci_ops,
+ 				  pbm, &resources);
+ 	if (!bus) {
+@@ -755,46 +757,6 @@ int pcibios_enable_device(struct pci_dev *dev, int mask)
+ 	return 0;
  }
-@@ -1589,7 +1519,8 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 		 (unsigned long long)res->start,
- 		 (unsigned long long)res->end,
- 		 (unsigned long)res->flags);
--	pci_add_resource(resources, res);
-+	pci_add_resource_offset(resources, res,
-+			(resource_size_t) hose->io_base_virt - _IO_BASE);
  
- 	/* Hookup PHB Memory resources */
- 	for (i = 0; i < 3; ++i) {
-@@ -1612,7 +1543,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 			 (unsigned long long)res->start,
- 			 (unsigned long long)res->end,
- 			 (unsigned long)res->flags);
--		pci_add_resource(resources, res);
-+		pci_add_resource_offset(resources, res, hose->pci_mem_offset);
- 	}
- 
- 	pr_debug("PCI: PHB MEM offset     = %016llx\n",
+-void pcibios_resource_to_bus(struct pci_dev *pdev, struct pci_bus_region *region,
+-			     struct resource *res)
+-{
+-	struct pci_pbm_info *pbm = pdev->bus->sysdata;
+-	struct resource zero_res, *root;
+-
+-	zero_res.start = 0;
+-	zero_res.end = 0;
+-	zero_res.flags = res->flags;
+-
+-	if (res->flags & IORESOURCE_IO)
+-		root = &pbm->io_space;
+-	else
+-		root = &pbm->mem_space;
+-
+-	pci_resource_adjust(&zero_res, root);
+-
+-	region->start = res->start - zero_res.start;
+-	region->end = res->end - zero_res.start;
+-}
+-EXPORT_SYMBOL(pcibios_resource_to_bus);
+-
+-void pcibios_bus_to_resource(struct pci_dev *pdev, struct resource *res,
+-			     struct pci_bus_region *region)
+-{
+-	struct pci_pbm_info *pbm = pdev->bus->sysdata;
+-	struct resource *root;
+-
+-	res->start = region->start;
+-	res->end = region->end;
+-
+-	if (res->flags & IORESOURCE_IO)
+-		root = &pbm->io_space;
+-	else
+-		root = &pbm->mem_space;
+-
+-	pci_resource_adjust(res, root);
+-}
+-EXPORT_SYMBOL(pcibios_bus_to_resource);
+-
+ char * __devinit pcibios_setup(char *str)
+ {
+ 	return str;
