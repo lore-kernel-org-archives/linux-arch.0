@@ -1,124 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:12767 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1759903Ab2BJTKa (ORCPT
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:16255 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1759903Ab2BJTKc (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Feb 2012 14:10:30 -0500
-Date: Fri, 10 Feb 2012 19:58:40 +0100
+	Fri, 10 Feb 2012 14:10:32 -0500
+Date: Fri, 10 Feb 2012 19:58:37 +0100
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv6 3/7] ARM: dma-mapping: implement dma sg methods on top of any
- generic dma ops
-In-reply-to: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <1328900324-20946-4-git-send-email-m.szyprowski@samsung.com>
+Subject: [PATCHv6 0/7] ARM: DMA-mapping framework redesign
+Message-ID: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
 MIME-version: 1.0
 Content-type: TEXT/PLAIN
 Content-transfer-encoding: 7BIT
-References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20120210185840.sgyaLoheKUMlE1crYi30oshUhMf9iwRg1RefWOjIcZg@z>
+Message-ID: <20120210185837.0sVL8LWED5-T8wneavLm3lNp70J_PdthrT7OZ8ZSbaU@z>
 
-This patch converts all dma_sg methods to be generic (independent of the
-current DMA mapping implementation for ARM architecture). All dma sg
-operations are now implemented on top of respective
-dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
+Hello,
 
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
----
- arch/arm/mm/dma-mapping.c |   35 +++++++++++++++--------------------
- 1 files changed, 15 insertions(+), 20 deletions(-)
+This is another update on my works DMA-mapping framework redesign for
+ARM architecture. It includes a few minor cleanup and fixes since the
+last version posted by the end of December 2011. This patch series is
+now based on the generic, cross-arch dma-mapping redesign patches posted
+in the "[PATCH 00/14] DMA-mapping framework redesign preparation"
+thread: http://www.spinics.net/lists/linux-sh/msg09777.html
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 91fe436..31ff699 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -635,12 +635,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
- int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 		enum dma_data_direction dir, struct dma_attrs *attrs)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i, j;
- 
- 	for_each_sg(sg, s, nents, i) {
--		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
--						s->length, dir);
-+		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
-+						s->length, dir, attrs);
- 		if (dma_mapping_error(dev, s->dma_address))
- 			goto bad_mapping;
- 	}
-@@ -648,7 +649,7 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- 
-  bad_mapping:
- 	for_each_sg(sg, s, i, j)
--		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-+		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
- 	return 0;
- }
- 
-@@ -665,11 +666,13 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
- void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
- 		enum dma_data_direction dir, struct dma_attrs *attrs)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
-+
- 	int i;
- 
- 	for_each_sg(sg, s, nents, i)
--		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-+		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
- }
- 
- /**
-@@ -682,17 +685,13 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
- void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- 			int nents, enum dma_data_direction dir)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i;
- 
--	for_each_sg(sg, s, nents, i) {
--		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
--					    sg_dma_len(s), dir))
--			continue;
--
--		__dma_page_dev_to_cpu(sg_page(s), s->offset,
--				      s->length, dir);
--	}
-+	for_each_sg(sg, s, nents, i)
-+		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
-+					 dir);
- }
- 
- /**
-@@ -705,17 +704,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- 			int nents, enum dma_data_direction dir)
- {
-+	struct dma_map_ops *ops = get_dma_ops(dev);
- 	struct scatterlist *s;
- 	int i;
- 
--	for_each_sg(sg, s, nents, i) {
--		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
--					sg_dma_len(s), dir))
--			continue;
--
--		__dma_page_cpu_to_dev(sg_page(s), s->offset,
--				      s->length, dir);
--	}
-+	for_each_sg(sg, s, nents, i)
-+		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
-+					    dir);
- }
- 
- /*
+All patches have been now rebased onto v3.3-rc2 kernel.
+
+All the code has been tested on Samsung Exynos4 'UniversalC210' board
+with IOMMU driver posted by KyongHo Cho.
+
+
+History of the development:
+
+v1: (initial version of the DMA-mapping redesign patches):
+http://www.spinics.net/lists/linux-mm/msg21241.html
+
+v2:
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000571.html
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000577.html
+
+v3:
+http://www.spinics.net/lists/linux-mm/msg25490.html
+
+v4 and v5:
+http://www.spinics.net/lists/arm-kernel/msg151147.html
+http://www.spinics.net/lists/arm-kernel/msg154889.html
+
+Best regards
+--
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+Patch summary:
+
+Marek Szyprowski (7):
+  ARM: dma-mapping: remove offset parameter to prepare for generic
+    dma_ops
+  ARM: dma-mapping: use asm-generic/dma-mapping-common.h
+  ARM: dma-mapping: implement dma sg methods on top of any generic dma
+    ops
+  ARM: dma-mapping: move all dma bounce code to separate dma ops
+    structure
+  ARM: dma-mapping: remove redundant code and cleanup
+  ARM: dma-mapping: use alloc, mmap, free from dma_ops
+  ARM: dma-mapping: add support for IOMMU mapper
+
+ arch/arm/Kconfig                   |    9 +
+ arch/arm/common/dmabounce.c        |   78 +++-
+ arch/arm/include/asm/device.h      |    4 +
+ arch/arm/include/asm/dma-iommu.h   |   34 ++
+ arch/arm/include/asm/dma-mapping.h |  404 +++++------------
+ arch/arm/mm/dma-mapping.c          |  897 ++++++++++++++++++++++++++++++------
+ arch/arm/mm/vmregion.h             |    2 +-
+ 7 files changed, 980 insertions(+), 448 deletions(-)
+ create mode 100644 arch/arm/include/asm/dma-iommu.h
+
 -- 
 1.7.1.569.g6f426
 
