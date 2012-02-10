@@ -1,133 +1,191 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: on memory barriers and cachelines
-Date: Fri, 10 Feb 2012 08:32:52 -0800
-Message-ID: <20120210163252.GG2458@linux.vnet.ibm.com>
-References: <1328088838.2760.21.camel@laptop>
- <20120201142218.GF2488@linux.vnet.ibm.com>
- <20120210025129.GA9135@jl-vm1.vm.bytemark.co.uk>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v2 00/18] add PCI bus-to-resource offset support in core
+Date: Fri, 10 Feb 2012 08:55:17 -0800
+Message-ID: <CAErSpo6zHhpz+N6y3ybDVp-oabVWAYeTt9pPJS3nz+nD2C8xkg@mail.gmail.com>
+References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
+ <CAE9FiQWE-VGoh=8hyhWPMrTe7X1dqTyBCgAM=ozWMyZXEvwGTg@mail.gmail.com>
+ <CAErSpo7pxGA02uTDNoFpxU_6_B4CgvJM10zpFRjjhXHK5L3mtg@mail.gmail.com> <CAE9FiQVx7=cSVkApbh_8dnoBqdrRYDOVtMqdC=mDCwq0fuVZpA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:45269 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753308Ab2BJQdT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 11:33:19 -0500
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 10 Feb 2012 09:33:17 -0700
-Received: from d03relay05.boulder.ibm.com (d03relay05.boulder.ibm.com [9.17.195.107])
-	by d03dlp02.boulder.ibm.com (Postfix) with ESMTP id CEA273E40036
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 09:33:14 -0700 (MST)
-Received: from d03av01.boulder.ibm.com (d03av01.boulder.ibm.com [9.17.195.167])
-	by d03relay05.boulder.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id q1AGWu0n105496
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 09:33:01 -0700
-Received: from d03av01.boulder.ibm.com (loopback [127.0.0.1])
-	by d03av01.boulder.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id q1AGWriU002219
-	for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 09:32:55 -0700
-Content-Disposition: inline
-In-Reply-To: <20120210025129.GA9135@jl-vm1.vm.bytemark.co.uk>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:51793 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751205Ab2BJQzj convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 11:55:39 -0500
+Received: by wgbdt10 with SMTP id dt10so2989383wgb.1
+        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 08:55:38 -0800 (PST)
+In-Reply-To: <CAE9FiQVx7=cSVkApbh_8dnoBqdrRYDOVtMqdC=mDCwq0fuVZpA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jamie Lokier <jamie@shareable.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, benh <benh@kernel.crashing.org>, davem <davem@davemloft.net>, "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, dhowells <dhowells@redhat.com>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Feb 10, 2012 at 02:51:29AM +0000, Jamie Lokier wrote:
-> Paul E. McKenney wrote:
-> > On Wed, Feb 01, 2012 at 10:33:58AM +0100, Peter Zijlstra wrote:
-> > > Hi all,
-> > > 
-> > > So I was talking to Paul yesterday and he mentioned how the SRCU sync
-> > > primitive has to use extra synchronize_sched() calls in order to avoid
-> > > smp_rmb() calls in the srcu_read_{un,}lock() calls.
-> > > 
-> > > Now memory barriers are usually explained as observable order between
-> > > two (or more) unrelated variables, as Documentation/memory-barriers.txt
-> > > does in great detail.
-> > > 
-> > > What I couldn't find in there though, is what happens when both
-> > > variables are on the same cacheline. The "The effects of the CPU cache"
-> > > and "Cache coherency" sections are closest but leave me wanting on this
-> > > point.
-> > > 
-> > > Can we get some implicit behaviour from being on the same cacheline? Or
-> > > can this memory access queue still totally wreck the game?
-> > 
-> > I don't know of any guarantees in this area, but am checking with
-> > hardware architects for a couple of architectures.
-> 
-> On a related note:
-> 
->    - What's to stop the compiler optimising away a data dependency,
->      converting it to a speculative control dependency?  Here's a
->      contrived example:
-> 
->          ORIGINAL:
-> 
->              int func(int *p)
->              {
->                  int index = p[0], first = p[1];
->                  read_barrier_depends(); /* do..while(0) on most archs */
-> 		 return max(first, p[index]);
->              }
-> 
->          OPTIMISED:
-> 
->              int func(int *p)
->              {
->                  int index = p[0], val = p[1];
->                  if (index != 1)
->                      val = max(val, p[index]);
->                  return val;
->              }
-> 
->      A quick search of the GCC manual for "speculation" and
->      "speculative" comes up with quite a few hits.  I've no idea if
->      they are relevant.
+On Thu, Feb 9, 2012 at 8:50 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Thu, Feb 9, 2012 at 8:34 PM, Bjorn Helgaas <bhelgaas@google.com> w=
+rote:
+>> On Thu, Feb 9, 2012 at 8:03 PM, Yinghai Lu <yinghai@kernel.org> wrot=
+e:
+>>> On Thu, Feb 9, 2012 at 6:36 PM, Bjorn Helgaas <bhelgaas@google.com>=
+ wrote:
+>>>> There's a lot of PCI-related code under arch/, but much of it is n=
+ot actually
+>>>> architecture-specific. =A0This series removes some of that code by=
+ moving most
+>>>> of the bus-to-resource conversions into the core.
+>>>>
+>>>> We currently read PCI bus addresses from BARs in the core (pci_set=
+up_device()).
+>>>> Then every arch is responsible for converting those bus addresses =
+to CPU
+>>>> resources, usually in pcibios_fixup_bus().
+>>>>
+>>>> We already have a way for architectures to tell the core what the =
+windows
+>>>> through a host bridge are:
+>>>>
+>>>> =A0 =A0LIST_HEAD(resources);
+>>>> =A0 =A0pci_add_resource(&resources, io_space);
+>>>> =A0 =A0pci_add_resource(&resources, mem_space);
+>>>> =A0 =A0pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+>>>>
+>>>> This series extends that so the arch can also tell the core about =
+address
+>>>> translation performed by the host bridge:
+>>>>
+>>>> =A0 =A0LIST_HEAD(resources);
+>>>> =A0 =A0pci_add_resource_offset(&resources, io_space, io_offset);
+>>>> =A0 =A0pci_add_resource_offset(&resources, mem_space, mem_offset);
+>>>> =A0 =A0pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+>>>>
+>>>> Given that offset (the difference between bus address and CPU addr=
+ess for
+>>>> each aperture), the core can do the bus-to-resource conversion imm=
+ediately
+>>>> when it reads the BARs.
+>>>>
+>>>> This removes an opportunity for bugs (some PCI fixups currently se=
+e bus
+>>>> addresses in struct pci_dev resources when they're expecting CPU a=
+ddresses),
+>>>> but the main reason to do this is to make our PCI resource handlin=
+g simpler
+>>>> and more uniform.
+>>>>
+>>>> These patches are also available in this git repo:
+>>>> =A0 =A0git://github.com/bjorn-helgaas/linux.git pci-offset-v2-d15a=
+f52258dd
+>>>>
+>>>> Or you can browse them here:
+>>>> =A0 =A0https://github.com/bjorn-helgaas/linux/compare/master...pci=
+-offset-v2-d15af52258dd
+>>>>
+>>>> I'd like to get these into linux-next soon to be ready for the 3.4=
+ merge
+>>>> window, so please let me know if you see any issues.
+>>>>
+>>>> Changes since v1:
+>>>> =A0- mips: remove Cobalt legacy IDE fixup
+>>>> =A0- show bus address range, not offset, e.g., this:
+>>>> =A0 =A0 =A0 =A0pci_bus 0000:00: root bus resource [mem 0xf00000000=
+00-0xf007edfffff] (bus address [0x80000000-0xfedfffff])
+>>>> =A0 =A0instead of this:
+>>>> =A0 =A0 =A0 =A0pci_bus 0000:00: root bus resource [mem 0xf00000000=
+00-0xf007edfffff] (bus offset 0xeff80000000)
+>>>>
+>>>
+>>> still think make pci_sysdata to generic and add one offset field to
+>>> that would be more simple.
+>>
+>> Maybe I'm misunderstanding you, because this doesn't make sense to m=
+e at all.
+>>
+>> *One* offset field is insufficient. =A0A host bridge can have an
+>> arbitrary number of apertures, and each aperture can have a differen=
+t
+>> offset. =A0So we must have a list or other variable-size structure.
+>>
+>> pci_scan_bus() takes a "void *sysdata". =A0Every arch defines its ow=
+n
+>> structure (struct pci_sysdata for x86, struct pci_controller for mos=
+t
+>> others) to supply here. =A0Are you suggesting that we make a common
+>> structure like this:
+>>
+>> =A0 =A0struct pci_sysdata {
+>> =A0 =A0 =A0 =A0struct list_head windows;
+>> =A0 =A0 =A0 =A0void *sysdata; =A0/* arch-specific stuff */
+>> =A0 =A0};
+>>
+>> That's possible, but I don't see the advantage over what I've done.
+>> It doesn't seem simpler, because all the arch code that looks at
+>> bus->sysdata would have to change to use
+>> bus->generic_sysdata->sysdata.
+>
+> I mean, we can unify sysdata usuage, make them all most the same.
+>
+> and for some sysdata, already acting like host_bridge struct with
+> domain, numa_node, and resources.
+>
+>> If you can show an example of what you mean, maybe it will help me u=
+nderstand.
+>
+> just looked the sys_data of different arch,
+>
+> looks like pci_sys_data for arm already include the io offset
+>
+> arch/arm/include/asm/mach/pci.h::
+>
+> struct pci_sys_data {
+> #ifdef CONFIG_PCI_DOMAINS
+> =A0 =A0 =A0 =A0int =A0 =A0 =A0 =A0 =A0 =A0 domain;
+> #endif
+> =A0 =A0 =A0 =A0struct list_head node;
+> =A0 =A0 =A0 =A0int =A0 =A0 =A0 =A0 =A0 =A0 busnr; =A0 =A0 =A0 =A0 =A0=
+/* primary bus number
+> =A0 =A0 =A0 =A0 */
+> =A0 =A0 =A0 =A0u64 =A0 =A0 =A0 =A0 =A0 =A0 mem_offset; =A0 =A0 /* bus=
+->cpu memory mapping
+> offset =A0 =A0 =A0 */
+> =A0 =A0 =A0 =A0unsigned long =A0 io_offset; =A0 =A0 =A0/* bus->cpu IO=
+ mapping offset
+> =A0 =A0 =A0 =A0 */
+> =A0 =A0 =A0 =A0struct pci_bus =A0*bus; =A0 =A0 =A0 =A0 =A0 /* PCI bus
+> =A0 =A0 =A0 =A0 */
+> =A0 =A0 =A0 =A0struct list_head resources; =A0 =A0 /* root bus resour=
+ces (apertures)
 
-Well, that would be one reason why I did all that work to get
-memory_order_consume into C++11.  ;-)
+Let me try again.  Maybe your idea is that we should create something
+like "struct pcibios_sysdata" and require every arch to define a
+struct with that name.  Every arch's struct would contain some members
+such as "domain," "mem_offset," "io_offset," and "resources."  These
+would have standard names & types across all arches and would be
+referenced by the PCI core.  In addition, the struct could include
+arch-specific data such as "acpi_handle," "iommu," etc.
 
-More seriously, you can defeat some of the speculative optimizations
-by using ACCESS_ONCE():
+That way, the core could implement things like pci_domain_nr() and
+pci_bus_to_resource() by using the data in struct pcibios_sysdata.
+The current "void *sysdata" parameters to pci_scan_bus() and friends
+would become "struct pcibios_sysdata *sysdata".
 
-                 int index = ACCESS_ONCE(p[0]), first = ACCESS_ONCE(p[1]);
+I like the idea of unifying the sysdata struct name and changing from
+a "void *" to something like "struct pcibios_sysdata *".  That might
+be worth doing.
 
-This forces a volatile access which should make the compiler at least
-a bit more reluctant to apply speculation optimizations.  And using
-rcu_dereference_index_check() in the kernel packages the ACCESS_ONCE()
-and the smp_read_barrier_depends().
+But the whole point of this patch series is to move things that are
+not architecture-specific out of the arch code.  I don't want to end
+up with a dozen pcibios_sysdata structs that all contain exactly the
+same generic members plus a few arch-specific ones.  That would mean
+trying to keep those dozen places consistent all the time, which is a
+maintenance hassle.
 
->    - If I understood correctly, IA64 has explicit special registers to
->      assist data-memory speculation by the compiler.  These would be
->      the ALAT registers.  I don't know if they are used in a way that
->      affects RCU, but they do appear in the GCC machine description,
->      and in the manual some kinds of "data speculative scheduling" are
->      enabled by default.  But read_barrier_depends() is a do {} while
->      on IA64.
+This series does cause some duplication, e.g., struct pci_host_bridge
+will contain a "struct pci_bus *" and some resource information that's
+also in the arch-specific struct pci_controller.  That information is
+not actually arch-specific at all, so I think it's a good thing if we
+gradually remove it from the arch-specific sysdata structs.  In many
+cases, that will also remove current arch restrictions such as "all
+memory apertures must have the same CPU/bus address offset," and "at
+most one I/O aperture and three memory apertures are supported."
 
-As I understand it, the ALAT registers do respect dependency ordering.
-But you would need to talk to an IA64 hardware architect and an IA64
-compiler expert to get the whole story.
-
->    - The GCC manual mentions data speculation in conjunction with
->      Blackfin as well.  I have no idea if it's relevant, but Blackfin
->      does at least define read_barrier_depends() in an interesting way,
->      sometimes.
-
-Are there SMP blackfin systems now?  There were not last I checked,
-and these issues matter only on SMP.
-
->    - I read that ARM can do speculative memory loads these days.  It
->      complicates DMA.  But are they implemented by speculative
->      preloading into the cache, or by speculatively executing load
->      instructions whose results are predicated on a control path
->      taken?  If the latter, is an empty read_barrier_depends() still
->      ok on ARM?
-
-But ARM does guarantee dependency ordering, so whatever it does to
-speculate, it must validate -- the results must be as if the hardware
-had done no speculation.
-
-							Thanx, Paul
+Bjorn
