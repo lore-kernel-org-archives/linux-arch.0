@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f202.google.com ([209.85.213.202]:33314 "EHLO
-	mail-yx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932120Ab2BJChd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:37:33 -0500
-Received: by mail-yx0-f202.google.com with SMTP id m1so267930yen.1
-        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:37:33 -0800 (PST)
-Subject: [PATCH v2 14/18] powerpc/PCI: get rid of device resource fixups
+Received: from mail-ee0-f74.google.com ([74.125.83.74]:57575 "EHLO
+	mail-ee0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758844Ab2BJCg7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:36:59 -0500
+Received: by mail-ee0-f74.google.com with SMTP id b15so75583eek.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:36:58 -0800 (PST)
+Subject: [PATCH v2 07/18] arm/PCI: get rid of device resource fixups
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 09 Feb 2012 19:37:32 -0700
-Message-ID: <20120210023732.10311.2622.stgit@bhelgaas.mtv.corp.google.com>
+Date: Thu, 09 Feb 2012 19:36:56 -0700
+Message-ID: <20120210023656.10311.77791.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,169 +17,495 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20120210023732.9VKW3BvBMgkoeHGdDtsrN0OpMT_xErIro_KnHpH1sv0@z>
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20120210023656.qT9IsyMsPbw6UeWbj9SRthgK2T6HdfQVKc3khXw7bOw@z>
 
 Tell the PCI core about host bridge address translation so it can take
 care of bus-to-resource conversion for us.
 
-CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Russell King <linux@arm.linux.org.uk>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/include/asm/pci.h   |    8 ----
- arch/powerpc/kernel/pci-common.c |   79 ++------------------------------------
- 2 files changed, 6 insertions(+), 81 deletions(-)
+ arch/arm/common/it8152.c              |    4 +-
+ arch/arm/include/asm/pci.h            |    8 ----
+ arch/arm/kernel/bios32.c              |   69 ++-------------------------------
+ arch/arm/mach-cns3xxx/pcie.c          |    4 +-
+ arch/arm/mach-dove/pcie.c             |    4 +-
+ arch/arm/mach-footbridge/dc21285.c    |    8 ++--
+ arch/arm/mach-integrator/pci_v3.c     |    7 ++-
+ arch/arm/mach-iop13xx/pci.c           |    4 +-
+ arch/arm/mach-ixp2000/pci.c           |    6 ++-
+ arch/arm/mach-ixp23xx/pci.c           |    6 ++-
+ arch/arm/mach-ixp4xx/common-pci.c     |    4 +-
+ arch/arm/mach-kirkwood/pcie.c         |    4 +-
+ arch/arm/mach-ks8695/pci.c            |    4 +-
+ arch/arm/mach-mv78xx0/pcie.c          |    4 +-
+ arch/arm/mach-orion5x/pci.c           |   14 +++----
+ arch/arm/mach-sa1100/pci-nanoengine.c |    8 ++--
+ arch/arm/mach-tegra/pcie.c            |    6 +--
+ arch/arm/mach-versatile/pci.c         |    6 +--
+ arch/arm/plat-iop/pci.c               |    4 +-
+ 19 files changed, 57 insertions(+), 117 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
-index f54b3d2..839178b 100644
---- a/arch/powerpc/include/asm/pci.h
-+++ b/arch/powerpc/include/asm/pci.h
-@@ -154,13 +154,7 @@ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
+diff --git a/arch/arm/common/it8152.c b/arch/arm/common/it8152.c
+index d1bcd7b..9384c2d 100644
+--- a/arch/arm/common/it8152.c
++++ b/arch/arm/common/it8152.c
+@@ -299,8 +299,8 @@ int __init it8152_pci_setup(int nr, struct pci_sys_data *sys)
+ 		goto err1;
+ 	}
  
- #endif /* CONFIG_PPC64 */
+-	pci_add_resource(&sys->resources, &it8152_io);
+-	pci_add_resource(&sys->resources, &it8152_mem);
++	pci_add_resource_offset(&sys->resources, &it8152_io, sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &it8152_mem, sys->mem_offset);
  
--extern void pcibios_resource_to_bus(struct pci_dev *dev,
--			struct pci_bus_region *region,
--			struct resource *res);
+ 	if (platform_notify || platform_notify_remove) {
+ 		printk(KERN_ERR "PCI: Can't use platform_notify\n");
+diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
+index da337ba..4748a75 100644
+--- a/arch/arm/include/asm/pci.h
++++ b/arch/arm/include/asm/pci.h
+@@ -57,13 +57,7 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
+ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+                                enum pci_mmap_state mmap_state, int write_combine);
+ 
+-extern void
+-pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+-			 struct resource *res);
 -
--extern void pcibios_bus_to_resource(struct pci_dev *dev,
--			struct resource *res,
+-extern void
+-pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
 -			struct pci_bus_region *region);
 +#define ARCH_HAS_GENERIC_PCI_OFFSETS
  
- extern void pcibios_claim_one_bus(struct pci_bus *b);
- 
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index cce98d7..f0084c9 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -849,60 +849,6 @@ int pci_proc_domain(struct pci_bus *bus)
- 	return 1;
+ /*
+  * Dummy implementation; always return 0.
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index f58ba35..b2f1ecf 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -295,28 +295,6 @@ static inline int pdev_bad_for_parity(struct pci_dev *dev)
  }
  
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			     struct resource *res)
+ /*
+- * Adjust the device resources from bus-centric to Linux-centric.
+- */
+-static void __devinit
+-pdev_fixup_device_resources(struct pci_sys_data *root, struct pci_dev *dev)
 -{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
+-	resource_size_t offset;
+-	int i;
 -
--	if (!hose)
--		return;
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
+-	for (i = 0; i < PCI_NUM_RESOURCES; i++) {
+-		if (dev->resource[i].start == 0)
+-			continue;
+-		if (dev->resource[i].flags & IORESOURCE_MEM)
+-			offset = root->mem_offset;
+-		else
+-			offset = root->io_offset;
 -
--	region->start = (res->start - offset) & mask;
--	region->end = (res->end - offset) & mask;
+-		dev->resource[i].start += offset;
+-		dev->resource[i].end   += offset;
+-	}
+-}
+-
+-/*
+  * pcibios_fixup_bus - Called after each bus is probed,
+  * but before its children are examined.
+  */
+@@ -333,8 +311,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+ 	list_for_each_entry(dev, &bus->devices, bus_list) {
+ 		u16 status;
+ 
+-		pdev_fixup_device_resources(root, dev);
+-
+ 		pci_read_config_word(dev, PCI_STATUS, &status);
+ 
+ 		/*
+@@ -400,43 +376,6 @@ EXPORT_SYMBOL(pcibios_fixup_bus);
+ #endif
+ 
+ /*
+- * Convert from Linux-centric to bus-centric addresses for bridge devices.
+- */
+-void
+-pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+-			 struct resource *res)
+-{
+-	struct pci_sys_data *root = dev->sysdata;
+-	unsigned long offset = 0;
+-
+-	if (res->flags & IORESOURCE_IO)
+-		offset = root->io_offset;
+-	if (res->flags & IORESOURCE_MEM)
+-		offset = root->mem_offset;
+-
+-	region->start = res->start - offset;
+-	region->end   = res->end - offset;
 -}
 -EXPORT_SYMBOL(pcibios_resource_to_bus);
 -
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
+-void __devinit
+-pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+-			struct pci_bus_region *region)
 -{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
+-	struct pci_sys_data *root = dev->sysdata;
+-	unsigned long offset = 0;
 -
--	if (!hose)
--		return;
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--	res->start = (region->start + offset) & mask;
--	res->end = (region->end + offset) & mask;
+-	if (res->flags & IORESOURCE_IO)
+-		offset = root->io_offset;
+-	if (res->flags & IORESOURCE_MEM)
+-		offset = root->mem_offset;
+-
+-	res->start = region->start + offset;
+-	res->end   = region->end + offset;
 -}
 -EXPORT_SYMBOL(pcibios_bus_to_resource);
 -
--/* Fixup a bus resource into a linux resource */
--static void __devinit fixup_resource(struct resource *res, struct pci_dev *dev)
--{
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--
--	res->start = (res->start + offset) & mask;
--	res->end = (res->end + offset) & mask;
--}
--
--
- /* This header fixup will do the resource fixup for all devices as they are
-  * probed, but not for bridge ranges
+-/*
+  * Swizzle the device pin each time we cross a bridge.
+  * This might update pin and returns the slot number.
   */
-@@ -942,18 +888,11 @@ static void __devinit pcibios_fixup_resources(struct pci_dev *dev)
- 			continue;
- 		}
+@@ -497,10 +436,10 @@ static void __init pcibios_init_hw(struct hw_pci *hw)
  
--		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x] fixup...\n",
-+		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x]\n",
- 			 pci_name(dev), i,
- 			 (unsigned long long)res->start,\
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
--
--		fixup_resource(res, dev);
--
--		pr_debug("PCI:%s            %016llx-%016llx\n",
--			 pci_name(dev),
--			 (unsigned long long)res->start,
--			 (unsigned long long)res->end);
- 	}
+ 		if (ret > 0) {
+ 			if (list_empty(&sys->resources)) {
+-				pci_add_resource(&sys->resources,
+-						 &ioport_resource);
+-				pci_add_resource(&sys->resources,
+-						 &iomem_resource);
++				pci_add_resource_offset(&sys->resources,
++					 &ioport_resource, sys->io_offset);
++				pci_add_resource_offset(&sys->resources,
++					 &iomem_resource, sys->mem_offset);
+ 			}
  
- 	/* Call machine specific resource fixup */
-@@ -1055,27 +994,18 @@ static void __devinit pcibios_fixup_bridge(struct pci_bus *bus)
- 			continue;
- 		}
+ 			sys->bus = hw->scan(nr, sys);
+diff --git a/arch/arm/mach-cns3xxx/pcie.c b/arch/arm/mach-cns3xxx/pcie.c
+index e159d69..79d001f 100644
+--- a/arch/arm/mach-cns3xxx/pcie.c
++++ b/arch/arm/mach-cns3xxx/pcie.c
+@@ -155,8 +155,8 @@ static int cns3xxx_pci_setup(int nr, struct pci_sys_data *sys)
+ 	BUG_ON(request_resource(&iomem_resource, res_io) ||
+ 	       request_resource(&iomem_resource, res_mem));
  
--		pr_debug("PCI:%s Bus rsrc %d %016llx-%016llx [%x] fixup...\n",
-+		pr_debug("PCI:%s Bus rsrc %d %016llx-%016llx [%x]\n",
- 			 pci_name(dev), i,
- 			 (unsigned long long)res->start,\
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
+-	pci_add_resource(&sys->resources, res_io);
+-	pci_add_resource(&sys->resources, res_mem);
++	pci_add_resource_offset(&sys->resources, res_io, sys->io_offset);
++	pci_add_resource_offset(&sys->resources, res_mem, sys->mem_offset);
  
--		/* Perform fixup */
--		fixup_resource(res, dev);
--
- 		/* Try to detect uninitialized P2P bridge resources,
- 		 * and clear them out so they get re-assigned later
- 		 */
- 		if (pcibios_uninitialized_bridge_resource(bus, res)) {
- 			res->flags = 0;
- 			pr_debug("PCI:%s            (unassigned)\n", pci_name(dev));
--		} else {
--
--			pr_debug("PCI:%s            %016llx-%016llx\n",
--				 pci_name(dev),
--				 (unsigned long long)res->start,
--				 (unsigned long long)res->end);
- 		}
- 	}
+ 	return 1;
  }
-@@ -1589,7 +1519,8 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 		 (unsigned long long)res->start,
- 		 (unsigned long long)res->end,
- 		 (unsigned long)res->flags);
--	pci_add_resource(resources, res);
-+	pci_add_resource_offset(resources, res,
-+			(resource_size_t) hose->io_base_virt - _IO_BASE);
+diff --git a/arch/arm/mach-dove/pcie.c b/arch/arm/mach-dove/pcie.c
+index 52e96d3..48a0320 100644
+--- a/arch/arm/mach-dove/pcie.c
++++ b/arch/arm/mach-dove/pcie.c
+@@ -69,7 +69,7 @@ static int __init dove_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	pp->res[0].flags = IORESOURCE_IO;
+ 	if (request_resource(&ioport_resource, &pp->res[0]))
+ 		panic("Request PCIe IO resource failed\n");
+-	pci_add_resource(&sys->resources, &pp->res[0]);
++	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
  
- 	/* Hookup PHB Memory resources */
- 	for (i = 0; i < 3; ++i) {
-@@ -1612,7 +1543,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 			 (unsigned long long)res->start,
- 			 (unsigned long long)res->end,
- 			 (unsigned long)res->flags);
--		pci_add_resource(resources, res);
-+		pci_add_resource_offset(resources, res, hose->pci_mem_offset);
+ 	/*
+ 	 * IORESOURCE_MEM
+@@ -88,7 +88,7 @@ static int __init dove_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	pp->res[1].flags = IORESOURCE_MEM;
+ 	if (request_resource(&iomem_resource, &pp->res[1]))
+ 		panic("Request PCIe Memory resource failed\n");
+-	pci_add_resource(&sys->resources, &pp->res[1]);
++	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-footbridge/dc21285.c b/arch/arm/mach-footbridge/dc21285.c
+index f685650..3194d3f 100644
+--- a/arch/arm/mach-footbridge/dc21285.c
++++ b/arch/arm/mach-footbridge/dc21285.c
+@@ -275,11 +275,13 @@ int __init dc21285_setup(int nr, struct pci_sys_data *sys)
+ 	allocate_resource(&iomem_resource, &res[0], 0x40000000,
+ 			  0x80000000, 0xffffffff, 0x40000000, NULL, NULL);
+ 
+-	pci_add_resource(&sys->resources, &ioport_resource);
+-	pci_add_resource(&sys->resources, &res[0]);
+-	pci_add_resource(&sys->resources, &res[1]);
+ 	sys->mem_offset  = DC21285_PCI_MEM;
+ 
++	pci_add_resource_offset(&sys->resources,
++				&ioport_resource, sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->mem_offset);
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
++
+ 	return 1;
+ }
+ 
+diff --git a/arch/arm/mach-integrator/pci_v3.c b/arch/arm/mach-integrator/pci_v3.c
+index 3c82566..015be77 100644
+--- a/arch/arm/mach-integrator/pci_v3.c
++++ b/arch/arm/mach-integrator/pci_v3.c
+@@ -378,9 +378,10 @@ static int __init pci_v3_setup_resources(struct pci_sys_data *sys)
+ 	 * the mem resource for this bus
+ 	 * the prefetch mem resource for this bus
+ 	 */
+-	pci_add_resource(&sys->resources, &ioport_resource);
+-	pci_add_resource(&sys->resources, &non_mem);
+-	pci_add_resource(&sys->resources, &pre_mem);
++	pci_add_resource_offset(&sys->resources,
++				&ioport_resource, sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &non_mem, sys->mem_offset);
++	pci_add_resource_offset(&sys->resources, &pre_mem, sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-iop13xx/pci.c b/arch/arm/mach-iop13xx/pci.c
+index b8f5a87..861cb12 100644
+--- a/arch/arm/mach-iop13xx/pci.c
++++ b/arch/arm/mach-iop13xx/pci.c
+@@ -1084,8 +1084,8 @@ int iop13xx_pci_setup(int nr, struct pci_sys_data *sys)
+ 	request_resource(&ioport_resource, &res[0]);
+ 	request_resource(&iomem_resource, &res[1]);
+ 
+-	pci_add_resource(&sys->resources, &res[0]);
+-	pci_add_resource(&sys->resources, &res[1]);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-ixp2000/pci.c b/arch/arm/mach-ixp2000/pci.c
+index 626fda4..49c36f3 100644
+--- a/arch/arm/mach-ixp2000/pci.c
++++ b/arch/arm/mach-ixp2000/pci.c
+@@ -243,8 +243,10 @@ int ixp2000_pci_setup(int nr, struct pci_sys_data *sys)
+ 	if (nr >= 1)
+ 		return 0;
+ 
+-	pci_add_resource(&sys->resources, &ixp2000_pci_io_space);
+-	pci_add_resource(&sys->resources, &ixp2000_pci_mem_space);
++	pci_add_resource_offset(&sys->resources,
++				&ixp2000_pci_io_space, sys->io_offset);
++	pci_add_resource_offset(&sys->resources,
++				&ixp2000_pci_mem_space, sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-ixp23xx/pci.c b/arch/arm/mach-ixp23xx/pci.c
+index 25b5c46..3cbbd32 100644
+--- a/arch/arm/mach-ixp23xx/pci.c
++++ b/arch/arm/mach-ixp23xx/pci.c
+@@ -281,8 +281,10 @@ int ixp23xx_pci_setup(int nr, struct pci_sys_data *sys)
+ 	if (nr >= 1)
+ 		return 0;
+ 
+-	pci_add_resource(&sys->resources, &ixp23xx_pci_io_space);
+-	pci_add_resource(&sys->resources, &ixp23xx_pci_mem_space);
++	pci_add_resource_offset(&sys->resources,
++				&ixp23xx_pci_io_space, sys->io_offset);
++	pci_add_resource_offset(&sys->resources,
++				&ixp23xx_pci_mem_space, sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-ixp4xx/common-pci.c b/arch/arm/mach-ixp4xx/common-pci.c
+index 5eff15f..8508882 100644
+--- a/arch/arm/mach-ixp4xx/common-pci.c
++++ b/arch/arm/mach-ixp4xx/common-pci.c
+@@ -472,8 +472,8 @@ int ixp4xx_setup(int nr, struct pci_sys_data *sys)
+ 	request_resource(&ioport_resource, &res[0]);
+ 	request_resource(&iomem_resource, &res[1]);
+ 
+-	pci_add_resource(&sys->resources, &res[0]);
+-	pci_add_resource(&sys->resources, &res[1]);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
+ 
+ 	platform_notify = ixp4xx_pci_platform_notify;
+ 	platform_notify_remove = ixp4xx_pci_platform_notify_remove;
+diff --git a/arch/arm/mach-kirkwood/pcie.c b/arch/arm/mach-kirkwood/pcie.c
+index a066a6d..f56a011 100644
+--- a/arch/arm/mach-kirkwood/pcie.c
++++ b/arch/arm/mach-kirkwood/pcie.c
+@@ -198,9 +198,9 @@ static int __init kirkwood_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	if (request_resource(&iomem_resource, &pp->res[1]))
+ 		panic("Request PCIe%d Memory resource failed\n", index);
+ 
+-	pci_add_resource(&sys->resources, &pp->res[0]);
+-	pci_add_resource(&sys->resources, &pp->res[1]);
+ 	sys->io_offset = 0;
++	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+ 
+ 	/*
+ 	 * Generic PCIe unit setup.
+diff --git a/arch/arm/mach-ks8695/pci.c b/arch/arm/mach-ks8695/pci.c
+index b26f992..acc7014 100644
+--- a/arch/arm/mach-ks8695/pci.c
++++ b/arch/arm/mach-ks8695/pci.c
+@@ -169,8 +169,8 @@ static int __init ks8695_pci_setup(int nr, struct pci_sys_data *sys)
+ 	request_resource(&iomem_resource, &pci_mem);
+ 	request_resource(&ioport_resource, &pci_io);
+ 
+-	pci_add_resource(&sys->resources, &pci_io);
+-	pci_add_resource(&sys->resources, &pci_mem);
++	pci_add_resource_offset(&sys->resources, &pci_io, sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &pci_mem, sys->mem_offset);
+ 
+ 	/* Assign and enable processor bridge */
+ 	ks8695_local_writeconfig(PCI_BASE_ADDRESS_0, KS8695_PCIMEM_PA);
+diff --git a/arch/arm/mach-mv78xx0/pcie.c b/arch/arm/mach-mv78xx0/pcie.c
+index 8459f6d..df3e380 100644
+--- a/arch/arm/mach-mv78xx0/pcie.c
++++ b/arch/arm/mach-mv78xx0/pcie.c
+@@ -155,8 +155,8 @@ static int __init mv78xx0_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	orion_pcie_set_local_bus_nr(pp->base, sys->busnr);
+ 	orion_pcie_setup(pp->base);
+ 
+-	pci_add_resource(&sys->resources, &pp->res[0]);
+-	pci_add_resource(&sys->resources, &pp->res[1]);
++	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-orion5x/pci.c b/arch/arm/mach-orion5x/pci.c
+index 09a045f..d6a9194 100644
+--- a/arch/arm/mach-orion5x/pci.c
++++ b/arch/arm/mach-orion5x/pci.c
+@@ -171,13 +171,14 @@ static int __init pcie_setup(struct pci_sys_data *sys)
+ 	/*
+ 	 * IORESOURCE_IO
+ 	 */
++	sys->io_offset = 0;
+ 	res[0].name = "PCIe I/O Space";
+ 	res[0].flags = IORESOURCE_IO;
+ 	res[0].start = ORION5X_PCIE_IO_BUS_BASE;
+ 	res[0].end = res[0].start + ORION5X_PCIE_IO_SIZE - 1;
+ 	if (request_resource(&ioport_resource, &res[0]))
+ 		panic("Request PCIe IO resource failed\n");
+-	pci_add_resource(&sys->resources, &res[0]);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->io_offset);
+ 
+ 	/*
+ 	 * IORESOURCE_MEM
+@@ -188,9 +189,7 @@ static int __init pcie_setup(struct pci_sys_data *sys)
+ 	res[1].end = res[1].start + ORION5X_PCIE_MEM_SIZE - 1;
+ 	if (request_resource(&iomem_resource, &res[1]))
+ 		panic("Request PCIe Memory resource failed\n");
+-	pci_add_resource(&sys->resources, &res[1]);
+-
+-	sys->io_offset = 0;
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
+@@ -499,13 +498,14 @@ static int __init pci_setup(struct pci_sys_data *sys)
+ 	/*
+ 	 * IORESOURCE_IO
+ 	 */
++	sys->io_offset = 0;
+ 	res[0].name = "PCI I/O Space";
+ 	res[0].flags = IORESOURCE_IO;
+ 	res[0].start = ORION5X_PCI_IO_BUS_BASE;
+ 	res[0].end = res[0].start + ORION5X_PCI_IO_SIZE - 1;
+ 	if (request_resource(&ioport_resource, &res[0]))
+ 		panic("Request PCI IO resource failed\n");
+-	pci_add_resource(&sys->resources, &res[0]);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->io_offset);
+ 
+ 	/*
+ 	 * IORESOURCE_MEM
+@@ -516,9 +516,7 @@ static int __init pci_setup(struct pci_sys_data *sys)
+ 	res[1].end = res[1].start + ORION5X_PCI_MEM_SIZE - 1;
+ 	if (request_resource(&iomem_resource, &res[1]))
+ 		panic("Request PCI Memory resource failed\n");
+-	pci_add_resource(&sys->resources, &res[1]);
+-
+-	sys->io_offset = 0;
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-sa1100/pci-nanoengine.c b/arch/arm/mach-sa1100/pci-nanoengine.c
+index 0d01ca7..b466bca 100644
+--- a/arch/arm/mach-sa1100/pci-nanoengine.c
++++ b/arch/arm/mach-sa1100/pci-nanoengine.c
+@@ -244,9 +244,11 @@ static int __init pci_nanoengine_setup_resources(struct pci_sys_data *sys)
+ 		printk(KERN_ERR "PCI: unable to allocate prefetchable\n");
+ 		return -EBUSY;
  	}
+-	pci_add_resource(&sys->resources, &pci_io_ports);
+-	pci_add_resource(&sys->resources, &pci_non_prefetchable_memory);
+-	pci_add_resource(&sys->resources, &pci_prefetchable_memory);
++	pci_add_resource_offset(&sys->resources, &pci_io_ports, sys->io_offset);
++	pci_add_resource_offset(&sys->resources,
++				&pci_non_prefetchable_memory, sys->mem_offset);
++	pci_add_resource_offset(&sys->resources,
++				&pci_prefetchable_memory, sys->mem_offset);
  
- 	pr_debug("PCI: PHB MEM offset     = %016llx\n",
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-tegra/pcie.c b/arch/arm/mach-tegra/pcie.c
+index af8b634..14b29ab 100644
+--- a/arch/arm/mach-tegra/pcie.c
++++ b/arch/arm/mach-tegra/pcie.c
+@@ -408,7 +408,7 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	pp->res[0].flags = IORESOURCE_IO;
+ 	if (request_resource(&ioport_resource, &pp->res[0]))
+ 		panic("Request PCIe IO resource failed\n");
+-	pci_add_resource(&sys->resources, &pp->res[0]);
++	pci_add_resource_offset(&sys->resources, &pp->res[0], sys->io_offset);
+ 
+ 	/*
+ 	 * IORESOURCE_MEM
+@@ -427,7 +427,7 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	pp->res[1].flags = IORESOURCE_MEM;
+ 	if (request_resource(&iomem_resource, &pp->res[1]))
+ 		panic("Request PCIe Memory resource failed\n");
+-	pci_add_resource(&sys->resources, &pp->res[1]);
++	pci_add_resource_offset(&sys->resources, &pp->res[1], sys->mem_offset);
+ 
+ 	/*
+ 	 * IORESOURCE_MEM | IORESOURCE_PREFETCH
+@@ -446,7 +446,7 @@ static int tegra_pcie_setup(int nr, struct pci_sys_data *sys)
+ 	pp->res[2].flags = IORESOURCE_MEM | IORESOURCE_PREFETCH;
+ 	if (request_resource(&iomem_resource, &pp->res[2]))
+ 		panic("Request PCIe Prefetch Memory resource failed\n");
+-	pci_add_resource(&sys->resources, &pp->res[2]);
++	pci_add_resource_offset(&sys->resources, &pp->res[2], sys->mem_offset);
+ 
+ 	return 1;
+ }
+diff --git a/arch/arm/mach-versatile/pci.c b/arch/arm/mach-versatile/pci.c
+index 90069bc..51733b0 100644
+--- a/arch/arm/mach-versatile/pci.c
++++ b/arch/arm/mach-versatile/pci.c
+@@ -219,9 +219,9 @@ static int __init pci_versatile_setup_resources(struct list_head *resources)
+ 	 * the mem resource for this bus
+ 	 * the prefetch mem resource for this bus
+ 	 */
+-	pci_add_resource(resources, &io_mem);
+-	pci_add_resource(resources, &non_mem);
+-	pci_add_resource(resources, &pre_mem);
++	pci_add_resource_offset(resources, &io_mem, sys->io_offset);
++	pci_add_resource_offset(resources, &non_mem, sys->mem_offset);
++	pci_add_resource_offset(resources, &pre_mem, sys->mem_offset);
+ 
+ 	goto out;
+ 
+diff --git a/arch/arm/plat-iop/pci.c b/arch/arm/plat-iop/pci.c
+index f4d40a2..7276835 100644
+--- a/arch/arm/plat-iop/pci.c
++++ b/arch/arm/plat-iop/pci.c
+@@ -215,8 +215,8 @@ int iop3xx_pci_setup(int nr, struct pci_sys_data *sys)
+ 	sys->mem_offset = IOP3XX_PCI_LOWER_MEM_PA - *IOP3XX_OMWTVR0;
+ 	sys->io_offset  = IOP3XX_PCI_LOWER_IO_PA - *IOP3XX_OIOWTVR;
+ 
+-	pci_add_resource(&sys->resources, &res[0]);
+-	pci_add_resource(&sys->resources, &res[1]);
++	pci_add_resource_offset(&sys->resources, &res[0], sys->io_offset);
++	pci_add_resource_offset(&sys->resources, &res[1], sys->mem_offset);
+ 
+ 	return 1;
+ }
 
