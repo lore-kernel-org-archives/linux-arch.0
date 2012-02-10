@@ -1,143 +1,146 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 00/18] add PCI bus-to-resource offset support in core
-Date: Thu, 09 Feb 2012 19:36:20 -0700
-Message-ID: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 02/18] PCI: add struct pci_host_bridge and a list of all
+	bridges found
+Date: Thu, 09 Feb 2012 19:36:31 -0700
+Message-ID: <20120210023631.10311.37307.stgit@bhelgaas.mtv.corp.google.com>
+References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fa0-f74.google.com ([209.85.161.74]:50097 "EHLO
-	mail-fx0-f74.google.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1758114Ab2BJCgX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:36:23 -0500
-Received: by faaa19 with SMTP id a19so69541faa.1
-        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:36:22 -0800 (PST)
+Received: from mail-ee0-f74.google.com ([74.125.83.74]:55163 "EHLO
+	mail-ee0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758114Ab2BJCgc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Feb 2012 21:36:32 -0500
+Received: by mail-ee0-f74.google.com with SMTP id b15so75582eek.1
+        for <linux-arch@vger.kernel.org>; Thu, 09 Feb 2012 18:36:32 -0800 (PST)
+In-Reply-To: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 
-There's a lot of PCI-related code under arch/, but much of it is not actually
-architecture-specific.  This series removes some of that code by moving most
-of the bus-to-resource conversions into the core.
+This adds a list of all PCI host bridges we find and a way to look up
+the host bridge from a pci_dev.
 
-We currently read PCI bus addresses from BARs in the core (pci_setup_device()).
-Then every arch is responsible for converting those bus addresses to CPU
-resources, usually in pcibios_fixup_bus().
-
-We already have a way for architectures to tell the core what the windows
-through a host bridge are:
-
-    LIST_HEAD(resources);
-    pci_add_resource(&resources, io_space);
-    pci_add_resource(&resources, mem_space);
-    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
-
-This series extends that so the arch can also tell the core about address
-translation performed by the host bridge:
-
-    LIST_HEAD(resources);
-    pci_add_resource_offset(&resources, io_space, io_offset);
-    pci_add_resource_offset(&resources, mem_space, mem_offset);
-    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
-
-Given that offset (the difference between bus address and CPU address for
-each aperture), the core can do the bus-to-resource conversion immediately
-when it reads the BARs.
-
-This removes an opportunity for bugs (some PCI fixups currently see bus
-addresses in struct pci_dev resources when they're expecting CPU addresses),
-but the main reason to do this is to make our PCI resource handling simpler
-and more uniform.
-
-These patches are also available in this git repo:
-    git://github.com/bjorn-helgaas/linux.git pci-offset-v2-d15af52258dd
-
-Or you can browse them here:
-    https://github.com/bjorn-helgaas/linux/compare/master...pci-offset-v2-d15af52258dd
-
-I'd like to get these into linux-next soon to be ready for the 3.4 merge
-window, so please let me know if you see any issues.
-
-Changes since v1:
-  - mips: remove Cobalt legacy IDE fixup
-  - show bus address range, not offset, e.g., this:
-	pci_bus 0000:00: root bus resource [mem 0xf0000000000-0xf007edfffff] (bus address [0x80000000-0xfedfffff])
-    instead of this:
-	pci_bus 0000:00: root bus resource [mem 0xf0000000000-0xf007edfffff] (bus offset 0xeff80000000)
-
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
+ drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
+ include/linux/pci.h |    5 +++++
+ 2 files changed, 39 insertions(+), 5 deletions(-)
 
-Bjorn Helgaas (18):
-      PCI: don't publish new root bus until it's fully initialized
-      PCI: add struct pci_host_bridge and a list of all bridges found
-      PCI: add struct pci_host_bridge_window with CPU/bus address offset
-      PCI: convert bus addresses to resource when reading BARs
-      PCI: add generic pcibios_resource_to_bus()
-      alpha/PCI: get rid of device resource fixups
-      arm/PCI: get rid of device resource fixups
-      ia64/PCI: SN: convert to pci_scan_root_bus() for correct root bus resources
-      ia64/PCI: get rid of device resource fixups
-      microblaze/PCI: get rid of device resource fixups
-      mips/PCI: get rid of device resource fixups
-      mn10300/PCI: get rid of device resource fixups
-      parisc/PCI: get rid of device resource fixups
-      powerpc/PCI: get rid of device resource fixups
-      sh/PCI: get rid of device resource fixups
-      sparc/PCI: get rid of device resource fixups
-      xtensa/PCI: get rid of device resource fixups
-      PCI: collapse pcibios_resource_to_bus
-
-
- arch/alpha/include/asm/pci.h          |    6 -
- arch/alpha/kernel/pci.c               |   71 +----------
- arch/arm/common/it8152.c              |    4 -
- arch/arm/include/asm/pci.h            |    8 -
- arch/arm/kernel/bios32.c              |   69 +----------
- arch/arm/mach-cns3xxx/pcie.c          |    4 -
- arch/arm/mach-dove/pcie.c             |    4 -
- arch/arm/mach-footbridge/dc21285.c    |    8 +
- arch/arm/mach-integrator/pci_v3.c     |    7 +
- arch/arm/mach-iop13xx/pci.c           |    4 -
- arch/arm/mach-ixp2000/pci.c           |    6 +
- arch/arm/mach-ixp23xx/pci.c           |    6 +
- arch/arm/mach-ixp4xx/common-pci.c     |    4 -
- arch/arm/mach-kirkwood/pcie.c         |    4 -
- arch/arm/mach-ks8695/pci.c            |    4 -
- arch/arm/mach-mv78xx0/pcie.c          |    4 -
- arch/arm/mach-orion5x/pci.c           |   14 +-
- arch/arm/mach-sa1100/pci-nanoengine.c |    8 +
- arch/arm/mach-tegra/pcie.c            |    6 -
- arch/arm/mach-versatile/pci.c         |    6 -
- arch/arm/plat-iop/pci.c               |    4 -
- arch/ia64/include/asm/pci.h           |    6 -
- arch/ia64/pci/pci.c                   |   55 ---------
- arch/ia64/sn/kernel/io_init.c         |   16 ++-
- arch/microblaze/include/asm/pci.h     |    8 -
- arch/microblaze/pci/pci-common.c      |   69 -----------
- arch/mips/include/asm/pci.h           |    6 -
- arch/mips/pci/fixup-cobalt.c          |   61 ----------
- arch/mips/pci/pci.c                   |   70 -----------
- arch/mn10300/include/asm/pci.h        |   16 ---
- arch/mn10300/unit-asb2305/pci.c       |   62 +---------
- arch/parisc/include/asm/pci.h         |   38 ------
- arch/parisc/kernel/pci.c              |   52 --------
- arch/powerpc/include/asm/pci.h        |    8 -
- arch/powerpc/kernel/pci-common.c      |   79 +------------
- arch/sh/drivers/pci/pci.c             |   75 ++----------
- arch/sh/include/asm/pci.h             |    6 -
- arch/sparc/include/asm/pci_32.h       |    8 -
- arch/sparc/include/asm/pci_64.h       |    8 -
- arch/sparc/kernel/leon_pci.c          |   47 +------
- arch/sparc/kernel/pci.c               |   46 +------
- arch/xtensa/kernel/pci.c              |   17 ---
- drivers/parisc/dino.c                 |   27 +---
- drivers/parisc/lba_pci.c              |   31 +----
- drivers/pci/bus.c                     |   30 +++--
- drivers/pci/probe.c                   |  208 ++++++++++++++++++++++++++-------
- include/asm-generic/pci.h             |   24 ----
- include/linux/pci.h                   |   18 +++
- 48 files changed, 331 insertions(+), 1011 deletions(-)
-
--- 
-Signature
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index da0d655..2ffe8a3 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -15,6 +15,8 @@
+ #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
+ #define CARDBUS_RESERVE_BUSNR	3
+ 
++static LIST_HEAD(pci_host_bridges);
++
+ /* Ugh.  Need to stop exporting this to modules. */
+ LIST_HEAD(pci_root_buses);
+ EXPORT_SYMBOL(pci_root_buses);
+@@ -42,6 +44,23 @@ int no_pci_devices(void)
+ }
+ EXPORT_SYMBOL(no_pci_devices);
+ 
++static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
++{
++	struct pci_bus *bus;
++	struct pci_host_bridge *bridge;
++
++	bus = dev->bus;
++	while (bus->parent)
++		bus = bus->parent;
++
++	list_for_each_entry(bridge, &pci_host_bridges, list) {
++		if (bridge->bus == bus)
++			return bridge;
++	}
++
++	return NULL;
++}
++
+ /*
+  * PCI Bus Class
+  */
+@@ -1526,20 +1545,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
+ 	int error, i;
++	struct pci_host_bridge *bridge;
+ 	struct pci_bus *b, *b2;
+ 	struct device *dev;
+ 	struct pci_bus_resource *bus_res, *n;
+ 	struct resource *res;
+ 
++	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
++	if (!bridge)
++		return NULL;
++
+ 	b = pci_alloc_bus();
+ 	if (!b)
+-		return NULL;
++		goto err_bus;
+ 
+ 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+-	if (!dev) {
+-		kfree(b);
+-		return NULL;
+-	}
++	if (!dev)
++		goto err_dev;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+@@ -1576,6 +1598,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 
+ 	b->number = b->secondary = bus;
+ 
++	bridge->bus = b;
++
+ 	/* Add initial resources to the bus */
+ 	list_for_each_entry_safe(bus_res, n, resources, list)
+ 		list_move_tail(&bus_res->list, &b->resources);
+@@ -1591,6 +1615,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	}
+ 
+ 	down_write(&pci_bus_sem);
++	list_add_tail(&bridge->list, &pci_host_bridges);
+ 	list_add_tail(&b->node, &pci_root_buses);
+ 	up_write(&pci_bus_sem);
+ 
+@@ -1600,11 +1625,15 @@ class_dev_reg_err:
+ 	device_unregister(dev);
+ dev_reg_err:
+ 	down_write(&pci_bus_sem);
++	list_del(&bridge->list);
+ 	list_del(&b->node);
+ 	up_write(&pci_bus_sem);
+ err_out:
+ 	kfree(dev);
++err_dev:
+ 	kfree(b);
++err_bus:
++	kfree(bridge);
+ 	return NULL;
+ }
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index a16b1df..dfb2b64 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -388,6 +388,11 @@ static inline void pci_add_saved_cap(struct pci_dev *pci_dev,
+ 	hlist_add_head(&new_cap->next, &pci_dev->saved_cap_space);
+ }
+ 
++struct pci_host_bridge {
++	struct list_head list;
++	struct pci_bus *bus;		/* root bus */
++};
++
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
+  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
