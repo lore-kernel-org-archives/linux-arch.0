@@ -1,102 +1,75 @@
-From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH 01/24] PCI: Add iobusn_resource
-Date: Fri, 10 Feb 2012 12:51:50 -0800
-Message-ID: <20120210125150.3353237c@jbarnes-desktop>
-References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
-	<1328425088-6562-2-git-send-email-yinghai@kernel.org>
-	<CAErSpo4HJH+3EQAWowyVxZFa5jVy1EOo=SoybJqqcjhVdo0nzw@mail.gmail.com>
-	<CAE9FiQXeRGXE2RCe5S1iOE=QY37wauM=WUevjXWkMqMOjV3t7A@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v2 00/18] add PCI bus-to-resource offset support in core
+Date: Fri, 10 Feb 2012 14:37:13 -0800
+Message-ID: <CAErSpo50HORbMF+R3cbemn1YpdMZodZmBqd6ouP_L9nvGmVrZw@mail.gmail.com>
+References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
+ <CAE9FiQWE-VGoh=8hyhWPMrTe7X1dqTyBCgAM=ozWMyZXEvwGTg@mail.gmail.com>
+ <CAErSpo7pxGA02uTDNoFpxU_6_B4CgvJM10zpFRjjhXHK5L3mtg@mail.gmail.com>
+ <CAE9FiQVx7=cSVkApbh_8dnoBqdrRYDOVtMqdC=mDCwq0fuVZpA@mail.gmail.com>
+ <CAErSpo6zHhpz+N6y3ybDVp-oabVWAYeTt9pPJS3nz+nD2C8xkg@mail.gmail.com>
+ <CAE9FiQVqKZGacZYqXETVVaqzobiw01OyCmASUfxwZ075rdX7XA@mail.gmail.com>
+ <CAErSpo6MWS0=3gin7P6HQ7CNZwxD9cPfB6QNr1GDF7DVMhx2tw@mail.gmail.com> <CAE9FiQUZ8aDOe6oUxSrCgS9_3io4hpJdQsiJ=Hm7NACrcNBSDg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=PGP-SHA1;
- boundary="Sig_/M=dzPqIZawhCO/v/OZGvQkS"; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oproxy5-pub.bluehost.com ([67.222.38.55]:36652 "HELO
-	oproxy5-pub.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S932399Ab2BJUv6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 15:51:58 -0500
-In-Reply-To: <CAE9FiQXeRGXE2RCe5S1iOE=QY37wauM=WUevjXWkMqMOjV3t7A@mail.gmail.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:56752 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760369Ab2BJWhe convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 17:37:34 -0500
+Received: by werb13 with SMTP id b13so2348580wer.19
+        for <linux-arch@vger.kernel.org>; Fri, 10 Feb 2012 14:37:33 -0800 (PST)
+In-Reply-To: <CAE9FiQUZ8aDOe6oUxSrCgS9_3io4hpJdQsiJ=Hm7NACrcNBSDg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@suse.de>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: jbarnes@virtuousgeek.org, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
---Sig_/M=dzPqIZawhCO/v/OZGvQkS
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
+On Fri, Feb 10, 2012 at 12:25 PM, Yinghai Lu <yinghai@kernel.org> wrote=
+:
+> On Fri, Feb 10, 2012 at 9:24 AM, Bjorn Helgaas <bhelgaas@google.com> =
+wrote:
+>> On Fri, Feb 10, 2012 at 9:20 AM, Yinghai Lu <yinghai@kernel.org> wro=
+te:
+>>
+>> That's exactly what I said above, isn't it? =A0(In the paragraph
+>> starting "Let me try again.")
+>
+> no, not create one. make them looks like one struct with some common =
+fields.
 
-On Mon, 6 Feb 2012 10:55:14 -0800
-Yinghai Lu <yinghai@kernel.org> wrote:
+The difference I see is that you kept the ugliness (enforcing
+cut-and-paste of generic members across all architectures) and threw
+out the possible goodness (replacing a "void *" with a "struct
+pci_sysdata *").
 
-> On Mon, Feb 6, 2012 at 10:48 AM, Bjorn Helgaas <bhelgaas@google.com> wrot=
-e:
-> >> +struct resource iobusn_resource =3D {
-> >> + =C2=A0 =C2=A0 =C2=A0 .name =C2=A0 =3D "PCI busn",
-> >> + =C2=A0 =C2=A0 =C2=A0 .start =C2=A0=3D 0,
-> >> + =C2=A0 =C2=A0 =C2=A0 .end =C2=A0 =C2=A0=3D 0xffffff,
-> >> + =C2=A0 =C2=A0 =C2=A0 .flags =C2=A0=3D IORESOURCE_BUS,
-> >> +};
-> >
-> > I'm not sure this should be global. =C2=A0iomem_resource and
-> > ioport_resource *are* really global, because they refer to processor
-> > address space that is the same for everybody. =C2=A0But PCI bus numbers=
- are
-> > specific to PCI. =C2=A0Some machines don't have PCI at all, and there a=
-re
-> > different bus architectures to which this doesn't apply.
->=20
-> that does not hurt them.
+>> As I said, the reason I don't like that approach is that I don't wan=
+t
+>> a dozen copies of first_busno, last_busno, domain, node, io_offset,
+>> mem_offset, etc. =A0That information is not architecture-specific, s=
+o we
+>> shouldn't keep it in an architecture-specific struct.
+>
+> but you want to add hostbridge struct list and that just produce
+> duplicated info.
 
-Yes but it's superfluous and confusing if you're porting to a new arch
-or looking at changes in generic code that may affect you.
+You can think of it as merely being duplicated uselessly.  I think of
+it as "putting it in the logical place and enabling its removal from
+the wrong places."
 
-> > The 0-0xffffff range is misleading because it includes both the domain
-> > and the bus number, and it's meaningless to allocate ranges that cross
-> > domain boundaries. =C2=A0For example, [bus 0x0000f0-0x000120] includes =
-bus
-> > numbers from domain 0000 and domain 0001, which doesn't make any sense
-> > because a bus can only be in one domain.
->=20
-> allocation code will make sure it will be cross the boundary for domain.
+> and search hostbridge for dev looks not good.
+> Now you try to: for every device or resource find root bus and then
+> check hostbridge list to get hostbridge and get offset.
+>
+> use sysdata pointer to get sys data like hostbridge info quickly
+>
+> i drafted one patch, and it seems not ugly with macro. please check i=
+t.
 
-But that means everyone reading it will do a double take, have to dig
-into the implementation, and only then say "ah yeah ok it looks
-correct" rather than it being obvious from the fact that the resource
-is tracked on a per-domain basis.
+I hate to say it, but I think it's ugly.  It looks like a hack bolted
+on at the end because we were too lazy to do a nice design up front.
+It might be the fewest lines of code change, but I think it's much
+harder to read.  It's much more important that code be easier to read
+and understand than it is to minimize code change.
 
-> > I think it would make more sense to keep this bus number resource in a
-> > per-host bridge structure. =C2=A0Then we wouldn't need to include the
-> > domain number at all because the host bridge determines the domain.
->=20
-> not sure. insert the all busn_res of all peer root buses into one
-> global iobusn_resource
-> looks more simple.
-
-In what sense?  Simpler in the sense of your current implementation,
-but not simpler at all to someone just reading the code...
-
---=20
-Jesse Barnes, Intel Open Source Technology Center
-
---Sig_/M=dzPqIZawhCO/v/OZGvQkS
-Content-Type: application/pgp-signature; name=signature.asc
-Content-Disposition: attachment; filename=signature.asc
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJPNYNmAAoJEIEoDkX4Qk9hf58P/0eVO49mgMAHjjkImINiBeBA
-pRSm9M0JoKxjHJXtXJa4SgvXkiFDiSeMossV0sjGiR5Cc047MPLPEOcRWNhf5HYu
-IGAY4lor2wixEYuT+qRIULQhcYID2Oavvi6WYi39ONTA9yLzJTBGPhBNW0HIl0Wo
-bk/p3wbjWSZ2tkspdvjkdNvGGYEIMiTeusGArE4B/Md7Cx8V8TlHlCtk4iQ6ObL8
-dGUlb49c31xhy/vM5ln/kNtLY+gWBprwe5aMpeTqUXjjaKX3Ai72HxmWjqkCrIdy
-v1inMr8hQYVzly1h+UWpB8LJ4NoPguZ1Jw/xE/pL0uV5Al/EPp4wpI1Qkn5Zkxwa
-lXp1cUZOx/0QUd7MoHEw37BpOoPpmKPwC+43U6hGx/Al55rSV/UxFINluY7V7w71
-EA5DVNSsao/K6DC9ouYlbtLDqBxmNI/oMAd1gn4ad2OCVg84fomvBrqz3IAyk+lU
-nSLuPwV4z9ajEbONpqVB9mUbkwUKC074DgmGQLMFhvCMGUPVowS2/ESbtEhh8cVG
-Q9H8S04lj46J3fnUnwTXKA7HhvH6ScTpMJXg8WNWGdv4vVFvsGl8vIBjqpwtDmnA
-yPWu1MhFFVk3F/A3yqWZJU6kQuBr+x83JG4quduMASIoLZ87kP1qkL/uUrflfQPO
-nQoxbGK3bXiwbh4Ravmv
-=y0DF
------END PGP SIGNATURE-----
-
---Sig_/M=dzPqIZawhCO/v/OZGvQkS--
+Bjorn
