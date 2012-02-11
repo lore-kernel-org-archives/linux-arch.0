@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 10/22] PCI: Probe safe range that we can use for unassigned bridge.
-Date: Fri, 10 Feb 2012 20:06:13 -0800
-Message-ID: <1328933185-15154-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/22] PCI: Seperate child bus scanning to two passes overall
+Date: Fri, 10 Feb 2012 20:06:17 -0800
+Message-ID: <1328933185-15154-15-git-send-email-yinghai@kernel.org>
 References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
@@ -10,138 +10,133 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Try to allocate from parent bus busn_res. if can not find any big enough, will try
-to extend parent bus top. even the extending is through allocating, after allocating
-will pad the range to parent buses top.
+In extreme case: Two bridges are properly setup.
+       bridge A
+               bridge AA
+               bridge AB
+       bridge B
+	       bridge BA
+	       bridge BB
+   but AA, AB are not setup properly.
+   bridge A has small range, and bridge AB could need more, when do the
+       first pass0 for bridge A, it will do pass0 and pass1 for AA and AB,
+	during that process, it will extend range of A for AB blindly.
+	because bridge B is not registered yet.
+       that could overlap range that is used by bridge B.
 
-When extending happens, We will record the parent_res, so could use it as stopper
-for really extend/shrink top later.
+Right way should be:
+       do pass0 for all good bridges at first.
+So we could do pass0 for bridge B before pass1 for bridge AB.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |  110 +++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 110 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++----------------
+ 1 files changed, 34 insertions(+), 16 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 2a7047a..fcd9266 100644
+index 1492ea2..346dc22 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -660,6 +660,116 @@ static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
- 	pci_bus_update_top(parent, -size, parent_res);
- }
+@@ -778,6 +778,9 @@ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
  
-+static resource_size_t __devinit find_res_top_free_size(struct resource *res)
-+{
-+	resource_size_t n_size;
-+	struct resource tmp_res;
+ 	return broken;
+ }
 +
-+	/*
-+	 *   find out number below res->end, that we can use at first
-+	 *	res->start can not be used.
-+	 */
-+	n_size = resource_size(res) - 1;
-+	memset(&tmp_res, 0, sizeof(struct resource));
-+	while (n_size > 0) {
-+		int ret;
-+
-+		ret = allocate_resource(res, &tmp_res, n_size,
-+			res->end - n_size + 1, res->end,
-+			1, NULL, NULL);
-+		if (ret == 0) {
-+			release_resource(&tmp_res);
-+			break;
-+		}
-+		n_size--;
-+	}
-+
-+	return n_size;
-+}
-+
-+static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
-+			 struct pci_dev *dev, struct resource *busn_res,
-+			 resource_size_t needed_size, struct resource **p)
-+{
-+	int ret = -ENOMEM;
-+	resource_size_t n_size;
-+	struct pci_bus *parent;
-+	struct resource *parent_res = NULL;
-+	resource_size_t tmp = bus->busn_res.end + 1;
-+	int free_sz = -1;
-+
-+again:
-+	/*
-+	 * find bigest range in bus->busn_res that we can use in the middle
-+	 *  and we can not use bus->busn_res.start.
-+	 */
-+	n_size = resource_size(&bus->busn_res) - 1;
-+	memset(busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+			"find free busn in busn_res: %pR\n", &bus->busn_res);
-+	while (n_size >= needed_size) {
-+		ret = allocate_resource(&bus->busn_res, busn_res, n_size,
-+				bus->busn_res.start + 1, bus->busn_res.end,
-+				1, NULL, NULL);
-+		if (ret == 0) {
-+			/* found one, prepare to return */
-+			release_resource(busn_res);
-+
-+			return ret;
-+		}
-+		n_size--;
-+	}
-+
-+	/* try extend the top of parent bus, find free under top af first */
-+	if (free_sz < 0) {
-+		free_sz = find_res_top_free_size(&bus->busn_res);
-+		dev_printk(KERN_DEBUG, &dev->dev,
-+			"found free busn %d in busn_res: %pR top\n",
-+				free_sz, &bus->busn_res);
-+	}
-+	n_size = free_sz;
-+
-+	/* can not extend cross domain boundary */
-+	if ((0xff - bus->busn_res.end) < (needed_size - n_size))
-+		goto reduce_needed_size;
-+
-+	/* find exteded range */
-+	memset(busn_res, 0, sizeof(struct resource));
-+	parent = bus->parent;
-+	while (parent) {
-+		ret = allocate_resource(&parent->busn_res, busn_res,
-+			 needed_size - n_size,
-+			 tmp, tmp + needed_size - n_size - 1,
-+			 1, NULL, NULL);
-+		if (ret == 0)
-+			break;
-+		parent = parent->parent;
-+	}
-+
-+reduce_needed_size:
-+	if (ret != 0) {
-+		needed_size--;
-+		if (!needed_size)
-+			return ret;
-+
-+		goto again;
-+	}
-+
-+	/* save parent_res, we need it as stopper later */
-+	parent_res = busn_res->parent;
-+
-+	/* prepare busn_res for return */
-+	release_resource(busn_res);
-+	busn_res->start -= n_size;
-+
-+	/* extend parent bus top*/
-+	pci_bus_extend_top(bus, needed_size - n_size, parent_res);
-+
-+	*p = parent_res;
-+
-+	return ret;
-+}
-+
++static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
++						 int pass);
  /*
   * If it's a bridge, configure it and scan the bus behind it.
   * For CardBus bridges, we don't scan behind as the devices will
+@@ -829,11 +832,10 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	    !is_cardbus && !broken) {
+ 		unsigned int cmax;
+ 		/*
+-		 * Bus already configured by firmware, process it in the first
+-		 * pass and just note the configuration.
++		 * Bus already configured by firmware, still process it in two
++		 * passes in extreme case like two adjaced bridges have children
++		 * bridges that are not setup properly.
+ 		 */
+-		if (pass)
+-			goto out;
+ 
+ 		/*
+ 		 * If we already got to this bus through a different bridge,
+@@ -854,7 +856,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 			pci_bus_insert_busn_res(child, secondary, subordinate);
+ 		}
+ 
+-		cmax = pci_scan_child_bus(child);
++		cmax = __pci_scan_child_bus(child, pass);
+ 		if (cmax > max)
+ 			max = cmax;
+ 		if (child->subordinate > max)
+@@ -1649,12 +1651,13 @@ void pcie_bus_configure_settings(struct pci_bus *bus, u8 mpss)
+ }
+ EXPORT_SYMBOL_GPL(pcie_bus_configure_settings);
+ 
+-unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
++static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
++						 int pass)
+ {
+-	unsigned int devfn, pass, max = bus->secondary;
++	unsigned int devfn, max = bus->secondary;
+ 	struct pci_dev *dev;
+ 
+-	dev_dbg(&bus->dev, "scanning bus\n");
++	dev_dbg(&bus->dev, "scanning bus pass %d\n", pass);
+ 
+ 	/* Go find them, Rover! */
+ 	for (devfn = 0; devfn < 0x100; devfn += 8)
+@@ -1668,18 +1671,16 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
+ 	 * all PCI-to-PCI bridges on this bus.
+ 	 */
+ 	if (!bus->is_added) {
+-		dev_dbg(&bus->dev, "fixups for bus\n");
++		dev_dbg(&bus->dev, "fixups for bus pass %d\n", pass);
+ 		pcibios_fixup_bus(bus);
+ 		if (pci_is_root_bus(bus))
+ 			bus->is_added = 1;
+ 	}
+ 
+-	for (pass=0; pass < 2; pass++)
+-		list_for_each_entry(dev, &bus->devices, bus_list) {
+-			if (dev->hdr_type == PCI_HEADER_TYPE_BRIDGE ||
+-			    dev->hdr_type == PCI_HEADER_TYPE_CARDBUS)
+-				max = pci_scan_bridge(bus, dev, max, pass);
+-		}
++	list_for_each_entry(dev, &bus->devices, bus_list)
++		if (dev->hdr_type == PCI_HEADER_TYPE_BRIDGE ||
++		    dev->hdr_type == PCI_HEADER_TYPE_CARDBUS)
++			max = pci_scan_bridge(bus, dev, max, pass);
+ 
+ 	/*
+ 	 * We've scanned the bus and so we know all about what's on
+@@ -1688,7 +1689,24 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
+ 	 *
+ 	 * Return how far we've got finding sub-buses.
+ 	 */
+-	dev_dbg(&bus->dev, "bus scan returning with max=%02x\n", max);
++	dev_dbg(&bus->dev, "bus scan returning with max=%02x pass %d\n",
++			max, pass);
++
++	return max;
++}
++
++unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
++{
++	int pass;
++	unsigned int max = 0, tmp;
++
++	for (pass = 0; pass < 2;  pass++) {
++		tmp = __pci_scan_child_bus(bus, pass);
++
++		if (tmp > max)
++			max = tmp;
++	}
++
+ 	return max;
+ }
+ 
 -- 
 1.7.7
