@@ -1,282 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:37700 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932419Ab2BJUZ0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 15:25:26 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAErSpo6MWS0=3gin7P6HQ7CNZwxD9cPfB6QNr1GDF7DVMhx2tw@mail.gmail.com>
-References: <20120210023424.10311.82445.stgit@bhelgaas.mtv.corp.google.com>
-	<CAE9FiQWE-VGoh=8hyhWPMrTe7X1dqTyBCgAM=ozWMyZXEvwGTg@mail.gmail.com>
-	<CAErSpo7pxGA02uTDNoFpxU_6_B4CgvJM10zpFRjjhXHK5L3mtg@mail.gmail.com>
-	<CAE9FiQVx7=cSVkApbh_8dnoBqdrRYDOVtMqdC=mDCwq0fuVZpA@mail.gmail.com>
-	<CAErSpo6zHhpz+N6y3ybDVp-oabVWAYeTt9pPJS3nz+nD2C8xkg@mail.gmail.com>
-	<CAE9FiQVqKZGacZYqXETVVaqzobiw01OyCmASUfxwZ075rdX7XA@mail.gmail.com>
-	<CAErSpo6MWS0=3gin7P6HQ7CNZwxD9cPfB6QNr1GDF7DVMhx2tw@mail.gmail.com>
-Date: Fri, 10 Feb 2012 12:25:25 -0800
-Message-ID: <CAE9FiQUZ8aDOe6oUxSrCgS9_3io4hpJdQsiJ=Hm7NACrcNBSDg@mail.gmail.com>
-Subject: Re: [PATCH v2 00/18] add PCI bus-to-resource offset support in core
+Received: from acsinet15.oracle.com ([141.146.126.227]:16420 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758887Ab2BKEHB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 23:07:01 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: multipart/mixed; boundary=20cf303bfe24d1a36804b8a1ed59
+Subject: [PATCH 04/22] PCI, x86: Register busn_res for root buses
+Date: Fri, 10 Feb 2012 20:06:07 -0800
+Message-ID: <1328933185-15154-5-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
+References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, jbarnes@virtuousgeek.org, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120210202525.KlKi_6FfwIQJl1ANEFUkFM2w9gUhGU7ywo40bkyumGs@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120211040607.nVAIhG21g_aBq7odv0Idtic1e8hZTTIT4u5k0u9O2oM@z>
 
---20cf303bfe24d1a36804b8a1ed59
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+update x86_pci_root_bus_resources() to get bus_max for non-acpi case.
 
-On Fri, Feb 10, 2012 at 9:24 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Fri, Feb 10, 2012 at 9:20 AM, Yinghai Lu <yinghai@kernel.org> wrote:
->
-> That's exactly what I said above, isn't it? =A0(In the paragraph
-> starting "Let me try again.")
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/include/asm/topology.h |    3 ++-
+ arch/x86/pci/acpi.c             |    8 +++++---
+ arch/x86/pci/bus_numa.c         |    8 +++++++-
+ arch/x86/pci/common.c           |   11 +++++++----
+ 4 files changed, 21 insertions(+), 9 deletions(-)
 
-no, not create one. make them looks like one struct with some common fields=
-.
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index b9676ae..ad4060e 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -172,7 +172,8 @@ static inline void arch_fix_phys_package_id(int num, u32 slot)
+ }
+ 
+ struct pci_bus;
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources);
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				struct list_head *resources);
+ 
+ #ifdef CONFIG_SMP
+ #define mc_capable()	((boot_cpu_data.x86_max_cores > 1) && \
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index daa4249..b25b5b1 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -348,6 +348,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	struct acpi_device *device = root->device;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
++	int busmax = root->secondary.end;
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct pci_sysdata *sd;
+@@ -410,12 +411,13 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+ 		if (!pci_use_crs)
+-			x86_pci_root_bus_resources(busnum, &resources);
++			x86_pci_root_bus_resources(busnum, &busmax, &resources);
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+-		if (bus)
++		if (bus) {
++			pci_bus_insert_busn_res(bus, busnum, busmax);
+ 			bus->subordinate = pci_scan_child_bus(bus);
+-		else
++		} else
+ 			pci_free_resource_list(&resources);
+ 	}
+ 
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index fd3f655..5213cd8 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -7,7 +7,8 @@
+ int pci_root_num;
+ struct pci_root_info pci_root_info[PCI_ROOT_NR];
+ 
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources)
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				struct list_head *resources)
+ {
+ 	int i;
+ 	int j;
+@@ -28,6 +29,7 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
+ 	       bus);
+ 
+ 	info = &pci_root_info[i];
++	*bus_max = info->bus_max;
+ 	for (j = 0; j < info->res_num; j++) {
+ 		struct resource *res;
+ 		struct resource *root;
+@@ -51,6 +53,10 @@ default_resources:
+ 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
+ 	pci_add_resource(resources, &ioport_resource);
+ 	pci_add_resource(resources, &iomem_resource);
++	if (!bus)
++		*bus_max = 0xff;
++	else if (!*bus_max)
++		*bus_max = bus;
+ }
+ 
+ void __devinit update_res(struct pci_root_info *info, resource_size_t start,
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..ce0aefc 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -433,6 +433,7 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+ 	struct pci_sysdata *sd;
++	int bus_max;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -454,8 +455,9 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	sd->node = get_mp_bus_to_node(busnum);
+ 
+ 	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
++	x86_pci_root_bus_resources(busnum, &bus_max, &resources);
++	bus = pci_scan_root_bus_max(NULL, busnum, bus_max, &pci_root_ops, sd,
++				&resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+ 		kfree(sd);
+@@ -643,6 +645,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+ 	struct pci_sysdata *sd;
++	int bus_max;
+ 
+ 	/*
+ 	 * Allocate per-root-bus (not per bus) arch-specific data.
+@@ -655,8 +658,8 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 		return NULL;
+ 	}
+ 	sd->node = node;
+-	x86_pci_root_bus_resources(busno, &resources);
+-	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
++	x86_pci_root_bus_resources(busno, &bus_max, &resources);
++	bus = pci_scan_root_bus_max(NULL, busno, bus_max, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+ 		kfree(sd);
+-- 
+1.7.7
 
->
-> As I said, the reason I don't like that approach is that I don't want
-> a dozen copies of first_busno, last_busno, domain, node, io_offset,
-> mem_offset, etc. =A0That information is not architecture-specific, so we
-> shouldn't keep it in an architecture-specific struct.
-
-but you want to add hostbridge struct list and that just produce
-duplicated info.
-and search hostbridge for dev looks not good.
-Now you try to: for every device or resource find root bus and then
-check hostbridge list to get hostbridge and get offset.
-
-use sysdata pointer to get sys data like hostbridge info quickly
-
-i drafted one patch, and it seems not ugly with macro. please check it.
-
-Thanks
-
-Yinghai
-
---20cf303bfe24d1a36804b8a1ed59
-Content-Type: text/x-patch; charset=US-ASCII; name="pci_sys_data.patch"
-Content-Disposition: attachment; filename="pci_sys_data.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_gyhntd440
-
-W1JGQyBQQVRDSF0gUENJOiB1bmlmeSBzeXNkYXRhIHRvIHBjaV9zeXNfZGF0YQoKdXNlIG1hY3Jv
-LCBzbyBjb3JlIGNvZGUgY291bGQgYWNjZXNzIGNvbW1vbiBtZW1iZXIgaW4gc3lzZGF0YQoKQXMg
-ZXhhbXBsZSwgcGx1dCBmaXJzdF9idXNuby9lbmRfYnVzbm8gdGhlcmUuCmZvciBzcGFyYywgbmVl
-ZCB0byBjaGFuZ2UgcGNpX2ZpcnN0X2J1c25vIHRvIGZpcnN0X2J1c25vLi4uCmFybSBhbHJlYWR5
-IGhhcyB0aGF0Lgp4ODYgbmVlZCB0byBhZGQgdGhlbS4KLi4uCgpTaWduZWQtb2ZmLWJ5OiBZaW5n
-aGFpIEx1IDx5aW5naGFpQGtlcm5lbC5vcmc+CgpkaWZmIC0tZ2l0IGEvYXJjaC9hbHBoYS9pbmNs
-dWRlL2FzbS9wY2kuaCBiL2FyY2gvYWxwaGEvaW5jbHVkZS9hc20vcGNpLmgKaW5kZXggMjhkMDQ5
-Ny4uZjZmOGNjNiAxMDA2NDQKLS0tIGEvYXJjaC9hbHBoYS9pbmNsdWRlL2FzbS9wY2kuaAorKysg
-Yi9hcmNoL2FscGhhL2luY2x1ZGUvYXNtL3BjaS5oCkBAIC0xOCw2ICsxOCw4IEBAIHN0cnVjdCBy
-ZXNvdXJjZTsKIHN0cnVjdCBwY2lfaW9tbXVfYXJlbmE7CiBzdHJ1Y3QgcGFnZTsKIAorI2RlZmlu
-ZSBwY2lfc3lzX2RhdGEgcGNpX2NvbnRyb2xsZXIKKwogLyogQSBjb250cm9sbGVyLiAgVXNlZCB0
-byBtYW5hZ2UgbXVsdGlwbGUgUENJIGJ1c3Nlcy4gICovCiAKIHN0cnVjdCBwY2lfY29udHJvbGxl
-ciB7CkBAIC0yNiw2ICsyOCw5IEBAIHN0cnVjdCBwY2lfY29udHJvbGxlciB7CiAJc3RydWN0IHJl
-c291cmNlICppb19zcGFjZTsKIAlzdHJ1Y3QgcmVzb3VyY2UgKm1lbV9zcGFjZTsKIAorCXVuc2ln
-bmVkIGludCBmaXJzdF9idXNubzsKKwl1bnNpZ25lZCBpbnQgbGFzdF9idXNubzsKKwogCS8qIFRo
-ZSBmb2xsb3dpbmcgYXJlIGZvciByZXBvcnRpbmcgdG8gdXNlcmxhbmQuICBUaGUgaW52YXJpYW50
-IGlzCiAJICAgdGhhdCBpZiB3ZSByZXBvcnQgYSBCV1gtY2FwYWJsZSBkZW5zZSBtZW1vcnksIHdl
-IGRvIG5vdCByZXBvcnQKIAkgICBhIHNwYXJzZSBtZW1vcnkgYXQgYWxsLCBldmVuIGlmIGl0IGV4
-aXN0cy4gICovCmRpZmYgLS1naXQgYS9hcmNoL2FybS9pbmNsdWRlL2FzbS9tYWNoL3BjaS5oIGIv
-YXJjaC9hcm0vaW5jbHVkZS9hc20vbWFjaC9wY2kuaAppbmRleCBkOTQzYjdkLi5mNDlhODUzIDEw
-MDY0NAotLS0gYS9hcmNoL2FybS9pbmNsdWRlL2FzbS9tYWNoL3BjaS5oCisrKyBiL2FyY2gvYXJt
-L2luY2x1ZGUvYXNtL21hY2gvcGNpLmgKQEAgLTI4LDYgKzI4LDggQEAgc3RydWN0IGh3X3BjaSB7
-CiAJaW50CQkoKm1hcF9pcnEpKGNvbnN0IHN0cnVjdCBwY2lfZGV2ICpkZXYsIHU4IHNsb3QsIHU4
-IHBpbik7CiB9OwogCisjZGVmaW5lIHBjaV9zeXNfZGF0YSBwY2lfc3lzX2RhdGEKKwogLyoKICAq
-IFBlci1jb250cm9sbGVyIHN0cnVjdHVyZQogICovCkBAIC0zNyw2ICszOSw4IEBAIHN0cnVjdCBw
-Y2lfc3lzX2RhdGEgewogI2VuZGlmCiAJc3RydWN0IGxpc3RfaGVhZCBub2RlOwogCWludAkJYnVz
-bnI7CQkvKiBwcmltYXJ5IGJ1cyBudW1iZXIJCQkqLworCXVuc2lnbmVkIGludAlmaXJzdF9idXNu
-bzsJLyogYnVzIG51bWJlciBzdGFydCAqLworCXVuc2lnbmVkIGludAlsYXN0X2J1c25vOwkvKiBi
-dXMgbnVtYmVyIGVuZCAqLwogCXU2NAkJbWVtX29mZnNldDsJLyogYnVzLT5jcHUgbWVtb3J5IG1h
-cHBpbmcgb2Zmc2V0CSovCiAJdW5zaWduZWQgbG9uZwlpb19vZmZzZXQ7CS8qIGJ1cy0+Y3B1IElP
-IG1hcHBpbmcgb2Zmc2V0CQkqLwogCXN0cnVjdCBwY2lfYnVzCSpidXM7CQkvKiBQQ0kgYnVzCQkJ
-CSovCmRpZmYgLS1naXQgYS9hcmNoL2lhNjQvaW5jbHVkZS9hc20vcGNpLmggYi9hcmNoL2lhNjQv
-aW5jbHVkZS9hc20vcGNpLmgKaW5kZXggMjc5YjM4YS4uMzM2ZmQ5ZiAxMDA2NDQKLS0tIGEvYXJj
-aC9pYTY0L2luY2x1ZGUvYXNtL3BjaS5oCisrKyBiL2FyY2gvaWE2NC9pbmNsdWRlL2FzbS9wY2ku
-aApAQCAtODYsMTIgKzg2LDE3IEBAIHN0cnVjdCBwY2lfd2luZG93IHsKIAl1NjQgb2Zmc2V0Owog
-fTsKIAorI2RlZmluZSBwY2lfc3lzX2RhdGEgcGNpX2NvbnRyb2xsZXIKKwogc3RydWN0IHBjaV9j
-b250cm9sbGVyIHsKIAl2b2lkICphY3BpX2hhbmRsZTsKIAl2b2lkICppb21tdTsKIAlpbnQgc2Vn
-bWVudDsKIAlpbnQgbm9kZTsJCS8qIG5lYXJlc3Qgbm9kZSB3aXRoIG1lbW9yeSBvciAtMSBmb3Ig
-Z2xvYmFsIGFsbG9jYXRpb24gKi8KIAorCXVuc2lnbmVkIGludCBmaXJzdF9idXNubzsKKwl1bnNp
-Z25lZCBpbnQgbGFzdF9idXNubzsKKwogCXVuc2lnbmVkIGludCB3aW5kb3dzOwogCXN0cnVjdCBw
-Y2lfd2luZG93ICp3aW5kb3c7CiAKZGlmZiAtLWdpdCBhL2FyY2gvbWljcm9ibGF6ZS9pbmNsdWRl
-L2FzbS9wY2ktYnJpZGdlLmggYi9hcmNoL21pY3JvYmxhemUvaW5jbHVkZS9hc20vcGNpLWJyaWRn
-ZS5oCmluZGV4IGU5ODM0YjIuLjIzZmU0YTQgMTAwNjQ0Ci0tLSBhL2FyY2gvbWljcm9ibGF6ZS9p
-bmNsdWRlL2FzbS9wY2ktYnJpZGdlLmgKKysrIGIvYXJjaC9taWNyb2JsYXplL2luY2x1ZGUvYXNt
-L3BjaS1icmlkZ2UuaApAQCAtMjQsNiArMjQsNyBAQCBzdGF0aWMgaW5saW5lIGludCBwY2liaW9z
-X3ZhZGRyX2lzX2lvcG9ydCh2b2lkIF9faW9tZW0gKmFkZHJlc3MpCiB9CiAjZW5kaWYKIAorI2Rl
-ZmluZSBwY2lfc3lzX2RhdGEgcGNpX2NvbnRyb2xsZXIKIC8qCiAgKiBTdHJ1Y3R1cmUgb2YgYSBQ
-Q0kgY29udHJvbGxlciAoaG9zdCBicmlkZ2UpCiAgKi8KQEAgLTM0LDggKzM1LDggQEAgc3RydWN0
-IHBjaV9jb250cm9sbGVyIHsKIAlzdHJ1Y3QgbGlzdF9oZWFkIGxpc3Rfbm9kZTsKIAlzdHJ1Y3Qg
-ZGV2aWNlICpwYXJlbnQ7CiAKLQlpbnQgZmlyc3RfYnVzbm87Ci0JaW50IGxhc3RfYnVzbm87CisJ
-dW5zaWduZWQgaW50IGZpcnN0X2J1c25vOworCXVuc2lnbmVkIGludCBsYXN0X2J1c25vOwogCiAJ
-aW50IHNlbGZfYnVzbm87CiAKZGlmZiAtLWdpdCBhL2FyY2gvcGFyaXNjL2luY2x1ZGUvYXNtL3Bj
-aS5oIGIvYXJjaC9wYXJpc2MvaW5jbHVkZS9hc20vcGNpLmgKaW5kZXggMjI0MmE1Yy4uOWExYzI0
-MSAxMDA2NDQKLS0tIGEvYXJjaC9wYXJpc2MvaW5jbHVkZS9hc20vcGNpLmgKKysrIGIvYXJjaC9w
-YXJpc2MvaW5jbHVkZS9hc20vcGNpLmgKQEAgLTI4LDYgKzI4LDcgQEAKICAqLwogI2RlZmluZSBw
-Y2lfcG9zdF9yZXNldF9kZWxheSA1MAogCisjZGVmaW5lIHBjaV9zeXNfZGF0YSBwY2lfaGJhX2Rh
-dGEKIAogLyoKICoqIHBjaV9oYmFfZGF0YSAoYWthIEgyUF9PQkpFQ1QgaW4gSFAvVVgpCkBAIC00
-OCw2ICs0OSw4IEBAIHN0cnVjdCBwY2lfaGJhX2RhdGEgewogCXN0cnVjdCByZXNvdXJjZSBsbW1p
-b19zcGFjZTsJLyogYnVzIGFkZHJlc3NlcyA8IDRHYiAqLwogCXN0cnVjdCByZXNvdXJjZSBlbG1t
-aW9fc3BhY2U7CS8qIGFkZGl0aW9uYWwgYnVzIGFkZHJlc3NlcyA8IDRHYiAqLwogCXN0cnVjdCBy
-ZXNvdXJjZSBnbW1pb19zcGFjZTsJLyogYnVzIGFkZHJlc3NlcyA+IDRHYiAqLworCXVuc2lnbmVk
-IGludCBmaXJzdF9idXNubzsKKwl1bnNpZ25lZCBpbnQgbGFzdF9idXNubzsKIAogCS8qIE5PVEU6
-IERpbm8gY29kZSBhc3N1bWVzIGl0IGNhbiB1c2UgKmFsbCogb2YgdGhlIGxtbWlvX3NwYWNlLAog
-CSAqIGVsbW1pb19zcGFjZSBhbmQgZ21taW9fc3BhY2UgYXMgYSBjb250aWd1b3VzIGFycmF5IG9m
-CmRpZmYgLS1naXQgYS9hcmNoL3NoL2luY2x1ZGUvYXNtL3BjaS5oIGIvYXJjaC9zaC9pbmNsdWRl
-L2FzbS9wY2kuaAppbmRleCBjYjIxZTIzLi5lOTlkNTZlIDEwMDY0NAotLS0gYS9hcmNoL3NoL2lu
-Y2x1ZGUvYXNtL3BjaS5oCisrKyBiL2FyY2gvc2gvaW5jbHVkZS9hc20vcGNpLmgKQEAgLTksNiAr
-OSw4IEBACiAKICNkZWZpbmUgcGNpYmlvc19hc3NpZ25fYWxsX2J1c3NlcygpCTEKIAorI2RlZmlu
-ZSBwY2lfc3lzX2RhdGEgcGNpX2NoYW5uZWwKKwogLyoKICAqIEEgYm9hcmQgY2FuIGRlZmluZSBv
-bmUgb3IgbW9yZSBQQ0kgY2hhbm5lbHMgdGhhdCByZXByZXNlbnQgYnVpbHQtaW4gKG9yCiAgKiBl
-eHRlcm5hbCkgUENJIGNvbnRyb2xsZXJzLgpAQCAtMjUsNiArMjcsOSBAQCBzdHJ1Y3QgcGNpX2No
-YW5uZWwgewogCXVuc2lnbmVkIGxvbmcJCWlvX29mZnNldDsKIAl1bnNpZ25lZCBsb25nCQltZW1f
-b2Zmc2V0OwogCisJdW5zaWduZWQgaW50CQlmaXJzdF9idXNubzsKKwl1bnNpZ25lZCBpbnQJCWxh
-c3RfYnVzbm87CisKIAl1bnNpZ25lZCBsb25nCQlyZWdfYmFzZTsKIAl1bnNpZ25lZCBsb25nCQlp
-b19tYXBfYmFzZTsKIApkaWZmIC0tZ2l0IGEvYXJjaC9zcGFyYy9rZXJuZWwvcGNpLmMgYi9hcmNo
-L3NwYXJjL2tlcm5lbC9wY2kuYwppbmRleCBiYjhiYzJlLi5kOTY2N2Y1IDEwMDY0NAotLS0gYS9h
-cmNoL3NwYXJjL2tlcm5lbC9wY2kuYworKysgYi9hcmNoL3NwYXJjL2tlcm5lbC9wY2kuYwpAQCAt
-NjkzLDcgKzY5Myw3IEBAIHN0cnVjdCBwY2lfYnVzICogX19kZXZpbml0IHBjaV9zY2FuX29uZV9w
-Ym0oc3RydWN0IHBjaV9wYm1faW5mbyAqcGJtLAogCiAJcGNpX2FkZF9yZXNvdXJjZSgmcmVzb3Vy
-Y2VzLCAmcGJtLT5pb19zcGFjZSk7CiAJcGNpX2FkZF9yZXNvdXJjZSgmcmVzb3VyY2VzLCAmcGJt
-LT5tZW1fc3BhY2UpOwotCWJ1cyA9IHBjaV9jcmVhdGVfcm9vdF9idXMocGFyZW50LCBwYm0tPnBj
-aV9maXJzdF9idXNubywgcGJtLT5wY2lfb3BzLAorCWJ1cyA9IHBjaV9jcmVhdGVfcm9vdF9idXMo
-cGFyZW50LCBwYm0tPmZpcnN0X2J1c25vLCBwYm0tPnBjaV9vcHMsCiAJCQkJICBwYm0sICZyZXNv
-dXJjZXMpOwogCWlmICghYnVzKSB7CiAJCXByaW50ayhLRVJOX0VSUiAiRmFpbGVkIHRvIGNyZWF0
-ZSBidXMgZm9yICVzXG4iLApAQCAtNzAxLDggKzcwMSw4IEBAIHN0cnVjdCBwY2lfYnVzICogX19k
-ZXZpbml0IHBjaV9zY2FuX29uZV9wYm0oc3RydWN0IHBjaV9wYm1faW5mbyAqcGJtLAogCQlwY2lf
-ZnJlZV9yZXNvdXJjZV9saXN0KCZyZXNvdXJjZXMpOwogCQlyZXR1cm4gTlVMTDsKIAl9Ci0JYnVz
-LT5zZWNvbmRhcnkgPSBwYm0tPnBjaV9maXJzdF9idXNubzsKLQlidXMtPnN1Ym9yZGluYXRlID0g
-cGJtLT5wY2lfbGFzdF9idXNubzsKKwlidXMtPnNlY29uZGFyeSA9IHBibS0+Zmlyc3RfYnVzbm87
-CisJYnVzLT5zdWJvcmRpbmF0ZSA9IHBibS0+bGFzdF9idXNubzsKIAogCXBjaV9vZl9zY2FuX2J1
-cyhwYm0sIG5vZGUsIGJ1cyk7CiAJcGNpX2J1c19hZGRfZGV2aWNlcyhidXMpOwpkaWZmIC0tZ2l0
-IGEvYXJjaC9zcGFyYy9rZXJuZWwvcGNpX2NvbW1vbi5jIGIvYXJjaC9zcGFyYy9rZXJuZWwvcGNp
-X2NvbW1vbi5jCmluZGV4IGE2ODk1OTguLjVkMGEyZTYgMTAwNjQ0Ci0tLSBhL2FyY2gvc3BhcmMv
-a2VybmVsL3BjaV9jb21tb24uYworKysgYi9hcmNoL3NwYXJjL2tlcm5lbC9wY2lfY29tbW9uLmMK
-QEAgLTIxLDggKzIxLDggQEAgc3RhdGljIGludCBjb25maWdfb3V0X29mX3JhbmdlKHN0cnVjdCBw
-Y2lfcGJtX2luZm8gKnBibSwKIAkJCSAgICAgICB1bnNpZ25lZCBsb25nIGRldmZuLAogCQkJICAg
-ICAgIHVuc2lnbmVkIGxvbmcgcmVnKQogewotCWlmIChidXMgPCBwYm0tPnBjaV9maXJzdF9idXNu
-byB8fAotCSAgICBidXMgPiBwYm0tPnBjaV9sYXN0X2J1c25vKQorCWlmIChidXMgPCBwYm0tPmZp
-cnN0X2J1c25vIHx8CisJICAgIGJ1cyA+IHBibS0+bGFzdF9idXNubykKIAkJcmV0dXJuIDE7CiAJ
-cmV0dXJuIDA7CiB9CkBAIC0zMTksOCArMzE5LDggQEAgdm9pZCBwY2lfZ2V0X3BibV9wcm9wcyhz
-dHJ1Y3QgcGNpX3BibV9pbmZvICpwYm0pCiB7CiAJY29uc3QgdTMyICp2YWwgPSBvZl9nZXRfcHJv
-cGVydHkocGJtLT5vcC0+ZGV2Lm9mX25vZGUsICJidXMtcmFuZ2UiLCBOVUxMKTsKIAotCXBibS0+
-cGNpX2ZpcnN0X2J1c25vID0gdmFsWzBdOwotCXBibS0+cGNpX2xhc3RfYnVzbm8gPSB2YWxbMV07
-CisJcGJtLT5maXJzdF9idXNubyA9IHZhbFswXTsKKwlwYm0tPmxhc3RfYnVzbm8gPSB2YWxbMV07
-CiAKIAl2YWwgPSBvZl9nZXRfcHJvcGVydHkocGJtLT5vcC0+ZGV2Lm9mX25vZGUsICJpbm8tYml0
-bWFwIiwgTlVMTCk7CiAJaWYgKHZhbCkgewpkaWZmIC0tZ2l0IGEvYXJjaC9zcGFyYy9rZXJuZWwv
-cGNpX2ltcGwuaCBiL2FyY2gvc3BhcmMva2VybmVsL3BjaV9pbXBsLmgKaW5kZXggNmJlYjYwZC4u
-NjY0ZjU0OCAxMDA2NDQKLS0tIGEvYXJjaC9zcGFyYy9rZXJuZWwvcGNpX2ltcGwuaAorKysgYi9h
-cmNoL3NwYXJjL2tlcm5lbC9wY2lfaW1wbC5oCkBAIC01Nyw2ICs1Nyw4IEBAIHN0cnVjdCBzcGFy
-YzY0X21zaXFfY29va2llIHsKIH07CiAjZW5kaWYKIAorI2RlZmluZSBwY2lfc3lzX2RhdGEgcGNp
-X3BibV9pbmZvCisKIHN0cnVjdCBwY2lfcGJtX2luZm8gewogCXN0cnVjdCBwY2lfcGJtX2luZm8J
-CSpuZXh0OwogCXN0cnVjdCBwY2lfcGJtX2luZm8JCSpzaWJsaW5nOwpAQCAtMTQ0LDggKzE0Niw4
-IEBAIHN0cnVjdCBwY2lfcGJtX2luZm8gewogCXN0cnVjdCBpb21tdQkJCSppb21tdTsKIAogCS8q
-IE5vdyB0aGluZ3MgZm9yIHRoZSBhY3R1YWwgUENJIGJ1cyBwcm9iZXMuICovCi0JdW5zaWduZWQg
-aW50CQkJcGNpX2ZpcnN0X2J1c25vOwotCXVuc2lnbmVkIGludAkJCXBjaV9sYXN0X2J1c25vOwor
-CXVuc2lnbmVkIGludAkJCWZpcnN0X2J1c25vOworCXVuc2lnbmVkIGludAkJCWxhc3RfYnVzbm87
-CiAJc3RydWN0IHBjaV9idXMJCQkqcGNpX2J1czsKIAlzdHJ1Y3QgcGNpX29wcwkJCSpwY2lfb3Bz
-OwogCmRpZmYgLS1naXQgYS9hcmNoL3NwYXJjL2tlcm5lbC9wY2lfcHN5Y2hvLmMgYi9hcmNoL3Nw
-YXJjL2tlcm5lbC9wY2lfcHN5Y2hvLmMKaW5kZXggZjRkMjllMS4uNzY0ZWZiZSAxMDA2NDQKLS0t
-IGEvYXJjaC9zcGFyYy9rZXJuZWwvcGNpX3BzeWNoby5jCisrKyBiL2FyY2gvc3BhcmMva2VybmVs
-L3BjaV9wc3ljaG8uYwpAQCAtMzU2LDEyICszNTYsMTIgQEAgc3RhdGljIHZvaWQgcGJtX2NvbmZp
-Z19idXNtYXN0ZXJpbmcoc3RydWN0IHBjaV9wYm1faW5mbyAqcGJtKQogCS8qIFNldCBjYWNoZS1s
-aW5lIHNpemUgdG8gNjQgYnl0ZXMsIHRoaXMgaXMgYWN0dWFsbHkKIAkgKiBhIG5vcCBidXQgSSBk
-byBpdCBmb3IgY29tcGxldGVuZXNzLgogCSAqLwotCWFkZHIgPSBwc3ljaG9fcGNpX2NvbmZpZ19t
-a2FkZHIocGJtLCBwYm0tPnBjaV9maXJzdF9idXNubywKKwlhZGRyID0gcHN5Y2hvX3BjaV9jb25m
-aWdfbWthZGRyKHBibSwgcGJtLT5maXJzdF9idXNubywKIAkJCQkJMCwgUENJX0NBQ0hFX0xJTkVf
-U0laRSk7CiAJcGNpX2NvbmZpZ193cml0ZTgoYWRkciwgNjQgLyBzaXplb2YodTMyKSk7CiAKIAkv
-KiBTZXQgUEJNIGxhdGVuY3kgdGltZXIgdG8gNjQgUENJIGNsb2Nrcy4gKi8KLQlhZGRyID0gcHN5
-Y2hvX3BjaV9jb25maWdfbWthZGRyKHBibSwgcGJtLT5wY2lfZmlyc3RfYnVzbm8sCisJYWRkciA9
-IHBzeWNob19wY2lfY29uZmlnX21rYWRkcihwYm0sIHBibS0+Zmlyc3RfYnVzbm8sCiAJCQkJCTAs
-IFBDSV9MQVRFTkNZX1RJTUVSKTsKIAlwY2lfY29uZmlnX3dyaXRlOChhZGRyLCA2NCk7CiB9CmRp
-ZmYgLS1naXQgYS9hcmNoL3NwYXJjL2tlcm5lbC9wY2lfc2NoaXpvLmMgYi9hcmNoL3NwYXJjL2tl
-cm5lbC9wY2lfc2NoaXpvLmMKaW5kZXggMTNkNGFhMi4uODk4MzA4ZCAxMDA2NDQKLS0tIGEvYXJj
-aC9zcGFyYy9rZXJuZWwvcGNpX3NjaGl6by5jCisrKyBiL2FyY2gvc3BhcmMva2VybmVsL3BjaV9z
-Y2hpem8uYwpAQCAtODIsNyArODIsNyBAQCBzdGF0aWMgdm9pZCAqc2NoaXpvX3BjaV9jb25maWdf
-bWthZGRyKHN0cnVjdCBwY2lfcGJtX2luZm8gKnBibSwKIHsKIAlpZiAoIXBibSkKIAkJcmV0dXJu
-IE5VTEw7Ci0JYnVzIC09IHBibS0+cGNpX2ZpcnN0X2J1c25vOworCWJ1cyAtPSBwYm0tPmZpcnN0
-X2J1c25vOwogCXJldHVybiAodm9pZCAqKQogCQkoU0NISVpPX0NPTkZJR19CQVNFKHBibSkgfAog
-CQkgU0NISVpPX0NPTkZJR19FTkNPREUoYnVzLCBkZXZmbiwgd2hlcmUpKTsKQEAgLTEwNTQsMTIg
-KzEwNTQsMTIgQEAgc3RhdGljIHZvaWQgcGJtX2NvbmZpZ19idXNtYXN0ZXJpbmcoc3RydWN0IHBj
-aV9wYm1faW5mbyAqcGJtKQogCS8qIFNldCBjYWNoZS1saW5lIHNpemUgdG8gNjQgYnl0ZXMsIHRo
-aXMgaXMgYWN0dWFsbHkKIAkgKiBhIG5vcCBidXQgSSBkbyBpdCBmb3IgY29tcGxldGVuZXNzLgog
-CSAqLwotCWFkZHIgPSBzY2hpem9fcGNpX2NvbmZpZ19ta2FkZHIocGJtLCBwYm0tPnBjaV9maXJz
-dF9idXNubywKKwlhZGRyID0gc2NoaXpvX3BjaV9jb25maWdfbWthZGRyKHBibSwgcGJtLT5maXJz
-dF9idXNubywKIAkJCQkJMCwgUENJX0NBQ0hFX0xJTkVfU0laRSk7CiAJcGNpX2NvbmZpZ193cml0
-ZTgoYWRkciwgNjQgLyBzaXplb2YodTMyKSk7CiAKIAkvKiBTZXQgUEJNIGxhdGVuY3kgdGltZXIg
-dG8gNjQgUENJIGNsb2Nrcy4gKi8KLQlhZGRyID0gc2NoaXpvX3BjaV9jb25maWdfbWthZGRyKHBi
-bSwgcGJtLT5wY2lfZmlyc3RfYnVzbm8sCisJYWRkciA9IHNjaGl6b19wY2lfY29uZmlnX21rYWRk
-cihwYm0sIHBibS0+Zmlyc3RfYnVzbm8sCiAJCQkJCTAsIFBDSV9MQVRFTkNZX1RJTUVSKTsKIAlw
-Y2lfY29uZmlnX3dyaXRlOChhZGRyLCA2NCk7CiB9CmRpZmYgLS1naXQgYS9hcmNoL3g4Ni9pbmNs
-dWRlL2FzbS9wY2kuaCBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3BjaS5oCmluZGV4IGRmNzVkMDcu
-LmM2YmM0ZjMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL3BjaS5oCisrKyBiL2Fy
-Y2gveDg2L2luY2x1ZGUvYXNtL3BjaS5oCkBAIC0xMSwxMiArMTEsMTYgQEAKIAogI2lmZGVmIF9f
-S0VSTkVMX18KIAorI2RlZmluZSBwY2lfc3lzX2RhdGEgcGNpX3N5c2RhdGEKKwogc3RydWN0IHBj
-aV9zeXNkYXRhIHsKIAlpbnQJCWRvbWFpbjsJCS8qIFBDSSBkb21haW4gKi8KIAlpbnQJCW5vZGU7
-CQkvKiBOVU1BIG5vZGUgKi8KICNpZmRlZiBDT05GSUdfWDg2XzY0CiAJdm9pZAkJKmlvbW11OwkJ
-LyogSU9NTVUgcHJpdmF0ZSBkYXRhICovCiAjZW5kaWYKKwl1bnNpZ25lZCBpbnQJZmlyc3RfYnVz
-bm87CisJdW5zaWduZWQgaW50CWxhc3RfYnVzbm87CiB9OwogCiBleHRlcm4gaW50IHBjaV9yb3V0
-ZWlycTsKZGlmZiAtLWdpdCBhL2FyY2gveHRlbnNhL2luY2x1ZGUvYXNtL3BjaS1icmlkZ2UuaCBi
-L2FyY2gveHRlbnNhL2luY2x1ZGUvYXNtL3BjaS1icmlkZ2UuaAppbmRleCAwMGZjYmQ3Li5lZGMw
-MjFiIDEwMDY0NAotLS0gYS9hcmNoL3h0ZW5zYS9pbmNsdWRlL2FzbS9wY2ktYnJpZGdlLmgKKysr
-IGIvYXJjaC94dGVuc2EvaW5jbHVkZS9hc20vcGNpLWJyaWRnZS5oCkBAIC0yOCw2ICsyOCw4IEBA
-IHN0cnVjdCBwY2lfc3BhY2UgewogCXVuc2lnbmVkIGxvbmcgYmFzZTsKIH07CiAKKyNkZWZpbmUg
-cGNpX3N5c19kYXRhIHBjaV9jb250cm9sbGVyCisKIC8qCiAgKiBTdHJ1Y3R1cmUgb2YgYSBQQ0kg
-Y29udHJvbGxlciAoaG9zdCBicmlkZ2UpCiAgKi8KQEAgLTM4LDggKzQwLDggQEAgc3RydWN0IHBj
-aV9jb250cm9sbGVyIHsKICAgICAgICAgc3RydWN0IHBjaV9idXMgKmJ1czsKIAl2b2lkICphcmNo
-X2RhdGE7CiAKLQlpbnQgZmlyc3RfYnVzbm87Ci0JaW50IGxhc3RfYnVzbm87CisJdW5zaWduZWQg
-aW50IGZpcnN0X2J1c25vOworCXVuc2lnbmVkIGludCBsYXN0X2J1c25vOwogCiAJc3RydWN0IHBj
-aV9vcHMgKm9wczsKIAl2b2xhdGlsZSB1bnNpZ25lZCBpbnQgKmNmZ19hZGRyOwpkaWZmIC0tZ2l0
-IGEvZHJpdmVycy9wYXJpc2MvZGluby5jIGIvZHJpdmVycy9wYXJpc2MvZGluby5jCmluZGV4IDdm
-ZjEwYzEuLmNkYjUyN2MgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvcGFyaXNjL2Rpbm8uYworKysgYi9k
-cml2ZXJzL3BhcmlzYy9kaW5vLmMKQEAgLTEwMDQsNyArMTAwNCw3IEBAIHN0YXRpYyBpbnQgX19p
-bml0IGRpbm9fcHJvYmUoc3RydWN0IHBhcmlzY19kZXZpY2UgKmRldikKIAkqKiB3aXRoIGNvbmZp
-Z3VyYXRpb24gYWNjZXNzb3IgZnVuY3Rpb25zLgogCSovCiAJZGlub19kZXYtPmhiYS5oYmFfYnVz
-ID0gYnVzID0gcGNpX2NyZWF0ZV9yb290X2J1cygmZGV2LT5kZXYsCi0JCQkgZGlub19jdXJyZW50
-X2J1cywgJmRpbm9fY2ZnX29wcywgTlVMTCwgJnJlc291cmNlcyk7CisJCQkgZGlub19jdXJyZW50
-X2J1cywgJmRpbm9fY2ZnX29wcywgJmRpbm9fZGV2LT5oYmEsICZyZXNvdXJjZXMpOwogCWlmICgh
-YnVzKSB7CiAJCXByaW50ayhLRVJOX0VSUiAiRVJST1I6IGZhaWxlZCB0byBzY2FuIFBDSSBidXMg
-b24gJXMgKGR1cGxpY2F0ZSBidXMgbnVtYmVyICVkPylcbiIsCiAJCSAgICAgICBkZXZfbmFtZSgm
-ZGV2LT5kZXYpLCBkaW5vX2N1cnJlbnRfYnVzKTsKZGlmZiAtLWdpdCBhL2RyaXZlcnMvcGFyaXNj
-L2xiYV9wY2kuYyBiL2RyaXZlcnMvcGFyaXNjL2xiYV9wY2kuYwppbmRleCBkNWYzZDc1Li5mZDYy
-Zjc5IDEwMDY0NAotLS0gYS9kcml2ZXJzL3BhcmlzYy9sYmFfcGNpLmMKKysrIGIvZHJpdmVycy9w
-YXJpc2MvbGJhX3BjaS5jCkBAIC0xNTI1LDcgKzE1MjUsNyBAQCBsYmFfZHJpdmVyX3Byb2JlKHN0
-cnVjdCBwYXJpc2NfZGV2aWNlICpkZXYpCiAJZGV2LT5kZXYucGxhdGZvcm1fZGF0YSA9IGxiYV9k
-ZXY7CiAJbGJhX2J1cyA9IGxiYV9kZXYtPmhiYS5oYmFfYnVzID0KIAkJcGNpX2NyZWF0ZV9yb290
-X2J1cygmZGV2LT5kZXYsIGxiYV9kZXYtPmhiYS5idXNfbnVtLnN0YXJ0LAotCQkJCSAgICBjZmdf
-b3BzLCBOVUxMLCAmcmVzb3VyY2VzKTsKKwkJCQkgICAgY2ZnX29wcywgJmxiYV9kZXYtPmhiYSwg
-JnJlc291cmNlcyk7CiAJaWYgKCFsYmFfYnVzKSB7CiAJCXBjaV9mcmVlX3Jlc291cmNlX2xpc3Qo
-JnJlc291cmNlcyk7CiAJCXJldHVybiAwOwpkaWZmIC0tZ2l0IGEvZHJpdmVycy9wY2kvcHJvYmUu
-YyBiL2RyaXZlcnMvcGNpL3Byb2JlLmMKaW5kZXggYTExNDE3My4uYmNiMzg3ZCAxMDA2NDQKLS0t
-IGEvZHJpdmVycy9wY2kvcHJvYmUuYworKysgYi9kcml2ZXJzL3BjaS9wcm9iZS5jCkBAIC0xNjA4
-LDYgKzE2MDgsMTQgQEAgc3RydWN0IHBjaV9idXMgKnBjaV9jcmVhdGVfcm9vdF9idXMoc3RydWN0
-IGRldmljZSAqcGFyZW50LCBpbnQgYnVzLAogCQkJZGV2X2luZm8oJmItPmRldiwgInJvb3QgYnVz
-IHJlc291cmNlICVwUlxuIiwgcmVzKTsKIAl9CiAKKwlpZiAoc3lzZGF0YSkgeworCQlzdHJ1Y3Qg
-cGNpX3N5c19kYXRhICpkYXRhID0gc3lzZGF0YTsKKworCQlkZXZfcHJpbnRrKEtFUk5fREVCVUcs
-ICZiLT5kZXYsICJidXMgcmFuZ2U6ICUwMngtJTAyeFxuIiwgZGF0YS0+Zmlyc3RfYnVzbm8sIGRh
-dGEtPmxhc3RfYnVzbm8pOworCX0gZWxzZSB7CisJCWRldl9wcmludGsoS0VSTl9ERUJVRywgJmIt
-PmRldiwgImJ1cyByYW5nZTogJTAyeC0lMDJ4XG4iLCAwLCAweGZmKTsKKwl9CisKIAlyZXR1cm4g
-YjsKIAogY2xhc3NfZGV2X3JlZ19lcnI6CmRpZmYgLS1naXQgYS9kcml2ZXJzL3BjaS94ZW4tcGNp
-ZnJvbnQuYyBiL2RyaXZlcnMvcGNpL3hlbi1wY2lmcm9udC5jCmluZGV4IDk4Mzg3Y2EuLmQ2MGZj
-NWIgMTAwNjQ0Ci0tLSBhL2RyaXZlcnMvcGNpL3hlbi1wY2lmcm9udC5jCisrKyBiL2RyaXZlcnMv
-cGNpL3hlbi1wY2lmcm9udC5jCkBAIC01MCw3ICs1MCwxNSBAQCBzdHJ1Y3QgcGNpZnJvbnRfZGV2
-aWNlIHsKIH07CiAKIHN0cnVjdCBwY2lmcm9udF9zZCB7CisvKiBiZWdpbiBzYW1lIGFzIHBjaV9z
-eXNkYXRhIGZvciBhcmNoL3g4Ni9pbmNsdWRlL2FzbS9wY2kuaCAqLwogCWludCBkb21haW47CisJ
-aW50ICAgICAgICAgICAgIG5vZGU7ICAgICAgICAgICAvKiBOVU1BIG5vZGUgKi8KKyNpZmRlZiBD
-T05GSUdfWDg2XzY0CisJdm9pZCAgICAgICAgICAgICppb21tdTsgICAgICAgICAvKiBJT01NVSBw
-cml2YXRlIGRhdGEgKi8KKyNlbmRpZgorCXVuc2lnbmVkIGludCBmaXJzdF9idXNubzsKKwl1bnNp
-Z25lZCBpbnQgbGFzdF9idXNubzsKKy8qIGVuZCAqLwogCXN0cnVjdCBwY2lmcm9udF9kZXZpY2Ug
-KnBkZXY7CiB9OwogCmRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5lcmljL3BjaS5oIGIvaW5j
-bHVkZS9hc20tZ2VuZXJpYy9wY2kuaAppbmRleCAyNjM3M2NmLi4xNTA2YjA2IDEwMDY0NAotLS0g
-YS9pbmNsdWRlL2FzbS1nZW5lcmljL3BjaS5oCisrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvcGNp
-LmgKQEAgLTYsNiArNiwxNSBAQAogI2lmbmRlZiBfQVNNX0dFTkVSSUNfUENJX0gKICNkZWZpbmUg
-X0FTTV9HRU5FUklDX1BDSV9ICiAKKyNpZm5kZWYgcGNpX3N5c19kYXRhCisjZGVmaW5lIHBjaV9z
-eXNfZGF0YSBwY2lfc3lzX2RhdGEKKworc3RydWN0IHBjaV9zeXNfZGF0YSB7CisJdW5zaWduZWQg
-aW50IGZpcnN0IGJ1c25vOworCXVuc2lnbmVkIGludCBsYXN0X2J1c25vOworfTsKKyNlbmRpZgor
-CiAvKioKICAqIHBjaWJpb3NfcmVzb3VyY2VfdG9fYnVzIC0gY29udmVydCByZXNvdXJjZSB0byBQ
-Q0kgYnVzIGFkZHJlc3MKICAqIEBkZXY6IGRldmljZSB3aGljaCBvd25zIHRoaXMgcmVzb3VyY2UK
---20cf303bfe24d1a36804b8a1ed59--
