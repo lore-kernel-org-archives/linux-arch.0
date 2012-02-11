@@ -1,64 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26980 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760521Ab2BKEHQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 23:07:16 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/22] PCI: Strict checking of valid range for bridge
-Date: Fri, 10 Feb 2012 20:06:14 -0800
-Message-ID: <1328933185-15154-12-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
-References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
+Received: from prod-mail-xrelay06.akamai.com ([96.6.114.98]:55516 "EHLO
+	prod-mail-xrelay06.akamai.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751193Ab2BKFyw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 11 Feb 2012 00:54:52 -0500
+Message-ID: <4F3602A9.3060206@akamai.com>
+Date: Fri, 10 Feb 2012 23:54:49 -0600
+From: Josh Hunt <johunt@akamai.com>
+MIME-Version: 1.0
+Subject: [RFC PATCH v2] compat: poll() in 32-bit applications does not handle
+ negative timeout values properly on 64-bit kernels
+Content-Type: multipart/mixed;
+ boundary="------------090104020502080105010503"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120211040614.2GqGAt2cHq2-z3gYdSkbygcYG7ajwY6UJBC0UvIdODw@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20120211055449.NQtSKZhxB41LE36Gz3AUIwx46XxT0ssh8F7w95GmGIE@z>
 
-children bridges busn range should be able to be allocated from parent bus range.
+This is a multi-part message in MIME format.
+--------------090104020502080105010503
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 
-to avoid overlapping between sibling bridges on same bus.
+We have hit an issue where our 32-bit applications using poll() and
+passing in a value of -1 for the timeout value return after ~49 days
+(2^32 msec), instead of waiting indefinitely. I've instrumented the
+kernel and found we are hitting the case where poll() believes we've
+passed in a positive number and thus creates a timespec, etc. I've
+implemented compat_sys_poll() to sign-extend the timeout value and
+resolve the issue.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/probe.c |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
+There was an almost identical patch submitted last year, but for
+whatever reason did not make it in:
+https://lkml.org/lkml/2011/9/18/19
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index fcd9266..ca80141 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -770,6 +770,30 @@ reduce_needed_size:
- 	return ret;
+I am guessing there are other architectures affected by this bug. This
+patch only fixes x86.
+
+Josh
+
+--------------090104020502080105010503
+Content-Type: text/x-patch;
+ name="compat-sys-poll.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment;
+ filename="compat-sys-poll.patch"
+
+commit cde9eb901ccb3b5af3e501b018b90f16c53942c2
+Author: Josh Hunt <johunt@akamai.com>
+Date:   Mon Feb 6 20:51:31 2012 -0800
+
+    compat: poll() in 32-bit applications does not handle negative timeout values properly on 64-bit kernels
+
+    We have observed our 32-bit applications running on 64-bit kernels do not
+    wait infinitely when passed a negative value for the timeout argument.
+    Instead we see poll() returning in ~49 days or 2^32 msecs, because the
+    timeout argument is not getting sign-extended. Implementing
+    compat_sys_poll() to handle this case.
+
+    Reported-by: Phil Lisiecki <lisiecki@akamai.com>
+    Signed-off-by: Josh Hunt <johunt@akamai.com>
+    Cc: <stable@vger.kernel.org>
+
+diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
+index ce98e28..8407150 100644
+--- a/arch/x86/syscalls/syscall_32.tbl
++++ b/arch/x86/syscalls/syscall_32.tbl
+@@ -174,7 +174,7 @@
+ 165	i386	getresuid		sys_getresuid16
+ 166	i386	vm86			ptregs_vm86			sys32_vm86_warning
+ 167	i386	query_module
+-168	i386	poll			sys_poll
++168	i386	poll			sys_poll			compat_sys_poll
+ 169	i386	nfsservctl
+ 170	i386	setresgid		sys_setresgid16
+ 171	i386	getresgid		sys_getresgid16
+diff --git a/fs/compat.c b/fs/compat.c
+index fa9d721..77bd50e 100644
+--- a/fs/compat.c
++++ b/fs/compat.c
+@@ -1611,6 +1611,12 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
+ 				 sigsetsize);
  }
  
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++	int timeout_msecs)
 +{
-+	int broken = 0;
-+
-+	struct resource busn_res;
-+	int ret;
-+
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 secondary, subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
++	return sys_poll(ufds, nfds, timeout_msecs);
 +}
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
--- 
-1.7.7
++
+ asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
+ 	unsigned int nfds, struct compat_timespec __user *tsp,
+ 	const compat_sigset_t __user *sigmask, compat_size_t sigsetsize)
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 41c9f65..66e61e0 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -433,6 +433,8 @@ asmlinkage long compat_sys_pselect6(int n, compat_ulong_t __user *inp,
+ 				    compat_ulong_t __user *exp,
+ 				    struct compat_timespec __user *tsp,
+ 				    void __user *sig);
++asmlinkage long compat_sys_poll(struct pollfd __user *ufds, unsigned int nfds,
++				int timeout_msecs);
+ asmlinkage long compat_sys_ppoll(struct pollfd __user *ufds,
+ 				 unsigned int nfds,
+ 				 struct compat_timespec __user *tsp,
 
+--------------090104020502080105010503--
