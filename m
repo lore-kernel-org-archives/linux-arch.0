@@ -1,48 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26921 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26980 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758951Ab2BKEHE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 23:07:04 -0500
+	with ESMTP id S1760521Ab2BKEHQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 23:07:16 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/22] PCI, ia64: Register busn_res for root buses
-Date: Fri, 10 Feb 2012 20:06:08 -0800
-Message-ID: <1328933185-15154-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/22] PCI: Strict checking of valid range for bridge
+Date: Fri, 10 Feb 2012 20:06:14 -0800
+Message-ID: <1328933185-15154-12-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
 References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20120211040608.nsmQe0p5OI-gfi43kzeDNag5N7Iz_z4teTKlgghUK14@z>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120211040614.2GqGAt2cHq2-z3gYdSkbygcYG7ajwY6UJBC0UvIdODw@z>
+
+children bridges busn range should be able to be allocated from parent bus range.
+
+to avoid overlapping between sibling bridges on same bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
 ---
- arch/ia64/pci/pci.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   24 ++++++++++++++++++++++++
+ 1 files changed, 24 insertions(+), 0 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index f82f5d4..936b2f1 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -331,6 +331,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct acpi_device *device = root->device;
- 	int domain = root->segment;
- 	int bus = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
- 	struct pci_root_info info;
-@@ -384,6 +385,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		return NULL;
- 	}
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index fcd9266..ca80141 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -770,6 +770,30 @@ reduce_needed_size:
+ 	return ret;
+ }
  
-+	pci_bus_insert_busn_res(pbus, busnum, busmax);
- 	pbus->subordinate = pci_scan_child_bus(pbus);
- 	return pbus;
- 
++static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
++				struct pci_dev *dev,
++				int secondary, int subordinate)
++{
++	int broken = 0;
++
++	struct resource busn_res;
++	int ret;
++
++	memset(&busn_res, 0, sizeof(struct resource));
++	dev_printk(KERN_DEBUG, &dev->dev,
++		 "check if busn %02x-%02x is in busn_res: %pR\n",
++		 secondary, subordinate, &bus->busn_res);
++	ret = allocate_resource(&bus->busn_res, &busn_res,
++			 (subordinate - secondary + 1),
++			 secondary, subordinate,
++			 1, NULL, NULL);
++	if (ret)
++		broken = 1;
++	else
++		release_resource(&busn_res);
++
++	return broken;
++}
+ /*
+  * If it's a bridge, configure it and scan the bus behind it.
+  * For CardBus bridges, we don't scan behind as the devices will
 -- 
 1.7.7
 
