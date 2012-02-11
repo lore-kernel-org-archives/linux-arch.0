@@ -1,82 +1,143 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v6 0/22] PCI: allocate pci bus num range for unassigned bridge busn + pci rescan cleanup
-Date: Fri, 10 Feb 2012 20:06:03 -0800
-Message-ID: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26900 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758441Ab2BKEG6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Feb 2012 23:06:58 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 04/22] PCI, x86: Register busn_res for root buses
+Date: Fri, 10 Feb 2012 20:06:07 -0800
+Message-ID: <1328933185-15154-5-git-send-email-yinghai@kernel.org>
+References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-c363f32: PCI: clean up rescan_bus_bridge_resize
-6aa2709: PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
-37cde7d: PCI: Add pci_bus_add_single_device()
-2491eb4: PCI, sysfs: create rescan_bridge under /sys/.../pci/devices/... for pci bridges
-2e8ccf8: PCI, sys: Use device_type and attr_groups with pci dev
-523106b: PCI, pciehp: Remove not needed bus number range checking
-b93a078: PCI: Double checking setting for bus register and bus struct.
-d7f3672: pcmcia: remove workaround for fixing pci parent bus subordinate
-7fc60fb: PCI: Seperate child bus scanning to two passes overall
-c180042: PCI: kill pci_fixup_parent_subordinate_busnr()
-e6832b3: PCI: Allocate bus range instead of use max blindly
-f4c45ff: PCI: Strict checking of valid range for bridge
-d933847: PCI: Probe safe range that we can use for unassigned bridge.
-00ca3b1: PCI: Add pci_bus_extend/shrink_top()
-81f70bb: PCI, parisc: Register busn_res for root buses
-a1e4606: PCI, powerpc: Register busn_res for root buses
-c3fbb20: PCI, sparc: Register busn_res for root buses
-56f1bb0: PCI, ia64: Register busn_res for root buses
-25502fb: PCI, x86: Register busn_res for root buses
-311e8e2: PCI: Add busn_res tracking in core
-48bf7b6: PCI: Add busn_res operation functions
-1431674: PCI: Add busn_res into struct pci_bus.
+update x86_pci_root_bus_resources() to get bus_max for non-acpi case.
 
-Set up iobusn_resource tree, and register bus number range to it.
-Later when need to find bus range, will try to allocate from the tree
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/include/asm/topology.h |    3 ++-
+ arch/x86/pci/acpi.c             |    8 +++++---
+ arch/x86/pci/bus_numa.c         |    8 +++++++-
+ arch/x86/pci/common.c           |   11 +++++++----
+ 4 files changed, 21 insertions(+), 9 deletions(-)
 
-Need to test on arches other than x86. esp for ia64 and powerpc that support
-  more than on peer root buses.
-
-last five patches are rescan cleanup that make use busn alloc.
-
-could be found at:
-	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
-
--v2: according to Jesse, split to more small patches.
--v3: address some request from Bjorn. like make use %pR for busn_res debug print
-	out, and move the comment change with code change.
--v4: fixes the problem about rescan that Bjorn found.
--v5: add /proc/iobusn that is requested by Bjorn.
-     remove old workaround from pciehp.
-     add rescan_bridge for pci bridge in /sys
--v6: remove global iobusn_resource, and every root bus's busn_res will be root
-     of children buses' busn_res.
-     pc cardbus change is tested by pcmcia maintainter.
-
-Thanks
-
-Yinghai
-
- Documentation/ABI/testing/sysfs-bus-pci |   10 +
- arch/ia64/pci/pci.c                     |    2 +
- arch/powerpc/kernel/pci-common.c        |    7 +-
- arch/sparc/kernel/pci.c                 |    1 +
- arch/x86/include/asm/topology.h         |    3 +-
- arch/x86/pci/acpi.c                     |    8 +-
- arch/x86/pci/bus_numa.c                 |    8 +-
- arch/x86/pci/common.c                   |   11 +-
- drivers/parisc/dino.c                   |    2 +
- drivers/parisc/lba_pci.c                |    3 +
- drivers/pci/bus.c                       |   40 +++
- drivers/pci/hotplug/pciehp_pci.c        |   12 +-
- drivers/pci/pci-sysfs.c                 |   59 ++++-
- drivers/pci/pci.h                       |    1 +
- drivers/pci/probe.c                     |  460 +++++++++++++++++++++++++------
- drivers/pci/remove.c                    |    1 +
- drivers/pcmcia/yenta_socket.c           |   75 -----
- include/linux/pci.h                     |    9 +
- 18 files changed, 525 insertions(+), 187 deletions(-)
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index b9676ae..ad4060e 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -172,7 +172,8 @@ static inline void arch_fix_phys_package_id(int num, u32 slot)
+ }
+ 
+ struct pci_bus;
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources);
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				struct list_head *resources);
+ 
+ #ifdef CONFIG_SMP
+ #define mc_capable()	((boot_cpu_data.x86_max_cores > 1) && \
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index daa4249..b25b5b1 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -348,6 +348,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	struct acpi_device *device = root->device;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
++	int busmax = root->secondary.end;
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct pci_sysdata *sd;
+@@ -410,12 +411,13 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+ 		if (!pci_use_crs)
+-			x86_pci_root_bus_resources(busnum, &resources);
++			x86_pci_root_bus_resources(busnum, &busmax, &resources);
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+-		if (bus)
++		if (bus) {
++			pci_bus_insert_busn_res(bus, busnum, busmax);
+ 			bus->subordinate = pci_scan_child_bus(bus);
+-		else
++		} else
+ 			pci_free_resource_list(&resources);
+ 	}
+ 
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index fd3f655..5213cd8 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -7,7 +7,8 @@
+ int pci_root_num;
+ struct pci_root_info pci_root_info[PCI_ROOT_NR];
+ 
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources)
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				struct list_head *resources)
+ {
+ 	int i;
+ 	int j;
+@@ -28,6 +29,7 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
+ 	       bus);
+ 
+ 	info = &pci_root_info[i];
++	*bus_max = info->bus_max;
+ 	for (j = 0; j < info->res_num; j++) {
+ 		struct resource *res;
+ 		struct resource *root;
+@@ -51,6 +53,10 @@ default_resources:
+ 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
+ 	pci_add_resource(resources, &ioport_resource);
+ 	pci_add_resource(resources, &iomem_resource);
++	if (!bus)
++		*bus_max = 0xff;
++	else if (!*bus_max)
++		*bus_max = bus;
+ }
+ 
+ void __devinit update_res(struct pci_root_info *info, resource_size_t start,
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..ce0aefc 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -433,6 +433,7 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+ 	struct pci_sysdata *sd;
++	int bus_max;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -454,8 +455,9 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 	sd->node = get_mp_bus_to_node(busnum);
+ 
+ 	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
++	x86_pci_root_bus_resources(busnum, &bus_max, &resources);
++	bus = pci_scan_root_bus_max(NULL, busnum, bus_max, &pci_root_ops, sd,
++				&resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+ 		kfree(sd);
+@@ -643,6 +645,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+ 	struct pci_sysdata *sd;
++	int bus_max;
+ 
+ 	/*
+ 	 * Allocate per-root-bus (not per bus) arch-specific data.
+@@ -655,8 +658,8 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 		return NULL;
+ 	}
+ 	sd->node = node;
+-	x86_pci_root_bus_resources(busno, &resources);
+-	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
++	x86_pci_root_bus_resources(busno, &bus_max, &resources);
++	bus = pci_scan_root_bus_max(NULL, busno, bus_max, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+ 		kfree(sd);
+-- 
+1.7.7
