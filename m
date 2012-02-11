@@ -1,59 +1,86 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/22] PCI, powerpc: Register busn_res for root buses
-Date: Fri, 10 Feb 2012 20:06:10 -0800
-Message-ID: <1328933185-15154-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/22] PCI: Add pci_bus_add_single_device()
+Date: Fri, 10 Feb 2012 20:06:23 -0800
+Message-ID: <1328933185-15154-21-git-send-email-yinghai@kernel.org>
 References: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1328933185-15154-1-git-send-email-yinghai@kernel.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Yinghai Lu <yinghai@kernel.org>, linux-pci@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Paul Mackerras <paulus@samba.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
----
- arch/powerpc/kernel/pci-common.c |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
+will use it to pci_bus_bridge_scan_resize(0 to make bridge will
+have pci_bus directory created.
 
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index cce98d7..501f29b 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1732,6 +1732,8 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 	bus->secondary = hose->first_busno;
- 	hose->bus = bus;
- 
-+	pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
-+
- 	/* Get probe mode and perform scan */
- 	mode = PCI_PROBE_NORMAL;
- 	if (node && ppc_md.pci_probe_mode)
-@@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 		of_scan_bus(node, bus);
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ drivers/pci/bus.c   |   40 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/pci.h |    1 +
+ 2 files changed, 41 insertions(+), 0 deletions(-)
+
+diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
+index 398f5d8..7b2ae85 100644
+--- a/drivers/pci/bus.c
++++ b/drivers/pci/bus.c
+@@ -247,6 +247,46 @@ void pci_bus_add_devices(const struct pci_bus *bus)
  	}
+ }
  
--	if (mode == PCI_PROBE_NORMAL)
-+	if (mode == PCI_PROBE_NORMAL) {
-+		pci_bus_update_busn_res_end(bus, 255);
- 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-+		pci_bus_update_busn_res_end(bus, bus->subordinate);
++void pci_bus_add_single_device(struct pci_dev *dev)
++{
++	struct pci_bus *child;
++	int retval;
++
++	/* Skip already-added devices */
++	if (!dev->is_added) {
++		retval = pci_bus_add_device(dev);
++		if (retval)
++			dev_err(&dev->dev, "Error adding device, continuing\n");
 +	}
- 
- 	/* Platform gets a chance to do some global fixups before
- 	 * we proceed to resource allocation
++
++	BUG_ON(!dev->is_added);
++
++	child = dev->subordinate;
++	/*
++	 * If there is an unattached subordinate bus, attach
++	 * it and then scan for unattached PCI devices.
++	 */
++	if (child) {
++		if (list_empty(&child->node)) {
++			down_write(&pci_bus_sem);
++			list_add_tail(&child->node, &dev->bus->children);
++			up_write(&pci_bus_sem);
++		}
++		pci_bus_add_devices(child);
++
++		/*
++		 * register the bus with sysfs as the parent is now
++		 * properly registered.
++		 */
++		if (!child->is_added) {
++			retval = pci_bus_add_child(child);
++			if (retval)
++				dev_err(&dev->dev, "Error adding bus, continuing\n");
++		}
++	}
++}
++
++
+ void pci_enable_bridges(struct pci_bus *bus)
+ {
+ 	struct pci_dev *dev;
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index d5b6786..8061031 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -659,6 +659,7 @@ void pci_fixup_cardbus(struct pci_bus *);
+ void pcibios_scan_specific_bus(int busn);
+ extern struct pci_bus *pci_find_bus(int domain, int busnr);
+ void pci_bus_add_devices(const struct pci_bus *bus);
++void pci_bus_add_single_device(struct pci_dev *dev);
+ struct pci_bus *pci_scan_bus_parented(struct device *parent, int bus,
+ 				      struct pci_ops *ops, void *sysdata);
+ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
 -- 
 1.7.7
