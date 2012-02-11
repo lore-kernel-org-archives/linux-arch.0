@@ -1,47 +1,43 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH resend] asm/types.h: All architectures use int-ll64.h in
- kernelspace
-Date: Sat, 11 Feb 2012 09:44:44 +0000
-Message-ID: <20120211094444.GL23916@ZenIV.linux.org.uk>
-References: <alpine.DEB.2.00.1108132152050.18053@ayla.of.borg>
- <1665974.2LGtkbyJmJ@wuerfel>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Subject: Re: [RFC PATCH v2] compat: poll() in 32-bit applications does not
+ handle negative timeout values properly on 64-bit kernels
+Date: Sat, 11 Feb 2012 16:47:20 +0100
+Message-ID: <1328975240.5661.31.camel@edumazet-laptop>
+References: <4F3602A9.3060206@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1665974.2LGtkbyJmJ@wuerfel>
-Sender: linux-doc-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:49543 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753497Ab2BKPra (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Feb 2012 10:47:30 -0500
+In-Reply-To: <4F3602A9.3060206@akamai.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Josh Hunt <johunt@akamai.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, arnd@arndb.de, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Sat, Aug 13, 2011 at 11:25:59PM +0200, Arnd Bergmann wrote:
-> On Saturday 13 August 2011 21:53:43 Geert Uytterhoeven wrote:
-> > Now all 64-bit architectures have been converted to int-ll64.h, we can
-> > deprecate int-l64.h in kernelspace:
-> >   - Add a check to prevent new architectures from using int-l64.h in
-> >     kernelspace,
-> >   - Update documentation, as the casts to (unsigned) long long are no longer
-> >     needed.
-> > 
-> > For backwards compatibility, alpha, ia64, mips, and powerpc still use
-> > int-l64.h in userspace.
-> > 
-> > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > For the documentation parts:
-> > Acked-by: Randy Dunlap <rdunlap@xenotime.net>
-> 
-> I believe that Al Viro is working on a patch to unify all umode_t definitions
-> so that it becomes unsigned short everywhere. Once that is done,
-> asm-generic/int-ll64.h can become asm-generic/types.h and all architectures
-> can use that.
+Le vendredi 10 f=C3=A9vrier 2012 =C3=A0 23:54 -0600, Josh Hunt a =C3=A9=
+crit :
+> We have hit an issue where our 32-bit applications using poll() and
+> passing in a value of -1 for the timeout value return after ~49 days
+> (2^32 msec), instead of waiting indefinitely. I've instrumented the
+> kernel and found we are hitting the case where poll() believes we've
+> passed in a positive number and thus creates a timespec, etc. I've
+> implemented compat_sys_poll() to sign-extend the timeout value and
+> resolve the issue.
+>=20
+> There was an almost identical patch submitted last year, but for
+> whatever reason did not make it in:
+> https://lkml.org/lkml/2011/9/18/19
 
-Umm...  That has happened and yes, asm-generic/types.h is currently
-equivalent to asm-generic/int-ll64.h.  What exactly are you planning
-to do?  Just rename the latter to the former and do search-and-replace
-over the tree?  We still have places that pull int-l64.h, albeit only
-!__KERNEL__ ones (i.e. everything under #ifdef __KERNEL__ in there
-seems to be killable)...
+Probably because Thomas Meyer didnt answer to patch reviewers, and not
+enough people cared.
 
-AFAICS, for quite a few of those guys we can simply add bitsperlong.h
-and add types.h to generic-y; is that the plan?
+By the way, an inline patch is better, as stated in
+Documentation/SubmittingPatches
+
+Anyway, its time to fix this bug...
+
+Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
