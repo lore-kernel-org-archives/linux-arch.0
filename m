@@ -1,52 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:40643 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754024Ab2BKJox (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Feb 2012 04:44:53 -0500
-Date: Sat, 11 Feb 2012 09:44:44 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH resend] asm/types.h: All architectures use int-ll64.h in
- kernelspace
-Message-ID: <20120211094444.GL23916@ZenIV.linux.org.uk>
-References: <alpine.DEB.2.00.1108132152050.18053@ayla.of.borg>
- <1665974.2LGtkbyJmJ@wuerfel>
+Received: from mail-ww0-f44.google.com ([74.125.82.44]:56640 "EHLO
+	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756005Ab2BLXvl convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Feb 2012 18:51:41 -0500
+Received: by wgbdt10 with SMTP id dt10so4352601wgb.1
+        for <linux-arch@vger.kernel.org>; Sun, 12 Feb 2012 15:51:40 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1665974.2LGtkbyJmJ@wuerfel>
+In-Reply-To: <CAE9FiQXrFARy4+ynOTRyEuoyRxTc9qqzUaYJH8e19Wt3JRRxug@mail.gmail.com>
+References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
+ <1328425088-6562-5-git-send-email-yinghai@kernel.org> <CAErSpo6=t1XtdUMBAn7Ag5XNLS3wKueybfrsUzmht6GL9XSGLQ@mail.gmail.com>
+ <CAE9FiQXrFARy4+ynOTRyEuoyRxTc9qqzUaYJH8e19Wt3JRRxug@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Sun, 12 Feb 2012 15:51:20 -0800
+Message-ID: <CAErSpo5_9N-HX3Ja8k04QaS6nss8SAm-NUtuQyHt0t-Dczt8-w@mail.gmail.com>
+Subject: Re: [PATCH 04/24] PCI: Add busn_res operation functions
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Randy Dunlap <rdunlap@xenotime.net>, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, Linux Kernel Development <linux-kernel@vger.kernel.org>
-Message-ID: <20120211094444._CYExJ63mKUwiyqAoeaDlkn5NTeDgvi7wRmyYe4PizM@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120212235120.rtD_3gRbbBGThEA86Lvny8sXXdAW01xt7PHGdQi1j6k@z>
 
-On Sat, Aug 13, 2011 at 11:25:59PM +0200, Arnd Bergmann wrote:
-> On Saturday 13 August 2011 21:53:43 Geert Uytterhoeven wrote:
-> > Now all 64-bit architectures have been converted to int-ll64.h, we can
-> > deprecate int-l64.h in kernelspace:
-> >   - Add a check to prevent new architectures from using int-l64.h in
-> >     kernelspace,
-> >   - Update documentation, as the casts to (unsigned) long long are no longer
-> >     needed.
-> > 
-> > For backwards compatibility, alpha, ia64, mips, and powerpc still use
-> > int-l64.h in userspace.
-> > 
-> > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > For the documentation parts:
-> > Acked-by: Randy Dunlap <rdunlap@xenotime.net>
-> 
-> I believe that Al Viro is working on a patch to unify all umode_t definitions
-> so that it becomes unsigned short everywhere. Once that is done,
-> asm-generic/int-ll64.h can become asm-generic/types.h and all architectures
-> can use that.
+On Mon, Feb 6, 2012 at 12:45 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Mon, Feb 6, 2012 at 10:59 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> On Sat, Feb 4, 2012 at 10:57 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>>> will use them insert/update busn res in pci_bus
+>>>
+>>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>>> ---
+>>>  drivers/pci/probe.c |   42 ++++++++++++++++++++++++++++++++++++++++++
+>>>  include/linux/pci.h |    3 +++
+>>>  2 files changed, 45 insertions(+), 0 deletions(-)
+>>>
+>>> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+>>> index a114173..8d4de5e 100644
+>>> --- a/drivers/pci/probe.c
+>>> +++ b/drivers/pci/probe.c
+>>> @@ -1622,6 +1622,48 @@ err_out:
+>>>        return NULL;
+>>>  }
+>>>
+>>> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
+>>> +{
+>>> +       struct resource *res = &b->busn_res;
+>>> +       struct resource *parent_res = &iobusn_resource;
+>>> +       int ret;
+>>> +
+>>> +       res->start = busn(pci_domain_nr(b), bus);
+>>> +       res->end = busn(pci_domain_nr(b), bus_max);
+>>> +       res->flags = IORESOURCE_BUS;
+>>> +
+>>> +       if (!pci_is_root_bus(b))
+>>> +               parent_res = &b->parent->busn_res;
+>>> +
+>>> +       ret = insert_resource(parent_res, res);
+>>> +
+>>> +       dev_printk(KERN_DEBUG, &b->dev,
+>>> +                       "busn_res: %pR %s inserted under %pR\n",
+>>> +                       res, ret ? "can not be" : "is", parent_res);
+>>> +}
+>>> +
+>>> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+>>> +{
+>>> +       struct resource *res = &b->busn_res;
+>>> +       struct resource old_res = *res;
+>>> +
+>>> +       res->end = busn_update_bus_nr(res->end, bus_max);
+>>
+>> I think this design is a mistake.  Here's what you're doing:
+>>
+>>  - initialize struct resource (keys are "start" and "end")
+>>  - insert into tree (placed in tree by kernel/resource.c based on
+>> "start" and "end")
+>>  - update "end"
+>>
+>> You "know" in this case that the update is safe because the caller has
+>> validated "bus_max."  But that still breaks the kernel/resource.c
+>> encapsulation.  If we change the kernel/resource.c implementation,
+>> this code might break.
+>
+> the point is: I only want to reuse allocate_resource() to get right position.
+> and the code does not depends to kernel/resource.c much.
+>
+>>
+>> I think it would be better to remove the bus resource from the tree,
+>> change its "end," then re-insert it.
+>
+> how about parent buses that have extended top?
 
-Umm...  That has happened and yes, asm-generic/types.h is currently
-equivalent to asm-generic/int-ll64.h.  What exactly are you planning
-to do?  Just rename the latter to the former and do search-and-replace
-over the tree?  We still have places that pull int-l64.h, albeit only
-!__KERNEL__ ones (i.e. everything under #ifdef __KERNEL__ in there
-seems to be killable)...
-
-AFAICS, for quite a few of those guys we can simply add bitsperlong.h
-and add types.h to generic-y; is that the plan?
+I don't understand your question.  I assume you mean there's a case
+where remove/update/reinsert doesn't work, but I don't see why that
+would be a problem.  Can you show an example?
