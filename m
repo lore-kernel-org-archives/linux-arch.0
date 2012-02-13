@@ -1,58 +1,109 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 04/24] PCI: Add busn_res operation functions
-Date: Sun, 12 Feb 2012 16:11:48 -0800
-Message-ID: <CAErSpo7F4caRyFVjrQKoCZLMo-45Vy+oEr4fMUXLeMojpuDNag@mail.gmail.com>
-References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
- <1328425088-6562-5-git-send-email-yinghai@kernel.org> <CAErSpo6=t1XtdUMBAn7Ag5XNLS3wKueybfrsUzmht6GL9XSGLQ@mail.gmail.com>
- <CAE9FiQXrFARy4+ynOTRyEuoyRxTc9qqzUaYJH8e19Wt3JRRxug@mail.gmail.com>
- <CAErSpo5_9N-HX3Ja8k04QaS6nss8SAm-NUtuQyHt0t-Dczt8-w@mail.gmail.com> <CAE9FiQV=nAK3KDUVvqiQ=otVUAHQf9GpxbR1gLvPc5ofHjOJaA@mail.gmail.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PULL REQUEST] DMA-mapping framework redesign preparation
+ patches
+Date: Mon, 13 Feb 2012 11:21:45 +1100
+Message-ID: <20120213112145.4b8990c739d297cd30714d52@canb.auug.org.au>
+References: <1328898737-15854-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Mon__13_Feb_2012_11_21_45_+1100_8oMlxM5sQu=KHg4V"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:35975 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756007Ab2BMAMJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Feb 2012 19:12:09 -0500
-Received: by wgbdt10 with SMTP id dt10so4360851wgb.1
-        for <linux-arch@vger.kernel.org>; Sun, 12 Feb 2012 16:12:08 -0800 (PST)
-In-Reply-To: <CAE9FiQV=nAK3KDUVvqiQ=otVUAHQf9GpxbR1gLvPc5ofHjOJaA@mail.gmail.com>
+Received: from haggis.pcug.org.au ([203.10.76.10]:51477 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754757Ab2BMAWF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Feb 2012 19:22:05 -0500
+In-Reply-To: <1328898737-15854-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-kernel@vger.kernel.org, linux-next@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
 
-On Sun, Feb 12, 2012 at 4:03 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Sun, Feb 12, 2012 at 3:51 PM, Bjorn Helgaas <bhelgaas@google.com> =
-wrote:
->>>
->>>>
->>>> I think it would be better to remove the bus resource from the tre=
-e,
->>>> change its "end," then re-insert it.
->>>
->>> how about parent buses that have extended top?
->>
->> I don't understand your question. =A0I assume you mean there's a cas=
-e
->> where remove/update/reinsert doesn't work, but I don't see why that
->> would be a problem. =A0Can you show an example?
+--Signature=_Mon__13_Feb_2012_11_21_45_+1100_8oMlxM5sQu=KHg4V
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+Hi Marek,
+
+On Fri, 10 Feb 2012 19:32:17 +0100 Marek Szyprowski <m.szyprowski@samsung.c=
+om> wrote:
 >
-> I mean parent busn_res already had several level's children busn_res.
-> and every level may have some siblings.
-> before remove will need to record those resources, to later to put th=
-em back.
->
-> that just increase not necessary complexity. because we already know
-> those resource could be extended safely.
+> Our patches with DMA-mapping framework redesign proposal have been
+> hanging for over a month with just a few comments. We would like to go
+> further in the development, but first I would like to ask You to give
+> them a try in the linux-next kernel.
+>=20
+> For everyone interested in this patch series, here is the relevant
+> thread: https://lkml.org/lkml/2011/12/23/97
+>=20
+> If there are any problems with our git tree, please contact Marek=20
+> Szyprowski <m.szyprowski@samsung.com> or alternatively Kyungmin Park
+> <kyungmin.park@samsung.com>.
+>=20
+> The following changes since commit 62aa2b537c6f5957afd98e29f96897419ed5eb=
+ab:
+>=20
+>   Linux 3.3-rc2 (2012-01-31 13:31:54 -0800)
+>=20
+> are available in the git repository at:
+>   git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
 
-You're doing surgery on the middle of a relatively complicated data
-structure.  Now readers of the code have to trust that not only does
-kernel/resource.c work correctly, but they also have to examine this
-PCI code to make sure that these alterations are safe.  I know this is
-all crystal-clear in your mind, and no doubt it is correct right now,
-but I don't think it is a reader-friendly approach.
+I have added this from today.
 
-But I don't expect to convince you, so I'll stop trying :)
+Thanks for adding your subsystem tree as a participant of linux-next.  As
+you may know, this is not a judgment of your code.  The purpose of
+linux-next is for integration testing and to lower the impact of
+conflicts between subsystems in the next merge window.=20
 
-Bjorn
+You will need to ensure that the patches/commits in your tree/series have
+been:
+     * submitted under GPL v2 (or later) and include the Contributor's
+	Signed-off-by,
+     * posted to the relevant mailing list,
+     * reviewed by you (or another maintainer of your subsystem tree),
+     * successfully unit tested, and=20
+     * destined for the current or next Linux merge window.
+
+Basically, this should be just what you would send to Linus (or ask him
+to fetch).  It is allowed to be rebased if you deem it necessary.
+
+--=20
+Cheers,
+Stephen Rothwell=20
+sfr@canb.auug.org.au
+
+Legal Stuff:
+By participating in linux-next, your subsystem tree contributions are
+public and will be included in the linux-next trees.  You may be sent
+e-mail messages indicating errors or other issues when the
+patches/commits from your subsystem tree are merged and tested in
+linux-next.  These messages may also be cross-posted to the linux-next
+mailing list, the linux-kernel mailing list, etc.  The linux-next tree
+project and IBM (my employer) make no warranties regarding the linux-next
+project, the testing procedures, the results, the e-mails, etc.  If you
+don't agree to these ground rules, let me know and I'll remove your tree
+from participation in linux-next.
+
+--Signature=_Mon__13_Feb_2012_11_21_45_+1100_8oMlxM5sQu=KHg4V
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJPOFeZAAoJEECxmPOUX5FEGasQAJRfELGvaG157f04fLOp5cZ+
+BExY8MINAksS9ksXnf+o7emW9FWZFTLZT3pJ7Gnx8j/Po+kYnITOStRQLl6K8h3Y
++cZmYubikIrZyPJCVYBZUTH0Gi/5VrTCx/rbolS2ai67WicKa7qzPOJ5D/oaeCdY
+CiOWMIgyaNbESpoR/l32Ta4XMJG0aDIV6bWlBpmKZVSzmpOFh40StsbQ3Ej6UUfo
+b+lo7IhOegjvNWITbiuIRDe9bAk5ONW2UU1z5sOWq/aELytRbSw1bNifvJlQF1VG
+AD+VNjEMrYNKg9soRpaZaIqAN1wb8a+I3//iaSL9kVstPo+D5uJLjAIEWBsgUO+N
+Duu3l8/GNL9tb1EvDXrt4d+H8zaow9P11rGHb2e6x9ndLZDmijjcYLQa1R/ektxo
+Z7kZIJNvi6rGlAurojo+q5gjnIP4aDDjZNMJ4pCayn5+YCLfDvu6jcK7od5S5dEM
+fbmVkAAysd8ajciJdN0Yj9Vv/oZ2/ARaQjAMVZtOBNTj5JR/WdRPeYZ0y71a4hSX
+RYNdeiQC3AhYufvXe5YCP7e+MvzMRHW336Rjyd+AMNjYx/cs6JZSOVgz6qKTWX6H
+oWde9Tl8A70eoN3/LtS7kC+WX228gPd9qPn5sHxyiKVV87OxwNaDP3kZqS1k3b3r
+4gyxILj3Uf7TanB2Wbsh
+=mWBa
+-----END PGP SIGNATURE-----
+
+--Signature=_Mon__13_Feb_2012_11_21_45_+1100_8oMlxM5sQu=KHg4V--
