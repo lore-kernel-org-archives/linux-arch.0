@@ -1,76 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57690 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57705 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760299Ab2BNLm1 (ORCPT
+	by vger.kernel.org with ESMTP id S1760348Ab2BNLmf (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:42:27 -0500
+	Tue, 14 Feb 2012 06:42:35 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 13/40] m32r: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:46 +0000
-Message-ID: <1329219673-28711-14-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 15/40] microblaze: Don't reimplement force_sigsegv()
+Date: Tue, 14 Feb 2012 11:40:48 +0000
+Message-ID: <1329219673-28711-16-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Al Viro <viro@zeniv.linux.org.uk>, Kyle McMartin <kyle@redhat.com>, linux-m32r@ml.linux-m32r.org
-Message-ID: <20120214114046.K7HSGbqHWLcLI3fRQGjfa8u6vI4FnrspXakenfO7u0o@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20120214114048.I8m1XV1EPV98E9LvdR9QZR7AtBlc-Mk3OCRFAFyY_0Q@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-As described in e6fa16ab ("signal: sigprocmask() should do
-retarget_shared_pending()") the modification of current->blocked is
-incorrect as we need to check whether the signal we're about to block
-is pending in the shared queue.
+Instead of open coding the sequence from force_sigsegv() just call
+it. This also fixes a bug because we were modifying ka->sa.sa_handler
+(which is a copy of sighand->action[]), whereas the intention of the
+code was to modify sighand->action[] directly.
 
-Also, use the new helper function introduced in commit 5e6292c0f28f
-("signal: add block_sigmask() for adding sigmask to current->blocked")
-which centralises the code for updating current->blocked after
-successfully delivering a signal and reduces the amount of duplicate
-code across architectures. In the past some architectures got this
-code wrong, so using this helper function should stop that from
-happening again.
+As the original code was working with a copy it had no effect on
+signal delivery.
 
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Kyle McMartin <kyle@redhat.com>
-Cc: linux-m32r@ml.linux-m32r.org
+Acked-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Michal Simek <monstr@monstr.eu>
+Cc: microblaze-uclinux@itee.uq.edu.au
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/m32r/kernel/signal.c |   12 ++----------
- 1 files changed, 2 insertions(+), 10 deletions(-)
+ arch/microblaze/kernel/signal.c |    4 +---
+ 1 files changed, 1 insertions(+), 3 deletions(-)
 
-diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
-index a08697f..f54d969 100644
---- a/arch/m32r/kernel/signal.c
-+++ b/arch/m32r/kernel/signal.c
-@@ -112,10 +112,7 @@ sys_rt_sigreturn(unsigned long r0, unsigned long r1,
- 		goto badframe;
+diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
+index 5996711..90de06d 100644
+--- a/arch/microblaze/kernel/signal.c
++++ b/arch/microblaze/kernel/signal.c
+@@ -270,9 +270,7 @@ static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 	return;
  
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 
- 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &result))
- 		goto badframe;
-@@ -300,12 +297,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
- 	if (setup_rt_frame(sig, ka, info, oldset, regs))
- 		return -EFAULT;
- 
--	spin_lock_irq(&current->sighand->siglock);
--	sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
--	if (!(ka->sa.sa_flags & SA_NODEFER))
--		sigaddset(&current->blocked,sig);
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	block_sigmask(ka, sig);
- 	return 0;
+ give_sigsegv:
+-	if (sig == SIGSEGV)
+-		ka->sa.sa_handler = SIG_DFL;
+-	force_sig(SIGSEGV, current);
++	force_sigsegv(sig, current);
  }
  
+ /* Handle restarting system calls */
 -- 
 1.7.4.4
 
