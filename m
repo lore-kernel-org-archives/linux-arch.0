@@ -1,13 +1,13 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 20/40] mn10300: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:53 +0000
-Message-ID: <1329219673-28711-21-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 26/40] powerpc: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:59 +0000
+Message-ID: <1329219673-28711-27-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-am33-list@redhat.com
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
@@ -26,22 +26,53 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: David Howells <dhowells@redhat.com>
-Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-am33-list@redhat.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/mn10300/kernel/signal.c |   32 ++++++++++----------------------
- 1 files changed, 10 insertions(+), 22 deletions(-)
+ arch/powerpc/kernel/signal.c    |   13 ++-----------
+ arch/powerpc/kernel/signal_32.c |   11 ++++++-----
+ 2 files changed, 8 insertions(+), 16 deletions(-)
 
-diff --git a/arch/mn10300/kernel/signal.c b/arch/mn10300/kernel/signal.c
-index 690f4e9..bd77c6d 100644
---- a/arch/mn10300/kernel/signal.c
-+++ b/arch/mn10300/kernel/signal.c
-@@ -38,12 +38,13 @@
+diff --git a/arch/powerpc/kernel/signal.c b/arch/powerpc/kernel/signal.c
+index 2300426..3867f7b 100644
+--- a/arch/powerpc/kernel/signal.c
++++ b/arch/powerpc/kernel/signal.c
+@@ -56,10 +56,7 @@ void __user * get_sigframe(struct k_sigaction *ka, struct pt_regs *regs,
+ void restore_sigmask(sigset_t *set)
+ {
+ 	sigdelsetmask(set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = *set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(set);
+ }
+ 
+ static void check_syscall_restart(struct pt_regs *regs, struct k_sigaction *ka,
+@@ -167,13 +164,7 @@ static int do_signal_pending(sigset_t *oldset, struct pt_regs *regs)
+ 
+ 	regs->trap = 0;
+ 	if (ret) {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked, &current->blocked,
+-			  &ka.sa.sa_mask);
+-		if (!(ka.sa.sa_flags & SA_NODEFER))
+-			sigaddset(&current->blocked, signr);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
++		block_sigmask(&ka, signr);
+ 
+ 		/*
+ 		 * A signal was successfully delivered; the saved sigmask is in
+diff --git a/arch/powerpc/kernel/signal_32.c b/arch/powerpc/kernel/signal_32.c
+index 836a5a1..e061ef5 100644
+--- a/arch/powerpc/kernel/signal_32.c
++++ b/arch/powerpc/kernel/signal_32.c
+@@ -242,12 +242,13 @@ static inline int restore_general_regs(struct pt_regs *regs,
   */
- asmlinkage long sys_sigsuspend(int history0, int history1, old_sigset_t mask)
+ long sys_sigsuspend(old_sigset_t mask)
  {
 -	mask &= _BLOCKABLE;
 -	spin_lock_irq(&current->sighand->siglock);
@@ -56,49 +87,7 @@ index 690f4e9..bd77c6d 100644
 +	siginitset(&blocked, mask);
 +	set_current_blocked(&blocked);
  
- 	current->state = TASK_INTERRUPTIBLE;
- 	schedule();
-@@ -172,10 +173,7 @@ asmlinkage long sys_sigreturn(void)
- 		goto badframe;
- 
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 
- 	if (restore_sigcontext(current_frame(), &frame->sc, &d0))
- 		goto badframe;
-@@ -203,10 +201,7 @@ asmlinkage long sys_rt_sigreturn(void)
- 		goto badframe;
- 
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 
- 	if (restore_sigcontext(current_frame(), &frame->uc.uc_mcontext, &d0))
- 		goto badframe;
-@@ -476,15 +471,8 @@ static int handle_signal(int sig,
- 	else
- 		ret = setup_frame(sig, ka, oldset, regs);
- 
--	if (ret == 0) {
--		spin_lock_irq(&current->sighand->siglock);
--		sigorsets(&current->blocked, &current->blocked,
--			  &ka->sa.sa_mask);
--		if (!(ka->sa.sa_flags & SA_NODEFER))
--			sigaddset(&current->blocked, sig);
--		recalc_sigpending();
--		spin_unlock_irq(&current->sighand->siglock);
--	}
-+	if (ret == 0)
-+		block_sigmask(ka, sig);
- 
- 	return ret;
- }
+  	current->state = TASK_INTERRUPTIBLE;
+  	schedule();
 -- 
 1.7.4.4
