@@ -1,13 +1,13 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 12/40] ia64: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:45 +0000
-Message-ID: <1329219673-28711-13-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 11/40] Hexagon: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:44 +0000
+Message-ID: <1329219673-28711-12-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
@@ -26,35 +26,20 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-hexagon@vger.kernel.org
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/ia64/kernel/signal.c |   15 ++-------------
- 1 files changed, 2 insertions(+), 13 deletions(-)
+ arch/hexagon/kernel/signal.c |   12 ++----------
+ 1 files changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/arch/ia64/kernel/signal.c b/arch/ia64/kernel/signal.c
-index 7bdafc8..7523501 100644
---- a/arch/ia64/kernel/signal.c
-+++ b/arch/ia64/kernel/signal.c
-@@ -201,13 +201,7 @@ ia64_rt_sigreturn (struct sigscratch *scr)
- 		goto give_sigsegv;
- 
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--
--	spin_lock_irq(&current->sighand->siglock);
--	{
--		current->blocked = set;
--		recalc_sigpending();
--	}
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 
- 	if (restore_sigcontext(sc, scr))
- 		goto give_sigsegv;
-@@ -427,12 +421,7 @@ handle_signal (unsigned long sig, struct k_sigaction *ka, siginfo_t *info, sigse
- 	if (!setup_frame(sig, ka, info, oldset, scr))
- 		return 0;
+diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+index b45be31..ecbab34 100644
+--- a/arch/hexagon/kernel/signal.c
++++ b/arch/hexagon/kernel/signal.c
+@@ -192,12 +192,7 @@ static int handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
+ 	if (rc)
+ 		return rc;
  
 -	spin_lock_irq(&current->sighand->siglock);
 -	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
@@ -64,7 +49,19 @@ index 7bdafc8..7523501 100644
 -	spin_unlock_irq(&current->sighand->siglock);
 +	block_sigmask(ka, sig);
  
- 	/*
- 	 * Let tracing know that we've done the handler setup.
+ 	return 0;
+ }
+@@ -305,10 +300,7 @@ asmlinkage int sys_rt_sigreturn(void)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&blocked, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = blocked;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&blocked);
+ 
+ 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
+ 		goto badframe;
 -- 
 1.7.4.4
