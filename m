@@ -1,57 +1,44 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [PATCH 20/40] mn10300: Use set_current_blocked() and
-	block_sigmask()
-Date: Tue, 14 Feb 2012 19:24:27 +0100
-Message-ID: <20120214182427.GA25119@redhat.com>
-References: <20120214172340.GA22645@redhat.com> <1329219673-28711-21-git-send-email-matt@console-pimps.org> <1329219673-28711-1-git-send-email-matt@console-pimps.org> <17603.1329234976@redhat.com> <27258.1329243179@redhat.com>
+From: Tony Luck <tony.luck@intel.com>
+Subject: Re: [PATCH 21/21] posix_types: Remove fd_set macros
+Date: Tue, 14 Feb 2012 10:59:00 -0800
+Message-ID: <CA+8MBb+rMJqJAyDnnkB=x794F3MAQJfwTi29=4oN4-6=g5uDFw@mail.gmail.com>
+References: <4F32A98F.7030400@zytor.com>
+	<1328677745-20121-22-git-send-email-hpa@zytor.com>
+	<1328677745-20121-1-git-send-email-hpa@zytor.com>
+	<8328.1328703626@redhat.com>
+	<16325.1328736262@redhat.com>
+	<4F32E98F.2090909@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:17577 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756922Ab2BNSbN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 13:31:13 -0500
-Content-Disposition: inline
-In-Reply-To: <27258.1329243179@redhat.com>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:48291 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755832Ab2BNS7B convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2012 13:59:01 -0500
+In-Reply-To: <4F32E98F.2090909@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Matt Fleming <matt@console-pimps.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-am33-list@redhat.com
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: David Howells <dhowells@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
 
-On 02/14, David Howells wrote:
->
-> Oleg Nesterov <oleg@redhat.com> wrote:
->
-> > No, only current can change ->blocked. This is even documented in
-> > sigprocmask(). And more, the only correct way to change ->blocked
-> > is set_current_blocked(). OK, with a couple of "I know what I am
-> > doing" exceptions in kernel/signal.c.
->
-> I was looking at force_sig_info() and derivatives.  Is that what you refer to?
+Parts 1, 2 and 9 work fine on ia64 - consider them: Acked-by: Tony
+Luck <tony.luck@intel.com>
 
-Ah, sorry, forgot to mention...
-
-force_sig_info() (and its callers) need the cleanups and fixes. It
-is almost always wrong if t != current.
-
-For example, please look at
-
-	[PATCH 1/4] signal: give SEND_SIG_FORCED more power to beat SIGNAL_UNKILLABLE
-	http://marc.info/?l=linux-kernel&m=132890442717122
-
-Hopefully we can fix all ab-users soon.
+This part causes build problems (starting with):
 
 
+  CC      arch/ia64/kernel/asm-offsets.s
+In file included from include/linux/timex.h:56,
+                 from include/linux/sched.h:57,
+                 from arch/ia64/kernel/asm-offsets.c:9:
+include/linux/time.h: In function =91__FD_ZERO=92:
+include/linux/time.h:280: error: implicit declaration of function =91me=
+mset=92
+include/linux/time.h:280: warning: incompatible implicit declaration
+of built-in function =91memset=92
 
-Just in case... if we race with force_sig_info() the task will be
-killed anyway. But I agree, this is not nice and should be fixed.
-And in any case, there are other places which assume it is safe
-to read current->blocked lockless.
+Adding a #include <linux/string.h> to include/linux/time.h fixes them f=
+or me.
 
-> If so, is it worth providing a force_sig_info_current(),
-> force_sigsegv_current() and force_sig_current() to make things clearer to grep
-> for, I wonder?
-
-Yes, I think the "task_struct *t" argument should die.
-
-Oleg.
+-Tony
