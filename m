@@ -1,7 +1,7 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 37/40] xtensa: Don't reimplement force_sigsegv()
-Date: Tue, 14 Feb 2012 11:41:10 +0000
-Message-ID: <1329219673-28711-38-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 39/40] xtensa: Don't mask signals if we fail to setup signal stack
+Date: Tue, 14 Feb 2012 11:41:12 +0000
+Message-ID: <1329219673-28711-40-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
@@ -12,35 +12,55 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-Instead of open coding the sequence from force_sigsegv() just call
-it. This also fixes a bug because we were modifying ka->sa.sa_handler
-(which is a copy of sighand->action[]), whereas the intention of the
-code was to modify sighand->action[] directly.
-
-As the original code was working with a copy it had no effect on
-signal delivery.
+setup_frame() needs to return an indication of whether it succeeded or
+failed in setting up the signal stack frame. If setup_frame() fails
+then we must not modify current->blocked.
 
 Acked-by: Oleg Nesterov <oleg@redhat.com>
 Cc: Chris Zankel <chris@zankel.net>
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/xtensa/kernel/signal.c |    4 +---
- 1 files changed, 1 insertions(+), 3 deletions(-)
+ arch/xtensa/kernel/signal.c |   11 +++++++----
+ 1 files changed, 7 insertions(+), 4 deletions(-)
 
 diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
-index f2220b5..4f53770 100644
+index 24655e3..17ceab8 100644
 --- a/arch/xtensa/kernel/signal.c
 +++ b/arch/xtensa/kernel/signal.c
-@@ -425,9 +425,7 @@ static void setup_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	return;
+@@ -336,8 +336,8 @@ gen_return_code(unsigned char *codemem)
+ }
+ 
+ 
+-static void setup_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+-			sigset_t *set, struct pt_regs *regs)
++static int setup_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
++		       sigset_t *set, struct pt_regs *regs)
+ {
+ 	struct rt_sigframe *frame;
+ 	int err = 0;
+@@ -422,10 +422,11 @@ static void setup_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 		current->comm, current->pid, signal, frame, regs->pc);
+ #endif
+ 
+-	return;
++	return 0;
  
  give_sigsegv:
--	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
--	force_sig(SIGSEGV, current);
-+	force_sigsegv(sig, current);
+ 	force_sigsegv(sig, current);
++	return -EFAULT;
  }
  
  /*
+@@ -534,7 +535,9 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
+ 
+ 		/* Whee!  Actually deliver the signal.  */
+ 		/* Set up the stack frame */
+-		setup_frame(signr, &ka, &info, oldset, regs);
++		ret = setup_frame(signr, &ka, &info, oldset, regs);
++		if (ret)
++			return ret;
+ 
+ 		spin_lock_irq(&current->sighand->siglock);
+ 		sigorsets(&current->blocked, &current->blocked, &ka.sa.sa_mask);
 -- 
 1.7.4.4
