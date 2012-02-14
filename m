@@ -1,46 +1,105 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 22/40] OpenRISC: No need to reset handler if SA_ONESHOT
-Date: Tue, 14 Feb 2012 11:40:55 +0000
-Message-ID: <1329219673-28711-23-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 17/40] microblaze: Fix signal masking
+Date: Tue, 14 Feb 2012 11:40:50 +0000
+Message-ID: <1329219673-28711-18-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Jonas Bonn <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, microblaze-uclinux@itee.uq.edu.au
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-get_signal_to_deliver() already resets the signal handler if
-SA_ONESHOT is set in ka->sa.sa_flags, there's no need to do it again
-in handle_signal(). Furthermore, because we were modifying
-ka->sa.sa_handler (which is a copy of sighand->action[]) instead of
-sighand->action[] the original code actually had no effect on signal
-delivery.
+There are a couple of problems with the current signal code,
+
+1. If we failed to setup the signal stack frame then we
+should not be masking any signals.
+
+2. ka->sa.sa_mask is only added to the current blocked signals list if
+SA_NODEFER is set in ka->sa.sa_flags. If we successfully setup the
+signal frame and are going to run the handler then we must honour
+sa_mask.
 
 Acked-by: Oleg Nesterov <oleg@redhat.com>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux@lists.openrisc.net
+Acked-by: Michal Simek <monstr@monstr.eu>
+Cc: microblaze-uclinux@itee.uq.edu.au
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/openrisc/kernel/signal.c |    3 ---
- 1 files changed, 0 insertions(+), 3 deletions(-)
+ arch/microblaze/kernel/signal.c |   31 ++++++++++++++++++-------------
+ 1 files changed, 18 insertions(+), 13 deletions(-)
 
-diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
-index 53741ba..92d2218 100644
---- a/arch/openrisc/kernel/signal.c
-+++ b/arch/openrisc/kernel/signal.c
-@@ -260,9 +260,6 @@ handle_signal(unsigned long sig,
- {
- 	setup_rt_frame(sig, ka, info, oldset, regs);
+diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
+index 9e749c0..f2c13d5 100644
+--- a/arch/microblaze/kernel/signal.c
++++ b/arch/microblaze/kernel/signal.c
+@@ -169,7 +169,7 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
+ 	return (void __user *)((sp - frame_size) & -8UL);
+ }
  
--	if (ka->sa.sa_flags & SA_ONESHOT)
--		ka->sa.sa_handler = SIG_DFL;
--
- 	spin_lock_irq(&current->sighand->siglock);
- 	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
- 	if (!(ka->sa.sa_flags & SA_NODEFER))
+-static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
++static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 			sigset_t *set, struct pt_regs *regs)
+ {
+ 	struct rt_sigframe __user *frame;
+@@ -267,10 +267,11 @@ static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
+ 		current->comm, current->pid, frame, regs->pc);
+ #endif
+ 
+-	return;
++	return 0;
+ 
+ give_sigsegv:
+ 	force_sigsegv(sig, current);
++	return -EFAULT;
+ }
+ 
+ /* Handle restarting system calls */
+@@ -314,21 +315,25 @@ static int
+ handle_signal(unsigned long sig, struct k_sigaction *ka,
+ 		siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
+ {
++	int ret;
++
+ 	/* Set up the stack frame */
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+-		setup_rt_frame(sig, ka, info, oldset, regs);
++		ret = setup_rt_frame(sig, ka, info, oldset, regs);
+ 	else
+-		setup_rt_frame(sig, ka, NULL, oldset, regs);
++		ret = setup_rt_frame(sig, ka, NULL, oldset, regs);
++
++	if (ret)
++		return ret;
+ 
+-	if (!(ka->sa.sa_flags & SA_NODEFER)) {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked,
+-				&current->blocked, &ka->sa.sa_mask);
++	spin_lock_irq(&current->sighand->siglock);
++	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
++	if (!(ka->sa.sa_flags & SA_NODEFER))
+ 		sigaddset(&current->blocked, sig);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
+-	}
+-	return 1;
++	recalc_sigpending();
++	spin_unlock_irq(&current->sighand->siglock);
++
++	return 0;
+ }
+ 
+ /*
+@@ -369,7 +374,7 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset, int in_syscall)
+ 		/* Whee! Actually deliver the signal. */
+ 		if (in_syscall)
+ 			handle_restart(regs, &ka, 1);
+-		if (handle_signal(signr, &ka, &info, oldset, regs)) {
++		if (!handle_signal(signr, &ka, &info, oldset, regs)) {
+ 			/*
+ 			 * A signal was successfully delivered; the saved
+ 			 * sigmask will have been stored in the signal frame,
 -- 
 1.7.4.4
