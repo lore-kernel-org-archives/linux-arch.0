@@ -1,29 +1,24 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57829 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57850 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932306Ab2BNLny (ORCPT
+	by vger.kernel.org with ESMTP id S932306Ab2BNLn6 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:43:54 -0500
+	Tue, 14 Feb 2012 06:43:58 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 29/40] score: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:41:02 +0000
-Message-ID: <1329219673-28711-30-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 32/40] sparc: Use block_sigmask()
+Date: Tue, 14 Feb 2012 11:41:05 +0000
+Message-ID: <1329219673-28711-33-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
-Message-ID: <20120214114102.AdiGbUygqpieaAN72389ysn5Gea4oFSVVTawXn5XUlA@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
+Message-ID: <20120214114105.ihAxsZY80pqkkpqtYygfIkmk_0SLhzFar4eOKYECvHY@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-As described in e6fa16ab ("signal: sigprocmask() should do
-retarget_shared_pending()") the modification of current->blocked is
-incorrect as we need to check whether the signal we're about to block
-is pending in the shared queue.
-
-Also, use the new helper function introduced in commit 5e6292c0f28f
+Use the new helper function introduced in commit 5e6292c0f28f
 ("signal: add block_sigmask() for adding sigmask to current->blocked")
 which centralises the code for updating current->blocked after
 successfully delivering a signal and reduces the amount of duplicate
@@ -32,46 +27,89 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/score/kernel/signal.c |   15 +++------------
- 1 files changed, 3 insertions(+), 12 deletions(-)
+ arch/sparc/kernel/signal32.c  |    7 +------
+ arch/sparc/kernel/signal_32.c |    7 +------
+ arch/sparc/kernel/signal_64.c |    6 +-----
+ 3 files changed, 3 insertions(+), 17 deletions(-)
 
-diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
-index bf9e33e..5a5bd17 100644
---- a/arch/score/kernel/signal.c
-+++ b/arch/score/kernel/signal.c
-@@ -159,10 +159,7 @@ score_rt_sigreturn(struct pt_regs *regs)
- 		goto badframe;
+diff --git a/arch/sparc/kernel/signal32.c b/arch/sparc/kernel/signal32.c
+index 023b886..c8f5b50 100644
+--- a/arch/sparc/kernel/signal32.c
++++ b/arch/sparc/kernel/signal32.c
+@@ -776,7 +776,6 @@ static inline int handle_signal32(unsigned long signr, struct k_sigaction *ka,
+ 				  siginfo_t *info,
+ 				  sigset_t *oldset, struct pt_regs *regs)
+ {
+-	sigset_t blocked;
+ 	int err;
  
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+@@ -787,11 +786,7 @@ static inline int handle_signal32(unsigned long signr, struct k_sigaction *ka,
+ 	if (err)
+ 		return err;
  
- 	sig = restore_sigcontext(regs, &frame->rs_uc.uc_mcontext);
- 	if (sig < 0)
-@@ -272,14 +269,8 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
- 	 */
- 	ret = setup_rt_frame(ka, regs, sig, oldset, info);
+-	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NOMASK))
+-		sigaddset(&blocked, signr);
+-	set_current_blocked(&blocked);
+-
++	block_sigmask(ka, signr);
+ 	tracehook_signal_handler(signr, info, ka, regs, 0);
  
--	if (ret == 0) {
--		spin_lock_irq(&current->sighand->siglock);
--		sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
--		if (!(ka->sa.sa_flags & SA_NODEFER))
--			sigaddset(&current->blocked, sig);
--		recalc_sigpending();
--		spin_unlock_irq(&current->sighand->siglock);
--	}
-+	if (ret == 0)
-+		block_sigmask(ka, sig);
+ 	return 0;
+diff --git a/arch/sparc/kernel/signal_32.c b/arch/sparc/kernel/signal_32.c
+index d54c6e5..7bb71b6 100644
+--- a/arch/sparc/kernel/signal_32.c
++++ b/arch/sparc/kernel/signal_32.c
+@@ -465,7 +465,6 @@ static inline int
+ handle_signal(unsigned long signr, struct k_sigaction *ka,
+ 	      siginfo_t *info, sigset_t *oldset, struct pt_regs *regs)
+ {
+-	sigset_t blocked;
+ 	int err;
  
- 	return ret;
- }
+ 	if (ka->sa.sa_flags & SA_SIGINFO)
+@@ -476,11 +475,7 @@ handle_signal(unsigned long signr, struct k_sigaction *ka,
+ 	if (err)
+ 		return err;
+ 
+-	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NOMASK))
+-		sigaddset(&blocked, signr);
+-	set_current_blocked(&blocked);
+-
++	block_sigmask(ka, signr);
+ 	tracehook_signal_handler(signr, info, ka, regs, 0);
+ 
+ 	return 0;
+diff --git a/arch/sparc/kernel/signal_64.c b/arch/sparc/kernel/signal_64.c
+index f0836cd..d8a67e6 100644
+--- a/arch/sparc/kernel/signal_64.c
++++ b/arch/sparc/kernel/signal_64.c
+@@ -479,18 +479,14 @@ static inline int handle_signal(unsigned long signr, struct k_sigaction *ka,
+ 				siginfo_t *info,
+ 				sigset_t *oldset, struct pt_regs *regs)
+ {
+-	sigset_t blocked;
+ 	int err;
+ 
+ 	err = setup_rt_frame(ka, regs, signr, oldset,
+ 			     (ka->sa.sa_flags & SA_SIGINFO) ? info : NULL);
+ 	if (err)
+ 		return err;
+-	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NOMASK))
+-		sigaddset(&blocked, signr);
+-	set_current_blocked(&blocked);
+ 
++	block_sigmask(ka, signr);
+ 	tracehook_signal_handler(signr, info, ka, regs, 0);
+ 
+ 	return 0;
 -- 
 1.7.4.4
 
