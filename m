@@ -1,13 +1,14 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 10/40] h8300: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:43 +0000
-Message-ID: <1329219673-28711-11-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 19/40] MIPS: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:52 +0000
+Message-ID: <1329219673-28711-20-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Al Viro <viro@zeniv.linux.org.uk>, David Daney <ddaney@caviumnetworks.com>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
@@ -26,50 +27,60 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Acked-by: Ralf Baechle <ralf@linux-mips.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: David Daney <ddaney@caviumnetworks.com>
+Cc: linux-mips@linux-mips.org
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/h8300/kernel/signal.c |   33 +++++++++------------------------
- 1 files changed, 9 insertions(+), 24 deletions(-)
+ arch/mips/kernel/signal.c     |   27 +++++----------------------
+ arch/mips/kernel/signal32.c   |   20 ++++----------------
+ arch/mips/kernel/signal_n32.c |   10 ++--------
+ 3 files changed, 11 insertions(+), 46 deletions(-)
 
-diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
-index af842c3..cd63f5a 100644
---- a/arch/h8300/kernel/signal.c
-+++ b/arch/h8300/kernel/signal.c
-@@ -57,14 +57,13 @@ asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset);
- asmlinkage int do_sigsuspend(struct pt_regs *regs)
- {
- 	old_sigset_t mask = regs->er3;
--	sigset_t saveset;
-+	sigset_t saveset, blocked;
- 
--	mask &= _BLOCKABLE;
--	spin_lock_irq(&current->sighand->siglock);
- 	saveset = current->blocked;
--	siginitset(&current->blocked, mask);
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+
-+	mask &= _BLOCKABLE;
-+	siginitset(&blocked, mask);
-+	set_current_blocked(&blocked);
- 
- 	regs->er0 = -EINTR;
- 	while (1) {
-@@ -90,11 +89,8 @@ do_rt_sigsuspend(struct pt_regs *regs)
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index f852400..76084cc 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -256,11 +256,8 @@ asmlinkage int sys_sigsuspend(nabi_no_regargs struct pt_regs regs)
  		return -EFAULT;
  	sigdelsetmask(&newset, ~_BLOCKABLE);
  
 -	spin_lock_irq(&current->sighand->siglock);
- 	saveset = current->blocked;
+ 	current->saved_sigmask = current->blocked;
 -	current->blocked = newset;
 -	recalc_sigpending();
 -	spin_unlock_irq(&current->sighand->siglock);
 +	set_current_blocked(&newset);
  
- 	regs->er0 = -EINTR;
- 	while (1) {
-@@ -232,10 +228,7 @@ asmlinkage int do_sigreturn(unsigned long __unused,...)
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+@@ -285,11 +282,8 @@ asmlinkage int sys_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
+ 		return -EFAULT;
+ 	sigdelsetmask(&newset, ~_BLOCKABLE);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+ 	current->saved_sigmask = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&newset);
+ 
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+@@ -361,10 +355,7 @@ asmlinkage void sys_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&blocked, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = blocked;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&blocked);
+ 
+ 	sig = restore_sigcontext(&regs, &frame->sf_sc);
+ 	if (sig < 0)
+@@ -400,10 +391,7 @@ asmlinkage void sys_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
  		goto badframe;
  
  	sigdelsetmask(&set, ~_BLOCKABLE);
@@ -78,34 +89,105 @@ index af842c3..cd63f5a 100644
 -	recalc_sigpending();
 -	spin_unlock_irq(&current->sighand->siglock);
 +	set_current_blocked(&set);
- 	
- 	if (restore_sigcontext(regs, &frame->sc, &er0))
- 		goto badframe;
-@@ -260,10 +253,7 @@ asmlinkage int do_rt_sigreturn(unsigned long __unused,...)
- 		goto badframe;
  
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_unlock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_lock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 	
- 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &er0))
- 		goto badframe;
-@@ -489,12 +479,7 @@ handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
- 	else
- 		setup_frame(sig, ka, oldset, regs);
+ 	sig = restore_sigcontext(&regs, &frame->rs_uc.uc_mcontext);
+ 	if (sig < 0)
+@@ -579,12 +567,7 @@ static int handle_signal(unsigned long sig, siginfo_t *info,
+ 	if (ret)
+ 		return ret;
  
 -	spin_lock_irq(&current->sighand->siglock);
--	sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
+-	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
 -	if (!(ka->sa.sa_flags & SA_NODEFER))
--		sigaddset(&current->blocked,sig);
+-		sigaddset(&current->blocked, sig);
 -	recalc_sigpending();
 -	spin_unlock_irq(&current->sighand->siglock);
 +	block_sigmask(ka, sig);
- }
  
- /*
+ 	return ret;
+ }
+diff --git a/arch/mips/kernel/signal32.c b/arch/mips/kernel/signal32.c
+index aae9866..902a889 100644
+--- a/arch/mips/kernel/signal32.c
++++ b/arch/mips/kernel/signal32.c
+@@ -290,11 +290,8 @@ asmlinkage int sys32_sigsuspend(nabi_no_regargs struct pt_regs regs)
+ 		return -EFAULT;
+ 	sigdelsetmask(&newset, ~_BLOCKABLE);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+ 	current->saved_sigmask = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&newset);
+ 
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+@@ -318,11 +315,8 @@ asmlinkage int sys32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
+ 		return -EFAULT;
+ 	sigdelsetmask(&newset, ~_BLOCKABLE);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+ 	current->saved_sigmask = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&newset);
+ 
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+@@ -488,10 +482,7 @@ asmlinkage void sys32_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&blocked, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = blocked;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&blocked);
+ 
+ 	sig = restore_sigcontext32(&regs, &frame->sf_sc);
+ 	if (sig < 0)
+@@ -529,10 +520,7 @@ asmlinkage void sys32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 
+ 	sig = restore_sigcontext32(&regs, &frame->rs_uc.uc_mcontext);
+ 	if (sig < 0)
+diff --git a/arch/mips/kernel/signal_n32.c b/arch/mips/kernel/signal_n32.c
+index ee24d81..30fc7ff 100644
+--- a/arch/mips/kernel/signal_n32.c
++++ b/arch/mips/kernel/signal_n32.c
+@@ -94,11 +94,8 @@ asmlinkage int sysn32_rt_sigsuspend(nabi_no_regargs struct pt_regs regs)
+ 	sigset_from_compat(&newset, &uset);
+ 	sigdelsetmask(&newset, ~_BLOCKABLE);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+ 	current->saved_sigmask = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&newset);
+ 
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+@@ -122,10 +119,7 @@ asmlinkage void sysn32_rt_sigreturn(nabi_no_regargs struct pt_regs regs)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 
+ 	sig = restore_sigcontext(&regs, &frame->rs_uc.uc_mcontext);
+ 	if (sig < 0)
 -- 
 1.7.4.4
