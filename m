@@ -1,73 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57633 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57637 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760192Ab2BNLlf (ORCPT
+	by vger.kernel.org with ESMTP id S1760131Ab2BNLlr (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:41:35 -0500
+	Tue, 14 Feb 2012 06:41:47 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 04/40] avr32: use set_current_blocked() in handle_signal/sys_rt_sigreturn
-Date: Tue, 14 Feb 2012 11:40:37 +0000
-Message-ID: <1329219673-28711-5-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 05/40] avr32: Use block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:38 +0000
+Message-ID: <1329219673-28711-6-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Message-ID: <20120214114037.Lok9w80zRghTcNwWX-QmjEw9R4Q7Hqp9xF8roeDH9Go@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Havard Skinnemoen <hskinnemoen@gmail.com>
+Message-ID: <20120214114038.2fb01IWWxQPXK2-JqRlaGhK7pa2UiZr8JVT7XjbfiME@z>
 
-From: Oleg Nesterov <oleg@redhat.com>
+From: Matt Fleming <matt.fleming@intel.com>
 
-It is wrong to change ->blocked directly, see e6fa16ab.
-Change  handle_signal() and sys_rt_sigreturn() to use
-the right helper, set_current_blocked().
+Use the new helper function introduced in commit 5e6292c0f28f
+("signal: add block_sigmask() for adding sigmask to current->blocked")
+which centralises the code for updating current->blocked after
+successfully delivering a signal and reduces the amount of duplicate
+code across architectures.
 
+In the past some architectures got this code wrong, so using this
+helper function should stop that from happening again.
+
+Cc: Oleg Nesterov <oleg@redhat.com>
 Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
-Acked-by: Havard Skinnemoen <hskinnemoen@gmail.com>
-Reviewed-by: Matt Fleming <matt.fleming@intel.com>
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+Cc: Havard Skinnemoen <hskinnemoen@gmail.com>
+Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/avr32/kernel/signal.c |   15 +++++----------
- 1 files changed, 5 insertions(+), 10 deletions(-)
+ arch/avr32/kernel/signal.c |    6 +-----
+ 1 files changed, 1 insertions(+), 5 deletions(-)
 
 diff --git a/arch/avr32/kernel/signal.c b/arch/avr32/kernel/signal.c
-index 9c075e1..06f4293 100644
+index 06f4293..feeb77b 100644
 --- a/arch/avr32/kernel/signal.c
 +++ b/arch/avr32/kernel/signal.c
-@@ -87,10 +87,7 @@ asmlinkage int sys_rt_sigreturn(struct pt_regs *regs)
- 		goto badframe;
- 
- 	sigdelsetmask(&set, ~_BLOCKABLE);
--	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = set;
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&set);
- 
- 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
- 		goto badframe;
-@@ -226,6 +223,7 @@ static inline void
+@@ -223,7 +223,6 @@ static inline void
  handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
  	      sigset_t *oldset, struct pt_regs *regs, int syscall)
  {
-+	sigset_t blocked;
+-	sigset_t blocked;
  	int ret;
  
  	/*
-@@ -246,13 +244,10 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
+@@ -244,10 +243,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
  	/*
  	 * Block the signal if we were successful.
  	 */
--	spin_lock_irq(&current->sighand->siglock);
--	sigorsets(&current->blocked, &current->blocked,
--		  &ka->sa.sa_mask);
-+	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
- 	if (!(ka->sa.sa_flags & SA_NODEFER))
--		sigaddset(&current->blocked, sig);
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+		sigaddset(&blocked, sig);
-+	set_current_blocked(&blocked);
+-	sigorsets(&blocked, &current->blocked, &ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NODEFER))
+-		sigaddset(&blocked, sig);
+-	set_current_blocked(&blocked);
++	block_sigmask(ka, sig);
  }
  
  /*
