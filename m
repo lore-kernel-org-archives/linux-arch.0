@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57680 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57660 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760221Ab2BNLmY (ORCPT
+	by vger.kernel.org with ESMTP id S1760199Ab2BNLmL (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:42:24 -0500
+	Tue, 14 Feb 2012 06:42:11 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 11/40] Hexagon: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:44 +0000
-Message-ID: <1329219673-28711-12-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 08/40] cris: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:41 +0000
+Message-ID: <1329219673-28711-9-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Richard Kuo <rkuo@codeaurora.org>, linux-hexagon@vger.kernel.org
-Message-ID: <20120214114044.nxipN_IWqPTMZu3V4g2vtZ1dwiDNIKeAYJ5CiDvzDNs@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
+Message-ID: <20120214114041.fDNXeTnq_190KZ9cQMJQVat7PNblixRcpnDl93K5m_M@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
@@ -32,43 +32,152 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-hexagon@vger.kernel.org
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-cris-kernel@axis.com
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/hexagon/kernel/signal.c |   12 ++----------
- 1 files changed, 2 insertions(+), 10 deletions(-)
+ arch/cris/arch-v10/kernel/signal.c |   34 +++++++++++---------------------
+ arch/cris/arch-v32/kernel/signal.c |   37 ++++++++++-------------------------
+ 2 files changed, 23 insertions(+), 48 deletions(-)
 
-diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
-index b45be31..ecbab34 100644
---- a/arch/hexagon/kernel/signal.c
-+++ b/arch/hexagon/kernel/signal.c
-@@ -192,12 +192,7 @@ static int handle_signal(int sig, siginfo_t *info, struct k_sigaction *ka,
- 	if (rc)
- 		return rc;
- 
+diff --git a/arch/cris/arch-v10/kernel/signal.c b/arch/cris/arch-v10/kernel/signal.c
+index e78fe49..a6e1ff0 100644
+--- a/arch/cris/arch-v10/kernel/signal.c
++++ b/arch/cris/arch-v10/kernel/signal.c
+@@ -50,12 +50,14 @@ void do_signal(int canrestart, struct pt_regs *regs);
+ int sys_sigsuspend(old_sigset_t mask, long r11, long r12, long r13, long mof,
+ 	long srp, struct pt_regs *regs)
+ {
+-	mask &= _BLOCKABLE;
 -	spin_lock_irq(&current->sighand->siglock);
--	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
--	if (!(ka->sa.sa_flags & SA_NODEFER))
--		sigaddset(&current->blocked, sig);
++	sigset_t blocked;
++
+ 	current->saved_sigmask = current->blocked;
+-	siginitset(&current->blocked, mask);
 -	recalc_sigpending();
 -	spin_unlock_irq(&current->sighand->siglock);
-+	block_sigmask(ka, sig);
- 
- 	return 0;
- }
-@@ -305,10 +300,7 @@ asmlinkage int sys_rt_sigreturn(void)
++
++	mask &= _BLOCKABLE;
++	siginitset(&blocked, mask);
++	set_current_blocked(&blocked);
++
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+ 	set_thread_flag(TIF_RESTORE_SIGMASK);
+@@ -184,10 +186,7 @@ asmlinkage int sys_sigreturn(long r10, long r11, long r12, long r13, long mof,
  		goto badframe;
  
- 	sigdelsetmask(&blocked, ~_BLOCKABLE);
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
 -	spin_lock_irq(&current->sighand->siglock);
--	current->blocked = blocked;
+-	current->blocked = set;
 -	recalc_sigpending();
 -	spin_unlock_irq(&current->sighand->siglock);
-+	set_current_blocked(&blocked);
++	set_current_blocked(&set);
+ 
+ 	if (restore_sigcontext(regs, &frame->sc))
+ 		goto badframe;
+@@ -223,10 +222,7 @@ asmlinkage int sys_rt_sigreturn(long r10, long r11, long r12, long r13,
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
  
  	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
  		goto badframe;
+@@ -468,15 +464,9 @@ static inline int handle_signal(int canrestart, unsigned long sig,
+ 	else
+ 		ret = setup_frame(sig, ka, oldset, regs);
+ 
+-	if (ret == 0) {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked, &current->blocked,
+-			&ka->sa.sa_mask);
+-		if (!(ka->sa.sa_flags & SA_NODEFER))
+-			sigaddset(&current->blocked, sig);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
+-	}
++	if (ret == 0)
++		block_sigmask(ka, sig);
++
+ 	return ret;
+ }
+ 
+diff --git a/arch/cris/arch-v32/kernel/signal.c b/arch/cris/arch-v32/kernel/signal.c
+index ce4ab1a..e7ea1ea 100644
+--- a/arch/cris/arch-v32/kernel/signal.c
++++ b/arch/cris/arch-v32/kernel/signal.c
+@@ -62,12 +62,14 @@ int
+ sys_sigsuspend(old_sigset_t mask, long r11, long r12, long r13, long mof,
+ 	       long srp, struct pt_regs *regs)
+ {
+-	mask &= _BLOCKABLE;
+-	spin_lock_irq(&current->sighand->siglock);
++	sigset_t blocked;
++
+ 	current->saved_sigmask = current->blocked;
+-	siginitset(&current->blocked, mask);
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++
++	mask &= _BLOCKABLE;
++	siginitset(&blocked, mask);
++	set_current_blocked(&blocked);
++
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
+ 	set_thread_flag(TIF_RESTORE_SIGMASK);
+@@ -176,12 +178,7 @@ sys_sigreturn(long r10, long r11, long r12, long r13, long mof, long srp,
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-
+-	current->blocked = set;
+-
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 
+ 	if (restore_sigcontext(regs, &frame->sc))
+ 		goto badframe;
+@@ -222,12 +219,7 @@ sys_rt_sigreturn(long r10, long r11, long r12, long r13, long mof, long srp,
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-
+-	current->blocked = set;
+-
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 
+ 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
+ 		goto badframe;
+@@ -515,15 +507,8 @@ handle_signal(int canrestart, unsigned long sig,
+ 	if (ka->sa.sa_flags & SA_ONESHOT)
+ 		ka->sa.sa_handler = SIG_DFL;
+ 
+-	if (ret == 0) {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked, &current->blocked,
+-			&ka->sa.sa_mask);
+-		if (!(ka->sa.sa_flags & SA_NODEFER))
+-			sigaddset(&current->blocked, sig);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
+-	}
++	if (ret == 0)
++		block_sigmask(ka, sig);
+ 
+ 	return ret;
+ }
 -- 
 1.7.4.4
 
