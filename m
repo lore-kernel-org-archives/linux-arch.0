@@ -1,44 +1,76 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 38/40] xtensa: No need to reset handler if SA_ONESHOT
-Date: Tue, 14 Feb 2012 11:41:11 +0000
-Message-ID: <1329219673-28711-39-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 35/40] um: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:41:08 +0000
+Message-ID: <1329219673-28711-36-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Chris Zankel <chris@zankel.net>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-get_signal_to_deliver() already resets the signal handler if
-SA_ONESHOT is set in ka->sa.sa_flags, there's no need to do it again
-in handle_signal(). Furthermore, because we were modifying
-ka->sa.sa_handler (which is a copy of sighand->action[]) instead of
-sighand->action[] the original code actually had no effect on signal
-delivery.
+As described in e6fa16ab ("signal: sigprocmask() should do
+retarget_shared_pending()") the modification of current->blocked is
+incorrect as we need to check whether the signal we're about to block
+is pending in the shared queue.
 
-Acked-by: Oleg Nesterov <oleg@redhat.com>
-Cc: Chris Zankel <chris@zankel.net>
+Also, use the new helper function introduced in commit 5e6292c0f28f
+("signal: add block_sigmask() for adding sigmask to current->blocked")
+which centralises the code for updating current->blocked after
+successfully delivering a signal and reduces the amount of duplicate
+code across architectures. In the past some architectures got this
+code wrong, so using this helper function should stop that from
+happening again.
+
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Richard Weinberger <richard@nod.at>
+Cc: user-mode-linux-devel@lists.sourceforge.net
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/xtensa/kernel/signal.c |    3 ---
- 1 files changed, 0 insertions(+), 3 deletions(-)
+ arch/um/kernel/signal.c |   20 ++++++--------------
+ 1 files changed, 6 insertions(+), 14 deletions(-)
 
-diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
-index 4f53770..24655e3 100644
---- a/arch/xtensa/kernel/signal.c
-+++ b/arch/xtensa/kernel/signal.c
-@@ -536,9 +536,6 @@ int do_signal(struct pt_regs *regs, sigset_t *oldset)
- 		/* Set up the stack frame */
- 		setup_frame(signr, &ka, &info, oldset, regs);
+diff --git a/arch/um/kernel/signal.c b/arch/um/kernel/signal.c
+index 8382e0b..fb12f4c 100644
+--- a/arch/um/kernel/signal.c
++++ b/arch/um/kernel/signal.c
+@@ -67,15 +67,8 @@ static int handle_signal(struct pt_regs *regs, unsigned long signr,
  
--		if (ka.sa.sa_flags & SA_ONESHOT)
--			ka.sa.sa_handler = SIG_DFL;
--
- 		spin_lock_irq(&current->sighand->siglock);
- 		sigorsets(&current->blocked, &current->blocked, &ka.sa.sa_mask);
- 		if (!(ka.sa.sa_flags & SA_NODEFER))
+ 	if (err)
+ 		force_sigsegv(signr, current);
+-	else {
+-		spin_lock_irq(&current->sighand->siglock);
+-		sigorsets(&current->blocked, &current->blocked,
+-			  &ka->sa.sa_mask);
+-		if (!(ka->sa.sa_flags & SA_NODEFER))
+-			sigaddset(&current->blocked, signr);
+-		recalc_sigpending();
+-		spin_unlock_irq(&current->sighand->siglock);
+-	}
++	else
++		block_sigmask(ka, signr);
+ 
+ 	return err;
+ }
+@@ -158,12 +151,11 @@ int do_signal(void)
+  */
+ long sys_sigsuspend(int history0, int history1, old_sigset_t mask)
+ {
++	sigset_t blocked;
++
+ 	mask &= _BLOCKABLE;
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->saved_sigmask = current->blocked;
+-	siginitset(&current->blocked, mask);
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	siginitset(&blocked, mask);
++	set_current_blocked(&blocked);
+ 
+ 	current->state = TASK_INTERRUPTIBLE;
+ 	schedule();
 -- 
 1.7.4.4
