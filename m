@@ -1,76 +1,49 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 35/40] um: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:41:08 +0000
-Message-ID: <1329219673-28711-36-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 34/40] um: Don't restore current->blocked on error
+Date: Tue, 14 Feb 2012 11:41:07 +0000
+Message-ID: <1329219673-28711-35-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Richard Weinberger <richard@nod.at>, user-mode-linux-devel@lists.sourceforge.net
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, user-mode-linux-devel@lists.sourceforge.net
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-As described in e6fa16ab ("signal: sigprocmask() should do
-retarget_shared_pending()") the modification of current->blocked is
-incorrect as we need to check whether the signal we're about to block
-is pending in the shared queue.
+If we fail to setup the signal stack frame then we don't need to
+restore current->blocked because it is not modified by
+setup_signal_stack_*.
 
-Also, use the new helper function introduced in commit 5e6292c0f28f
-("signal: add block_sigmask() for adding sigmask to current->blocked")
-which centralises the code for updating current->blocked after
-successfully delivering a signal and reduces the amount of duplicate
-code across architectures. In the past some architectures got this
-code wrong, so using this helper function should stop that from
-happening again.
-
-Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Richard Weinberger <richard@nod.at>
+Acked-by: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Richard Weinberger <richard@nod.at>
+Tested-by: Richard Weinberger <richard@nod.at>
 Cc: user-mode-linux-devel@lists.sourceforge.net
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/um/kernel/signal.c |   20 ++++++--------------
- 1 files changed, 6 insertions(+), 14 deletions(-)
+ arch/um/kernel/signal.c |    8 ++------
+ 1 files changed, 2 insertions(+), 6 deletions(-)
 
 diff --git a/arch/um/kernel/signal.c b/arch/um/kernel/signal.c
-index 8382e0b..fb12f4c 100644
+index e8b889d..8382e0b 100644
 --- a/arch/um/kernel/signal.c
 +++ b/arch/um/kernel/signal.c
-@@ -67,15 +67,8 @@ static int handle_signal(struct pt_regs *regs, unsigned long signr,
+@@ -65,13 +65,9 @@ static int handle_signal(struct pt_regs *regs, unsigned long signr,
+ #endif
+ 		err = setup_signal_stack_si(sp, signr, ka, regs, info, oldset);
  
- 	if (err)
- 		force_sigsegv(signr, current);
--	else {
+-	if (err) {
 -		spin_lock_irq(&current->sighand->siglock);
--		sigorsets(&current->blocked, &current->blocked,
--			  &ka->sa.sa_mask);
--		if (!(ka->sa.sa_flags & SA_NODEFER))
--			sigaddset(&current->blocked, signr);
+-		current->blocked = *oldset;
 -		recalc_sigpending();
 -		spin_unlock_irq(&current->sighand->siglock);
--	}
-+	else
-+		block_sigmask(ka, signr);
- 
- 	return err;
- }
-@@ -158,12 +151,11 @@ int do_signal(void)
-  */
- long sys_sigsuspend(int history0, int history1, old_sigset_t mask)
- {
-+	sigset_t blocked;
-+
- 	mask &= _BLOCKABLE;
--	spin_lock_irq(&current->sighand->siglock);
--	current->saved_sigmask = current->blocked;
--	siginitset(&current->blocked, mask);
--	recalc_sigpending();
--	spin_unlock_irq(&current->sighand->siglock);
-+	siginitset(&blocked, mask);
-+	set_current_blocked(&blocked);
- 
- 	current->state = TASK_INTERRUPTIBLE;
- 	schedule();
++	if (err)
+ 		force_sigsegv(signr, current);
+-	} else {
++	else {
+ 		spin_lock_irq(&current->sighand->siglock);
+ 		sigorsets(&current->blocked, &current->blocked,
+ 			  &ka->sa.sa_mask);
 -- 
 1.7.4.4
