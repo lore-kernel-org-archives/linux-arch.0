@@ -1,134 +1,110 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCHv6 3/7] ARM: dma-mapping: implement dma sg methods on top
- of any generic dma ops
-Date: Tue, 14 Feb 2012 10:02:55 -0500
-Message-ID: <20120214150255.GC18359@phenom.dumpdata.com>
-References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
- <1328900324-20946-4-git-send-email-m.szyprowski@samsung.com>
+From: Eric B Munson <emunson@mgebm.net>
+Subject: Re: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by
+ host
+Date: Tue, 14 Feb 2012 10:29:31 -0500
+Message-ID: <20120214152931.GA6881@mgebm.net>
+References: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="WIyZ46R2i8wDzkSu"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oz.csail.mit.edu ([128.30.30.239]:50075 "EHLO mail.mgebm.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751600Ab2BNP3h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Feb 2012 10:29:37 -0500
 Content-Disposition: inline
-In-Reply-To: <1328900324-20946-4-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Krishna Reddy <vdumpa@nvidia.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, KyongHo Cho <pullip.cho@samsung.com>, Chunsang Jeong <chunsang.jeong@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: avi@redhat.com
+Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Feb 10, 2012 at 07:58:40PM +0100, Marek Szyprowski wrote:
-> This patch converts all dma_sg methods to be generic (independent of the
-> current DMA mapping implementation for ARM architecture). All dma sg
-> operations are now implemented on top of respective
-> dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
 
-Looks good, except the worry I've that the DMA debug API calls are now
-lost.
-> 
-> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
-> ---
->  arch/arm/mm/dma-mapping.c |   35 +++++++++++++++--------------------
->  1 files changed, 15 insertions(+), 20 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index 91fe436..31ff699 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -635,12 +635,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
->  int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->  		enum dma_data_direction dir, struct dma_attrs *attrs)
->  {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->  	struct scatterlist *s;
->  	int i, j;
->  
->  	for_each_sg(sg, s, nents, i) {
-> -		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
-> -						s->length, dir);
-> +		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
-> +						s->length, dir, attrs);
->  		if (dma_mapping_error(dev, s->dma_address))
->  			goto bad_mapping;
->  	}
-> @@ -648,7 +649,7 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->  
->   bad_mapping:
->  	for_each_sg(sg, s, i, j)
-> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
->  	return 0;
->  }
->  
-> @@ -665,11 +666,13 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->  void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
->  		enum dma_data_direction dir, struct dma_attrs *attrs)
->  {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->  	struct scatterlist *s;
-> +
->  	int i;
->  
->  	for_each_sg(sg, s, nents, i)
-> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
->  }
->  
->  /**
-> @@ -682,17 +685,13 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
->  void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
->  			int nents, enum dma_data_direction dir)
->  {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->  	struct scatterlist *s;
->  	int i;
->  
-> -	for_each_sg(sg, s, nents, i) {
-> -		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
-> -					    sg_dma_len(s), dir))
-> -			continue;
-> -
-> -		__dma_page_dev_to_cpu(sg_page(s), s->offset,
-> -				      s->length, dir);
-> -	}
-> +	for_each_sg(sg, s, nents, i)
-> +		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
-> +					 dir);
->  }
->  
->  /**
-> @@ -705,17 +704,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
->  void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
->  			int nents, enum dma_data_direction dir)
->  {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->  	struct scatterlist *s;
->  	int i;
->  
-> -	for_each_sg(sg, s, nents, i) {
-> -		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
-> -					sg_dma_len(s), dir))
-> -			continue;
-> -
-> -		__dma_page_cpu_to_dev(sg_page(s), s->offset,
-> -				      s->length, dir);
-> -	}
-> +	for_each_sg(sg, s, nents, i)
-> +		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
-> +					    dir);
->  }
->  
->  /*
-> -- 
-> 1.7.1.569.g6f426
-> 
-> _______________________________________________
-> iommu mailing list
-> iommu@lists.linux-foundation.org
-> https://lists.linuxfoundation.org/mailman/listinfo/iommu
+--WIyZ46R2i8wDzkSu
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+On Wed, 08 Feb 2012, Eric B Munson wrote:
+
+>=20
+> When a guest kernel is stopped by the host hypervisor it can look like a =
+soft
+> lockup to the guest kernel.  This false warning can mask later soft lockup
+> warnings which may be real.  This patch series adds a method for a host
+> hypervisor to communicate to a guest kernel that it is being stopped.  The
+> final patch in the series has the watchdog check this flag when it goes to
+> issue a soft lockup warning and skip the warning if the guest knows it was
+> stopped.
+>=20
+> It was attempted to solve this in Qemu, but the side effects of saving and
+> restoring the clock and tsc for each vcpu put the wall clock of the guest=
+ behind
+> by the amount of time of the pause.  This forces a guest to have ntp runn=
+ing
+> in order to keep the wall clock accurate.
+
+Avi,
+
+Is this set fit for merging or is there something else you want changed?
+
+Eric
+
+>=20
+> Cc: mingo@redhat.com
+> Cc: hpa@zytor.com
+> Cc: ryanh@linux.vnet.ibm.com
+> Cc: aliguori@us.ibm.com
+> Cc: mtosatti@redhat.com
+> Cc: kvm@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> Cc: linux-kernel@vger.kernel.org
+>=20
+> Eric B Munson (4):
+>   Add flag to indicate that a vm was stopped by the host
+>   Add functions to check if the host has stopped the vm
+>   Add ioctl for KVM_KVMCLOCK_CTRL
+>   Add check for suspended vm in softlockup detector
+>=20
+>  Documentation/virtual/kvm/api.txt   |   13 +++++++++++++
+>  arch/ia64/include/asm/kvm_para.h    |    5 +++++
+>  arch/powerpc/include/asm/kvm_para.h |    5 +++++
+>  arch/s390/include/asm/kvm_para.h    |    5 +++++
+>  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+>  arch/x86/include/asm/pvclock-abi.h  |    1 +
+>  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+>  arch/x86/kvm/x86.c                  |   22 ++++++++++++++++++++++
+>  include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+>  include/linux/kvm.h                 |    3 +++
+>  kernel/watchdog.c                   |   12 ++++++++++++
+>  11 files changed, 109 insertions(+), 0 deletions(-)
+>  create mode 100644 include/asm-generic/kvm_para.h
+>=20
+> --=20
+> 1.7.5.4
+>=20
+
+--WIyZ46R2i8wDzkSu
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBAgAGBQJPOn3bAAoJEKhG9nGc1bpJmz4P+wfFlf1MEADJJJQnQJ1bXbKN
+sd7h2GXmaP5XGXrnLjdBgIVzarrCmLa37taUI33Zb1T/6U7oF5diE0q0zs7AF542
+bllo7iymWQOo0ccKUZdBqkbi0O9g44NQrjRtf3eIviVGqq1C8X/2fOw6Re/DQyS4
+vNUEMMeKfAitaNvY0klLzm9eDH/f4ylsz3lMPkkjfPuJ+hghUuALefmSZvAajzmJ
+eQeL7I/Porev1vSf3SUHoTcb/uYWZRlPOHDM9sHY/VJYJiGGXbShvKqygZq0w7n8
+6EUwmARoVwTytZDdtITTvhyU2Qa7GpneDSipxcsgCt/N5ODv2lFKMJMC+7a16i7y
+gufMZKzBrRWJTcSZ4fBtTYzA2QYtmARnpKNGMW5xPVBeKLYFPmnuBYLEy5qWK4jw
+4jlPVqpP0DMtPSB4dx+1EXAoUsszdlfPkgVi9cSIS4QXOpT5cPV5cgU+UWGB4dUD
+qGQFn2sprwsJeLqnYpmxXeq49m0y+wGRuywsp3hPPAnalsM6jjJQrqmNT3I7g0ra
+fDCfODyALxohC1psUcRuWy8vAc1JLa/ayYzNpBPmeTjpWp2ie4gzC2/vKMbZ7d2i
+TTPKNoz8e3mlzulwN1gB0hefXTeNJGoXb8Mw9QeuDT/efX7gLxXSZT4FvwfNRv9s
+c1OMpLHixW5QtImDscoF
+=4uHs
+-----END PGP SIGNATURE-----
+
+--WIyZ46R2i8wDzkSu--
