@@ -1,65 +1,33 @@
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by
- host
-Date: Tue, 14 Feb 2012 14:10:09 -0200
-Message-ID: <20120214161009.GA21515@amt.cnet>
-References: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
- <20120214152931.GA6881@mgebm.net>
- <20120214153836.GA21106@amt.cnet>
- <20120214155013.GB6881@mgebm.net>
+From: Anderson Moore <solarsupplyhome@gmail.com>
+Subject: Re: Sealed lead batteries
+Date: Tue, 14 Feb 2012 10:05:05 -0300
+Message-ID: <E1RxI49-0007aI-Bf@incom1.incomvision.com>
+Reply-To: solarsupplyhome@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37497 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751466Ab2BNQNL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 11:13:11 -0500
-Content-Disposition: inline
-In-Reply-To: <20120214155013.GB6881@mgebm.net>
+Received: from incom1.incomvision.com ([66.7.212.193]:52491 "EHLO
+	incom1.incomvision.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752528Ab2BNQfp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2012 11:35:45 -0500
+Received: from nobody by incom1.incomvision.com with local (Exim 4.68)
+	(envelope-from <nobody@incom1.incomvision.com>)
+	id 1RxI49-0007aI-Bf
+	for linux-arch@vger.kernel.org; Tue, 14 Feb 2012 10:05:05 -0300
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: linux-arch@vger.kernel.org
 
-On Tue, Feb 14, 2012 at 10:50:13AM -0500, Eric B Munson wrote:
-> On Tue, 14 Feb 2012, Marcelo Tosatti wrote:
-> 
-> > On Tue, Feb 14, 2012 at 10:29:31AM -0500, Eric B Munson wrote:
-> > > On Wed, 08 Feb 2012, Eric B Munson wrote:
-> > > 
-> > > > 
-> > > > When a guest kernel is stopped by the host hypervisor it can look like a soft
-> > > > lockup to the guest kernel.  This false warning can mask later soft lockup
-> > > > warnings which may be real.  This patch series adds a method for a host
-> > > > hypervisor to communicate to a guest kernel that it is being stopped.  The
-> > > > final patch in the series has the watchdog check this flag when it goes to
-> > > > issue a soft lockup warning and skip the warning if the guest knows it was
-> > > > stopped.
-> > > > 
-> > > > It was attempted to solve this in Qemu, but the side effects of saving and
-> > > > restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-> > > > by the amount of time of the pause.  This forces a guest to have ntp running
-> > > > in order to keep the wall clock accurate.
-> > > 
-> > > Avi,
-> > > 
-> > > Is this set fit for merging or is there something else you want changed?
-> > 
-> > Eric,
-> > 
-> > On Message-ID: <20120210160536.GA23363@amt.cnet>, i asked:
-> > 
-> > How is the stub getting included for other architectures again?
-> > 
-> 
-> Marcelo,
-> 
-> Sorry, I put out V13 to answer that.  There is a stub in asm-generic that was
-> lost in the V11-V12 rebase.  This stub has be included in the V13 set.
-> 
-> Eric
+Sales,
+        
+We come across your email and we want to know if you can supply us these items.
+(1)12Volt 100Ah to 200Ah Sealed lead battery  Battery Specifications * Voltage: 12 Volt *
 
-Eric, 
-
-I know the stub has been included in the series. But i am asking how 
-it is #include'ed for other architectures? (can't see that).
+Capacity Ampere Hours:100 (@20hr rate) * Dimensions (L x W x H): 12.01" X 6.60" X 9.25" or more * Weight: 65 pounds or more * 12 months of complete warranty and 48 months of pro-rated warranty * Non Hazardous battery.
+Let us know if you can supply us .
+ 
+Thank you.
+Anderson Moore
+Anderson & Sons Trading
+4340 Jearolds Town Road
