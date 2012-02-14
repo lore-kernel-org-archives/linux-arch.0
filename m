@@ -1,53 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57875 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57870 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932172Ab2BNLoC (ORCPT
+	by vger.kernel.org with ESMTP id S932306Ab2BNLoB (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:44:02 -0500
+	Tue, 14 Feb 2012 06:44:01 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 37/40] xtensa: Don't reimplement force_sigsegv()
-Date: Tue, 14 Feb 2012 11:41:10 +0000
-Message-ID: <1329219673-28711-38-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 36/40] unicore32: Use block_sigmask()
+Date: Tue, 14 Feb 2012 11:41:09 +0000
+Message-ID: <1329219673-28711-37-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Chris Zankel <chris@zankel.net>
-Message-ID: <20120214114110.mR5a9X8SaAzyvGGqp1cJQ3xZAd-HPRggLABLvInB6Vc@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>
+Message-ID: <20120214114109.Q1AyJ9aOcuZuRIERC8eNWTjWdUmY4Yss8kzlERdH7_Y@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-Instead of open coding the sequence from force_sigsegv() just call
-it. This also fixes a bug because we were modifying ka->sa.sa_handler
-(which is a copy of sighand->action[]), whereas the intention of the
-code was to modify sighand->action[] directly.
+Use the new helper function introduced in commit 5e6292c0f28f
+("signal: add block_sigmask() for adding sigmask to current->blocked")
+which centralises the code for updating current->blocked after
+successfully delivering a signal and reduces the amount of duplicate
+code across architectures. In the past some architectures got this
+code wrong, so using this helper function should stop that from
+happening again.
 
-As the original code was working with a copy it had no effect on
-signal delivery.
-
-Acked-by: Oleg Nesterov <oleg@redhat.com>
-Cc: Chris Zankel <chris@zankel.net>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/xtensa/kernel/signal.c |    4 +---
- 1 files changed, 1 insertions(+), 3 deletions(-)
+ arch/unicore32/kernel/signal.c |    5 +----
+ 1 files changed, 1 insertions(+), 4 deletions(-)
 
-diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
-index f2220b5..4f53770 100644
---- a/arch/xtensa/kernel/signal.c
-+++ b/arch/xtensa/kernel/signal.c
-@@ -425,9 +425,7 @@ static void setup_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	return;
+diff --git a/arch/unicore32/kernel/signal.c b/arch/unicore32/kernel/signal.c
+index 911b549..72d9531 100644
+--- a/arch/unicore32/kernel/signal.c
++++ b/arch/unicore32/kernel/signal.c
+@@ -370,10 +370,7 @@ static int handle_signal(unsigned long sig, struct k_sigaction *ka,
+ 	/*
+ 	 * Block the signal if we were successful.
+ 	 */
+-	sigorsets(&blocked, &tsk->blocked, &ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NODEFER))
+-		sigaddset(&blocked, sig);
+-	set_current_blocked(&blocked);
++	block_sigmask(ka, sig);
  
- give_sigsegv:
--	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
--	force_sig(SIGSEGV, current);
-+	force_sigsegv(sig, current);
+ 	return 0;
  }
- 
- /*
 -- 
 1.7.4.4
 
