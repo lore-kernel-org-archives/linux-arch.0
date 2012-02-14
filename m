@@ -1,47 +1,111 @@
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 15/40] microblaze: Don't reimplement force_sigsegv()
-Date: Tue, 14 Feb 2012 11:40:48 +0000
-Message-ID: <1329219673-28711-16-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 10/40] h8300: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:43 +0000
+Message-ID: <1329219673-28711-11-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, microblaze-uclinux@itee.uq.edu.au
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-Instead of open coding the sequence from force_sigsegv() just call
-it. This also fixes a bug because we were modifying ka->sa.sa_handler
-(which is a copy of sighand->action[]), whereas the intention of the
-code was to modify sighand->action[] directly.
+As described in e6fa16ab ("signal: sigprocmask() should do
+retarget_shared_pending()") the modification of current->blocked is
+incorrect as we need to check whether the signal we're about to block
+is pending in the shared queue.
 
-As the original code was working with a copy it had no effect on
-signal delivery.
+Also, use the new helper function introduced in commit 5e6292c0f28f
+("signal: add block_sigmask() for adding sigmask to current->blocked")
+which centralises the code for updating current->blocked after
+successfully delivering a signal and reduces the amount of duplicate
+code across architectures. In the past some architectures got this
+code wrong, so using this helper function should stop that from
+happening again.
 
-Acked-by: Oleg Nesterov <oleg@redhat.com>
-Acked-by: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/microblaze/kernel/signal.c |    4 +---
- 1 files changed, 1 insertions(+), 3 deletions(-)
+ arch/h8300/kernel/signal.c |   33 +++++++++------------------------
+ 1 files changed, 9 insertions(+), 24 deletions(-)
 
-diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
-index 5996711..90de06d 100644
---- a/arch/microblaze/kernel/signal.c
-+++ b/arch/microblaze/kernel/signal.c
-@@ -270,9 +270,7 @@ static void setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
- 	return;
+diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+index af842c3..cd63f5a 100644
+--- a/arch/h8300/kernel/signal.c
++++ b/arch/h8300/kernel/signal.c
+@@ -57,14 +57,13 @@ asmlinkage int do_signal(struct pt_regs *regs, sigset_t *oldset);
+ asmlinkage int do_sigsuspend(struct pt_regs *regs)
+ {
+ 	old_sigset_t mask = regs->er3;
+-	sigset_t saveset;
++	sigset_t saveset, blocked;
  
- give_sigsegv:
--	if (sig == SIGSEGV)
--		ka->sa.sa_handler = SIG_DFL;
--	force_sig(SIGSEGV, current);
-+	force_sigsegv(sig, current);
+-	mask &= _BLOCKABLE;
+-	spin_lock_irq(&current->sighand->siglock);
+ 	saveset = current->blocked;
+-	siginitset(&current->blocked, mask);
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++
++	mask &= _BLOCKABLE;
++	siginitset(&blocked, mask);
++	set_current_blocked(&blocked);
+ 
+ 	regs->er0 = -EINTR;
+ 	while (1) {
+@@ -90,11 +89,8 @@ do_rt_sigsuspend(struct pt_regs *regs)
+ 		return -EFAULT;
+ 	sigdelsetmask(&newset, ~_BLOCKABLE);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+ 	saveset = current->blocked;
+-	current->blocked = newset;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&newset);
+ 
+ 	regs->er0 = -EINTR;
+ 	while (1) {
+@@ -232,10 +228,7 @@ asmlinkage int do_sigreturn(unsigned long __unused,...)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 	
+ 	if (restore_sigcontext(regs, &frame->sc, &er0))
+ 		goto badframe;
+@@ -260,10 +253,7 @@ asmlinkage int do_rt_sigreturn(unsigned long __unused,...)
+ 		goto badframe;
+ 
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_unlock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_lock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
+ 	
+ 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &er0))
+ 		goto badframe;
+@@ -489,12 +479,7 @@ handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ 	else
+ 		setup_frame(sig, ka, oldset, regs);
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+-	sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NODEFER))
+-		sigaddset(&current->blocked,sig);
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	block_sigmask(ka, sig);
  }
  
- /* Handle restarting system calls */
+ /*
 -- 
 1.7.4.4
