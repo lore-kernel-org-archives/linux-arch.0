@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57784 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57730 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760527Ab2BNLnU (ORCPT
+	by vger.kernel.org with ESMTP id S1760410Ab2BNLmo (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:43:20 -0500
+	Tue, 14 Feb 2012 06:42:44 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 24/40] OpenRISC: Use set_current_blocked() and block_sigmask()
-Date: Tue, 14 Feb 2012 11:40:57 +0000
-Message-ID: <1329219673-28711-25-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 18/40] microblaze: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:51 +0000
+Message-ID: <1329219673-28711-19-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Jonas Bonn <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
-Message-ID: <20120214114057.1juvWAQvP0LeJhTMKvBtSxFPMgYjZuRH-LnhZ-Fwc9k@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, microblaze-uclinux@itee.uq.edu.au
+Message-ID: <20120214114051.XeAkL6TOqGd6J_2j1bqSkbojrEXKP2OELvv07KiepqE@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
@@ -32,19 +32,18 @@ code wrong, so using this helper function should stop that from
 happening again.
 
 Cc: Oleg Nesterov <oleg@redhat.com>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux@lists.openrisc.net
+Acked-by: Michal Simek <monstr@monstr.eu>
+Cc: microblaze-uclinux@itee.uq.edu.au
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/openrisc/kernel/signal.c |   13 ++-----------
- 1 files changed, 2 insertions(+), 11 deletions(-)
+ arch/microblaze/kernel/signal.c |   12 ++----------
+ 1 files changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
-index 14764e8..cf35ea0 100644
---- a/arch/openrisc/kernel/signal.c
-+++ b/arch/openrisc/kernel/signal.c
-@@ -102,10 +102,7 @@ asmlinkage long _sys_rt_sigreturn(struct pt_regs *regs)
+diff --git a/arch/microblaze/kernel/signal.c b/arch/microblaze/kernel/signal.c
+index f2c13d5..99b9708 100644
+--- a/arch/microblaze/kernel/signal.c
++++ b/arch/microblaze/kernel/signal.c
+@@ -105,10 +105,7 @@ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
  		goto badframe;
  
  	sigdelsetmask(&set, ~_BLOCKABLE);
@@ -54,9 +53,9 @@ index 14764e8..cf35ea0 100644
 -	spin_unlock_irq(&current->sighand->siglock);
 +	set_current_blocked(&set);
  
- 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
+ 	if (restore_sigcontext(regs, &frame->uc.uc_mcontext, &rval))
  		goto badframe;
-@@ -265,13 +262,7 @@ handle_signal(unsigned long sig,
+@@ -326,12 +323,7 @@ handle_signal(unsigned long sig, struct k_sigaction *ka,
  	if (ret)
  		return ret;
  
@@ -65,7 +64,6 @@ index 14764e8..cf35ea0 100644
 -	if (!(ka->sa.sa_flags & SA_NODEFER))
 -		sigaddset(&current->blocked, sig);
 -	recalc_sigpending();
--
 -	spin_unlock_irq(&current->sighand->siglock);
 +	block_sigmask(ka, sig);
  
