@@ -1,53 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:57767 "EHLO
+Received: from arkanian.console-pimps.org ([212.110.184.194]:57790 "EHLO
 	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1760450Ab2BNLnR (ORCPT
+	by vger.kernel.org with ESMTP id S1760544Ab2BNLnV (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Feb 2012 06:43:17 -0500
+	Tue, 14 Feb 2012 06:43:21 -0500
 From: Matt Fleming <matt@console-pimps.org>
-Subject: [PATCH 22/40] OpenRISC: No need to reset handler if SA_ONESHOT
-Date: Tue, 14 Feb 2012 11:40:55 +0000
-Message-ID: <1329219673-28711-23-git-send-email-matt@console-pimps.org>
+Subject: [PATCH 25/40] parisc: Use set_current_blocked() and block_sigmask()
+Date: Tue, 14 Feb 2012 11:40:58 +0000
+Message-ID: <1329219673-28711-26-git-send-email-matt@console-pimps.org>
 In-Reply-To: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Jonas Bonn <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
-Message-ID: <20120214114055.9TMHUyw2UuLU_94nhAKEZu1R5fCDEEdsoVZmcKH8Uk8@z>
+Cc: Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-parisc@vger.kernel.org
+Message-ID: <20120214114058.lsDxNE_v2EjKdTo6MsQPXc6Zf0f_WP_f9-T_gM9ZFPs@z>
 
 From: Matt Fleming <matt.fleming@intel.com>
 
-get_signal_to_deliver() already resets the signal handler if
-SA_ONESHOT is set in ka->sa.sa_flags, there's no need to do it again
-in handle_signal(). Furthermore, because we were modifying
-ka->sa.sa_handler (which is a copy of sighand->action[]) instead of
-sighand->action[] the original code actually had no effect on signal
-delivery.
+As described in e6fa16ab ("signal: sigprocmask() should do
+retarget_shared_pending()") the modification of current->blocked is
+incorrect as we need to check whether the signal we're about to block
+is pending in the shared queue.
 
-Acked-by: Oleg Nesterov <oleg@redhat.com>
-Cc: Jonas Bonn <jonas@southpole.se>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux@lists.openrisc.net
+Also, use the new helper function introduced in commit 5e6292c0f28f
+("signal: add block_sigmask() for adding sigmask to current->blocked")
+which centralises the code for updating current->blocked after
+successfully delivering a signal and reduces the amount of duplicate
+code across architectures. In the past some architectures got this
+code wrong, so using this helper function should stop that from
+happening again.
+
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+Cc: linux-parisc@vger.kernel.org
 Signed-off-by: Matt Fleming <matt.fleming@intel.com>
 ---
- arch/openrisc/kernel/signal.c |    3 ---
- 1 files changed, 0 insertions(+), 3 deletions(-)
+ arch/parisc/kernel/signal.c |   12 ++----------
+ 1 files changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
-index 53741ba..92d2218 100644
---- a/arch/openrisc/kernel/signal.c
-+++ b/arch/openrisc/kernel/signal.c
-@@ -260,9 +260,6 @@ handle_signal(unsigned long sig,
- {
- 	setup_rt_frame(sig, ka, info, oldset, regs);
+diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+index 12c1ed3..bd36152 100644
+--- a/arch/parisc/kernel/signal.c
++++ b/arch/parisc/kernel/signal.c
+@@ -131,10 +131,7 @@ sys_rt_sigreturn(struct pt_regs *regs, int in_syscall)
+ 	}
+ 		
+ 	sigdelsetmask(&set, ~_BLOCKABLE);
+-	spin_lock_irq(&current->sighand->siglock);
+-	current->blocked = set;
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	set_current_blocked(&set);
  
--	if (ka->sa.sa_flags & SA_ONESHOT)
--		ka->sa.sa_handler = SIG_DFL;
--
- 	spin_lock_irq(&current->sighand->siglock);
- 	sigorsets(&current->blocked, &current->blocked, &ka->sa.sa_mask);
- 	if (!(ka->sa.sa_flags & SA_NODEFER))
+ 	/* Good thing we saved the old gr[30], eh? */
+ #ifdef CONFIG_64BIT
+@@ -454,12 +451,7 @@ handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ 	if (!setup_rt_frame(sig, ka, info, oldset, regs, in_syscall))
+ 		return 0;
+ 
+-	spin_lock_irq(&current->sighand->siglock);
+-	sigorsets(&current->blocked,&current->blocked,&ka->sa.sa_mask);
+-	if (!(ka->sa.sa_flags & SA_NODEFER))
+-		sigaddset(&current->blocked,sig);
+-	recalc_sigpending();
+-	spin_unlock_irq(&current->sighand->siglock);
++	block_sigmask(ka, sig);
+ 
+ 	tracehook_signal_handler(sig, info, ka, regs, 
+ 		test_thread_flag(TIF_SINGLESTEP) ||
 -- 
 1.7.4.4
 
