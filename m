@@ -1,40 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:51990 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751178Ab2BOD5Z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Feb 2012 22:57:25 -0500
-Date: Tue, 14 Feb 2012 22:57:13 -0500 (EST)
-Message-ID: <20120214.225713.1807433250606231046.davem@davemloft.net>
-Subject: Re: [PATCH 32/40] sparc: Use block_sigmask()
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1329219673-28711-33-git-send-email-matt@console-pimps.org>
+Received: from arkanian.console-pimps.org ([212.110.184.194]:47897 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753006Ab2BOLsD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Feb 2012 06:48:03 -0500
+Subject: Re: [PATCH 00/40] arch: set_current_blocked() and block_sigmask()
+From: Matt Fleming <matt@console-pimps.org>
+In-Reply-To: <20120214173220.GB22645@redhat.com>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-	<1329219673-28711-33-git-send-email-matt@console-pimps.org>
+	 <20120214173220.GB22645@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Date: Wed, 15 Feb 2012 11:47:53 +0000
+Message-ID: <1329306473.3675.113.camel@mfleming-mobl1.ger.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: matt@console-pimps.org
-Cc: linux-arch@vger.kernel.org, oleg@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, matt.fleming@intel.com, sparclinux@vger.kernel.org
-Message-ID: <20120215035713.YhGSo3dG9C64tRQs0s9NBQvMTnlzzrqkadIHH-Ai5a0@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org
+Message-ID: <20120215114753.4byRnOpiVNKRSf6WIIKkNRhMDHrBc_-FU6SvLQ2slF4@z>
 
-From: Matt Fleming <matt@console-pimps.org>
-Date: Tue, 14 Feb 2012 11:41:05 +0000
-
-> From: Matt Fleming <matt.fleming@intel.com>
+On Tue, 2012-02-14 at 18:32 +0100, Oleg Nesterov wrote:
+> On 02/14, Matt Fleming wrote:
+> >
+> > This series simplifies the architecture code for handling signals by
+> > making use of set_current_blocked() introduced in e6fa16ab ("signal:
+> > sigprocmask() should do retarget_shared_pending()") and
+> > block_sigmask() introduced in commit 5e6292c0f28f ("signal: add
+> > block_sigmask() for adding sigmask to current->blocked").
 > 
-> Use the new helper function introduced in commit 5e6292c0f28f
-> ("signal: add block_sigmask() for adding sigmask to current->blocked")
-> which centralises the code for updating current->blocked after
-> successfully delivering a signal and reduces the amount of duplicate
-> code across architectures. In the past some architectures got this
-> code wrong, so using this helper function should stop that from
-> happening again.
-> 
-> Cc: Oleg Nesterov <oleg@redhat.com>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Cc: sparclinux@vger.kernel.org
-> Signed-off-by: Matt Fleming <matt.fleming@intel.com>
+> Matt, I assume this series was not changed since we discussed it ?
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Correct. The only new additions are the C6X and hexagon patches here,
+
+	https://lkml.org/lkml/2012/2/14/123
+	https://lkml.org/lkml/2012/2/14/155
+
+But they're pretty much the same as all the others in the series.
+
+> If yes. I do not want to spam lkml, I'll reply to 0/40 only.
+> 
+> All patches look right to me, for the whole series:
+> 
+> Acked-by: Oleg Nesterov <oleg@redhat.com>
+
+Great, thanks!
+
+-- 
+Matt Fleming, Intel Open Source Technology Center
+
