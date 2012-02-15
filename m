@@ -1,41 +1,57 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [PATCH 20/40] mn10300: Use set_current_blocked() and
- block_sigmask()
-Date: Wed, 15 Feb 2012 11:49:58 +0000
-Message-ID: <1329306598.3675.115.camel@mfleming-mobl1.ger.corp.intel.com>
-References: <1329242378.3675.71.camel@mfleming-mobl1.ger.corp.intel.com>
-	 <1329219673-28711-21-git-send-email-matt@console-pimps.org>
-	 <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-	 <17603.1329234976@redhat.com>  <28189.1329244210@redhat.com>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH 21/40] OpenRISC: Don't reimplement
+	force_sigsegv()
+Date: Wed, 15 Feb 2012 16:40:56 +0100
+Message-ID: <1329320456.2670.86.camel@crucifix>
+References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
+	<1329219673-28711-22-git-send-email-matt@console-pimps.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:47907 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754309Ab2BOLuB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2012 06:50:01 -0500
-In-Reply-To: <28189.1329244210@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-am33-list@redhat.com
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <1329219673-28711-22-git-send-email-matt@console-pimps.org>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: Matt Fleming <matt@console-pimps.org>
+Cc: linux-arch@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, linux@lists.openrisc.net, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2012-02-14 at 18:30 +0000, David Howells wrote:
-> Matt Fleming <matt@console-pimps.org> wrote:
-> 
-> > > Can this line create a race, now that it's not protected by a lock?  It is
-> > > possible for current->blocked to get altered by another thread.
-> > 
-> > ->blocked can only ever be altered by current, not another thread. See
-> > the following comment from sigprocmask() in kernel/signal.c,
-> 
-> Okay, I've managed to convince myself.  Feel free to my Acked-by to the
-> MN10300 and FRV patches.
-
-Thanks! I think Andrew is picking these up, unless you want to take them
-through the arch trees?
-
--- 
-Matt Fleming, Intel Open Source Technology Center
+CkFja2VkLWJ5OiBKb25hcyBCb25uIDxqb25hc0Bzb3V0aHBvbGUuc2U+CgouLi5mb3IgT3BlblJJ
+U0MsIGFsbCA0IHBhdGNoZXMgKDIwLTIzIGluIHRoaXMgc2VyaWVzKS4KClNob3VsZCBJIHRha2Ug
+dGhlc2UgaW4gdGhlIE9wZW5SSVNDIHRyZWUgb3IgaG93IGRpZCB5b3Ugd2FudCB0byBkbz8KCi9K
+b25hcwoKT24gVHVlLCAyMDEyLTAyLTE0IGF0IDExOjQwICswMDAwLCBNYXR0IEZsZW1pbmcgd3Jv
+dGU6Cj4gRnJvbTogTWF0dCBGbGVtaW5nIDxtYXR0LmZsZW1pbmdAaW50ZWwuY29tPgo+IAo+IElu
+c3RlYWQgb2Ygb3BlbiBjb2RpbmcgdGhlIHNlcXVlbmNlIGZyb20gZm9yY2Vfc2lnc2VndigpIGp1
+c3QgY2FsbAo+IGl0LiBUaGlzIGFsc28gZml4ZXMgYSBidWcgYmVjYXVzZSB3ZSB3ZXJlIG1vZGlm
+eWluZyBrYS0+c2Euc2FfaGFuZGxlcgo+ICh3aGljaCBpcyBhIGNvcHkgb2Ygc2lnaGFuZC0+YWN0
+aW9uW10pLCB3aGVyZWFzIHRoZSBpbnRlbnRpb24gb2YgdGhlCj4gY29kZSB3YXMgdG8gbW9kaWZ5
+IHNpZ2hhbmQtPmFjdGlvbltdIGRpcmVjdGx5Lgo+IAo+IEFzIHRoZSBvcmlnaW5hbCBjb2RlIHdh
+cyB3b3JraW5nIHdpdGggYSBjb3B5IGl0IGhhZCBubyBlZmZlY3Qgb24KPiBzaWduYWwgZGVsaXZl
+cnkuCj4gCj4gQWNrZWQtYnk6IE9sZWcgTmVzdGVyb3YgPG9sZWdAcmVkaGF0LmNvbT4KPiBDYzog
+Sm9uYXMgQm9ubiA8am9uYXNAc291dGhwb2xlLnNlPgo+IENjOiBBcm5kIEJlcmdtYW5uIDxhcm5k
+QGFybmRiLmRlPgo+IENjOiBsaW51eEBsaXN0cy5vcGVucmlzYy5uZXQKPiBTaWduZWQtb2ZmLWJ5
+OiBNYXR0IEZsZW1pbmcgPG1hdHQuZmxlbWluZ0BpbnRlbC5jb20+Cj4gLS0tCj4gIGFyY2gvb3Bl
+bnJpc2Mva2VybmVsL3NpZ25hbC5jIHwgICAgNCArLS0tCj4gIDEgZmlsZXMgY2hhbmdlZCwgMSBp
+bnNlcnRpb25zKCspLCAzIGRlbGV0aW9ucygtKQo+IAo+IGRpZmYgLS1naXQgYS9hcmNoL29wZW5y
+aXNjL2tlcm5lbC9zaWduYWwuYyBiL2FyY2gvb3BlbnJpc2Mva2VybmVsL3NpZ25hbC5jCj4gaW5k
+ZXggOTUyMDdhYi4uNTM3NDFiYSAxMDA2NDQKPiAtLS0gYS9hcmNoL29wZW5yaXNjL2tlcm5lbC9z
+aWduYWwuYwo+ICsrKyBiL2FyY2gvb3BlbnJpc2Mva2VybmVsL3NpZ25hbC5jCj4gQEAgLTI1MCw5
+ICsyNTAsNyBAQCBzdGF0aWMgdm9pZCBzZXR1cF9ydF9mcmFtZShpbnQgc2lnLCBzdHJ1Y3Qga19z
+aWdhY3Rpb24gKmthLCBzaWdpbmZvX3QgKmluZm8sCj4gIAlyZXR1cm47Cj4gIAo+ICBnaXZlX3Np
+Z3NlZ3Y6Cj4gLQlpZiAoc2lnID09IFNJR1NFR1YpCj4gLQkJa2EtPnNhLnNhX2hhbmRsZXIgPSBT
+SUdfREZMOwo+IC0JZm9yY2Vfc2lnKFNJR1NFR1YsIGN1cnJlbnQpOwo+ICsJZm9yY2Vfc2lnc2Vn
+dihzaWcsIGN1cnJlbnQpOwo+ICB9Cj4gIAo+ICBzdGF0aWMgaW5saW5lIHZvaWQKCi0tIApKb25h
+cyBCb25uICAgICAgICAgICAgICAgICAgICAgICBTb3V0aCBQb2xlIEFCClBob25lIDogKzQ2LTgt
+NTYyMzcxMDAgICAgICAgICAgIEFuZGVyc3RvcnBzdsOkZ2VuIDE2Ck1vYmlsZTogKzQ2LTc2OC01
+Mjc3NTUgICAgICAgICAgIFNFLTE3MTU0IFNvbG5hCmpvbmFzQHNvdXRocG9sZS5zZSAgICAgICAg
+ICAgICAgIHd3dy5zb3V0aHBvbGVjb25zdWx0aW5nLmNvbQoKCgoKCl9fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4IG1haWxpbmcgbGlzdApMaW51eEBs
+aXN0cy5vcGVucmlzYy5uZXQKaHR0cDovL2xpc3RzLm9wZW5yaXNjLm5ldC9saXN0aW5mby9saW51
+eAo=
