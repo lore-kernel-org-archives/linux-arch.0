@@ -1,57 +1,33 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH 21/40] OpenRISC: Don't reimplement
-	force_sigsegv()
-Date: Wed, 15 Feb 2012 16:40:56 +0100
-Message-ID: <1329320456.2670.86.camel@crucifix>
+From: Matt Fleming <matt@console-pimps.org>
+Subject: Re: [PATCH 21/40] OpenRISC: Don't reimplement force_sigsegv()
+Date: Wed, 15 Feb 2012 15:49:05 +0000
+Message-ID: <1329320945.3675.149.camel@mfleming-mobl1.ger.corp.intel.com>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-	<1329219673-28711-22-git-send-email-matt@console-pimps.org>
+	 <1329219673-28711-22-git-send-email-matt@console-pimps.org>
+	 <1329320456.2670.86.camel@crucifix>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <1329219673-28711-22-git-send-email-matt@console-pimps.org>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: Matt Fleming <matt@console-pimps.org>
-Cc: linux-arch@vger.kernel.org, Matt Fleming <matt.fleming@intel.com>, Arnd Bergmann <arnd@arndb.de>, Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, linux@lists.openrisc.net, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from arkanian.console-pimps.org ([212.110.184.194]:33805 "EHLO
+	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751838Ab2BOPtH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Feb 2012 10:49:07 -0500
+In-Reply-To: <1329320456.2670.86.camel@crucifix>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
 
-CkFja2VkLWJ5OiBKb25hcyBCb25uIDxqb25hc0Bzb3V0aHBvbGUuc2U+CgouLi5mb3IgT3BlblJJ
-U0MsIGFsbCA0IHBhdGNoZXMgKDIwLTIzIGluIHRoaXMgc2VyaWVzKS4KClNob3VsZCBJIHRha2Ug
-dGhlc2UgaW4gdGhlIE9wZW5SSVNDIHRyZWUgb3IgaG93IGRpZCB5b3Ugd2FudCB0byBkbz8KCi9K
-b25hcwoKT24gVHVlLCAyMDEyLTAyLTE0IGF0IDExOjQwICswMDAwLCBNYXR0IEZsZW1pbmcgd3Jv
-dGU6Cj4gRnJvbTogTWF0dCBGbGVtaW5nIDxtYXR0LmZsZW1pbmdAaW50ZWwuY29tPgo+IAo+IElu
-c3RlYWQgb2Ygb3BlbiBjb2RpbmcgdGhlIHNlcXVlbmNlIGZyb20gZm9yY2Vfc2lnc2VndigpIGp1
-c3QgY2FsbAo+IGl0LiBUaGlzIGFsc28gZml4ZXMgYSBidWcgYmVjYXVzZSB3ZSB3ZXJlIG1vZGlm
-eWluZyBrYS0+c2Euc2FfaGFuZGxlcgo+ICh3aGljaCBpcyBhIGNvcHkgb2Ygc2lnaGFuZC0+YWN0
-aW9uW10pLCB3aGVyZWFzIHRoZSBpbnRlbnRpb24gb2YgdGhlCj4gY29kZSB3YXMgdG8gbW9kaWZ5
-IHNpZ2hhbmQtPmFjdGlvbltdIGRpcmVjdGx5Lgo+IAo+IEFzIHRoZSBvcmlnaW5hbCBjb2RlIHdh
-cyB3b3JraW5nIHdpdGggYSBjb3B5IGl0IGhhZCBubyBlZmZlY3Qgb24KPiBzaWduYWwgZGVsaXZl
-cnkuCj4gCj4gQWNrZWQtYnk6IE9sZWcgTmVzdGVyb3YgPG9sZWdAcmVkaGF0LmNvbT4KPiBDYzog
-Sm9uYXMgQm9ubiA8am9uYXNAc291dGhwb2xlLnNlPgo+IENjOiBBcm5kIEJlcmdtYW5uIDxhcm5k
-QGFybmRiLmRlPgo+IENjOiBsaW51eEBsaXN0cy5vcGVucmlzYy5uZXQKPiBTaWduZWQtb2ZmLWJ5
-OiBNYXR0IEZsZW1pbmcgPG1hdHQuZmxlbWluZ0BpbnRlbC5jb20+Cj4gLS0tCj4gIGFyY2gvb3Bl
-bnJpc2Mva2VybmVsL3NpZ25hbC5jIHwgICAgNCArLS0tCj4gIDEgZmlsZXMgY2hhbmdlZCwgMSBp
-bnNlcnRpb25zKCspLCAzIGRlbGV0aW9ucygtKQo+IAo+IGRpZmYgLS1naXQgYS9hcmNoL29wZW5y
-aXNjL2tlcm5lbC9zaWduYWwuYyBiL2FyY2gvb3BlbnJpc2Mva2VybmVsL3NpZ25hbC5jCj4gaW5k
-ZXggOTUyMDdhYi4uNTM3NDFiYSAxMDA2NDQKPiAtLS0gYS9hcmNoL29wZW5yaXNjL2tlcm5lbC9z
-aWduYWwuYwo+ICsrKyBiL2FyY2gvb3BlbnJpc2Mva2VybmVsL3NpZ25hbC5jCj4gQEAgLTI1MCw5
-ICsyNTAsNyBAQCBzdGF0aWMgdm9pZCBzZXR1cF9ydF9mcmFtZShpbnQgc2lnLCBzdHJ1Y3Qga19z
-aWdhY3Rpb24gKmthLCBzaWdpbmZvX3QgKmluZm8sCj4gIAlyZXR1cm47Cj4gIAo+ICBnaXZlX3Np
-Z3NlZ3Y6Cj4gLQlpZiAoc2lnID09IFNJR1NFR1YpCj4gLQkJa2EtPnNhLnNhX2hhbmRsZXIgPSBT
-SUdfREZMOwo+IC0JZm9yY2Vfc2lnKFNJR1NFR1YsIGN1cnJlbnQpOwo+ICsJZm9yY2Vfc2lnc2Vn
-dihzaWcsIGN1cnJlbnQpOwo+ICB9Cj4gIAo+ICBzdGF0aWMgaW5saW5lIHZvaWQKCi0tIApKb25h
-cyBCb25uICAgICAgICAgICAgICAgICAgICAgICBTb3V0aCBQb2xlIEFCClBob25lIDogKzQ2LTgt
-NTYyMzcxMDAgICAgICAgICAgIEFuZGVyc3RvcnBzdsOkZ2VuIDE2Ck1vYmlsZTogKzQ2LTc2OC01
-Mjc3NTUgICAgICAgICAgIFNFLTE3MTU0IFNvbG5hCmpvbmFzQHNvdXRocG9sZS5zZSAgICAgICAg
-ICAgICAgIHd3dy5zb3V0aHBvbGVjb25zdWx0aW5nLmNvbQoKCgoKCl9fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4IG1haWxpbmcgbGlzdApMaW51eEBs
-aXN0cy5vcGVucmlzYy5uZXQKaHR0cDovL2xpc3RzLm9wZW5yaXNjLm5ldC9saXN0aW5mby9saW51
-eAo=
+On Wed, 2012-02-15 at 16:40 +0100, Jonas Bonn wrote:
+> Acked-by: Jonas Bonn <jonas@southpole.se>
+> 
+> ...for OpenRISC, all 4 patches (20-23 in this series).
+> 
+> Should I take these in the OpenRISC tree or how did you want to do?
+
+Whatever you prefer. Feel free to take them through the OpenRISC tree.
+
+-- 
+Matt Fleming, Intel Open Source Technology Center
