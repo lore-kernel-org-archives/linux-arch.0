@@ -1,51 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:47897 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753006Ab2BOLsD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Feb 2012 06:48:03 -0500
-Subject: Re: [PATCH 00/40] arch: set_current_blocked() and block_sigmask()
-From: Matt Fleming <matt@console-pimps.org>
-In-Reply-To: <20120214173220.GB22645@redhat.com>
+Received: from mail.southpole.se ([193.12.106.18]:51810 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750915Ab2BOP5v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Feb 2012 10:57:51 -0500
+Message-ID: <1329321471.2670.93.camel@crucifix>
+Subject: Re: [PATCH 21/40] OpenRISC: Don't reimplement force_sigsegv()
+From: Jonas Bonn <jonas@southpole.se>
+Date: Wed, 15 Feb 2012 16:57:51 +0100
+In-Reply-To: <1329320945.3675.149.camel@mfleming-mobl1.ger.corp.intel.com>
 References: <1329219673-28711-1-git-send-email-matt@console-pimps.org>
-	 <20120214173220.GB22645@redhat.com>
+	 <1329219673-28711-22-git-send-email-matt@console-pimps.org>
+	 <1329320456.2670.86.camel@crucifix>
+	 <1329320945.3675.149.camel@mfleming-mobl1.ger.corp.intel.com>
 Content-Type: text/plain; charset="UTF-8"
-Date: Wed, 15 Feb 2012 11:47:53 +0000
-Message-ID: <1329306473.3675.113.camel@mfleming-mobl1.ger.corp.intel.com>
-Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org
-Message-ID: <20120215114753.4byRnOpiVNKRSf6WIIKkNRhMDHrBc_-FU6SvLQ2slF4@z>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: linux-arch@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@lists.openrisc.net
+Message-ID: <20120215155751._yRGzS55z4FlQ0kXLq_m0LTB3XR3GNJUiCR4vwaor18@z>
 
-On Tue, 2012-02-14 at 18:32 +0100, Oleg Nesterov wrote:
-> On 02/14, Matt Fleming wrote:
-> >
-> > This series simplifies the architecture code for handling signals by
-> > making use of set_current_blocked() introduced in e6fa16ab ("signal:
-> > sigprocmask() should do retarget_shared_pending()") and
-> > block_sigmask() introduced in commit 5e6292c0f28f ("signal: add
-> > block_sigmask() for adding sigmask to current->blocked").
+
+On Wed, 2012-02-15 at 15:49 +0000, Matt Fleming wrote:
+> On Wed, 2012-02-15 at 16:40 +0100, Jonas Bonn wrote:
+> > Acked-by: Jonas Bonn <jonas@southpole.se>
+> > 
+> > ...for OpenRISC, all 4 patches (20-23 in this series).
+> > 
+> > Should I take these in the OpenRISC tree or how did you want to do?
 > 
-> Matt, I assume this series was not changed since we discussed it ?
+> Whatever you prefer. Feel free to take them through the OpenRISC tree.
 
-Correct. The only new additions are the C6X and hexagon patches here,
+OK, great, I'll pull them into the OpenRISC tree for 3.4.
 
-	https://lkml.org/lkml/2012/2/14/123
-	https://lkml.org/lkml/2012/2/14/155
-
-But they're pretty much the same as all the others in the series.
-
-> If yes. I do not want to spam lkml, I'll reply to 0/40 only.
-> 
-> All patches look right to me, for the whole series:
-> 
-> Acked-by: Oleg Nesterov <oleg@redhat.com>
-
-Great, thanks!
-
--- 
-Matt Fleming, Intel Open Source Technology Center
+Thanks,
+Jonas
 
