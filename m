@@ -1,13 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:4440 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:9146 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753636Ab2BPSRn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Feb 2012 13:17:43 -0500
+	id S1755053Ab2BPTKe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Feb 2012 14:10:34 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 0/3] Eliminating __FD_*() functions from the kernel
-References: <1328677745-20121-1-git-send-email-hpa@zytor.com>
-Date: Thu, 16 Feb 2012 17:49:30 +0000
-Message-ID: <20120216174930.23314.69764.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 3/3] Delete the __FD_*() funcs for operating on fd_set from
+ linux/time.h
+Date: Thu, 16 Feb 2012 17:50:06 +0000
+Message-ID: <20120216175006.23314.18984.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20120216174930.23314.69764.stgit@warthog.procyon.org.uk>
+References: <20120216174930.23314.69764.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -15,85 +17,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, viro@ZenIV.linux.org.uk
 Cc: hpa@zytor.com, torvalds@osdl.org, arnd@arndb.de, dhowells@redhat.com
-Message-ID: <20120216174930.bCFNwo9wc5UsgGlk56CNIGqAYYaVcBzAZmsC3q47MDs@z>
+Message-ID: <20120216175006.0xzxf0o1wZizJneiMLeYHBfL_zzlcb7HFC5Y7fAPUaQ@z>
 
+Delete the __FD_*() functions for operating on fd_set structs from
+linux/time.h as they're no longer used within the kernel with the preceding
+patch and are not exported to userspace.
 
-Having examined H. Peter Anvin's patches to merge asm/posix_types.h together, I
-think that we can go further: The FD_SET(), FD_CLR() and FD_ISSET() macros are
-only used within the kernel itself in relation to the arrays of fd-is-open
-flags and close-on-exec flags.  FD_ZERO() is not used at all within the kernel.
+Whilst linux/time.h *does* export the FD_*() equivalents as wrappers around
+__FD_*(), userspace provides its own definition of __FD_*().
 
-Now, the FD_SET() & co. wrappers must be exported to userspace, so they must be
-kept, but the __FD_SET() & co. implementations behind them on most arches are
-_not_ so exported.  Possibly PowerPC, MN10300 and Xtensa would survive their
-removal entirely from the userspace API as per Peter's patches.
+Note that the definition of FD_ZERO() in linux/time.h may not be used with the
+fd_sets associated with struct fdtable as the fd_set may have been allocated in
+a truncated fashion.
 
-Examining the two remaining usages of struct fd_set, and FD_*() and __FD_*()
-for the arrays of bits in struct fdtable, it would seem that we could just move
-to using unsigned long directly rather than fd_set, and using __set_bit(),
-__clear_bit() and test_bit() upon those.
-
-This would also get rid of two abuses of the fd_set struct within this code:
-
- (1) Most of the time, the two fd_sets pointed to by struct fdtable are not the
-     length they're supposed to be, and are, in fact, allocated short.  This
-     means FD_ZERO() may not be used on them, for example.
-
-     Basically, in effect, alloc_fdmem() allocates an array of unsigned longs
-     just long enough and then casts it to an fd_set - so why bother with the
-     fd_set at all?
-
- (2) Non-core VFS code (such as SELinux) sometimes wants to look through the
-     array of unsigned longs inside the fd_set for the purposes of more
-     efficient iteration over the entire set of open fds - so why not just
-     eliminate the fd_set and go directly with an array of unsigned longs?
-
-Furthermore, within the kernel, __FD_SET() and co. are redundant bitops and,
-in the original implementation, may actually be less efficient.  For instance,
-on x86/x86_64, __set_bit() uses the BTS instruction, but __FD_SET() may well
-not (depending on the optimiser).  I note that Peter's patch does alter this.
-
-
-So my patches do the following:
-
- (1) Wrap the normal set/bit/test operations on the open_fds and close_on_exec
-     fd_sets so that the access to them is, for the most part, not open coded.
-
-     There's still the issue of the things that poke around inside the fd_sets
-     behind the scenes (SELinux for example).
-
- (2) Replace the fd_set with an unsigned long array and use __set_bit() and
-     co. instead of FD_SET() and co.
-
-     It might just be better to replace the uses of FD_SET() and co. with
-     __set_bit() and co. directly, and not bother with wrappers, but the
-     wrappers are more greppable.
-
- (3) Delete __FD_SET() and co. from linux/time.h.
-
-And are implemented to go on top of Peter's posix_types patchset.
-
-David
+Signed-off-by: David Howells <dhowells@redhat.com>
 ---
-David Howells (3):
-      Delete the __FD_*() funcs for operating on fd_set from linux/time.h
-      Replace the fd_sets in struct fdtable with an array of unsigned longs
-      Wrap accesses to the fd_sets in struct fdtable
 
+ include/linux/time.h |   22 ----------------------
+ 1 files changed, 0 insertions(+), 22 deletions(-)
 
- Documentation/filesystems/files.txt          |    4 +-
- arch/powerpc/platforms/cell/spufs/coredump.c |    2 -
- drivers/staging/android/binder.c             |   10 ++---
- fs/autofs4/dev-ioctl.c                       |    2 -
- fs/exec.c                                    |    8 ++--
- fs/fcntl.c                                   |   18 ++++-----
- fs/file.c                                    |   54 +++++++++++++-------------
- fs/open.c                                    |    4 +-
- fs/proc/base.c                               |    2 -
- fs/select.c                                  |    2 -
- include/linux/fdtable.h                      |   46 ++++++++++++++++------
- include/linux/time.h                         |   22 -----------
- kernel/exit.c                                |    2 -
- security/selinux/hooks.c                     |    2 -
- 14 files changed, 88 insertions(+), 90 deletions(-)
+diff --git a/include/linux/time.h b/include/linux/time.h
+index ca9b1e6..9f43487 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -4,9 +4,7 @@
+ #include <linux/types.h>
+ 
+ #ifdef __KERNEL__
+-# include <linux/bitops.h>
+ # include <linux/cache.h>
+-# include <linux/posix_types.h>
+ # include <linux/seqlock.h>
+ # include <linux/math64.h>
+ #endif
+@@ -259,26 +257,6 @@ static __always_inline void timespec_add_ns(struct timespec *a, u64 ns)
+ 	a->tv_nsec = ns;
+ }
+ 
+-static inline void __FD_SET(unsigned long __fd, __kernel_fd_set *__fdsetp)
+-{
+-	__set_bit( __fd, __fdsetp->fds_bits);
+-}
+-
+-static inline void __FD_CLR(unsigned long __fd, __kernel_fd_set *__fdsetp)
+-{
+-	__clear_bit(__fd, __fdsetp->fds_bits);
+-}
+-
+-static inline int __FD_ISSET(unsigned long __fd, const __kernel_fd_set *__fdsetp)
+-{
+-	return test_bit(__fd, __fdsetp->fds_bits);
+-}
+-
+-static inline void __FD_ZERO(__kernel_fd_set *__fdsetp)
+-{
+-	memset(__fdsetp->fds_bits, 0, sizeof __fdsetp->fds_bits);
+-}
+-
+ #endif /* __KERNEL__ */
+ 
+ #define NFDBITS			__NFDBITS
 
