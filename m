@@ -1,48 +1,53 @@
-From: Avi Kivity <avi@redhat.com>
-Subject: Re: [PATCH 3/4 V13] Add ioctl for KVM_KVMCLOCK_CTRL
-Date: Thu, 16 Feb 2012 16:11:40 +0200
-Message-ID: <4F3D0E9C.8030302@redhat.com>
-References: <1328713666-11424-1-git-send-email-emunson@mgebm.net> <1328713666-11424-4-git-send-email-emunson@mgebm.net>
+From: Josh Hunt <johunt@akamai.com>
+Subject: Re: [RFC PATCH v2] compat: poll() in 32-bit applications does not
+ handle negative timeout values properly on 64-bit kernels
+Date: Thu, 16 Feb 2012 10:22:08 -0600
+Message-ID: <4F3D2D30.8070403@akamai.com>
+References: <4F3602A9.3060206@akamai.com> <1328975240.5661.31.camel@edumazet-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56860 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751085Ab2BPOLy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Feb 2012 09:11:54 -0500
-In-Reply-To: <1328713666-11424-4-git-send-email-emunson@mgebm.net>
+Received: from prod-mail-xrelay06.akamai.com ([96.6.114.98]:46470 "EHLO
+	prod-mail-xrelay06.akamai.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752425Ab2BPQWL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Feb 2012 11:22:11 -0500
+In-Reply-To: <1328975240.5661.31.camel@edumazet-laptop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On 02/08/2012 05:07 PM, Eric B Munson wrote:
-> Now that we have a flag that will tell the guest it was suspended, create an
-> interface for that communication using a KVM ioctl.
->
-> +
-> +Capability: KVM_CAP_KVMCLOCK_CTRL
-> +Architectures: Any that implement pvclocks (currently x86 only)
-> +Type: vcpu ioctl
-> +Parameters: None
-> +Returns: 0 on success, -1 on error
-> +
-> +This signals to the host kernel that the specified guest is being paused by
-> +userspace.  The host will set a flag in the pvclock structure that is checked
-> +from the soft lockup watchdog.  
+On 02/11/2012 09:47 AM, Eric Dumazet wrote:
+> Le vendredi 10 f=C3=A9vrier 2012 =C3=A0 23:54 -0600, Josh Hunt a =C3=A9=
+crit :
+>> We have hit an issue where our 32-bit applications using poll() and
+>> passing in a value of -1 for the timeout value return after ~49 days
+>> (2^32 msec), instead of waiting indefinitely. I've instrumented the
+>> kernel and found we are hitting the case where poll() believes we've
+>> passed in a positive number and thus creates a timespec, etc. I've
+>> implemented compat_sys_poll() to sign-extend the timeout value and
+>> resolve the issue.
+>>
+>> There was an almost identical patch submitted last year, but for
+>> whatever reason did not make it in:
+>> https://lkml.org/lkml/2011/9/18/19
+>=20
+> Probably because Thomas Meyer didnt answer to patch reviewers, and no=
+t
+> enough people cared.
+>=20
+> By the way, an inline patch is better, as stated in
+> Documentation/SubmittingPatches
+>=20
+> Anyway, its time to fix this bug...
+>=20
+> Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
+>=20
 
-This needs to be expanded.  There is a protocol between the host and
-guest that needs to be documented, including the requirement to use a
-single instruction (or ll/sc) to clear the flag.  See
-Documentation/virtual/kvm/msr.txt
+I can resubmit the patch inline if you feel that will get more attentio=
+n
+by whoever needs to do the final approval on this.
 
-> This ioctl can be called during pause or
-> +unpause.
-> +
-
-After pausing the vcpu, but before resuming it.
-
-
--- 
-error compiling committee.c: too many arguments to function
+Josh
