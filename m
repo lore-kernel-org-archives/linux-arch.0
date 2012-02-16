@@ -1,79 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:46043 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755630Ab2BPUTQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Feb 2012 15:19:16 -0500
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/4 V14] Add check for suspended vm in softlockup detector
-Date: Thu, 16 Feb 2012 15:19:01 -0500
-Message-ID: <1329423541-11677-5-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1329423541-11677-1-git-send-email-emunson@mgebm.net>
-References: <1329423541-11677-1-git-send-email-emunson@mgebm.net>
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:33891 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755663Ab2BPU2t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Feb 2012 15:28:49 -0500
+Received: by mail-pw0-f46.google.com with SMTP id un15so2879300pbc.19
+        for <linux-arch@vger.kernel.org>; Thu, 16 Feb 2012 12:28:48 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CAE6n16mCrJC=Sre+PT1H_VfSjW0MGyi0xtEcdcRvGMvvwXWzmA@mail.gmail.com>
+References: <1329422549-16407-1-git-send-email-wad@chromium.org>
+ <1329422549-16407-5-git-send-email-wad@chromium.org> <CAE6n16mCrJC=Sre+PT1H_VfSjW0MGyi0xtEcdcRvGMvvwXWzmA@mail.gmail.com>
+From: Markus Gutschke <markus@chromium.org>
+Date: Thu, 16 Feb 2012 12:28:25 -0800
+Message-ID: <CAE6n16nUB8eg18YHdYbSUqtZ_WJduk4B_dYqyYy37K+6di6yVw@mail.gmail.com>
+Subject: Re: [PATCH v8 5/8] seccomp: Add SECCOMP_RET_TRAP
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120216201901.3JFL_zKhYCz5rYyNT5_iFsS-d8AYC4swcqwEf_VodMg@z>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.org, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, keescook@chromium.org
+Message-ID: <20120216202825.ISOpSss9JDkvFrEqtEV9HxsPk2fH-T89vcy1BGCWHns@z>
 
-A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
-watchdog now checks if the kernel knows it was stopped by the host and skips
-the warning if so.  When the watchdog is reset successfully, clear the guest
-paused flag.
+On Thu, Feb 16, 2012 at 12:02, Will Drewry <wad@chromium.org> wrote:
+> Adds a new return value to seccomp filters that triggers a SIGTRAP to be delivered with the new TRAP_SECCOMP si_code.
+>
+> This allows in-process system call emulation -- including just specifying an errno or cleanly dumping core -- rather than just dying.
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from V3:
- Clear the PAUSED flag when the watchdog is reset
+SIGTRAP might not be the ideal choice of signal number, as it can make
+it very difficult to debug the program in gdb. Other than that, I love
+this feature. It'll significantly simplify the code that we have in
+Chrome.
 
- kernel/watchdog.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/watchdog.c b/kernel/watchdog.c
-index d117262..f6ffdc2 100644
---- a/kernel/watchdog.c
-+++ b/kernel/watchdog.c
-@@ -25,6 +25,7 @@
- #include <linux/sysctl.h>
- 
- #include <asm/irq_regs.h>
-+#include <linux/kvm_para.h>
- #include <linux/perf_event.h>
- 
- int watchdog_enabled = 1;
-@@ -280,6 +281,9 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 			__this_cpu_write(softlockup_touch_sync, false);
- 			sched_clock_tick();
- 		}
-+
-+		/* Clear the guest paused flag on watchdog reset */
-+		kvm_check_and_clear_guest_paused();
- 		__touch_watchdog();
- 		return HRTIMER_RESTART;
- 	}
-@@ -292,6 +296,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 	 */
- 	duration = is_softlockup(touch_ts);
- 	if (unlikely(duration)) {
-+		/*
-+		 * If a virtual machine is stopped by the host it can look to
-+		 * the watchdog like a soft lockup, check to see if the host
-+		 * stopped the vm before we issue the warning
-+		 */
-+		if (kvm_check_and_clear_guest_paused())
-+			return HRTIMER_RESTART;
-+
- 		/* only warn once */
- 		if (__this_cpu_read(soft_watchdog_warn) == true)
- 			return HRTIMER_RESTART;
--- 
-1.7.5.4
-
+Markus
