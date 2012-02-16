@@ -1,62 +1,78 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: Re: [PATCH 3/4 V13] Add ioctl for KVM_KVMCLOCK_CTRL
-Date: Thu, 16 Feb 2012 15:22:15 -0500
-Message-ID: <20120216202215.GA8090@mgebm.net>
-References: <1329423541-11677-1-git-send-email-emunson@mgebm.net>
- <1329423541-11677-4-git-send-email-emunson@mgebm.net>
+From: Will Drewry <wad@chromium.org>
+Subject: Re: [PATCH v8 3/8] seccomp: add system call filtering using BPF
+Date: Thu, 16 Feb 2012 14:25:49 -0600
+Message-ID: <CABqD9hb3WxKxLZ2GuUrbDM--koW+a3ser5TU8y6+e0sAhOT9dw@mail.gmail.com>
+References: <1329422549-16407-1-git-send-email-wad@chromium.org>
+	<1329422549-16407-3-git-send-email-wad@chromium.org>
+	<4F3D61CB.2000301@zytor.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="J/dobhs11T7y2rNN"
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:46083 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754552Ab2BPUWU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Feb 2012 15:22:20 -0500
-Content-Disposition: inline
-In-Reply-To: <1329423541-11677-4-git-send-email-emunson@mgebm.net>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:38380 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750866Ab2BPUZw convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Feb 2012 15:25:52 -0500
+In-Reply-To: <4F3D61CB.2000301@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
 
+On Thu, Feb 16, 2012 at 2:06 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 02/16/2012 12:02 PM, Will Drewry wrote:
+>> +
+>> +/* Format of the data the BPF program executes over. */
+>> +struct seccomp_data {
+>> + =A0 =A0 int nr;
+>> + =A0 =A0 __u32 __reserved[3];
+>> + =A0 =A0 struct {
+>> + =A0 =A0 =A0 =A0 =A0 =A0 __u32 =A0 lo;
+>> + =A0 =A0 =A0 =A0 =A0 =A0 __u32 =A0 hi;
+>> + =A0 =A0 } instruction_pointer;
+>> + =A0 =A0 __u32 lo32[6];
+>> + =A0 =A0 __u32 hi32[6];
+>> +};
+>>
+>
+> This seems more than a bit odd, no?
+>
+> =A0 =A0 =A0 =A0-hpa
 
---J/dobhs11T7y2rNN
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+I agree :)  BPF being a 32-bit creature introduced some edge cases.  I
+has started with a
+    union { u32 args32[6]; u64 args64[6]; }
 
-On Thu, 16 Feb 2012, Eric B Munson wrote:
+This was somewhat derailed by CONFIG_COMPAT behavior where
+syscall_get_arguments always writes to argument of register width --
+not bad, just irritating (since a copy isn't strictly necessary nor
+actually done in the patch).  Also, Indan pointed out that while BPF
+programs expect constants in the machine-local endian layout, any
+consumers would need to change how they accessed the arguments across
+big/little endian machines since a load of the low-order bits would
+vary.
 
-> Now that we have a flag that will tell the guest it was suspended, create=
- an
-> interface for that communication using a KVM ioctl.
->=20
-> Signed-off-by: Eric B Munson <emunson@mgebm.net>
+In a second pass, I attempted to resolve this like aio_abi.h:
+   union {
+     struct {
+        u32 ENDIAN_SWAP(lo32, hi32);
+      };
+      u64 arg64;
+    } args[6];
+It wasn't clear that this actually made matters better (though it did
+mean syscall_get_arguments() could write directly to arg64).  Using
+offsetof() in the user program would be fine, but any offsets set
+another way would be invalid.  At that point, I moved to Indan's
+proposal to stabilize low order and high order offsets -- what is in
+the patch series.  Now a BPF program can reliably index into the low
+bits of an argument and into the high bits without endianness changing
+the filter program structure.
 
-Sorry, this is actually V14.
+I don't feel strongly about any given data layout, and this one seems
+to balance the 32-bit-ness of BPF and the impact that has on
+endianness.  I'm happy to hear alternatives that might be more
+aesthetically pleasing :)
 
-
-
---J/dobhs11T7y2rNN
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJPPWV3AAoJEKhG9nGc1bpJPjMP/0tuB/KPP8H0f3aytJGyn+ss
-I2IciiVCBNufspjR0kDsSQHLx3OLgHdN3AZfcn3d1mTddzE1GJ0ZQjqv3/S9VUHa
-K0JSxvYB5mHxeDGB8ynxXaevbigzPs4B0BCHIZzpsXBmkBT10RMa1vy/G68Ey30j
-DxrUbDDHWBR1+n9+6pvQjjY3elXSRdIiJe9k+ATTAD4aEFkFxbBbARiee4srEtIh
-Q2GEowEH2cYJWwcJGy7Xua86oRc+8lHLi3q/JvmdsbsiSjUxVX0L+gokgKoSFnmC
-C7KKdPjdbZgBQ3YUA/Yj4KYdnirpHBHXW22zvaIJY3Y9NaqBrFybDLvplfqRkMLU
-HfjNPLYvjIT4bJpv9GVb2+yw3komJcVZxaY2mePwBNt32RL9Sl0FFJtQY++3USrm
-FdVzc5/u1lbZBssjw0fcJ4TPf3OX98+bsErU9EZBOVYoGOf67VMRxrxu2y8yLFKc
-uHsQvDSqaqX9OfLA9NzePrHZxBh0CuddgH9tkRXu+GEL7+ZbnI/Z0uzS356o96wC
-R9Djio3VNxOBaWNiKRrKvErD79ih0Ief5xshxd+xDGLIu+v5577NUc7VaaA7ZUco
-vidqenqzoOkdzk227MwtRBQHDwPjbf1QQdr56QY8T7D++9eO7/ABsi+FxmYjiXvH
-ZulFUBG1I3wkcp/CPDNP
-=TV6U
------END PGP SIGNATURE-----
-
---J/dobhs11T7y2rNN--
+cheers!
+will
