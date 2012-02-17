@@ -1,51 +1,172 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:33516 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751036Ab2BQEkx convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Feb 2012 23:40:53 -0500
-MIME-Version: 1.0
-In-Reply-To: <4F3DD84B.30808@zytor.com>
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:46292 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750782Ab2BQFFI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Feb 2012 00:05:08 -0500
+Message-ID: <16a5b39e58f3e0bf112918ca032dc4c0.squirrel@webmail.greenhost.nl>
+In-Reply-To: <CABqD9hYBs6fnmnDKwkkJCnbfji8NU06_Z6m+am=aJQDbYEJr_Q@mail.gmail.com>
 References: <1329422549-16407-1-git-send-email-wad@chromium.org>
-	<1329422549-16407-3-git-send-email-wad@chromium.org>
-	<4F3D61CB.2000301@zytor.com>
-	<CABqD9hb3WxKxLZ2GuUrbDM--koW+a3ser5TU8y6+e0sAhOT9dw@mail.gmail.com>
-	<4F3D7250.6040504@zytor.com>
-	<CAE6n16kweRehdozft0tKOB1P5LtGFJDCLQP=2EXfm8P0enyH=A@mail.gmail.com>
-	<4F3D766E.7040205@zytor.com>
-	<CABqD9haWxRLac1w3m9rSmyDvcg8jxYcxdmAAsgB7pEEBMHr=2g@mail.gmail.com>
-	<4F3D7DD4.6070103@zytor.com>
-	<CABqD9hZd41AWZub+wxGWwxJtGWfk+pVWQhn7DM_0q0tS9r_wDA@mail.gmail.com>
-	<1329439809.2337.32.camel@localhost>
-	<CABqD9hY06gaA7T8f0Te9PFpip6ix7CcbRShWcXutxbivEZJ2og@mail.gmail.com>
-	<4F3DD39C.9090905@zytor.com>
-	<CABqD9haiko3xLUKFp_MZcd8G7Hsyif75ABk1HOVKNJ7=NZRRsA@mail.gmail.com>
-	<4F3DD84B.30808@zytor.com>
-Date: Thu, 16 Feb 2012 22:40:51 -0600
-Message-ID: <CABqD9haCev6CKyAU+JmZTxQfRpThiz4HOT7uJkvrjAEUO6=iJw@mail.gmail.com>
-Subject: Re: [PATCH v8 3/8] seccomp: add system call filtering using BPF
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+    <a5e0a6a86bb8a20919b9ae80fd510e46.squirrel@webmail.greenhost.nl>
+    <CABqD9hYBs6fnmnDKwkkJCnbfji8NU06_Z6m+am=aJQDbYEJr_Q@mail.gmail.com>
+Date: Fri, 17 Feb 2012 06:05:03 +0100
+Subject: Re: [PATCH v8 1/8] sk_run_filter: add support for custom
+ load_pointer
+From: "Indan Zupancic" <indan@nul.nu>
+MIME-Version: 1.0
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Eric Paris <eparis@redhat.com>, Markus Gutschke <markus@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, keescook@chromium.org
-Message-ID: <20120217044051.fhexFs8fS8xwFpFUJUu4ueTZAuyd3_4yP4oe-0K4Bjg@z>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.org, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
+Message-ID: <20120217050503.VCektHIYlvaBq3inSk6dsfnLUyTTcjzp7IuNJVMrIAQ@z>
 
-On Thu, Feb 16, 2012 at 10:32 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 02/16/2012 08:26 PM, Will Drewry wrote:
+On Fri, February 17, 2012 05:13, Will Drewry wrote:
+> On Thu, Feb 16, 2012 at 9:04 PM, Indan Zupancic <indan@nul.nu> wrote:
+>>> Hello,
 >>>
->>> For x32 you have the option of introducing a new value or relying on bit
->>> 30 in eax (and AUDIT_ARCH_X86_64). �The latter is more natural, probably.
->>
->> Will that bit be visible as the syscall number or will it be stripped
->> out before passing the number around? �If it's visible, then it
->> doesn't seem like there'd need to be a new AUDIT_ARCH, but I suspect
->> someone like Eric will have an actually useful opinion.
->>
+>>> On Thu, February 16, 2012 21:02, Will Drewry wrote:
+>>>> This change allows CONFIG_SECCOMP to make use of BPF programs for
+>>>> user-controlled system call filtering (as shown in this patch series).
+>>>>
+>>>> To minimize the impact on existing BPF evaluation, function pointer
+>>>> use must be declared at sk_chk_filter-time.  This allows ancillary
+>>>> load instructions to be generated that use the function pointer rather
+>>>> than adding _any_ code to the existing LD_* instruction paths.
+>>>>
+>>>> Crude performance numbers using udpflood -l 10000000 against dummy0.
+>>>> 3 trials for baseline, 3 for with tcpdump. Averaged then differenced.
+>>>> Hard to believe trials were repeated at least a couple more times.
+>>>>
+>>>> * x86 32-bit (Atom N570 @ 1.66 GHz 2 core HT) [stackprot]:
+>>>> - Without:  94.05s - 76.36s = 17.68s
+>>>> - With:     86.22s - 73.30s = 12.92s
+>>>> - Slowdown per call: -476 nanoseconds
+>>>>
+>>>> * x86 32-bit (Atom N570 @ 1.66 GHz 2 core HT) [no stackprot]:
+>>>> - Without:  92.06s - 77.81s = 14.25s
+>>>> - With:     91.77s - 76.91s = 14.86s
+>>>> - Slowdown per call: +61 nanoseconds
+>>>>
+>>>> * x86 64-bit (Atom N570 @ 1.66 GHz 2 core HT) [stackprot]:
+>>>> - Without: 122.58s - 99.54s = 23.04s
+>>>> - With:    115.52s - 98.99s = 16.53s
+>>>> - Slowdown per call:  -651 nanoseconds
+>>>>
+>>>> * x86 64-bit (Atom N570 @ 1.66 GHz 2 core HT) [no stackprot]:
+>>>> - Without: 114.95s - 91.92s = 23.03s
+>>>> - With:    110.47s - 90.79s = 19.68s
+>>>> - Slowdown per call: -335 nanoseconds
+>>>>
+>>>> This makes the x86-32-nossp make sense.  Added register pressure always
+>>>> makes x86-32 sad.
+>>>
+>>> Your 32-bit numbers are better than your 64-bit numbers, so I don't get
+>>> this comment.
 >
-> Bit 30 is visible in orig_eax; whether you export it as part of "the
-> syscall number" is presumably TBD, but I think it's more natural to do so.
+> They are in the absolute.  Relatively, all performance improved with
+> my patch except for x86-nossp.
 
-That's what I meant - thanks!
+Why is 32-bit sad if it's faster than the 64-bit version?
+
+I'd say the 64-bit numbers are sad considering the extra registers.
+
+>>> Yeah, testing on Atom is a bit silly.
+>
+> Making things run well on Atom is important for my daily work.  And it
+> usually means (barring Atom-specific weirdness) that it then runs even
+> better on bigger processors :)
+
+Fair enough!
+
+>>>> +#define SKB(_data) ((const struct sk_buff *)(_data))
+>>>
+>>> Urgh!
+>>>
+>>> If you had done:
+>>>                const struct sk_buff *skb = data;
+>>>
+>>> at the top, all those changed wouldn't be needed and it would look better too.
+>
+> That just means I need to disassemble after to make sure the compiler
+> does the right thing.  I'll do that and change it if gcc is doing the
+> right thing.
+
+You're telling the compiler the same thing, so it better do the right thing!
+It just looks better.
+
+>>> These two should either return 0, be networking-only, just return 0/-1 or
+>>> use a constant length.
+>
+> I'm changing it to constant length, but I can get rid of it
+> altogether. I don't care either way, it just depends on if there is
+> anyone else who will want this support.
+
+Right now there is no one else.
+
+>>>> +#define MAYBE_USE_LOAD_FN(CODE) \
+>>>> +                     if (flags & BPF_CHK_FLAGS_NO_SKB) { \
+>>>> +                             code = BPF_S_ANC_##CODE; \
+>>>> +                             break; \
+>>>> +                     }
+>>>
+>>> You can as well hide everything in the macro then, including the case,
+>>> like the ANCILLARY() macro does.
+>
+> I'm not sure that would make it any more readable though, especially
+> since I don't always break; after.
+
+Ah, true. Because there was a break; in the macro, I assumed it would
+always break, for some reason. I wish there was a way to make it look
+nice though, it's so ugly.
+
+>
+>>>> +             case BPF_S_LD_W_LEN:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_W_LEN);
+>>>> +                     break;
+>>>> +             case BPF_S_LDX_W_LEN:
+>>>> +                     MAYBE_USE_LOAD_FN(LDX_W_LEN);
+>>>> +                     break;
+>>>> +             case BPF_S_LD_W_IND:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_W_IND);
+>>>> +                     break;
+>>>> +             case BPF_S_LD_H_IND:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_H_IND);
+>>>> +                     break;
+>>>> +             case BPF_S_LD_B_IND:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_B_IND);
+>>>> +                     break;
+>>>> +             case BPF_S_LDX_B_MSH:
+>>>> +                     MAYBE_USE_LOAD_FN(LDX_B_MSH);
+>>>> +                     break;
+>>>>               case BPF_S_LD_W_ABS:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_W_ABS);
+>>>>               case BPF_S_LD_H_ABS:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_H_ABS);
+>>>>               case BPF_S_LD_B_ABS:
+>>>> +                     MAYBE_USE_LOAD_FN(LD_B_ABS);
+>>>>  #define ANCILLARY(CODE) case SKF_AD_OFF + SKF_AD_##CODE:     \
+>>>>                               code = BPF_S_ANC_##CODE;        \
+>>>>                               break
+>>>> @@ -572,7 +658,7 @@ int sk_chk_filter(struct sock_filter *filter, unsigned int flen)
+>>>>       }
+>>>>       return -EINVAL;
+>>>>  }
+>>>> -EXPORT_SYMBOL(sk_chk_filter);
+>>>> +EXPORT_SYMBOL(bpf_chk_filter);
+>>>>
+>>>>  /**
+>>>>   *   sk_filter_release_rcu - Release a socket filter by rcu_head
+>>>> --
+>>>> 1.7.5.4
+>>>>
+>>>
+>>> Greetings,
+>
+> Thanks!
+
+You're welcome!
+
+Indan
+
+
