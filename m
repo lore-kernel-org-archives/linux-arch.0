@@ -1,91 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smarthost1.greenhost.nl ([195.190.28.78]:57884 "EHLO
-	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753871Ab2BQCA2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Feb 2012 21:00:28 -0500
-Message-ID: <f2d1a14c965cea740d688c574c6006bb.squirrel@webmail.greenhost.nl>
-In-Reply-To: <4F3DAE5D.3080000@zytor.com>
-References: <1329422549-16407-1-git-send-email-wad@chromium.org>
-    <1329422549-16407-3-git-send-email-wad@chromium.org>
-    <4F3D61CB.2000301@zytor.com>
-    <CABqD9hb3WxKxLZ2GuUrbDM--koW+a3ser5TU8y6+e0sAhOT9dw@mail.gmail.com>
-    <4F3D7250.6040504@zytor.com>
-    <501858544d264abc6526f2b25a224f2b.squirrel@webmail.greenhost.nl>
-    <4F3DAE5D.3080000@zytor.com>
-Date: Fri, 17 Feb 2012 03:00:16 +0100
-Subject: Re: [PATCH v8 3/8] seccomp: add system call filtering using BPF
-From: "Indan Zupancic" <indan@nul.nu>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:52715 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753305Ab2BQCWa convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Feb 2012 21:22:30 -0500
 MIME-Version: 1.0
-Content-Type: text/plain;charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <1329443688.15226.16.camel@joe2Laptop>
+References: <1329422549-16407-1-git-send-email-wad@chromium.org>
+	<1329443688.15226.16.camel@joe2Laptop>
+Date: Thu, 16 Feb 2012 20:22:28 -0600
+Message-ID: <CABqD9harZap1LUmcYH8w5gpFktVunYjV9UbKNTbBjqsUf+ThgQ@mail.gmail.com>
+Subject: Re: [PATCH v8 1/8] sk_run_filter: add support for custom load_pointer
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
-Message-ID: <20120217020016.x-vsCnQjyeerNeMuY99FftKm8yKfN7YKH1ExuUwlAuk@z>
+To: Joe Perches <joe@perches.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.org, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
+Message-ID: <20120217022228.tK3vtFBsLjAQv-E2sCohgdc5H6AkYSihMgJU3vtg274@z>
 
-On Fri, February 17, 2012 02:33, H. Peter Anvin wrote:
-> On 02/16/2012 04:48 PM, Indan Zupancic wrote:
->> On Thu, February 16, 2012 22:17, H. Peter Anvin wrote:
->>
->> I would go for something like:
->>
->> struct seccomp_data {
->> 	int nr;
->> 	__u32 arg_low[6];
->> 	__u32 arg_high[6];
->> 	__u32 instruction_pointer_low;
->> 	__u32 instruction_pointer_high;
->> 	__u32 __reserved[3];
->> };
->>
+On Thu, Feb 16, 2012 at 7:54 PM, Joe Perches <joe@perches.com> wrote:
+> On Thu, 2012-02-16 at 14:02 -0600, Will Drewry wrote:
+>> This change allows CONFIG_SECCOMP to make use of BPF programs for
+>> user-controlled system call filtering (as shown in this patch series).
+> []
+>> diff --git a/net/core/filter.c b/net/core/filter.c
+> []
+>> @@ -542,9 +602,35 @@ int sk_chk_filter(struct sock_filter *filter, unsigned int flen)
+> []
+>>               case BPF_S_LD_W_ABS:
+>> +                     MAYBE_USE_LOAD_FN(LD_W_ABS);
+>>               case BPF_S_LD_H_ABS:
+>> +                     MAYBE_USE_LOAD_FN(LD_H_ABS);
+>>               case BPF_S_LD_B_ABS:
+>> +                     MAYBE_USE_LOAD_FN(LD_B_ABS);
 >
-> Uh, that is the absolutely WORST way to do it - not only are you
-> creating two fields, they're not even adjacent.
+> Would be nice to note fallthrough or add break if necessary.
 
-You want:
+Cool - I'll note it.  They are meant to fall through, but I can just
+go back to using goto handle_skb_load or some such so it is more
+readable.
 
-struct seccomp_data {
-	int nr;
-	__u32 __reserved[3];
-	__u64 arg[6];
-	__u64 instruction_pointer;
-};
-
-And I agree it looks a lot nicer.
-
-You can pretend a 64-bit arg will be one field, but it won't be. It will
-be always two fields no matter what. Making them adjacent is only good
-because seccomp_data won't have to change if 64-bit support is ever added
-to BPF.
-
-It looks nicer, but it only makes it harder to know the right offset for
-the fields for the 32-bit only BPF programs. You can try to hide reality,
-but that won't change it.
-
->> (Not sure what use the IP is because that doesn't tell anything about how
->> the system call instruction was reached.)
->>
->> The only way to avoid splitting args is to add 64-bit support to BPF.
->> That is probably the best way forwards, but would require breaking the
->> BPF ABI by either adding a 64-bit version directly or adding extra
->> instructions.
->
-> Or the compiler or whatever generates the BPF code just is going to have
-> to generate two instructions -- just like we always have to handle
-> [u]int64_t on 32-bit platforms.  There is no difference here.
-
-Except that if you don't hide the platform differences your compiler
-or whatever needs to generate different instructions depending on the
-endianess, while it could always generate the same instructions instead.
-
-My impression is that you want to push all extra complexity into the
-compiler or whatever instead of making the ABI cross-platform, because
-it looks nicer. I don't care that much, but I think you're just pushing
-the ugliness around instead of getting rid of it.
-
-Greetings,
-
-Indan
-
-
+Thanks!
