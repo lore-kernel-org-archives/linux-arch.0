@@ -1,43 +1,34 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 0/7] COMPAT_USE_64BIT_TIME v2
-Date: Sun, 19 Feb 2012 18:42:05 -0800
-Message-ID: <4F41B2FD.9010705@zytor.com>
-References: <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com> <1329704570-3792-1-git-send-email-hpa@zytor.com>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v8 2/8] seccomp: kill the seccomp_t typedef
+Date: Mon, 20 Feb 2012 13:55:47 +1100 (EST)
+Message-ID: <alpine.LRH.2.02.1202201355010.24795@tundra.namei.org>
+References: <1329422549-16407-1-git-send-email-wad@chromium.org> <1329422549-16407-2-git-send-email-wad@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:58240 "EHLO mail.zytor.com"
+Received: from tundra.namei.org ([65.99.196.166]:45916 "EHLO tundra.namei.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751733Ab2BTCmY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Feb 2012 21:42:24 -0500
-In-Reply-To: <1329704570-3792-1-git-send-email-hpa@zytor.com>
+	id S1751630Ab2BTC7q (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Feb 2012 21:59:46 -0500
+In-Reply-To: <1329422549-16407-2-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, davem@davemloft.net, hjl.tools@gmail.com, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <greg@kroah.com>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.org, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
 
-On 02/19/2012 06:22 PM, H. Peter Anvin wrote:
-> From: "H. Peter Anvin" <hpa@zytor.com>
-> 
-> This is a respin of the COMPAT_USE_64BIT_TIME bits of the x32
-> patchset.  It replaces patches 07/30-10/30 out of that patchset.
-> 
-> The differences in this respin are:
-> 
-> 1. Use helper functions as suggested by Linus, and
-> 2. Add support in the networking stack (this bit got inadvertently
->    left out of the previous patchset.)
-> 
-> Linus, is this more what you were looking for?
-> 
-> This is the diffstat for this set:
-> 
+On Thu, 16 Feb 2012, Will Drewry wrote:
 
-(And no, it doesn't even compile... working on that ;)
+> Replaces the seccomp_t typedef with struct seccomp to match modern
+> kernel style.
+> 
+> v7: struct seccomp_struct -> struct seccomp
+> v6: original inclusion in this series.
+> 
+> Signed-off-by: Will Drewry <wad@chromium.org>
 
-	-hpa
+Reviewed-by: James Morris <jmorris@namei.org>
+
 
 -- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+James Morris
+<jmorris@namei.org>
