@@ -1,73 +1,42 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 4/4 V15] Add check for suspended vm in softlockup detector
-Date: Sun, 19 Feb 2012 21:22:57 -0500
-Message-ID: <1329704577-6329-5-git-send-email-emunson@mgebm.net>
-References: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 1/7] compat: Introduce COMPAT_USE_64BIT_TIME
+Date: Sun, 19 Feb 2012 18:22:44 -0800
+Message-ID: <1329704570-3792-2-git-send-email-hpa@zytor.com>
+References: <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com>
+ <1329704570-3792-1-git-send-email-hpa@zytor.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1329704570-3792-1-git-send-email-hpa@zytor.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, davem@davemloft.net, hjl.tools@gmail.com, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <greg@kroah.com>, "H. Peter Anvin" <hpa@zytor.com>
 List-Id: linux-arch.vger.kernel.org
 
-A suspended VM can cause spurious soft lockup warnings.  To avoid these, the
-watchdog now checks if the kernel knows it was stopped by the host and skips
-the warning if so.  When the watchdog is reset successfully, clear the guest
-paused flag.
+From: "H. J. Lu" <hjl.tools@gmail.com>
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
+Allow a compatibility ABI to use a 64-bit time_t and 64-bit members in
+struct timeval and struct timespec to avoid the Y2038 problem.
+
+This will be used for the x32 ABI.
+
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
 ---
-Changes from V3:
- Clear the PAUSED flag when the watchdog is reset
+ include/linux/compat.h |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
- kernel/watchdog.c |   12 ++++++++++++
- 1 files changed, 12 insertions(+), 0 deletions(-)
-
-diff --git a/kernel/watchdog.c b/kernel/watchdog.c
-index d117262..f6ffdc2 100644
---- a/kernel/watchdog.c
-+++ b/kernel/watchdog.c
-@@ -25,6 +25,7 @@
- #include <linux/sysctl.h>
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 41c9f65..1be91c0 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -19,6 +19,10 @@
+ #include <asm/siginfo.h>
+ #include <asm/signal.h>
  
- #include <asm/irq_regs.h>
-+#include <linux/kvm_para.h>
- #include <linux/perf_event.h>
++#ifndef COMPAT_USE_64BIT_TIME
++#define COMPAT_USE_64BIT_TIME 0
++#endif
++
+ #define compat_jiffies_to_clock_t(x)	\
+ 		(((unsigned long)(x) * COMPAT_USER_HZ) / HZ)
  
- int watchdog_enabled = 1;
-@@ -280,6 +281,9 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 			__this_cpu_write(softlockup_touch_sync, false);
- 			sched_clock_tick();
- 		}
-+
-+		/* Clear the guest paused flag on watchdog reset */
-+		kvm_check_and_clear_guest_paused();
- 		__touch_watchdog();
- 		return HRTIMER_RESTART;
- 	}
-@@ -292,6 +296,14 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
- 	 */
- 	duration = is_softlockup(touch_ts);
- 	if (unlikely(duration)) {
-+		/*
-+		 * If a virtual machine is stopped by the host it can look to
-+		 * the watchdog like a soft lockup, check to see if the host
-+		 * stopped the vm before we issue the warning
-+		 */
-+		if (kvm_check_and_clear_guest_paused())
-+			return HRTIMER_RESTART;
-+
- 		/* only warn once */
- 		if (__this_cpu_read(soft_watchdog_warn) == true)
- 			return HRTIMER_RESTART;
 -- 
-1.7.5.4
+1.7.6.5
