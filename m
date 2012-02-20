@@ -1,57 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63978 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751936Ab2BRKbS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 18 Feb 2012 05:31:18 -0500
-Message-ID: <4F3F7DE3.9000009@redhat.com>
-Date: Sat, 18 Feb 2012 12:30:59 +0200
-From: Avi Kivity <avi@redhat.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 3/4 V13] Add ioctl for KVM_KVMCLOCK_CTRL
-References: <1329423541-11677-1-git-send-email-emunson@mgebm.net> <1329423541-11677-4-git-send-email-emunson@mgebm.net>
-In-Reply-To: <1329423541-11677-4-git-send-email-emunson@mgebm.net>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from terminus.zytor.com ([198.137.202.10]:57124 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750951Ab2BTAKJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Feb 2012 19:10:09 -0500
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 03/30] sysinfo: Move struct sysinfo to a separate header file
+Date: Sun, 19 Feb 2012 16:07:41 -0800
+Message-ID: <1329696488-16970-4-git-send-email-hpa@zytor.com>
+In-Reply-To: <1329696488-16970-1-git-send-email-hpa@zytor.com>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120218103059.g_Gp37YE1nLgzVWKbW4OW9uYTFv8PRXcJfPXP2bYc4c@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
+Message-ID: <20120220000741.7uIvN-J--EwSnEsm-5qYGxd00-gfJPt48gfusjlwjeo@z>
 
-On 02/16/2012 10:19 PM, Eric B Munson wrote:
-> Now that we have a flag that will tell the guest it was suspended, create an
-> interface for that communication using a KVM ioctl.
-> +4.70 KVM_KVMCLOCK_CTRL
-> +
-> +Capability: KVM_CAP_KVMCLOCK_CTRL
-> +Architectures: Any that implement pvclocks (currently x86 only)
-> +Type: vcpu ioctl
-> +Parameters: None
-> +Returns: 0 on success, -1 on error
-> +
-> +This signals to the host kernel that the specified guest is being paused by
-> +userspace.  The host will set a flag in the pvclock structure that is checked
-> +from the soft lockup watchdog.  The flag is part of the pvclock structure that
-> +is shared between guest and host, specifically the second bit of the flags
-> +field of the pvclock_vcpu_time_info structure.  It will be set exclusively by
-> +the host and read/cleared exclusively by the guest.  The guest operation of
-> +checking and clearing the flag must an atomic operation so use of the function
-> +check_and_clear_guest_paused() is encouraged, but it could also be done with
-> +load-link/store-conditional.  There are two cases where the guest will clear
-> +the flag: when the soft lockup watchdog timer resets itself or when a soft
-> +lockup is detected.  This ioctl can be called any time after pausing
-> +the vcpu, but before it is resumed.
-> +
->
+From: "H. Peter Anvin" <hpa@zytor.com>
 
-Sorry to see this go into v15, but this splits the pvclock abi
-documentation into two pieces.  Please update the master in msr.txt.
+struct sysinfo is just about the only thing exported to userspace from
+<linux/kernel.h>, so move it into a separate header file with a
+residual #include in <linux/kernel.h>.
 
-Also don't use guest terms (like check_and_clear_guest_paused()) - this
-documentation should be usable by other OS writers without resorting to
-reading the Linux kernel source.
+Originally-by: H. J. Lu <hjl.tools@gmail.com>
+Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+Link: http://lkml.kernel.org/n/tip-4pr1xnnksprt7t0h3w5fw4rv@git.kernel.org
+---
+ include/linux/Kbuild    |    1 +
+ include/linux/kernel.h  |   21 ++-------------------
+ include/linux/sysinfo.h |   22 ++++++++++++++++++++++
+ 3 files changed, 25 insertions(+), 19 deletions(-)
+ create mode 100644 include/linux/sysinfo.h
 
+diff --git a/include/linux/Kbuild b/include/linux/Kbuild
+index c94e717..8446086 100644
+--- a/include/linux/Kbuild
++++ b/include/linux/Kbuild
+@@ -355,6 +355,7 @@ header-y += suspend_ioctls.h
+ header-y += swab.h
+ header-y += synclink.h
+ header-y += sysctl.h
++header-y += sysinfo.h
+ header-y += taskstats.h
+ header-y += tcp.h
+ header-y += telephony.h
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index e834342..dc6a50f 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -1,6 +1,8 @@
+ #ifndef _LINUX_KERNEL_H
+ #define _LINUX_KERNEL_H
+ 
++#include <linux/sysinfo.h>
++
+ /*
+  * 'kernel.h' contains some often-used function prototypes etc
+  */
+@@ -745,27 +747,8 @@ extern int __build_bug_on_failed;
+ # define REBUILD_DUE_TO_FTRACE_MCOUNT_RECORD
+ #endif
+ 
+-struct sysinfo;
+ extern int do_sysinfo(struct sysinfo *info);
+ 
+ #endif /* __KERNEL__ */
+ 
+-#define SI_LOAD_SHIFT	16
+-struct sysinfo {
+-	long uptime;			/* Seconds since boot */
+-	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
+-	unsigned long totalram;		/* Total usable main memory size */
+-	unsigned long freeram;		/* Available memory size */
+-	unsigned long sharedram;	/* Amount of shared memory */
+-	unsigned long bufferram;	/* Memory used by buffers */
+-	unsigned long totalswap;	/* Total swap space size */
+-	unsigned long freeswap;		/* swap space still available */
+-	unsigned short procs;		/* Number of current processes */
+-	unsigned short pad;		/* explicit padding for m68k */
+-	unsigned long totalhigh;	/* Total high memory size */
+-	unsigned long freehigh;		/* Available high memory size */
+-	unsigned int mem_unit;		/* Memory unit size in bytes */
+-	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
+-};
+-
+ #endif
+diff --git a/include/linux/sysinfo.h b/include/linux/sysinfo.h
+new file mode 100644
+index 0000000..ec4fc22
+--- /dev/null
++++ b/include/linux/sysinfo.h
+@@ -0,0 +1,22 @@
++#ifndef _LINUX_SYSINFO_H
++#define _LINUX_SYSINFO_H
++
++#define SI_LOAD_SHIFT	16
++struct sysinfo {
++	long uptime;			/* Seconds since boot */
++	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
++	unsigned long totalram;		/* Total usable main memory size */
++	unsigned long freeram;		/* Available memory size */
++	unsigned long sharedram;	/* Amount of shared memory */
++	unsigned long bufferram;	/* Memory used by buffers */
++	unsigned long totalswap;	/* Total swap space size */
++	unsigned long freeswap;		/* swap space still available */
++	unsigned short procs;		/* Number of current processes */
++	unsigned short pad;		/* explicit padding for m68k */
++	unsigned long totalhigh;	/* Total high memory size */
++	unsigned long freehigh;		/* Available high memory size */
++	unsigned int mem_unit;		/* Memory unit size in bytes */
++	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
++};
++
++#endif /* _LINUX_SYSINFO_H */
 -- 
-I have a truly marvellous patch that fixes the bug which this
-signature is too narrow to contain.
+1.7.6.5
 
