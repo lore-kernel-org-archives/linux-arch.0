@@ -1,117 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:57124 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:57169 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750951Ab2BTAKJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Feb 2012 19:10:09 -0500
+	with ESMTP id S1750951Ab2BTAMF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Feb 2012 19:12:05 -0500
 From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: [PATCH 03/30] sysinfo: Move struct sysinfo to a separate header file
-Date: Sun, 19 Feb 2012 16:07:41 -0800
-Message-ID: <1329696488-16970-4-git-send-email-hpa@zytor.com>
+Subject: [PATCH 07/30] compat: Introduce COMPAT_USE_64BIT_TIME
+Date: Sun, 19 Feb 2012 16:07:45 -0800
+Message-ID: <1329696488-16970-8-git-send-email-hpa@zytor.com>
 In-Reply-To: <1329696488-16970-1-git-send-email-hpa@zytor.com>
 References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: mingo@kernel.org, tglx@linutronix.de, hpa@zytor.com, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
-Message-ID: <20120220000741.7uIvN-J--EwSnEsm-5qYGxd00-gfJPt48gfusjlwjeo@z>
+Message-ID: <20120220000745.oDjIwcDeHbAnXTRUtWOUAMK1XaLbhUiD38UC4bHgfeE@z>
 
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: "H. J. Lu" <hjl.tools@gmail.com>
 
-struct sysinfo is just about the only thing exported to userspace from
-<linux/kernel.h>, so move it into a separate header file with a
-residual #include in <linux/kernel.h>.
+Allow a compatibility ABI to use a 64-bit time_t and 64-bit members in
+struct timeval and struct timespec to avoid the Y2038 problem.
 
-Originally-by: H. J. Lu <hjl.tools@gmail.com>
+This will be used for the x32 ABI.
+
 Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-Link: http://lkml.kernel.org/n/tip-4pr1xnnksprt7t0h3w5fw4rv@git.kernel.org
 ---
- include/linux/Kbuild    |    1 +
- include/linux/kernel.h  |   21 ++-------------------
- include/linux/sysinfo.h |   22 ++++++++++++++++++++++
- 3 files changed, 25 insertions(+), 19 deletions(-)
- create mode 100644 include/linux/sysinfo.h
+ include/linux/compat.h |    4 ++++
+ 1 files changed, 4 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/Kbuild b/include/linux/Kbuild
-index c94e717..8446086 100644
---- a/include/linux/Kbuild
-+++ b/include/linux/Kbuild
-@@ -355,6 +355,7 @@ header-y += suspend_ioctls.h
- header-y += swab.h
- header-y += synclink.h
- header-y += sysctl.h
-+header-y += sysinfo.h
- header-y += taskstats.h
- header-y += tcp.h
- header-y += telephony.h
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index e834342..dc6a50f 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -1,6 +1,8 @@
- #ifndef _LINUX_KERNEL_H
- #define _LINUX_KERNEL_H
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 41c9f65..1be91c0 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -19,6 +19,10 @@
+ #include <asm/siginfo.h>
+ #include <asm/signal.h>
  
-+#include <linux/sysinfo.h>
++#ifndef COMPAT_USE_64BIT_TIME
++#define COMPAT_USE_64BIT_TIME 0
++#endif
 +
- /*
-  * 'kernel.h' contains some often-used function prototypes etc
-  */
-@@ -745,27 +747,8 @@ extern int __build_bug_on_failed;
- # define REBUILD_DUE_TO_FTRACE_MCOUNT_RECORD
- #endif
+ #define compat_jiffies_to_clock_t(x)	\
+ 		(((unsigned long)(x) * COMPAT_USER_HZ) / HZ)
  
--struct sysinfo;
- extern int do_sysinfo(struct sysinfo *info);
- 
- #endif /* __KERNEL__ */
- 
--#define SI_LOAD_SHIFT	16
--struct sysinfo {
--	long uptime;			/* Seconds since boot */
--	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
--	unsigned long totalram;		/* Total usable main memory size */
--	unsigned long freeram;		/* Available memory size */
--	unsigned long sharedram;	/* Amount of shared memory */
--	unsigned long bufferram;	/* Memory used by buffers */
--	unsigned long totalswap;	/* Total swap space size */
--	unsigned long freeswap;		/* swap space still available */
--	unsigned short procs;		/* Number of current processes */
--	unsigned short pad;		/* explicit padding for m68k */
--	unsigned long totalhigh;	/* Total high memory size */
--	unsigned long freehigh;		/* Available high memory size */
--	unsigned int mem_unit;		/* Memory unit size in bytes */
--	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
--};
--
- #endif
-diff --git a/include/linux/sysinfo.h b/include/linux/sysinfo.h
-new file mode 100644
-index 0000000..ec4fc22
---- /dev/null
-+++ b/include/linux/sysinfo.h
-@@ -0,0 +1,22 @@
-+#ifndef _LINUX_SYSINFO_H
-+#define _LINUX_SYSINFO_H
-+
-+#define SI_LOAD_SHIFT	16
-+struct sysinfo {
-+	long uptime;			/* Seconds since boot */
-+	unsigned long loads[3];		/* 1, 5, and 15 minute load averages */
-+	unsigned long totalram;		/* Total usable main memory size */
-+	unsigned long freeram;		/* Available memory size */
-+	unsigned long sharedram;	/* Amount of shared memory */
-+	unsigned long bufferram;	/* Memory used by buffers */
-+	unsigned long totalswap;	/* Total swap space size */
-+	unsigned long freeswap;		/* swap space still available */
-+	unsigned short procs;		/* Number of current processes */
-+	unsigned short pad;		/* explicit padding for m68k */
-+	unsigned long totalhigh;	/* Total high memory size */
-+	unsigned long freehigh;		/* Available high memory size */
-+	unsigned int mem_unit;		/* Memory unit size in bytes */
-+	char _f[20-2*sizeof(long)-sizeof(int)];	/* Padding: libc5 uses this.. */
-+};
-+
-+#endif /* _LINUX_SYSINFO_H */
 -- 
 1.7.6.5
 
