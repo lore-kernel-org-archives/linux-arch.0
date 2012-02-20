@@ -1,178 +1,40 @@
-From: Eric B Munson <emunson@mgebm.net>
-Subject: [PATCH 2/4 V15] Add functions to check if the host has stopped the vm
-Date: Sun, 19 Feb 2012 21:22:55 -0500
-Message-ID: <1329704577-6329-3-git-send-email-emunson@mgebm.net>
-References: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: [PATCH 0/7] COMPAT_USE_64BIT_TIME v2
+Date: Sun, 19 Feb 2012 18:22:43 -0800
+Message-ID: <1329704570-3792-1-git-send-email-hpa@zytor.com>
+References: <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from oz.csail.mit.edu ([128.30.30.239]:55807 "EHLO mail.mgebm.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753480Ab2BTCXC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Feb 2012 21:23:02 -0500
-In-Reply-To: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
+Received: from terminus.zytor.com ([198.137.202.10]:58035 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753688Ab2BTCXf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Feb 2012 21:23:35 -0500
+In-Reply-To: <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: avi@redhat.com
-Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, davem@davemloft.net, hjl.tools@gmail.com, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <greg@kroah.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-When a host stops or suspends a VM it will set a flag to show this.  The
-watchdog will use these functions to determine if a softlockup is real, or the
-result of a suspended VM.
+From: "H. Peter Anvin" <hpa@zytor.com>
 
-Signed-off-by: Eric B Munson <emunson@mgebm.net>
-asm-generic changes Acked-by: Arnd Bergmann <arnd@arndb.de>
-Cc: mingo@redhat.com
-Cc: hpa@zytor.com
-Cc: ryanh@linux.vnet.ibm.com
-Cc: aliguori@us.ibm.com
-Cc: mtosatti@redhat.com
-Cc: kvm@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-kernel@vger.kernel.org
----
-Changes from V11:
- Re-add the missing asm-generic stub for check_and_clear_guest_stopped()
-Changes from V6:
- Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-Changes from V5:
- Collapse generic stubs into this patch
- check_and_clear_guest_stopped() takes no args and uses __get_cpu_var()
- Include individual definitions in ia64, s390, and powerpc
+This is a respin of the COMPAT_USE_64BIT_TIME bits of the x32
+patchset.  It replaces patches 07/30-10/30 out of that patchset.
 
- arch/ia64/include/asm/kvm_para.h    |    5 +++++
- arch/powerpc/include/asm/kvm_para.h |    5 +++++
- arch/s390/include/asm/kvm_para.h    |    5 +++++
- arch/x86/include/asm/kvm_para.h     |    8 ++++++++
- arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
- include/asm-generic/kvm_para.h      |   14 ++++++++++++++
- 6 files changed, 58 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/kvm_para.h
+The differences in this respin are:
 
-diff --git a/arch/ia64/include/asm/kvm_para.h b/arch/ia64/include/asm/kvm_para.h
-index 1588aee..2019cb9 100644
---- a/arch/ia64/include/asm/kvm_para.h
-+++ b/arch/ia64/include/asm/kvm_para.h
-@@ -26,6 +26,11 @@ static inline unsigned int kvm_arch_para_features(void)
- 	return 0;
- }
- 
-+static inline bool kvm_check_and_clear_guest_paused(void)
-+{
-+	return false;
-+}
-+
- #endif
- 
- #endif
-diff --git a/arch/powerpc/include/asm/kvm_para.h b/arch/powerpc/include/asm/kvm_para.h
-index 7b754e7..c18916b 100644
---- a/arch/powerpc/include/asm/kvm_para.h
-+++ b/arch/powerpc/include/asm/kvm_para.h
-@@ -206,6 +206,11 @@ static inline unsigned int kvm_arch_para_features(void)
- 	return r;
- }
- 
-+static inline bool kvm_check_and_clear_guest_paused(void)
-+{
-+	return false;
-+}
-+
- #endif /* __KERNEL__ */
- 
- #endif /* __POWERPC_KVM_PARA_H__ */
-diff --git a/arch/s390/include/asm/kvm_para.h b/arch/s390/include/asm/kvm_para.h
-index 6964db2..a988329 100644
---- a/arch/s390/include/asm/kvm_para.h
-+++ b/arch/s390/include/asm/kvm_para.h
-@@ -149,6 +149,11 @@ static inline unsigned int kvm_arch_para_features(void)
- 	return 0;
- }
- 
-+static inline bool kvm_check_and_clear_guest_paused(void)
-+{
-+	return false;
-+}
-+
- #endif
- 
- #endif /* __S390_KVM_PARA_H */
-diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
-index 734c376..99c4bbe 100644
---- a/arch/x86/include/asm/kvm_para.h
-+++ b/arch/x86/include/asm/kvm_para.h
-@@ -95,6 +95,14 @@ struct kvm_vcpu_pv_apf_data {
- extern void kvmclock_init(void);
- extern int kvm_register_clock(char *txt);
- 
-+#ifdef CONFIG_KVM_CLOCK
-+bool kvm_check_and_clear_guest_paused(void);
-+#else
-+static inline bool kvm_check_and_clear_guest_paused(void)
-+{
-+	return false;
-+}
-+#endif /* CONFIG_KVMCLOCK */
- 
- /* This instruction is vmcall.  On non-VT architectures, it will generate a
-  * trap that we will then rewrite to the appropriate instruction.
-diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
-index ca4e735..8562f77 100644
---- a/arch/x86/kernel/kvmclock.c
-+++ b/arch/x86/kernel/kvmclock.c
-@@ -22,6 +22,7 @@
- #include <asm/msr.h>
- #include <asm/apic.h>
- #include <linux/percpu.h>
-+#include <linux/hardirq.h>
- 
- #include <asm/x86_init.h>
- #include <asm/reboot.h>
-@@ -114,6 +115,26 @@ static void kvm_get_preset_lpj(void)
- 	preset_lpj = lpj;
- }
- 
-+bool kvm_check_and_clear_guest_paused(void)
-+{
-+	bool ret = false;
-+	struct pvclock_vcpu_time_info *src;
-+
-+	/*
-+	 * per_cpu() is safe here because this function is only called from
-+	 * timer functions where preemption is already disabled.
-+	 */
-+	WARN_ON(!in_atomic());
-+	src = &__get_cpu_var(hv_clock);
-+	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
-+		__this_cpu_and(hv_clock.flags, ~PVCLOCK_GUEST_STOPPED);
-+		ret = true;
-+	}
-+
-+	return ret;
-+}
-+EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
-+
- static struct clocksource kvm_clock = {
- 	.name = "kvm-clock",
- 	.read = kvm_clock_get_cycles,
-diff --git a/include/asm-generic/kvm_para.h b/include/asm-generic/kvm_para.h
-new file mode 100644
-index 0000000..05ef7e7
---- /dev/null
-+++ b/include/asm-generic/kvm_para.h
-@@ -0,0 +1,14 @@
-+#ifndef _ASM_GENERIC_KVM_PARA_H
-+#define _ASM_GENERIC_KVM_PARA_H
-+
-+
-+/*
-+ * This function is used by architectures that support kvm to avoid issuing
-+ * false soft lockup messages.
-+ */
-+static inline bool kvm_check_and_clear_guest_paused(void)
-+{
-+	return false;
-+}
-+
-+#endif
--- 
-1.7.5.4
+1. Use helper functions as suggested by Linus, and
+2. Add support in the networking stack (this bit got inadvertently
+   left out of the previous patchset.)
+
+Linus, is this more what you were looking for?
+
+This is the diffstat for this set:
+
+ drivers/char/lp.c            |    5 +--
+ drivers/input/input-compat.c |    4 +-
+ drivers/input/input-compat.h |    2 +-
+ include/linux/compat.h       |   20 ++++++++++++
+ kernel/compat.c              |   70 +++++++++++++++++++++++++++++++++++++-----
+ net/bluetooth/hci_sock.c     |    3 +-
+ net/compat.c                 |   65 ++++++++++++++++++++++++---------------
+ net/socket.c                 |   18 +++++------
+ 8 files changed, 136 insertions(+), 51 deletions(-)
