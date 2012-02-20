@@ -1,36 +1,48 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 08/30] compat: Use COMPAT_USE_64BIT_TIME in the lp driver
-Date: Sun, 19 Feb 2012 16:59:12 -0800
-Message-ID: <4F419AE0.7060104@zytor.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-9-git-send-email-hpa@zytor.com> <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+From: Eric B Munson <emunson@mgebm.net>
+Subject: [PATCH 1/4 V15] Add flag to indicate that a vm was stopped by the host
+Date: Sun, 19 Feb 2012 21:22:54 -0500
+Message-ID: <1329704577-6329-2-git-send-email-emunson@mgebm.net>
+References: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:57633 "EHLO mail.zytor.com"
+Received: from oz.csail.mit.edu ([128.30.30.239]:55801 "EHLO mail.mgebm.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752535Ab2BTA7a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Feb 2012 19:59:30 -0500
-In-Reply-To: <CA+55aFwiV3N-9-pB6ofN-5GBS0mnPTBGAdPH1M70wK8qr-=PQg@mail.gmail.com>
+	id S1753451Ab2BTCXB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Feb 2012 21:23:01 -0500
+In-Reply-To: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <greg@kroah.com>
+To: avi@redhat.com
+Cc: Eric B Munson <emunson@mgebm.net>, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 
-On 02/19/2012 04:56 PM, Linus Torvalds wrote:
-> On Sun, Feb 19, 2012 at 4:07 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> From: "H. J. Lu" <hjl.tools@gmail.com>
->>
->> Enable the lp driver to be used with a compat ABI with 64-bit time.
-> 
-> Ugh. Is this really the only case?
-> 
+This flag will be used to check if the vm was stopped by the host when a soft
+lockup was detected.  The host will set the flag when it stops the guest.  On
+resume, the guest will check this flag if a soft lockup is detected and skip
+issuing the warning.
 
-No, it's not the only case, and a helper function is a great idea.
+Signed-off-by: Eric B Munson <emunson@mgebm.net>
+Cc: mingo@redhat.com
+Cc: hpa@zytor.com
+Cc: ryanh@linux.vnet.ibm.com
+Cc: aliguori@us.ibm.com
+Cc: mtosatti@redhat.com
+Cc: kvm@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ arch/x86/include/asm/pvclock-abi.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-	-hpa
-
-
+diff --git a/arch/x86/include/asm/pvclock-abi.h b/arch/x86/include/asm/pvclock-abi.h
+index 35f2d19..6167fd7 100644
+--- a/arch/x86/include/asm/pvclock-abi.h
++++ b/arch/x86/include/asm/pvclock-abi.h
+@@ -40,5 +40,6 @@ struct pvclock_wall_clock {
+ } __attribute__((__packed__));
+ 
+ #define PVCLOCK_TSC_STABLE_BIT	(1 << 0)
++#define PVCLOCK_GUEST_STOPPED	(1 << 1)
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_X86_PVCLOCK_ABI_H */
 -- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+1.7.5.4
