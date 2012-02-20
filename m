@@ -1,133 +1,134 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH 06/30] sysinfo: Use explicit types in <linux/sysinfo.h>
-Date: Mon, 20 Feb 2012 09:29:45 -0800
-Message-ID: <4ae6abe6-b935-4033-a9b6-31fa5f58e3c6@email.android.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-7-git-send-email-hpa@zytor.com> <CAMuHMdV2-StqLjnMXk8EDbfMSUik7BWuQ1phNSoUq_D0i_1icQ@mail.gmail.com>
+Date: Mon, 20 Feb 2012 21:01:45 +0100
+Message-ID: <CAMuHMdXyhcZY3zaKGpvT9hE=4tp8UFr1HmQjEz4F=NiYeFcLsA@mail.gmail.com>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
+	<1329696488-16970-7-git-send-email-hpa@zytor.com>
+	<CAMuHMdV2-StqLjnMXk8EDbfMSUik7BWuQ1phNSoUq_D0i_1icQ@mail.gmail.com>
+	<4ae6abe6-b935-4033-a9b6-31fa5f58e3c6@email.android.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:35383 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752151Ab2BTRaa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Feb 2012 12:30:30 -0500
-In-Reply-To: <CAMuHMdV2-StqLjnMXk8EDbfMSUik7BWuQ1phNSoUq_D0i_1icQ@mail.gmail.com>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:40073 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752518Ab2BTUBr convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Feb 2012 15:01:47 -0500
+In-Reply-To: <4ae6abe6-b935-4033-a9b6-31fa5f58e3c6@email.android.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
 
-Not really... it comes down to "implicit padding in kernel ABI structur=
-es is bad".  They can easily become security holes.
+On Mon, Feb 20, 2012 at 18:29, H. Peter Anvin <hpa@zytor.com> wrote:
+> Not really... it comes down to "implicit padding in kernel ABI struct=
+ures is bad". =C2=A0They can easily become security holes.
 
+On 64-bit platforms with natural alignment of long, there's an implicit=
+ padding.
 
-
-Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-
->On Mon, Feb 20, 2012 at 01:07, H. Peter Anvin <hpa@zytor.com> wrote:
->> --- a/include/linux/sysinfo.h
->> +++ b/include/linux/sysinfo.h
->> @@ -1,22 +1,24 @@
->> =C2=A0#ifndef _LINUX_SYSINFO_H
->> =C2=A0#define _LINUX_SYSINFO_H
->>
->> +#include <linux/types.h>
->> +
->> =C2=A0#define SI_LOAD_SHIFT =C2=A016
->> =C2=A0struct sysinfo {
->> - =C2=A0 =C2=A0 =C2=A0 long uptime; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0/* Seconds since boot */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long loads[3]; =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 /* 1, 5, and 15 minute load
->averages */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalram; =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 /* Total usable main memory
->size */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long freeram; =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0/* Available memory size */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long sharedram; =C2=A0 =C2=A0 =C2=A0=
+> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+>>On Mon, Feb 20, 2012 at 01:07, H. Peter Anvin <hpa@zytor.com> wrote:
+>>> --- a/include/linux/sysinfo.h
+>>> +++ b/include/linux/sysinfo.h
+>>> @@ -1,22 +1,24 @@
+>>> =C2=A0#ifndef _LINUX_SYSINFO_H
+>>> =C2=A0#define _LINUX_SYSINFO_H
+>>>
+>>> +#include <linux/types.h>
+>>> +
+>>> =C2=A0#define SI_LOAD_SHIFT =C2=A016
+>>> =C2=A0struct sysinfo {
+>>> - =C2=A0 =C2=A0 =C2=A0 long uptime; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0/* Seconds since boot */
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long loads[3]; =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 /* 1, 5, and 15 minute load
+>>averages */
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalram; =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 /* Total usable main memory
+>>size */
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long freeram; =C2=A0 =C2=A0 =C2=A0 =
+=C2=A0 =C2=A0/* Available memory size */
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long sharedram; =C2=A0 =C2=A0 =C2=A0=
  =C2=A0/* Amount of shared memory */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long bufferram; =C2=A0 =C2=A0 =C2=A0=
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long bufferram; =C2=A0 =C2=A0 =C2=A0=
  =C2=A0/* Memory used by buffers */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalswap; =C2=A0 =C2=A0 =C2=A0=
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalswap; =C2=A0 =C2=A0 =C2=A0=
  =C2=A0/* Total swap space size */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long freeswap; =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 /* swap space still available
->*/
->> - =C2=A0 =C2=A0 =C2=A0 unsigned short procs; =C2=A0 =C2=A0 =C2=A0 =C2=
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long freeswap; =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 /* swap space still available
+>>*/
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned short procs; =C2=A0 =C2=A0 =C2=A0 =C2=
 =A0 =C2=A0 /* Number of current
->processes */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned short pad; =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 /* explicit padding for m68k
->*/
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalhigh; =C2=A0 =C2=A0 =C2=A0=
+>>processes */
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned short pad; =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 /* explicit padding for m68k
+>>*/
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long totalhigh; =C2=A0 =C2=A0 =C2=A0=
  =C2=A0/* Total high memory size */
->> - =C2=A0 =C2=A0 =C2=A0 unsigned long freehigh; =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 /* Available high memory size
->*/
->> - =C2=A0 =C2=A0 =C2=A0 unsigned int mem_unit; =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0/* Memory unit size in bytes
->*/
->> - =C2=A0 =C2=A0 =C2=A0 char _f[20-2*sizeof(long)-sizeof(int)]; /* Pa=
-dding: libc5
->uses this.. */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_long_t uptime; =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 /* Seconds since boot */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t loads[3]; =C2=A0 =C2=A0 =C2=A0=
-/* 1, 5, and 15 minute load
->averages */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalram; =C2=A0 =C2=A0 =C2=A0=
-/* Total usable main memory
->size */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freeram; =C2=A0 =C2=A0 =C2=A0=
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned long freehigh; =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 /* Available high memory size
+>>*/
+>>> - =C2=A0 =C2=A0 =C2=A0 unsigned int mem_unit; =C2=A0 =C2=A0 =C2=A0 =
+=C2=A0 =C2=A0/* Memory unit size in bytes
+>>*/
+>>> - =C2=A0 =C2=A0 =C2=A0 char _f[20-2*sizeof(long)-sizeof(int)]; /* P=
+adding: libc5
+>>uses this.. */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_long_t uptime; =C2=A0 =C2=A0 =C2=A0=
+ =C2=A0 /* Seconds since boot */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t loads[3]; =C2=A0 =C2=A0 =C2=
+=A0/* 1, 5, and 15 minute load
+>>averages */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalram; =C2=A0 =C2=A0 =C2=
+=A0/* Total usable main memory
+>>size */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freeram; =C2=A0 =C2=A0 =C2=A0=
  /* Available memory size */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t sharedram; =C2=A0 =C2=A0 /* =
-Amount of shared memory */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t bufferram; =C2=A0 =C2=A0 /* =
-Memory used by buffers */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalswap; =C2=A0 =C2=A0 /* =
-Total swap space size */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freeswap; =C2=A0 =C2=A0 =C2=A0=
-/* swap space still available
->*/
->> + =C2=A0 =C2=A0 =C2=A0 __u16 procs; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
- =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0/* Number of current
->processes */
->> + =C2=A0 =C2=A0 =C2=A0 __u16 pad; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t sharedram; =C2=A0 =C2=A0 /*=
+ Amount of shared memory */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t bufferram; =C2=A0 =C2=A0 /*=
+ Memory used by buffers */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalswap; =C2=A0 =C2=A0 /*=
+ Total swap space size */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freeswap; =C2=A0 =C2=A0 =C2=
+=A0/* swap space still available
+>>*/
+>>> + =C2=A0 =C2=A0 =C2=A0 __u16 procs; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0/* Number of current
+>>processes */
+>>> + =C2=A0 =C2=A0 =C2=A0 __u16 pad; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0=
  =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0/* Explicit padding for m68k
->*/
->
->Fueling the discussion about natural vs. 4-byte alignment?
->
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalhigh; =C2=A0 =C2=A0 /* =
-Total high memory size */
->> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freehigh; =C2=A0 =C2=A0 =C2=A0=
-/* Available high memory size
->*/
->> + =C2=A0 =C2=A0 =C2=A0 __u32 mem_unit; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0 /* Memory unit size in bytes
->*/
->> + =C2=A0 =C2=A0 =C2=A0 char _f[20-2*sizeof(__kernel_ulong_t)-sizeof(=
-__u32)]; =C2=A0 /*
->Padding: libc5 uses this.. */
->> =C2=A0};
->
->Gr{oetje,eeting}s,
->
->=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0 Geert
->
->--
->Geert Uytterhoeven -- There's lots of Linux beyond ia32 --
->geert@linux-m68k.org
->
->In personal conversations with technical people, I call myself a
->hacker. But
->when I'm talking to journalists I just say "programmer" or something
->like that.
->=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+>>*/
+>>
+>>Fueling the discussion about natural vs. 4-byte alignment?
+>>
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t totalhigh; =C2=A0 =C2=A0 /*=
+ Total high memory size */
+>>> + =C2=A0 =C2=A0 =C2=A0 __kernel_ulong_t freehigh; =C2=A0 =C2=A0 =C2=
+=A0/* Available high memory size
+>>*/
+>>> + =C2=A0 =C2=A0 =C2=A0 __u32 mem_unit; =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 /* Memory unit size in bytes
+>>*/
+>>> + =C2=A0 =C2=A0 =C2=A0 char _f[20-2*sizeof(__kernel_ulong_t)-sizeof=
+(__u32)]; =C2=A0 /*
+>>Padding: libc5 uses this.. */
+>>> =C2=A0};
 
---=20
-Sent from my mobile phone. Please excuse my brevity and lack of formatt=
-ing.
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
