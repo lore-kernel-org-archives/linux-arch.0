@@ -1,23 +1,17 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: > 6 kernel arguments?
-Date: Tue, 21 Feb 2012 10:06:28 -0800
-Message-ID: <4F43DD24.20309@zytor.com>
+From: Roland McGrath <mcgrathr@google.com>
+Subject: Re: [PATCH v10 03/11] asm/syscall.h: add syscall_get_arch
+Date: Tue, 21 Feb 2012 10:46:53 -0800
+Message-ID: <CAB=4xhp6y7Pq7mTF228TdyA-_z2j5z1yEnFrNQrFr7M9BZQ1Fg@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org> <1329845435-2313-3-git-send-email-wad@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44415 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751942Ab2BUSGe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Feb 2012 13:06:34 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linux Arch Mailing List <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1329845435-2313-3-git-send-email-wad@chromium.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-Do we have any architectures which define more than 6 kernel arguments?
+> +void syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
 
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+Bad return type.
