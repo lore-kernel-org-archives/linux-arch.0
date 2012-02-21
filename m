@@ -1,31 +1,40 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 30/30] x32: Add x32 VDSO support
-Date: Tue, 21 Feb 2012 11:03:31 -0800
-Message-ID: <4F43EA83.6020203@zytor.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-31-git-send-email-hpa@zytor.com> <4F42E171.9080005@mit.edu> <4F431665.3010004@zytor.com> <CAObL_7Hy8Y0PWrcZdRSGRcEt+aoma7ax4XU44f-gdHEGoWBzTg@mail.gmail.com> <4F43D98D.1020406@zytor.com> <CAObL_7GqT-CSB6uBoDvKymodEzUi3tY0DJv0U=xzYbaJS7A1nA@mail.gmail.com>
+From: Gustavo Padovan <padovan@profusion.mobi>
+Subject: Re: [PATCH 10/30] compat: Use COMPAT_USE_64BIT_TIME in the Bluetooth
+ subsystem
+Date: Tue, 21 Feb 2012 17:05:25 -0200
+Message-ID: <20120221190419.GA2914@joana>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
+ <1329696488-16970-11-git-send-email-hpa@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44795 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755799Ab2BUTDq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Feb 2012 14:03:46 -0500
-In-Reply-To: <CAObL_7GqT-CSB6uBoDvKymodEzUi3tY0DJv0U=xzYbaJS7A1nA@mail.gmail.com>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:36828 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755770Ab2BUTFr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Feb 2012 14:05:47 -0500
+Content-Disposition: inline
+In-Reply-To: <1329696488-16970-11-git-send-email-hpa@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Lutomirski <luto@mit.edu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com, Marcel Holtmann <marcel@holtmann.org>, "David S. Miller" <davem@davemloft.net>
 
-On 02/21/2012 10:54 AM, Andrew Lutomirski wrote:
+
+* H. Peter Anvin <hpa@zytor.com> [2012-02-19 16:07:48 -0800]:
+
+> From: "H. J. Lu" <hjl.tools@gmail.com>
 > 
-> uclibc hardcodes a call to the vsyscall gettimeofday implementation in
-> its locking primitives, which probably gives terrible performance, but
-> that's a separate issue.  I think do_emulate_vsyscall should send a
-> segfault if called by an x32 task -- there's some security benefit to
-> doing so, and there's unlikely to be any downside.
+> Enable the Bluetooth subsystem to be used with a compat ABI with
+> 64-bit time.
 > 
+> Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+> Cc: Marcel Holtmann <marcel@holtmann.org>
+> Cc: Gustavo F. Padovan <padovan@profusion.mobi>
+> Cc: David S. Miller <davem@davemloft.net>
+> ---
+>  net/bluetooth/hci_sock.c |    3 ++-
+>  1 files changed, 2 insertions(+), 1 deletions(-)
 
-The vsyscall page shouldn't be mapped for x32 tasks...
+Applied, thanks.
 
-	-hpa
+	Gustavo
