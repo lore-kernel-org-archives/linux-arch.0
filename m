@@ -1,59 +1,22 @@
-From: Andrew Lutomirski <luto@mit.edu>
-Subject: Re: [PATCH 30/30] x32: Add x32 VDSO support
-Date: Tue, 21 Feb 2012 10:54:32 -0800
-Message-ID: <CAObL_7GqT-CSB6uBoDvKymodEzUi3tY0DJv0U=xzYbaJS7A1nA@mail.gmail.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
- <1329696488-16970-31-git-send-email-hpa@zytor.com> <4F42E171.9080005@mit.edu>
- <4F431665.3010004@zytor.com> <CAObL_7Hy8Y0PWrcZdRSGRcEt+aoma7ax4XU44f-gdHEGoWBzTg@mail.gmail.com>
- <4F43D98D.1020406@zytor.com>
+From: Will Drewry <wad@chromium.org>
+Subject: Re: [PATCH v10 03/11] asm/syscall.h: add syscall_get_arch
+Date: Tue, 21 Feb 2012 12:57:01 -0600
+Message-ID: <CABqD9hZMbAugb7kAb8W5+-Y8tfbV8B_EN-fFe5QnTbgenr=Kbw@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org>
+	<1329845435-2313-3-git-send-email-wad@chromium.org>
+	<CAB=4xhp6y7Pq7mTF228TdyA-_z2j5z1yEnFrNQrFr7M9BZQ1Fg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:49099 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753562Ab2BUSyw convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Feb 2012 13:54:52 -0500
-In-Reply-To: <4F43D98D.1020406@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAB=4xhp6y7Pq7mTF228TdyA-_z2j5z1yEnFrNQrFr7M9BZQ1Fg@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Roland McGrath <mcgrathr@google.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 21, 2012 at 9:51 AM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 02/21/2012 08:52 AM, Andrew Lutomirski wrote:
->>>
->>>
->>> What about non-glibc?
->>
->>
->> IMO non-glibc users should just call __vdso_clock_gettime, etc.
->> Currently, code like:
->>
->> if (clock_gettime(whatever) =3D=3D -1)
->> =A0 handle_the_error();
->>
->> is correct when linked against glibc but incorrect when linked
->> directly against the vdso.
->>
+On Tue, Feb 21, 2012 at 12:46 PM, Roland McGrath <mcgrathr@google.com> wrote:
+>> +void syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
 >
-> The issue is what uclibc, Bionic, etc. actually do.
+> Bad return type.
 
-AFAICS Bionic only works on x86-32 and calls clock_gettime via
-hardcoded int 0x80, written in assembly (!).  uclibc calls
-__vdso_getcpu and does not seem to use the other vdso calls.  On a
-cursory inspection, klibc uses neither the vsyscall page nor the vdso.
-
-I doubt that there's any existing libc replacement that uses the
-non-prefixed vdso entries and that already works on x32 -- that would
-be impressive.  I'm not suggesting changing anything in the x86-64
-vdso.
-
-uclibc hardcodes a call to the vsyscall gettimeofday implementation in
-its locking primitives, which probably gives terrible performance, but
-that's a separate issue.  I think do_emulate_vsyscall should send a
-segfault if called by an x32 task -- there's some security benefit to
-doing so, and there's unlikely to be any downside.
-
---Andy
+Bah! Thanks!
