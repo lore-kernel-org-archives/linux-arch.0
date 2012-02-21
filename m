@@ -1,46 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44903 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754074Ab2BUTPk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Feb 2012 14:15:40 -0500
-Message-ID: <4F43ED3D.20504@zytor.com>
-Date: Tue, 21 Feb 2012 11:15:09 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:60105 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754088Ab2BUTk6 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Feb 2012 14:40:58 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH 10/30] compat: Use COMPAT_USE_64BIT_TIME in the Bluetooth
- subsystem
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-11-git-send-email-hpa@zytor.com> <20120221190419.GA2914@joana>
-In-Reply-To: <20120221190419.GA2914@joana>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <4F43F25E.3030004@zytor.com>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com>
+ <1329696488-16970-31-git-send-email-hpa@zytor.com> <4F42E171.9080005@mit.edu>
+ <4F431665.3010004@zytor.com> <CAObL_7Hy8Y0PWrcZdRSGRcEt+aoma7ax4XU44f-gdHEGoWBzTg@mail.gmail.com>
+ <4F43D98D.1020406@zytor.com> <CAObL_7GqT-CSB6uBoDvKymodEzUi3tY0DJv0U=xzYbaJS7A1nA@mail.gmail.com>
+ <4F43EA83.6020203@zytor.com> <CAObL_7GLnDFkb61jAZEj+9gGTr4FA=8ZFVMxd9Tus4LVVmKjKw@mail.gmail.com>
+ <4F43F25E.3030004@zytor.com>
+From: Andrew Lutomirski <luto@mit.edu>
+Date: Tue, 21 Feb 2012 11:40:38 -0800
+Message-ID: <CAObL_7H=M7-wxobKkj+K2fcrpEv0Nfp8=6gV2yvdb2hqxCTAGg@mail.gmail.com>
+Subject: Re: [PATCH 30/30] x32: Add x32 VDSO support
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com, Marcel Holtmann <marcel@holtmann.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20120221191509.XI_obd2usvYKwZQDJ1TAiNwCGQINhMTOVKCPSVnQu_k@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
+Message-ID: <20120221194038.esIWaMyXUEcPUyNDwnHhbABapJNbLoOFZ7xVSdeY-6U@z>
 
-On 02/21/2012 11:05 AM, Gustavo Padovan wrote:
-> 
-> * H. Peter Anvin <hpa@zytor.com> [2012-02-19 16:07:48 -0800]:
-> 
->> From: "H. J. Lu" <hjl.tools@gmail.com>
+On Tue, Feb 21, 2012 at 11:37 AM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 02/21/2012 11:29 AM, Andrew Lutomirski wrote:
+>>>
+>>> The vsyscall page shouldn't be mapped for x32 tasks...
 >>
->> Enable the Bluetooth subsystem to be used with a compat ABI with
->> 64-bit time.
+>> How is that possible?  It lives in the fixmap and is presumably
+>> visible from any 64-bit code.
 >>
->> Signed-off-by: H. Peter Anvin <hpa@zytor.com>
->> Cc: Marcel Holtmann <marcel@holtmann.org>
->> Cc: Gustavo F. Padovan <padovan@profusion.mobi>
->> Cc: David S. Miller <davem@davemloft.net>
->> ---
->>  net/bluetooth/hci_sock.c |    3 ++-
->>  1 files changed, 2 insertions(+), 1 deletions(-)
-> 
-> Applied, thanks.
-> 
+>> Admittedly, x32 tasks are probably somewhat difficult to trick into
+>> calling addresses with high bits set, but it's not necessarily
+>> impossible.
+>>
+>
+> Fair enough, and it's not necessarily all that hard either.
+>
+> And it's visible even in a 32-bit task, although a 32-bit task has to
+> switch into 64-bit mode.  Yet another reason the vsyscall page needs to die.
+>
+> I was having delusions that we could have a task-owned PDT in negative
+> space, but that would require unsharing the third level, too, which is
+> just way too messy.
 
-OK, I have it in my x86/x32 tree; you don't want to have this patch
-without the prior patch for obvious reasons.
+I'd like to do that, too, and I'd also like to have a per-cpu
+kernel-only page in there, but that's even worse.  If we had a
+separate cr3-like register for negative addresses, life would be good
+:)
 
-	-hpa
-
-
+--Andy
