@@ -1,33 +1,67 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 30/30] x32: Add x32 VDSO support
-Date: Tue, 21 Feb 2012 11:56:49 -0800
-Message-ID: <4F43F701.80205@zytor.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-31-git-send-email-hpa@zytor.com> <4F42E171.9080005@mit.edu> <4F431665.3010004@zytor.com> <CAObL_7Hy8Y0PWrcZdRSGRcEt+aoma7ax4XU44f-gdHEGoWBzTg@mail.gmail.com> <4F43D98D.1020406@zytor.com> <CAObL_7GqT-CSB6uBoDvKymodEzUi3tY0DJv0U=xzYbaJS7A1nA@mail.gmail.com> <4F43EA83.6020203@zytor.com> <CAObL_7GLnDFkb61jAZEj+9gGTr4FA=8ZFVMxd9Tus4LVVmKjKw@mail.gmail.com> <4F43F25E.3030004@zytor.com> <CAObL_7H=M7-wxobKkj+K2fcrpEv0Nfp8=6gV2yvdb2hqxCTAGg@mail.gmail.com> <4F43F54D.50201@zytor.com> <CAObL_7FW7qr5cOpB=kcPaQQUgPAebm+WgzevTW8j83WKV3dFDQ@mail.gmail.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v10 06/11] seccomp: add SECCOMP_RET_ERRNO
+Date: Tue, 21 Feb 2012 14:41:28 -0800
+Message-ID: <20120221224128.GJ3990@outflux.net>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org>
+ <1329845435-2313-6-git-send-email-wad@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAObL_7FW7qr5cOpB=kcPaQQUgPAebm+WgzevTW8j83WKV3dFDQ@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Lutomirski <luto@mit.edu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <kernel-hardening-return-894-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <1329845435-2313-6-git-send-email-wad@chromium.org>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org
 List-Id: linux-arch.vger.kernel.org
 
-On 02/21/2012 11:51 AM, Andrew Lutomirski wrote:
->>
->> No, that wouldn't help.  The situation is actually quite similar to the
->> current situation where we have an unshared fourth level, but since the
->> fourth entries are 512G per entry, we would have to push unsharing of
->> the kernel address space at least one more level (1G), possibly two
->> (2M).  Painful.
->>
->> The main advantage of a separate cr3 would be that we wouldn't need the
->> unshared top level for the kernel side.
-> 
-> Also, as is, if the top level wants to be per-cpu *and* per-task,
-> that's a big explosion of page tables that all need to stay in sync.
-> 
+On Tue, Feb 21, 2012 at 11:30:30AM -0600, Will Drewry wrote:
+> diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+> index 0043b7e..23f1844 100644
+> --- a/kernel/seccomp.c
+> +++ b/kernel/seccomp.c
+> @@ -136,22 +136,18 @@ static void *bpf_load(const void *nr, int off, unsigned int size, void *buf)
+>  static u32 seccomp_run_filters(int syscall)
+>  {
+>  	struct seccomp_filter *f;
+> -	u32 ret = SECCOMP_RET_KILL;
+>  	static const struct bpf_load_fn fns = {
+>  		bpf_load,
+>  		sizeof(struct seccomp_data),
+>  	};
+> +	u32 ret = SECCOMP_RET_ALLOW;
+>  	const void *sc_ptr = (const void *)(uintptr_t)syscall;
+> -
+>  	/*
+>  	 * All filters are evaluated in order of youngest to oldest. The lowest
+>  	 * BPF return value always takes priority.
+>  	 */
+> -	for (f = current->seccomp.filter; f; f = f->prev) {
+> -		ret = bpf_run_filter(sc_ptr, f->insns, &fns);
+> -		if (ret != SECCOMP_RET_ALLOW)
+> -			break;
+> -	}
+> +	for (f = current->seccomp.filter; f; f = f->prev)
+> +		ret = min_t(u32, ret, bpf_run_filter(sc_ptr, f->insns, &fns));
+>  	return ret;
+>  }
 
-Fair enough.
+I'd like to see this fail closed in the (theoretically impossible, but
+why risk it) case of there being no filters at all. Could do something
+like this:
 
-	-hpa
+	u32 ret = current->seccomp.filter ? SECCOMP_RET_ALLOW : SECCOMP_RET_KILL;
+
+Or, just this, to catch the misbehavior:
+
+	if (unlikely(current->seccomp.filter == NULL))
+		return SECCOMP_RET_KILL;
+
+-Kees
+
+-- 
+Kees Cook
+ChromeOS Security
