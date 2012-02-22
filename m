@@ -1,44 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:49784 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751506Ab2BVNsT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Feb 2012 08:48:19 -0500
-Date: Wed, 22 Feb 2012 14:47:29 +0100 (CET)
-From: Jiri Kosina <jkosina@suse.cz>
-Subject: Re: [PATCH 10/30] compat: Use COMPAT_USE_64BIT_TIME in the Bluetooth
- subsystem
-In-Reply-To: <20120221190419.GA2914@joana>
-Message-ID: <alpine.LRH.2.00.1202221447000.22368@twin.jikos.cz>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <1329696488-16970-11-git-send-email-hpa@zytor.com> <20120221190419.GA2914@joana>
+Received: from mail-gx0-f202.google.com ([209.85.161.202]:63691 "EHLO
+	mail-gx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751439Ab2BVSTS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 13:19:18 -0500
+Received: by mail-gx0-f202.google.com with SMTP id p1so44414ggn.1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 10:19:18 -0800 (PST)
+Subject: [PATCH v1 03/11] alpha/PCI: replace pci_probe_only with pci_flags
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Wed, 22 Feb 2012 11:19:17 -0700
+Message-ID: <20120222181917.27513.44072.stgit@bhelgaas.mtv.corp.google.com>
+In-Reply-To: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
+References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gustavo Padovan <padovan@profusion.mobi>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, torvalds@linux-foundation.org, akpm@linux-foundation.org, hjl.tools@gmail.com, Marcel Holtmann <marcel@holtmann.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20120222134729.3r9F0PQG5bbeA7LTHez34f1MPuCTSk9DL1bUWWS_emc@z>
+To: linux-pci@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
+Message-ID: <20120222181917.NO3-AxwPEif0q3O56xzLIEGzHU-EzNgcM5_KDuyVslE@z>
 
-On Tue, 21 Feb 2012, Gustavo Padovan wrote:
+Some architectures (alpha, mips, powerpc) have an arch-specific
+"pci_probe_only" flag.  Others use PCI_PROBE_ONLY in pci_flags for
+the same purpose.  This moves alpha to the pci_flags approach so
+generic code can use the same test across all architectures.
 
-> > From: "H. J. Lu" <hjl.tools@gmail.com>
-> > 
-> > Enable the Bluetooth subsystem to be used with a compat ABI with
-> > 64-bit time.
-> > 
-> > Signed-off-by: H. Peter Anvin <hpa@zytor.com>
-> > Cc: Marcel Holtmann <marcel@holtmann.org>
-> > Cc: Gustavo F. Padovan <padovan@profusion.mobi>
-> > Cc: David S. Miller <davem@davemloft.net>
-> > ---
-> >  net/bluetooth/hci_sock.c |    3 ++-
-> >  1 files changed, 2 insertions(+), 1 deletions(-)
-> 
-> Applied, thanks.
+CC: linux-alpha@vger.kernel.org
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ arch/alpha/include/asm/pci.h   |    1 +
+ arch/alpha/kernel/pci.c        |   15 +++++++--------
+ arch/alpha/kernel/pci_impl.h   |    3 ---
+ arch/alpha/kernel/sys_marvel.c |    3 ++-
+ arch/alpha/kernel/sys_titan.c  |    3 ++-
+ 5 files changed, 12 insertions(+), 13 deletions(-)
 
-How much sense does it make to apply this single patch without the 
-previous x32 infrastructure changes?
-
--- 
-Jiri Kosina
-SUSE Labs
+diff --git a/arch/alpha/include/asm/pci.h b/arch/alpha/include/asm/pci.h
+index 28d0497..6a3fe07 100644
+--- a/arch/alpha/include/asm/pci.h
++++ b/arch/alpha/include/asm/pci.h
+@@ -7,6 +7,7 @@
+ #include <linux/dma-mapping.h>
+ #include <asm/scatterlist.h>
+ #include <asm/machvec.h>
++#include <asm-generic/pci-bridge.h>
+ 
+ /*
+  * The following structure is used to manage multiple PCI busses.
+diff --git a/arch/alpha/kernel/pci.c b/arch/alpha/kernel/pci.c
+index 8c723c1..3a5cdf2 100644
+--- a/arch/alpha/kernel/pci.c
++++ b/arch/alpha/kernel/pci.c
+@@ -43,12 +43,10 @@ const char *const pci_mem_names[] = {
+ 
+ const char pci_hae0_name[] = "HAE0";
+ 
+-/* Indicate whether we respect the PCI setup left by console. */
+ /*
+- * Make this long-lived  so that we know when shutting down
+- * whether we probed only or not.
++ * If PCI_PROBE_ONLY in pci_flags is set, we don't change any PCI resource
++ * assignments.
+  */
+-int pci_probe_only;
+ 
+ /*
+  * The PCI controller list.
+@@ -215,7 +213,7 @@ pdev_save_srm_config(struct pci_dev *dev)
+ 	struct pdev_srm_saved_conf *tmp;
+ 	static int printed = 0;
+ 
+-	if (!alpha_using_srm || pci_probe_only)
++	if (!alpha_using_srm || pci_has_flag(PCI_PROBE_ONLY))
+ 		return;
+ 
+ 	if (!printed) {
+@@ -242,7 +240,7 @@ pci_restore_srm_config(void)
+ 	struct pdev_srm_saved_conf *tmp;
+ 
+ 	/* No need to restore if probed only. */
+-	if (pci_probe_only)
++	if (pci_has_flag(PCI_PROBE_ONLY))
+ 		return;
+ 
+ 	/* Restore SRM config. */
+@@ -283,7 +281,7 @@ pcibios_fixup_bus(struct pci_bus *bus)
+ {
+ 	struct pci_dev *dev = bus->self;
+ 
+-	if (pci_probe_only && dev &&
++	if (pci_has_flag(PCI_PROBE_ONLY) && dev &&
+  		   (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
+  		pci_read_bridge_bases(bus);
+  		pcibios_fixup_device_resources(dev, bus);
+@@ -374,7 +372,8 @@ pcibios_claim_one_bus(struct pci_bus *b)
+ 
+ 			if (r->parent || !r->start || !r->flags)
+ 				continue;
+-			if (pci_probe_only || (r->flags & IORESOURCE_PCI_FIXED))
++			if (pci_has_flag(PCI_PROBE_ONLY) ||
++			    (r->flags & IORESOURCE_PCI_FIXED))
+ 				pci_claim_resource(dev, i);
+ 		}
+ 	}
+diff --git a/arch/alpha/kernel/pci_impl.h b/arch/alpha/kernel/pci_impl.h
+index 85457b2..2b0ac42 100644
+--- a/arch/alpha/kernel/pci_impl.h
++++ b/arch/alpha/kernel/pci_impl.h
+@@ -173,9 +173,6 @@ extern void pci_restore_srm_config(void);
+ extern struct pci_controller *hose_head, **hose_tail;
+ extern struct pci_controller *pci_isa_hose;
+ 
+-/* Indicate that we trust the console to configure things properly.  */
+-extern int pci_probe_only;
+-
+ extern unsigned long alpha_agpgart_size;
+ 
+ extern void common_init_pci(void);
+diff --git a/arch/alpha/kernel/sys_marvel.c b/arch/alpha/kernel/sys_marvel.c
+index 95cfc83..fc8b125 100644
+--- a/arch/alpha/kernel/sys_marvel.c
++++ b/arch/alpha/kernel/sys_marvel.c
+@@ -384,7 +384,8 @@ marvel_init_pci(void)
+ 
+ 	marvel_register_error_handlers();
+ 
+-	pci_probe_only = 1;
++	/* Indicate that we trust the console to configure things properly */
++	pci_set_flags(PCI_PROBE_ONLY);
+ 	common_init_pci();
+ 	locate_and_init_vga(NULL);
+ 
+diff --git a/arch/alpha/kernel/sys_titan.c b/arch/alpha/kernel/sys_titan.c
+index f47b30a..b8eafa0 100644
+--- a/arch/alpha/kernel/sys_titan.c
++++ b/arch/alpha/kernel/sys_titan.c
+@@ -331,7 +331,8 @@ titan_init_pci(void)
+  	 */
+  	titan_late_init();
+  
+-	pci_probe_only = 1;
++	/* Indicate that we trust the console to configure things properly */
++	pci_set_flags(PCI_PROBE_ONLY);
+ 	common_init_pci();
+ 	SMC669_Init(0);
+ 	locate_and_init_vga(NULL);
 
