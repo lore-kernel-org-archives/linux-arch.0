@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38360 "EHLO gate.crashing.org"
+Received: from gate.crashing.org ([63.228.1.57]:38367 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755043Ab2BVVlw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Feb 2012 16:41:52 -0500
-Message-ID: <1329946899.20389.9.camel@pasglop>
+	id S1755043Ab2BVVl6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Feb 2012 16:41:58 -0500
+Message-ID: <1329946909.20389.10.camel@pasglop>
 Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with
  pci_flags
 From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu, 23 Feb 2012 08:41:39 +1100
+Date: Thu, 23 Feb 2012 08:41:49 +1100
 In-Reply-To: <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 	 <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
@@ -17,29 +17,28 @@ Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Olof Johansson <olof@lixom.net>
-Message-ID: <20120222214139.hPEn8G2m6aAzZ6GFml7f6SZplRqAC4dZmigC3aGHrhA@z>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20120222214149.9WgNYgFDBXAhX3f393oV_0ytMnKwkMmhSz0xReLiOiQ@z>
 
 On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
->  int maple_pci_get_legacy_ide_irq(struct pci_dev *pdev, int channel)
-> diff --git a/arch/powerpc/platforms/pasemi/pci.c
-> b/arch/powerpc/platforms/pasemi/pci.c
-> index b6a0ec4..b27d886 100644
-> --- a/arch/powerpc/platforms/pasemi/pci.c
-> +++ b/arch/powerpc/platforms/pasemi/pci.c
-> @@ -231,7 +231,7 @@ void __init pas_pci_init(void)
->         pci_devs_phb_init();
->  
->         /* Use the common resource allocation mechanism */
-> -       pci_probe_only = 1;
-> +       pci_add_flags(PCI_PROBE_ONLY);
->  }
+> We already use pci_flags, so this just sets pci_flags directly and removes
+> the intermediate step of figuring out pci_probe_only, then using it to set
+> pci_flags.
 
-Olof, do you remember why you used to set that on pasemi ?
+Ah yes, those flags are now common indeed.
 
-I would have expected it to be clear, so the kernel can re-assign things
-if needed. We really only want it set for pseries because of the
-hypervisor being a PITA :-)
+> The PCI core provides a pci_flags definition (currently __weak), so drop
+> the powerpc definitions in favor of that.  Note that we must set the ppc64
+> default (PCI_PROBE_ONLY set) in the 64-bit setup_arch() before calling
+> the platform .setup_arch() method, which may override the default.
+
+Ah wait, I have a patch about to hit -next that flips the ppc64
+default...
+
+Maybe it's easier if you just pick it up and stick it in your series,
+that will avoid integration clashes..
+
+http://patchwork.ozlabs.org/patch/141225/
 
 Cheers,
 Ben.
