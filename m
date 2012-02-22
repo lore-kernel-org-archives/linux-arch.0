@@ -1,67 +1,87 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v10 05/11] seccomp: add system call filtering using BPF
-Date: Wed, 22 Feb 2012 14:01:09 -0600
-Message-ID: <CABqD9hZjpxE4V3cMSNYbECbPDMHyXfgFTr+Y3_fv20MivqQJ-w@mail.gmail.com>
-References: <1329845435-2313-1-git-send-email-wad@chromium.org>
-	<1329845435-2313-5-git-send-email-wad@chromium.org>
-	<38d58caa17befe422065efe5dc451a34.squirrel@webmail.greenhost.nl>
-	<CABqD9hYTLNrQKzYiRV6yN-z_mYyfPR=3W1P6nC+VmYmFGE1vQg@mail.gmail.com>
-	<4F4547C6.8050001@zytor.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 02/30] x86-64: Use explicit sizes in sigcontext.h, prepare for x32
+Date: Wed, 22 Feb 2012 21:23:38 +0000
+Message-ID: <201202222123.38816.arnd@arndb.de>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <201202221222.58399.arnd@arndb.de> <4F453086.8030602@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <4F4547C6.8050001@zytor.com>
-Sender: linux-doc-owner@vger.kernel.org
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:51177 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752884Ab2BVVYZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 16:24:25 -0500
+In-Reply-To: <4F453086.8030602@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com
 
-On Wed, Feb 22, 2012 at 1:53 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 02/22/2012 11:47 AM, Will Drewry wrote:
->>>
->>> I highly disagree with every filter having to check the mode: Filte=
-rs that
->>> don't check the arch on e.g. x86 are buggy, so they have to check i=
-t, even
->>> if it's a 32-bit or 64-bit only system, the filters can't know that=
- and
->>> needs to check the arch at every syscall entry. All other info in t=
-he data
->>> depends on the arch, because of this there isn't much code to share=
- between
->>> the two archs, so you can as well have one filter for each arch.
->>>
->>> Alternative approach: Tell the arch at filter install time and only=
- run the
->>> filters with the same arch as the current system call. If no filter=
-s are run,
->>> deny the systemcall.
->>
->> This was roughly how I first implemented compat and non-compat
->> support. =A0It causes some implicit behavior across inheritance that=
- is
->> not nice though.
->>
->
-> This is trivially doable at the BPF level, right? =A0Just make this t=
-he
-> first instruction in the program (either deny or jump to a separate
-> program branch)... and then there is still "one program" without any
-> weird inheritance issues?
+On Wednesday 22 February 2012, H. Peter Anvin wrote:
+> On 02/22/2012 04:22 AM, Arnd Bergmann wrote:
+> > On Monday 20 February 2012, H. Peter Anvin wrote:
+> >> We are using __u64 as x86-32 compatible since we are sharing most of the
+> >> really complex path (like ioctl) with i386 much more so than x86-64.  So
+> >> it is defined in userspace as:
+> >>
+> >> typedef unsigned long long __u64 __attribute__((aligned(4)));
+> >>
+> >> __aligned_u64 obviously is naturally aligned, which matches uint64_t is
+> >> userspace.
+> > 
+> > Has someone audited the interfaces to check if there are data structures that
+> > use a plain signed or unsigned "long long" instead of __s64/__u64 in places
+> > where i386 differs from the other compat implementations?
+> > 
+> > I found DRM_IOCTL_UPDATE_DRAW, but there could be more like this one.
+> > 
+> 
+> Has someone audited every single ioctl in the kernel?  Definitely not,
+> which is why x32 is marked EXPERIMENTAL.  I think it is still time for
+> this work to switch to happening in the upstream, however.
 
-Exactly, and that's what the patch does now (after your feedback :)
+Depends on how you want to do it. In some cases, the easiest answer
+would be to change the data structure to use __u64 and be compatible
+with i386. Once there are distros built using data structure with
+padding around a long long, you have to use a run-time conditional
+in the compat handler.
 
-ld arch
-je arch, 1, 0
-ret SECCOMP_RET_KILL
-<rest of bpf program>
+I'd say we should fix at least the ones that are easy to spot because
+they already use compat_u64 or have an #ifdef CONFIG_X86_64 in compat
+code. I've looked at everything I could find that fits into that category
+and found only two locations. My expectation is that all other data
+structures that would fall into this category are already broken
+for 32 bit emulation on x86.
 
-At this point, I don't think it makes sense to do it a different way
-than just in the BPF program even if it does mean leaving out the
-check could leave the program open to compat-style bugs.  At least a
-shared library and/or good practices should be able to catch that
-error.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-thanks!
-will
+diff --git a/include/drm/drm.h b/include/drm/drm.h
+index 49d94ed..73b7c33 100644
+--- a/include/drm/drm.h
++++ b/include/drm/drm.h
+@@ -438,7 +438,7 @@ struct drm_update_draw {
+ 	drm_drawable_t handle;
+ 	unsigned int type;
+ 	unsigned int num;
+-	unsigned long long data;
++	__u64 data;
+ };
+ 
+ /**
+diff --git a/include/sound/asound.h b/include/sound/asound.h
+index a2e4ff5..a17e96c 100644
+--- a/include/sound/asound.h
++++ b/include/sound/asound.h
+@@ -824,8 +824,8 @@ struct snd_ctl_elem_value {
+ 			long *value_ptr;	/* obsoleted */
+ 		} integer;
+ 		union {
+-			long long value[64];
+-			long long *value_ptr;	/* obsoleted */
++			__s64 value[64];
++			__s64 *value_ptr;	/* obsoleted */
+ 		} integer64;
+ 		union {
+ 			unsigned int item[128];
+	Arnd
