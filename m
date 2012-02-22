@@ -1,46 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38367 "EHLO gate.crashing.org"
+Received: from terminus.zytor.com ([198.137.202.10]:52699 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755043Ab2BVVl6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Feb 2012 16:41:58 -0500
-Message-ID: <1329946909.20389.10.camel@pasglop>
-Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with
- pci_flags
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu, 23 Feb 2012 08:41:49 +1100
-In-Reply-To: <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
-References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
-	 <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
-Content-Type: text/plain; charset="UTF-8"
+	id S1755387Ab2BVVzj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Feb 2012 16:55:39 -0500
+Message-ID: <4F45644B.2070904@zytor.com>
+Date: Wed, 22 Feb 2012 13:55:23 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 02/30] x86-64: Use explicit sizes in sigcontext.h, prepare
+ for x32
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <201202221222.58399.arnd@arndb.de> <4F453086.8030602@zytor.com> <201202222123.38816.arnd@arndb.de>
+In-Reply-To: <201202222123.38816.arnd@arndb.de>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20120222214149.9WgNYgFDBXAhX3f393oV_0ytMnKwkMmhSz0xReLiOiQ@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com
+Message-ID: <20120222215523.l4Pr5qpR30ECRU4ACS6gWTDaC9bIcuZsITUSIHu4JOo@z>
 
-On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
-> We already use pci_flags, so this just sets pci_flags directly and removes
-> the intermediate step of figuring out pci_probe_only, then using it to set
-> pci_flags.
+On 02/22/2012 01:23 PM, Arnd Bergmann wrote:
+> 
+> Depends on how you want to do it. In some cases, the easiest answer
+> would be to change the data structure to use __u64 and be compatible
+> with i386. Once there are distros built using data structure with
+> padding around a long long, you have to use a run-time conditional
+> in the compat handler.
+> 
 
-Ah yes, those flags are now common indeed.
+That we'd like to avoid, but as you said, they'd be broken or might
+already be broken.
 
-> The PCI core provides a pci_flags definition (currently __weak), so drop
-> the powerpc definitions in favor of that.  Note that we must set the ppc64
-> default (PCI_PROBE_ONLY set) in the 64-bit setup_arch() before calling
-> the platform .setup_arch() method, which may override the default.
+> I'd say we should fix at least the ones that are easy to spot because
+> they already use compat_u64 or have an #ifdef CONFIG_X86_64 in compat
+> code. I've looked at everything I could find that fits into that category
+> and found only two locations. My expectation is that all other data
+> structures that would fall into this category are already broken
+> for 32 bit emulation on x86.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> diff --git a/include/drm/drm.h b/include/drm/drm.h
+> index 49d94ed..73b7c33 100644
+> --- a/include/drm/drm.h
+> +++ b/include/drm/drm.h
+> @@ -438,7 +438,7 @@ struct drm_update_draw {
+>  	drm_drawable_t handle;
+>  	unsigned int type;
+>  	unsigned int num;
+> -	unsigned long long data;
+> +	__u64 data;
+>  };
+>  
+>  /**
+> diff --git a/include/sound/asound.h b/include/sound/asound.h
+> index a2e4ff5..a17e96c 100644
+> --- a/include/sound/asound.h
+> +++ b/include/sound/asound.h
+> @@ -824,8 +824,8 @@ struct snd_ctl_elem_value {
+>  			long *value_ptr;	/* obsoleted */
+>  		} integer;
+>  		union {
+> -			long long value[64];
+> -			long long *value_ptr;	/* obsoleted */
+> +			__s64 value[64];
+> +			__s64 *value_ptr;	/* obsoleted */
+>  		} integer64;
+>  		union {
+>  			unsigned int item[128];
+> 	Arnd
 
-Ah wait, I have a patch about to hit -next that flips the ppc64
-default...
+Right, those are good starts.
 
-Maybe it's easier if you just pick it up and stick it in your series,
-that will avoid integration clashes..
+	-hpa
 
-http://patchwork.ozlabs.org/patch/141225/
-
-Cheers,
-Ben.
-
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
 
