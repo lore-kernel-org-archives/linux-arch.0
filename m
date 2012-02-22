@@ -1,49 +1,53 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v1 01/11] PCI: make pci_flags always available
-Date: Wed, 22 Feb 2012 11:19:07 -0700
-Message-ID: <20120222181907.27513.95239.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v1 02/11] PCI: add pci_clear_flags()
+Date: Wed, 22 Feb 2012 11:19:12 -0700
+Message-ID: <20120222181912.27513.47630.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fa0-f74.google.com ([209.85.161.74]:42353 "EHLO
-	mail-fa0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751439Ab2BVSTJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 13:19:09 -0500
-Received: by faaa19 with SMTP id a19so19160faa.1
-        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 10:19:08 -0800 (PST)
+Received: from mail-gx0-f202.google.com ([209.85.161.202]:63691 "EHLO
+	mail-gx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753270Ab2BVSTN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 13:19:13 -0500
+Received: by ggnp1 with SMTP id p1so44414ggn.1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 10:19:12 -0800 (PST)
 In-Reply-To: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 
-If we move resource assignment functions into the core, we'll still
-need a way for architectures to prevent reassignment, e.g., the
-"pci_probe_only" functionality, and we'll need a generic, always
-available way the core can test for that.  The "pci_flags"
-arrangement used by several architectures seems like a convenient
-way to do this.
+Add a pci_clear_flags() for cases when we statically initialize
+pci_flags, then decide to clear things out later.
 
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/setup-bus.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ include/asm-generic/pci-bridge.h |    6 ++++++
+ 1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
-index 86b69f85..7b7d7e9 100644
---- a/drivers/pci/setup-bus.c
-+++ b/drivers/pci/setup-bus.c
-@@ -25,8 +25,11 @@
- #include <linux/ioport.h>
- #include <linux/cache.h>
- #include <linux/slab.h>
-+#include <asm-generic/pci-bridge.h>
- #include "pci.h"
+diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
+index 4a5aca2..a5b5d5a 100644
+--- a/include/asm-generic/pci-bridge.h
++++ b/include/asm-generic/pci-bridge.h
+@@ -45,6 +45,11 @@ static inline void pci_add_flags(int flags)
+ 	pci_flags |= flags;
+ }
  
-+unsigned int __weak pci_flags;
++static inline void pci_clear_flags(int flags)
++{
++	pci_flags &= ~flags;
++}
 +
- struct resource_list_x {
- 	struct resource_list_x *next;
- 	struct resource *res;
+ static inline int pci_has_flag(int flag)
+ {
+ 	return pci_flags & flag;
+@@ -52,6 +57,7 @@ static inline int pci_has_flag(int flag)
+ #else
+ static inline void pci_set_flags(int flags) { }
+ static inline void pci_add_flags(int flags) { }
++static inline void pci_clear_flags(int flags) { }
+ static inline int pci_has_flag(int flag)
+ {
+ 	return 0;
