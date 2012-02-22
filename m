@@ -1,64 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:47252 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751871Ab2BVUBM convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Feb 2012 15:01:12 -0500
-MIME-Version: 1.0
-In-Reply-To: <4F4547C6.8050001@zytor.com>
-References: <1329845435-2313-1-git-send-email-wad@chromium.org>
-	<1329845435-2313-5-git-send-email-wad@chromium.org>
-	<38d58caa17befe422065efe5dc451a34.squirrel@webmail.greenhost.nl>
-	<CABqD9hYTLNrQKzYiRV6yN-z_mYyfPR=3W1P6nC+VmYmFGE1vQg@mail.gmail.com>
-	<4F4547C6.8050001@zytor.com>
-Date: Wed, 22 Feb 2012 14:01:09 -0600
-Message-ID: <CABqD9hZjpxE4V3cMSNYbECbPDMHyXfgFTr+Y3_fv20MivqQJ-w@mail.gmail.com>
-Subject: Re: [PATCH v10 05/11] seccomp: add system call filtering using BPF
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from gate.crashing.org ([63.228.1.57]:38360 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755043Ab2BVVlw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Feb 2012 16:41:52 -0500
+Message-ID: <1329946899.20389.9.camel@pasglop>
+Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with
+ pci_flags
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Thu, 23 Feb 2012 08:41:39 +1100
+In-Reply-To: <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
+References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
+	 <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
-Message-ID: <20120222200109.QpTujowAhVsjav0QHsrleY7goFXDvpmA3AUhW8iLbQE@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Olof Johansson <olof@lixom.net>
+Message-ID: <20120222214139.hPEn8G2m6aAzZ6GFml7f6SZplRqAC4dZmigC3aGHrhA@z>
 
-On Wed, Feb 22, 2012 at 1:53 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 02/22/2012 11:47 AM, Will Drewry wrote:
->>>
->>> I highly disagree with every filter having to check the mode: Filters that
->>> don't check the arch on e.g. x86 are buggy, so they have to check it, even
->>> if it's a 32-bit or 64-bit only system, the filters can't know that and
->>> needs to check the arch at every syscall entry. All other info in the data
->>> depends on the arch, because of this there isn't much code to share between
->>> the two archs, so you can as well have one filter for each arch.
->>>
->>> Alternative approach: Tell the arch at filter install time and only run the
->>> filters with the same arch as the current system call. If no filters are run,
->>> deny the systemcall.
->>
->> This was roughly how I first implemented compat and non-compat
->> support.  It causes some implicit behavior across inheritance that is
->> not nice though.
->>
->
-> This is trivially doable at the BPF level, right?  Just make this the
-> first instruction in the program (either deny or jump to a separate
-> program branch)... and then there is still "one program" without any
-> weird inheritance issues?
+On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
+>  int maple_pci_get_legacy_ide_irq(struct pci_dev *pdev, int channel)
+> diff --git a/arch/powerpc/platforms/pasemi/pci.c
+> b/arch/powerpc/platforms/pasemi/pci.c
+> index b6a0ec4..b27d886 100644
+> --- a/arch/powerpc/platforms/pasemi/pci.c
+> +++ b/arch/powerpc/platforms/pasemi/pci.c
+> @@ -231,7 +231,7 @@ void __init pas_pci_init(void)
+>         pci_devs_phb_init();
+>  
+>         /* Use the common resource allocation mechanism */
+> -       pci_probe_only = 1;
+> +       pci_add_flags(PCI_PROBE_ONLY);
+>  }
 
-Exactly, and that's what the patch does now (after your feedback :)
+Olof, do you remember why you used to set that on pasemi ?
 
-ld arch
-je arch, 1, 0
-ret SECCOMP_RET_KILL
-<rest of bpf program>
+I would have expected it to be clear, so the kernel can re-assign things
+if needed. We really only want it set for pseries because of the
+hypervisor being a PITA :-)
 
-At this point, I don't think it makes sense to do it a different way
-than just in the BPF program even if it does mean leaving out the
-check could leave the program open to compat-style bugs.  At least a
-shared library and/or good practices should be able to catch that
-error.
+Cheers,
+Ben.
 
-thanks!
-will
+
