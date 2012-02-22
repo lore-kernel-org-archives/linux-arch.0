@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vx0-f202.google.com ([209.85.220.202]:45953 "EHLO
-	mail-vx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752209Ab2BVSYt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 13:24:49 -0500
-Received: by vcbf1 with SMTP id f1so41264vcb.1
-        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 10:24:48 -0800 (PST)
-Subject: [PATCH v1 08/11] mips/PCI: removed unused pci_probe configurability
+Received: from mail-yw0-f74.google.com ([209.85.213.74]:47638 "EHLO
+	mail-yw0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752244Ab2BVS0L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 13:26:11 -0500
+Received: by yhgm50 with SMTP id m50so49336yhg.1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 10:26:10 -0800 (PST)
+Subject: [PATCH v1 04/11] arm/PCI: remove arch pci_flags definition
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 22 Feb 2012 11:19:43 -0700
-Message-ID: <20120222181943.27513.19771.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 22 Feb 2012 11:19:22 -0700
+Message-ID: <20120222181922.27513.3206.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,43 +17,57 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20120222181943.cGi46tm1X08t1CRsme4bAUf3Xav0z8hROCOoO27Rbto@z>
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Rob Herring <rob.herring@calxeda.com>
+Message-ID: <20120222181922.s2CxIEL3YhWhUwLMi8vW_faXjilfiI7_TbmwJHw-gis@z>
 
-We never assign anything other than PCI_ASSIGN_ALL_BUSSES to pci_probe,
-so just remove the indirection.  If configurability is required in the
-future, please use the pci_flags/PCI_REASSIGN_ALL_BUS functionality
-as is done for powerpc.
+The PCI core provides a pci_flags definition (currently __weak), so drop
+the arm definition in favor of that.
 
-CC: Ralf Baechle <ralf@linux-mips.org>
-CC: linux-mips@linux-mips.org
+We EXPORT_SYMBOL(pci_flags) as arm did previously.  I'm dubious about
+this: no other architecture exports it, and I didn't see any modules in
+the tree that reference it.
+
+CC: Rob Herring <rob.herring@calxeda.com>
+CC: Russell King <linux@arm.linux.org.uk>
+CC: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/mips/pci/pci.c |    6 +-----
- 1 files changed, 1 insertions(+), 5 deletions(-)
+ arch/arm/kernel/bios32.c |    2 ++
+ arch/arm/mm/iomap.c      |    3 ---
+ 2 files changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index 2a11045..19f6d19 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -24,10 +24,6 @@
-  * assignments.
-  */
+diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+index f58ba35..f3fd52b 100644
+--- a/arch/arm/kernel/bios32.c
++++ b/arch/arm/kernel/bios32.c
+@@ -525,6 +525,7 @@ void __init pci_common_init(struct hw_pci *hw)
  
--#define PCI_ASSIGN_ALL_BUSSES	1
--
--unsigned int pci_probe = PCI_ASSIGN_ALL_BUSSES;
--
- /*
-  * The PCI controller list.
-  */
-@@ -238,7 +234,7 @@ static int pcibios_enable_resources(struct pci_dev *dev, int mask)
+ 	INIT_LIST_HEAD(&hw->buses);
  
- unsigned int pcibios_assign_all_busses(void)
- {
--	return (pci_probe & PCI_ASSIGN_ALL_BUSSES) ? 1 : 0;
-+	return 1;
++	pci_add_flags(PCI_REASSIGN_ALL_RSRC);
+ 	if (hw->preinit)
+ 		hw->preinit();
+ 	pcibios_init_hw(hw);
+@@ -559,6 +560,7 @@ void __init pci_common_init(struct hw_pci *hw)
+ 		pci_bus_add_devices(bus);
+ 	}
  }
++EXPORT_SYMBOL(pci_flags);
  
- int pcibios_enable_device(struct pci_dev *dev, int mask)
+ #ifndef CONFIG_PCI_HOST_ITE8152
+ void pcibios_set_master(struct pci_dev *dev)
+diff --git a/arch/arm/mm/iomap.c b/arch/arm/mm/iomap.c
+index e62956e..4614208 100644
+--- a/arch/arm/mm/iomap.c
++++ b/arch/arm/mm/iomap.c
+@@ -32,9 +32,6 @@ EXPORT_SYMBOL(pcibios_min_io);
+ unsigned long pcibios_min_mem = 0x01000000;
+ EXPORT_SYMBOL(pcibios_min_mem);
+ 
+-unsigned int pci_flags = PCI_REASSIGN_ALL_RSRC;
+-EXPORT_SYMBOL(pci_flags);
+-
+ void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
+ {
+ 	if ((unsigned long)addr >= VMALLOC_START &&
 
