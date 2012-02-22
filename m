@@ -1,50 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:44162 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752235Ab2BVWrV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Feb 2012 17:47:21 -0500
-Received: by wgbdt10 with SMTP id dt10so478016wgb.1
-        for <linux-arch@vger.kernel.org>; Wed, 22 Feb 2012 14:47:20 -0800 (PST)
+Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:49053 "EHLO
+	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751207Ab2BVXjR convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Feb 2012 18:39:17 -0500
 MIME-Version: 1.0
-In-Reply-To: <1329946909.20389.10.camel@pasglop>
-References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
- <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com> <1329946909.20389.10.camel@pasglop>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 22 Feb 2012 14:47:00 -0800
-Message-ID: <CAErSpo7bMNbZgEZFmezJwTvGGoRsCe-qZavBJZS_q4DmnNAE7A@mail.gmail.com>
-Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with pci_flags
+In-Reply-To: <CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org>
+ <1329845435-2313-7-git-send-email-wad@chromium.org> <9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl>
+ <CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
+From: Andrew Lutomirski <luto@mit.edu>
+Date: Wed, 22 Feb 2012 15:38:57 -0800
+Message-ID: <CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com>
+Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it synchronous.
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20120222224700.lq87lcKARoeLm3iCDWKlBoQJlEbUcq9W-Z_Rjt5e57Q@z>
+To: Will Drewry <wad@chromium.org>
+Cc: Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, keescook@chromium.org
+Message-ID: <20120222233857.egT1Yfk-MO9XQDQKQGbGiCSS0ZG9D0A1f1t8BMVoPAQ@z>
 
-On Wed, Feb 22, 2012 at 1:41 PM, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
-> On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
->> We already use pci_flags, so this just sets pci_flags directly and removes
->> the intermediate step of figuring out pci_probe_only, then using it to set
->> pci_flags.
+On Wed, Feb 22, 2012 at 11:48 AM, Will Drewry <wad@chromium.org> wrote:
+> On Wed, Feb 22, 2012 at 2:34 AM, Indan Zupancic <indan@nul.nu> wrote:
+>> On Tue, February 21, 2012 18:30, Will Drewry wrote:
+>>> This change enables SIGSYS, defines _sigfields._sigsys, and adds
+>>> x86 (compat) arch support.  _sigsys defines fields which allow
+>>> a signal handler to receive the triggering system call number,
+>>> the relevant AUDIT_ARCH_* value for that number, and the address
+>>> of the callsite.
+>>>
+>>> To ensure that SIGSYS delivery occurs on return from the triggering
+>>> system call, SIGSYS is added to the SYNCHRONOUS_MASK macro.  I'm
+>>> this is enough to ensure it will be synchronous or if it is explicitly
+>>> required to ensure an immediate delivery of the signal upon return from
+>>> the blocked system call.
+>>>
+>>> The first consumer of SIGSYS would be seccomp filter.  In particular,
+>>> a filter program could specify a new return value, SECCOMP_RET_TRAP,
+>>> which would result in the system call being denied and the calling
+>>> thread signaled.  This also means that implementing arch-specific
+>>> support can be dependent upon HAVE_ARCH_SECCOMP_FILTER.
+>>
+>> I think others said this is useful, but I don't see how. Easier
+>> debugging compared to checking return values?
+>>
+>> I suppose SIGSYS can be blocked, so there is no guarantee the process
+>> will be killed.
 >
-> Ah yes, those flags are now common indeed.
->
->> The PCI core provides a pci_flags definition (currently __weak), so drop
->> the powerpc definitions in favor of that.  Note that we must set the ppc64
->> default (PCI_PROBE_ONLY set) in the 64-bit setup_arch() before calling
->> the platform .setup_arch() method, which may override the default.
->
-> Ah wait, I have a patch about to hit -next that flips the ppc64
-> default...
->
-> Maybe it's easier if you just pick it up and stick it in your series,
-> that will avoid integration clashes..
->
-> http://patchwork.ozlabs.org/patch/141225/
+> Yeah, this allows for in-process system call emulation, if desired, or
+> for the process to dump core/etc.  With RET_ERRNO or RET_KILL, there
+> isn't any feedback to the system about the state of the process.  Kill
+> populates audit_seccomp and dmesg, but if the application
+> user/developer isn't the system admin, installing audit bits or
+> checking system logs seems onerous.
 
-Sure, I'll pick up that patch and repost the series.  I'll wait until
-tomorrow or so in case anybody else has comments.
+[Warning: this suggestion may be bad for any number of reasons]
 
-Thanks,
-  Bjorn
+I wonder if it would be helpful to change the semantics of RET_KILL
+slightly.  Rather than killing via do_exit, what if it killed via a
+forcibly-fatal SIGSYS?  That way, the parent's waitid() / SIGCHLD
+would indicate CLD_KILLED with si_status == SIGSYS.  The parent could
+check that and report that the child was probably compromised.
+
+--Andy
