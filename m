@@ -1,219 +1,122 @@
 From: Jesse Barnes <jbarnes@virtuousgeek.org>
-Subject: Re: [PATCH 06/24] PCI: Add busn_res tracking in core
-Date: Thu, 23 Feb 2012 12:20:23 -0800
-Message-ID: <20120223122023.4a196fff@jbarnes-desktop>
+Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
+Date: Thu, 23 Feb 2012 12:25:36 -0800
+Message-ID: <20120223122536.6a2a7a6b@jbarnes-desktop>
 References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
-	<1328425088-6562-7-git-send-email-yinghai@kernel.org>
-	<CAErSpo4cd2TR4207RUk53B+jDK_DONduo8pU8EWWOgdGeg7CeQ@mail.gmail.com>
-	<CAE9FiQWBLpK-Tzmvf1dHeub4Yy2ziRBpnzYuEdBvdJASnbDqYw@mail.gmail.com>
+	<1328425088-6562-10-git-send-email-yinghai@kernel.org>
+	<CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
+	<1328738567.2903.45.camel@pasglop>
+	<CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
+	<1328823358.2903.77.camel@pasglop>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=PGP-SHA1;
- boundary="Sig_/d6OEr0w9Vs1nzEWkbL0/zfJ"; protocol="application/pgp-signature"
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAE9FiQWBLpK-Tzmvf1dHeub4Yy2ziRBpnzYuEdBvdJASnbDqYw@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+ boundary="Sig_/EH_1rNzz=+bF6q7Uxt/U3oK"; protocol="application/pgp-signature"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oproxy6-pub.bluehost.com ([67.222.54.6]:51479 "HELO
+	oproxy6-pub.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1756844Ab2BWUZo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 15:25:44 -0500
+In-Reply-To: <1328823358.2903.77.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Yinghai Lu <yinghai@kernel.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 
---Sig_/d6OEr0w9Vs1nzEWkbL0/zfJ
-Content-Type: text/plain; charset=UTF-8
+--Sig_/EH_1rNzz=+bF6q7Uxt/U3oK
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, 8 Feb 2012 09:26:52 -0800
-Yinghai Lu <yinghai@kernel.org> wrote:
+On Fri, 10 Feb 2012 08:35:58 +1100
+Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
 
-> On Wed, Feb 8, 2012 at 8:08 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> > On Sat, Feb 4, 2012 at 10:57 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> >> update pci_scan_root_bus, and pci_scan_bus to insert root bus busn into
-> >> iobusn_resource tree.
-> >>
-> >> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> >> ---
-> >> =C2=A0drivers/pci/probe.c =C2=A0| =C2=A0 30 ++++++++++++++++++++++++++=
-----
-> >> =C2=A0drivers/pci/remove.c | =C2=A0 =C2=A01 +
-> >> =C2=A0include/linux/pci.h =C2=A0| =C2=A0 =C2=A04 ++++
-> >> =C2=A03 files changed, 31 insertions(+), 4 deletions(-)
-> >>
-> >> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> >> index fabf9d0..cdd6e83 100644
-> >> --- a/drivers/pci/probe.c
-> >> +++ b/drivers/pci/probe.c
-> >> @@ -1667,8 +1667,9 @@ void pci_bus_release_busn_res(struct pci_bus *b)
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0res, ret ? "can not be" : "is");
-> >> =C2=A0}
-> >>
-> >> -struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, i=
-nt bus,
-> >> - =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 struct pci_ops *ops=
-, void *sysdata, struct list_head *resources)
-> >> +struct pci_bus * __devinit pci_scan_root_bus_max(struct device *paren=
-t, int bus,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 int bus_max, struct=
- pci_ops *ops, void *sysdata,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 struct list_head *r=
-esources)
-> >> =C2=A0{
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0struct pci_bus *b;
-> >>
-> >> @@ -1676,10 +1677,26 @@ struct pci_bus * __devinit pci_scan_root_bus(s=
-truct device *parent, int bus,
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0if (!b)
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0return NULL;
-> >>
-> >> + =C2=A0 =C2=A0 =C2=A0 pci_bus_insert_busn_res(b, bus, bus_max);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0b->subordinate =3D pci_scan_child_bus(b);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_bus_add_devices(b);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0return b;
-> >> =C2=A0}
-> >> +EXPORT_SYMBOL(pci_scan_root_bus_max);
-> >> +
-> >> +struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, i=
-nt bus,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 struct pci_ops *ops=
-, void *sysdata,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 struct list_head *r=
-esources)
-> >> +{
-> >> + =C2=A0 =C2=A0 =C2=A0 struct pci_bus *b;
-> >> +
-> >> + =C2=A0 =C2=A0 =C2=A0 b =3D pci_scan_root_bus_max(parent, bus, 255, o=
-ps, sysdata, resources);
-> >> +
-> >> + =C2=A0 =C2=A0 =C2=A0 if (b)
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 pci_bus_update_busn=
-_res_end(b, b->subordinate);
-> >> +
-> >> + =C2=A0 =C2=A0 =C2=A0 return b;
-> >> +}
-> >> =C2=A0EXPORT_SYMBOL(pci_scan_root_bus);
-> >>
-> >> =C2=A0/* Deprecated; use pci_scan_root_bus() instead */
-> >> @@ -1692,9 +1709,11 @@ struct pci_bus * __devinit pci_scan_bus_parente=
-d(struct device *parent,
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_add_resource(&resources, &ioport_resour=
-ce);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_add_resource(&resources, &iomem_resourc=
-e);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0b =3D pci_create_root_bus(parent, bus, ops,=
- sysdata, &resources);
-> >> - =C2=A0 =C2=A0 =C2=A0 if (b)
-> >> + =C2=A0 =C2=A0 =C2=A0 if (b) {
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 pci_bus_insert_busn=
-_res(b, bus, 255);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0b->subordinate =
-=3D pci_scan_child_bus(b);
-> >> - =C2=A0 =C2=A0 =C2=A0 else
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 pci_bus_update_busn=
-_res_end(b, b->subordinate);
-> >> + =C2=A0 =C2=A0 =C2=A0 } else
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_free_resour=
-ce_list(&resources);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0return b;
-> >> =C2=A0}
-> >> @@ -1710,7 +1729,10 @@ struct pci_bus * __devinit pci_scan_bus(int bus=
-, struct pci_ops *ops,
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_add_resource(&resources, &iomem_resourc=
-e);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0b =3D pci_create_root_bus(NULL, bus, ops, s=
-ysdata, &resources);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0if (b) {
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 pci_bus_insert_busn=
-_res(b, bus, 255);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0b->subordinate =
-=3D pci_scan_child_bus(b);
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 pci_bus_update_busn=
-_res_end(b, b->subordinate);
-> >> +
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_bus_add_dev=
-ices(b);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0} else {
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0pci_free_resour=
-ce_list(&resources);
-> >> diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
-> >> index 82f8ae5..5b679d2 100644
-> >> --- a/drivers/pci/remove.c
-> >> +++ b/drivers/pci/remove.c
-> >> @@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
-> >>
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0down_write(&pci_bus_sem);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0list_del(&pci_bus->node);
-> >> + =C2=A0 =C2=A0 =C2=A0 pci_bus_release_busn_res(pci_bus);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0up_write(&pci_bus_sem);
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0if (!pci_bus->is_added)
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0return;
-> >> diff --git a/include/linux/pci.h b/include/linux/pci.h
-> >> index 3da935c..d5b6786 100644
-> >> --- a/include/linux/pci.h
-> >> +++ b/include/linux/pci.h
-> >> @@ -668,6 +668,10 @@ struct pci_bus *pci_create_root_bus(struct device=
- *parent, int bus,
-> >> =C2=A0void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus=
-max);
-> >> =C2=A0void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-> >> =C2=A0void pci_bus_release_busn_res(struct pci_bus *b);
-> >> +struct pci_bus * __devinit pci_scan_root_bus_max(struct device *paren=
-t, int bus,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0int busmax, struct pci_ops *ops,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0void *sysdata,
-> >> + =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0struct list_head *resources);
-> >> =C2=A0struct pci_bus * __devinit pci_scan_root_bus(struct device *pare=
-nt, int bus,
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 struct pci_ops *ops, void *sysdata,
-> >> =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 struct list_head *resources);
-> >
-> > Now we have both pci_bus_insert_busn_res() and
-> > pci_scan_root_bus_max(). =C2=A0Why do we need both? =C2=A0I think it's =
-too much
-> > of a burden on architectures to expect them to understand both.
-> >
-> > Maybe some sample pseudo-code using both interfaces would help me
-> > understand what you expect a typical architecture to do.
+> On Thu, 2012-02-09 at 11:24 -0800, Bjorn Helgaas wrote:
+> > My point is that the interface between the arch and the PCI core
+> > should be simply the arch telling the core "this is the range of bus
+> > numbers you can use."  If the firmware doesn't give you the HW limits,
+> > that's the arch's problem.  If you want to assume 0..255 are
+> > available, again, that's the arch's decision.
+> >=20
+> > But the answer to the question "what bus numbers are available to me"
+> > depends only on the host bridge HW configuration.  It does not depend
+> > on what pci_scan_child_bus() found.  Therefore, I think we can come up
+> > with a design where pci_bus_update_busn_res_end() is unnecessary.
 >=20
-> We need to call pci_bus_insert_busn_res for root bus:
-> 1. after that bus is allocated (...) : that busn_res is in the bus struct.
-> 2. before pci_scan_child_bus
+> In an ideal world yes. In a world where there are reverse engineered
+> platforms on which we aren't 100% sure how thing actually work under the
+> hood and have the code just adapt on "what's there" (and try to fix it
+> up -sometimes-), thinks can get a bit murky :-)
+>=20
+> But yes, I see your point. As for what is the "correct" setting that
+> needs to be done so that the patch doesn't end up a regression for us,
+> I'll have to dig into some ancient HW to dbl check a few things. I hope
+> 0...255 will just work but I can't guarantee it.
+>=20
+> What I'll probably do is constraint the core to the values in
+> hose->min/max, and update selected platforms to put 0..255 in there when
+> I know for sure they can cope.
 
-I agree with Bjorn; at the very least this has a really bad name.  How
-are people supposed to know which function to call?  If it's just for
-the primary scan at init, then it should be named as such.  But ideally
-it would be inside the existing scan_root_bus...
+But I think the point is, can't we intiialize the busn resource after
+the first & last bus numbers have been determined?  E.g. rather than
+Yinghai's current:
++	pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
++
+ 	/* Get probe mode and perform scan */
+ 	mode =3D PCI_PROBE_NORMAL;
+ 	if (node && ppc_md.pci_probe_mode)
+@@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controlle=
+r *hose)
+ 		of_scan_bus(node, bus);
+ 	}
+=20
+-	if (mode =3D=3D PCI_PROBE_NORMAL)
++	if (mode =3D=3D PCI_PROBE_NORMAL) {
++		pci_bus_update_busn_res_end(bus, 255);
+ 		hose->last_busno =3D bus->subordinate =3D pci_scan_child_bus(bus);
++		pci_bus_update_busn_res_end(bus, bus->subordinate);
++	}
+
+we'd have something more like:
+
+ 	/* Get probe mode and perform scan */
+ 	mode =3D PCI_PROBE_NORMAL;
+ 	if (node && ppc_md.pci_probe_mode)
+@@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controlle=
+r *hose)
+ 		of_scan_bus(node, bus);
+ 	}
+=20
+	if (mode =3D=3D PCI_PROBE_NORMAL)
+ 		hose->last_busno =3D bus->subordinate =3D pci_scan_child_bus(bus);
+
++	pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
+
+since we should have the final bus range by then?  Setting the end to
+255 and then changing it again doesn't make sense; and definitely makes
+the code hard to follow.
 
 --=20
 Jesse Barnes, Intel Open Source Technology Center
 
---Sig_/d6OEr0w9Vs1nzEWkbL0/zfJ
+--Sig_/EH_1rNzz=+bF6q7Uxt/U3oK
 Content-Type: application/pgp-signature; name=signature.asc
 Content-Disposition: attachment; filename=signature.asc
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.11 (GNU/Linux)
 
-iQIcBAEBAgAGBQJPRp+HAAoJEIEoDkX4Qk9hY1kQAIV9PPIcReHWAdpVb4Y1zudg
-LsPnX/Kb8sc89HbrOYz4FUXpYb4uUK/FTIBiY1AO2VmYSt6DcO79h3p+dUMENodV
-3TDRAZK3Y2aClUCR+BA+fZV7WYmVSLiHob2+iXET6Qso7SfcSh0ZRfBBeOTyS2tG
-2IAieGYy4SWxKGgqqBQRbNKwlyusdbHveiwwlUQnPzX6j/ZjseBkpRS7tuHXri26
-pnIOQLWx7P41Quk+rK20oNeo+UxHwin08h8ErCPiA/Q62CCJo5RyzLxNrHgS6p79
-TWqwy2iNhBHowoEF3xjjaYmug8PJqU0CRv2txWRZqXew2wNjDaKoy2r1GuDeX1e4
-5+suQqt0hWbmTzNwCIs7QVks5guCs6hIKwcRRd0d/znubXit3Op+74Olc6NvTeQ6
-x5RUW3gXWL7/dZdJ7q83csDZRXjPZOoMx1Hfw69GVeNGoxsXZx59/XsxjWLgqeE9
-PKk3+rodqUQHjF2tkVbfVYF0G2AOlEv/dpoV/REL9d4tEjzQoa4iBVt/UlrF9wa9
-zHxCX0BXXY/3LcK7+hvspGe8qDuE0X1f3oR1Kr9kGvbig94f5KRhHCPztVEV+gU6
-/C6RMWrQOWZTKOJD5PezaYVfAfBb8PJca8u5oZB0KahRfEFqoN2fZPH7KLLNsid6
-qL9Tdk9bkB/ZlwDAngcA
-=20DN
+iQIcBAEBAgAGBQJPRqDAAAoJEIEoDkX4Qk9hm+cP/065v5yKJo5X/EGRaPYMdxMZ
+p0baPsakzhpnGlWdQRtG2uPe/fULxRxDwTyummq2WpdJGxmclwc3d5QFbzhjxnDC
+6dGtqIlEOy6uaDkJOmZnMBsHF8MGF6IPk5XPPGckploJTmbzhSEPqXlh1rFjH85M
+XyTrmAAq4zOxx+uIaVy7Ybk+hWDUfc0kAKXfjnWdBcNtLB+NCqOXpAHjQC5T90gi
+pnQrdu3FL67HtDtSDNMYoD2bOP4lSBMRNvE91jW4x15nqX5XF4Kx/H6Zf38iJLqz
+myowYRvG2nNOzRsqs1r6gLGnzPF/1+5GStzz+UqdAHMcwfYg6/yXpX3o312U+h5z
+ududWD1jYi6+F/ZqFmmLMdT0SeEEmVgoIbucdFd+q2+xYqvx3QBVuoEaSNaM+eg3
+t56RbLJbWrVQpEN6vrqQW5IPF5ddy0JrC6VuyYjMP0lhRF8OW3xnufvPvhTDFzie
+OEgoTiBVEXKtNONIIvz7GXNxQORh83tE0gaE573UTFpHL77sSibrSxVKU6ojMVA3
+5HlTXePke+Sy3aysw01OdivVVrSyph+JPUl4iR3Qx7rCPbU2dvNd33jLuXP3uKCg
+7UoIa8sMM8dVST4o0SixLORAVGivpQ89G5WTePUDtb3kjxWaIFuowl5LbMWJfaNr
+qU/DD5Oy07EY4ec2xlgr
+=jCti
 -----END PGP SIGNATURE-----
 
---Sig_/d6OEr0w9Vs1nzEWkbL0/zfJ--
+--Sig_/EH_1rNzz=+bF6q7Uxt/U3oK--
