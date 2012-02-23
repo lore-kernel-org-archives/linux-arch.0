@@ -1,41 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53311 "EHLO mail.zytor.com"
+Received: from terminus.zytor.com ([198.137.202.10]:53439 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752536Ab2BWAat (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Feb 2012 19:30:49 -0500
-Message-ID: <4F45887A.5010809@zytor.com>
-Date: Wed, 22 Feb 2012 16:29:46 -0800
+	id S1753413Ab2BWBHH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Feb 2012 20:07:07 -0500
+Message-ID: <4F459109.1060205@zytor.com>
+Date: Wed, 22 Feb 2012 17:06:17 -0800
 From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
 Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it synchronous.
-References: <1329845435-2313-1-git-send-email-wad@chromium.org> <1329845435-2313-7-git-send-email-wad@chromium.org> <9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl> <CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com> <CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com> <CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com> <CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com> <CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
-In-Reply-To: <CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org> <1329845435-2313-7-git-send-email-wad@chromium.org> <9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl> <CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com> <CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com> <CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com> <CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com> <CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com> <4F45887A.5010809@zytor.com> <CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
+In-Reply-To: <CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Drewry <wad@chromium.org>, Andrew Lutomirski <luto@mit.edu>, Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org
-Message-ID: <20120223002946.D9qimhfmKHkzv0dNPIKWZSgoLQhyVIvVYvbZJPTg8sY@z>
+To: Roland McGrath <mcgrathr@google.com>
+Cc: Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, Andrew Lutomirski <luto@mit.edu>, Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org
+Message-ID: <20120223010617.MVYvue6z1QMrs2l1U7NBQHYTQzwgYtjBosoKbQ8Sesw@z>
 
-On 02/22/2012 04:08 PM, Kees Cook wrote:
->>
->> Hrm, it might be possible to do_exit(SIGSYS) which would be both. It
->> looks like tsk->exit_code would be SIGSYS then, but I'll look a little
->> more closely to see what that'll actually do.
+On 02/22/2012 04:50 PM, Roland McGrath wrote:
+> On Wed, Feb 22, 2012 at 4:29 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+>> Can we really introduce force-kill semantics for a POSIX-defined signal?
+>> Other user space programs might use it for other purposes.
 > 
-> As long as there's no way it can get blocked, I'd be fine with that.
-> It would, actually, be better than SIGKILL because, as Andy said, it's
-> more distinguishable from other situations. I've long wanted a signal
-> to be used for "violated policy" that wasn't just a straight SIGKILL.
+> The semantics are based on how the signal was generated, not what signal
+> number it was.  The only thing that depends on the signal number is
+> SYNCHRONOUS_MASK, which just determines in which order pending signals are
+> dequeued (POSIX says it may be any order).  We only have that so your state
+> doesn't get unhelpfully warped to another signal handler entry point
+> (including fiddling the stack) before you dump core.
 > 
+> No use of SIGSYS is specified by POSIX at all, of course, since "system
+> call" is an implementation concept below the level POSIX specifies.
 
-Can we really introduce force-kill semantics for a POSIX-defined signal?
- Other user space programs might use it for other purposes.
+I meant whether or not a signal can be blocked/caught and the fact that
+the signal exists at all.
 
-I'm wondering if the right thing may be to introduce some variant of
-exit() which can return more information about a signal, including some
-kind of cause code for SIGKILL?
+Now I guess we could have "blockable" and "unblockable" SIGSYS, but that
+would seem to have its own set of issues...
 
 	-hpa
 
