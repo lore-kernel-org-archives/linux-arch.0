@@ -1,57 +1,90 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with pci_flags
-Date: Thu, 23 Feb 2012 10:49:07 -0800
-Message-ID: <CAErSpo6=ADAx0LPWQz-YGBm2opoKAMaPGDY6yqvkNY8riF9ZFQ@mail.gmail.com>
-References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
- <20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com> <1329946899.20389.9.camel@pasglop>
+From: Will Drewry <wad@chromium.org>
+Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it synchronous.
+Date: Thu, 23 Feb 2012 13:26:57 -0600
+Message-ID: <CABqD9hbsZTtkFzM_8rHqAWjZhiV0iWb6s1eMF9LriH-NybrorA@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org>
+	<1329845435-2313-7-git-send-email-wad@chromium.org>
+	<9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl>
+	<CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
+	<CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com>
+	<CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com>
+	<CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com>
+	<CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
+	<4F45887A.5010809@zytor.com>
+	<CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
+	<4F459109.1060205@zytor.com>
+	<CAB=4xhqndEw3tMPaUcdZh_jcjQcoK_=7GwOc5gVhnz5o_4eWzQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1329946899.20389.9.camel@pasglop>
-Sender: linux-pci-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Olof Johansson <olof@lixom.net>
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAB=4xhqndEw3tMPaUcdZh_jcjQcoK_=7GwOc5gVhnz5o_4eWzQ@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Roland McGrath <mcgrathr@google.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@mit.edu>, Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Feb 22, 2012 at 1:41 PM, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
-> On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
->> =A0int maple_pci_get_legacy_ide_irq(struct pci_dev *pdev, int channe=
-l)
->> diff --git a/arch/powerpc/platforms/pasemi/pci.c
->> b/arch/powerpc/platforms/pasemi/pci.c
->> index b6a0ec4..b27d886 100644
->> --- a/arch/powerpc/platforms/pasemi/pci.c
->> +++ b/arch/powerpc/platforms/pasemi/pci.c
->> @@ -231,7 +231,7 @@ void __init pas_pci_init(void)
->> =A0 =A0 =A0 =A0 pci_devs_phb_init();
+On Thu, Feb 23, 2012 at 11:38 AM, Roland McGrath <mcgrathr@google.com> =
+wrote:
+> On Wed, Feb 22, 2012 at 5:06 PM, H. Peter Anvin <hpa@zytor.com> wrote=
+:
+>> I meant whether or not a signal can be blocked/caught and the fact t=
+hat
+>> the signal exists at all.
 >>
->> =A0 =A0 =A0 =A0 /* Use the common resource allocation mechanism */
->> - =A0 =A0 =A0 pci_probe_only =3D 1;
->> + =A0 =A0 =A0 pci_add_flags(PCI_PROBE_ONLY);
->> =A0}
+>> Now I guess we could have "blockable" and "unblockable" SIGSYS, but =
+that
+>> would seem to have its own set of issues...
 >
-> Olof, do you remember why you used to set that on pasemi ?
+> Oh. =A0I certainly don't think we should ever add any new signals to =
+the set
+> that cannot be caught, blocked, or ignored. =A0That has been just SIG=
+KILL and
+> SIGSTOP since 4.2BSD, which first introduced the modern concept of bl=
+ocking
+> signals. =A0There are lots of reasons not to change that, which I won=
+'t go
+> into unless someone really wants me to.
 >
-> I would have expected it to be clear, so the kernel can re-assign thi=
-ngs
-> if needed. We really only want it set for pseries because of the
-> hypervisor being a PITA :-)
+> However, I don't think there is anything really wrong with having cer=
+tain
+> cases that generate a signal and at the same time unblock it and rese=
+t it
+> to SIG_DFL. =A0That's just an implementation detail of a policy of "d=
+ump core
+> right now, no other option". =A0(Conversely, directly calling do_exit=
+ won't
+> ever dump core, though it can be made to look signalesque to the pare=
+nt and
+> tracers.)
+>
+> For seccomp-filter, I personally don't see any problem with simply
+> generating SIGSYS in the normal way (and aborting the syscall, of cou=
+rse).
+> If someone wants to ensure that SIGSYS is never caught or blocked, th=
+ey can
+> just do that by having a filter that doesn't allow it to be caught or
+> blocked (and of course make sure to reset its inherited state). =A0It=
+ is a
+> bit tricky to cover all the ways, since it's not just sigaction and
+> sigprocmask but also sigreturn, where the blocked signal set to be re=
+stored
+> is in a slightly arcane location--but it ain't rocket science.
+>
+> But I don't really have any strong opinion about what seccomp-filter =
+should
+> do. =A0(Though it does seem worthwhile not to rule out the possibilit=
+y of
+> dumping core on a policy violation, since that will be useful for peo=
+ple to
+> debug their code.)
 
-Speaking of the hypervisor, powerpc has this of_scan_bus() thing which
-seems to discover PCI devices using the OF device tree rather than
-using PCI config accesses.  This seems related to the "pci_probe_only"
-idea.
+Seems like there's an argument for another return code,
+SECCOMP_RET_CORE, that resets/unblocks the SIGSYS handler since the
+existing TRAP and KILL options seem to cover the other paths (signal
+handler and do_exit).
 
-I wonder whether it would be possible/feasible/desirable to implement
-this by using config space accessors that would internally look at the
-OF device tree.  Then we possibly could use the standard PCI scan bus
-path.  Maybe the core could detect non-changeable BARs somehow and
-mark them, e.g., with IORESOURCE_PCI_FIXED.
+It's a very small tweak if that'd be useful to include explicitly.
 
-Just a pie-in-the sky thought for now; I have no concrete plans to do
-anything like this, but it seems like it might allow more unification
-if it were possible.
-
-Bjorn
+Thanks!
+will
