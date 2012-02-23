@@ -1,122 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:43580 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756781Ab2BWUvv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 15:51:51 -0500
-Received: by wgbdt10 with SMTP id dt10so1447232wgb.1
-        for <linux-arch@vger.kernel.org>; Thu, 23 Feb 2012 12:51:50 -0800 (PST)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:53436 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757159Ab2BWVjN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 16:39:13 -0500
+Message-ID: <4F46B1FC.4050002@gmail.com>
+Date: Thu, 23 Feb 2012 15:39:08 -0600
+From: Rob Herring <robherring2@gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20120223122536.6a2a7a6b@jbarnes-desktop>
-References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
- <1328425088-6562-10-git-send-email-yinghai@kernel.org> <CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
- <1328738567.2903.45.camel@pasglop> <CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
- <1328823358.2903.77.camel@pasglop> <20120223122536.6a2a7a6b@jbarnes-desktop>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Thu, 23 Feb 2012 12:51:30 -0800
-Message-ID: <CAErSpo7_WGjitDZz4XH+77f65Uz1ynd5_USN+D17D09Eux1iQQ@mail.gmail.com>
-Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Subject: Re: [PATCH v2 04/12] arm/PCI: remove arch pci_flags definition
+References: <20120223194209.20708.54480.stgit@bhelgaas.mtv.corp.google.com> <20120223194322.20708.4942.stgit@bhelgaas.mtv.corp.google.com>
+In-Reply-To: <20120223194322.20708.4942.stgit@bhelgaas.mtv.corp.google.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Yinghai Lu <yinghai@kernel.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20120223205130.AU5r9Wi2p2ZOHkuBRJRS7cXAK2qpqO82sbG0FTjeR94@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20120223213908.ZloSxpBOiq-psJ0yLQCQWnaTV4Vi9ZFZcAFAPsisRmw@z>
 
-On Thu, Feb 23, 2012 at 12:25 PM, Jesse Barnes <jbarnes@virtuousgeek.org> wrote:
-> On Fri, 10 Feb 2012 08:35:58 +1100
-> Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
->
->> On Thu, 2012-02-09 at 11:24 -0800, Bjorn Helgaas wrote:
->> > My point is that the interface between the arch and the PCI core
->> > should be simply the arch telling the core "this is the range of bus
->> > numbers you can use."  If the firmware doesn't give you the HW limits,
->> > that's the arch's problem.  If you want to assume 0..255 are
->> > available, again, that's the arch's decision.
->> >
->> > But the answer to the question "what bus numbers are available to me"
->> > depends only on the host bridge HW configuration.  It does not depend
->> > on what pci_scan_child_bus() found.  Therefore, I think we can come up
->> > with a design where pci_bus_update_busn_res_end() is unnecessary.
->>
->> In an ideal world yes. In a world where there are reverse engineered
->> platforms on which we aren't 100% sure how thing actually work under the
->> hood and have the code just adapt on "what's there" (and try to fix it
->> up -sometimes-), thinks can get a bit murky :-)
->>
->> But yes, I see your point. As for what is the "correct" setting that
->> needs to be done so that the patch doesn't end up a regression for us,
->> I'll have to dig into some ancient HW to dbl check a few things. I hope
->> 0...255 will just work but I can't guarantee it.
->>
->> What I'll probably do is constraint the core to the values in
->> hose->min/max, and update selected platforms to put 0..255 in there when
->> I know for sure they can cope.
->
-> But I think the point is, can't we intiialize the busn resource after
-> the first & last bus numbers have been determined?  E.g. rather than
-> Yinghai's current:
-> +       pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
-> +
->        /* Get probe mode and perform scan */
->        mode = PCI_PROBE_NORMAL;
->        if (node && ppc_md.pci_probe_mode)
-> @@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
->                of_scan_bus(node, bus);
->        }
->
-> -       if (mode == PCI_PROBE_NORMAL)
-> +       if (mode == PCI_PROBE_NORMAL) {
-> +               pci_bus_update_busn_res_end(bus, 255);
->                hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-> +               pci_bus_update_busn_res_end(bus, bus->subordinate);
-> +       }
->
-> we'd have something more like:
->
->        /* Get probe mode and perform scan */
->        mode = PCI_PROBE_NORMAL;
->        if (node && ppc_md.pci_probe_mode)
-> @@ -1742,8 +1744,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
->                of_scan_bus(node, bus);
->        }
->
->        if (mode == PCI_PROBE_NORMAL)
->                hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
->
-> +       pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
->
-> since we should have the final bus range by then?  Setting the end to
-> 255 and then changing it again doesn't make sense; and definitely makes
-> the code hard to follow.
+Bjorn,
 
-I have two issues here:
+On 02/23/2012 01:43 PM, Bjorn Helgaas wrote:
+> The PCI core provides a pci_flags definition (currently __weak), so drop
+> the arm definition in favor of that.
+> 
+> We EXPORT_SYMBOL(pci_flags) as arm did previously.  I'm dubious about
+> this: no other architecture exports it, and I didn't see any modules in
+> the tree that reference it.
 
-1) hose->last_busno is currently the highest bus number found by
-pci_scan_child_bus().  If I understand correctly,
-pci_bus_insert_busn_res() is supposed to update the core's idea of the
-host bridge's bus number aperture.  (Actually, I guess it just updates
-the *end* of the aperture, since we supply the start directly to
-pci_scan_root_bus()).  The aperture and the highest bus number we
-found are not related, except that we should have:
+I think you're right that it doesn't need to be exported.
 
-    hose->first_busno <= bus->subordinate <= hose->last_busno
+Rob
 
-If we set the aperture to [first_busno - last_busno], we artificially
-prevent some hotplug.
-
-2) We already have a way to add resources to a root bus: the
-pci_add_resource() used to add I/O port and MMIO apertures.  I think
-it'd be a lot simpler to just use that same interface for the bus
-number aperture, e.g.,
-
-    pci_add_resource(&resources, hose->io_space);
-    pci_add_resource(&resources, hose->mem_space);
-    pci_add_resource(&resources, hose->busnr_space);
-    bus = pci_scan_root_bus(dev, next_busno, pci_ops, sysdata, &resources);
-
-This is actually a bit redundant, since "next_busno" should be the
-same as hose->busnr_space->start.  So if we adopted this approach, we
-might want to eventually drop the "next_busno" argument.
-
- Bjorn
+> CC: Rob Herring <rob.herring@calxeda.com>
+> CC: Russell King <linux@arm.linux.org.uk>
+> CC: linux-arm-kernel@lists.infradead.org
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> ---
+>  arch/arm/kernel/bios32.c |    2 ++
+>  arch/arm/mm/iomap.c      |    3 ---
+>  2 files changed, 2 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+> index f58ba35..f3fd52b 100644
+> --- a/arch/arm/kernel/bios32.c
+> +++ b/arch/arm/kernel/bios32.c
+> @@ -525,6 +525,7 @@ void __init pci_common_init(struct hw_pci *hw)
+>  
+>  	INIT_LIST_HEAD(&hw->buses);
+>  
+> +	pci_add_flags(PCI_REASSIGN_ALL_RSRC);
+>  	if (hw->preinit)
+>  		hw->preinit();
+>  	pcibios_init_hw(hw);
+> @@ -559,6 +560,7 @@ void __init pci_common_init(struct hw_pci *hw)
+>  		pci_bus_add_devices(bus);
+>  	}
+>  }
+> +EXPORT_SYMBOL(pci_flags);
+>  
+>  #ifndef CONFIG_PCI_HOST_ITE8152
+>  void pcibios_set_master(struct pci_dev *dev)
+> diff --git a/arch/arm/mm/iomap.c b/arch/arm/mm/iomap.c
+> index e62956e..4614208 100644
+> --- a/arch/arm/mm/iomap.c
+> +++ b/arch/arm/mm/iomap.c
+> @@ -32,9 +32,6 @@ EXPORT_SYMBOL(pcibios_min_io);
+>  unsigned long pcibios_min_mem = 0x01000000;
+>  EXPORT_SYMBOL(pcibios_min_mem);
+>  
+> -unsigned int pci_flags = PCI_REASSIGN_ALL_RSRC;
+> -EXPORT_SYMBOL(pci_flags);
+> -
+>  void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
+>  {
+>  	if ((unsigned long)addr >= VMALLOC_START &&
+> 
