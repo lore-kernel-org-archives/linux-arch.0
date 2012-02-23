@@ -1,55 +1,42 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v2 11/12] unicore32/PCI: use pci_flags PCI_PROBE_ONLY instead
-	of arm-specific flag
-Date: Thu, 23 Feb 2012 12:43:58 -0700
-Message-ID: <20120223194358.20708.90268.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v2 12/12] PCI: make pci_flags non-weak
+Date: Thu, 23 Feb 2012 12:44:03 -0700
+Message-ID: <20120223194403.20708.53279.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120223194209.20708.54480.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yw0-f74.google.com ([209.85.213.74]:65213 "EHLO
+	mail-yw0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756518Ab2BWToF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 14:44:05 -0500
+Received: by yhgm50 with SMTP id m50so207277yhg.1
+        for <linux-arch@vger.kernel.org>; Thu, 23 Feb 2012 11:44:04 -0800 (PST)
 In-Reply-To: <20120223194209.20708.54480.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-pci@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org
 
-CC: Guan Xuetao <gxt@mprc.pku.edu.cn>
+No architecture defines its own pci_flags, so the core symbol does not
+need to be weak.
+
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/unicore32/kernel/pci.c |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ drivers/pci/setup-bus.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
-index a8f07fe..6c1248f 100644
---- a/arch/unicore32/kernel/pci.c
-+++ b/arch/unicore32/kernel/pci.c
-@@ -19,9 +19,9 @@
- #include <linux/slab.h>
- #include <linux/init.h>
- #include <linux/io.h>
-+#include <asm-generic/pci-bridge.h>
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 7b7d7e9..c172ebb 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -28,7 +28,7 @@
+ #include <asm-generic/pci-bridge.h>
+ #include "pci.h"
  
- static int debug_pci;
--static int use_firmware;
+-unsigned int __weak pci_flags;
++unsigned int pci_flags;
  
- #define CONFIG_CMD(bus, devfn, where)	\
- 	(0x80000000 | (bus->number << 16) | (devfn << 8) | (where & ~3))
-@@ -276,7 +276,7 @@ static int __init pci_common_init(void)
- 
- 	pci_fixup_irqs(pci_common_swizzle, pci_puv3_map_irq);
- 
--	if (!use_firmware) {
-+	if (!pci_has_flag(PCI_PROBE_ONLY)) {
- 		/*
- 		 * Size the bridge windows.
- 		 */
-@@ -303,7 +303,7 @@ char * __devinit pcibios_setup(char *str)
- 		debug_pci = 1;
- 		return NULL;
- 	} else if (!strcmp(str, "firmware")) {
--		use_firmware = 1;
-+		pci_add_flags(PCI_PROBE_ONLY);
- 		return NULL;
- 	}
- 	return str;
+ struct resource_list_x {
+ 	struct resource_list_x *next;
