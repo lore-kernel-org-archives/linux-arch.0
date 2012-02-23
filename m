@@ -1,78 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:53436 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757159Ab2BWVjN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 16:39:13 -0500
-Message-ID: <4F46B1FC.4050002@gmail.com>
-Date: Thu, 23 Feb 2012 15:39:08 -0600
-From: Rob Herring <robherring2@gmail.com>
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:60529 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754575Ab2BWWQI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Feb 2012 17:16:08 -0500
+Message-ID: <fe2d4b97d84c1e8053c397a20eec7ac8.squirrel@webmail.greenhost.nl>
+In-Reply-To: <CABqD9hbsZTtkFzM_8rHqAWjZhiV0iWb6s1eMF9LriH-NybrorA@mail.gmail.com>
+References: <1329845435-2313-1-git-send-email-wad@chromium.org>
+    <1329845435-2313-7-git-send-email-wad@chromium.org>
+    <9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl>
+    <CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
+    <CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com>
+    <CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com>
+    <CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com>
+    <CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
+    <4F45887A.5010809@zytor.com>
+    <CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
+    <4F459109.1060205@zytor.com>
+    <CAB=4xhqndEw3tMPaUcdZh_jcjQcoK_=7GwOc5gVhnz5o_4eWzQ@mail.gmail.com>
+    <CABqD9hbsZTtkFzM_8rHqAWjZhiV0iWb6s1eMF9LriH-NybrorA@mail.gmail.com>
+Date: Thu, 23 Feb 2012 23:15:51 +0100
+Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it
+ synchronous.
+From: "Indan Zupancic" <indan@nul.nu>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 04/12] arm/PCI: remove arch pci_flags definition
-References: <20120223194209.20708.54480.stgit@bhelgaas.mtv.corp.google.com> <20120223194322.20708.4942.stgit@bhelgaas.mtv.corp.google.com>
-In-Reply-To: <20120223194322.20708.4942.stgit@bhelgaas.mtv.corp.google.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120223213908.ZloSxpBOiq-psJ0yLQCQWnaTV4Vi9ZFZcAFAPsisRmw@z>
+To: Will Drewry <wad@chromium.org>
+Cc: Roland McGrath <mcgrathr@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@mit.edu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org
+Message-ID: <20120223221551.4CP0tZnaymjQh5etcNNzKkccZ5hi1MpFoCXzekShye0@z>
 
-Bjorn,
+On Thu, February 23, 2012 20:26, Will Drewry wrote:
+> Seems like there's an argument for another return code,
+> SECCOMP_RET_CORE, that resets/unblocks the SIGSYS handler since the
+> existing TRAP and KILL options seem to cover the other paths (signal
+> handler and do_exit).
 
-On 02/23/2012 01:43 PM, Bjorn Helgaas wrote:
-> The PCI core provides a pci_flags definition (currently __weak), so drop
-> the arm definition in favor of that.
-> 
-> We EXPORT_SYMBOL(pci_flags) as arm did previously.  I'm dubious about
-> this: no other architecture exports it, and I didn't see any modules in
-> the tree that reference it.
+What about making SECCOMP_RET_TRAP dump core/send SIGSYS if there is
+no tracer with PTRACE_O_SECCOMP set? And perhaps go for a blockable
+SIGSYS? That way you only have KILL, ERRNO and TRAP, with the last
+one meaning deny, but giving someone else a chance to do something.
+Or is that just confusing?
 
-I think you're right that it doesn't need to be exported.
+I don't think there should be too many return values, or else you
+put too much runtime policy into the filters.
 
-Rob
+Sending SIGSYS is useful, but it's quite a bit less useful if user
+space can't handle it in a signal handler, so I don't think it's
+worth it to make a unblockable version.
 
-> CC: Rob Herring <rob.herring@calxeda.com>
-> CC: Russell King <linux@arm.linux.org.uk>
-> CC: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
->  arch/arm/kernel/bios32.c |    2 ++
->  arch/arm/mm/iomap.c      |    3 ---
->  2 files changed, 2 insertions(+), 3 deletions(-)
-> 
-> diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-> index f58ba35..f3fd52b 100644
-> --- a/arch/arm/kernel/bios32.c
-> +++ b/arch/arm/kernel/bios32.c
-> @@ -525,6 +525,7 @@ void __init pci_common_init(struct hw_pci *hw)
->  
->  	INIT_LIST_HEAD(&hw->buses);
->  
-> +	pci_add_flags(PCI_REASSIGN_ALL_RSRC);
->  	if (hw->preinit)
->  		hw->preinit();
->  	pcibios_init_hw(hw);
-> @@ -559,6 +560,7 @@ void __init pci_common_init(struct hw_pci *hw)
->  		pci_bus_add_devices(bus);
->  	}
->  }
-> +EXPORT_SYMBOL(pci_flags);
->  
->  #ifndef CONFIG_PCI_HOST_ITE8152
->  void pcibios_set_master(struct pci_dev *dev)
-> diff --git a/arch/arm/mm/iomap.c b/arch/arm/mm/iomap.c
-> index e62956e..4614208 100644
-> --- a/arch/arm/mm/iomap.c
-> +++ b/arch/arm/mm/iomap.c
-> @@ -32,9 +32,6 @@ EXPORT_SYMBOL(pcibios_min_io);
->  unsigned long pcibios_min_mem = 0x01000000;
->  EXPORT_SYMBOL(pcibios_min_mem);
->  
-> -unsigned int pci_flags = PCI_REASSIGN_ALL_RSRC;
-> -EXPORT_SYMBOL(pci_flags);
-> -
->  void pci_iounmap(struct pci_dev *dev, void __iomem *addr)
->  {
->  	if ((unsigned long)addr >= VMALLOC_START &&
-> 
+Greetings,
+
+Indan
+
+
