@@ -1,66 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:41927 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755095Ab2BWWgX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Feb 2012 17:36:23 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAE6n16kusCN9LxwqB1D2Dsm50mtc-6zkRje69D=QDdxxzWFTKw@mail.gmail.com>
-References: <1329845435-2313-1-git-send-email-wad@chromium.org>
-	<1329845435-2313-7-git-send-email-wad@chromium.org>
-	<9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl>
-	<CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
-	<CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com>
-	<CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com>
-	<CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com>
-	<CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
-	<4F45887A.5010809@zytor.com>
-	<CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
-	<4F459109.1060205@zytor.com>
-	<CAB=4xhqndEw3tMPaUcdZh_jcjQcoK_=7GwOc5gVhnz5o_4eWzQ@mail.gmail.com>
-	<CABqD9hbsZTtkFzM_8rHqAWjZhiV0iWb6s1eMF9LriH-NybrorA@mail.gmail.com>
-	<fe2d4b97d84c1e8053c397a20eec7ac8.squirrel@webmail.greenhost.nl>
-	<CAE6n16kusCN9LxwqB1D2Dsm50mtc-6zkRje69D=QDdxxzWFTKw@mail.gmail.com>
-Date: Thu, 23 Feb 2012 16:36:21 -0600
-Message-ID: <CABqD9hbE_0mDADUAcU3JYeEroj-57Mz2etd2NaPV_Sb3JpJ21Q@mail.gmail.com>
-Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it synchronous.
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:17682 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756395Ab2BXJgF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 04:36:05 -0500
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: text/plain; charset=us-ascii
+Date: Fri, 24 Feb 2012 10:35:55 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCHv6 7/7] ARM: dma-mapping: add support for IOMMU mapper
+In-reply-to: <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com>
+Message-ID: <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
+Content-language: pl
+References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
+ <1328900324-20946-8-git-send-email-m.szyprowski@samsung.com>
+ <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Markus Gutschke <markus@chromium.org>
-Cc: Indan Zupancic <indan@nul.nu>, Roland McGrath <mcgrathr@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@mit.edu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com
-Message-ID: <20120223223621.21fJcKsPTovUcK6U_hTOzaWnfQ48hpxpjXobX56p4aM@z>
+To: 'Krishna Reddy' <vdumpa@nvidia.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>
+Message-ID: <20120224093555.CY4DuGJMDqFCpRV8nD9-QxItHnEo6_r-uEWpOOAhTNQ@z>
 
-On Thu, Feb 23, 2012 at 4:33 PM, Markus Gutschke <markus@chromium.org> wrote:
-> On Thu, Feb 23, 2012 at 14:15, Indan Zupancic <indan@nul.nu> wrote:
->> What about making SECCOMP_RET_TRAP dump core/send SIGSYS if there is
->> no tracer with PTRACE_O_SECCOMP set?
->
-> Please don't make things dependent on having a tracer. There are
-> applications that don't really need a tracer; in fact, these are
-> typically the exact same applications that can benefit from receiving
-> SIGSYS and then handling it internally.
->
-> If a tracer was required to set this up, it would make it difficult to
-> use gdb, strace, or any other common debugging tools.
->
->> Sending SIGSYS is useful, but it's quite a bit less useful if user
->> space can't handle it in a signal handler, so I don't think it's
->> worth it to make a unblockable version.
->
-> Maybe, I am not parsing your e-mail correctly. But don't we already
-> get the desired behavior, if SIGSYS is treated the same as any other
-> synchronous signal? If it is unblocked and has a handler, the
-> application can decide to handle it. If neither one of these
-> conditions is true, it terminates the program. Ulimits and
-> PR_SET_DUMPABLE determine whether a core file is generated.
+Hello,
 
-Yeah - the current patchset does that just fine. The tweak I was
-proposing was making ti possible to deliver an SIGSYS that always uses
-SIG_DFL so that you don't have to play with signal call enforcement in
-the filters.
+On Monday, February 13, 2012 8:59 PM Krishna Reddy wrote:
 
-This is a pretty minor tweak either way.
-cheers!
-will
+> The implementation looks nice overall. Have few comments.
+> 
+> > +static struct page **__iommu_alloc_buffer(struct device *dev, size_t
+> > +size, gfp_t gfp) {
+> > +     struct page **pages;
+> > +     int count = size >> PAGE_SHIFT;
+> > +     int i=0;
+> > +
+> > +     pages = kzalloc(count * sizeof(struct page*), gfp);
+> > +     if (!pages)
+> > +             return NULL;
+> 
+> kzalloc can fail for any size bigger than PAGE_SIZE, if the system memory is
+> fully fragmented.
+> If there is a request for size bigger than 4MB, then the pages pointer array won't
+> Fit in one page and kzalloc may fail. we should use vzalloc()/vfree()
+> when pages pointer array size needed is bigger than PAGE_SIZE.
+
+Right, thanks for spotting this. I will fix this in the next version.
+
+> > +static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping
+> > *mapping,
+> > +                                   size_t size)
+> > +{
+> > +     unsigned int order = get_order(size);
+> > +     unsigned int align = 0;
+> > +     unsigned int count, start;
+> > +     unsigned long flags;
+> > +
+> > +     count = ((PAGE_ALIGN(size) >> PAGE_SHIFT) +
+> > +              (1 << mapping->order) - 1) >> mapping->order;
+> > +
+> > +     if (order > mapping->order)
+> > +             align = (1 << (order - mapping->order)) - 1;
+> > +
+> > +     spin_lock_irqsave(&mapping->lock, flags);
+> > +     start = bitmap_find_next_zero_area(mapping->bitmap, mapping-
+> > >bits, 0,
+> > +                                        count, align);
+> 
+> Do we need "align" here? Why is it trying to align the memory request to
+> size of memory requested? When mapping->order is zero and if the size
+> requested is 4MB, order becomes 10.  align is set to 1023.
+>  bitmap_find_next_zero_area looks searching for free area from index, which
+> is multiple of 1024. Why we can't we say align mask  as 0 and let it allocate from
+> next free index? Doesn't mapping->order take care of min alignment needed for dev?
+
+Aligning IO address to the nearest power of 2 of the buffer size matches the behavior 
+of the other kernel allocators. alloc_pages does exactly the same thing - the physical 
+addresses are aligned to the power of 2. Some driver also depend on this feature and 
+allocate arbitrary buffer sizes to get memory aligned to certain values. This is 
+considered as a feature not a side effect of the internal buddy allocator 
+implementation.
+
+Keeping IO addresses aligned also enables use of pages larger than 4KiB for the IOMMU
+mappings if the physical memory got allocated in larger chunk (one can use 64KiB 
+mappings only if IO address and physical memory address are 64KiB aligned).
+
+> > +static dma_addr_t __iommu_create_mapping(struct device *dev, struct
+> > +page **pages, size_t size) {
+> > +     struct dma_iommu_mapping *mapping = dev->archdata.mapping;
+> > +     unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
+> > +     dma_addr_t dma_addr, iova;
+> > +     int i, ret = ~0;
+> > +
+> > +     dma_addr = __alloc_iova(mapping, size);
+> > +     if (dma_addr == ~0)
+> > +             goto fail;
+> > +
+> > +     iova = dma_addr;
+> > +     for (i=0; i<count; ) {
+> > +             unsigned int phys = page_to_phys(pages[i]);
+> > +             int j = i + 1;
+> > +
+> > +             while (j < count) {
+> > +                     if (page_to_phys(pages[j]) != phys + (j - i) *
+> > PAGE_SIZE)
+> > +                             break;
+> > +                     j++;
+> > +             }
+> > +
+> > +             ret = iommu_map(mapping->domain, iova, phys, (j - i) *
+> > PAGE_SIZE, 0);
+> > +             if (ret < 0)
+> > +                     goto fail;
+> > +             iova += (j - i) * PAGE_SIZE;
+> > +             i = j;
+> > +     }
+> > +
+> > +     return dma_addr;
+> > +fail:
+> > +     return ~0;
+> > +}
+> 
+> iommu_map failure should release the iova space allocated using __alloc_iova.
+
+Right, thanks for spotting the bug.
+
+> 
+> > +static dma_addr_t arm_iommu_map_page(struct device *dev, struct page
+> > *page,
+> > +          unsigned long offset, size_t size, enum dma_data_direction dir,
+> > +          struct dma_attrs *attrs)
+> > +{
+> > +     struct dma_iommu_mapping *mapping = dev->archdata.mapping;
+> > +     dma_addr_t dma_addr, iova;
+> > +     unsigned int phys;
+> > +     int ret, len = PAGE_ALIGN(size + offset);
+> > +
+> > +     if (!arch_is_coherent())
+> > +             __dma_page_cpu_to_dev(page, offset, size, dir);
+> > +
+> > +     dma_addr = iova = __alloc_iova(mapping, len);
+> > +     if (iova == ~0)
+> > +             goto fail;
+> > +
+> > +     dma_addr += offset;
+> > +     phys = page_to_phys(page);
+> > +     ret = iommu_map(mapping->domain, iova, phys, size, 0);
+> > +     if (ret < 0)
+> > +             goto fail;
+> > +
+> > +     return dma_addr;
+> > +fail:
+> > +     return ~0;
+> > +}
+> 
+> iommu_map failure should release the iova space allocated using __alloc_iova.
+ 
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+
