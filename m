@@ -1,138 +1,71 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/23] PCI, x86: Register busn_res for root buses
-Date: Fri, 24 Feb 2012 02:18:53 -0800
-Message-ID: <1330078751-7299-6-git-send-email-yinghai@kernel.org>
-References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH] Remove missed ->fds_bits from cessation use of fd_set structs
+ internally
+Date: Fri, 24 Feb 2012 10:57:07 +0000
+Message-ID: <20120224105707.32170.11550.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:65396 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756536Ab2BXLIA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Feb 2012 06:08:00 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Ralf =?utf-8?q?B=C3=A4chle?= <ralf@linux-mips.org>, Arve =?utf-8?b?SGrDuG5uZXbDpWc=?= <arve@android.com>
 
-update x86_pci_root_bus_resources() to get bus_max for non-acpi case.
+=46ix places where ->fds_bits needed to be removed as the core kernel n=
+o longer
+uses fd_set internally for file descriptor table management.  There are=
+ two
+places:
 
-update pci_acpi_scan_root_bus, and pci_scan_root_bus_on_node
-to insert busn_res before scan child bus.
-So could make root bus busn_res is kept the original large one.
+ (1) drivers/staging/android/binder.c
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+ (2) arch/mips/kernel/kspd.c
+
+     Question: Should sp_cleanup() in the MIPS arch be using find_next_=
+bit()
+     or fls()?
+
+Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Ralf B=C3=A4chle <ralf@linux-mips.org>
+cc: Arve Hj=C3=B8nnev=C3=A5g <arve@android.com>
 ---
- arch/x86/include/asm/topology.h |    3 ++-
- arch/x86/pci/acpi.c             |    8 +++++---
- arch/x86/pci/bus_numa.c         |    8 +++++++-
- arch/x86/pci/common.c           |   12 +++++++++---
- 4 files changed, 23 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
-index b9676ae..8413481 100644
---- a/arch/x86/include/asm/topology.h
-+++ b/arch/x86/include/asm/topology.h
-@@ -172,7 +172,8 @@ static inline void arch_fix_phys_package_id(int num, u32 slot)
- }
- 
- struct pci_bus;
--void x86_pci_root_bus_resources(int bus, struct list_head *resources);
-+void x86_pci_root_bus_resources(int bus, int *bus_max,
-+				 struct list_head *resources);
- 
- #ifdef CONFIG_SMP
- #define mc_capable()	((boot_cpu_data.x86_max_cores > 1) && \
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index daa4249..b25b5b1 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -348,6 +348,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct acpi_device *device = root->device;
- 	int domain = root->segment;
- 	int busnum = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	LIST_HEAD(resources);
- 	struct pci_bus *bus;
- 	struct pci_sysdata *sd;
-@@ -410,12 +411,13 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 		 * defaults or native bridge info if we're ignoring _CRS.
- 		 */
- 		if (!pci_use_crs)
--			x86_pci_root_bus_resources(busnum, &resources);
-+			x86_pci_root_bus_resources(busnum, &busmax, &resources);
- 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
- 					  &resources);
--		if (bus)
-+		if (bus) {
-+			pci_bus_insert_busn_res(bus, busnum, busmax);
- 			bus->subordinate = pci_scan_child_bus(bus);
--		else
-+		} else
- 			pci_free_resource_list(&resources);
- 	}
- 
-diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
-index fd3f655..5213cd8 100644
---- a/arch/x86/pci/bus_numa.c
-+++ b/arch/x86/pci/bus_numa.c
-@@ -7,7 +7,8 @@
- int pci_root_num;
- struct pci_root_info pci_root_info[PCI_ROOT_NR];
- 
--void x86_pci_root_bus_resources(int bus, struct list_head *resources)
-+void x86_pci_root_bus_resources(int bus, int *bus_max,
-+				struct list_head *resources)
- {
- 	int i;
- 	int j;
-@@ -28,6 +29,7 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
- 	       bus);
- 
- 	info = &pci_root_info[i];
-+	*bus_max = info->bus_max;
- 	for (j = 0; j < info->res_num; j++) {
- 		struct resource *res;
- 		struct resource *root;
-@@ -51,6 +53,10 @@ default_resources:
- 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
- 	pci_add_resource(resources, &ioport_resource);
- 	pci_add_resource(resources, &iomem_resource);
-+	if (!bus)
-+		*bus_max = 0xff;
-+	else if (!*bus_max)
-+		*bus_max = bus;
- }
- 
- void __devinit update_res(struct pci_root_info *info, resource_size_t start,
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index 8e04ec5..5115606 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -623,6 +623,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
- 	LIST_HEAD(resources);
- 	struct pci_bus *bus = NULL;
- 	struct pci_sysdata *sd;
-+	int bus_max;
- 
+ arch/mips/kernel/kspd.c          |    2 +-
+ drivers/staging/android/binder.c |    3 +--
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/arch/mips/kernel/kspd.c b/arch/mips/kernel/kspd.c
+index 29811f0..84d0639 100644
+--- a/arch/mips/kernel/kspd.c
++++ b/arch/mips/kernel/kspd.c
+@@ -326,7 +326,7 @@ static void sp_cleanup(void)
+ 		i =3D j * __NFDBITS;
+ 		if (i >=3D fdt->max_fds)
+ 			break;
+-		set =3D fdt->open_fds->fds_bits[j++];
++		set =3D fdt->open_fds[j++];
+ 		while (set) {
+ 			if (set & 1) {
+ 				struct file * file =3D xchg(&fdt->fd[i], NULL);
+diff --git a/drivers/staging/android/binder.c b/drivers/staging/android=
+/binder.c
+index 347bd6e..eeaa9b8 100644
+--- a/drivers/staging/android/binder.c
++++ b/drivers/staging/android/binder.c
+@@ -380,8 +380,7 @@ int task_get_unused_fd_flags(struct binder_proc *pr=
+oc, int flags)
+=20
+ repeat:
+ 	fdt =3D files_fdtable(files);
+-	fd =3D find_next_zero_bit(fdt->open_fds->fds_bits, fdt->max_fds,
+-				files->next_fd);
++	fd =3D find_next_zero_bit(fdt->open_fds, fdt->max_fds, files->next_fd=
+);
+=20
  	/*
- 	 * Allocate per-root-bus (not per bus) arch-specific data.
-@@ -635,13 +636,18 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
- 		return NULL;
- 	}
- 	sd->node = node;
--	x86_pci_root_bus_resources(busno, &resources);
--	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
--	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
-+	x86_pci_root_bus_resources(busno, &bus_max, &resources);
-+	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x-%02x)\n",
-+			 busno, bus_max);
-+	bus = pci_create_root_bus(NULL, busno, &pci_root_ops, sd, &resources);
- 	if (!bus) {
- 		pci_free_resource_list(&resources);
- 		kfree(sd);
-+		return bus;
- 	}
-+	pci_bus_insert_busn_res(bus, busno, bus_max);
-+	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_add_devices(bus);
- 
- 	return bus;
- }
--- 
-1.7.7
+ 	 * N.B. For clone tasks sharing a files structure, this test
