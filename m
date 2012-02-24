@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 20/23] PCI, sysfs: create rescan_bridge under /sys/.../pci/devices/... for pci bridges
-Date: Fri, 24 Feb 2012 02:19:08 -0800
-Message-ID: <1330078751-7299-21-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 22/23] PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+Date: Fri, 24 Feb 2012 02:19:10 -0800
+Message-ID: <1330078751-7299-23-git-send-email-yinghai@kernel.org>
 References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
@@ -10,87 +10,43 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Current code will create rescan for every pci device under parent bus.
-that is not right. the device is already there, there is no reason to rescan it.
+So after remove all children and then using setpci change bus register and rescan
+bridge could use new set bus number.
 
-We could have rescan for pci bridges. less confusing.
+Otherwise need to rescan parent bus, it would have too much overhead.
 
-Need to move rescan attr to pci dev bridge attribute group.
-And We should rescan bridge's secondary bus instead of primary bus.
-
--v3: Use device_type for pci dev.
--v4: Seperate pci device type change out
--v5: add rescan_bridge for bridge type, and still keep the old rescan.
-	may remove the old rescan later.
+also need to use pci_bus_add_single_device to make sure new change bus have directory
+ /sys/../.../pci_bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- Documentation/ABI/testing/sysfs-bus-pci |   10 ++++++++++
- drivers/pci/pci-sysfs.c                 |   24 ++++++++++++++++++++++++
- 2 files changed, 34 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   10 ++++++----
+ 1 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/ABI/testing/sysfs-bus-pci b/Documentation/ABI/testing/sysfs-bus-pci
-index 34f5110..95f0f37 100644
---- a/Documentation/ABI/testing/sysfs-bus-pci
-+++ b/Documentation/ABI/testing/sysfs-bus-pci
-@@ -111,6 +111,16 @@ Description:
- 		from this part of the device tree.
- 		Depends on CONFIG_HOTPLUG.
- 
-+What:		/sys/bus/pci/devices/.../rescan_bridge
-+Date:		February 2012
-+Contact:	Linux PCI developers <linux-pci@vger.kernel.org>
-+Description:
-+		Writing a non-zero value to this attribute will
-+		force a rescan of the bridge and all child buses, and
-+		re-discover devices removed earlier from this part of
-+		the device tree.
-+		Depends on CONFIG_HOTPLUG.
-+
- What:		/sys/bus/pci/devices/.../reset
- Date:		July 2009
- Contact:	Michael S. Tsirkin <mst@redhat.com>
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 124e826..68caf29 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -325,6 +325,27 @@ dev_rescan_store(struct device *dev, struct device_attribute *attr,
- 	return count;
- }
- 
-+static ssize_t
-+dev_bridge_rescan_store(struct device *dev, struct device_attribute *attr,
-+		 const char *buf, size_t count)
-+{
-+	unsigned long val;
-+	struct pci_dev *pdev = to_pci_dev(dev);
-+
-+	if (kstrtoul(buf, 0, &val) < 0)
-+		return -EINVAL;
-+
-+	if (val) {
-+		mutex_lock(&pci_remove_rescan_mutex);
-+		pci_rescan_bus(pdev->subordinate);
-+		mutex_unlock(&pci_remove_rescan_mutex);
-+	}
-+	return count;
-+}
-+
-+static struct device_attribute pci_dev_bridge_rescan_attr =
-+	__ATTR(rescan_bridge, (S_IWUSR|S_IWGRP), NULL, dev_bridge_rescan_store);
-+
- static void remove_callback(struct device *dev)
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 1c36b39..8063cf1 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1961,14 +1961,16 @@ EXPORT_SYMBOL(pci_scan_bus);
+  */
+ unsigned int __ref pci_rescan_bus_bridge_resize(struct pci_dev *bridge)
  {
- 	struct pci_dev *pdev = to_pci_dev(dev);
-@@ -1337,6 +1358,9 @@ static int __init pci_sysfs_init(void)
- late_initcall(pci_sysfs_init);
+-	unsigned int max;
+-	struct pci_bus *bus = bridge->subordinate;
++	unsigned int max = 0;
++	int pass;
++	struct pci_bus *bus = bridge->bus;
  
- static struct attribute *pci_dev_bridge_attrs[] = {
-+#ifdef CONFIG_HOTPLUG
-+	&pci_dev_bridge_rescan_attr.attr,
-+#endif
- 	NULL,
- };
+-	max = pci_scan_child_bus(bus);
++	for (pass = 0; pass < 2; pass++)
++		max = pci_scan_bridge(bus, bridge, max, pass);
  
+ 	pci_assign_unassigned_bridge_resources(bridge);
+ 
+-	pci_bus_add_devices(bus);
++	pci_bus_add_single_device(bridge);
+ 
+ 	return max;
+ }
 -- 
 1.7.7
