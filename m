@@ -1,28 +1,81 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv6 7/7] ARM: dma-mapping: add support for IOMMU mapper
-Date: Fri, 24 Feb 2012 14:31:01 +0000
-Message-ID: <201202241431.02170.arnd@arndb.de>
-References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com> <201202241249.44731.arnd@arndb.de> <013301ccf2f6$bc4ad840$34e088c0$%szyprowski@samsung.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC] [PATCH] asm-generic/unistd.h: handle symbol prefixes in
+ cond_syscall
+Date: Fri, 24 Feb 2012 14:51:31 +0000
+Message-ID: <4F47A3F3.5030504@imgtec.com>
+References: <4F47981F.4020305@imgtec.com> <201202241424.07319.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:62216 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754654Ab2BXObH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 09:31:07 -0500
-In-Reply-To: <013301ccf2f6$bc4ad840$34e088c0$%szyprowski@samsung.com>
+Received: from multi.imgtec.com ([194.200.65.239]:41781 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755616Ab2BXOvd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Feb 2012 09:51:33 -0500
+In-Reply-To: <201202241424.07319.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: 'Krishna Reddy' <vdumpa@nvidia.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
 
-On Friday 24 February 2012, Marek Szyprowski wrote:
-> I want to use some kind of chained arrays, each of at most of PAGE_SIZE. This code 
-> doesn't really need to keep these page pointers in contiguous virtual memory area, so
-> it will not be a problem here.
+Hi Arnd
+
+Thanks for taking a look.
+
+On 24/02/12 14:24, Arnd Bergmann wrote:
+> On Friday 24 February 2012, James Hogan wrote:
+>> Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
+>> but this wasn't taken into account by the generic cond_syscall. It's
+>> easy enough to fix in a generic fashion, so add the symbol prefix to
+>> symbol names in cond_syscall when CONFIG_SYMBOL_PREFIX is set.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+>> ---
+>>  include/asm-generic/unistd.h |    9 ++++++++-
+>>  1 files changed, 8 insertions(+), 1 deletions(-)
+>>
+>> diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+>> index 2292d1a..c9a5ba4 100644
+>> --- a/include/asm-generic/unistd.h
+>> +++ b/include/asm-generic/unistd.h
+>> @@ -924,7 +924,14 @@ __SYSCALL(__NR_fork, sys_ni_syscall)
+>>   * but it doesn't work on all toolchains, so we just do it by hand
+>>   */
+>>  #ifndef cond_syscall
+>> -#define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
+>> +#ifdef CONFIG_SYMBOL_PREFIX
+>> +#define __SYMBOL_PREFIX CONFIG_SYMBOL_PREFIX
+>> +#else
+>> +#define __SYMBOL_PREFIX
+>> +#endif
+>> +#define cond_syscall(x) asm(".weak\t" __SYMBOL_PREFIX #x "\n\t" \
+>> +                           ".set\t" __SYMBOL_PREFIX #x "," \
+>> +                           __SYMBOL_PREFIX "sys_ni_syscall")
+>>  #endif
 > 
-Sounds like sg_alloc_table(), could you reuse that instead of rolling your own?
+> Our trend is to move away from arch specific Kconfig symbols and __ARCH_HAS_*
+> macros towards just defining whatever you need in the architecture as an
+> override for the generic definition.
+> 
+> Just provide your own unistd.h that does
+> 
+> #define cond_syscall(x) asm(".weak\t." #x "\n\t.set\t." #x ",.sys_ni_syscall")
+> #include <asm-generic/unistd.h>
 
-	Arnd
+Okay, no problem.
+
+> BTW, are you planning to submit arch/metag for inclusion? I've looked at
+> the code recently and it appears that you are on the right track overall,
+> and it shouldn't be too hard to get to the same quality level as
+> arch/openrisc.
+
+At this stage I'm just (in my own time) trying to get it closer to the
+standard required for new architectures so that when the time comes
+there's less to do.
+
+I've been looking at your initial comments for other architecture
+submissions and they've been very helpful, but if you do have any
+arch/metag specific suggestions I'd certainly welcome them.
+
+Thanks
+James
