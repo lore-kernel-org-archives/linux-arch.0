@@ -1,64 +1,43 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v10 07/11] signal, x86: add SIGSYS info and make it synchronous.
-Date: Thu, 23 Feb 2012 16:36:21 -0600
-Message-ID: <CABqD9hbE_0mDADUAcU3JYeEroj-57Mz2etd2NaPV_Sb3JpJ21Q@mail.gmail.com>
-References: <1329845435-2313-1-git-send-email-wad@chromium.org>
-	<1329845435-2313-7-git-send-email-wad@chromium.org>
-	<9edbabb2262e3d91a7b8c75dbec03d7f.squirrel@webmail.greenhost.nl>
-	<CABqD9hY1n9EOAKKT0r9Ev+azhBMnLMAM_FgDNe5we9upVePk_A@mail.gmail.com>
-	<CAObL_7Gc0U2JMBQr_kbcVUJwyJq7LRfgdFr+84LR=ec4kSCwEA@mail.gmail.com>
-	<CAGXu5jJQrnkCZtcLqK8NEihRgB25C12b0nKp+XWXV_=4QfcVoA@mail.gmail.com>
-	<CABqD9hbC8v-rUBW+4T_-EwDwe1+VDohQZweQ-cxOg2A-iDH5CQ@mail.gmail.com>
-	<CAGXu5j+fQqkrrKSm3kmCkCcZJKo-VZjL6kkrOD81LZYBY7tf2g@mail.gmail.com>
-	<4F45887A.5010809@zytor.com>
-	<CAB=4xhq1sm_ewZ_8Kerf2aN7nGx+DEENse7Lqg5N0wuvqtzUAw@mail.gmail.com>
-	<4F459109.1060205@zytor.com>
-	<CAB=4xhqndEw3tMPaUcdZh_jcjQcoK_=7GwOc5gVhnz5o_4eWzQ@mail.gmail.com>
-	<CABqD9hbsZTtkFzM_8rHqAWjZhiV0iWb6s1eMF9LriH-NybrorA@mail.gmail.com>
-	<fe2d4b97d84c1e8053c397a20eec7ac8.squirrel@webmail.greenhost.nl>
-	<CAE6n16kusCN9LxwqB1D2Dsm50mtc-6zkRje69D=QDdxxzWFTKw@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 02/30] x86-64: Use explicit sizes in sigcontext.h, prepare
+ for x32
+Date: Thu, 23 Feb 2012 18:33:56 -0800
+Message-ID: <4F46F714.6010007@zytor.com>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <201202221222.58399.arnd@arndb.de> <4F453086.8030602@zytor.com> <201202222123.38816.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <kernel-hardening-return-936-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CAE6n16kusCN9LxwqB1D2Dsm50mtc-6zkRje69D=QDdxxzWFTKw@mail.gmail.com>
-To: Markus Gutschke <markus@chromium.org>
-Cc: Indan Zupancic <indan@nul.nu>, Roland McGrath <mcgrathr@google.com>, "H. Peter Anvin" <hpa@zytor.com>, Kees Cook <keescook@chromium.org>, Andrew Lutomirski <luto@mit.edu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:58641 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752943Ab2BXCeT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 23 Feb 2012 21:34:19 -0500
+In-Reply-To: <201202222123.38816.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com
 
-On Thu, Feb 23, 2012 at 4:33 PM, Markus Gutschke <markus@chromium.org> wrote:
-> On Thu, Feb 23, 2012 at 14:15, Indan Zupancic <indan@nul.nu> wrote:
->> What about making SECCOMP_RET_TRAP dump core/send SIGSYS if there is
->> no tracer with PTRACE_O_SECCOMP set?
->
-> Please don't make things dependent on having a tracer. There are
-> applications that don't really need a tracer; in fact, these are
-> typically the exact same applications that can benefit from receiving
-> SIGSYS and then handling it internally.
->
-> If a tracer was required to set this up, it would make it difficult to
-> use gdb, strace, or any other common debugging tools.
->
->> Sending SIGSYS is useful, but it's quite a bit less useful if user
->> space can't handle it in a signal handler, so I don't think it's
->> worth it to make a unblockable version.
->
-> Maybe, I am not parsing your e-mail correctly. But don't we already
-> get the desired behavior, if SIGSYS is treated the same as any other
-> synchronous signal? If it is unblocked and has a handler, the
-> application can decide to handle it. If neither one of these
-> conditions is true, it terminates the program. Ulimits and
-> PR_SET_DUMPABLE determine whether a core file is generated.
+On 02/22/2012 01:23 PM, Arnd Bergmann wrote:
+> 
+> I'd say we should fix at least the ones that are easy to spot because
+> they already use compat_u64 or have an #ifdef CONFIG_X86_64 in compat
+> code. I've looked at everything I could find that fits into that category
+> and found only two locations. My expectation is that all other data
+> structures that would fall into this category are already broken
+> for 32 bit emulation on x86.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> 
 
-Yeah - the current patchset does that just fine. The tweak I was
-proposing was making ti possible to deliver an SIGSYS that always uses
-SIG_DFL so that you don't have to play with signal call enforcement in
-the filters.
+Would you mind sending these as patches to the respective maintainers?
+Since they don't depend on the x32 patchset per se it's probably the
+best way to handle this.
 
-This is a pretty minor tweak either way.
-cheers!
-will
+Feel free to include my Acked-by: H. Peter Anvin <hpa@zytor.com>.
+
+	-hpa
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
