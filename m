@@ -1,48 +1,30 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC] [PATCH] asm-generic/unistd.h: handle symbol prefixes in
- cond_syscall
-Date: Fri, 24 Feb 2012 15:40:18 +0000
-Message-ID: <4F47AF62.10507@imgtec.com>
-References: <4F47981F.4020305@imgtec.com> <201202241424.07319.arnd@arndb.de> <4F47A3F3.5030504@imgtec.com> <201202241509.41809.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/14] DMA-mapping framework redesign preparation
+Date: Fri, 24 Feb 2012 15:48:59 +0000
+Message-ID: <201202241548.59791.arnd@arndb.de>
+References: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:42872 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753695Ab2BXPkZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Feb 2012 10:40:25 -0500
-In-Reply-To: <201202241509.41809.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1324643253-3024-1-git-send-email-m.szyprowski@samsung.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 24/02/12 15:09, Arnd Bergmann wrote:
-> On Friday 24 February 2012, James Hogan wrote:
->> I've been looking at your initial comments for other architecture
->> submissions and they've been very helpful, but if you do have any
->> arch/metag specific suggestions I'd certainly welcome them.
-> 
-> I've had only a brief look. In general I recommend doing whatever
-> openrisc does, they are currently the best implementation we have.
+On Friday 23 December 2011, Marek Szyprowski wrote:
+> The solution we found is to introduce a new public dma mapping functions
+> with additional attributes argument: dma_alloc_attrs and
+> dma_free_attrs(). This way all different kinds of architecture specific
+> buffer mappings can be hidden behind the attributes without the need of
+> creating several versions of dma_alloc_ function.
 
-Okay, thanks for the tip.
+Since the patches are now in linux-next, we should make sure that they
+can actually get merged into 3.4.
 
-> In order to get the code merged, you will need to move probing
-> of on-chip buses to device trees rather than hardcoding the
-> platform devices, that is probably the largest amount of work
-> that is still needed unless you've done that already in a later
-> version.
+I've looked at all the patches again and found them to be straightforward
+and helpful, I hope we can get them merged next time. Please add my
 
-Okay, this is something I've been looking at.
-
-> Do you have a git tree or patch with the latest source code?
-> the only copy I could find is a 2.6.37 kernel inside of a huge
-> tarball.
-
-Sorry, but unfortunately that's the latest released version of the
-kernel and I can't publish anything more recent at the moment.
-
-Thanks
-James
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
