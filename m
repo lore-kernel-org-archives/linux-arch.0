@@ -1,163 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:17682 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756395Ab2BXJgF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 04:36:05 -0500
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: text/plain; charset=us-ascii
-Date: Fri, 24 Feb 2012 10:35:55 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv6 7/7] ARM: dma-mapping: add support for IOMMU mapper
-In-reply-to: <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com>
-Message-ID: <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
-Content-language: pl
-References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
- <1328900324-20946-8-git-send-email-m.szyprowski@samsung.com>
- <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com>
+Received: from acsinet15.oracle.com ([141.146.126.227]:17157 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757212Ab2BXKUn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 05:20:43 -0500
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 01/23] x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+Date: Fri, 24 Feb 2012 02:18:49 -0800
+Message-ID: <1330078751-7299-2-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
+References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Krishna Reddy' <vdumpa@nvidia.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>
-Message-ID: <20120224093555.CY4DuGJMDqFCpRV8nD9-QxItHnEo6_r-uEWpOOAhTNQ@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120224101849.5QdFMRY8QlJDD-k9zoPKuXAWeBpjkzawSEj81ETIWTo@z>
 
-Hello,
+Those two almost the same.
+Let pcibios_scan_root call pci_scan_bus_on_node instead.
 
-On Monday, February 13, 2012 8:59 PM Krishna Reddy wrote:
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/pci/common.c |   27 ++++-----------------------
+ 1 files changed, 4 insertions(+), 23 deletions(-)
 
-> The implementation looks nice overall. Have few comments.
-> 
-> > +static struct page **__iommu_alloc_buffer(struct device *dev, size_t
-> > +size, gfp_t gfp) {
-> > +     struct page **pages;
-> > +     int count = size >> PAGE_SHIFT;
-> > +     int i=0;
-> > +
-> > +     pages = kzalloc(count * sizeof(struct page*), gfp);
-> > +     if (!pages)
-> > +             return NULL;
-> 
-> kzalloc can fail for any size bigger than PAGE_SIZE, if the system memory is
-> fully fragmented.
-> If there is a request for size bigger than 4MB, then the pages pointer array won't
-> Fit in one page and kzalloc may fail. we should use vzalloc()/vfree()
-> when pages pointer array size needed is bigger than PAGE_SIZE.
-
-Right, thanks for spotting this. I will fix this in the next version.
-
-> > +static inline dma_addr_t __alloc_iova(struct dma_iommu_mapping
-> > *mapping,
-> > +                                   size_t size)
-> > +{
-> > +     unsigned int order = get_order(size);
-> > +     unsigned int align = 0;
-> > +     unsigned int count, start;
-> > +     unsigned long flags;
-> > +
-> > +     count = ((PAGE_ALIGN(size) >> PAGE_SHIFT) +
-> > +              (1 << mapping->order) - 1) >> mapping->order;
-> > +
-> > +     if (order > mapping->order)
-> > +             align = (1 << (order - mapping->order)) - 1;
-> > +
-> > +     spin_lock_irqsave(&mapping->lock, flags);
-> > +     start = bitmap_find_next_zero_area(mapping->bitmap, mapping-
-> > >bits, 0,
-> > +                                        count, align);
-> 
-> Do we need "align" here? Why is it trying to align the memory request to
-> size of memory requested? When mapping->order is zero and if the size
-> requested is 4MB, order becomes 10.  align is set to 1023.
->  bitmap_find_next_zero_area looks searching for free area from index, which
-> is multiple of 1024. Why we can't we say align mask  as 0 and let it allocate from
-> next free index? Doesn't mapping->order take care of min alignment needed for dev?
-
-Aligning IO address to the nearest power of 2 of the buffer size matches the behavior 
-of the other kernel allocators. alloc_pages does exactly the same thing - the physical 
-addresses are aligned to the power of 2. Some driver also depend on this feature and 
-allocate arbitrary buffer sizes to get memory aligned to certain values. This is 
-considered as a feature not a side effect of the internal buddy allocator 
-implementation.
-
-Keeping IO addresses aligned also enables use of pages larger than 4KiB for the IOMMU
-mappings if the physical memory got allocated in larger chunk (one can use 64KiB 
-mappings only if IO address and physical memory address are 64KiB aligned).
-
-> > +static dma_addr_t __iommu_create_mapping(struct device *dev, struct
-> > +page **pages, size_t size) {
-> > +     struct dma_iommu_mapping *mapping = dev->archdata.mapping;
-> > +     unsigned int count = PAGE_ALIGN(size) >> PAGE_SHIFT;
-> > +     dma_addr_t dma_addr, iova;
-> > +     int i, ret = ~0;
-> > +
-> > +     dma_addr = __alloc_iova(mapping, size);
-> > +     if (dma_addr == ~0)
-> > +             goto fail;
-> > +
-> > +     iova = dma_addr;
-> > +     for (i=0; i<count; ) {
-> > +             unsigned int phys = page_to_phys(pages[i]);
-> > +             int j = i + 1;
-> > +
-> > +             while (j < count) {
-> > +                     if (page_to_phys(pages[j]) != phys + (j - i) *
-> > PAGE_SIZE)
-> > +                             break;
-> > +                     j++;
-> > +             }
-> > +
-> > +             ret = iommu_map(mapping->domain, iova, phys, (j - i) *
-> > PAGE_SIZE, 0);
-> > +             if (ret < 0)
-> > +                     goto fail;
-> > +             iova += (j - i) * PAGE_SIZE;
-> > +             i = j;
-> > +     }
-> > +
-> > +     return dma_addr;
-> > +fail:
-> > +     return ~0;
-> > +}
-> 
-> iommu_map failure should release the iova space allocated using __alloc_iova.
-
-Right, thanks for spotting the bug.
-
-> 
-> > +static dma_addr_t arm_iommu_map_page(struct device *dev, struct page
-> > *page,
-> > +          unsigned long offset, size_t size, enum dma_data_direction dir,
-> > +          struct dma_attrs *attrs)
-> > +{
-> > +     struct dma_iommu_mapping *mapping = dev->archdata.mapping;
-> > +     dma_addr_t dma_addr, iova;
-> > +     unsigned int phys;
-> > +     int ret, len = PAGE_ALIGN(size + offset);
-> > +
-> > +     if (!arch_is_coherent())
-> > +             __dma_page_cpu_to_dev(page, offset, size, dir);
-> > +
-> > +     dma_addr = iova = __alloc_iova(mapping, len);
-> > +     if (iova == ~0)
-> > +             goto fail;
-> > +
-> > +     dma_addr += offset;
-> > +     phys = page_to_phys(page);
-> > +     ret = iommu_map(mapping->domain, iova, phys, size, 0);
-> > +     if (ret < 0)
-> > +             goto fail;
-> > +
-> > +     return dma_addr;
-> > +fail:
-> > +     return ~0;
-> > +}
-> 
-> iommu_map failure should release the iova space allocated using __alloc_iova.
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..8e04ec5 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -430,9 +430,7 @@ void __init dmi_check_pciprobe(void)
  
-Best regards
+ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ {
+-	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+-	struct pci_sysdata *sd;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -441,28 +439,10 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 		}
+ 	}
+ 
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
+-		printk(KERN_ERR "PCI: OOM, not probing PCI bus %02x\n", busnum);
+-		return NULL;
+-	}
+-
+-	sd->node = get_mp_bus_to_node(busnum);
+-
+-	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
+-	if (!bus) {
+-		pci_free_resource_list(&resources);
+-		kfree(sd);
+-	}
+-
+-	return bus;
++	return pci_scan_bus_on_node(busnum, &pci_root_ops,
++					get_mp_bus_to_node(busnum));
+ }
++
+ void __init pcibios_set_cache_line_size(void)
+ {
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
+@@ -656,6 +636,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	}
+ 	sd->node = node;
+ 	x86_pci_root_bus_resources(busno, &resources);
++	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
+ 	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
 -- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
+1.7.7
 
