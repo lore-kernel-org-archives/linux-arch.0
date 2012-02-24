@@ -1,71 +1,44 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH] Remove missed ->fds_bits from cessation use of fd_set structs
- internally
-Date: Fri, 24 Feb 2012 10:57:07 +0000
-Message-ID: <20120224105707.32170.11550.stgit@warthog.procyon.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCHv6 7/7] ARM: dma-mapping: add support for IOMMU mapper
+Date: Fri, 24 Feb 2012 12:49:44 +0000
+Message-ID: <201202241249.44731.arnd@arndb.de>
+References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com> <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com> <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:65396 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756536Ab2BXLIA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Feb 2012 06:08:00 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Ralf =?utf-8?q?B=C3=A4chle?= <ralf@linux-mips.org>, Arve =?utf-8?b?SGrDuG5uZXbDpWc=?= <arve@android.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-samsung-soc-owner@vger.kernel.org>
+In-Reply-To: <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
+Sender: linux-samsung-soc-owner@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: 'Krishna Reddy' <vdumpa@nvidia.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-=46ix places where ->fds_bits needed to be removed as the core kernel n=
-o longer
-uses fd_set internally for file descriptor table management.  There are=
- two
-places:
+On Friday 24 February 2012, Marek Szyprowski wrote:
+> > > +static struct page **__iommu_alloc_buffer(struct device *dev, size_t
+> > > +size, gfp_t gfp) {
+> > > +     struct page **pages;
+> > > +     int count = size >> PAGE_SHIFT;
+> > > +     int i=0;
+> > > +
+> > > +     pages = kzalloc(count * sizeof(struct page*), gfp);
+> > > +     if (!pages)
+> > > +             return NULL;
+> > 
+> > kzalloc can fail for any size bigger than PAGE_SIZE, if the system memory is
+> > fully fragmented.
+> > If there is a request for size bigger than 4MB, then the pages pointer array won't
+> > Fit in one page and kzalloc may fail. we should use vzalloc()/vfree()
+> > when pages pointer array size needed is bigger than PAGE_SIZE.
+> 
+> Right, thanks for spotting this. I will fix this in the next version.
 
- (1) drivers/staging/android/binder.c
+It's not clear though if that is the best solution. vzalloc comes at the
+price of using up space in the vmalloc area and as well as extra TLB entries,
+so we try to limit its use where possible. The other current code might fail
+in out of memory situations, but if a user wants to allocate a >4MB buffer
+(using up more than one physically contiguous page of pointers to pages), the
+following allocation of >1024 pages will likely fail as well, so we might
+just fail early.
 
- (2) arch/mips/kernel/kspd.c
-
-     Question: Should sp_cleanup() in the MIPS arch be using find_next_=
-bit()
-     or fls()?
-
-Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Ralf B=C3=A4chle <ralf@linux-mips.org>
-cc: Arve Hj=C3=B8nnev=C3=A5g <arve@android.com>
----
-
- arch/mips/kernel/kspd.c          |    2 +-
- drivers/staging/android/binder.c |    3 +--
- 2 files changed, 2 insertions(+), 3 deletions(-)
-
-diff --git a/arch/mips/kernel/kspd.c b/arch/mips/kernel/kspd.c
-index 29811f0..84d0639 100644
---- a/arch/mips/kernel/kspd.c
-+++ b/arch/mips/kernel/kspd.c
-@@ -326,7 +326,7 @@ static void sp_cleanup(void)
- 		i =3D j * __NFDBITS;
- 		if (i >=3D fdt->max_fds)
- 			break;
--		set =3D fdt->open_fds->fds_bits[j++];
-+		set =3D fdt->open_fds[j++];
- 		while (set) {
- 			if (set & 1) {
- 				struct file * file =3D xchg(&fdt->fd[i], NULL);
-diff --git a/drivers/staging/android/binder.c b/drivers/staging/android=
-/binder.c
-index 347bd6e..eeaa9b8 100644
---- a/drivers/staging/android/binder.c
-+++ b/drivers/staging/android/binder.c
-@@ -380,8 +380,7 @@ int task_get_unused_fd_flags(struct binder_proc *pr=
-oc, int flags)
-=20
- repeat:
- 	fdt =3D files_fdtable(files);
--	fd =3D find_next_zero_bit(fdt->open_fds->fds_bits, fdt->max_fds,
--				files->next_fd);
-+	fd =3D find_next_zero_bit(fdt->open_fds, fdt->max_fds, files->next_fd=
-);
-=20
- 	/*
- 	 * N.B. For clone tasks sharing a files structure, this test
+	Arnd
