@@ -1,55 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:17004 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:17019 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757222Ab2BXKUW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 05:20:22 -0500
+	with ESMTP id S1757129Ab2BXKUX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 05:20:23 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 23/23] PCI: clean up rescan_bus_bridge_resize
-Date: Fri, 24 Feb 2012 02:19:11 -0800
-Message-ID: <1330078751-7299-24-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 22/23] PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+Date: Fri, 24 Feb 2012 02:19:10 -0800
+Message-ID: <1330078751-7299-23-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
 References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120224101911.6SP9SmaFt91qvsSORbPSSqdUmlVyvXv4LVlh4cSk1vY@z>
+Message-ID: <20120224101910.601IUoyTig60Z8oCF0ebE9k9AHaiP_P39QMHwUeqmPg@z>
 
-Should only use it with bridge instead of bus.
-it could get new subordinate. so can not use it with reguar bus.
+So after remove all children and then using setpci change bus register and rescan
+bridge could use new set bus number.
 
-in that case, use may need to make all children devices get removed already.
+Otherwise need to rescan parent bus, it would have too much overhead.
+
+also need to use pci_bus_add_single_device to make sure new change bus have directory
+ /sys/../.../pci_bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/pci-sysfs.c |    7 ++-----
- 1 files changed, 2 insertions(+), 5 deletions(-)
+ drivers/pci/probe.c |   10 ++++++----
+ 1 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/pci/pci-sysfs.c b/drivers/pci/pci-sysfs.c
-index 68caf29..a3fa64e 100644
---- a/drivers/pci/pci-sysfs.c
-+++ b/drivers/pci/pci-sysfs.c
-@@ -337,7 +337,7 @@ dev_bridge_rescan_store(struct device *dev, struct device_attribute *attr,
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 1c36b39..8063cf1 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1961,14 +1961,16 @@ EXPORT_SYMBOL(pci_scan_bus);
+  */
+ unsigned int __ref pci_rescan_bus_bridge_resize(struct pci_dev *bridge)
+ {
+-	unsigned int max;
+-	struct pci_bus *bus = bridge->subordinate;
++	unsigned int max = 0;
++	int pass;
++	struct pci_bus *bus = bridge->bus;
  
- 	if (val) {
- 		mutex_lock(&pci_remove_rescan_mutex);
--		pci_rescan_bus(pdev->subordinate);
-+		pci_rescan_bus_bridge_resize(pdev);
- 		mutex_unlock(&pci_remove_rescan_mutex);
- 	}
- 	return count;
-@@ -387,10 +387,7 @@ dev_bus_rescan_store(struct device *dev, struct device_attribute *attr,
+-	max = pci_scan_child_bus(bus);
++	for (pass = 0; pass < 2; pass++)
++		max = pci_scan_bridge(bus, bridge, max, pass);
  
- 	if (val) {
- 		mutex_lock(&pci_remove_rescan_mutex);
--		if (!pci_is_root_bus(bus) && list_empty(&bus->devices))
--			pci_rescan_bus_bridge_resize(bus->self);
--		else
--			pci_rescan_bus(bus);
-+		pci_rescan_bus(bus);
- 		mutex_unlock(&pci_remove_rescan_mutex);
- 	}
- 	return count;
+ 	pci_assign_unassigned_bridge_resources(bridge);
+ 
+-	pci_bus_add_devices(bus);
++	pci_bus_add_single_device(bridge);
+ 
+ 	return max;
+ }
 -- 
 1.7.7
 
