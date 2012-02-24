@@ -1,39 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:16657 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756151Ab2BXKTz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 05:19:55 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/23] PCI, sparc: Register busn_res for root buses
-Date: Fri, 24 Feb 2012 02:18:55 -0800
-Message-ID: <1330078751-7299-8-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.186]:60095 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752277Ab2BXMtz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 07:49:55 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCHv6 7/7] ARM: dma-mapping: add support for IOMMU mapper
+Date: Fri, 24 Feb 2012 12:49:44 +0000
+References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com> <401E54CE964CD94BAE1EB4A729C7087E378E42AE18@HQMAIL04.nvidia.com> <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
+In-Reply-To: <00f301ccf2d7$b5b68570$21239050$%szyprowski@samsung.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201202241249.44731.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org
-Message-ID: <20120224101855.lnltcUTIOtSy317MjBoNlMZhSODoNZ6hqT5AEi1sX6s@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: 'Krishna Reddy' <vdumpa@nvidia.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>
+Message-ID: <20120224124944.kZ1j3jk57pgbIAkQE0FG294NxsU4JcElIS8EBVzgD6k@z>
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
----
- arch/sparc/kernel/pci.c |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+On Friday 24 February 2012, Marek Szyprowski wrote:
+> > > +static struct page **__iommu_alloc_buffer(struct device *dev, size_t
+> > > +size, gfp_t gfp) {
+> > > +     struct page **pages;
+> > > +     int count = size >> PAGE_SHIFT;
+> > > +     int i=0;
+> > > +
+> > > +     pages = kzalloc(count * sizeof(struct page*), gfp);
+> > > +     if (!pages)
+> > > +             return NULL;
+> > 
+> > kzalloc can fail for any size bigger than PAGE_SIZE, if the system memory is
+> > fully fragmented.
+> > If there is a request for size bigger than 4MB, then the pages pointer array won't
+> > Fit in one page and kzalloc may fail. we should use vzalloc()/vfree()
+> > when pages pointer array size needed is bigger than PAGE_SIZE.
+> 
+> Right, thanks for spotting this. I will fix this in the next version.
 
-diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index bb8bc2e..83881df9 100644
---- a/arch/sparc/kernel/pci.c
-+++ b/arch/sparc/kernel/pci.c
-@@ -703,6 +703,7 @@ struct pci_bus * __devinit pci_scan_one_pbm(struct pci_pbm_info *pbm,
- 	}
- 	bus->secondary = pbm->pci_first_busno;
- 	bus->subordinate = pbm->pci_last_busno;
-+	pci_bus_insert_busn_res(bus, pbm->pci_first_busno, pbm->pci_last_busno);
- 
- 	pci_of_scan_bus(pbm, node, bus);
- 	pci_bus_add_devices(bus);
--- 
-1.7.7
+It's not clear though if that is the best solution. vzalloc comes at the
+price of using up space in the vmalloc area and as well as extra TLB entries,
+so we try to limit its use where possible. The other current code might fail
+in out of memory situations, but if a user wants to allocate a >4MB buffer
+(using up more than one physically contiguous page of pointers to pages), the
+following allocation of >1024 pages will likely fail as well, so we might
+just fail early.
 
+	Arnd
