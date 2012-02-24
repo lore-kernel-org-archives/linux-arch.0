@@ -1,133 +1,80 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 16/23] pcmcia: remove workaround for fixing pci parent bus
- subordinate
-Date: Fri, 24 Feb 2012 02:19:04 -0800
-Message-ID: <1330078751-7299-17-git-send-email-yinghai@kernel.org>
-References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-pcmcia>,
- <mailto:linux-pcmcia-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-pcmcia/>
-List-Post: <mailto:linux-pcmcia@lists.infradead.org>
-List-Help: <mailto:linux-pcmcia-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-pcmcia>,
- <mailto:linux-pcmcia-request@lists.infradead.org?subject=subscribe>
-Sender: linux-pcmcia-bounces@lists.infradead.org
-Errors-To: linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org
+Subject: [PATCH -v7 0/23] PCI: allocate pci bus num range for unassigned bridge busn + pci rescan cleanup
+Date: Fri, 24 Feb 2012 02:18:48 -0800
+Message-ID: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: linux-arch@vger.kernel.org, linux-pcmcia@lists.infradead.org, Mauro Carvalho Chehab <mchehab@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Yinghai Lu <yinghai@kernel.org>, linux-pci@vger.kernel.org, Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now pci busn allocation code is there, and it will preallocate bus number and it
-will make sure parent buses subordinate is right.
+8a2fc18: PCI: clean up rescan_bus_bridge_resize
+bf71259: PCI: make pci_rescan_bus_bridge_resize use pci_scan_bridge instead
+e920668: PCI: Add pci_bus_add_single_device()
+c61820d: PCI, sysfs: create rescan_bridge under /sys/.../pci/devices/... for pci bridges
+52b414e: PCI, sys: Use device_type and attr_groups with pci dev
+1dd3a1e: PCI, pciehp: Remove not needed bus number range checking
+4ecfb5b: PCI: Double checking setting for bus register and bus struct.
+938bc68: pcmcia: remove workaround for fixing pci parent bus subordinate
+206c646: PCI: Seperate child bus scanning to two passes overall
+883167f: PCI: kill pci_fixup_parent_subordinate_busnr()
+a4c590e: PCI: Allocate bus range instead of use max blindly
+13e322a: PCI: Strict checking of valid range for bridge
+8a6af68: PCI: Probe safe range that we can use for unassigned bridge.
+85f1fdd: PCI: Add pci_bus_extend/shrink_top()
+d4c8a5e: PCI, parisc: Register busn_res for root buses
+821fbcf: PCI, powerpc: Register busn_res for root buses
+8b257c9: PCI, sparc: Register busn_res for root buses
+8be529a: PCI, ia64: Register busn_res for root buses
+136c1d8: PCI, x86: Register busn_res for root buses
+fb89a01f: PCI: Add busn_res tracking in core
+d919f95: PCI: Add busn_res operation functions
+7bb98d3: PCI: Add busn_res into struct pci_bus.
+8958703: x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
 
-So remove workaround here.
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Tested-by: Dominik Brodowski <linux@dominikbrodowski.net>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: linux-pcmcia@lists.infradead.org
----
- drivers/pcmcia/yenta_socket.c |   75 -----------------------------------------
- 1 files changed, 0 insertions(+), 75 deletions(-)
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-diff --git a/drivers/pcmcia/yenta_socket.c b/drivers/pcmcia/yenta_socket.c
-index 849c0c1..5757cae 100644
---- a/drivers/pcmcia/yenta_socket.c
-+++ b/drivers/pcmcia/yenta_socket.c
-@@ -1064,79 +1064,6 @@ static void yenta_config_init(struct yenta_socket *socket)
- 	config_writew(socket, CB_BRIDGE_CONTROL, bridge);
- }
- 
--/**
-- * yenta_fixup_parent_bridge - Fix subordinate bus# of the parent bridge
-- * @cardbus_bridge: The PCI bus which the CardBus bridge bridges to
-- *
-- * Checks if devices on the bus which the CardBus bridge bridges to would be
-- * invisible during PCI scans because of a misconfigured subordinate number
-- * of the parent brige - some BIOSes seem to be too lazy to set it right.
-- * Does the fixup carefully by checking how far it can go without conflicts.
-- * See http://bugzilla.kernel.org/show_bug.cgi?id=2944 for more information.
-- */
--static void yenta_fixup_parent_bridge(struct pci_bus *cardbus_bridge)
--{
--	struct list_head *tmp;
--	unsigned char upper_limit;
--	/*
--	 * We only check and fix the parent bridge: All systems which need
--	 * this fixup that have been reviewed are laptops and the only bridge
--	 * which needed fixing was the parent bridge of the CardBus bridge:
--	 */
--	struct pci_bus *bridge_to_fix = cardbus_bridge->parent;
--
--	/* Check bus numbers are already set up correctly: */
--	if (bridge_to_fix->subordinate >= cardbus_bridge->subordinate)
--		return; /* The subordinate number is ok, nothing to do */
--
--	if (!bridge_to_fix->parent)
--		return; /* Root bridges are ok */
--
--	/* stay within the limits of the bus range of the parent: */
--	upper_limit = bridge_to_fix->parent->subordinate;
--
--	/* check the bus ranges of all silbling bridges to prevent overlap */
--	list_for_each(tmp, &bridge_to_fix->parent->children) {
--		struct pci_bus *silbling = pci_bus_b(tmp);
--		/*
--		 * If the silbling has a higher secondary bus number
--		 * and it's secondary is equal or smaller than our
--		 * current upper limit, set the new upper limit to
--		 * the bus number below the silbling's range:
--		 */
--		if (silbling->secondary > bridge_to_fix->subordinate
--		    && silbling->secondary <= upper_limit)
--			upper_limit = silbling->secondary - 1;
--	}
--
--	/* Show that the wanted subordinate number is not possible: */
--	if (cardbus_bridge->subordinate > upper_limit)
--		dev_printk(KERN_WARNING, &cardbus_bridge->dev,
--			   "Upper limit for fixing this "
--			   "bridge's parent bridge: #%02x\n", upper_limit);
--
--	/* If we have room to increase the bridge's subordinate number, */
--	if (bridge_to_fix->subordinate < upper_limit) {
--
--		/* use the highest number of the hidden bus, within limits */
--		unsigned char subordinate_to_assign =
--			min(cardbus_bridge->subordinate, upper_limit);
--
--		dev_printk(KERN_INFO, &bridge_to_fix->dev,
--			   "Raising subordinate bus# of parent "
--			   "bus (#%02x) from #%02x to #%02x\n",
--			   bridge_to_fix->number,
--			   bridge_to_fix->subordinate, subordinate_to_assign);
--
--		/* Save the new subordinate in the bus struct of the bridge */
--		bridge_to_fix->subordinate = subordinate_to_assign;
--
--		/* and update the PCI config space with the new subordinate */
--		pci_write_config_byte(bridge_to_fix->self,
--			PCI_SUBORDINATE_BUS, bridge_to_fix->subordinate);
--	}
--}
--
- /*
-  * Initialize a cardbus controller. Make sure we have a usable
-  * interrupt, and that we can map the cardbus area. Fill in the
-@@ -1257,8 +1184,6 @@ static int __devinit yenta_probe(struct pci_dev *dev, const struct pci_device_id
- 	dev_printk(KERN_INFO, &dev->dev,
- 		   "Socket status: %08x\n", cb_readl(socket, CB_SOCKET_STATE));
- 
--	yenta_fixup_parent_bridge(dev->subordinate);
--
- 	/* Register it with the pcmcia layer.. */
- 	ret = pcmcia_register_socket(&socket->socket);
- 	if (ret == 0) {
--- 
-1.7.7
+last five patches are rescan cleanup that make use busn alloc.
+
+could be found at:
+	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
+
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+	out, and move the comment change with code change.
+-v4: fixes the problem about rescan that Bjorn found.
+-v5: add /proc/iobusn that is requested by Bjorn.
+     remove old workaround from pciehp.
+     add rescan_bridge for pci bridge in /sys
+-v6: remove global iobusn_resource, and every root bus's busn_res will be root
+     of children buses' busn_res.
+     pc cardbus change is tested by pcmcia maintainter.
+-v7: remove pci_scan_root_bus_max requested by Bjorn and Jesse.
+
+Thanks
+
+Yinghai
+
+ Documentation/ABI/testing/sysfs-bus-pci |   10 +
+ arch/ia64/pci/pci.c                     |    2 +
+ arch/powerpc/kernel/pci-common.c        |    7 +-
+ arch/sparc/kernel/pci.c                 |    1 +
+ arch/x86/include/asm/topology.h         |    3 +-
+ arch/x86/pci/acpi.c                     |    8 +-
+ arch/x86/pci/bus_numa.c                 |    8 +-
+ arch/x86/pci/common.c                   |   37 +--
+ drivers/parisc/dino.c                   |    2 +
+ drivers/parisc/lba_pci.c                |    3 +
+ drivers/pci/bus.c                       |   40 +++
+ drivers/pci/hotplug/pciehp_pci.c        |   12 +-
+ drivers/pci/pci-sysfs.c                 |   59 ++++-
+ drivers/pci/pci.h                       |    1 +
+ drivers/pci/probe.c                     |  441 +++++++++++++++++++++++++------
+ drivers/pci/remove.c                    |    1 +
+ drivers/pcmcia/yenta_socket.c           |   75 ------
+ include/linux/pci.h                     |    5 +
+ 18 files changed, 509 insertions(+), 206 deletions(-)
