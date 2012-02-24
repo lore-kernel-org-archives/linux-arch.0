@@ -1,51 +1,53 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/23] PCI, parisc: Register busn_res for root buses
-Date: Fri, 24 Feb 2012 02:18:57 -0800
-Message-ID: <1330078751-7299-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 18/23] PCI, pciehp: Remove not needed bus number range checking
+Date: Fri, 24 Feb 2012 02:19:06 -0800
+Message-ID: <1330078751-7299-19-git-send-email-yinghai@kernel.org>
 References: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1330078751-7299-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
----
- drivers/parisc/dino.c    |    2 ++
- drivers/parisc/lba_pci.c |    3 +++
- 2 files changed, 5 insertions(+), 0 deletions(-)
+Found hotplug adding one EM with bridge fail, bios only leave one bus range
+ for slot.
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index 7ff10c1..3f2e203 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -1014,7 +1014,9 @@ static int __init dino_probe(struct parisc_device *dev)
- 		return 0;
- 	}
+[ 1169.621444] pciehp: No bus number available for hot-added bridge 0000:55:00.0
+[ 1169.633277] pcieport 0000:40:03.0: PCI bridge to [bus 55-55]
+
+With busn_res tracking and allocating, we don't need that checking anymore.
+
+Parent bridges' bus number will be extended safely.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ drivers/pci/hotplug/pciehp_pci.c |   12 +-----------
+ 1 files changed, 1 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/pci/hotplug/pciehp_pci.c b/drivers/pci/hotplug/pciehp_pci.c
+index a4031df..df1f3ed 100644
+--- a/drivers/pci/hotplug/pciehp_pci.c
++++ b/drivers/pci/hotplug/pciehp_pci.c
+@@ -37,18 +37,8 @@
+ static int __ref pciehp_add_bridge(struct pci_dev *dev)
+ {
+ 	struct pci_bus *parent = dev->bus;
+-	int pass, busnr, start = parent->secondary;
+-	int end = parent->subordinate;
++	int pass, busnr = parent->secondary;
  
-+	pci_bus_insert_busn_res(bus, dino_current_bus, 255);
- 	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_update_busn_res_end(bus, bus->subordinate);
- 
- 	/* This code *depends* on scanning being single threaded
- 	 * if it isn't, this global bus number count will fail
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index d5f3d75..b58bf8b 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -1531,6 +1531,9 @@ lba_driver_probe(struct parisc_device *dev)
- 		return 0;
- 	}
- 
-+	pci_bus_insert_busn_res(lba_bus, lba_dev->hba.bus_num.start,
-+				lba_dev->hba.bus_num.end);
-+
- 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
- 
- 	/* This is in lieu of calling pci_assign_unassigned_resources() */
+-	for (busnr = start; busnr <= end; busnr++) {
+-		if (!pci_find_bus(pci_domain_nr(parent), busnr))
+-			break;
+-	}
+-	if (busnr-- > end) {
+-		err("No bus number available for hot-added bridge %s\n",
+-				pci_name(dev));
+-		return -1;
+-	}
+ 	for (pass = 0; pass < 2; pass++)
+ 		busnr = pci_scan_bridge(parent, dev, busnr, pass);
+ 	if (!dev->subordinate)
 -- 
 1.7.7
