@@ -1,22 +1,18 @@
 From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [RFC] [PATCH] asm-generic/unistd.h: handle symbol prefixes in cond_syscall
-Date: Fri, 24 Feb 2012 14:23:19 +0000
-Message-ID: <201202241423.19775.arnd@arndb.de>
+Date: Fri, 24 Feb 2012 14:24:07 +0000
+Message-ID: <201202241424.07319.arnd@arndb.de>
 References: <4F47981F.4020305@imgtec.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:50226 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753695Ab2BXOYL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 09:24:11 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <4F47981F.4020305@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: James Hogan <james.hogan@imgtec.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
 On Friday 24 February 2012, James Hogan wrote:
 > Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
