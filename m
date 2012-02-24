@@ -1,43 +1,68 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 02/30] x86-64: Use explicit sizes in sigcontext.h, prepare
- for x32
-Date: Thu, 23 Feb 2012 18:33:56 -0800
-Message-ID: <4F46F714.6010007@zytor.com>
-References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <201202221222.58399.arnd@arndb.de> <4F453086.8030602@zytor.com> <201202222123.38816.arnd@arndb.de>
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Subject: Re: [PATCH v2 11/12] unicore32/PCI: use pci_flags PCI_PROBE_ONLY
+ instead of arm-specific flag
+Date: Fri, 24 Feb 2012 14:19:24 +0800
+Message-ID: <1330064364.12600.3.camel@epip-laptop>
+References: <20120223194209.20708.54480.stgit@bhelgaas.mtv.corp.google.com>
+	 <20120223194358.20708.90268.stgit@bhelgaas.mtv.corp.google.com>
+Reply-To: gxt@mprc.pku.edu.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:58641 "EHLO mail.zytor.com"
+Received: from mprc.pku.edu.cn ([162.105.203.9]:49498 "EHLO mprc.pku.edu.cn"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752943Ab2BXCeT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Feb 2012 21:34:19 -0500
-In-Reply-To: <201202222123.38816.arnd@arndb.de>
+	id S1753982Ab2BXHK4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Feb 2012 02:10:56 -0500
+In-Reply-To: <20120223194358.20708.90268.stgit@bhelgaas.mtv.corp.google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-pci@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 02/22/2012 01:23 PM, Arnd Bergmann wrote:
+On Thu, 2012-02-23 at 12:43 -0700, Bjorn Helgaas wrote:
+> CC: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> ---
+>  arch/unicore32/kernel/pci.c |    6 +++---
+>  1 files changed, 3 insertions(+), 3 deletions(-)
 > 
-> I'd say we should fix at least the ones that are easy to spot because
-> they already use compat_u64 or have an #ifdef CONFIG_X86_64 in compat
-> code. I've looked at everything I could find that fits into that category
-> and found only two locations. My expectation is that all other data
-> structures that would fall into this category are already broken
-> for 32 bit emulation on x86.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> 
+> diff --git a/arch/unicore32/kernel/pci.c b/arch/unicore32/kernel/pci.c
+> index a8f07fe..6c1248f 100644
+> --- a/arch/unicore32/kernel/pci.c
+> +++ b/arch/unicore32/kernel/pci.c
+> @@ -19,9 +19,9 @@
+>  #include <linux/slab.h>
+>  #include <linux/init.h>
+>  #include <linux/io.h>
+> +#include <asm-generic/pci-bridge.h>
+I recommend that asm-generic/pci-bridge.h should be inserted into
+asm/pci.h file.
 
-Would you mind sending these as patches to the respective maintainers?
-Since they don't depend on the x32 patchset per se it's probably the
-best way to handle this.
+Regards,
+Guan Xuetao
 
-Feel free to include my Acked-by: H. Peter Anvin <hpa@zytor.com>.
-
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+>  
+>  static int debug_pci;
+> -static int use_firmware;
+>  
+>  #define CONFIG_CMD(bus, devfn, where)	\
+>  	(0x80000000 | (bus->number << 16) | (devfn << 8) | (where & ~3))
+> @@ -276,7 +276,7 @@ static int __init pci_common_init(void)
+>  
+>  	pci_fixup_irqs(pci_common_swizzle, pci_puv3_map_irq);
+>  
+> -	if (!use_firmware) {
+> +	if (!pci_has_flag(PCI_PROBE_ONLY)) {
+>  		/*
+>  		 * Size the bridge windows.
+>  		 */
+> @@ -303,7 +303,7 @@ char * __devinit pcibios_setup(char *str)
+>  		debug_pci = 1;
+>  		return NULL;
+>  	} else if (!strcmp(str, "firmware")) {
+> -		use_firmware = 1;
+> +		pci_add_flags(PCI_PROBE_ONLY);
+>  		return NULL;
+>  	}
+>  	return str;
