@@ -1,51 +1,44 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv6 3/7] ARM: dma-mapping: implement dma sg methods on top of
- any generic dma ops
-Date: Fri, 24 Feb 2012 14:24:04 +0100
-Message-ID: <013401ccf2f7$9413a0e0$bc3ae2a0$%szyprowski@samsung.com>
-References: <1328900324-20946-1-git-send-email-m.szyprowski@samsung.com>
- <1328900324-20946-4-git-send-email-m.szyprowski@samsung.com>
- <20120214150255.GC18359@phenom.dumpdata.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [RFC] [PATCH] asm-generic/unistd.h: handle symbol prefixes in cond_syscall
+Date: Fri, 24 Feb 2012 14:01:03 +0000
+Message-ID: <4F47981F.4020305@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <20120214150255.GC18359@phenom.dumpdata.com>
-Content-language: pl
-Sender: owner-linux-mm@kvack.org
-To: 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'KyongHo Cho' <pullip.cho@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
+but this wasn't taken into account by the generic cond_syscall. It's
+easy enough to fix in a generic fashion, so add the symbol prefix to
+symbol names in cond_syscall when CONFIG_SYMBOL_PREFIX is set.
 
-On Tuesday, February 14, 2012 4:03 PM Konrad Rzeszutek Wilk wrote:
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+---
+ include/asm-generic/unistd.h |    9 ++++++++-
+ 1 files changed, 8 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 2292d1a..c9a5ba4 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -924,7 +924,14 @@ __SYSCALL(__NR_fork, sys_ni_syscall)
+  * but it doesn't work on all toolchains, so we just do it by hand
+  */
+ #ifndef cond_syscall
+-#define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
++#ifdef CONFIG_SYMBOL_PREFIX
++#define __SYMBOL_PREFIX CONFIG_SYMBOL_PREFIX
++#else
++#define __SYMBOL_PREFIX
++#endif
++#define cond_syscall(x) asm(".weak\t" __SYMBOL_PREFIX #x "\n\t" \
++			    ".set\t" __SYMBOL_PREFIX #x "," \
++			    __SYMBOL_PREFIX "sys_ni_syscall")
+ #endif
  
-> On Fri, Feb 10, 2012 at 07:58:40PM +0100, Marek Szyprowski wrote:
-> > This patch converts all dma_sg methods to be generic (independent of the
-> > current DMA mapping implementation for ARM architecture). All dma sg
-> > operations are now implemented on top of respective
-> > dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
-> 
-> Looks good, except the worry I've that the DMA debug API calls are now
-> lost.
-
-Could You point me which DMA debug API calls are lost? The inline functions
-from include/asm-generic/dma-mapping-common.h already have all required
-dma debug calls, which replaced the previous calls in 
-arch/arm/include/dma-mapping.h.
-
-(snipped)
-
-Best regards
+ #endif /* __KERNEL__ */
 -- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+1.7.2.3
