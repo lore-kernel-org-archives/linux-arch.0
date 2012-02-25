@@ -1,73 +1,57 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
-Date: Fri, 24 Feb 2012 23:47:26 -0800
-Message-ID: <CAE9FiQXx6wXaes1pbpM7SAHzndgr=N2D2g6LEWsB2_pf8+mgSA@mail.gmail.com>
-References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
-	<1328425088-6562-10-git-send-email-yinghai@kernel.org>
-	<CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
-	<1328738567.2903.45.camel@pasglop>
-	<CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
-	<1328823358.2903.77.camel@pasglop>
-	<20120223122536.6a2a7a6b@jbarnes-desktop>
-	<CAErSpo7_WGjitDZz4XH+77f65Uz1ynd5_USN+D17D09Eux1iQQ@mail.gmail.com>
-	<20120224142430.58f5e5ef@jbarnes-desktop>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v11 07/12] seccomp: add SECCOMP_RET_ERRNO
+Date: Sat, 25 Feb 2012 12:20:13 -0800
+Message-ID: <CAGXu5jLVwYev3EmLOKuEdyaqieGzWgVpFcgodnUbUkbMbiJVqQ@mail.gmail.com>
+References: <1330140111-17201-1-git-send-email-wad@chromium.org>
+	<1330140111-17201-7-git-send-email-wad@chromium.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <20120224142430.58f5e5ef@jbarnes-desktop>
-Sender: linux-pci-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1330140111-17201-7-git-send-email-wad@chromium.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Feb 24, 2012 at 2:24 PM, Jesse Barnes <jbarnes@virtuousgeek.org=
-> wrote:
-> On Thu, 23 Feb 2012 12:51:30 -0800
-> Bjorn Helgaas <bhelgaas@google.com> wrote:
->> 2) We already have a way to add resources to a root bus: the
->> pci_add_resource() used to add I/O port and MMIO apertures. =A0I thi=
-nk
->> it'd be a lot simpler to just use that same interface for the bus
->> number aperture, e.g.,
->>
->> =A0 =A0 pci_add_resource(&resources, hose->io_space);
->> =A0 =A0 pci_add_resource(&resources, hose->mem_space);
->> =A0 =A0 pci_add_resource(&resources, hose->busnr_space);
->> =A0 =A0 bus =3D pci_scan_root_bus(dev, next_busno, pci_ops, sysdata,=
- &resources);
->>
->> This is actually a bit redundant, since "next_busno" should be the
->> same as hose->busnr_space->start. =A0So if we adopted this approach,=
- we
->> might want to eventually drop the "next_busno" argument.
+On Fri, Feb 24, 2012 at 7:21 PM, Will Drewry <wad@chromium.org> wrote:
+> This change adds the SECCOMP_RET_ERRNO as a valid return value from a
+> seccomp filter. =A0Additionally, it makes the first use of the lower
+> 16-bits for storing a filter-supplied errno. =A016-bits is more than
+> enough for the errno-base.h calls.
 >
-> Yeah that would be nice, the call would certainly make more sense tha=
-t
-> way.
+> Returning errors instead of immediately terminating processes that
+> violate seccomp policy allow for broader use of this functionality
+> for kernel attack surface reduction. =A0For example, a linux containe=
+r
+> could maintain a whitelist of pre-existing system calls but drop
+> all new ones with errnos. =A0This would keep a logically static attac=
+k
+> surface while providing errnos that may allow for graceful failure
+> without the downside of do_exit() on a bad call.
+>
+> v11: - check for NULL filter (keescook@chromium.org)
+> v10: - change loaders to fn
+> =A0v9: - n/a
+> =A0v8: - update Kconfig to note new need for syscall_set_return_value=
+=2E
+> =A0 =A0 - reordered such that TRAP behavior follows on later.
+> =A0 =A0 - made the for loop a little less indent-y
+> =A0v7: - introduced
+>
+> Signed-off-by: Will Drewry <wad@chromium.org>
 
-no, I don't think so.
+Reviewed-by: Kees Cook <keescook@chromium.org>
 
-using pci_add_resource will need to create dummy resource abut bus rang=
-e.
+> + =A0 =A0 =A0 /* Ensure unexpected behavior doesn't result in failing=
+ open. */
+> + =A0 =A0 =A0 if (unlikely(current->seccomp.filter =3D=3D NULL))
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D SECCOMP_RET_KILL;
 
-there is lots of pci_scan_root_bus(),  and those user does not bus end
-yet before scan.
-so could just hide pci_insert_busn_res in pci_scan_root_bus, and
-update busn_res end there.
+Any reason to not just immediately return in this case?
 
-other arch like x86, ia64, powerpc, sparc, will insert exact bus range
-between pci_create_root_bus and
-pci_scan_child_bus, will not need to update busn_res end.
+-Kees
 
-please check v7 of this patchset.
-
-    	git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yingha=
-i.git
-for-pci-busn-alloc
-
-It should be clean and have minimum lines of change.
-
-Thanks
-
-      Yinghai
+--=20
+Kees Cook
+ChromeOS Security
