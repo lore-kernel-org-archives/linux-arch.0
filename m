@@ -1,143 +1,175 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:64083 "EHLO
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:55760 "EHLO
 	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932350Ab2BYDW5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 22:22:57 -0500
-Received: by mail-gx0-f174.google.com with SMTP id h1so1475885ggn.19
-        for <linux-arch@vger.kernel.org>; Fri, 24 Feb 2012 19:22:56 -0800 (PST)
+	with ESMTP id S932298Ab2BYDWy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 22:22:54 -0500
+Received: by mail-gx0-f174.google.com with SMTP id h1so1475884ggn.19
+        for <linux-arch@vger.kernel.org>; Fri, 24 Feb 2012 19:22:54 -0800 (PST)
 MIME-Version: 1.0
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v11 09/12] seccomp: Add SECCOMP_RET_TRAP
-Date: Fri, 24 Feb 2012 21:21:48 -0600
-Message-ID: <1330140111-17201-9-git-send-email-wad@chromium.org>
+Subject: [PATCH v11 08/12] signal, x86: add SIGSYS info and make it synchronous.
+Date: Fri, 24 Feb 2012 21:21:47 -0600
+Message-ID: <1330140111-17201-8-git-send-email-wad@chromium.org>
 In-Reply-To: <1330140111-17201-1-git-send-email-wad@chromium.org>
 References: <1330140111-17201-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120225032148.cNoUDDC4eO3SOSQwR4muVXs-K7rHpl89QC6myLb3ekg@z>
+Message-ID: <20120225032147.bSXE86bjDnXYBasqTiUhJZRHygnQ3kYpy1DdnQ1DtTg@z>
 
-Adds a new return value to seccomp filters that triggers a SIGSYS to be
-delivered with the new SYS_SECCOMP si_code.
+This change enables SIGSYS, defines _sigfields._sigsys, and adds
+x86 (compat) arch support.  _sigsys defines fields which allow
+a signal handler to receive the triggering system call number,
+the relevant AUDIT_ARCH_* value for that number, and the address
+of the callsite.
 
-This allows in-process system call emulation, including just specifying
-an errno or cleanly dumping core, rather than just dying.
+To ensure that SIGSYS delivery occurs on return from the triggering
+system call, SIGSYS is added to the SYNCHRONOUS_MASK macro.
 
-v11: - clarify the comment (indan@nul.nu)
-     - s/sigtrap/sigsys
-v10: - use SIGSYS, syscall_get_arch, updates arch/Kconfig
-       note suggested-by (though original suggestion had other behaviors)
-v9:  - changes to SIGILL
-v8:  - clean up based on changes to dependent patches
-v7:  - introduction
+The first consumer of SIGSYS would be seccomp filter.  In particular,
+a filter program could specify a new return value, SECCOMP_RET_TRAP,
+which would result in the system call being denied and the calling
+thread signaled.  This also means that implementing arch-specific
+support can be dependent upon HAVE_ARCH_SECCOMP_FILTER.
 
-Suggested-by: Markus Gutschke <markus@chromium.org>
-Suggested-by: Julien Tinnes <jln@chromium.org>
+v11: - fix dropped words in the change description
+     - added fallback copy_siginfo support.
+     - added __ARCH_SIGSYS define to allow stepped arch support.
+v10: - first version based on suggestion
+
+Suggested-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Will Drewry <wad@chromium.org>
 ---
- arch/Kconfig                  |   14 +++++++++-----
- include/asm-generic/siginfo.h |    2 +-
- include/linux/seccomp.h       |    1 +
- kernel/seccomp.c              |   28 ++++++++++++++++++++++++++++
- 4 files changed, 39 insertions(+), 6 deletions(-)
+ arch/x86/ia32/ia32_signal.c   |    4 ++++
+ arch/x86/include/asm/ia32.h   |    6 ++++++
+ include/asm-generic/siginfo.h |   22 ++++++++++++++++++++++
+ kernel/signal.c               |    9 ++++++++-
+ 4 files changed, 40 insertions(+), 1 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index dd4e067..d92a78e 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -202,11 +202,15 @@ config HAVE_CMPXCHG_DOUBLE
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
--	  This symbol should be selected by an architecure if it provides
--	  asm/syscall.h, specifically syscall_get_arguments(),
--	  syscall_get_arch(), and syscall_set_return_value().  Additionally,
--	  its system call entry path must respect a return value of -1 from
--	  __secure_computing_int() and/or secure_computing().
-+	  This symbol should be selected by an architecure if it provides:
-+	  asm/syscall.h:
-+	  - syscall_get_arch()
-+	  - syscall_get_arguments()
-+	  - syscall_rollback()
-+	  - syscall_set_return_value()
-+	  SIGSYS siginfo_t support must be implemented.
-+	  __secure_computing_int()/secure_computing()'s return value must be
-+	  checked, with -1 resulting in the syscall being skipped.
+diff --git a/arch/x86/ia32/ia32_signal.c b/arch/x86/ia32/ia32_signal.c
+index 6557769..c81d2c7 100644
+--- a/arch/x86/ia32/ia32_signal.c
++++ b/arch/x86/ia32/ia32_signal.c
+@@ -73,6 +73,10 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, siginfo_t *from)
+ 			switch (from->si_code >> 16) {
+ 			case __SI_FAULT >> 16:
+ 				break;
++			case __SI_SYS >> 16:
++				put_user_ex(from->si_syscall, &to->si_syscall);
++				put_user_ex(from->si_arch, &to->si_arch);
++				break;
+ 			case __SI_CHLD >> 16:
+ 				put_user_ex(from->si_utime, &to->si_utime);
+ 				put_user_ex(from->si_stime, &to->si_stime);
+diff --git a/arch/x86/include/asm/ia32.h b/arch/x86/include/asm/ia32.h
+index 1f7e625..541485f 100644
+--- a/arch/x86/include/asm/ia32.h
++++ b/arch/x86/include/asm/ia32.h
+@@ -126,6 +126,12 @@ typedef struct compat_siginfo {
+ 			int _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
+ 			int _fd;
+ 		} _sigpoll;
++
++		struct {
++			unsigned int _call_addr; /* calling insn */
++			int _syscall;	/* triggering system call number */
++			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
++		} _sigsys;
+ 	} _sifields;
+ } compat_siginfo_t;
  
- config SECCOMP_FILTER
- 	def_bool y
 diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
-index 31306f5..af5d035 100644
+index 0dd4e87..31306f5 100644
 --- a/include/asm-generic/siginfo.h
 +++ b/include/asm-generic/siginfo.h
-@@ -93,7 +93,7 @@ typedef struct siginfo {
- 
- 		/* SIGSYS */
- 		struct {
--			void __user *_call_addr; /* calling insn */
-+			void __user *_call_addr; /* calling user insn */
- 			int _syscall;	/* triggering system call number */
- 			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
- 		} _sigsys;
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index 93c2d98..b44d038 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -19,6 +19,7 @@
-  * selects the least permissive choice.
-  */
- #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
-+#define SECCOMP_RET_TRAP	0x00020000U /* disallow and force a SIGSYS */
- #define SECCOMP_RET_ERRNO	0x00030000U /* returns an errno */
- #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
- 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 3b3a16e..d2e173e 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -272,6 +272,26 @@ void copy_seccomp(struct seccomp *child, const struct seccomp *parent)
- 	/* Other fields are handled by dup_task_struct. */
- 	child->filter = get_seccomp_filter(parent->filter);
- }
+@@ -90,9 +90,18 @@ typedef struct siginfo {
+ 			__ARCH_SI_BAND_T _band;	/* POLL_IN, POLL_OUT, POLL_MSG */
+ 			int _fd;
+ 		} _sigpoll;
 +
-+/**
-+ * seccomp_send_sigsys - signals the task to allow in-process syscall emulation
-+ * @syscall: syscall number to send to userland
-+ * @reason: filter-supplied reason code to send to userland (via si_errno)
-+ *
-+ * Forces a SIGSYS with a code of SYS_SECCOMP and related sigsys info.
-+ */
-+static void seccomp_send_sigsys(int syscall, int reason)
-+{
-+	struct siginfo info;
-+	memset(&info, 0, sizeof(info));
-+	info.si_signo = SIGSYS;
-+	info.si_code = SYS_SECCOMP;
-+	info.si_call_addr = (void __user *)KSTK_EIP(current);
-+	info.si_errno = reason;
-+	info.si_arch = syscall_get_arch(current, task_pt_regs(current));
-+	info.si_syscall = syscall;
-+	force_sig_info(SIGSYS, &info, current);
-+}
- #endif	/* CONFIG_SECCOMP_FILTER */
++		/* SIGSYS */
++		struct {
++			void __user *_call_addr; /* calling insn */
++			int _syscall;	/* triggering system call number */
++			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
++		} _sigsys;
+ 	} _sifields;
+ } siginfo_t;
+ 
++/* If the arch shares siginfo, then it has SIGSYS. */
++#define __ARCH_SIGSYS
+ #endif
  
  /*
-@@ -326,6 +346,14 @@ int __secure_computing_int(int this_syscall)
- 						 -(action & SECCOMP_RET_DATA),
- 						 0);
- 			return -1;
-+		case SECCOMP_RET_TRAP: {
-+			int reason_code = action & SECCOMP_RET_DATA;
-+			/* Show the handler the original registers. */
-+			syscall_rollback(current, task_pt_regs(current));
-+			/* Let the filter pass back 16 bits of data. */
-+			seccomp_send_sigsys(this_syscall, reason_code);
-+			return -1;
-+		}
- 		case SECCOMP_RET_ALLOW:
- 			return 0;
- 		case SECCOMP_RET_KILL:
+@@ -116,6 +125,11 @@ typedef struct siginfo {
+ #define si_addr_lsb	_sifields._sigfault._addr_lsb
+ #define si_band		_sifields._sigpoll._band
+ #define si_fd		_sifields._sigpoll._fd
++#ifdef __ARCH_SIGSYS
++#define si_call_addr	_sifields._sigsys._call_addr
++#define si_syscall	_sifields._sigsys._syscall
++#define si_arch		_sifields._sigsys._arch
++#endif
+ 
+ #ifdef __KERNEL__
+ #define __SI_MASK	0xffff0000u
+@@ -126,6 +140,7 @@ typedef struct siginfo {
+ #define __SI_CHLD	(4 << 16)
+ #define __SI_RT		(5 << 16)
+ #define __SI_MESGQ	(6 << 16)
++#define __SI_SYS	(7 << 16)
+ #define __SI_CODE(T,N)	((T) | ((N) & 0xffff))
+ #else
+ #define __SI_KILL	0
+@@ -135,6 +150,7 @@ typedef struct siginfo {
+ #define __SI_CHLD	0
+ #define __SI_RT		0
+ #define __SI_MESGQ	0
++#define __SI_SYS	0
+ #define __SI_CODE(T,N)	(N)
+ #endif
+ 
+@@ -232,6 +248,12 @@ typedef struct siginfo {
+ #define NSIGPOLL	6
+ 
+ /*
++ * SIGSYS si_codes
++ */
++#define SYS_SECCOMP		(__SI_SYS|1)	/* seccomp triggered */
++#define NSIGSYS	1
++
++/*
+  * sigevent definitions
+  * 
+  * It seems likely that SIGEV_THREAD will have to be handled from 
+diff --git a/kernel/signal.c b/kernel/signal.c
+index c73c428..15a9e9b 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -160,7 +160,7 @@ void recalc_sigpending(void)
+ 
+ #define SYNCHRONOUS_MASK \
+ 	(sigmask(SIGSEGV) | sigmask(SIGBUS) | sigmask(SIGILL) | \
+-	 sigmask(SIGTRAP) | sigmask(SIGFPE))
++	 sigmask(SIGTRAP) | sigmask(SIGFPE) | sigmask(SIGSYS))
+ 
+ int next_signal(struct sigpending *pending, sigset_t *mask)
+ {
+@@ -2686,6 +2686,13 @@ int copy_siginfo_to_user(siginfo_t __user *to, siginfo_t *from)
+ 		err |= __put_user(from->si_uid, &to->si_uid);
+ 		err |= __put_user(from->si_ptr, &to->si_ptr);
+ 		break;
++#ifdef __ARCH_SIGSYS
++	case __SI_SYS:
++		err |= __put_user(from->si_call_addr, &to->si_call_addr);
++		err |= __put_user(from->si_syscall, &to->si_syscall);
++		err |= __put_user(from->si_arch, &to->si_arch);
++		break;
++#endif
+ 	default: /* this is just in case for now ... */
+ 		err |= __put_user(from->si_pid, &to->si_pid);
+ 		err |= __put_user(from->si_uid, &to->si_uid);
 -- 
 1.7.5.4
 
