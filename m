@@ -1,84 +1,199 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:36175 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757367Ab2BYDWm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 22:22:42 -0500
-Received: by ghrr11 with SMTP id r11so1466683ghr.19
-        for <linux-arch@vger.kernel.org>; Fri, 24 Feb 2012 19:22:41 -0800 (PST)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:45102 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932294Ab2BYDWw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Feb 2012 22:22:52 -0500
+Received: by mail-yx0-f174.google.com with SMTP id m8so1458620yen.19
+        for <linux-arch@vger.kernel.org>; Fri, 24 Feb 2012 19:22:52 -0800 (PST)
 MIME-Version: 1.0
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v11 02/12] net/compat.c,linux/filter.h: share compat_sock_fprog
-Date: Fri, 24 Feb 2012 21:21:41 -0600
-Message-ID: <1330140111-17201-2-git-send-email-wad@chromium.org>
+Subject: [PATCH v11 07/12] seccomp: add SECCOMP_RET_ERRNO
+Date: Fri, 24 Feb 2012 21:21:46 -0600
+Message-ID: <1330140111-17201-7-git-send-email-wad@chromium.org>
 In-Reply-To: <1330140111-17201-1-git-send-email-wad@chromium.org>
 References: <1330140111-17201-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120225032141.7uehMV91X_nJjaey3wW_obpsX1jHRVBiqn3AFbcNIIE@z>
+Message-ID: <20120225032146.oUJbkZvUDQ-D1EIBs-Lnvm4Ilwslg2TqVzZKzgutSyQ@z>
 
-Any other users of bpf_*_filter that take a struct sock_fprog from
-userspace will need to be able to also accept a compat_sock_fprog
-if the arch supports compat calls.  This change let's the existing
-compat_sock_fprog be shared.
+This change adds the SECCOMP_RET_ERRNO as a valid return value from a
+seccomp filter.  Additionally, it makes the first use of the lower
+16-bits for storing a filter-supplied errno.  16-bits is more than
+enough for the errno-base.h calls.
+
+Returning errors instead of immediately terminating processes that
+violate seccomp policy allow for broader use of this functionality
+for kernel attack surface reduction.  For example, a linux container
+could maintain a whitelist of pre-existing system calls but drop
+all new ones with errnos.  This would keep a logically static attack
+surface while providing errnos that may allow for graceful failure
+without the downside of do_exit() on a bad call.
+
+v11: - check for NULL filter (keescook@chromium.org)
+v10: - change loaders to fn
+ v9: - n/a
+ v8: - update Kconfig to note new need for syscall_set_return_value.
+     - reordered such that TRAP behavior follows on later.
+     - made the for loop a little less indent-y
+ v7: - introduced
 
 Signed-off-by: Will Drewry <wad@chromium.org>
-
-v11: introduction
 ---
- include/linux/filter.h |   11 +++++++++++
- net/compat.c           |    8 --------
- 2 files changed, 11 insertions(+), 8 deletions(-)
+ arch/Kconfig            |    6 ++++--
+ include/linux/seccomp.h |   15 +++++++++++----
+ kernel/seccomp.c        |   42 ++++++++++++++++++++++++++++++++----------
+ 3 files changed, 47 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/filter.h b/include/linux/filter.h
-index bdd02f9..f052f5c 100644
---- a/include/linux/filter.h
-+++ b/include/linux/filter.h
-@@ -10,6 +10,7 @@
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 7c6bd48..dd4e067 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -203,8 +203,10 @@ config HAVE_ARCH_SECCOMP_FILTER
+ 	bool
+ 	help
+ 	  This symbol should be selected by an architecure if it provides
+-	  asm/syscall.h, specifically syscall_get_arguments() and
+-	  syscall_get_arch().
++	  asm/syscall.h, specifically syscall_get_arguments(),
++	  syscall_get_arch(), and syscall_set_return_value().  Additionally,
++	  its system call entry path must respect a return value of -1 from
++	  __secure_computing_int() and/or secure_computing().
  
- #ifdef __KERNEL__
- #include <linux/atomic.h>
-+#include <linux/compat.h>
- #endif
+ config SECCOMP_FILTER
+ 	def_bool y
+diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
+index 6e69274..93c2d98 100644
+--- a/include/linux/seccomp.h
++++ b/include/linux/seccomp.h
+@@ -12,13 +12,14 @@
  
  /*
-@@ -135,6 +136,16 @@ struct sock_fprog {	/* Required for SO_ATTACH_FILTER. */
+  * All BPF programs must return a 32-bit value.
+- * The bottom 16-bits are reserved for future use.
++ * The bottom 16-bits are for optional return data.
+  * The upper 16-bits are ordered from least permissive values to most.
+  *
+  * The ordering ensures that a min_t() over composed return values always
+  * selects the least permissive choice.
+  */
+ #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
++#define SECCOMP_RET_ERRNO	0x00030000U /* returns an errno */
+ #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
  
- #ifdef __KERNEL__
+ /* Masks for the return value sections. */
+@@ -64,11 +65,17 @@ struct seccomp {
+ 	struct seccomp_filter *filter;
+ };
  
-+#ifdef CONFIG_COMPAT
+-extern void __secure_computing(int);
+-static inline void secure_computing(int this_syscall)
 +/*
-+ * A struct sock_filter is architecture independent.
++ * Direct callers to __secure_computing should be updated as
++ * CONFIG_HAVE_ARCH_SECCOMP_FILTER propagates.
 + */
-+struct compat_sock_fprog {
-+	u16		len;
-+	compat_uptr_t	filter;		/* struct sock_filter * */
-+};
-+#endif
-+
- struct sk_buff;
- struct sock;
- 
-diff --git a/net/compat.c b/net/compat.c
-index 6def90e..c5c61c8 100644
---- a/net/compat.c
-+++ b/net/compat.c
-@@ -326,14 +326,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
- 	__scm_destroy(scm);
++extern void __secure_computing(int) __deprecated;
++extern int __secure_computing_int(int);
++static inline int secure_computing(int this_syscall)
+ {
+ 	if (unlikely(test_thread_flag(TIF_SECCOMP)))
+-		__secure_computing(this_syscall);
++		return  __secure_computing_int(this_syscall);
++	return 0;
  }
  
--/*
-- * A struct sock_filter is architecture independent.
-- */
--struct compat_sock_fprog {
--	u16		len;
--	compat_uptr_t	filter;		/* struct sock_filter * */
--};
--
- static int do_set_attach_filter(struct socket *sock, int level, int optname,
- 				char __user *optval, unsigned int optlen)
+ extern long prctl_get_seccomp(void);
+diff --git a/kernel/seccomp.c b/kernel/seccomp.c
+index 25e8296..3b3a16e 100644
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@ -134,22 +134,23 @@ static void *bpf_load(const void *nr, int off, unsigned int size, void *buf)
+ static u32 seccomp_run_filters(int syscall)
  {
+ 	struct seccomp_filter *f;
+-	u32 ret = SECCOMP_RET_KILL;
+ 	static const struct bpf_load_fn fns = {
+ 		bpf_load,
+ 		sizeof(struct seccomp_data),
+ 	};
++	u32 ret = SECCOMP_RET_ALLOW;
+ 	const void *sc_ptr = (const void *)(uintptr_t)syscall;
+ 
++	/* Ensure unexpected behavior doesn't result in failing open. */
++	if (unlikely(current->seccomp.filter == NULL))
++		ret = SECCOMP_RET_KILL;
++
+ 	/*
+ 	 * All filters are evaluated in order of youngest to oldest. The lowest
+ 	 * BPF return value always takes priority.
+ 	 */
+-	for (f = current->seccomp.filter; f; f = f->prev) {
+-		ret = bpf_run_filter(sc_ptr, f->insns, &fns);
+-		if (ret != SECCOMP_RET_ALLOW)
+-			break;
+-	}
++	for (f = current->seccomp.filter; f; f = f->prev)
++		ret = min_t(u32, ret, bpf_run_filter(sc_ptr, f->insns, &fns));
+ 	return ret;
+ }
+ 
+@@ -292,6 +293,13 @@ static int mode1_syscalls_32[] = {
+ 
+ void __secure_computing(int this_syscall)
+ {
++	/* Filter calls should never use this function. */
++	BUG_ON(current->seccomp.mode == SECCOMP_MODE_FILTER);
++	__secure_computing_int(this_syscall);
++}
++
++int __secure_computing_int(int this_syscall)
++{
+ 	int mode = current->seccomp.mode;
+ 	int exit_code = SIGKILL;
+ 	int *syscall;
+@@ -305,16 +313,29 @@ void __secure_computing(int this_syscall)
+ #endif
+ 		do {
+ 			if (*syscall == this_syscall)
+-				return;
++				return 0;
+ 		} while (*++syscall);
+ 		break;
+ #ifdef CONFIG_SECCOMP_FILTER
+-	case SECCOMP_MODE_FILTER:
+-		if (seccomp_run_filters(this_syscall) == SECCOMP_RET_ALLOW)
+-			return;
++	case SECCOMP_MODE_FILTER: {
++		u32 action = seccomp_run_filters(this_syscall);
++		switch (action & SECCOMP_RET_ACTION) {
++		case SECCOMP_RET_ERRNO:
++			/* Set the low-order 16-bits as a errno. */
++			syscall_set_return_value(current, task_pt_regs(current),
++						 -(action & SECCOMP_RET_DATA),
++						 0);
++			return -1;
++		case SECCOMP_RET_ALLOW:
++			return 0;
++		case SECCOMP_RET_KILL:
++		default:
++			break;
++		}
+ 		seccomp_filter_log_failure(this_syscall);
+ 		exit_code = SIGSYS;
+ 		break;
++	}
+ #endif
+ 	default:
+ 		BUG();
+@@ -325,6 +346,7 @@ void __secure_computing(int this_syscall)
+ #endif
+ 	audit_seccomp(this_syscall);
+ 	do_exit(exit_code);
++	return -1;	/* never reached */
+ }
+ 
+ long prctl_get_seccomp(void)
 -- 
 1.7.5.4
 
