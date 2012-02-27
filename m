@@ -1,28 +1,52 @@
-From: Gerard <nouboh@gmail.com>
-Subject: Wii support completed?
-Date: Mon, 27 Feb 2012 20:15:58 +0100
-Message-ID: <CABQ0oKHtinL24hL6tV77fDErvxGzG0GVCoQUq3EhMnMBtduCtw@mail.gmail.com>
+From: Eric Paris <eparis@redhat.com>
+Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
+Date: Mon, 27 Feb 2012 14:25:33 -0500
+Message-ID: <1330370733.2542.18.camel@localhost>
+References: <1330140111-17201-1-git-send-email-wad@chromium.org>
+	 <1330140111-17201-6-git-send-email-wad@chromium.org>
+	 <20120226202828.GE3990@outflux.net>
+	 <CABqD9hbKU=EVagCfo25AZsNoq=hmzkeOxK6mE=q8m=Be-ZFb9w@mail.gmail.com>
+	 <1330361396.2542.11.camel@localhost>
+	 <CAGXu5jKJ7pYeULM=CvifpQ8jUoyH6Ska2Znx9tGjhz0tn5kZmQ@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vw0-f46.google.com ([209.85.212.46]:63204 "EHLO
-	mail-vw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754208Ab2B0TP7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 14:15:59 -0500
-Received: by vbbff1 with SMTP id ff1so1154855vbb.19
-        for <linux-arch@vger.kernel.org>; Mon, 27 Feb 2012 11:15:58 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <kernel-hardening-return-981-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <CAGXu5jKJ7pYeULM=CvifpQ8jUoyH6Ska2Znx9tGjhz0tn5kZmQ@mail.gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Will Drewry <wad@chromium.org>, Kees Cook <kees@ubuntu.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
-I have never had any problem compiling any 2.6.32 version with the
-mikep5 patches, but since the wii suport has been included in the
-mainline kernel (+2.6.33) I can't get it working. It seems that it
-executes kernel code because the blue led flashes, but I only see a
-black screen. So i'm wondering if the wii suport is completed or if
-some patches are missing.
+On Mon, 2012-02-27 at 10:55 -0800, Kees Cook wrote:
+> On Mon, Feb 27, 2012 at 8:49 AM, Eric Paris <eparis@redhat.com> wrote:
 
-Thanks,
+> You mean as used in audit_log_exit() ? It looks like that depends on a
+> lot of state cached in __audit_syscall_entry() and finally triggered
+> in __audit_syscall_exit() (and ..._free()). I don't think this is
+> really want seccomp wants to be involved in.
+> 
+> By CONFIG_AUDITSC, you mean CONFIG_AUDITSYSCALL? Without that set,
+> audit_seccomp is a no-op.
+> 
+> The reason compat needs to be reported (or rather, arch) is because
+> just reporting syscall is ambiguous. It either needs arch or compat to
+> distinguish it.
 
-Gerard
+Yes, that is what I mean and you are right.  You shouldn't push the
+syscall in this record either.  If !audit_dummy_context() you are
+already going to get arch, syscall, and a0-a4 in the associated audit
+record.  Please do not duplicate that info.
+
+It might make sense to have a separate audit_seccomp() path when
+audit_dummy_context() which includes arch, syscall, and a0-a4.
+
+It is my fault (85e7bac3) that we have syscall at all, but I'm on a new
+crusade to remove audit record duplication.  So I'd happily see a patch
+in this series that removes that instead of adds to it.
+
+-Eric
