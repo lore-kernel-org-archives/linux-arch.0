@@ -1,54 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60629 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751738Ab2B0T0W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Feb 2012 14:26:22 -0500
-Message-ID: <1330370733.2542.18.camel@localhost>
-Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
-From: Eric Paris <eparis@redhat.com>
-Date: Mon, 27 Feb 2012 14:25:33 -0500
-In-Reply-To: <CAGXu5jKJ7pYeULM=CvifpQ8jUoyH6Ska2Znx9tGjhz0tn5kZmQ@mail.gmail.com>
+Received: from mail-ey0-f174.google.com ([209.85.215.174]:32830 "EHLO
+	mail-ey0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754983Ab2B0TrW convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 14:47:22 -0500
+Received: by eaah12 with SMTP id h12so2347262eaa.19
+        for <linux-arch@vger.kernel.org>; Mon, 27 Feb 2012 11:47:21 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20120227175407.GD10608@redhat.com>
 References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	 <1330140111-17201-6-git-send-email-wad@chromium.org>
-	 <20120226202828.GE3990@outflux.net>
-	 <CABqD9hbKU=EVagCfo25AZsNoq=hmzkeOxK6mE=q8m=Be-ZFb9w@mail.gmail.com>
-	 <1330361396.2542.11.camel@localhost>
-	 <CAGXu5jKJ7pYeULM=CvifpQ8jUoyH6Ska2Znx9tGjhz0tn5kZmQ@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+	<1330140111-17201-10-git-send-email-wad@chromium.org>
+	<20120227175407.GD10608@redhat.com>
+Date: Mon, 27 Feb 2012 13:47:17 -0600
+Message-ID: <CABqD9hY1P7LfmBwQwSG7jDZmw6d_pZH4q2cZq_4ssjQUKRA32w@mail.gmail.com>
+Subject: Re: [PATCH v11 10/12] ptrace,seccomp: Add PTRACE_SECCOMP support
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Will Drewry <wad@chromium.org>, Kees Cook <kees@ubuntu.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
-Message-ID: <20120227192533.V1T3oKnGVZt7lCRoUETJV5WDQnbcaoJkzcDZ2HWHYzU@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Denys Vlasenko <dvlasenk@redhat.com>
+Message-ID: <20120227194717.Rsg6szX1wZDvJRr9_stKIBhg1LgitUSQaIdqRneY-gQ@z>
 
-On Mon, 2012-02-27 at 10:55 -0800, Kees Cook wrote:
-> On Mon, Feb 27, 2012 at 8:49 AM, Eric Paris <eparis@redhat.com> wrote:
+On Mon, Feb 27, 2012 at 11:54 AM, Oleg Nesterov <oleg@redhat.com> wrote:
+> On 02/24, Will Drewry wrote:
+>>
+>>  arch/Kconfig              |    1 +
+>>  include/linux/ptrace.h    |    7 +++++--
+>>  include/linux/seccomp.h   |    4 +++-
+>>  include/linux/tracehook.h |    6 ++++++
+>>  kernel/ptrace.c           |    4 ++++
+>>  kernel/seccomp.c          |   18 ++++++++++++++++++
+>
+> FYI, this conflicts with the changes -mm tree.
+>
+> The changes in ptrace.* confict with Denys's
+> "ptrace: simplify PTRACE_foo constants and PTRACE_SETOPTIONS code"
+>
+> The change in tracehook.h conflicts with
+> "ptrace: the killed tracee should not enter the syscall"
 
-> You mean as used in audit_log_exit() ? It looks like that depends on a
-> lot of state cached in __audit_syscall_entry() and finally triggered
-> in __audit_syscall_exit() (and ..._free()). I don't think this is
-> really want seccomp wants to be involved in.
-> 
-> By CONFIG_AUDITSC, you mean CONFIG_AUDITSYSCALL? Without that set,
-> audit_seccomp is a no-op.
-> 
-> The reason compat needs to be reported (or rather, arch) is because
-> just reporting syscall is ambiguous. It either needs arch or compat to
-> distinguish it.
+What's the best way to reconcile this in this day and age? I don't see
+these in kernel-next yet and I can't tell if there is a public -mm
+anywhere anymore.  I can use the patches from the mailing list with
+Denys's changes if that'd be good enough.  His cleanup will make this
+code even smaller!
 
-Yes, that is what I mean and you are right.  You shouldn't push the
-syscall in this record either.  If !audit_dummy_context() you are
-already going to get arch, syscall, and a0-a4 in the associated audit
-record.  Please do not duplicate that info.
+>> --- a/kernel/seccomp.c
+>> +++ b/kernel/seccomp.c
+>> @@ -354,6 +354,24 @@ int __secure_computing_int(int this_syscall)
+>>                       seccomp_send_sigsys(this_syscall, reason_code);
+>>                       return -1;
+>>               }
+>> +             case SECCOMP_RET_TRACE: {
+>> +                     int ret;
+>> +                     struct pt_regs *regs = task_pt_regs(current);
+>> +                     if (!(test_tsk_thread_flag(current, TIF_SYSCALL_TRACE)) ||
+>> +                         !(current->ptrace & PT_TRACE_SECCOMP))
+>> +                             return -1;
+>> +                     /*
+>> +                      * PT_TRACE_SECCOMP and seccomp.trace indicate whether
+>> +                      * tracehook_report_syscall_entry needs to signal the
+>> +                      * tracer.  This avoids race conditions in hand off and
+>> +                      * the requirement for TIF_SYSCALL_TRACE ensures that
+>> +                      * we are in the syscall slow path.
+>> +                      */
+>> +                     current->seccomp.trace = 1;
+>> +                     ret = tracehook_report_syscall_entry(regs);
+>> +                     current->seccomp.trace = 0;
+>> +                     return ret;
+>
+> To be honest, this interface looks a bit strange to me...
+>
+> Once again, sorry if this was already discussed. But perhaps it would
+> be better to introduce PTRACE_EVENT_SECCOMP/PTRACE_O_SECCOMP instead?
+>
+> SECCOMP_RET_TRACE: could simply do ptrace_event(PTRACE_EVENT_SECCOMP)
+> unconditionaly. The tracer can set the option and do PTRACE_CONT if it
+> doesn't want the system call notifications.
 
-It might make sense to have a separate audit_seccomp() path when
-audit_dummy_context() which includes arch, syscall, and a0-a4.
+Works for me - this also gets rid of the extra int for brief state
+tracking. I'll switch over to that in the next rev.  (More follow-ups
+to your reviews incoming too :).
 
-It is my fault (85e7bac3) that we have syscall at all, but I'm on a new
-crusade to remove audit record duplication.  So I'd happily see a patch
-in this series that removes that instead of adds to it.
-
--Eric
-
+Thanks!
+will
