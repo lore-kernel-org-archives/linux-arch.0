@@ -1,130 +1,92 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
-Date: Mon, 27 Feb 2012 12:49:10 -0800
-Message-ID: <CAGXu5jKvoxVLmLqV0DK9+hB38kPh0xTTHF=_sheRWvDoWusUyw@mail.gmail.com>
-References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	<1330140111-17201-6-git-send-email-wad@chromium.org>
-	<20120226202828.GE3990@outflux.net>
-	<CABqD9hbKU=EVagCfo25AZsNoq=hmzkeOxK6mE=q8m=Be-ZFb9w@mail.gmail.com>
-	<1330361396.2542.11.camel@localhost>
-	<CAGXu5jKJ7pYeULM=CvifpQ8jUoyH6Ska2Znx9tGjhz0tn5kZmQ@mail.gmail.com>
-	<1330370733.2542.18.camel@localhost>
-	<CAGXu5jKyLHLF+HuU=SLHJLg8AaOPJXoqq1=hOBy5oOvffA-xiQ@mail.gmail.com>
-	<1330374879.2542.24.camel@localhost>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
+Date: Mon, 27 Feb 2012 15:44:42 -0700
+Message-ID: <CAErSpo4YvyAhG1dCmtVhqNpCLj2oF4tCQ+UpU0oQYrG0nw+-ug@mail.gmail.com>
+References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
+ <1328425088-6562-10-git-send-email-yinghai@kernel.org> <CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
+ <1328738567.2903.45.camel@pasglop> <CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
+ <1328823358.2903.77.camel@pasglop> <20120223122536.6a2a7a6b@jbarnes-desktop>
+ <CAErSpo7_WGjitDZz4XH+77f65Uz1ynd5_USN+D17D09Eux1iQQ@mail.gmail.com>
+ <20120224142430.58f5e5ef@jbarnes-desktop> <CAE9FiQXx6wXaes1pbpM7SAHzndgr=N2D2g6LEWsB2_pf8+mgSA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1330374879.2542.24.camel@localhost>
-Sender: linux-doc-owner@vger.kernel.org
-To: Eric Paris <eparis@redhat.com>
-Cc: Will Drewry <wad@chromium.org>, Kees Cook <kees@ubuntu.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <CAE9FiQXx6wXaes1pbpM7SAHzndgr=N2D2g6LEWsB2_pf8+mgSA@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 27, 2012 at 12:34 PM, Eric Paris <eparis@redhat.com> wrote:
-> On Mon, 2012-02-27 at 12:00 -0800, Kees Cook wrote:
->> On Mon, Feb 27, 2012 at 11:25 AM, Eric Paris <eparis@redhat.com> wro=
-te:
->> > On Mon, 2012-02-27 at 10:55 -0800, Kees Cook wrote:
->> >> On Mon, Feb 27, 2012 at 8:49 AM, Eric Paris <eparis@redhat.com> w=
-rote:
->> >
->> >> You mean as used in audit_log_exit() ? It looks like that depends=
- on a
->> >> lot of state cached in __audit_syscall_entry() and finally trigge=
-red
->> >> in __audit_syscall_exit() (and ..._free()). I don't think this is
->> >> really want seccomp wants to be involved in.
->> >>
->> >> By CONFIG_AUDITSC, you mean CONFIG_AUDITSYSCALL? Without that set=
-,
->> >> audit_seccomp is a no-op.
->> >>
->> >> The reason compat needs to be reported (or rather, arch) is becau=
-se
->> >> just reporting syscall is ambiguous. It either needs arch or comp=
-at to
->> >> distinguish it.
->> >
->> > Yes, that is what I mean and you are right. =A0You shouldn't push =
-the
->> > syscall in this record either. =A0If !audit_dummy_context() you ar=
-e
->> > already going to get arch, syscall, and a0-a4 in the associated au=
-dit
->> > record. =A0Please do not duplicate that info.
+On Sat, Feb 25, 2012 at 12:47 AM, Yinghai Lu <yinghai@kernel.org> wrote=
+:
+> On Fri, Feb 24, 2012 at 2:24 PM, Jesse Barnes <jbarnes@virtuousgeek.o=
+rg> wrote:
+>> On Thu, 23 Feb 2012 12:51:30 -0800
+>> Bjorn Helgaas <bhelgaas@google.com> wrote:
+>>> 2) We already have a way to add resources to a root bus: the
+>>> pci_add_resource() used to add I/O port and MMIO apertures. =A0I th=
+ink
+>>> it'd be a lot simpler to just use that same interface for the bus
+>>> number aperture, e.g.,
+>>>
+>>> =A0 =A0 pci_add_resource(&resources, hose->io_space);
+>>> =A0 =A0 pci_add_resource(&resources, hose->mem_space);
+>>> =A0 =A0 pci_add_resource(&resources, hose->busnr_space);
+>>> =A0 =A0 bus =3D pci_scan_root_bus(dev, next_busno, pci_ops, sysdata=
+, &resources);
+>>>
+>>> This is actually a bit redundant, since "next_busno" should be the
+>>> same as hose->busnr_space->start. =A0So if we adopted this approach=
+, we
+>>> might want to eventually drop the "next_busno" argument.
 >>
->> Ah, in that case, please ignore the patch I just sent. Heh.
->>
->> > It might make sense to have a separate audit_seccomp() path when
->> > audit_dummy_context() which includes arch, syscall, and a0-a4.
->>
->> Ah! I think I understand what you mean now. If audit_dummy_context()=
-,
->> then the syscall, arch, and a0-a4 were not already collected. Gotcha=
-=2E
->>
->> How do you envision it looking? I still see it as two distinct event=
-s
->> (the syscall itself, and the rejection). Would you want those detail=
-s
->> added to the context structure to be reported at ..._exit() time? It
->> seems like context->type couldn't be used to see if those fields wer=
-e
->> valid.
->>
->> Something like:
->>
->> void __audit_seccomp(unsigned long syscall, long signr)
->> {
->> =A0 =A0 =A0 =A0 struct audit_buffer *ab;
->>
->> =A0 =A0 =A0 =A0 if (!audit_dummy_context()) {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct audit_context *context =3D cu=
-rrent->audit_context;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 context->syscall_signr =3D signr;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 context->syscall_ip =3D KSTK_EIP(cur=
-rent);
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return;
->> =A0 =A0 =A0 =A0 }
->>
->> =A0 =A0 =A0 =A0 ab =3D audit_log_start(NULL, GFP_KERNEL, AUDIT_ANOM_=
-ABEND);
->> =A0 =A0 =A0 =A0 audit_log_abend(ab, "seccomp", signr);
->> =A0 =A0 =A0 =A0 audit_log_format(ab, " syscall=3D%ld", syscall);
->> =A0 =A0 =A0 =A0 audit_log_format(ab, " ip=3D0x%lx", KSTK_EIP(current=
-));
->> =A0 =A0 =A0 =A0 audit_log_end(ab);
->> }
->>
->> And then report syscall_ip and syscall_signr if syscall_signr !=3D 0=
- in
->> the _exit()? I think everything else from audit_log_abend() will end
->> up in the _exit() report.
->>
->> > It is my fault (85e7bac3) that we have syscall at all, but I'm on =
-a new
->> > crusade to remove audit record duplication. =A0So I'd happily see =
-a patch
->> > in this series that removes that instead of adds to it.
->>
->> Well, I think the abend reporting is nice; I'd hate to see that
->> totally removed. The seccomp case is a bit different, I agree. I cou=
-ld
->> see it either way.
+>> Yeah that would be nice, the call would certainly make more sense th=
+at
+>> way.
 >
-> Once again I send you down a bad path. =A0Your original patch was the
-> best. =A0We should consider including a0-aX in a future version. =A0I=
- was
-> mistaken in foolishly believing that audit_syscall_entry() was done
-> before secure_computing(). =A0But if you look, that isn't the case.
-> Please pretend I never said anything as you had it right the first ti=
-me.
+> no, I don't think so.
+>
+> using pci_add_resource will need to create dummy resource abut bus ra=
+nge.
 
-Heh, okay. But now I know more about audit, so that's good. :)
+I don't see the problem here.  The bus number aperture is a
+fundamental property of a host bridge, and any firmware or native
+bridge driver that tells you about a bridge but doesn't tell you the
+bus number aperture is just broken.
 
--Kees
+Every arch already has struct resources for the MMIO and IO port
+regions available on the bus.  ACPI already has a resource for the bus
+number range.  It makes sense to me that the arch should supply a bus
+number resource.
 
---=20
-Kees Cook
-ChromeOS Security
+Conceptually, it's just like the MMIO and IO resources, so it makes
+sense to me that the code for bus numbers should look like the code
+for MMIO and IO ports.
+
+> there is lots of pci_scan_root_bus(), =A0and those user does not bus =
+end
+> yet before scan.
+> so could just hide pci_insert_busn_res in pci_scan_root_bus, and
+> update busn_res end there.
+
+pci_scan_child_bus() does NOT tell you the end of the bus number
+aperture, and we shouldn't pretend that it does.  It might give you a
+lower bound on the end of the aperture (as long as you're willing to
+trust the current PCI config and you don't change anything).
+
+> other arch like x86, ia64, powerpc, sparc, will insert exact bus rang=
+e
+> between pci_create_root_bus and
+> pci_scan_child_bus, will not need to update busn_res end.
+>
+> please check v7 of this patchset.
+>
+> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/=
+linux-yinghai.git
+> for-pci-busn-alloc
+
+I looked at your git tree, but I can't tell whether what's there is v7
+or not and it's too much trouble to try to figure it out.
+
+Bjorn
