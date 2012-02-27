@@ -1,94 +1,123 @@
 From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v11 10/12] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Mon, 27 Feb 2012 13:47:17 -0600
-Message-ID: <CABqD9hY1P7LfmBwQwSG7jDZmw6d_pZH4q2cZq_4ssjQUKRA32w@mail.gmail.com>
+Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
+Date: Mon, 27 Feb 2012 13:54:00 -0600
+Message-ID: <CABqD9hbtFDU_vgBOajG2jJxQoHubcwYWJuHPLjgZkZyjGkQ2uQ@mail.gmail.com>
 References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	<1330140111-17201-10-git-send-email-wad@chromium.org>
-	<20120227175407.GD10608@redhat.com>
+	<1330140111-17201-6-git-send-email-wad@chromium.org>
+	<20120227170922.GA10608@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <20120227175407.GD10608@redhat.com>
-Sender: linux-doc-owner@vger.kernel.org
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <20120227170922.GA10608@redhat.com>
+Sender: netdev-owner@vger.kernel.org
 To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Denys Vlasenko <dvlasenk@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 27, 2012 at 11:54 AM, Oleg Nesterov <oleg@redhat.com> wrote=
+On Mon, Feb 27, 2012 at 11:09 AM, Oleg Nesterov <oleg@redhat.com> wrote=
 :
+> Hello Will.
+>
+> I missed the previous discussions, and I don't think I can read
+> all these emails now. So I apologize in advance if this was already
+> discussed.
+
+No worries - any review is appreciated :)
+
 > On 02/24, Will Drewry wrote:
 >>
->> =A0arch/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
->> =A0include/linux/ptrace.h =A0 =A0| =A0 =A07 +++++--
->> =A0include/linux/seccomp.h =A0 | =A0 =A04 +++-
->> =A0include/linux/tracehook.h | =A0 =A06 ++++++
->> =A0kernel/ptrace.c =A0 =A0 =A0 =A0 =A0 | =A0 =A04 ++++
->> =A0kernel/seccomp.c =A0 =A0 =A0 =A0 =A0| =A0 18 ++++++++++++++++++
+>> =A0struct seccomp {
+>> =A0 =A0 =A0 int mode;
+>> + =A0 =A0 struct seccomp_filter *filter;
+>> =A0};
 >
-> FYI, this conflicts with the changes -mm tree.
->
-> The changes in ptrace.* confict with Denys's
-> "ptrace: simplify PTRACE_foo constants and PTRACE_SETOPTIONS code"
->
-> The change in tracehook.h conflicts with
-> "ptrace: the killed tracee should not enter the syscall"
+> Minor nit, it seems that the new member can be "ifdef CONFIG_SECCOMP_=
+=46ILTER"
 
-What's the best way to reconcile this in this day and age? I don't see
-these in kernel-next yet and I can't tell if there is a public -mm
-anywhere anymore.  I can use the patches from the mailing list with
-Denys's changes if that'd be good enough.  His cleanup will make this
-code even smaller!
+Good call - I'll add that.
 
->> --- a/kernel/seccomp.c
->> +++ b/kernel/seccomp.c
->> @@ -354,6 +354,24 @@ int __secure_computing_int(int this_syscall)
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 seccomp_send_sigsys(this=
-_syscall, reason_code);
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -1;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
->> + =A0 =A0 =A0 =A0 =A0 =A0 case SECCOMP_RET_TRACE: {
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 int ret;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct pt_regs *regs =3D t=
-ask_pt_regs(current);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (!(test_tsk_thread_flag=
-(current, TIF_SYSCALL_TRACE)) ||
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 !(current->ptrace =
-& PT_TRACE_SECCOMP))
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -1;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 /*
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* PT_TRACE_SECCOMP and =
-seccomp.trace indicate whether
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* tracehook_report_sysc=
-all_entry needs to signal the
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* tracer. =A0This avoid=
-s race conditions in hand off and
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* the requirement for T=
-IF_SYSCALL_TRACE ensures that
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* we are in the syscall=
- slow path.
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0*/
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 current->seccomp.trace =3D=
- 1;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D tracehook_report_s=
-yscall_entry(regs);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 current->seccomp.trace =3D=
- 0;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return ret;
+>> +static long seccomp_attach_filter(struct sock_fprog *fprog)
+>> +{
+>> + =A0 =A0 struct seccomp_filter *filter;
+>> + =A0 =A0 unsigned long fp_size =3D fprog->len * sizeof(struct sock_=
+filter);
+>> + =A0 =A0 long ret;
+>> +
+>> + =A0 =A0 if (fprog->len =3D=3D 0 || fprog->len > BPF_MAXINSNS)
+>> + =A0 =A0 =A0 =A0 =A0 =A0 return -EINVAL;
 >
-> To be honest, this interface looks a bit strange to me...
+> OK, this limits the memory PR_SET_SECCOMP can use.
 >
-> Once again, sorry if this was already discussed. But perhaps it would
-> be better to introduce PTRACE_EVENT_SECCOMP/PTRACE_O_SECCOMP instead?
+> But,
 >
-> SECCOMP_RET_TRACE: could simply do ptrace_event(PTRACE_EVENT_SECCOMP)
-> unconditionaly. The tracer can set the option and do PTRACE_CONT if i=
-t
-> doesn't want the system call notifications.
+>> + =A0 =A0 /*
+>> + =A0 =A0 =A0* If there is an existing filter, make it the prev and =
+don't drop its
+>> + =A0 =A0 =A0* task reference.
+>> + =A0 =A0 =A0*/
+>> + =A0 =A0 filter->prev =3D current->seccomp.filter;
+>> + =A0 =A0 current->seccomp.filter =3D filter;
+>> + =A0 =A0 return 0;
+>
+> this doesn't limit the number of filters, looks like a DoS.
+>
+> What if the application simply does prctl(PR_SET_SECCOMP, dummy_filte=
+r)
+> in an endless loop?
 
-Works for me - this also gets rid of the extra int for brief state
-tracking. I'll switch over to that in the next rev.  (More follow-ups
-to your reviews incoming too :).
+It consumes a massive amount of kernel memory and, maybe, the OOM
+killer gives it a boot :)
 
-Thanks!
+I wasn't sure what the normal convention was for avoiding memory
+consumption by user processes. Should I just add a sysctl and a
+per-task counter for the max number of filters?
+
+I'm fine doing whatever makes sense here.
+
+>
+>
+>> +static struct seccomp_filter *get_seccomp_filter(struct seccomp_fil=
+ter *orig)
+>> +{
+>> + =A0 =A0 if (!orig)
+>> + =A0 =A0 =A0 =A0 =A0 =A0 return NULL;
+>> + =A0 =A0 /* Reference count is bounded by the number of total proce=
+sses. */
+>> + =A0 =A0 atomic_inc(&orig->usage);
+>> + =A0 =A0 return orig;
+>> +}
+>> ...
+>> +void copy_seccomp(struct seccomp *child, const struct seccomp *pare=
+nt)
+>> +{
+>> + =A0 =A0 /* Other fields are handled by dup_task_struct. */
+>> + =A0 =A0 child->filter =3D get_seccomp_filter(parent->filter);
+>> +}
+>
+> This is purely cosmetic, but imho looks a bit confusing.
+>
+> We do not copy seccomp->mode and this is correct, it was already copi=
+ed
+> implicitely. So why do we copy ->filter? This is not "symmetrical", a=
+faics
+> you can simply do
+>
+> =A0 =A0 =A0 =A0void copy_seccomp(struct seccomp *child)
+> =A0 =A0 =A0 =A0{
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (child->filter)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0atomic_inc(child->filt=
+er->usage);
+>
+> But once again, this is cosmetic, feel free to ignore.
+
+Right now get_seccomp_filter does the NULL check, so really this could
+be reduced to adding an external get_seccomp_filter(p->seccomp.filter)
+in place of copy_seccomp().
+
+As to removing the extra arg, that should be fine since the parent
+can't drop its refcount when copy_seccomp is called.  At the very
+least, I can make that change so it reads more cleanly.
+
+thanks!
 will
