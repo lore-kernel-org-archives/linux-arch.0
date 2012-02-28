@@ -1,83 +1,74 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 23/24] PCI: Double checking setting for bus register and bus struct.
-Date: Tue, 28 Feb 2012 14:07:42 -0800
-Message-ID: <1330466863-28469-24-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/24] PCI: kill pci_fixup_parent_subordinate_busnr()
+Date: Tue, 28 Feb 2012 14:07:39 -0800
+Message-ID: <1330466863-28469-21-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26492 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757267Ab2B1WJn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:09:43 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-User could use setpci change bridge's bus register. that could make value of register
-and struct is out of sync.
-User later will use rescan to see the devices is moving.
+Now we can safely extend parent top and shrink them according iobusn_resource tree.
 
-In the rescaning, we need to double check the range and remove the old struct at first.
-
-to make thing working user may need have script to remove children devices under bridge
-at first, and then use setpci update bus register and then rescan.
+Don't need that any more.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   40 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 40 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   32 --------------------------------
+ 1 files changed, 0 insertions(+), 32 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 4a38ef4..67071b0 100644
+index f22a209..ba51902 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -850,6 +850,46 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 	    (primary != bus->number || secondary <= bus->number))
- 		broken = 1;
+@@ -639,22 +639,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
+ 	return child;
+ }
  
-+	if (!pass && dev->subordinate) {
-+		child = dev->subordinate;
-+		/*
-+		 * User could change bus register in bridge manually with
-+		 * setpci and rescan. So double check the setting, and remove
-+		 * old structs.  Don't set broken yet, let following check
-+		 * to see if the new setting good.
-+		 */
-+		if (primary != child->primary ||
-+		    secondary != child->secondary ||
-+		    subordinate != child->subordinate) {
-+			dev_info(&dev->dev,
-+				"someone changed bus register from pri:%02x, sec:%02x, sub:%02x to pri:%02x, sec:%02x, sub:%02x\n",
-+				child->primary, child->secondary, child->subordinate,
-+				primary, secondary, subordinate);
-+			if (!list_empty(&dev->subordinate->devices)) {
-+				u32 old_buses;
-+
-+				dev_info(&dev->dev,
-+				 "but children devices are not removed manually before that.\n");
-+				/*
-+				 * Try best to remove left children devices
-+				 * but we need to set bus register back, otherwise
-+				 * We can not access children device and stop them
-+				 */
-+				old_buses = (buses & 0xff000000)
-+				   | ((unsigned int)(child->primary)     <<  0)
-+				   | ((unsigned int)(child->secondary)   <<  8)
-+				   | ((unsigned int)(child->subordinate) << 16);
-+				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
-+							 old_buses);
-+				pci_stop_and_remove_behind_bridge(dev);
-+				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
-+							 buses);
-+			}
-+			pci_remove_bus(dev->subordinate);
-+			dev->subordinate = NULL;
-+		}
-+	}
-+
- 	/* more strict checking */
- 	if (!pass && !broken && !dev->subordinate)
- 		broken = pci_bridge_check_busn_broken(bus, dev,
+-static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+-{
+-	struct pci_bus *parent = child->parent;
+-
+-	/* Attempts to fix that up are really dangerous unless
+-	   we're going to re-assign all bus numbers. */
+-	if (!pcibios_assign_all_busses())
+-		return;
+-
+-	while (parent->parent && parent->subordinate < max) {
+-		parent->subordinate = max;
+-		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
+-		parent = parent->parent;
+-	}
+-}
+-
+ static void __devinit pci_bus_update_top(struct pci_bus *parent,
+ 		 long size, struct resource *parent_res)
+ {
+@@ -990,23 +974,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 
+ 		if (!is_cardbus) {
+ 			child->bridge_ctl = bctl;
+-			/*
+-			 * Adjust subordinate busnr in parent buses.
+-			 * We do this before scanning for children because
+-			 * some devices may not be detected if the bios
+-			 * was lazy.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+-			/* Now we can scan all subordinate buses... */
+ 			max = pci_scan_child_bus(child);
+-			/*
+-			 * now fix it up again since we have found
+-			 * the real value of max.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+-
+-		} else {
+-			pci_fixup_parent_subordinate_busnr(child, max);
+ 		}
+ 		/*
+ 		 * Set the subordinate bus number to its real value.
 -- 
 1.7.7
