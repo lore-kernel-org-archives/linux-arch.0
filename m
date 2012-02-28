@@ -1,58 +1,97 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/24] PCI, ia64: Register busn_res for root buses
-Date: Tue, 28 Feb 2012 14:07:31 -0800
-Message-ID: <1330466863-28469-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 04/24] PCI: Add busn_res operation functions
+Date: Tue, 28 Feb 2012 14:07:23 -0800
+Message-ID: <1330466863-28469-5-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
----
- arch/ia64/include/asm/pci.h |    1 +
- arch/ia64/pci/pci.c         |    5 +++++
- 2 files changed, 6 insertions(+), 0 deletions(-)
+will use them insert/update busn res in pci_bus
 
-diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
-index b22e5f5..6e54220 100644
---- a/arch/ia64/include/asm/pci.h
-+++ b/arch/ia64/include/asm/pci.h
-@@ -94,6 +94,7 @@ struct pci_controller {
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/pci.h |    3 +++
+ 2 files changed, 53 insertions(+), 0 deletions(-)
+
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 675d7ed..ed82369 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1678,6 +1678,56 @@ err_out:
+ 	return NULL;
+ }
  
- 	unsigned int windows;
- 	struct pci_window *window;
-+	struct resource busn;
- 
- 	void *platform_data;
- };
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d1ce320..b250f0f 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -332,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct acpi_device *device = root->device;
- 	int domain = root->segment;
- 	int bus = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
- 	struct pci_root_info info;
-@@ -372,6 +373,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		acpi_walk_resources(device->handle, METHOD_NAME__CRS,
- 			add_window, &info);
- 	}
-+	controller->busn.start = bus;
-+	controller->busn.end = busmax;
-+	conttoller->busn.flags = IORESOURCE_BUS;
-+	pci_add_resource(&info.resources, &controller->busn);
- 	/*
- 	 * See arch/x86/pci/acpi.c.
- 	 * The desired pci bus might already be scanned in a quirk. We
++void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
++{
++	struct resource *res = &b->busn_res;
++	struct resource *parent_res;
++	int ret;
++
++	res->start = bus;
++	res->end = bus_max;
++	res->flags = IORESOURCE_BUS;
++
++	/* no parent for root bus' busn_res */
++	if (!pci_is_root_bus(b)) {
++		parent_res = &b->parent->busn_res;
++
++		ret = insert_resource(parent_res, res);
++
++		dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR %s inserted under %pR\n",
++			res, ret ? "can not be" : "is", parent_res);
++	} else
++		dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR for root bus\n",
++			res);
++}
++
++void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
++{
++	struct resource *res = &b->busn_res;
++	struct resource old_res = *res;
++
++	res->end = bus_max;
++	dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR end updated to %pR\n",
++			&old_res, res);
++}
++
++void pci_bus_release_busn_res(struct pci_bus *b)
++{
++	struct resource *res = &b->busn_res;
++	int ret;
++
++	if (!res->flags)
++		return;
++
++	ret = release_resource(res);
++	dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR %s released\n",
++			res, ret ? "can not be" : "is");
++}
++
+ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+ 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 7c03852..e494759 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
+ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 				    struct pci_ops *ops, void *sysdata,
+ 				    struct list_head *resources);
++void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
++void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
++void pci_bus_release_busn_res(struct pci_bus *b);
+ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+ 					     struct pci_ops *ops, void *sysdata,
+ 					     struct list_head *resources);
 -- 
 1.7.7
