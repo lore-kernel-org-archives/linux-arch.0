@@ -1,59 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:38721 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754226Ab2B1WaE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:30:04 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/24] PCI, pciehp: Remove not needed bus number range checking
-Date: Tue, 28 Feb 2012 14:07:43 -0800
-Message-ID: <1330466863-28469-25-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:45124 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757347Ab2B1XbZ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 18:31:25 -0500
+Received: by wejx9 with SMTP id x9so1336246wej.19
+        for <linux-arch@vger.kernel.org>; Tue, 28 Feb 2012 15:31:24 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
+References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
+ <1330395009-29260-9-git-send-email-yinghai@kernel.org> <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Tue, 28 Feb 2012 16:31:04 -0700
+Message-ID: <CAErSpo72_JnUkWXrzbNdbX9wiWZtQdX2tuNjEpYrSd+sGzxfzA@mail.gmail.com>
+Subject: Re: [PATCH 08/18] PCI, powerpc: Register busn_res for root buses
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120228220743.6_ZZJtFnotv4H5-Ss3MaCodqrVdIKCnG-QtBLkzotfI@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20120228233104.muQLKbZU3tNENIhoYNxSpAd2xeGxSXNYnfhGwTMYdx0@z>
 
-Found hotplug adding one EM with bridge fail, bios only leave one bus range
- for slot.
+On Mon, Feb 27, 2012 at 10:36 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Mon, Feb 27, 2012 at 7:09 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>> Cc: Paul Mackerras <paulus@samba.org>
+>> Cc: linuxppc-dev@lists.ozlabs.org
+>> ---
+>>  arch/powerpc/kernel/pci-common.c |    7 ++++++-
+>>  1 files changed, 6 insertions(+), 1 deletions(-)
+>>
+>> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+>> index 910b9de..ae5ae5f 100644
+>> --- a/arch/powerpc/kernel/pci-common.c
+>> +++ b/arch/powerpc/kernel/pci-common.c
+>> @@ -1660,6 +1660,8 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+>>        bus->secondary = hose->first_busno;
+>>        hose->bus = bus;
+>>
+>> +       pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
+>> +
+>>        /* Get probe mode and perform scan */
+>>        mode = PCI_PROBE_NORMAL;
+>>        if (node && ppc_md.pci_probe_mode)
+>> @@ -1670,8 +1672,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+>>                of_scan_bus(node, bus);
+>>        }
+>>
+>> -       if (mode == PCI_PROBE_NORMAL)
+>> +       if (mode == PCI_PROBE_NORMAL) {
+>> +               pci_bus_update_busn_res_end(bus, 255);
+>>                hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
+>> +               pci_bus_update_busn_res_end(bus, bus->subordinate);
+>> +       }
+>
+> There's a lot of powerpc code that does this:
+>
+>    bus_range = of_get_property(pcictrl, "bus-range", &len);
+>    hose->first_busno = bus_range[0];
+>    hose->last_busno = bus_range[1];
+>
+> That *looks* like it is discovering the bus number aperture.  Is it?
+> If it is, why are we using the largest bus number found by
+> pci_scan_child_bus() rather than "last_busno"?
 
-[ 1169.621444] pciehp: No bus number available for hot-added bridge 0000:55:00.0
-[ 1169.633277] pcieport 0000:40:03.0: PCI bridge to [bus 55-55]
+Sorry, I missed the earlier hunk of the patch where you *do* use last_busno:
 
-With busn_res tracking and allocating, we don't need that checking anymore.
+>> +       pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
 
-Parent bridges' bus number will be extended safely.
+I still think this part is wrong:
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/hotplug/pciehp_pci.c |   12 +-----------
- 1 files changed, 1 insertions(+), 11 deletions(-)
++       if (mode == PCI_PROBE_NORMAL) {
++               pci_bus_update_busn_res_end(bus, 255);
+               hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
++               pci_bus_update_busn_res_end(bus, bus->subordinate);
 
-diff --git a/drivers/pci/hotplug/pciehp_pci.c b/drivers/pci/hotplug/pciehp_pci.c
-index 47d9dc0..e21171c 100644
---- a/drivers/pci/hotplug/pciehp_pci.c
-+++ b/drivers/pci/hotplug/pciehp_pci.c
-@@ -37,18 +37,8 @@
- static int __ref pciehp_add_bridge(struct pci_dev *dev)
- {
- 	struct pci_bus *parent = dev->bus;
--	int pass, busnr, start = parent->secondary;
--	int end = parent->subordinate;
-+	int pass, busnr = parent->secondary;
- 
--	for (busnr = start; busnr <= end; busnr++) {
--		if (!pci_find_bus(pci_domain_nr(parent), busnr))
--			break;
--	}
--	if (busnr-- > end) {
--		err("No bus number available for hot-added bridge %s\n",
--				pci_name(dev));
--		return -1;
--	}
- 	for (pass = 0; pass < 2; pass++)
- 		busnr = pci_scan_bridge(parent, dev, busnr, pass);
- 	if (!dev->subordinate)
--- 
-1.7.7
+I think there are two problems:
 
+1) We can enumerate devices under the wrong PHB.  Assume this:
+
+PCI host bridge A to [bus 00]
+pci 0000:00:01.0: PCI bridge
+PCI host bridge B to [bus 01]
+pci 0000:01:01.0: PCI endpoint
+
+The P2P bridge at 00:01.0 has no devices below it, but of course we
+can't tell that until we look behind it.  To do that, we'll have to
+assign a bus number, and since we forced the bus number aperture to
+[bus 00-ff] instead of the correct [bus 00], we'll probably allocate
+bus number 01 as the secondary bus.  Then we'll generate a config
+cycle for 01:01.0, which discovers a device.  But we can't tell that
+the cycle was actually claimed by host bridge B, not A.  So now we
+wrongly think that 01:01.0 is under A, so we can't handle its
+resources correctly.
+
+I think we should have failed when allocating a secondary bus number
+for 00:01.0 and just skipped looking behind it.
+
+2) We preclude hot-add in some cases.  For example, if we scan this topology:
+
+PCI host bridge C to [bus 00-7f]
+pci 0000:00:01.0: PCI bridge to [bus 01]
+pci 0000:01:01.0: PCI endpoint
+
+we set the root bus's subordinate bus number to 01 (the highest bus
+number we discovered), so we now think host bridge C leads only to
+[bus 00-01].  Now let's remove 01:01.0 and plug in a card with a
+bridge on it, e.g.,
+
+pci 0000:01:01.0: PCI bridge to ...
+pci 0000:xx:01.0: PCI endpoint
+
+We can't allocate a bus number for 01:01.0's secondary bus because we
+think we're out of space.  But we're really not; the true bus number
+aperture for C is [bus 00-7f], not [bus 00-01].
+
+We may need mechanism to say "don't trust this info from the
+firmware," but we should be able to figure out a way that doesn't
+penalize platforms that do everything correctly.  The current patch
+breaks these scenarios even when the platform firmware is 100%
+correct.
+
+Bjorn
