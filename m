@@ -1,103 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26344 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26341 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030416Ab2B1WJY (ORCPT
+	with ESMTP id S1030241Ab2B1WJY (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:09:24 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/24] PCI: Add busn_res operation functions
-Date: Tue, 28 Feb 2012 14:07:23 -0800
-Message-ID: <1330466863-28469-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/24] PCI: release busn when removing bus
+Date: Tue, 28 Feb 2012 14:07:24 -0800
+Message-ID: <1330466863-28469-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120228220723.MPlfQW-NnMMQBULdOsDxYszzc4wrQCkF42Q1qD7iU2M@z>
-
-will use them insert/update busn res in pci_bus
+Message-ID: <20120228220724.68x7c4pxfWj_C8QcO0UWzyyrnM9ZKEfLEHUZJklKkZg@z>
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 53 insertions(+), 0 deletions(-)
+ drivers/pci/remove.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 675d7ed..ed82369 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1678,6 +1678,56 @@ err_out:
- 	return NULL;
- }
+diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
+index fd77e2b..04a4861 100644
+--- a/drivers/pci/remove.c
++++ b/drivers/pci/remove.c
+@@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
  
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource *parent_res;
-+	int ret;
-+
-+	res->start = bus;
-+	res->end = bus_max;
-+	res->flags = IORESOURCE_BUS;
-+
-+	/* no parent for root bus' busn_res */
-+	if (!pci_is_root_bus(b)) {
-+		parent_res = &b->parent->busn_res;
-+
-+		ret = insert_resource(parent_res, res);
-+
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s inserted under %pR\n",
-+			res, ret ? "can not be" : "is", parent_res);
-+	} else
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR for root bus\n",
-+			res);
-+}
-+
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource old_res = *res;
-+
-+	res->end = bus_max;
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR end updated to %pR\n",
-+			&old_res, res);
-+}
-+
-+void pci_bus_release_busn_res(struct pci_bus *b)
-+{
-+	struct resource *res = &b->busn_res;
-+	int ret;
-+
-+	if (!res->flags)
-+		return;
-+
-+	ret = release_resource(res);
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s released\n",
-+			res, ret ? "can not be" : "is");
-+}
-+
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 7c03852..e494759 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-+void pci_bus_release_busn_res(struct pci_bus *b);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
+ 	down_write(&pci_bus_sem);
+ 	list_del(&pci_bus->node);
++	pci_bus_release_busn_res(pci_bus);
+ 	up_write(&pci_bus_sem);
+ 	if (!pci_bus->is_added)
+ 		return;
 -- 
 1.7.7
 
