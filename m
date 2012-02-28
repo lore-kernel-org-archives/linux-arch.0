@@ -1,42 +1,36 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 06/18] PCI, ia64: Register busn_res for root buses
-Date: Mon, 27 Feb 2012 18:09:57 -0800
-Message-ID: <1330395009-29260-7-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 02/18] PCI: Add busn_res into struct pci_bus.
+Date: Mon, 27 Feb 2012 18:09:53 -0800
+Message-ID: <1330395009-29260-3-git-send-email-yinghai@kernel.org>
 References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
----
- arch/ia64/pci/pci.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+will use it to have bus number resource tree.
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d1ce320..bc59e950 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -332,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct acpi_device *device = root->device;
- 	int domain = root->segment;
- 	int bus = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
- 	struct pci_root_info info;
-@@ -385,6 +386,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		return NULL;
- 	}
+-v2: remove iobusn_resource
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
+ include/linux/pci.h |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index d93d3ae..7c03852 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -419,6 +419,7 @@ struct pci_bus {
+ 	struct list_head slots;		/* list of slots on this bus */
+ 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+ 	struct list_head resources;	/* address space routed to this bus */
++	struct resource busn_res;	/* track registered bus num range */
  
-+	pci_bus_insert_busn_res(pbus, busnum, busmax);
- 	pbus->subordinate = pci_scan_child_bus(pbus);
- 	return pbus;
- 
+ 	struct pci_ops	*ops;		/* configuration access functions */
+ 	void		*sysdata;	/* hook for sys-specific extension */
 -- 
 1.7.7
