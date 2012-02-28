@@ -1,52 +1,79 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 09/18] PCI, parisc: Register busn_res for root buses
-Date: Mon, 27 Feb 2012 18:10:00 -0800
-Message-ID: <1330395009-29260-10-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/18] PCI: Double checking setting for bus register and bus struct.
+Date: Mon, 27 Feb 2012 18:10:08 -0800
+Message-ID: <1330395009-29260-18-git-send-email-yinghai@kernel.org>
 References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-parisc-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
-Sender: linux-parisc-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Kyle McMartin <kyle@mcmartin.ca>
-Cc: Helge Deller <deller@gmx.de>
-Cc: linux-parisc@vger.kernel.org
----
- drivers/parisc/dino.c    |    2 ++
- drivers/parisc/lba_pci.c |    3 +++
- 2 files changed, 5 insertions(+), 0 deletions(-)
+User could use setpci change bridge's bus register. that could make value of register
+and struct is out of sync.
+User later will use rescan to see the devices is moving.
 
-diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
-index 0610e91..ea3f483 100644
---- a/drivers/parisc/dino.c
-+++ b/drivers/parisc/dino.c
-@@ -999,7 +999,9 @@ static int __init dino_probe(struct parisc_device *dev)
- 		return 0;
- 	}
+In the rescaning, we need to double check the range and remove the old struct at first.
+
+to make thing working user may need have script to remove children devices under bridge
+at first, and then use setpci update bus register and then rescan.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ drivers/pci/probe.c |   40 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 40 insertions(+), 0 deletions(-)
+
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index a4ecae0..554839e 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -843,6 +843,46 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	    (primary != bus->number || secondary <= bus->number))
+ 		broken = 1;
  
-+	pci_bus_insert_busn_res(bus, dino_current_bus, 255);
- 	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_update_busn_res_end(bus, bus->subordinate);
- 
- 	/* This code *depends* on scanning being single threaded
- 	 * if it isn't, this global bus number count will fail
-diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
-index e885764..84fa239 100644
---- a/drivers/parisc/lba_pci.c
-+++ b/drivers/parisc/lba_pci.c
-@@ -1512,6 +1512,9 @@ lba_driver_probe(struct parisc_device *dev)
- 		return 0;
- 	}
- 
-+	pci_bus_insert_busn_res(lba_bus, lba_dev->hba.bus_num.start,
-+				lba_dev->hba.bus_num.end);
++	if (!pass && dev->subordinate) {
++		child = dev->subordinate;
++		/*
++		 * User could change bus register in bridge manually with
++		 * setpci and rescan. So double check the setting, and remove
++		 * old structs.  Don't set broken yet, let following check
++		 * to see if the new setting good.
++		 */
++		if (primary != child->primary ||
++		    secondary != child->secondary ||
++		    subordinate != child->subordinate) {
++			dev_info(&dev->dev,
++				"someone changed bus register from pri:%02x, sec:%02x, sub:%02x to pri:%02x, sec:%02x, sub:%02x\n",
++				child->primary, child->secondary, child->subordinate,
++				primary, secondary, subordinate);
++			if (!list_empty(&dev->subordinate->devices)) {
++				u32 old_buses;
 +
- 	lba_bus->subordinate = pci_scan_child_bus(lba_bus);
- 
- 	/* This is in lieu of calling pci_assign_unassigned_resources() */
++				dev_info(&dev->dev,
++				 "but children devices are not removed manually before that.\n");
++				/*
++				 * Try best to remove left children devices
++				 * but we need to set bus register back, otherwise
++				 * We can not access children device and stop them
++				 */
++				old_buses = (buses & 0xff000000)
++				   | ((unsigned int)(child->primary)     <<  0)
++				   | ((unsigned int)(child->secondary)   <<  8)
++				   | ((unsigned int)(child->subordinate) << 16);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 old_buses);
++				pci_stop_and_remove_behind_bridge(dev);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 buses);
++			}
++			pci_remove_bus(dev->subordinate);
++			dev->subordinate = NULL;
++		}
++	}
++
+ 	/* more strict checking */
+ 	if (!pass && !broken && !dev->subordinate)
+ 		broken = pci_bridge_check_busn_broken(bus, dev,
 -- 
 1.7.7
-
