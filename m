@@ -1,71 +1,149 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 08/18] PCI, powerpc: Register busn_res for root buses
-Date: Mon, 27 Feb 2012 22:36:48 -0700
-Message-ID: <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
-References: <1330395009-29260-1-git-send-email-yinghai@kernel.org> <1330395009-29260-9-git-send-email-yinghai@kernel.org>
+From: "Indan Zupancic" <indan@nul.nu>
+Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
+Date: Tue, 28 Feb 2012 07:51:57 +0100
+Message-ID: <b983ece9dc6209269876869188303518.squirrel@webmail.greenhost.nl>
+References: <1330140111-17201-1-git-send-email-wad@chromium.org>
+    <1330140111-17201-6-git-send-email-wad@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f42.google.com ([74.125.82.42]:44603 "EHLO
-	mail-ww0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751496Ab2B1FhK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 00:37:10 -0500
-Received: by wgbdt10 with SMTP id dt10so1896122wgb.1
-        for <linux-arch@vger.kernel.org>; Mon, 27 Feb 2012 21:37:08 -0800 (PST)
-In-Reply-To: <1330395009-29260-9-git-send-email-yinghai@kernel.org>
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:44608 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751922Ab2B1GwS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 01:52:18 -0500
+In-Reply-To: <1330140111-17201-6-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
 
-On Mon, Feb 27, 2012 at 7:09 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: linuxppc-dev@lists.ozlabs.org
-> ---
-> =A0arch/powerpc/kernel/pci-common.c | =A0 =A07 ++++++-
-> =A01 files changed, 6 insertions(+), 1 deletions(-)
+Hello,
+
+On Sat, February 25, 2012 04:21, Will Drewry wrote:
+> @@ -169,6 +170,7 @@ void free_task(struct task_struct *tsk)
+> 	free_thread_info(tsk->stack);
+> 	rt_mutex_debug_task_free(tsk);
+> 	ftrace_graph_exit_task(tsk);
+> +	put_seccomp_filter(tsk->seccomp.filter);
+> 	free_task_struct(tsk);
+> }
+> EXPORT_SYMBOL(free_task);
+> @@ -1113,6 +1115,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
+> 		goto fork_out;
 >
-> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/p=
-ci-common.c
-> index 910b9de..ae5ae5f 100644
-> --- a/arch/powerpc/kernel/pci-common.c
-> +++ b/arch/powerpc/kernel/pci-common.c
-> @@ -1660,6 +1660,8 @@ void __devinit pcibios_scan_phb(struct pci_cont=
-roller *hose)
-> =A0 =A0 =A0 =A0bus->secondary =3D hose->first_busno;
-> =A0 =A0 =A0 =A0hose->bus =3D bus;
+> 	ftrace_graph_init_task(p);
+> +	copy_seccomp(&p->seccomp, &current->seccomp);
+
+I agree it's more symmetrical when get_seccomp_filter() is used here
+directly instead of copy_seccomp(). That should put Kees at ease.
+
+> +static void seccomp_filter_log_failure(int syscall)
+> +{
+> +	int compat = 0;
+> +#ifdef CONFIG_COMPAT
+> +	compat = is_compat_task();
+> +#endif
+> +	pr_info("%s[%d]: %ssystem call %d blocked at 0x%lx\n",
+> +		current->comm, task_pid_nr(current),
+> +		(compat ? "compat " : ""),
+> +		syscall, KSTK_EIP(current));
+> +}
+
+This should be at least rate limited, but could be dropped altogether,
+as it's mostly useful for debugging filters. There is no kernel message
+when a process is killed because it exceeds a ulimit either. The death
+by SIGSYS is hopefully clear enough for users, and filter writers can
+return different errno values when debugging where it goes wrong.
+
+> +/**
+> + * bpf_load: checks and returns a pointer to the requested offset
+> + * @nr: int syscall passed as a void * to bpf_run_filter
+> + * @off: offset into struct seccomp_data to load from
+
+Must be aligned, that's worth mentioning.
+
+> + * @size: number of bytes to load (must be 4)
+> + * @buffer: temporary storage supplied by bpf_run_filter (4 bytes)
+
+'@buf'.
+
+> +/**
+> + * copy_seccomp: manages inheritance on fork
+> + * @child: forkee's seccomp
+> + * @parent: forker's seccomp
+> + *
+> + * Ensures that @child inherits filters if in use.
+> + */
+> +void copy_seccomp(struct seccomp *child, const struct seccomp *parent)
+> +{
+> +	/* Other fields are handled by dup_task_struct. */
+> +	child->filter = get_seccomp_filter(parent->filter);
+> +}
+> +#endif	/* CONFIG_SECCOMP_FILTER */
+
+Yeah, just get rid of this and use get_seccomp_filter directly, and make
+it return void instead of a pointer.
+
 >
-> + =A0 =A0 =A0 pci_bus_insert_busn_res(bus, hose->first_busno, hose->l=
-ast_busno);
-> +
-> =A0 =A0 =A0 =A0/* Get probe mode and perform scan */
-> =A0 =A0 =A0 =A0mode =3D PCI_PROBE_NORMAL;
-> =A0 =A0 =A0 =A0if (node && ppc_md.pci_probe_mode)
-> @@ -1670,8 +1672,11 @@ void __devinit pcibios_scan_phb(struct pci_con=
-troller *hose)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0of_scan_bus(node, bus);
-> =A0 =A0 =A0 =A0}
+> /*
+>  * Secure computing mode 1 allows only read/write/exit/sigreturn.
+> @@ -34,10 +293,11 @@ static int mode1_syscalls_32[] = {
+> void __secure_computing(int this_syscall)
+> {
+> 	int mode = current->seccomp.mode;
+> -	int * syscall;
+> +	int exit_code = SIGKILL;
+> +	int *syscall;
 >
-> - =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL)
-> + =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, 255);
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0hose->last_busno =3D bus->subordinate =
-=3D pci_scan_child_bus(bus);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, bus->s=
-ubordinate);
-> + =A0 =A0 =A0 }
+> 	switch (mode) {
+> -	case 1:
+> +	case SECCOMP_MODE_STRICT:
+> 		syscall = mode1_syscalls;
+> #ifdef CONFIG_COMPAT
+> 		if (is_compat_task())
+> @@ -48,6 +308,14 @@ void __secure_computing(int this_syscall)
+> 				return;
+> 		} while (*++syscall);
+> 		break;
+> +#ifdef CONFIG_SECCOMP_FILTER
+> +	case SECCOMP_MODE_FILTER:
+> +		if (seccomp_run_filters(this_syscall) == SECCOMP_RET_ALLOW)
+> +			return;
+> +		seccomp_filter_log_failure(this_syscall);
+> +		exit_code = SIGSYS;
 
-There's a lot of powerpc code that does this:
+Wouldn't it make more sense to always kill with SIGSYS, also for mode 1?
+I suppose it's too late for that now.
 
-    bus_range =3D of_get_property(pcictrl, "bus-range", &len);
-    hose->first_busno =3D bus_range[0];
-    hose->last_busno =3D bus_range[1];
+> +/**
+> + * prctl_set_seccomp: configures current->seccomp.mode
+> + * @seccomp_mode: requested mode to use
+> + * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
+> + *
+> + * This function may be called repeatedly with a @seccomp_mode of
+> + * SECCOMP_MODE_FILTER to install additional filters.  Every filter
+> + * successfully installed will be evaluated (in reverse order) for each system
+> + * call the task makes.
+> + *
+> + * It is not possible to transition change the current->seccomp.mode after
+> + * one has been set on a task.
 
-That *looks* like it is discovering the bus number aperture.  Is it?
-If it is, why are we using the largest bus number found by
-pci_scan_child_bus() rather than "last_busno"?
+That reads awkwardly, do you mean the mode can't be changed once it's set?
 
-Bjorn
+---
+
+Reviewed-by: Indan Zupancic <indan@nul.nu>
+
+All in all I'm quite happy with how the code is now, at least this bit.
+I'm still unsure about the networking patch and the 32-bit BPF on 64-bit
+archs mismatch.
+
+As for the unlimited filter count, I'm not sure how to fix that.
+The problem is that filters are inherited and shared. Limiting the
+list length (tree depth) helps a bit, then the total memory usage
+is limited by max number of processes. It may make sense to limit
+the total instruction count instead of the number of filters.
+
+Greetings,
+
+Indan
