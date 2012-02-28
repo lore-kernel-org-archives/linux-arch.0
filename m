@@ -1,97 +1,83 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/24] PCI: Add busn_res operation functions
-Date: Tue, 28 Feb 2012 14:07:23 -0800
-Message-ID: <1330466863-28469-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 23/24] PCI: Double checking setting for bus register and bus struct.
+Date: Tue, 28 Feb 2012 14:07:42 -0800
+Message-ID: <1330466863-28469-24-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26492 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757267Ab2B1WJn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:09:43 -0500
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-will use them insert/update busn res in pci_bus
+User could use setpci change bridge's bus register. that could make value of register
+and struct is out of sync.
+User later will use rescan to see the devices is moving.
+
+In the rescaning, we need to double check the range and remove the old struct at first.
+
+to make thing working user may need have script to remove children devices under bridge
+at first, and then use setpci update bus register and then rescan.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 53 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   40 ++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 40 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 675d7ed..ed82369 100644
+index 4a38ef4..67071b0 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1678,6 +1678,56 @@ err_out:
- 	return NULL;
- }
+@@ -850,6 +850,46 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	    (primary != bus->number || secondary <= bus->number))
+ 		broken = 1;
  
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource *parent_res;
-+	int ret;
++	if (!pass && dev->subordinate) {
++		child = dev->subordinate;
++		/*
++		 * User could change bus register in bridge manually with
++		 * setpci and rescan. So double check the setting, and remove
++		 * old structs.  Don't set broken yet, let following check
++		 * to see if the new setting good.
++		 */
++		if (primary != child->primary ||
++		    secondary != child->secondary ||
++		    subordinate != child->subordinate) {
++			dev_info(&dev->dev,
++				"someone changed bus register from pri:%02x, sec:%02x, sub:%02x to pri:%02x, sec:%02x, sub:%02x\n",
++				child->primary, child->secondary, child->subordinate,
++				primary, secondary, subordinate);
++			if (!list_empty(&dev->subordinate->devices)) {
++				u32 old_buses;
 +
-+	res->start = bus;
-+	res->end = bus_max;
-+	res->flags = IORESOURCE_BUS;
++				dev_info(&dev->dev,
++				 "but children devices are not removed manually before that.\n");
++				/*
++				 * Try best to remove left children devices
++				 * but we need to set bus register back, otherwise
++				 * We can not access children device and stop them
++				 */
++				old_buses = (buses & 0xff000000)
++				   | ((unsigned int)(child->primary)     <<  0)
++				   | ((unsigned int)(child->secondary)   <<  8)
++				   | ((unsigned int)(child->subordinate) << 16);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 old_buses);
++				pci_stop_and_remove_behind_bridge(dev);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 buses);
++			}
++			pci_remove_bus(dev->subordinate);
++			dev->subordinate = NULL;
++		}
++	}
 +
-+	/* no parent for root bus' busn_res */
-+	if (!pci_is_root_bus(b)) {
-+		parent_res = &b->parent->busn_res;
-+
-+		ret = insert_resource(parent_res, res);
-+
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s inserted under %pR\n",
-+			res, ret ? "can not be" : "is", parent_res);
-+	} else
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR for root bus\n",
-+			res);
-+}
-+
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource old_res = *res;
-+
-+	res->end = bus_max;
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR end updated to %pR\n",
-+			&old_res, res);
-+}
-+
-+void pci_bus_release_busn_res(struct pci_bus *b)
-+{
-+	struct resource *res = &b->busn_res;
-+	int ret;
-+
-+	if (!res->flags)
-+		return;
-+
-+	ret = release_resource(res);
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s released\n",
-+			res, ret ? "can not be" : "is");
-+}
-+
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 7c03852..e494759 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-+void pci_bus_release_busn_res(struct pci_bus *b);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
+ 	/* more strict checking */
+ 	if (!pass && !broken && !dev->subordinate)
+ 		broken = pci_bridge_check_busn_broken(bus, dev,
 -- 
 1.7.7
