@@ -1,92 +1,80 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 09/24] PCI, powerpc: Register busn_res for root buses
-Date: Mon, 27 Feb 2012 15:44:42 -0700
-Message-ID: <CAErSpo4YvyAhG1dCmtVhqNpCLj2oF4tCQ+UpU0oQYrG0nw+-ug@mail.gmail.com>
-References: <1328425088-6562-1-git-send-email-yinghai@kernel.org>
- <1328425088-6562-10-git-send-email-yinghai@kernel.org> <CAErSpo6BwznWf3rq4J2Ao+rrgR4yWqQ0mQGygkd2KmBuA1OD8g@mail.gmail.com>
- <1328738567.2903.45.camel@pasglop> <CAErSpo7ekGn-+Mnyz7KL=fVFH3Ed19AeE3MKkZWJ4bd0Jo7kCw@mail.gmail.com>
- <1328823358.2903.77.camel@pasglop> <20120223122536.6a2a7a6b@jbarnes-desktop>
- <CAErSpo7_WGjitDZz4XH+77f65Uz1ynd5_USN+D17D09Eux1iQQ@mail.gmail.com>
- <20120224142430.58f5e5ef@jbarnes-desktop> <CAE9FiQXx6wXaes1pbpM7SAHzndgr=N2D2g6LEWsB2_pf8+mgSA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAE9FiQXx6wXaes1pbpM7SAHzndgr=N2D2g6LEWsB2_pf8+mgSA@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-List-Id: linux-arch.vger.kernel.org
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 01/18] x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+Date: Mon, 27 Feb 2012 18:09:52 -0800
+Message-ID: <1330395009-29260-2-git-send-email-yinghai@kernel.org>
+References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:43131 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752736Ab2B1CLQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 21:11:16 -0500
+In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-On Sat, Feb 25, 2012 at 12:47 AM, Yinghai Lu <yinghai@kernel.org> wrote=
-:
-> On Fri, Feb 24, 2012 at 2:24 PM, Jesse Barnes <jbarnes@virtuousgeek.o=
-rg> wrote:
->> On Thu, 23 Feb 2012 12:51:30 -0800
->> Bjorn Helgaas <bhelgaas@google.com> wrote:
->>> 2) We already have a way to add resources to a root bus: the
->>> pci_add_resource() used to add I/O port and MMIO apertures. =A0I th=
-ink
->>> it'd be a lot simpler to just use that same interface for the bus
->>> number aperture, e.g.,
->>>
->>> =A0 =A0 pci_add_resource(&resources, hose->io_space);
->>> =A0 =A0 pci_add_resource(&resources, hose->mem_space);
->>> =A0 =A0 pci_add_resource(&resources, hose->busnr_space);
->>> =A0 =A0 bus =3D pci_scan_root_bus(dev, next_busno, pci_ops, sysdata=
-, &resources);
->>>
->>> This is actually a bit redundant, since "next_busno" should be the
->>> same as hose->busnr_space->start. =A0So if we adopted this approach=
-, we
->>> might want to eventually drop the "next_busno" argument.
->>
->> Yeah that would be nice, the call would certainly make more sense th=
-at
->> way.
->
-> no, I don't think so.
->
-> using pci_add_resource will need to create dummy resource abut bus ra=
-nge.
+Those two almost the same.
+Let pcibios_scan_root call pci_scan_bus_on_node instead.
 
-I don't see the problem here.  The bus number aperture is a
-fundamental property of a host bridge, and any firmware or native
-bridge driver that tells you about a bridge but doesn't tell you the
-bus number aperture is just broken.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/pci/common.c |   27 ++++-----------------------
+ 1 files changed, 4 insertions(+), 23 deletions(-)
 
-Every arch already has struct resources for the MMIO and IO port
-regions available on the bus.  ACPI already has a resource for the bus
-number range.  It makes sense to me that the arch should supply a bus
-number resource.
-
-Conceptually, it's just like the MMIO and IO resources, so it makes
-sense to me that the code for bus numbers should look like the code
-for MMIO and IO ports.
-
-> there is lots of pci_scan_root_bus(), =A0and those user does not bus =
-end
-> yet before scan.
-> so could just hide pci_insert_busn_res in pci_scan_root_bus, and
-> update busn_res end there.
-
-pci_scan_child_bus() does NOT tell you the end of the bus number
-aperture, and we shouldn't pretend that it does.  It might give you a
-lower bound on the end of the aperture (as long as you're willing to
-trust the current PCI config and you don't change anything).
-
-> other arch like x86, ia64, powerpc, sparc, will insert exact bus rang=
-e
-> between pci_create_root_bus and
-> pci_scan_child_bus, will not need to update busn_res end.
->
-> please check v7 of this patchset.
->
-> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/=
-linux-yinghai.git
-> for-pci-busn-alloc
-
-I looked at your git tree, but I can't tell whether what's there is v7
-or not and it's too much trouble to try to figure it out.
-
-Bjorn
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..8e04ec5 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -430,9 +430,7 @@ void __init dmi_check_pciprobe(void)
+ 
+ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ {
+-	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+-	struct pci_sysdata *sd;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -441,28 +439,10 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 		}
+ 	}
+ 
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
+-		printk(KERN_ERR "PCI: OOM, not probing PCI bus %02x\n", busnum);
+-		return NULL;
+-	}
+-
+-	sd->node = get_mp_bus_to_node(busnum);
+-
+-	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
+-	if (!bus) {
+-		pci_free_resource_list(&resources);
+-		kfree(sd);
+-	}
+-
+-	return bus;
++	return pci_scan_bus_on_node(busnum, &pci_root_ops,
++					get_mp_bus_to_node(busnum));
+ }
++
+ void __init pcibios_set_cache_line_size(void)
+ {
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
+@@ -656,6 +636,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	}
+ 	sd->node = node;
+ 	x86_pci_root_bus_resources(busno, &resources);
++	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
+ 	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+-- 
+1.7.7
